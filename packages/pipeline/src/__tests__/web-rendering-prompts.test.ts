@@ -180,4 +180,20 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain("Never collect answer fields at the bottom")
     expect(prompt).toContain("200% zoom")
   })
+
+  it("keeps meaningful images legible on mobile and content discoverable downstream", async () => {
+    const messages = await promptEngine.renderPrompt(
+      "web_generation_html",
+      generationContext(),
+    )
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("MEANINGFUL IMAGES ON SMALL SCREENS")
+    expect(prompt).toContain("at least about 80%")
+    expect(prompt).toContain("max-sm:w-full max-sm:max-w-none h-auto")
+    expect(prompt).toContain("DOWNSTREAM DISCOVERABILITY + INCLUSIVE ACCESS")
+    expect(prompt).toContain("Image Captions, Language, Speech/Voice")
+    expect(prompt).toContain('Do NOT add `tabindex="0"` to ordinary words')
+    expect(prompt).toContain("Custom interactive regions")
+  })
 })

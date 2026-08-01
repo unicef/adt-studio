@@ -11,7 +11,7 @@
 {%- for node in nodes -%}
 {%- unless forloop.first %} {% endunless -%}
 {%- if node.role == "image" -%}
-<img data-id="{{ node.node_id | escape }}" src="{{ node.image_url | escape }}">
+<img data-id="{{ node.node_id | escape }}" src="{{ node.image_url | escape }}" alt="" class="max-w-full h-auto object-contain">
 {%- elsif node.role == "math" -%}
 <span class="font-mono" data-id="{{ node.node_id | escape }}">{{ node.text | escape }}</span>
 {%- elsif node.role -%}

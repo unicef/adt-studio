@@ -408,11 +408,26 @@ function walkNode(
     }
 
     const dataId = node.attribs?.["data-id"]
+    if (
+      dataId !== undefined &&
+      (attribs["aria-hidden"] === "true" || hasAriaHiddenAncestor(node))
+    ) {
+      errors.push(
+        `Content data-id "${dataId}" is hidden from the accessibility tree. ` +
+          `Only decoration without a content data-id may use aria-hidden="true".`,
+      )
+    }
     if (tagName === "img") {
       if (dataId === undefined) {
         errors.push('<img> tag missing required "data-id" attribute')
       } else if (!imageIds.has(dataId)) {
         errors.push(`Invalid image data-id: "${dataId}"`)
+      }
+      if (attribs.alt === undefined) {
+        errors.push(
+          `<img data-id="${dataId ?? ""}"> is missing an alt attribute. ` +
+            `Use a useful alternative for meaningful images or alt="" only for verified decoration.`,
+        )
       }
     } else if (dataId !== undefined && tagName !== "section" && imageIds.has(dataId)) {
       errors.push(`Image data-id "${dataId}" must be used on an <img> tag`)

@@ -286,6 +286,32 @@ describe("validateSectionHtml", () => {
     )
   })
 
+  it("rejects an image without an alt attribute", () => {
+    const html = `
+      <section data-section-type="text_and_images" data-section-id="pg001_section">
+        <img data-id="pg001_im001" src="placeholder" />
+      </section>
+    `
+    const result = validateSectionHtml(html, [], ["pg001_im001"])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining("is missing an alt attribute"),
+    )
+  })
+
+  it("rejects provided content hidden from assistive technology", () => {
+    const html = `
+      <section data-section-type="text_only" data-section-id="pg001_section">
+        <div aria-hidden="true"><p data-id="pg001_tx001">Important content</p></div>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["pg001_tx001"], [])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Content data-id "pg001_tx001" is hidden'),
+    )
+  })
+
   it("rejects image data-ids on non-img elements", () => {
     const html = `
       <section>

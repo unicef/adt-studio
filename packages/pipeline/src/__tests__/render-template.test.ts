@@ -112,7 +112,7 @@ describe("createTemplateEngine", () => {
   it("supports recursive iteration over a tree", async () => {
     fs.writeFileSync(
       path.join(tmpDir, "loop.liquid"),
-      `<section>{% for node in nodes %}{% if node.role %}<p data-id="{{ node.node_id }}">{{ node.text }}</p>{% elsif node.structure == "image_group" %}<img data-id="{{ node.image_id }}" src="{{ node.image_url }}">{% endif %}{% endfor %}</section>`,
+      `<section>{% for node in nodes %}{% if node.role %}<p data-id="{{ node.node_id }}">{{ node.text }}</p>{% elsif node.structure == "image_group" %}<img data-id="{{ node.image_id }}" src="{{ node.image_url }}" alt="">{% endif %}{% endfor %}</section>`,
     )
 
     const engine = createTemplateEngine(tmpDir)
@@ -161,7 +161,7 @@ describe("renderSectionTemplate", () => {
   it("renders images with rewritten src URLs", async () => {
     fs.writeFileSync(
       path.join(tmpDir, "test_render.liquid"),
-      `<div id="content" class="container"><section data-section-type="{{ section_type }}" data-section-id="{{ section_id }}">{% for img in image_refs %}<img data-id="{{ img.image_id }}" src="{{ img.image_url }}">{% endfor %}</section></div>`,
+      `<div id="content" class="container"><section data-section-type="{{ section_type }}" data-section-id="{{ section_id }}">{% for img in image_refs %}<img data-id="{{ img.image_id }}" src="{{ img.image_url }}" alt="">{% endfor %}</section></div>`,
     )
 
     const input = makeInput({
@@ -218,7 +218,7 @@ describe("renderSectionTemplate", () => {
   it("handles mixed text leaves and images", async () => {
     fs.writeFileSync(
       path.join(tmpDir, "test_render.liquid"),
-      `<div id="content" class="container"><section data-section-type="{{ section_type }}" data-section-id="{{ section_id }}">{% for leaf in leaf_texts %}<p data-id="{{ leaf.text_id }}">{{ leaf.text }}</p>{% endfor %}{% for img in image_refs %}<img data-id="{{ img.image_id }}" src="{{ img.image_url }}">{% endfor %}</section></div>`,
+      `<div id="content" class="container"><section data-section-type="{{ section_type }}" data-section-id="{{ section_id }}">{% for leaf in leaf_texts %}<p data-id="{{ leaf.text_id }}">{{ leaf.text }}</p>{% endfor %}{% for img in image_refs %}<img data-id="{{ img.image_id }}" src="{{ img.image_url }}" alt="">{% endfor %}</section></div>`,
     )
 
     const input = makeInput({

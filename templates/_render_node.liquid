@@ -15,7 +15,7 @@
 {%- endcomment -%}
 {%- for node in nodes -%}
 {%- if node.role == "image" -%}
-<img data-id="{{ node.node_id | escape }}" src="{{ node.image_url | escape }}">
+<img data-id="{{ node.node_id | escape }}" src="{{ node.image_url | escape }}" alt="" class="w-full max-w-full h-auto object-contain">
 {%- elsif node.role == "heading" -%}
 <h2 data-id="{{ node.node_id | escape }}">{{ node.text | escape }}</h2>
 {%- elsif node.role == "caption" -%}
