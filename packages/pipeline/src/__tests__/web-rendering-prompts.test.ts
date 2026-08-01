@@ -165,4 +165,19 @@ describe("web rendering reading-order prompts", () => {
     expect(reviewPrompt).toContain("pollutes accessibility")
     expect(reviewPrompt).toContain("does NOT apply to missing or inconsistent recurring page-edge chrome")
   })
+
+  it("keeps each standalone activity response attached to its prompt", async () => {
+    const messages = await promptEngine.renderPrompt("activity_open_ended_answer", {
+      ...generationContext(),
+      section_type: "activity_open_ended_answer",
+      text_ids: ["q1"],
+      image_ids: [],
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain('data-question-response="item-N"')
+    expect(prompt).toContain("directly BELOW the question")
+    expect(prompt).toContain("Never collect answer fields at the bottom")
+    expect(prompt).toContain("200% zoom")
+  })
 })

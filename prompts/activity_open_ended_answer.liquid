@@ -45,7 +45,8 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 - Decision rule: "Does the learner need more than one line of vertical space to answer?" Yes → `<textarea>`. No → `<input type="text">`. When in doubt for a short labelled field (`Nombre:`, `Fecha:`, `Título:`), choose `<input>`. For an open question asking the learner to describe/explain/write about something, choose `<textarea>`.
 - Emit ONE editable element per distinct response field on the page. If the source page has many lines or blanks (one per question, one per sub-question, multiple lines under a single prompt), produce that many separate elements. Do NOT collapse multiple distinct response fields into a single element.
 - A "distinct response field" is a separate writing area — typically one per question, sub-question, bullet, or labelled prompt. Multiple ruled lines that visually belong to the SAME single question (e.g. three lines giving the learner room for one longer answer) collapse into ONE multi-line `<textarea>`. Lines that belong to DIFFERENT questions or prompts each get their own element.
-- Place each editable element immediately after the prompt/question it answers, in document order. Group prompt + input together visually (e.g. inside the same `<div>` with `mb-6`) so the learner sees them paired.
+- Place each editable element immediately after the prompt/question it answers, in document order. Every distinct pair MUST be one non-positioned block wrapper with a unique `data-question-response="item-N"` attribute, for example `<div data-question-response="item-1" class="mb-6 space-y-3"><p data-id="question-id">Question text</p><textarea ...></textarea></div>`. The exact prompt comes first and its field is the next content-bearing element. Never collect answer fields at the bottom, in a separate card, in another grid column, or beside a different question. Do not use absolute/fixed positioning, floats, negative margins, or CSS ordering on these wrappers or fields.
+- A missing word/phrase inside a sentence belongs inline at that exact gap (use a fill-in-the-blank activity). A standalone short-answer or open-ended question gets its field directly BELOW the question. At mobile, tablet, desktop, 200% zoom, and after translation, the question and field must remain in the same wrapper and reading order.
 - Required attributes on every editable element:
   - Base classes `p-2 border border-gray-400 rounded` plus the sizing classes from the table above (and `resize-none` on any `<textarea>`)
   - `data-aria-id="aria-X-Y-Z"` (sequential numbering — must be unique per element on the page)
@@ -95,7 +96,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
       </p>
 
       <!-- Short single-line answer → <input> -->
-      <div class="mb-4 flex items-center gap-3">
+      <div data-question-response="item-1" class="mb-4 flex items-center gap-3 max-sm:flex-col max-sm:items-stretch">
         <label class="font-semibold whitespace-nowrap" data-id="text-3">Name:</label>
         <input
           class="flex-1 p-2 border border-gray-400 rounded"
@@ -106,7 +107,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
       </div>
 
       <!-- Longer answer → <textarea> -->
-      <div class="mb-6">
+      <div data-question-response="item-2" class="mb-6 space-y-3">
         <p class="text-lg mb-2"><span data-id="text-4">1. What is the main idea of the story?</span></p>
         <textarea
           class="w-full p-2 border border-gray-400 rounded min-h-32 resize-none"
@@ -116,7 +117,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
       </div>
 
       <!-- Paragraph-length answer → taller <textarea> -->
-      <div class="mb-6">
+      <div data-question-response="item-3" class="mb-6 space-y-3">
         <p class="text-lg mb-2"><span data-id="text-5">2. Describe one lesson you learned and why it mattered.</span></p>
         <textarea
           class="w-full p-2 border border-gray-400 rounded min-h-48 resize-none"

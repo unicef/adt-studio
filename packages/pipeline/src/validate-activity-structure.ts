@@ -479,6 +479,84 @@ function openEndedInputsShouldHaveAriaLabel(
   return errors
 }
 
+/** Keep every standalone response field in the same responsive unit as the
+ * exact prompt it answers. Table cells use row/column headers instead. */
+function standaloneResponsesMustFollowTheirPrompt(
+  ctx: ActivityRuleContext,
+): string[] {
+  const errors: string[] = []
+  for (const input of findAll(ctx.section, isWritableTextInput)) {
+    if (input.attribs?.id === "filter-input") continue
+    if (findAncestor(input, (el) => tag(el, "table"))) continue
+
+    // Inline legacy fields may live inside the data-id prompt itself (for
+    // example "Name: <input>"). Their association is unambiguous.
+    const inlinePrompt = findAncestor(
+      input,
+      (el) =>
+        typeof attr(el, "data-id") === "string" &&
+        DomUtils.getText(el).replace(/\s+/g, " ").trim().length > 0,
+    )
+    if (inlinePrompt) continue
+
+    const wrapper = findAncestor(
+      input,
+      (el) => typeof attr(el, "data-question-response") === "string",
+    )
+    if (!wrapper) {
+      // Accept the equivalent legacy structure when the prompt and field are
+      // direct siblings. This is still an indivisible block-flow association;
+      // it also lets existing good pages be re-rendered into the explicit
+      // wrapper contract without being rejected in the transition.
+      const siblings = input.parent?.children ?? []
+      const inputSiblingIndex = siblings.indexOf(input)
+      let previousElement: Element | null = null
+      for (let i = inputSiblingIndex - 1; i >= 0; i -= 1) {
+        if (siblings[i]?.type !== "tag") continue
+        // An off-screen native label may sit between the visible prompt and
+        // its field; it improves accessibility but is not unrelated content.
+        if (tag(siblings[i], "label") && hasClass(siblings[i], "sr-only")) continue
+        previousElement = siblings[i]
+        break
+      }
+      const adjacentPrompt = previousElement
+        ? [previousElement, ...findAll(previousElement, () => true)].some(
+            (el) =>
+              typeof attr(el, "data-id") === "string" &&
+              DomUtils.getText(el).replace(/\s+/g, " ").trim().length > 0,
+          )
+        : false
+      if (!adjacentPrompt) {
+        errors.push(
+          `An <${input.name}> is not grouped with its question. Wrap each prompt and its own ` +
+            `editable field in one data-question-response="item-N" container, with the field ` +
+            `immediately after the prompt. This prevents answer spaces from drifting to another ` +
+            `question, card, or column at responsive widths.`,
+        )
+      }
+      continue
+    }
+
+    const ordered = findAll(wrapper, () => true)
+    const inputIndex = ordered.indexOf(input)
+    const hasEarlierPrompt = ordered
+      .slice(0, inputIndex)
+      .some(
+        (el) =>
+          typeof attr(el, "data-id") === "string" &&
+          DomUtils.getText(el).replace(/\s+/g, " ").trim().length > 0,
+      )
+    if (!hasEarlierPrompt) {
+      errors.push(
+        `The data-question-response="${attr(wrapper, "data-question-response") ?? ""}" ` +
+          `container places its <${input.name}> before any visible data-id prompt. Put the exact ` +
+          `question first and its answer field immediately below it in DOM and reading order.`,
+      )
+    }
+  }
+  return errors
+}
+
 // ---------------------------------------------------------------------------
 // Shared rules
 // ---------------------------------------------------------------------------
@@ -739,8 +817,14 @@ const FITB_RULES: ActivityRule[] = [
   { name: "unique-items", check: uniqueDataActivityItems },
 ]
 
+const FITB_QUESTION_RULES: ActivityRule[] = [
+  ...FITB_RULES,
+  { name: "responses-follow-prompts", check: standaloneResponsesMustFollowTheirPrompt },
+]
+
 const OPEN_ENDED_RULES: ActivityRule[] = [
   { name: "inputs-have-aria-label", check: openEndedInputsShouldHaveAriaLabel },
+  { name: "responses-follow-prompts", check: standaloneResponsesMustFollowTheirPrompt },
 ]
 
 const CUSTOM_RULES: ActivityRule[] = [
@@ -757,7 +841,7 @@ export const ACTIVITY_RULES: Record<string, ActivityRule[]> = {
   activity_multi_select: MULTI_SELECT_RULES,
   activity_underline_text: UNDERLINE_TEXT_RULES,
   activity_true_false: TRUE_FALSE_RULES,
-  activity_fill_in_the_blank: FITB_RULES,
+  activity_fill_in_the_blank: FITB_QUESTION_RULES,
   activity_fill_in_a_table: FITB_RULES,
   activity_open_ended_answer: OPEN_ENDED_RULES,
 }

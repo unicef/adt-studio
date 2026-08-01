@@ -543,8 +543,14 @@ describe("validateActivityStructure — open ended", () => {
   it("accepts a well-formed open-ended section", () => {
     const errs = check(`
       <section data-section-type="activity_open_ended_answer">
-        <input type="text" data-aria-id="aria-1-0-0" aria-label="Student name" />
-        <textarea data-aria-id="aria-1-0-1" aria-label="Describe what happened"></textarea>
+        <div data-question-response="item-1">
+          <label data-id="q1">Student name</label>
+          <input type="text" data-aria-id="aria-1-0-0" aria-label="Student name" />
+        </div>
+        <div data-question-response="item-2">
+          <p data-id="q2">Describe what happened</p>
+          <textarea data-aria-id="aria-1-0-1" aria-label="Describe what happened"></textarea>
+        </div>
       </section>
     `)
     expect(errs).toEqual([])
@@ -557,6 +563,57 @@ describe("validateActivityStructure — open ended", () => {
       </section>
     `)
     expect(errs.some((e) => e.includes("no accessible label"))).toBe(true)
+  })
+
+  it("flags an answer field detached from its question", () => {
+    const errs = check(`
+      <section data-section-type="activity_open_ended_answer">
+        <p data-id="q1">Why do plants need water?</p>
+        <div class="answers-at-the-bottom"><textarea aria-label="Answer"></textarea></div>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("not grouped with its question"))).toBe(true)
+  })
+
+  it("accepts a prompt and field as immediate block siblings during migration", () => {
+    const errs = check(`
+      <section data-section-type="activity_open_ended_answer">
+        <div>
+          <p><span data-id="q1">Why do plants need water?</span></p>
+          <textarea aria-label="Answer"></textarea>
+        </div>
+      </section>
+    `)
+    expect(errs).toEqual([])
+  })
+
+  it("flags a response wrapper that puts the field before the prompt", () => {
+    const errs = check(`
+      <section data-section-type="activity_open_ended_answer">
+        <div data-question-response="item-1">
+          <textarea aria-label="Answer"></textarea>
+          <p data-id="q1">Why do plants need water?</p>
+        </div>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("before any visible data-id prompt"))).toBe(true)
+  })
+
+  it("requires standalone fill-in fields to stay paired but exempts table cells", () => {
+    const detached = check(`
+      <section data-section-type="activity_fill_in_the_blank">
+        <p data-id="q1">Name the organ.</p>
+        <div class="answers-at-the-bottom"><input type="text" data-activity-item="item-1" /></div>
+      </section>
+    `)
+    expect(detached.some((e) => e.includes("not grouped with its question"))).toBe(true)
+
+    const table = check(`
+      <section data-section-type="activity_fill_in_a_table">
+        <table><tr><th data-id="h1">Organ</th><td><input type="text" data-activity-item="item-1" /></td></tr></table>
+      </section>
+    `)
+    expect(table).toEqual([])
   })
 
 })
