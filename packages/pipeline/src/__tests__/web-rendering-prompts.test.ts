@@ -110,6 +110,9 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain("marker and heading in one full-width row")
     expect(prompt).toContain("Never preserve a fixed/narrow heading column")
     expect(prompt).toContain("Scientific experiment/procedure callouts")
+    expect(prompt).toContain("NEVER render the experiment panel as a screenshot")
+    expect(prompt).toContain("visible semantic HTML")
+    expect(prompt).toContain("Results, and Conclusion prompt")
     expect(prompt).toContain("Aim, Materials, Procedure")
 
     const reviewMessages = await promptEngine.renderPrompt("visual_review", {
@@ -120,6 +123,7 @@ describe("web rendering reading-order prompts", () => {
     const reviewPrompt = reviewMessages.map(messageText).join("\n")
     expect(reviewPrompt).toContain("Repeated stage/definition entries")
     expect(reviewPrompt).toContain("Scientific experiment callouts flattened")
+    expect(reviewPrompt).toContain("rasterized as one screenshot/full-panel image")
   })
 
   it("requires full-width dotted leaders on every table-of-contents page", async () => {
