@@ -137,4 +137,32 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain("Check desktop and tablet widths")
     expect(prompt).toContain("reject replacing them with an unconnected parts list")
   })
+
+  it("preserves recurring page chrome without exposing decoration to assistive technology", async () => {
+    const generationMessages = await promptEngine.renderPrompt(
+      "web_generation_html",
+      generationContext(),
+    )
+    const generationPrompt = generationMessages.map(messageText).join("\n")
+
+    expect(generationPrompt).toContain("Recurring page chrome is part of the book's identity")
+    expect(generationPrompt).toContain("span this section's FULL height")
+    expect(generationPrompt).toContain('aria-hidden="true"')
+    expect(generationPrompt).toContain("pointer-events-none")
+    expect(generationPrompt).toContain("mobile and 200% zoom")
+    expect(generationPrompt).toContain("Do not invent a rail or color")
+    expect(generationPrompt).toContain("role-to-color mapping")
+
+    const reviewMessages = await promptEngine.renderPrompt("visual_review", {
+      nodes,
+      has_merged_content: false,
+      viewports: [{ label: "Desktop", width: 1280, tailwind_prefix: "" }],
+    })
+    const reviewPrompt = reviewMessages.map(messageText).join("\n")
+
+    expect(reviewPrompt).toContain("Missing, shortened, interrupted, wrongly colored")
+    expect(reviewPrompt).toContain("generic white/card treatment")
+    expect(reviewPrompt).toContain("pollutes accessibility")
+    expect(reviewPrompt).toContain("does NOT apply to missing or inconsistent recurring page-edge chrome")
+  })
 })

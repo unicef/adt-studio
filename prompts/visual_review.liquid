@@ -32,6 +32,7 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - No overlapping text or elements — content flows cleanly
 - Images are properly placed and sized, matching the general layout of the original
 - Visual hierarchy matches the original (headings, body text, captions, etc.)
+- Recurring book identity matches the corresponding region: side rails/page-edge colors, chapter accents, activity bars, callout fills, and repeated border treatments are present and use consistent role-to-color mappings
 - The page is responsive — content reflows gracefully at smaller viewports
 - Attractive appearance — subtle enhancements like light transparent backgrounds behind text for readability are encouraged
 
@@ -46,6 +47,8 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - A header/banner whose title or badge is misaligned or clipped — the banner background may span the full width, but its text must sit in the same centered `max-w-5xl` reading column as the body and must never be cut off
 - Text alignment that differs from the original — body text and headings that are left-aligned in the original should NOT be centered (and vice versa)
 - Layout that fundamentally differs from the original (e.g., wrong number of columns, completely wrong ordering)
+- Missing, shortened, interrupted, wrongly colored, or wrongly sided recurring page chrome. If a side rail, tinted edge, border strip, or repeated accent intersects the corresponding original region, require it across the full rendered section height so adjacent sections visually join without gaps. Reject a generic white/card treatment that erases this repeated book identity. Do not require chrome that is absent from the corresponding original region.
+- Decorative chrome that obscures content or pollutes accessibility: require it to be behind content, non-interactive, `aria-hidden="true"`, and `pointer-events-none`, with enough reserved padding for text, controls, answer spaces, enlarged content, and visible focus rings. At mobile/200% zoom it may narrow to preserve reading width, but should retain the recognizable book color. Reject decoration that duplicates readable text or carries meaning by color alone.
 - A large empty gap or dead whitespace beside a callout/sidebar panel — this happens when the body text is placed in a side-by-side row next to a tall sidebar and the remaining text continues below the whole row. Fix it by FLOATING the panel (`float-right w-[34%] ml-8 mb-6 max-lg:float-none max-lg:w-full max-lg:ml-0`) and letting all body paragraphs flow as ONE continuous column, so text wraps beside the panel and then continues full-width below it with no gap
 - Content that doesn't reflow at smaller viewports (overflowing, horizontal scroll)
 
@@ -57,7 +60,7 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - For a labeled diagram, the rule above applies only when the exact labels are visibly legible inside the PROVIDED EXTRACTED IMAGE, not merely visible in the original full-page reference. Extracted diagrams commonly omit vector labels; in that case the labels must be visible HTML.
 - Content images upscaled modestly to fill the reading column (do NOT reject or shrink them for this)
 - Responsive adaptations (e.g., a two-column layout stacking to single column on mobile, or overlay text flowing below the image on mobile instead of on top of it)
-- Color or background differences that maintain the overall feel
+- Minor color or background differences that maintain the overall feel; this allowance does NOT apply to missing or inconsistent recurring page-edge chrome, chapter colors, activity/exercise bars, or the book's repeated role-to-color mapping
 - Subtle styling improvements that enhance the appearance
 - Text that is not included on purpose (page numbers, other metadata)
 
