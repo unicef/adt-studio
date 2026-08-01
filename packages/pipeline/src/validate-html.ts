@@ -22,6 +22,7 @@ const WRITABLE_SECTION_TYPES = new Set([
   "activity_open_ended_answer",
   "activity_fill_in_the_blank",
   "activity_fill_in_a_table",
+  "activity_mixed",
 ])
 /**
  * Input `type` values that are NOT writable (radio/checkbox/submit/etc.).

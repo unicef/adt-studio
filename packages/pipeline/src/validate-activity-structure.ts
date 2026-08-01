@@ -855,6 +855,42 @@ export function validateActivityStructure(
   section: Element,
   sectionType: string,
 ): string[] {
+  if (sectionType === "activity_mixed") {
+    const groups = findAll(
+      section,
+      (el) => typeof attr(el, "data-activity-kind") === "string",
+    )
+    const supported = new Set([
+      "activity_multiple_choice",
+      "activity_true_false",
+      "activity_fill_in_the_blank",
+      "activity_open_ended_answer",
+    ])
+    const kinds = new Set<string>()
+    const errors: string[] = []
+    for (const group of groups) {
+      const kind = attr(group, "data-activity-kind")!
+      if (!supported.has(kind)) {
+        errors.push(`Mixed activity subgroup has unsupported data-activity-kind="${kind}".`)
+        continue
+      }
+      kinds.add(kind)
+      const nested = validateActivityStructure(group, kind)
+      errors.push(...nested.map((error) => `Mixed subgroup ${kind}: ${error}`))
+      const controls = findAll(group, (el) =>
+        tag(el, "input") || tag(el, "textarea") || tag(el, "select"),
+      )
+      if (controls.length === 0) {
+        errors.push(`Mixed subgroup ${kind} contains no interactive form control.`)
+      }
+    }
+    if (groups.length < 2 || kinds.size < 2) {
+      errors.push(
+        `activity_mixed must contain at least two data-activity-kind subgroups with different known mechanics.`,
+      )
+    }
+    return errors
+  }
   // Custom activities share one rule set, keyed by the `activity_custom` prefix
   // (the suffix — _jigsaw, _crossword, … — is free-form).
   const rules = sectionType.startsWith("activity_custom")

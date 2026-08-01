@@ -82,6 +82,21 @@ describe("web rendering reading-order prompts", () => {
     )
   })
 
+  it("requires accessible controls for every mechanic on a mixed exercise page", async () => {
+    const messages = await promptEngine.renderPrompt("web_generation_html", {
+      ...generationContext(),
+      section_type: "activity_mixed",
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("MIXED EXERCISE PAGE — REQUIRED INTERACTIVITY")
+    expect(prompt).toContain("data-activity-kind")
+    expect(prompt).toContain("one `<fieldset>` per question")
+    expect(prompt).toContain("exactly two labelled radios")
+    expect(prompt).toContain("data-question-response")
+    expect(prompt).toContain("immediately follows the question")
+  })
+
   it("preserves separated labels as an accessible labeled diagram", async () => {
     const diagramNodes = [{
       node_id: "diagram_group",

@@ -1737,3 +1737,40 @@ describe("[placeholder:...] marker stripping", () => {
     expect(result.sectionHtml).not.toContain("[placeholder:")
   })
 })
+
+describe("mixed activity pages", () => {
+  it("accepts multiple accessible mechanics inside one physical-page section", () => {
+    const html = `
+      <section data-section-type="activity_mixed" data-section-id="pg015_section">
+        <div data-activity-kind="activity_multiple_choice">
+          <fieldset>
+            <legend data-id="q1">Choose one</legend>
+            <label class="activity-option"><input type="radio" name="q1" data-activity-item="item-1"><span data-id="o1">A</span></label>
+            <label class="activity-option"><input type="radio" name="q1" data-activity-item="item-2"><span data-id="o2">B</span></label>
+          </fieldset>
+        </div>
+        <div data-activity-kind="activity_open_ended_answer">
+          <div data-question-response="item-3">
+            <p data-id="q2">Explain your answer.</p>
+            <textarea data-activity-item="item-3" aria-label="Answer to question 2"></textarea>
+          </div>
+        </div>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1", "o1", "o2", "q2"], [])
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it("rejects a mixed page that leaves a mechanic as static text", () => {
+    const html = `
+      <section data-section-type="activity_mixed" data-section-id="pg015_section">
+        <div data-activity-kind="activity_multiple_choice"><p data-id="q1">Choose one</p></div>
+        <div data-activity-kind="activity_open_ended_answer"><p data-id="q2">Explain.</p><textarea aria-label="Answer"></textarea></div>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1", "q2"], [])
+    expect(result.valid).toBe(false)
+    expect(result.errors.join("\n")).toContain("contains no interactive form control")
+  })
+})

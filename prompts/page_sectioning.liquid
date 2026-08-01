@@ -142,6 +142,8 @@ Sections PARTITION the top-level tree. They do NOT restructure it.
 
 {% if mode == "page" %}
 The entire page is always ONE section. Emit exactly one section containing all top-level nodes in reading order. Do NOT split the page under any circumstance, regardless of activity types, instruction blocks, headings, or visual breaks.
+
+When that one physical page contains TWO OR MORE different known learner-response mechanics, classify the single section as `activity_mixed` instead of `activity_other`. Keep each exercise part as a separate top-level `structure: "activity"` container in reading order, including its own instruction and questions. Examples of distinct mechanics are pick-one multiple choice, true/false judgment, fill-in-the-blank, and free-form writing. State the detected mechanics explicitly in the reasoning. `activity_mixed` preserves one source page while allowing every exercise part to become an appropriate accessible control; it is not permission to merge or omit content.
 {% else %}
 DEFAULT: the entire page is ONE section. Keep it as one section unless the split condition below applies.
 
@@ -189,6 +191,7 @@ The correct partition is TWO sections. Labeling the whole page `activity_other` 
 - Sentences with blanks → `activity_fill_in_the_blank`.
 - Grid table with empty cells → `activity_fill_in_a_table`.
 - `activity_other` is a last resort — only when the learning mechanic itself is genuinely unique (e.g. free drawing, crafts, physical movement). Never use `activity_other` to keep mixed mechanics in one section instead of splitting.
+- `activity_mixed` — only in `page` mode when the one physical page contains two or more different known response mechanics. Never use it for a single mechanic.
 
 ## Common mistakes — do NOT do these
 

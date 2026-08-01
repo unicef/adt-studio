@@ -146,6 +146,11 @@ section_types:
     is truly unique (e.g., free drawing, crafts, physical movement).
     Do NOT use this just because the physical action is circling, coloring,
     or underlining — classify based on the cognitive task, not the action.
+  activity_mixed: >
+    A single physical page containing two or more different known exercise
+    mechanics (for example multiple choice, true/false, and short answers).
+    Use this only in By Page mode, where the page must remain one section;
+    each mechanic is still rendered as its own accessible interactive group.
   other: >
     Any section that does not clearly fit any of the above types.
     Use this only as a last resort.
@@ -277,6 +282,14 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+  activity_mixed:
+    render_type: activity
+    config:
+      prompt: web_generation_html
+      max_retries: 5
+      timeout: 180
+      visual_refinement:
+        enabled: true
 
 section_render_strategies:
   activity_multiple_choice: activity_multiple_choice
@@ -288,6 +301,7 @@ section_render_strategies:
   activity_matching: activity_matching
   activity_sorting: activity_sorting
   activity_open_ended_answer: activity_open_ended_answer
+  activity_mixed: activity_mixed
 
 quiz_generation:
   # Style quizzes to match the book (typography + colors derived from the book).
