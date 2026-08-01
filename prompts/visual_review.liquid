@@ -38,6 +38,8 @@ This section combines content merged from MORE THAN ONE original page (for examp
 
 ## WHAT TO FIX
 - Overlapping text or elements (this is the most important issue to fix) — this INCLUDES a chapter badge, circle, or callout positioned with `absolute` that sits on top of body text. Fix it by keeping such elements in normal document flow (or floated with `float-right`), NOT absolutely positioned over the content
+- Repeated stage/definition entries that use a narrow heading column beside long prose on mobile. Reject any screenshot where a marker or heading (for example `(b) Seedling stage`) collides with, overlays, or squeezes its explanation. Require one full-width entry per stage, marker + heading together, followed by the explanation in normal flow at tablet/mobile widths.
+- Scientific experiment callouts flattened into ordinary prose or separated from their title band. Preserve the source's full-width colored experiment banner and tinted Aim/Materials/Procedure panel while stacking label/value rows safely on mobile.
 - Text hidden behind images — text overlays MUST have `z-10` or higher so they always render above images. Different browsers may stack elements differently, so explicit z-index is required
 - Content that is cut off or accidentally hidden (EXCEPTION: text intentionally hidden with `sr-only` — e.g. a transcription of words already baked into an image — is NOT a defect; leave it hidden, do not surface it)
 - Text that is genuinely unreadable — but do NOT treat the book's large accessible type as a defect, and NEVER shrink it (see the typography rule under RULES). The intentionally large text is required, even if the original page used smaller text

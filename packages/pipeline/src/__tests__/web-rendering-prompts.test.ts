@@ -99,6 +99,29 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain("immediately follows the question")
   })
 
+  it("prevents stage headings and experiment labels from overlapping prose on mobile", async () => {
+    const messages = await promptEngine.renderPrompt(
+      "web_generation_html",
+      generationContext(),
+    )
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("vertical definition sequence")
+    expect(prompt).toContain("marker and heading in one full-width row")
+    expect(prompt).toContain("Never preserve a fixed/narrow heading column")
+    expect(prompt).toContain("Scientific experiment/procedure callouts")
+    expect(prompt).toContain("Aim, Materials, Procedure")
+
+    const reviewMessages = await promptEngine.renderPrompt("visual_review", {
+      nodes,
+      has_merged_content: false,
+      viewports: [{ label: "Mobile", width: 390, tailwind_prefix: "max-sm:" }],
+    })
+    const reviewPrompt = reviewMessages.map(messageText).join("\n")
+    expect(reviewPrompt).toContain("Repeated stage/definition entries")
+    expect(reviewPrompt).toContain("Scientific experiment callouts flattened")
+  })
+
   it("preserves separated labels as an accessible labeled diagram", async () => {
     const diagramNodes = [{
       node_id: "diagram_group",
