@@ -1,4 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
+import { X } from "lucide-react"
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react"
 import { appConfigAtom } from "@/shared/state/config.atoms"
 import { signLanguageModeAtom, slVideoPositionAtom } from "@/shared/state/ui.atoms"
@@ -17,6 +18,7 @@ interface Position {
 export function SLVideo() {
   const features = useAtomValue(appConfigAtom).features
   const slMode = useAtomValue(signLanguageModeAtom)
+  const setSlMode = useSetAtom(signLanguageModeAtom)
   const videoFilename = useAtomValue(currentPageSignLanguageVideoAtom)
   const activeMedia = useAtomValue(activeMediaAtom)
   const setActiveMedia = useSetAtom(activeMediaAtom)
@@ -144,6 +146,18 @@ export function SLVideo() {
           )}
         />
       </div>
+      <button
+        type="button"
+        aria-label={t("close") || "Close"}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={() => {
+          videoRef.current?.pause()
+          setSlMode(false)
+        }}
+        className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/70 text-white/80 transition-colors hover:bg-black/90 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <X className="h-4 w-4" />
+      </button>
       <video
         ref={videoRef}
         key={src}
