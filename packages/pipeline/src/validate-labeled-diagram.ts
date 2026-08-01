@@ -11,7 +11,7 @@ interface HtmlNode {
 
 interface LabeledDiagram {
   imageId: string
-  labelIds: string[]
+  labels: Array<{ id: string; text: string }>
   captionIds: string[]
 }
 
@@ -32,7 +32,7 @@ function collectLabeledDiagrams(nodes: RenderNode[]): LabeledDiagram[] {
       if (image?.image_id && labels.length >= 2) {
         diagrams.push({
           imageId: image.image_id,
-          labelIds: labels.map((label) => label.node_id),
+          labels: labels.map((label) => ({ id: label.node_id, text: label.text ?? "" })),
           captionIds: leaves
             .filter((leaf) => leaf.role === "caption")
             .map((caption) => caption.node_id),
@@ -161,7 +161,7 @@ export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): stri
       errors.push(`Labeled diagram image "${diagram.imageId}" must have non-empty alt text.`)
     }
 
-    for (const labelId of diagram.labelIds) {
+    for (const { id: labelId } of diagram.labels) {
       const label = findByDataId(root, labelId)
       if (!label) continue // Base HTML validation reports this.
       if (isHidden(label)) {
@@ -199,7 +199,18 @@ export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): stri
       }
 
       if (leaderPrimitives.length > 0) {
-        for (const labelId of diagram.labelIds) {
+        const leaderSvgs = new Set(leaderPrimitives.map((leader) => closest(leader, "svg")).filter(Boolean))
+        for (const svg of leaderSvgs) {
+          const preserveAspectRatio =
+            svg?.attribs?.preserveAspectRatio ?? svg?.attribs?.preserveaspectratio
+          if (preserveAspectRatio?.trim().toLowerCase() === "none") {
+            errors.push(
+              "Labeled diagram leaders must preserve their SVG aspect ratio so feature coordinates do not drift.",
+            )
+          }
+        }
+
+        for (const { id: labelId, text: labelText } of diagram.labels) {
           const label = findByDataId(root, labelId)
           const link = closest(label, "a")
           const linkId = link?.attribs?.id ?? ""
@@ -215,6 +226,10 @@ export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): stri
           ) {
             errors.push(
               `Diagram label "${labelId}" must link to a focusable, accessibly named leader endpoint marker in the same <figure>.`,
+            )
+          } else if (target.attribs["aria-label"].trim() !== labelText.trim()) {
+            errors.push(
+              `Diagram label "${labelId}" must link to a marker named exactly "${labelText.trim()}".`,
             )
           }
 

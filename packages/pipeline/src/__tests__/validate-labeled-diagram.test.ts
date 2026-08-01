@@ -61,4 +61,12 @@ describe("validateLabeledDiagrams", () => {
       expect.stringContaining('leader for "stomach" must terminate exactly'),
     ]))
   })
+
+  it("rejects distorted leader coordinates and mismatched marker names", () => {
+    const html = `<section><figure><img data-id="digestive-system" alt="The digestive system"><ul><li data-diagram-callout class="flex gap-0"><a id="mouth-label" href="#mouth-target" class="bg-white"><span data-id="mouth">Mouth</span></a><svg viewBox="0 0 20 20" preserveAspectRatio="none"><line data-label-id="mouth" data-label-contact="start" aria-labelledby="mouth-label mouth-target" x1="0" y1="0" x2="10" y2="10"/><circle id="mouth-target" tabindex="0" aria-label="Stomach" cx="10" cy="10"/></svg></li><li data-diagram-callout class="flex gap-0"><svg viewBox="0 0 20 20"><line data-label-id="stomach" data-label-contact="end" aria-labelledby="stomach-label stomach-target" x1="10" y1="10" x2="20" y2="0"/><circle id="stomach-target" tabindex="0" aria-label="Stomach" cx="10" cy="10"/></svg><a id="stomach-label" href="#stomach-target" class="bg-white"><span data-id="stomach">Stomach</span></a></li></ul><figcaption data-id="caption">The digestive system</figcaption></figure></section>`
+    expect(validateLabeledDiagrams(html, nodes)).toEqual(expect.arrayContaining([
+      expect.stringContaining("must preserve their SVG aspect ratio"),
+      expect.stringContaining('label "mouth" must link to a marker named exactly "Mouth"'),
+    ]))
+  })
 })
