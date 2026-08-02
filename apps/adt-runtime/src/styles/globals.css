@@ -101,6 +101,13 @@ body[nav-position="bottom"] {
   padding-bottom: var(--nav-height);
 }
 
+body[data-activity-dock="bottom"] {
+  padding-bottom: calc(var(--nav-height) + 3.75rem);
+}
+body[data-activity-dock="top"] {
+  padding-top: calc(var(--nav-height) + 3.75rem);
+}
+
 /*
  * Accessibility — icon size.
  * Scales every SVG inside a dock-trigger button (and the dock activity X /

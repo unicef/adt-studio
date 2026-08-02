@@ -41,6 +41,7 @@ export function VolumeMenu() {
         side="top"
         align="center"
         sideOffset={8}
+        positionMethod="fixed"
         className={cn(
           "p-2 px-3 border-0",
           "bg-popover/95 text-popover-foreground backdrop-blur-md",
