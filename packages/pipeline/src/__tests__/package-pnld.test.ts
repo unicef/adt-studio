@@ -85,16 +85,56 @@ describe("rewriteContentPage", () => {
 
   it("injects a doc-pagebreak marker with the page number when provided", () => {
     const out = rewriteContentPage(raw, 25, "pt-BR")
-    expect(out).toContain('<p role="doc-pagebreak">')
+    expect(out).toContain('<p role="doc-pagebreak" class="sr-only">')
     expect(out).toContain('<span class="page_number" data-book="pagina"')
     expect(out).toContain('aria-label="vinte e cinco"')
     expect(out).toMatch(/>25<\/span>/)
     // sits at the top of <main>
-    expect(out).toMatch(/<main>\s*<p role="doc-pagebreak">/)
+    expect(out).toMatch(/<main>\s*<p role="doc-pagebreak" class="sr-only">/)
   })
 
   it("omits pagination when the page has no number", () => {
     expect(rewriteContentPage(raw, null, "pt-BR")).not.toContain("doc-pagebreak")
+  })
+
+  it("keeps the whole page-break marker visually hidden (sr-only, no stray numeral)", () => {
+    const out = rewriteContentPage(raw, 4, "en")
+    expect(out).toContain('<p role="doc-pagebreak" class="sr-only">')
+    // numeral stays in the DOM for VALIDE / AT, but under the sr-only paragraph
+    expect(out).toMatch(/class="sr-only"><span>Page <\/span><span class="page_number"/)
+    expect(out).not.toContain("screen-reader-only")
+  })
+
+  const overlayPage = `<!DOCTYPE html>
+<html lang="en-US">
+<head><meta charset="utf-8" /></head>
+<body class="min-h-screen flex items-center justify-center">
+  <main class="w-full">
+    <div id="content" data-fl-reference-width="1145" style="position:relative;width:1145px;height:692px;overflow:hidden" class="opacity-0">
+      <img src="images/pg004_im001.png" style="position:absolute;top:0;left:0;width:573px;height:692px">
+    </div>
+  </main>
+</body>
+</html>`
+
+  it("injects the reveal + scale script on overlay pages when fixedLayout", () => {
+    const out = rewriteContentPage(overlayPage, 4, "en", true)
+    expect(out).toContain(`classList.remove("opacity-0")`)
+    expect(out).toContain("data-fl-reference-width")
+    expect(out).toMatch(/translate\(-50%, -50%\) scale\(/)
+    // sits at the end of <body>, before the closing tag
+    expect(out).toMatch(/<\/script>\s*<\/body>/)
+  })
+
+  it("does not inject the fit script when fixedLayout is false", () => {
+    const out = rewriteContentPage(overlayPage, 4, "en", false)
+    expect(out).not.toContain(`classList.remove("opacity-0")`)
+  })
+
+  it("does not inject the fit script on reflowable pages even when fixedLayout", () => {
+    // `raw` has no #content[data-fl-reference-width] box
+    const out = rewriteContentPage(raw, 4, "en", true)
+    expect(out).not.toContain(`classList.remove("opacity-0")`)
   })
 
   it("adds lang to <body> (spec requires it; adt only sets it on <html>)", () => {
@@ -112,7 +152,7 @@ describe("rewriteContentPage", () => {
 
   it("uses the numeral (no spelled aria-label) for non-pt languages", () => {
     const out = rewriteContentPage(raw, 25, "en")
-    expect(out).toContain('<p role="doc-pagebreak">')
+    expect(out).toContain('<p role="doc-pagebreak" class="sr-only">')
     expect(out).not.toContain("aria-label=")
   })
 })

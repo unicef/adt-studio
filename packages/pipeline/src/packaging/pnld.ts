@@ -60,7 +60,15 @@ export function packagePnld(storage: Storage, options: PackagePnldOptions): void
 
   // Reader-override styles (reflowable column overrides / fixed-layout scaler).
   // Injected while pages still sit at the pnld/ root, before the reorg.
-  injectWebpubStyles(pnldDir, { fixedLayout: options.fixedLayout })
+  //
+  // `options.fixedLayout` only covers the extraction-based `fixed_layout`
+  // render strategy. LLM-overlay books render absolutely-positioned `#content`
+  // boxes (`data-fl-reference-width`, `opacity-0`) that are visually
+  // fixed-layout but report as reflowable — the reflowable override collapses
+  // their auto-height `#content` to zero, so the reader (LIP) shows a blank
+  // page. Detect the overlay signature directly and treat those as fixed too.
+  const fixedLayout = options.fixedLayout || hasFixedLayoutContent(pnldDir)
+  injectWebpubStyles(pnldDir, { fixedLayout })
 
   // ------------------------------------------------------------------
   // Read reading order + metadata (before the tree is reorganised)
@@ -86,7 +94,7 @@ export function packagePnld(storage: Storage, options: PackagePnldOptions): void
   // pageList maps each spine entry to its final `content/<section_id>.html`
   // href (adt names the first page `index.html`, which PNLD reserves for the
   // nav document, so every page is renamed to its section id).
-  const pageList = reorganize(pnldDir, rawPages, language)
+  const pageList = reorganize(pnldDir, rawPages, language, fixedLayout)
 
   // ------------------------------------------------------------------
   // Cover image (root). The reader requires cover.jpg/cover.jpeg, so a PNG
@@ -123,7 +131,12 @@ export function packagePnld(storage: Storage, options: PackagePnldOptions): void
  * and rewrite the internal references in each content page. Returns the final
  * page list (reading order) with `href` pointing at `content/<section_id>.html`.
  */
-function reorganize(pnldDir: string, rawPages: PageEntry[], language: string): PageEntry[] {
+function reorganize(
+  pnldDir: string,
+  rawPages: PageEntry[],
+  language: string,
+  fixedLayout: boolean,
+): PageEntry[] {
   const resourcesDir = path.join(pnldDir, "resources")
   const stylesDir = path.join(resourcesDir, "styles")
   const fontsDir = path.join(resourcesDir, "fonts")
@@ -200,7 +213,7 @@ function reorganize(pnldDir: string, rawPages: PageEntry[], language: string): P
   for (const [sectionId, html] of stagedPages) {
     fs.writeFileSync(
       path.join(contentDir, `${sectionId}.html`),
-      rewriteContentPage(html, pageNumbers.get(sectionId) ?? null, language),
+      rewriteContentPage(html, pageNumbers.get(sectionId) ?? null, language, fixedLayout),
     )
   }
 
@@ -219,6 +232,7 @@ export function rewriteContentPage(
   html: string,
   pageNumber: number | null = null,
   language = "pt-BR",
+  fixedLayout = false,
 ): string {
   let out = html
     .replace(/\.\/content\/tailwind_output\.css/g, "../resources/styles/tailwind_output.css")
@@ -269,6 +283,15 @@ export function rewriteContentPage(
     )
   }
 
+  // Fixed-layout / LLM-overlay pages ship an absolutely-positioned `#content`
+  // box that the ADT runtime normally reveals (`opacity-0` → visible) and the
+  // web reader normally scales. The runtime is stripped from the PNLD, so a
+  // self-contained script reveals `#content` and scales it to the reader
+  // viewport (LIP). Only injected on pages that actually carry the box.
+  if (fixedLayout && hasFixedLayoutBox(out)) {
+    out = out.replace(/<\/body>/i, `${fixedLayoutFitScript()}\n</body>`)
+  }
+
   // Pagination: one printed page per content file, marked at the top of <main>.
   if (pageNumber != null) {
     out = out.replace(/<main\b[^>]*>/i, (m) => `${m}\n${paginationMarkup(pageNumber, language)}`)
@@ -277,14 +300,80 @@ export function rewriteContentPage(
 }
 
 /**
+ * Self-contained scaler for the fixed-layout / LLM-overlay `#content` box.
+ * Replaces the ADT runtime (stripped from the PNLD) and the WebPub
+ * `fixedLayoutWebFit` script (never baked into these pages): removes the
+ * `opacity-0` gate, then centres and scales `#content` to fit the reader
+ * viewport by its authored `data-fl-reference-width` (falling back to the
+ * inline width). Re-fits on resize. No ADT dock var — LIP supplies its own
+ * chrome — so the whole viewport is available.
+ */
+function fixedLayoutFitScript(): string {
+  return `    <script>
+      (function () {
+        var c = document.getElementById("content");
+        if (!c) return;
+        c.classList.remove("opacity-0");
+        var H = parseFloat(c.style.height) || c.offsetHeight || 1;
+        var ref = parseFloat(c.getAttribute("data-fl-reference-width"));
+        var refW = ref > 0 ? ref : (parseFloat(c.style.width) || c.offsetWidth || 1);
+        function fit() {
+          var s = Math.min(1, window.innerWidth / refW, window.innerHeight / H);
+          c.style.position = "absolute";
+          c.style.left = "50%";
+          c.style.top = "50%";
+          c.style.margin = "0";
+          c.style.transformOrigin = "center center";
+          c.style.transform = "translate(-50%, -50%) scale(" + s + ")";
+          c.style.opacity = "1";
+          c.style.visibility = "visible";
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        window.addEventListener("load", fit);
+      })();
+    </script>`
+}
+
+/**
+ * True when the HTML carries an LLM-overlay / fixed-layout `#content` box — an
+ * absolutely-positioned wrapper scaled by `data-fl-reference-width`. Both the
+ * per-page fit-script injection and the book-level `hasFixedLayoutContent`
+ * detection key off this same signature.
+ */
+function hasFixedLayoutBox(html: string): boolean {
+  return /<div\b[^>]*\bid="content"[^>]*\bdata-fl-reference-width=/i.test(html)
+}
+
+/**
+ * True when any top-level `.html` page in `dir` carries a fixed-layout `#content`
+ * box. Runs after copy + strip, while the pages still sit at the pnld root
+ * (pre-reorg), to decide whether the fixed-layout reader overrides + scaler are
+ * needed even when the book's render strategy reports reflowable.
+ */
+function hasFixedLayoutContent(dir: string): boolean {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isFile() || !entry.name.endsWith(".html")) continue
+    if (hasFixedLayoutBox(fs.readFileSync(path.join(dir, entry.name), "utf-8"))) return true
+  }
+  return false
+}
+
+/**
  * The PNLD page-break marker (spec §pagination): a `doc-pagebreak` paragraph
  * with a screen-reader "Página" label and the numeral in a `page_number` span
  * carrying `data-book="pagina"` and a spelled-out `aria-label` (pt-BR).
+ *
+ * The whole paragraph is `sr-only`: the marker must stay in the DOM (VALIDE and
+ * screen-reader / reader page-list navigation resolve `data-book="pagina"`), but
+ * the numeral should not render inline — it sits in `<main>` outside the scaled
+ * `#content` box, so left visible it floats as a stray number at the page top,
+ * and the reader already shows the current page in its own chrome.
  */
 function paginationMarkup(pageNumber: number, language: string): string {
   const spoken = spellPageNumber(pageNumber, language)
   const aria = spoken ? ` aria-label="${escapeXml(spoken)}"` : ""
-  return `      <p role="doc-pagebreak"><span class="screen-reader-only">${escapeXml(pageWord(language))}</span><span class="page_number" data-book="pagina"${aria}>${pageNumber}</span></p>`
+  return `      <p role="doc-pagebreak" class="sr-only"><span>${escapeXml(pageWord(language))} </span><span class="page_number" data-book="pagina"${aria}>${pageNumber}</span></p>`
 }
 
 /** Rewrite `url(...)` font references in the relocated stylesheets. */
