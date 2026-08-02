@@ -14,6 +14,10 @@ const extraResources = [
   { from: "../api/dist-electron/mupdf-wasm.wasm", to: "./api/mupdf-wasm.wasm" },
   { from: "../api/dist-electron/index_bg.wasm", to: "./api/index_bg.wasm" },
   {
+    from: "../api/dist-electron/ort-wasm-simd-threaded.wasm",
+    to: "./api/ort-wasm-simd-threaded.wasm",
+  },
+  {
     from: "../../prompts",
     to: "prompts",
   },

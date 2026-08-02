@@ -18,15 +18,18 @@ export interface ApiServerPaths {
   configFolderPath: string;
   adtResourcesZip: string;
   webAssetsDir: string;
+  localTtsModelsDir: string;
 }
 
 export function resolvePaths(): ApiServerPaths {
   const appDataDir = app.getPath("userData");
   const booksDir = join(appDataDir, "books");
+  const localTtsModelsDir = join(appDataDir, "models", "tts");
 
   if (!existsSync(booksDir)) {
     mkdirSync(booksDir, { recursive: true });
   }
+  if (!existsSync(localTtsModelsDir)) mkdirSync(localTtsModelsDir, { recursive: true });
 
   const root = resolveAppResourcesRoot();
 
@@ -58,6 +61,7 @@ export function resolvePaths(): ApiServerPaths {
       configFolderPath,
       adtResourcesZip: join(root, "assets", "adt-resources.zip"),
       webAssetsDir: join(root, "assets", "adt"),
+      localTtsModelsDir,
     };
   }
 
@@ -70,5 +74,6 @@ export function resolvePaths(): ApiServerPaths {
     configFolderPath: join(root, "config"),
     adtResourcesZip: join(root, "assets", "adt-resources.zip"),
     webAssetsDir: join(root, "assets", "adt"),
+    localTtsModelsDir,
   };
 }

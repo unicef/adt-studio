@@ -34,7 +34,20 @@ Use the recommendation as a safe default. Faster GPUs and available memory bandw
 - The ADT API binds to `127.0.0.1` by default.
 - Model download contacts Ollama's registry.
 - No cloud LLM key is required.
-- Cloud TTS is skipped during local-first creation when no speech key is configured.
+- English TTS can run locally with a downloaded Kokoro ONNX model. Other languages stay explicitly routed to a configured cloud provider.
+
+## Local speech and exported ADTs
+
+In **Settings → Local AI → Local speech**, paste an `owner/model` ID or Hugging Face model URL, or search Hugging Face. ADT validates Kokoro compatibility before downloading the selected q8 model and voice into Electron `userData/models/tts`.
+
+Select **Local** in the Speech stage. The API runs Kokoro through `onnxruntime-web` WebAssembly, produces mono 24 kHz PCM16 WAV files, and passes them to the existing speech pipeline. Packaging copies those files into the final static HTML/JS ADT; the exported ADT does not load or run the model.
+
+Current limits:
+
+- Kokoro support is English (US/UK) only.
+- Sentence highlighting is fully offline. Per-word highlighting still needs the optional OpenAI Whisper alignment step.
+- Model download needs network access; synthesis and export work offline afterward.
+- Only compatible public, ungated Kokoro ONNX repositories are accepted.
 
 ## Optional OpenAI improvement pass
 
@@ -63,5 +76,5 @@ Supported stable ADT model IDs map to Ollama tags in `packages/llm/src/ollama.ts
 - **Ollama is not running:** open Ollama, then select **Check again**.
 - **Model is slow or memory pressure is high:** select the next smaller model and keep local concurrency at 1.
 - **Structured response retry:** expected occasionally. ADT validates Gemma's JSON and sends precise correction feedback.
-- **Speech has no audio:** configure OpenAI, Azure, or Gemini TTS, then run Speech separately. Gemma 4 is not a speech synthesizer.
+- **Speech has no audio:** download a Kokoro model and select **Local**, or configure OpenAI, Azure, or Gemini TTS. Gemma 4 itself is not a speech synthesizer.
 - **App cannot edit prompts/config after packaging:** current builds seed writable copies into Electron `userData`. Existing user changes are preserved on update.

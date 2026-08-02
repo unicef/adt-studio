@@ -131,6 +131,8 @@ ENV BOOKS_DIR=/app/books
 ENV PROMPTS_DIR=/app/prompts
 ENV TEMPLATES_DIR=/app/templates
 ENV CONFIG_PATH=/app/config.yaml
+ENV LOCAL_TTS_MODELS_DIR=/app/books/.models/tts
+ENV LOCAL_TTS_WASM_PATH=/app/apps/api/dist/ort-wasm-simd-threaded.wasm
 ENV PORT=3001
 
 EXPOSE 3001
@@ -213,6 +215,8 @@ ENV BOOKS_DIR=/app/books
 ENV PROMPTS_DIR=/app/prompts
 ENV TEMPLATES_DIR=/app/templates
 ENV CONFIG_PATH=/app/config.yaml
+ENV LOCAL_TTS_MODELS_DIR=/app/books/.models/tts
+ENV LOCAL_TTS_WASM_PATH=/app/apps/api/dist/ort-wasm-simd-threaded.wasm
 ENV PORT=3001
 
 EXPOSE 80

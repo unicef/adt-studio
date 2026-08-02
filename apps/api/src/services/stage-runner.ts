@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate } from "@adt/llm"
+import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate, createLocalHfTTSSynthesizer, readLocalHfManifest } from "@adt/llm"
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
@@ -617,6 +617,7 @@ function canReuseSpeechEntry(
     format: string
     geminiTemperature?: number
     geminiSeed?: number
+    providerVariant?: string
   },
 ): entry is SpeechFileEntry {
   if (!entry) return false
@@ -642,6 +643,7 @@ function canReuseSpeechEntry(
     provider: options.provider,
     geminiTemperature: options.geminiTemperature,
     geminiSeed: options.geminiSeed,
+    providerVariant: options.providerVariant,
   })
   const cachePath = resolveSpeechCachePath(options.cacheDir, cacheKey, options.format.toLowerCase())
   if (!cachePath || !fs.existsSync(cachePath)) return false
@@ -2594,6 +2596,13 @@ async function runSpeechStep(
     const defaultProvider = config.speech?.default_provider ?? "openai"
     const providerConfigs = config.speech?.providers ?? {}
     const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
+    const localModelsDir = process.env.LOCAL_TTS_MODELS_DIR
+    const providerVariant = (provider: string, model: string): string | undefined => {
+      if (provider !== "local-hf" || !localModelsDir) return undefined
+      const manifest = readLocalHfManifest(localModelsDir, model)
+      const providerConfig = providerConfigs[provider] ?? {}
+      return JSON.stringify({ revision: manifest.revision, dtype: manifest.dtype, modelFile: manifest.modelFile, speed: providerConfig.speed ?? 1 })
+    }
 
     if (
       config.default_model?.startsWith("ollama:") &&
@@ -2639,9 +2648,27 @@ async function runSpeechStep(
         synthesizers.set("gemini", synth)
         return synth
       }
-      const synth = createTTSSynthesizer(options.apiKey)
-      synthesizers.set(providerName, synth)
-      return synth
+      if (providerName === "local-hf") {
+        const providerConfig = providerConfigs[providerName] ?? {}
+        const modelsDir = process.env.LOCAL_TTS_MODELS_DIR
+        if (!modelsDir) throw new Error("LOCAL_TTS_MODELS_DIR is required for local speech")
+        const synth = createLocalHfTTSSynthesizer({
+          modelsDir,
+          adapter: providerConfig.adapter,
+          dtype: providerConfig.dtype,
+          device: providerConfig.device,
+          speed: providerConfig.speed,
+        })
+        synthesizers.set(providerName, synth)
+        return synth
+      }
+      if (providerName === "openai") {
+        if (!options.apiKey?.trim()) throw new Error("OpenAI API key is required for OpenAI TTS")
+        const synth = createTTSSynthesizer(options.apiKey)
+        synthesizers.set(providerName, synth)
+        return synth
+      }
+      throw new Error(`Unsupported TTS provider: ${providerName}`)
     }
 
     const sourceLanguage = language
@@ -2739,7 +2766,7 @@ async function runSpeechStep(
         const provider = resolveProviderForLanguage(lang, routing)
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-        const voice = resolveVoice(provider, lang, voiceMaps, config.speech?.voice)
+        const voice = resolveVoice(provider, lang, voiceMaps, providerConfigs[provider]?.voice ?? config.speech?.voice)
         // OpenAI consumes instructions via its `instructions` field; Gemini embeds
         // them in the prompt text (it rejects systemInstruction). Both paths must
         // resolve identically here and in the generation loop below so the cache key
@@ -2763,6 +2790,7 @@ async function runSpeechStep(
             format: outputFormat,
             geminiTemperature: config.speech?.temperature,
             geminiSeed: config.speech?.seed,
+            providerVariant: providerVariant(provider, providerModel),
           })
         ) {
           ttsResultsByLang.get(lang)?.push(existingEntry)
@@ -2933,7 +2961,12 @@ async function runSpeechStep(
         const provider = resolveProviderForLanguage(item.language, routing)
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-        const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
+        const voice = resolveVoice(
+          provider,
+          item.language,
+          voiceMaps,
+          providerConfigs[provider]?.voice ?? config.speech?.voice,
+        )
         // Must mirror the reuse-check above: OpenAI + Gemini both receive resolved
         // instructions (Gemini embeds them in the prompt text), Azure does not.
         const instructions =
@@ -2966,6 +2999,7 @@ async function runSpeechStep(
                 provider,
                 geminiTemperature: config.speech?.temperature,
                 geminiSeed: config.speech?.seed,
+                providerVariant: providerVariant(provider, providerModel),
                 signal: options.signal,
               })
               // A real (non-cached) success means the current rate held —
@@ -3146,7 +3180,10 @@ async function runSpeechStep(
 
     progress.emit({ type: "step-complete", step: "tts" })
 
-    const wordHighlightingEnabled = config.speech?.word_highlighting === true
+    const wordHighlightingEnabled = config.speech?.word_highlighting === true && Boolean(options.apiKey?.trim())
+    if (config.speech?.word_highlighting === true && !options.apiKey?.trim()) {
+      console.warn(`[stage-run] ${label}: word highlighting needs OpenAI Whisper; using sentence highlighting for this local run`)
+    }
     let wordTimestampsByLang = new Map<string, Record<string, WordTimestampEntry>>()
     let timestampFailedByLang = new Map<string, SpeechFailedEntry[]>()
     if (wordHighlightingEnabled) {

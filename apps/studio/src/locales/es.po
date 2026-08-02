@@ -882,8 +882,8 @@ msgstr "Añade una clave API en la configuración del libro para ejecutar extrac
 msgid "Add an API key in Book settings to run sectioning."
 msgstr "Añade una clave API en la configuración del libro para ejecutar seccionamiento."
 
-msgid "Add an API key in Book settings to run speech."
-msgstr "Añade una clave API en la configuración del libro para ejecutar voz."
+#~ msgid "Add an API key in Book settings to run speech."
+#~ msgstr "Añade una clave API en la configuración del libro para ejecutar voz."
 
 msgid "Add an API key in Book settings to run storyboard."
 msgstr "Añade una clave API en la configuración del libro para ejecutar storyboard."
@@ -2154,6 +2154,9 @@ msgstr "Comparar"
 msgid "Compared with fallback prompt."
 msgstr "Comparado con el prompt fallback."
 
+msgid "Compatible"
+msgstr "Compatible"
+
 msgid "Completed"
 msgstr "Completado"
 
@@ -2847,11 +2850,20 @@ msgstr "Hecho"
 msgid "DONE"
 msgstr "HECHO"
 
+msgid "Download"
+msgstr "Descargar"
+
 msgid "Download a full backup of this project"
 msgstr "Descargar una copia de seguridad completa de este proyecto"
 
 msgid "Download a lightweight part (the full PDF plus a page range and a fingerprint) for someone else to process on their own machine, then merge their result back here."
 msgstr "Descarga una parte ligera (el PDF completo más un rango de páginas y una huella) para que otra persona la procese en su propia máquina y luego fusiona su resultado aquí."
+
+msgid "Download a local speech model in Settings > Local AI."
+msgstr "Descarga un modelo de voz local en Ajustes > IA local."
+
+msgid "Download a local speech model in Settings first."
+msgstr "Primero descarga un modelo de voz local en Ajustes."
 
 msgid "Download model"
 msgstr "Descargar modelo"
@@ -3733,6 +3745,9 @@ msgstr "Genera cuestionarios y actividades de comprensión basados en el conteni
 msgid "Generate descriptive captions for every image in the book. Pick a reading level so captions match your audience, and add custom instructions if you want to nudge the tone or focus."
 msgstr "Genera subtítulos descriptivos para cada imagen del libro. Elige un nivel de lectura para que los subtítulos coincidan con tu audiencia y añade instrucciones personalizadas si deseas ajustar el tono o enfoque."
 
+msgid "Generate English narration locally with Kokoro. WAV files are embedded in the exported ADT."
+msgstr "Genera narración en inglés localmente con Kokoro. Los archivos WAV se incluyen en el ADT exportado."
+
 msgid "Generate feedback"
 msgstr "Generar retroalimentación"
 
@@ -4040,6 +4055,9 @@ msgstr "Cómo añadir cuestionarios"
 
 msgid "HTML"
 msgstr "HTML"
+
+msgid "Hugging Face repository or URL"
+msgstr "Repositorio o URL de Hugging Face"
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "Entiendo que la parte se procesó con distintos prompts/modelos y quiero fusionarla de todos modos."
@@ -4435,6 +4453,9 @@ msgstr "Comprobación de conocimientos generada a partir de las páginas de orig
 msgid "Known variables"
 msgstr "Variables conocidas"
 
+msgid "Kokoro is currently limited to English. Route other languages to a cloud provider."
+msgstr "Kokoro actualmente se limita al inglés. Dirige otros idiomas a un proveedor en la nube."
+
 #. placeholder {0}: entry.level
 msgid "L{0}"
 msgstr "N{0}"
@@ -4739,8 +4760,23 @@ msgstr "IA local"
 msgid "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
 msgstr "La generación local es la opción privada predeterminada. Si más adelante añades créditos de OpenAI, selecciona un modelo de OpenAI y vuelve a ejecutar cualquier paso para regenerar o mejorar el resultado."
 
+msgid "Local Kokoro"
+msgstr "Kokoro local"
+
 msgid "Local model selected."
 msgstr "Modelo local seleccionado."
+
+msgid "Local speech"
+msgstr "Voz local"
+
+msgid "Local speech is ready."
+msgstr "La voz local está lista."
+
+msgid "Local voice"
+msgstr "Voz local"
+
+msgid "Local voice installed."
+msgstr "Voz local instalada."
 
 msgid "Localization"
 msgstr "Localización"
@@ -6395,6 +6431,9 @@ msgstr "Videos subidos anteriormente"
 msgid "Print a variable"
 msgstr "Imprimir una variable"
 
+msgid "Private offline English narration with a downloaded Kokoro model."
+msgstr "Narración privada sin conexión en inglés con un modelo Kokoro descargado."
+
 msgid "Private on-device models"
 msgstr "Modelos privados en el dispositivo"
 
@@ -6840,6 +6879,9 @@ msgstr "Quitar imagen"
 
 msgid "Remove manual glossary term"
 msgstr "Eliminar término manual del glosario"
+
+msgid "Remove model"
+msgstr "Eliminar modelo"
 
 #. placeholder {0}: page.pageNumber
 msgid "Remove page {0} from the quiz"
@@ -7367,6 +7409,9 @@ msgstr "Buscar leyendas o IDs de imágenes…"
 
 msgid "Search colors"
 msgstr "Buscar colores"
+
+msgid "Search compatible models on Hugging Face"
+msgstr "Buscar modelos compatibles en Hugging Face"
 
 msgid "Search entries…"
 msgstr "Buscar entradas…"
@@ -7928,6 +7973,9 @@ msgstr "Indicaciones de voz"
 msgid "Speech Settings"
 msgstr "Configuración de Voz"
 
+msgid "Speech test failed."
+msgstr "La prueba de voz falló."
+
 msgid "Split"
 msgstr "Dividir"
 
@@ -8333,6 +8381,9 @@ msgstr "Los términos fueron seleccionados por IA del libro. Edita una definici�
 
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Términos, nombres de personajes o frases que el juez debe preservar o preferir."
+
+msgid "Test"
+msgstr "Probar"
 
 msgid "Text"
 msgstr "Texto"
@@ -9077,6 +9128,9 @@ msgstr "Restaurar imagen"
 
 msgid "Unsaved changes"
 msgstr "Cambios sin guardar"
+
+msgid "Unsupported"
+msgstr "No compatible"
 
 msgid "Untangling nested divs with care..."
 msgstr "Desenredando divs anidados con cuidado..."

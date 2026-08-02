@@ -24,6 +24,8 @@ const SAFE_LANGUAGE_RE = /^[A-Za-z0-9_-]+$/
 const SAFE_FORMAT_RE = /^[a-z0-9]+$/
 const DEFAULT_OPENAI_VOICE = "alloy"
 const DEFAULT_GEMINI_VOICE = "Kore"
+const DEFAULT_KOKORO_VOICE = "af_heart"
+const DEFAULT_KOKORO_MODEL = "onnx-community/Kokoro-82M-v1.0-ONNX"
 const DEFAULT_AZURE_MODEL = "azure-tts"
 // Flash is the default: lower latency and higher documented throughput than Pro.
 // Users can switch to Pro (or any model) via `speech.providers.gemini.model`.
@@ -72,9 +74,10 @@ export function resolveVoice(
   defaultVoice?: string
 ): string {
   const normalizedDefaultVoice = defaultVoice?.trim()
-  const fallback =
-    provider === "gemini" &&
-      (!normalizedDefaultVoice || normalizedDefaultVoice === DEFAULT_OPENAI_VOICE)
+  const fallback = provider === "local-hf"
+    ? normalizedDefaultVoice || DEFAULT_KOKORO_VOICE
+    : provider === "gemini" &&
+        (!normalizedDefaultVoice || normalizedDefaultVoice === DEFAULT_OPENAI_VOICE)
       ? DEFAULT_GEMINI_VOICE
       : normalizedDefaultVoice || DEFAULT_OPENAI_VOICE
   const providerConfig = voiceMaps[provider]
@@ -166,6 +169,7 @@ export function resolveSpeechModel(
 
   if (provider === "azure") return DEFAULT_AZURE_MODEL
   if (provider === "gemini") return DEFAULT_GEMINI_MODEL
+  if (provider === "local-hf") return DEFAULT_KOKORO_MODEL
   return defaultModel?.trim() || DEFAULT_OPENAI_TTS_MODEL_ID
 }
 
@@ -173,7 +177,7 @@ export function resolveSpeechFormat(
   provider: string,
   defaultFormat?: string
 ): string {
-  if (provider === "gemini") return GEMINI_AUDIO_FORMAT
+  if (provider === "gemini" || provider === "local-hf") return GEMINI_AUDIO_FORMAT
   return defaultFormat?.trim().toLowerCase() || DEFAULT_AUDIO_FORMAT
 }
 
@@ -257,6 +261,8 @@ export function computeSpeechCacheKey(data: {
    *  isn't sent to Gemini, so it must not change the key. */
   geminiTemperature?: number
   geminiSeed?: number
+  /** Provider runtime/model fingerprint for local engines. */
+  providerVariant?: string
 }): string {
   // Gemini output also depends on any sampling params it's sent (temperature +
   // seed), so fold in whichever are set — tuning them regenerates Gemini audio,
@@ -321,6 +327,7 @@ export interface GenerateSpeechFileOptions {
    *  Undefined → not sent; Gemini uses its own defaults (sampling disabled). */
   geminiTemperature?: number
   geminiSeed?: number
+  providerVariant?: string
   /** Run cancellation — aborts the rate-limiter wait and the TTS request. */
   signal?: AbortSignal
 }
@@ -348,6 +355,7 @@ export async function generateSpeechFile(
     provider,
     geminiTemperature,
     geminiSeed,
+    providerVariant,
     signal,
   } = options
 
@@ -375,6 +383,7 @@ export async function generateSpeechFile(
     provider,
     geminiTemperature,
     geminiSeed,
+    providerVariant,
   })
 
   const fileName = `${safeTextId}.${safeFormat}`
@@ -405,10 +414,11 @@ export async function generateSpeechFile(
   // Generate speech via shared LLM TTS client
   await rateLimiter?.acquire(signal)
   signal?.throwIfAborted()
-  const audioBytes = await ttsSynthesizer.synthesize({
-    model,
-    voice,
-    input: sanitized,
+    const audioBytes = await ttsSynthesizer.synthesize({
+      model,
+      voice,
+      input: sanitized,
+      language: normalizedLanguage,
     responseFormat: safeFormat,
     instructions: instructions || undefined,
     temperature: geminiTemperature,

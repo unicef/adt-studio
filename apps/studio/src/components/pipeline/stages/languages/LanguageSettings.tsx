@@ -165,6 +165,8 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   const [azureLanguages, setAzureLanguages] = useState("")
   const [geminiModel, setGeminiModel] = useState("")
   const [geminiLanguages, setGeminiLanguages] = useState("")
+  const [localModel, setLocalModel] = useState("onnx-community/Kokoro-82M-v1.0-ONNX")
+  const [localLanguages, setLocalLanguages] = useState("")
   const [bitRate, setBitRate] = useState("")
   const [sampleRate, setSampleRate] = useState("")
   const [geminiTemperature, setGeminiTemperature] = useState("")
@@ -291,6 +293,10 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           if (providers.gemini.model) setGeminiModel(String(providers.gemini.model))
           if (Array.isArray(providers.gemini.languages)) setGeminiLanguages((providers.gemini.languages as string[]).join(", "))
         }
+        if (providers["local-hf"]) {
+          if (providers["local-hf"].model) setLocalModel(String(providers["local-hf"].model))
+          if (Array.isArray(providers["local-hf"].languages)) setLocalLanguages((providers["local-hf"].languages as string[]).join(", "))
+        }
       }
     }
   }, [activeConfigData])
@@ -336,6 +342,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       const openaiLangs = openaiLanguages.split(",").map((s) => s.trim()).filter(Boolean)
       const azureLangs = azureLanguages.split(",").map((s) => s.trim()).filter(Boolean)
       const geminiLangs = geminiLanguages.split(",").map((s) => s.trim()).filter(Boolean)
+      const localLangs = localLanguages.split(",").map((s) => s.trim()).filter(Boolean)
       const providers: Record<string, unknown> = {}
       if (openaiModel.trim() || openaiLangs.length > 0) {
         providers.openai = {
@@ -353,6 +360,16 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         providers.gemini = {
           model: geminiModel.trim() || undefined,
           languages: geminiLangs.length > 0 ? geminiLangs : undefined,
+        }
+      }
+      if (localModel.trim() || localLangs.length > 0 || defaultProvider === "local-hf") {
+        providers["local-hf"] = {
+          adapter: "kokoro",
+          model: localModel.trim() || "onnx-community/Kokoro-82M-v1.0-ONNX",
+          voice: "af_heart",
+          dtype: "q8",
+          device: "wasm",
+          languages: localLangs.length > 0 ? localLangs : undefined,
         }
       }
       // Guard the Gemini sampling inputs against values the SpeechConfig schema
@@ -963,6 +980,8 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           azureLanguages={azureLanguages} setAzureLanguages={setAzureLanguages}
           geminiModel={geminiModel} setGeminiModel={setGeminiModel}
           geminiLanguages={geminiLanguages} setGeminiLanguages={setGeminiLanguages}
+          localModel={localModel} setLocalModel={setLocalModel}
+          localLanguages={localLanguages} setLocalLanguages={setLocalLanguages}
           bitRate={bitRate} setBitRate={setBitRate}
           sampleRate={sampleRate} setSampleRate={setSampleRate}
           geminiTemperature={geminiTemperature} setGeminiTemperature={setGeminiTemperature}
@@ -1188,12 +1207,13 @@ function ReadAloudContentSection({
 /* ---------- Speech per-language cards ---------- */
 
 // eslint-disable-next-line lingui/no-unlocalized-strings -- brand names
-const PROVIDER_LABELS: Record<string, string> = { openai: "OpenAI", azure: "Azure", gemini: "Gemini" }
+const PROVIDER_LABELS: Record<string, string> = { openai: "OpenAI", azure: "Azure", gemini: "Gemini", "local-hf": "Local Kokoro" }
 
 const MODEL_GROUPS_BY_PROVIDER: Record<string, typeof OPENAI_TTS_MODELS> = {
   openai: OPENAI_TTS_MODELS,
   azure: AZURE_TTS_MODELS,
   gemini: GEMINI_TTS_MODELS,
+  "local-hf": [],
 }
 
 function SpeechLanguageCards({
@@ -1209,6 +1229,8 @@ function SpeechLanguageCards({
   azureLanguages, setAzureLanguages,
   geminiModel, setGeminiModel,
   geminiLanguages, setGeminiLanguages,
+  localModel, setLocalModel,
+  localLanguages, setLocalLanguages,
   bitRate, setBitRate,
   sampleRate, setSampleRate,
   geminiTemperature, setGeminiTemperature,
@@ -1229,6 +1251,8 @@ function SpeechLanguageCards({
   azureLanguages: string; setAzureLanguages: (v: string) => void
   geminiModel: string; setGeminiModel: (v: string) => void
   geminiLanguages: string; setGeminiLanguages: (v: string) => void
+  localModel: string; setLocalModel: (v: string) => void
+  localLanguages: string; setLocalLanguages: (v: string) => void
   bitRate: string; setBitRate: (v: string) => void
   sampleRate: string; setSampleRate: (v: string) => void
   geminiTemperature: string; setGeminiTemperature: (v: string) => void
@@ -1272,6 +1296,12 @@ function SpeechLanguageCards({
           languages: geminiLanguages.split(",").map((s) => s.trim()).filter(Boolean),
         },
       } : {}),
+      ...(localModel || localLanguages ? {
+        "local-hf": {
+          model: localModel || "onnx-community/Kokoro-82M-v1.0-ONNX",
+          languages: localLanguages.split(",").map((s) => s.trim()).filter(Boolean),
+        },
+      } : {}),
     },
   }
 
@@ -1281,6 +1311,7 @@ function SpeechLanguageCards({
     if (provider === "openai") return openaiModel
     if (provider === "azure") return azureModel
     if (provider === "gemini") return geminiModel
+    if (provider === "local-hf") return localModel
     return ""
   }
 
@@ -1288,6 +1319,7 @@ function SpeechLanguageCards({
     if (provider === "openai") setOpenaiModel(value)
     else if (provider === "azure") setAzureModel(value)
     else if (provider === "gemini") setGeminiModel(value)
+    else if (provider === "local-hf") setLocalModel(value)
     markDirty("speech")
   }
 
@@ -1295,6 +1327,7 @@ function SpeechLanguageCards({
     if (provider === "openai") return openaiLanguages
     if (provider === "azure") return azureLanguages
     if (provider === "gemini") return geminiLanguages
+    if (provider === "local-hf") return localLanguages
     return ""
   }
 
@@ -1302,6 +1335,7 @@ function SpeechLanguageCards({
     if (provider === "openai") setOpenaiLanguages(value)
     else if (provider === "azure") setAzureLanguages(value)
     else if (provider === "gemini") setGeminiLanguages(value)
+    else if (provider === "local-hf") setLocalLanguages(value)
     markDirty("speech")
   }
 
@@ -1319,7 +1353,7 @@ function SpeechLanguageCards({
   // Route a language to a different provider
   const routeLanguageTo = (lang: string, newProvider: string) => {
     // Remove from all providers' language lists
-    for (const p of ["openai", "azure", "gemini"]) {
+    for (const p of ["openai", "azure", "gemini", "local-hf"]) {
       const current = getProviderLanguages(p)
       const langs = current.split(",").map((s) => s.trim()).filter(Boolean)
       const filtered = langs.filter((l) => normalizeLocale(l) !== normalizeLocale(lang))
@@ -1355,6 +1389,7 @@ function SpeechLanguageCards({
               <option value="openai">{t`OpenAI`}</option>
               <option value="azure">{t`Azure`}</option>
               <option value="gemini">{t`Gemini`}</option>
+              <option value="local-hf">{t`Local Kokoro`}</option>
             </select>
           </div>
           <div className="space-y-1.5">
@@ -1478,7 +1513,7 @@ function SpeechLanguageCards({
                     onChange={(e) => routeLanguageTo(lang, e.target.value)}
                     className="flex h-8 w-36 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm"
                   >
-                    {["openai", "azure", "gemini"].map((p) => (
+                    {["openai", "azure", "gemini", "local-hf"].map((p) => (
                       <option key={p} value={p}>
                         {PROVIDER_LABELS[p]}{p === defaultProvider ? ` (${t`default`})` : ""}
                       </option>

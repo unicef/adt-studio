@@ -43,7 +43,7 @@ await build({
   
   // Copy .wasm files next to the bundle so runtime loaders find them.
   // Search the pnpm store since these packages are transitive deps.
-  const WASM_PACKAGES = ["node-sqlite3-wasm", "mupdf", "@resvg/resvg-wasm"]
+  const WASM_PACKAGES = ["node-sqlite3-wasm", "mupdf", "@resvg/resvg-wasm", "onnxruntime-web"]
   
   for (const pkg of WASM_PACKAGES) {
     const pnpmDir = path.join(monorepoRoot, "node_modules/.pnpm")
@@ -78,6 +78,7 @@ await build({
     "node-sqlite3-wasm": "node-sqlite3-wasm.wasm",
     "mupdf": "mupdf-wasm.wasm",
     "@resvg/resvg-wasm": "index_bg.wasm",
+    "onnxruntime-web": "ort-wasm-simd-threaded.wasm",
   }
   
   for (const [pkg, filename] of Object.entries(EXPECTED_WASM)) {

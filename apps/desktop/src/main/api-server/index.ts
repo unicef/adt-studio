@@ -29,6 +29,7 @@ async function startApiServer(): Promise<{
     "Books dir": paths.booksDir,
     "Prompts dir": paths.promptsDir,
     "Config path": paths.configPath,
+    "Local TTS models": paths.localTtsModelsDir,
     "Debug mode": isApiDebugMode ? "true" : "false",
   });
 
@@ -51,6 +52,8 @@ async function startApiServer(): Promise<{
       ADT_RESOURCES_ZIP: paths.adtResourcesZip,
       WEB_ASSETS_DIR: paths.webAssetsDir,
       ADT_ENVIRONMENT: "electron",
+      LOCAL_TTS_MODELS_DIR: paths.localTtsModelsDir,
+      LOCAL_TTS_WASM_PATH: join(dirname(paths.serverPath), "ort-wasm-simd-threaded.wasm"),
     },
   });
 

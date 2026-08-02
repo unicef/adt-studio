@@ -69,3 +69,21 @@ export {
   type WhisperWordTimestamp,
   type WhisperTranscriptionResult,
 } from "./speech.js"
+
+export {
+  DEFAULT_KOKORO_MODEL,
+  DEFAULT_KOKORO_VOICE,
+  KOKORO_SUPPORTED_LANGUAGES,
+  KOKORO_VOICES,
+  normalizeHfModelSource,
+  localHfModelDirectory,
+  readLocalHfManifest,
+  isKokoroLanguageSupported,
+  createLocalHfTTSSynthesizer,
+  encodePcm16Wav,
+  clearLocalHfTTSRuntimeCache,
+  type LocalHfModelManifest,
+  type LocalHfTTSDtype,
+  type LocalHfTTSConfig,
+  type LocalHfTTSSynthesizer,
+} from "./local-speech.js"

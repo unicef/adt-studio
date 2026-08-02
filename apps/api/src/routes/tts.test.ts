@@ -460,7 +460,7 @@ describe("POST /books/:label/tts/generate-one", () => {
     expect(JSON.parse(String(thirdInit?.body))).toMatchObject({ model: "tts-1-hd" })
   })
 
-  it("rejects single-item generation when the language is not routed to Gemini", async () => {
+  it("requires the configured provider credentials for single-item generation", async () => {
     writeConfig("openai")
     const label = "openai-audio"
     seedBook(label)
@@ -476,9 +476,7 @@ describe("POST /books/:label/tts/generate-one", () => {
     })
 
     expect(res.status).toBe(400)
-    await expect(res.text()).resolves.toContain(
-      "Single-item audio generation is only available when Gemini is selected for that language."
-    )
+    await expect(res.text()).resolves.toContain("OpenAI API key required")
   })
 })
 

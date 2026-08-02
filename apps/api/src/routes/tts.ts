@@ -20,6 +20,8 @@ import { openBookDb, createBookStorage } from "@adt/storage"
 import {
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,
+  createLocalHfTTSSynthesizer,
+  readLocalHfManifest,
   createTTSSynthesizer,
   type LlmLogEntry,
 } from "@adt/llm"
@@ -698,12 +700,6 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
     const azureSpeechKey = c.req.header("X-Azure-Speech-Key")?.trim()
     const azureSpeechRegion = c.req.header("X-Azure-Speech-Region")?.trim()
-    if (!geminiApiKey) {
-      throw new HTTPException(400, {
-        message: "Gemini API key required. Set X-Gemini-API-Key header.",
-      })
-    }
-
     const normalizedLanguage = normalizeLocale(parsed.data.language)
     const storage = createBookStorage(safeLabel, booksDir)
 
@@ -728,12 +724,10 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         defaultProvider: config.speech?.default_provider ?? "openai",
       }
       const provider = resolveProviderForLanguage(normalizedLanguage, routing)
-      if (provider !== "gemini") {
-        throw new HTTPException(400, {
-          message:
-            "Single-item audio generation is only available when Gemini is selected for that language.",
-        })
-      }
+      if (provider === "gemini" && !geminiApiKey) throw new HTTPException(400, { message: "Gemini API key required" })
+      if (provider === "openai" && !openaiApiKey) throw new HTTPException(400, { message: "OpenAI API key required" })
+      if (provider === "azure" && (!azureSpeechKey || !azureSpeechRegion)) throw new HTTPException(400, { message: "Azure Speech credentials required" })
+      if (!["gemini", "openai", "azure", "local-hf"].includes(provider)) throw new HTTPException(400, { message: `Unsupported TTS provider: ${provider}` })
 
       const languageEntries = getCatalogEntriesForLanguage(
         storage,
@@ -764,7 +758,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         provider,
         normalizedLanguage,
         voiceMaps,
-        config.speech?.voice
+        providerConfigs[provider]?.voice ?? config.speech?.voice
       )
       const fallbackAttempts = getSingleItemFallbackAttempts({
         openaiApiKey,
@@ -777,6 +771,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       })
       const bookDir = path.join(path.resolve(booksDir), safeLabel)
       const cacheDir = path.join(bookDir, ".cache")
+      const localModelsDir = process.env.LOCAL_TTS_MODELS_DIR ?? path.join(path.dirname(booksDir), ".local-models", "tts")
+      const localManifest = provider === "local-hf" ? readLocalHfManifest(localModelsDir, model) : undefined
 
       const startMs = Date.now()
       const generateEntry = async (options: {
@@ -803,16 +799,27 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           cacheDir,
           ttsSynthesizer:
             options.targetProvider === "gemini"
-              ? createGeminiTTSSynthesizer({ apiKey: geminiApiKey })
+              ? createGeminiTTSSynthesizer({ apiKey: geminiApiKey! })
               : options.targetProvider === "azure"
                 ? createAzureTTSSynthesizer({
                     subscriptionKey: azureSpeechKey!,
                     region: azureSpeechRegion!,
                   })
-                : createTTSSynthesizer(openaiApiKey),
+                : options.targetProvider === "local-hf"
+                  ? createLocalHfTTSSynthesizer({
+                      modelsDir: localModelsDir,
+                      adapter: providerConfigs["local-hf"]?.adapter,
+                      dtype: providerConfigs["local-hf"]?.dtype,
+                      device: providerConfigs["local-hf"]?.device,
+                      speed: providerConfigs["local-hf"]?.speed,
+                    })
+                  : createTTSSynthesizer(openaiApiKey),
           provider: options.targetProvider,
           geminiTemperature: config.speech?.temperature,
           geminiSeed: config.speech?.seed,
+          providerVariant: localManifest
+            ? JSON.stringify({ revision: localManifest.revision, dtype: localManifest.dtype, modelFile: localManifest.modelFile, speed: providerConfigs["local-hf"]?.speed ?? 1 })
+            : undefined,
         })
 
       try {

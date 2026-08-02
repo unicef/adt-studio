@@ -115,7 +115,7 @@ This branch adds a tested local-first Gemma 4 path. A one-page PDF completed ext
 - Full PDF proof: one-page `docs/userStory.pdf`, no cloud keys, all creation/package stages passed. TTS is skipped when local AI is selected and no speech provider is configured.
 - Cloud improvement path: adding OpenAI credentials and selecting an OpenAI model lets the user rerun any stage; the local result remains versioned.
 
-Known capability boundary: Gemma 4 is used for text and image understanding. It does not replace image generation, speech synthesis, or speech recognition. Those require separate local engines or optional cloud providers.
+Known capability boundary: Gemma 4 is used for text and image understanding. English speech synthesis is now available through the separate optional Kokoro/WASM provider; image generation and word-level speech alignment still require separate local engines or optional cloud providers.
 
 Official references: [Gemma 4](https://ai.google.dev/gemma/docs/core), [Ollama Gemma 4 models](https://ollama.com/library/gemma4), [Ollama OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility), [structured outputs](https://docs.ollama.com/capabilities/structured-outputs).
 
@@ -141,7 +141,7 @@ Recommended experiment: add it behind an optional `PdfClassifier` interface, ben
 4. Make version allocation transactional and align retention behavior with documentation.
 5. Add archive/upload limits and canonical extraction containment.
 6. Benchmark Gemma 4 tiers versus OpenAI on quality, latency, memory, retries, and cost using a fixed multilingual PDF corpus.
-7. Add optional local speech/OCR/image-generation providers only behind capability interfaces.
+7. Benchmark and extend the new English Kokoro/WASM speech provider; add multilingual local speech, OCR, and image-generation providers only behind capability interfaces.
 8. Split the largest UI/service modules and enforce bundle budgets.
 
 ## Release recommendation

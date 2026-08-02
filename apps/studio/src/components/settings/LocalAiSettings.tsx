@@ -6,6 +6,7 @@ import { api, type LocalAIModel, type LocalModelPullProgress } from "@/api/clien
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { cn } from "@/lib/utils"
+import { LocalSpeechSettings } from "./LocalSpeechSettings"
 
 function formatGiB(bytes: number): string {
   // eslint-disable-next-line lingui/no-unlocalized-strings -- Storage unit symbol is locale-independent.
@@ -208,6 +209,7 @@ export function LocalAiSettings({ compact = false }: { compact?: boolean }) {
       <p className="text-sm leading-6 text-muted-foreground">
         <Trans>Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result.</Trans>
       </p>
+      {!compact && <LocalSpeechSettings />}
     </div>
   )
 }

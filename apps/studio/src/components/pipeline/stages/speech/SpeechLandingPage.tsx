@@ -18,20 +18,24 @@ import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
+import { useQuery } from "@tanstack/react-query"
+import { api } from "@/api/client"
 import { SpeechPreview } from "./components/SpeechPreview"
 
-type ProviderKey = "openai" | "azure" | "gemini"
+type ProviderKey = "openai" | "azure" | "gemini" | "local-hf"
 
 const PROVIDER_LABELS: Record<ProviderKey, MessageDescriptor> = {
   openai: msg`OpenAI`,
   azure: msg`Azure`,
   gemini: msg`Gemini`,
+  "local-hf": msg`Local`,
 }
 
 const PROVIDER_HINTS: Record<ProviderKey, MessageDescriptor> = {
   openai: msg`Natural, expressive voices. Best general-purpose default.`,
   azure: msg`Wide multilingual coverage with neural voices for many locales.`,
   gemini: msg`Google's voices with strong intonation for narrative content.`,
+  "local-hf": msg`Private offline English narration with a downloaded Kokoro model.`,
 }
 
 // Voices & Accents card hidden for now while we evaluate the configure-voices
@@ -48,6 +52,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const status = useStageStatus("speech")
   const translateStatus = useStageStatus("translate")
   const translateReady = translateStatus.isCompleted
+  const localSpeech = useQuery({ queryKey: ["local-speech", "status"], queryFn: api.getLocalSpeechStatus })
 
   const [wordHighlighting, setWordHighlighting] = useState(false)
   const [provider, setProvider] = useState<ProviderKey>("openai")
@@ -63,6 +68,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
       speech.default_provider === "openai" ||
       speech.default_provider === "azure" ||
       speech.default_provider === "gemini"
+      || speech.default_provider === "local-hf"
     ) {
       setProvider(speech.default_provider)
     }
@@ -83,11 +89,30 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const handleProviderChange = (value: ProviderKey) => {
     setProvider(value)
-    persistSpeech({ default_provider: value })
+    if (value === "local-hf" && localSpeech.data?.installed[0]) {
+      const speech = (bookConfigData?.config?.speech ?? {}) as Record<string, unknown>
+      const providers = (speech.providers ?? {}) as Record<string, unknown>
+      const model = localSpeech.data.installed[0]
+      persistSpeech({
+        default_provider: value,
+        providers: {
+          ...providers,
+          "local-hf": {
+            adapter: "kokoro",
+            model: model.repository,
+            voice: model.voices[0] ?? "af_heart",
+            dtype: model.dtype,
+            device: "wasm",
+          },
+        },
+      })
+    } else {
+      persistSpeech({ default_provider: value })
+    }
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !translateReady || status.isRunning) return
+    if (!providerKeyAvailable[provider] || !translateReady || status.isRunning) return
     queueRun({ fromStage: "speech", toStage: "speech", apiKey, viewAfter: true })
   }
 
@@ -95,6 +120,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     openai: hasApiKey,
     azure: hasAzureKey,
     gemini: hasGeminiKey,
+    "local-hf": Boolean(localSpeech.data?.installed.length),
   }
 
   const providerOptions = useMemo(
@@ -119,9 +145,15 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
           disabled: !hasGeminiKey,
           disabledHint,
         },
+        {
+          value: "local-hf" as const,
+          label: linguiI18n._(PROVIDER_LABELS["local-hf"]),
+          disabled: !localSpeech.data?.installed.length,
+          disabledHint: t`Download a local speech model in Settings > Local AI.`,
+        },
       ]
     },
-    [t, hasApiKey, hasAzureKey, hasGeminiKey],
+    [t, hasApiKey, hasAzureKey, hasGeminiKey, localSpeech.data?.installed.length],
   )
 
   const selectedProviderKeyMissing = !providerKeyAvailable[provider]
@@ -151,10 +183,10 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to run speech.</Trans>
-  ) : selectedProviderKeyMissing ? (
-    <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
+  const disabledReason = selectedProviderKeyMissing ? (
+    provider === "local-hf"
+      ? <Trans>Download a local speech model in Settings first.</Trans>
+      : <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
   ) : !translateReady ? (
     <Trans>Run Language first — speech narrates the translated text.</Trans>
   ) : undefined
@@ -171,7 +203,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || selectedProviderKeyMissing || !translateReady}
+      extraDisabled={selectedProviderKeyMissing || !translateReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Speech</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

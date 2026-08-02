@@ -2,6 +2,8 @@ export interface SynthesizeSpeechOptions {
   model: string
   voice: string
   input: string
+  /** BCP-47 locale used by local adapters to reject unsupported languages. */
+  language?: string
   responseFormat: string
   instructions?: string
   /**

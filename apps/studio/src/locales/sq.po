@@ -883,8 +883,8 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar nxjerr
 msgid "Add an API key in Book settings to run sectioning."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar ndarjen në seksione."
 
-msgid "Add an API key in Book settings to run speech."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar të folurit."
+#~ msgid "Add an API key in Book settings to run speech."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar të folurit."
 
 msgid "Add an API key in Book settings to run storyboard."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar storyboard-in."
@@ -2155,6 +2155,9 @@ msgstr "Krahaso"
 msgid "Compared with fallback prompt."
 msgstr "Krahasuar me prompt-in fallback."
 
+msgid "Compatible"
+msgstr "I përputhshëm"
+
 msgid "Completed"
 msgstr "Përfunduar"
 
@@ -2848,11 +2851,20 @@ msgstr "U krye"
 msgid "DONE"
 msgstr "KRYER"
 
+msgid "Download"
+msgstr "Shkarko"
+
 msgid "Download a full backup of this project"
 msgstr "Shkarko një kopje rezervë të plotë të këtij projekti"
 
 msgid "Download a lightweight part (the full PDF plus a page range and a fingerprint) for someone else to process on their own machine, then merge their result back here."
 msgstr "Shkarko një pjesë të lehtë (PDF-ja e plotë plus një interval faqesh dhe një gjurmë) që dikush tjetër ta përpunojë në makinën e vet, e më pas bashko rezultatin e tij këtu."
+
+msgid "Download a local speech model in Settings > Local AI."
+msgstr "Shkarko një model lokal të të folurit te Cilësimet > AI lokale."
+
+msgid "Download a local speech model in Settings first."
+msgstr "Shkarko fillimisht një model lokal të të folurit te Cilësimet."
 
 msgid "Download model"
 msgstr "Shkarko modelin"
@@ -3734,6 +3746,9 @@ msgstr "Gjenero kuize dhe aktivitete të kuptimit bazuar në përmbajtjen e libr
 msgid "Generate descriptive captions for every image in the book. Pick a reading level so captions match your audience, and add custom instructions if you want to nudge the tone or focus."
 msgstr "Gjenero tituj përshkrues për çdo imazh në libër. Zgjidh një nivel leximi që titujt të përputhen me audiencën tuaj dhe shto udhëzime të personalizuara nëse doni të ndikoni tonin ose fokusimin."
 
+msgid "Generate English narration locally with Kokoro. WAV files are embedded in the exported ADT."
+msgstr "Gjenero narracion në anglisht lokalisht me Kokoro. Skedarët WAV përfshihen në ADT-në e eksportuar."
+
 msgid "Generate feedback"
 msgstr "Gjenero reagimin"
 
@@ -4041,6 +4056,9 @@ msgstr "Si të shtohen kuizet"
 
 msgid "HTML"
 msgstr "HTML"
+
+msgid "Hugging Face repository or URL"
+msgstr "Depoja ose URL-ja e Hugging Face"
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "E kuptoj se pjesa u përpunua me prompte/modele të ndryshme dhe dua ta bashkoj gjithsesi."
@@ -4436,6 +4454,9 @@ msgstr "Kontroll njohurish gjeneruar nga faqet burimore."
 msgid "Known variables"
 msgstr "Variablat e njohura"
 
+msgid "Kokoro is currently limited to English. Route other languages to a cloud provider."
+msgstr "Kokoro aktualisht kufizohet në anglisht. Drejto gjuhët e tjera te një ofrues cloud."
+
 #. placeholder {0}: entry.level
 msgid "L{0}"
 msgstr "N{0}"
@@ -4740,8 +4761,23 @@ msgstr "IA lokale"
 msgid "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
 msgstr "Gjenerimi lokal është zgjedhja private e paracaktuar. Nëse shton kredite OpenAI më vonë, zgjidh një model OpenAI dhe riekzekuto çdo hap për ta rigjeneruar ose përmirësuar rezultatin."
 
+msgid "Local Kokoro"
+msgstr "Kokoro lokale"
+
 msgid "Local model selected."
 msgstr "Modeli lokal u zgjodh."
+
+msgid "Local speech"
+msgstr "Të folurit lokal"
+
+msgid "Local speech is ready."
+msgstr "Të folurit lokal është gati."
+
+msgid "Local voice"
+msgstr "Zëri lokal"
+
+msgid "Local voice installed."
+msgstr "Zëri lokal u instalua."
 
 msgid "Localization"
 msgstr "Lokalizim"
@@ -6396,6 +6432,9 @@ msgstr "Video të ngarkuara më parë"
 msgid "Print a variable"
 msgstr "Shfaq një variabël"
 
+msgid "Private offline English narration with a downloaded Kokoro model."
+msgstr "Narracion privat jashtë linje në anglisht me një model Kokoro të shkarkuar."
+
 msgid "Private on-device models"
 msgstr "Modele private në pajisje"
 
@@ -6841,6 +6880,9 @@ msgstr "Hiq imazhin"
 
 msgid "Remove manual glossary term"
 msgstr "Hiq termin manual të glosariumit"
+
+msgid "Remove model"
+msgstr "Hiq modelin"
 
 #. placeholder {0}: page.pageNumber
 msgid "Remove page {0} from the quiz"
@@ -7368,6 +7410,9 @@ msgstr "Kërko tituj ose ID imazhesh…"
 
 msgid "Search colors"
 msgstr "Kërko ngjyra"
+
+msgid "Search compatible models on Hugging Face"
+msgstr "Kërko modele të përputhshme në Hugging Face"
 
 msgid "Search entries…"
 msgstr "Kërko regjistrime…"
@@ -7929,6 +7974,9 @@ msgstr "Prompte të të Folurit"
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
 
+msgid "Speech test failed."
+msgstr "Testi i të folurit dështoi."
+
 msgid "Split"
 msgstr "Ndaj"
 
@@ -8334,6 +8382,9 @@ msgstr "Termet u zgjodhën nga AI nga libri. Redakto një përkufizim ose emoji-
 
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termat, emrat e karaktereve ose frazat që gjykatësi duhet të ruajë ose preferojë."
+
+msgid "Test"
+msgstr "Testo"
 
 msgid "Text"
 msgstr "Teksti"
@@ -9078,6 +9129,9 @@ msgstr "Rikthe imazhin"
 
 msgid "Unsaved changes"
 msgstr "Ndryshime të paruajtura"
+
+msgid "Unsupported"
+msgstr "I pambështetur"
 
 msgid "Untangling nested divs with care..."
 msgstr "Po zgjidhen divët e mbivendosur me kujdes..."

@@ -20,7 +20,7 @@ interface VoiceMappingsEditorProps {
   headerTarget?: HTMLDivElement | null
 }
 
-const PROVIDER_ORDER = ["openai", "azure", "gemini"] as const
+const PROVIDER_ORDER = ["openai", "azure", "gemini", "local-hf"] as const
 
 type VoiceProviderKey = (typeof PROVIDER_ORDER)[number]
 
@@ -29,6 +29,7 @@ interface VoiceRow {
   openai: string
   azure: string
   gemini: string
+  "local-hf": string
 }
 
 export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
@@ -59,10 +60,12 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
     const openai = data.openai ?? {}
     const azure = data.azure ?? {}
     const gemini = data.gemini ?? {}
+    const local = data["local-hf"] ?? {}
     const allLangs = new Set([
       ...Object.keys(openai),
       ...Object.keys(azure),
       ...Object.keys(gemini),
+      ...Object.keys(local),
     ])
     const built: VoiceRow[] = []
     for (const lang of allLangs) {
@@ -71,6 +74,7 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
         openai: openai[lang] ?? "",
         azure: azure[lang] ?? "",
         gemini: gemini[lang] ?? "",
+        "local-hf": local[lang] ?? "",
       })
     }
     // Sort with "default" first, then alphabetical
@@ -107,7 +111,7 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
   const addLanguage = () => {
     const key = newLangKey.trim().toLowerCase()
     if (!key || rows.some((r) => r.lang === key)) return
-    setRows((prev) => [...prev, { lang: key, openai: "", azure: "", gemini: "" }])
+    setRows((prev) => [...prev, { lang: key, openai: "", azure: "", gemini: "", "local-hf": "" }])
     setNewLangKey("")
     setShowAddLang(false)
     setDirtyMappings(true)

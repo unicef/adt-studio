@@ -37,6 +37,7 @@ import { createEditableActivitiesRoutes } from "./routes/editable-activities.js"
 import { createAgentRoutes } from "./routes/agents.js"
 import { createTranslationEvaluationRoutes } from "./routes/translation-evaluations.js"
 import { createLocalAIRoutes } from "./routes/local-ai.js"
+import { createLocalSpeechRoutes } from "./routes/local-speech.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -49,6 +50,9 @@ const configPath = path.resolve(
 )
 const configFolderPath = path.resolve(
   process.env.CONFIG_FOLDER_PATH ?? path.join(projectRoot, "config")
+)
+const localTtsModelsDir = path.resolve(
+  process.env.LOCAL_TTS_MODELS_DIR ?? path.join(projectRoot, ".local-models", "tts")
 )
 
 let webAssetsDir: string
@@ -124,6 +128,7 @@ app.route("/api", createSignLanguageVideoRoutes(booksDir))
 app.route("/api", createAgentRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTranslationEvaluationRoutes(booksDir, configPath, taskService))
 app.route("/api", createLocalAIRoutes())
+app.route("/api", createLocalSpeechRoutes(localTtsModelsDir))
 
 export default app
 export { booksDir }

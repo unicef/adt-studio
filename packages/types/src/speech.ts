@@ -18,9 +18,39 @@ export const TTSRateLimitConfig = z.object({
 })
 export type TTSRateLimitConfig = z.infer<typeof TTSRateLimitConfig>
 
+export const LocalTTSAdapter = z.enum(["kokoro"])
+export type LocalTTSAdapter = z.infer<typeof LocalTTSAdapter>
+
+export const LocalTTSDtype = z.enum(["q8", "q4", "fp32", "fp16", "q4f16"])
+export type LocalTTSDtype = z.infer<typeof LocalTTSDtype>
+
+export const LocalTTSDevice = z.enum(["wasm"])
+export type LocalTTSDevice = z.infer<typeof LocalTTSDevice>
+
+export const LocalTTSModelManifest = z.object({
+  adapter: LocalTTSAdapter,
+  repository: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/),
+  revision: z.string().regex(/^[a-f0-9]{40}$/i),
+  dtype: LocalTTSDtype,
+  modelFile: z.string().regex(/^onnx\/[A-Za-z0-9._-]+\.onnx$/),
+  voices: z.array(z.string().regex(/^[ab][fm]_[a-z0-9_]+$/)).min(1),
+  installedAt: z.string().datetime(),
+})
+export type LocalTTSModelManifest = z.infer<typeof LocalTTSModelManifest>
+
 export const TTSProviderConfig = z.object({
   model: z.string().optional(),
   languages: z.array(z.string()).optional(),
+  /** Local-HF runtime adapter. Omitted for cloud providers. */
+  adapter: LocalTTSAdapter.optional(),
+  /** Provider-specific default voice. Per-language voice mappings still win. */
+  voice: z.string().optional(),
+  /** Quantization used by local-HF adapters. */
+  dtype: LocalTTSDtype.optional(),
+  /** WebAssembly runtime used by the Electron API utility process. */
+  device: LocalTTSDevice.optional(),
+  /** Local synthesis speed multiplier. */
+  speed: z.number().min(0.5).max(2).optional(),
   rate_limit: TTSRateLimitConfig.optional(),
 })
 export type TTSProviderConfig = z.infer<typeof TTSProviderConfig>

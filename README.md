@@ -220,6 +220,8 @@ pnpm dev
 
 Install and open [Ollama](https://ollama.com/download), then choose **Local AI** during onboarding or in **Settings → Local AI**. ADT Studio detects system memory, recommends and downloads a suitable Gemma 4 model, and runs text/vision generation locally. Cloud providers remain optional for later regeneration or improvement.
 
+Optional English narration also runs locally: download a compatible Kokoro model from Hugging Face in **Settings → Local AI**, then select **Local** in Speech. Generated WAV files are embedded in the exported static ADT; the model is not shipped in the export.
+
 See [docs/LOCAL_AI.md](docs/LOCAL_AI.md) for model tiers, privacy behavior, packaging, and troubleshooting.
 
 On Linux, if Chromium system libraries are missing, run:

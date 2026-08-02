@@ -229,6 +229,25 @@ export interface LocalModelPullProgress {
   error?: string
 }
 
+export interface LocalSpeechModel {
+  adapter: "kokoro"
+  repository: string
+  revision: string
+  dtype: "q8" | "q4" | "fp32" | "fp16" | "q4f16"
+  modelFile: string
+  voices: string[]
+  installedAt: string
+}
+
+export interface LocalSpeechStatus {
+  provider: "local-hf"
+  adapter: "kokoro"
+  supportedLanguages: string[]
+  recommendedRepository: string
+  voices: string[]
+  installed: LocalSpeechModel[]
+}
+
 export interface StageRunProviderCredentials {
   anthropicApiKey?: string
   googleApiKey?: string
@@ -1821,6 +1840,31 @@ export const api = {
     request<{ config: Record<string, unknown> }>(`/config`),
 
   getLocalAIStatus: () => request<LocalAIStatus>(`/local-ai/status`),
+
+  getLocalSpeechStatus: () => request<LocalSpeechStatus>(`/local-speech/status`),
+
+  searchLocalSpeechModels: (query: string) =>
+    request<Array<{ id: string; compatible: boolean }>>(`/local-speech/search?q=${encodeURIComponent(query)}`),
+
+  installLocalSpeechModel: (repository: string, voice: string) =>
+    request<LocalSpeechModel>(`/local-speech/install`, {
+      method: "POST",
+      body: JSON.stringify({ repository, dtype: "q8", voices: [voice] }),
+      signal: AbortSignal.timeout(15 * 60_000),
+    }),
+
+  removeLocalSpeechModel: (repository: string) =>
+    request<{ removed: string }>(`/local-speech/models/${repository}`, { method: "DELETE" }),
+
+  testLocalSpeechModel: async (repository: string, voice: string, text: string): Promise<Blob> => {
+    const response = await fetch(`${BASE_URL}/local-speech/test`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ repository, voice, text }),
+    })
+    if (!response.ok) throw new Error(await response.text())
+    return response.blob()
+  },
 
   pullLocalModel: async (
     modelId: string,
