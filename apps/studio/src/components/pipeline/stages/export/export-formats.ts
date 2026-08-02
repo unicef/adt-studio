@@ -1,8 +1,8 @@
 import { msg } from "@lingui/core/macro"
 import type { LucideIcon } from "lucide-react"
-import { FileDown, Globe, GraduationCap, BookText } from "lucide-react"
+import { FileDown, Globe, GraduationCap, BookText, Landmark } from "lucide-react"
 
-export type ExportFormat = "project" | "webpub" | "scorm" | "adt" | "epub"
+export type ExportFormat = "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld"
 
 export interface FormatConfig {
   icon: LucideIcon
@@ -54,6 +54,13 @@ export const EXPORT_FORMAT_CONFIG: Record<ExportFormat, Omit<FormatConfig, "labe
     borderColor: "border-purple-200",
     buttonClass: "bg-purple-600 hover:bg-purple-700 text-white",
   },
+  pnld: {
+    icon: Landmark,
+    textColor: "text-teal-600",
+    bgLight: "bg-teal-50",
+    borderColor: "border-teal-200",
+    buttonClass: "bg-teal-600 hover:bg-teal-700 text-white",
+  },
 }
 
 /**
@@ -96,6 +103,12 @@ export function buildExportFormatConfig(
       ...EXPORT_FORMAT_CONFIG.epub,
       label: t(msg`EPUB Export`),
       description: t(msg`Standard EPUB 3 file for e-readers, reading apps, and accessibility tools. Interactive features (quizzes, TTS) work in readers that support JavaScript.`),
+      badge: t(msg`Beta`),
+    },
+    pnld: {
+      ...EXPORT_FORMAT_CONFIG.pnld,
+      label: t(msg`PNLD Export`),
+      description: t(msg`Brazilian PNLD digital work (.zip) with HTML5 content, content.opf and toc.ncx metadata, for submission to the FNDE VALIDE reader.`),
       badge: t(msg`Beta`),
     },
   }

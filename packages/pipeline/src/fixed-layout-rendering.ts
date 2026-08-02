@@ -27,7 +27,7 @@ import type {
   WebRenderingOutput,
   PositionedTextOutput,
 } from "@adt/types"
-import { escapeHtml } from "./package-web.js"
+import { escapeHtml } from "./html-escape.js"
 
 /**
  * Whether the book should render as a fixed-layout EPUB.

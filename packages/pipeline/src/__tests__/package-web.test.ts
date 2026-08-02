@@ -8,14 +8,16 @@ import {
   buildGlossaryJson,
   injectWebpubStyles,
   packageAdtWeb,
-  packageWebpub,
   renderPageHtml,
   resolveReflowableFontChain,
   renderQuizHtml,
   rewriteImageUrls,
   convertLatexToMathml,
   convertLatexString,
-} from "../package-web.js"
+  containsMathContent,
+} from "../packaging/web.js"
+import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
+import { deriveQuizPalette } from "../quiz-palette.js"
 
 function createMockStorage(
   pages: PageData[],
@@ -245,6 +247,44 @@ describe("renderPageHtml", () => {
     expect(html).not.toContain("scorm.js")
   })
 
+  it("injects the custom-activity registration stub in <head> for activity_custom pages", () => {
+    const html = renderPageHtml({
+      content:
+        '<section data-section-type="activity_custom_jigsaw" data-id="pg008_s2"><div>tiles</div><script>window.adtRegisterCustomActivity(section,{validate:()=>true});</script></section>',
+      language: "en",
+      sectionId: "pg008",
+      pageTitle: "Test",
+      pageIndex: 8,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    // The stub defines the registration hook and a pending queue...
+    expect(html).toContain("window.adtRegisterCustomActivity=function")
+    expect(html).toContain("__adtPendingCustomActivities")
+    // ...and it MUST live in <head>, before the section's parse-time script runs.
+    const headEnd = html.indexOf("</head>")
+    const stubAt = html.indexOf("__adtPendingCustomActivities")
+    const sectionAt = html.indexOf("activity_custom_jigsaw")
+    expect(stubAt).toBeGreaterThan(0)
+    expect(stubAt).toBeLessThan(headEnd)
+    expect(stubAt).toBeLessThan(sectionAt)
+  })
+
+  it("does not inject the custom-activity stub for non-custom pages", () => {
+    const html = renderPageHtml({
+      content: '<section data-section-type="activity_multiple_choice"><p>Pick one</p></section>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect(html).not.toContain("__adtPendingCustomActivities")
+  })
+
   it("does not reference woff2 fonts directly (they are declared in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
@@ -390,6 +430,51 @@ describe("renderQuizHtml", () => {
 
     expect(html).toContain('<section')
     expect(html).not.toContain('role="activity"')
+  })
+
+  const sampleQuiz = {
+    quizIndex: 0,
+    afterPageId: "pg001",
+    pageIds: ["pg001"],
+    question: "What is 2+2?",
+    options: [
+      { text: "3", explanation: "Nope" },
+      { text: "4", explanation: "Yes" },
+    ],
+    answerIndex: 1,
+    reasoning: "...",
+  }
+
+  it("uses the legacy template when no style is given", () => {
+    const html = renderQuizHtml(sampleQuiz, "qz001", undefined)
+    expect(html).toContain("bg-[#FFFAF5]")
+    expect(html).not.toContain("--quiz-accent")
+    // Options are a fixed width so they don't resize when feedback appears.
+    expect(html).toContain("w-[34rem]")
+    expect(html).not.toContain("w-full max-w-xl")
+    expect(html).toContain("outline: 3px solid #2563eb")
+    expect(html).not.toContain("focus:ring-green-300")
+  })
+
+  it("themes the quiz as a callout when a style is given, preserving the interactive contract", () => {
+    const palette = deriveQuizPalette([
+      { backgroundColor: "#FFFFFF", textColor: "#111111" },
+      { backgroundColor: "#FFFFFF", textColor: "#111111" },
+      { backgroundColor: "#FFFFFF", textColor: "#111111" },
+      { backgroundColor: "#0A8F5A", textColor: "#FFFFFF" }, // green callout section
+    ])
+    const html = renderQuizHtml(sampleQuiz, "qz001", undefined, { palette })
+    // Book typography + callout structure applied.
+    expect(html).toContain("adt-body")
+    expect(html).toContain("--quiz-accent: #0A8F5A;")
+    expect(html).toContain("quiz-header") // colored header band
+    expect(html).toContain("quiz-body") // pale card body
+    expect(html).not.toContain("bg-[#FFFAF5]")
+    // Interactive contract preserved.
+    expect(html).toContain('data-correct-answers=')
+    expect(html).toContain('data-activity-item="qz001_o0"')
+    expect(html).toContain('class="option-text block adt-body"')
+    expect(html).toContain("outline: 3px solid #2563eb")
   })
 })
 
@@ -1199,7 +1284,43 @@ describe("packageAdtWeb", () => {
         definition: "La couche superieure de la terre",
         variations: ["soils"],
         emoji: "🪨",
+        id: "gl_manual_soil",
       },
+    })
+  })
+
+  it("carries the term picture and sign-language video hrefs into glossary json", () => {
+    const glossaryJson = buildGlossaryJson(
+      {
+        items: [
+          {
+            id: "gl001",
+            source: "ai",
+            word: "volcano",
+            definition: "A mountain that erupts",
+            variations: [],
+            emojis: ["🌋"],
+            imageId: "pg003_im001",
+          },
+        ],
+        pageCount: 1,
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      undefined,
+      {},
+      true,
+      new Map([["pg003_im001", "images/pg003_im001.png"]]),
+      new Map([["gl001", "content/i18n/en/video/sl_gl001.mp4"]]),
+    )
+
+    expect(glossaryJson["volcano"]).toEqual({
+      word: "volcano",
+      definition: "A mountain that erupts",
+      variations: [],
+      emoji: "🌋",
+      id: "gl001",
+      image: "images/pg003_im001.png",
+      video: "content/i18n/en/video/sl_gl001.mp4",
     })
   })
 
@@ -1951,6 +2072,48 @@ describe("convertLatexToMathml", () => {
     expect(mathCount).toBe(2)
   })
 
+  it("leaves a custom activity's inline <script> byte-identical", () => {
+    // A grading script's regex literals (\( … \)) and template literals ($…$)
+    // look exactly like delimited LaTeX. Rewriting them into MathML would turn
+    // the script into a SyntaxError in the packaged book.
+    const script =
+      "<script>const re = /\\(([^)]+)\\)/; const msg = `${correct}/${total} right`;</script>"
+    const result = convertLatexToMathml(`<section><p>Sort them</p>${script}</section>`)
+    expect(result).toContain(script)
+    expect(result).not.toContain("<math")
+  })
+
+  it("still converts math outside a script in the same section", () => {
+    const script = "<script>const re = /\\(x\\)/;</script>"
+    const result = convertLatexToMathml(`<section><p>The value $x^2$ here</p>${script}</section>`)
+    expect(result).toContain("<math")
+    expect(result).toContain(script)
+  })
+})
+
+describe("containsMathContent", () => {
+  it("ignores $ and \\( that only appear inside an inline script", () => {
+    const html =
+      "<section><p>Sort the animals</p>" +
+      "<script>const msg = `${n}/${total}`; const re = /\\(a\\)/;</script></section>"
+    expect(containsMathContent(html)).toBe(false)
+  })
+
+  it("ignores LaTeX-looking commands inside a <style> block", () => {
+    const html = "<section><p>Plain text</p><style>.x{content:'\\\\frac{1}{2}'}</style></section>"
+    expect(containsMathContent(html)).toBe(false)
+  })
+
+  it("still detects math in markup alongside a script", () => {
+    const html =
+      "<section><p>The value $x^2$ here</p><script>const a = 1;</script></section>"
+    expect(containsMathContent(html)).toBe(true)
+  })
+
+  it("still detects undelimited LaTeX in markup", () => {
+    expect(containsMathContent('<p data-id="t1">6\\ \\text{cubos}</p>')).toBe(true)
+  })
+
   it("converts undelimited LaTeX with \\text{} in text nodes", () => {
     const html = '<p data-id="tx001">V_{\\text{empilhamento I}} = 6\\ \\text{cubos}</p>'
     const result = convertLatexToMathml(html)
@@ -1968,6 +2131,60 @@ describe("convertLatexToMathml", () => {
   it("does not modify text nodes without LaTeX", () => {
     const html = "<p>Just plain text here</p>"
     expect(convertLatexToMathml(html)).toBe(html)
+  })
+
+  // Regression: UNDELIMITED_LATEX_RE anchors its alternation immediately after
+  // the backslash, so a shorter alternative listed first shadows every longer
+  // one sharing its suffix — `frac` cannot match the `d` in `\dfrac`. Both
+  // variants below rendered as literal LaTeX on the page before the fix.
+  it("converts undelimited \\dfrac (not shadowed by the \\frac alternative)", () => {
+    const html = '<p data-id="tx001">\\dfrac{2}{5} + \\dfrac{3}{9}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mfrac>")
+    expect(result).not.toContain("\\dfrac")
+  })
+
+  it("converts undelimited \\tfrac (not shadowed by the \\frac alternative)", () => {
+    const html = '<p data-id="tx001">\\tfrac{1}{2}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mfrac>")
+    expect(result).not.toContain("\\tfrac")
+  })
+
+  // Regression: the delimited pass used to run over the raw HTML string, so a
+  // `$…$` pair inside a tag attribute (activity inputs echoing the expression
+  // in aria-label) was replaced with MathML. For parenthesized expressions the
+  // MathML carries quoted attributes (`fence="true"`), whose first embedded
+  // quote truncated the attribute value and split the tag open — the input
+  // vanished and its attribute tail rendered as page text.
+  it("never converts LaTeX inside tag attributes", () => {
+    const input =
+      '<input type="text" aria-label="c. $5(2x)$" class="mt-4 w-full rounded border border-gray-300 bg-white p-2">'
+    const html = `<p data-id="tx001">c. $5(2x)$</p>${input}`
+    const result = convertLatexToMathml(html)
+    expect(result).toContain(input)
+    expect(result).toContain("<math")
+    expect(result).not.toContain("$5(2x)$</p>")
+  })
+
+  it("converts delimited math in text nodes on both sides of a tag boundary", () => {
+    const result = convertLatexToMathml("<p>$a + b$</p><p>$c + d$</p>")
+    const mathCount = (result.match(/<math/g) ?? []).length
+    expect(mathCount).toBe(2)
+  })
+
+  // Regression: `\begin{` is listed in MATH_INDICATORS, which only decides
+  // whether the converter runs at all. The converter's own gate never listed
+  // it, so columnar sums and long division were detected as "this page has
+  // maths" and then left unconverted.
+  it("converts a bare \\begin{array} block (columnar arithmetic)", () => {
+    const html = '<p data-id="tx002">\\begin{array}{r} 24 \\\\ + 18 \\\\ \\hline 42 \\end{array}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mtable")
+    expect(result).not.toContain("\\begin{array}")
   })
 })
 
@@ -2040,6 +2257,73 @@ describe("convertLatexToMathml (HTML)", () => {
   })
 })
 
+describe("nestTocEntries", () => {
+  it("keeps level-less entries flat", () => {
+    const result = nestTocEntries([
+      { href: "a.html", title: "A" },
+      { href: "b.html", title: "B" },
+    ])
+    expect(result).toEqual([
+      { href: "a.html", title: "A" },
+      { href: "b.html", title: "B" },
+    ])
+  })
+
+  it("nests deeper levels under the preceding entry", () => {
+    const result = nestTocEntries([
+      { href: "ch1.html", title: "Chapter 1", level: 1 },
+      { href: "ch1-1.html", title: "Section 1.1", level: 2 },
+      { href: "ch1-2.html", title: "Section 1.2", level: 2 },
+      { href: "ch2.html", title: "Chapter 2", level: 1 },
+    ])
+    expect(result).toEqual([
+      {
+        href: "ch1.html",
+        title: "Chapter 1",
+        children: [
+          { href: "ch1-1.html", title: "Section 1.1" },
+          { href: "ch1-2.html", title: "Section 1.2" },
+        ],
+      },
+      { href: "ch2.html", title: "Chapter 2" },
+    ])
+  })
+})
+
+describe("injectActivitiesBundle", () => {
+  let tmp: string
+
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "inject-activities-"))
+  })
+  afterEach(() => {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  })
+
+  it("injects the bundle only into pages with an activity section", () => {
+    const activityHtml = `<html><body><section data-section-type="activity_quiz"></section></body></html>`
+    const plainHtml = `<html><body><p>No activity here</p></body></html>`
+    fs.writeFileSync(path.join(tmp, "quiz.html"), activityHtml)
+    fs.writeFileSync(path.join(tmp, "plain.html"), plainHtml)
+
+    injectActivitiesBundle(tmp)
+
+    const quiz = fs.readFileSync(path.join(tmp, "quiz.html"), "utf-8")
+    const plain = fs.readFileSync(path.join(tmp, "plain.html"), "utf-8")
+    expect(quiz).toContain("./assets/activities.bundle.local.js")
+    expect(plain).not.toContain("activities.bundle.local.js")
+  })
+
+  it("does not double-inject", () => {
+    const html = `<html><body><section data-section-type="activity_sorting"></section></body></html>`
+    fs.writeFileSync(path.join(tmp, "a.html"), html)
+    injectActivitiesBundle(tmp)
+    injectActivitiesBundle(tmp)
+    const out = fs.readFileSync(path.join(tmp, "a.html"), "utf-8")
+    expect(out.match(/activities\.bundle\.local\.js/g)).toHaveLength(1)
+  })
+})
+
 describe("injectWebpubStyles", () => {
   let tmpDir: string
 
@@ -2072,6 +2356,17 @@ describe("injectWebpubStyles", () => {
     const p = writePage()
     injectWebpubStyles(tmpDir, { fixedLayout: true })
     expect(fs.readFileSync(p, "utf-8")).not.toContain(".glossref")
+  })
+
+  it("neutralizes the fixed-layout fit only when asked (EPUB), not for WebPub", () => {
+    const p = writePage()
+    injectWebpubStyles(tmpDir, { fixedLayout: true })
+    // WebPub keeps the browser fit script active.
+    expect(fs.readFileSync(p, "utf-8")).not.toContain("transform: none")
+
+    const p2 = writePage()
+    injectWebpubStyles(tmpDir, { fixedLayout: true, neutralizeFixedLayoutFit: true })
+    expect(fs.readFileSync(p2, "utf-8")).toContain("transform: none")
   })
 })
 
@@ -2173,6 +2468,63 @@ describe("packageWebpub", () => {
     expect(config.features.showTutorial).toBe(false)
   })
 
+  it("drops SCORM/non-reader files and omits them from manifest resources", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    // packageAdtWeb emits imsmanifest.xml; add a stray AGENTS.md too.
+    fs.writeFileSync(path.join(bookDir, "adt", "AGENTS.md"), "stray")
+    expect(fs.existsSync(path.join(bookDir, "adt", "imsmanifest.xml"))).toBe(true)
+
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    expect(fs.existsSync(path.join(bookDir, "webpub", "imsmanifest.xml"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "webpub", "AGENTS.md"))).toBe(false)
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    const hrefs = manifest.resources.map((r: { href: string }) => r.href)
+    expect(hrefs).not.toContain("imsmanifest.xml")
+    expect(hrefs).not.toContain("AGENTS.md")
+  })
+
+  it("labels resources by MIME type and excludes reading-order docs", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    // A font that would otherwise fall through to application/octet-stream.
+    const fontDir = path.join(bookDir, "adt", "assets", "fonts")
+    fs.mkdirSync(fontDir, { recursive: true })
+    fs.writeFileSync(path.join(fontDir, "book.woff2"), "font")
+
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    const font = manifest.resources.find((r: { href: string }) => r.href.endsWith("book.woff2"))
+    expect(font?.type).toBe("font/woff2")
+    // Reading-order documents must not be duplicated into resources.
+    const resourceHrefs = manifest.resources.map((r: { href: string }) => r.href)
+    const readingOrderHrefs = manifest.readingOrder.map((r: { href: string }) => r.href)
+    expect(readingOrderHrefs).toContain("index.html")
+    for (const href of readingOrderHrefs) {
+      expect(resourceHrefs).not.toContain(href)
+    }
+  })
+
   it("injects CSS overrides into HTML pages", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()
     await buildAdtFirst(bookDir, webAssetsDir, storage)
@@ -2210,7 +2562,8 @@ describe("packageWebpub", () => {
     )
     expect(manifest["@context"]).toBe("https://readium.org/webpub-manifest/context.jsonld")
     expect(manifest.metadata.title).toBe("My Test Book")
-    expect(manifest.metadata.language).toBe("en")
+    expect(manifest.metadata.language).toEqual(["en"])
+    expect(manifest.metadata.conformsTo).toContain("https://readium.org/webpub-manifest/profiles/epub")
     expect(manifest.metadata.presentation.overflow).toBe("scrolled")
     expect(manifest.metadata.presentation.spread).toBe("none")
     expect(manifest.metadata.author).toBe("Author")
@@ -2224,6 +2577,128 @@ describe("packageWebpub", () => {
       type: "application/webpub+json",
     })
     expect(manifest.resources.length).toBeGreaterThan(0)
+  })
+
+  it("declares fixed layout in the manifest for fixed-layout books", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "My Test Book",
+      webAssetsDir,
+      fixedLayout: true,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    expect(manifest.metadata.layout).toBe("fixed")
+    expect(manifest.metadata.conformsTo).toContain("https://readium.org/webpub-manifest/profiles/epub")
+    // No deprecated presentation.layout — conformsTo makes readers honor metadata.layout.
+    expect(manifest.metadata.presentation.layout).toBeUndefined()
+    expect(manifest.metadata.presentation.fit).toBe("contain")
+    expect(manifest.metadata.presentation.spread).toBe("none")
+    expect(manifest.metadata.presentation.overflow).toBeUndefined()
+  })
+
+  it("emits pageList and landmarks navigation collections", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    expect(manifest.pageList).toEqual([{ href: "index.html", title: "1" }])
+    expect(manifest.landmarks).toContainEqual({ rel: "bodymatter", href: "index.html" })
+  })
+
+  it("emits schema.org accessibility metadata derived from features", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    const a11y = manifest.metadata.accessibility
+    expect(a11y.accessMode).toEqual(expect.arrayContaining(["textual", "visual"]))
+    expect(a11y.feature).toContain("readingOrder")
+    expect(a11y.hazard).toEqual(["none"])
+    expect(typeof a11y.summary).toBe("string")
+  })
+
+  it("exposes the language list and keeps the manifest standards-clean", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    // Languages listed in the standard metadata.language array.
+    expect(manifest.metadata.language).toEqual(["en"])
+    // No proprietary feature block — ADT-only features live in config.json.
+    expect(manifest.metadata["https://adt.unicef.org/schema#features"]).toBeUndefined()
+    // Image captions are on by default → standard alternativeText feature.
+    expect(manifest.metadata.accessibility.feature).toContain("alternativeText")
+  })
+
+  it("strips the embedded runtime but keeps the feature data contract", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const webpubDir = path.join(bookDir, "webpub")
+    const assetsDir = path.join(webpubDir, "assets")
+
+    for (const name of [
+      "base.bundle.min.js",
+      "base.bundle.local.js",
+      "offline-preloader.js",
+      "scorm.js",
+    ]) {
+      expect(fs.existsSync(path.join(assetsDir, name))).toBe(false)
+    }
+
+    const html = fs.readFileSync(path.join(webpubDir, "index.html"), "utf-8")
+    expect(html).not.toContain("base.bundle")
+    expect(html).not.toContain("offline-preloader.js")
+    expect(html).not.toContain("scorm.js")
+
+    expect(fs.existsSync(path.join(assetsDir, "config.json"))).toBe(true)
+    expect(fs.existsSync(path.join(webpubDir, "content", "pages.json"))).toBe(true)
   })
 
   it("throws when ADT package has not been built", () => {

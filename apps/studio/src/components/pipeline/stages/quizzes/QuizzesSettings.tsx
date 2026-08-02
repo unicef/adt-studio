@@ -1,20 +1,23 @@
 import { useState, useEffect } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Plus } from "lucide-react"
 import { AddQuizDialog } from "./AddQuizDialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useStageStatus } from "@/hooks/use-stage-status"
-import { api } from "@/api/client"
-import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
 import { useLingui } from "@lingui/react/macro"
 import { getSectionTypeLabel, getSectionTypeDescription } from "@/lib/section-constants"
+
+const PROMPT_TABS = ["prompt"]
 
 function getSectionTypeDisplayLabel(value: string): string {
   return getSectionTypeLabel(value) || value.replace(/_/g, " ")
@@ -29,12 +32,14 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const queryClient = useQueryClient()
   const { hasApiKey } = useApiKey()
   const quizzesStatus = useStageStatus("quizzes")
   const [showAddQuiz, setShowAddQuiz] = useState(false)
 
   const [pagesPerQuiz, setPagesPerQuiz] = useState("")
-  const [promptDraft, setPromptDraft] = useState<string | null>(null)
+  const [matchBookStyle, setMatchBookStyle] = useState(true)
+  const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null)
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
   const [quizSectionTypes, setQuizSectionTypes] = useState<Set<string>>(new Set())
 
@@ -59,6 +64,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
       if (Array.isArray(qg.quiz_section_types)) {
         setQuizSectionTypes(new Set(qg.quiz_section_types as string[]))
       }
+      setMatchBookStyle(qg.match_book_style !== false)
     }
     if (m.section_types && typeof m.section_types === "object") {
       const all = m.section_types as Record<string, string>
@@ -95,13 +101,18 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
       if (dirty.quiz_section_types || "quiz_section_types" in existing) {
         nextQuizGeneration.quiz_section_types = Array.from(quizSectionTypes)
       }
+      if (dirty.match_book_style || "match_book_style" in existing) {
+        nextQuizGeneration.match_book_style = matchBookStyle
+      }
       overrides.quiz_generation = nextQuizGeneration
     }
     return overrides
   }
 
   const save = async () => {
-    if (promptDraft != null) await api.updatePrompt("quiz_generation", promptDraft, bookLabel)
+    if (promptDraft != null) {
+      await savePromptDraft(queryClient, "quiz_generation", bookLabel, promptDraft)
+    }
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
     setPromptDraft(null)
@@ -120,12 +131,13 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
     dirtyTabs,
     saving: updateConfig.isPending,
     save,
+    showSaveOnly: PROMPT_TABS.includes(tab),
   })
 
   const sectionTypeKeys = Object.keys(sectionTypes).filter((k) => !k.startsWith("activity_"))
 
   return (
-    <div className={tab === "prompt" ? "h-full max-w-4xl" : "p-4 max-w-2xl space-y-6"}>
+    <div className={tab === "prompt" ? "h-full w-full" : "p-4 max-w-2xl space-y-6"}>
       {tab === "general" && (
         <>
           <div className="space-y-1.5">
@@ -141,6 +153,23 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
             <p className="text-xs text-muted-foreground">
               {t`Number of pages of content to include per quiz question.`}
             </p>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+            <div className="space-y-0.5">
+              <Label className="text-xs">{t`Match book style`}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t`Style quizzes to match the book's fonts, text sizes, and colors. Turn off for the generic quiz style.`}
+              </p>
+            </div>
+            <Switch
+              checked={matchBookStyle}
+              onCheckedChange={(v) => {
+                setMatchBookStyle(v)
+                markDirty("quiz_generation")
+                markDirty("match_book_style")
+              }}
+            />
           </div>
 
           <div className="space-y-2 rounded-md border p-3">
@@ -212,11 +241,12 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
           bookLabel={bookLabel}
           title={t`Quiz Generation Prompt`}
           description={t`The prompt template used to generate quiz questions from page content.`}
+          draft={promptDraft}
           model={quiz.model}
           onModelChange={quiz.onModelChange}
           maxRetries={quiz.maxRetries}
           onMaxRetriesChange={quiz.onMaxRetriesChange}
-          onContentChange={setPromptDraft}
+          onContentChange={(content, modelId) => setPromptDraft(toPromptDraft(content, modelId))}
           enabled={tab === "prompt"}
         />
       )}

@@ -6,6 +6,7 @@ import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { ExtractPageDetail } from "./components/ExtractPageDetail"
+import { SpreadReview } from "./components/SpreadReview"
 import { BookHeader } from "./BookHeader"
 import { LoadingState } from "../../components/LoadingState"
 import { useStepHeader } from "../../components/StepViewRouter"
@@ -136,7 +137,15 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   // no pages exist yet — remaining steps (and re-queued derived steps like
   // book-summary) run in the background TaskIndicator without hiding the grid.
   const hasPages = (pages ?? []).length > 0
-  const showRunCard = extractError ? true : !hasPages
+  // A cancelled/interrupted run leaves the stage with pages but incomplete
+  // steps, collapsing to "idle" (not done, not error, nothing running). Without
+  // surfacing the run card here the page grid would show with no way to finish
+  // the stage — the only escape would be to dirty a setting. An "idle" extract
+  // that already has pages can only mean an interrupted run: a healthy stage is
+  // "done"/"running"/"queued", and a background derived-step re-queue keeps it
+  // "running"/"queued" (never idle), so this doesn't hide progressive pages.
+  const extractInterrupted = hasPages && extractState === "idle"
+  const showRunCard = extractError || extractInterrupted ? true : !hasPages
 
   const handleRetryExtract = useCallback(() => {
     if (!hasApiKey || extractRunning) return
@@ -245,7 +254,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
           isRunning={extractRunning}
           completed={extractDone}
           onRun={handleRetryExtract}
-          disabled={!extractError || !hasApiKey || extractRunning}
+          disabled={(!extractError && !extractInterrupted) || !hasApiKey || extractRunning}
         />
       ) : pageList.length === 0 ? (
         <StageEmptyState
@@ -274,6 +283,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
               />
             </div>
           )}
+          <SpreadReview bookLabel={bookLabel} />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {pageList.map((page) => (
               <PageCard

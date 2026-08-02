@@ -13,6 +13,7 @@ import { SectioningOverview } from "./components/SectioningOverview"
 import { useSectionNav } from "@/routes/books.$label"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
+import { useHasUnsavedChanges } from "../../components/floating-save"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
@@ -20,6 +21,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
   const setSelectedPageId = onSelectPage ?? (() => {})
   const [overviewMode, setOverviewMode] = useState(false)
+  const hasUnsavedChanges = useHasUnsavedChanges()
   const { setExtra, setOnLabelClick } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey } = useApiKey()
@@ -82,6 +84,21 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   const sectionCount = page?.sectioningTree?.sections.length ?? 0
 
+  const confirmUnsavedNavigation = useCallback(
+    () =>
+      !hasUnsavedChanges ||
+      window.confirm(t`If you leave now, your unsaved changes will be lost.`),
+    [hasUnsavedChanges, t],
+  )
+
+  const navigateToSection = useCallback(
+    (index: number) => {
+      if (index === sectionIndex || !confirmUnsavedNavigation()) return
+      setSectionIndex(index)
+    },
+    [confirmUnsavedNavigation, sectionIndex, setSectionIndex],
+  )
+
   // Resolve pending "last section" once page data loads
   useEffect(() => {
     if (pendingLastSection.current && sectionCount > 0) {
@@ -104,7 +121,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const goPrev = () => {
     if (isGeneratingRef.current && !window.confirm(t`An AI image is being generated. Cancel it and navigate?`)) return
     if (sectionIndex > 0) {
-      setSectionIndex(sectionIndex - 1)
+      navigateToSection(sectionIndex - 1)
     } else if (prevPageId) {
       pendingLastSection.current = true
       skipNextResetRef.current = true
@@ -115,9 +132,8 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const goNext = () => {
     if (isGeneratingRef.current && !window.confirm(t`An AI image is being generated. Cancel it and navigate?`)) return
     if (sectionIndex < sectionCount - 1) {
-      setSectionIndex(sectionIndex + 1)
+      navigateToSection(sectionIndex + 1)
     } else if (nextPageId) {
-      setSectionIndex(0)
       setSelectedPageId(nextPageId)
     }
   }
@@ -142,7 +158,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
               type="button"
               onClick={() => {
                 if (isGeneratingRef.current && !window.confirm(t`An AI image is being generated. Cancel it and navigate?`)) return
-                setSectionIndex(i)
+                navigateToSection(i)
               }}
               className={`flex items-center justify-center min-w-[20px] h-5 px-1 rounded text-[10px] font-medium transition-colors ${
                 i === sectionIndex
@@ -166,7 +182,10 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       className={`flex items-center justify-center w-7 h-7 rounded transition-colors ${
         overviewMode ? "bg-white/30 text-white" : "bg-white/15 hover:bg-white/25 text-white/70"
       }`}
-      onClick={() => setOverviewMode((v) => !v)}
+      onClick={() => {
+        if (!overviewMode && !confirmUnsavedNavigation()) return
+        setOverviewMode((v) => !v)
+      }}
       title={t`Overview`}
     >
       <Table2 className="h-3.5 w-3.5" />
@@ -380,7 +399,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       navigationExtra={navigationExtra}
       navigationArrows={navigationArrows}
       onGeneratingChange={handleGeneratingChange}
-      onNavigateSection={setSectionIndex}
+      onNavigateSection={navigateToSection}
       hasPrevPage={!!prevPageId}
       hasNextPage={!!nextPageId}
     />

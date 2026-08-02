@@ -23,6 +23,8 @@ export interface GenerateImageWithCacheOptions {
   }
   onLog?: (entry: LlmLogEntry) => void
   logLevel?: LogLevel
+  /** External cancellation signal, combined with the internal timeout. */
+  signal?: AbortSignal
 }
 
 export interface GenerateImageWithCacheResult {
@@ -50,6 +52,7 @@ export async function generateImageWithCache(
     log: logOptions,
     onLog,
     logLevel,
+    signal: externalSignal,
   } = options
 
   const logger = createLogger(logLevel)
@@ -88,7 +91,11 @@ export async function generateImageWithCache(
   }
 
   try {
-    const abortSignal = timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined
+    const timeoutSignal = timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined
+    const abortSignal =
+      timeoutSignal && externalSignal
+        ? AbortSignal.any([timeoutSignal, externalSignal])
+        : (timeoutSignal ?? externalSignal)
     const result =
       referenceImages.length > 0
         ? await editImage({

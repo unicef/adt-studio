@@ -7,13 +7,34 @@ import {
   type Context,
   type Emitter,
 } from "liquidjs"
+import fs from "node:fs"
+import path from "node:path"
 import type { Message, ContentPart } from "./types.js"
 
 const IMAGE_MARKER_START = "\x00IMG:"
 const IMAGE_MARKER_END = "\x00"
+const PROMPT_VERSIONS_DIR = ".versions"
+const PROMPT_CURRENT_VERSION_FILE = ".current"
+const BASE_PROMPT_MODEL_ID = "openai:gpt-5.4"
+
+export interface PromptRenderOptions {
+  modelId?: string
+}
+
+export interface PromptResolution {
+  requestedName: string
+  resolvedName: string
+  modelId: string | null
+  filePath: string
+}
 
 export interface PromptEngine {
-  renderPrompt(templateName: string, context: Record<string, unknown>): Promise<Message[]>
+  renderPrompt(
+    templateName: string,
+    context: Record<string, unknown>,
+    options?: PromptRenderOptions,
+  ): Promise<Message[]>
+  resolvePrompt(templateName: string, options?: PromptRenderOptions): PromptResolution
 }
 
 /**
@@ -22,6 +43,27 @@ export interface PromptEngine {
  */
 export function createPromptEngine(promptsDir: string | string[]): PromptEngine {
   const roots = Array.isArray(promptsDir) ? promptsDir : [promptsDir]
+
+  return {
+    resolvePrompt(templateName: string, options?: PromptRenderOptions): PromptResolution {
+      return resolvePromptTemplate(roots, templateName, options)
+    },
+
+    async renderPrompt(
+      templateName: string,
+      context: Record<string, unknown>,
+      options?: PromptRenderOptions,
+    ): Promise<Message[]> {
+      const resolved = resolvePromptTemplate(roots, templateName, options)
+      const template = fs.readFileSync(resolved.filePath, "utf-8")
+      const engine = createLiquidEngine(renderRootsForResolution(roots, resolved))
+      const raw = await engine.parseAndRender(template, context)
+      return parseMessages(raw)
+    },
+  }
+}
+
+function createLiquidEngine(roots: string[]): Liquid {
   const engine = new Liquid({
     root: roots,
     extname: ".liquid",
@@ -30,13 +72,161 @@ export function createPromptEngine(promptsDir: string | string[]): PromptEngine 
 
   engine.registerTag("chat", createChatTag(engine))
   engine.registerTag("image", ImageTag)
+  return engine
+}
 
-  return {
-    async renderPrompt(templateName: string, context: Record<string, unknown>): Promise<Message[]> {
-      const raw = await engine.renderFile(templateName, context)
-      return parseMessages(raw)
-    },
+function renderRootsForResolution(roots: string[], resolved: PromptResolution): string[] {
+  const renderRoots: string[] = []
+  const seen = new Set<string>()
+  const addRoot = (root: string) => {
+    const key = path.resolve(root).toLowerCase()
+    if (seen.has(key)) return
+    seen.add(key)
+    renderRoots.push(root)
   }
+
+  addRoot(path.dirname(resolved.filePath))
+
+  if (resolved.modelId && resolved.resolvedName !== resolved.requestedName) {
+    const modelFolder = promptModelFolderName(resolved.modelId)
+    for (const root of roots) {
+      addRoot(path.join(root, modelFolder))
+    }
+  }
+
+  for (const root of roots) {
+    addRoot(root)
+  }
+
+  return renderRoots
+}
+
+export function resolvePromptModelId(modelId: string | undefined): string | null {
+  if (!modelId) return null
+  const normalized = modelId.trim().toLowerCase()
+  if (!normalized) return null
+  const canonical = normalized.includes(":") ? normalized : `openai:${normalized}`
+  if (canonical === BASE_PROMPT_MODEL_ID) return null
+  return canonical
+}
+
+export function promptNameForModel(
+  templateName: string,
+  modelId: string | null | undefined,
+): string {
+  const resolvedModelId = resolvePromptModelId(modelId ?? undefined)
+  if (!resolvedModelId) return templateName
+  return `${templateName}__${promptModelFolderName(resolvedModelId)}`
+}
+
+export function promptModelFolderName(modelId: string): string {
+  return sanitizePromptModelId(modelId)
+}
+
+function resolvePromptTemplate(
+  roots: string[],
+  templateName: string,
+  options?: PromptRenderOptions,
+): PromptResolution {
+  const modelId = resolvePromptModelId(options?.modelId)
+
+  if (modelId) {
+    const variantName = promptNameForModel(templateName, modelId)
+    const variant = findModelPromptTemplate(roots, templateName, modelId, variantName)
+    if (variant) {
+      return { requestedName: templateName, resolvedName: variantName, modelId, filePath: variant }
+    }
+  }
+
+  const base = findPromptTemplate(roots, templateName)
+  if (base) {
+    return { requestedName: templateName, resolvedName: templateName, modelId, filePath: base }
+  }
+
+  throw new Error(`Prompt template not found: ${templateName}`)
+}
+
+function sanitizePromptModelId(modelId: string): string {
+  return modelId
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+}
+
+function findPromptTemplate(roots: string[], name: string): string | null {
+  for (const root of roots) {
+    const versionedPath = latestVersionedPromptPath(root, name)
+    if (versionedPath) {
+      return versionedPath
+    }
+
+    const flatPath = path.join(root, `${name}.liquid`)
+    if (fs.existsSync(flatPath)) {
+      return flatPath
+    }
+  }
+
+  return null
+}
+
+function findModelPromptTemplate(
+  roots: string[],
+  templateName: string,
+  modelId: string,
+  variantName: string,
+): string | null {
+  const modelFolder = promptModelFolderName(modelId)
+  for (const root of roots) {
+    const versionedPath = latestVersionedPromptPath(root, variantName)
+    if (versionedPath) {
+      return versionedPath
+    }
+
+    const folderPath = path.join(root, modelFolder, `${templateName}.liquid`)
+    if (fs.existsSync(folderPath)) {
+      return folderPath
+    }
+
+    const legacyFlatPath = path.join(root, `${variantName}.liquid`)
+    if (fs.existsSync(legacyFlatPath)) {
+      return legacyFlatPath
+    }
+  }
+
+  return null
+}
+
+function latestVersionedPromptPath(root: string, promptName: string): string | null {
+  const versionDir = path.join(root, PROMPT_VERSIONS_DIR, promptName)
+  if (!fs.existsSync(versionDir)) return null
+
+  const currentPath = currentVersionedPromptPath(versionDir)
+  if (currentPath) return currentPath
+
+  const files = fs
+    .readdirSync(versionDir)
+    .filter((file) => file.endsWith(".liquid"))
+    .sort()
+  const latest = files.at(-1)
+  return latest ? path.join(versionDir, latest) : null
+}
+
+function currentVersionedPromptPath(versionDir: string): string | null {
+  const currentPath = path.join(versionDir, PROMPT_CURRENT_VERSION_FILE)
+  if (!fs.existsSync(currentPath)) return null
+
+  const currentVersion = fs.readFileSync(currentPath, "utf-8").trim()
+  if (
+    !currentVersion.endsWith(".liquid")
+    || currentVersion.includes("/")
+    || currentVersion.includes("\\")
+    || currentVersion.includes("..")
+  ) {
+    return null
+  }
+
+  const promptPath = path.join(versionDir, currentVersion)
+  return fs.existsSync(promptPath) ? promptPath : null
 }
 
 /**
@@ -89,6 +279,14 @@ class ImageTag extends Tag {
 
   *render(ctx: Context, emitter: Emitter): Generator<unknown, void, unknown> {
     const val = yield this.liquid.evalValue(this.value, ctx)
+    // Only emit an image marker for a real, non-empty string. A missing or
+    // empty Liquid expression would otherwise inject the literal string
+    // "undefined" (or "") as the image payload — which the LLM SDK rejects
+    // with the cryptic "Content string is not a base64-encoded media." Skipping
+    // lets templates reference optional images (e.g. `{% image page_image_base64 %}`)
+    // without wrapping every use in an `{% if %}`. `.trim()` also drops
+    // whitespace-only values, which are equally invalid base64.
+    if (typeof val !== "string" || val.trim() === "") return
     emitter.write(`${IMAGE_MARKER_START}${val}${IMAGE_MARKER_END}`)
   }
 }

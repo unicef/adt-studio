@@ -126,7 +126,6 @@
     "dock-label": "Controles do leitor",
     "dock-align-spread": "Espalhado",
     "dock-layout-preview": "Posição da barra de ferramentas",
-    "exit-activity-mode": "Sair do modo atividade",
     "settings-section-reading": "Leitura",
     "settings-section-toolbar": "Barra de ferramentas",
     "settings-section-toolbar-hint": "Clique na visualização para escolher onde a barra fica.",
@@ -165,5 +164,15 @@
     "admin-popup-stub-message": "As ferramentas de administração serão adicionadas em uma atualização futura.",
     "main-menu-label": "Menu principal",
     "cover-label": "Capa",
-    "print-page-label": "Imprimir página"
+    "print-page-label": "Imprimir página",
+    "underline-text-options-label": "Sublinhe o texto correto",
+    "underline-question-label": "Pergunta ${n}",
+    "underline-all-correct": "Todas as respostas estão corretas!",
+    "underline-progress-summary": "${correct} corretas, ${wrong} incorretas, ${missing} ainda por encontrar.",
+    "activity-progress-remaining": "restantes",
+    "stepper-progress-n-of-m": "Passo ${n} de ${m}",
+    "stepper-word-bank": "Palavras para escolher",
+    "stepper-open-ended-saved": "Muito bem — sua resposta foi salva.",
+    "stepper-open-ended-rephrase": "Vamos ser gentis — tente reescrever sua resposta.",
+    "open-ended-answer-label": "Sua resposta"
 }

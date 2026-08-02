@@ -1,0 +1,22 @@
+{
+  "name": "@adt/agents",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@adt/llm": "workspace:*",
+    "@adt/pipeline": "workspace:*",
+    "@adt/storage": "workspace:*",
+    "@adt/types": "workspace:*",
+    "@ai-sdk/anthropic": "^1.2.12",
+    "@ai-sdk/google": "^1.2.22",
+    "@ai-sdk/openai": "^1.0.0",
+    "ai": "^4.0.0",
+    "htmlparser2": "^10.1.0",
+    "zod": "^3.24.0"
+  }
+}

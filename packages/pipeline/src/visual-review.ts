@@ -10,6 +10,9 @@ export interface VisualReviewDeps {
   screenshotRenderer: ScreenshotRenderer
   webAssetsDir: string
   storeScreenshot?: (base64: string) => void
+  /** Book typography CSS so review screenshots use the same pinned sizes the
+   *  packaged book does (avoids the reviewer fighting the shared scale). */
+  typographyCss?: string
 }
 
 export interface VisualReviewValidation {
@@ -29,12 +32,19 @@ export interface RunVisualReviewLoopOptions {
   timeoutMs: number
   temperature?: number
   pageImageBase64?: string
+  /**
+   * Page images for content merged into the section from other pages —
+   * shown after the primary page image so the reviewer doesn't flag merged
+   * content as missing from the original.
+   */
+  additionalPageImages?: Array<{ pageId: string; imageBase64: string }>
   promptContext?: Record<string, unknown>
   originalImageIntroText?: string
   firstIterationScreenshotsText: string
   nextIterationScreenshotsText: string
   trailingContextText: string
   validateHtml: (html: string) => VisualReviewValidation
+  signal?: AbortSignal
 }
 
 export interface VisualReviewResult {
@@ -74,6 +84,11 @@ function normalizeForCompare(s: string): string {
   return s.replace(/\s+/g, " ").trim()
 }
 
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return
+  throw signal.reason instanceof Error ? signal.reason : new Error("Operation aborted")
+}
+
 export async function runVisualReviewLoop(
   options: RunVisualReviewLoopOptions
 ): Promise<VisualReviewResult> {
@@ -88,18 +103,22 @@ export async function runVisualReviewLoop(
     timeoutMs,
     temperature,
     pageImageBase64,
+    additionalPageImages,
     promptContext,
     originalImageIntroText = "Here is the original page image for reference:",
     firstIterationScreenshotsText,
     nextIterationScreenshotsText,
     trailingContextText,
     validateHtml,
+    signal,
   } = options
 
+  throwIfAborted(signal)
   const initialMessages = await deps.llmModel.renderPrompt(promptName, {
     ...(promptContext ?? {}),
     viewports: getViewportBreakpoints(),
   })
+  throwIfAborted(signal)
   const systemMsg = initialMessages.find((m) => m.role === "system")
   const systemPrompt = typeof systemMsg?.content === "string" ? systemMsg.content : undefined
 
@@ -113,11 +132,13 @@ export async function runVisualReviewLoop(
   let pendingValidationFeedback: string | null = null
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
+    throwIfAborted(signal)
     const screenshotHtml = await buildScreenshotHtml({
       sectionHtml: html,
       label,
       images,
       webAssetsDir: deps.webAssetsDir,
+      typographyCss: deps.typographyCss,
     })
 
     // Render all viewport screenshots in parallel — they're independent and
@@ -126,10 +147,12 @@ export async function runVisualReviewLoop(
       SCREENSHOT_VIEWPORTS.map((vp) =>
         deps.screenshotRenderer.screenshot(
           screenshotHtml,
-          { width: vp.width, height: vp.height }
+          { width: vp.width, height: vp.height },
+          { signal },
         )
       )
     )
+    throwIfAborted(signal)
     const screenshotParts: ContentPart[] = []
     for (let i = 0; i < SCREENSHOT_VIEWPORTS.length; i++) {
       const vp = SCREENSHOT_VIEWPORTS[i]
@@ -149,6 +172,15 @@ export async function runVisualReviewLoop(
       userParts.push(
         { type: "text", text: originalImageIntroText },
         { type: "image", image: pageImageBase64 },
+      )
+    }
+    for (const sp of additionalPageImages ?? []) {
+      userParts.push(
+        {
+          type: "text",
+          text: `This section also includes content merged from another page (${sp.pageId}). That content does NOT appear in the page image above — use this additional page image as its visual reference:`,
+        },
+        { type: "image", image: sp.imageBase64 },
       )
     }
     userParts.push({
@@ -181,6 +213,7 @@ export async function runVisualReviewLoop(
       maxTokens: 16384,
       temperature,
       timeoutMs,
+      signal,
       log: {
         taskType: "visual-review",
         pageId,

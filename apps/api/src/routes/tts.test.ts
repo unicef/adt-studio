@@ -370,18 +370,22 @@ describe("POST /books/:label/tts/generate-one", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.entry.fileName).toBe("pg001_t001.wav")
-    expect(body.entry.model).toBe("gemini-2.5-flash-preview-tts")
+    expect(body.entry.model).toBe("gemini-2.5-pro-preview-tts")
     expect(fetchMock).toHaveBeenCalledTimes(2)
 
     const [firstUrl] = fetchMock.mock.calls[0]
     const [secondUrl] = fetchMock.mock.calls[1]
-    expect(String(firstUrl)).toContain("gemini-2.5-pro-preview-tts")
-    expect(String(secondUrl)).toContain("gemini-2.5-flash-preview-tts")
+    expect(String(firstUrl)).toContain("gemini-2.5-flash-preview-tts")
+    expect(String(secondUrl)).toContain("gemini-2.5-pro-preview-tts")
   })
 
   it("falls back to OpenAI when both Gemini preview models return no audio", async () => {
     const label = "gemini-audio-openai-fallback"
     seedBook(label)
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      "default_speech_generation_model: tts-1-hd\n",
+    )
 
     fetchMock
       .mockResolvedValueOnce(
@@ -440,19 +444,20 @@ describe("POST /books/:label/tts/generate-one", () => {
     const body = await res.json()
     expect(body.entry.fileName).toBe("pg001_t001.wav")
     expect(body.entry.provider).toBe("openai")
-    expect(body.entry.model).toBe("gpt-4o-mini-tts")
+    expect(body.entry.model).toBe("tts-1-hd")
     expect(fetchMock).toHaveBeenCalledTimes(3)
 
     const [firstUrl] = fetchMock.mock.calls[0]
     const [secondUrl] = fetchMock.mock.calls[1]
     const [thirdUrl, thirdInit] = fetchMock.mock.calls[2]
-    expect(String(firstUrl)).toContain("gemini-2.5-pro-preview-tts")
-    expect(String(secondUrl)).toContain("gemini-2.5-flash-preview-tts")
+    expect(String(firstUrl)).toContain("gemini-2.5-flash-preview-tts")
+    expect(String(secondUrl)).toContain("gemini-2.5-pro-preview-tts")
     expect(String(thirdUrl)).toBe("https://api.openai.com/v1/audio/speech")
     expect(thirdInit?.headers).toMatchObject({
       Authorization: "Bearer sk-test",
       "Content-Type": "application/json",
     })
+    expect(JSON.parse(String(thirdInit?.body))).toMatchObject({ model: "tts-1-hd" })
   })
 
   it("rejects single-item generation when the language is not routed to Gemini", async () => {

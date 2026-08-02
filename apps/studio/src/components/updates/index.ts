@@ -1,4 +1,5 @@
-export { UpdateDialog, UpdateStateSurface } from "./UpdateDialog"
+export { UpdateDialog } from "./UpdateDialog"
+export { UpdateStateSurface } from "./UpdateStateSurface"
 export { PostUpdateDialog, PostUpdateContent } from "./PostUpdateDialog"
 export { ReleaseFallbackBanner } from "./ReleaseFallbackBanner"
 export {

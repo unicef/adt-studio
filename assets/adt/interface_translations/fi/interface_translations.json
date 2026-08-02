@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Ylläpitäjän työkalut lisätään myöhemmässä päivityksessä.",
     "main-menu-label": "Päävalikko",
     "cover-label": "Kansi",
-    "print-page-label": "Tulosta sivu"
+    "print-page-label": "Tulosta sivu",
+    "stepper-progress-n-of-m": "Vaihe ${n}/${m}",
+    "stepper-word-bank": "Valittavat sanat",
+    "stepper-open-ended-saved": "Hienoa — vastauksesi on tallennettu.",
+    "stepper-open-ended-rephrase": "Ollaan ystävällisiä — kokeile muotoilla vastauksesi toisin.",
+    "open-ended-answer-label": "Vastauksesi"
 }

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render } from "@testing-library/react"
+import { act, cleanup, render } from "@testing-library/react"
 import { createStore, Provider } from "jotai"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { currentLanguageAtom, videoFilesAtom } from "@/features/language/state/language.atoms"
@@ -44,5 +44,34 @@ describe("SLVideo", () => {
     expect(video).toBeInstanceOf(HTMLVideoElement)
     expect(video!.loop).toBe(false)
     expect(video!.hasAttribute("loop")).toBe(false)
+  })
+
+  it("hides the player after navigating to a page without a video", () => {
+    const store = createStore()
+    store.set(appConfigAtom, {
+      languages: { available: ["en"], default: "en" },
+      features: { signLanguage: true },
+    })
+    store.set(signLanguageModeAtom, true)
+    store.set(currentLanguageAtom, "en")
+    store.set(currentPageNumberAtom, 1)
+    store.set(pagesAtom, [
+      { section_id: "section-1", href: "page-1.html" },
+      { section_id: "section-2", href: "page-2.html" },
+    ])
+    store.set(videoFilesAtom, { "video-1": "section-1.mp4" })
+
+    const { container } = render(
+      <Provider store={store}>
+        <SLVideo />
+      </Provider>,
+    )
+
+    expect(container.querySelector("video")).toBeInstanceOf(HTMLVideoElement)
+
+    act(() => store.set(currentPageNumberAtom, 2))
+
+    expect(container.firstChild).toBeNull()
+    expect(store.get(signLanguageModeAtom)).toBe(true)
   })
 })

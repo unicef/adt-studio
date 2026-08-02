@@ -33,6 +33,10 @@ export interface CreateLLMModelOptions {
   credentials?: LLMProviderCredentials
   /** Console log level. Defaults to "info" (show all). Use "silent" to suppress. */
   logLevel?: LogLevel
+  /** External cancellation signal applied to every call this model makes.
+   *  Combined with each request's internal timeout; when it aborts, in-flight
+   *  calls abort and the retry loop stops (a run cancel, not a timeout). */
+  signal?: AbortSignal
 }
 
 /**
@@ -45,15 +49,18 @@ export interface CreateLLMModelOptions {
  * - Optional prompt rendering (pass promptEngine + use prompt option)
  */
 export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
-  const { modelId, cacheDir, promptEngine, onLog, rateLimiter, credentials, logLevel } = options
+  const { modelId, cacheDir, promptEngine, onLog, rateLimiter, credentials, logLevel, signal: modelSignal } = options
   const log = createLogger(logLevel)
 
   return {
-    async renderPrompt(name: string, context: Record<string, unknown>): Promise<Message[]> {
+    async renderPrompt(
+      name: string,
+      context: Record<string, unknown>,
+    ): Promise<Message[]> {
       if (!promptEngine) {
         throw new Error("promptEngine required for renderPrompt")
       }
-      return promptEngine.renderPrompt(name, context)
+      return promptEngine.renderPrompt(name, context, { modelId })
     },
 
     async generateObject<T>(
@@ -62,16 +69,21 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       // Resolve prompt to system + messages if needed
       let system = opts.system
       let messages = opts.messages ?? []
+      let resolvedPromptName = opts.prompt
 
       const context = opts.context ?? {}
+      // Per-call signal wins over the model-level signal; either one cancels.
+      const externalSignal = opts.signal ?? modelSignal
 
       if (opts.prompt) {
         if (!promptEngine) {
           throw new Error("promptEngine required when using prompt option")
         }
+        resolvedPromptName = promptEngine.resolvePrompt(opts.prompt, { modelId }).resolvedName
         const allMessages = await promptEngine.renderPrompt(
           opts.prompt,
-          context
+          context,
+          { modelId },
         )
         const systemMsg = allMessages.find((m) => m.role === "system")
         system =
@@ -93,6 +105,11 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       const label = opts.log
         ? `${opts.log.taskType}${opts.log.pageId ? ` ${opts.log.pageId}` : ""}`
         : modelId
+      const logPromptName = resolvedPromptName ?? opts.log?.promptName
+      const requestedPromptName =
+        opts.log?.promptName && logPromptName && opts.log.promptName !== logPromptName
+          ? opts.log.promptName
+          : opts.log?.requestedPromptName
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         const hash = computeHash({
@@ -121,7 +138,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                 }),
                 opts,
                 system,
-                currentMessages
+                currentMessages,
+                externalSignal
               )
               result = generated.object
               totalUsage.inputTokens += generated.usage.inputTokens
@@ -137,7 +155,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               }),
               opts,
               system,
-              currentMessages
+              currentMessages,
+              externalSignal
             )
             result = generated.object
             totalUsage.inputTokens += generated.usage.inputTokens
@@ -165,7 +184,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                   timestamp: new Date().toISOString(),
                   taskType: opts.log.taskType,
                   pageId: opts.log.pageId,
-                  promptName: opts.log.promptName,
+                  promptName: logPromptName ?? opts.log.promptName,
+                  requestedPromptName,
                   sectionIndex: opts.log.sectionIndex,
                   correlationId: opts.log.correlationId,
                   modelId,
@@ -208,7 +228,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               timestamp: new Date().toISOString(),
               taskType: opts.log.taskType,
               pageId: opts.log.pageId,
-              promptName: opts.log.promptName,
+              promptName: logPromptName ?? opts.log.promptName,
+              requestedPromptName,
               sectionIndex: opts.log.sectionIndex,
               correlationId: opts.log.correlationId,
               modelId,
@@ -238,6 +259,15 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           allErrors.push(errMsg)
           if (cacheDir) bustCache(cacheDir, hash)
 
+          // A deliberate external cancel never retries — detected by the signal,
+          // not the error name (the SDK may wrap the AbortError). The internal
+          // timeout also aborts the call but leaves the signal intact, so those
+          // keep retrying as before.
+          if (externalSignal?.aborted) {
+            log.error(`[LLM] ${label} | cancelled | ${errMsg}`)
+            throw err
+          }
+
           if (attempt < maxRetries) {
             const delayMs = backoffDelay(attempt)
             log.error(
@@ -249,7 +279,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                 timestamp: new Date().toISOString(),
                 taskType: opts.log.taskType,
                 pageId: opts.log.pageId,
-                promptName: opts.log.promptName,
+                promptName: logPromptName ?? opts.log.promptName,
+                requestedPromptName,
                 sectionIndex: opts.log.sectionIndex,
                 correlationId: opts.log.correlationId,
                 modelId,
@@ -268,7 +299,12 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                 ),
               })
             }
-            await sleep(delayMs)
+            await sleep(delayMs, externalSignal)
+            // Cancelled during backoff — stop instead of firing one more attempt.
+            if (externalSignal?.aborted) {
+              log.error(`[LLM] ${label} | cancelled during backoff`)
+              throw err
+            }
             continue
           }
 
@@ -282,7 +318,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               timestamp: new Date().toISOString(),
               taskType: opts.log.taskType,
               pageId: opts.log.pageId,
-              promptName: opts.log.promptName,
+              promptName: logPromptName ?? opts.log.promptName,
+              requestedPromptName,
               sectionIndex: opts.log.sectionIndex,
               correlationId: opts.log.correlationId,
               modelId,
@@ -376,8 +413,24 @@ function formatError(err: unknown): string {
   return String(err)
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+/** Sleep that resolves early when `signal` aborts, so a cancel during backoff
+ *  doesn't have to wait out the full delay (which can reach ~66s). */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve()
+      return
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort)
+      resolve()
+    }, ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      resolve()
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+  })
 }
 
 function backoffDelay(attempt: number): number {
@@ -389,16 +442,25 @@ async function callLLM<T>(
   model: LanguageModel,
   opts: GenerateObjectOptions,
   system: string | undefined,
-  messages: Message[]
+  messages: Message[],
+  externalSignal?: AbortSignal
 ): Promise<{ object: T; usage: TokenUsage }> {
   const coreMessages = convertMessages(messages)
+  // Combine the internal request timeout with the caller's cancellation signal.
+  // Requires Node 20.3+ (see the "engines" field). The timeout rejects with a
+  // TimeoutError (still a retryable failure); the external signal aborts with an
+  // AbortError (a deliberate cancel — the retry loop stops on it).
+  const timeoutSignal = AbortSignal.timeout(opts.timeoutMs ?? 90_000)
+  const abortSignal = externalSignal
+    ? AbortSignal.any([timeoutSignal, externalSignal])
+    : timeoutSignal
   const generateOpts: Record<string, unknown> = {
     model,
     schema: opts.schema,
     system,
     messages: coreMessages,
     maxRetries: 0,
-    abortSignal: AbortSignal.timeout(opts.timeoutMs ?? 90_000),
+    abortSignal,
   }
   if (opts.mode) {
     generateOpts.mode = opts.mode

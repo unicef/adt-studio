@@ -5,6 +5,7 @@ import {
   submitEnabledAtom,
   submitLabelAtom,
   submitStateAtom,
+  submitVisibleAtom,
   validateHandlerAtom,
 } from "@/features/activity/state/activity.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
@@ -12,10 +13,14 @@ import { cn } from "@/shared/lib/utils";
 
 export function DockActivityActions() {
   const submitEnabled = useAtomValue(submitEnabledAtom);
+  const submitVisible = useAtomValue(submitVisibleAtom);
   const validate = useAtomValue(validateHandlerAtom);
   const submitState = useAtomValue(submitStateAtom);
   const submitLabelOverride = useAtomValue(submitLabelAtom);
   const { t } = useTranslation();
+
+  // Standalone quizzes validate on click and hide this button entirely.
+  if (!submitVisible) return null;
 
   const defaultLabel =
     submitState === "next"

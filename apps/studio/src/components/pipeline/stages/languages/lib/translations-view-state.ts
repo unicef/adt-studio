@@ -21,6 +21,11 @@ function normalizeCode(code: string | null | undefined): string | null {
   return normalizeLocale(trimmed)
 }
 
+export function isTranslationEvaluationEnabled(config: unknown): boolean {
+  if (!config || typeof config !== "object") return true
+  return (config as Record<string, unknown>).enable_translation_evaluation !== false
+}
+
 /**
  * The book's original/source language is always an output language. Returns the
  * output list with the source ensured first and a stale bare-base seed updated

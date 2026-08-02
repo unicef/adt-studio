@@ -1,15 +1,24 @@
 import fs from "node:fs"
-import { extractPdfStream, type ExtractStreamResult } from "@adt/pdf"
+import { extractPdfStream, samplePageEdges, type ExtractStreamResult } from "@adt/pdf"
 import type { Storage } from "@adt/storage"
 import type { Progress } from "./progress.js"
 import { toBookMetadata } from "./metadata-model.js"
 import { ensureBookGoogleFontsCached } from "./fonts-bundle.js"
+import {
+  tallyFontSizes,
+  mergeTallies,
+  deriveTypeScaleFromHistogram,
+  TYPE_SCALE_NODE,
+  TYPE_SCALE_ITEM,
+} from "./type-scale.js"
+import { detectSpreads, type SpreadEdgeSample } from "./spread-detection.js"
 
 export interface ExtractOptions {
   pdfPath: string
   startPage?: number
   endPage?: number
   spreadMode?: boolean
+  spreadPairs?: number[]
   vectorTextGrouping?: boolean
   /** Whether the book renders fixed-layout. Gates the entire positioned-text
    *  extraction pipeline (stream-order recorder + paragraph parsing), which is
@@ -24,10 +33,22 @@ export async function extractPDF(
   storage: Storage,
   progress: Progress
 ): Promise<void> {
-  const { pdfPath, startPage, endPage, spreadMode, vectorTextGrouping, fixedLayout, fontsCacheDir } =
+  const { pdfPath, startPage, endPage, spreadMode, spreadPairs, vectorTextGrouping, fixedLayout, fontsCacheDir } =
     options
 
   progress.emit({ type: "step-start", step: "extract" })
+
+  // Let the event loop turn once so `step-start` (already written to step_runs
+  // and queued on the SSE stream) can reach the client before the synchronous
+  // setup below — readFileSync of the whole PDF, then mupdf WASM open/metadata/
+  // page-count — blocks it. setImmediate rather than setTimeout: resuming from
+  // the check phase means the poll phase in between has serviced pending socket
+  // reads. Measured on a 5.7MB book this cuts the first GET /step-status from
+  // ~640ms to ~380ms (warm) and ~2.2s to ~1.9s (cold); it does not close the
+  // gap on its own, since extraction keeps the loop busy afterwards. The
+  // client-side optimistic "queued" state is what actually makes the UI
+  // immediate — this just gets the authoritative status out sooner.
+  await new Promise((resolve) => setImmediate(resolve))
 
   try {
     if (fontsCacheDir) {
@@ -45,7 +66,7 @@ export async function extractPDF(
     const pdfBuffer = fs.readFileSync(pdfPath)
 
     const { pdfMetadata, pages } = extractPdfStream(
-      { pdfBuffer, startPage, endPage, spreadMode, vectorTextGrouping, fixedLayout },
+      { pdfBuffer, startPage, endPage, spreadMode, spreadPairs, vectorTextGrouping, fixedLayout },
       (p) => {
         progress.emit({
           type: "step-progress",
@@ -62,6 +83,13 @@ export async function extractPDF(
 
     let serifChars = 0
     let sansChars = 0
+    // Character-weighted font-size histogram across all pages, used to derive
+    // the book-wide type scale (body + heading tiers) below.
+    const sizeHist = new Map<number, number>()
+    // In single-page mode, sample each page's inner edges as we go so we can
+    // suggest likely spreads afterwards — the page render is already in hand,
+    // so this is essentially free (no second pass over the images).
+    const edgeSamples: SpreadEdgeSample[] = []
     for await (const page of pages) {
       storage.putExtractedPage(page)
       // Store positioned text (paragraphs + viewport dims). Always available so
@@ -73,7 +101,28 @@ export async function extractPDF(
       }
       serifChars += page.fontStats?.serifChars ?? 0
       sansChars += page.fontStats?.sansChars ?? 0
+      mergeTallies(sizeHist, tallyFontSizes(page.positionedText))
+
+      if (!spreadMode) {
+        try {
+          const { leftEdge, rightEdge } = samplePageEdges(page.pageImage.buffer)
+          edgeSamples.push({
+            pageNumber: page.pageNumber,
+            leftEdge,
+            rightEdge,
+            textLength: page.text?.length ?? 0,
+          })
+        } catch {
+          // Non-fatal — spread suggestions are best-effort.
+        }
+      }
     }
+
+    // Store spread suggestions (single-page base only). Empty array clears any
+    // stale suggestions from a previous run.
+    storage.putNodeData("spread-suggestions", "book", {
+      suggestions: !spreadMode && edgeSamples.length >= 2 ? detectSpreads(edgeSamples) : [],
+    })
 
     // Book-level font profile: the dominant body-text category (serif vs sans)
     // across all pages, used to pick a reflowable base font. null when the book
@@ -81,6 +130,12 @@ export async function extractPDF(
     const category =
       serifChars === 0 && sansChars === 0 ? null : serifChars >= sansChars ? "serif" : "sans"
     storage.putNodeData("font-profile", "book", { category, serifChars, sansChars })
+
+    // Book-level type scale: baseline size per text role, derived from the
+    // extracted font sizes. Shared as CSS tokens at render time so every page
+    // renders paragraphs/headings at the same size. null when no text.
+    const typeScale = deriveTypeScaleFromHistogram(sizeHist)
+    if (typeScale) storage.putNodeData(TYPE_SCALE_NODE, TYPE_SCALE_ITEM, typeScale)
 
     progress.emit({ type: "step-complete", step: "extract" })
   } catch (err) {

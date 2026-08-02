@@ -170,6 +170,14 @@ export const PageSectioningSection = z.object({
    * fixed-layout pages). Renderers that don't need placement ignore it.
    */
   placement: z.record(z.string(), NodePlacement).optional(),
+  /**
+   * Pages other than the hosting page whose content was merged into this
+   * section (cross-page merges of activities/passages that continue across
+   * a page break). Renderers and visual reviewers use this to fetch the
+   * additional page images so merged-in content has a visual reference
+   * instead of being force-matched against the hosting page's image alone.
+   */
+  sourcePageIds: z.array(z.string()).optional(),
 })
 export type PageSectioningSection = z.infer<typeof PageSectioningSection>
 

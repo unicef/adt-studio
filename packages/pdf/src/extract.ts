@@ -37,6 +37,11 @@ import {
 } from "./page-stream-recorder.js";
 import type { DrawItem, PositionedTextOutput } from "@adt/types";
 import { classifyFontCategoryByName } from "@adt/types";
+import {
+  detectFlipFromCurrentTransformationMatrix,
+  applyFlipsToRasterImages,
+  type ImageFlipTransform,
+} from "./flip-utils.js";
 
 // ============================================================================
 // Types
@@ -50,6 +55,12 @@ export interface ExtractInput {
   endPage?: number;
   /** When true, merge pairs of pages as spreads (page 1 = cover, 2+3, 4+5, etc.) */
   spreadMode?: boolean;
+  /**
+   * Manual spread overrides for a single-page book: 1-indexed leading page
+   * numbers, each merged with the following page into a two-page spread.
+   * Ignored when `spreadMode` is true (automatic pairing wins).
+   */
+  spreadPairs?: number[];
   /** When true, include text shapes in vector grouping to produce raster crops of vectors with text overlays. Defaults to true. */
   vectorTextGrouping?: boolean;
   /**
@@ -133,8 +144,18 @@ export interface ExtractedImage {
    * lists every full-page layer). Computed from the same `toPixmap()` samples
    * as the recorder's `ImageStreamOp.contentDigest` so the two compare equal.
    * Transient: not persisted to the images table.
+   *
+   * STALE AFTER FLIP: hashes the pre-flip pixels. Only read during the
+   * placement-matching pass, which runs before `applyFlipsToRasterImages` —
+   * do not reuse it downstream to reason about the image's current pixels.
    */
   pixelDigest?: string;
+  /**
+   * Flip transform derived from the EXACT draw op matched to this image by
+   * `stampRasterPlacementsFromOps`. Transient: used by `applyFlipsToRasterImages`
+   * to avoid re-matching stream ops in a second pass.
+   */
+  flipTransform?: ImageFlipTransform;
   /**
    * Geometry bboxes of this vector figure's constituent SVG shapes, in the
    * same coordinate space as recorder ops (page coords + spread xOffset).
@@ -248,7 +269,7 @@ export async function extractPdf(
   input: ExtractInput,
   onProgress?: (progress: ExtractProgress) => void
 ): Promise<ExtractResult> {
-  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, vectorTextGrouping = true, fixedLayout = false } = input;
+  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs, vectorTextGrouping = true, fixedLayout = false } = input;
   validatePageRange(startPage, endPage);
 
   // Open PDF (suppressing mupdf stderr spam)
@@ -264,32 +285,19 @@ export async function extractPdf(
 
   const pages: ExtractedPage[] = [];
 
-  if (spreadMode) {
-    // Build logical page groups: page 1 = cover (standalone),
-    // then pairs 2+3, 4+5, etc. Only pair pages that are both in range.
-    const logicalGroups = computeSpreadGroups(start, end);
-    const totalLogical = logicalGroups.length;
+  const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
+  const totalLogical = logicalGroups.length;
 
-    for (let g = 0; g < totalLogical; g++) {
-      const group = logicalGroups[g];
-      const page =
-        group.length === 2
-          ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
-          : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
-      pages.push(page);
+  for (let g = 0; g < totalLogical; g++) {
+    const group = logicalGroups[g];
+    const page =
+      group.length === 2
+        ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
+        : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
+    pages.push(page);
 
-      onProgress?.({ page: g + 1, totalPages: totalLogical });
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-  } else {
-    const rangeSize = end - start;
-    for (let i = start; i < end; i++) {
-      const page = await extractPage(doc, i, vectorTextGrouping, fixedLayout);
-      pages.push(page);
-
-      onProgress?.({ page: i - start + 1, totalPages: rangeSize });
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
+    onProgress?.({ page: g + 1, totalPages: totalLogical });
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
   return {
@@ -309,7 +317,7 @@ export function extractPdfStream(
   input: ExtractInput,
   onProgress?: (progress: ExtractProgress) => void
 ): ExtractStreamResult {
-  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, vectorTextGrouping = true, fixedLayout = false } = input;
+  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs, vectorTextGrouping = true, fixedLayout = false } = input;
   validatePageRange(startPage, endPage);
 
   const doc = openPdfFromBuffer(pdfBuffer);
@@ -321,32 +329,20 @@ export function extractPdfStream(
 
   async function* generatePages(): AsyncGenerator<ExtractedPage, void, unknown> {
     try {
-      if (spreadMode) {
-        const logicalGroups = computeSpreadGroups(start, end);
-        const totalLogical = logicalGroups.length;
+      const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
+      const totalLogical = logicalGroups.length;
 
-        for (let g = 0; g < totalLogical; g++) {
-          const group = logicalGroups[g];
-          const page =
-            group.length === 2
-              ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
-              : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
+      for (let g = 0; g < totalLogical; g++) {
+        const group = logicalGroups[g];
+        const page =
+          group.length === 2
+            ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
+            : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
 
-          onProgress?.({ page: g + 1, totalPages: totalLogical });
-          yield page;
-          // Yield to the macrotask queue so SSE progress events can flush
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
-      } else {
-        const rangeSize = end - start;
-        for (let i = start; i < end; i++) {
-          const page = await extractPage(doc, i, vectorTextGrouping, fixedLayout);
-
-          onProgress?.({ page: i - start + 1, totalPages: rangeSize });
-          yield page;
-          // Yield to the macrotask queue so SSE progress events can flush
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
+        onProgress?.({ page: g + 1, totalPages: totalLogical });
+        yield page;
+        // Yield to the macrotask queue so SSE progress events can flush
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
     } finally {
       doc.destroy();
@@ -361,25 +357,80 @@ export function extractPdfStream(
 }
 
 /**
- * Compute spread page groups from a 0-indexed page range.
- * The first selected page is always standalone, then subsequent pages pair
- * sequentially: start, (start+1,start+2), (start+3,start+4), etc.
+ * Extract a specific set of page groups from a PDF — used to (re)build only the
+ * pages affected by a spread merge/split, without re-extracting the whole book.
+ * Each group is 1 or 2 zero-indexed page indices (a single page or a spread).
+ */
+export async function extractPages(input: {
+  pdfBuffer: Buffer;
+  groups: number[][];
+  vectorTextGrouping?: boolean;
+  fixedLayout?: boolean;
+}): Promise<ExtractedPage[]> {
+  const { pdfBuffer, groups, vectorTextGrouping = true, fixedLayout = false } = input;
+  const doc = openPdfFromBuffer(pdfBuffer);
+  try {
+    const pages: ExtractedPage[] = [];
+    for (const group of groups) {
+      const page =
+        group.length === 2
+          ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
+          : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
+      pages.push(page);
+    }
+    return pages;
+  } finally {
+    doc.destroy();
+  }
+}
+
+/**
+ * Compute logical page groups from a 0-indexed page range.
+ *
+ * - Spread base (`spreadMode`): the first selected page is standalone, then
+ *   pages pair sequentially — start, (start+1,start+2), (start+3,start+4), etc.
+ * - Single base: every page is its own group, except pages whose 1-indexed
+ *   number appears in `spreadPairs`, which merge with the following page.
+ *
  * Returns arrays of 0-indexed page indices (1 or 2 elements each).
  */
-function computeSpreadGroups(start: number, end: number): number[][] {
+export function computeGroups(
+  start: number,
+  end: number,
+  opts: { spreadMode?: boolean; spreadPairs?: number[] } = {},
+): number[][] {
+  const { spreadMode = false, spreadPairs } = opts;
   const groups: number[][] = [];
 
-  let i = start;
-  let first = true;
-  while (i < end) {
-    if (first) {
-      groups.push([i]);
-      i++;
-      first = false;
-      continue;
+  if (spreadMode) {
+    let i = start;
+    let first = true;
+    while (i < end) {
+      if (first) {
+        groups.push([i]);
+        i++;
+        first = false;
+        continue;
+      }
+
+      if (i + 1 < end) {
+        groups.push([i, i + 1]);
+        i += 2;
+      } else {
+        groups.push([i]);
+        i++;
+      }
     }
 
-    if (i + 1 < end) {
+    return groups;
+  }
+
+  // Single base: 1-indexed leads → 0-indexed; greedy so overlapping leads
+  // can't double-merge a page.
+  const mergeLeads = new Set((spreadPairs ?? []).map((p) => p - 1));
+  let i = start;
+  while (i < end) {
+    if (mergeLeads.has(i) && i + 1 < end) {
       groups.push([i, i + 1]);
       i += 2;
     } else {
@@ -798,6 +849,7 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, vectorTextGrou
     hasDuplicateDimensions(rasterImages),
   );
   stampRasterPlacementsFromOps(rasterImages, recorder.ops);
+  applyFlipsToRasterImages(rasterImages);
 
   // Reuse the StructuredText already built above — no extra pass. Build
   // positioned text at fixed-layout quality (spacing cleanup on) so the data is
@@ -1017,7 +1069,8 @@ function hasDuplicateDimensions(images: ExtractedImage[]): boolean {
 
 /**
  * Match each `fillImage` / `fillImageMask` op to an extracted raster XObject,
- * stamping the matched raster's `streamSeqno` and `bounds` (from the op's CTM).
+ * stamping the matched raster's `streamSeqno`, `bounds`, and `flipTransform`
+ * (derived from the op's CTM).
  *
  * Matching keys on native pixel dimensions. When a dimension bucket holds more
  * than one image the match is ambiguous: a page that can see several same-size
@@ -1066,6 +1119,7 @@ function stampRasterPlacementsFromOps(
     if (!matched) continue;
     matched.streamSeqno = op.seqno;
     matched.bounds = bboxToImageBounds(op.bbox);
+    matched.flipTransform = detectFlipFromCurrentTransformationMatrix(op.currentTransformationMatrix);
     const clipD = selectImageClipPath(op);
     if (clipD) matched.clipPath = clipD;
     if (op.blendMode && op.blendMode !== "Normal") {
@@ -1616,7 +1670,9 @@ async function extractSpreadPage(
   // Rasters: stamp per page so dim-tied images on different pages don't
   // pair across the spread boundary.
   stampRasterPlacementsFromOps(leftRaster, leftRecorder.ops);
+  applyFlipsToRasterImages(leftRaster);
   stampRasterPlacementsFromOps(rightRaster, rightRecorder.ops);
+  applyFlipsToRasterImages(rightRaster);
 
   // Reuse the per-page StructuredText already built above — no extra pass.
   const paragraphData = parsePageParagraphsSpread(leftPage, rightPage, leftStext, rightStext, 2, true);
@@ -3701,6 +3757,7 @@ export const _testing = {
   isPageLevelClip,
   parseStrokeInkExtent,
   computeGroupInkBbox,
+  stampRasterPlacementsFromOps,
   stampFigureSeqnosFromOps,
   restyleCoincidentVectorText,
 };

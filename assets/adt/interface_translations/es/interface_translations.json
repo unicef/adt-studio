@@ -146,7 +146,6 @@
     "dock-label": "Controles del lector",
     "dock-align-spread": "Distribuido",
     "dock-layout-preview": "Posición de la barra de herramientas",
-    "exit-activity-mode": "Salir del modo actividad",
     "settings-section-reading": "Lectura",
     "settings-section-toolbar": "Barra de herramientas",
     "settings-section-toolbar-hint": "Haz clic en la vista previa para elegir dónde se ubica la barra.",
@@ -185,5 +184,15 @@
     "admin-popup-stub-message": "Las herramientas de administración se añadirán en una actualización posterior.",
     "main-menu-label": "Menú principal",
     "cover-label": "Portada",
-    "print-page-label": "Imprimir página"
+    "print-page-label": "Imprimir página",
+    "underline-text-options-label": "Subraya el texto correcto",
+    "underline-question-label": "Pregunta ${n}",
+    "underline-all-correct": "¡Todas las respuestas son correctas!",
+    "underline-progress-summary": "${correct} correctas, ${wrong} incorrectas, ${missing} por encontrar.",
+    "activity-progress-remaining": "restantes",
+    "stepper-progress-n-of-m": "Paso ${n} de ${m}",
+    "stepper-word-bank": "Palabras para elegir",
+    "stepper-open-ended-saved": "¡Muy bien! Tu respuesta se ha guardado.",
+    "stepper-open-ended-rephrase": "Seamos amables: intenta escribir tu respuesta de otra manera.",
+    "open-ended-answer-label": "Tu respuesta"
 }

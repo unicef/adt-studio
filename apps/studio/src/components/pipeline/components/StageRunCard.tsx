@@ -1,6 +1,6 @@
 import { type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { ArrowRight, Check, Loader2, Minus, Play, RotateCcw, XCircle } from "lucide-react"
+import { ArrowRight, Check, Loader2, Minus, Play, RotateCcw, X, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -67,7 +67,7 @@ export function StageRunCard({
 }: StageRunCardProps) {
   const { t } = useLingui()
   const stage = STAGES.find((s) => s.slug === stageSlug) ?? STAGES[0]
-  const { stageState, stepState, stepProgress, stepError, error } = useBookRun()
+  const { stageState, stepState, stepProgress, stepError, error, isCancelling, cancelRun } = useBookRun()
   const stageStatus = stageState(stageSlug)
   const subSteps = STAGE_SUB_STEPS[stageSlug as StageName] ?? []
   const Icon = stage.icon
@@ -96,6 +96,20 @@ export function StageRunCard({
         : null
     })
     .find((item) => item !== null)
+
+  // The run has been kicked off but no step has reported yet — the server is
+  // still in its synchronous stage startup (for Extract: reading and parsing
+  // the PDF, seconds on a large book). Spin the first pending sub-step so the
+  // card body doesn't sit inert and grey while the header already says
+  // "Running". Resolves into the real step state on the first step-start.
+  const anyStepRunning = subSteps.some(({ key }) => stepState(key) === "running")
+  const startingStepKey =
+    isRunning && !anyStepRunning
+      ? subSteps.find(({ key }) => {
+          const state = stepState(key)
+          return state !== "done" && state !== "skipped"
+        })?.key
+      : undefined
 
   return (
     <Card className={cn("overflow-hidden max-w-xl shadow-none", borderColor)}>
@@ -132,7 +146,7 @@ export function StageRunCard({
               const numericProgressLabel = hasPages ? `${progress.page}/${progress.totalPages}` : null
               const messageProgressLabel = progress?.message?.trim()
               const progressLabel = messageProgressLabel || numericProgressLabel
-              const isSubRunning = state === "running"
+              const isSubRunning = state === "running" || key === startingStepKey
               const showInlineProgress = Boolean(
                 isSubRunning &&
                 progressLabel &&
@@ -200,21 +214,39 @@ export function StageRunCard({
         {showRunButton && (
           <div className="shrink-0">
             {isRunning ? (
-              // Keep a real (disabled) button so the control stays in the a11y
-              // tree with an accessible name and an announced busy state, rather
-              // than vanishing into a nameless spinner <div>.
-              <button
-                type="button"
-                disabled
-                aria-busy="true"
-                aria-label={t`Running ${stageLabel}`}
-                className={cn(
-                  "flex items-center justify-center w-12 h-12 rounded-full opacity-60 cursor-default",
-                  color, "text-white",
-                )}
-              >
-                <Loader2 className="w-5 h-5 animate-spin" />
-              </button>
+              isCancelling ? (
+                // Cancel requested — disabled until the run finishes unwinding.
+                <button
+                  type="button"
+                  disabled
+                  aria-busy="true"
+                  aria-label={t`Cancelling ${stageLabel}`}
+                  title={t`Cancelling…`}
+                  className={cn(
+                    "flex items-center justify-center w-12 h-12 rounded-full opacity-60 cursor-default",
+                    "bg-gray-400 text-white",
+                  )}
+                >
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                </button>
+              ) : (
+                // Running — the spinner button doubles as a stop control.
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); cancelRun() }}
+                  aria-label={t`Cancel ${stageLabel}`}
+                  title={t`Cancel run`}
+                  className={cn(
+                    "group/stop w-12 h-12 rounded-full transition-all cursor-pointer [&_svg]:size-5",
+                    "hover:scale-105 active:scale-95",
+                    color, "text-white",
+                  )}
+                >
+                  <Loader2 className="w-5 h-5 animate-spin group-hover/stop:hidden" />
+                  <X className="w-5 h-5 hidden group-hover/stop:block" />
+                </Button>
+              )
             ) : (
               <Button
                 variant="ghost"

@@ -21,10 +21,12 @@ import {
   type Theme,
 } from "@/shared/state/ui.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
+import { useIsMobile } from "@/shared/hooks/use-is-mobile";
 import { trackToggleEvent } from "@/shared/lib/analytics";
 
 export function SettingsTab() {
   const { t } = useTranslation();
+  const isMobile = useIsMobile();
   const config = useAtomValue(appConfigAtom);
   const features = config.features;
   const dockLayoutLocked = isSettingLocked(config, "dockLayout");
@@ -179,7 +181,7 @@ export function SettingsTab() {
         </SettingsSection>
       ) : null}
 
-      <KeyboardShortcutsSection />
+      {!isMobile ? <KeyboardShortcutsSection /> : null}
     </div>
   );
 }

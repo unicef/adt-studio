@@ -4,6 +4,7 @@
  *   - content/toc.json   — table of contents (LLM-generated or heading-based)
  */
 import type { PageEntry, TocEntry } from "@/features/navigation/state/nav.atoms"
+import { runtimeBase } from "./base-path.js"
 
 async function fetchJson<T>(url: string): Promise<T | null> {
   try {
@@ -17,11 +18,11 @@ async function fetchJson<T>(url: string): Promise<T | null> {
 }
 
 export async function loadPagesManifest(versionParam = ""): Promise<PageEntry[]> {
-  const url = `./content/pages.json${versionParam ? `?v=${versionParam}` : ""}`
+  const url = `${runtimeBase()}content/pages.json${versionParam ? `?v=${versionParam}` : ""}`
   return (await fetchJson<PageEntry[]>(url)) ?? []
 }
 
 export async function loadTocManifest(versionParam = ""): Promise<TocEntry[]> {
-  const url = `./content/toc.json${versionParam ? `?v=${versionParam}` : ""}`
+  const url = `${runtimeBase()}content/toc.json${versionParam ? `?v=${versionParam}` : ""}`
   return (await fetchJson<TocEntry[]>(url)) ?? []
 }

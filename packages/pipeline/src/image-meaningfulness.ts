@@ -26,7 +26,7 @@ export function buildMeaningfulnessConfig(
 ): MeaningfulnessConfig | null {
   if (appConfig.image_filters?.meaningfulness === false) return null
 
-  const model = appConfig.image_meaningfulness?.model
+  const model = appConfig.image_meaningfulness?.model ?? appConfig.default_model
   if (!model) return null
 
   return {

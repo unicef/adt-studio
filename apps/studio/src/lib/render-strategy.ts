@@ -39,6 +39,39 @@ export function chooseDefaultRenderStrategyFallback(
   return selectable[0] ?? ""
 }
 
+/**
+ * Whether the book renders in fixed-layout mode. Mirrors the server-side
+ * `isFixedLayoutBook` (packages/pipeline/src/fixed-layout-rendering.ts): a book
+ * is fixed-layout if its book-wide default OR any per-section strategy resolves
+ * to a `fixed_layout`-typed render strategy. The frontend can't import the
+ * pipeline package (layer rule), so this replicates the same predicate over the
+ * merged config record from `useActiveConfig`.
+ */
+export function isFixedLayoutConfig(
+  merged: Record<string, unknown> | undefined | null
+): boolean {
+  if (!merged) return false
+  const strategies = (
+    merged.render_strategies && typeof merged.render_strategies === "object"
+      ? merged.render_strategies
+      : {}
+  ) as RenderStrategyMap
+  const names = new Set<string>()
+  if (typeof merged.default_render_strategy === "string") {
+    names.add(merged.default_render_strategy)
+  }
+  const sectionStrategies = merged.section_render_strategies
+  if (sectionStrategies && typeof sectionStrategies === "object") {
+    for (const name of Object.values(sectionStrategies as Record<string, unknown>)) {
+      if (typeof name === "string") names.add(name)
+    }
+  }
+  for (const name of names) {
+    if (strategies[name]?.render_type === "fixed_layout") return true
+  }
+  return false
+}
+
 export function normalizeDefaultRenderStrategy(
   requested: string | null | undefined,
   strategies: RenderStrategyMap

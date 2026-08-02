@@ -6,6 +6,11 @@ import { lingui } from '@lingui/vite-plugin'
 
 export default defineConfig({
   main: {
+    resolve: {
+      alias: {
+        '@root': resolve(__dirname, '../..')
+      }
+    },
     build: {
       externalizeDeps: true
     }

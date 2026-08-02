@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "管理工具将在后续更新中加入。",
     "main-menu-label": "主菜单",
     "cover-label": "封面",
-    "print-page-label": "打印页面"
+    "print-page-label": "打印页面",
+    "stepper-progress-n-of-m": "第 ${n} 步，共 ${m} 步",
+    "stepper-word-bank": "可选择的词语",
+    "stepper-open-ended-saved": "做得好——你的答案已保存。",
+    "stepper-open-ended-rephrase": "让我们友善一点——试着换种方式写你的答案。",
+    "open-ended-answer-label": "你的答案"
 }

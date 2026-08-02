@@ -4,6 +4,9 @@ import type { I18n, MessageDescriptor } from "@lingui/core"
 export const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   general: msg`General`,
   overview: msg`Overview`,
+  "api-keys": msg`API Keys`,
+  models: msg`Models`,
+  "global-prompts": msg`Global Prompts`,
   fonts: msg`Fonts`,
   "image-processing": msg`Image Processing`,
   "section-types": msg`Section Types`,
@@ -27,6 +30,7 @@ export const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   "caption-prompt": msg`Caption Prompt`,
   languages: msg`Languages`,
   "translation-prompt": msg`Translation Prompt`,
+  "translation-review": msg`Translation Review`,
   "image-translation": msg`Image Translation`,
   speech: msg`Speech Settings`,
   "speech-prompts": msg`Speech Prompts`,
@@ -41,6 +45,10 @@ export function getSettingsTabs(
   showOverviewTab: boolean,
 ): { key: string; label: string }[] | undefined {
   const tabs: Record<string, { key: string; label: string }[]> = {
+    book: [
+      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE["api-keys"]) },
+      { key: "models", label: i18n._(SETTINGS_TAB_MESSAGE.models) },
+    ],
     extract: [
       { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
       { key: "metadata-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["metadata-prompt"]) },
@@ -83,6 +91,7 @@ export function getSettingsTabs(
     translate: [
       { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.languages) },
       { key: "prompt", label: i18n._(SETTINGS_TAB_MESSAGE["translation-prompt"]) },
+      { key: "translation-review", label: i18n._(SETTINGS_TAB_MESSAGE["translation-review"]) },
       { key: "image-translation", label: i18n._(SETTINGS_TAB_MESSAGE["image-translation"]) },
     ],
     speech: [

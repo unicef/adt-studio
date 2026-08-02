@@ -45,11 +45,20 @@ export const StageName = z.enum([
 ])
 export type StageName = z.infer<typeof StageName>
 
+export const ModelDefaultKind = z.enum([
+  "llm",
+  "image-generation",
+  "speech-generation",
+])
+export type ModelDefaultKind = z.infer<typeof ModelDefaultKind>
+
 // ── Pipeline definition ─────────────────────────────────────────
 
 export interface StepDef {
   name: StepName
   label: string
+  /** Which task-level model default this step inherits when not overridden. */
+  modelDefault?: ModelDefaultKind
   /** Steps within the same stage that must complete first */
   dependsOn?: StepName[]
   /** Step processes pages individually and emits page-level progress */
@@ -71,12 +80,12 @@ export const PIPELINE: StageDef[] = [
     dependsOn: [],
     steps: [
       { name: "extract", label: "PDF Extraction", pageProgress: true },
-      { name: "metadata", label: "Metadata", dependsOn: ["extract"] },
-      { name: "book-summary", label: "Book Summary", dependsOn: ["metadata"] },
+      { name: "metadata", label: "Metadata", modelDefault: "llm", dependsOn: ["extract"] },
+      { name: "book-summary", label: "Book Summary", modelDefault: "llm", dependsOn: ["metadata"] },
       { name: "image-filtering", label: "Image Filtering", dependsOn: ["extract"], pageProgress: true },
-      { name: "image-segmentation", label: "Image Segmentation", dependsOn: ["image-filtering"], pageProgress: true },
-      { name: "image-meaningfulness", label: "Image Meaningfulness", dependsOn: ["image-segmentation"], pageProgress: true },
-      { name: "image-cropping", label: "Image Cropping", dependsOn: ["image-segmentation"], pageProgress: true },
+      { name: "image-segmentation", label: "Image Segmentation", modelDefault: "llm", dependsOn: ["image-filtering"], pageProgress: true },
+      { name: "image-meaningfulness", label: "Image Meaningfulness", modelDefault: "llm", dependsOn: ["image-segmentation"], pageProgress: true },
+      { name: "image-cropping", label: "Image Cropping", modelDefault: "llm", dependsOn: ["image-segmentation"], pageProgress: true },
     ],
   },
   {
@@ -84,8 +93,8 @@ export const PIPELINE: StageDef[] = [
     label: "Sectioning",
     dependsOn: ["extract"],
     steps: [
-      { name: "page-sectioning", label: "Page Structuring", pageProgress: true },
-      { name: "translation", label: "Translation", dependsOn: ["page-sectioning"], pageProgress: true },
+      { name: "page-sectioning", label: "Page Structuring", modelDefault: "llm", pageProgress: true },
+      { name: "translation", label: "Translation", modelDefault: "llm", dependsOn: ["page-sectioning"], pageProgress: true },
     ],
   },
   {
@@ -93,7 +102,7 @@ export const PIPELINE: StageDef[] = [
     label: "Storyboard",
     dependsOn: ["sectioning"],
     steps: [
-      { name: "web-rendering", label: "Web Rendering", pageProgress: true },
+      { name: "web-rendering", label: "Web Rendering", modelDefault: "llm", pageProgress: true },
     ],
   },
   {
@@ -101,7 +110,7 @@ export const PIPELINE: StageDef[] = [
     label: "Quizzes",
     dependsOn: ["storyboard"],
     steps: [
-      { name: "quiz-generation", label: "Quiz Generation" },
+      { name: "quiz-generation", label: "Quiz Generation", modelDefault: "llm" },
     ],
   },
   {
@@ -109,7 +118,7 @@ export const PIPELINE: StageDef[] = [
     label: "Image Captions",
     dependsOn: ["storyboard"],
     steps: [
-      { name: "image-captioning", label: "Image Captioning" },
+      { name: "image-captioning", label: "Image Captioning", modelDefault: "llm" },
     ],
   },
   {
@@ -117,7 +126,7 @@ export const PIPELINE: StageDef[] = [
     label: "Glossary",
     dependsOn: ["storyboard"],
     steps: [
-      { name: "glossary", label: "Glossary Generation" },
+      { name: "glossary", label: "Glossary Generation", modelDefault: "llm" },
     ],
   },
   {
@@ -125,7 +134,7 @@ export const PIPELINE: StageDef[] = [
     label: "Table of Contents",
     dependsOn: ["storyboard"],
     steps: [
-      { name: "toc-generation", label: "TOC Generation" },
+      { name: "toc-generation", label: "TOC Generation", modelDefault: "llm" },
     ],
   },
   {
@@ -134,7 +143,7 @@ export const PIPELINE: StageDef[] = [
     dependsOn: ["storyboard"],
     steps: [
       { name: "text-catalog", label: "Text Catalog" },
-      { name: "easy-read", label: "Easy Read", dependsOn: ["text-catalog"] },
+      { name: "easy-read", label: "Easy Read", modelDefault: "llm", dependsOn: ["text-catalog"] },
     ],
   },
   {
@@ -142,8 +151,8 @@ export const PIPELINE: StageDef[] = [
     label: "Translate",
     dependsOn: ["easy-read", "quizzes", "captions", "glossary", "toc"],
     steps: [
-      { name: "catalog-translation", label: "Catalog Translation" },
-      { name: "image-translation", label: "Image Translation", dependsOn: ["catalog-translation"] },
+      { name: "catalog-translation", label: "Catalog Translation", modelDefault: "llm" },
+      { name: "image-translation", label: "Image Translation", modelDefault: "image-generation", dependsOn: ["catalog-translation"] },
     ],
   },
   {
@@ -151,7 +160,7 @@ export const PIPELINE: StageDef[] = [
     label: "Speech",
     dependsOn: ["translate"],
     steps: [
-      { name: "tts", label: "Speech Generation" },
+      { name: "tts", label: "Speech Generation", modelDefault: "speech-generation" },
       { name: "word-timestamps", label: "Word Highlighting", dependsOn: ["tts"] },
     ],
   },
@@ -189,6 +198,18 @@ export const STAGE_BY_NAME: Record<StageName, StageDef> = Object.fromEntries(
 export const ALL_STEP_NAMES: ReadonlySet<StepName> = new Set(
   PIPELINE.flatMap((stage) => stage.steps.map((step) => step.name))
 )
+
+/** Pipeline steps grouped by the task-level model default they inherit. */
+const ALL_STEPS = PIPELINE.flatMap((stage) => stage.steps)
+export const STEPS_BY_DEFAULT_MODEL_KIND: Record<ModelDefaultKind, readonly StepDef[]> = {
+  llm: ALL_STEPS.filter((step) => step.modelDefault === "llm"),
+  "image-generation": ALL_STEPS.filter(
+    (step) => step.modelDefault === "image-generation",
+  ),
+  "speech-generation": ALL_STEPS.filter(
+    (step) => step.modelDefault === "speech-generation",
+  ),
+}
 
 /** Steps that process pages individually and emit page-level progress */
 export const PAGE_PROGRESS_STEPS: ReadonlySet<StepName> = new Set(

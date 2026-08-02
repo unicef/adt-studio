@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "စီမံခန့်ခွဲမှု ကိရိယာများကို နောက်ထပ်အပ်ဒိတ်တွင် ထည့်သွင်းပါမည်။",
     "main-menu-label": "ပင်မ မီနူး",
     "cover-label": "အဖုံး",
-    "print-page-label": "စာမျက်နှာ ပုံနှိပ်ပါ"
+    "print-page-label": "စာမျက်နှာ ပုံနှိပ်ပါ",
+    "stepper-progress-n-of-m": "အဆင့် ${n} / ${m}",
+    "stepper-word-bank": "ရွေးချယ်ရန် စကားလုံးများ",
+    "stepper-open-ended-saved": "တော်လိုက်တာ — သင့်အဖြေကို သိမ်းဆည်းပြီးပါပြီ။",
+    "stepper-open-ended-rephrase": "ယဉ်ကျေးစွာပြောကြရအောင် — သင့်အဖြေကို ပြန်လည်ရေးသားကြည့်ပါ။",
+    "open-ended-answer-label": "သင့်အဖြေ"
 }

@@ -1,10 +1,11 @@
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   currentPageNumberAtom,
   currentSectionIdAtom,
   pagesAtom,
 } from "@/features/navigation/state/nav.atoms";
+import { dockMenuValueAtom } from "@/shared/state/ui.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { DockIconButton } from "@/features/dock/components/DockIconButton";
 import {
@@ -22,6 +23,8 @@ export function PageNav() {
   const pages = useAtomValue(pagesAtom);
   const currentSectionId = useAtomValue(currentSectionIdAtom);
   const currentPageFromMeta = useAtomValue(currentPageNumberAtom);
+  const dockMenuValue = useAtomValue(dockMenuValueAtom);
+  const setDockMenuValue = useSetAtom(dockMenuValueAtom);
   const { t } = useTranslation();
 
   const { current: currentEntry, prev, next } = getAdjacentPages(
@@ -34,12 +37,22 @@ export function PageNav() {
 
   const totalPages = pages.length
 
+  const go = (href: string | undefined) => {
+    if (!href) return;
+    // Turning the page dismisses the read-aloud panel. `dockMenuValue` is
+    // persisted, so clearing it keeps the panel closed on the next document
+    // rather than re-opening. Playback resumes independently via the
+    // persisted `isPlaying` flag, so audio keeps reading the new page.
+    if (dockMenuValue === "audio") setDockMenuValue("");
+    navigateToHref(href);
+  };
+
   return (
     <div className="flex items-center gap-0.5 px-1">
       <DockIconButton
         ariaLabel={t("next-page") || "Next page"}
         disabled={!next}
-        onClick={() => navigateToHref(next?.href)}
+        onClick={() => go(next?.href)}
         className="order-4"
       >
         <ChevronRight />
@@ -55,7 +68,7 @@ export function PageNav() {
       <DockIconButton
         ariaLabel={t("previous-page") || "Previous page"}
         disabled={!prev}
-        onClick={() => navigateToHref(prev?.href)}
+        onClick={() => go(prev?.href)}
         className="order-2"
       >
         <ChevronLeft />

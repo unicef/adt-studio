@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Các công cụ quản trị sẽ được thêm trong bản cập nhật sắp tới.",
     "main-menu-label": "Menu chính",
     "cover-label": "Bìa",
-    "print-page-label": "In trang"
+    "print-page-label": "In trang",
+    "stepper-progress-n-of-m": "Bước ${n} trên ${m}",
+    "stepper-word-bank": "Các từ để chọn",
+    "stepper-open-ended-saved": "Giỏi lắm — câu trả lời của em đã được lưu.",
+    "stepper-open-ended-rephrase": "Hãy dùng lời tử tế — em thử viết lại câu trả lời nhé.",
+    "open-ended-answer-label": "Câu trả lời của em"
 }
