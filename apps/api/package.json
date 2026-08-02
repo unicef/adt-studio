@@ -8,7 +8,7 @@
     "bundle": "node scripts/bundle.mjs",
     "build:sidecar": "pnpm bundle && pnpm compile",
     "build:server": "node scripts/bundle-server.mjs",
-    "build:electron-server": "node scripts/bundle-electron-server.mjs && node scripts/install-server-runtime.mjs"
+    "build:electron-server": "node scripts/install-server-runtime.mjs && node scripts/bundle-electron-server.mjs"
   },
   "dependencies": {
     "@adt/agents": "workspace:*",

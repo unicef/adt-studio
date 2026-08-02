@@ -72,6 +72,8 @@ export interface TextPart {
 export interface ImagePart {
   type: "image"
   image: string // base64
+  /** Detected from the image bytes so providers do not assume JPEG for PNG data. */
+  mimeType?: string
 }
 
 export interface TokenUsage {

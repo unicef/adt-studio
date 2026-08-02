@@ -114,6 +114,7 @@ export async function captionPageImages(
   }
 
   const inputImageIds = input.images.map((img) => img.imageId)
+  const inputImagesById = new Map(input.images.map((img) => [img.imageId, img]))
   const languageContext = buildLanguageContext(input.language)
 
   const result = await llmModel.generateObject<{
@@ -156,6 +157,40 @@ export async function captionPageImages(
         errors.push(
           `Duplicate image IDs: ${duplicateIds.join(", ")}. Provide exactly one caption per image.`
         )
+      }
+      for (const caption of r.captions) {
+        const image = inputImagesById.get(caption.image_id)
+        const isLargeSelectedImage =
+          image?.width !== undefined &&
+          image?.height !== undefined &&
+          image.width >= 256 &&
+          image.height >= 256
+        if (!caption.decorative && !caption.caption.trim()) {
+          errors.push(
+            `Image ${caption.image_id} is not decorative and requires a non-empty caption.`
+          )
+        }
+        // Large images selected into the educational page layout are content
+        // by default. This conservative backstop prevents local vision models
+        // from hiding a full-page illustration after a weak visual read.
+        if (
+          caption.decorative &&
+          isLargeSelectedImage
+        ) {
+          errors.push(
+            `Image ${caption.image_id} is ${image.width}x${image.height} and must be treated as meaningful content with a caption.`
+          )
+        }
+        if (
+          isLargeSelectedImage
+          && /distort|pixelat|corrupt|technical error|not recogniz|no discernible|no visual information/i.test(
+            `${caption.reasoning} ${caption.caption}`,
+          )
+        ) {
+          errors.push(
+            `Image ${caption.image_id} appears unreadable to the model. Reinspect the supplied image before captioning it.`,
+          )
+        }
       }
       return { valid: errors.length === 0, errors }
     },

@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import { z } from "zod"
 import { createLLMModel } from "../client.js"
 
@@ -169,6 +172,62 @@ describe("createLLMModel credentials", () => {
         providerOptions: { openai: { reasoningEffort: "none" } },
       }),
     )
+  })
+
+  it("schema-validates recovered local JSON before custom validation", async () => {
+    const ollamaModel = { provider: "ollama" }
+    createOpenAIMock.mockReturnValue(vi.fn(() => ollamaModel))
+    generateObjectMock
+      .mockResolvedValueOnce({
+        object: { type: "object", properties: {} },
+        usage: { promptTokens: 1, completionTokens: 2 },
+      })
+      .mockResolvedValueOnce({
+        object: { images: [] },
+        usage: { promptTokens: 1, completionTokens: 2 },
+      })
+
+    const customValidate = vi.fn(() => ({ valid: true, errors: [] }))
+    const llm = createLLMModel({ modelId: "ollama:gemma4-26b" })
+    const result = await llm.generateObject<{ images: unknown[] }>({
+      schema: z.object({ images: z.array(z.unknown()) }),
+      messages: [{ role: "user", content: "hello" }],
+      validate: customValidate,
+      maxRetries: 1,
+    })
+
+    expect(result.object).toEqual({ images: [] })
+    expect(generateObjectMock).toHaveBeenCalledTimes(2)
+    expect(customValidate).toHaveBeenCalledTimes(1)
+  })
+
+  it("caches the accepted retry under the original request", async () => {
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-llm-retry-cache-"))
+    try {
+      openaiProviderMock.mockReturnValue({ provider: "openai" })
+      generateObjectMock
+        .mockResolvedValueOnce({
+          object: { wrong: true },
+          usage: { promptTokens: 1, completionTokens: 1 },
+        })
+        .mockResolvedValueOnce({
+          object: { ok: true },
+          usage: { promptTokens: 1, completionTokens: 1 },
+        })
+
+      const llm = createLLMModel({ modelId: "openai:gpt-4.1", cacheDir })
+      const request = {
+        schema: z.object({ ok: z.boolean() }),
+        messages: [{ role: "user" as const, content: "hello" }],
+        maxRetries: 1,
+      }
+
+      expect((await llm.generateObject(request)).object).toEqual({ ok: true })
+      expect((await llm.generateObject(request)).object).toEqual({ ok: true })
+      expect(generateObjectMock).toHaveBeenCalledTimes(2)
+    } finally {
+      fs.rmSync(cacheDir, { recursive: true, force: true })
+    }
   })
 })
 

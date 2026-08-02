@@ -368,7 +368,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           model: localModel.trim() || "onnx-community/Kokoro-82M-v1.0-ONNX",
           voice: "af_heart",
           dtype: "q8",
-          device: "wasm",
+          device: "cpu",
           languages: localLangs.length > 0 ? localLangs : undefined,
         }
       }

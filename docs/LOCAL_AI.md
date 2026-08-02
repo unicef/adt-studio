@@ -40,7 +40,7 @@ Use the recommendation as a safe default. Faster GPUs and available memory bandw
 
 In **Settings → Local AI → Local speech**, paste an `owner/model` ID or Hugging Face model URL, or search Hugging Face. ADT validates Kokoro compatibility before downloading the selected q8 model and voice into Electron `userData/models/tts`.
 
-Select **Local** in the Speech stage. The API runs Kokoro through `onnxruntime-web` WebAssembly, produces mono 24 kHz PCM16 WAV files, and passes them to the existing speech pipeline. Packaging copies those files into the final static HTML/JS ADT; the exported ADT does not load or run the model.
+Select **Local** in the Speech stage. The desktop API runs Kokoro through native ONNX Runtime on the CPU, produces mono 24 kHz PCM16 WAV files, and passes them to the existing speech pipeline. Packaging copies those files into the final static HTML/JS ADT; the exported ADT does not load or run the model.
 
 Current limits:
 

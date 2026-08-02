@@ -102,7 +102,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
             model: model.repository,
             voice: model.voices[0] ?? "af_heart",
             dtype: model.dtype,
-            device: "wasm",
+            device: "cpu",
           },
         },
       })

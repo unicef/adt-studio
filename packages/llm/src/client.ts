@@ -9,6 +9,7 @@ import type {
   GenerateObjectResult,
   Message,
   TokenUsage,
+  ValidationResult,
 } from "./types.js"
 import type { PromptEngine } from "./prompt.js"
 import type { RateLimiter } from "./rate-limiter.js"
@@ -102,6 +103,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       let allErrors: string[] = []
       let lastCacheHit = false
       let totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
+      let canonicalHash: string | undefined
 
       const label = opts.log
         ? `${opts.log.taskType}${opts.log.pageId ? ` ${opts.log.pageId}` : ""}`
@@ -128,6 +130,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           temperature: opts.temperature,
           maxTokens: opts.maxTokens,
         })
+        canonicalHash ??= hash
 
         try {
           let result: T
@@ -174,9 +177,17 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             lastCacheHit = false
           }
 
-          // Validate if validator provided
-          if (opts.validate) {
-            const check = opts.validate(result, context)
+          // The AI SDK validates normal responses, but Ollama recovery can
+          // return the raw JSON candidate after the SDK rejects it. Re-run the
+          // schema here so custom validators never receive a malformed shape.
+          const schemaCheck = validateAgainstSchema(opts.schema, result)
+          if (schemaCheck?.valid && schemaCheck.cleaned !== undefined) {
+            result = schemaCheck.cleaned as T
+          }
+          const check = schemaCheck && !schemaCheck.valid
+            ? schemaCheck
+            : opts.validate?.(result, context)
+          if (check) {
             if (!check.valid) {
               allErrors.push(...check.errors)
               if (cacheDir) bustCache(cacheDir, hash)
@@ -219,6 +230,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             if (check.cleaned !== undefined) {
               result = check.cleaned as T
             }
+          }
+
+          // Retry feedback changes the request hash. Persist the accepted,
+          // cleaned result under the original request too, otherwise every
+          // future run repeats the same corrective retry.
+          if (cacheDir && !lastCacheHit && canonicalHash) {
+            writeCache(cacheDir, canonicalHash, result)
           }
 
           const durationMs = Date.now() - t0
@@ -357,6 +375,38 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       )
     },
   }
+}
+
+function validateAgainstSchema(
+  schema: unknown,
+  value: unknown,
+): ValidationResult | undefined {
+  if (
+    typeof schema !== "object" ||
+    schema === null ||
+    !("safeParse" in schema) ||
+    typeof schema.safeParse !== "function"
+  ) {
+    return undefined
+  }
+
+  const parsed = schema.safeParse(value) as {
+    success: boolean
+    data?: unknown
+    error?: { issues?: Array<{ path?: PropertyKey[]; message?: string }> }
+  }
+  if (parsed.success) {
+    return { valid: true, errors: [], cleaned: parsed.data }
+  }
+
+  const issues = parsed.error?.issues ?? []
+  const errors = issues.length > 0
+    ? issues.map((issue) => {
+        const path = issue.path?.map(String).join(".")
+        return `Schema validation failed${path ? ` at ${path}` : ""}: ${issue.message ?? "invalid value"}`
+      })
+    : ["Schema validation failed: invalid response shape"]
+  return { valid: false, errors }
 }
 
 function resolveModel(
@@ -598,7 +648,11 @@ function convertMessages(messages: Message[]): CoreMessage[] {
         if (p.type === "text") {
           return { type: "text" as const, text: p.text }
         }
-        return { type: "image" as const, image: p.image }
+        return {
+          type: "image" as const,
+          image: p.image,
+          ...(p.mimeType ? { mimeType: p.mimeType } : {}),
+        }
       })
       result.push({ role: "user", content: parts })
     } else {

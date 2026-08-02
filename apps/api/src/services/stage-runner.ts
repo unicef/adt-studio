@@ -3163,6 +3163,16 @@ async function runSpeechStep(
       storage.putNodeData("tts", lang, output)
     }
 
+    // Export must never look successful when deterministic/local narration is
+    // incomplete. Gemini keeps its existing repair-in-UI behavior below, but
+    // local and OpenAI providers fail the stage after persisting diagnostics.
+    const nonGeminiFailures = failedItems.length - geminiFailedItems.length
+    if (nonGeminiFailures > 0) {
+      throw new Error(
+        `${nonGeminiFailures} TTS item(s) failed. Fix or regenerate the failed narration before export.`,
+      )
+    }
+
     if (geminiFailedItems.length > 0) {
       const summary = `${geminiFailedItems.length} Gemini TTS item(s) failed. Missing Gemini audio can be generated one by one from the Speech view.`
       // Complete the step with gaps rather than erroring. The failed items are

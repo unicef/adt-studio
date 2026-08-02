@@ -48,9 +48,6 @@ COPY config.yaml ./config.yaml
 # Build all TypeScript packages (tsc --build — type-checks + compiles shared packages)
 RUN pnpm build
 
-# Bundle the API with esbuild (produces dist/api-server.mjs with correct ESM imports)
-RUN pnpm --filter @adt/api build:server
-
 # esbuild, tailwindcss, postcss, and playwright are dynamically imported by the packaging
 # stage and cannot be bundled — they locate native binaries and CSS assets relative to
 # their own package directory, which breaks when inlined into the bundle. Install them
@@ -76,6 +73,10 @@ RUN --mount=type=cache,target=/root/.npm \
     " && \
     npm install --prefix apps/api/dist --omit=dev --cache /root/.npm && \
     rm -f apps/api/dist/package.json apps/api/dist/package-lock.json
+
+# Bundle after npm install so its targeted onnxruntime-node copy is not pruned
+# as an extraneous package by npm.
+RUN pnpm --filter @adt/api build:server
 
 # Download Chromium browser binary for Playwright screenshot rendering.
 # --with-deps installs required system libraries (libatk, libcups, etc.) in one step.

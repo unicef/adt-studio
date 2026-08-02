@@ -53,7 +53,6 @@ async function startApiServer(): Promise<{
       WEB_ASSETS_DIR: paths.webAssetsDir,
       ADT_ENVIRONMENT: "electron",
       LOCAL_TTS_MODELS_DIR: paths.localTtsModelsDir,
-      LOCAL_TTS_WASM_PATH: join(dirname(paths.serverPath), "ort-wasm-simd-threaded.wasm"),
     },
   });
 

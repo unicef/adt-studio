@@ -64,6 +64,20 @@ describe("createPromptEngine", () => {
     expect(content[1]).toEqual({ type: "image", image: "abc123" })
   })
 
+  it("detects PNG image media types for multimodal providers", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "image.liquid"),
+      `{% chat role: "user" %}{% image png %}{% endchat %}`,
+    )
+    const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB"
+    const messages = await createPromptEngine(dir).renderPrompt("image", { png })
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "image", image: png, mimeType: "image/png" }],
+    })
+  })
+
   it("skips image tags whose value is missing or empty", async () => {
     const dir = tmpDir()
     fs.writeFileSync(

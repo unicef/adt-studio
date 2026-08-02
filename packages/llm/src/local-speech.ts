@@ -1,6 +1,7 @@
 import fs from "node:fs"
+import os from "node:os"
 import path from "node:path"
-import * as ort from "onnxruntime-web/wasm"
+import * as ort from "onnxruntime-node"
 import { phonemize as espeakPhonemize } from "phonemizer"
 import { LocalTTSModelManifest } from "@adt/types"
 import type { LocalTTSModelManifest as LocalHfModelManifest } from "@adt/types"
@@ -19,7 +20,8 @@ export const KOKORO_VOICES = [
 
 export type LocalHfTTSAdapter = "kokoro"
 export type LocalHfTTSDtype = "q8" | "q4" | "fp32" | "fp16" | "q4f16"
-export type LocalHfTTSDevice = "wasm"
+/** `wasm` is accepted for backward compatibility with projects created before native ONNX shipped. */
+export type LocalHfTTSDevice = "cpu" | "wasm"
 
 export interface LocalHfTTSConfig {
   adapter?: LocalHfTTSAdapter
@@ -154,17 +156,14 @@ async function loadRuntime(modelsDir: string, repository: string): Promise<Local
     model?: { vocab?: Record<string, number> }
   }
   if (!tokenizerJson.model?.vocab) throw new Error("Unsupported Kokoro tokenizer")
-  const packagedWasmPath = process.env.LOCAL_TTS_WASM_PATH
-  if (packagedWasmPath) {
-    if (!fs.existsSync(packagedWasmPath)) throw new Error(`Local TTS WASM runtime is missing: ${packagedWasmPath}`)
-    ort.env.wasm.wasmBinary = fs.readFileSync(packagedWasmPath)
-  }
-  ort.env.wasm.numThreads = 1
+  const configuredThreads = Number.parseInt(process.env.LOCAL_TTS_THREADS ?? "", 10)
+  const threadCount = Number.isInteger(configuredThreads) && configuredThreads > 0
+    ? Math.min(configuredThreads, os.availableParallelism())
+    : Math.max(1, Math.min(4, os.availableParallelism() - 1))
   const modelPath = path.join(modelDir, manifest.modelFile)
-  const modelBytes = fs.readFileSync(modelPath)
   const session = await ort.InferenceSession.create(
-    new Uint8Array(modelBytes.buffer, modelBytes.byteOffset, modelBytes.byteLength),
-    { executionProviders: ["wasm"] },
+    modelPath,
+    { executionProviders: ["cpu"], intraOpNumThreads: threadCount },
   )
   return { manifest, tokenizer: tokenizerJson.model.vocab, session, modelDir }
 }
@@ -201,7 +200,7 @@ async function synthesizeChunk(runtime: LocalRuntime, text: string, voice: strin
 }
 
 export function createLocalHfTTSSynthesizer(config: LocalHfTTSConfig): LocalHfTTSSynthesizer {
-  const resolved = { adapter: "kokoro", dtype: "q8", device: "wasm", speed: 1, ...config } as const
+  const resolved = { adapter: "kokoro", dtype: "q8", device: "cpu", speed: 1, ...config } as const
   if (resolved.adapter !== "kokoro") throw new Error(`Unsupported local TTS adapter: ${resolved.adapter}`)
   fs.mkdirSync(path.resolve(resolved.modelsDir), { recursive: true })
 
@@ -215,7 +214,7 @@ export function createLocalHfTTSSynthesizer(config: LocalHfTTSConfig): LocalHfTT
       if (options.responseFormat.toLowerCase() !== "wav") throw new Error("Local Kokoro TTS outputs WAV audio only")
       if (!isKokoroLanguageSupported(options.language)) throw new Error(`Local Kokoro TTS does not support ${options.language}`)
       const repository = normalizeHfModelSource(options.model)
-      const runtime = await getRuntime(resolved.modelsDir, repository)
+      let runtime = await getRuntime(resolved.modelsDir, repository)
       const voice = options.voice || DEFAULT_KOKORO_VOICE
       if (!runtime.manifest.voices.includes(voice)) throw new Error(`Voice ${voice} is not installed`)
       const queueKey = runtime.modelDir
@@ -226,13 +225,27 @@ export function createLocalHfTTSSynthesizer(config: LocalHfTTSConfig): LocalHfTT
       synthesisQueues.set(queueKey, queued)
       await previous
       try {
-        options.signal?.throwIfAborted()
-        const parts: Float32Array[] = []
-        for (const chunk of splitText(options.input)) {
+        const run = async (activeRuntime: LocalRuntime): Promise<Uint8Array> => {
           options.signal?.throwIfAborted()
-          parts.push(await synthesizeChunk(runtime, chunk, voice, resolved.speed))
+          const parts: Float32Array[] = []
+          for (const chunk of splitText(options.input)) {
+            options.signal?.throwIfAborted()
+            parts.push(await synthesizeChunk(activeRuntime, chunk, voice, resolved.speed))
+          }
+          return encodePcm16Wav(concatenateWithSilence(parts), SAMPLE_RATE)
         }
-        return encodePcm16Wav(concatenateWithSilence(parts), SAMPLE_RATE)
+        try {
+          return await run(runtime)
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          if (!/no available backend|fetch failed/i.test(message)) throw error
+          // A failed ONNX backend remains poisoned for later cache misses.
+          // Recreate the session once; retrying the same session cannot recover.
+          runtimePromises.delete(queueKey)
+          try { runtime.session.release() } catch { /* best-effort cleanup */ }
+          runtime = await getRuntime(resolved.modelsDir, repository)
+          return await run(runtime)
+        }
       } finally {
         release(); if (synthesisQueues.get(queueKey) === queued) synthesisQueues.delete(queueKey)
       }

@@ -24,7 +24,8 @@ export type LocalTTSAdapter = z.infer<typeof LocalTTSAdapter>
 export const LocalTTSDtype = z.enum(["q8", "q4", "fp32", "fp16", "q4f16"])
 export type LocalTTSDtype = z.infer<typeof LocalTTSDtype>
 
-export const LocalTTSDevice = z.enum(["wasm"])
+/** `wasm` remains valid so existing book configs migrate without breaking. */
+export const LocalTTSDevice = z.enum(["cpu", "wasm"])
 export type LocalTTSDevice = z.infer<typeof LocalTTSDevice>
 
 export const LocalTTSModelManifest = z.object({
@@ -47,7 +48,7 @@ export const TTSProviderConfig = z.object({
   voice: z.string().optional(),
   /** Quantization used by local-HF adapters. */
   dtype: LocalTTSDtype.optional(),
-  /** WebAssembly runtime used by the Electron API utility process. */
+  /** Native CPU runtime. Legacy `wasm` values are interpreted as CPU. */
   device: LocalTTSDevice.optional(),
   /** Local synthesis speed multiplier. */
   speed: z.number().min(0.5).max(2).optional(),

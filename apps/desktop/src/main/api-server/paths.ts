@@ -45,12 +45,24 @@ export function resolvePaths(): ApiServerPaths {
     const configPath = join(appDataDir, "config.yaml");
     const configFolderPath = join(appDataDir, "config");
 
-    // Packaged resources are signed/read-only. Seed editable configuration in
-    // userData once, preserving all user changes across upgrades.
-    if (!existsSync(promptsDir)) cpSync(join(root, "prompts"), promptsDir, { recursive: true });
-    if (!existsSync(templatesDir)) cpSync(join(root, "templates"), templatesDir, { recursive: true });
+    // Packaged resources are signed/read-only. Merge newly shipped defaults
+    // into userData on every upgrade without overwriting user-edited files.
+    cpSync(join(root, "prompts"), promptsDir, {
+      recursive: true,
+      force: false,
+      errorOnExist: false,
+    });
+    cpSync(join(root, "templates"), templatesDir, {
+      recursive: true,
+      force: false,
+      errorOnExist: false,
+    });
     if (!existsSync(configPath)) cpSync(join(root, "config.yaml"), configPath);
-    if (!existsSync(configFolderPath)) cpSync(join(root, "config"), configFolderPath, { recursive: true });
+    cpSync(join(root, "config"), configFolderPath, {
+      recursive: true,
+      force: false,
+      errorOnExist: false,
+    });
 
     return {
       serverPath: join(root, "api/api-server.mjs"),

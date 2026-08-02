@@ -602,4 +602,71 @@ describe("captionPageImages", () => {
     expect(validation?.valid).toBe(false)
     expect(validation?.errors.some((e) => e.includes("Duplicate image IDs"))).toBe(true)
   })
+
+  it("rejects marking a large selected image as decorative", async () => {
+    let capturedOptions: GenerateObjectOptions | null = null
+    const llm = makeFakeLLMModel([], (options) => {
+      capturedOptions = options
+    })
+
+    await captionPageImages(
+      {
+        pageId: "pg001",
+        pageImageBase64: "page",
+        images: [{
+          imageId: "pg001_im001",
+          imageBase64: "image",
+          width: 976,
+          height: 756,
+        }],
+        language: "en",
+      },
+      { promptName: "image_captioning", modelId: "ollama:gemma4-26b", maxRetries: 5 },
+      llm,
+    )
+
+    const validation = capturedOptions?.validate?.({
+      captions: [{
+        image_id: "pg001_im001",
+        reasoning: "Could not read it",
+        caption: "",
+        decorative: true,
+      }],
+    }, {})
+    expect(validation?.valid).toBe(false)
+    expect(validation?.errors.join(" ")).toContain("must be treated as meaningful content")
+  })
+
+  it("retries when a vision model reports a large selected image as corrupted", async () => {
+    let capturedOptions: GenerateObjectOptions | null = null
+    const llm = makeFakeLLMModel([], (options) => {
+      capturedOptions = options
+    })
+
+    await captionPageImages(
+      {
+        pageId: "pg001",
+        pageImageBase64: "page",
+        images: [{
+          imageId: "pg001_im001",
+          imageBase64: "image",
+          width: 976,
+          height: 756,
+        }],
+        language: "en",
+      },
+      { promptName: "image_captioning", modelId: "ollama:gemma4-26b", maxRetries: 5 },
+      llm,
+    )
+
+    const validation = capturedOptions?.validate?.({
+      captions: [{
+        image_id: "pg001_im001",
+        reasoning: "The input looks distorted and pixelated.",
+        caption: "A pixelated horizontal band.",
+      }],
+    }, {})
+    expect(validation?.valid).toBe(false)
+    expect(validation?.errors.join(" ")).toContain("appears unreadable")
+  })
 })

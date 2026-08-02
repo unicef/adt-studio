@@ -5,7 +5,7 @@ import {
   WebRenderingOutput,
   DEFAULT_LLM_MAX_RETRIES,
 } from "@adt/types"
-import type { LLMModel } from "@adt/llm"
+import type { LLMModel, ValidationResult } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
 import { processWithConcurrency } from "./concurrency.js"
 import { getRenderSectioning } from "./render-sectioning.js"
@@ -53,6 +53,39 @@ export function stripHtml(html: string): string {
 
 function normalizeGlossaryWord(word: string): string {
   return word.trim().toLocaleLowerCase()
+}
+
+const ENCODED_BYTE_ESCAPE = /(?:<0x[0-9a-f]{2}>){2,}/i
+
+export function validateGlossaryEmojiEncoding(raw: unknown): ValidationResult {
+  const result = raw as { items?: Array<{ word?: string; emojis?: string[] }> }
+  const errors: string[] = []
+  let changed = false
+  const items = (result.items ?? []).map((item) => ({
+    ...item,
+    emojis: (item.emojis ?? []).map((emoji) => emoji.replace(
+      ENCODED_BYTE_ESCAPE,
+      (encoded) => {
+        try {
+          const bytes = [...encoded.matchAll(/<0x([0-9a-f]{2})>/gi)]
+            .map((match) => Number.parseInt(match[1], 16))
+          const decoded = new TextDecoder("utf-8", { fatal: true }).decode(Uint8Array.from(bytes))
+          changed = true
+          return decoded
+        } catch {
+          errors.push(
+            `Glossary emoji for "${item.word ?? "unknown"}" contains invalid encoded bytes (${encoded}).`,
+          )
+          return encoded
+        }
+      }
+    )),
+  }))
+  return {
+    valid: errors.length === 0,
+    errors,
+    ...(changed ? { cleaned: { ...(raw as object), items } } : {}),
+  }
 }
 
 export function getGlossaryItemTextId(item: Pick<GlossaryItem, "id">, index: number): string {
@@ -291,6 +324,7 @@ export async function generateGlossary(
         seed_terms: seedWords,
         excluded_words: excludedWords,
       },
+      validate: validateGlossaryEmojiEncoding,
       maxRetries: config.maxRetries,
       maxTokens: 16384,
       log: {
@@ -398,6 +432,7 @@ export async function generateGlossaryItem(
       context: context ?? "",
       candidate_variations: candidateVariations,
     },
+    validate: validateGlossaryEmojiEncoding,
     maxRetries: config.maxRetries,
     maxTokens: 2048,
     log: {

@@ -112,6 +112,19 @@ export function isContentPage(
   })
 }
 
+/** Exclude publishing/institutional end matter that is not lesson content. */
+export function isQuizEndMatter(page: QuizPageInput): boolean {
+  const text = extractTextFromHtml(
+    page.rendering.sections
+      .map((section) => section.html.replace(/></g, "> <"))
+      .join("\n"),
+  ).replace(/\s+/g, " ").trim().toLowerCase()
+  if (!text) return true
+  if (/\b(copyright|all rights reserved|isbn|published by)\b/i.test(text)) return true
+  return /^(vision|mission)\b/i.test(text)
+    && /\b(society|government|national happiness|gnh|bhutanese values|ministry)\b/i.test(text)
+}
+
 /**
  * Batch content pages into groups of N for quiz generation.
  * Non-content pages (all sections pruned) are skipped.
@@ -122,7 +135,9 @@ export function batchPages(
   pagesPerQuiz: number,
   quizSectionTypes?: string[]
 ): QuizPageInput[][] {
-  const contentPages = pages.filter((p) => isContentPage(p.sectioning, quizSectionTypes))
+  const contentPages = pages.filter(
+    (p) => isContentPage(p.sectioning, quizSectionTypes) && !isQuizEndMatter(p),
+  )
   const batches: QuizPageInput[][] = []
   for (let i = 0; i < contentPages.length; i += pagesPerQuiz) {
     batches.push(contentPages.slice(i, i + pagesPerQuiz))

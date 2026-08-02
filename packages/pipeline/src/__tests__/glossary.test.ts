@@ -14,6 +14,7 @@ import {
   getGlossaryItemTextId,
   mergeGeneratedGlossaryWithManualItems,
   regenerateGlossaryPreservingEdits,
+  validateGlossaryEmojiEncoding,
 } from "../glossary.js"
 
 describe("stripHtml", () => {
@@ -41,6 +42,21 @@ describe("stripHtml", () => {
     expect(
       stripHtml('<div class="x"><span>text</span></div>')
     ).toBe("text")
+  })
+})
+
+describe("validateGlossaryEmojiEncoding", () => {
+  it("decodes valid model byte escapes and accepts Unicode emoji", () => {
+    const encoded = validateGlossaryEmojiEncoding({
+      items: [{ word: "shake", emojis: ["<0xF0><0x9F><0xAB><0xA8>"] }],
+    })
+    expect(encoded.valid).toBe(true)
+    expect(encoded.cleaned).toEqual({
+      items: [{ word: "shake", emojis: ["🫨"] }],
+    })
+    expect(validateGlossaryEmojiEncoding({
+      items: [{ word: "shake", emojis: ["🫨"] }],
+    }).valid).toBe(true)
   })
 })
 

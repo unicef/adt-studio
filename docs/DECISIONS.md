@@ -864,6 +864,39 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 ---
 
+## 024: Native ONNX Runtime for Local Desktop Speech
+
+**Status**: Decided
+**Date**: 2026-08-02
+
+### Decision
+
+Run downloaded Kokoro models through `onnxruntime-node` on the CPU. Keep the package external to esbuild and copy only the current build platform/architecture into Electron and server distributions. Never bundle model weights; download them into Electron user data on demand.
+
+### Context
+
+`onnxruntime-web` worked in standalone Node but failed every fresh inference inside Electron's utility process because no WebAssembly backend could initialize. Cached audio hid the failure until a complete cache-miss run. Native ONNX produced all 118 Momo narration files successfully in the actual packaged macOS app.
+
+This is a documented exception to Decision 001. Local speech correctness is more important than preserving a WASM-only rule when the WASM runtime is not functional in the target desktop process.
+
+### Controls
+
+- Pin the runtime version and package only the target platform binding.
+- Validate the binding during desktop/server builds.
+- Keep Kokoro repositories revision-pinned with size/checksum validation.
+- Test macOS arm64 now; gate Intel macOS and Windows releases on packaged-app synthesis tests.
+- Keep the adapter replaceable so a reliable WASM/Core ML/DirectML implementation can supersede it later.
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|----------|---------|
+| `onnxruntime-web` WASM | Fresh inference failed inside packaged Electron utility processes |
+| Python sidecar | Larger runtime and distribution/security surface for the initial English adapter |
+| Bundle generated audio only | Does not let authors generate or regenerate speech locally |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -891,3 +924,4 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
+| 024 | Local speech inference | Target-specific native ONNX Runtime | Broken Electron WASM backend, Python sidecar |
