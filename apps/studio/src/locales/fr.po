@@ -7530,11 +7530,14 @@ msgstr "Rechercher le texte original ou en lecture facile…"
 msgid "Search original or translation…"
 msgstr "Rechercher l'original ou la traduction…"
 
-msgid "Search questions or answers…"
-msgstr "Rechercher des questions ou des réponses…"
+#~ msgid "Search questions or answers…"
+#~ msgstr "Rechercher des questions ou des réponses…"
 
 msgid "Search questions or options…"
 msgstr "Rechercher des questions ou des options…"
+
+msgid "Search questions, answers, or explanations…"
+msgstr "Rechercher des questions, des réponses ou des explications…"
 
 msgid "Search sections..."
 msgstr "Rechercher des sections..."

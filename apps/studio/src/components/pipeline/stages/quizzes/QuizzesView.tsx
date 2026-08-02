@@ -28,6 +28,7 @@ import { useStepHeader } from "../../components/StepViewRouter";
 import { StageContentGuard } from "../../components/StageContentGuard";
 import { StageEmptyState } from "../../components/StageEmptyState";
 import { VersionPicker } from "../../components/VersionPicker";
+import { InlineDiff } from "../../components/InlineDiff";
 import { usePendingChanges } from "../../components/change-summary";
 import {
   getRequestedPageId,
@@ -331,9 +332,11 @@ export function QuizzesView({
             },
             searchText: (q) => {
               const x = q as QuizData["quizzes"][number]
-              return `${x.question} ${x.options?.map((o) => o.text).join(" ") ?? ""}`
+              return `${x.question} ${x.options
+                ?.flatMap((o) => [o.text, o.explanation])
+                .join(" ") ?? ""}`
             },
-            searchPlaceholder: t`Search questions or answers…`,
+            searchPlaceholder: t`Search questions, answers, or explanations…`,
             renderItem: (it, ctx) => {
               const q = it as QuizData["quizzes"][number]
               const prev = ctx?.before as QuizData["quizzes"][number] | undefined
@@ -361,6 +364,8 @@ export function QuizzesView({
                       const correct = i === q.answerIndex
                       const prevOpt = prev?.options?.[i]
                       const textChanged = prevOpt != null && prevOpt.text !== o.text
+                      const explanationChanged =
+                        prevOpt != null && prevOpt.explanation !== o.explanation
                       const becameCorrect = answerMoved && correct
                       const wasCorrect = answerMoved && prev != null && i === prev.answerIndex
                       return (
@@ -379,17 +384,32 @@ export function QuizzesView({
                           ) : (
                             <span className="mt-0.5 h-3 w-3 shrink-0 rounded-full border border-muted-foreground/40" />
                           )}
-                          <span className="min-w-0 flex-1">
-                            {textChanged && prevOpt ? (
-                              <span className="line-through decoration-rose-400/70">{prevOpt.text} </span>
-                            ) : null}
-                            {o.text}
+                          <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                            <span className="font-medium text-foreground/90">
+                              {textChanged && prevOpt ? (
+                                <InlineDiff before={prevOpt.text} after={o.text} />
+                              ) : (
+                                o.text
+                              )}
+                            </span>
+                            {(o.explanation || prevOpt?.explanation) && (
+                              <span className="border-t border-border/60 pt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+                                {explanationChanged && prevOpt ? (
+                                  <InlineDiff
+                                    before={prevOpt.explanation}
+                                    after={o.explanation}
+                                  />
+                                ) : (
+                                  o.explanation
+                                )}
+                              </span>
+                            )}
                           </span>
                           {becameCorrect
                             ? changeTag(t`now correct`, "bg-emerald-100 text-emerald-700 ring-emerald-300")
                             : wasCorrect
                               ? changeTag(t`was correct`, "bg-amber-100 text-amber-700 ring-amber-300")
-                              : textChanged
+                              : textChanged || explanationChanged
                                 ? changeTag(t`edited`, "bg-amber-100 text-amber-700 ring-amber-300")
                                 : null}
                         </span>

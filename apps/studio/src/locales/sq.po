@@ -7529,11 +7529,14 @@ msgstr "Kërko tekstin origjinal ose Leximin e Lehtë…"
 msgid "Search original or translation…"
 msgstr "Kërko origjinalin ose përkthimin…"
 
-msgid "Search questions or answers…"
-msgstr "Kërko pyetje ose përgjigje…"
+#~ msgid "Search questions or answers…"
+#~ msgstr "Kërko pyetje ose përgjigje…"
 
 msgid "Search questions or options…"
 msgstr "Kërko pyetje ose opsione…"
+
+msgid "Search questions, answers, or explanations…"
+msgstr "Kërko pyetje, përgjigje ose shpjegime…"
 
 msgid "Search sections..."
 msgstr "Kërko seksione..."
