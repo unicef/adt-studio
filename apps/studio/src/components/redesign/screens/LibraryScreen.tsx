@@ -17,6 +17,7 @@ import { Pager } from "../ui/Pager"
 import { BookRow } from "./library/BookRow"
 import { BookGridCard } from "./library/BookGridCard"
 import { BookDetailDialog } from "./library/BookDetailDialog"
+import { LibraryEmptyState } from "./library/LibraryEmptyState"
 
 type SortKey = "recent" | "newest" | "az"
 const SORTS: { key: SortKey; label: MessageDescriptor }[] = [
@@ -87,6 +88,20 @@ export function LibraryScreen({ books, locale, onOpenAdd, onDelete }: LibraryScr
   }
 
   const detail = detailLabel ? vms.find((b) => b.label === detailLabel) ?? null : null
+
+  if (books.length === 0) {
+    return (
+      <div className="flex h-full flex-col overflow-hidden bg-background px-[30px] pb-10 pt-6">
+        <div className="shrink-0">
+          <div className="mb-1.5 text-2xl font-bold leading-none tracking-[-0.02em]">
+            <Trans>Library</Trans>
+          </div>
+          <div className="text-[13px] text-muted-foreground">{countText}</div>
+        </div>
+        <LibraryEmptyState onOpenAdd={onOpenAdd} />
+      </div>
+    )
+  }
 
   return (
     <div className="h-full overflow-auto bg-background px-[30px] pb-10 pt-6">
