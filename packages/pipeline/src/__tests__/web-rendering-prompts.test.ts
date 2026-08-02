@@ -82,3 +82,14 @@ describe("web rendering reading-order prompts", () => {
     )
   })
 })
+
+describe("page-mode visual review prompt", () => {
+  it("preserves overlapping image components as one responsive figure", async () => {
+    const messages = await promptEngine.renderPrompt("visual_review_page", {})
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("treat them as layers of one responsive figure")
+    expect(prompt).toContain("Never stack coordinate-linked layers vertically")
+    expect(prompt).toContain("inline percentage positioning is allowed")
+  })
+})
