@@ -53,11 +53,8 @@ declare global {
     /**
      * Map of item id → correct answer (pipe-separated string for alternatives).
      * Injected by `packages/pipeline/src/package-web.ts:renderPageHtml`.
-     * Typed as `unknown` values to agree with the other activity runtimes that
-     * share this global augmentation (they inject non-string shapes); this
-     * runtime narrows to string at its read site.
      */
-    correctAnswers?: Record<string, unknown>
+    correctAnswers?: Record<string, string>
     /**
      * Legacy: pairs of interchangeable items (e.g. "the same two answers in
      * either order"). The pipeline doesn't currently emit this, but the legacy
@@ -85,8 +82,7 @@ function findNextPageHref(): string | null {
 }
 
 function getCorrectAnswer(itemId: string): string | undefined {
-  const value = window.correctAnswers?.[itemId]
-  return typeof value === "string" ? value : undefined
+  return window.correctAnswers?.[itemId]
 }
 
 function getInterchangeable(itemId: string): string[] | undefined {

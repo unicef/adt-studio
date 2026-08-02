@@ -14,7 +14,7 @@
  *   8. initAnalytics() — fire and forget
  *   9. installShowContentFallback() — safety net
  */
-import { getDefaultStore, type WritableAtom } from "jotai"
+import { getDefaultStore } from "jotai"
 import { addFavicons } from "@/shared/runtime/favicon"
 import { loadAppConfig, pickLanguage, pickStorageMode } from "@/shared/runtime/config"
 import { applyImageVariants, applyTranslationsToDOM, loadTranslations } from "@/features/language/runtime/i18n"
@@ -59,11 +59,7 @@ import {
 import { locateGlossaryTerm } from "@/features/glossary/lib/locate"
 import { initAnalytics } from "@/shared/lib/analytics"
 import { installShowContentFallback, showMainContent } from "@/shared/lib/errors"
-import {
-  activityModeAtom,
-  isActivityPageAtom,
-  submitHiddenAtom,
-} from "@/features/activity/state/activity.atoms"
+import { activityModeAtom, isActivityPageAtom } from "@/features/activity/state/activity.atoms"
 import { initializeQuizActivity } from "@/features/activity/runtime/activity-quiz"
 import { initializeMultiSelectActivity } from "@/features/activity/runtime/activity-multi-select"
 import { initializeFillInTheBlankActivity } from "@/features/activity/runtime/activity-fill-in-the-blank"
@@ -111,9 +107,7 @@ function applyConfiguredSettings(config: AppConfig): void {
   const seed = <T>(
     key: LockableSetting,
     storageKey: string,
-    // Accepts any writable atom — including the persisted async atoms whose
-    // narrower write signatures aren't assignable to store.set's parameter.
-    atom: WritableAtom<unknown, never[], unknown>,
+    atom: Parameters<typeof store.set>[0],
     value: T | undefined,
   ): void => {
     const locked = isSettingLocked(config, key)
@@ -196,9 +190,6 @@ export async function bootRuntime(): Promise<void> {
     initAnalytics(config.analytics)
     showMainContent()
     processGlossaryLocateHint()
-    // Activity initializers share one dock and their cleanups are not retained,
-    // so clear the dock-hiding flag before any of them claims it.
-    store.set(submitHiddenAtom, false)
     initializeQuizActivity()
     initializeMultiSelectActivity()
     initializeFillInTheBlankActivity()

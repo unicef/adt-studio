@@ -17,14 +17,6 @@ export const skipHandlerAtom = ephemeralAtom<SkipHandler | null>(null)
 export const submitStateAtom = ephemeralAtom<SubmitState>("submit")
 export const submitLabelAtom = ephemeralAtom<string | null>(null)
 
-/**
- * Hides the dock's submit button entirely. Set by activities that judge an
- * answer the moment it is chosen (quiz / multiple choice), where a separate
- * "Submit" step is a dead control. Those activities still reveal the button
- * once it becomes "Next", so the reader can move on.
- */
-export const submitHiddenAtom = ephemeralAtom(false)
-
 export const selectedOptionAtom = ephemeralAtom<string | null>(null)
 export const selectedWordAtom = ephemeralAtom<string | null>(null)
 export const currentWordAtom = ephemeralAtom<string | null>(null)

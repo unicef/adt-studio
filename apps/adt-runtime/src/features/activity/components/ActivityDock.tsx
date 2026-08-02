@@ -2,11 +2,7 @@ import { DockActivityActions } from "./DockActivityActions";
 import { cn } from "@/shared/lib/utils";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { useAtomValue } from "jotai";
-import {
-  activityModeAtom,
-  submitHiddenAtom,
-  submitStateAtom,
-} from "@/features/activity/state/activity.atoms";
+import { activityModeAtom, submitStateAtom } from "@/features/activity/state/activity.atoms";
 import { useDockContext } from "@/features/dock/context/dock-context";
 import { embedModeAtom } from "@/shared/state/ui.atoms";
 
@@ -16,7 +12,6 @@ export function ActivityDock() {
   const activityMode = useAtomValue(activityModeAtom);
   const embed = useAtomValue(embedModeAtom);
   const submitState = useAtomValue(submitStateAtom);
-  const submitHidden = useAtomValue(submitHiddenAtom);
   // In embed mode the BottomDock is hidden, so sit flush near the edge
   // instead of leaving room above the (absent) reader dock.
   const topClassname = embed ? "top-3" : isCompact ? "top-21" : "top-18";
@@ -29,10 +24,6 @@ export function ActivityDock() {
   // iframe while the storyboard chrome stays put. Hide the dock instead — the
   // storyboard's own arrows move between items. The full reader keeps "Next".
   if (embed && submitState === "next") return null;
-
-  // Nothing to dock: quizzes judge on click, so with no submit control the
-  // container would render as an empty labelled pill.
-  if (submitHidden) return null;
 
 
   return (

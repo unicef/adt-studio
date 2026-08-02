@@ -7,7 +7,6 @@ import {
   skipEnabledAtom,
   skipHandlerAtom,
   submitEnabledAtom,
-  submitHiddenAtom,
   submitLabelAtom,
   submitStateAtom,
   validateHandlerAtom,
@@ -29,7 +28,6 @@ import { showActivityProgressToast } from "@/features/activity/lib/progress-toas
  */
 const QUIZ_SELECTOR =
   'section[data-section-type="activity_quiz"], section[data-section-type="activity_multiple_choice"]'
-const ANY_ACTIVITY_SELECTOR = 'section[data-section-type^="activity_"]'
 const CORRECT_ANSWERS_SCRIPT_ID = "quiz-correct-answers"
 const DEFAULT_GROUP_KEY = "__default__"
 
@@ -420,13 +418,6 @@ export function initializeQuizActivity(): (() => void) | null {
   const hasNextPage = findNextPageHref() !== null
   const hasPostCorrectTarget = findPostCorrectHref() !== null
 
-  // Every activity initializer runs on every page and they all share one dock.
-  // Only take the submit button away when this quiz is the page's sole
-  // activity — otherwise a sibling activity that genuinely needs Submit (a
-  // fill-in-the-blank, say) would be left with no way to submit at all.
-  const ownsDock =
-    document.querySelectorAll(ANY_ACTIVITY_SELECTOR).length === 1
-
   function anyGroupSelected(): boolean {
     return groups.some((g) => g.selected !== null)
   }
@@ -439,53 +430,60 @@ export function initializeQuizActivity(): (() => void) | null {
     store.set(submitStateAtom, "submit")
     store.set(submitLabelAtom, null)
     store.set(submitEnabledAtom, false)
-    // Choosing an option judges it, so there is nothing left to submit. The
-    // button reappears as "Next" once every group is answered correctly.
-    store.set(submitHiddenAtom, ownsDock)
     store.set(skipEnabledAtom, hasNextPage)
   }
 
-  /**
-   * Judge the given groups and refresh the dock. Selecting an option judges
-   * only THAT question, so in a section with several question groups an
-   * unanswered sibling is never marked wrong just because a neighbour was
-   * answered. The section only flips to the post-correct "Next" state once
-   * every group is answered and every answer is right.
-   */
-  const judge = (targets: QuestionGroup[]) => {
-    for (const group of targets) {
-      if (!group.selected) continue
+  const handleSelect = (option: HTMLElement) => {
+    const group = findGroupForOption(groups, option)
+    if (!group) return
+    if (group.validated) clearGroupStyles(group, isStandaloneQuiz)
+    markSelection(option, group, isStandaloneQuiz)
+    playActivitySound("drop")
+    group.selected = option
+    group.validated = false
+    store.set(submitStateAtom, "submit")
+    store.set(submitLabelAtom, null)
+    store.set(submitEnabledAtom, anyGroupSelected())
+  }
+
+  const handleValidate = () => {
+    const state = store.get(submitStateAtom)
+    if (state === "next") {
+      // Post-correct: advance to the next page in reading order.
+      const href = findPostCorrectHref()
+      if (href) window.location.href = href
+      return
+    }
+    if (!anyGroupSelected()) return
+
+    // Validate every group that has a selection. The section flips to the
+    // post-correct state only when EVERY group is answered AND every selection
+    // is correct — partial successes stay in submit so the user can fix wrong
+    // picks or fill missing ones.
+    let allCorrect = true
+    let correctCount = 0
+    let unansweredCount = 0
+    for (const group of groups) {
+      if (!group.selected) {
+        allCorrect = false
+        unansweredCount++
+        continue
+      }
       const itemId = getOptionItemId(group.selected)
-      if (!itemId) continue
+      if (!itemId) {
+        allCorrect = false
+        continue
+      }
       const isCorrect = Boolean(correctAnswers[itemId])
       applyValidationStyle(group.selected, isCorrect, isStandaloneQuiz)
       showFeedback(group.selected, isCorrect, isStandaloneQuiz)
       group.validated = true
-    }
-
-    let correctCount = 0
-    let unansweredCount = 0
-    let allCorrect = true
-    for (const group of groups) {
-      if (!group.selected) {
-        unansweredCount++
-        allCorrect = false
-        continue
-      }
-      const itemId = getOptionItemId(group.selected)
-      if (itemId && Boolean(correctAnswers[itemId])) correctCount++
+      if (isCorrect) correctCount++
       else allCorrect = false
     }
 
-    // Sound and buddy reaction follow the answer the reader just gave, not the
-    // whole section — otherwise a right answer sounds wrong while siblings are
-    // still blank.
-    const judgedCorrect = targets.every((group) => {
-      const itemId = group.selected ? getOptionItemId(group.selected) : null
-      return itemId !== null && Boolean(correctAnswers[itemId])
-    })
-    playActivitySound(judgedCorrect ? "success" : "error")
-    emitActivityResult(judgedCorrect)
+    playActivitySound(allCorrect ? "success" : "error")
+    emitActivityResult(allCorrect)
 
     // Summary toast for multiple-choice. Standalone quiz keeps its
     // per-option text feedback ("Great job!") and skips the toast to avoid
@@ -504,47 +502,11 @@ export function initializeQuizActivity(): (() => void) | null {
       store.set(submitLabelAtom, null)
       // Submit becomes "Next" — enabled only when a next page exists.
       store.set(submitEnabledAtom, hasPostCorrectTarget)
-      store.set(submitHiddenAtom, false)
     } else {
       store.set(submitStateAtom, "submit")
       store.set(submitLabelAtom, null)
-      store.set(submitEnabledAtom, ownsDock ? false : anyGroupSelected())
-      store.set(submitHiddenAtom, ownsDock)
+      store.set(submitEnabledAtom, anyGroupSelected())
     }
-  }
-
-  /**
-   * Move the selection without judging. Arrow keys traverse a native radio
-   * group by *checking* each radio in turn, so committing there would mark
-   * every option a keyboard user passes over as a wrong answer. Browsing is
-   * free; committing is a deliberate act (pointer click, or Enter/Space).
-   */
-  const selectOnly = (option: HTMLElement) => {
-    const group = findGroupForOption(groups, option)
-    if (!group) return null
-    if (group.validated) clearGroupStyles(group, isStandaloneQuiz)
-    markSelection(option, group, isStandaloneQuiz)
-    group.selected = option
-    group.validated = false
-    if (!ownsDock) store.set(submitEnabledAtom, anyGroupSelected())
-    return group
-  }
-
-  const handleSelect = (option: HTMLElement) => {
-    const group = selectOnly(option)
-    if (group) judge([group])
-  }
-
-  const handleValidate = () => {
-    const state = store.get(submitStateAtom)
-    if (state === "next") {
-      // Post-correct: advance to the next page in reading order.
-      const href = findPostCorrectHref()
-      if (href) window.location.href = href
-      return
-    }
-    if (!anyGroupSelected()) return
-    judge(groups)
   }
 
   const handleSkip = () => {
@@ -571,66 +533,38 @@ export function initializeQuizActivity(): (() => void) | null {
   const listeners: Array<() => void> = []
   for (const group of groups) {
     for (const option of group.options) {
+      const onClick = () => handleSelect(option)
+      const onKey = (e: KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          handleSelect(option)
+        }
+      }
+      option.addEventListener("click", onClick)
+      option.addEventListener("keydown", onKey)
       option.setAttribute("role", "radio")
       option.setAttribute("aria-checked", "false")
 
+      // Arrow-key navigation between native radios fires `change` on the new
+      // radio without firing `click` on its label. Listen here too so keyboard
+      // users actually see selection state update.
       const innerRadio = option.querySelector<HTMLInputElement>(
         'input[type="radio"]',
       )
-
       if (innerRadio) {
-        // Activating a label forwards a synthetic click to its control, which
-        // bubbles back through the label — so one tap arrived as two click
-        // events and judged the answer twice (doubling the sound, the buddy
-        // reaction and the confetti). Collapse a single gesture to one judge,
-        // whichever element the child actually hit.
-        let judging = false
-        const onClick = () => {
-          if (judging) return
-          judging = true
-          releaseGesture = window.setTimeout(() => {
-            judging = false
-          }, 0)
-          handleSelect(option)
-        }
-        let releaseGesture = 0
-        // Arrow keys check radios as they traverse the group — select, but do
-        // not commit, or navigating would record wrong answers.
         const onChange = () => {
-          if (innerRadio.checked) selectOnly(option)
+          if (innerRadio.checked) handleSelect(option)
         }
-        // The sr-only radio is the option's tab stop, so this is where a
-        // keyboard user commits the browsed selection.
-        const onRadioKey = (event: KeyboardEvent) => {
-          if (event.key !== "Enter" && event.key !== " ") return
-          event.preventDefault()
-          handleSelect(option)
-        }
-        option.addEventListener("click", onClick)
         innerRadio.addEventListener("change", onChange)
-        innerRadio.addEventListener("keydown", onRadioKey)
-        listeners.push(() => {
-          window.clearTimeout(releaseGesture)
-          option.removeEventListener("click", onClick)
-          innerRadio.removeEventListener("change", onChange)
-          innerRadio.removeEventListener("keydown", onRadioKey)
-        })
-      } else {
-        // Standalone quiz options are plain labels with no inner control.
-        const onClick = () => handleSelect(option)
-        const onKey = (e: KeyboardEvent) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault()
-            handleSelect(option)
-          }
-        }
-        option.addEventListener("click", onClick)
-        option.addEventListener("keydown", onKey)
-        listeners.push(() => {
-          option.removeEventListener("click", onClick)
-          option.removeEventListener("keydown", onKey)
-        })
+        listeners.push(() =>
+          innerRadio.removeEventListener("change", onChange),
+        )
       }
+
+      listeners.push(() => {
+        option.removeEventListener("click", onClick)
+        option.removeEventListener("keydown", onKey)
+      })
     }
   }
 
@@ -662,7 +596,6 @@ export function initializeQuizActivity(): (() => void) | null {
     store.set(validateHandlerAtom, () => null)
     store.set(skipHandlerAtom, () => null)
     store.set(submitEnabledAtom, false)
-    store.set(submitHiddenAtom, false)
     store.set(skipEnabledAtom, false)
   }
 }

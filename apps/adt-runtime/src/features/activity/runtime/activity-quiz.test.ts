@@ -3,11 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { getDefaultStore } from "jotai"
 import { initializeQuizActivity } from "./activity-quiz"
 import {
-  activityResultAtom,
-  confettiTriggerAtom,
   skipEnabledAtom,
   submitEnabledAtom,
-  submitHiddenAtom,
   submitStateAtom,
   validateHandlerAtom,
 } from "../state/activity.atoms"
@@ -62,9 +59,6 @@ beforeEach(() => {
   store.set(submitEnabledAtom, false)
   store.set(skipEnabledAtom, false)
   store.set(submitStateAtom, "submit")
-  store.set(submitHiddenAtom, false)
-  store.set(confettiTriggerAtom, 0)
-  store.set(activityResultAtom, { correct: false, token: 0 })
   store.set(validateHandlerAtom, () => null)
 })
 
@@ -106,79 +100,6 @@ describe("initializeQuizActivity — standalone activity_quiz", () => {
     store.get(validateHandlerAtom)?.()
     expect(store.get(submitStateAtom)).toBe("next")
     expect(store.get(submitEnabledAtom)).toBe(false)
-  })
-})
-
-describe("initializeQuizActivity — judging fires exactly once", () => {
-  beforeEach(() => {
-    store.set(pagesAtom, [
-      { section_id: "pg002_sec001", href: "pg002_sec001.html" },
-      { section_id: "pg003_sec001", href: "pg003_sec001.html" },
-    ])
-    store.set(currentSectionIdAtom, "pg002_sec001")
-  })
-
-  // A label wrapping a radio forwards the click to it, so listening to both
-  // `click` and `change` judged one gesture twice — doubling the sound, the
-  // buddy reaction and the confetti burst.
-  it("judges a label click once, not twice", () => {
-    setupMultipleChoice()
-    initializeQuizActivity()
-
-    document
-      .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
-      .closest<HTMLElement>(".activity-option")!
-      .click()
-
-    expect(store.get(activityResultAtom).token).toBe(1)
-    expect(store.get(confettiTriggerAtom)).toBe(1)
-  })
-
-  it("judges once when the click lands on content inside the label", () => {
-    setupMultipleChoice()
-    initializeQuizActivity()
-
-    document.querySelector<HTMLElement>("[data-id='text-1']")!.click()
-
-    expect(store.get(activityResultAtom).token).toBe(1)
-  })
-
-  it("judges once when the radio itself is clicked", () => {
-    setupMultipleChoice()
-    initializeQuizActivity()
-
-    document
-      .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
-      .click()
-
-    expect(store.get(activityResultAtom).token).toBe(1)
-  })
-
-  it("keeps the submit button when a sibling activity also needs it", () => {
-    // All activity initializers run on every page and share one dock, so the
-    // quiz must not take Submit away from a fill-in-the-blank next to it.
-    document.body.innerHTML = `
-      <section data-section-type="activity_multiple_choice">
-        <label class="activity-option">
-          <input type="radio" name="q1" value="item-1" data-activity-item="item-1" class="sr-only" />
-          <div data-id="text-1">Option 1</div>
-        </label>
-      </section>
-      <section data-section-type="activity_fill_in_the_blank">
-        <input type="text" data-activity-item="b1" />
-      </section>
-    `
-    window.correctAnswers = { "item-1": true, b1: "x" }
-    initializeQuizActivity()
-
-    expect(store.get(submitHiddenAtom)).toBe(false)
-  })
-
-  it("hides the submit button when the quiz is the only activity", () => {
-    setupMultipleChoice()
-    initializeQuizActivity()
-
-    expect(store.get(submitHiddenAtom)).toBe(true)
   })
 })
 
@@ -229,31 +150,23 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
     expect(store.get(submitEnabledAtom)).toBe(true)
   })
 
-  it("judges the option as soon as it is picked, with no submit step", () => {
+  it("applies a visible selection highlight on the picked option label", () => {
     setupMultipleChoice()
     initializeQuizActivity()
-
-    // The dock's submit button is pointless when the click itself answers.
-    expect(store.get(submitHiddenAtom)).toBe(true)
 
     const opt1 = document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
       .closest<HTMLElement>(".activity-option")!
     opt1.click()
-    expect(opt1.getAttribute("data-mc-style-state")).toBe("correct")
-    // Solved, so the button returns as "Next" to move on.
-    expect(store.get(submitStateAtom)).toBe("next")
-    expect(store.get(submitHiddenAtom)).toBe(false)
+    expect(opt1.getAttribute("data-mc-style-state") === "selected").toBe(true)
 
-    // Switching to a different option re-judges and doesn't accumulate state.
+    // Switching to a different option moves the highlight, doesn't accumulate.
     const opt2 = document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-2']")!
       .closest<HTMLElement>(".activity-option")!
     opt2.click()
-    expect(opt1.hasAttribute("data-mc-style-state")).toBe(false)
-    expect(opt2.getAttribute("data-mc-style-state")).toBe("incorrect")
-    expect(store.get(submitStateAtom)).toBe("submit")
-    expect(store.get(submitHiddenAtom)).toBe(true)
+    expect(opt1.getAttribute("data-mc-style-state") === "selected").toBe(false)
+    expect(opt2.getAttribute("data-mc-style-state") === "selected").toBe(true)
   })
 
   it("strips the selection highlight on validation and applies the correct/incorrect state class", () => {
@@ -294,18 +207,12 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
     radio2.checked = true
     radio2.dispatchEvent(new Event("change", { bubbles: true }))
 
-    // Arrow keys check each radio as they traverse the group, so navigating
-    // must only move the selection — judging there would record a wrong answer
-    // for every option the child passes over.
     const opt2 = radio2.closest<HTMLElement>(".activity-option")!
-    expect(opt2.getAttribute("data-mc-style-state")).toBe("selected")
-    expect(store.get(activityResultAtom).token).toBe(0)
+    expect(opt2.getAttribute("data-mc-style-state") === "selected").toBe(true)
+    expect(store.get(submitEnabledAtom)).toBe(true)
 
-    // Enter on the focused radio is how a keyboard user commits.
-    radio2.dispatchEvent(
-      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
-    )
-    expect(opt2.getAttribute("data-mc-style-state")).toBe("incorrect")
+    // Validation runs against the keyboard-selected option.
+    store.get(validateHandlerAtom)?.()
     expect(store.get(submitStateAtom)).toBe("submit") // item-2 is the wrong answer
   })
 
@@ -334,7 +241,9 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
       .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
       .closest<HTMLElement>(".activity-option")!
     correctImgOpt.click()
-    expect(correctImgOpt.getAttribute("data-mc-style-state")).toBe("correct")
+    expect(correctImgOpt.getAttribute("data-mc-style-state") === "selected").toBe(true)
+
+    store.get(validateHandlerAtom)?.()
     expect(store.get(submitStateAtom)).toBe("next")
   })
 
@@ -393,19 +302,16 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
       .querySelector<HTMLInputElement>("input[data-activity-item='item-4']")!
       .closest<HTMLElement>(".activity-option")!
 
-    // Answering q1 judges q1 only — q2 must not be marked wrong for being blank.
+    // Picking in q1 should NOT clear q2 and vice versa.
     q1a.click()
-    expect(q1a.getAttribute("data-mc-style-state")).toBe("correct")
-    expect(q2b.hasAttribute("data-mc-style-state")).toBe(false)
-    expect(store.get(submitStateAtom)).toBe("submit") // q2 still unanswered
-    expect(store.get(submitHiddenAtom)).toBe(true)
-
-    // Picking in q2 must not clear q1's verdict.
+    expect(q1a.getAttribute("data-mc-style-state") === "selected").toBe(true)
     q2b.click()
-    expect(q1a.getAttribute("data-mc-style-state")).toBe("correct")
-    expect(q2b.getAttribute("data-mc-style-state")).toBe("correct")
+    expect(q1a.getAttribute("data-mc-style-state") === "selected").toBe(true) // still selected
+    expect(q2b.getAttribute("data-mc-style-state") === "selected").toBe(true)
+    expect(store.get(submitEnabledAtom)).toBe(true)
+
+    store.get(validateHandlerAtom)?.()
     expect(store.get(submitStateAtom)).toBe("next")
-    expect(store.get(submitHiddenAtom)).toBe(false)
   })
 
   it("requires every group to be answered correctly before flipping to next", () => {
