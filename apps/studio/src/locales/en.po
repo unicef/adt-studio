@@ -9552,3 +9552,20 @@ msgstr "Zoom in"
 
 msgid "Zoom out"
 msgstr "Zoom out"
+msgid "Adjust voice"
+msgstr "Adjust voice"
+
+msgid "Voice instructions"
+msgstr "Voice instructions"
+
+msgid "Tell AI how this phrase should sound"
+msgstr "Tell AI how this phrase should sound"
+
+msgid "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
+msgstr "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
+
+msgid "Regenerate phrase"
+msgstr "Regenerate phrase"
+
+msgid "Generate phrase"
+msgstr "Generate phrase"

@@ -9552,3 +9552,20 @@ msgstr "Acercar"
 
 msgid "Zoom out"
 msgstr "Alejar"
+msgid "Adjust voice"
+msgstr "Ajustar voz"
+
+msgid "Voice instructions"
+msgstr "Instrucciones de voz"
+
+msgid "Tell AI how this phrase should sound"
+msgstr "Indica a la IA cómo debe sonar esta frase"
+
+msgid "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
+msgstr "Por ejemplo: habla más despacio, enfatiza la palabra final y usa un tono cálido y alentador."
+
+msgid "Regenerate phrase"
+msgstr "Regenerar frase"
+
+msgid "Generate phrase"
+msgstr "Generar frase"

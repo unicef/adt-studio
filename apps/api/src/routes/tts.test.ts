@@ -80,6 +80,20 @@ describe("POST /books/:label/tts/generate-one", () => {
   it("generates a missing Gemini audio file and stores a new TTS version", async () => {
     const label = "gemini-audio"
     seedBook(label)
+    const seededStorage = createBookStorage(label, tmpDir)
+    seededStorage.putNodeData("tts-timestamps", "en", {
+      entries: {
+        pg001_t001: {
+          textId: "pg001_t001",
+          language: "en",
+          fileName: "pg001_t001.wav",
+          words: [{ word: "Hello", start: 0, end: 0.5 }],
+          duration: 0.5,
+        },
+      },
+      generatedAt: new Date().toISOString(),
+    })
+    seededStorage.close()
 
     fetchMock.mockResolvedValue(
       new Response(
@@ -114,7 +128,11 @@ describe("POST /books/:label/tts/generate-one", () => {
         "Content-Type": "application/json",
         "X-Gemini-API-Key": "gm-test",
       },
-      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+      body: JSON.stringify({
+        textId: "pg001_t001",
+        language: "en",
+        instruction: "Speak slowly and emphasize world.",
+      }),
     })
 
     expect(res.status).toBe(200)
@@ -123,6 +141,9 @@ describe("POST /books/:label/tts/generate-one", () => {
     expect(body.entry.fileName).toBe("pg001_t001.wav")
     expect(body.completed).toBe(true)
     expect(body.remainingItems).toBe(0)
+    expect(String(fetchMock.mock.calls[0]?.[1]?.body)).toContain(
+      "Expert instruction for this phrase only: Speak slowly and emphasize world."
+    )
 
     const storage = createBookStorage(label, tmpDir)
     try {
@@ -132,6 +153,8 @@ describe("POST /books/:label/tts/generate-one", () => {
       expect(storage.getStepRuns().find((step) => step.step === "tts")?.status).toBe(
         "done"
       )
+      const timestamps = storage.getLatestNodeData("tts-timestamps", "en")
+      expect((timestamps?.data as { entries: Record<string, unknown> }).entries).toEqual({})
     } finally {
       storage.close()
     }

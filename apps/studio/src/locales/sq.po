@@ -9553,3 +9553,20 @@ msgstr "Zmadhim"
 
 msgid "Zoom out"
 msgstr "Zvogëlim"
+msgid "Adjust voice"
+msgstr "Rregullo zërin"
+
+msgid "Voice instructions"
+msgstr "Udhëzime për zërin"
+
+msgid "Tell AI how this phrase should sound"
+msgstr "Tregoji AI-së se si duhet të tingëllojë kjo frazë"
+
+msgid "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
+msgstr "Për shembull: fol më ngadalë, thekso fjalën e fundit dhe përdor një ton të ngrohtë e inkurajues."
+
+msgid "Regenerate phrase"
+msgstr "Rigjenero frazën"
+
+msgid "Generate phrase"
+msgstr "Gjenero frazën"
