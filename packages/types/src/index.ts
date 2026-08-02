@@ -233,6 +233,33 @@ export {
 } from "./image-captioning.js"
 
 export {
+  EDITABLE_ACTIVITY_NODE,
+  BLANK_MARKER_RE,
+  blankItemIdsInText,
+  ActivityImage,
+  ActivityText,
+  FitbBlank,
+  FitbSentence,
+  FitbStep,
+  McOption,
+  McStep,
+  OpenEndedStep,
+  UnderlineToken,
+  UnderlineStep,
+  StepFeedback,
+  EditableActivityTheme,
+  EditableActivity,
+  EditableActivitiesEntity,
+  activityFeedbackLLMSchema,
+  ActivityOutlineText,
+  ActivityOutlineInput,
+  ActivityOutlineOption,
+  ActivityOutlineChoice,
+  ActivityOutlineItem,
+  ActivityOutline,
+} from "./editable-activity.js"
+
+export {
   GlossaryItem,
   GlossaryOutput,
   glossaryLLMSchema,

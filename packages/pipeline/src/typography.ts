@@ -99,6 +99,19 @@ export function buildTypographyCss(typography: BookTypography): string {
    via clamp(). Edit on the Fonts tab. */
 @layer components {
 ${rules.join("\n")}
+
+/* MathML sets its own vertical metrics. A prose line-height inherited from a
+   surrounding role class (e.g. .adt-body at ${lineHeightFor("adt-body")}) squashes
+   stacked <mtable> rows and fraction bars into each other, so reset it here and
+   let the layout of columnar sums, long division, and fractions come out right. */
+math, math * { line-height: normal; white-space: normal; font-family: initial; }
+math mtable { line-height: normal; }
+/* A wrapper carrying prose utilities (whitespace-pre-wrap, leading-*, font-mono)
+   crushes MathML layout. Neutralise them for the math subtree regardless of what
+   classes the renderer put on the wrapper. */
+.whitespace-pre-wrap math, .whitespace-pre math, [class*="leading-"] math { line-height: normal; white-space: normal; }
+/* Wide sums scroll instead of overflowing the reading column. */
+math[display="block"] { display: block math; overflow-x: auto; max-width: 100%; }
 }`.trim()
 }
 

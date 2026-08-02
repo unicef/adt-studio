@@ -40,7 +40,7 @@ export function ViewportToggle({ value, onChange, className, currentWidth }: Vie
             className={cn(
               "inline-flex items-center gap-1 h-6 rounded px-1.5 text-[10px] cursor-pointer transition-colors",
               active
-                ? "bg-white text-violet-700"
+                ? "bg-white text-neutral-900"
                 : "text-white/80 hover:bg-white/10 hover:text-white"
             )}
           >

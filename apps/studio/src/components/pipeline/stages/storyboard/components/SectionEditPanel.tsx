@@ -121,6 +121,10 @@ export function SectionEditPanel({
 
   return (
     <div
+      // inert while closed — the panel is only moved off-screen by the
+      // transform, so without it Tab still reaches its inputs and the browser
+      // scrolls the hidden panel into view.
+      inert={!open}
       className={`absolute top-0 right-0 h-full w-[480px] flex flex-col bg-background border-l shadow-lg transition-transform duration-200 ease-in-out z-30 ${
         open ? "translate-x-0" : "translate-x-full"
       }`}

@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "એડમિન સાધનો આગામી અપડેટમાં ઉમેરવામાં આવશે.",
     "main-menu-label": "મુખ્ય મેનુ",
     "cover-label": "કવર",
-    "print-page-label": "પૃષ્ઠ છાપો"
+    "print-page-label": "પૃષ્ઠ છાપો",
+    "stepper-progress-n-of-m": "પગલું ${n} / ${m}",
+    "stepper-word-bank": "પસંદ કરવા માટેના શબ્દો",
+    "stepper-open-ended-saved": "શાબાશ — તમારો જવાબ સાચવવામાં આવ્યો છે.",
+    "stepper-open-ended-rephrase": "ચાલો માયાળુ રહીએ — તમારો જવાબ બીજી રીતે લખવાનો પ્રયત્ન કરો.",
+    "open-ended-answer-label": "તમારો જવાબ"
 }

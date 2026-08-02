@@ -3,6 +3,7 @@ import { useMemo, useRef } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import { useDockContext } from "@/features/dock/context/dock-context";
 import { cn } from "@/shared/lib/utils";
+import { useIsMobile } from "@/shared/hooks/use-is-mobile";
 import {
   dockMenuValueAtom,
   type DockMenuValue,
@@ -35,6 +36,7 @@ export function BookMetadata({
   const toc = useAtomValue(tocAtom);
   const currentSectionId = useAtomValue(currentSectionIdAtom);
   const { popoverSide } = useDockContext();
+  const isMobile = useIsMobile();
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const activeTitle = useMemo(() => {
@@ -66,15 +68,17 @@ export function BookMetadata({
                 "disabled:opacity-30 disabled:hover:bg-transparent",
                 "data-[state=open]:bg-accent data-[state=open]:text-accent-foreground",
                 "aria-pressed:bg-accent aria-pressed:text-accent-foreground",
-                "h-11 gap-3 px-3 max-w-64",
+                isMobile ? "h-11 w-11 justify-center" : "h-11 gap-3 px-3 max-w-64",
                 className,
               )}
               onClick={() => toggle("toc")}
             >
-              <List className="size-6" />
-              <span className="text-base text-left font-medium truncate w-full">
-                {displayTitle}
-              </span>
+              <List className="size-6 shrink-0" />
+              {!isMobile ? (
+                <span className="text-base text-left font-medium truncate w-full">
+                  {displayTitle}
+                </span>
+              ) : null}
             </button>
           }
         />

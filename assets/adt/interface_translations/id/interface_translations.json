@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Alat admin akan ditambahkan pada pembaruan mendatang.",
     "main-menu-label": "Menu Utama",
     "cover-label": "Sampul",
-    "print-page-label": "Cetak Halaman"
+    "print-page-label": "Cetak Halaman",
+    "stepper-progress-n-of-m": "Langkah ${n} dari ${m}",
+    "stepper-word-bank": "Kata-kata untuk dipilih",
+    "stepper-open-ended-saved": "Bagus — jawabanmu sudah disimpan.",
+    "stepper-open-ended-rephrase": "Mari tetap santun — coba tulis ulang jawabanmu.",
+    "open-ended-answer-label": "Jawabanmu"
 }

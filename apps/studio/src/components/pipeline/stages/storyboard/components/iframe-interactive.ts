@@ -1,6 +1,12 @@
 // Interactive editing script + styles injected into the BookPreviewFrame
 // iframe. The script is gated by `body[data-editable="true"]`, so toggling
 // editability does not require an iframe reload.
+//
+// A second, mutually exclusive gate — `body[data-link-mode="true"]` — powers
+// the activity editor's page↔panel linking: clicks resolve to an anchor and
+// are reported to the parent instead of opening an inline editor, and every
+// default action is suppressed so clicking a blank in the page never types
+// into the preview.
 
 export const INTERACTIVE_SCRIPT = `<script>
 (function() {
@@ -9,6 +15,7 @@ export const INTERACTIVE_SCRIPT = `<script>
   var savedDisplayHtml = null;
   var savedOriginalText = null;
   var containerIdCounter = 0;
+  var hoveredLink = null;
   var ACTIVITY_INTERACTIVE_SELECTOR = [
     '.activity-option',
     '.activity-underline-option',
@@ -24,6 +31,63 @@ export const INTERACTIVE_SCRIPT = `<script>
   ].join(',');
 
   function isEditable() { return document.body.dataset.editable === 'true'; }
+  function isLinkMode() { return document.body.dataset.linkMode === 'true'; }
+
+  var answerControlCache = null;
+  function answerControls() {
+    if (!answerControlCache) {
+      answerControlCache = Array.prototype.slice.call(
+        document.querySelectorAll('[data-activity-item]')
+      );
+    }
+    return answerControlCache;
+  }
+  function invalidateAnswerControls() { answerControlCache = null; }
+
+  function visibleTarget(el) {
+    var node = el;
+    for (var d = 0; d < 4 && node; d++) {
+      var r = node.getBoundingClientRect();
+      if (r.width > 2 && r.height > 2) return node;
+      node = node.parentElement;
+    }
+    return el;
+  }
+
+  function findAnchor(target) {
+    var el = target;
+    var answerRegion = null;
+    while (el && el !== document.body) {
+      if (el.nodeType === 1) {
+        var itemId = el.getAttribute('data-activity-item');
+        if (itemId) return { el: visibleTarget(el), kind: 'answer', id: itemId };
+        var dataId = el.getAttribute('data-id');
+        if (dataId) {
+          if (el.tagName === 'IMG') return { el: el, kind: 'image', id: dataId };
+          if ((el.textContent || '').trim()) return { el: el, kind: 'text', id: dataId };
+        }
+        if (!answerRegion) {
+          var owned = answerControls().filter(function(input) { return el.contains(input); });
+          if (owned.length === 1) {
+            answerRegion = {
+              el: el,
+              kind: 'answer',
+              id: owned[0].getAttribute('data-activity-item')
+            };
+          }
+        }
+      }
+      el = el.parentElement;
+    }
+    return answerRegion;
+  }
+
+  function setHoveredLink(el) {
+    if (hoveredLink === el) return;
+    if (hoveredLink) hoveredLink.removeAttribute('data-adt-link-hover');
+    hoveredLink = el;
+    if (hoveredLink) hoveredLink.setAttribute('data-adt-link-hover', 'true');
+  }
 
   function isActivityInteractiveTarget(target) {
     if (!target) return false;
@@ -151,6 +215,57 @@ export const INTERACTIVE_SCRIPT = `<script>
     }, '*');
   }
 
+  new MutationObserver(function() {
+    invalidateAnswerControls();
+    setHoveredLink(null);
+    if (!isLinkMode()) return;
+    if (editing) finishEditing();
+    clearSelection();
+  }).observe(document.body, { attributes: true, attributeFilter: ['data-link-mode'] });
+
+  new MutationObserver(invalidateAnswerControls)
+    .observe(document.body, { childList: true, subtree: true });
+
+  document.addEventListener('mousedown', function(e) {
+    if (!isLinkMode()) return;
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+
+  document.addEventListener('click', function(e) {
+    if (!isLinkMode()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var a = findAnchor(e.target);
+    parent.postMessage(
+      a ? { type: 'link-select', kind: a.kind, id: a.id } : { type: 'link-select' },
+      '*'
+    );
+  }, true);
+
+  var lastHoverKey = null;
+  function reportHover(a) {
+    var key = a ? a.kind + ':' + a.id : '';
+    if (key === lastHoverKey) return;
+    lastHoverKey = key;
+    parent.postMessage(
+      a ? { type: 'link-hover', kind: a.kind, id: a.id } : { type: 'link-hover' },
+      '*'
+    );
+  }
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isLinkMode()) { setHoveredLink(null); reportHover(null); return; }
+    var a = findAnchor(e.target);
+    setHoveredLink(a ? a.el : null);
+    reportHover(a);
+  });
+
+  document.documentElement.addEventListener('mouseleave', function() {
+    setHoveredLink(null);
+    reportHover(null);
+  });
+
   // Enter edit mode on mousedown (before the browser's default selection
   // behavior) so native drag-to-select works within the contentEditable
   // element. Handling this on 'click' was too late: the selection created
@@ -247,4 +362,22 @@ export const INTERACTIVE_STYLES = `body[data-editable="true"] *:hover:not(:has(*
     }
     body[data-editable="true"] img[data-id] { position: relative; z-index: 1; }
     [data-adt-selected] { outline: 2px solid rgb(124, 58, 237) !important; outline-offset: 2px !important; }
-    [data-adt-editing] { outline: 2px solid rgb(91, 33, 182) !important; outline-offset: 2px !important; }`
+    [data-adt-editing] { outline: 2px solid rgb(91, 33, 182) !important; outline-offset: 2px !important; }
+    body[data-link-mode="true"] [data-id],
+    body[data-link-mode="true"] [data-activity-item] { cursor: pointer; }
+    body[data-link-mode="true"] [data-adt-link-hover],
+    body[data-link-mode="true"] [data-adt-preview] {
+      outline: 2px dashed rgba(124, 58, 237, 0.6) !important;
+      outline-offset: 3px !important;
+      border-radius: 3px;
+    }
+    [data-adt-linked] {
+      outline: 2px solid rgb(124, 58, 237) !important;
+      outline-offset: 3px !important;
+      background-color: rgba(124, 58, 237, 0.1) !important;
+      border-radius: 3px;
+      transition: outline-color 200ms ease-out, background-color 200ms ease-out;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      [data-adt-linked] { transition: none; }
+    }`

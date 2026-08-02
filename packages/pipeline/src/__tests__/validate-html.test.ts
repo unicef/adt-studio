@@ -56,6 +56,112 @@ describe("validateSectionHtml", () => {
     )
   })
 
+  it("preserves the authoritative text data-id order", () => {
+    const html = `
+      <section>
+        <div data-id="rescue_group">
+          <h2 data-id="rescue_heading">Rescue</h2>
+        </div>
+        <img data-id="rescue_image" src="placeholder" alt="Rescue" />
+        <div data-id="sense_group">
+          <h2 data-id="sense_heading">Sense</h2>
+        </div>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["rescue_heading", "sense_heading"],
+      ["rescue_image"],
+      undefined,
+      {
+        allowedContainerIds: ["rescue_group", "sense_group"],
+        expectedContentIdOrder: [
+          "rescue_heading",
+          "rescue_image",
+          "sense_heading",
+        ],
+      },
+    )
+
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it("rejects text data-ids restored to the original image order", () => {
+    const html = `
+      <section>
+        <h2 data-id="sense_heading">Sense</h2>
+        <h2 data-id="rescue_heading">Rescue</h2>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["rescue_heading", "sense_heading"],
+      [],
+      undefined,
+      { expectedContentIdOrder: ["rescue_heading", "sense_heading"] },
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining(
+        'expected "rescue_heading" but found "sense_heading"',
+      ),
+    )
+  })
+
+  it("keeps relative order when optional text data-ids are omitted", () => {
+    const html = `
+      <section>
+        <p data-id="body_1">First</p>
+        <p data-id="body_2">Second</p>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["page_number", "body_1", "footer", "body_2"],
+      [],
+      undefined,
+      {
+        optionalTextIds: new Set(["page_number", "footer"]),
+        expectedContentIdOrder: ["page_number", "body_1", "footer", "body_2"],
+      },
+    )
+
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it("rejects images restored to their original image order", () => {
+    const html = `
+      <section>
+        <h2 data-id="rescue_heading">Rescue</h2>
+        <h2 data-id="sense_heading">Sense</h2>
+        <img data-id="rescue_image" src="placeholder" alt="Rescue" />
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["rescue_heading", "sense_heading"],
+      ["rescue_image"],
+      undefined,
+      {
+        expectedContentIdOrder: [
+          "rescue_heading",
+          "rescue_image",
+          "sense_heading",
+        ],
+      },
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining(
+        'expected "rescue_image" but found "sense_heading"',
+      ),
+    )
+  })
+
   it("detects unknown data-id", () => {
     const html = `
       <section>

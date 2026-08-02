@@ -98,4 +98,27 @@ describe("raven.pdf extraction", () => {
     expect(rasters[0].hash).toBe("360de701626b47da");
     expect(rasters[1].hash).toBe("b20ccebb2681ac27");
   });
+
+  it("keeps first-3-page raster hash snapshot stable with flip pass enabled", () => {
+    const rasterSnapshot = result.pages.map((page) =>
+      page.images
+        .filter((image) => image.renderMethod === "raster")
+        .map((image) => ({ imageId: image.imageId, hash: image.hash })),
+    );
+
+    expect(rasterSnapshot).toEqual([
+      [
+        { imageId: "pg001_im001", hash: "f7c69061b5fb89ed" },
+        { imageId: "pg001_im002", hash: "8965a2a0ee0f63ae" },
+      ],
+      [
+        { imageId: "pg002_im001", hash: "0e15f84a869b4f66" },
+        { imageId: "pg002_im002", hash: "f7c69061b5fb89ed" },
+      ],
+      [
+        { imageId: "pg003_im001", hash: "360de701626b47da" },
+        { imageId: "pg003_im002", hash: "b20ccebb2681ac27" },
+      ],
+    ]);
+  });
 });

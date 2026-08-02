@@ -20,7 +20,6 @@ export const dockWidthAtom = persistedStringAtom("dockWidth", "full")
 export const dockPositionAtom = persistedStringAtom("dockPosition", "bottom")
 export const dockAlignAtom = persistedStringAtom("dockAlign", "spread")
 
-
 export type IconSize = "sm" | "md" | "lg"
 export const iconSizeAtom = persistedStringAtom("iconSize", "md")
 export const reduceMotionAtom = persistedBoolAtom("reduceMotion", false)
@@ -28,13 +27,15 @@ export const reduceMotionAtom = persistedBoolAtom("reduceMotion", false)
 export type Theme = "light" | "dark" | "system"
 export const themeAtom = persistedStringAtom("theme", "dark")
 
-
 export const dockReadyAtom = ephemeralAtom(false)
 export const dockHiddenAtom = ephemeralAtom(false)
-// True when the runtime is mounted inside a `?embed=1` preview iframe (e.g.
-// the Studio storyboard activity preview). BottomDock hides itself so only
-// the activity Submit/Skip controls remain visible.
-export const embedModeAtom = ephemeralAtom(false)
+
+function readEmbedModeFromUrl(): boolean {
+  if (typeof window === "undefined") return false
+  return new URLSearchParams(window.location.search).get("embed") === "1"
+}
+
+export const embedModeAtom = ephemeralAtom(readEmbedModeFromUrl())
 export const sidebarOpenAtom = ephemeralAtom(false)
 export const navOpenAtom = ephemeralAtom(false)
 export const navScrollPositionAtom = ephemeralAtom(0)

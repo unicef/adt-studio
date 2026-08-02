@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Әкімші құралдары келесі жаңартуда қосылады.",
     "main-menu-label": "Негізгі мәзір",
     "cover-label": "Мұқаба",
-    "print-page-label": "Бетті басып шығару"
+    "print-page-label": "Бетті басып шығару",
+    "stepper-progress-n-of-m": "Қадам: ${n}/${m}",
+    "stepper-word-bank": "Таңдауға арналған сөздер",
+    "stepper-open-ended-saved": "Жарайсың — жауабың сақталды.",
+    "stepper-open-ended-rephrase": "Сыпайы болайық — жауабыңды басқаша жазып көр.",
+    "open-ended-answer-label": "Сенің жауабың"
 }

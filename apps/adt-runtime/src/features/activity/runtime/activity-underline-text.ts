@@ -14,7 +14,10 @@ import { playActivitySound } from "@/features/activity/runtime/sounds"
 import { showActivityProgressToast } from "@/features/activity/lib/progress-toast"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
 
-const UNDERLINE_SELECTOR = 'section[data-section-type="activity_underline_text"]'
+// :not([data-activity-variant="stepper"]) — sections converted to the
+// step-by-step presentation are rendered by activity-stepper.tsx instead.
+const UNDERLINE_SELECTOR =
+  'section[data-section-type="activity_underline_text"]:not([data-activity-variant="stepper"])'
 const DEFAULT_GROUP_KEY = "__default__"
 const STYLE_ATTR = "data-underline-style-state"
 const MARK_ATTR = "data-underline-verdict-mark"
@@ -107,11 +110,8 @@ function tr(key: string, fallback: string): string {
   return dict[key] || fallback
 }
 
-declare global {
-  interface Window {
-    correctAnswers?: Record<string, unknown>
-  }
-}
+// `window.correctAnswers` is declared once in ./activity-globals.d.ts.
+// For underline-text, `true` means the word should be underlined.
 
 interface UnderlineGroup {
   key: string

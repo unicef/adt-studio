@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Nástroje správcu budú pridané v ďalšej aktualizácii.",
     "main-menu-label": "Hlavné menu",
     "cover-label": "Obal",
-    "print-page-label": "Vytlačiť stránku"
+    "print-page-label": "Vytlačiť stránku",
+    "stepper-progress-n-of-m": "Krok ${n} z ${m}",
+    "stepper-word-bank": "Slová na výber",
+    "stepper-open-ended-saved": "Výborne — tvoja odpoveď je uložená.",
+    "stepper-open-ended-rephrase": "Buďme láskaví — skús svoju odpoveď preformulovať.",
+    "open-ended-answer-label": "Tvoja odpoveď"
 }
