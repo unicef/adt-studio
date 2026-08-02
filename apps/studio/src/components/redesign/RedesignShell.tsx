@@ -26,9 +26,6 @@ const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
   { keys: ["?"], label: msg`Show this help` },
 ]
 
-/** Mock count matching the design's Split & merge sample data. */
-const HANDOFFS_COUNT = 3
-
 export function RedesignShell() {
   const { t, i18n } = useLingui()
   usePageTitle(t`ADT Studio`)
@@ -55,6 +52,7 @@ export function RedesignShell() {
 
   const bookList = books ?? []
   const locale = i18n.locale
+  const handoffsCount = bookList.filter((b) => b.split || b.part).length
 
   const navigateView = (next: RedesignView) => {
     setView(next)
@@ -67,7 +65,7 @@ export function RedesignShell() {
         activeView={view}
         onNavigate={navigateView}
         libraryCount={bookList.length}
-        handoffsCount={HANDOFFS_COUNT}
+        handoffsCount={handoffsCount}
         onOpenPalette={() => setPaletteOpen(true)}
         onOpenAdd={() => setAddOpen(true)}
         onOpenShortcuts={() => setShortcutsOpen(true)}
@@ -75,7 +73,7 @@ export function RedesignShell() {
 
       <div className="min-h-0 min-w-0 flex-1">
         {view === "handoffs" ? (
-          <HandoffsScreen />
+          <HandoffsScreen books={bookList} locale={locale} />
         ) : view === "settings" ? (
           <SettingsScreen onOpenApiKeys={openSettings} />
         ) : isLoading ? (
