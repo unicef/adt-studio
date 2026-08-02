@@ -51,6 +51,7 @@ function RecentBookCard({ book, onOpen }: { book: BookVM; onOpen: () => void }) 
 export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenProps) {
   const navigate = useNavigate()
   const openBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
+  const previewBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "preview" } })
 
   const vms = useMemo(() => {
     const sorted = [...books].sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime())
@@ -118,7 +119,14 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
                       <Trans>Continue editing</Trans>
                       <ArrowRight className="size-3.5" />
                     </Button>
-                    <Button size="sm" variant="outline" onClick={(e) => e.stopPropagation()}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        previewBook(feature.label)
+                      }}
+                    >
                       <Trans>Preview</Trans>
                     </Button>
                   </div>

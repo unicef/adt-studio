@@ -1,3 +1,4 @@
+import { useNavigate } from "@tanstack/react-router"
 import { TriangleAlert, HardDrive, FolderUp, ArrowRight } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -16,6 +17,9 @@ export interface BookDetailDialogProps {
 }
 
 export function BookDetailDialog({ book, onOpenChange, onEdit }: BookDetailDialogProps) {
+  const navigate = useNavigate()
+  const goStep = (step: "preview" | "export") =>
+    book && navigate({ to: "/books/$label/$step", params: { label: book.label, step } })
   return (
     <Dialog open={book != null} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[620px] gap-0 overflow-hidden p-0">
@@ -63,7 +67,7 @@ export function BookDetailDialog({ book, onOpenChange, onEdit }: BookDetailDialo
                 <span className="text-xs text-muted-foreground">
                   <Trans>Stored on this computer — share it by exporting a .zip</Trans>
                 </span>
-                <Button variant="outline" size="sm" className="ml-auto shrink-0">
+                <Button variant="outline" size="sm" className="ml-auto shrink-0" onClick={() => goStep("export")}>
                   <FolderUp className="size-3.5" />
                   <Trans>Export .zip</Trans>
                 </Button>
@@ -74,7 +78,7 @@ export function BookDetailDialog({ book, onOpenChange, onEdit }: BookDetailDialo
                   <Trans>Continue editing</Trans>
                   <ArrowRight className="size-3.5" />
                 </Button>
-                <Button size="sm" variant="outline">
+                <Button size="sm" variant="outline" onClick={() => goStep("preview")}>
                   <Trans>Preview</Trans>
                 </Button>
               </div>

@@ -91,7 +91,7 @@ function SplitParts({ label, assembled, onManage }: { label: string; assembled: 
                 {merged ? <CheckCheck className="size-3.5" /> : <Clock className="size-3.5" />}
               </span>
               <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold">{t`pg ${r.startPage + 1}–${r.endPage + 1}`}</div>
+                <div className="text-sm font-semibold">{t`pg ${r.startPage}–${r.endPage}`}</div>
               </div>
               <Badge variant={merged ? "success" : "warning"} className="min-w-[132px] justify-center gap-1 px-2 text-[10.5px]">
                 {merged ? <Check className="size-3" /> : <Clock className="size-3" />}
