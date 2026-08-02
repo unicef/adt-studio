@@ -34,6 +34,21 @@
   --color-brand-800: var(--brand-800);
   --color-brand-900: var(--brand-900);
   --color-brand-950: var(--brand-950);
+
+  /* Pipeline stage palette (solid + light tint) — used by stage discs,
+   * badges, and the first-run feature tour. Hexes match stage-config.ts. */
+  --color-stage-extract: #2563eb;      --color-stage-extract-50: #eff6ff;
+  --color-stage-sectioning: #0284c7;   --color-stage-sectioning-50: #f0f9ff;
+  --color-stage-storyboard: #7c3aed;   --color-stage-storyboard-50: #f5f3ff;
+  --color-stage-captions: #0d9488;     --color-stage-captions-50: #f0fdfa;
+  --color-stage-quizzes: #ea580c;      --color-stage-quizzes-50: #fff7ed;
+  --color-stage-glossary: #65a30d;     --color-stage-glossary-50: #f7fee7;
+  --color-stage-toc: #d97706;          --color-stage-toc-50: #fffbeb;
+  --color-stage-translate: #db2777;    --color-stage-translate-50: #fdf2f8;
+  --color-stage-speech: #e11d48;       --color-stage-speech-50: #fff1f2;
+  --color-stage-sign: #0891b2;         --color-stage-sign-50: #ecfeff;
+  --color-stage-validation: #059669;   --color-stage-validation-50: #ecfdf5;
+  --color-stage-export: #4338ca;       --color-stage-export-50: #eef2ff;
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
