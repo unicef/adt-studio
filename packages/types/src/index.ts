@@ -98,6 +98,20 @@ export {
 
 export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
 
+export {
+  ValidationShare,
+  CreateValidationShare,
+  ValidationShareFeedbackCategory,
+  ValidationShareFeedback,
+  SubmitValidationShareFeedback,
+} from "./validation-share.js"
+export type {
+  ValidationShare as ValidationShareType,
+  CreateValidationShare as CreateValidationShareType,
+  ValidationShareFeedback as ValidationShareFeedbackType,
+  SubmitValidationShareFeedback as SubmitValidationShareFeedbackType,
+} from "./validation-share.js"
+
 export { ProgressEvent } from "./progress.js"
 
 export {

@@ -16,6 +16,8 @@ import type {
   ReviewerValidationInstruction,
   ReviewerValidationSection,
   ReviewerValidationSession,
+  ValidationShareType,
+  ValidationShareFeedbackType,
   TranslationEvaluationResult,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
@@ -731,6 +733,18 @@ export interface ReviewerValidationSessionsResponse {
   sessions: ReviewerValidationSessionEntry[]
 }
 
+export interface ValidationSharesResponse {
+  shares: Array<{ version: number; share: ValidationShareType }>
+  feedback: Array<{ version: number; feedback: ValidationShareFeedbackType }>
+}
+
+export interface CreatedValidationShare {
+  version: number
+  share: ValidationShareType
+  url: string
+  publicly_reachable: boolean
+}
+
 export interface ReviewerPageValidationRecordEntry {
   version: number
   record: ReviewerPageValidationRecord
@@ -1429,6 +1443,27 @@ export const api = {
       method: "POST",
       body: JSON.stringify(record),
     }),
+
+  getValidationShares: (label: string) =>
+    request<ValidationSharesResponse>(`/books/${label}/validation/shares`),
+
+  createValidationShare: (label: string, expiresInDays: number) =>
+    request<CreatedValidationShare>(`/books/${label}/validation/shares`, {
+      method: "POST",
+      body: JSON.stringify({ expires_in_days: expiresInDays }),
+    }),
+
+  revokeValidationShare: (label: string, shareId: string) =>
+    request<{ version: number; share: ValidationShareType }>(
+      `/books/${label}/validation/shares/${shareId}/revoke`,
+      { method: "POST" },
+    ),
+
+  publishValidationShare: (label: string, shareId: string) =>
+    request<{ version: number; share: ValidationShareType }>(
+      `/books/${label}/validation/shares/${shareId}/publish`,
+      { method: "POST" },
+    ),
 
   getVersionHistory: (
     label: string,

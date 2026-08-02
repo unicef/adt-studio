@@ -13,6 +13,7 @@ import { useBookTasks } from "@/hooks/use-book-tasks"
 import { AccessibilityOverviewTab } from "@/components/validation/AccessibilityValidationTabs"
 import { ReviewerValidationSummaryTab } from "@/components/validation/ReviewerValidationSummaryTab"
 import { useReviewerValidationCatalog } from "@/hooks/use-reviewer-validation"
+import { ValidationShareDialog } from "@/components/validation/ValidationShareDialog"
 
 const VALIDATION_TABS = new Set([
   "accessibility-summary",
@@ -121,10 +122,13 @@ export function ValidationView({ bookLabel }: { bookLabel: string }) {
             </div>
           </div>
 
-          <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => void runPackage()}>
-            <RotateCcw className="h-3.5 w-3.5" />
-            <Trans>Refresh validation</Trans>
-          </Button>
+          <div className="flex items-center gap-2">
+            <ValidationShareDialog label={bookLabel} />
+            <Button variant="outline" size="sm" className="h-8 text-xs" onClick={() => void runPackage()}>
+              <RotateCcw className="h-3.5 w-3.5" />
+              <Trans>Refresh validation</Trans>
+            </Button>
+          </div>
         </div>
 
         {error ? (

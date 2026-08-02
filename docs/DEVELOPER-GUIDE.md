@@ -128,6 +128,7 @@ These variables configure the API server process. Set them in your process manag
 | `CONFIG_PATH` | `./config.yaml` | Path to the global pipeline configuration file. |
 | `PROJECT_ROOT` | `.` | Base path for resolving relative paths inside the API. |
 | `OPENAI_API_KEY` | _(unset)_ | Server-level API key fallback. When set, used if no key is supplied via the `X-OpenAI-Key` request header. |
+| `VALIDATION_PUBLIC_BASE_URL` | Request origin | Public HTTPS origin used for expiring validator links (for example, `https://adt.example.org`). Required when ADT runs on localhost but links must open on another device. |
 
 When `OPENAI_API_KEY` is set server-side, users do not need to enter an API key in the UI settings dialog.
 
@@ -170,6 +171,8 @@ When hosting for a team, you have two options:
 ### Authentication
 
 ADT Studio has no built-in authentication layer. If you are hosting it for a team (not just locally), add authentication at the reverse proxy level before the application is accessible over a network:
+
+The expiring validator route (`/api/public/validation/*`) is intentionally public and protected by a 256-bit bearer token, expiry, and revocation. Keep administrative `/api/books/*` routes behind authentication, allow only the public validation route through without login, terminate TLS at the proxy, and never log full validation URLs because the URL contains the bearer token. Validator feedback is schema-validated and stored as versioned data inside the corresponding book database.
 
 ```nginx
 # Example: basic auth in nginx
