@@ -4,7 +4,7 @@
 
 ADT Studio has a strong product concept, strict TypeScript, a meaningful automated test suite, and unusually good pipeline observability. It is not production-ready for untrusted or multi-user hosting. The desktop/local workflow is the safest deployment model today.
 
-This branch adds a tested local-first Gemma 4 path. A one-page PDF completed extraction, metadata, summary, sectioning, storyboard, quizzes, captions, glossary, TOC, packaging, and accessibility assessment without cloud credentials. Cloud TTS is now optional instead of blocking local book creation.
+This branch adds tested local-first Gemma 4 and Kokoro paths. The complete 20-page Momo book completed extraction, metadata, summary, sectioning, storyboard, quizzes, captions, glossary, TOC, speech, packaging, and reader smoke testing without cloud credentials. The final static ADT has 22 reader pages, 5 quizzes, 9 glossary terms, and 118 valid local WAV files.
 
 ## What is good
 
@@ -108,14 +108,14 @@ This branch adds a tested local-first Gemma 4 path. A one-page PDF completed ext
 
 - Provider IDs: `ollama:gemma4-e2b`, `e4b`, `12b`, `26b`, `31b`.
 - Runtime: Ollama's loopback OpenAI-compatible API.
-- Hardware-aware recommendation: E2B at 8 GB, E4B at 12 GB, 12B at 20 GB, 26B at 48 GB, 31B at 64 GB.
+- Hardware-aware recommendation: E2B at 8 GB, E4B at 12 GB, 12B at 20 GB, 26B at 48 GB, 31B at 64 GB. The 26B model also ran on the tested 32 GB M2 Max, but remains an opt-in installed model rather than the conservative recommendation.
 - Desktop onboarding: detects memory/runtime/models, recommends a model, streams download progress, and selects it as the default.
 - Local structured output: uses JSON mode, disables reasoning output, serializes requests, and recovers schema-echo responses so domain validation can give Gemma corrective retry feedback.
 - Local text and vision: both verified against a real `gemma4:26b` runtime.
-- Full PDF proof: one-page `docs/userStory.pdf`, no cloud keys, all creation/package stages passed. TTS is skipped when local AI is selected and no speech provider is configured.
+- Full PDF proof: 20-page `momograde1.pdf`, no cloud keys, all creation, local speech, package, integrity, and reader smoke checks passed. See `docs/MOMO_LOCAL_GEMMA_KOKORO_BASELINE_2026-08-02.md`.
 - Cloud improvement path: adding OpenAI credentials and selecting an OpenAI model lets the user rerun any stage; the local result remains versioned.
 
-Known capability boundary: Gemma 4 is used for text and image understanding. English speech synthesis is now available through the separate optional Kokoro/WASM provider; image generation and word-level speech alignment still require separate local engines or optional cloud providers.
+Known capability boundary: Gemma 4 is used for text and image understanding. English speech synthesis is now available through the separate optional Kokoro/native-CPU provider; image generation and word-level speech alignment still require separate local engines or optional cloud providers.
 
 Official references: [Gemma 4](https://ai.google.dev/gemma/docs/core), [Ollama Gemma 4 models](https://ollama.com/library/gemma4), [Ollama OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility), [structured outputs](https://docs.ollama.com/capabilities/structured-outputs).
 
@@ -129,9 +129,9 @@ Peer warnings remain: Tailwind's Vite plugin does not yet declare Vite 8 support
 
 ## PDF Inspector assessment
 
-[`firecrawl/pdf-inspector`](https://github.com/firecrawl/pdf-inspector) is useful for locally classifying text, scanned, and mixed PDFs and extracting Markdown. It is not a drop-in replacement for ADT Studio's MuPDF/WASM extraction because ADT needs coordinates, page images, figures, and deterministic cross-platform Electron packaging. Its Rust/N-API binding also conflicts with the project's stated “WASM over native bindings” principle.
+[`firecrawl/pdf-inspector`](https://github.com/firecrawl/pdf-inspector) is useful for locally classifying text, scanned, and mixed PDFs and extracting Markdown. On Momo it classified 20 pages as mixed in about 8 ms and returned 2,769 characters of Markdown. It is not a drop-in replacement for ADT Studio's MuPDF/WASM extraction because ADT needs coordinates, page images, figures, and deterministic cross-platform Electron packaging. Its Rust/N-API binding also conflicts with the project's stated “WASM over native bindings” principle.
 
-Recommended experiment: add it behind an optional `PdfClassifier` interface, benchmark classification accuracy/startup/package size on the same corpus, and use the result to choose OCR/extraction strategy. Do not replace the current extractor until Windows/macOS packaging and coordinate fidelity pass.
+Recommended integration: add it behind an optional `PdfClassifier` interface and use the result to choose extraction strategy. Keep MuPDF primary; use on-demand Docling for OCR/structure, MinerU for complex layouts/tables/formulas, or PaddleOCR for multilingual scans. Do not replace the current extractor until Windows/macOS packaging and coordinate fidelity pass.
 
 ## Prioritized roadmap
 
@@ -141,7 +141,7 @@ Recommended experiment: add it behind an optional `PdfClassifier` interface, ben
 4. Make version allocation transactional and align retention behavior with documentation.
 5. Add archive/upload limits and canonical extraction containment.
 6. Benchmark Gemma 4 tiers versus OpenAI on quality, latency, memory, retries, and cost using a fixed multilingual PDF corpus.
-7. Benchmark and extend the new English Kokoro/WASM speech provider; add multilingual local speech, OCR, and image-generation providers only behind capability interfaces.
+7. Benchmark and extend the new English Kokoro/native-CPU speech provider; add multilingual local speech, OCR, and image-generation providers only behind capability interfaces.
 8. Split the largest UI/service modules and enforce bundle budgets.
 
 ## Release recommendation
