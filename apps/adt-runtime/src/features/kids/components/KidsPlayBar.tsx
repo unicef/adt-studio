@@ -1,9 +1,6 @@
-import { useAtom, useSetAtom } from "jotai"
+import { useAtom } from "jotai"
 import { Pause, Play, Rewind, FastForward, X } from "lucide-react"
-import {
-  playBarVisibleAtom,
-  readAloudModeAtom,
-} from "@/features/audio/state/audio.atoms"
+import { readAloudModeAtom } from "@/features/audio/state/audio.atoms"
 import { useAudioPlayerContext } from "@/features/audio/hooks/AudioPlayerContext"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
@@ -28,7 +25,6 @@ export function KidsPlayBar() {
   const { tk } = useKidsTranslation()
   const reduceMotion = usePrefersReducedMotion()
   const [readAloud, setReadAloud] = useAtom(readAloudModeAtom)
-  const setVisible = useSetAtom(playBarVisibleAtom)
   const { isPlaying, hasItems, togglePlayPause, playNext, playPrevious, stop } =
     useAudioPlayerContext()
 
@@ -38,7 +34,6 @@ export function KidsPlayBar() {
   // child would dismiss the panel and read-aloud would silently stay on.
   const close = () => {
     stop()
-    setVisible(false)
     setReadAloud(false)
   }
 

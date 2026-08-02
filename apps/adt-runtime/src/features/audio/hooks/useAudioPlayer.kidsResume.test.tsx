@@ -5,7 +5,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { audioFilesAtom } from "@/features/language/state/language.atoms"
 import {
   isPlayingAtom,
-  playBarVisibleAtom,
   readAloudModeAtom,
 } from "@/features/audio/state/audio.atoms"
 import { appConfigAtom } from "@/shared/state/config.atoms"
@@ -56,7 +55,6 @@ function kidsStore({ wasPlaying }: { wasPlaying: boolean }) {
   store.set(readAloudModeAtom, true)
   // What the previous page left behind as it unloaded.
   store.set(isPlayingAtom, wasPlaying)
-  store.set(playBarVisibleAtom, false)
   store.set(audioFilesAtom, { a1: "one.mp3", a2: "two.mp3" })
   return store
 }
@@ -71,7 +69,6 @@ describe("kids narration across page turns", () => {
     )
     await new Promise((r) => setTimeout(r, 50))
     expect(played).toHaveLength(0)
-    expect(store.get(playBarVisibleAtom)).toBe(false)
   })
 
   it("keeps reading when narration was playing as the last page unloaded", async () => {
@@ -82,7 +79,5 @@ describe("kids narration across page turns", () => {
       </Provider>,
     )
     await waitFor(() => expect(played.length).toBeGreaterThan(0))
-    // The child needs a way to stop it, so the bar comes back with the audio.
-    expect(store.get(playBarVisibleAtom)).toBe(true)
   })
 })

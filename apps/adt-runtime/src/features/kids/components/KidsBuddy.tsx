@@ -15,7 +15,6 @@ import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { useEffect, useMemo, useRef, useState } from "react"
 import {
   audioSpeedAtom,
-  playBarVisibleAtom,
   readAloudModeAtom,
 } from "@/features/audio/state/audio.atoms"
 import { useAudioPlayerContext } from "@/features/audio/hooks/AudioPlayerContext"
@@ -85,7 +84,6 @@ export function KidsBuddy() {
   const { say } = useBuddySpeech()
   const [open, setOpen] = useAtom(kidsBuddyPanelOpenAtom)
   const [speed, setSpeed] = useAtom(audioSpeedAtom)
-  const setPlayBarVisible = useSetAtom(playBarVisibleAtom)
   const setReadAloudMode = useSetAtom(readAloudModeAtom)
   const [signLanguage, setSignLanguage] = useAtom(signLanguageModeAtom)
   const [easyRead, setEasyRead] = useAtom(easyReadModeAtom)
@@ -197,7 +195,6 @@ export function KidsBuddy() {
     }
     // Starting waits for the buddy to finish its line first, so the book's
     // narration doesn't talk over it.
-    setPlayBarVisible(true)
     setReadAloudMode(true)
     const token = ++readIntentRef.current
     void say(BUDDY_LINES.readStart).then(() => {

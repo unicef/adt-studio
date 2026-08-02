@@ -361,12 +361,6 @@ export function useAudioPlayer(): UseAudioPlayer {
     setCurrentIndex(0)
   }, [stopAndClear, setIsPlaying, setCurrentIndex])
 
-  // Narration should never play without visible controls to stop it, whichever
-  // route started it — the buddy menu, a resumed page turn, or autoplay.
-  useEffect(() => {
-    if (isPlaying) setPlayBarVisible(true)
-  }, [isPlaying, setPlayBarVisible])
-
   useEffect(() => {
     if (hasAutoStartedRef.current) return
     if (items.length === 0) return
