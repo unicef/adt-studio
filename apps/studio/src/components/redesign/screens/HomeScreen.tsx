@@ -82,10 +82,14 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
               <Trans>Jump back in</Trans>
             </div>
             <div className="flex gap-5">
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 onClick={() => openBook(feature.label)}
-                className="group flex flex-1 items-stretch overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-all hover:-translate-y-px hover:border-brand-300 hover:shadow-md"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") openBook(feature.label)
+                }}
+                className="group flex flex-1 cursor-pointer items-stretch overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-all hover:-translate-y-px hover:border-brand-300 hover:shadow-md"
               >
                 <div className="w-[150px] shrink-0 self-stretch">
                   <BookCover title={feature.displayTitle} author={feature.authors} cover={feature.cover} />
@@ -117,7 +121,7 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
                     </Button>
                   </div>
                 </div>
-              </button>
+              </div>
 
               <div className="flex w-[230px] flex-col gap-2.5">
                 <button
