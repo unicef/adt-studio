@@ -12,21 +12,15 @@ import type { TaskService } from "../services/task-service.js"
 /**
  * Read the per-provider API keys from the request headers. Mirrors the header
  * convention used by the stages/quizzes routes (X-OpenAI-Key,
- * X-Anthropic-API-Key, X-Google-API-Key). At least one key must be present;
- * which one is required depends on the book's configured `agents.model`, which
- * the service resolves — so we only enforce "at least one" here.
+ * X-Anthropic-API-Key, X-Google-API-Key). Local Ollama models need no key;
+ * cloud provider credential validation happens when the configured model is
+ * resolved.
  */
 function readAgentKeys(c: Context): AgentApiKeys {
   const keys: AgentApiKeys = {
     openaiApiKey: c.req.header("X-OpenAI-Key") || undefined,
     anthropicApiKey: c.req.header("X-Anthropic-API-Key") || undefined,
     googleApiKey: c.req.header("X-Google-API-Key") || undefined,
-  }
-  if (!keys.openaiApiKey && !keys.anthropicApiKey && !keys.googleApiKey) {
-    throw new HTTPException(400, {
-      message:
-        "Missing API key. Set X-OpenAI-Key, X-Anthropic-API-Key, or X-Google-API-Key to match the book's configured agents.model.",
-    })
   }
   return keys
 }

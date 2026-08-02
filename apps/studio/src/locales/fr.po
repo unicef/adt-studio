@@ -131,6 +131,10 @@ msgstr "{0} terminé"
 msgid "{0} decorative"
 msgstr "{0} décoratif"
 
+#. placeholder {0}: formatGiB(model.downloadBytes)
+msgid "{0} download"
+msgstr "Téléchargement de {0}"
+
 #. placeholder {0}: entries.length
 msgid "{0} entries"
 msgstr "{0} entrées"
@@ -357,6 +361,9 @@ msgstr "{imageCount} image{0} sera traduite"
 msgid "{imageCount} images"
 msgstr "{imageCount} images"
 
+msgid "{installedCount} local models installed"
+msgstr "{installedCount} modèles locaux installés"
+
 #. placeholder {0}: issueCount === 1 ? "issue" : "issues"
 msgid "{issueCount} {0}"
 msgstr "{issueCount} {0}"
@@ -399,6 +406,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {page} other {pages}} révis
 
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} pages"
+
+msgid "{percent}% downloaded"
+msgstr "{percent} % téléchargé"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} détectée(s)"
@@ -1067,8 +1077,8 @@ msgstr "ADT Livre - {0}"
 msgid "ADT Package"
 msgstr "Paquet ADT"
 
-msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
-msgstr "ADT Studio utilise vos propres clés API pour exécuter le pipeline. Les clés sont stockées localement sur cet appareil et ne sont jamais envoyées ailleurs."
+#~ msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
+#~ msgstr "ADT Studio utilise vos propres clés API pour exécuter le pipeline. Les clés sont stockées localement sur cet appareil et ne sont jamais envoyées ailleurs."
 
 msgid "ADT Studio will restart to finish installing."
 msgstr "ADT Studio redémarrera pour terminer l’installation."
@@ -1933,6 +1943,9 @@ msgstr "Titre de chapitre"
 msgid "Chart / Graph"
 msgstr "Graphique / Diagramme"
 
+msgid "Check again"
+msgstr "Vérifier à nouveau"
+
 msgid "Checked"
 msgstr "Vérifié"
 
@@ -1941,6 +1954,9 @@ msgstr "Checking accessibilité"
 
 msgid "Checking for updates…"
 msgstr "Vérification des mises à jour…"
+
+msgid "Checking local AI"
+msgstr "Vérification de l’IA locale"
 
 msgid "Checklist item"
 msgstr "Élément de liste de contrôle"
@@ -2181,6 +2197,9 @@ msgstr "Config"
 
 msgid "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 msgstr "Configurer les options de détection d'activité et de traitement d'image pour le contenu extrait. Survolez un paramètre pour voir comment il affecte l'aperçu."
+
+msgid "Configure an AI provider to re-run"
+msgstr "Configurez un fournisseur d’IA pour relancer"
 
 msgid "Configure API keys for AI pipeline features."
 msgstr "Configurez les clés API pour les fonctionnalités du pipeline IA."
@@ -2733,6 +2752,10 @@ msgstr "Des sous-titres détaillés et techniques pour les lecteurs universitair
 msgid "Details"
 msgstr "Détails"
 
+#. placeholder {0}: formatGiB(status.system.totalMemoryBytes)
+msgid "Detected {0} memory"
+msgstr "{0} de mémoire détectée"
+
 msgid "Detected {left}–{right}"
 msgstr "Détecté {left}–{right}"
 
@@ -2831,6 +2854,9 @@ msgstr "Télécharger une sauvegarde complète de ce projet"
 
 msgid "Download a lightweight part (the full PDF plus a page range and a fingerprint) for someone else to process on their own machine, then merge their result back here."
 msgstr "Téléchargez une partie légère (le PDF complet, une plage de pages et une empreinte) pour qu'une autre personne la traite sur sa propre machine, puis fusionnez son résultat ici."
+
+msgid "Download model"
+msgstr "Télécharger le modèle"
 
 msgid "Download part"
 msgstr "Télécharger la partie"
@@ -4211,6 +4237,9 @@ msgstr "en cours"
 msgid "in the book"
 msgstr "dans le livre"
 
+msgid "In use"
+msgstr "En cours d’utilisation"
+
 msgid "Include in read-aloud"
 msgstr "Inclure dans la lecture à voix haute"
 
@@ -4259,8 +4288,14 @@ msgstr "Page de garde"
 msgid "Install an older beta?"
 msgstr "Installer une ancienne version bêta ?"
 
+msgid "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
+msgstr "Installez et ouvrez Ollama, puis vérifiez à nouveau. Vos PDF et prompts restent sur cet ordinateur."
+
 msgid "Install older version"
 msgstr "Installer une version antérieure"
+
+msgid "Install Ollama"
+msgstr "Installer Ollama"
 
 msgid "Install on quit"
 msgstr "Installer à la fermeture"
@@ -4697,6 +4732,18 @@ msgstr "Chargement..."
 msgid "Loading…"
 msgstr "Chargement…"
 
+msgid "Local"
+msgstr "Local"
+
+msgid "Local AI"
+msgstr "IA locale"
+
+msgid "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
+msgstr "La génération locale est l’option privée par défaut. Si vous ajoutez des crédits OpenAI plus tard, sélectionnez un modèle OpenAI et relancez une étape pour régénérer ou améliorer le résultat."
+
+msgid "Local model selected."
+msgstr "Modèle local sélectionné."
+
 msgid "Localization"
 msgstr "Localisation"
 
@@ -5015,6 +5062,12 @@ msgstr "Modèle"
 
 #~ msgid "Model {normalizedTargetModel} added."
 #~ msgstr "Modèle {normalizedTargetModel} ajouté."
+
+msgid "Model download failed."
+msgstr "Échec du téléchargement du modèle."
+
+msgid "Model downloaded and selected."
+msgstr "Modèle téléchargé et sélectionné."
 
 msgid "Model overrides"
 msgstr "Remplacements de modèles"
@@ -5574,6 +5627,9 @@ msgstr "sur"
 
 msgid "Off"
 msgstr "Désactivé"
+
+msgid "Ollama is not running"
+msgstr "Ollama n’est pas en cours d’exécution"
 
 msgid "Omission or addition"
 msgstr "Omission ou ajout"
@@ -6341,6 +6397,9 @@ msgstr "Vidéos téléversées précédemment"
 msgid "Print a variable"
 msgstr "Afficher une variable"
 
+msgid "Private on-device models"
+msgstr "Modèles privés sur l’appareil"
+
 msgid "Process every page on this machine."
 msgstr "Traiter toutes les pages sur cette machine."
 
@@ -7077,6 +7136,9 @@ msgstr "Exécutez d'abord {upstreamLabel}"
 msgid "Run anyway"
 msgstr "Exécuter quand même"
 
+msgid "Run book generation privately on this computer with Gemma 4 and Ollama."
+msgstr "Générez des livres en privé sur cet ordinateur avec Gemma 4 et Ollama."
+
 msgid "Run cancelled"
 msgstr "Exécution annulée"
 
@@ -7097,6 +7159,9 @@ msgstr "Exécutez d'abord les sous-titres d'images — seules les images sous-ti
 
 msgid "Run Language first — speech narrates the translated text."
 msgstr "Exécutez d'abord la langue — la parole narre le texte traduit."
+
+msgid "Run privately with a local Gemma model, or connect a cloud provider. Provider keys are stored only on this device."
+msgstr "Utilisez un modèle Gemma local en privé ou connectez un fournisseur cloud. Les clés sont stockées uniquement sur cet appareil."
 
 msgid "Run Quizzes"
 msgstr "Exécuter les quiz"
@@ -7540,8 +7605,8 @@ msgstr "Sélectionnez les pages sur lesquelles le quiz est basé, puis choisisse
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Sélectionnez jusqu'à 5 pages à utiliser comme références visuelles. Le LLM les analysera et générera un guide de style."
 
-#~ msgid "Selected"
-#~ msgstr "Sélectionnée"
+msgid "Selected"
+msgstr "Sélectionnée"
 
 msgid "Selected file"
 msgstr "Fichier sélectionné"
@@ -7967,6 +8032,9 @@ msgstr "Commencez à taper pour voir les mots du livre…"
 
 msgid "Start with a PDF"
 msgstr "Commencer avec un PDF"
+
+msgid "Starting download..."
+msgstr "Démarrage du téléchargement..."
 
 msgid "Starting…"
 msgstr "Démarrage…"
@@ -8949,6 +9017,9 @@ msgstr "Impossible d'enregistrer le prompt global."
 #~ msgid "Unable to save prompt model."
 #~ msgstr "Impossible d'enregistrer le modèle de prompt."
 
+msgid "Unable to select local model."
+msgstr "Impossible de sélectionner le modèle local."
+
 msgid "Unable to select prompt version."
 msgstr "Impossible de sélectionner la version du prompt."
 
@@ -9156,6 +9227,9 @@ msgstr "Utilisez ceci pour les vérifications que vous souhaitez intentionnellem
 
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Utilisez ce format pour sauvegarder le projet ou le déplacer vers une autre machine."
+
+msgid "Use this model"
+msgstr "Utiliser ce modèle"
 
 msgid "Use this picture"
 msgstr "Utiliser cette image"

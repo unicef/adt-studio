@@ -1,4 +1,4 @@
-import { Bot, FileText, KeyRound } from "lucide-react"
+import { Bot, Cpu, FileText, KeyRound } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
@@ -7,6 +7,13 @@ import type { SettingsSection } from "./settingsSections"
 export function SettingsNavigation({ activeSection }: { activeSection: SettingsSection }) {
   const { t } = useLingui()
   const items = [
+    {
+      section: "local-ai" as const,
+      icon: Cpu,
+      label: <Trans>Local AI</Trans>,
+      shortLabel: <Trans>Local</Trans>,
+      description: <Trans>Private on-device models</Trans>,
+    },
     {
       section: "default-model" as const,
       icon: Bot,
@@ -32,7 +39,7 @@ export function SettingsNavigation({ activeSection }: { activeSection: SettingsS
 
   return (
     <aside className="shrink-0 border-b bg-muted/20 md:w-64 md:border-b-0 md:border-r">
-      <nav aria-label={t`Settings navigation`} className="grid grid-cols-3 gap-1 p-2 md:flex md:flex-col md:px-3">
+      <nav aria-label={t`Settings navigation`} className="grid grid-cols-4 gap-1 p-2 md:flex md:flex-col md:px-3">
         {items.map(({ section, icon: Icon, label, shortLabel }) => {
           const isActive = activeSection === section
           return (

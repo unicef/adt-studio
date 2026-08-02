@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from "fs";
+import { cpSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 import { app } from "electron";
 
@@ -15,6 +15,7 @@ export interface ApiServerPaths {
   booksDir: string;
   promptsDir: string;
   configPath: string;
+  configFolderPath: string;
   adtResourcesZip: string;
   webAssetsDir: string;
 }
@@ -36,12 +37,25 @@ export function resolvePaths(): ApiServerPaths {
   });
 
   if (app.isPackaged) {
+    const promptsDir = join(appDataDir, "prompts");
+    const templatesDir = join(appDataDir, "templates");
+    const configPath = join(appDataDir, "config.yaml");
+    const configFolderPath = join(appDataDir, "config");
+
+    // Packaged resources are signed/read-only. Seed editable configuration in
+    // userData once, preserving all user changes across upgrades.
+    if (!existsSync(promptsDir)) cpSync(join(root, "prompts"), promptsDir, { recursive: true });
+    if (!existsSync(templatesDir)) cpSync(join(root, "templates"), templatesDir, { recursive: true });
+    if (!existsSync(configPath)) cpSync(join(root, "config.yaml"), configPath);
+    if (!existsSync(configFolderPath)) cpSync(join(root, "config"), configFolderPath, { recursive: true });
+
     return {
       serverPath: join(root, "api/api-server.mjs"),
       root,
       booksDir,
-      promptsDir: join(root, "prompts"),
-      configPath: join(root, "config.yaml"),
+      promptsDir,
+      configPath,
+      configFolderPath,
       adtResourcesZip: join(root, "assets", "adt-resources.zip"),
       webAssetsDir: join(root, "assets", "adt"),
     };
@@ -53,6 +67,7 @@ export function resolvePaths(): ApiServerPaths {
     booksDir,
     promptsDir: join(root, "prompts"),
     configPath: join(root, "config.yaml"),
+    configFolderPath: join(root, "config"),
     adtResourcesZip: join(root, "assets", "adt-resources.zip"),
     webAssetsDir: join(root, "assets", "adt"),
   };

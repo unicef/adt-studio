@@ -129,6 +129,10 @@ msgstr "{0} complete"
 msgid "{0} decorative"
 msgstr "{0} decorative"
 
+#. placeholder {0}: formatGiB(model.downloadBytes)
+msgid "{0} download"
+msgstr "{0} download"
+
 #. placeholder {0}: entries.length
 msgid "{0} entries"
 msgstr "{0} entries"
@@ -355,6 +359,9 @@ msgstr "{imageCount} image{0} will be translated"
 msgid "{imageCount} images"
 msgstr "{imageCount} images"
 
+msgid "{installedCount} local models installed"
+msgstr "{installedCount} local models installed"
+
 #. placeholder {0}: issueCount === 1 ? "issue" : "issues"
 msgid "{issueCount} {0}"
 msgstr "{issueCount} {0}"
@@ -397,6 +404,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {page} other {pages}} review
 
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} pages"
+
+msgid "{percent}% downloaded"
+msgstr "{percent}% downloaded"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
@@ -1065,8 +1075,8 @@ msgstr "ADT Book - {0}"
 msgid "ADT Package"
 msgstr "ADT Package"
 
-msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
-msgstr "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
+#~ msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
+#~ msgstr "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
 
 msgid "ADT Studio will restart to finish installing."
 msgstr "ADT Studio will restart to finish installing."
@@ -1931,6 +1941,9 @@ msgstr "Chapter title"
 msgid "Chart / Graph"
 msgstr "Chart / Graph"
 
+msgid "Check again"
+msgstr "Check again"
+
 msgid "Checked"
 msgstr "Checked"
 
@@ -1939,6 +1952,9 @@ msgstr "Checking accessibility"
 
 msgid "Checking for updates…"
 msgstr "Checking for updates…"
+
+msgid "Checking local AI"
+msgstr "Checking local AI"
 
 msgid "Checklist item"
 msgstr "Checklist item"
@@ -2179,6 +2195,9 @@ msgstr "Config"
 
 msgid "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 msgstr "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
+
+msgid "Configure an AI provider to re-run"
+msgstr "Configure an AI provider to re-run"
 
 msgid "Configure API keys for AI pipeline features."
 msgstr "Configure API keys for AI pipeline features."
@@ -2731,6 +2750,10 @@ msgstr "Detailed, technical captions for college and adult readers."
 msgid "Details"
 msgstr "Details"
 
+#. placeholder {0}: formatGiB(status.system.totalMemoryBytes)
+msgid "Detected {0} memory"
+msgstr "Detected {0} memory"
+
 msgid "Detected {left}–{right}"
 msgstr "Detected {left}–{right}"
 
@@ -2829,6 +2852,9 @@ msgstr "Download a full backup of this project"
 
 msgid "Download a lightweight part (the full PDF plus a page range and a fingerprint) for someone else to process on their own machine, then merge their result back here."
 msgstr "Download a lightweight part (the full PDF plus a page range and a fingerprint) for someone else to process on their own machine, then merge their result back here."
+
+msgid "Download model"
+msgstr "Download model"
 
 msgid "Download part"
 msgstr "Download part"
@@ -4209,6 +4235,9 @@ msgstr "in progress"
 msgid "in the book"
 msgstr "in the book"
 
+msgid "In use"
+msgstr "In use"
+
 msgid "Include in read-aloud"
 msgstr "Include in read-aloud"
 
@@ -4257,8 +4286,14 @@ msgstr "Inside Cover"
 msgid "Install an older beta?"
 msgstr "Install an older beta?"
 
+msgid "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
+msgstr "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
+
 msgid "Install older version"
 msgstr "Install older version"
+
+msgid "Install Ollama"
+msgstr "Install Ollama"
 
 msgid "Install on quit"
 msgstr "Install on quit"
@@ -4695,6 +4730,18 @@ msgstr "Loading..."
 msgid "Loading…"
 msgstr "Loading…"
 
+msgid "Local"
+msgstr "Local"
+
+msgid "Local AI"
+msgstr "Local AI"
+
+msgid "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
+msgstr "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
+
+msgid "Local model selected."
+msgstr "Local model selected."
+
 msgid "Localization"
 msgstr "Localization"
 
@@ -5013,6 +5060,12 @@ msgstr "Model"
 
 #~ msgid "Model {normalizedTargetModel} added."
 #~ msgstr "Model {normalizedTargetModel} added."
+
+msgid "Model download failed."
+msgstr "Model download failed."
+
+msgid "Model downloaded and selected."
+msgstr "Model downloaded and selected."
 
 msgid "Model overrides"
 msgstr "Model overrides"
@@ -5572,6 +5625,9 @@ msgstr "of"
 
 msgid "Off"
 msgstr "Off"
+
+msgid "Ollama is not running"
+msgstr "Ollama is not running"
 
 msgid "Omission or addition"
 msgstr "Omission or addition"
@@ -6339,6 +6395,9 @@ msgstr "Previously uploaded videos"
 msgid "Print a variable"
 msgstr "Print a variable"
 
+msgid "Private on-device models"
+msgstr "Private on-device models"
+
 msgid "Process every page on this machine."
 msgstr "Process every page on this machine."
 
@@ -7075,6 +7134,9 @@ msgstr "Run {upstreamLabel} first"
 msgid "Run anyway"
 msgstr "Run anyway"
 
+msgid "Run book generation privately on this computer with Gemma 4 and Ollama."
+msgstr "Run book generation privately on this computer with Gemma 4 and Ollama."
+
 msgid "Run cancelled"
 msgstr "Run cancelled"
 
@@ -7095,6 +7157,9 @@ msgstr "Run Image Captions first — only captioned images appear in this list."
 
 msgid "Run Language first — speech narrates the translated text."
 msgstr "Run Language first — speech narrates the translated text."
+
+msgid "Run privately with a local Gemma model, or connect a cloud provider. Provider keys are stored only on this device."
+msgstr "Run privately with a local Gemma model, or connect a cloud provider. Provider keys are stored only on this device."
 
 msgid "Run Quizzes"
 msgstr "Run Quizzes"
@@ -7538,8 +7603,8 @@ msgstr "Select the pages the quiz is written from, then choose where it appears 
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 
-#~ msgid "Selected"
-#~ msgstr "Selected"
+msgid "Selected"
+msgstr "Selected"
 
 msgid "Selected file"
 msgstr "Selected file"
@@ -7965,6 +8030,9 @@ msgstr "Start typing to see words from the book…"
 
 msgid "Start with a PDF"
 msgstr "Start with a PDF"
+
+msgid "Starting download..."
+msgstr "Starting download..."
 
 msgid "Starting…"
 msgstr "Starting…"
@@ -8947,6 +9015,9 @@ msgstr "Unable to save global prompt."
 #~ msgid "Unable to save prompt model."
 #~ msgstr "Unable to save prompt model."
 
+msgid "Unable to select local model."
+msgstr "Unable to select local model."
+
 msgid "Unable to select prompt version."
 msgstr "Unable to select prompt version."
 
@@ -9154,6 +9225,9 @@ msgstr "Use this for checks you intentionally want to suppress, such as known fa
 
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Use this format to back up the project or move it to another machine."
+
+msgid "Use this model"
+msgstr "Use this model"
 
 msgid "Use this picture"
 msgstr "Use this picture"

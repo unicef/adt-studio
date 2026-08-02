@@ -155,6 +155,12 @@ function requiredCredentialFor(
         label: "custom provider base URL",
         hint: "X-Custom-Base-URL header or CUSTOM_OPENAI_BASE_URL",
       }
+    case "ollama":
+      return {
+        value: "local-runtime",
+        label: "local Ollama runtime",
+        hint: "Ollama must be running on this machine",
+      }
     default:
       return {
         value: options.apiKey || process.env.OPENAI_API_KEY,

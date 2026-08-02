@@ -14,10 +14,12 @@ import {
 } from "@/components/ui/tabs";
 import { useApiKey } from "@/hooks/use-api-key";
 import type { OnboardingStepProps } from "../steps";
+import { LocalAiSettings } from "@/components/settings/LocalAiSettings";
 
-type TabKey = "openai" | "anthropic" | "google" | "custom" | "azure";
+type TabKey = "local" | "openai" | "anthropic" | "google" | "custom" | "azure";
 
 const TAB_KEYS: TabKey[] = [
+  "local",
   "openai",
   "anthropic",
   "google",
@@ -48,6 +50,8 @@ function AnimatedTabsContent({
     <TabsContent
       value={value}
       forceMount
+      hidden={!isActive}
+      aria-hidden={!isActive}
       style={{
         gridArea: "1 / 1",
         display: "block",
@@ -84,7 +88,7 @@ export function ApiKeyStep(_props: OnboardingStepProps) {
     setAzureRegion,
   } = useApiKey();
 
-  const [tab, setTab] = useState<TabKey>("openai");
+  const [tab, setTab] = useState<TabKey>("local");
   const [showKey, setShowKey] = useState(false);
 
   const handleGoogleChange = useCallback(
@@ -96,6 +100,7 @@ export function ApiKeyStep(_props: OnboardingStepProps) {
   );
 
   const tabs: { key: TabKey; label: string; isSaved: boolean }[] = [
+    { key: "local", label: t`Local AI`, isSaved: false },
     { key: "openai", label: t`OpenAI`, isSaved: apiKey.length > 0 },
     { key: "anthropic", label: t`Anthropic`, isSaved: anthropicKey.length > 0 },
     { key: "google", label: t`Google`, isSaved: googleKey.length > 0 },
@@ -111,7 +116,8 @@ export function ApiKeyStep(_props: OnboardingStepProps) {
       size="icon"
       className="absolute right-0 top-0 h-11 w-11"
       onClick={() => setShowKey((v) => !v)}
-      tabIndex={-1}
+      aria-label={showKey ? t`Hide API key` : t`Show API key`}
+      title={showKey ? t`Hide API key` : t`Show API key`}
     >
       {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
     </Button>
@@ -130,8 +136,8 @@ export function ApiKeyStep(_props: OnboardingStepProps) {
           </h2>
           <p className="animate-onboarding-fade-up max-w-lg text-base leading-relaxed text-muted-foreground [animation-delay:220ms]">
             <Trans>
-              ADT Studio uses your own API keys to run the pipeline. Keys are
-              stored locally on this device and never sent anywhere else.
+              Run privately with a local Gemma model, or connect a cloud provider.
+              Provider keys are stored only on this device.
             </Trans>
           </p>
         </div>
@@ -158,6 +164,10 @@ export function ApiKeyStep(_props: OnboardingStepProps) {
           </TabsList>
 
           <div className="relative grid overflow-hidden px-2 py-2">
+            <AnimatedTabsContent value="local" active={tab}>
+              <LocalAiSettings compact />
+            </AnimatedTabsContent>
+
             <AnimatedTabsContent value="openai" active={tab}>
               <div className="space-y-2">
                 <Label htmlFor="onb-openai-key">

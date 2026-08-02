@@ -14,7 +14,7 @@ declare global {
 
 type ServerInfo = { port: number }
 type ServeFn = (
-  options: { fetch: typeof app.fetch; port: number },
+  options: { fetch: typeof app.fetch; port: number; hostname: string },
   onListen?: (info: ServerInfo) => void
 ) => unknown
 
@@ -24,6 +24,7 @@ interface StartServerOptions {
   booksDirPath?: string
   fetchHandler?: typeof app.fetch
   port?: number
+  hostname?: string
   log?: (message: string) => void
 }
 
@@ -31,6 +32,7 @@ export function startServer(options: StartServerOptions = {}): unknown {
   const isDesktop = process.env?.ADT_ENVIRONMENT === "electron"
   const defaultPort = isDesktop ? "0" : "3001"
   const port = options.port ?? parseInt(process.env.PORT ?? defaultPort, 10)
+  const hostname = options.hostname ?? process.env.HOST ?? "127.0.0.1"
   const serveFn = options.serveFn ?? (serve as ServeFn)
   const cleanupFn = options.cleanupFn ?? cleanupInterruptedSteps
   const booksDirPath = options.booksDirPath ?? booksDir
@@ -44,8 +46,8 @@ export function startServer(options: StartServerOptions = {}): unknown {
     ADT_ENVIRONMENT: process.env.ADT_ENVIRONMENT
   })
 
-  return serveFn({ fetch: fetchHandler, port }, (info) => {
-    log(`API server running on http://localhost:${info.port}`)
+  return serveFn({ fetch: fetchHandler, port, hostname }, (info) => {
+    log(`API server running on http://${hostname}:${info.port}`)
     process.parentPort?.postMessage({ type: "api-ready", port: info.port })
   })
 }

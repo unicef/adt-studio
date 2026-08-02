@@ -141,6 +141,35 @@ describe("createLLMModel credentials", () => {
       expect.objectContaining({ model: googleModel }),
     )
   })
+
+  it("maps stable Gemma aliases to the local Ollama OpenAI endpoint", async () => {
+    const ollamaModel = { provider: "ollama" }
+    const ollamaProvider = vi.fn(() => ollamaModel)
+    createOpenAIMock.mockReturnValue(ollamaProvider)
+    generateObjectMock.mockResolvedValue({
+      object: { ok: true },
+      usage: { promptTokens: 1, completionTokens: 2 },
+    })
+
+    const llm = createLLMModel({ modelId: "ollama:gemma4-26b" })
+    await llm.generateObject({
+      schema: z.object({ ok: z.boolean() }),
+      messages: [{ role: "user", content: "hello" }],
+    })
+
+    expect(createOpenAIMock).toHaveBeenCalledWith({
+      baseURL: "http://127.0.0.1:11434/v1",
+      apiKey: "ollama",
+    })
+    expect(ollamaProvider).toHaveBeenCalledWith("gemma4:26b", { structuredOutputs: false })
+    expect(generateObjectMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: ollamaModel,
+        mode: "json",
+        providerOptions: { openai: { reasoningEffort: "none" } },
+      }),
+    )
+  })
 })
 
 describe("createLLMModel cancellation", () => {

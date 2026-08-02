@@ -2586,9 +2586,6 @@ async function runSpeechStep(
       return
     }
 
-    progress.emit({ type: "step-start", step: "tts" })
-    progress.emit({ type: "step-progress", step: "tts", message: "Preparing audio..." })
-
     const voiceMaps = loadVoicesConfig(configDir)
     const instructionsMap = loadSpeechInstructions(configDir)
 
@@ -2597,6 +2594,20 @@ async function runSpeechStep(
     const defaultProvider = config.speech?.default_provider ?? "openai"
     const providerConfigs = config.speech?.providers ?? {}
     const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
+
+    if (
+      config.default_model?.startsWith("ollama:") &&
+      defaultProvider === "openai" &&
+      !options.apiKey?.trim()
+    ) {
+      progress.emit({ type: "step-skip", step: "tts" })
+      progress.emit({ type: "step-skip", step: "word-timestamps" })
+      console.log(`[stage-run] ${label}: TTS skipped (local AI selected; no cloud speech provider configured)`)
+      return
+    }
+
+    progress.emit({ type: "step-start", step: "tts" })
+    progress.emit({ type: "step-progress", step: "tts", message: "Preparing audio..." })
 
     console.log(`[stage-run] ${label}: TTS configDir=${configDir} voiceMaps=${Object.keys(voiceMaps).join(",")||"(empty)"}`)
     console.log(`[stage-run] ${label}: TTS config — defaultProvider=${defaultProvider} model=${speechModel ?? "(provider default)"} format=${config.speech?.format ?? "(provider default)"}`)

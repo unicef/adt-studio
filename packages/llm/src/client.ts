@@ -15,6 +15,7 @@ import type { RateLimiter } from "./rate-limiter.js"
 import { computeHash, readCache, writeCache, bustCache } from "./cache.js"
 import { sanitizeMessages, type LlmLogEntry } from "./log.js"
 import { createLogger, type LogLevel } from "./logger.js"
+import { ollamaOpenAIBaseUrl, resolveOllamaModelName } from "./ollama.js"
 
 export interface LLMProviderCredentials {
   openaiApiKey?: string
@@ -111,14 +112,21 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           ? opts.log.promptName
           : opts.log?.requestedPromptName
 
+      const effectiveMode = modelId.startsWith("ollama:")
+        ? opts.mode ?? "json"
+        : opts.mode
+
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         const hash = computeHash({
+          cacheVersion: 2,
           modelId,
-          mode: opts.mode,
+          providerIdentity: providerCacheIdentity(modelId, credentials),
+          mode: effectiveMode,
           system,
           messages: currentMessages,
           schema: opts.schema,
           temperature: opts.temperature,
+          maxTokens: opts.maxTokens,
         })
 
         try {
@@ -134,12 +142,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               if (rateLimiter) await rateLimiter.acquire()
               const generated = await callLLM<T>(
                 resolveModel(modelId, credentials, {
-                  structuredOutputs: opts.mode === "json" ? false : undefined,
+                  structuredOutputs: effectiveMode === "json" ? false : undefined,
                 }),
-                opts,
+                { ...opts, mode: effectiveMode },
                 system,
                 currentMessages,
-                externalSignal
+                externalSignal,
+                modelId,
               )
               result = generated.object
               totalUsage.inputTokens += generated.usage.inputTokens
@@ -151,12 +160,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             if (rateLimiter) await rateLimiter.acquire()
             const generated = await callLLM<T>(
               resolveModel(modelId, credentials, {
-                structuredOutputs: opts.mode === "json" ? false : undefined,
+                structuredOutputs: effectiveMode === "json" ? false : undefined,
               }),
-              opts,
+              { ...opts, mode: effectiveMode },
               system,
               currentMessages,
-              externalSignal
+              externalSignal,
+              modelId,
             )
             result = generated.object
             totalUsage.inputTokens += generated.usage.inputTokens
@@ -389,9 +399,33 @@ function resolveModel(
       const custom = createOpenAI({ baseURL, apiKey: apiKey || "dummy" })
       return custom(model, options.structuredOutputs !== undefined ? { structuredOutputs: options.structuredOutputs } : undefined)
     }
+    case "ollama": {
+      const ollama = createOpenAI({
+        baseURL: ollamaOpenAIBaseUrl(),
+        apiKey: "ollama",
+      })
+      return ollama(
+        resolveOllamaModelName(model),
+        options.structuredOutputs !== undefined
+          ? { structuredOutputs: options.structuredOutputs }
+          : undefined,
+      )
+    }
     default:
       throw new Error(`Unsupported LLM provider: ${provider}`)
   }
+}
+
+function providerCacheIdentity(
+  modelId: string,
+  credentials?: LLMProviderCredentials,
+): string {
+  const provider = modelId.includes(":") ? modelId.slice(0, modelId.indexOf(":")) : "openai"
+  if (provider === "ollama") return ollamaOpenAIBaseUrl()
+  if (provider === "custom") {
+    return credentials?.customBaseUrl ?? process.env.CUSTOM_OPENAI_BASE_URL ?? "custom:unconfigured"
+  }
+  return provider
 }
 
 function formatError(err: unknown): string {
@@ -443,7 +477,8 @@ async function callLLM<T>(
   opts: GenerateObjectOptions,
   system: string | undefined,
   messages: Message[],
-  externalSignal?: AbortSignal
+  externalSignal?: AbortSignal,
+  modelId?: string,
 ): Promise<{ object: T; usage: TokenUsage }> {
   const coreMessages = convertMessages(messages)
   // Combine the internal request timeout with the caller's cancellation signal.
@@ -471,9 +506,38 @@ async function callLLM<T>(
   if (opts.temperature !== undefined) {
     generateOpts.temperature = opts.temperature
   }
-  const generated = await (generateObject as Function)(
-    generateOpts
-  ) as Awaited<ReturnType<typeof generateObject>>
+  if (modelId?.startsWith("ollama:")) {
+    generateOpts.providerOptions = {
+      openai: { reasoningEffort: "none" },
+    }
+  }
+  const invoke = () => (generateObject as Function)(generateOpts) as Promise<Awaited<ReturnType<typeof generateObject>>>
+  let generated: Awaited<ReturnType<typeof generateObject>>
+  try {
+    generated = modelId?.startsWith("ollama:")
+      ? await withOllamaSlot(invoke, externalSignal)
+      : await invoke()
+  } catch (error) {
+    // Ollama models sometimes echo the JSON schema into an otherwise usable
+    // JSON response. The AI SDK rejects it before our domain validator can
+    // provide precise retry feedback. Recover the raw object only when a
+    // caller supplied that validator; it will accept, clean, or reject it.
+    if (
+      modelId?.startsWith("ollama:") &&
+      opts.validate &&
+      NoObjectGeneratedError.isInstance(error) &&
+      error.text
+    ) {
+      const candidate = parseJSONCandidate(error.text)
+      if (candidate !== undefined) {
+        return {
+          object: candidate as T,
+          usage: { inputTokens: 0, outputTokens: 0 },
+        }
+      }
+    }
+    throw error
+  }
 
   return {
     object: generated.object as T,
@@ -481,6 +545,37 @@ async function callLLM<T>(
       inputTokens: generated.usage.promptTokens,
       outputTokens: generated.usage.completionTokens,
     },
+  }
+}
+
+function parseJSONCandidate(text: string): unknown | undefined {
+  const trimmed = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    const start = trimmed.indexOf("{")
+    const end = trimmed.lastIndexOf("}")
+    if (start < 0 || end <= start) return undefined
+    try {
+      return JSON.parse(trimmed.slice(start, end + 1))
+    } catch {
+      return undefined
+    }
+  }
+}
+
+let ollamaQueueTail: Promise<void> = Promise.resolve()
+
+async function withOllamaSlot<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  const previous = ollamaQueueTail
+  let release!: () => void
+  ollamaQueueTail = new Promise<void>((resolve) => { release = resolve })
+  await previous
+  try {
+    if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError")
+    return await task()
+  } finally {
+    release()
   }
 }
 

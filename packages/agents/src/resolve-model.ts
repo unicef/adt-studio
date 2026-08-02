@@ -2,6 +2,7 @@ import { createOpenAI, openai } from "@ai-sdk/openai"
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic"
 import { createGoogleGenerativeAI, google } from "@ai-sdk/google"
 import type { LanguageModel } from "ai"
+import { ollamaOpenAIBaseUrl, resolveOllamaModelName } from "@adt/llm"
 
 export interface AgentCredentials {
   openaiApiKey?: string
@@ -46,6 +47,13 @@ export function resolveAgentModel(
         ? createGoogleGenerativeAI({ apiKey: credentials.googleApiKey })
         : google
       return client(model)
+    }
+    case "ollama": {
+      const client = createOpenAI({
+        baseURL: ollamaOpenAIBaseUrl(),
+        apiKey: "ollama",
+      })
+      return client(resolveOllamaModelName(model))
     }
     default:
       throw new Error(`Unsupported agent provider: ${provider}`)

@@ -8,6 +8,7 @@ import { useToc } from "@/hooks/use-toc"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useLlmAccess } from "@/hooks/use-llm-access"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageContentGuard } from "../../components/StageContentGuard"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -129,7 +130,8 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   const { data, isLoading } = useToc(bookLabel)
   const { setExtra } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const { hasLlmAccess: hasApiKey } = useLlmAccess(bookLabel)
   const tocState = stageState("toc")
   const tocDone = tocState === "done"
   const tocRunning = tocState === "running" || tocState === "queued"

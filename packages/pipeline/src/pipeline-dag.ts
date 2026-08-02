@@ -897,6 +897,17 @@ export async function runFullPipeline(
       const providerConfigs = config.speech?.providers ?? {}
       const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
 
+      // Local-first book creation must remain usable without a cloud speech
+      // account. Speech is optional and can be generated later after a cloud
+      // TTS provider is configured.
+      if (
+        config.default_model?.startsWith("ollama:") &&
+        defaultProvider === "openai" &&
+        !process.env.OPENAI_API_KEY?.trim()
+      ) {
+        return
+      }
+
       const synthesizers = new Map<string, TTSSynthesizer>()
       function getSynthesizer(providerName: string): TTSSynthesizer {
         if (synthesizers.has(providerName)) return synthesizers.get(providerName)!

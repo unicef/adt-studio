@@ -196,6 +196,39 @@ export interface AzureCredentials {
   region: string
 }
 
+export interface LocalAIModel {
+  id: string
+  ollamaName: string
+  label: string
+  downloadBytes: number
+  minimumMemoryBytes: number
+  installed: boolean
+  recommended: boolean
+}
+
+export interface LocalAIStatus {
+  runtime: "ollama"
+  runtimeAvailable: boolean
+  runtimeInstallUrl: string
+  endpoint: string
+  error?: string
+  system: {
+    platform: string
+    architecture: string
+    totalMemoryBytes: number
+  }
+  recommendedModelId: string
+  models: LocalAIModel[]
+}
+
+export interface LocalModelPullProgress {
+  status: string
+  digest?: string
+  total?: number
+  completed?: number
+  error?: string
+}
+
 export interface StageRunProviderCredentials {
   anthropicApiKey?: string
   googleApiKey?: string
@@ -1786,6 +1819,40 @@ export const api = {
 
   getGlobalConfig: () =>
     request<{ config: Record<string, unknown> }>(`/config`),
+
+  getLocalAIStatus: () => request<LocalAIStatus>(`/local-ai/status`),
+
+  pullLocalModel: async (
+    modelId: string,
+    onProgress?: (progress: LocalModelPullProgress) => void,
+  ): Promise<void> => {
+    const response = await fetch(`${BASE_URL}/local-ai/pull`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ modelId }),
+    })
+    if (!response.ok || !response.body) {
+      const text = await response.text().catch(() => "")
+      throw new Error(text || `Model download failed: ${response.status}`)
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let pending = ""
+    while (true) {
+      const { done, value } = await reader.read()
+      pending += decoder.decode(value, { stream: !done })
+      const lines = pending.split("\n")
+      pending = done ? "" : lines.pop() ?? ""
+      for (const line of lines) {
+        if (!line.trim()) continue
+        const progress = JSON.parse(line) as LocalModelPullProgress
+        if (progress.error) throw new Error(progress.error)
+        onProgress?.(progress)
+      }
+      if (done) break
+    }
+  },
 
   getDefaultModel: () =>
     request<{ model: string }>(`/config/default-model`),

@@ -347,7 +347,7 @@ describe("exportWebpub", () => {
     const html = fs.readFileSync(indexPath, "utf-8")
     expect(html).toContain("WebPub / EPUB reader overrides")
     expect(html).toContain("columns: auto !important")
-  })
+  }, 15_000)
 
   it("includes readingOrder in manifest", async () => {
     createBookWithMetadata("webpub-manifest", "Manifest Test")

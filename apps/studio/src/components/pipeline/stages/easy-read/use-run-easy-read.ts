@@ -1,5 +1,6 @@
 import { useCallback } from "react"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useLlmAccess } from "@/hooks/use-llm-access"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useBookRun } from "@/hooks/use-book-run"
 
@@ -13,7 +14,8 @@ import { useBookRun } from "@/hooks/use-book-run"
  * languages, editing language, …) would be wiped.
  */
 export function useRunEasyRead(bookLabel: string) {
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const { hasLlmAccess: hasApiKey } = useLlmAccess(bookLabel)
   const { isRunning, queueRun } = useBookRun()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()

@@ -37,6 +37,16 @@ describe("computeHash", () => {
     expect(h1).not.toBe(h2)
   })
 
+  it("includes output limits and provider identity in the cache key", () => {
+    const messages: Message[] = [{ role: "user", content: "hello" }]
+    const base = { modelId: "ollama:gemma4-e4b", messages, schema: {} }
+    const first = computeHash({ ...base, maxTokens: 100, providerIdentity: "http://localhost:11434/v1" })
+    const differentLimit = computeHash({ ...base, maxTokens: 200, providerIdentity: "http://localhost:11434/v1" })
+    const differentRuntime = computeHash({ ...base, maxTokens: 100, providerIdentity: "http://localhost:22434/v1" })
+    expect(first).not.toBe(differentLimit)
+    expect(first).not.toBe(differentRuntime)
+  })
+
   it("ignores _cached property in schema for stable hashing", () => {
     const messages: Message[] = [{ role: "user", content: "hello" }]
     const schemaWithoutCached = {

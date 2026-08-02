@@ -130,6 +130,10 @@ msgstr "{0} u krye"
 msgid "{0} decorative"
 msgstr "{0} dekorative"
 
+#. placeholder {0}: formatGiB(model.downloadBytes)
+msgid "{0} download"
+msgstr "Shkarkim prej {0}"
+
 #. placeholder {0}: entries.length
 msgid "{0} entries"
 msgstr "{0} hyrje"
@@ -356,6 +360,9 @@ msgstr "{imageCount} imazh{0} do të përkthehet"
 msgid "{imageCount} images"
 msgstr "{imageCount} imazhe"
 
+msgid "{installedCount} local models installed"
+msgstr "{installedCount} modele lokale të instaluara"
+
 #. placeholder {0}: issueCount === 1 ? "issue" : "issues"
 msgid "{issueCount} {0}"
 msgstr "{issueCount} {0}"
@@ -398,6 +405,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {faqe} other {faqe}} të ris
 
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} faqe"
+
+msgid "{percent}% downloaded"
+msgstr "{percent}% u shkarkua"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
@@ -1066,8 +1076,8 @@ msgstr "Libër ADT - {0}"
 msgid "ADT Package"
 msgstr "Paketë ADT"
 
-msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
-msgstr "ADT Studio përdor çelësat tuaj API për të ekzekutuar pipeline-in. Çelësat ruhen lokalisht në këtë pajisje dhe nuk dërgohen asnjëherë askund tjetër."
+#~ msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
+#~ msgstr "ADT Studio përdor çelësat tuaj API për të ekzekutuar pipeline-in. Çelësat ruhen lokalisht në këtë pajisje dhe nuk dërgohen asnjëherë askund tjetër."
 
 msgid "ADT Studio will restart to finish installing."
 msgstr "ADT Studio do të riniset për të përfunduar instalimin."
@@ -1932,6 +1942,9 @@ msgstr "Titulli i kapitullit"
 msgid "Chart / Graph"
 msgstr "Tabelë / Grafik"
 
+msgid "Check again"
+msgstr "Kontrollo përsëri"
+
 msgid "Checked"
 msgstr "Kontrolluar"
 
@@ -1940,6 +1953,9 @@ msgstr "Po kontrollohet aksesueshmëria"
 
 msgid "Checking for updates…"
 msgstr "Po kontrollohet për përditësime…"
+
+msgid "Checking local AI"
+msgstr "Po kontrollohet IA-ja lokale"
 
 msgid "Checklist item"
 msgstr "Artikull liste kontrolli"
@@ -2180,6 +2196,9 @@ msgstr "Konfigurim"
 
 msgid "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 msgstr "Konfiguroni zbulimin e aktivitetit dhe opsionet e përpunimit të imazheve për përmbajtjen e ekstraktuar. Kaloni kursorin mbi çdo cilësim për të parë si ndikon në pamjen paraprake."
+
+msgid "Configure an AI provider to re-run"
+msgstr "Konfiguro një ofrues IA-je për ta ekzekutuar përsëri"
 
 msgid "Configure API keys for AI pipeline features."
 msgstr "Konfiguroni çelësat API për funksionet e zinxhirit të AI."
@@ -2732,6 +2751,10 @@ msgstr "Tituj të detajuar dhe teknikë për lexues të universitetit dhe të rr
 msgid "Details"
 msgstr "Detajet"
 
+#. placeholder {0}: formatGiB(status.system.totalMemoryBytes)
+msgid "Detected {0} memory"
+msgstr "U zbulua {0} memorie"
+
 msgid "Detected {left}–{right}"
 msgstr "U zbuluan {left}–{right}"
 
@@ -2830,6 +2853,9 @@ msgstr "Shkarko një kopje rezervë të plotë të këtij projekti"
 
 msgid "Download a lightweight part (the full PDF plus a page range and a fingerprint) for someone else to process on their own machine, then merge their result back here."
 msgstr "Shkarko një pjesë të lehtë (PDF-ja e plotë plus një interval faqesh dhe një gjurmë) që dikush tjetër ta përpunojë në makinën e vet, e më pas bashko rezultatin e tij këtu."
+
+msgid "Download model"
+msgstr "Shkarko modelin"
 
 msgid "Download part"
 msgstr "Shkarko pjesën"
@@ -4210,6 +4236,9 @@ msgstr "në proces"
 msgid "in the book"
 msgstr "në libër"
 
+msgid "In use"
+msgstr "Në përdorim"
+
 msgid "Include in read-aloud"
 msgstr "Përfshi në leximin me zë"
 
@@ -4258,8 +4287,14 @@ msgstr "Kapaku i brendshëm"
 msgid "Install an older beta?"
 msgstr "Të instalohet një beta më e vjetër?"
 
+msgid "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
+msgstr "Instalo dhe hap Ollama-n, pastaj kontrollo përsëri. PDF-të dhe udhëzimet e tua mbeten në këtë kompjuter."
+
 msgid "Install older version"
 msgstr "Instalo versionin më të vjetër"
+
+msgid "Install Ollama"
+msgstr "Instalo Ollama-n"
 
 msgid "Install on quit"
 msgstr "Instalo gjatë daljes"
@@ -4696,6 +4731,18 @@ msgstr "Duke ngarkuar..."
 msgid "Loading…"
 msgstr "Duke ngarkuar…"
 
+msgid "Local"
+msgstr "Lokal"
+
+msgid "Local AI"
+msgstr "IA lokale"
+
+msgid "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
+msgstr "Gjenerimi lokal është zgjedhja private e paracaktuar. Nëse shton kredite OpenAI më vonë, zgjidh një model OpenAI dhe riekzekuto çdo hap për ta rigjeneruar ose përmirësuar rezultatin."
+
+msgid "Local model selected."
+msgstr "Modeli lokal u zgjodh."
+
 msgid "Localization"
 msgstr "Lokalizim"
 
@@ -5014,6 +5061,12 @@ msgstr "Model"
 
 #~ msgid "Model {normalizedTargetModel} added."
 #~ msgstr "Modeli {normalizedTargetModel} u shtua."
+
+msgid "Model download failed."
+msgstr "Shkarkimi i modelit dështoi."
+
+msgid "Model downloaded and selected."
+msgstr "Modeli u shkarkua dhe u zgjodh."
 
 msgid "Model overrides"
 msgstr "Mbivendosjet e modeleve"
@@ -5573,6 +5626,9 @@ msgstr "nga"
 
 msgid "Off"
 msgstr "Joaktiv"
+
+msgid "Ollama is not running"
+msgstr "Ollama nuk po ekzekutohet"
 
 msgid "Omission or addition"
 msgstr "Mungesë ose shtesë"
@@ -6340,6 +6396,9 @@ msgstr "Video të ngarkuara më parë"
 msgid "Print a variable"
 msgstr "Shfaq një variabël"
 
+msgid "Private on-device models"
+msgstr "Modele private në pajisje"
+
 msgid "Process every page on this machine."
 msgstr "Përpunoni çdo faqe në këtë makinë."
 
@@ -7076,6 +7135,9 @@ msgstr "Ekzekuto {upstreamLabel} së pari"
 msgid "Run anyway"
 msgstr "Ekzekuto gjithsesi"
 
+msgid "Run book generation privately on this computer with Gemma 4 and Ollama."
+msgstr "Gjenero libra privatisht në këtë kompjuter me Gemma 4 dhe Ollama."
+
 msgid "Run cancelled"
 msgstr "Ekzekutimi u anulua"
 
@@ -7096,6 +7158,9 @@ msgstr "Ekzekuto Titujt e Imazheve së pari — vetëm imazhet me tituj shfaqen 
 
 msgid "Run Language first — speech narrates the translated text."
 msgstr "Ekzekuto Gjuhën së pari — të folurit narraton tekstin e përkthyer."
+
+msgid "Run privately with a local Gemma model, or connect a cloud provider. Provider keys are stored only on this device."
+msgstr "Puno privatisht me një model lokal Gemma ose lidh një ofrues reje. Çelësat ruhen vetëm në këtë pajisje."
 
 msgid "Run Quizzes"
 msgstr "Ekzekuto Kuizet"
@@ -7539,8 +7604,8 @@ msgstr "Zgjidhni faqet nga të cilat është shkruar kuizi, pastaj zgjidhni ku s
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Zgjidhni deri në 5 faqe për t'i përdorur si referenca vizuale. LLM do t'i analizojë dhe do të gjenerojë një udhëzues stili."
 
-#~ msgid "Selected"
-#~ msgstr "I zgjedhur"
+msgid "Selected"
+msgstr "I zgjedhur"
 
 msgid "Selected file"
 msgstr "Skedari i zgjedhur"
@@ -7966,6 +8031,9 @@ msgstr "Fillo të shkruash për të parë fjalë nga libri…"
 
 msgid "Start with a PDF"
 msgstr "Fillo me një PDF"
+
+msgid "Starting download..."
+msgstr "Po nis shkarkimi..."
 
 msgid "Starting…"
 msgstr "Po fillon…"
@@ -8948,6 +9016,9 @@ msgstr "Nuk mund të ruhet prompti global."
 #~ msgid "Unable to save prompt model."
 #~ msgstr "Nuk mund të ruhet modeli i promptit."
 
+msgid "Unable to select local model."
+msgstr "Modeli lokal nuk mund të zgjidhej."
+
 msgid "Unable to select prompt version."
 msgstr "Nuk mund të zgjidhet versioni i promptit."
 
@@ -9155,6 +9226,9 @@ msgstr "Përdor këtë për kontrollet që dëshiron t'i fshehësh me qëllim, s
 
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Përdor këtë format për të rezervuar projektin ose për ta zhvendosur në një makinë tjetër."
+
+msgid "Use this model"
+msgstr "Përdor këtë model"
 
 msgid "Use this picture"
 msgstr "Përdor këtë figurë"

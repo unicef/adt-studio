@@ -8,6 +8,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { api } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useLlmAccess } from "@/hooks/use-llm-access"
 import { useBooks, useCreateBook } from "@/hooks/use-books"
 import { useWizard } from "./index"
 import { useWizardForm } from "./wizardForm"
@@ -208,7 +209,8 @@ export function BookCreationWizard() {
   const { phase, currentStep, setCurrentStep, stepDirection, previewFocus } = useWizard()
   const form = useWizardForm()
   const createMutation = useCreateBook()
-  const { apiKey, hasApiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
+  const { apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
+  const { hasLlmAccess } = useLlmAccess()
   const { data: books, isPending: booksLoading } = useBooks()
   const [previewOpen, setPreviewOpen] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -308,7 +310,7 @@ export function BookCreationWizard() {
       // scope we skip it: each contributor extracts their own page-range part,
       // so extracting the full book on this machine would be the very cost the
       // split feature avoids.
-      if (values.scope !== "split" && hasApiKey) {
+      if (values.scope !== "split" && hasLlmAccess) {
         // Seed the run status the book page reads, so it paints "Extract
         // queued" on first render. Without this the page mounts with a cold
         // cache and shows an idle pipeline until its own step-status fetch

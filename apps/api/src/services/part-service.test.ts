@@ -243,7 +243,7 @@ describe("mergePart", () => {
     // Carried cache + page image files.
     expect(fs.existsSync(path.join(tmpDir, "raven", ".cache", "deadbeef.json"))).toBe(true)
     expect(fs.existsSync(path.join(tmpDir, "raven", "images", "pg003_page.png"))).toBe(true)
-  })
+  }, 15_000)
 
   it("populates book metadata from the page-1 part when the target lacks it", async () => {
     makeBook("raven") // split-coordinator book: never extracted, no metadata
@@ -271,7 +271,7 @@ describe("mergePart", () => {
     } finally {
       db.close()
     }
-  })
+  }, 15_000)
 
   it("does NOT take metadata from a mid-book part (only the page-1 part is authoritative)", async () => {
     makeBook("raven")

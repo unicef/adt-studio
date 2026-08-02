@@ -51,6 +51,12 @@ export {
 export { createLogger, type LogLevel, type Logger } from "./logger.js"
 
 export {
+  DEFAULT_OLLAMA_BASE_URL,
+  ollamaOpenAIBaseUrl,
+  resolveOllamaModelName,
+} from "./ollama.js"
+
+export {
   createTTSSynthesizer,
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,

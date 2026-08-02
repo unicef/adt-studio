@@ -28,8 +28,8 @@ export function createMainWindow(): BrowserWindow {
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
-    minWidth: 1280,
-    minHeight: 720,
+    minWidth: 960,
+    minHeight: 640,
     show: false,
     autoHideMenuBar: true,
     backgroundColor: "#fff",
@@ -38,7 +38,7 @@ export function createMainWindow(): BrowserWindow {
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,
-      devTools: true,
+      devTools: is.dev,
     },
   });
 
@@ -49,7 +49,10 @@ export function createMainWindow(): BrowserWindow {
   attachCloseGuard(mainWindow);
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url);
+    const url = new URL(details.url);
+    if (url.protocol === "https:" || url.protocol === "http:") {
+      void shell.openExternal(url.toString());
+    }
     return { action: "deny" };
   });
 

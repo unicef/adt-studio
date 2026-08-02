@@ -216,6 +216,12 @@ pnpm exec playwright install chromium
 pnpm dev
 ```
 
+### Local Gemma 4 (Mac and Windows)
+
+Install and open [Ollama](https://ollama.com/download), then choose **Local AI** during onboarding or in **Settings → Local AI**. ADT Studio detects system memory, recommends and downloads a suitable Gemma 4 model, and runs text/vision generation locally. Cloud providers remain optional for later regeneration or improvement.
+
+See [docs/LOCAL_AI.md](docs/LOCAL_AI.md) for model tiers, privacy behavior, packaging, and troubleshooting.
+
 On Linux, if Chromium system libraries are missing, run:
 
 ```bash
@@ -418,6 +424,8 @@ Notes:
 | Document | Description |
 |----------|-------------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, package graph, pipeline model, data flow |
+| [docs/LOCAL_AI.md](docs/LOCAL_AI.md) | Local Gemma 4 setup for the Mac and Windows apps |
+| [docs/CODEX_PROJECT_REVIEW_2026-08-02.md](docs/CODEX_PROJECT_REVIEW_2026-08-02.md) | Architecture, code, security, dependency, UI/UX, and local-AI review |
 | [docs/RELEASING.md](docs/RELEASING.md) | Release flow, branching model (develop → beta, main → stable), and how the release pipeline works |
 | [docs/DEVELOPER-GUIDE.md](docs/DEVELOPER-GUIDE.md) | Hosting guide and developer extension reference for third-party teams |
 | [AGENTS.md](AGENTS.md) | Project instructions for AI coding agents (Claude Code, Codex, Cursor, etc.) |

@@ -1,7 +1,7 @@
 # Fallback LLM for text generation and visual analysis. Image generation and
 # speech use their own task-specific defaults; step-level `model` values still
 # override this one. This can also be changed in Studio under Settings > Models.
-default_model: "openai:gpt-5.4"
+default_model: "ollama:gemma4-e2b"
 default_image_generation_model: "openai:gpt-image-2"
 default_speech_generation_model: "gpt-4o-mini-tts"
 
@@ -219,7 +219,6 @@ render_strategies:
     config:
       prompt: activity_underline_text
       answer_prompt: activity_underline_text_answers
-      model: openai:gpt-5.4
       max_retries: 5
       timeout: 180
       visual_refinement:
