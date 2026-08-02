@@ -8,7 +8,6 @@ import {
   currentAudioIndexAtom,
   describeImagesModeAtom,
   isPlayingAtom,
-  playBarVisibleAtom,
   readAloudModeAtom,
   timecodeMapAtom,
   wordHighlightModeAtom,
@@ -142,7 +141,6 @@ export function useAudioPlayer(): UseAudioPlayer {
   // playback when the previous page unloaded? Every page turn is a full
   // document load, so this is the only trace that the child had read-aloud on.
   const wasPlayingBeforeLoadRef = useRef<boolean>(isPlaying)
-  const setPlayBarVisible = useSetAtom(playBarVisibleAtom)
 
   wordHighlightModeRef.current = wordHighlightMode
   speedRef.current = speed
@@ -371,19 +369,10 @@ export function useAudioPlayer(): UseAudioPlayer {
     // until they stop it. Resume only when narration was actually playing as
     // the previous page unloaded — on a first visit that flag is false, so the
     // book still opens silently.
-    if (kidsModeActive) {
-      if (!wasPlayingBeforeLoadRef.current) return
-      setPlayBarVisible(true)
-    }
+    if (kidsModeActive && !wasPlayingBeforeLoadRef.current) return
     hasAutoStartedRef.current = true
     playAtIndex(0)
-  }, [
-    items.length,
-    readAloudMode,
-    kidsModeActive,
-    playAtIndex,
-    setPlayBarVisible,
-  ])
+  }, [items.length, readAloudMode, kidsModeActive, playAtIndex])
 
   useEffect(() => {
     if (readAloudMode) return

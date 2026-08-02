@@ -1,4 +1,4 @@
-import { useAtom, useAtomValue, useSetAtom } from "jotai";
+import { useAtom, useAtomValue } from "jotai";
 import { ToggleRow } from "@/features/settings/components/ToggleRow";
 import { SegmentedRow } from "@/features/settings/components/SegmentedRow";
 import { SettingsSection } from "@/features/settings/components/SettingsSection";
