@@ -1930,6 +1930,9 @@ msgstr "Ndrysho figurën e këtij termi"
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "Ndryshimet zbatohen herën tjetër që ekzekutoni Storyboard dhe Eksportin."
 
+msgid "Changes detected"
+msgstr "U zbuluan ndryshime"
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Ndryshimi i fonteve ndikon në mënyrën se si shfaqen faqet — riekzekutoni Storyboard dhe Eksportin për të zbatuar fontet e reja."
 
@@ -2172,6 +2175,9 @@ msgstr "Komente"
 
 msgid "Compare"
 msgstr "Krahaso"
+
+msgid "Compare the current version with a chosen version at the same screen size."
+msgstr "Krahasoni versionin aktual me një version të zgjedhur në të njëjtën madhësi ekrani."
 
 msgid "Compare versions"
 msgstr "Krahaso versionet"
@@ -7656,8 +7662,8 @@ msgstr "Shiko shembuj"
 msgid "See the book & pick pages"
 msgstr "Shihni librin dhe zgjidhni faqet"
 
-msgid "See the current version and a chosen version rendered side by side."
-msgstr "Shihni versionin aktual dhe një version të zgjedhur krah për krah."
+#~ msgid "See the current version and a chosen version rendered side by side."
+#~ msgstr "Shihni versionin aktual dhe një version të zgjedhur krah për krah."
 
 msgid "Seed"
 msgstr "Fara"

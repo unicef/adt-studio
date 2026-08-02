@@ -119,6 +119,9 @@ export interface BookPreviewFrameProps {
   selectedDataId?: string | null
   /** Inner viewport width the iframe renders at; the wrapper scales it to fit. */
   renderWidth?: number
+  /** Optional visible-height cap. The complete page/device frame scales down
+   *  to fit instead of introducing a scroll region. */
+  maxVisibleHeight?: number
   /** When set, draws device chrome (bezel + rounded corners) around the iframe. */
   deviceView?: DeviceView
   /** Reports the iframe's current on-screen width in CSS pixels (renderWidth × scale).
@@ -180,6 +183,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   applyBodyBackground,
   selectedDataId,
   renderWidth = DEFAULT_RENDER_WIDTH,
+  maxVisibleHeight,
   deviceView,
   onVisibleWidthChange,
   linkMode = false,
@@ -859,7 +863,16 @@ ${selectors}:hover {
   // mobile/tablet grown up to a target visible width for legibility.
   useEffect(() => {
     if (fixedLayoutSize) {
-      setScale(Math.min(FIXED_LAYOUT_MAX_SCALE, availableWidth / fixedLayoutSize.referenceWidth))
+      const heightScale = maxVisibleHeight
+        ? maxVisibleHeight / fixedLayoutSize.height
+        : Number.POSITIVE_INFINITY
+      setScale(
+        Math.min(
+          FIXED_LAYOUT_MAX_SCALE,
+          availableWidth / fixedLayoutSize.referenceWidth,
+          heightScale
+        )
+      )
       return
     }
     const fitScale = Math.max(0, availableWidth / baseWidth)
@@ -867,8 +880,25 @@ ${selectors}:hover {
       deviceView === "desktop" || deviceView === undefined
         ? 1
         : targetVisibleWidth / baseWidth
-    setScale(Math.min(cap, fitScale))
-  }, [availableWidth, fixedLayoutSize, baseWidth, targetVisibleWidth, deviceView])
+    const naturalHeight =
+      deviceView === "desktop" || deviceView === undefined
+        ? contentHeight
+        : frame.chromeHeight
+    const heightScale =
+      maxVisibleHeight && naturalHeight > 0
+        ? maxVisibleHeight / naturalHeight
+        : Number.POSITIVE_INFINITY
+    setScale(Math.min(cap, fitScale, heightScale))
+  }, [
+    availableWidth,
+    fixedLayoutSize,
+    baseWidth,
+    targetVisibleWidth,
+    deviceView,
+    contentHeight,
+    frame.chromeHeight,
+    maxVisibleHeight,
+  ])
 
   // Ref callback so the iframe re-initializes whenever the conditional
   // device-frame branch swaps it out (toggling Desktop ↔ Mobile ↔ Tablet

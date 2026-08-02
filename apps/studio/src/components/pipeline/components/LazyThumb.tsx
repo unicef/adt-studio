@@ -11,9 +11,13 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
  * the portal and can miss the element entirely.
  */
 export function useReservedHeight<T extends HTMLElement>(
-  active: boolean
+  active: boolean,
+  measurementKey?: string
 ): [(node: T | null) => void, number | null] {
-  const [height, setHeight] = useState<number | null>(null)
+  const [measurement, setMeasurement] = useState<{
+    key: string | undefined
+    height: number
+  } | null>(null)
   const roRef = useRef<ResizeObserver | null>(null)
   const ref = useCallback(
     (node: T | null) => {
@@ -22,13 +26,17 @@ export function useReservedHeight<T extends HTMLElement>(
       if (!node || !active || typeof ResizeObserver === "undefined") return
       const ro = new ResizeObserver(() => {
         const h = node.getBoundingClientRect().height
-        if (h > 40) setHeight(h)
+        if (h > 40) setMeasurement({ key: measurementKey, height: h })
       })
       ro.observe(node)
       roRef.current = ro
     },
-    [active]
+    [active, measurementKey]
   )
+  const height =
+    measurement && measurement.key === measurementKey
+      ? measurement.height
+      : null
   return [ref, height]
 }
 

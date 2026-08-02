@@ -34,9 +34,14 @@ import {
   diffCounts,
   type VersionDiffDescriptor,
 } from "./VersionCompareDialog"
-import { VersionPreviewCompareDialog } from "./VersionPreviewCompareDialog"
+import {
+  VersionPreviewCompareDialog,
+  type VersionPreviewRenderOptions,
+} from "./VersionPreviewCompareDialog"
+import type { PreviewViewport } from "./preview-viewport"
 
 const NEUTRAL_ACCENT = "#4b5563"
+const HOVER_PREVIEW_MAX_HEIGHT = 376
 
 export type VersionedStep =
   | "toc-generation"
@@ -133,8 +138,15 @@ interface VersionPickerProps {
   renderPreview?: (
     data: unknown,
     onReady?: () => void,
-    opts?: { lite?: boolean }
+    opts?: VersionPreviewRenderOptions
   ) => ReactNode
+  /** Initial synchronized viewport for visual comparison. */
+  previewViewport?: PreviewViewport
+  /** Stage-specific viewport change classifier for compare indicators. */
+  getChangedPreviewViewports?: (
+    currentData: unknown,
+    selectedData: unknown
+  ) => ReadonlySet<PreviewViewport>
   /**
    * Book-level list stages (glossary, TOC, quizzes, …) supply this instead of
    * renderPreview: the picker then shows a per-version change count vs the
@@ -159,6 +171,8 @@ export function VersionPicker({
   pendingLabel,
   pendingLabelKey,
   renderPreview,
+  previewViewport,
+  getChangedPreviewViewports,
   diff,
 }: VersionPickerProps) {
   const { t, i18n } = useLingui()
@@ -576,7 +590,10 @@ export function VersionPicker({
                       <div className="border-b px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
                         {t`v${hovered} preview`}
                       </div>
-                      <div ref={previewPaneRef} className="max-h-[26rem] overflow-auto">
+                      <div
+                        ref={previewPaneRef}
+                        className="max-h-[26rem] overflow-hidden bg-muted/20 p-3"
+                      >
                         {/* key by version so each switch gets its own loading
                             skeleton instead of flashing an empty frame */}
                         <PreviewSkeleton
@@ -586,7 +603,11 @@ export function VersionPicker({
                           render={(onReady) =>
                             renderPreview(
                               versions.find((v) => v.version === hovered)?.data,
-                              onReady
+                              onReady,
+                              {
+                                viewport: previewViewport,
+                                maxHeight: HOVER_PREVIEW_MAX_HEIGHT,
+                              }
                             )
                           }
                         />
@@ -640,6 +661,8 @@ export function VersionPicker({
           icon={stageIcon}
           onRestore={restoreTo}
           cacheKey={`${bookLabel}:${step}:${itemId}`}
+          initialViewport={previewViewport}
+          getChangedViewports={getChangedPreviewViewports}
         />
       ) : versions && versions.length > 0 && diff ? (
         <VersionCompareDialog

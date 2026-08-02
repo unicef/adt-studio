@@ -1929,6 +1929,9 @@ msgstr "Alterar a imagem deste termo"
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "As alterações são aplicadas na próxima vez que você executar o Storyboard e a Exportação."
 
+msgid "Changes detected"
+msgstr "Alterações detectadas"
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Alterar as fontes afeta como as páginas são renderizadas — execute novamente o Storyboard e a Exportação para aplicar as novas fontes."
 
@@ -2171,6 +2174,9 @@ msgstr "Comments"
 
 msgid "Compare"
 msgstr "Comparar"
+
+msgid "Compare the current version with a chosen version at the same screen size."
+msgstr "Compare a versão atual com uma versão escolhida no mesmo tamanho de tela."
 
 msgid "Compare versions"
 msgstr "Comparar versões"
@@ -7655,8 +7661,8 @@ msgstr "Ver exemplos"
 msgid "See the book & pick pages"
 msgstr "Ver o livro e escolher páginas"
 
-msgid "See the current version and a chosen version rendered side by side."
-msgstr "Veja a versão atual e uma versão escolhida lado a lado."
+#~ msgid "See the current version and a chosen version rendered side by side."
+#~ msgstr "Veja a versão atual e uma versão escolhida lado a lado."
 
 msgid "Seed"
 msgstr "Semente"

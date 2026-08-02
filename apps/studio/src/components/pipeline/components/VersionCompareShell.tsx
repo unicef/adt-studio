@@ -81,7 +81,7 @@ export function VersionCompareShell({
         className={contentClassName}
         style={{ "--accent-color": accentColor, "--ring": accentColor } as CSSProperties}
       >
-        <DialogHeader className="border-b px-6 py-4">
+        <DialogHeader className="shrink-0 border-b px-4 py-3 sm:px-6 sm:py-4">
           <div className="flex items-center gap-2">
             <Icon className="h-4 w-4" strokeWidth={2.25} style={{ color: accentColor }} aria-hidden />
             <DialogTitle>{t`Compare versions`}</DialogTitle>
@@ -89,7 +89,7 @@ export function VersionCompareShell({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-2.5">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
           <div className="flex flex-wrap items-center gap-1">
             {versions.map((v) => {
               const chipCurrent = v.version === currentVersion
@@ -122,7 +122,7 @@ export function VersionCompareShell({
 
         {children}
 
-        <div className="flex items-center justify-between gap-3 border-t p-3">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t p-2.5 sm:p-3">
           <div className="flex items-center gap-3">{footerLeft}</div>
           <div className="flex items-center gap-2">
             <button

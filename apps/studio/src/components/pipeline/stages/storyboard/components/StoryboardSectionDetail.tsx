@@ -65,6 +65,7 @@ import {
 } from "./BookPreviewFrame"
 import { SectionEditPanel } from "./SectionEditPanel"
 import { writeCustomAnswerToHtml } from "../lib/activity-answer-labels"
+import { detectChangedStoryboardViewports } from "../lib/storyboard-viewport-changes"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
@@ -2353,6 +2354,24 @@ export function StoryboardSectionDetail({
     })
   }
 
+  const getChangedPreviewViewports = useCallback(
+    (currentData: unknown, selectedData: unknown) => {
+      const currentSection = getRenderedSectionByIndex(
+        currentData as RenderingData,
+        sectionIndex
+      )
+      const selectedSection = getRenderedSectionByIndex(
+        selectedData as RenderingData,
+        sectionIndex
+      )
+      return detectChangedStoryboardViewports(
+        currentSection?.html ?? "",
+        selectedSection?.html ?? ""
+      )
+    },
+    [sectionIndex]
+  )
+
   // Header controls rendered via portal into the purple step header
   const headerControls = (
     <>
@@ -2384,6 +2403,8 @@ export function StoryboardSectionDetail({
         onSave={saveRendering}
         onDiscard={discardAll}
         renderSaveBar={false}
+        previewViewport={deviceView}
+        getChangedPreviewViewports={getChangedPreviewViewports}
         renderPreview={(data, onReady, opts) => {
           const sec = getRenderedSectionByIndex(data as RenderingData, sectionIndex)
           if (!sec) {
@@ -2395,11 +2416,15 @@ export function StoryboardSectionDetail({
               </ReadyOnMount>
             )
           }
+          const previewViewport = opts?.viewport ?? (opts?.lite ? "desktop" : deviceView)
           return (
             <BookPreviewFrame
               html={sec.html}
               bookLabel={bookLabel}
               editable={false}
+              renderWidth={DEVICE_WIDTHS[previewViewport]}
+              deviceView={previewViewport}
+              maxVisibleHeight={opts?.maxHeight}
               thumbnail={Boolean(opts?.lite)}
               // Skip the per-version Tailwind recompile for the tiny list chips
               // (base CSS is enough at chip size); keep it for the full-size
