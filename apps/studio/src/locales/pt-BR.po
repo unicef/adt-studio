@@ -256,6 +256,10 @@ msgstr "{0} textos"
 msgid "{0} translations"
 msgstr "{0} traduções"
 
+#. placeholder {0}: shares.data?.feedback.length ?? 0
+msgid "{0} validator feedback items are saved in this book."
+msgstr "{0} itens de feedback dos validadores estão salvos neste livro."
+
 #. placeholder {0}: versions.length
 #~ msgid "{0} versions"
 #~ msgstr "{0} versões"
@@ -493,6 +497,9 @@ msgstr "1.1 Contexto"
 msgid "1.2 Scope"
 msgstr "1.2 Escopo"
 
+msgid "14 days"
+msgstr "14 dias"
+
 msgid "14.2 kB"
 msgstr "14,2 kB"
 
@@ -526,11 +533,17 @@ msgstr "3 de 5 módulos"
 msgid "3.2.1 — Authentication Methods"
 msgstr "3.2.1 — Métodos de Autenticação"
 
+msgid "30 days"
+msgstr "30 dias"
+
 msgid "36 spreads"
 msgstr "36 páginas duplas"
 
 msgid "42 figs"
 msgstr "42 figs"
+
+msgid "7 days"
+msgstr "7 dias"
 
 msgid "72 panels"
 msgstr "72 painéis"
@@ -729,6 +742,9 @@ msgstr "active item"
 
 msgid "active items"
 msgstr "active items"
+
+msgid "Active links"
+msgstr "Links ativos"
 
 msgid "Active reviewer session"
 msgstr "Active reviewer session"
@@ -2303,6 +2319,9 @@ msgstr "Copiar detalhes do erro"
 msgid "Copy error output"
 msgstr "Copiar saída de erro"
 
+msgid "Copy link"
+msgstr "Copiar link"
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Os recifes de coral cobrem menos de 1% do fundo do oceano, mas sustentam cerca de 25% de todas as espécies marinhas. Frequentemente chamados de 'florestas tropicais do mar', esses ecossistemas subaquáticos são construídos por pequenos animais chamados pólipos de coral."
 
@@ -2387,6 +2406,9 @@ msgstr "Create a reviewer session for this book."
 
 msgid "Create ADT"
 msgstr "Criar ADT"
+
+msgid "Create an expiring link where validators can test content, narration, sign language, and accessibility without exporting the book."
+msgstr "Crie um link com expiração para que os validadores testem conteúdo, narração, língua de sinais e acessibilidade sem exportar o livro."
 
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Cria legendas descritivas para imagens para melhorar a acessibilidade."
@@ -3267,6 +3289,9 @@ msgstr "Expandir todas as seções"
 
 msgid "Experimental configurations"
 msgstr "Configurações experimentais"
+
+msgid "Expires"
+msgstr "Expira"
 
 msgid "Expiry"
 msgstr "Expiração"
@@ -4514,6 +4539,9 @@ msgstr "Língua Portuguesa - 3° Ano"
 
 msgid "Link"
 msgstr "Link"
+
+msgid "Link expiry"
+msgstr "Expiração do link"
 
 msgid "Link page"
 msgstr "Vincular página"
@@ -6429,8 +6457,17 @@ msgstr "Removido: {0}"
 msgid "PT"
 msgstr "PT"
 
+msgid "Publish latest fixes"
+msgstr "Publicar correções mais recentes"
+
+msgid "Publish validation link"
+msgstr "Publicar link de validação"
+
 msgid "published in"
 msgstr "publicado em"
+
+msgid "Published revision:"
+msgstr "Revisão publicada:"
 
 msgid "Publisher"
 msgstr "Editora"
@@ -7047,6 +7084,9 @@ msgstr "Reviewer validation summary"
 msgid "Reviewing..."
 msgstr "Revisando..."
 
+msgid "Revoke"
+msgstr "Revogar"
+
 msgid "Rewriting the story of this section..."
 msgstr "Reescrevendo a história desta seção..."
 
@@ -7626,6 +7666,12 @@ msgstr "Navegação das configurações"
 
 msgid "Shadow"
 msgstr "Sombra"
+
+msgid "Share book for validation"
+msgstr "Compartilhar livro para validação"
+
+msgid "Share for validation"
+msgstr "Compartilhar para validação"
 
 msgid "Shared prompt versions"
 msgstr "Versões compartilhadas de prompts"
@@ -8571,6 +8617,9 @@ msgstr "Esta imagem está marcada como decorativa — clique para desmarcar"
 
 msgid "This is <0>ADT Studio</0>."
 msgstr "Isto é o <0>ADT Studio</0>."
+
+msgid "This is a local link. Configure VALIDATION_PUBLIC_BASE_URL to a deployed ADT address before sending it to another device."
+msgstr "Este é um link local. Configure VALIDATION_PUBLIC_BASE_URL com um endereço ADT implantado antes de enviá-lo para outro dispositivo."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Esta é uma pré-visualização das opções que você selecionou para o seu livro, cada opção afeta a pré-visualização de uma maneira diferente."

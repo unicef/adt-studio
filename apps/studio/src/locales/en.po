@@ -256,6 +256,10 @@ msgstr "{0} texts"
 msgid "{0} translations"
 msgstr "{0} translations"
 
+#. placeholder {0}: shares.data?.feedback.length ?? 0
+msgid "{0} validator feedback items are saved in this book."
+msgstr "{0} validator feedback items are saved in this book."
+
 #. placeholder {0}: versions.length
 #~ msgid "{0} versions"
 #~ msgstr "{0} versions"
@@ -493,6 +497,9 @@ msgstr "1.1 Background"
 msgid "1.2 Scope"
 msgstr "1.2 Scope"
 
+msgid "14 days"
+msgstr "14 days"
+
 msgid "14.2 kB"
 msgstr "14.2 kB"
 
@@ -526,11 +533,17 @@ msgstr "3 of 5 modules"
 msgid "3.2.1 — Authentication Methods"
 msgstr "3.2.1 — Authentication Methods"
 
+msgid "30 days"
+msgstr "30 days"
+
 msgid "36 spreads"
 msgstr "36 spreads"
 
 msgid "42 figs"
 msgstr "42 figs"
+
+msgid "7 days"
+msgstr "7 days"
 
 msgid "72 panels"
 msgstr "72 panels"
@@ -729,6 +742,9 @@ msgstr "active item"
 
 msgid "active items"
 msgstr "active items"
+
+msgid "Active links"
+msgstr "Active links"
 
 msgid "Active reviewer session"
 msgstr "Active reviewer session"
@@ -2303,6 +2319,9 @@ msgstr "Copy error details"
 msgid "Copy error output"
 msgstr "Copy error output"
 
+msgid "Copy link"
+msgstr "Copy link"
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 
@@ -2387,6 +2406,9 @@ msgstr "Create a reviewer session for this book."
 
 msgid "Create ADT"
 msgstr "Create ADT"
+
+msgid "Create an expiring link where validators can test content, narration, sign language, and accessibility without exporting the book."
+msgstr "Create an expiring link where validators can test content, narration, sign language, and accessibility without exporting the book."
 
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Create descriptive captions for images to improve accessibility."
@@ -3267,6 +3289,9 @@ msgstr "Expand all sections"
 
 msgid "Experimental configurations"
 msgstr "Experimental configurations"
+
+msgid "Expires"
+msgstr "Expires"
 
 msgid "Expiry"
 msgstr "Expiry"
@@ -4514,6 +4539,9 @@ msgstr "Língua Portuguesa - 3° Ano"
 
 msgid "Link"
 msgstr "Link"
+
+msgid "Link expiry"
+msgstr "Link expiry"
 
 msgid "Link page"
 msgstr "Link page"
@@ -6429,8 +6457,17 @@ msgstr "Pruned: {reason}"
 msgid "PT"
 msgstr "PT"
 
+msgid "Publish latest fixes"
+msgstr "Publish latest fixes"
+
+msgid "Publish validation link"
+msgstr "Publish validation link"
+
 msgid "published in"
 msgstr "published in"
+
+msgid "Published revision:"
+msgstr "Published revision:"
 
 msgid "Publisher"
 msgstr "Publisher"
@@ -7047,6 +7084,9 @@ msgstr "Reviewer validation summary"
 msgid "Reviewing..."
 msgstr "Reviewing..."
 
+msgid "Revoke"
+msgstr "Revoke"
+
 msgid "Rewriting the story of this section..."
 msgstr "Rewriting the story of this section..."
 
@@ -7626,6 +7666,12 @@ msgstr "Settings navigation"
 
 msgid "Shadow"
 msgstr "Shadow"
+
+msgid "Share book for validation"
+msgstr "Share book for validation"
+
+msgid "Share for validation"
+msgstr "Share for validation"
 
 msgid "Shared prompt versions"
 msgstr "Shared prompt versions"
@@ -8571,6 +8617,9 @@ msgstr "This image is marked decorative — click to un-mark"
 
 msgid "This is <0>ADT Studio</0>."
 msgstr "This is <0>ADT Studio</0>."
+
+msgid "This is a local link. Configure VALIDATION_PUBLIC_BASE_URL to a deployed ADT address before sending it to another device."
+msgstr "This is a local link. Configure VALIDATION_PUBLIC_BASE_URL to a deployed ADT address before sending it to another device."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "This is a preview of the options you have selected for your book, each option affects the preview in a different way."

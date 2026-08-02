@@ -62,6 +62,10 @@ vi.mock("@/components/validation/ReviewerValidationSummaryTab", () => ({
   ReviewerValidationSummaryTab: ({ label }: { label: string }) => <div>reviewer-validation:{label}</div>,
 }))
 
+vi.mock("@/components/validation/ValidationShareDialog", () => ({
+  ValidationShareDialog: ({ label }: { label: string }) => <button>share-validation:{label}</button>,
+}))
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()

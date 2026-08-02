@@ -257,6 +257,10 @@ msgstr "{0} tekste"
 msgid "{0} translations"
 msgstr "{0} përkthime"
 
+#. placeholder {0}: shares.data?.feedback.length ?? 0
+msgid "{0} validator feedback items are saved in this book."
+msgstr "{0} komente të vlerësuesve janë ruajtur në këtë libër."
+
 #. placeholder {0}: versions.length
 #~ msgid "{0} versions"
 #~ msgstr "{0} versione"
@@ -494,6 +498,9 @@ msgstr "1.1 Sfondi"
 msgid "1.2 Scope"
 msgstr "1.2 Shtrirja"
 
+msgid "14 days"
+msgstr "14 ditë"
+
 msgid "14.2 kB"
 msgstr "14.2 kB"
 
@@ -527,11 +534,17 @@ msgstr "3 nga 5 module"
 msgid "3.2.1 — Authentication Methods"
 msgstr "3.2.1 — Metodat e Autentifikimit"
 
+msgid "30 days"
+msgstr "30 ditë"
+
 msgid "36 spreads"
 msgstr "36 shpërndarje"
 
 msgid "42 figs"
 msgstr "42 figura"
+
+msgid "7 days"
+msgstr "7 ditë"
 
 msgid "72 panels"
 msgstr "72 panele"
@@ -730,6 +743,9 @@ msgstr "element aktiv"
 
 msgid "active items"
 msgstr "elementë aktivë"
+
+msgid "Active links"
+msgstr "Lidhjet aktive"
 
 msgid "Active reviewer session"
 msgstr "Sesion aktiv i rishikuesit"
@@ -2304,6 +2320,9 @@ msgstr "Kopjo detajet e gabimit"
 msgid "Copy error output"
 msgstr "Kopjo daljen e gabimit"
 
+msgid "Copy link"
+msgstr "Kopjo lidhjen"
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Rifet koraliere mbulojnë më pak se 1% të dyshemesë së oqeanit, por mbështesin rreth 25% të të gjitha specieve detare. Shpesh të quajtura 'pyjet e shiut të detit', këto ekosisteme nënujore ndërtohen nga kafshë të vogla të quajtura polipe korali."
 
@@ -2388,6 +2407,9 @@ msgstr "Krijoni një sesion rishikuesi për këtë libër."
 
 msgid "Create ADT"
 msgstr "Krijo ADT"
+
+msgid "Create an expiring link where validators can test content, narration, sign language, and accessibility without exporting the book."
+msgstr "Krijoni një lidhje me afat ku vlerësuesit mund të testojnë përmbajtjen, rrëfimin, gjuhën e shenjave dhe qasshmërinë pa eksportuar librin."
 
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Krijoni përshkrime përshkruese për imazhet për të përmirësuar aksesueshmërinë."
@@ -3268,6 +3290,9 @@ msgstr "Zgjer të gjitha seksionet"
 
 msgid "Experimental configurations"
 msgstr "Konfigurime eksperimentale"
+
+msgid "Expires"
+msgstr "Skadon"
 
 msgid "Expiry"
 msgstr "Skadimi"
@@ -4515,6 +4540,9 @@ msgstr "Língua Portuguesa - 3° Ano"
 
 msgid "Link"
 msgstr "Lidhje"
+
+msgid "Link expiry"
+msgstr "Skadimi i lidhjes"
 
 msgid "Link page"
 msgstr "Faqe lidhje"
@@ -6430,8 +6458,17 @@ msgstr "Shkurtuar: {reason}"
 msgid "PT"
 msgstr "PT"
 
+msgid "Publish latest fixes"
+msgstr "Publiko rregullimet e fundit"
+
+msgid "Publish validation link"
+msgstr "Publiko lidhjen e vlerësimit"
+
 msgid "published in"
 msgstr "botuar në"
+
+msgid "Published revision:"
+msgstr "Rishikimi i publikuar:"
 
 msgid "Publisher"
 msgstr "Botuesi"
@@ -7048,6 +7085,9 @@ msgstr "Përmbledhja e validimit të rishikuesit"
 msgid "Reviewing..."
 msgstr "Duke rishikuar..."
 
+msgid "Revoke"
+msgstr "Revoko"
+
 msgid "Rewriting the story of this section..."
 msgstr "Duke rishkruar historinë e këtij seksioni..."
 
@@ -7627,6 +7667,12 @@ msgstr "Navigimi i cilësimeve"
 
 msgid "Shadow"
 msgstr "Hije"
+
+msgid "Share book for validation"
+msgstr "Ndaj librin për vlerësim"
+
+msgid "Share for validation"
+msgstr "Ndaj për vlerësim"
 
 msgid "Shared prompt versions"
 msgstr "Versionet e përbashkëta të prompt-eve"
@@ -8572,6 +8618,9 @@ msgstr "Ky imazh është shënuar si dekorativ — kliko për ta hequr shënimin
 
 msgid "This is <0>ADT Studio</0>."
 msgstr "Ky është <0>ADT Studio</0>."
+
+msgid "This is a local link. Configure VALIDATION_PUBLIC_BASE_URL to a deployed ADT address before sending it to another device."
+msgstr "Kjo është një lidhje lokale. Konfiguroni VALIDATION_PUBLIC_BASE_URL me një adresë ADT të publikuar para se ta dërgoni në një pajisje tjetër."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Ky është një paraparim i opsioneve të zgjedhura për librin tuaj, çdo opsion ndikon paraparimimin në mënyra të ndryshme."

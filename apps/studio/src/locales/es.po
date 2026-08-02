@@ -256,6 +256,10 @@ msgstr "{0} textos"
 msgid "{0} translations"
 msgstr "{0} traducciones"
 
+#. placeholder {0}: shares.data?.feedback.length ?? 0
+msgid "{0} validator feedback items are saved in this book."
+msgstr "{0} elementos de comentarios de validadores están guardados en este libro."
+
 #. placeholder {0}: versions.length
 #~ msgid "{0} versions"
 #~ msgstr "{0} versiones"
@@ -493,6 +497,9 @@ msgstr "1.1 Antecedentes"
 msgid "1.2 Scope"
 msgstr "1.2 Alcance"
 
+msgid "14 days"
+msgstr "14 días"
+
 msgid "14.2 kB"
 msgstr "14,2 kB"
 
@@ -526,11 +533,17 @@ msgstr "3 de 5 módulos"
 msgid "3.2.1 — Authentication Methods"
 msgstr "3.2.1 — Métodos de Autenticación"
 
+msgid "30 days"
+msgstr "30 días"
+
 msgid "36 spreads"
 msgstr "36 páginas dobles"
 
 msgid "42 figs"
 msgstr "42 figs"
+
+msgid "7 days"
+msgstr "7 días"
 
 msgid "72 panels"
 msgstr "72 paneles"
@@ -729,6 +742,9 @@ msgstr "active item"
 
 msgid "active items"
 msgstr "active items"
+
+msgid "Active links"
+msgstr "Enlaces activos"
 
 msgid "Active reviewer session"
 msgstr "Active reviewer session"
@@ -2303,6 +2319,9 @@ msgstr "Copiar detalles del error"
 msgid "Copy error output"
 msgstr "Copiar salida de error"
 
+msgid "Copy link"
+msgstr "Copiar enlace"
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Los arrecifes de coral cubren menos del 1% del fondo oceánico, pero sostienen aproximadamente el 25% de todas las especies marinas. A menudo llamados 'los bosques lluviosos del mar', estos ecosistemas submarinos son construidos por pequeños animales llamados pólipos de coral."
 
@@ -2387,6 +2406,9 @@ msgstr "Create a reviewer session for this book."
 
 msgid "Create ADT"
 msgstr "Crear ADT"
+
+msgid "Create an expiring link where validators can test content, narration, sign language, and accessibility without exporting the book."
+msgstr "Crea un enlace con caducidad donde los validadores puedan probar el contenido, la narración, la lengua de signos y la accesibilidad sin exportar el libro."
 
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Crea subtítulos descriptivos para las imágenes para mejorar la accesibilidad."
@@ -3267,6 +3289,9 @@ msgstr "Expandir todas las secciones"
 
 msgid "Experimental configurations"
 msgstr "Configuraciones experimentales"
+
+msgid "Expires"
+msgstr "Caduca"
 
 msgid "Expiry"
 msgstr "Vencimiento"
@@ -4514,6 +4539,9 @@ msgstr "Lengua Portuguesa - 3° Año"
 
 msgid "Link"
 msgstr "Enlace"
+
+msgid "Link expiry"
+msgstr "Caducidad del enlace"
 
 msgid "Link page"
 msgstr "Enlazar página"
@@ -6429,8 +6457,17 @@ msgstr "Eliminado: {0}"
 msgid "PT"
 msgstr "PT"
 
+msgid "Publish latest fixes"
+msgstr "Publicar las últimas correcciones"
+
+msgid "Publish validation link"
+msgstr "Publicar enlace de validación"
+
 msgid "published in"
 msgstr "publicado en"
+
+msgid "Published revision:"
+msgstr "Revisión publicada:"
 
 msgid "Publisher"
 msgstr "Editorial"
@@ -7047,6 +7084,9 @@ msgstr "Reviewer validation summary"
 msgid "Reviewing..."
 msgstr "Revisando..."
 
+msgid "Revoke"
+msgstr "Revocar"
+
 msgid "Rewriting the story of this section..."
 msgstr "Reescribiendo la historia de esta sección..."
 
@@ -7626,6 +7666,12 @@ msgstr "Navegación de configuración"
 
 msgid "Shadow"
 msgstr "Sombra"
+
+msgid "Share book for validation"
+msgstr "Compartir libro para validación"
+
+msgid "Share for validation"
+msgstr "Compartir para validación"
 
 msgid "Shared prompt versions"
 msgstr "Versiones compartidas de prompts"
@@ -8571,6 +8617,9 @@ msgstr "Esta imagen está marcada como decorativa — haz clic para desmarcar"
 
 msgid "This is <0>ADT Studio</0>."
 msgstr "Esto es <0>ADT Studio</0>."
+
+msgid "This is a local link. Configure VALIDATION_PUBLIC_BASE_URL to a deployed ADT address before sending it to another device."
+msgstr "Este es un enlace local. Configura VALIDATION_PUBLIC_BASE_URL con una dirección ADT desplegada antes de enviarlo a otro dispositivo."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Esta es una vista previa de las opciones que has seleccionado para tu libro, cada opción afecta la vista previa de una manera diferente."

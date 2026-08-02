@@ -258,6 +258,10 @@ msgstr "{0} textes"
 msgid "{0} translations"
 msgstr "{0} traductions"
 
+#. placeholder {0}: shares.data?.feedback.length ?? 0
+msgid "{0} validator feedback items are saved in this book."
+msgstr "{0} éléments de retour des validateurs sont enregistrés dans ce livre."
+
 #. placeholder {0}: versions.length
 #~ msgid "{0} versions"
 #~ msgstr "{0} versions"
@@ -495,6 +499,9 @@ msgstr "1.1 Contexte"
 msgid "1.2 Scope"
 msgstr "1.2 Portée"
 
+msgid "14 days"
+msgstr "14 jours"
+
 msgid "14.2 kB"
 msgstr "14,2 ko"
 
@@ -528,11 +535,17 @@ msgstr "3 sur 5 modules"
 msgid "3.2.1 — Authentication Methods"
 msgstr "3.2.1 — Méthodes d'authentification"
 
+msgid "30 days"
+msgstr "30 jours"
+
 msgid "36 spreads"
 msgstr "36 doubles pages"
 
 msgid "42 figs"
 msgstr "42 figs"
+
+msgid "7 days"
+msgstr "7 jours"
 
 msgid "72 panels"
 msgstr "72 panneaux"
@@ -731,6 +744,9 @@ msgstr "élément actif"
 
 msgid "active items"
 msgstr "éléments actifs"
+
+msgid "Active links"
+msgstr "Liens actifs"
 
 msgid "Active reviewer session"
 msgstr "Session de révision active"
@@ -2305,6 +2321,9 @@ msgstr "Copier les détails de l'erreur"
 msgid "Copy error output"
 msgstr "Copier la sortie d'erreur"
 
+msgid "Copy link"
+msgstr "Copier le lien"
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Les récifs coralliens couvrent moins de 1 % du fond océanique, mais ils abritent environ 25 % de toutes les espèces marines. Souvent appelés les « forêts tropicales de la mer », ces écosystèmes sous-marins sont construits par de minuscules animaux appelés polypes coralliens."
 
@@ -2389,6 +2408,9 @@ msgstr "Créer une session de révision pour ce livre."
 
 msgid "Create ADT"
 msgstr "Créer ADT"
+
+msgid "Create an expiring link where validators can test content, narration, sign language, and accessibility without exporting the book."
+msgstr "Créez un lien temporaire permettant aux validateurs de tester le contenu, la narration, la langue des signes et l’accessibilité sans exporter le livre."
 
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Créez des légendes descriptives pour les images afin d'améliorer l'accessibilité."
@@ -3269,6 +3291,9 @@ msgstr "Développer toutes les sections"
 
 msgid "Experimental configurations"
 msgstr "Configurations expérimentales"
+
+msgid "Expires"
+msgstr "Expire"
 
 msgid "Expiry"
 msgstr "Expiration"
@@ -4516,6 +4541,9 @@ msgstr "Língua Portuguesa - 3° Ano"
 
 msgid "Link"
 msgstr "Lien"
+
+msgid "Link expiry"
+msgstr "Expiration du lien"
 
 msgid "Link page"
 msgstr "Lier la page"
@@ -6431,8 +6459,17 @@ msgstr "Élagué : {reason}"
 msgid "PT"
 msgstr "PT"
 
+msgid "Publish latest fixes"
+msgstr "Publier les dernières corrections"
+
+msgid "Publish validation link"
+msgstr "Publier le lien de validation"
+
 msgid "published in"
 msgstr "publié en"
+
+msgid "Published revision:"
+msgstr "Révision publiée :"
 
 msgid "Publisher"
 msgstr "Éditeur"
@@ -7049,6 +7086,9 @@ msgstr "Résumé de validation du réviseur"
 msgid "Reviewing..."
 msgstr "Révision..."
 
+msgid "Revoke"
+msgstr "Révoquer"
+
 msgid "Rewriting the story of this section..."
 msgstr "Réécriture de l'histoire de cette section..."
 
@@ -7628,6 +7668,12 @@ msgstr "Navigation des paramètres"
 
 msgid "Shadow"
 msgstr "Ombre"
+
+msgid "Share book for validation"
+msgstr "Partager le livre pour validation"
+
+msgid "Share for validation"
+msgstr "Partager pour validation"
 
 msgid "Shared prompt versions"
 msgstr "Versions partagées des prompts"
@@ -8573,6 +8619,9 @@ msgstr "Cette image est marquée comme décorative — cliquez pour désélectio
 
 msgid "This is <0>ADT Studio</0>."
 msgstr "Voici <0>ADT Studio</0>."
+
+msgid "This is a local link. Configure VALIDATION_PUBLIC_BASE_URL to a deployed ADT address before sending it to another device."
+msgstr "Ceci est un lien local. Configurez VALIDATION_PUBLIC_BASE_URL avec une adresse ADT déployée avant de l’envoyer vers un autre appareil."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Ceci est un aperçu des options que vous avez sélectionnées pour votre livre. Chaque option affecte l'aperçu de manière différente."
