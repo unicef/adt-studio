@@ -10,6 +10,7 @@ The print page is the visual target, not merely a content reference. Reproduce i
 - Match its hierarchy: title prominence, heading scale, body density, captions, labels, lists, tables, activities, headers, footers, and page numbers.
 - Preserve every supplied image and size/crop it in the same role and approximate proportion as the original.
 - When two supplied images overlap in the original (for example, a clean illustration plus a cropped poster, label, or diagram overlay), treat them as layers of one responsive figure. Never stack coordinate-linked layers vertically. Use a relative wrapper and percentage-based inline positioning derived from their source proportions so the layers scale together; keep the meaningful description available to assistive technology and hide a purely visual overlay from it.
+- Never synthesize, redraw, trace, approximate, or imitate a signature, official stamp, seal, certificate mark, or other identity/authenticity mark with CSS, SVG, fonts, or generated artwork. Use the exact supplied source asset. If no authentic asset is supplied, leave the mark absent and report the limitation instead of inventing one.
 - Use the supplied book typography and existing semantic `adt-*` classes. Match weight, emphasis, casing, and alignment without inventing text.
 - Keep repeated book furniture and recurring page patterns visually consistent with the source.
 

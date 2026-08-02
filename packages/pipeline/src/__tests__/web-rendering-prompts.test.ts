@@ -91,5 +91,21 @@ describe("page-mode visual review prompt", () => {
     expect(prompt).toContain("treat them as layers of one responsive figure")
     expect(prompt).toContain("Never stack coordinate-linked layers vertically")
     expect(prompt).toContain("inline percentage positioning is allowed")
+    expect(prompt).toContain("Never synthesize, redraw, trace, approximate, or imitate a signature")
+    expect(prompt).toContain("leave the mark absent")
+  })
+})
+
+describe("image meaningfulness prompt", () => {
+  it("preserves signatures and other authenticity marks", async () => {
+    const messages = await promptEngine.renderPrompt("image_meaningfulness", {
+      page_image_base64: "page-image",
+      images: [],
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("identity/authenticity mark")
+    expect(prompt).toContain("must be preserved exactly")
+    expect(prompt).toContain("Never classify a signature")
   })
 })
