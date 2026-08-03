@@ -27,11 +27,22 @@ import {
   toResolvedCredentials,
   type LLMProviderCredentials,
 } from "./legacy-credentials.js"
-import { getDefaultProviderRegistry } from "./providers/index.js"
+import { getDefaultProviderRegistry, OLLAMA_PROVIDER_ID } from "./providers/index.js"
 import type { ProviderRegistry, ResolvedBackend } from "./registry.js"
 import type { StructuredTextBackend } from "./ports/index.js"
 
 export type { LLMProviderCredentials }
+
+const LOCAL_PROVIDER_MIN_TIMEOUT_MS = 600_000
+const LOCAL_PROVIDER_IDS = new Set<string>([OLLAMA_PROVIDER_ID])
+
+function resolveEffectiveTimeoutMs(
+  providerId: string,
+  requestedTimeoutMs: number | undefined,
+): number | undefined {
+  if (!LOCAL_PROVIDER_IDS.has(providerId)) return requestedTimeoutMs
+  return Math.max(requestedTimeoutMs ?? 0, LOCAL_PROVIDER_MIN_TIMEOUT_MS)
+}
 
 export interface CreateLLMModelOptions {
   modelId: string // "openai:gpt-5.4" format
@@ -171,6 +182,10 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         )
       }
       const effectiveTemperature = supportsTemperature ? opts.temperature : undefined
+      const effectiveTimeoutMs = resolveEffectiveTimeoutMs(
+        resolved.providerId,
+        opts.timeoutMs,
+      )
       const legacyReadable = isLegacyCacheReadable(resolved.fingerprint)
 
       const generate = async (
@@ -183,7 +198,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           strategy,
           temperature: effectiveTemperature,
           maxTokens: opts.maxTokens,
-          timeoutMs: opts.timeoutMs,
+          timeoutMs: effectiveTimeoutMs,
           signal: externalSignal,
         })
         return { object: generated.object, usage: generated.usage }
