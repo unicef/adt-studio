@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const PUBLISH_WORKER_VERSION = "0.1.0"
+export const PUBLISH_WORKER_VERSION = "0.2.0"
 
 export const PUBLICATION_SNAPSHOT_MAX_BYTES = 100 * 1024 * 1024
 
@@ -105,6 +105,114 @@ export const PublishErrorResponse = z.object({
   message: z.string().optional(),
 })
 export type PublishErrorResponse = z.infer<typeof PublishErrorResponse>
+
+export const PublishStepId = z.enum(["export", "package", "upload", "register"])
+export type PublishStepId = z.infer<typeof PublishStepId>
+
+export const PublishStepDescriptor = z.object({
+  id: PublishStepId,
+  number: z.number().int().min(1).max(4),
+  label: z.string().min(1),
+})
+export type PublishStepDescriptor = z.infer<typeof PublishStepDescriptor>
+
+export const PUBLISH_STEPS: readonly PublishStepDescriptor[] = [
+  { id: "export", number: 1, label: "Build the web version" },
+  { id: "package", number: 2, label: "Package the files" },
+  { id: "upload", number: 3, label: "Upload to your Cloudflare" },
+  { id: "register", number: 4, label: "Create the share link" },
+]
+
+export const PUBLISH_STEP_COUNT = PUBLISH_STEPS.length
+
+/** `pending` is a client-side display state for steps the stream has not reached yet —
+ *  the SSE stream itself only ever emits the other three. Mirrors `ProvisionStepStatus`. */
+export const PublishStepStatus = z.enum(["pending", "running", "done", "error"])
+export type PublishStepStatus = z.infer<typeof PublishStepStatus>
+
+export const PublishErrorCodeStudio = z.enum([
+  "publish_not_connected",
+  "published_already",
+  "not_published",
+  "export_failed",
+  "package_failed",
+  "upload_failed",
+  "worker_unreachable",
+  "snapshot_too_large",
+])
+export type PublishErrorCodeStudio = z.infer<typeof PublishErrorCodeStudio>
+
+/** What the wire can carry — `pending` exists only in the client's own step table. */
+export const PublishStepEventStatus = PublishStepStatus.exclude(["pending"])
+export type PublishStepEventStatus = z.infer<typeof PublishStepEventStatus>
+
+export const PublishStepEvent = z.object({
+  type: z.literal("step"),
+  id: PublishStepId,
+  number: z.number().int().min(1),
+  label: z.string().min(1),
+  status: PublishStepEventStatus,
+  message: z.string().optional(),
+  error: z.string().optional(),
+})
+export type PublishStepEvent = z.infer<typeof PublishStepEvent>
+
+export const PublishCompleteEvent = z.object({
+  type: z.literal("complete"),
+  publication: Publication,
+  version: PublicationVersion,
+  url: z.string().url(),
+})
+export type PublishCompleteEvent = z.infer<typeof PublishCompleteEvent>
+
+export const PublishErrorEvent = z.object({
+  type: z.literal("error"),
+  code: PublishErrorCodeStudio,
+  message: z.string(),
+  step_id: PublishStepId.nullable(),
+})
+export type PublishErrorEvent = z.infer<typeof PublishErrorEvent>
+
+export const PublishProgressEvent = z.discriminatedUnion("type", [
+  PublishStepEvent,
+  PublishCompleteEvent,
+  PublishErrorEvent,
+])
+export type PublishProgressEvent = z.infer<typeof PublishProgressEvent>
+
+export const BookPublicationVersionRecord = z.object({
+  version: z.number().int().min(1),
+  published_at: z.string().datetime(),
+  page_count: z.number().int().min(0),
+})
+export type BookPublicationVersionRecord = z.infer<typeof BookPublicationVersionRecord>
+
+/** The book-local half of a publication: enough to rebuild the share link, list the
+ *  version history and recover from a partial upload without reaching the worker. */
+export const BookPublicationRecord = z.object({
+  token: PublicationToken,
+  base_url: z.string().url(),
+  worker_url: z.string().min(1),
+  created_at: z.string().datetime(),
+  expires_at: z.string().datetime().nullable(),
+  revoked_at: z.string().datetime().nullable(),
+  versions: z.array(BookPublicationVersionRecord),
+})
+export type BookPublicationRecord = z.infer<typeof BookPublicationRecord>
+
+export const BookPublicationStatus = z.object({
+  connected: z.boolean(),
+  record: BookPublicationRecord.nullable(),
+  publication: Publication.nullable(),
+  url: z.string().url().nullable(),
+  worker_reachable: z.boolean(),
+})
+export type BookPublicationStatus = z.infer<typeof BookPublicationStatus>
+
+export const BookPublishRequest = z.object({
+  expires_at: z.string().datetime().nullable().optional(),
+})
+export type BookPublishRequest = z.infer<typeof BookPublishRequest>
 
 export function publicationStateAt(
   publication: Pick<Publication, "expires_at" | "revoked_at">,

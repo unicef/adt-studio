@@ -11,10 +11,12 @@
   },
   "dependencies": {
     "@adt/types": "workspace:*",
+    "fflate": "^0.8.2",
     "hono": "^4.12.25",
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "0.18.8",
     "@cloudflare/workers-types": "^5.20260727.1",
     "esbuild": "^0.25.0",
     "wrangler": "^4.114.0"
