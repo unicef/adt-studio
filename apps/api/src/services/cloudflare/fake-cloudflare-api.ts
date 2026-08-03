@@ -40,6 +40,7 @@ export interface FakeCloudflareOptions {
   createdDatabaseUuid?: string
   d1CreateConflict?: boolean
   bucketCreateConflict?: boolean
+  r2NotEnabled?: boolean
   migrationErrorMessage?: string
   uploadErrorMessage?: string
   rejectMigrationTag?: boolean
@@ -253,6 +254,9 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     }
 
     if (path === "/r2/buckets") {
+      if (options.r2NotEnabled) {
+        return fail(403, 10042, "Please enable R2 through the Cloudflare Dashboard.")
+      }
       if (denied.has("R2:Edit")) return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
       if (method === "GET") {
         return ok({ buckets: state.buckets.map((name) => ({ name })) })

@@ -12,7 +12,13 @@ export interface CloudflareAccessProbe {
   workersDevSubdomain: string | null
   tokenInvalid: boolean
   accountNotFound: boolean
+  r2NotEnabled: boolean
 }
+
+/** Cloudflare error 10042: the account exists and the credential reaches R2, but R2
+ *  itself was never activated in the dashboard — a distinct condition from a missing
+ *  permission, with a completely different remedy. */
+const R2_NOT_ENABLED_CODE = 10042
 
 function isScopeFailure(error: unknown): error is CloudflareApiError {
   return error instanceof CloudflareApiError && error.isAuthFailure
@@ -33,6 +39,7 @@ export async function probeCloudflareAccess(
   options: CloudflareAccessProbeOptions = {},
 ): Promise<CloudflareAccessProbe> {
   const missingScopes: CloudflareTokenScope[] = []
+  let r2NotEnabled = false
 
   if (options.verifyToken !== false) {
     try {
@@ -45,6 +52,7 @@ export async function probeCloudflareAccess(
           workersDevSubdomain: null,
           tokenInvalid: true,
           accountNotFound: false,
+          r2NotEnabled: false,
         }
       }
     } catch {
@@ -55,6 +63,7 @@ export async function probeCloudflareAccess(
         workersDevSubdomain: null,
         tokenInvalid: true,
         accountNotFound: false,
+        r2NotEnabled: false,
       }
     }
   }
@@ -84,7 +93,9 @@ export async function probeCloudflareAccess(
     try {
       await probe.run()
     } catch (error) {
-      if (isScopeFailure(error)) {
+      if (error instanceof CloudflareApiError && error.hasCode(R2_NOT_ENABLED_CODE)) {
+        r2NotEnabled = true
+      } else if (isScopeFailure(error)) {
         missingScopes.push(probe.scope)
       } else if (error instanceof CloudflareApiError && error.isNotFound) {
         accountNotFound = true
@@ -104,12 +115,13 @@ export async function probeCloudflareAccess(
   const ordered = CLOUDFLARE_REQUIRED_SCOPES.filter((scope) => missingScopes.includes(scope))
 
   return {
-    ok: !accountNotFound && ordered.length === 0,
+    ok: !accountNotFound && ordered.length === 0 && !r2NotEnabled,
     accountName,
     missingScopes: ordered,
     workersDevSubdomain,
     tokenInvalid: false,
     accountNotFound,
+    r2NotEnabled,
   }
 }
 
@@ -119,5 +131,6 @@ export function toVerifyResponse(probe: CloudflareAccessProbe): CloudflareVerify
     account_name: probe.accountName,
     missing_scopes: probe.missingScopes,
     workers_dev_subdomain: probe.workersDevSubdomain,
+    r2_not_enabled: probe.r2NotEnabled,
   }
 }

@@ -310,6 +310,15 @@ describe("provisionCloudflare — error taxonomy", () => {
     expect(stepEvents(events).at(-1)).toMatchObject({ id: "verify-token", status: "error" })
   })
 
+  it("reports r2_not_enabled when the account has never activated R2", async () => {
+    const { error, events } = await run({ fake: { r2NotEnabled: true } })
+
+    expect(error?.code).toBe("r2_not_enabled")
+    expect(error?.missingScopes ?? []).toEqual([])
+    expect(error?.message).toContain("R2")
+    expect(stepEvents(events).at(-1)).toMatchObject({ id: "verify-token", status: "error" })
+  })
+
   it("reports bad_token_scope when the token itself is rejected", async () => {
     const { error } = await run({ fake: { tokenInvalid: true } })
     expect(error?.code).toBe("bad_token_scope")

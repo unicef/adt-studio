@@ -27,6 +27,7 @@ export const CloudflareVerifyResponse = z.object({
   account_name: z.string().nullable(),
   missing_scopes: z.array(CloudflareTokenScope),
   workers_dev_subdomain: z.string().nullable(),
+  r2_not_enabled: z.boolean().optional(),
 })
 export type CloudflareVerifyResponse = z.infer<typeof CloudflareVerifyResponse>
 
@@ -73,6 +74,7 @@ export const PROVISION_STEP_COUNT = PROVISION_STEPS.length
 
 export const ProvisionErrorCode = z.enum([
   "bad_token_scope",
+  "r2_not_enabled",
   "account_not_found",
   "no_workers_subdomain",
   "name_collision",

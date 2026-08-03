@@ -5,12 +5,14 @@ import type { ProvisionFailure } from "@/hooks/use-cloudflare-provision"
 import { ExternalLinkButton } from "./ExternalLinkButton"
 import { PermissionList } from "./PermissionList"
 import { matchMissingScopes } from "./token-permissions"
-import { CLOUDFLARE_API_TOKENS_URL, CLOUDFLARE_WORKERS_URL } from "./cloudflare-links"
+import { CLOUDFLARE_API_TOKENS_URL, CLOUDFLARE_R2_URL, CLOUDFLARE_WORKERS_URL } from "./cloudflare-links"
 
 function title(failure: ProvisionFailure): ReactNode {
   switch (failure.code) {
     case "bad_token_scope":
       return <Trans>Your token is missing some permissions</Trans>
+    case "r2_not_enabled":
+      return <Trans>Turn on R2 storage in Cloudflare first</Trans>
     case "account_not_found":
       return <Trans>Cloudflare didn't recognise that Account ID</Trans>
     case "no_workers_subdomain":
@@ -37,6 +39,15 @@ function body(failure: ProvisionFailure): ReactNode {
         <Trans>
           Open your token in Cloudflare, add the rows below, save it, then try again. Nothing was
           created in your account.
+        </Trans>
+      )
+    case "r2_not_enabled":
+      return (
+        <Trans>
+          Published books are stored in Cloudflare R2, and your account hasn't switched it on yet.
+          Open R2 in your Cloudflare dashboard and follow the steps to enable it — Cloudflare asks
+          for a payment method, but the space ADT Studio uses is within the free allowance. Then
+          come back and try again. Nothing was created in your account.
         </Trans>
       )
     case "account_not_found":
@@ -102,6 +113,13 @@ function action(failure: ProvisionFailure): ReactNode {
     return (
       <ExternalLinkButton href={CLOUDFLARE_API_TOKENS_URL} className="self-start">
         <Trans>Edit my token in Cloudflare</Trans>
+      </ExternalLinkButton>
+    )
+  }
+  if (failure.code === "r2_not_enabled") {
+    return (
+      <ExternalLinkButton href={CLOUDFLARE_R2_URL} className="self-start">
+        <Trans>Turn on R2 in Cloudflare</Trans>
       </ExternalLinkButton>
     )
   }

@@ -10,7 +10,7 @@ import { ExternalLinkButton } from "./ExternalLinkButton"
 import { PermissionList } from "./PermissionList"
 import { WizardStepShell } from "./WizardStepShell"
 import { matchMissingScopes } from "./token-permissions"
-import { CLOUDFLARE_API_TOKENS_URL, CLOUDFLARE_WORKERS_URL } from "./cloudflare-links"
+import { CLOUDFLARE_API_TOKENS_URL, CLOUDFLARE_R2_URL, CLOUDFLARE_WORKERS_URL } from "./cloudflare-links"
 
 export interface CredentialsStepProps {
   stepNumber: number
@@ -201,7 +201,30 @@ export function CredentialsStep({
             </div>
           )}
 
-          {result && !tokenWorks && missingPermissions.length === 0 && (
+          {result && !tokenWorks && result.r2_not_enabled && (
+            <div
+              data-testid="verify-r2-not-enabled"
+              className="flex flex-col gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <AlertTriangle className="size-4 shrink-0 text-amber-600" aria-hidden="true" />
+                <Trans>Turn on R2 storage in Cloudflare first</Trans>
+              </span>
+              <p className="text-sm leading-6 text-muted-foreground">
+                <Trans>
+                  Your details work, but published books are stored in Cloudflare R2 and your
+                  account hasn't switched it on yet. Open R2 in your Cloudflare dashboard and follow
+                  the steps to enable it — Cloudflare asks for a payment method, but the space ADT
+                  Studio uses is within the free allowance. Then check again.
+                </Trans>
+              </p>
+              <ExternalLinkButton href={CLOUDFLARE_R2_URL} className="self-start">
+                <Trans>Turn on R2 in Cloudflare</Trans>
+              </ExternalLinkButton>
+            </div>
+          )}
+
+          {result && !tokenWorks && missingPermissions.length === 0 && !result.r2_not_enabled && (
             <div
               data-testid="verify-rejected"
               className="flex flex-col gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200"

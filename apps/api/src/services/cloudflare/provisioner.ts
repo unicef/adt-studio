@@ -176,6 +176,14 @@ export async function provisionCloudflare(
         missingScopes: probe.missingScopes,
       })
     }
+    if (probe.r2NotEnabled) {
+      throw new ProvisionError({
+        code: "r2_not_enabled",
+        stepId: "verify-token",
+        message:
+          "R2 storage has not been enabled on this Cloudflare account yet. Enable R2 in the Cloudflare dashboard, then try again.",
+      })
+    }
     stepMessage = probe.accountName ? `Account ${probe.accountName}` : undefined
     return probe.accountName
   })
