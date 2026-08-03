@@ -36,6 +36,17 @@ import type {
   TranslationEvaluationResult,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
+import type {
+  BookPublicationRecord,
+  BookPublicationStatus,
+  BookPublicationVersionRecord,
+  PublicationResponse,
+  PublishErrorCodeStudio,
+  PublishProgressEvent,
+  PublishStepDescriptor,
+  PublishStepId,
+  PublishStepStatus,
+} from "@adt/types"
 
 export type { BookSummary, BookDetail }
 
@@ -877,6 +888,68 @@ function buildCloudflareHeaders(
   if (credentials?.token) headers[CLOUDFLARE_TOKEN_HEADER] = credentials.token
   if (credentials?.accountId) headers[CLOUDFLARE_ACCOUNT_ID_HEADER] = credentials.accountId
   return headers
+}
+
+// --- Book publication (M1b) ---
+
+export type {
+  BookPublicationRecord,
+  BookPublicationStatus,
+  BookPublicationVersionRecord,
+  PublicationResponse,
+  PublishErrorCodeStudio,
+  PublishProgressEvent,
+  PublishStepDescriptor,
+  PublishStepId,
+  PublishStepStatus,
+}
+
+export interface PublishStreamOptions {
+  onEvent: (event: PublishProgressEvent) => void
+  signal?: AbortSignal
+}
+
+/** Reads a `text/event-stream` POST response, turning the `{ error, code }`
+ *  bodies the route answers *before* the stream opens into an `ApiError`. */
+async function streamPublishEvents(
+  path: string,
+  body: Record<string, unknown>,
+  options: PublishStreamOptions,
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+    body: JSON.stringify(body),
+    signal: options.signal,
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "")
+    let message: string | undefined
+    let code: string | null = null
+    try {
+      const parsed = JSON.parse(text) as { error?: string; code?: string }
+      message = parsed.error
+      code = typeof parsed.code === "string" ? parsed.code : null
+    } catch {
+      message = text || undefined
+    }
+    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, code)
+  }
+
+  if (!res.body) throw new ApiError(`Request failed: ${res.status}`, res.status)
+
+  await readEventStream(res.body, ({ event, data }) => {
+    if (!data) return
+    let payload: Record<string, unknown>
+    try {
+      payload = JSON.parse(data) as Record<string, unknown>
+    } catch {
+      return
+    }
+    const type = typeof payload.type === "string" ? payload.type : event
+    options.onEvent({ ...payload, type } as PublishProgressEvent)
+  })
 }
 
 export interface TaskInfoResponse {
@@ -2033,6 +2106,37 @@ export const api = {
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
   },
+
+  // --- Book publication (M1b) ---
+
+  getBookPublication: (label: string) =>
+    request<BookPublicationStatus>(`/books/${label}/publication`),
+
+  /** First publish: mints a token and uploads v1. Streams the four publish steps. */
+  publishBook: (
+    label: string,
+    options: PublishStreamOptions & { expiresAt?: string | null },
+  ): Promise<void> =>
+    streamPublishEvents(
+      `/books/${label}/publication`,
+      options.expiresAt === undefined ? {} : { expires_at: options.expiresAt },
+      options,
+    ),
+
+  /** "Update site": re-exports and uploads the next version under the same link. */
+  publishBookVersion: (label: string, options: PublishStreamOptions): Promise<void> =>
+    streamPublishEvents(`/books/${label}/publication/versions`, {}, options),
+
+  revokeBookPublication: (label: string) =>
+    request<PublicationResponse>(`/books/${label}/publication/revoke`, {
+      method: "POST",
+    }),
+
+  setBookPublicationExpiry: (label: string, expiresAt: string | null) =>
+    request<PublicationResponse>(`/books/${label}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ expires_at: expiresAt }),
+    }),
 
   // --- Cloudflare connection & provisioning ---
 

@@ -21,6 +21,7 @@ import {
   type ExportFormat,
 } from "./export-formats"
 import { ExportDialog } from "./ExportDialog"
+import { PublishPanel } from "./publish/PublishPanel"
 import { FormatPicker } from "./components/FormatPicker"
 import { ExportPreview } from "./components/ExportPreview"
 import { useCapturedPreviewSettings } from "@/hooks/use-preview-settings-listener"
@@ -162,6 +163,8 @@ function ExportLandingBody({
           />
         </SettingsField>
       </SettingsCard>
+
+      {!isPart && <PublishPanel bookLabel={bookLabel} />}
 
       <ExportDialog
         open={exportDialogOpen}
