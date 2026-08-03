@@ -235,6 +235,7 @@ describe("captionPageImages", () => {
       {
         pageId: "pg001",
         pageImageBase64: "base64pageimage",
+        pageText: "Momo wakes when the branch shakes.",
         images: [{ imageId: "pg001_im001", imageBase64: "base64img1" }],
         language: "en",
       },
@@ -246,6 +247,7 @@ describe("captionPageImages", () => {
     expect(capturedOptions?.context?.language_code).toBe("en")
     expect(capturedOptions?.context?.language).toBe("English")
     expect(capturedOptions?.context?.page_image_base64).toBe("base64pageimage")
+    expect(capturedOptions?.context?.page_text).toBe("Momo wakes when the branch shakes.")
     expect(capturedOptions?.context?.book_summary).toBeUndefined()
     expect(capturedOptions?.log?.taskType).toBe("image-captioning")
     expect(capturedOptions?.log?.pageId).toBe("pg001")

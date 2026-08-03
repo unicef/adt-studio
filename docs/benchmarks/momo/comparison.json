@@ -1,0 +1,2242 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-08-03T20:02:00.297Z",
+  "host": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "totalMemoryBytes": 34359738368
+  },
+  "localRuntime": {
+    "runtime": "embedded-llama.cpp",
+    "runtimeVersion": "b10236",
+    "state": "ready",
+    "backend": "Metal",
+    "device": "Apple M2 Max",
+    "deviceMemoryBytes": 26800553984,
+    "modelGpuMemoryBytes": 7203853434.88,
+    "loadedModelId": "local:gemma4-12b",
+    "contextSize": 16384,
+    "gpuLayersLoaded": 49,
+    "recommendedModelId": "local:gemma4-12b",
+    "models": [
+      {
+        "id": "local:gemma4-e2b",
+        "revision": "b4243c156154b6dca9324415f8c7ccc098b4aed1",
+        "license": "Apache-2.0",
+        "downloadBytes": 3398849248,
+        "minimumMemoryBytes": 8589934592,
+        "installed": true
+      },
+      {
+        "id": "local:gemma4-e4b",
+        "revision": "b8093469224f83f5c38f691eb906c380e9e63114",
+        "license": "Apache-2.0",
+        "downloadBytes": 5150682208,
+        "minimumMemoryBytes": 12884901888,
+        "installed": false
+      },
+      {
+        "id": "local:gemma4-12b",
+        "revision": "7e0fbb8205d1f4857f4606a38a65023aaeb5f544",
+        "license": "Apache-2.0",
+        "downloadBytes": 7378660832,
+        "minimumMemoryBytes": 21474836480,
+        "installed": true
+      },
+      {
+        "id": "local:gemma4-26b",
+        "revision": "bb4531cda34d1ea09d9814959ed4d5833cf2a4c8",
+        "license": "Apache-2.0",
+        "downloadBytes": 15424554144,
+        "minimumMemoryBytes": 51539607552,
+        "installed": false
+      }
+    ]
+  },
+  "runs": [
+    {
+      "label": "momo-benchmark-gemma-before",
+      "mode": "local",
+      "model": "local:gemma4-12b",
+      "speechProvider": "local-hf",
+      "runDurationMs": 895264,
+      "stageDurationsMs": {
+        "extract": 136515,
+        "sectioning": 361199,
+        "quizzes": 46102,
+        "captions": 86210,
+        "glossary": 56598,
+        "toc": 12476,
+        "speech": 181952,
+        "package": 10031
+      },
+      "logs": {
+        "totals": {
+          "calls": 190,
+          "durationMs": 867955,
+          "inputTokens": 243837,
+          "outputTokens": 14338,
+          "cacheHits": 5,
+          "errors": 0
+        },
+        "byStep": [
+          {
+            "step": "metadata",
+            "calls": 1,
+            "durationMs": 16174,
+            "inputTokens": 2096,
+            "outputTokens": 161,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "book-summary",
+            "calls": 1,
+            "durationMs": 5420,
+            "inputTokens": 1120,
+            "outputTokens": 86,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "image-cropping",
+            "calls": 16,
+            "durationMs": 106666,
+            "inputTokens": 20675,
+            "outputTokens": 2454,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "page-sectioning",
+            "calls": 20,
+            "durationMs": 360573,
+            "inputTokens": 205028,
+            "outputTokens": 7116,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "quiz-generation",
+            "calls": 5,
+            "durationMs": 46898,
+            "inputTokens": 3408,
+            "outputTokens": 1129,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "image-captioning",
+            "calls": 15,
+            "durationMs": 85071,
+            "inputTokens": 9833,
+            "outputTokens": 1656,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "glossary",
+            "calls": 2,
+            "durationMs": 56167,
+            "inputTokens": 1150,
+            "outputTokens": 1467,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "toc-generation",
+            "calls": 1,
+            "durationMs": 11285,
+            "inputTokens": 527,
+            "outputTokens": 269,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "tts",
+            "calls": 129,
+            "durationMs": 179701,
+            "inputTokens": null,
+            "outputTokens": null,
+            "cacheHits": 5,
+            "errors": 0
+          }
+        ]
+      },
+      "output": {
+        "pages": 20,
+        "quizzes": 5,
+        "glossaryTerms": 13,
+        "tocEntries": 4,
+        "textEntries": 129,
+        "captionedImages": 15,
+        "audioFiles": 129,
+        "audioDurationSeconds": 387.32,
+        "audioDecodeErrors": 0,
+        "audioEncodings": {
+          "pcm_s16le/24000Hz/1ch": 129
+        },
+        "exportBytes": 35577856,
+        "accessibility": {
+          "tool": "axe-core",
+          "disabledRules": [
+            "color-contrast"
+          ],
+          "violations": 0,
+          "incomplete": 0
+        }
+      },
+      "cost": {
+        "llmUsd": 0,
+        "ttsEstimatedUsd": 0,
+        "totalEstimatedUsd": 0,
+        "assumptions": {
+          "api": "$0 marginal API cost; hardware, electricity, and one-time model download are excluded."
+        }
+      },
+      "samples": {
+        "captions": [
+          {
+            "pageId": "pg001",
+            "captions": [
+              {
+                "imageId": "pg001_im001_crop_v1",
+                "reasoning": "The image shows a nighttime scene with a sleeping person in the foreground, a large tree with blue leaves, an owl perched on a branch, a crescent moon, and stars.",
+                "caption": "A person sleeps peacefully at night under a tree while an owl watches from a branch near a crescent moon and stars.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg002",
+            "captions": []
+          },
+          {
+            "pageId": "pg003",
+            "captions": []
+          },
+          {
+            "pageId": "pg004",
+            "captions": []
+          },
+          {
+            "pageId": "pg005",
+            "captions": [
+              {
+                "imageId": "pg005_im001_crop_v1",
+                "reasoning": "The image shows three monkeys sleeping on tree branches at night under a starry sky with a crescent moon. A small black cat is also visible on a branch.",
+                "caption": "Three monkeys sleep peacefully on tree branches under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg006",
+            "captions": [
+              {
+                "imageId": "pg006_im001_crop_v1",
+                "reasoning": "The image shows a leopard looking up at two monkeys sitting in the branches of a tree.",
+                "caption": "A leopard looks up at two monkeys resting in a tree.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg007",
+            "captions": [
+              {
+                "imageId": "pg007_im001",
+                "reasoning": "The image shows a yellow leopard with black spots climbing a large tree trunk, looking towards a small bird on the ground.",
+                "caption": "A spotted leopard climbs a large tree trunk while a small bird sits on the ground.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg008",
+            "captions": [
+              {
+                "imageId": "pg008_im001_crop_v1",
+                "reasoning": "The image shows a leopard and a small child sleeping in a large tree at night under a starry sky.",
+                "caption": "A leopard and a small child sleep peacefully in the branches of a large tree under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg009",
+            "captions": [
+              {
+                "imageId": "pg009_im001",
+                "reasoning": "The image shows a large leopard looking up at a small, frightened monkey perched on a tree branch against a night sky.",
+                "caption": "A leopard watches a frightened monkey on a tree branch under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg010",
+            "captions": [
+              {
+                "imageId": "pg010_im001_crop_v1",
+                "reasoning": "The image shows four monkeys on a branch and one reaching out, while a giraffe's neck and head are visible at the bottom right against a blue sky with clouds.",
+                "caption": "Monkeys sit on a tree branch in a blue sky while a giraffe reaches upward.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg011",
+            "captions": [
+              {
+                "imageId": "pg011_im001_crop_v1",
+                "reasoning": "The image shows a mother leopard and her cub walking through a snowy landscape at night under a starry sky with a crescent moon.",
+                "caption": "A mother leopard and her cub walk through the snow under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg012",
+            "captions": [
+              {
+                "imageId": "pg012_im001_crop_v1",
+                "reasoning": "The image shows a mother leopard looking up at a tree where her cub is climbing. Several monkeys are perched in the branches against a night sky with a moon and stars.",
+                "caption": "A mother leopard watches her cub climb a large tree filled with monkeys under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg013",
+            "captions": [
+              {
+                "imageId": "pg013_im001",
+                "reasoning": "The image shows a leopard cub on a tree branch looking up at a monkey, while another leopard stands on the ground below. The scene is set at night under a starry sky.",
+                "caption": "A leopard cub on a tree branch looks up at a monkey while another leopard stands on the ground below under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg014",
+            "captions": [
+              {
+                "imageId": "pg014_im001",
+                "reasoning": "The image shows a leopard hanging upside down from a tree branch, a monkey looking surprised on another branch, and an owl in the background under a starry night sky.",
+                "caption": "A leopard hangs upside down from a tree branch while a surprised monkey watches from above under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg015",
+            "captions": [
+              {
+                "imageId": "pg015_im001",
+                "reasoning": "The image shows a leopard cub reaching up toward a monkey and an owl in a night sky filled with stars.",
+                "caption": "A leopard cub reaches up toward a monkey and an owl under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg016",
+            "captions": [
+              {
+                "imageId": "pg016_im001_crop_v1",
+                "reasoning": "The image shows a yellow leopard cub sleeping on a tree branch against a dark blue night sky with stars and a crescent moon.",
+                "caption": "A yellow leopard cub sleeps on a tree branch under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg017",
+            "captions": [
+              {
+                "imageId": "pg017_im001",
+                "reasoning": "The image shows a mother leopard and her cub lying on the ground under a starry night sky with a large tree branch overhead.",
+                "caption": "A mother leopard and her cub rest on the ground under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg018",
+            "captions": [
+              {
+                "imageId": "pg018_im001_crop_v1",
+                "reasoning": "The image shows a mother leopard and her cub on a snowy ground, looking up at a monkey in a tree who is holding a stick.",
+                "caption": "A mother leopard and her cub look up at a monkey perched in a tree.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg019",
+            "captions": []
+          },
+          {
+            "pageId": "pg020",
+            "captions": []
+          }
+        ],
+        "quizzes": [
+          {
+            "quizIndex": 0,
+            "afterPageId": "pg007",
+            "pageIds": [
+              "pg005",
+              "pg006",
+              "pg007"
+            ],
+            "question": "How did the mother leopard climb the tree?",
+            "options": [
+              {
+                "text": "1) Very loudly",
+                "explanation": "❌ The story says she did not make any noise."
+              },
+              {
+                "text": "2) Very quietly",
+                "explanation": "✅ That is correct! The text says she climbed very, very quietly."
+              },
+              {
+                "text": "3) Very fast",
+                "explanation": "❌ The text focuses on how quiet she was, not how fast she moved."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The text describes a simple narrative about monkeys sleeping in a tree and a leopard approaching them. The core concept is the leopard's method of approaching the monkeys. The question is designed for a very young reading level (early elementary) focusing on a key action described in the text."
+          },
+          {
+            "quizIndex": 1,
+            "afterPageId": "pg010",
+            "pageIds": [
+              "pg008",
+              "pg009",
+              "pg010"
+            ],
+            "question": "Why did Momo the monkey wake up?",
+            "options": [
+              {
+                "text": "1) The leopard shouted.",
+                "explanation": "❌ Not quite. The leopard was trying to be quiet; it was the monkeys who shouted later."
+              },
+              {
+                "text": "2) Momo jumped down.",
+                "explanation": "❌ No, Momo was sleeping on the branch when the shaking happened."
+              },
+              {
+                "text": "3) The branch shook.",
+                "explanation": "✅ Correct! The branch shook because the leopard moved, which woke Momo up."
+              }
+            ],
+            "answerIndex": 2,
+            "reasoning": "The text describes a sequence of events where a leopard tries to sneak up on a sleeping monkey (Momo) but is discovered. The question focuses on the main action that caused the leopard to be seen, which is a key plot point in the story."
+          },
+          {
+            "quizIndex": 2,
+            "afterPageId": "pg013",
+            "pageIds": [
+              "pg011",
+              "pg012",
+              "pg013"
+            ],
+            "question": "How did the baby leopard move onto the branch where Momo was sleeping?",
+            "options": [
+              {
+                "text": "1) Very fast",
+                "explanation": "❌ While the leopard could climb, the text emphasizes that it moved quietly instead of fast."
+              },
+              {
+                "text": "2) Very loudly",
+                "explanation": "❌ The text says the baby leopard moved very quietly, not loudly."
+              },
+              {
+                "text": "3) Very quietly",
+                "explanation": "✅ That is correct! The baby leopard moved very quietly so it would not wake the sleeping monkeys."
+              }
+            ],
+            "answerIndex": 2,
+            "reasoning": "The text describes a baby leopard climbing a tree quietly to reach a sleeping monkey named Momo. The core concept is the baby leopard's behavior (being quiet) and its action (climbing). The question focuses on how the baby leopard moved to ensure it didn't wake the monkeys."
+          },
+          {
+            "quizIndex": 3,
+            "afterPageId": "pg016",
+            "pageIds": [
+              "pg014",
+              "pg015",
+              "pg016"
+            ],
+            "question": "What happened to the baby leopard at the end of the story?",
+            "options": [
+              {
+                "text": "1) He caught Momo",
+                "explanation": "❌ No, the text says the baby leopard could not get Momo."
+              },
+              {
+                "text": "2) He fell down",
+                "explanation": "✅ That's right! The story says 'Down went the baby leopard' at the end."
+              },
+              {
+                "text": "3) He went to sleep",
+                "explanation": "❌ The text says the branch shook and woke Momo up, but it doesn't say the leopard went to sleep."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The text describes a simple interaction between a baby leopard and a character named Momo. The key plot point is that the baby leopard fails to catch Momo because Momo moves to a bigger branch and the leopard falls. The question focuses on the main outcome of the interaction."
+          },
+          {
+            "quizIndex": 4,
+            "afterPageId": "pg018",
+            "pageIds": [
+              "pg017",
+              "pg018"
+            ],
+            "question": "Why did the leopards run away into the forest?",
+            "options": [
+              {
+                "text": "1) They were hungry",
+                "explanation": "❌ The leopards were hungry, but that is why they were trying to catch the monkeys, not why they ran away."
+              },
+              {
+                "text": "2) They were sleepy",
+                "explanation": "❌ The text says the monkeys woke up, but it doesn't say the leopards were sleepy."
+              },
+              {
+                "text": "3) The monkeys shouted",
+                "explanation": "✅ That's right! The monkeys shouted and threw sticks, which scared the leopards away."
+              }
+            ],
+            "answerIndex": 2,
+            "reasoning": "The text describes a simple interaction where monkeys defend themselves against leopards. The key concept is the outcome of the monkeys' actions (shouting and throwing sticks) which caused the leopards to leave."
+          }
+        ],
+        "glossary": [
+          {
+            "word": "branch",
+            "definition": "A part of a tree that grows out from the trunk.",
+            "variations": [
+              "branches"
+            ],
+            "emojis": [
+              "🌿",
+              "🌳"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "climb",
+            "definition": "To move upward using your hands and feet.",
+            "variations": [
+              "climbed",
+              "climbing"
+            ],
+            "emojis": [
+              "🧗",
+              "🐒"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "dinner",
+            "definition": "The main meal of the day, usually eaten in the evening.",
+            "variations": [],
+            "emojis": [
+              "🍽️",
+              "🍲"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "forest",
+            "definition": "A large area covered with many trees.",
+            "variations": [
+              "forests"
+            ],
+            "emojis": [
+              "🌲",
+              "🌳"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "jumped",
+            "definition": "Pushed oneself off the ground or a surface into the air.",
+            "variations": [
+              "jump"
+            ],
+            "emojis": [
+              "🦘",
+              "🏃"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "leopard",
+            "definition": "A large wild cat with spots on its fur.",
+            "variations": [
+              "leopards"
+            ],
+            "emojis": [
+              "🐆",
+              "🐾"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "monkey",
+            "definition": "A small animal with a long tail that lives in trees.",
+            "variations": [
+              "monkeys"
+            ],
+            "emojis": [
+              "🐒",
+              "🍌"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "pointed",
+            "definition": "Moved a finger or object toward something to show where it is.",
+            "variations": [
+              "point",
+              "pointing"
+            ],
+            "emojis": [
+              "☝️",
+              "👉"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "quietly",
+            "definition": "Making very little or no noise.",
+            "variations": [
+              "quiet"
+            ],
+            "emojis": [
+              "🤫",
+              "🌙"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shook",
+            "definition": "Moved back and forth quickly or with force.",
+            "variations": [
+              "shake",
+              "shaking"
+            ],
+            "emojis": [
+              "🫨",
+              "🍃"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shouted",
+            "definition": "Spoke or cried out in a very loud voice.",
+            "variations": [
+              "shout",
+              "shouting"
+            ],
+            "emojis": [
+              "📢",
+              "🗣️"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "sticks",
+            "definition": "Thin pieces of wood that have fallen from trees or bushes.",
+            "variations": [
+              "stick"
+            ],
+            "emojis": [
+              "🪵",
+              "🥢"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "threw",
+            "definition": "Sent something through the air with your hand or arm.",
+            "variations": [
+              "throw",
+              "throwing"
+            ],
+            "emojis": [
+              "☄️",
+              "⚾"
+            ],
+            "source": "ai"
+          }
+        ],
+        "toc": [
+          {
+            "id": "toc_001",
+            "title": "Momo and the Leopards",
+            "sectionId": "pg001_sec001",
+            "href": "pg001_sec001.html",
+            "chapterId": "pg001_n0002",
+            "level": 1
+          },
+          {
+            "id": "toc_002",
+            "title": "Momo and the Leopards",
+            "sectionId": "pg003_sec001",
+            "href": "pg003_sec001.html",
+            "chapterId": "pg003_n0002",
+            "level": 1
+          },
+          {
+            "id": "toc_003",
+            "title": "The monkeys woke up.",
+            "sectionId": "pg018_sec001",
+            "href": "pg018_sec001.html",
+            "chapterId": "pg018_n0002",
+            "level": 2
+          },
+          {
+            "id": "toc_004",
+            "title": "VISION",
+            "sectionId": "pg020_sec001",
+            "href": "pg020_sec001.html",
+            "chapterId": "pg020_n0002",
+            "level": 2
+          }
+        ]
+      }
+    },
+    {
+      "label": "momo-benchmark-gemma-grounded",
+      "mode": "local",
+      "model": "local:gemma4-12b",
+      "speechProvider": "local-hf",
+      "runDurationMs": 953728,
+      "stageDurationsMs": {
+        "extract": 133874,
+        "sectioning": 393572,
+        "quizzes": 46116,
+        "captions": 118793,
+        "glossary": 58167,
+        "toc": 12884,
+        "speech": 178072,
+        "package": 8020
+      },
+      "logs": {
+        "totals": {
+          "calls": 190,
+          "durationMs": 927869,
+          "inputTokens": 250041,
+          "outputTokens": 14341,
+          "cacheHits": 6,
+          "errors": 0
+        },
+        "byStep": [
+          {
+            "step": "metadata",
+            "calls": 1,
+            "durationMs": 13645,
+            "inputTokens": 2096,
+            "outputTokens": 161,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "book-summary",
+            "calls": 1,
+            "durationMs": 5474,
+            "inputTokens": 1120,
+            "outputTokens": 86,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "image-cropping",
+            "calls": 16,
+            "durationMs": 107266,
+            "inputTokens": 20675,
+            "outputTokens": 2454,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "page-sectioning",
+            "calls": 20,
+            "durationMs": 392669,
+            "inputTokens": 205028,
+            "outputTokens": 7116,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "quiz-generation",
+            "calls": 5,
+            "durationMs": 44430,
+            "inputTokens": 3408,
+            "outputTokens": 1129,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "image-captioning",
+            "calls": 15,
+            "durationMs": 118743,
+            "inputTokens": 16037,
+            "outputTokens": 1659,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "glossary",
+            "calls": 2,
+            "durationMs": 57149,
+            "inputTokens": 1150,
+            "outputTokens": 1467,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "toc-generation",
+            "calls": 1,
+            "durationMs": 11870,
+            "inputTokens": 527,
+            "outputTokens": 269,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "tts",
+            "calls": 129,
+            "durationMs": 176623,
+            "inputTokens": null,
+            "outputTokens": null,
+            "cacheHits": 6,
+            "errors": 0
+          }
+        ]
+      },
+      "output": {
+        "pages": 20,
+        "quizzes": 5,
+        "glossaryTerms": 13,
+        "tocEntries": 4,
+        "textEntries": 129,
+        "captionedImages": 15,
+        "audioFiles": 129,
+        "audioDurationSeconds": 380.67,
+        "audioDecodeErrors": 0,
+        "audioEncodings": {
+          "pcm_s16le/24000Hz/1ch": 129
+        },
+        "exportBytes": 43114496,
+        "accessibility": {
+          "tool": "axe-core",
+          "disabledRules": [
+            "color-contrast"
+          ],
+          "violations": 0,
+          "incomplete": 0
+        }
+      },
+      "cost": {
+        "llmUsd": 0,
+        "ttsEstimatedUsd": 0,
+        "totalEstimatedUsd": 0,
+        "assumptions": {
+          "api": "$0 marginal API cost; hardware, electricity, and one-time model download are excluded."
+        }
+      },
+      "samples": {
+        "captions": [
+          {
+            "pageId": "pg001",
+            "captions": [
+              {
+                "imageId": "pg001_im001_crop_v1",
+                "reasoning": "The image shows a boy sleeping in a tree and an owl perched on a branch against a night sky with a moon and stars.",
+                "caption": "A boy sleeps in a tree branch while an owl sits nearby under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg002",
+            "captions": []
+          },
+          {
+            "pageId": "pg003",
+            "captions": []
+          },
+          {
+            "pageId": "pg004",
+            "captions": []
+          },
+          {
+            "pageId": "pg005",
+            "captions": [
+              {
+                "imageId": "pg005_im001_crop_v1",
+                "reasoning": "The image shows three monkeys sleeping on different branches of a large tree at night, with a small black bird nearby. This illustrates the text about monkeys sleeping in a tree where no animal can get them.",
+                "caption": "Three monkeys sleep peacefully on long tree branches under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg006",
+            "captions": [
+              {
+                "imageId": "pg006_im001_crop_v1",
+                "reasoning": "The image shows a mother leopard standing on the ground looking up at two monkeys resting in the branches of a large tree at night.",
+                "caption": "A mother leopard stands on the ground looking up at two monkeys resting in a tree.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg007",
+            "captions": [
+              {
+                "imageId": "pg007_im001",
+                "reasoning": "The image shows a yellow leopard with black spots climbing a large tree trunk. A small bird is visible on the ground to the right. The scene is set against a background of mountains and a blue sky.",
+                "caption": "A yellow leopard with black spots climbs a large tree trunk.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg008",
+            "captions": [
+              {
+                "imageId": "pg008_im001_crop_v1",
+                "reasoning": "The image shows a leopard stalking a sleeping baby monkey named Momo on a tree branch at night.",
+                "caption": "A leopard moves quietly along a tree branch toward a sleeping baby monkey.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg009",
+            "captions": [
+              {
+                "imageId": "pg009_im001",
+                "reasoning": "The image shows a large yellow leopard with spots peering from behind a tree branch at a small, frightened monkey named Momo who is clinging to the branch.",
+                "caption": "A large spotted leopard watches a frightened monkey named Momo from behind a tree branch.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg010",
+            "captions": [
+              {
+                "imageId": "pg010_im001_crop_v1",
+                "reasoning": "The image shows four monkeys on branches in a night sky, with one monkey throwing a stick at a leopard's tail.",
+                "caption": "Monkeys on tree branches throw sticks at a leopard.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg011",
+            "captions": [
+              {
+                "imageId": "pg011_im001_crop_v1",
+                "reasoning": "The image shows a mother leopard and her small cub walking together in a snowy landscape under a night sky with stars and a crescent moon.",
+                "caption": "A mother leopard and her small cub walk through the snow at night.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg012",
+            "captions": [
+              {
+                "imageId": "pg012_im001_crop_v1",
+                "reasoning": "The image shows a baby leopard climbing a large tree at night while several monkeys sleep in the branches. A larger leopard stands at the base of the tree.",
+                "caption": "A baby leopard climbs a large tree at night while monkeys sleep in the branches.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg013",
+            "captions": [
+              {
+                "imageId": "pg013_im001",
+                "reasoning": "The image shows a baby leopard walking on a branch toward a sleeping monkey (Momo) in a tree at night, with another leopard standing on the ground below looking up.",
+                "caption": "A baby leopard walks quietly along a tree branch toward a sleeping monkey while another leopard watches from below.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg014",
+            "captions": [
+              {
+                "imageId": "pg014_im001",
+                "reasoning": "The image shows a baby leopard on a branch below a monkey named Momo, with a black silhouette of a leopard in the background under a starry night sky.",
+                "caption": "A baby leopard on a branch below Momo the monkey under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg015",
+            "captions": [
+              {
+                "imageId": "pg015_im001",
+                "reasoning": "The image shows a monkey on a branch, a baby leopard jumping toward it, and a small bird on another branch against a starry night sky. The text below confirms the action of the leopard jumping.",
+                "caption": "A baby leopard jumps toward a monkey on a tree branch under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg016",
+            "captions": [
+              {
+                "imageId": "pg016_im001_crop_v1",
+                "reasoning": "The image shows a yellow baby leopard falling or tumbling through the branches of a tree against a dark blue night sky with stars and a crescent moon.",
+                "caption": "A yellow baby leopard tumbles through the branches of a tree at night.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg017",
+            "captions": [
+              {
+                "imageId": "pg017_im001",
+                "reasoning": "The image shows a leopard cub lying on top of its mother under a starry night sky with a large tree branch overhead.",
+                "caption": "A leopard cub lies down on its mother under a starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg018",
+            "captions": [
+              {
+                "imageId": "pg018_im001_crop_v1",
+                "reasoning": "The image shows a mother leopard and her cub running away from monkeys on a snowy hill. One monkey is throwing a stick at them.",
+                "caption": "A mother leopard and her cub run across the snow as a monkey throws a stick at them.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg019",
+            "captions": []
+          },
+          {
+            "pageId": "pg020",
+            "captions": []
+          }
+        ],
+        "quizzes": [
+          {
+            "quizIndex": 0,
+            "afterPageId": "pg007",
+            "pageIds": [
+              "pg005",
+              "pg006",
+              "pg007"
+            ],
+            "question": "How did the mother leopard climb the tree?",
+            "options": [
+              {
+                "text": "1) Very quietly",
+                "explanation": "✅ That is correct! The text says she climbed very, very quietly."
+              },
+              {
+                "text": "2) Very fast",
+                "explanation": "❌ The text focuses on how quiet she was, not how fast she moved."
+              },
+              {
+                "text": "3) Very loudly",
+                "explanation": "❌ The story says she did not make any noise."
+              }
+            ],
+            "answerIndex": 0,
+            "reasoning": "The text describes a simple narrative about monkeys sleeping in a tree and a leopard approaching them. The core concept is the leopard's method of approaching the monkeys. The question is designed for a very young reading level (early elementary) focusing on a key action described in the text."
+          },
+          {
+            "quizIndex": 1,
+            "afterPageId": "pg010",
+            "pageIds": [
+              "pg008",
+              "pg009",
+              "pg010"
+            ],
+            "question": "Why did Momo the monkey wake up?",
+            "options": [
+              {
+                "text": "1) Momo jumped down.",
+                "explanation": "❌ No, Momo was sleeping on the branch when the shaking happened."
+              },
+              {
+                "text": "2) The branch shook.",
+                "explanation": "✅ Correct! The branch shook because the leopard moved, which woke Momo up."
+              },
+              {
+                "text": "3) The leopard shouted.",
+                "explanation": "❌ Not quite. The leopard was trying to be quiet; it was the monkeys who shouted later."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The text describes a sequence of events where a leopard tries to sneak up on a sleeping monkey (Momo) but is discovered. The question focuses on the main action that caused the leopard to be seen, which is a key plot point in the story."
+          },
+          {
+            "quizIndex": 2,
+            "afterPageId": "pg013",
+            "pageIds": [
+              "pg011",
+              "pg012",
+              "pg013"
+            ],
+            "question": "How did the baby leopard move onto the branch where Momo was sleeping?",
+            "options": [
+              {
+                "text": "1) Very quietly",
+                "explanation": "✅ That is correct! The baby leopard moved very quietly so it would not wake the sleeping monkeys."
+              },
+              {
+                "text": "2) Very loudly",
+                "explanation": "❌ The text says the baby leopard moved very quietly, not loudly."
+              },
+              {
+                "text": "3) Very fast",
+                "explanation": "❌ While the leopard could climb, the text emphasizes that it moved quietly instead of fast."
+              }
+            ],
+            "answerIndex": 0,
+            "reasoning": "The text describes a baby leopard climbing a tree quietly to reach a sleeping monkey named Momo. The core concept is the baby leopard's behavior (being quiet) and its action (climbing). The question focuses on how the baby leopard moved to ensure it didn't wake the monkeys."
+          },
+          {
+            "quizIndex": 3,
+            "afterPageId": "pg016",
+            "pageIds": [
+              "pg014",
+              "pg015",
+              "pg016"
+            ],
+            "question": "What happened to the baby leopard at the end of the story?",
+            "options": [
+              {
+                "text": "1) He went to sleep",
+                "explanation": "❌ The text says the branch shook and woke Momo up, but it doesn't say the leopard went to sleep."
+              },
+              {
+                "text": "2) He fell down",
+                "explanation": "✅ That's right! The story says 'Down went the baby leopard' at the end."
+              },
+              {
+                "text": "3) He caught Momo",
+                "explanation": "❌ No, the text says the baby leopard could not get Momo."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The text describes a simple interaction between a baby leopard and a character named Momo. The key plot point is that the baby leopard fails to catch Momo because Momo moves to a bigger branch and the leopard falls. The question focuses on the main outcome of the interaction."
+          },
+          {
+            "quizIndex": 4,
+            "afterPageId": "pg018",
+            "pageIds": [
+              "pg017",
+              "pg018"
+            ],
+            "question": "Why did the leopards run away into the forest?",
+            "options": [
+              {
+                "text": "1) The monkeys shouted",
+                "explanation": "✅ That's right! The monkeys shouted and threw sticks, which scared the leopards away."
+              },
+              {
+                "text": "2) They were hungry",
+                "explanation": "❌ The leopards were hungry, but that is why they were trying to catch the monkeys, not why they ran away."
+              },
+              {
+                "text": "3) They were sleepy",
+                "explanation": "❌ The text says the monkeys woke up, but it doesn't say the leopards were sleepy."
+              }
+            ],
+            "answerIndex": 0,
+            "reasoning": "The text describes a simple interaction where monkeys defend themselves against leopards. The key concept is the outcome of the monkeys' actions (shouting and throwing sticks) which caused the leopards to leave."
+          }
+        ],
+        "glossary": [
+          {
+            "word": "branch",
+            "definition": "A part of a tree that grows out from the trunk.",
+            "variations": [
+              "branches"
+            ],
+            "emojis": [
+              "🌿",
+              "🌳"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "climb",
+            "definition": "To move upward using your hands and feet.",
+            "variations": [
+              "climbed",
+              "climbing"
+            ],
+            "emojis": [
+              "🧗",
+              "🐒"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "dinner",
+            "definition": "The main meal of the day, usually eaten in the evening.",
+            "variations": [],
+            "emojis": [
+              "🍽️",
+              "🍲"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "forest",
+            "definition": "A large area covered with many trees.",
+            "variations": [
+              "forests"
+            ],
+            "emojis": [
+              "🌲",
+              "🌳"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "jumped",
+            "definition": "Pushed oneself off the ground or a surface into the air.",
+            "variations": [
+              "jump"
+            ],
+            "emojis": [
+              "🦘",
+              "🏃"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "leopard",
+            "definition": "A large wild cat with spots on its fur.",
+            "variations": [
+              "leopards"
+            ],
+            "emojis": [
+              "🐆",
+              "🐾"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "monkey",
+            "definition": "A small animal with a long tail that lives in trees.",
+            "variations": [
+              "monkeys"
+            ],
+            "emojis": [
+              "🐒",
+              "🍌"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "pointed",
+            "definition": "Moved a finger or object toward something to show where it is.",
+            "variations": [
+              "point",
+              "pointing"
+            ],
+            "emojis": [
+              "☝️",
+              "👉"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "quietly",
+            "definition": "Making very little or no noise.",
+            "variations": [
+              "quiet"
+            ],
+            "emojis": [
+              "🤫",
+              "🌙"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shook",
+            "definition": "Moved back and forth quickly or with force.",
+            "variations": [
+              "shake",
+              "shaking"
+            ],
+            "emojis": [
+              "🫨",
+              "🍃"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shouted",
+            "definition": "Spoke or cried out in a very loud voice.",
+            "variations": [
+              "shout",
+              "shouting"
+            ],
+            "emojis": [
+              "📢",
+              "🗣️"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "sticks",
+            "definition": "Thin pieces of wood that have fallen from trees or bushes.",
+            "variations": [
+              "stick"
+            ],
+            "emojis": [
+              "🪵",
+              "🥢"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "threw",
+            "definition": "Sent something through the air with your hand or arm.",
+            "variations": [
+              "throw",
+              "throwing"
+            ],
+            "emojis": [
+              "☄️",
+              "⚾"
+            ],
+            "source": "ai"
+          }
+        ],
+        "toc": [
+          {
+            "id": "toc_001",
+            "title": "Momo and the Leopards",
+            "sectionId": "pg001_sec001",
+            "href": "pg001_sec001.html",
+            "chapterId": "pg001_n0002",
+            "level": 1
+          },
+          {
+            "id": "toc_002",
+            "title": "Momo and the Leopards",
+            "sectionId": "pg003_sec001",
+            "href": "pg003_sec001.html",
+            "chapterId": "pg003_n0002",
+            "level": 1
+          },
+          {
+            "id": "toc_003",
+            "title": "The monkeys woke up.",
+            "sectionId": "pg018_sec001",
+            "href": "pg018_sec001.html",
+            "chapterId": "pg018_n0002",
+            "level": 2
+          },
+          {
+            "id": "toc_004",
+            "title": "VISION",
+            "sectionId": "pg020_sec001",
+            "href": "pg020_sec001.html",
+            "chapterId": "pg020_n0002",
+            "level": 2
+          }
+        ]
+      }
+    },
+    {
+      "label": "momo-benchmark-openai-gpt54",
+      "mode": "openai",
+      "model": "openai:gpt-5.4",
+      "speechProvider": "openai",
+      "runDurationMs": 91736,
+      "stageDurationsMs": {
+        "extract": 30821,
+        "sectioning": 8036,
+        "storyboard": 2007,
+        "quizzes": 4150,
+        "captions": 12112,
+        "glossary": 10037,
+        "toc": 2005,
+        "speech": 12386,
+        "package": 8018
+      },
+      "logs": {
+        "totals": {
+          "calls": 224,
+          "durationMs": 559532,
+          "inputTokens": 465926,
+          "outputTokens": 13090,
+          "cacheHits": 0,
+          "errors": 0
+        },
+        "byStep": [
+          {
+            "step": "metadata",
+            "calls": 1,
+            "durationMs": 5159,
+            "inputTokens": 12200,
+            "outputTokens": 192,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "book-summary",
+            "calls": 1,
+            "durationMs": 2695,
+            "inputTokens": 958,
+            "outputTokens": 98,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "image-meaningfulness",
+            "calls": 16,
+            "durationMs": 71520,
+            "inputTokens": 64388,
+            "outputTokens": 1601,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "image-cropping",
+            "calls": 16,
+            "durationMs": 70300,
+            "inputTokens": 69172,
+            "outputTokens": 2144,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "page-sectioning",
+            "calls": 20,
+            "durationMs": 97966,
+            "inputTokens": 247174,
+            "outputTokens": 5088,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "quiz-generation",
+            "calls": 5,
+            "durationMs": 14892,
+            "inputTokens": 2961,
+            "outputTokens": 858,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "image-captioning",
+            "calls": 16,
+            "durationMs": 81352,
+            "inputTokens": 67782,
+            "outputTokens": 1778,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "glossary",
+            "calls": 2,
+            "durationMs": 14829,
+            "inputTokens": 911,
+            "outputTokens": 1230,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "toc-generation",
+            "calls": 1,
+            "durationMs": 3153,
+            "inputTokens": 380,
+            "outputTokens": 101,
+            "cacheHits": 0,
+            "errors": 0
+          },
+          {
+            "step": "tts",
+            "calls": 146,
+            "durationMs": 197666,
+            "inputTokens": null,
+            "outputTokens": null,
+            "cacheHits": 0,
+            "errors": 0
+          }
+        ]
+      },
+      "output": {
+        "pages": 20,
+        "quizzes": 5,
+        "glossaryTerms": 27,
+        "tocEntries": 2,
+        "textEntries": 146,
+        "captionedImages": 16,
+        "audioFiles": 146,
+        "audioDurationSeconds": 496.488,
+        "audioDecodeErrors": 0,
+        "audioEncodings": {
+          "mp3/24000Hz/1ch": 146
+        },
+        "exportBytes": 25608192,
+        "accessibility": {
+          "tool": "axe-core",
+          "disabledRules": [
+            "color-contrast"
+          ],
+          "violations": 0,
+          "incomplete": 0
+        }
+      },
+      "cost": {
+        "llmUsd": 1.361165,
+        "ttsEstimatedUsd": 0.124122,
+        "totalEstimatedUsd": 1.485287,
+        "assumptions": {
+          "llm": "GPT-5.4 standard: $2.50/M input and $15/M output; no cached token discount was observed.",
+          "tts": "Estimated from generated duration at $0.015/min; the speech endpoint does not expose per-request audio token usage in this run."
+        }
+      },
+      "samples": {
+        "captions": [
+          {
+            "pageId": "pg001",
+            "captions": [
+              {
+                "imageId": "pg001_im001_crop_v1",
+                "reasoning": "The image is a meaningful story illustration from the book cover. It shows the main characters and setting: a baby monkey sleeping on a tree branch at night, a leopard below on another branch, and an owl above with moon and stars in the background. This supports the story and is not decorative.",
+                "caption": "A baby monkey sleeps on a tree branch at night while a leopard watches from below and an owl sits above under the moon and stars.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg002",
+            "captions": []
+          },
+          {
+            "pageId": "pg003",
+            "captions": []
+          },
+          {
+            "pageId": "pg004",
+            "captions": []
+          },
+          {
+            "pageId": "pg005",
+            "captions": [
+              {
+                "imageId": "pg005_im001_crop_v1",
+                "reasoning": "The image is a meaningful story illustration, not decorative. It shows three monkeys asleep on long tree branches at night, with stars and a crescent moon in the sky and a dark owl perched nearby. This supports the text about monkeys climbing trees to sleep safely.",
+                "caption": "Three monkeys sleep on long branches high in a tree at night while an owl watches nearby under the moon and stars.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg006",
+            "captions": [
+              {
+                "imageId": "pg006_im001",
+                "reasoning": "The image is a full story illustration and clearly conveys key narrative information. It shows the nighttime setting, a mother leopard standing below a tree, and two monkeys resting high in the branches, which matches the page text and is important for understanding the scene. The rabbit in the foreground is present but secondary.",
+                "caption": "At night, a mother leopard stands under a tree while two monkeys rest high on its branches, with a rabbit hiding beside a rock below.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg007",
+            "captions": [
+              {
+                "imageId": "pg007_im001_crop_v1",
+                "reasoning": "The image is a meaningful story illustration, not a decorative element. It shows the main action described on the page: a mother leopard climbing up a tree quietly, with a small rabbit on the ground nearby and a soft twilight landscape in the background.",
+                "caption": "Mother leopard climbs quietly up a tree at dusk while a small rabbit sits on the ground below.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg008",
+            "captions": [
+              {
+                "imageId": "pg008_im001",
+                "reasoning": "The image is central to the story and shows important action: a leopard quietly climbing along a tree branch toward a sleeping baby monkey named Momo at night. This is meaningful narrative content, not decoration.",
+                "caption": "A leopard creeps quietly along a tree branch toward sleeping Momo, the baby monkey, under the moon and stars.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg009",
+            "captions": [
+              {
+                "imageId": "pg009_im001_crop_v1",
+                "reasoning": "The image is a meaningful story illustration, not decorative. It shows the key action on the page: a leopard has come close to Momo, who is perched on a tree branch and looks startled. The night setting and tree branches help explain the scene for a young reader.",
+                "caption": "A leopard climbs close to Momo on a tree branch at night, and the frightened little monkey throws up his hands.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg010",
+            "captions": [
+              {
+                "imageId": "pg010_im001",
+                "reasoning": "The image is a meaningful story illustration. It shows four monkeys in a tree at night, shouting and throwing sticks downward while a spotted leopard leaps away toward the ground, matching the text about the monkeys driving off the mother leopard.",
+                "caption": "Four monkeys in a tree shout and throw sticks as a leopard jumps down and runs away into the forest at night.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg011",
+            "captions": [
+              {
+                "imageId": "pg011_im001",
+                "reasoning": "The image is a full story illustration, not a decorative element. It supports the text by showing the mother leopard and baby leopard walking together at night, with the nighttime sky, trees, and a small rabbit near flowers adding context to the scene.",
+                "caption": "Mother leopard and her small cub walk together across a moonlit field under the stars, while a rabbit hides beside blue flowers.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg012",
+            "captions": [
+              {
+                "imageId": "pg012_im001_crop_v1",
+                "reasoning": "The image is a full story illustration that carries key narrative information. It shows a nighttime scene with a baby leopard climbing a tree while an adult leopard waits below and monkeys sleep on the branches above, matching the text on the page. Because it advances the story, it is not decorative.",
+                "caption": "At night, a baby leopard quietly climbs a tree while an adult leopard stands below and sleeping monkeys lie on the branches overhead.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg013",
+            "captions": [
+              {
+                "imageId": "pg013_im001",
+                "reasoning": "The image is a meaningful story illustration, not a decorative element. It shows the key nighttime scene from the page: Momo the baby monkey asleep at the end of a long tree branch, a baby leopard creeping quietly along the branch toward him, and another leopard standing below and looking up.",
+                "caption": "At night, Momo the baby monkey sleeps at the end of a long tree branch while a baby leopard creeps quietly toward him and another leopard watches from below.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg014",
+            "captions": [
+              {
+                "imageId": "pg014_im001_crop_v1",
+                "reasoning": "The image is central to the story and shows the action described in the text: at night, Momo the monkey is on a branch while a baby leopard hangs below as the branch shakes. The owl, moon, and stars set the nighttime scene, so the image is meaningful rather than decorative.",
+                "caption": "At night, Momo the monkey clings to a high branch while a baby leopard hangs upside down below him on the shaking branch, with an owl, moon, and stars in the tree.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg015",
+            "captions": [
+              {
+                "imageId": "pg015_im001_crop_v1",
+                "reasoning": "The image is a meaningful story illustration. It shows Momo the monkey safely on a high branch while a young leopard stretches upward from below trying to reach him, with an owl nearby against a night sky. This action directly supports the text on the page, so it should be captioned, not marked decorative.",
+                "caption": "Momo crouches on a higher tree branch while a baby leopard leaps up from below and cannot reach him under the starry night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg016",
+            "captions": [
+              {
+                "imageId": "pg016_im001_crop_v1",
+                "reasoning": "The image is a meaningful story illustration, not decorative. It shows the baby leopard falling from a tree at night, with its body upside down among branches and leaves, matching the page text about the baby leopard going down.",
+                "caption": "A baby leopard tumbles upside down from a tree branch at night under the moon and stars.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg017",
+            "captions": [
+              {
+                "imageId": "pg017_im001_crop_v1",
+                "reasoning": "The image is a meaningful story illustration, not decorative. It shows the action described on the page: a baby leopard has fallen from a tree branch and landed on its mother. The nighttime setting with the tree, moon, and stars helps convey the scene.",
+                "caption": "A baby leopard falls from a tree and lands on its mother under the moonlit night sky.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg018",
+            "captions": [
+              {
+                "imageId": "pg018_im001_crop_v1",
+                "reasoning": "The image is a meaningful story illustration. It shows two monkeys in tree branches above two leopards on the ground at night, with one monkey reaching down and the other raising a stick, matching the text about the monkeys waking up and throwing sticks to scare the leopards away.",
+                "caption": "Two monkeys in tree branches throw sticks at two leopards below, chasing them away at night.",
+                "source": "ai"
+              }
+            ]
+          },
+          {
+            "pageId": "pg019",
+            "captions": []
+          },
+          {
+            "pageId": "pg020",
+            "captions": [
+              {
+                "imageId": "pg020_im001",
+                "reasoning": "The image contains essential readable content in a bordered text box, headed 'VISION' and presenting the ministry's vision statement. This is meaningful page content, not decoration, so it should be captioned by conveying the visible text and its formatting briefly.",
+                "caption": "Blue-bordered box with the heading “VISION” in red above the statement: “An education and enlightened society of GNH, built and sustained on the unique Bhutanese values of Tha Dam-Tsig Ley Gju-Drey.”",
+                "source": "ai"
+              }
+            ]
+          }
+        ],
+        "quizzes": [
+          {
+            "quizIndex": 0,
+            "afterPageId": "pg007",
+            "pageIds": [
+              "pg005",
+              "pg006",
+              "pg007"
+            ],
+            "question": "Why do the monkeys sleep in the tree?",
+            "options": [
+              {
+                "text": "1) To play games",
+                "explanation": "❌ Not this one. The story says they climb the tree at night to sleep safely."
+              },
+              {
+                "text": "2) To stay safe",
+                "explanation": "✅ Correct! The monkeys sleep on long branches in the tree where other animals cannot get them easily."
+              },
+              {
+                "text": "3) To eat leaves",
+                "explanation": "❌ Not quite. The pages say the monkeys climb the tree to sleep, not to eat leaves."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The pages focus on a simple main idea: monkeys sleep in trees at night because it keeps them safe, and a leopard quietly climbs the tree. A good comprehension question for this reading level should test the key safety idea using simple language and short answer choices."
+          },
+          {
+            "quizIndex": 1,
+            "afterPageId": "pg010",
+            "pageIds": [
+              "pg008",
+              "pg009",
+              "pg010"
+            ],
+            "question": "Why did Momo wake up?",
+            "options": [
+              {
+                "text": "1) He fell down",
+                "explanation": "❌ Not quite. Momo did not fall down. He woke up because the branch shook."
+              },
+              {
+                "text": "2) The branch shook",
+                "explanation": "✅ Correct! Momo woke up because the branch shook when the leopard came near."
+              },
+              {
+                "text": "3) He heard rain",
+                "explanation": "❌ Not quite. The story does not say it was raining. Momo woke up when the branch shook."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The pages tell a simple story about a leopard trying to sneak up on baby monkey Momo, but the branch shook, waking Momo and leading the monkeys to scare the leopard away. A good comprehension question for this reading level should focus on the main event and outcome using simple language."
+          },
+          {
+            "quizIndex": 2,
+            "afterPageId": "pg013",
+            "pageIds": [
+              "pg011",
+              "pg012",
+              "pg013"
+            ],
+            "question": "Who climbed the tree very quietly?",
+            "options": [
+              {
+                "text": "1) Momo",
+                "explanation": "❌ Not quite. Momo was sleeping on the branch, not climbing the tree."
+              },
+              {
+                "text": "2) baby leopard",
+                "explanation": "✅ Correct! The baby leopard climbed the tree very, very quietly."
+              },
+              {
+                "text": "3) mother leopard",
+                "explanation": "❌ Not this one. The story says the baby leopard climbed the tree quietly."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The pages describe a simple sequence: a baby leopard comes at night, climbs a tree quietly, and sees Momo sleeping on a branch while the monkeys are asleep. A good comprehension question for this reading level should focus on a main action from the story using simple language and short answer choices."
+          },
+          {
+            "quizIndex": 3,
+            "afterPageId": "pg016",
+            "pageIds": [
+              "pg014",
+              "pg015",
+              "pg016"
+            ],
+            "question": "What happened to the baby leopard at the end?",
+            "options": [
+              {
+                "text": "1) He got Momo.",
+                "explanation": "❌ Not quite. The story says he could not get Momo."
+              },
+              {
+                "text": "2) He went to sleep.",
+                "explanation": "❌ Not quite. Momo woke up, but the baby leopard did not go to sleep."
+              },
+              {
+                "text": "3) He fell down.",
+                "explanation": "✅ Correct! At the end, the baby leopard went down."
+              }
+            ],
+            "answerIndex": 2,
+            "reasoning": "The pages show a simple action sequence: the branch shook, Momo woke up, jumped to a bigger branch, and the baby leopard fell down. A good comprehension question for this reading level should focus on the main event and use very simple language."
+          },
+          {
+            "quizIndex": 4,
+            "afterPageId": "pg018",
+            "pageIds": [
+              "pg017",
+              "pg018"
+            ],
+            "question": "What made the leopards run into the forest?",
+            "options": [
+              {
+                "text": "1) Rain",
+                "explanation": "❌ Not quite. The pages do not say rain made the leopards leave."
+              },
+              {
+                "text": "2) Sticks",
+                "explanation": "✅ Correct! They shouted and threw sticks, and the leopards ran into the forest."
+              },
+              {
+                "text": "3) Fire",
+                "explanation": "❌ Not this time. The story says people threw sticks, not fire."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The pages describe people shouting and throwing sticks to scare away leopards, which saved the monkeys. A good comprehension question should check understanding of what made the leopards leave, using simple language and short answer choices."
+          }
+        ],
+        "glossary": [
+          {
+            "word": "animal",
+            "definition": "a living creature like a monkey or a leopard",
+            "variations": [
+              "animal",
+              "animals"
+            ],
+            "emojis": [
+              "🐾",
+              "🐒"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "baby",
+            "definition": "a very young child or animal",
+            "variations": [
+              "baby",
+              "babies"
+            ],
+            "emojis": [
+              "👶",
+              "🐾"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "bigger",
+            "definition": "larger in size",
+            "variations": [
+              "big",
+              "bigger",
+              "biggest"
+            ],
+            "emojis": [
+              "📏",
+              "⬆️"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "branch",
+            "definition": "a part of a tree that grows out from the trunk",
+            "variations": [
+              "branch",
+              "branches"
+            ],
+            "emojis": [
+              "🌳",
+              "🪵"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "climb",
+            "definition": "to go up something like a tree or a hill",
+            "variations": [
+              "climb",
+              "climbed",
+              "climbing",
+              "climbs"
+            ],
+            "emojis": [
+              "🧗",
+              "🌳"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "dinner",
+            "definition": "the main meal eaten later in the day",
+            "variations": [
+              "dinner",
+              "dinners"
+            ],
+            "emojis": [
+              "🍽️",
+              "🌙"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "forest",
+            "definition": "a large area filled with many trees",
+            "variations": [
+              "forest",
+              "forests"
+            ],
+            "emojis": [
+              "🌲",
+              "🌳"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "ground",
+            "definition": "the land or surface you walk on outside",
+            "variations": [
+              "ground"
+            ],
+            "emojis": [
+              "🌍",
+              "🟫"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "jump",
+            "definition": "to push yourself off the ground and go into the air",
+            "variations": [
+              "jump",
+              "jumped",
+              "jumping",
+              "jumps"
+            ],
+            "emojis": [
+              "🤾",
+              "⬆️"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "jumped",
+            "definition": "pushed off the ground or from a place and went into the air",
+            "variations": [
+              "jump",
+              "jumps",
+              "jumped",
+              "jumping"
+            ],
+            "emojis": [
+              "🦘",
+              "⬆️"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "leopard",
+            "definition": "a large wild cat with spots",
+            "variations": [
+              "leopard",
+              "leopards"
+            ],
+            "emojis": [
+              "🐆"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "monkey",
+            "definition": "an animal that can climb trees and has a long tail",
+            "variations": [
+              "monkey",
+              "monkeys"
+            ],
+            "emojis": [
+              "🐒"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "mother",
+            "definition": "a female parent",
+            "variations": [
+              "mother",
+              "mothers"
+            ],
+            "emojis": [
+              "👩",
+              "❤️"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "point",
+            "definition": "to show something with a finger",
+            "variations": [
+              "point",
+              "pointed",
+              "pointing",
+              "points"
+            ],
+            "emojis": [
+              "👉"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "quietly",
+            "definition": "in a way that makes little or no sound",
+            "variations": [
+              "quietly"
+            ],
+            "emojis": [
+              "🤫",
+              "👣"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "run",
+            "definition": "to move quickly on your feet",
+            "variations": [
+              "run",
+              "ran",
+              "running",
+              "runs"
+            ],
+            "emojis": [
+              "🏃"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shook",
+            "definition": "moved quickly back and forth",
+            "variations": [
+              "shake",
+              "shakes",
+              "shook",
+              "shaken",
+              "shaking"
+            ],
+            "emojis": [
+              "😮",
+              "🌿"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shout",
+            "definition": "to speak very loudly",
+            "variations": [
+              "shout",
+              "shouted",
+              "shouting",
+              "shouts"
+            ],
+            "emojis": [
+              "🗣️",
+              "📣"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shouted",
+            "definition": "said something very loudly",
+            "variations": [
+              "shout",
+              "shouts",
+              "shouted",
+              "shouting"
+            ],
+            "emojis": [
+              "📣",
+              "😮"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "sleep",
+            "definition": "to rest with your eyes closed",
+            "variations": [
+              "sleep",
+              "sleeping",
+              "sleeps"
+            ],
+            "emojis": [
+              "😴",
+              "🛌"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "small",
+            "definition": "little in size",
+            "variations": [
+              "small",
+              "smaller",
+              "smallest"
+            ],
+            "emojis": [
+              "🤏"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "stick",
+            "definition": "a small thin piece of wood",
+            "variations": [
+              "stick",
+              "sticks"
+            ],
+            "emojis": [
+              "🪵"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "sticks",
+            "definition": "small thin pieces of wood from a tree",
+            "variations": [
+              "stick",
+              "sticks"
+            ],
+            "emojis": [
+              "🪵",
+              "🌳"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "threw",
+            "definition": "sent something through the air with the hand",
+            "variations": [
+              "throw",
+              "throws",
+              "threw",
+              "thrown",
+              "throwing"
+            ],
+            "emojis": [
+              "✋",
+              "🪵"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "throw",
+            "definition": "to send something through the air with your hand",
+            "variations": [
+              "throw",
+              "threw",
+              "throwing",
+              "throws"
+            ],
+            "emojis": [
+              "🪵",
+              "✋"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "wake up",
+            "definition": "to stop sleeping",
+            "variations": [
+              "wake up",
+              "woke up",
+              "wakes up",
+              "waking up"
+            ],
+            "emojis": [
+              "😴",
+              "👀"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "woke",
+            "definition": "stopped sleeping",
+            "variations": [
+              "wake",
+              "wakes",
+              "woke",
+              "woken",
+              "waking"
+            ],
+            "emojis": [
+              "😴",
+              "👀"
+            ],
+            "source": "ai"
+          }
+        ],
+        "toc": [
+          {
+            "id": "toc_001",
+            "title": "Momo and the Leopards",
+            "sectionId": "pg001_sec001",
+            "href": "pg001_sec001.html",
+            "chapterId": "pg001_n0002",
+            "level": 1
+          },
+          {
+            "id": "toc_002",
+            "title": "VISION",
+            "sectionId": "pg020_sec001",
+            "href": "pg020_sec001.html",
+            "chapterId": "pg020_n0002",
+            "level": 1
+          }
+        ]
+      }
+    }
+  ]
+}

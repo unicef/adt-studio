@@ -709,7 +709,14 @@ export async function runFullPipeline(
           }))
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
           const result = await captionPageImages(
-            { pageId: page.pageId, pageImageBase64, images, language, bookSummary },
+            {
+              pageId: page.pageId,
+              pageImageBase64,
+              pageText: page.text,
+              images,
+              language,
+              bookSummary,
+            },
             captionConfig,
             model,
           )

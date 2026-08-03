@@ -10,6 +10,8 @@ import { buildLanguageContext } from "./language-context.js"
 export interface CaptionPageInput {
   pageId: string
   pageImageBase64: string
+  /** Extracted page text used only to ground names and story actions. */
+  pageText?: string
   images: { imageId: string; imageBase64: string; width?: number; height?: number }[]
   language: string
   bookSummary?: string
@@ -116,6 +118,7 @@ export async function captionPageImages(
   const inputImageIds = input.images.map((img) => img.imageId)
   const inputImagesById = new Map(input.images.map((img) => [img.imageId, img]))
   const languageContext = buildLanguageContext(input.language)
+  const pageText = input.pageText?.trim().slice(0, 12_000)
 
   const result = await llmModel.generateObject<{
     captions: Array<{ image_id: string; reasoning: string; caption: string; decorative?: boolean }>
@@ -126,6 +129,7 @@ export async function captionPageImages(
       page_image_base64: input.pageImageBase64,
       images: input.images,
       ...languageContext,
+      ...(pageText ? { page_text: pageText } : {}),
       ...(input.bookSummary ? { book_summary: input.bookSummary } : {}),
       user_instructions: config.userPrompt ?? "",
       grade_level: config.gradeLevel ?? "",

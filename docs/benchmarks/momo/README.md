@@ -1,0 +1,51 @@
+# Momo benchmark artifacts
+
+Source: `/Users/amoghbanta/Downloads/UNICEF/momograde1.pdf`
+Machine used: Apple M2 Max, 32 GB unified memory
+Date: 2026-08-03
+
+## Runs
+
+- `gemma-before-run.json`: embedded Gemma 4 12B + Kokoro before caption grounding.
+- `gemma-improved-run.json`: embedded Gemma 4 12B + Kokoro with full-page image and extracted page-text grounding.
+- `openai-gpt54-run.json`: repository-default GPT-5.4 + `gpt-4o-mini-tts` baseline.
+- `comparison.json`: database/log/artifact/audio aggregation for the three reported runs.
+- `export-smoke.json`: Chromium navigation result for every exported HTML page.
+- `browser-a11y.json`: browser color-contrast recheck for every exported page.
+- `caption-review.csv`: page-level manual caption rubric and decisions.
+
+Generated books remain under Electron user data and are not committed because they contain large derivative images/audio. JSON records contain no API key.
+
+## Reproduce
+
+Start the source API with the desktop books/model directories and packaged ADT assets, then run:
+
+```sh
+node scripts/benchmark-momo-ai.mjs \
+  --mode local \
+  --label momo-benchmark-gemma-grounded \
+  --pdf /Users/amoghbanta/Downloads/UNICEF/momograde1.pdf \
+  --base-url http://127.0.0.1:3133/api \
+  --out docs/benchmarks/momo/gemma-improved-run.json
+```
+
+For the cloud baseline, set `OPENAI_API_KEY` (legacy `OPEN_AI_API_KEY` in `.env` is also accepted), change mode/label/output to `openai`, `momo-benchmark-openai-gpt54`, and `openai-gpt54-run.json`. Runs never overwrite an existing book. Use a new label when repeating a condition.
+
+Aggregate and smoke-check:
+
+```sh
+node scripts/analyze-momo-benchmarks.mjs \
+  --runs docs/benchmarks/momo/gemma-before-run.json,docs/benchmarks/momo/gemma-improved-run.json,docs/benchmarks/momo/openai-gpt54-run.json \
+  --local-status-url http://127.0.0.1:3133/api/local-ai/status \
+  --out docs/benchmarks/momo/comparison.json
+
+node scripts/smoke-adt-exports.mjs \
+  --labels momo-benchmark-gemma-before,momo-benchmark-gemma-grounded,momo-benchmark-openai-gpt54 \
+  --out docs/benchmarks/momo/export-smoke.json
+```
+
+The analyzer requires `sqlite3`, `ffprobe`, and `ffmpeg`. Cost assumptions are dated and recorded in `comparison.json`; refresh official pricing before future comparisons.
+
+## Quality rubric
+
+Metrics and schema validity are automated. Caption, quiz, glossary, TOC, and page-layout judgments are manual. A story caption passes only when key characters, action, and setting agree with the source page. Minor wording differences do not fail it. Audio automation proves format and decode validity only; publication still requires native-speaker listening and editorial/accessibility review.
