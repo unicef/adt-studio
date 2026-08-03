@@ -36,6 +36,7 @@ import { createSignLanguageVideoRoutes } from "./routes/sign-language-videos.js"
 import { createEditableActivitiesRoutes } from "./routes/editable-activities.js"
 import { createAgentRoutes } from "./routes/agents.js"
 import { createTranslationEvaluationRoutes } from "./routes/translation-evaluations.js"
+import { createCloudflareRoutes } from "./routes/cloudflare.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -122,6 +123,7 @@ app.route("/api", createReviewerValidationRoutes(booksDir, configFolderPath, con
 app.route("/api", createSignLanguageVideoRoutes(booksDir))
 app.route("/api", createAgentRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTranslationEvaluationRoutes(booksDir, configPath, taskService))
+app.route("/api", createCloudflareRoutes({ booksDir, projectRoot }))
 
 export default app
 export { booksDir }
