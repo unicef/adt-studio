@@ -1961,6 +1961,15 @@ msgstr "Titulli i kapitullit"
 msgid "Chart / Graph"
 msgstr "Tabelë / Grafik"
 
+msgid "Check again anyway"
+msgstr "Kontrollo prapëseprapë"
+
+msgid "Check every expression"
+msgstr "Kontrollo çdo shprehje"
+
+msgid "Check maths"
+msgstr "Kontrollo matematikën"
+
 msgid "Checked"
 msgstr "Kontrolluar"
 
@@ -5615,6 +5624,9 @@ msgstr "Shënim"
 msgid "Nothing important is missing or added"
 msgstr "Asgjë e rëndësishme nuk mungon ose nuk është shtuar"
 
+msgid "Nothing needs review. Every expression converted cleanly."
+msgstr "Asgjë nuk ka nevojë për rishikim. Çdo shprehje u konvertua pastër."
+
 msgid "Nothing to edit yet"
 msgstr "Ende s'ka asgjë për të redaktuar"
 
@@ -7649,6 +7661,9 @@ msgstr "Aplikacion web ADT i pavarur"
 
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Dërgojeni këtë arkiv projekti te koordinatori për ta bashkuar në librin burim."
+
+msgid "Sent the original LaTeX beside the spoken form prepared for the voice. It decides whether they state the same mathematics."
+msgstr "U dërgua LaTeX-i origjinal krahas formës së folur të përgatitur për zërin. Ai vendos nëse të dyja shprehin të njëjtën matematikë."
 
 #. placeholder {0}: si + 1
 msgid "Sentence {0}"

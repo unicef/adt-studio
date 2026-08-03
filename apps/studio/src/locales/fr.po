@@ -1962,6 +1962,15 @@ msgstr "Titre de chapitre"
 msgid "Chart / Graph"
 msgstr "Graphique / Diagramme"
 
+msgid "Check again anyway"
+msgstr "Vérifier quand même"
+
+msgid "Check every expression"
+msgstr "Vérifier toutes les expressions"
+
+msgid "Check maths"
+msgstr "Vérifier les mathématiques"
+
 msgid "Checked"
 msgstr "Vérifié"
 
@@ -5616,6 +5625,9 @@ msgstr "Note"
 msgid "Nothing important is missing or added"
 msgstr "Rien d'important n'est manquant ou ajouté"
 
+msgid "Nothing needs review. Every expression converted cleanly."
+msgstr "Rien à vérifier. Toutes les expressions ont été converties correctement."
+
 msgid "Nothing to edit yet"
 msgstr "Rien à modifier pour l'instant"
 
@@ -7650,6 +7662,9 @@ msgstr "Application web ADT autonome"
 
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Renvoyez cette archive de projet au coordinateur pour la fusionner dans le livre source."
+
+msgid "Sent the original LaTeX beside the spoken form prepared for the voice. It decides whether they state the same mathematics."
+msgstr "Le LaTeX d'origine a été envoyé avec la forme orale préparée pour la voix. Il détermine si les deux énoncent les mêmes mathématiques."
 
 #. placeholder {0}: si + 1
 msgid "Sentence {0}"
