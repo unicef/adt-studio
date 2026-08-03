@@ -340,9 +340,19 @@ function DeploymentsTable({ deployments, connection, onInspect, isLoading }: {
   onInspect: (deployment: GitHubPublishStateType) => void
   isLoading: boolean
 }) {
+  const pageSize = 10
+  const [page, setPage] = useState(1)
+  const pageCount = Math.max(1, Math.ceil(deployments.length / pageSize))
+  const visibleDeployments = deployments.slice((page - 1) * pageSize, page * pageSize)
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, pageCount))
+  }, [pageCount])
+
   return (
-    <div className="overflow-x-auto rounded-xl border border-border bg-background">
-      <table className="w-full min-w-[58rem] text-left text-xs">
+    <div className="rounded-xl border border-border bg-background">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[58rem] text-left text-xs">
         <thead className="border-b border-border bg-muted/30 text-muted-foreground">
           <tr>
             <th className="px-4 py-3 font-medium"><Trans>Deployment</Trans></th>
@@ -355,7 +365,7 @@ function DeploymentsTable({ deployments, connection, onInspect, isLoading }: {
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {deployments.map((deployment) => (
+          {visibleDeployments.map((deployment) => (
             <tr key={deployment.id} className="transition-colors hover:bg-muted/20">
               <td className="max-w-[22rem] px-4 py-3"><p className="truncate font-medium">{deployment.commitMessage || <Trans>Book deployment</Trans>}</p><p className="mt-1 text-[11px] text-muted-foreground">{deployment.changes.length} <Trans>files</Trans></p></td>
               <td className="px-4 py-3"><span className="inline-flex items-center gap-1.5 capitalize"><span className={`h-2 w-2 rounded-full ${deployment.status === "completed" ? "bg-emerald-500" : deployment.status === "failed" ? "bg-red-500" : "bg-indigo-500"}`} />{deployment.status} <span className="text-muted-foreground">{deploymentDuration(deployment)}</span></span></td>
@@ -366,7 +376,7 @@ function DeploymentsTable({ deployments, connection, onInspect, isLoading }: {
               <td className="px-4 py-3 text-right"><Button type="button" size="sm" variant="outline" onClick={() => onInspect(deployment)}>{deployment.status === "running" ? <LoaderCircle className="mr-2 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <ScanSearch className="mr-2 h-3.5 w-3.5" aria-hidden="true" />}<Trans>Inspect</Trans></Button></td>
             </tr>
           ))}
-          {isLoading ? Array.from({ length: Math.max(3, 6 - deployments.length) }, (_, index) => (
+          {isLoading ? Array.from({ length: Math.max(3, pageSize - visibleDeployments.length) }, (_, index) => (
             <tr key={`deployment-skeleton-${index}`} className="h-[3.75rem]" aria-hidden="true">
               <td className="px-4 py-3"><div className="h-3 w-64 animate-pulse rounded bg-muted" /><div className="mt-2 h-2.5 w-16 animate-pulse rounded bg-muted" /></td>
               <td className="px-4 py-3"><div className="h-3 w-24 animate-pulse rounded bg-muted" /></td>
@@ -378,8 +388,26 @@ function DeploymentsTable({ deployments, connection, onInspect, isLoading }: {
             </tr>
           )) : null}
         </tbody>
-      </table>
+        </table>
+      </div>
       {!isLoading && deployments.length === 0 ? <p className="p-10 text-center text-xs text-muted-foreground"><Trans>No deployments have been recorded yet.</Trans></p> : null}
+      {!isLoading && deployments.length > 0 ? (
+        <div className="flex items-center justify-between border-t border-border px-4 py-3 text-xs text-muted-foreground">
+          <p>
+            <Trans>Page {page} of {pageCount}</Trans>
+          </p>
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" variant="outline" disabled={page === 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>
+              <ArrowLeft className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+              <Trans>Previous</Trans>
+            </Button>
+            <Button type="button" size="sm" variant="outline" disabled={page === pageCount} onClick={() => setPage((current) => Math.min(pageCount, current + 1))}>
+              <Trans>Next</Trans>
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
