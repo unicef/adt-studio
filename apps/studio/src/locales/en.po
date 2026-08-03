@@ -589,6 +589,9 @@ msgstr "A question worth asking"
 msgid "A quiz already sits here — add another after it or replace it"
 msgstr "A quiz already sits here — add another after it or replace it"
 
+msgid "A required credential is missing."
+msgstr "A required credential is missing."
+
 msgid "A scenic view at dusk."
 msgstr "A scenic view at dusk."
 
@@ -1946,6 +1949,9 @@ msgstr "Checking accessibility"
 msgid "Checking for updates…"
 msgstr "Checking for updates…"
 
+msgid "Checking the connection…"
+msgstr "Checking the connection…"
+
 msgid "Checklist item"
 msgstr "Checklist item"
 
@@ -2222,6 +2228,19 @@ msgstr "Confirm merge"
 msgid "Connect an AI provider"
 msgstr "Connect an AI provider"
 
+#. placeholder {0}: health.modelCount
+msgid "Connected successfully — {0} models available."
+msgstr "Connected successfully — {0} models available."
+
+msgid "Connected successfully."
+msgstr "Connected successfully."
+
+msgid "Connected through the login already present on this machine."
+msgstr "Connected through the login already present on this machine."
+
+msgid "Connection not checked yet."
+msgstr "Connection not checked yet."
+
 msgid "Consulting the style council..."
 msgstr "Consulting the style council..."
 
@@ -2441,6 +2460,9 @@ msgstr "Creating a new glossary image changes the book's image set. The complete
 
 msgid "Creating..."
 msgstr "Creating..."
+
+msgid "Credentials are set, but this provider offers no automatic check."
+msgstr "Credentials are set, but this provider offers no automatic check."
 
 msgid "Credits"
 msgstr "Credits"
@@ -5345,6 +5367,9 @@ msgstr "No languages configured. Add languages in the Language settings."
 
 msgid "No log entries found yet."
 msgstr "No log entries found yet."
+
+msgid "No login found on this machine. Sign in with the provider's CLI or set an API key."
+msgstr "No login found on this machine. Sign in with the provider's CLI or set an API key."
 
 msgid "No manual terms yet"
 msgstr "No manual terms yet"
@@ -8345,6 +8370,9 @@ msgstr "Terms were picked by AI from the book. Edit a definition or its emojis, 
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Terms, character names, or phrases the judge should preserve or prefer."
 
+msgid "Test connection"
+msgstr "Test connection"
+
 msgid "Text"
 msgstr "Text"
 
@@ -8421,6 +8449,9 @@ msgstr "The book's title and metadata arrive with the part that contains page 1 
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 
+msgid "The command-line tool this provider needs was not found on this machine."
+msgstr "The command-line tool this provider needs was not found on this machine."
+
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "The community of living organisms in a place and the way they interact with each other and their environment."
 
@@ -8429,6 +8460,9 @@ msgstr "The completed stages below will be reset and need to run again before fi
 
 msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
 msgstr "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
+
+msgid "The connection check could not be completed."
+msgstr "The connection check could not be completed."
 
 msgid "The credits page."
 msgstr "The credits page."
@@ -8510,6 +8544,15 @@ msgstr "The prompt template used to translate text catalog entries."
 
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
+
+msgid "The provider answered with an unexpected response."
+msgstr "The provider answered with an unexpected response."
+
+msgid "The provider could not be reached."
+msgstr "The provider could not be reached."
+
+msgid "The provider rejected these credentials."
+msgstr "The provider rejected these credentials."
 
 msgid "The quick brown fox jumps over the lazy dog 0123456789"
 msgstr "The quick brown fox jumps over the lazy dog 0123456789"
@@ -8743,6 +8786,9 @@ msgstr "This prompt instructs the LLM how to evaluate the rendered HTML against 
 
 msgid "This provider does not require local credentials."
 msgstr "This provider does not require local credentials."
+
+msgid "This provider has no automatic connection check."
+msgstr "This provider has no automatic connection check."
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "This quiz will be removed from the book. You can still restore it from the version history."

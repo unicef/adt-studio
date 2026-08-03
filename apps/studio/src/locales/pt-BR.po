@@ -589,6 +589,9 @@ msgstr "Uma pergunta que vale a pena fazer"
 msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Já existe um questionário aqui — adicione outro depois ou substitua-o"
 
+msgid "A required credential is missing."
+msgstr "Falta uma credencial obrigatória."
+
 msgid "A scenic view at dusk."
 msgstr "Uma vista cênica ao entardecer."
 
@@ -1946,6 +1949,9 @@ msgstr "Checking accessibility"
 msgid "Checking for updates…"
 msgstr "Verificando atualizações…"
 
+msgid "Checking the connection…"
+msgstr "Verificando a conexão…"
+
 msgid "Checklist item"
 msgstr "Checklist item"
 
@@ -2222,6 +2228,19 @@ msgstr "Confirmar mesclagem"
 msgid "Connect an AI provider"
 msgstr "Conecte um provedor de IA"
 
+#. placeholder {0}: health.modelCount
+msgid "Connected successfully — {0} models available."
+msgstr "Conectado com sucesso — {0} modelos disponíveis."
+
+msgid "Connected successfully."
+msgstr "Conectado com sucesso."
+
+msgid "Connected through the login already present on this machine."
+msgstr "Conectado pelo login já existente nesta máquina."
+
+msgid "Connection not checked yet."
+msgstr "Conexão ainda não verificada."
+
 msgid "Consulting the style council..."
 msgstr "Consultando o conselho de estilo..."
 
@@ -2441,6 +2460,9 @@ msgstr "A criação de uma nova imagem de glossário altera o conjunto de imagen
 
 msgid "Creating..."
 msgstr "Criando..."
+
+msgid "Credentials are set, but this provider offers no automatic check."
+msgstr "As credenciais estão definidas, mas este provedor não oferece verificação automática."
 
 msgid "Credits"
 msgstr "Créditos"
@@ -5345,6 +5367,9 @@ msgstr "Nenhum idioma configurado. Adicione idiomas nas configurações de Idiom
 
 msgid "No log entries found yet."
 msgstr "Nenhuma entrada de registro encontrada ainda."
+
+msgid "No login found on this machine. Sign in with the provider's CLI or set an API key."
+msgstr "Nenhum login encontrado nesta máquina. Faça login pela CLI do provedor ou defina uma chave de API."
 
 msgid "No manual terms yet"
 msgstr "Nenhum termo manual ainda"
@@ -8342,6 +8367,9 @@ msgstr "Termos foram selecionados por IA do livro. Edite uma definição ou seus
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termos, nomes de personagens ou frases que o juiz deve preservar ou preferir."
 
+msgid "Test connection"
+msgstr "Testar conexão"
+
 msgid "Text"
 msgstr "Texto"
 
@@ -8418,6 +8446,9 @@ msgstr "O título e os metadados do livro chegam com a parte que contém a pági
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Os prompts integrados são otimizados para {DEFAULT_MODEL}. Você alterou o LLM padrão para <0>{savedModel}</0>, então recomendamos gerar novos arquivos de prompts globais ajustados para ele. Você também pode continuar com os prompts existentes."
 
+msgid "The command-line tool this provider needs was not found on this machine."
+msgstr "A ferramenta de linha de comando exigida por este provedor não foi encontrada nesta máquina."
+
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "A comunidade de organismos vivos em um lugar e a forma como interagem entre si e com o ambiente."
 
@@ -8426,6 +8457,9 @@ msgstr "As etapas concluídas abaixo serão redefinidas e precisarão ser execut
 
 msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
 msgstr "As etapas concluídas abaixo serão redefinidas e precisarão ser executadas novamente para usar o novo idioma. Suas seções de página são mantidas."
+
+msgid "The connection check could not be completed."
+msgstr "Não foi possível concluir a verificação da conexão."
 
 msgid "The credits page."
 msgstr "A página de créditos."
@@ -8507,6 +8541,15 @@ msgstr "O template de prompt usado para traduzir entradas do catálogo de textos
 
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "O prompt usado pela passagem de revisão para inspecionar e corrigir uma árvore de seção candidata. Compartilha o modelo e as configurações de retentativa do prompt de seção."
+
+msgid "The provider answered with an unexpected response."
+msgstr "O provedor respondeu de forma inesperada."
+
+msgid "The provider could not be reached."
+msgstr "Não foi possível acessar o provedor."
+
+msgid "The provider rejected these credentials."
+msgstr "O provedor rejeitou estas credenciais."
 
 msgid "The quick brown fox jumps over the lazy dog 0123456789"
 msgstr "Um pequeno jabuti xereta viu dez cegonhas felizes 0123456789"
@@ -8740,6 +8783,9 @@ msgstr "Este prompt instrui o LLM sobre como avaliar o HTML renderizado em rela�
 
 msgid "This provider does not require local credentials."
 msgstr "Este provedor não requer credenciais locais."
+
+msgid "This provider has no automatic connection check."
+msgstr "Este provedor não possui verificação automática de conexão."
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Este questionário será removido do livro. Você ainda pode restaurá-lo pelo histórico de versões."

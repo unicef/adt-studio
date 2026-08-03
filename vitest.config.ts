@@ -17,6 +17,12 @@ export default defineConfig({
             "apps/studio/src/**/*.test.ts",
             "apps/studio/src/**/*.test.tsx",
           ],
+          /**
+           * Route tests import their page module inside the test body; under the
+           * parallel load of the whole project that transform alone can exceed
+           * the 5s default.
+           */
+          testTimeout: 20_000,
         },
         resolve: {
           alias: {

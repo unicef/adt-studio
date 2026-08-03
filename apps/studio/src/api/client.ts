@@ -19,6 +19,7 @@ import type {
   TranslationEvaluationResult,
   ProvidersResponse,
   ModelDiscoveryResponse,
+  ProviderHealthResponse,
   AiModality,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
@@ -295,6 +296,24 @@ export async function getProviderModels(
   const query = params.toString()
   return request<ModelDiscoveryResponse>(
     `/providers/${encodeURIComponent(providerId)}/models${query ? `?${query}` : ""}`,
+    { headers },
+  )
+}
+
+/**
+ * Live connection check for a provider. `draftCredentials` lets the settings
+ * dialog verify values the user has typed but not saved yet.
+ */
+export async function getProviderHealth(
+  providerId: string,
+  draftCredentials?: Record<string, string>,
+): Promise<ProviderHealthResponse> {
+  const headers = await buildApiHeaders(
+    "",
+    draftCredentials ? { values: { [providerId]: draftCredentials } } : undefined,
+  )
+  return request<ProviderHealthResponse>(
+    `/providers/${encodeURIComponent(providerId)}/health`,
     { headers },
   )
 }

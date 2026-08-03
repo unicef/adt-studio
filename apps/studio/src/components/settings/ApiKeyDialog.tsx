@@ -29,6 +29,7 @@ import { i18n } from "@lingui/core"
 import { useProviderCredentials } from "@/hooks/use-provider-credentials"
 import { isProviderAvailable, type ProviderCredentialValues } from "@/api/provider-credentials"
 import type { AppLocale } from "@/i18n/locales"
+import { ProviderConnectionStatus } from "./ProviderConnectionStatus"
 
 interface ApiKeyDialogProps {
   open: boolean
@@ -285,6 +286,10 @@ export function ApiKeyDialog({
                 value={provider.manifest.id}
                 className="flex flex-col gap-4 pt-3"
               >
+                <ProviderConnectionStatus
+                  providerId={provider.manifest.id}
+                  draftCredentials={drafts[provider.manifest.id]}
+                />
                 {provider.manifest.credentialFields.length > 0 ? (
                   provider.manifest.credentialFields.map((field) => renderField(provider, field))
                 ) : (
@@ -324,7 +329,7 @@ export function ApiKeyDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-xl">{content}</DialogContent>
+      <DialogContent className="sm:max-w-fit">{content}</DialogContent>
     </Dialog>
   )
 }

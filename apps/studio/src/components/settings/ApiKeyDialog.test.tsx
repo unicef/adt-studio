@@ -49,6 +49,14 @@ vi.mock("@lingui/react/macro", () => ({
   }),
 }))
 vi.mock("@/components/ui/sonner", () => ({ toast: { success: vi.fn() } }))
+vi.mock("@/hooks/use-provider-health", () => ({
+  useProviderHealth: () => ({
+    data: { providerId: "fake", ok: true, code: "configured" },
+    error: null,
+    isFetching: false,
+    refetch: vi.fn(),
+  }),
+}))
 vi.mock("@/hooks/use-provider-credentials", () => ({
   useProviderCredentials: () => ({
     providers: fakeProviders,

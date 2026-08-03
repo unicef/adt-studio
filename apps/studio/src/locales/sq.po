@@ -590,6 +590,9 @@ msgstr "Një pyetje që vlen të bëhet"
 msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zëvendësojeni"
 
+msgid "A required credential is missing."
+msgstr "Mungon një kredencial i detyrueshëm."
+
 msgid "A scenic view at dusk."
 msgstr "Një pamje piktoreske në muzg."
 
@@ -1947,6 +1950,9 @@ msgstr "Po kontrollohet aksesueshmëria"
 msgid "Checking for updates…"
 msgstr "Po kontrollohet për përditësime…"
 
+msgid "Checking the connection…"
+msgstr "Po kontrollohet lidhja…"
+
 msgid "Checklist item"
 msgstr "Artikull liste kontrolli"
 
@@ -2223,6 +2229,19 @@ msgstr "Konfirmoni bashkimin"
 msgid "Connect an AI provider"
 msgstr "Lidheni një ofrues AI"
 
+#. placeholder {0}: health.modelCount
+msgid "Connected successfully — {0} models available."
+msgstr "Lidhja u krye me sukses — {0} modele në dispozicion."
+
+msgid "Connected successfully."
+msgstr "Lidhja u krye me sukses."
+
+msgid "Connected through the login already present on this machine."
+msgstr "I lidhur përmes hyrjes që ndodhet në këtë makinë."
+
+msgid "Connection not checked yet."
+msgstr "Lidhja nuk është kontrolluar ende."
+
 msgid "Consulting the style council..."
 msgstr "Po konsultohet këshilli i stilit..."
 
@@ -2442,6 +2461,9 @@ msgstr "Krijimi i një imazhi të ri të fjalorthit ndryshon grupin e imazheve t
 
 msgid "Creating..."
 msgstr "Po krijohet..."
+
+msgid "Credentials are set, but this provider offers no automatic check."
+msgstr "Kredencialet janë të caktuara, por ky ofrues nuk ofron kontroll automatik."
 
 msgid "Credits"
 msgstr "Kreditet"
@@ -5346,6 +5368,9 @@ msgstr "Nuk ka gjuhë të konfiguruara. Shto gjuhë te cilësimet e Gjuhës."
 
 msgid "No log entries found yet."
 msgstr "Nuk u gjetën ende hyrje regjistrimi."
+
+msgid "No login found on this machine. Sign in with the provider's CLI or set an API key."
+msgstr "Nuk u gjet hyrje në këtë makinë. Hyni me CLI-n e ofruesit ose caktoni një kyç API."
 
 msgid "No manual terms yet"
 msgstr "Nuk ka terma manualë ende"
@@ -8343,6 +8368,9 @@ msgstr "Termet u zgjodhën nga AI nga libri. Redakto një përkufizim ose emoji-
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termat, emrat e karaktereve ose frazat që gjykatësi duhet të ruajë ose preferojë."
 
+msgid "Test connection"
+msgstr "Testo lidhjen"
+
 msgid "Text"
 msgstr "Teksti"
 
@@ -8419,6 +8447,9 @@ msgstr "Titulli dhe të dhënat e librit vijnë me pjesën që përmban faqen 1 
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Prompt-et e integruara janë optimizuar për {DEFAULT_MODEL}. E ndryshuat LLM-në e parazgjedhur në <0>{savedModel}</0>, ndaj rekomandojmë të gjeneroni skedarë të rinj prompt-esh globale të përshtatur për të. Mund të vazhdoni edhe me prompt-et ekzistuese."
 
+msgid "The command-line tool this provider needs was not found on this machine."
+msgstr "Vegla e vijës së komandës që kërkon ky ofrues nuk u gjet në këtë makinë."
+
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "Bashkësia e organizmave të gjallë në një vend dhe mënyra si ndërveprojnë me njëri-tjetrin dhe mjedisin e tyre."
 
@@ -8427,6 +8458,9 @@ msgstr "Fazat e përfunduara më poshtë do të resetohen dhe duhet të ekzekuto
 
 msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
 msgstr "Fazat e përfunduara më poshtë do të rivendosen dhe duhet të ekzekutohen përsëri që të përdorin gjuhën e re. Seksionet e faqes suaj ruhen."
+
+msgid "The connection check could not be completed."
+msgstr "Kontrolli i lidhjes nuk mundi të përfundohet."
 
 msgid "The credits page."
 msgstr "Faqja e krediteve."
@@ -8508,6 +8542,15 @@ msgstr "Modeli i udhëzimit i përdorur për të përkthyer hyrjet e katalogut t
 
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "Udhëzimi i përdorur nga kalimi i rishikuesit për të inspektuar dhe korrigjuar një pemë seksionimi kandidate. Ndan modelin dhe cilësimet e riprovimit të udhëzimit të seksionimit."
+
+msgid "The provider answered with an unexpected response."
+msgstr "Ofruesi u përgjigj në mënyrë të papritur."
+
+msgid "The provider could not be reached."
+msgstr "Ofruesi nuk mundi të kontaktohet."
+
+msgid "The provider rejected these credentials."
+msgstr "Ofruesi i refuzoi këto kredenciale."
 
 msgid "The quick brown fox jumps over the lazy dog 0123456789"
 msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin përtac 0123456789"
@@ -8741,6 +8784,9 @@ msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundr
 
 msgid "This provider does not require local credentials."
 msgstr "Ky ofrues nuk kërkon kredenciale lokale."
+
+msgid "This provider has no automatic connection check."
+msgstr "Ky ofrues nuk ka kontroll automatik të lidhjes."
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Ky test do të hiqet nga libri. Mund ta rikthesh nga historia e versioneve."
