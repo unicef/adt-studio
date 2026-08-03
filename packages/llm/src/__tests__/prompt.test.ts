@@ -409,4 +409,54 @@ After.{% endchat %}`
       content: [{ type: "text", text: "Selected old" }],
     })
   })
+
+  it("keeps version history but falls through a root whose current pointer is fallback", async () => {
+    const overrideDir = tmpDir()
+    const bundledDir = tmpDir()
+    fs.writeFileSync(
+      path.join(bundledDir, "section.liquid"),
+      `{% chat role: "user" %}Bundled{% endchat %}`,
+    )
+    const versionDir = path.join(overrideDir, ".versions", "section")
+    fs.mkdirSync(versionDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(versionDir, "20260101T000000Z.liquid"),
+      `{% chat role: "user" %}Historical override{% endchat %}`,
+    )
+    fs.writeFileSync(path.join(versionDir, ".current"), "fallback\n")
+
+    const engine = createPromptEngine([overrideDir, bundledDir])
+    const messages = await engine.renderPrompt("section", {})
+
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Bundled" }],
+    })
+    expect(fs.existsSync(path.join(versionDir, "20260101T000000Z.liquid"))).toBe(true)
+  })
+
+  it("ignores migrated legacy versions after a global default pointer", async () => {
+    const overrideDir = tmpDir()
+    const bundledDir = tmpDir()
+    const overrideVersionDir = path.join(overrideDir, ".versions", "section")
+    const bundledVersionDir = path.join(bundledDir, ".versions", "section")
+    fs.mkdirSync(overrideVersionDir, { recursive: true })
+    fs.mkdirSync(bundledVersionDir, { recursive: true })
+    fs.writeFileSync(path.join(overrideVersionDir, ".current"), "default\n")
+    fs.writeFileSync(
+      path.join(bundledVersionDir, "20260101T000000Z.liquid"),
+      `{% chat role: "user" %}Legacy edit{% endchat %}`,
+    )
+    fs.writeFileSync(
+      path.join(bundledDir, "section.liquid"),
+      `{% chat role: "user" %}Bundled default{% endchat %}`,
+    )
+
+    const messages = await createPromptEngine([overrideDir, bundledDir]).renderPrompt("section", {})
+
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Bundled default" }],
+    })
+  })
 })

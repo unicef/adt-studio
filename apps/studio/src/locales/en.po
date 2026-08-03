@@ -1659,6 +1659,9 @@ msgstr "Book model overrides updated."
 msgid "Book order"
 msgstr "Book order"
 
+msgid "Book override"
+msgstr "Book override"
+
 msgid "Book package ready"
 msgstr "Book package ready"
 
@@ -1748,6 +1751,9 @@ msgstr "Builds a glossary of key terms and definitions found in the text."
 
 msgid "Builds the table of contents from the book's sections."
 msgstr "Builds the table of contents from the book's sections."
+
+msgid "Bundled default"
+msgstr "Bundled default"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Bundles the rendered book into a deployable web package."
@@ -1894,6 +1900,17 @@ msgstr "Change the picture for this term"
 
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "Changes apply the next time you run Storyboard and Export."
+
+#. placeholder {0}: promptData.persistence.logicalPath
+msgid "Changes save to global overrides at {0}."
+msgstr "Changes save to global overrides at {0}."
+
+msgid "Changes save to global overrides at {logicalPath}."
+msgstr "Changes save to global overrides at {logicalPath}."
+
+#. placeholder {0}: promptData.persistence.logicalPath
+msgid "Changes save to this book at {0}."
+msgstr "Changes save to this book at {0}."
 
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
@@ -3820,11 +3837,14 @@ msgstr "Generation Prompt"
 msgid "Get started"
 msgstr "Get started"
 
+msgid "Global override"
+msgstr "Global override"
+
 msgid "Global prompt reset to default."
 msgstr "Global prompt reset to default."
 
-msgid "Global prompt saved."
-msgstr "Global prompt saved."
+#~ msgid "Global prompt saved."
+#~ msgstr "Global prompt saved."
 
 msgid "Global prompts"
 msgstr "Global prompts"
@@ -6399,6 +6419,13 @@ msgstr "Prompt file deleted."
 msgid "Prompt folder deleted."
 msgstr "Prompt folder deleted."
 
+#. placeholder {0}: saved.persistence.logicalPath
+msgid "Prompt saved to global overrides at {0}."
+msgstr "Prompt saved to global overrides at {0}."
+
+msgid "Prompt saved to this book."
+msgstr "Prompt saved to this book."
+
 #~ msgid "Prompt Settings"
 #~ msgstr "Prompt Settings"
 
@@ -6766,6 +6793,9 @@ msgstr "Release to upload"
 
 msgid "Reload app"
 msgstr "Reload app"
+
+msgid "Reload latest"
+msgstr "Reload latest"
 
 msgid "Remove"
 msgstr "Remove"
@@ -8683,6 +8713,9 @@ msgstr "This position already has {occupiedCount} quizzes. Add another after the
 msgid "This position already has a quiz. Add another right after it, or replace it."
 msgstr "This position already has a quiz. Add another right after it, or replace it."
 
+msgid "This prompt changed after you loaded it. Your draft was not overwritten."
+msgstr "This prompt changed after you loaded it. Your draft was not overwritten."
+
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 
@@ -9033,6 +9066,9 @@ msgstr "Unprune image"
 
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
+
+msgid "Unsaved draft"
+msgstr "Unsaved draft"
 
 msgid "Untangling nested divs with care..."
 msgstr "Untangling nested divs with care..."

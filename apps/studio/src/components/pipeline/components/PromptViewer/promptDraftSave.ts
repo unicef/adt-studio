@@ -1,5 +1,8 @@
 import type { QueryClient } from "@tanstack/react-query"
-import { api } from "@/api/client"
+import { i18n } from "@lingui/core"
+import { msg } from "@lingui/core/macro"
+import { api, ApiError, type PromptResponse } from "@/api/client"
+import { toast } from "@/components/ui/sonner"
 import type { PromptDraft } from "./types"
 
 export async function savePromptDraft(
@@ -8,11 +11,38 @@ export async function savePromptDraft(
   bookLabel: string,
   draft: PromptDraft,
 ) {
-  const savedPrompt = await api.updatePrompt(promptName, draft.content, bookLabel, draft.modelId)
-  queryClient.setQueryData(["prompts", promptName, bookLabel, draft.modelId], savedPrompt)
+  const queryKey = ["prompts", promptName, bookLabel, draft.modelId]
+  const loadedPrompt = queryClient.getQueryData<PromptResponse>(queryKey)
+  let savedPrompt: PromptResponse
+  try {
+    savedPrompt = await api.updatePrompt(
+      promptName,
+      draft.content,
+      bookLabel,
+      draft.modelId,
+      loadedPrompt?.revision,
+    )
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409) {
+      const current = (error.body as { current?: PromptResponse } | null)?.current
+      if (current) queryClient.setQueryData(queryKey, current)
+      toast.error(i18n._(msg`This prompt changed after you loaded it. Your draft was not overwritten.`), {
+        id: "book-prompt-conflict",
+      })
+    } else {
+      toast.error(i18n._(msg`Save failed`), {
+        id: "book-prompt-save-error",
+      })
+    }
+    throw error
+  }
+  queryClient.setQueryData(queryKey, savedPrompt)
   await Promise.all([
     queryClient.invalidateQueries({ queryKey: ["prompts", promptName, bookLabel, draft.modelId] }),
     queryClient.invalidateQueries({ queryKey: ["prompt-versions", promptName, draft.modelId, bookLabel] }),
   ])
+  toast.success(i18n._(msg`Prompt saved to this book.`), {
+    id: "book-prompt-save",
+  })
   return savedPrompt
 }

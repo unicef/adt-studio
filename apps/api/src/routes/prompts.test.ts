@@ -6,15 +6,18 @@ import { createPromptRoutes } from "./prompts.js"
 
 let tmpDir: string
 let promptsDir: string
+let promptOverridesDir: string
 let templatesDir: string
 let booksDir: string
 
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-prompts-route-"))
   promptsDir = path.join(tmpDir, "prompts")
+  promptOverridesDir = path.join(tmpDir, "prompt-overrides")
   templatesDir = path.join(tmpDir, "templates")
   booksDir = path.join(tmpDir, "books")
   fs.mkdirSync(promptsDir, { recursive: true })
+  fs.mkdirSync(promptOverridesDir, { recursive: true })
   fs.mkdirSync(booksDir, { recursive: true })
 })
 
@@ -24,7 +27,7 @@ afterEach(() => {
 })
 
 function app() {
-  return createPromptRoutes(promptsDir, booksDir)
+  return createPromptRoutes(promptsDir, booksDir, promptOverridesDir)
 }
 
 function writePrompt(name: string, content: string) {
@@ -106,7 +109,7 @@ describe("GET /prompts", () => {
     writePrompt("page_sectioning", "base")
     writePrompt("page_sectioning__openai_gpt_5_5", "flat variant")
     writeModelPrompt("google_gemini_2_5_pro", "page_sectioning", "folder variant")
-    const versionDir = path.join(promptsDir, ".versions", "metadata_extraction")
+    const versionDir = path.join(promptOverridesDir, ".versions", "metadata_extraction")
     fs.mkdirSync(versionDir, { recursive: true })
     fs.writeFileSync(path.join(versionDir, "20260101T000000000Z-000.liquid"), "version", "utf-8")
 
@@ -133,7 +136,7 @@ describe("GET /prompts", () => {
   it("marks model variants with both shipped files and user versions", async () => {
     writePrompt("page_sectioning", "base")
     writeModelPrompt("google_gemini_2_5_pro", "page_sectioning", "folder variant")
-    const versionDir = path.join(promptsDir, ".versions", "page_sectioning__google_gemini_2_5_pro")
+    const versionDir = path.join(promptOverridesDir, ".versions", "page_sectioning__google_gemini_2_5_pro")
     fs.mkdirSync(versionDir, { recursive: true })
     fs.writeFileSync(path.join(versionDir, "20260101T000000000Z-000.liquid"), "version", "utf-8")
 
@@ -153,7 +156,7 @@ describe("GET /prompts", () => {
   })
 
   it("lists folder variants when the base prompt only exists as a version", async () => {
-    const baseVersionDir = path.join(promptsDir, ".versions", "page_sectioning")
+    const baseVersionDir = path.join(promptOverridesDir, ".versions", "page_sectioning")
     fs.mkdirSync(baseVersionDir, { recursive: true })
     fs.writeFileSync(
       path.join(baseVersionDir, "20260101T000000000Z-000.liquid"),
@@ -182,7 +185,7 @@ describe("GET /prompts/:name", () => {
   it("keeps GPT-5.4 as the base and resolves GPT-5.6-sol variants", async () => {
     writePrompt("section", "GPT-5.4 base")
     writeModelPrompt("openai_gpt_5_6_sol", "section", "GPT-5.6-sol variant")
-    const configuredApp = createPromptRoutes(promptsDir, booksDir)
+    const configuredApp = createPromptRoutes(promptsDir, booksDir, promptOverridesDir)
 
     const defaultResponse = await configuredApp.request(
       "/prompts/section?model=openai%3Agpt-5.4",
@@ -234,9 +237,16 @@ describe("PUT /prompts/:name", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.content).toBe("new content")
+    expect(body.source).toBe("global")
+    expect(body.revision).toMatch(/^[a-f0-9]{64}$/)
+    expect(body.persistence).toEqual({
+      source: "global",
+      saveTarget: "global",
+      logicalPath: ".versions/test_prompt",
+    })
     expect(body.version).toMatch(/\.liquid$/)
     expect(fs.readFileSync(path.join(promptsDir, "test_prompt.liquid"), "utf-8")).toBe("old content")
-    const versionDir = path.join(promptsDir, ".versions", "test_prompt")
+    const versionDir = path.join(promptOverridesDir, ".versions", "test_prompt")
     const versions = readLiquidVersions(versionDir)
     expect(versions).toHaveLength(1)
     expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("new content")
@@ -290,7 +300,7 @@ describe("PUT /prompts/:name", () => {
     const body = await res.json()
     expect(body.resolvedName).toBe("test_prompt__google_gemini_2_5_pro")
     expect(body.modelId).toBe("google:gemini-2.5-pro")
-    expect(body.source).toBe("global")
+    expect(body.source).toBe("bundled")
     expect(body.content).toBe("folder content")
   })
 
@@ -308,7 +318,7 @@ describe("PUT /prompts/:name", () => {
       expect(res.status).toBe(200)
     }
 
-    const versionDir = path.join(promptsDir, ".versions", "test_prompt")
+    const versionDir = path.join(promptOverridesDir, ".versions", "test_prompt")
     const versions = readLiquidVersions(versionDir)
     expect(versions).toEqual([
       "20260102T030401000Z-000.liquid",
@@ -322,6 +332,48 @@ describe("PUT /prompts/:name", () => {
     ])
     expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("version 1")
     expect(fs.readFileSync(path.join(versionDir, versions.at(-1)!), "utf-8")).toBe("version 8")
+  })
+
+  it("does not create another version when an identical save is retried", async () => {
+    writePrompt("test_prompt", "default")
+    const first = await app().request("/prompts/test_prompt", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "edited" }),
+    })
+    const firstBody = await first.json()
+
+    const retry = await app().request("/prompts/test_prompt", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "edited", revision: "stale-revision" }),
+    })
+
+    expect(retry.status).toBe(200)
+    expect((await retry.json()).revision).toBe(firstBody.revision)
+    expect(readLiquidVersions(path.join(promptOverridesDir, ".versions", "test_prompt"))).toHaveLength(1)
+  })
+
+  it("rejects a stale revision without overwriting the current prompt", async () => {
+    writePrompt("test_prompt", "default")
+    const loaded = await (await app().request("/prompts/test_prompt")).json()
+    await app().request("/prompts/test_prompt", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "first edit", revision: loaded.revision }),
+    })
+
+    const staleSave = await app().request("/prompts/test_prompt", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "stale edit", revision: loaded.revision }),
+    })
+
+    expect(staleSave.status).toBe(409)
+    const conflict = await staleSave.json()
+    expect(conflict.code).toBe("PROMPT_CONFLICT")
+    expect(conflict.current.content).toBe("first edit")
+    expect(readLiquidVersions(path.join(promptOverridesDir, ".versions", "test_prompt"))).toHaveLength(1)
   })
 
   it("returns 404 when prompt does not exist", async () => {
@@ -460,7 +512,7 @@ describe("PUT /prompts/:name/versions/:version/current", () => {
     const readBody = await readRes.json()
     expect(readBody.content).toBe("first version")
 
-    const versionDir = path.join(promptsDir, ".versions", "test_prompt")
+    const versionDir = path.join(promptOverridesDir, ".versions", "test_prompt")
     expect(fs.readFileSync(path.join(versionDir, ".current"), "utf-8").trim()).toBe(
       "20260102T030405006Z-000.liquid",
     )
@@ -491,7 +543,7 @@ describe("PUT /prompts/:name/versions/:version/current", () => {
       body: JSON.stringify({ content: "version 3" }),
     })
 
-    const versionDir = path.join(promptsDir, ".versions", "test_prompt")
+    const versionDir = path.join(promptOverridesDir, ".versions", "test_prompt")
     const versions = readLiquidVersions(versionDir)
     expect(versions).toEqual([
       "20260102T030401000Z-000.liquid",
@@ -519,7 +571,13 @@ describe("DELETE /prompts/:name", () => {
     const body = await resetRes.json()
     expect(body.content).toBe("default content")
     expect(body.version).toBeUndefined()
-    expect(fs.existsSync(path.join(promptsDir, ".versions", "test_prompt"))).toBe(false)
+    const versionDir = path.join(promptOverridesDir, ".versions", "test_prompt")
+    expect(fs.existsSync(versionDir)).toBe(true)
+    expect(fs.readFileSync(path.join(versionDir, ".current"), "utf-8").trim()).toBe("default")
+    const versionsRes = await app().request("/prompts/test_prompt/versions")
+    const versionsBody = await versionsRes.json()
+    expect(versionsBody.isFallbackCurrent).toBe(true)
+    expect(versionsBody.versions).toHaveLength(1)
   })
 
   it("resets a missing model variant back to the base prompt fallback", async () => {
@@ -560,6 +618,25 @@ describe("DELETE /prompts/:name", () => {
     expect(body.modelId).toBe("anthropic:claude-opus-4-6")
     expect(body.content).toBe("folder content")
   })
+
+  it("migrates legacy global versions and reset still reaches the bundled default", async () => {
+    writePrompt("test_prompt", "bundled default")
+    const legacyVersionDir = path.join(promptsDir, ".versions", "test_prompt")
+    fs.mkdirSync(legacyVersionDir, { recursive: true })
+    const legacyVersion = "20260102T030405006Z-000.liquid"
+    fs.writeFileSync(path.join(legacyVersionDir, legacyVersion), "legacy edit", "utf-8")
+    fs.writeFileSync(path.join(legacyVersionDir, ".current"), `${legacyVersion}\n`, "utf-8")
+
+    const migratedApp = createPromptRoutes(promptsDir, booksDir, promptOverridesDir)
+    const beforeReset = await (await migratedApp.request("/prompts/test_prompt")).json()
+    expect(beforeReset.content).toBe("legacy edit")
+    expect(beforeReset.source).toBe("global")
+
+    const reset = await migratedApp.request("/prompts/test_prompt", { method: "DELETE" })
+    expect(reset.status).toBe(200)
+    expect((await reset.json()).content).toBe("bundled default")
+    expect(fs.existsSync(path.join(promptOverridesDir, ".versions", "test_prompt", legacyVersion))).toBe(true)
+  })
 })
 
 // ---- Book-level prompt overrides ----
@@ -571,7 +648,7 @@ describe("GET /books/:label/prompts/:name", () => {
     const res = await app().request("/books/my-book/prompts/page_sectioning")
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.source).toBe("global")
+    expect(body.source).toBe("bundled")
     expect(body.content).toBe("global content")
   })
 
@@ -594,7 +671,7 @@ describe("GET /books/:label/prompts/:name", () => {
     const res = await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5")
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.source).toBe("global")
+    expect(body.source).toBe("bundled")
     expect(body.resolvedName).toBe("page_sectioning__openai_gpt_5_5")
     expect(body.modelId).toBe("openai:gpt-5.5")
     expect(body.content).toBe("global gpt 5.5 folder")
@@ -605,7 +682,7 @@ describe("GET /books/:label/prompts/:name", () => {
     const res = await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5")
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.source).toBe("global")
+    expect(body.source).toBe("bundled")
     expect(body.resolvedName).toBe("page_sectioning")
     expect(body.modelId).toBeNull()
     expect(body.content).toBe("global base")
@@ -614,6 +691,12 @@ describe("GET /books/:label/prompts/:name", () => {
   it("returns 404 when prompt does not exist globally", async () => {
     const res = await app().request("/books/my-book/prompts/nonexistent")
     expect(res.status).toBe(404)
+  })
+
+  it("rejects path traversal in the book label", async () => {
+    writePrompt("page_sectioning", "global")
+    const res = await app().request("/books/..escape/prompts/page_sectioning")
+    expect(res.status).toBe(400)
   })
 })
 
@@ -817,12 +900,18 @@ describe("DELETE /books/:label/prompts/:name", () => {
 
     expect(resetRes.status).toBe(200)
     const body = await resetRes.json()
-    expect(body.source).toBe("global")
+    expect(body.source).toBe("bundled")
     expect(body.resolvedName).toBe("page_sectioning")
     expect(body.content).toBe("global fallback")
-    expect(fs.existsSync(
-      path.join(booksDir, "my-book", "prompts", ".versions", "page_sectioning__openai_gpt_5_5"),
-    )).toBe(false)
+    const versionDir = path.join(
+      booksDir,
+      "my-book",
+      "prompts",
+      ".versions",
+      "page_sectioning__openai_gpt_5_5",
+    )
+    expect(fs.existsSync(versionDir)).toBe(true)
+    expect(fs.readFileSync(path.join(versionDir, ".current"), "utf-8").trim()).toBe("fallback")
   })
 })
 

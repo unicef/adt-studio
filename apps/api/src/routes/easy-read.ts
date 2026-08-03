@@ -14,6 +14,7 @@ import {
   normalizeLocale,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 
 function getDbPath(label: string, booksDir: string): string {
   const safeLabel = parseBookLabel(label)
@@ -215,7 +216,7 @@ export function createEasyReadRoutes(
       const blocks = buildEasyReadSourceBlocks(storage, pages)
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }))
       const rateLimiter = config.rate_limit
         ? createRateLimiter(config.rate_limit.requests_per_minute)
         : undefined

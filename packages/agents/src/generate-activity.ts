@@ -11,7 +11,7 @@ export interface GenerateActivityOptions {
   storage: Storage
   bookLabel: string
   booksDir: string
-  promptsDir: string
+  promptRoots: string[]
   configPath?: string
   /** The page the new activity will be appended to. */
   anchorPageId: string
@@ -125,7 +125,7 @@ export async function generateActivity(
     storage: opts.storage,
     bookLabel: opts.bookLabel,
     booksDir: opts.booksDir,
-    promptsDir: opts.promptsDir,
+    promptRoots: opts.promptRoots,
     configPath: opts.configPath,
     styleguide: opts.styleguide,
     credentials: opts.credentials,

@@ -101,6 +101,15 @@ export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.
 export { ProgressEvent } from "./progress.js"
 
 export {
+  PromptSource,
+  PromptSaveTarget,
+  PromptPersistence,
+  PromptResponse,
+  PromptVersionSummary,
+  PromptVersionsResponse,
+} from "./prompt.js"
+
+export {
   PageErrorPolicy,
   PageErrorAction,
   PendingDecision,

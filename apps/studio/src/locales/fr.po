@@ -1661,6 +1661,9 @@ msgstr "Les remplacements de modèles du livre ont été mis à jour."
 msgid "Book order"
 msgstr "Ordre du livre"
 
+msgid "Book override"
+msgstr "Remplacement du livre"
+
 msgid "Book package ready"
 msgstr "Paquet du livre prêt"
 
@@ -1750,6 +1753,9 @@ msgstr "Construit un glossaire des termes clés et définitions trouvés dans le
 
 msgid "Builds the table of contents from the book's sections."
 msgstr "Construit la table des matières à partir des sections du livre."
+
+msgid "Bundled default"
+msgstr "Valeur par défaut intégrée"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Regroupe le livre rendu en un package web déployable."
@@ -1896,6 +1902,17 @@ msgstr "Changer l'image de ce terme"
 
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "Les modifications s'appliquent au prochain lancement du Storyboard et de l'Export."
+
+#. placeholder {0}: promptData.persistence.logicalPath
+msgid "Changes save to global overrides at {0}."
+msgstr "Les modifications sont enregistrées dans les remplacements globaux à {0}."
+
+msgid "Changes save to global overrides at {logicalPath}."
+msgstr "Les modifications sont enregistrées dans les remplacements globaux à {logicalPath}."
+
+#. placeholder {0}: promptData.persistence.logicalPath
+msgid "Changes save to this book at {0}."
+msgstr "Les modifications sont enregistrées dans ce livre à {0}."
 
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Changer les polices affecte le rendu des pages — relancez le Storyboard et l'Export pour appliquer les nouvelles polices."
@@ -3822,11 +3839,14 @@ msgstr "Génération Invite"
 msgid "Get started"
 msgstr "Commencer"
 
+msgid "Global override"
+msgstr "Remplacement global"
+
 msgid "Global prompt reset to default."
 msgstr "Prompt global réinitialisé par défaut."
 
-msgid "Global prompt saved."
-msgstr "Prompt global enregistré."
+#~ msgid "Global prompt saved."
+#~ msgstr "Prompt global enregistré."
 
 msgid "Global prompts"
 msgstr "Prompts globaux"
@@ -6401,6 +6421,13 @@ msgstr "Fichier de prompt supprimé."
 msgid "Prompt folder deleted."
 msgstr "Dossier de prompts supprimé."
 
+#. placeholder {0}: saved.persistence.logicalPath
+msgid "Prompt saved to global overrides at {0}."
+msgstr "Prompt enregistré dans les remplacements globaux à {0}."
+
+msgid "Prompt saved to this book."
+msgstr "Prompt enregistré dans ce livre."
+
 #~ msgid "Prompt Settings"
 #~ msgstr "Paramètres des prompts"
 
@@ -6768,6 +6795,9 @@ msgstr "Relâchez pour importer"
 
 msgid "Reload app"
 msgstr "Recharger l'application"
+
+msgid "Reload latest"
+msgstr "Recharger la dernière version"
 
 msgid "Remove"
 msgstr "Retirer"
@@ -8685,6 +8715,9 @@ msgstr "Cette position contient déjà {occupiedCount} quiz. Ajoutez-en un autre
 msgid "This position already has a quiz. Add another right after it, or replace it."
 msgstr "Cette position contient déjà un quiz. Ajoutez-en un autre juste après ou remplacez-le."
 
+msgid "This prompt changed after you loaded it. Your draft was not overwritten."
+msgstr "Ce prompt a changé après son chargement. Votre brouillon n’a pas été écrasé."
+
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Cette invite indique au LLM comment évaluer le HTML rendu par rapport à la page originale. La sélection ci-dessus contrôle le modèle utilisé."
 
@@ -9035,6 +9068,9 @@ msgstr "Restaurer l'image"
 
 msgid "Unsaved changes"
 msgstr "Modifications non enregistrées"
+
+msgid "Unsaved draft"
+msgstr "Brouillon non enregistré"
 
 msgid "Untangling nested divs with care..."
 msgstr "Démêlage des divs imbriqués avec soin..."

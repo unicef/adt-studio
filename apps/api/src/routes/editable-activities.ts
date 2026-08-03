@@ -26,6 +26,7 @@ import {
   DEFAULT_QUIZ_PALETTE,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 
 /** Section-tree nodes for a section — the outline's semantic-role source.
  *  Best-effort: an unparseable/missing sectioning row just means no roles. */
@@ -341,7 +342,7 @@ export function createEditableActivitiesRoutes(
 
         const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
         const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-        const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+        const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }))
         const llmModel = createLLMModel({
           modelId:
             appConfig.quiz_generation?.model ??

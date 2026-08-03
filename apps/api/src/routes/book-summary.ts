@@ -12,6 +12,7 @@ import {
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
 import type { TaskService } from "../services/task-service.js"
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 
 export function createBookSummaryRoutes(
   booksDir: string,
@@ -42,7 +43,7 @@ export function createBookSummaryRoutes(
 
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }))
       const rateLimiter = config.rate_limit
         ? createRateLimiter(config.rate_limit.requests_per_minute)
         : undefined

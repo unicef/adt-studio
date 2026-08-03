@@ -241,6 +241,50 @@ export function PromptViewer({
             </>
           )}
 
+          {hasUnsavedPromptDraft && (
+            <Badge
+              variant="outline"
+              className="h-6 border-amber-200 bg-amber-50 px-2 text-[11px] font-medium text-amber-800"
+            >
+              <Trans>Unsaved draft</Trans>
+            </Badge>
+          )}
+
+          {promptData && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className="h-6 cursor-help px-2 text-[11px] font-medium"
+                >
+                  {promptData.source === "book" ? (
+                    <Trans>Book override</Trans>
+                  ) : promptData.source === "global" ? (
+                    <Trans>Global override</Trans>
+                  ) : (
+                    <Trans>Bundled default</Trans>
+                  )}
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent
+                side="bottom"
+                align="start"
+                variant="light"
+                className="max-w-[360px] p-3 text-xs leading-5"
+              >
+                {promptData.persistence.saveTarget === "book" ? (
+                  <Trans>
+                    Changes save to this book at {promptData.persistence.logicalPath}.
+                  </Trans>
+                ) : (
+                  <Trans>
+                    Changes save to global overrides at {promptData.persistence.logicalPath}.
+                  </Trans>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          )}
+
           <div className="ml-auto">
             {hasBookPromptOverride && (
               <Button

@@ -15,6 +15,8 @@ const IMAGE_MARKER_START = "\x00IMG:"
 const IMAGE_MARKER_END = "\x00"
 const PROMPT_VERSIONS_DIR = ".versions"
 const PROMPT_CURRENT_VERSION_FILE = ".current"
+const PROMPT_FALLBACK_VERSION = "fallback"
+const PROMPT_DEFAULT_VERSION = "default"
 const BASE_PROMPT_MODEL_ID = "openai:gpt-5.4"
 
 export interface PromptRenderOptions {
@@ -154,11 +156,19 @@ function sanitizePromptModelId(modelId: string): string {
 }
 
 function findPromptTemplate(roots: string[], name: string): string | null {
+  let ignoreVersions = false
   for (const root of roots) {
-    const versionedPath = latestVersionedPromptPath(root, name)
-    if (versionedPath) {
-      return versionedPath
+    const versioned = ignoreVersions
+      ? { kind: "none" } as const
+      : promptVersionSelection(root, name)
+    if (versioned.kind === "version") {
+      return versioned.filePath
     }
+    if (versioned.kind === "default") {
+      ignoreVersions = true
+      continue
+    }
+    if (versioned.kind === "fallback") continue
 
     const flatPath = path.join(root, `${name}.liquid`)
     if (fs.existsSync(flatPath)) {
@@ -176,11 +186,19 @@ function findModelPromptTemplate(
   variantName: string,
 ): string | null {
   const modelFolder = promptModelFolderName(modelId)
+  let ignoreVersions = false
   for (const root of roots) {
-    const versionedPath = latestVersionedPromptPath(root, variantName)
-    if (versionedPath) {
-      return versionedPath
+    const versioned = ignoreVersions
+      ? { kind: "none" } as const
+      : promptVersionSelection(root, variantName)
+    if (versioned.kind === "version") {
+      return versioned.filePath
     }
+    if (versioned.kind === "default") {
+      ignoreVersions = true
+      continue
+    }
+    if (versioned.kind === "fallback") continue
 
     const folderPath = path.join(root, modelFolder, `${templateName}.liquid`)
     if (fs.existsSync(folderPath)) {
@@ -196,26 +214,36 @@ function findModelPromptTemplate(
   return null
 }
 
-function latestVersionedPromptPath(root: string, promptName: string): string | null {
-  const versionDir = path.join(root, PROMPT_VERSIONS_DIR, promptName)
-  if (!fs.existsSync(versionDir)) return null
+type PromptVersionSelection =
+  | { kind: "none" }
+  | { kind: "fallback" }
+  | { kind: "default" }
+  | { kind: "version"; filePath: string }
 
-  const currentPath = currentVersionedPromptPath(versionDir)
-  if (currentPath) return currentPath
+function promptVersionSelection(root: string, promptName: string): PromptVersionSelection {
+  const versionDir = path.join(root, PROMPT_VERSIONS_DIR, promptName)
+  if (!fs.existsSync(versionDir)) return { kind: "none" }
+
+  const current = currentVersionedPromptSelection(versionDir)
+  if (current) return current
 
   const files = fs
     .readdirSync(versionDir)
     .filter((file) => file.endsWith(".liquid"))
     .sort()
   const latest = files.at(-1)
-  return latest ? path.join(versionDir, latest) : null
+  return latest
+    ? { kind: "version", filePath: path.join(versionDir, latest) }
+    : { kind: "none" }
 }
 
-function currentVersionedPromptPath(versionDir: string): string | null {
+function currentVersionedPromptSelection(versionDir: string): PromptVersionSelection | null {
   const currentPath = path.join(versionDir, PROMPT_CURRENT_VERSION_FILE)
   if (!fs.existsSync(currentPath)) return null
 
   const currentVersion = fs.readFileSync(currentPath, "utf-8").trim()
+  if (currentVersion === PROMPT_FALLBACK_VERSION) return { kind: "fallback" }
+  if (currentVersion === PROMPT_DEFAULT_VERSION) return { kind: "default" }
   if (
     !currentVersion.endsWith(".liquid")
     || currentVersion.includes("/")
@@ -226,7 +254,9 @@ function currentVersionedPromptPath(versionDir: string): string | null {
   }
 
   const promptPath = path.join(versionDir, currentVersion)
-  return fs.existsSync(promptPath) ? promptPath : null
+  return fs.existsSync(promptPath)
+    ? { kind: "version", filePath: promptPath }
+    : null
 }
 
 /**

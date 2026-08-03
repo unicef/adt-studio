@@ -1660,6 +1660,9 @@ msgstr "Mbivendosjet e modeleve të librit u përditësuan."
 msgid "Book order"
 msgstr "Rendi i librit"
 
+msgid "Book override"
+msgstr "Mbivendosje e librit"
+
 msgid "Book package ready"
 msgstr "Paketa e librit gati"
 
@@ -1749,6 +1752,9 @@ msgstr "Ndërton një glosar me termat kryesorë dhe përkufizimet e gjetura në
 
 msgid "Builds the table of contents from the book's sections."
 msgstr "Ndërton tabelën e përmbajtjes nga seksionet e librit."
+
+msgid "Bundled default"
+msgstr "Parazgjedhja e integruar"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Paketonn librin e renderuar në një paketë ueb të vendosshme."
@@ -1895,6 +1901,17 @@ msgstr "Ndrysho figurën e këtij termi"
 
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "Ndryshimet zbatohen herën tjetër që ekzekutoni Storyboard dhe Eksportin."
+
+#. placeholder {0}: promptData.persistence.logicalPath
+msgid "Changes save to global overrides at {0}."
+msgstr "Ndryshimet ruhen te mbivendosjet globale në {0}."
+
+msgid "Changes save to global overrides at {logicalPath}."
+msgstr "Ndryshimet ruhen te mbivendosjet globale në {logicalPath}."
+
+#. placeholder {0}: promptData.persistence.logicalPath
+msgid "Changes save to this book at {0}."
+msgstr "Ndryshimet ruhen në këtë libër në {0}."
 
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Ndryshimi i fonteve ndikon në mënyrën se si shfaqen faqet — riekzekutoni Storyboard dhe Eksportin për të zbatuar fontet e reja."
@@ -3821,11 +3838,14 @@ msgstr "Prompt Gjenerimi"
 msgid "Get started"
 msgstr "Filloni"
 
+msgid "Global override"
+msgstr "Mbivendosje globale"
+
 msgid "Global prompt reset to default."
 msgstr "Prompti global u resetua në parazgjedhje."
 
-msgid "Global prompt saved."
-msgstr "Prompti global u ruajt."
+#~ msgid "Global prompt saved."
+#~ msgstr "Prompti global u ruajt."
 
 msgid "Global prompts"
 msgstr "Promptet globale"
@@ -6400,6 +6420,13 @@ msgstr "Skedari i promptit u fshi."
 msgid "Prompt folder deleted."
 msgstr "Dosja e prompteve u fshi."
 
+#. placeholder {0}: saved.persistence.logicalPath
+msgid "Prompt saved to global overrides at {0}."
+msgstr "Prompti u ruajt te mbivendosjet globale në {0}."
+
+msgid "Prompt saved to this book."
+msgstr "Prompti u ruajt në këtë libër."
+
 #~ msgid "Prompt Settings"
 #~ msgstr "Cilësimet e promptit"
 
@@ -6767,6 +6794,9 @@ msgstr "Lëshoni për të ngarkuar"
 
 msgid "Reload app"
 msgstr "Rinis aplikacionin"
+
+msgid "Reload latest"
+msgstr "Ringarko versionin më të fundit"
 
 msgid "Remove"
 msgstr "Hiq"
@@ -8684,6 +8714,9 @@ msgstr "Kjo pozicion tashmë ka {occupiedCount} teste. Shto një tjetër pas tyr
 msgid "This position already has a quiz. Add another right after it, or replace it."
 msgstr "Kjo pozicion tashmë ka një test. Shto një tjetër menjëherë pas tij ose zëvendëso atë."
 
+msgid "This prompt changed after you loaded it. Your draft was not overwritten."
+msgstr "Ky prompt ndryshoi pasi e ngarkuat. Drafti juaj nuk u mbishkrua."
+
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundrejt faqes origjinale. Zgjedhja më lart kontrollon cilin shabllon përdoret."
 
@@ -9034,6 +9067,9 @@ msgstr "Rikthe imazhin"
 
 msgid "Unsaved changes"
 msgstr "Ndryshime të paruajtura"
+
+msgid "Unsaved draft"
+msgstr "Draft i paruajtur"
 
 msgid "Untangling nested divs with care..."
 msgstr "Po zgjidhen divët e mbivendosur me kujdes..."
