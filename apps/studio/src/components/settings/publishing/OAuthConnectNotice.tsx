@@ -30,6 +30,12 @@ export function OAuthWaitingNotice({ authUrl, onCancel }: OAuthWaitingNoticeProp
           this page carries on by itself as soon as you do.
         </Trans>
       </p>
+      <p className="text-sm leading-6 text-muted-foreground">
+        <Trans>
+          The request will appear as <strong>Wrangler</strong> — that is Cloudflare's own developer
+          tool, which ADT Studio signs in through. This is expected.
+        </Trans>
+      </p>
       <div className="flex flex-wrap items-center gap-2">
         {authUrl && (
           <ExternalLinkButton href={authUrl} variant="outline">
