@@ -50,6 +50,7 @@ import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
 import { loadSpeechInstructions, resolveInstructions, resolveSpeechFormat } from "../speech.js"
+import { supportsPageBatchedSpeech } from "../speech-batch.js"
 import { emitRegenAssets, type RegenLanguageInput } from "../regen/regen-emit.js"
 import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
@@ -708,6 +709,10 @@ export async function packageAdtWeb(
             instructions: resolveInstructions(lang, speechInstructionsMap),
             format: representativeFormat || resolveSpeechFormat(provider, speechConfig?.format),
             wordHighlighting: highlightEnabled,
+            batchByPage:
+              provider === "gemini" &&
+              speechConfig?.batch_by_page === true &&
+              supportsPageBatchedSpeech(lang),
             geminiTemperature: speechConfig?.temperature,
             geminiSeed: speechConfig?.seed,
             entries: generatable

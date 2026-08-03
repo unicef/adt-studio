@@ -156,16 +156,28 @@ describe("emitRegenAssets", () => {
 describe("regenerate-tts.mjs run", () => {
   const origArgv = process.argv
   const origKey = process.env.OPENAI_API_KEY
+  const origGeminiKey = process.env.GEMINI_API_KEY
+  const geminiPcmBase64 = Buffer.from([1, 2, 3, 4]).toString("base64")
   let fetchMock: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     process.env.OPENAI_API_KEY = "test-key"
+    process.env.GEMINI_API_KEY = "test-gemini-key"
     fetchMock = vi.fn(async (url: string) => {
       if (String(url).includes("/audio/speech")) {
         return { ok: true, arrayBuffer: async () => new Uint8Array([9, 9, 9, 9]).buffer } as unknown as Response
       }
       if (String(url).includes("/audio/transcriptions")) {
         return { ok: true, json: async () => ({ words: [{ word: "hello", start: 0, end: 0.4 }] }) } as unknown as Response
+      }
+      if (String(url).includes("generativelanguage.googleapis.com")) {
+        return {
+          ok: true,
+          text: async () =>
+            JSON.stringify({
+              candidates: [{ content: { parts: [{ inlineData: { mimeType: "audio/wav", data: geminiPcmBase64 } }] } }],
+            }),
+        } as unknown as Response
       }
       throw new Error(`unexpected fetch ${url}`)
     })
@@ -176,6 +188,8 @@ describe("regenerate-tts.mjs run", () => {
     process.argv = origArgv
     if (origKey === undefined) delete process.env.OPENAI_API_KEY
     else process.env.OPENAI_API_KEY = origKey
+    if (origGeminiKey === undefined) delete process.env.GEMINI_API_KEY
+    else process.env.GEMINI_API_KEY = origGeminiKey
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
   })
@@ -356,6 +370,47 @@ describe("regenerate-tts.mjs run", () => {
       const audios = readJsonFile(path.join(localeDir, "audios.json"))
       expect(audios.pg001_ans_a).toBe("pg001_ans_a.mp3")
       expect(Array.from(fs.readFileSync(path.join(audioDir, "pg001_ans_a.mp3")))).toEqual([9, 9, 9, 9])
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("regenerates a Gemini language, wrapping the returned PCM as WAV", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-regen-gemini-"))
+    try {
+      const localeDir = path.join(root, "content", "i18n", "es")
+      const audioDir = path.join(localeDir, "audio")
+      fs.mkdirSync(audioDir, { recursive: true })
+      fs.mkdirSync(path.join(localeDir, "timecode"), { recursive: true })
+      const textsFile = path.join(localeDir, "texts.json")
+      fs.writeFileSync(textsFile, JSON.stringify({ g1: "Hola mundo" }))
+      fs.writeFileSync(path.join(localeDir, "audios.json"), JSON.stringify({ g1: "g1.wav" }))
+      fs.writeFileSync(path.join(localeDir, "timecode", "timecode_output.json"), JSON.stringify({}))
+      fs.writeFileSync(path.join(audioDir, "g1.wav"), Buffer.from("OLD-WAV"))
+
+      emitRegenAssets({
+        adtDir: root,
+        languages: [{
+          lang: "es", provider: "gemini", model: "gemini-2.5-flash-preview-tts", voice: "Kore",
+          instructions: "", format: "wav", wordHighlighting: false,
+          entries: [{ textId: "g1", fileName: "g1.wav", text: "Hola mundo" }],
+          manualTextIds: [], manualTexts: {},
+        }],
+      })
+
+      // Edit the text so it re-records.
+      fs.writeFileSync(textsFile, JSON.stringify({ g1: "Hola mundo cambiado" }))
+      process.argv = ["node", mjsPath, root]
+      await runScript()
+
+      const geminiCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("generativelanguage.googleapis.com"))
+      const openaiCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("api.openai.com"))
+      expect(geminiCalls).toHaveLength(1)
+      expect(openaiCalls).toHaveLength(0) // no OpenAI call for a Gemini language
+      // The PCM Gemini returned was wrapped as a canonical WAV.
+      const out = fs.readFileSync(path.join(audioDir, "g1.wav"))
+      expect(out.subarray(0, 4).toString("ascii")).toBe("RIFF")
+      expect(out.subarray(8, 12).toString("ascii")).toBe("WAVE")
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }

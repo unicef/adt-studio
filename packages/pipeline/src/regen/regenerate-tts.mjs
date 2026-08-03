@@ -138,15 +138,129 @@ async function synthesizeOpenAI({ apiKey, model, voice, input, responseFormat, i
   return Buffer.from(await response.arrayBuffer())
 }
 
-function makeSynthesizer(provider, providerCfg, apiKey) {
+// Gemini TTS (per-entry), ported from packages/llm/src/speech.ts
+// (createGeminiTTSSynthesizer). Gemini returns base64 PCM (24 kHz mono 16-bit)
+// which we wrap as a canonical WAV — the same bytes ADT Studio's default
+// (non-page-batched) Gemini path produces.
+const GEMINI_PCM_SAMPLE_RATE = 24_000
+const GEMINI_PCM_CHANNELS = 1
+const GEMINI_PCM_BITS_PER_SAMPLE = 16
+
+function wrapPcmAsWave(pcmBytes) {
+  const sampleRate = GEMINI_PCM_SAMPLE_RATE
+  const channels = GEMINI_PCM_CHANNELS
+  const bitsPerSample = GEMINI_PCM_BITS_PER_SAMPLE
+  const header = Buffer.alloc(44)
+  const byteRate = sampleRate * channels * (bitsPerSample / 8)
+  const blockAlign = channels * (bitsPerSample / 8)
+  const dataSize = pcmBytes.byteLength
+  header.write("RIFF", 0)
+  header.writeUInt32LE(36 + dataSize, 4)
+  header.write("WAVE", 8)
+  header.write("fmt ", 12)
+  header.writeUInt32LE(16, 16)
+  header.writeUInt16LE(1, 20)
+  header.writeUInt16LE(channels, 22)
+  header.writeUInt32LE(sampleRate, 24)
+  header.writeUInt32LE(byteRate, 28)
+  header.writeUInt16LE(blockAlign, 32)
+  header.writeUInt16LE(bitsPerSample, 34)
+  header.write("data", 36)
+  header.writeUInt32LE(dataSize, 40)
+  return Buffer.concat([header, Buffer.from(pcmBytes)])
+}
+
+function buildGeminiSpeechPrompt(transcript, instructions) {
+  const performance = instructions && instructions.trim()
+  if (!performance) return transcript
+  return `### PERFORMANCE\n${performance}\n\n#### TRANSCRIPT\n${transcript}`
+}
+
+function buildGeminiShortTextRetryInput(input) {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+  if (Array.from(trimmed).length > 10) return null
+  if (/[.!?؟۔。！？।]$/u.test(trimmed)) return null
+  const suffix =
+    /[؀-ࣿ]/u.test(trimmed) ? "۔"
+      : /[ऀ-ॿ]/u.test(trimmed) ? "।"
+        : /[぀-ヿ㐀-鿿]/u.test(trimmed) ? "。"
+          : "."
+  return `${trimmed}${suffix}`
+}
+
+function extractGeminiAudioData(payload) {
+  let fallback = null
+  for (const candidate of payload.candidates ?? []) {
+    for (const part of candidate.content?.parts ?? []) {
+      const inlineData = part.inlineData
+      if (!inlineData?.data) continue
+      const mimeType = inlineData.mimeType?.toLowerCase()
+      if (mimeType?.startsWith("audio/")) return inlineData.data
+      if (!mimeType && !fallback) fallback = inlineData.data
+    }
+  }
+  return fallback
+}
+
+async function synthesizeGemini({ apiKey, model, voice, input, responseFormat, instructions, temperature, seed }) {
+  const outputFormat = String(responseFormat).toLowerCase()
+  if (outputFormat !== "wav" && outputFormat !== "pcm") {
+    throw new Error(`Gemini TTS only supports wav output. Received: ${responseFormat}`)
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`
+  const call = async (transcript) => {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: buildGeminiSpeechPrompt(transcript, instructions) }] }],
+        generationConfig: {
+          responseModalities: ["AUDIO"],
+          ...(temperature !== undefined && temperature !== null ? { temperature } : {}),
+          ...(seed !== undefined && seed !== null ? { seed } : {}),
+          speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } },
+        },
+      }),
+    })
+    const text = await response.text()
+    let payload
+    try {
+      payload = JSON.parse(text)
+    } catch {
+      payload = { error: text || response.statusText }
+    }
+    if (!response.ok) {
+      const message = typeof payload.error === "string" ? payload.error : payload.error?.message ?? response.statusText
+      throw new Error(`Gemini TTS request failed (${response.status}): ${message || response.statusText}`)
+    }
+    return payload
+  }
+
+  let payload = await call(input)
+  let audioData = extractGeminiAudioData(payload)
+  if (!audioData) {
+    const retry = buildGeminiShortTextRetryInput(input)
+    if (retry) {
+      payload = await call(retry)
+      audioData = extractGeminiAudioData(payload)
+    }
+  }
+  if (!audioData) throw new Error("Gemini TTS response did not include audio data")
+  const pcm = new Uint8Array(Buffer.from(audioData, "base64"))
+  return outputFormat === "pcm" ? Buffer.from(pcm) : wrapPcmAsWave(pcm)
+}
+
+function makeSynthesizer(provider, providerCfg, apiKey, geminiOpts) {
   if (provider === "openai") {
     return (opts) => synthesizeOpenAI({ ...opts, apiKey })
   }
-  // Gemini and Azure are recognized but not yet wired into the standalone
-  // regenerator. The full pipeline in ADT Studio supports them; parity here is
-  // planned. Until then, fail loudly rather than silently producing wrong audio.
+  if (provider === "gemini") {
+    return (opts) => synthesizeGemini({ ...opts, apiKey, temperature: geminiOpts?.temperature, seed: geminiOpts?.seed })
+  }
+  // Azure is recognized but not yet wired into the standalone regenerator.
   throw new Error(
-    `Provider "${provider}" is not yet supported by the standalone regenerator (only "openai"). ` +
+    `Provider "${provider}" is not yet supported by the standalone regenerator (openai, gemini). ` +
       `Regenerate this language from within ADT Studio, or switch the provider in tools/tts.config.json.`,
   )
 }
@@ -305,10 +419,13 @@ async function main() {
     let synthesize = null
     const ensureSynth = () => {
       if (synthesize) return synthesize
-      const apiKeyEnv = providerCfg.apiKeyEnv || "OPENAI_API_KEY"
+      const apiKeyEnv = providerCfg.apiKeyEnv || (provider === "gemini" ? "GEMINI_API_KEY" : "OPENAI_API_KEY")
       const apiKey = process.env[apiKeyEnv]
       if (!apiKey) throw new Error(`Environment variable ${apiKeyEnv} is not set (needed for ${provider} TTS).`)
-      synthesize = makeSynthesizer(provider, providerCfg, apiKey)
+      synthesize = makeSynthesizer(provider, providerCfg, apiKey, {
+        temperature: manifestLang.geminiTemperature,
+        seed: manifestLang.geminiSeed,
+      })
       return synthesize
     }
 
@@ -406,6 +523,17 @@ async function main() {
       } catch (err) {
         result.errors.push(`${textId}: ${err instanceof Error ? err.message : String(err)}`)
       }
+    }
+
+    // Page-batched Gemini books synthesize a whole page in one request for tone
+    // consistency; this tool re-records lines individually, so a re-recorded
+    // line's tone may drift from its unedited page neighbours.
+    if (langCfg.batchByPage && result.regenerated > 0) {
+      result.warnings.push(
+        "This language used page-batched (whole-page) Gemini synthesis for tone consistency. " +
+          "Re-recorded lines were synthesized individually, so their tone may differ from unedited " +
+          "lines on the same page — regenerate the page/book in ADT Studio for exact parity.",
+      )
     }
 
     // Word highlighting: re-align changed audio AND backfill any unit that has

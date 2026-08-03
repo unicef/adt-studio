@@ -35,6 +35,9 @@ export interface RegenLanguageInput {
   instructions: string
   format: string
   wordHighlighting: boolean
+  /** True when this (Gemini) language used page-batched synthesis, so the
+   *  regenerator can warn that single-line re-records may drift in tone. */
+  batchByPage?: boolean
   geminiTemperature?: number
   geminiSeed?: number
   entries: RegenEntry[]
@@ -83,6 +86,7 @@ export function emitRegenAssets(input: EmitRegenAssetsInput): number {
       instructions: lang.instructions,
       format: lang.format,
       wordHighlighting: lang.wordHighlighting,
+      ...(lang.batchByPage ? { batchByPage: true } : {}),
     }
 
     // Baseline cache key per unit: identifies the text (+ voice/model/
@@ -130,8 +134,7 @@ export function emitRegenAssets(input: EmitRegenAssetsInput): number {
       openai: { apiKeyEnv: "OPENAI_API_KEY" },
       gemini: {
         apiKeyEnv: "GEMINI_API_KEY",
-        supported: false,
-        note: "Gemini regeneration is not yet supported by this standalone script — regenerate Gemini languages from ADT Studio.",
+        note: "Gemini TTS uses GEMINI_API_KEY; word highlighting still uses OPENAI_API_KEY (Whisper).",
       },
       azure: {
         apiKeyEnv: "AZURE_SPEECH_KEY",
@@ -238,9 +241,18 @@ reader stops playing them.)
 
 ## Provider support
 
-This script currently regenerates **OpenAI** voices. Gemini and Azure languages
-are recognized but not yet regeneratable here — regenerate those from within ADT
-Studio. (The bundle records which provider each language used.)
+Regenerates **OpenAI** and **Gemini** voices (each language uses whatever
+provider the book was built with — see \`tools/tts.config.json\`).
+
+- **Gemini** uses \`GEMINI_API_KEY\` for synthesis. Word highlighting still uses
+  \`OPENAI_API_KEY\` (Whisper), so a Gemini book with highlighting needs **both**
+  keys set.
+- Gemini books built with page-batched synthesis (one request per page, for tone
+  consistency) are re-recorded line-by-line here, so a re-recorded line's tone may
+  differ slightly from its unedited page neighbours; the script warns when this
+  applies. Regenerate the page/book in ADT Studio for exact parity.
+- **Azure** languages are recognized but not yet regeneratable here — regenerate
+  those from within ADT Studio.
 
 ## Notes
 
