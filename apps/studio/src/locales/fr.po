@@ -1703,6 +1703,9 @@ msgstr "Branche"
 msgid "Branch out"
 msgstr "Bifurquer"
 
+msgid "Brazilian PNLD digital work (.zip) with HTML5 content, content.opf and toc.ncx metadata, for submission to the FNDE VALIDE reader."
+msgstr "Œuvre numérique PNLD brésilienne (.zip) avec contenu HTML5 et métadonnées content.opf et toc.ncx, à soumettre au lecteur VALIDE du FNDE."
+
 msgid "Breakpoint override"
 msgstr "Remplacement de point de rupture"
 
@@ -2898,6 +2901,12 @@ msgstr "Liste déroulante"
 msgid "Duplicate"
 msgstr "Dupliquer"
 
+msgid "Duplicate section"
+msgstr "Dupliquer la section"
+
+msgid "duplicate this section"
+msgstr "dupliquer cette section"
+
 msgid "Duration"
 msgstr "Durée"
 
@@ -3544,6 +3553,9 @@ msgstr "Flexible"
 msgid "Fluency"
 msgstr "Fluidité"
 
+msgid "FNDE-ready HTML5 package (.zip)"
+msgstr "Paquet HTML5 prêt pour le FNDE (.zip)"
+
 msgid "Folder actions"
 msgstr "Actions du dossier"
 
@@ -4016,6 +4028,9 @@ msgstr "Comment ajouter des quiz"
 
 msgid "HTML"
 msgstr "HTML"
+
+msgid "HTML5 + EPUB"
+msgstr "HTML5 + EPUB"
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "Je comprends que la partie a été traitée avec des prompts/modèles différents et je veux la fusionner quand même."
@@ -5868,6 +5883,9 @@ msgstr "Empaquetez et prévisualisez l'application web ADT finale."
 msgid "Package preview to generate results"
 msgstr "Empaqueter l'aperçu pour générer les résultats"
 
+msgid "Package structure"
+msgstr "Structure du paquet"
+
 msgid "Package the book for distribution. Pick a format, choose what content goes in, and we'll bundle everything into a downloadable archive."
 msgstr "Emballez le livre pour la distribution. Choisissez un format, sélectionnez le contenu à inclure, et nous regrouperons le tout dans une archive téléchargeable."
 
@@ -6243,6 +6261,18 @@ msgstr "Lire la vidéo"
 
 msgid "Please wait for the current operation to finish"
 msgstr "Veuillez attendre la fin de l'opération en cours"
+
+msgid "PNLD Digital · FNDE"
+msgstr "PNLD Digital · FNDE"
+
+msgid "PNLD Digital Work"
+msgstr "Œuvre numérique PNLD"
+
+msgid "PNLD Export"
+msgstr "Exporter en PNLD"
+
+msgid "PNLD Package"
+msgstr "Paquet PNLD"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Peaufinage des paragraphes à la perfection..."
@@ -7227,14 +7257,14 @@ msgstr "Enregistrer la liste de contrôle"
 msgid "Save failed"
 msgstr "L'enregistrement a échoué"
 
-msgid "Save or discard your edits before splitting"
-msgstr "Enregistrez ou abandonnez vos modifications avant de diviser"
-
 msgid "Save or discard your edits first"
 msgstr "Enregistrez ou abandonnez d'abord vos modifications"
 
 msgid "Save page review"
 msgstr "Enregistrer la révision de la page"
+
+msgid "Save section changes?"
+msgstr "Enregistrer les modifications des sections ?"
 
 msgid "Save selection"
 msgstr "Enregistrer la sélection"
@@ -7902,11 +7932,17 @@ msgstr "Diviser en deux sections à cet endroit"
 msgid "Split preview"
 msgstr "Aperçu de la division"
 
+msgid "Split section"
+msgstr "Diviser la section"
+
 msgid "Split segments"
 msgstr "Diviser segments"
 
 msgid "Split spread {left}–{right} back into single pages"
 msgstr "Diviser la fusion {left}–{right} en pages simples"
+
+msgid "split this section"
+msgstr "diviser cette section"
 
 msgid "Spread"
 msgstr "Double page"
@@ -8098,6 +8134,9 @@ msgstr "Sous-titre"
 
 msgid "Submit"
 msgstr "Soumettre"
+
+msgid "Submit to the FNDE PNLD Digital platform and validate with VALIDE."
+msgstr "Soumettez à la plateforme PNLD Digital du FNDE et validez avec VALIDE."
 
 msgid "Success"
 msgstr "Succès"
@@ -9198,6 +9237,9 @@ msgstr "Fallback utilisé"
 
 msgid "Validated"
 msgstr "Validée"
+
+msgid "Validates in VALIDE Desktop — the official PNLD reader"
+msgstr "Validé dans VALIDE Desktop — le lecteur officiel du PNLD"
 
 msgid "Validation"
 msgstr "Validation"

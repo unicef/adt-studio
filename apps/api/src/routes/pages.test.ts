@@ -260,6 +260,101 @@ describe("Page routes", () => {
 
       expect(res.status).toBe(404)
     })
+
+    it("marks the storyboard chain as needing a re-run, keeping node data", async () => {
+      // A sectioning edit invalidates the rendered HTML that every later stage
+      // is derived from, so those stages must stop reporting "done" — but their
+      // data (and version history) must survive.
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepCompleted("web-rendering")
+        seed.markStepCompleted("quiz-generation")
+        seed.markStepCompleted("toc-generation")
+        seed.putNodeData("web-rendering", `${label}_p1`, { sections: [] })
+      } finally {
+        seed.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sectioning`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reasoning: "r", sections: [] }),
+        }
+      )
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        const steps = after.getStepRuns().map((r) => r.step)
+        expect(steps).not.toContain("web-rendering")
+        expect(steps).not.toContain("quiz-generation")
+        expect(steps).not.toContain("toc-generation")
+        // Non-destructive: the rendering itself is untouched.
+        expect(after.getLatestNodeData("web-rendering", `${label}_p1`)).toBeTruthy()
+      } finally {
+        after.close()
+      }
+    })
+
+    it("rejects sectioning changes while a pipeline step is running", async () => {
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepStarted("web-rendering")
+      } finally {
+        seed.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sectioning`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reasoning: "r", sections: [] }),
+        }
+      )
+      expect(res.status).toBe(409)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        expect(
+          after.getLatestNodeData("page-sectioning", `${label}_p1`)?.version
+        ).toBe(1)
+        expect(after.getStepRuns()).toContainEqual(
+          expect.objectContaining({ step: "web-rendering", status: "running" })
+        )
+      } finally {
+        after.close()
+      }
+    })
+
+    it("does not mark storyboard stale when only the rendering is saved", async () => {
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepCompleted("web-rendering")
+      } finally {
+        seed.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/rendering`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sections: [] }),
+        }
+      )
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        // Saving the storyboard's own output must not invalidate itself.
+        expect(after.getStepRuns().map((r) => r.step)).toContain("web-rendering")
+      } finally {
+        after.close()
+      }
+    })
   })
 
   describe("PUT /api/books/:label/pages/:pageId/image-filtering", () => {
@@ -574,6 +669,70 @@ describe("Page routes", () => {
         storage.close()
       }
     }
+
+    it("marks the storyboard chain stale, since both halves lose their HTML", async () => {
+      seedThreeNodeSection({ rendering: true })
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepCompleted("web-rendering")
+        seed.markStepCompleted("package-web")
+      } finally {
+        seed.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeIndex: 1 }),
+        }
+      )
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        // Without this the split sections would silently vanish from the
+        // packaged book while the storyboard still reported "done".
+        const steps = after.getStepRuns().map((r) => r.step)
+        expect(steps).not.toContain("web-rendering")
+        expect(steps).not.toContain("package-web")
+      } finally {
+        after.close()
+      }
+    })
+
+    it("does not split while a pipeline step is running", async () => {
+      seedThreeNodeSection({ rendering: true })
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepStarted("web-rendering")
+      } finally {
+        seed.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeIndex: 1 }),
+        }
+      )
+      expect(res.status).toBe(409)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        const sectioning = after.getLatestNodeData("page-sectioning", `${label}_p1`)
+          ?.data as { sections: unknown[] }
+        expect(sectioning.sections).toHaveLength(2)
+        expect(after.getStepRuns()).toContainEqual(
+          expect.objectContaining({ step: "web-rendering", status: "running" })
+        )
+      } finally {
+        after.close()
+      }
+    })
 
     it("splits a section before a top-level node and renumbers sectionIds", async () => {
       seedThreeNodeSection({ rendering: true })

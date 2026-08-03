@@ -28,6 +28,7 @@ import {
   exportScorm,
   exportAdt,
   exportEpub,
+  exportPnld,
   type ExportFeatures,
   type ExportDefaultSettings,
   type ExportResult,
@@ -431,7 +432,7 @@ export function createBookRoutes(
   // POST /books/:label/prepare-export — Rebuild adt/ (and webpub/ if needed) before download
   app.post("/books/:label/prepare-export", async (c) => {
     const { label } = c.req.param()
-    const format = (c.req.query("format") ?? "project") as "project" | "webpub" | "scorm" | "adt" | "epub"
+    const format = (c.req.query("format") ?? "project") as "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld"
     let features: ExportFeatures | undefined
     let defaultSettings: ExportDefaultSettings | undefined
     const hasBody = (c.req.header("content-length") ?? "0") !== "0"
@@ -473,6 +474,7 @@ export function createBookRoutes(
     "export-webpub": exportWebpub,
     "export-scorm": exportScorm,
     "export-adt": exportAdt,
+    "export-pnld": exportPnld,
   }
 
   for (const [route, handler] of Object.entries(exportHandlers)) {

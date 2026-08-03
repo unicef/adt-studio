@@ -1952,6 +1952,26 @@ export const api = {
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
   },
+
+  exportPnld: async (label: string): Promise<Blob | null> => {
+    if (!isDesktop()) {
+      triggerDirectDownload(`${BASE_URL}/books/${label}/export-pnld`)
+      return null
+    }
+    const url = `${BASE_URL}/books/${label}/export-pnld`
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/zip" },
+      mode: "cors",
+      signal: AbortSignal.timeout(1_800_000),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error(body.error ?? `PNLD export failed: ${res.status}`)
+    }
+    const buf = await res.arrayBuffer()
+    return new Blob([buf], { type: "application/zip" })
+  },
 }
 
 function isDesktop(): boolean {
