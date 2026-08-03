@@ -1062,6 +1062,9 @@ msgstr "Adds glossary pages to the book. Terms link to their entry and each entr
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 
+msgid "Adjust voice"
+msgstr "Adjust voice"
+
 msgid "ADT"
 msgstr "ADT"
 
@@ -3675,6 +3678,9 @@ msgstr "Fonts successfully uploaded."
 msgid "For {0}, we recommend {1}."
 msgstr "For {0}, we recommend {1}."
 
+msgid "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
+msgstr "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
+
 msgid "Foreword"
 msgstr "Foreword"
 
@@ -3830,6 +3836,9 @@ msgstr "Generate multiple-choice comprehension quizzes from the book's content. 
 
 msgid "Generate new"
 msgstr "Generate new"
+
+msgid "Generate phrase"
+msgstr "Generate phrase"
 
 msgid "Generate Prompt"
 msgstr "Generate Prompt"
@@ -6935,6 +6944,9 @@ msgstr "Regenerate definition, variations, and emoji"
 msgid "Regenerate Easy Read"
 msgstr "Regenerate Easy Read"
 
+msgid "Regenerate phrase"
+msgstr "Regenerate phrase"
+
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 
@@ -8512,6 +8524,9 @@ msgstr "Technical documentation"
 msgid "Technical manuals with diagrams"
 msgstr "Technical manuals with diagrams"
 
+msgid "Tell AI how this phrase should sound"
+msgstr "Tell AI how this phrase should sound"
+
 msgid "Temperature"
 msgstr "Temperature"
 
@@ -9658,6 +9673,9 @@ msgstr "Visual style editing isn't available for fixed-layout pages yet. You can
 msgid "Voice"
 msgstr "Voice"
 
+msgid "Voice instructions"
+msgstr "Voice instructions"
+
 msgid "Voice Mappings"
 msgstr "Voice Mappings"
 
@@ -9933,20 +9951,3 @@ msgstr "Zoom in"
 
 msgid "Zoom out"
 msgstr "Zoom out"
-msgid "Adjust voice"
-msgstr "Adjust voice"
-
-msgid "Voice instructions"
-msgstr "Voice instructions"
-
-msgid "Tell AI how this phrase should sound"
-msgstr "Tell AI how this phrase should sound"
-
-msgid "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
-msgstr "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
-
-msgid "Regenerate phrase"
-msgstr "Regenerate phrase"
-
-msgid "Generate phrase"
-msgstr "Generate phrase"

@@ -1062,6 +1062,9 @@ msgstr "Añade páginas de glosario al libro. Los términos enlazan con su entra
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Añade orientaciones de Diseño Universal para el Aprendizaje (lenguaje claro, alternativa de teclado y clic para arrastrar, corrección con aria-live, sin retroalimentación solo por color). Desactívalo para comparar el resultado sin esta orientación."
 
+msgid "Adjust voice"
+msgstr "Ajustar voz"
+
 msgid "ADT"
 msgstr "ADT"
 
@@ -3675,6 +3678,9 @@ msgstr "Fuentes cargadas correctamente."
 msgid "For {0}, we recommend {1}."
 msgstr "Para {0}, recomendamos {1}."
 
+msgid "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
+msgstr "Por ejemplo: habla más despacio, enfatiza la palabra final y usa un tono cálido y alentador."
+
 msgid "Foreword"
 msgstr "Prefacio"
 
@@ -3830,6 +3836,9 @@ msgstr "Genera cuestionarios de comprensión de opción múltiple a partir del c
 
 msgid "Generate new"
 msgstr "Generar nueva"
+
+msgid "Generate phrase"
+msgstr "Generar frase"
 
 msgid "Generate Prompt"
 msgstr "Prompt de generación"
@@ -6935,6 +6944,9 @@ msgstr "Regenerar definición, variaciones y emoji"
 msgid "Regenerate Easy Read"
 msgstr "Regenerar Lectura Fácil"
 
+msgid "Regenerate phrase"
+msgstr "Regenerar frase"
+
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Regenera las imágenes seleccionadas para cada idioma de salida de modo que el texto incrustado en ellas aparezca en el idioma de destino."
 
@@ -8512,6 +8524,9 @@ msgstr "Documentación técnica"
 msgid "Technical manuals with diagrams"
 msgstr "Manuales técnicos con diagramas"
 
+msgid "Tell AI how this phrase should sound"
+msgstr "Indica a la IA cómo debe sonar esta frase"
+
 msgid "Temperature"
 msgstr "Temperatura"
 
@@ -9658,6 +9673,9 @@ msgstr "La edición visual de estilos aún no está disponible para páginas de 
 msgid "Voice"
 msgstr "Voz"
 
+msgid "Voice instructions"
+msgstr "Instrucciones de voz"
+
 msgid "Voice Mappings"
 msgstr "Asignaciones de voz"
 
@@ -9933,20 +9951,3 @@ msgstr "Acercar"
 
 msgid "Zoom out"
 msgstr "Alejar"
-msgid "Adjust voice"
-msgstr "Ajustar voz"
-
-msgid "Voice instructions"
-msgstr "Instrucciones de voz"
-
-msgid "Tell AI how this phrase should sound"
-msgstr "Indica a la IA cómo debe sonar esta frase"
-
-msgid "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
-msgstr "Por ejemplo: habla más despacio, enfatiza la palabra final y usa un tono cálido y alentador."
-
-msgid "Regenerate phrase"
-msgstr "Regenerar frase"
-
-msgid "Generate phrase"
-msgstr "Generar frase"
