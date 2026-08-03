@@ -1,0 +1,26 @@
+name: Temporary i18n catalog artifact
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/publish-speech-storyboard-enhancements]
+
+permissions:
+  contents: read
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @adt/studio extract
+      - uses: actions/upload-artifact@v4
+        with:
+          name: extracted-locales
+          path: apps/studio/src/locales/*.po
