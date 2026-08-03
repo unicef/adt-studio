@@ -150,7 +150,7 @@ export async function runFullPipeline(
   try {
     const config = loadBookConfig(label, booksRoot, configPath)
     const cacheDir = options.cacheDir ?? path.join(path.resolve(booksRoot), label, ".cache")
-    const promptEngine = createPromptEngine(promptsDir)
+    const promptEngine = createPromptEngine(promptsDir, { basePromptModelId: config.base_prompt_model })
     const templateEngine = createTemplateEngine(templatesDir)
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
