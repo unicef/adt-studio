@@ -56,6 +56,7 @@ const TRANSIENT_ATTRS = [
   "data-adt-linked",
   "data-adt-preview",
   "data-adt-link-hover",
+  "data-adt-dragging",
   "contenteditable",
 ] as const
 
@@ -75,6 +76,10 @@ function parsePxStyle(value: string | undefined): number | null {
 export interface BookPreviewFrameHandle {
   /** Get the iframe element's bounding rect in the viewport */
   getIframeRect: () => DOMRect | null
+  /** Serialize the current editable iframe DOM without editor-only handles/attributes. */
+  getSerializedHtml: () => string | null
+  /** Add a basic editable text or shape component and return its data-id. */
+  addComponent: (kind: "text" | "shape", text?: string) => string | null
   /** Regenerate Tailwind CSS including the given extra HTML, then inject into iframe.
    *  Use after AI edits introduce new Tailwind classes not yet in the DB. */
   refreshCss: (extraHtml: string) => Promise<void>
@@ -113,6 +118,14 @@ export interface BookPreviewFrameProps {
   onSelectElement?: (dataId: string, rect: DOMRect, tagName?: string) => void
   /** Called when a text element is edited (blur/Enter after contenteditable) */
   onTextChanged?: (dataId: string, newText: string, fullHtml: string) => void
+  /** Called after a selected component has been repositioned with its drag handle. */
+  onElementMoved?: (dataId: string) => void
+  /** Accessible label for the component drag handle. */
+  dragHandleLabel: string
+  /** Accessible label for the component rotation handle. */
+  rotateHandleLabel: string
+  /** Accessible label for image resize handles. */
+  resizeHandleLabel: string
   /** When true (default), applies data-background-color to the iframe body */
   applyBodyBackground?: boolean
   /** data-id of the currently selected element; re-applied after each body rebuild. */
@@ -167,6 +180,10 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   changedElements,
   onSelectElement,
   onTextChanged,
+  onElementMoved,
+  dragHandleLabel,
+  rotateHandleLabel,
+  resizeHandleLabel,
   applyBodyBackground,
   selectedDataId,
   renderWidth = DEFAULT_RENDER_WIDTH,
@@ -180,6 +197,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   bodyFontFamily,
 }, ref) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const selectedDataIdsRef = useRef<string[]>([])
   const wrapperRef = useRef<HTMLDivElement>(null)
   const refreshIdRef = useRef(0)
 
@@ -187,6 +205,38 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
 
   useImperativeHandle(ref, () => ({
     getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
+    getSerializedHtml: (): string | null => {
+      const doc = iframeRef.current?.contentDocument
+      if (!doc) return null
+      const wrapper = doc.getElementById("content")
+      const source = (wrapper ?? doc.body).cloneNode(true) as HTMLElement
+      source.querySelectorAll("[data-adt-canvas-handle], [data-adt-marquee]").forEach((el) => el.remove())
+      source.querySelectorAll(TRANSIENT_ATTRS.map((a) => `[${a}]`).join(", ")).forEach((el) => {
+        for (const attr of TRANSIENT_ATTRS) el.removeAttribute(attr)
+      })
+      const html = wrapper
+        ? ((source.getAttribute("class") || "").trim() ? source.outerHTML : source.innerHTML)
+        : source.innerHTML
+      return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
+    },
+    addComponent: (kind, text): string | null => {
+      const doc = iframeRef.current?.contentDocument
+      if (!doc) return null
+      const host = doc.querySelector("#content > main, #content, main") ?? doc.body
+      const id = `canvas-${kind}-${Date.now().toString(36)}`
+      const element = doc.createElement(kind === "text" ? "p" : "div")
+      element.setAttribute("data-id", id)
+      if (kind === "text") {
+        element.textContent = text ?? ""
+        element.className = "my-3 min-h-8 rounded border border-dashed border-violet-300 p-2"
+      } else {
+        element.setAttribute("aria-hidden", "true")
+        element.className = "my-3 h-24 w-24 rounded-lg bg-violet-200"
+      }
+      host.appendChild(element)
+      element.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      return id
+    },
     refreshCss: async (extraHtml: string) => {
       const id = ++refreshIdRef.current
       const doc = iframeRef.current?.contentDocument
@@ -459,20 +509,23 @@ ${autoFitScript}
   )
 
   // Listen for postMessage from iframe
-  const callbacksRef = useRef({ onSelectElement, onTextChanged, onLinkSelect, onLinkHover })
-  callbacksRef.current = { onSelectElement, onTextChanged, onLinkSelect, onLinkHover }
+  const callbacksRef = useRef({ onSelectElement, onTextChanged, onElementMoved, onLinkSelect, onLinkHover })
+  callbacksRef.current = { onSelectElement, onTextChanged, onElementMoved, onLinkSelect, onLinkHover }
 
   const handleMessage = useCallback((e: MessageEvent) => {
     const iframe = iframeRef.current
     if (!iframe || e.source !== iframe.contentWindow) return
     const data = e.data ?? {}
     if (typeof data !== "object" || !data.type) return
-    const { type, dataId, rect, newText, editedInnerHtml, tagName, kind, id } = data
+    const { type, dataId, rect, newText, editedInnerHtml, tagName, kind, id, selectedDataIds } = data
     if (type === "link-select") {
       callbacksRef.current.onLinkSelect?.(parseAnchor(kind, id))
     } else if (type === "link-hover") {
       callbacksRef.current.onLinkHover?.(parseAnchor(kind, id))
     } else if (type === "select" || type === "select-image" || type === "select-container") {
+      selectedDataIdsRef.current = Array.isArray(selectedDataIds)
+        ? selectedDataIds.filter((value: unknown): value is string => typeof value === "string")
+        : dataId ? [dataId] : []
       callbacksRef.current.onSelectElement?.(dataId, rect, tagName)
     } else if (type === "text-changed") {
       // Splice the edited element's innerHTML into the original LaTeX-form HTML
@@ -492,7 +545,10 @@ ${autoFitScript}
         return
       }
       callbacksRef.current.onTextChanged?.(dataId, newText, reconstructed)
+    } else if (type === "element-moved" || type === "elements-changed") {
+      callbacksRef.current.onElementMoved?.(dataId)
     } else if (type === "deselect") {
+      selectedDataIdsRef.current = []
       callbacksRef.current.onSelectElement?.("", {} as DOMRect)
     }
   }, [])
@@ -554,6 +610,7 @@ ${autoFitScript}
     // Inject original LaTeX texts so startEditing can swap MathML → LaTeX
     const textsEl = doc.createElement("script")
     textsEl.id = "adt-original-texts"
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- Injected JavaScript source, not user-visible text.
     textsEl.textContent = `window.__origTexts=${JSON.stringify(originalTextsRef.current)};`
     doc.body.appendChild(textsEl)
 
@@ -627,14 +684,22 @@ ${autoFitScript}
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument
     if (!doc) return
-    doc.querySelectorAll("[data-adt-selected]").forEach((el) => {
-      if (el.getAttribute("data-id") !== selectedDataId) {
-        el.removeAttribute("data-adt-selected")
-      }
-    })
+    doc.querySelectorAll("[data-adt-selected]").forEach((el) => el.removeAttribute("data-adt-selected"))
     if (!selectedDataId) return
-    const el = doc.querySelector(`[data-id="${CSS.escape(selectedDataId)}"]`)
-    if (el) el.setAttribute("data-adt-selected", "true")
+    const ids = selectedDataIdsRef.current.includes(selectedDataId)
+      ? selectedDataIdsRef.current
+      : [selectedDataId]
+    const iframeWindow = iframeRef.current?.contentWindow as (Window & {
+      __adtRestoreSelection?: (ids: string[]) => void
+    }) | null
+    if (iframeWindow?.__adtRestoreSelection) {
+      iframeWindow.__adtRestoreSelection(ids)
+      return
+    }
+    for (const id of ids) {
+      const el = doc.querySelector(`[data-id="${CSS.escape(id)}"]`)
+      if (el) el.setAttribute("data-adt-selected", "true")
+    }
   }, [selectedDataId, displayHtml, iframeReady])
 
   useEffect(() => {
@@ -642,7 +707,10 @@ ${autoFitScript}
     if (!doc?.body) return
     doc.body.dataset.editable = editable && !linkMode ? "true" : "false"
     doc.body.dataset.linkMode = linkMode ? "true" : "false"
-  }, [editable, linkMode, iframeReady])
+    doc.body.dataset.dragHandleLabel = dragHandleLabel
+    doc.body.dataset.rotateHandleLabel = rotateHandleLabel
+    doc.body.dataset.resizeHandleLabel = resizeHandleLabel
+  }, [editable, linkMode, dragHandleLabel, rotateHandleLabel, resizeHandleLabel, iframeReady])
 
   const linkedKey = linkedAnchor ? anchorKey(linkedAnchor) : ""
   const previewKey = previewAnchor ? anchorKey(previewAnchor) : ""

@@ -36,6 +36,7 @@ import { DeleteBookDialog } from "@/components/books/DeleteBookDialog"
 import { useBooks, useDeleteBook } from "@/hooks/use-books"
 import {
   getPipelineStages,
+  getWelcomeStages,
   type PipelineStageDefinition,
 } from "@/components/pipeline/stage-config"
 import {
@@ -146,6 +147,7 @@ export const Route = createFileRoute("/")({
 
 /** Pipeline stages shown in the sidebar (skip the "book" overview entry) */
 const PIPELINE_STEPS = getPipelineStages()
+const WELCOME_STEPS = getWelcomeStages()
 
 function CompletedStageBadges({
   completedSet,
@@ -486,7 +488,7 @@ function HomePage() {
             <Trans>Pipeline Stages</Trans>
           </h2>
           <div className="space-y-1">
-            {PIPELINE_STEPS.map((step, i) => {
+            {WELCOME_STEPS.map((step, i) => {
               const Icon = step.icon
               const label = getStageLabelI18n(step.slug)
               const description = getStageDescriptionI18n(step.slug) ?? ""
@@ -500,7 +502,7 @@ function HomePage() {
                     <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${step.color} text-white`}>
                       <Icon className="h-3 w-3" />
                     </div>
-                    {i < PIPELINE_STEPS.length - 1 && (
+                    {i < WELCOME_STEPS.length - 1 && (
                       <div className="w-px flex-1 bg-border" />
                     )}
                   </div>

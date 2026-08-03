@@ -165,13 +165,19 @@ function buildAzureOutputFormat(
 }
 
 function buildSSML(voice: string, text: string): string {
+  // Azure voice names start with their BCP 47 locale (for example,
+  // "sw-TZ-RehemaNeural").  The document language affects how ambiguous
+  // tokens such as numerals, dates, and decimal separators are spoken, so it
+  // must agree with the selected voice instead of always being en-US.
+  const localeMatch = /^([a-z]{2,3}-[A-Z]{2})(?:-|$)/.exec(voice)
+  const locale = localeMatch?.[1] ?? "en-US"
   const escaped = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;")
-  return `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='${voice}'>${escaped}</voice></speak>`
+  return `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='${locale}'><voice name='${voice}'>${escaped}</voice></speak>`
 }
 
 function wrapPcmAsWave(

@@ -17,6 +17,11 @@ import type {
   ReviewerValidationSection,
   ReviewerValidationSession,
   TranslationEvaluationResult,
+  GitHubConnectionType,
+  GitHubFileChangeType,
+  GitHubFileDiffType,
+  GitHubPublishRequestType,
+  GitHubPublishStateType,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 
@@ -1654,25 +1659,32 @@ export const api = {
   deleteTTS: (label: string) =>
     request<{ ok: boolean }>(`/books/${label}/tts`, { method: "DELETE" }),
 
-  generateGeminiTTSForItem: (
+  generateTTSForItem: (
     label: string,
     textId: string,
+    text: string,
     language: string,
     credentials: {
-      geminiApiKey: string
+      geminiApiKey?: string
       openaiApiKey?: string
       azure?: AzureCredentials
-    }
+    },
+    options?: { forceRegenerate?: boolean },
   ) =>
     request<GenerateSingleTTSResponse>(`/books/${label}/tts/generate-one`, {
       method: "POST",
       headers: {
-        "X-Gemini-API-Key": credentials.geminiApiKey,
+        ...(credentials.geminiApiKey ? { "X-Gemini-API-Key": credentials.geminiApiKey } : {}),
         ...(credentials.openaiApiKey ? { "X-OpenAI-Key": credentials.openaiApiKey } : {}),
         ...(credentials.azure?.key ? { "X-Azure-Speech-Key": credentials.azure.key } : {}),
         ...(credentials.azure?.region ? { "X-Azure-Speech-Region": credentials.azure.region } : {}),
       },
-      body: JSON.stringify({ textId, language }),
+      body: JSON.stringify({
+        textId,
+        text,
+        language,
+        forceRegenerate: options?.forceRegenerate ?? false,
+      }),
     }),
 
   uploadTTSForItem: (
@@ -1852,6 +1864,83 @@ export const api = {
       }
     )
   },
+
+  connectGitHub: (token: string) =>
+    request<GitHubConnectionType>("/github/connection", {
+      headers: { "X-GitHub-Token": token },
+    }),
+
+  getGitHubPublishStatus: (label: string) =>
+    request<GitHubPublishStateType | null>(
+      `/books/${label}/github-publishing/status`,
+    ),
+
+  getGitHubDeployments: (label: string) =>
+    request<GitHubPublishStateType[]>(
+      `/books/${label}/github-publishing/deployments`,
+    ),
+
+  getGitHubDeploymentFileDiff: (label: string, deploymentId: string, filePath: string) =>
+    request<GitHubFileDiffType>(
+      `/books/${label}/github-publishing/deployments/${encodeURIComponent(deploymentId)}/diff?path=${encodeURIComponent(filePath)}`,
+    ),
+
+  getGitHubPublishChanges: (label: string) =>
+    request<{ changes: GitHubFileChangeType[]; packaged: boolean }>(
+      `/books/${label}/github-publishing/changes`,
+    ),
+
+  getGitHubFileDiff: (label: string, filePath: string) =>
+    request<GitHubFileDiffType>(
+      `/books/${label}/github-publishing/diff?path=${encodeURIComponent(filePath)}`,
+    ),
+
+  getGitHubSpeechSuggestions: (label: string) =>
+    request<{
+      source: "working-tree" | "latest-deployment" | "none"
+      items: Array<{ textId: string; files: string[] }>
+    }>(`/books/${label}/github-publishing/speech-suggestions`),
+
+  publishBookToGitHub: (
+    label: string,
+    token: string,
+    options: GitHubPublishRequestType,
+  ) =>
+    request<GitHubPublishStateType>(
+      `/books/${label}/github-publishing/publish`,
+      {
+        method: "POST",
+        headers: { "X-GitHub-Token": token },
+        body: JSON.stringify(options),
+      },
+    ),
+
+  getGitHubRemoteStatus: (label: string, token: string) =>
+    request<{
+      configured: boolean
+      behind: boolean
+      conflict: boolean
+      localChangeCount: number
+      remoteCommitSha: string | null
+      localCommitSha?: string | null
+    }>(`/books/${label}/github-publishing/remote-status`, {
+      headers: { "X-GitHub-Token": token },
+    }),
+
+  openGitHubBookEditor: (label: string, editor: "vscode" | "cursor" | "system") =>
+    request<{ ok: boolean }>(`/books/${label}/github-publishing/open-editor`, {
+      method: "POST",
+      body: JSON.stringify({ editor }),
+    }),
+
+  pullBookFromGitHub: (label: string, token: string) =>
+    request<{ commitSha: string; files: number; backupPath: string | null }>(
+      `/books/${label}/github-publishing/pull`,
+      {
+        method: "POST",
+        headers: { "X-GitHub-Token": token },
+      },
+    ),
 
   exportProject: async (label: string): Promise<Blob | null> => {
     if (!isDesktop()) {

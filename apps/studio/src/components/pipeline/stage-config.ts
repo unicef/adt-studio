@@ -13,6 +13,7 @@ import {
   FileDown,
   Hand,
   Network,
+  Rocket,
   type LucideIcon,
 } from "lucide-react"
 
@@ -34,6 +35,7 @@ export const STAGES = [
   { slug: "validation", label: "Validation", runningLabel: "Running Validation", icon: ShieldCheck, color: "bg-emerald-600", hex: "#059669", textColor: "text-emerald-600", bgLight: "bg-emerald-50", borderColor: "border-emerald-200", borderDark: "border-emerald-600", group: "packaging" },
   { slug: "preview", label: "Preview", runningLabel: "Building Preview", icon: Eye, color: "bg-gray-600", hex: "#4b5563", textColor: "text-gray-600", bgLight: "bg-gray-50", borderColor: "border-gray-200", borderDark: "border-gray-600", group: "packaging" },
   { slug: "export", label: "Export", runningLabel: "Exporting", icon: FileDown, color: "bg-indigo-700", hex: "#4338ca", textColor: "text-indigo-700", bgLight: "bg-indigo-50", borderColor: "border-indigo-200", borderDark: "border-indigo-700", group: "packaging" },
+  { slug: "publish", label: "Publish", runningLabel: "Publishing", icon: Rocket, color: "bg-purple-700", hex: "#7e22ce", textColor: "text-purple-700", bgLight: "bg-purple-50", borderColor: "border-purple-200", borderDark: "border-purple-700", group: "packaging" },
 ] as const satisfies ReadonlyArray<{
   slug: string
   label: string
@@ -50,10 +52,12 @@ export const STAGES = [
 
 export type StageSlug = (typeof STAGES)[number]["slug"]
 export type NonBookStageSlug = Exclude<StageSlug, "book">
-export type PipelineStageSlug = Exclude<StageSlug, "book" | "sign-language" | "validation" | "export">
+export type PipelineStageSlug = Exclude<StageSlug, "book" | "sign-language" | "validation" | "export" | "publish">
+export type WelcomeStageSlug = PipelineStageSlug | "publish"
 export type StageDefinition = (typeof STAGES)[number]
 export type NonBookStageDefinition = Extract<StageDefinition, { slug: NonBookStageSlug }>
 export type PipelineStageDefinition = Extract<StageDefinition, { slug: PipelineStageSlug }>
+export type WelcomeStageDefinition = Extract<StageDefinition, { slug: WelcomeStageSlug }>
 
 export const STAGE_DESCRIPTIONS: Record<NonBookStageSlug, string> = {
   extract: "Extract text and images from each page of the PDF using AI-powered analysis.",
@@ -70,6 +74,7 @@ export const STAGE_DESCRIPTIONS: Record<NonBookStageSlug, string> = {
   validation: "Run whole-book validation checks and configure accessibility assessment settings.",
   preview: "Package and preview the final ADT web application.",
   export: "Export packaged ADTs and related artifacts for delivery.",
+  publish: "Connect GitHub, publish the accessible book, and manage its hosted GitHub Pages deployment.",
 }
 
 /** Stages that have a per-page navigation panel. */
@@ -96,7 +101,7 @@ export function isBookOverviewStage(stage: StageDefinition): stage is NonBookSta
 }
 
 export function isPipelineStage(stage: StageDefinition): stage is PipelineStageDefinition {
-  return stage.slug !== "book" && stage.slug !== "sign-language" && stage.slug !== "validation" && stage.slug !== "export"
+  return stage.slug !== "book" && stage.slug !== "sign-language" && stage.slug !== "validation" && stage.slug !== "export" && stage.slug !== "publish"
 }
 
 export function getBookOverviewStages(): NonBookStageDefinition[] {
@@ -105,6 +110,14 @@ export function getBookOverviewStages(): NonBookStageDefinition[] {
 
 export function getPipelineStages(): PipelineStageDefinition[] {
   return STAGES.filter(isPipelineStage)
+}
+
+/** Processing stages introduced on the start screen, followed by the final publishing destination. */
+export function getWelcomeStages(): WelcomeStageDefinition[] {
+  return STAGES.filter(
+    (stage): stage is WelcomeStageDefinition =>
+      isPipelineStage(stage) || stage.slug === "publish",
+  )
 }
 
 export function toCamelLabel(label: string): string {

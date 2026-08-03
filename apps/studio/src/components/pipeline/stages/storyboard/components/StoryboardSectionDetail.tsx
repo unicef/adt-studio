@@ -1522,6 +1522,31 @@ export function StoryboardSectionDetail({
     [page.rendering, pendingRendering, sectionIndex, markPending]
   )
 
+  const handleElementMoved = useCallback(
+    (_dataId: string) => {
+      if (!page.rendering) return
+      const fullHtml = previewFrameRef.current?.getSerializedHtml()
+      if (!fullHtml) return
+      const base = pendingRendering ?? page.rendering
+      setPendingRendering({
+        ...base,
+        sections: base.sections.map((section) =>
+          section.sectionIndex === sectionIndex ? { ...section, html: fullHtml } : section,
+        ),
+      })
+      markPending("style")
+    },
+    [page.rendering, pendingRendering, sectionIndex, markPending],
+  )
+
+  const handleAddCanvasComponent = useCallback(
+    (kind: "text" | "shape") => {
+      const id = previewFrameRef.current?.addComponent(kind, kind === "text" ? t`New text` : undefined)
+      if (id) handleElementMoved(id)
+    },
+    [handleElementMoved, t],
+  )
+
   // Handle element selection from BookPreviewFrame
   const handleSelectElement = useCallback((dataId: string, rect: DOMRect, tagName?: string) => {
     if (!dataId) {
@@ -2421,6 +2446,34 @@ export function StoryboardSectionDetail({
           <LayoutGrid className="h-3.5 w-3.5" />
         </button>
       )}
+      {renderedSection?.html && !hasActiveTask && !storyboardRunning && (
+        <div className="flex items-center gap-0.5 rounded bg-white/10 p-0.5">
+          <button
+            type="button"
+            onClick={() => handleAddCanvasComponent("text")}
+            className="flex h-6 w-6 items-center justify-center rounded hover:bg-white/20"
+            title={t`Add text`}
+          >
+            <Type className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAddCanvasComponent("shape")}
+            className="flex h-6 w-6 items-center justify-center rounded hover:bg-white/20"
+            title={t`Add shape`}
+          >
+            <Boxes className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setAddImageDialogOpen(true)}
+            className="flex h-6 w-6 items-center justify-center rounded hover:bg-white/20"
+            title={t`Add image`}
+          >
+            <ImageIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
       {hasAnyAgentKey && (
         <button
           type="button"
@@ -2682,6 +2735,10 @@ export function StoryboardSectionDetail({
                   changedElements={changedElements}
                   onSelectElement={handleSelectElement}
                   onTextChanged={handleTextChanged}
+                  onElementMoved={handleElementMoved}
+                  dragHandleLabel={t`Drag to move`}
+                  rotateHandleLabel={t`Rotate`}
+                  resizeHandleLabel={t`Resize image`}
                   applyBodyBackground={applyBodyBackground}
                   selectedDataId={selectedElement?.dataId ?? null}
                   renderWidth={DEVICE_WIDTHS[deviceView]}

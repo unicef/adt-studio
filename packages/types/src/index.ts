@@ -117,6 +117,25 @@ export {
 export { BookLabel, BookSummary, BookDetail, parseBookLabel } from "./book.js"
 
 export {
+  GitHubPublishStepName,
+  GitHubPublishStepStatus,
+  GitHubPublishStep,
+  GitHubPublishRequest,
+  GitHubFileChange,
+  GitHubDiffLine,
+  GitHubFileDiff,
+  GitHubPublishState,
+  GitHubConnection,
+  type GitHubPublishRequest as GitHubPublishRequestType,
+  type GitHubPublishState as GitHubPublishStateType,
+  type GitHubPublishStep as GitHubPublishStepType,
+  type GitHubFileChange as GitHubFileChangeType,
+  type GitHubDiffLine as GitHubDiffLineType,
+  type GitHubFileDiff as GitHubFileDiffType,
+  type GitHubConnection as GitHubConnectionType,
+} from "./github-publishing.js"
+
+export {
   BookFormat,
   LayoutType,
   StyleguideName,

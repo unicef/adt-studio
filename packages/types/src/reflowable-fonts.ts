@@ -42,14 +42,17 @@ export const REFLOWABLE_FONTS: readonly ReflowableFont[] = [
   { id: "inter", family: "Inter", category: "sans", role: "alternate", google: true },
   { id: "noto-sans", family: "Noto Sans", category: "sans", role: "alternate", google: true },
   { id: "pt-sans", family: "PT Sans", category: "sans", role: "alternate", google: true },
+  { id: "helvetica", family: "Helvetica", category: "sans", role: "alternate", google: false },
   // Serif
   { id: "merriweather", family: "Merriweather", category: "serif", role: "default", google: false },
   { id: "lora", family: "Lora", category: "serif", role: "alternate", google: true },
   { id: "noto-serif", family: "Noto Serif", category: "serif", role: "alternate", google: true },
   { id: "pt-serif", family: "PT Serif", category: "serif", role: "alternate", google: true },
+  { id: "times-new-roman", family: "Times New Roman", category: "serif", role: "alternate", google: false },
   // Handwriting
   { id: "patrick-hand", family: "Patrick Hand", category: "handwriting", role: "alternate", google: true },
   { id: "edu-nsw-act-foundation", family: "Edu NSW ACT Foundation", category: "handwriting", role: "alternate", google: true },
+  { id: "sassoon-primary", family: "Sassoon Primary", category: "handwriting", role: "alternate", google: false },
   // Monospace
   { id: "noto-sans-mono", family: "Noto Sans Mono", category: "mono", role: "alternate", google: true },
 ]
@@ -66,12 +69,15 @@ export const REFLOWABLE_FONT_SETTINGS = [
   "inter",
   "noto-sans",
   "pt-sans",
+  "helvetica",
   "merriweather",
   "lora",
   "noto-serif",
   "pt-serif",
+  "times-new-roman",
   "patrick-hand",
   "edu-nsw-act-foundation",
+  "sassoon-primary",
   "noto-sans-mono",
 ] as const
 export type ReflowableFontSetting = (typeof REFLOWABLE_FONT_SETTINGS)[number]
