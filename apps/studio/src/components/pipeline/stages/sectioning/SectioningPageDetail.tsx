@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
+import { useNavigate, useSearch } from "@tanstack/react-router"
 import { Eye } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -30,6 +31,8 @@ import {
   getSectionTypeDescription,
 } from "@/lib/section-constants"
 import { useStepHeader } from "../../components/StepViewRouter"
+import type { BookStepSearch } from "@/lib/book-step-search"
+import { toast } from "@/components/ui/sonner"
 
 export function SectioningPageDetail({
   bookLabel,
@@ -49,6 +52,8 @@ export function SectioningPageDetail({
   hasNextPage?: boolean
 }) {
   const { t } = useLingui()
+  const navigate = useNavigate()
+  const search = useSearch({ strict: false }) as BookStepSearch
   const queryClient = useQueryClient()
   const { headerSlotEl } = useStepHeader()
   const { data: imageData } = usePageImage(bookLabel, pageId)
@@ -92,6 +97,9 @@ export function SectioningPageDetail({
     label: string
   } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
+  const sectionElementsRef = useRef(new Map<string, HTMLDivElement>())
+  const consumedSectionFocusRef = useRef<string | null>(null)
+  const [focusedSectionId, setFocusedSectionId] = useState<string | null>(null)
 
   // Reset pending edits when navigating to a different page.
   useEffect(() => {
@@ -110,6 +118,37 @@ export function SectioningPageDetail({
     [sectionsFromServer, pendingBySectionId]
   )
   const dirty = Object.keys(pendingBySectionId).length > 0
+
+  // Exact-section validation links are one-shot: focus the stable section id,
+  // then remove it from the URL without disturbing other step search state.
+  useEffect(() => {
+    if (!search.sectionId || mergedSections.length === 0) return
+    const focusKey = `${pageId}:${search.sectionId}`
+    if (consumedSectionFocusRef.current === focusKey) return
+    consumedSectionFocusRef.current = focusKey
+
+    const element = sectionElementsRef.current.get(search.sectionId)
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" })
+      setFocusedSectionId(search.sectionId)
+    } else {
+      setFocusedSectionId(null)
+      toast.warning(t`The requested section is no longer available. Opened the page instead.`)
+    }
+
+    void navigate({
+      to: "/books/$label/$step/$pageId",
+      params: { label: bookLabel, step: "sectioning", pageId },
+      search: { ...search, sectionId: undefined },
+      replace: true,
+    })
+  }, [bookLabel, mergedSections.length, navigate, pageId, search, t])
+
+  useEffect(() => {
+    if (!focusedSectionId) return
+    const timeout = window.setTimeout(() => setFocusedSectionId(null), 2_000)
+    return () => window.clearTimeout(timeout)
+  }, [focusedSectionId])
 
   const handleSectionChange = useCallback((next: PageSectioningSection) => {
     setPendingBySectionId((prev) => ({ ...prev, [next.sectionId]: next }))
@@ -325,7 +364,17 @@ export function SectioningPageDetail({
           </div>
         ) : (
           mergedSections.map((section, idx) => (
-            <div key={section.sectionId}>
+            <div
+              key={section.sectionId}
+              ref={(element) => {
+                if (element) sectionElementsRef.current.set(section.sectionId, element)
+                else sectionElementsRef.current.delete(section.sectionId)
+              }}
+              className={cn(
+                "rounded-md transition-shadow",
+                focusedSectionId === section.sectionId && "ring-2 ring-sky-500 ring-offset-2",
+              )}
+            >
               <div className="flex items-center gap-3 mb-2">
                 <div className="text-xs font-medium text-muted-foreground">
                   {`#${idx + 1}`}

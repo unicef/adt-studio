@@ -1482,6 +1482,9 @@ msgstr "Remplissage automatique à partir du contexte du livre"
 msgid "Auto-scroll"
 msgstr "Défilement automatique"
 
+msgid "Automatic routing"
+msgstr "Routage automatique"
+
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Adapte automatiquement la mise en page en fonction du contenu de chaque page grâce à l'IA."
 
@@ -3507,6 +3510,12 @@ msgstr "La première langue est la langue par défaut"
 
 msgid "Fit"
 msgstr "Ajuster"
+
+msgid "Fix destination"
+msgstr "Destination de la correction"
+
+msgid "Fix in {fixStageLabel}"
+msgstr "Corriger dans {fixStageLabel}"
 
 msgid "Fixed layout"
 msgstr "Mise en page fixe"
@@ -5635,6 +5644,10 @@ msgstr "Opacité"
 msgid "Open"
 msgstr "Ouvrir"
 
+#. placeholder {0}: formatFindingPageLabel(i18n, page)
+msgid "Open {0} in {fixStageLabel}"
+msgstr "Ouvrir {0} dans {fixStageLabel}"
+
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Ouvrez une page dans l'aperçu pour afficher les résultats d'accessibilité spécifiques à la page ici."
 
@@ -5666,6 +5679,10 @@ msgstr "Ouvrir le panneau de modification"
 
 msgid "Open image preview"
 msgstr "Ouvrir l'aperçu de l'image"
+
+#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[entry.fixStage])
+msgid "Open in {0}"
+msgstr "Ouvrir dans {0}"
 
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Ouvrez-le dans n'importe quelle liseuse EPUB 3 ou outil d'accessibilité."
@@ -8470,6 +8487,12 @@ msgstr "Le vif renard brun saute par-dessus le chien paresseux."
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "La stratégie de rendu utilisée pour les sections sans correspondance explicite."
 
+msgid "The requested section is no longer available. Opened the first section instead."
+msgstr "La section demandée n’est plus disponible. La première section a été ouverte à la place."
+
+msgid "The requested section is no longer available. Opened the page instead."
+msgstr "La section demandée n’est plus disponible. La page a été ouverte à la place."
+
 msgid "The river meets the sea"
 msgstr "La rivière rejoint la mer"
 
@@ -9159,6 +9182,9 @@ msgstr "Utilisez la syntaxe Liquid pour interpoler des variables, parcourir des 
 #. placeholder {0}: page.pageNumber
 msgid "Use page {0} for the quiz"
 msgstr "Utiliser la page {0} pour le quiz"
+
+msgid "Use section destination"
+msgstr "Utiliser la destination de la section"
 
 msgid "Use section headings verbatim. Fast, deterministic, and preserves the original wording from the book."
 msgstr "Utilisez les titres de section textuellement. Rapide, déterministe et préserve le libellé original du livre."

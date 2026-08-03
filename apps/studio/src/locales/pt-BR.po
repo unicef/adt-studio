@@ -1480,6 +1480,9 @@ msgstr "Preenchimento automático do contexto do livro"
 msgid "Auto-scroll"
 msgstr "Rolagem automática"
 
+msgid "Automatic routing"
+msgstr "Roteamento automático"
+
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Adapta automaticamente o layout com base no conteúdo de cada página usando IA."
 
@@ -3505,6 +3508,12 @@ msgstr "O primeiro idioma é o padrão"
 
 msgid "Fit"
 msgstr "Ajustar"
+
+msgid "Fix destination"
+msgstr "Destino da correção"
+
+msgid "Fix in {fixStageLabel}"
+msgstr "Corrigir em {fixStageLabel}"
 
 msgid "Fixed layout"
 msgstr "Layout fixo"
@@ -5633,6 +5642,10 @@ msgstr "Opacidade"
 msgid "Open"
 msgstr "Abrir"
 
+#. placeholder {0}: formatFindingPageLabel(i18n, page)
+msgid "Open {0} in {fixStageLabel}"
+msgstr "Abrir {0} em {fixStageLabel}"
+
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Open a page in Preview to show its page-specific accessibility findings here."
 
@@ -5664,6 +5677,10 @@ msgstr "Abrir painel de edição"
 
 msgid "Open image preview"
 msgstr "Abrir pré-visualização da imagem"
+
+#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[entry.fixStage])
+msgid "Open in {0}"
+msgstr "Abrir em {0}"
 
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Abra em qualquer leitor EPUB 3, leitor eletrônico ou ferramenta de acessibilidade."
@@ -8468,6 +8485,12 @@ msgstr "A rápida raposa marrom salta sobre o cão preguiçoso."
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "A estratégia de renderização usada para seções sem um mapeamento explícito."
 
+msgid "The requested section is no longer available. Opened the first section instead."
+msgstr "A seção solicitada não está mais disponível. A primeira seção foi aberta em seu lugar."
+
+msgid "The requested section is no longer available. Opened the page instead."
+msgstr "A seção solicitada não está mais disponível. A página foi aberta em seu lugar."
+
 msgid "The river meets the sea"
 msgstr "O rio encontra o mar"
 
@@ -9157,6 +9180,9 @@ msgstr "Use a sintaxe Liquid para interpolar variáveis, percorrer arrays e incl
 #. placeholder {0}: page.pageNumber
 msgid "Use page {0} for the quiz"
 msgstr "Usar a página {0} para o questionário"
+
+msgid "Use section destination"
+msgstr "Usar o destino da seção"
 
 msgid "Use section headings verbatim. Fast, deterministic, and preserves the original wording from the book."
 msgstr "Use os títulos das seções literalmente. Rápido, determinístico e preserva a redação original do livro."

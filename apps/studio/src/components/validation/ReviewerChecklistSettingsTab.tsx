@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import type { ReviewerValidationSection } from "@adt/types"
+import { ValidationFixStage, type ReviewerValidationSection } from "@adt/types"
 import { ListChecks, Plus, RotateCcw, Save, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -8,9 +8,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useReviewerValidationCatalog } from "@/hooks/use-reviewer-validation"
 import { cn } from "@/lib/utils"
+import { STAGE_LABEL_MESSAGES } from "@/components/pipeline/pipeline-i18n"
 
 interface EditableCriterion {
   id: string
@@ -18,12 +26,55 @@ interface EditableCriterion {
   guidance: string
   requires_comment_on_failure: boolean
   requires_suggested_modification_on_failure: boolean
+  fix_stage?: ValidationFixStage
   enabled: boolean
+}
+
+const AUTOMATIC_FIX_STAGE = "__automatic__"
+const INHERIT_FIX_STAGE = "__inherit__"
+
+function FixStageSelect({
+  value,
+  fallback,
+  onValueChange,
+}: {
+  value?: ValidationFixStage
+  fallback: "automatic" | "inherit"
+  onValueChange: (value: ValidationFixStage | undefined) => void
+}) {
+  const { t, i18n } = useLingui()
+  const fallbackValue = fallback === "automatic" ? AUTOMATIC_FIX_STAGE : INHERIT_FIX_STAGE
+
+  return (
+    <Select
+      value={value ?? fallbackValue}
+      onValueChange={(next) => onValueChange(
+        next === AUTOMATIC_FIX_STAGE || next === INHERIT_FIX_STAGE
+          ? undefined
+          : ValidationFixStage.parse(next),
+      )}
+    >
+      <SelectTrigger className="h-8 text-xs">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value={fallbackValue} className="text-xs">
+          {fallback === "automatic" ? t`Automatic routing` : t`Use section destination`}
+        </SelectItem>
+        {ValidationFixStage.options.map((stage) => (
+          <SelectItem key={stage} value={stage} className="text-xs">
+            {i18n._(STAGE_LABEL_MESSAGES[stage])}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
 }
 
 interface EditableSection {
   id: string
   label: string
+  fix_stage?: ValidationFixStage
   enabled: boolean
   criteria: EditableCriterion[]
 }
@@ -68,6 +119,7 @@ function toEditableSections(sections: ReviewerValidationSection[]): EditableSect
   return sections.map((section) => ({
     id: section.id,
     label: section.label,
+    fix_stage: section.fix_stage,
     enabled: true,
     criteria: section.criteria.map((criterion) => ({
       ...criterion,
@@ -82,12 +134,14 @@ function serializeSections(sections: EditableSection[], defaultGuidance: string)
     .map((section) => ({
       id: section.id,
       label: section.label.trim() || section.id,
+      fix_stage: section.fix_stage,
       criteria: section.criteria
         .filter((criterion) => criterion.enabled)
         .map((criterion) => ({
           id: criterion.id,
           label: criterion.label.trim() || criterion.id,
           guidance: criterion.guidance.trim() || defaultGuidance,
+          fix_stage: criterion.fix_stage,
           requires_comment_on_failure: criterion.requires_comment_on_failure,
           requires_suggested_modification_on_failure: criterion.requires_suggested_modification_on_failure,
         })),
@@ -181,6 +235,7 @@ export function ReviewerChecklistSettingsTab({ label }: { label: string }) {
       {
         id: `custom-section-${index}`,
         label: t`Custom section ${index}`,
+        fix_stage: "storyboard",
         enabled: true,
         criteria: [
           {
@@ -388,6 +443,18 @@ export function ReviewerChecklistSettingsTab({ label }: { label: string }) {
                         }}
                       />
                     </div>
+
+                    <div className="space-y-1">
+                      <Label><Trans>Fix destination</Trans></Label>
+                      <FixStageSelect
+                        value={section.fix_stage}
+                        fallback="automatic"
+                        onValueChange={(fixStage) => setSection(section.id, (current) => ({
+                          ...current,
+                          fix_stage: fixStage,
+                        }))}
+                      />
+                    </div>
                   </div>
 
                   <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => removeSection(section.id)} title={t`Remove section`}>
@@ -434,6 +501,18 @@ export function ReviewerChecklistSettingsTab({ label }: { label: string }) {
                                 id: current.id.includes("criterion-") && current.id.startsWith(`${section.id}-criterion-`)
                                   ? `${section.id}-criterion-${criterionIndex + 1}`
                                   : current.id,
+                              }))}
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label><Trans>Fix destination</Trans></Label>
+                            <FixStageSelect
+                              value={criterion.fix_stage}
+                              fallback="inherit"
+                              onValueChange={(fixStage) => setCriterion(section.id, criterion.id, (current) => ({
+                                ...current,
+                                fix_stage: fixStage,
                               }))}
                             />
                           </div>

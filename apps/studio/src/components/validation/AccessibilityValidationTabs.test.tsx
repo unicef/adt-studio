@@ -166,7 +166,7 @@ afterEach(() => {
 })
 
 describe("AccessibilityOverviewTab", () => {
-  it("filters findings by severity and opens affected pages in Preview", async () => {
+  it("filters findings by severity and opens affected pages in the responsible stage", async () => {
     const { AccessibilityOverviewTab } = await import("./AccessibilityValidationTabs")
     render(<AccessibilityOverviewTab label="demo-book" />)
 
@@ -179,8 +179,7 @@ describe("AccessibilityOverviewTab", () => {
     fireEvent.click(screen.getByRole("button", { name: /Page 1/i }))
     expect(navigateMock).toHaveBeenCalledWith({
       to: "/books/$label/$step",
-      params: { label: "demo-book", step: "preview" },
-      search: { previewHref: "index.html" },
+      params: { label: "demo-book", step: "captions" },
     })
   })
 
@@ -203,5 +202,19 @@ describe("AccessibilityOverviewTab", () => {
     expect(screen.getByText("Ensure page content is contained by landmarks")).toBeTruthy()
     expect(screen.getByText("Fix heading order")).toBeTruthy()
     expect(screen.queryByText("Add alt text")).toBeNull()
+  })
+
+  it("preserves page and section context for a section-aware fix stage", async () => {
+    const { AccessibilityOverviewTab } = await import("./AccessibilityValidationTabs")
+    render(<AccessibilityOverviewTab label="demo-book" />)
+
+    fireEvent.click(screen.getByRole("button", { name: /Structure & semantics/i }))
+    fireEvent.click(screen.getByRole("button", { name: /Page 1/i }))
+
+    expect(navigateMock).toHaveBeenCalledWith({
+      to: "/books/$label/$step/$pageId",
+      params: { label: "demo-book", step: "sectioning", pageId: "pg001" },
+      search: { sectionId: "pg001_sec001" },
+    })
   })
 })
