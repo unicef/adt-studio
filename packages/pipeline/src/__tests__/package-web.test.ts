@@ -15,6 +15,8 @@ import {
   convertLatexToMathml,
   convertLatexString,
   containsMathContent,
+  OFFLINE_INLINE_BEGIN,
+  OFFLINE_INLINE_END,
 } from "../packaging/web.js"
 import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
 import { deriveQuizPalette } from "../quiz-palette.js"
@@ -602,6 +604,25 @@ describe("packageAdtWeb", () => {
     const preloader = fs.readFileSync(preloaderPath, "utf-8")
     expect(preloader).toContain("window.fetch")
     expect(preloader).toContain("INLINE")
+    // The inlined payload is fenced so tools/regenerate-tts.mjs can refresh the
+    // snapshot after the bundle's content JSON is edited — without this the
+    // reader would keep serving the pre-edit text and audio mappings.
+    const inlineStart = preloader.indexOf(OFFLINE_INLINE_BEGIN)
+    const inlineEnd = preloader.indexOf(OFFLINE_INLINE_END)
+    expect(inlineStart).toBeGreaterThan(-1)
+    expect(inlineEnd).toBeGreaterThan(inlineStart)
+    const inlined = JSON.parse(
+      preloader.slice(inlineStart + OFFLINE_INLINE_BEGIN.length, inlineEnd),
+    ) as Record<string, unknown>
+    // Exact key spelling matters: the regenerator refreshes these by name, and
+    // a key it doesn't recognise would silently leave a stale snapshot behind.
+    expect(Object.keys(inlined)).toEqual(
+      expect.arrayContaining([
+        "./content/i18n/fr/texts.json",
+        "./content/i18n/fr/audios.json",
+        "./content/i18n/fr/timecode/timecode_output.json",
+      ]),
+    )
 
     // Local bundle generated (no export statement)
     const localBundlePath = path.join(bookDir, "adt", "assets", "base.bundle.local.js")
@@ -1001,9 +1022,20 @@ describe("packageAdtWeb", () => {
 
     const manifest = JSON.parse(
       fs.readFileSync(path.join(bookDir, "adt", "regen", "manifest.json"), "utf-8"),
-    ) as { languages: { en: { entrySettings: Record<string, { provider: string }> } } }
-    expect(manifest.languages.en.entrySettings.pg001_fallback.provider).toBe("openai")
-    expect(manifest.languages.en.entrySettings.pg001_gemini.provider).toBe("gemini")
+    ) as {
+      languages: {
+        en: {
+          defaults: { provider: string }
+          entrySettings: Record<string, { provider: string } | undefined>
+        }
+      }
+    }
+    // The OpenAI fallback clip differs from the language default, so its
+    // settings are recorded per entry; the Gemini clip matches `defaults` and
+    // is omitted rather than duplicating it.
+    expect(manifest.languages.en.defaults.provider).toBe("gemini")
+    expect(manifest.languages.en.entrySettings.pg001_fallback?.provider).toBe("openai")
+    expect(manifest.languages.en.entrySettings.pg001_gemini).toBeUndefined()
 
     await packageAdtWeb(storage, {
       bookDir,
@@ -2526,6 +2558,12 @@ describe("packageWebpub", () => {
     // packageAdtWeb emits imsmanifest.xml; add a stray AGENTS.md too.
     fs.writeFileSync(path.join(bookDir, "adt", "AGENTS.md"), "stray")
     expect(fs.existsSync(path.join(bookDir, "adt", "imsmanifest.xml"))).toBe(true)
+    // The standalone TTS regeneration tooling only makes sense in the ADT
+    // folder — it must not travel into a reader-ready export.
+    fs.mkdirSync(path.join(bookDir, "adt", "tools"), { recursive: true })
+    fs.mkdirSync(path.join(bookDir, "adt", "regen"), { recursive: true })
+    fs.writeFileSync(path.join(bookDir, "adt", "tools", "regenerate-tts.mjs"), "// tool")
+    fs.writeFileSync(path.join(bookDir, "adt", "regen", "manifest.json"), "{}")
 
     packageWebpub(storage, {
       bookDir,
@@ -2538,12 +2576,16 @@ describe("packageWebpub", () => {
 
     expect(fs.existsSync(path.join(bookDir, "webpub", "imsmanifest.xml"))).toBe(false)
     expect(fs.existsSync(path.join(bookDir, "webpub", "AGENTS.md"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "webpub", "tools"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "webpub", "regen"))).toBe(false)
     const manifest = JSON.parse(
       fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
     )
     const hrefs = manifest.resources.map((r: { href: string }) => r.href)
     expect(hrefs).not.toContain("imsmanifest.xml")
     expect(hrefs).not.toContain("AGENTS.md")
+    expect(hrefs).not.toContain("tools/regenerate-tts.mjs")
+    expect(hrefs).not.toContain("regen/manifest.json")
   })
 
   it("labels resources by MIME type and excludes reading-order docs", async () => {

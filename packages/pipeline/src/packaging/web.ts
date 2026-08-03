@@ -2458,12 +2458,24 @@ async function renderAgentsMd(
 // SCORM + Offline support generators
 // ---------------------------------------------------------------------------
 
+/** Fences around the offline preloader's inlined payload, so post-packaging
+ *  tooling can swap the snapshot without regenerating the whole script. */
+export const OFFLINE_INLINE_BEGIN = "/*ADT_INLINE_BEGIN*/"
+export const OFFLINE_INLINE_END = "/*ADT_INLINE_END*/"
+
 /**
  * Generate `assets/offline-preloader.js` — inlines all JSON/HTML files that
  * the ADT bundle fetches at startup and monkey-patches `window.fetch` to
  * serve them from memory. This allows the ADT to work when opened via
- * `file://` (double-click). On HTTP/HTTPS the patch falls through to real
- * `fetch()`, so it's transparent.
+ * `file://` (double-click), where `fetch()` cannot read sibling files at all.
+ * The patch serves an inlined file whenever the URL matches, on every protocol;
+ * anything not inlined falls through to the real `fetch()`.
+ *
+ * Because this snapshot wins over the files on disk, anything that edits the
+ * bundle after packaging has to update the snapshot too. The inlined payload is
+ * fenced by {@link OFFLINE_INLINE_BEGIN}/{@link OFFLINE_INLINE_END} so it can be
+ * located and replaced without re-running packaging — `tools/regenerate-tts.mjs`
+ * does exactly that after it rewrites `texts.json`/`audios.json`/timecodes.
  */
 function generateOfflinePreloader(
   adtDir: string,
@@ -2530,7 +2542,7 @@ function generateOfflinePreloader(
 
   const js = `// offline-preloader.js — auto-generated, do not edit by hand
 (function () {
-  var INLINE = ${JSON.stringify(inline)};
+  var INLINE = ${OFFLINE_INLINE_BEGIN}${JSON.stringify(inline)}${OFFLINE_INLINE_END};
   var BASE_DIR = (function () {
     var href = location.href.split("?")[0].split("#")[0];
     return href.slice(0, href.lastIndexOf("/") + 1);
@@ -2842,11 +2854,20 @@ function pickDefaultLanguage(
 }
 
 /**
- * Files in the ADT `adt/` package that must not ship in a reader-ready export
- * (EPUB/WebPub): the SCORM package manifest and the repo's AGENTS.md. Pass as
- * the `skip` set when copying `adt/` into an export directory.
+ * Entries in the ADT `adt/` package that must not ship in a reader-ready export
+ * (EPUB/WebPub): the SCORM package manifest, the repo's AGENTS.md, and the
+ * standalone TTS regeneration tooling (`tools/`, `regen/`) — those only make
+ * sense in the standalone ADT folder, and inside an EPUB/WebPub they would just
+ * be dead weight listed in the OPF / `resources` manifest. Pass as the `skip`
+ * set when copying `adt/` into an export directory; `copyDirRecursive` applies
+ * it at the top level, which is where all of these live.
  */
-export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md"])
+export const NON_READER_FILES = new Set([
+  "imsmanifest.xml",
+  "AGENTS.md",
+  "tools",
+  "regen",
+])
 
 /**
  * File-extension → MIME type for the resources listed in an export manifest

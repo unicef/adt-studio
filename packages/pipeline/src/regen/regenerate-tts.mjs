@@ -21,6 +21,10 @@
  * published audio in the bundle is the source of truth for unchanged units — the
  * manifest ships keys, not a duplicate copy of the audio.
  *
+ * It also refreshes `assets/offline-preloader.js`, which holds an inlined
+ * snapshot of the content JSON and is what the reader actually renders — see
+ * {@link syncOfflinePreloader}.
+ *
  * IMPORTANT: the cache-key logic here MUST stay byte-identical to
  * `computeSpeechCacheKey` / `stripEmojis` in `packages/pipeline/src/speech.ts`,
  * or shipped cache blobs stop matching. A unit test guards this parity.
@@ -384,6 +388,58 @@ function sameSpeechSettings(a, b) {
   )
 }
 
+// Fences the packager writes around the offline preloader's inlined payload
+// (OFFLINE_INLINE_BEGIN/END in packages/pipeline/src/packaging/web.ts).
+const INLINE_BEGIN = "/*ADT_INLINE_BEGIN*/"
+const INLINE_END = "/*ADT_INLINE_END*/"
+
+/**
+ * Mirror edited content files into `assets/offline-preloader.js`.
+ *
+ * That script inlines a snapshot of texts.json / audios.json /
+ * timecode_output.json and patches `window.fetch` to serve it. The patch is not
+ * limited to `file://` (where fetch can't read sibling files at all) — it wins
+ * on http(s) too, and it strips the `?v=` cache-buster the reader appends. So
+ * the snapshot, not the file on disk, is what the reader actually renders:
+ * without this sync an edited line would be re-recorded correctly and still
+ * display and read aloud as the old text.
+ *
+ * `updates` maps preloader keys (`./content/i18n/<lang>/texts.json`) to their
+ * new parsed contents. Only keys the packager already inlined are refreshed, so
+ * this never changes which files the bundle serves from memory.
+ *
+ * Returns "updated" | "unchanged" | "absent" | "unrecognized".
+ */
+function syncOfflinePreloader(bundleRoot, updates) {
+  const filePath = path.join(bundleRoot, "assets", "offline-preloader.js")
+  if (!fs.existsSync(filePath)) return "absent"
+
+  const source = fs.readFileSync(filePath, "utf-8")
+  const begin = source.indexOf(INLINE_BEGIN)
+  const end = begin === -1 ? -1 : source.indexOf(INLINE_END, begin + INLINE_BEGIN.length)
+  if (begin === -1 || end === -1) return "unrecognized"
+
+  const payloadStart = begin + INLINE_BEGIN.length
+  let inline
+  try {
+    inline = JSON.parse(source.slice(payloadStart, end))
+  } catch {
+    return "unrecognized"
+  }
+
+  let changed = false
+  for (const [key, value] of Object.entries(updates)) {
+    if (!Object.prototype.hasOwnProperty.call(inline, key)) continue
+    if (JSON.stringify(inline[key]) === JSON.stringify(value)) continue
+    inline[key] = value
+    changed = true
+  }
+  if (!changed) return "unchanged"
+
+  fs.writeFileSync(filePath, source.slice(0, payloadStart) + JSON.stringify(inline) + source.slice(end))
+  return "updated"
+}
+
 // --------------------------------------------------------------------------
 // Main
 // --------------------------------------------------------------------------
@@ -453,8 +509,10 @@ async function main() {
     return
   }
 
-  console.log(dryRun ? "DRY RUN — no audio will be generated.\n" : "")
+  if (dryRun) console.log("DRY RUN — no audio will be generated.\n")
   const summary = []
+  // Preloader key → new contents, applied once after every language is done.
+  const preloaderUpdates = {}
 
   for (const lang of languages) {
     const safeLang = assertSafeSegment(lang, SAFE_LANGUAGE_RE, "language code")
@@ -468,6 +526,10 @@ async function main() {
     const baselineEntries = manifestLang.entries || (manifestLang.entries = {})
     const storedEntrySettings = manifestLang.entrySettings || (manifestLang.entrySettings = {})
     const storedConfigBaselines = manifestLang.entryConfigBaselines || (manifestLang.entryConfigBaselines = {})
+    // textId → baseline key of the audio Whisper transcribed to zero words.
+    // Without this, every unit alignment can't handle (bare page numbers are the
+    // known case) would be re-sent on every run, forever.
+    const storedTimingSkips = manifestLang.timingSkips || (manifestLang.timingSkips = {})
     const configSettings = normalizeSpeechSettings(langCfg)
     const exportedDefaults = normalizeSpeechSettings(manifestLang.defaults || langCfg)
     const manualTextIds = new Set(manifestLang.manualTextIds || [])
@@ -531,12 +593,11 @@ async function main() {
               delete timecodes[textId]
               timecodesDirty = true
             }
-            if (!isManual && baselineEntries[textId] !== undefined) {
-              delete baselineEntries[textId]
-              delete storedEntrySettings[textId]
-              delete storedConfigBaselines[textId]
-              manifestDirty = true
-            }
+            // The baseline key is deliberately KEPT: the audio file itself
+            // stays on disk, so if the exclusion is lifted later the unit can
+            // be recognised as unchanged and simply re-mapped, instead of
+            // paying to re-record a file that never changed. (Manual
+            // recordings restore the same way, from `manualFiles`.)
           }
           continue
         }
@@ -608,9 +669,14 @@ async function main() {
         if (
           !force &&
           baselineEntries[textId] === currentKey &&
-          audios[textId] === fileName &&
           fs.existsSync(publishedPath)
         ) {
+          // Re-included after being muted: the file on disk still matches the
+          // text, so just restore the mapping. No API call.
+          if (!dryRun && audios[textId] !== fileName) {
+            audios[textId] = fileName
+            audiosDirty = true
+          }
           result.unchanged++
           continue
         }
@@ -641,6 +707,7 @@ async function main() {
         baselineEntries[textId] = currentKey
         storedEntrySettings[textId] = settings
         storedConfigBaselines[textId] = configSettings
+        delete storedTimingSkips[textId]
         manifestDirty = true
         changedIds.push(textId)
         result.regenerated++
@@ -664,9 +731,16 @@ async function main() {
     // audio but no timings yet — so turning highlighting on fills the whole book.
     if (langCfg.wordHighlighting) {
       const whisperTargets = new Set(changedIds)
+      // A unit whose audio Whisper transcribed to zero words (bare page numbers
+      // and the like) is recorded in `timingSkips` against the audio it failed
+      // on, so it is not re-sent every run. Re-recording the line changes its
+      // baseline key and re-queues it; --force re-queues it immediately.
+      const alignedBefore = (id) =>
+        !force && storedTimingSkips[id] !== undefined && storedTimingSkips[id] === (baselineEntries[id] ?? null)
       for (const id of Object.keys(audios)) {
         if (onlyId && id !== onlyId) continue
-        if (!timecodes[id]) whisperTargets.add(id) // missing timings → backfill
+        if (timecodes[id] || alignedBefore(id)) continue
+        whisperTargets.add(id) // missing timings → backfill
       }
       if (whisperTargets.size > 0) {
         if (dryRun) {
@@ -694,8 +768,17 @@ async function main() {
                 )
                 if (words.length > 0) {
                   timecodes[id] = { timecodes: [null, { word_timestamps: words }] }
+                  if (storedTimingSkips[id] !== undefined) {
+                    delete storedTimingSkips[id]
+                    manifestDirty = true
+                  }
                 } else {
                   delete timecodes[id]
+                  // Deterministic "no words for this audio" — remember it so the
+                  // next run doesn't pay for the same call again. A transient
+                  // failure throws instead and is left to retry.
+                  storedTimingSkips[id] = baselineEntries[id] ?? null
+                  manifestDirty = true
                 }
                 timecodesDirty = true
                 result.realigned++
@@ -714,10 +797,32 @@ async function main() {
         fs.mkdirSync(path.dirname(timecodeFile), { recursive: true })
         writeJson(timecodeFile, timecodes)
       }
+      // Queue this language's content for the offline snapshot. texts.json is
+      // included even though this script never writes it — the user's edit to
+      // it is exactly what the snapshot is stale against.
+      const langPrefix = `./content/i18n/${lang}`
+      preloaderUpdates[`${langPrefix}/texts.json`] = texts
+      preloaderUpdates[`${langPrefix}/audios.json`] = audios
+      preloaderUpdates[`${langPrefix}/timecode/timecode_output.json`] = timecodes
     }
 
     summary.push(result)
     console.log(formatLang(result, dryRun, changedIds.length))
+  }
+
+  // The bundle serves an inlined snapshot of the content JSON, so refresh it or
+  // the reader keeps rendering (and speaking) the pre-edit book.
+  if (!dryRun) {
+    const preloaderState = syncOfflinePreloader(bundleRoot, preloaderUpdates)
+    if (preloaderState === "updated") {
+      console.log("\nRefreshed the offline snapshot in assets/offline-preloader.js.")
+    } else if (preloaderState === "unrecognized") {
+      console.warn(
+        "\n⚠ assets/offline-preloader.js has no recognizable inline payload, so it was left alone. " +
+          "The reader serves that snapshot in preference to the files on disk, so your edits may not " +
+          "appear — re-export this book from ADT Studio to pick them up.",
+      )
+    }
   }
 
   // Persist updated baselines so a re-run with no further edits is a no-op.
@@ -752,8 +857,20 @@ function formatLang(result, dryRun, changed) {
 
 // Run only when invoked directly (`node regenerate-tts.mjs`), not when imported
 // by a test that exercises the helpers below.
-const invokedDirectly =
-  process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href
+//
+// argv[1] is the path as typed, but `import.meta.url` is the resolved realpath —
+// so any symlink on the way to the bundle (on macOS `/tmp` → `/private/tmp` is
+// the everyday case) makes a naive comparison false and turns the whole script
+// into a silent no-op. Compare realpaths.
+const invokedDirectly = (() => {
+  const entry = process.argv[1]
+  if (!entry) return false
+  try {
+    return import.meta.url === pathToFileURL(fs.realpathSync(entry)).href
+  } catch {
+    return false
+  }
+})()
 if (invokedDirectly) {
   main().catch((err) => {
     console.error(err instanceof Error ? err.message : String(err))

@@ -64,7 +64,7 @@ export interface EmitRegenAssetsInput {
   exclude?: { categories: string[]; textIds: string[] }
 }
 
-const REGEN_MANIFEST_VERSION = 2
+const REGEN_MANIFEST_VERSION = 3
 
 const HTML_ENTITY_RE = /&(?:#(\d+)|#x([\da-f]+)|(amp|lt|gt|quot|apos|nbsp));/gi
 const NAMED_HTML_ENTITIES: Record<string, string> = {
@@ -92,6 +92,20 @@ export function normalizeRegenSpeechText(text: string): string {
     },
   )
   return decoded.replace(/\s+/g, " ").trim()
+}
+
+/** Mirrors `sameSpeechSettings` in regenerate-tts.mjs. */
+function sameSpeechSettings(
+  a: Record<string, string>,
+  b: Record<string, string>,
+): boolean {
+  return (
+    a.provider === b.provider &&
+    a.model === b.model &&
+    a.voice === b.voice &&
+    a.instructions === b.instructions &&
+    a.format === b.format
+  )
 }
 
 function writeJson(filePath: string, data: unknown): void {
@@ -138,14 +152,12 @@ export function emitRegenAssets(input: EmitRegenAssetsInput): number {
     // The regenerator recomputes each key from the edited text and re-records
     // only the units whose key changed — no audio is duplicated.
     const entries: Record<string, string> = {}
-    const entrySettings: Record<string, {
-      provider: string
-      model: string
-      voice: string
-      instructions: string
-      format: string
-    }> = {}
-    const entryConfigBaselines: Record<string, typeof defaults> = {}
+    // Per-entry settings are stored ONLY where they differ from `defaults`
+    // (i.e. provider fallbacks — a Gemini item that was generated with OpenAI).
+    // The regenerator falls back to `defaults` for anything absent, so storing
+    // the common case would just repeat the (often multi-line) instructions
+    // string once per unit and bloat the manifest by megabytes on a large book.
+    const entrySettings: Record<string, typeof defaults> = {}
     for (const entry of lang.entries) {
       const settings = {
         provider: entry.provider,
@@ -163,15 +175,20 @@ export function emitRegenAssets(input: EmitRegenAssetsInput): number {
         geminiTemperature: lang.geminiTemperature,
         geminiSeed: lang.geminiSeed,
       })
-      entrySettings[entry.textId] = settings
-      entryConfigBaselines[entry.textId] = defaults
+      if (!sameSpeechSettings(settings, defaults)) {
+        entrySettings[entry.textId] = settings
+      }
       unitsRecorded++
     }
 
     manifestLanguages[lang.lang] = {
       entries,
       entrySettings,
-      entryConfigBaselines,
+      // `entryConfigBaselines` (config snapshot per unit, used to detect a
+      // language-level voice/model edit) is intentionally omitted: at export
+      // time every unit's baseline IS `defaults`, and the regenerator falls
+      // back to that. It only starts recording per-unit values once a config
+      // edit has actually been applied to some units.
       defaults,
       manualTextIds: lang.manualTextIds,
       manualTexts: lang.manualTexts,
@@ -191,7 +208,7 @@ export function emitRegenAssets(input: EmitRegenAssetsInput): number {
     $comment:
       "Edit content/i18n/<lang>/texts.json then run tools/regenerate-tts.mjs to re-record only changed lines. " +
       "Change a voice/model/instructions below to re-record a whole language. Add a category " +
-      "(text, captions, answers, glossary, easy-read) or textId to `exclude` to mute it; remove it to re-record it. " +
+      "(text, captions, answers, glossary, easy-read) or textId to `exclude` to mute it; remove it to restore it. " +
       "Set API keys via the env vars named here.",
     exclude: exclude ?? { categories: [], textIds: [] },
     languages: configLanguages,
@@ -271,6 +288,11 @@ of truth for lines you didn't change.
 
 - **Only changed lines** are re-recorded. Unchanged audio is left byte-for-byte
   identical.
+- **The offline snapshot is kept in sync.** The reader serves
+  \`assets/offline-preloader.js\` (an inlined copy of the content JSON) in
+  preference to the files on disk, so the script refreshes the snapshot for
+  every language it processed. Without that step your edits would not appear in
+  the reader at all.
 - **Word highlighting**: if this book uses highlighting, the script re-runs
   alignment (OpenAI Whisper) for the lines it re-recorded, and also **backfills**
   timings for any line that has audio but no timings yet — so turning highlighting
@@ -300,9 +322,10 @@ The \`exclude\` block controls what is read aloud, book-wide:
   \`easy-read\`. Add one to mute every unit of that type.
 - **textIds**: mute individual units (also mutes their \`_easy_read\` variant).
 
-Add an entry and re-run to remove that audio; remove an entry to generate it
-again. (Muted audio files are left on disk but dropped from \`audios.json\`, so the
-reader stops playing them.)
+Add an entry and re-run to mute that audio; remove the entry to bring it back.
+(Muted audio files are left on disk but dropped from \`audios.json\`, so the reader
+stops playing them. Un-muting costs nothing — the file is still there, so it is
+only re-recorded if its text also changed in the meantime.)
 
 ## Provider support
 

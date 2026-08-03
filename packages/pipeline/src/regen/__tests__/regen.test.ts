@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { execFileSync } from "node:child_process"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -7,6 +8,7 @@ import { fileURLToPath } from "node:url"
 import { computeSpeechCacheKey as realCacheKey, stripEmojis as realStripEmojis } from "../../speech.js"
 import { getTextCatalogCategory as realGetCategory, isTtsExcluded as realIsExcluded } from "@adt/types"
 import { emitRegenAssets, normalizeRegenSpeechText as emitterNormalizeText } from "../regen-emit.js"
+import { OFFLINE_INLINE_BEGIN, OFFLINE_INLINE_END } from "../../packaging/web.js"
 import { REGEN_SCRIPT_SOURCE } from "../regen-source.generated.js"
 // The .mjs guards its own main(), so importing it only pulls in the helpers.
 import {
@@ -147,6 +149,26 @@ function readJsonFile(p: string): Record<string, unknown> {
   return JSON.parse(fs.readFileSync(p, "utf-8"))
 }
 
+/**
+ * Stand in for `assets/offline-preloader.js`. Built from the same fences the
+ * packager writes, so this breaks if the two sides ever drift apart.
+ */
+function writeOfflinePreloader(root: string, inline: Record<string, unknown>): string {
+  const file = path.join(root, "assets", "offline-preloader.js")
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(
+    file,
+    `(function () {\n  var INLINE = ${OFFLINE_INLINE_BEGIN}${JSON.stringify(inline)}${OFFLINE_INLINE_END};\n})();\n`,
+  )
+  return file
+}
+
+function readInlinedSnapshot(file: string): Record<string, unknown> {
+  const source = fs.readFileSync(file, "utf-8")
+  const begin = source.indexOf(OFFLINE_INLINE_BEGIN) + OFFLINE_INLINE_BEGIN.length
+  return JSON.parse(source.slice(begin, source.indexOf(OFFLINE_INLINE_END, begin)))
+}
+
 describe("emitRegenAssets", () => {
   it("ships manifest, config, script, README, and records baseline keys (no audio duplicated)", () => {
     const { root } = makeBundle()
@@ -166,14 +188,19 @@ describe("emitRegenAssets", () => {
         provider: "openai",
       })
       const manifest = JSON.parse(fs.readFileSync(path.join(root, "regen", "manifest.json"), "utf-8"))
-      expect(manifest.version).toBe(2)
+      expect(manifest.version).toBe(3)
       expect(manifest.languages.en.entries.t1).toBe(key)
-      expect(manifest.languages.en.entrySettings.t1).toMatchObject({
+      // Settings live in `defaults`; per-entry copies are stored only for
+      // entries that differ from it (provider fallbacks), so the manifest does
+      // not repeat the instructions string once per unit.
+      expect(manifest.languages.en.defaults).toMatchObject({
         provider: "openai",
         model: "gpt-4o-mini-tts",
         voice: "alloy",
         format: "mp3",
       })
+      expect(manifest.languages.en.entrySettings).toEqual({})
+      expect(manifest.languages.en.entryConfigBaselines).toBeUndefined()
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }
@@ -404,10 +431,20 @@ describe("regenerate-tts.mjs run", () => {
       await runScript()
 
       expect(fetchMock).not.toHaveBeenCalled()
-      const audios = readJsonFile(path.join(localeDir, "audios.json"))
+      let audios = readJsonFile(path.join(localeDir, "audios.json"))
       expect(audios.t1).toBe("t1.mp3")
       expect(audios.pg001_ans_a).toBeUndefined()
       expect(fs.existsSync(path.join(audioDir, "pg001_ans_a.mp3"))).toBe(true)
+
+      // Un-muting restores the mapping from the file still on disk — the text
+      // never changed, so it must not cost a TTS call.
+      editConfig(root, (cfg) => { (cfg.exclude as { categories: string[] }).categories = [] })
+      await runScript()
+
+      expect(fetchMock).not.toHaveBeenCalled()
+      audios = readJsonFile(path.join(localeDir, "audios.json"))
+      expect(audios.pg001_ans_a).toBe("pg001_ans_a.mp3")
+      expect(fs.readFileSync(path.join(audioDir, "pg001_ans_a.mp3")).toString()).toBe("ANSWER-AUDIO")
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }
@@ -633,6 +670,108 @@ describe("regenerate-tts.mjs run", () => {
       expect(whisperCalls).toHaveLength(1)
       timecodes = readJsonFile(timecodeFile)
       expect(timecodes.t1).toBeDefined()
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("stops re-transcribing audio Whisper aligns to zero words", async () => {
+    const { root } = makeBundle({ wordHighlighting: true })
+    const whisperCalls = (): unknown[] =>
+      fetchMock.mock.calls.filter((c) => String(c[0]).includes("/audio/transcriptions"))
+    try {
+      // Whisper returns no words (bare page numbers and the like do this).
+      const emptyWords = { ok: true, json: async () => ({ words: [] }) } as unknown as Response
+      const speechOk = {
+        ok: true,
+        arrayBuffer: async () => new Uint8Array([9, 9, 9, 9]).buffer,
+      } as unknown as Response
+      fetchMock.mockImplementation(async (url: string) =>
+        String(url).includes("/audio/transcriptions") ? emptyWords : speechOk,
+      )
+
+      process.argv = ["node", mjsPath, root]
+      await runScript()
+      expect(whisperCalls()).toHaveLength(2)
+
+      // No text changed and both units are known-unalignable, so a re-run is a
+      // true no-op rather than paying for the same two calls again.
+      fetchMock.mockClear()
+      await runScript()
+      expect(fetchMock).not.toHaveBeenCalled()
+      expect(process.exitCode).not.toBe(1)
+
+      // --force re-records the audio, which re-queues alignment for it.
+      process.argv = ["node", mjsPath, root, "--force"]
+      fetchMock.mockClear()
+      await runScript()
+      expect(whisperCalls()).toHaveLength(2)
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("refreshes the inlined offline snapshot the reader serves", async () => {
+    const { root, textsFile } = makeBundle()
+    try {
+      const localeDir = path.join(root, "content", "i18n", "en")
+      // The packaged snapshot of the pre-edit book. Note timecode_output.json
+      // is deliberately absent, to prove keys are refreshed but never added.
+      const preloader = writeOfflinePreloader(root, {
+        "./content/i18n/en/texts.json": { t1: "Hello world", t2: "Second line" },
+        "./content/i18n/en/audios.json": { t1: "t1.mp3", t2: "t2.mp3" },
+      })
+
+      fs.writeFileSync(textsFile, JSON.stringify({ t1: "Hello there", t2: "Second line" }))
+      process.argv = ["node", mjsPath, root]
+      await runScript()
+
+      const inline = readInlinedSnapshot(preloader)
+      expect(inline["./content/i18n/en/texts.json"]).toEqual({ t1: "Hello there", t2: "Second line" })
+      expect(inline["./content/i18n/en/timecode/timecode_output.json"]).toBeUndefined()
+
+      // Muting a unit has to reach the snapshot too, or the reader keeps
+      // playing audio that is no longer in audios.json.
+      editConfig(root, (cfg) => { (cfg.exclude as { textIds: string[] }).textIds = ["t2"] })
+      await runScript()
+
+      expect(readJsonFile(path.join(localeDir, "audios.json")).t2).toBeUndefined()
+      expect(readInlinedSnapshot(preloader)["./content/i18n/en/audios.json"]).toEqual({ t1: "t1.mp3" })
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  // The tests above call main() in-process, which cannot catch the script
+  // failing to start at all. Spawn the copy that actually ships in the bundle.
+  it("runs when spawned as a script through a symlinked path", () => {
+    const { root } = makeBundle()
+    const linkDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-regen-link-"))
+    try {
+      // argv[1] keeps the symlinked path while import.meta.url resolves to the
+      // real one; comparing them naively makes the script exit silently.
+      const link = path.join(linkDir, "bundle")
+      fs.symlinkSync(root, link, "dir")
+      const stdout = execFileSync(
+        process.execPath,
+        [path.join(link, "tools", "regenerate-tts.mjs"), link, "--dry-run"],
+        { encoding: "utf-8" },
+      )
+      expect(stdout).toContain("DRY RUN")
+      expect(stdout).toContain("[en] 0 would regenerate, 2 unchanged")
+    } finally {
+      fs.rmSync(linkDir, { recursive: true, force: true })
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("leaves a bundle without an offline preloader alone", async () => {
+    const { root, textsFile } = makeBundle()
+    try {
+      fs.writeFileSync(textsFile, JSON.stringify({ t1: "Hello there", t2: "Second line" }))
+      process.argv = ["node", mjsPath, root]
+      await expect(runScript()).resolves.toBeUndefined()
+      expect(fs.existsSync(path.join(root, "assets"))).toBe(false)
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }
