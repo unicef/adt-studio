@@ -48,6 +48,13 @@ export default defineConfig({
       },
       {
         test: {
+          name: "publish-service",
+          include: ["apps/publish-service/src/**/*.test.ts"],
+          environment: "node",
+        },
+      },
+      {
+        test: {
           name: "desktop",
           include: ["apps/desktop/src/**/*.test.ts"],
           environment: "node",

@@ -1,0 +1,22 @@
+{
+  "name": "@adt/publish-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "build:artifact": "node scripts/build-artifact.mjs",
+    "migrate:local": "wrangler d1 migrations apply DB --local",
+    "typecheck": "tsc --build"
+  },
+  "dependencies": {
+    "@adt/types": "workspace:*",
+    "hono": "^4.12.25",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260727.1",
+    "esbuild": "^0.25.0",
+    "wrangler": "^4.114.0"
+  }
+}

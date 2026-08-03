@@ -380,6 +380,46 @@ export {
 } from "./translation-evaluation.js"
 
 export {
+  PUBLISH_WORKER_VERSION,
+  PUBLICATION_SNAPSHOT_MAX_BYTES,
+  PUBLICATION_TOKEN_LENGTH,
+  PublicationToken,
+  PublicationState,
+  PublicationPageEntry,
+  PublicationVersion,
+  Publication,
+  PublicationCreateRequest,
+  PublicationCreateResponse,
+  PublicationVersionCreateRequest,
+  PublicationVersionCreateResponse,
+  PublicationExpiryUpdateRequest,
+  PublicationResponse,
+  PublicationDetail,
+  PublishWorkerHealth,
+  PublishErrorCode,
+  PublishErrorResponse,
+  publicationStateAt,
+} from "./publication.js"
+
+export {
+  COMMENTER_SESSION_COOKIE,
+  COMMENTER_NAME_MAX_LENGTH,
+  COMMENTER_COLORS,
+  PUBLISH_COMMENT_BODY_MAX_LENGTH,
+  CommentAnchor,
+  CommenterSession,
+  PublishComment,
+  CommenterSessionCreateRequest,
+  CommenterSessionResponse,
+  PublishCommentCreateRequest,
+  PublishCommentUpdateRequest,
+  PublishCommentResolveRequest,
+  PublishCommentListQuery,
+  PublishCommentListResponse,
+  PublishCommentResponse,
+} from "./publish-comment.js"
+
+export {
   screenshotIpcViewportSchema,
   screenshotIpcRequestSchema,
   screenshotIpcCloseSchema,
