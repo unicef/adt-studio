@@ -1,4 +1,4 @@
-import type { AiModality, DiscoveredModel } from "@adt/types"
+import type { AiModality, DiscoveredModel, ProviderHealthCode } from "@adt/types"
 import type { LogLevel } from "../logger.js"
 
 export type { DiscoveredModel }
@@ -23,6 +23,27 @@ export interface ModelListContext<C = ProviderCredentialValues> {
   credentials: C
   signal?: AbortSignal
   logLevel?: LogLevel
+}
+
+/**
+ * Passed to a provider's `checkConnection`. Provider-scoped like
+ * `ModelListContext`: credentials but no model id, since a connection check
+ * verifies reachability and authentication, not a specific model.
+ */
+export interface ConnectionCheckContext<C = ProviderCredentialValues> {
+  providerId: string
+  credentials: C
+  signal?: AbortSignal
+  logLevel?: LogLevel
+}
+
+/** Verdict of a connection check. `detail` is diagnostic and must hold no secret. */
+export interface ProviderConnectionStatus {
+  ok: boolean
+  code: ProviderHealthCode
+  /** Set only when the check listed the provider's catalogue. */
+  modelCount?: number
+  detail?: string
 }
 
 export type BackendFactory<B, C = ProviderCredentialValues> = (

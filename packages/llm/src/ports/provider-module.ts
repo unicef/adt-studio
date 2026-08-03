@@ -12,8 +12,10 @@ import type {
   BackendContext,
   BackendFactory,
   CacheFingerprint,
+  ConnectionCheckContext,
   DiscoveredModel,
   ModelListContext,
+  ProviderConnectionStatus,
   ProviderCredentialValues,
 } from "./common.js"
 import type { StructuredTextBackend } from "./structured-text-backend.js"
@@ -57,6 +59,16 @@ export interface ProviderModule<
    * throw `ModelDiscoveryError` for a reachable-but-failed attempt.
    */
   listModels?: (context: ModelListContext<C>) => Promise<DiscoveredModel[]>
+
+  /**
+   * Optional live connection check. Providers that can verify reachability more
+   * cheaply than `listModels` (or without any HTTP call at all, like a local CLI
+   * login) implement this; everyone else falls back to discovery. `detail` must
+   * never carry a secret, not even a masked one.
+   */
+  checkConnection?: (
+    context: ConnectionCheckContext<C>,
+  ) => Promise<ProviderConnectionStatus>
 
   createStructuredTextBackend?: BackendFactory<StructuredTextBackend, C>
   createAgentBackend?: BackendFactory<AgentBackend, C>

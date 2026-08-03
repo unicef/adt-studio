@@ -260,3 +260,33 @@ export const ModelDiscoveryResponse = z.object({
   error: ModelDiscoveryErrorCode.optional(),
 })
 export type ModelDiscoveryResponse = z.infer<typeof ModelDiscoveryResponse>
+
+/**
+ * Outcome of a live connection check. Codes are stable identifiers the Studio
+ * maps to translated messages — the API never returns localized prose.
+ */
+export const PROVIDER_HEALTH_CODES = [
+  "ok",
+  "local-login",
+  "configured",
+  "missing-credential",
+  "invalid-credential",
+  "cli-not-found",
+  "not-logged-in",
+  "unreachable",
+  "invalid-response",
+  "unsupported",
+] as const
+export const ProviderHealthCode = z.enum(PROVIDER_HEALTH_CODES)
+export type ProviderHealthCode = z.infer<typeof ProviderHealthCode>
+
+export const ProviderHealthResponse = z.object({
+  providerId: ProviderId,
+  ok: z.boolean(),
+  code: ProviderHealthCode,
+  /** Set when the check verified the catalogue, so the UI can quantify success. */
+  modelCount: z.number().int().nonnegative().optional(),
+  /** Non-secret, non-localized diagnostic. Never a credential, even masked. */
+  detail: z.string().max(200).optional(),
+})
+export type ProviderHealthResponse = z.infer<typeof ProviderHealthResponse>

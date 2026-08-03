@@ -450,4 +450,7 @@ export {
   MODEL_DISCOVERY_ERROR_CODES,
   ModelDiscoveryErrorCode,
   ModelDiscoveryResponse,
+  PROVIDER_HEALTH_CODES,
+  ProviderHealthCode,
+  ProviderHealthResponse,
 } from "./ai-provider.js"

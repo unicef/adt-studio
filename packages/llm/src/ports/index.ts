@@ -4,8 +4,10 @@ export type {
   BackendContext,
   BackendFactory,
   CacheFingerprint,
+  ConnectionCheckContext,
   DiscoveredModel,
   ModelListContext,
+  ProviderConnectionStatus,
   ProviderCredentialValues,
   TokenUsage,
 } from "./common.js"

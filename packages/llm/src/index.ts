@@ -102,6 +102,11 @@ export {
 } from "./model-discovery.js"
 
 export {
+  checkProviderConnection,
+  type CheckProviderConnectionOptions,
+} from "./provider-health.js"
+
+export {
   assertModelCredentials,
   describeMissingModelCredential,
 } from "./credential-checks.js"
@@ -147,6 +152,8 @@ export {
   getDefaultProviderRegistry,
   ANTHROPIC_PROVIDER_ID,
   AZURE_PROVIDER_ID,
+  CLAUDE_AGENT_PROVIDER_ID,
+  CODEX_PROVIDER_ID,
   CUSTOM_PROVIDER_ID,
   GEMINI_PROVIDER_ID,
   GOOGLE_PROVIDER_ID,
@@ -157,6 +164,10 @@ export {
   anthropicProvider,
   azureManifest,
   azureProvider,
+  claudeAgentManifest,
+  claudeAgentProvider,
+  codexManifest,
+  codexProvider,
   customManifest,
   customProvider,
   geminiManifest,

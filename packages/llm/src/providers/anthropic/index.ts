@@ -1,17 +1,17 @@
 import { z } from "zod"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import type { ProviderManifest } from "@adt/types"
-import type { DiscoveredModel, ProviderModule } from "../../ports/index.js"
+import type { ProviderModule } from "../../ports/index.js"
 import { createAiSdkStructuredTextBackend } from "../shared/ai-sdk/structured-text.js"
 import { createAiSdkAgentBackend } from "../shared/ai-sdk/agent.js"
-import { ModelDiscoveryError } from "../../model-discovery.js"
+import {
+  ANTHROPIC_ORIGIN,
+  listAnthropicModels,
+} from "../shared/anthropic-rest/models.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
 
 export const ANTHROPIC_PROVIDER_ID = "anthropic"
 const ADAPTER_VERSION = "anthropic-1"
-const ANTHROPIC_MODELS_URL = "https://api.anthropic.com/v1/models?limit=1000"
-const ANTHROPIC_VERSION = "2023-06-01"
-const DISCOVERY_TIMEOUT_MS = 15_000
 
 const credentialSchema = z
   .object({ apiKey: z.string().min(1).max(400) })
@@ -54,64 +54,6 @@ export const anthropicManifest: ProviderManifest = {
 
 type AnthropicCredentials = z.infer<typeof credentialSchema>
 
-const AnthropicModelsResponse = z.object({
-  data: z
-    .array(
-      z
-        .object({ id: z.string().min(1), display_name: z.string().min(1).optional() })
-        .passthrough(),
-    )
-    .default([]),
-})
-
-async function listAnthropicModels(
-  apiKey: string,
-  signal?: AbortSignal,
-): Promise<DiscoveredModel[]> {
-  const timeout = AbortSignal.timeout(DISCOVERY_TIMEOUT_MS)
-  const combined = signal ? AbortSignal.any([signal, timeout]) : timeout
-
-  let response: Response
-  try {
-    response = await fetch(ANTHROPIC_MODELS_URL, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": ANTHROPIC_VERSION,
-      },
-      signal: combined,
-    })
-  } catch {
-    throw new ModelDiscoveryError("unreachable", "Could not reach the Anthropic model listing")
-  }
-
-  if (!response.ok) {
-    const code =
-      response.status === 401 || response.status === 403
-        ? "missing-credential"
-        : "unreachable"
-    throw new ModelDiscoveryError(code, `Model listing failed with HTTP ${response.status}`)
-  }
-
-  let payload: unknown
-  try {
-    payload = await response.json()
-  } catch {
-    throw new ModelDiscoveryError("invalid-response", "Model listing returned invalid JSON")
-  }
-
-  const parsed = AnthropicModelsResponse.safeParse(payload)
-  if (!parsed.success) {
-    throw new ModelDiscoveryError("invalid-response", "Unexpected model listing shape")
-  }
-
-  return parsed.data.data.map((entry) => ({
-    id: entry.id,
-    ...(entry.display_name ? { displayName: entry.display_name } : {}),
-  }))
-}
-
 export const anthropicProvider: ProviderModule<AnthropicCredentials> = {
   manifest: anthropicManifest,
   credentialSchema,
@@ -120,10 +62,11 @@ export const anthropicProvider: ProviderModule<AnthropicCredentials> = {
 
   cacheFingerprint: () => ({
     adapterVersion: ADAPTER_VERSION,
-    origin: "https://api.anthropic.com",
+    origin: ANTHROPIC_ORIGIN,
   }),
 
-  listModels: (context) => listAnthropicModels(context.credentials.apiKey, context.signal),
+  listModels: (context) =>
+    listAnthropicModels({ apiKey: context.credentials.apiKey, signal: context.signal }),
 
   createStructuredTextBackend: (context) => {
     const client = createAnthropic({ apiKey: context.credentials.apiKey })
