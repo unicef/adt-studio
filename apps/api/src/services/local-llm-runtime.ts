@@ -23,6 +23,10 @@ export interface LocalLlmRuntimeStatus {
   loadedModelId: string | null
   endpoint: string | null
   contextSize: number
+  /** Number of independent llama.cpp request slots. */
+  parallelSlots: number
+  /** Total KV context shared by all request slots. */
+  totalContextSize: number
   gpuLayersRequested: number
   gpuLayersLoaded: number | null
   processId: number | null
@@ -96,6 +100,14 @@ export function createLocalLlmRuntime(options: {
   // Sectioning requests include the page image, crop images, schema, and
   // validation feedback; real classroom PDFs regularly exceed an 8K context.
   const contextSize = Number(process.env.LOCAL_LLM_CONTEXT_SIZE || 16_384)
+  const configuredParallelSlots = Number.parseInt(process.env.LOCAL_LLM_PARALLEL ?? "", 10)
+  const adaptiveParallelSlots = os.availableParallelism() >= 10 && os.totalmem() >= 24 * 1024 ** 3 ? 2 : 1
+  const parallelSlots = Number.isInteger(configuredParallelSlots) && configuredParallelSlots > 0
+    ? Math.min(configuredParallelSlots, 8)
+    : adaptiveParallelSlots
+  // llama.cpp divides --ctx-size across slots. Preserve the documented
+  // per-request context instead of accidentally shrinking it as slots grow.
+  const totalContextSize = contextSize * parallelSlots
   const gpuLayersRequested = Number(process.env.LOCAL_LLM_GPU_LAYERS || 99)
   let child: ChildProcessWithoutNullStreams | null = null
   let port: number | null = null
@@ -167,8 +179,8 @@ export function createLocalLlmRuntime(options: {
       "--mmproj", path.join(modelDir, manifest.mmprojFile),
       "--host", "127.0.0.1",
       "--port", String(port),
-      "--ctx-size", String(contextSize),
-      "--parallel", "1",
+      "--ctx-size", String(totalContextSize),
+      "--parallel", String(parallelSlots),
       "--gpu-layers", String(gpuLayersRequested),
       "--jinja",
       "--no-webui",
@@ -247,6 +259,8 @@ export function createLocalLlmRuntime(options: {
       loadedModelId,
       endpoint: port ? `http://127.0.0.1:${port}` : null,
       contextSize,
+      parallelSlots,
+      totalContextSize,
       gpuLayersRequested,
       gpuLayersLoaded,
       processId: child?.pid ?? null,

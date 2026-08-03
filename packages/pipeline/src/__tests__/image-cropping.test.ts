@@ -93,6 +93,36 @@ describe("buildCroppingConfig", () => {
     expect(config!.maxRetries).toBe(5)
   })
 
+  it("skips local-model cropping in auto mode", () => {
+    const appConfig: AppConfig = {
+      role_types: { section_text: "Main body text" },
+      structure_types: { paragraph: "Paragraph" },
+      image_filters: { cropping: true },
+      image_cropping: { model: "local:gemma4-e4b" },
+    }
+    expect(buildCroppingConfig(appConfig)).toBeNull()
+  })
+
+  it("allows explicitly enabled local-model cropping", () => {
+    const appConfig: AppConfig = {
+      role_types: { section_text: "Main body text" },
+      structure_types: { paragraph: "Paragraph" },
+      image_filters: { cropping: true },
+      image_cropping: { model: "local:gemma4-e4b", strategy: "llm" },
+    }
+    expect(buildCroppingConfig(appConfig)?.modelId).toBe("local:gemma4-e4b")
+  })
+
+  it("honors the explicit off strategy for cloud models", () => {
+    const appConfig: AppConfig = {
+      role_types: { section_text: "Main body text" },
+      structure_types: { paragraph: "Paragraph" },
+      image_filters: { cropping: true },
+      image_cropping: { model: "openai:gpt-4.1", strategy: "off" },
+    }
+    expect(buildCroppingConfig(appConfig)).toBeNull()
+  })
+
   it("falls back to image_meaningfulness model", () => {
     const appConfig: AppConfig = {
       role_types: { section_text: "Main body text" },

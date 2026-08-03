@@ -4,6 +4,7 @@ import {
   type PageSectioningOutput,
   type PageSectioningSection,
   type TypeDef,
+  type PositionedTextOutput,
   DEFAULT_LLM_MAX_RETRIES,
   DEFAULT_LLM_MODEL_ID,
   buildPageSectioningLLMSchema,
@@ -26,6 +27,7 @@ export interface PageSectioningConfig {
   maxRetries: number
   maxRefinements: number
   mode: "page" | "dynamic"
+  strategy: "auto" | "llm"
 }
 
 export interface PageSectioningInput {
@@ -35,6 +37,9 @@ export interface PageSectioningInput {
   imageBase64: string
   /** All images available to place in the tree. Callers filter pruned images out. */
   availableImages: Array<{ imageId: string; imageBase64: string }>
+  positionedText?: PositionedTextOutput
+  /** Extracted book title, used only to confirm an early title-page fast path. */
+  bookTitle?: string
 }
 
 // ── LLM-facing shape (snake_case matching the prompt + schema) ──
@@ -88,6 +93,11 @@ export async function sectionPage(
     throw new Error("No section types configured")
   }
 
+  if (config.strategy === "auto") {
+    const deterministic = trySectionPageDeterministically(input, config)
+    if (deterministic) return deterministic
+  }
+
   const validatorContext: ValidatorContext = {
     structureKeys: new Set(config.structureTypes.map((t) => t.key)),
     roleKeys: new Set(config.roleTypes.map((t) => t.key)),
@@ -125,6 +135,173 @@ export async function sectionPage(
   }
 
   return finalizePageSectioning(candidate, input, config)
+}
+
+/**
+ * Resolve only layouts where geometry makes the answer unambiguous. This
+ * removes expensive multimodal calls without guessing; all other pages fall
+ * through to the LLM.
+ */
+export function trySectionPageDeterministically(
+  input: PageSectioningInput,
+  config: PageSectioningConfig,
+): PageSectioningOutput | null {
+  const positioned = input.positionedText
+  if (!positioned) return null
+  const paragraphs = positioned.drawItems.filter((item) => item.kind === "paragraph")
+  const hasSection = (key: string) => config.sectionTypes.some((type) => type.key === key)
+  const hasRole = (key: string) => config.roleTypes.some((type) => type.key === key)
+  const hasStructure = (key: string) => config.structureTypes.some((type) => type.key === key)
+
+  if (paragraphs.length === 0 && input.availableImages.length === 0 && hasSection("text_only")) {
+    return finalizePageSectioning({
+      reasoning: "Deterministic layout: the extracted page is blank.",
+      sections: [{
+        section_type: "text_only",
+        background_color: "#ffffff",
+        text_color: "#000000",
+        page_number: input.pageNumber,
+        nodes: [],
+      }],
+    }, input, config)
+  }
+
+  const merged = new Map<string, { text: string; top: number; lineHeight: number }>()
+  for (const paragraph of paragraphs) {
+    const key = paragraph.mergedParagraphId ?? paragraph.blockId ?? paragraph.textId
+    const existing = merged.get(key)
+    if (existing) existing.text = `${existing.text} ${paragraph.text}`.replace(/\s+/g, " ").trim()
+    else merged.set(key, { text: paragraph.text.trim(), top: paragraph.top, lineHeight: paragraph.lineHeight })
+  }
+  const blocks = [...merged.values()].filter((block) => block.text.length > 0)
+  const pageNumberBlock = blocks.find((block) =>
+    /^\d{1,4}$/.test(block.text) && block.top >= positioned.pageHeight * 0.7)
+  const footerBlocks = blocks.filter((block) =>
+    block !== pageNumberBlock && block.top >= positioned.pageHeight * 0.75 &&
+    (block.lineHeight <= 12 || /^(?:reprint|copyright|isbn)\b/i.test(block.text)))
+  const excluded = new Set([pageNumberBlock, ...footerBlocks].filter(Boolean))
+  const bodyBlocks = blocks.filter((block) => !excluded.has(block))
+  const bodyText = bodyBlocks.map((block) => block.text).join(" ")
+  const wordCount = bodyText.split(/\s+/).filter(Boolean).length
+
+  const imageItem = positioned.drawItems.find((item) => item.kind === "image")
+  const imageCoverage = imageItem
+    ? (imageItem.bounds.width * imageItem.bounds.height) / (positioned.pageWidth * positioned.pageHeight)
+    : 0
+  const coverLayout =
+    input.pageNumber === 1 && input.availableImages.length === 1 &&
+    bodyBlocks.length >= 1 && bodyBlocks.length <= 4 && wordCount <= 30 &&
+    hasSection("front_cover") && hasRole("image") && hasRole("heading") && hasStructure("group")
+  if (coverLayout) {
+    return finalizePageSectioning({
+      reasoning: "Deterministic high-confidence front-cover layout from page position and geometry.",
+      sections: [{
+        section_type: "front_cover",
+        background_color: "#ffffff",
+        text_color: "#000000",
+        page_number: null,
+        nodes: [
+          { structure: "group", children: bodyBlocks.map((block) => ({ role: "heading", text: block.text })) },
+          { role: "image", image_id: input.availableImages[0].imageId },
+        ],
+      }],
+    }, input, config)
+  }
+
+  const normalizedTitle = input.bookTitle?.replace(/\s+/g, " ").trim().toLowerCase()
+  const titlePageLayout =
+    input.pageNumber <= 5 && input.availableImages.length === 0 && !!normalizedTitle &&
+    bodyBlocks.some((block) => block.text.replace(/\s+/g, " ").trim().toLowerCase() === normalizedTitle) &&
+    bodyBlocks.length >= 2 && bodyBlocks.length <= 12 &&
+    hasSection("front_cover") && hasRole("heading") && hasRole("text") && hasStructure("group")
+  if (titlePageLayout) {
+    return finalizePageSectioning({
+      reasoning: "Deterministic high-confidence title-page layout matched to extracted book metadata.",
+      sections: [{
+        section_type: "front_cover",
+        background_color: "#ffffff",
+        text_color: "#000000",
+        page_number: null,
+        nodes: [
+          { structure: "group", children: bodyBlocks.slice(0, 2).map((block) => ({ role: "heading", text: block.text })) },
+          { structure: "group", children: bodyBlocks.slice(2).map((block) => ({ role: "text", text: block.text })) },
+        ],
+      }],
+    }, input, config)
+  }
+
+  const insideCoverLayout =
+    input.pageNumber <= 6 && input.availableImages.length === 0 &&
+    /\b(?:copyright|all rights reserved|isbn|published by)\b/i.test(bodyText) &&
+    hasSection("inside_cover") && hasRole("text") && hasStructure("group")
+  if (insideCoverLayout) {
+    return finalizePageSectioning({
+      reasoning: "Deterministic high-confidence publication/copyright page.",
+      sections: [{
+        section_type: "inside_cover",
+        background_color: "#ffffff",
+        text_color: "#000000",
+        page_number: null,
+        nodes: [{ structure: "group", children: bodyBlocks.map((block) => ({ role: "text", text: block.text })) }],
+      }],
+    }, input, config)
+  }
+
+  const firstBlock = bodyBlocks[0]
+  const boxedTextLayout =
+    input.availableImages.length === 1 && imageCoverage > 0.01 && imageCoverage < 0.2 &&
+    bodyBlocks.length >= 2 && bodyBlocks.length <= 4 && wordCount <= 60 &&
+    !!firstBlock && firstBlock.text.length <= 60 && firstBlock.text === firstBlock.text.toUpperCase() &&
+    hasSection("boxed_text") && hasRole("heading") && hasRole("quote") && hasStructure("group")
+  if (boxedTextLayout) {
+    return finalizePageSectioning({
+      reasoning: "Deterministic high-confidence boxed callout from compact centered geometry.",
+      sections: [{
+        section_type: "boxed_text",
+        background_color: "#ffffff",
+        text_color: "#000000",
+        page_number: input.pageNumber,
+        nodes: [{
+          structure: "group",
+          children: [
+            { role: "heading", text: firstBlock.text },
+            { role: "quote", text: bodyBlocks.slice(1).map((block) => block.text).join(" ") },
+          ],
+        }],
+      }],
+    }, input, config)
+  }
+
+  const storyLayout =
+    input.availableImages.length === 1 && imageCoverage >= 0.25 &&
+    !!pageNumberBlock &&
+    bodyBlocks.length >= 1 && bodyBlocks.length <= 8 && wordCount >= 5 && wordCount <= 150 &&
+    hasSection("text_and_single_image") && hasRole("image") && hasRole("text") &&
+    hasStructure("image_group") && hasStructure("group")
+
+  if (storyLayout) {
+    const nodes: LLMNode[] = [{
+      structure: "image_group",
+      children: [
+        { role: "image", image_id: input.availableImages[0].imageId },
+        { structure: "group", children: bodyBlocks.map((block) => ({ role: "text", text: block.text })) },
+      ],
+    }]
+    if (pageNumberBlock && hasRole("page_number")) nodes.push({ role: "page_number", text: pageNumberBlock.text })
+    if (hasRole("footer")) nodes.push(...footerBlocks.map((block) => ({ role: "footer", text: block.text })))
+    return finalizePageSectioning({
+      reasoning: "Deterministic high-confidence storybook layout from extracted geometry.",
+      sections: [{
+        section_type: "text_and_single_image",
+        background_color: "#ffffff",
+        text_color: "#000000",
+        page_number: pageNumberBlock ? Number(pageNumberBlock.text) : input.pageNumber,
+        nodes,
+      }],
+    }, input, config)
+  }
+
+  return null
 }
 
 async function generateInitial(
@@ -711,6 +888,7 @@ export function buildPageSectioningConfig(
   const sectionTypes: TypeDef[] = Object.entries(appConfig.section_types ?? {})
     .filter(([key]) => !disabledSet.has(key) && !(activitiesOff && key.startsWith("activity_")))
     .map(([key, description]) => ({ key, description }))
+  const modelId = appConfig.page_sectioning?.model ?? appConfig.default_model ?? DEFAULT_LLM_MODEL_ID
 
   return {
     structureTypes,
@@ -721,10 +899,11 @@ export function buildPageSectioningConfig(
     disabledSectionTypes: [...disabledSet],
     promptName: appConfig.page_sectioning?.prompt ?? "page_sectioning",
     refinementPromptName: "page_sectioning_refinement",
-    modelId: appConfig.page_sectioning?.model ?? appConfig.default_model ?? DEFAULT_LLM_MODEL_ID,
+    modelId,
     maxRetries:
       appConfig.page_sectioning?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     maxRefinements: appConfig.page_sectioning?.max_refinements ?? 0,
     mode: appConfig.page_sectioning?.mode ?? "dynamic",
+    strategy: appConfig.page_sectioning?.strategy ?? (modelId.startsWith("local:") ? "auto" : "llm"),
   }
 }

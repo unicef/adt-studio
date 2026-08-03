@@ -27,6 +27,8 @@ function fakeRuntime(): LocalLlmRuntime {
       loadedModelId: null,
       endpoint: null,
       contextSize: 8192,
+      parallelSlots: 2,
+      totalContextSize: 16384,
       gpuLayersRequested: 99,
       gpuLayersLoaded: null,
       processId: null,

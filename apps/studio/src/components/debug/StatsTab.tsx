@@ -22,6 +22,11 @@ function formatTokens(n: number, locale: string): string {
   }).format(n)
 }
 
+function formatGigabytes(bytes: number): string {
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- SI-style unit abbreviation, not interface copy.
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`
+}
+
 function estimateCost(inputTokens: number, outputTokens: number): string {
   const cost = (inputTokens * 2.5 + outputTokens * 10) / 1_000_000
   return `$${cost.toFixed(4)}`
@@ -60,6 +65,11 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
   const cacheHitRate = totals.calls > 0
     ? ((totals.cacheHits / totals.calls) * 100).toFixed(1)
     : "0"
+  const localCompute = localAI.data?.state === "ready"
+    ? [localAI.data.backend, localAI.data.deviceMemoryBytes ? formatGigabytes(localAI.data.deviceMemoryBytes) : null]
+        .filter(Boolean)
+        .join(" · ")
+    : localAI.data?.state
 
   return (
     <div className="p-6 space-y-6 text-sm">
@@ -70,15 +80,16 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div><div className="text-xs text-muted-foreground"><Trans>Model</Trans></div><div className="mt-1 font-mono text-xs">{localAI.data.loadedModelId ?? "-"}</div></div>
-            <div><div className="text-xs text-muted-foreground"><Trans>Compute</Trans></div><div className="mt-1">{localAI.data.state === "ready" ? `${localAI.data.backend}${localAI.data.deviceMemoryBytes ? ` · ${(localAI.data.deviceMemoryBytes / 1024 ** 3).toFixed(0)} GB` : ""}` : localAI.data.state}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Compute</Trans></div><div className="mt-1">{localCompute}</div></div>
             <div><div className="text-xs text-muted-foreground"><Trans>Context</Trans></div><div className="mt-1 tabular-nums">{localAI.data.contextSize.toLocaleString(i18n.locale)} tokens</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Parallel slots</Trans></div><div className="mt-1 tabular-nums">{localAI.data.parallelSlots}</div></div>
             <div><div className="text-xs text-muted-foreground"><Trans>Last request</Trans></div><div className="mt-1 tabular-nums">{localAI.data.lastRequestMs == null ? "-" : formatDuration(localAI.data.lastRequestMs)}</div></div>
             <div><div className="text-xs text-muted-foreground"><Trans>Prompt speed</Trans></div><div className="mt-1 tabular-nums">{localAI.data.promptTokensPerSecond == null ? "-" : `${localAI.data.promptTokensPerSecond.toFixed(1)} tok/s`}</div></div>
             <div><div className="text-xs text-muted-foreground"><Trans>Generation speed</Trans></div><div className="mt-1 tabular-nums">{localAI.data.generatedTokensPerSecond == null ? "-" : `${localAI.data.generatedTokensPerSecond.toFixed(1)} tok/s`}</div></div>
             <div><div className="text-xs text-muted-foreground"><Trans>Runtime</Trans></div><div className="mt-1 font-mono text-xs">llama.cpp {localAI.data.runtimeVersion ?? "-"}</div></div>
             <div><div className="text-xs text-muted-foreground"><Trans>Requests</Trans></div><div className="mt-1 tabular-nums">{localAI.data.requests}</div></div>
             <div><div className="text-xs text-muted-foreground"><Trans>GPU layers</Trans></div><div className="mt-1 tabular-nums">{localAI.data.gpuLayersLoaded == null ? "-" : localAI.data.gpuLayersLoaded}</div></div>
-            <div><div className="text-xs text-muted-foreground"><Trans>Model on GPU</Trans></div><div className="mt-1 tabular-nums">{localAI.data.modelGpuMemoryBytes == null ? "-" : `${(localAI.data.modelGpuMemoryBytes / 1024 ** 3).toFixed(1)} GB`}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Model on GPU</Trans></div><div className="mt-1 tabular-nums">{localAI.data.modelGpuMemoryBytes == null ? "-" : formatGigabytes(localAI.data.modelGpuMemoryBytes)}</div></div>
             <div><div className="text-xs text-muted-foreground"><Trans>Process</Trans></div><div className="mt-1 tabular-nums">{localAI.data.processId ?? "-"}</div></div>
           </div>
           {localAI.data.device && <p className="mt-3 text-xs text-muted-foreground">{localAI.data.device}</p>}

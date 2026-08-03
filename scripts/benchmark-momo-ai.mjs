@@ -68,24 +68,34 @@ function benchmarkConfig(mode) {
     end_page: 20,
   }
   if (mode === "local") {
+    const localSpeechProvider = process.env.LOCAL_TTS_PROVIDER ?? "local-hf"
+    const localSpeechConfig = localSpeechProvider === "local-system"
+      ? {
+          model: "apple-speech",
+          voice: process.env.LOCAL_SYSTEM_VOICE ?? "Samantha",
+          speed: Number(process.env.LOCAL_TTS_SPEED ?? 1),
+          languages: ["en"],
+        }
+      : {
+          adapter: "kokoro",
+          model: process.env.LOCAL_TTS_MODEL ?? "onnx-community/Kokoro-82M-v1.0-ONNX",
+          voice: "af_heart",
+          dtype: "q8",
+          device: process.env.LOCAL_TTS_DEVICE ?? "auto",
+          speed: Number(process.env.LOCAL_TTS_SPEED ?? 1),
+          parallelism: Number(process.env.LOCAL_TTS_PARALLEL ?? 2),
+          languages: ["en"],
+        }
     return {
       ...common,
-      default_model: "local:gemma4-12b",
-      concurrency: 1,
+      default_model: process.env.LOCAL_BENCHMARK_MODEL ?? "local:gemma4-12b",
+      concurrency: Number(process.env.LOCAL_BENCHMARK_CONCURRENCY ?? 4),
       speech: {
-        default_provider: "local-hf",
+        default_provider: localSpeechProvider,
         format: "wav",
         word_highlighting: false,
         providers: {
-          "local-hf": {
-            adapter: "kokoro",
-            model: "onnx-community/Kokoro-82M-v1.0-ONNX",
-            voice: "af_heart",
-            dtype: "q8",
-            device: "cpu",
-            speed: 1,
-            languages: ["en"],
-          },
+          [localSpeechProvider]: localSpeechConfig,
         },
       },
     }

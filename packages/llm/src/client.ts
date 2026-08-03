@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import os from "node:os"
 import { generateObject, APICallError, NoObjectGeneratedError, type LanguageModel, type CoreMessage } from "ai"
 import { createOpenAI, openai } from "@ai-sdk/openai"
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic"
@@ -635,13 +636,47 @@ function parseJSONCandidate(text: string): unknown | undefined {
   }
 }
 
-let localModelQueueTail: Promise<void> = Promise.resolve()
+const configuredLocalParallelism = Number.parseInt(process.env.LOCAL_LLM_PARALLEL ?? "", 10)
+const adaptiveLocalParallelism = os.availableParallelism() >= 10 && os.totalmem() >= 24 * 1024 ** 3 ? 2 : 1
+const localModelParallelism = Number.isInteger(configuredLocalParallelism) && configuredLocalParallelism > 0
+  ? Math.min(configuredLocalParallelism, 8)
+  : adaptiveLocalParallelism
+let activeLocalModelCalls = 0
+const localModelWaiters: Array<() => void> = []
+
+async function acquireLocalModelSlot(signal?: AbortSignal): Promise<() => void> {
+  if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError")
+  if (activeLocalModelCalls < localModelParallelism) {
+    activeLocalModelCalls++
+    return releaseLocalModelSlot
+  }
+  await new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      const index = localModelWaiters.indexOf(onReady)
+      if (index >= 0) localModelWaiters.splice(index, 1)
+      reject(new DOMException("The operation was aborted", "AbortError"))
+    }
+    const onReady = () => {
+      signal?.removeEventListener("abort", onAbort)
+      resolve()
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+    localModelWaiters.push(onReady)
+  })
+  // The releasing caller transfers its occupied slot directly to this waiter.
+  // Incrementing here would allow a newly arriving call to steal the slot and
+  // temporarily exceed the configured concurrency limit.
+  return releaseLocalModelSlot
+}
+
+function releaseLocalModelSlot(): void {
+  const next = localModelWaiters.shift()
+  if (next) next()
+  else activeLocalModelCalls--
+}
 
 async function withLocalModelSlot<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
-  const previous = localModelQueueTail
-  let release!: () => void
-  localModelQueueTail = new Promise<void>((resolve) => { release = resolve })
-  await previous
+  const release = await acquireLocalModelSlot(signal)
   try {
     if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError")
     return await task()

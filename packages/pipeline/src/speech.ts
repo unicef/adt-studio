@@ -26,6 +26,8 @@ const DEFAULT_OPENAI_VOICE = "alloy"
 const DEFAULT_GEMINI_VOICE = "Kore"
 const DEFAULT_KOKORO_VOICE = "af_heart"
 const DEFAULT_KOKORO_MODEL = "onnx-community/Kokoro-82M-v1.0-ONNX"
+const DEFAULT_MAC_SYSTEM_VOICE = "Samantha"
+const DEFAULT_MAC_SYSTEM_MODEL = "apple-speech"
 const DEFAULT_AZURE_MODEL = "azure-tts"
 // Flash is the default: lower latency and higher documented throughput than Pro.
 // Users can switch to Pro (or any model) via `speech.providers.gemini.model`.
@@ -74,7 +76,9 @@ export function resolveVoice(
   defaultVoice?: string
 ): string {
   const normalizedDefaultVoice = defaultVoice?.trim()
-  const fallback = provider === "local-hf"
+  const fallback = provider === "local-system"
+    ? normalizedDefaultVoice || DEFAULT_MAC_SYSTEM_VOICE
+    : provider === "local-hf"
     ? normalizedDefaultVoice || DEFAULT_KOKORO_VOICE
     : provider === "gemini" &&
         (!normalizedDefaultVoice || normalizedDefaultVoice === DEFAULT_OPENAI_VOICE)
@@ -170,6 +174,7 @@ export function resolveSpeechModel(
   if (provider === "azure") return DEFAULT_AZURE_MODEL
   if (provider === "gemini") return DEFAULT_GEMINI_MODEL
   if (provider === "local-hf") return DEFAULT_KOKORO_MODEL
+  if (provider === "local-system") return DEFAULT_MAC_SYSTEM_MODEL
   return defaultModel?.trim() || DEFAULT_OPENAI_TTS_MODEL_ID
 }
 
@@ -177,7 +182,7 @@ export function resolveSpeechFormat(
   provider: string,
   defaultFormat?: string
 ): string {
-  if (provider === "gemini" || provider === "local-hf") return GEMINI_AUDIO_FORMAT
+  if (provider === "gemini" || provider === "local-hf" || provider === "local-system") return GEMINI_AUDIO_FORMAT
   return defaultFormat?.trim().toLowerCase() || DEFAULT_AUDIO_FORMAT
 }
 

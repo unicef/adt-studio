@@ -37,6 +37,10 @@ const extraResources = [
     from: ".runtime/llama",
     to: "llama",
   },
+  {
+    from: ".runtime/kokoro",
+    to: "kokoro",
+  },
 ];
 
 const version = process.env.APP_VERSION || require("./package.json").version;

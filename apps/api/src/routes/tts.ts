@@ -21,6 +21,7 @@ import {
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,
   createLocalHfTTSSynthesizer,
+  createMacSystemTTSSynthesizer,
   readLocalHfManifest,
   createTTSSynthesizer,
   type LlmLogEntry,
@@ -727,7 +728,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       if (provider === "gemini" && !geminiApiKey) throw new HTTPException(400, { message: "Gemini API key required" })
       if (provider === "openai" && !openaiApiKey) throw new HTTPException(400, { message: "OpenAI API key required" })
       if (provider === "azure" && (!azureSpeechKey || !azureSpeechRegion)) throw new HTTPException(400, { message: "Azure Speech credentials required" })
-      if (!["gemini", "openai", "azure", "local-hf"].includes(provider)) throw new HTTPException(400, { message: `Unsupported TTS provider: ${provider}` })
+      if (!["gemini", "openai", "azure", "local-hf", "local-system"].includes(provider)) throw new HTTPException(400, { message: `Unsupported TTS provider: ${provider}` })
 
       const languageEntries = getCatalogEntriesForLanguage(
         storage,
@@ -808,18 +809,25 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 : options.targetProvider === "local-hf"
                   ? createLocalHfTTSSynthesizer({
                       modelsDir: localModelsDir,
+                      runtimeDir: process.env.LOCAL_TTS_RUNTIME_DIR,
                       adapter: providerConfigs["local-hf"]?.adapter,
                       dtype: providerConfigs["local-hf"]?.dtype,
                       device: providerConfigs["local-hf"]?.device,
                       speed: providerConfigs["local-hf"]?.speed,
                     })
+                  : options.targetProvider === "local-system"
+                    ? createMacSystemTTSSynthesizer({
+                        speed: providerConfigs["local-system"]?.speed,
+                      })
                   : createTTSSynthesizer(openaiApiKey),
           provider: options.targetProvider,
           geminiTemperature: config.speech?.temperature,
           geminiSeed: config.speech?.seed,
           providerVariant: localManifest
             ? JSON.stringify({ revision: localManifest.revision, dtype: localManifest.dtype, modelFile: localManifest.modelFile, speed: providerConfigs["local-hf"]?.speed ?? 1 })
-            : undefined,
+            : options.targetProvider === "local-system"
+              ? JSON.stringify({ platform: process.platform, speed: providerConfigs["local-system"]?.speed ?? 1 })
+              : undefined,
         })
 
       try {

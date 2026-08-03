@@ -252,8 +252,8 @@ function TranslationReviewInline({
 // config/voices.yaml) so we never show an OpenAI voice/model for a Gemini/Azure provider.
 // Values are voice/model identifiers, not user-facing copy — display only.
 // eslint-disable-next-line lingui/no-unlocalized-strings -- voice identifiers
-const DEFAULT_TTS_VOICE: Record<string, string> = { openai: "alloy", azure: "en-US-JennyNeural", gemini: "Kore", "local-hf": "af_heart" }
-const DEFAULT_TTS_MODEL: Record<string, string> = { openai: DEFAULT_OPENAI_TTS_MODEL_ID, azure: "azure-tts", gemini: "gemini-2.5-pro-preview-tts", "local-hf": "onnx-community/Kokoro-82M-v1.0-ONNX" }
+const DEFAULT_TTS_VOICE: Record<string, string> = { openai: "alloy", azure: "en-US-JennyNeural", gemini: "Kore", "local-hf": "af_heart", "local-system": "Samantha" }
+const DEFAULT_TTS_MODEL: Record<string, string> = { openai: DEFAULT_OPENAI_TTS_MODEL_ID, azure: "azure-tts", gemini: "gemini-2.5-pro-preview-tts", "local-hf": "onnx-community/Kokoro-82M-v1.0-ONNX", "local-system": "apple-speech" }
 
 export function LanguageView({
   bookLabel,

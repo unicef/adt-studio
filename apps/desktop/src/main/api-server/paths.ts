@@ -19,6 +19,7 @@ export interface ApiServerPaths {
   adtResourcesZip: string;
   webAssetsDir: string;
   localTtsModelsDir: string;
+  localTtsRuntimeDir: string;
   localLlmModelsDir: string;
   localLlmRuntimeDir: string;
 }
@@ -78,6 +79,7 @@ export function resolvePaths(): ApiServerPaths {
       adtResourcesZip: join(root, "assets", "adt-resources.zip"),
       webAssetsDir: join(root, "assets", "adt"),
       localTtsModelsDir,
+      localTtsRuntimeDir: join(root, "kokoro"),
       localLlmModelsDir,
       localLlmRuntimeDir: join(root, "llama"),
     };
@@ -93,6 +95,7 @@ export function resolvePaths(): ApiServerPaths {
     adtResourcesZip: join(root, "assets", "adt-resources.zip"),
     webAssetsDir: join(root, "assets", "adt"),
     localTtsModelsDir,
+    localTtsRuntimeDir: join(root, "apps", "desktop", ".runtime", "kokoro"),
     localLlmModelsDir,
     localLlmRuntimeDir: join(root, "apps", "desktop", ".runtime", "llama"),
   };

@@ -220,6 +220,8 @@ export interface LocalAIStatus {
   loadedModelId: string | null
   endpoint: string | null
   contextSize: number
+  parallelSlots: number
+  totalContextSize: number
   gpuLayersRequested: number
   gpuLayersLoaded: number | null
   processId: number | null
@@ -250,6 +252,7 @@ export interface LocalSpeechModel {
   repository: string
   revision: string
   dtype: "q8" | "q4" | "fp32" | "fp16" | "q4f16"
+  runtime: "onnx" | "mlx"
   modelFile: string
   voices: string[]
   installedAt: string
@@ -260,6 +263,8 @@ export interface LocalSpeechStatus {
   adapter: "kokoro"
   supportedLanguages: string[]
   recommendedRepository: string
+  acceleratedRepository: string
+  mlxRuntimeAvailable: boolean
   voices: string[]
   installed: LocalSpeechModel[]
 }
@@ -1870,12 +1875,12 @@ export const api = {
   getLocalSpeechStatus: () => request<LocalSpeechStatus>(`/local-speech/status`),
 
   searchLocalSpeechModels: (query: string) =>
-    request<Array<{ id: string; compatible: boolean }>>(`/local-speech/search?q=${encodeURIComponent(query)}`),
+    request<Array<{ id: string; compatible: boolean; mlxCompatible: boolean }>>(`/local-speech/search?q=${encodeURIComponent(query)}`),
 
-  installLocalSpeechModel: (repository: string, voice: string) =>
+  installLocalSpeechModel: (repository: string, voice: string, runtime: "onnx" | "mlx" = "onnx") =>
     request<LocalSpeechModel>(`/local-speech/install`, {
       method: "POST",
-      body: JSON.stringify({ repository, dtype: "q8", voices: [voice] }),
+      body: JSON.stringify({ repository, runtime, dtype: "q8", voices: [voice] }),
       signal: AbortSignal.timeout(15 * 60_000),
     }),
 

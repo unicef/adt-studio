@@ -17,8 +17,8 @@ Hugging Face is the download source, not the inference runtime. Its JavaScript S
 | --- | --- | ---: |
 | 8–11 GB | Gemma 4 E2B Q4 | 3.2 GB |
 | 12–19 GB | Gemma 4 E4B Q4 | 4.8 GB |
-| 20–47 GB | Gemma 4 12B Q4 | 6.9 GB |
-| 48 GB+ | Gemma 4 26B A4B Q4 | 14.4 GB |
+| 20–47 GB | Gemma 4 E4B Q4 (fast default); 12B optional | 4.8 / 6.9 GB |
+| 48 GB+ | Gemma 4 E4B Q4 (fast default); 12B/26B optional | 4.8 / 6.9 / 14.4 GB |
 
 Recommendations are conservative starting points, not performance guarantees. The debug panel reports the active model, llama.cpp version, Metal/CUDA/Vulkan/CPU backend, context size, latency, and token speed.
 
@@ -26,6 +26,7 @@ Recommendations are conservative starting points, not performance guarantees. Th
 
 - `local:*` is the default provider.
 - The API supervises a loopback-only `llama-server` process and lazily loads the selected model.
+- Machines with at least 10 logical cores and 24 GB RAM use two measured llama.cpp request slots; smaller machines use one. The debug panel reports the actual choice.
 - The existing OpenAI-compatible client is proxied internally, so text, image inputs, structured-output validation, cancellation, caching, and logs keep one provider boundary.
 - The optional image-meaningfulness LLM refinement is skipped by default for embedded local models. The deterministic image filter remains active; authors can explicitly select a model for the refinement when its extra latency is justified.
 - Ollama remains supported through `ollama:*` IDs for developers who already use it; it is never required.
@@ -44,9 +45,24 @@ Windows GPU acceleration should be added as a separately tested Vulkan/CUDA runt
 
 ## Local speech and exports
 
-In **Local speech**, search Hugging Face or paste an `owner/model` ID/URL. ADT validates compatible Kokoro ONNX repositories and downloads the selected model and voices to `userData/models/tts`.
+In **Local speech**, search Hugging Face or paste an `owner/model` ID/URL. ADT validates compatible Kokoro repositories and downloads the selected model and voices to `userData/models/tts`.
 
-Kokoro synthesizes WAV files during authoring. Those audio files are embedded in the final static HTML/JS ADT. Neither Kokoro nor Gemma is bundled in the export, so the ADT plays normally without an AI runtime.
+On Apple Silicon/macOS 15+, **Fastest Kokoro on this Mac (MLX)** uses a bundled,
+signed Swift sidecar with one persistent model worker. A two-worker sample
+looked promising but regressed the full sustained Momo workload, so it is not shipped. The model archive still
+downloads on demand; it is not part of the Electron installer. Other platforms
+use the compatible ONNX CPU path until a platform-native accelerator passes the
+same packaged benchmark. ONNX Core ML is available as an expert override but is
+not automatic because the tested graph only partially partitions and ran slower.
+
+On macOS, **Mac Fast** is a second offline option using installed system voices.
+It needs no app-managed model download and generated 116 Momo WAVs in 56.3
+seconds versus 167.8 seconds for Kokoro ONNX. Kokoro remains the more portable,
+natural local tier; authors must listen before publication.
+
+Both providers synthesize WAV files during authoring. Those files are embedded
+in the final static HTML/JS ADT. Neither the speech engine nor Gemma is bundled
+in the export, so the ADT plays normally without an AI runtime.
 
 Current local speech is English-only. Unsupported languages must use a configured replaceable provider until a tested multilingual adapter is added.
 
@@ -55,8 +71,9 @@ The Local AI diagnostics panel shows the selected and loaded models, runtime ver
 ## Build and operations
 
 - `pnpm --filter @adt/desktop prepare:llama` downloads and verifies the pinned runtime for the build host.
+- `pnpm --filter @adt/desktop prepare:kokoro` builds the small Apple MLX sidecar; it does not download model weights.
 - Native CI must build/test each target. Cross-building alone is not runtime verification.
 - Set `LOCAL_LLM_SERVER_PATH` only for development overrides.
 - The tested default context is 16K; set `LOCAL_LLM_CONTEXT_SIZE` or `LOCAL_LLM_GPU_LAYERS` only after benchmark validation.
 
-Official references: [llama.cpp](https://github.com/ggml-org/llama.cpp), [multimodal llama.cpp](https://github.com/ggml-org/llama.cpp/blob/master/docs/multimodal.md), [Hugging Face Hub JS](https://huggingface.co/docs/huggingface.js/en/hub/README).
+Official references: [llama.cpp](https://github.com/ggml-org/llama.cpp), [multimodal llama.cpp](https://github.com/ggml-org/llama.cpp/blob/master/docs/multimodal.md), [Hugging Face Hub JS](https://huggingface.co/docs/huggingface.js/en/hub/README), [Apple speech buffer export](https://developer.apple.com/documentation/avfaudio/avspeechsynthesizer/write%28_%3Atobuffercallback%3A%29).

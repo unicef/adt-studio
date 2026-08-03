@@ -230,6 +230,7 @@ export {
   ImageCaption,
   ImageCaptioningOutput,
   imageCaptioningLLMSchema,
+  imageCaptioningLocalLLMSchema,
 } from "./image-captioning.js"
 
 export {

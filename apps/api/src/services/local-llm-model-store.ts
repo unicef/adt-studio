@@ -212,6 +212,14 @@ export async function installLocalLlmModel(args: {
     onProgress: args.onProgress,
   })
 
+  // Successful downloads may leave resumable parts or downloader metadata in
+  // staging (for example after switching download transports). Do not retain
+  // them in the installed model directory.
+  for (const file of [model.model, model.mmproj]) {
+    fs.rmSync(path.join(staging, `${file.name}.part`), { force: true })
+  }
+  fs.rmSync(path.join(staging, ".cache"), { recursive: true, force: true })
+
   const manifest: LocalLlmManifest = {
     version: 1,
     id: model.id,

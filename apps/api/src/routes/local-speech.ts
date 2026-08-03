@@ -4,6 +4,7 @@ import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
+import { unzipSync } from "fflate"
 import {
   DEFAULT_KOKORO_MODEL,
   DEFAULT_KOKORO_VOICE,
@@ -15,10 +16,12 @@ import {
   readLocalHfManifest,
   type LocalHfModelManifest,
   type LocalHfTTSDtype,
+  isMlxKokoroAvailable,
 } from "@adt/llm"
 
 const InstallRequest = z.object({
   repository: z.string().min(3).max(200),
+  runtime: z.enum(["onnx", "mlx"]).default("onnx"),
   dtype: z.enum(["q8", "q4", "fp32", "fp16", "q4f16"]).default("q8"),
   voices: z.array(z.enum(KOKORO_VOICES)).min(1).max(12).default([DEFAULT_KOKORO_VOICE]),
 })
@@ -37,6 +40,8 @@ const MODEL_FILES: Record<LocalHfTTSDtype, string> = {
   q4f16: "onnx/model_q4f16.onnx",
 }
 const MAX_DOWNLOAD_BYTES = 1_500_000_000
+const KOKORO_MLX_REPOSITORY = "mweinbach/kokoro-runtime-swift"
+const KOKORO_MLX_ARCHIVE = "kokoro-mlx-bundle.zip"
 
 interface HfSibling { rfilename?: string; size?: number; lfs?: { sha256?: string; size?: number } }
 interface HfModelInfo { id?: string; sha?: string; pipeline_tag?: string; siblings?: HfSibling[]; private?: boolean; gated?: boolean | string }
@@ -116,6 +121,8 @@ export function createLocalSpeechRoutes(modelsDir: string, options: { fetchImpl?
     provider: "local-hf", adapter: "kokoro",
     supportedLanguages: ["en", "en-US", "en-GB"], recommendedRepository: DEFAULT_KOKORO_MODEL,
     voices: KOKORO_VOICES, installed: listInstalled(modelsDir),
+    acceleratedRepository: KOKORO_MLX_REPOSITORY,
+    mlxRuntimeAvailable: isMlxKokoroAvailable(process.env.LOCAL_TTS_RUNTIME_DIR),
   }))
 
   app.get("/local-speech/search", async (c) => {
@@ -131,7 +138,11 @@ export function createLocalSpeechRoutes(modelsDir: string, options: { fetchImpl?
     const models = await response.json() as HfModelInfo[]
     return c.json(models.map((model) => {
       const files = new Set((model.siblings ?? []).map((item) => item.rfilename))
-      return { id: model.id, compatible: files.has("tokenizer.json") && files.has("onnx/model_quantized.onnx") && files.has("voices/af_heart.bin") }
+      return {
+        id: model.id,
+        compatible: files.has("tokenizer.json") && files.has("onnx/model_quantized.onnx") && files.has("voices/af_heart.bin"),
+        mlxCompatible: files.has(KOKORO_MLX_ARCHIVE),
+      }
     }).filter((model) => model.id))
   })
 
@@ -141,6 +152,59 @@ export function createLocalSpeechRoutes(modelsDir: string, options: { fetchImpl?
     let repository: string
     try { repository = normalizeHfModelSource(parsed.data.repository) }
     catch (error) { throw new HTTPException(400, { message: error instanceof Error ? error.message : String(error) }) }
+    if (parsed.data.runtime === "mlx") {
+      const info = await fetchModelInfo(repository, fetchImpl)
+      const revision = assertCompatible(info, [KOKORO_MLX_ARCHIVE])
+      const destination = localHfModelDirectory(modelsDir, repository)
+      if (fs.existsSync(path.join(destination, "manifest.json"))) throw new HTTPException(409, { message: "Model is already installed; remove it before replacing" })
+      const staging = path.join(modelsDir, ".staging", crypto.randomUUID())
+      try {
+        const archivePath = path.join(staging, KOKORO_MLX_ARCHIVE)
+        await downloadFile({
+          repository,
+          revision,
+          file: KOKORO_MLX_ARCHIVE,
+          destination: archivePath,
+          sibling: info.siblings?.find((item) => item.rfilename === KOKORO_MLX_ARCHIVE),
+          fetchImpl,
+          signal: c.req.raw.signal,
+        })
+        const archive = unzipSync(new Uint8Array(fs.readFileSync(archivePath)))
+        const selectedFiles = [
+          "config.json",
+          "conversion_manifest.json",
+          "kokoro-v1_0.safetensors",
+          "mlx.metallib",
+          ...parsed.data.voices.map((voice) => `voices/${voice}.safetensors`),
+        ]
+        for (const file of selectedFiles) {
+          const data = archive[file]
+          if (!data?.byteLength) throw new Error(`Kokoro MLX bundle is missing ${file}`)
+          const output = path.join(staging, "mlx", file)
+          fs.mkdirSync(path.dirname(output), { recursive: true })
+          fs.writeFileSync(output, data, { flag: "wx" })
+        }
+        fs.rmSync(archivePath, { force: true })
+        const manifest: LocalHfModelManifest = {
+          adapter: "kokoro",
+          repository,
+          revision,
+          dtype: "fp16",
+          runtime: "mlx",
+          modelFile: "mlx/kokoro-v1_0.safetensors",
+          voices: parsed.data.voices,
+          installedAt: new Date().toISOString(),
+        }
+        fs.writeFileSync(path.join(staging, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, { flag: "wx" })
+        fs.mkdirSync(path.dirname(destination), { recursive: true })
+        fs.renameSync(staging, destination)
+        clearLocalHfTTSRuntimeCache()
+        return c.json(manifest, 201)
+      } catch (error) {
+        fs.rmSync(staging, { recursive: true, force: true })
+        throw new HTTPException(502, { message: error instanceof Error ? error.message : String(error) })
+      }
+    }
     const modelFile = MODEL_FILES[parsed.data.dtype]
     const requiredFiles = ["config.json", "tokenizer.json", modelFile, ...parsed.data.voices.map((voice) => `voices/${voice}.bin`)]
     const info = await fetchModelInfo(repository, fetchImpl)
@@ -163,7 +227,7 @@ export function createLocalSpeechRoutes(modelsDir: string, options: { fetchImpl?
       }
       const manifest: LocalHfModelManifest = {
         adapter: "kokoro", repository, revision, dtype: parsed.data.dtype,
-        modelFile, voices: parsed.data.voices, installedAt: new Date().toISOString(),
+        runtime: "onnx", modelFile, voices: parsed.data.voices, installedAt: new Date().toISOString(),
       }
       fs.writeFileSync(path.join(staging, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, { flag: "wx" })
       fs.mkdirSync(path.dirname(destination), { recursive: true }); fs.renameSync(staging, destination)
@@ -188,7 +252,7 @@ export function createLocalSpeechRoutes(modelsDir: string, options: { fetchImpl?
   app.post("/local-speech/test", async (c) => {
     const parsed = TestRequest.safeParse(await c.req.json().catch(() => null))
     if (!parsed.success) throw new HTTPException(400, { message: "Invalid speech test" })
-    const synth = createLocalHfTTSSynthesizer({ modelsDir })
+    const synth = createLocalHfTTSSynthesizer({ modelsDir, runtimeDir: process.env.LOCAL_TTS_RUNTIME_DIR })
     const audio = await synth.synthesize({ input: parsed.data.text, model: parsed.data.repository, voice: parsed.data.voice, responseFormat: "wav", language: "en", signal: c.req.raw.signal })
     return new Response(audio, { headers: { "Content-Type": "audio/wav", "Cache-Control": "no-store" } })
   })

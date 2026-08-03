@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate, createLocalHfTTSSynthesizer, readLocalHfManifest } from "@adt/llm"
+import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate, createLocalHfTTSSynthesizer, createMacSystemTTSSynthesizer, readLocalHfManifest } from "@adt/llm"
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
@@ -109,6 +109,7 @@ import type {
   WordTimestampOutput,
   StepName,
   StageName,
+  PositionedTextOutput,
   BookSummaryOutput,
   GlossaryOutput,
 } from "@adt/types"
@@ -1229,6 +1230,7 @@ async function runSectioningStep(
       : null
 
     const pages = storage.getPages()
+    const sectioningMetadata = storage.getLatestNodeData("metadata", "book")?.data as { title?: string } | undefined
     const totalPages = pages.length
     const effectiveConcurrency = config.concurrency ?? 32
 
@@ -1270,6 +1272,8 @@ async function runSectioningStep(
               text: page.text,
               imageBase64: storage.getPageImageBase64(page.pageId),
               availableImages,
+              positionedText: storage.getLatestNodeData("positioned-text", page.pageId)?.data as PositionedTextOutput | undefined,
+              bookTitle: sectioningMetadata?.title,
             },
             pageSectioningConfig,
             structuringModel,
@@ -2636,9 +2640,12 @@ async function runSpeechStep(
     const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
     const localModelsDir = process.env.LOCAL_TTS_MODELS_DIR
     const providerVariant = (provider: string, model: string): string | undefined => {
+      const providerConfig = providerConfigs[provider] ?? {}
+      if (provider === "local-system") {
+        return JSON.stringify({ platform: process.platform, speed: providerConfig.speed ?? 1 })
+      }
       if (provider !== "local-hf" || !localModelsDir) return undefined
       const manifest = readLocalHfManifest(localModelsDir, model)
-      const providerConfig = providerConfigs[provider] ?? {}
       return JSON.stringify({ revision: manifest.revision, dtype: manifest.dtype, modelFile: manifest.modelFile, speed: providerConfig.speed ?? 1 })
     }
 
@@ -2692,11 +2699,19 @@ async function runSpeechStep(
         if (!modelsDir) throw new Error("LOCAL_TTS_MODELS_DIR is required for local speech")
         const synth = createLocalHfTTSSynthesizer({
           modelsDir,
+          runtimeDir: process.env.LOCAL_TTS_RUNTIME_DIR,
           adapter: providerConfig.adapter,
           dtype: providerConfig.dtype,
           device: providerConfig.device,
           speed: providerConfig.speed,
+          parallelism: providerConfig.parallelism,
         })
+        synthesizers.set(providerName, synth)
+        return synth
+      }
+      if (providerName === "local-system") {
+        const providerConfig = providerConfigs[providerName] ?? {}
+        const synth = createMacSystemTTSSynthesizer({ speed: providerConfig.speed })
         synthesizers.set(providerName, synth)
         return synth
       }

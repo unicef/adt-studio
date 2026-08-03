@@ -36,6 +36,8 @@ export function buildCroppingConfig(
     appConfig.image_meaningfulness?.model ??
     appConfig.default_model
   if (!model) return null
+  const strategy = appConfig.image_cropping?.strategy ?? "auto"
+  if (strategy === "off" || (strategy === "auto" && model.startsWith("local:"))) return null
 
   return {
     promptName: appConfig.image_cropping?.prompt ?? "image_cropping",

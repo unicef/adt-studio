@@ -16,7 +16,7 @@ Release recommendation:
 
 The offline direction is justified. The app now embeds the inference runtime, not Ollama; Gemma and Kokoro weights download from pinned Hugging Face revisions only when selected. The exported ADT contains static HTML, JavaScript, images, and generated audio—not model weights or a runtime—so it remains portable and offline.
 
-On the 20-page Momo test, OpenAI GPT-5.4 completed the pipeline in **91.7 seconds** for an estimated **$1.49**. The first Gemma 4 12B/Kokoro run took **895.3 seconds** at **$0 marginal API cost**. OpenAI was 9.8× faster and substantially better at image captions. A focused Gemma correction added full-page visual and extracted-text grounding; the result is reported below.
+On the 20-page Momo test, OpenAI GPT-5.4 completed the pipeline in **91.7 seconds** for an estimated **$1.49**. The first Gemma 4 12B/Kokoro run took **895.3 seconds**. The optimized Gemma E4B pipeline now takes **264.2 seconds with Kokoro** and **157.7 seconds with the optional macOS system voice**, both at **$0 marginal API cost**. The fast Mac path is **1.72× GPT** and beats the requested 2.5× ceiling; Kokoro remains the more natural, portable tier.
 
 ## Scope and method
 
@@ -30,7 +30,7 @@ Evidence sources:
 - Page-by-page visual comparison against all 20 rendered PDF pages.
 - SQLite LLM logs, pipeline state, generated artifacts, FFmpeg decode checks, Chromium all-page smoke tests, and Axe output.
 
-Benchmark machine: Apple M2 Max, 32 GB unified memory. Local inference used Gemma 4 12B Q4, embedded llama.cpp `b10236`, Metal, 16K context, and 49 GPU layers. Local speech used Kokoro 82M q8 on CPU with `af_heart`. OpenAI used the repository's shipped default, `gpt-5.4`, and `gpt-4o-mini-tts`. GPT-5.6 was intentionally not substituted because this round measures the project's current default; it belongs in a separately labelled second round.
+Benchmark machine: Apple M2 Max, 32 GB unified memory. The original local runs used Gemma 4 12B Q4; the optimization round used Gemma 4 E4B Q4 with one or two measured llama.cpp slots, Metal, and 16K per-request context. Speech conditions were Kokoro 82M q8/`af_heart` and macOS Samantha at 180 words/minute. OpenAI used the repository's shipped default, `gpt-5.4`, and `gpt-4o-mini-tts`. GPT-5.6 was intentionally not substituted because this round measures the project's current default; it belongs in a separately labelled second round.
 
 Limitations: this is one PDF, one machine, one run per condition, and a non-blind manual content review. It is a strong integration result, not a statistically significant model benchmark or WCAG certification.
 
@@ -45,8 +45,10 @@ flowchart LR
   G --> TTS{"Speech provider"}
   O --> TTS
   TTS -->|"Local"| K["On-demand Kokoro"]
+  TTS -->|"macOS fast"| S["Installed system voice"]
   TTS -->|"Cloud"| OT["OpenAI speech"]
   K --> ADT["Static ADT export"]
+  S --> ADT
   OT --> ADT
   ADT --> OUT["HTML + JS + images + WAV/MP3"]
 ```
@@ -79,8 +81,9 @@ The current implementation also answers the Ollama concern: **Ollama is not requ
 3. On-demand Kokoro with generated WAVs included in the ADT while model weights stay outside the installer/export.
 4. Cross-platform llama.cpp artifact preparation and smoke checks for macOS, Windows, and Ubuntu.
 5. Provider abstractions that retain OpenAI as an optional regenerate/improve path.
+6. An optional macOS system-voice fast path that exports the same portable WAV assets without another model download.
 
-Current conservative recommendation thresholds are E2B at 8 GB, E4B at 12 GB, 12B at 20 GB, and 26B at 48 GB; this 32 GB Mac therefore recommends 12B. These are selection guardrails, not performance guarantees, and the UI allows an informed override.
+Current recommendations select E2B only for the smallest machines and E4B as the fast default from 12 GB upward; 12B/26B remain optional quality tiers when memory and patience permit. Machines with at least 10 logical cores and 24 GB RAM use two llama.cpp slots; smaller systems use one. The debug panel exposes the actual model, backend, slots, context, memory estimate, and token speed.
 
 ## Priority findings
 
@@ -219,6 +222,42 @@ The correction raised story-caption accuracy from **8/15 to 10/15**. It fixed th
 
 Conclusion: local Gemma/Kokoro is viable for private, zero-API-cost first drafts, but it is not a drop-in quality replacement for GPT-5.4 on this PDF. Keep mandatory preview/editorial approval, expose cloud regeneration by stage, and treat the local result as a draft until corpus-level gates prove otherwise.
 
+### Optimization round: E4B, bounded parallelism, and Mac Fast speech
+
+The 12B result identified the wrong work for an LLM: page sectioning and image
+cropping consumed 467 seconds. The optimized path makes sectioning deterministic
+for blank/front-matter/simple story pages, skips speculative local cropping, uses
+Gemma E4B, grounds captions with full-page image + extracted text + explicit
+action clauses, and removes unsupported snow wording deterministically instead
+of paying for an unreliable retry.
+
+| Fresh full Momo run | Wall time | Speech stage | Relative to GPT-5.4 | Result |
+|---|---:|---:|---:|---|
+| GPT-5.4 + OpenAI speech | 91.7 s | included | 1.00× | Cloud baseline |
+| Gemma E4B + Kokoro ONNX, one LLM slot | 271.0 s | 152.8 s | 2.95× | Major improvement; misses target |
+| Gemma E4B + Kokoro ONNX, two LLM slots | 264.2 s | 167.8 s | 2.88× | Safe LLM gain; misses target |
+| **Gemma E4B + macOS system voice, two LLM slots** | **157.7 s** | **56.3 s** | **1.72×** | **Passes 229.3 s target** |
+
+The final Mac run generated 116 non-empty mono PCM16 24 kHz WAV files, 270.95
+seconds of playable audio, a complete static ADT, and no pipeline errors. All
+TTS entries referenced existing exported files. Story-caption accuracy was
+**11/15 (73.3%)**, versus 10/15 for grounded Gemma 12B and 15/15 for GPT-5.4;
+see [`caption-review-e4b-final.csv`](benchmarks/momo/caption-review-e4b-final.csv).
+The remaining failures are action/actor interpretation, so editorial preview is
+still mandatory.
+
+Full-book measurements rejected three attractive microbenchmark ideas:
+
+- Two persistent MLX workers: 30-item sample improved, full speech regressed from 167.6 to 219.6 seconds.
+- CPU Kokoro overlapped with Metal Gemma: full wall time regressed to 285.6–291.5 seconds because unified-memory contention slowed the LLM.
+- Kokoro q8f16: 116 items took 171.5 seconds versus 167.3 seconds for q8 in the same harness.
+
+Mac Fast is optional, not a claim that system voices sound better than Kokoro.
+Kokoro remains the cross-platform/offline quality tier; macOS voices are the
+zero-download throughput tier. Both produce files during authoring, and only
+the WAV files enter the export. Apple documents system speech audio-buffer
+export through [`AVSpeechSynthesizer`](https://developer.apple.com/documentation/avfaudio/avspeechsynthesizer/write%28_%3Atobuffercallback%3A%29).
+
 ### Cost, privacy, and resource trade-off
 
 OpenAI cost was calculated from the actual logged GPT-5.4 usage using [official pricing](https://openai.com/index/introducing-gpt-5-4/): 465,926 input tokens at $2.50/M plus 13,090 output tokens at $15/M = **$1.361**. Speech is estimated at **$0.124** from 8.27 generated minutes at approximately $0.015/min; the model page currently lists $0.60/M input text tokens and $12/M output audio tokens for [`gpt-4o-mini-tts`](https://developers.openai.com/api/docs/models/gpt-4o-mini-tts). Total estimated run cost: **$1.485**. Actual account billing can differ because the speech response did not expose per-request audio token usage.
@@ -233,7 +272,7 @@ The current Kokoro integration is correct for the export architecture: synthesis
 
 Near-term recommendation:
 
-1. Keep Kokoro q8 as the small English default.
+1. Offer macOS system speech as the fastest zero-download tier and Kokoro q8 as the portable, more natural English tier; never imply that speed proves listening quality.
 2. Make `SpeechProvider` capability-driven: adapter, language/locale, voices, phonemizer, expected files, device, memory, license, output formats, and streaming support.
 3. Use an allowlisted catalog for normal users and HF repository paste/search for advanced users.
 4. Benchmark every language with native reviewers before marking it supported; technical synthesis alone is insufficient for children and education.

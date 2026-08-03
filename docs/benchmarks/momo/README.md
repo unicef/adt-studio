@@ -9,10 +9,16 @@ Date: 2026-08-03
 - `gemma-before-run.json`: embedded Gemma 4 12B + Kokoro before caption grounding.
 - `gemma-improved-run.json`: embedded Gemma 4 12B + Kokoro with full-page image and extracted page-text grounding.
 - `openai-gpt54-run.json`: repository-default GPT-5.4 + `gpt-4o-mini-tts` baseline.
+- `gemma-e4b-optimized.json`: deterministic sectioning/cropping path with Gemma E4B + Kokoro ONNX.
+- `gemma-e4b-p2.json`: two-slot Gemma E4B + Kokoro full-book proof.
+- `gemma-e4b-system-final.json`: two-slot Gemma E4B + macOS system speech; fastest accepted local run.
+- `gemma-e4b-overlap.json` and `gemma-e4b-overlap-final.json`: rejected CPU/GPU overlap experiments.
+- `gemma-e4b-mlx.json`, `gemma-e4b-persistent.json`, and `gemma-e4b-final.json`: MLX reload, one-worker, and rejected two-worker evidence.
 - `comparison.json`: database/log/artifact/audio aggregation for the three reported runs.
 - `export-smoke.json`: Chromium navigation result for every exported HTML page.
 - `browser-a11y.json`: browser color-contrast recheck for every exported page.
 - `caption-review.csv`: page-level manual caption rubric and decisions.
+- `caption-review-e4b-final.csv`: final Gemma E4B page-level rubric.
 
 Generated books remain under Electron user data and are not committed because they contain large derivative images/audio. JSON records contain no API key.
 
@@ -30,6 +36,12 @@ node scripts/benchmark-momo-ai.mjs \
 ```
 
 For the cloud baseline, set `OPENAI_API_KEY` (legacy `OPEN_AI_API_KEY` in `.env` is also accepted), change mode/label/output to `openai`, `momo-benchmark-openai-gpt54`, and `openai-gpt54-run.json`. Runs never overwrite an existing book. Use a new label when repeating a condition.
+
+For the measured fast Mac path, start the API with `LOCAL_LLM_PARALLEL=2`
+(automatic on machines with at least 10 logical cores and 24 GB RAM) and run
+the same local command with `LOCAL_BENCHMARK_MODEL=local:gemma4-e4b` and
+`LOCAL_TTS_PROVIDER=local-system`. The accepted record is
+`gemma-e4b-system-final.json`; it completed in 157.746 seconds.
 
 Aggregate and smoke-check:
 

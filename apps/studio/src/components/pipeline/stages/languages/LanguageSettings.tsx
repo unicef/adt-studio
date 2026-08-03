@@ -343,7 +343,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       const azureLangs = azureLanguages.split(",").map((s) => s.trim()).filter(Boolean)
       const geminiLangs = geminiLanguages.split(",").map((s) => s.trim()).filter(Boolean)
       const localLangs = localLanguages.split(",").map((s) => s.trim()).filter(Boolean)
-      const providers: Record<string, unknown> = {}
+      const providers: Record<string, unknown> = {
+        ...((existing.providers ?? {}) as Record<string, unknown>),
+      }
       if (openaiModel.trim() || openaiLangs.length > 0) {
         providers.openai = {
           model: openaiModel.trim() || undefined,
@@ -368,7 +370,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           model: localModel.trim() || "onnx-community/Kokoro-82M-v1.0-ONNX",
           voice: "af_heart",
           dtype: "q8",
-          device: "cpu",
+          device: "auto",
           languages: localLangs.length > 0 ? localLangs : undefined,
         }
       }
@@ -1207,13 +1209,14 @@ function ReadAloudContentSection({
 /* ---------- Speech per-language cards ---------- */
 
 // eslint-disable-next-line lingui/no-unlocalized-strings -- brand names
-const PROVIDER_LABELS: Record<string, string> = { openai: "OpenAI", azure: "Azure", gemini: "Gemini", "local-hf": "Local Kokoro" }
+const PROVIDER_LABELS: Record<string, string> = { openai: "OpenAI", azure: "Azure", gemini: "Gemini", "local-hf": "Local Kokoro", "local-system": "macOS System" }
 
 const MODEL_GROUPS_BY_PROVIDER: Record<string, typeof OPENAI_TTS_MODELS> = {
   openai: OPENAI_TTS_MODELS,
   azure: AZURE_TTS_MODELS,
   gemini: GEMINI_TTS_MODELS,
   "local-hf": [],
+  "local-system": [],
 }
 
 function SpeechLanguageCards({
@@ -1302,6 +1305,10 @@ function SpeechLanguageCards({
           languages: localLanguages.split(",").map((s) => s.trim()).filter(Boolean),
         },
       } : {}),
+      ...(defaultProvider === "local-system" ? {
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- macOS voice identifier, not interface copy.
+        "local-system": { model: "apple-speech", voice: "Samantha", speed: 1 },
+      } : {}),
     },
   }
 
@@ -1312,6 +1319,7 @@ function SpeechLanguageCards({
     if (provider === "azure") return azureModel
     if (provider === "gemini") return geminiModel
     if (provider === "local-hf") return localModel
+    if (provider === "local-system") return "apple-speech"
     return ""
   }
 
@@ -1353,7 +1361,7 @@ function SpeechLanguageCards({
   // Route a language to a different provider
   const routeLanguageTo = (lang: string, newProvider: string) => {
     // Remove from all providers' language lists
-    for (const p of ["openai", "azure", "gemini", "local-hf"]) {
+    for (const p of ["openai", "azure", "gemini", "local-hf", "local-system"]) {
       const current = getProviderLanguages(p)
       const langs = current.split(",").map((s) => s.trim()).filter(Boolean)
       const filtered = langs.filter((l) => normalizeLocale(l) !== normalizeLocale(lang))
@@ -1390,6 +1398,7 @@ function SpeechLanguageCards({
               <option value="azure">{t`Azure`}</option>
               <option value="gemini">{t`Gemini`}</option>
               <option value="local-hf">{t`Local Kokoro`}</option>
+              <option value="local-system">{t`macOS System`}</option>
             </select>
           </div>
           <div className="space-y-1.5">
@@ -1513,7 +1522,7 @@ function SpeechLanguageCards({
                     onChange={(e) => routeLanguageTo(lang, e.target.value)}
                     className="flex h-8 w-36 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm"
                   >
-                    {["openai", "azure", "gemini", "local-hf"].map((p) => (
+                    {["openai", "azure", "gemini", "local-hf", "local-system"].map((p) => (
                       <option key={p} value={p}>
                         {PROVIDER_LABELS[p]}{p === defaultProvider ? ` (${t`default`})` : ""}
                       </option>

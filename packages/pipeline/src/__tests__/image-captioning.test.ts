@@ -11,6 +11,8 @@ import {
   groupGlossaryImageIdsByPage,
   buildCaptionConfig,
   captionPageImages,
+  extractNarrativeActionClauses,
+  missingNarrativeActionCues,
 } from "../image-captioning.js"
 
 function makeFakeLLMModel(
@@ -138,6 +140,25 @@ describe("groupGlossaryImageIdsByPage", () => {
   })
 })
 
+describe("extractNarrativeActionClauses", () => {
+  it("keeps action-bearing story clauses and drops static text", () => {
+    expect(extractNarrativeActionClauses(
+      "The forest was dark. Momo slept. Then she woke and jumped away; the leopard ran home.",
+    )).toEqual([
+      "Momo slept.",
+      "Then she woke and jumped away",
+      "the leopard ran home.",
+    ])
+  })
+
+  it("detects source actions omitted from a candidate caption", () => {
+    expect(missingNarrativeActionCues(
+      "The monkeys woke up, shouted, and threw sticks. The leopards ran away.",
+      "A monkey throws a stick at two leopards.",
+    )).toEqual(["wake", "shout", "run away"])
+  })
+})
+
 describe("buildCaptionConfig", () => {
   it("uses defaults when no image_captioning config", () => {
     const appConfig: AppConfig = {
@@ -248,6 +269,9 @@ describe("captionPageImages", () => {
     expect(capturedOptions?.context?.language).toBe("English")
     expect(capturedOptions?.context?.page_image_base64).toBe("base64pageimage")
     expect(capturedOptions?.context?.page_text).toBe("Momo wakes when the branch shakes.")
+    expect(capturedOptions?.context?.narrative_actions).toEqual([
+      "Momo wakes when the branch shakes.",
+    ])
     expect(capturedOptions?.context?.book_summary).toBeUndefined()
     expect(capturedOptions?.log?.taskType).toBe("image-captioning")
     expect(capturedOptions?.log?.pageId).toBe("pg001")
@@ -258,6 +282,28 @@ describe("captionPageImages", () => {
       reasoning: "Shows a diagram of the water cycle",
       caption: "The water cycle showing evaporation and condensation",
     })
+  })
+
+  it("uses conservative sampling and bounded output for local captions", async () => {
+    let capturedOptions: GenerateObjectOptions | null = null
+    const llm = makeFakeLLMModel([
+      { image_id: "im1", reasoning: "r", caption: "c" },
+    ], (options) => { capturedOptions = options })
+
+    await captionPageImages({
+      pageId: "pg001",
+      pageImageBase64: "page",
+      pageText: "The monkey slept. Then it woke and jumped away.",
+      images: [{ imageId: "im1", imageBase64: "image" }],
+      language: "en",
+    }, { promptName: "image_captioning", modelId: "local:gemma4-e4b", maxRetries: 2 }, llm)
+
+    expect(capturedOptions?.temperature).toBe(0.4)
+    expect(capturedOptions?.maxTokens).toBe(768)
+    expect(capturedOptions?.context?.narrative_actions).toEqual([
+      "The monkey slept.",
+      "Then it woke and jumped away.",
+    ])
   })
 
   it("passes book summary to LLM context when provided", async () => {
@@ -670,5 +716,24 @@ describe("captionPageImages", () => {
     }, {})
     expect(validation?.valid).toBe(false)
     expect(validation?.errors.join(" ")).toContain("appears unreadable")
+  })
+
+  it("removes a local model's ungrounded snowy setting without another inference", async () => {
+    const llm = makeFakeLLMModel([{
+      image_id: "im1",
+      reasoning: "Two leopards walk through the snow.",
+      caption: "Two leopards stand in a snowy field.",
+    }])
+
+    const result = await captionPageImages({
+      pageId: "pg011",
+      pageImageBase64: "page",
+      pageText: "Mother leopard went home and told her baby.",
+      images: [{ imageId: "im1", imageBase64: "image", width: 900, height: 700 }],
+      language: "en",
+    }, { promptName: "image_captioning", modelId: "local:gemma4-e4b", maxRetries: 2 }, llm)
+
+    expect(result.captions[0].reasoning).toBe("Two leopards walk across the ground.")
+    expect(result.captions[0].caption).toBe("Two leopards stand in a field.")
   })
 })

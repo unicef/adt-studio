@@ -22,13 +22,14 @@ import { useQuery } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import { SpeechPreview } from "./components/SpeechPreview"
 
-type ProviderKey = "openai" | "azure" | "gemini" | "local-hf"
+type ProviderKey = "openai" | "azure" | "gemini" | "local-hf" | "local-system"
 
 const PROVIDER_LABELS: Record<ProviderKey, MessageDescriptor> = {
   openai: msg`OpenAI`,
   azure: msg`Azure`,
   gemini: msg`Gemini`,
   "local-hf": msg`Local`,
+  "local-system": msg`Mac Fast`,
 }
 
 const PROVIDER_HINTS: Record<ProviderKey, MessageDescriptor> = {
@@ -36,6 +37,7 @@ const PROVIDER_HINTS: Record<ProviderKey, MessageDescriptor> = {
   azure: msg`Wide multilingual coverage with neural voices for many locales.`,
   gemini: msg`Google's voices with strong intonation for narrative content.`,
   "local-hf": msg`Private offline English narration with a downloaded Kokoro model.`,
+  "local-system": msg`Fast private offline narration using voices already managed by macOS.`,
 }
 
 // Voices & Accents card hidden for now while we evaluate the configure-voices
@@ -69,6 +71,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
       speech.default_provider === "azure" ||
       speech.default_provider === "gemini"
       || speech.default_provider === "local-hf"
+      || speech.default_provider === "local-system"
     ) {
       setProvider(speech.default_provider)
     }
@@ -92,7 +95,8 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     if (value === "local-hf" && localSpeech.data?.installed[0]) {
       const speech = (bookConfigData?.config?.speech ?? {}) as Record<string, unknown>
       const providers = (speech.providers ?? {}) as Record<string, unknown>
-      const model = localSpeech.data.installed[0]
+      const model = localSpeech.data.installed.find((item) => item.runtime === "mlx")
+        ?? localSpeech.data.installed[0]
       persistSpeech({
         default_provider: value,
         providers: {
@@ -102,7 +106,24 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
             model: model.repository,
             voice: model.voices[0] ?? "af_heart",
             dtype: model.dtype,
-            device: "cpu",
+            device: "auto",
+          },
+        },
+      })
+    } else if (value === "local-system") {
+      const speech = (bookConfigData?.config?.speech ?? {}) as Record<string, unknown>
+      const providers = (speech.providers ?? {}) as Record<string, unknown>
+      persistSpeech({
+        default_provider: value,
+        format: "wav",
+        providers: {
+          ...providers,
+          "local-system": {
+            model: "apple-speech",
+            // eslint-disable-next-line lingui/no-unlocalized-strings -- macOS voice identifier, not interface copy.
+            voice: "Samantha",
+            speed: 1,
+            languages: ["en"],
           },
         },
       })
@@ -121,6 +142,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     azure: hasAzureKey,
     gemini: hasGeminiKey,
     "local-hf": Boolean(localSpeech.data?.installed.length),
+    "local-system": navigator.userAgent.includes("Mac OS X"),
   }
 
   const providerOptions = useMemo(
@@ -150,6 +172,12 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
           label: linguiI18n._(PROVIDER_LABELS["local-hf"]),
           disabled: !localSpeech.data?.installed.length,
           disabledHint: t`Download a local speech model in Settings > Local AI.`,
+        },
+        {
+          value: "local-system" as const,
+          label: linguiI18n._(PROVIDER_LABELS["local-system"]),
+          disabled: !navigator.userAgent.includes("Mac OS X"),
+          disabledHint: t`macOS system voices are available in the Mac desktop app.`,
         },
       ]
     },
@@ -186,6 +214,8 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const disabledReason = selectedProviderKeyMissing ? (
     provider === "local-hf"
       ? <Trans>Download a local speech model in Settings first.</Trans>
+      : provider === "local-system"
+        ? <Trans>macOS system voices require the Mac desktop app.</Trans>
       : <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
   ) : !translateReady ? (
     <Trans>Run Language first — speech narrates the translated text.</Trans>

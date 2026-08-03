@@ -93,3 +93,11 @@ export {
   type LocalHfTTSConfig,
   type LocalHfTTSSynthesizer,
 } from "./local-speech.js"
+
+export { isMlxKokoroAvailable } from "./local-speech-mlx.js"
+
+export {
+  createMacSystemTTSSynthesizer,
+  isMacSystemSpeechAvailable,
+  type MacSystemTTSConfig,
+} from "./system-speech.js"
