@@ -48,6 +48,9 @@ export interface EmitRegenAssetsInput {
   /** The `adt/` bundle directory (contains `content/`, `assets/`, ...). */
   adtDir: string
   languages: RegenLanguageInput[]
+  /** Book-level read-aloud exclusions (from SpeechConfig), seeded into the
+   *  editable config so users can add/remove excluded categories or ids. */
+  exclude?: { categories: string[]; textIds: string[] }
 }
 
 const REGEN_MANIFEST_VERSION = 1
@@ -63,7 +66,7 @@ function writeJson(filePath: string, data: unknown): void {
  * recorded (0 if there is nothing regeneratable).
  */
 export function emitRegenAssets(input: EmitRegenAssetsInput): number {
-  const { adtDir, languages } = input
+  const { adtDir, languages, exclude } = input
 
   const generatable = languages.filter((l) => l.entries.length > 0)
   if (generatable.length === 0) return 0
@@ -118,7 +121,10 @@ export function emitRegenAssets(input: EmitRegenAssetsInput): number {
   writeJson(path.join(adtDir, "tools", "tts.config.json"), {
     $comment:
       "Edit content/i18n/<lang>/texts.json then run tools/regenerate-tts.mjs to re-record only changed lines. " +
-      "Change a voice/model/instructions below to re-record a whole language. Set API keys via the env vars named here.",
+      "Change a voice/model/instructions below to re-record a whole language. Add a category " +
+      "(text, captions, answers, glossary, easy-read) or textId to `exclude` to mute it; remove it to re-record it. " +
+      "Set API keys via the env vars named here.",
+    exclude: exclude ?? { categories: [], textIds: [] },
     languages: configLanguages,
     providers: {
       openai: { apiKeyEnv: "OPENAI_API_KEY" },
@@ -189,16 +195,19 @@ of truth for lines you didn't change.
    node tools/regenerate-tts.mjs
    \`\`\`
 
-   Limit to one language with \`--lang es-uy\`.
+   Limit to one language with \`--lang es-uy\`, or a single unit with
+   \`--id pg001_n0001\`. Add \`--force\` to re-record even when the text is
+   unchanged (e.g. to re-roll one line you didn't like: \`--force --id <id>\`).
 
 ## What it does and doesn't touch
 
 - **Only changed lines** are re-recorded. Unchanged audio is left byte-for-byte
   identical.
 - **Word highlighting**: if this book uses highlighting, the script re-runs
-  alignment (OpenAI Whisper) for the lines it re-recorded and updates
-  \`content/i18n/<lang>/timecode/timecode_output.json\`. This needs
-  \`OPENAI_API_KEY\` too.
+  alignment (OpenAI Whisper) for the lines it re-recorded, and also **backfills**
+  timings for any line that has audio but no timings yet — so turning highlighting
+  on (see below) fills in the whole book. Updates
+  \`content/i18n/<lang>/timecode/timecode_output.json\`; needs \`OPENAI_API_KEY\`.
 - **Manually recorded audio is never overwritten.** If you edited the text of a
   manually recorded line, the script warns you (the recording can't be
   auto-updated) — re-record it in ADT Studio if needed.
@@ -207,8 +216,25 @@ of truth for lines you didn't change.
 
 \`tools/tts.config.json\` holds the per-language voice/model/instructions this book
 was built with. Change a value there to re-record a whole language in a different
-voice. API keys are read from the environment variables named in that file
-(never store keys in the file).
+voice, or set \`wordHighlighting\` to \`true\` to enable highlighting (the next run
+backfills timings for every line). API keys are read from the environment
+variables named in that file (never store keys in the file).
+
+## Excluding parts of the book
+
+The \`exclude\` block controls what is read aloud, book-wide:
+
+\`\`\`json
+"exclude": { "categories": ["answers"], "textIds": [] }
+\`\`\`
+
+- **categories**: \`text\`, \`captions\`, \`answers\` (activity answers), \`glossary\`,
+  \`easy-read\`. Add one to mute every unit of that type.
+- **textIds**: mute individual units (also mutes their \`_easy_read\` variant).
+
+Add an entry and re-run to remove that audio; remove an entry to generate it
+again. (Muted audio files are left on disk but dropped from \`audios.json\`, so the
+reader stops playing them.)
 
 ## Provider support
 

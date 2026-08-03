@@ -814,7 +814,14 @@ export async function packageAdtWeb(
   // Lets a user re-record edited text offline without ADT Studio. No-ops when
   // nothing is regeneratable (no TTS, or all audio manually uploaded).
   if (features?.readAloud !== false) {
-    emitRegenAssets({ adtDir, languages: regenLanguages })
+    emitRegenAssets({
+      adtDir,
+      languages: regenLanguages,
+      exclude: {
+        categories: speechConfig?.excluded_categories ?? [],
+        textIds: speechConfig?.excluded_text_ids ?? [],
+      },
+    })
   }
 
   // ------------------------------------------------------------------

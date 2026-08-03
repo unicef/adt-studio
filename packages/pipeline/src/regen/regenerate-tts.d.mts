@@ -16,4 +16,11 @@ export function stripEmojis(text: string): string
 
 export function isSpeakableText(text: string): boolean
 
+export function getTextCatalogCategory(id: string): string
+
+export function isTtsExcluded(
+  textId: string,
+  exclude?: { categories?: string[]; textIds?: string[] } | null,
+): boolean
+
 export function main(): Promise<void>

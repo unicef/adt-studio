@@ -5,12 +5,15 @@ import path from "node:path"
 import { fileURLToPath } from "node:url"
 
 import { computeSpeechCacheKey as realCacheKey, stripEmojis as realStripEmojis } from "../../speech.js"
+import { getTextCatalogCategory as realGetCategory, isTtsExcluded as realIsExcluded } from "@adt/types"
 import { emitRegenAssets } from "../regen-emit.js"
 import { REGEN_SCRIPT_SOURCE } from "../regen-source.generated.js"
 // The .mjs guards its own main(), so importing it only pulls in the helpers.
 import {
   computeSpeechCacheKey as scriptCacheKey,
   stripEmojis as scriptStripEmojis,
+  getTextCatalogCategory as scriptGetCategory,
+  isTtsExcluded as scriptIsExcluded,
   main as runScript,
 } from "../regenerate-tts.mjs"
 
@@ -39,6 +42,29 @@ describe("regenerate-tts cache-key parity with speech.ts", () => {
   })
 })
 
+describe("regenerate-tts category + exclusion parity with @adt/types", () => {
+  const ids = [
+    "pg001_n0001", // text
+    "pg001_im003", // captions
+    "pg001_sec001_ans_key", // answers
+    "gl001", // glossary
+    "gl_manual_foo", // glossary
+    "pg001_n0002_easy_read", // easy-read
+  ]
+
+  it("getTextCatalogCategory matches", () => {
+    for (const id of ids) expect(scriptGetCategory(id)).toBe(realGetCategory(id))
+  })
+
+  it("isTtsExcluded matches (categories + textIds, incl. easy-read inheritance)", () => {
+    const script = { categories: ["answers"], textIds: ["pg001_n0009"] }
+    const real = { excluded_categories: ["answers"], excluded_text_ids: ["pg001_n0009"] }
+    for (const id of [...ids, "pg001_n0009", "pg001_n0009_easy_read", "pg001_sec001_ans_key_easy_read"]) {
+      expect(scriptIsExcluded(id, script)).toBe(realIsExcluded(id, real))
+    }
+  })
+})
+
 describe("regen-source.generated.ts drift", () => {
   it("embedded script matches the source .mjs (run gen-regen-source.mjs after editing)", () => {
     expect(REGEN_SCRIPT_SOURCE).toBe(fs.readFileSync(mjsPath, "utf-8"))
@@ -49,7 +75,11 @@ describe("regen-source.generated.ts drift", () => {
 // End-to-end: emit assets into a fake bundle, then run the script against it.
 // ---------------------------------------------------------------------------
 
-function makeBundle(): { root: string; audioDir: string; textsFile: string } {
+function makeBundle(opts: { wordHighlighting?: boolean } = {}): {
+  root: string
+  audioDir: string
+  textsFile: string
+} {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-regen-"))
   const localeDir = path.join(root, "content", "i18n", "en")
   const audioDir = path.join(localeDir, "audio")
@@ -73,7 +103,7 @@ function makeBundle(): { root: string; audioDir: string; textsFile: string } {
         voice: "alloy",
         instructions: "",
         format: "mp3",
-        wordHighlighting: false,
+        wordHighlighting: opts.wordHighlighting ?? false,
         entries: [
           { textId: "t1", fileName: "t1.mp3", text: "Hello world" },
           { textId: "t2", fileName: "t2.mp3", text: "Second line" },
@@ -84,6 +114,17 @@ function makeBundle(): { root: string; audioDir: string; textsFile: string } {
     ],
   })
   return { root, audioDir, textsFile }
+}
+
+function editConfig(root: string, mutate: (cfg: Record<string, unknown>) => void): void {
+  const p = path.join(root, "tools", "tts.config.json")
+  const cfg = JSON.parse(fs.readFileSync(p, "utf-8"))
+  mutate(cfg)
+  fs.writeFileSync(p, JSON.stringify(cfg))
+}
+
+function readJsonFile(p: string): Record<string, unknown> {
+  return JSON.parse(fs.readFileSync(p, "utf-8"))
 }
 
 describe("emitRegenAssets", () => {
@@ -211,6 +252,129 @@ describe("regenerate-tts.mjs run", () => {
 
       expect(fetchMock).not.toHaveBeenCalled()
       expect(fs.readFileSync(path.join(audioDir, "m1.mp3")).toString()).toBe("HUMAN-RECORDING")
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("--force re-records even unchanged lines", async () => {
+    const { root, audioDir } = makeBundle()
+    try {
+      process.argv = ["node", mjsPath, root, "--force"]
+      await runScript()
+      const speechCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("/audio/speech"))
+      expect(speechCalls).toHaveLength(2)
+      expect(Array.from(fs.readFileSync(path.join(audioDir, "t1.mp3")))).toEqual([9, 9, 9, 9])
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("--force --id re-records only the targeted unit", async () => {
+    const { root, audioDir } = makeBundle()
+    try {
+      process.argv = ["node", mjsPath, root, "--force", "--id", "t1"]
+      await runScript()
+      const speechCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("/audio/speech"))
+      expect(speechCalls).toHaveLength(1)
+      expect(Array.from(fs.readFileSync(path.join(audioDir, "t1.mp3")))).toEqual([9, 9, 9, 9])
+      expect(fs.readFileSync(path.join(audioDir, "t2.mp3")).toString()).toBe("ORIGINAL-AUDIO-2")
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("excluding a category drops its audio from audios.json (non-destructive)", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-regen-excl-"))
+    try {
+      const localeDir = path.join(root, "content", "i18n", "en")
+      const audioDir = path.join(localeDir, "audio")
+      fs.mkdirSync(audioDir, { recursive: true })
+      fs.mkdirSync(path.join(localeDir, "timecode"), { recursive: true })
+      fs.writeFileSync(path.join(localeDir, "texts.json"), JSON.stringify({ t1: "Hello world", pg001_ans_a: "The answer" }))
+      fs.writeFileSync(path.join(localeDir, "audios.json"), JSON.stringify({ t1: "t1.mp3", pg001_ans_a: "pg001_ans_a.mp3" }))
+      fs.writeFileSync(path.join(localeDir, "timecode", "timecode_output.json"), JSON.stringify({}))
+      fs.writeFileSync(path.join(audioDir, "t1.mp3"), Buffer.from("A1"))
+      fs.writeFileSync(path.join(audioDir, "pg001_ans_a.mp3"), Buffer.from("ANSWER-AUDIO"))
+
+      emitRegenAssets({
+        adtDir: root,
+        languages: [{
+          lang: "en", provider: "openai", model: "gpt-4o-mini-tts", voice: "alloy",
+          instructions: "", format: "mp3", wordHighlighting: false,
+          entries: [
+            { textId: "t1", fileName: "t1.mp3", text: "Hello world" },
+            { textId: "pg001_ans_a", fileName: "pg001_ans_a.mp3", text: "The answer" },
+          ],
+          manualTextIds: [], manualTexts: {},
+        }],
+      })
+
+      editConfig(root, (cfg) => { (cfg.exclude as { categories: string[] }).categories = ["answers"] })
+      process.argv = ["node", mjsPath, root]
+      await runScript()
+
+      expect(fetchMock).not.toHaveBeenCalled()
+      const audios = readJsonFile(path.join(localeDir, "audios.json"))
+      expect(audios.t1).toBe("t1.mp3")
+      expect(audios.pg001_ans_a).toBeUndefined()
+      expect(fs.existsSync(path.join(audioDir, "pg001_ans_a.mp3"))).toBe(true)
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("re-including a category generates the missing audio", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-regen-incl-"))
+    try {
+      const localeDir = path.join(root, "content", "i18n", "en")
+      const audioDir = path.join(localeDir, "audio")
+      fs.mkdirSync(audioDir, { recursive: true })
+      fs.mkdirSync(path.join(localeDir, "timecode"), { recursive: true })
+      fs.writeFileSync(path.join(localeDir, "texts.json"), JSON.stringify({ t1: "Hello world", pg001_ans_a: "The answer" }))
+      fs.writeFileSync(path.join(localeDir, "audios.json"), JSON.stringify({ t1: "t1.mp3" }))
+      fs.writeFileSync(path.join(localeDir, "timecode", "timecode_output.json"), JSON.stringify({}))
+      fs.writeFileSync(path.join(audioDir, "t1.mp3"), Buffer.from("A1"))
+
+      emitRegenAssets({
+        adtDir: root,
+        languages: [{
+          lang: "en", provider: "openai", model: "gpt-4o-mini-tts", voice: "alloy",
+          instructions: "", format: "mp3", wordHighlighting: false,
+          entries: [{ textId: "t1", fileName: "t1.mp3", text: "Hello world" }],
+          manualTextIds: [], manualTexts: {},
+        }],
+        exclude: { categories: ["answers"], textIds: [] },
+      })
+
+      editConfig(root, (cfg) => { (cfg.exclude as { categories: string[] }).categories = [] })
+      process.argv = ["node", mjsPath, root]
+      await runScript()
+
+      const speechCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("/audio/speech"))
+      expect(speechCalls).toHaveLength(1)
+      const audios = readJsonFile(path.join(localeDir, "audios.json"))
+      expect(audios.pg001_ans_a).toBe("pg001_ans_a.mp3")
+      expect(Array.from(fs.readFileSync(path.join(audioDir, "pg001_ans_a.mp3")))).toEqual([9, 9, 9, 9])
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("backfills word timings for audio missing them when highlighting is on", async () => {
+    const { root } = makeBundle({ wordHighlighting: true })
+    try {
+      process.argv = ["node", mjsPath, root]
+      await runScript()
+
+      const speechCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("/audio/speech"))
+      const whisperCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("/audio/transcriptions"))
+      expect(speechCalls).toHaveLength(0) // no text changed
+      expect(whisperCalls).toHaveLength(2) // both units backfilled
+
+      const timecodes = readJsonFile(path.join(root, "content", "i18n", "en", "timecode", "timecode_output.json"))
+      expect(timecodes.t1).toBeDefined()
+      expect(timecodes.t2).toBeDefined()
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }

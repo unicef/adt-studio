@@ -84,6 +84,33 @@ function getBaseLanguage(languageCode) {
   return String(languageCode || "").split("-")[0].toLowerCase()
 }
 
+const SAFE_TEXT_ID_RE = /^[A-Za-z0-9._-]+$/
+const EASY_READ_SUFFIX_RE = /_easy_read$/
+
+// Category inference + TTS exclusion, mirrored from
+// packages/types/src/text-catalog.ts (getTextCatalogCategory) and
+// packages/types/src/speech.ts (isTtsExcluded). Keep in sync (a test guards it).
+function getTextCatalogCategory(id) {
+  if (EASY_READ_SUFFIX_RE.test(id)) return "easy-read"
+  if (/_im\d{3}/.test(id)) return "captions"
+  if (/_ans_/.test(id)) return "answers"
+  if (/^gl(?:\d{3}|_manual_)/.test(id)) return "glossary"
+  return "text"
+}
+
+/** exclude = { categories: string[], textIds: string[] }. An `{id}_easy_read`
+ *  variant inherits its source entry's exclusion, matching ADT Studio. */
+function isTtsExcluded(textId, exclude) {
+  if (!exclude) return false
+  const baseId = textId.replace(EASY_READ_SUFFIX_RE, "")
+  const ids = exclude.textIds || []
+  if (ids.some((id) => id === textId || id === baseId)) return true
+  const cats = exclude.categories || []
+  if (cats.length === 0) return false
+  if (cats.includes(getTextCatalogCategory(textId))) return true
+  return baseId !== textId && cats.includes(getTextCatalogCategory(baseId))
+}
+
 // --------------------------------------------------------------------------
 // Providers
 // --------------------------------------------------------------------------
@@ -197,17 +224,24 @@ async function main() {
         "  bundleRoot   Folder containing content/, tools/, regen/ (default: parent of tools/).",
         "  --dry-run    Report what would change without calling the TTS API.",
         "  --lang <c>   Only process one language (e.g. --lang es-uy).",
+        "  --id <textId>  Only process a single text unit (e.g. --id pg001_n0001).",
+        "  --force      Re-record even if the text is unchanged (respects --lang/--id).",
       ].join("\n"),
     )
     return
   }
 
   const dryRun = args.includes("--dry-run")
-  let onlyLang = null
-  const langIdx = args.indexOf("--lang")
-  if (langIdx !== -1) onlyLang = args[langIdx + 1]
+  const force = args.includes("--force")
+  const valueFlags = new Set(["--lang", "--id"])
+  const flagValue = (name) => {
+    const i = args.indexOf(name)
+    return i !== -1 ? args[i + 1] : null
+  }
+  const onlyLang = flagValue("--lang")
+  const onlyId = flagValue("--id")
 
-  const positional = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1] === "--lang"))
+  const positional = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && valueFlags.has(args[i - 1])))
   const scriptDir = path.dirname(fileURLToPath(import.meta.url))
   const bundleRoot = positional[0] ? path.resolve(positional[0]) : path.resolve(scriptDir, "..")
 
@@ -221,6 +255,14 @@ async function main() {
     throw new Error(
       `No tools/tts.config.json found under ${bundleRoot}. This bundle was not exported with TTS regeneration support.`,
     )
+  }
+
+  // Read-aloud exclusions (book-level). Editing these adds/removes audio:
+  // excluding a category mutes it (dropped from audios.json), re-including it
+  // generates audio for its units.
+  const exclude = {
+    categories: (config.exclude && config.exclude.categories) || [],
+    textIds: (config.exclude && config.exclude.textIds) || [],
   }
 
   const languages = Object.keys(config.languages).filter((l) => !onlyLang || l === onlyLang)
@@ -251,8 +293,13 @@ async function main() {
     const audios = readJson(path.join(localeDir, "audios.json"), {})
     const audioDir = path.join(localeDir, "audio")
 
-    const result = { lang, unchanged: 0, regenerated: 0, manualSkipped: 0, warnings: [], errors: [] }
+    const result = { lang, unchanged: 0, regenerated: 0, manualSkipped: 0, excludedRemoved: 0, realigned: 0, warnings: [], errors: [] }
     const changedIds = []
+    let audiosDirty = false
+
+    const timecodeFile = path.join(localeDir, "timecode", "timecode_output.json")
+    const timecodes = readJson(timecodeFile, {})
+    let timecodesDirty = false
 
     // API key is only required once we know there is real work to do.
     let synthesize = null
@@ -265,13 +312,42 @@ async function main() {
       return synthesize
     }
 
-    for (const [textId, fileName] of Object.entries(audios)) {
+    // Candidate universe: every text unit (texts.json is a superset of the
+    // spoken units) plus any id that already has audio. This lets exclusions
+    // be edited in the folder — excluding drops audio, re-including generates it.
+    const allIds = new Set([...Object.keys(texts), ...Object.keys(audios)])
+    for (const textId of allIds) {
+      if (onlyId && textId !== onlyId) continue
       try {
         const raw = texts[textId]
         const sanitized = stripEmojis(raw || "").trim()
-        if (!isSpeakableText(sanitized)) continue
+        const speakable = isSpeakableText(sanitized)
+        const excluded = isTtsExcluded(textId, exclude)
+        const hasAudio = audios[textId] !== undefined
+        const isManual = manualTextIds.has(textId)
 
-        if (manualTextIds.has(textId)) {
+        // Not a spoken unit (excluded, or nothing speakable): drop any generated
+        // audio so it stops playing. Manual recordings are always preserved.
+        if (excluded || !speakable) {
+          if (hasAudio && !isManual) {
+            result.excludedRemoved++
+            if (dryRun) continue
+            delete audios[textId]
+            audiosDirty = true
+            if (timecodes[textId]) {
+              delete timecodes[textId]
+              timecodesDirty = true
+            }
+            if (baselineEntries[textId] !== undefined) {
+              delete baselineEntries[textId]
+              manifestDirty = true
+            }
+          }
+          continue
+        }
+
+        // Manual: never regenerated. Warn if its text was edited.
+        if (isManual) {
           result.manualSkipped++
           if (manualTexts[textId] !== undefined && manualTexts[textId] !== raw) {
             result.warnings.push(
@@ -281,7 +357,14 @@ async function main() {
           continue
         }
 
-        const fmt = fmtOf(fileName)
+        if (!SAFE_TEXT_ID_RE.test(textId)) {
+          result.warnings.push(`${textId}: unsafe id, skipped.`)
+          continue
+        }
+
+        const fmt = hasAudio ? fmtOf(audios[textId]) : String(langCfg.format || "mp3").toLowerCase()
+        const fileName = hasAudio ? audios[textId] : `${textId}.${fmt}`
+        const publishedPath = path.join(audioDir, fileName)
         const currentKey = computeSpeechCacheKey({
           text: sanitized,
           voice: langCfg.voice,
@@ -291,16 +374,14 @@ async function main() {
           geminiTemperature: manifestLang.geminiTemperature,
           geminiSeed: manifestLang.geminiSeed,
         })
-        const publishedPath = path.join(audioDir, fileName)
 
-        // Unchanged: the current text (and config) still matches the audio
-        // already in the bundle. The published file IS the audio — skip it.
-        if (baselineEntries[textId] === currentKey && fs.existsSync(publishedPath)) {
+        // Unchanged: text (+ config) still matches the audio already present.
+        // --force re-records anyway.
+        if (!force && baselineEntries[textId] === currentKey && fs.existsSync(publishedPath)) {
           result.unchanged++
           continue
         }
 
-        // Changed (or the audio file is missing): re-record this line.
         if (dryRun) {
           changedIds.push(textId)
           continue
@@ -314,6 +395,10 @@ async function main() {
         })
         fs.mkdirSync(audioDir, { recursive: true })
         fs.writeFileSync(publishedPath, buffer)
+        if (!hasAudio) {
+          audios[textId] = fileName // newly included unit
+          audiosDirty = true
+        }
         baselineEntries[textId] = currentKey
         manifestDirty = true
         changedIds.push(textId)
@@ -323,42 +408,56 @@ async function main() {
       }
     }
 
-    // Word-highlighting: re-align only the audio that actually changed.
-    if (langCfg.wordHighlighting && changedIds.length > 0) {
-      const timecodeFile = path.join(localeDir, "timecode", "timecode_output.json")
-      const timecodes = readJson(timecodeFile, {})
-      const whisperEnv = (config.whisper && config.whisper.apiKeyEnv) || "OPENAI_API_KEY"
-      if (dryRun) {
-        summary.push({ ...result, wouldRealign: changedIds.length })
-        console.log(formatLang(result, dryRun, changedIds.length))
-        continue
+    // Word highlighting: re-align changed audio AND backfill any unit that has
+    // audio but no timings yet — so turning highlighting on fills the whole book.
+    if (langCfg.wordHighlighting) {
+      const whisperTargets = new Set(changedIds)
+      for (const id of Object.keys(audios)) {
+        if (onlyId && id !== onlyId) continue
+        if (!timecodes[id]) whisperTargets.add(id) // missing timings → backfill
       }
-      const whisperKey = process.env[whisperEnv]
-      if (!whisperKey) {
-        result.warnings.push(
-          `Word highlighting is on but ${whisperEnv} is not set — timings for regenerated audio were NOT updated (highlighting will drift).`,
-        )
-      } else {
-        for (const textId of changedIds) {
-          try {
-            const fileName = audios[textId]
-            const audioBuf = fs.readFileSync(path.join(audioDir, fileName))
-            const words = await transcribeWithWhisper(
-              audioBuf,
-              fileName,
-              whisperKey,
-              getBaseLanguage(lang),
-              stripEmojis(texts[textId] || "").trim(),
+      if (whisperTargets.size > 0) {
+        if (dryRun) {
+          result.realigned = whisperTargets.size
+        } else {
+          const whisperEnv = (config.whisper && config.whisper.apiKeyEnv) || "OPENAI_API_KEY"
+          const whisperKey = process.env[whisperEnv]
+          if (!whisperKey) {
+            result.warnings.push(
+              `Word highlighting is on but ${whisperEnv} is not set — timings were not updated for ${whisperTargets.size} line(s).`,
             )
-            if (words.length > 0) {
-              timecodes[textId] = { timecodes: [null, { word_timestamps: words }] }
-            } else {
-              delete timecodes[textId]
+          } else {
+            for (const id of whisperTargets) {
+              try {
+                const fileName = audios[id]
+                if (!fileName) continue
+                const audioBuf = fs.readFileSync(path.join(audioDir, fileName))
+                const words = await transcribeWithWhisper(
+                  audioBuf,
+                  fileName,
+                  whisperKey,
+                  getBaseLanguage(lang),
+                  stripEmojis(texts[id] || "").trim(),
+                )
+                if (words.length > 0) {
+                  timecodes[id] = { timecodes: [null, { word_timestamps: words }] }
+                } else {
+                  delete timecodes[id]
+                }
+                timecodesDirty = true
+                result.realigned++
+              } catch (err) {
+                result.warnings.push(`${id}: word-timestamp update failed: ${err instanceof Error ? err.message : String(err)}`)
+              }
             }
-          } catch (err) {
-            result.warnings.push(`${textId}: word-timestamp update failed: ${err instanceof Error ? err.message : String(err)}`)
           }
         }
+      }
+    }
+
+    if (!dryRun) {
+      if (audiosDirty) writeJson(path.join(localeDir, "audios.json"), audios)
+      if (timecodesDirty) {
         fs.mkdirSync(path.dirname(timecodeFile), { recursive: true })
         writeJson(timecodeFile, timecodes)
       }
@@ -385,10 +484,14 @@ async function main() {
 function formatLang(result, dryRun, changed) {
   const lines = []
   const verb = dryRun ? "would regenerate" : "regenerated"
-  lines.push(
-    `[${result.lang}] ${dryRun ? changed : result.regenerated} ${verb}, ` +
-      `${result.unchanged} unchanged, ${result.manualSkipped} manual (skipped)`,
-  )
+  const parts = [
+    `${dryRun ? changed : result.regenerated} ${verb}`,
+    `${result.unchanged} unchanged`,
+    `${result.manualSkipped} manual`,
+  ]
+  if (result.excludedRemoved) parts.push(`${result.excludedRemoved} excluded${dryRun ? " (would remove)" : ""}`)
+  if (result.realigned) parts.push(`${result.realigned} ${dryRun ? "would realign" : "realigned"}`)
+  lines.push(`[${result.lang}] ${parts.join(", ")}`)
   for (const w of result.warnings) lines.push(`  ⚠ ${w}`)
   for (const e of result.errors) lines.push(`  ✗ ${e}`)
   return lines.join("\n")
@@ -405,4 +508,4 @@ if (invokedDirectly) {
   })
 }
 
-export { computeSpeechCacheKey, stripEmojis, isSpeakableText, main }
+export { computeSpeechCacheKey, stripEmojis, isSpeakableText, getTextCatalogCategory, isTtsExcluded, main }
