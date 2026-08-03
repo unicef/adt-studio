@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Image as ImageIcon, Search, X } from "lucide-react"
 import { useQueries } from "@tanstack/react-query"
 import { api } from "@/api/client"
@@ -25,7 +25,7 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
   const { data: pages, isLoading } = usePages(bookLabel)
   const { setExtra } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const captionsState = stageState("captions")
   const captionsDone = captionsState === "done"
   const captionsRunning = captionsState === "running" || captionsState === "queued"
@@ -37,9 +37,9 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
   const [activePageId, setActivePageId] = useState<string | null>(null)
 
   const handleRunCaptions = useCallback(() => {
-    if (!hasApiKey || captionsRunning) return
+    if (!hasStructuredTextProvider || captionsRunning) return
     queueRun({ fromStage: "captions", toStage: "captions", apiKey })
-  }, [hasApiKey, captionsRunning, apiKey, queueRun])
+  }, [hasStructuredTextProvider, captionsRunning, apiKey, queueRun])
 
   const pagesWithImages = useMemo(
     () => (pages ?? []).filter((p) => p.imageCount > 0),
@@ -254,7 +254,7 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
           isRunning={captionsRunning}
           completed={captionsDone}
           onRun={handleRunCaptions}
-          disabled={!hasApiKey || captionsRunning}
+          disabled={!hasStructuredTextProvider || captionsRunning}
         />
       }
     >

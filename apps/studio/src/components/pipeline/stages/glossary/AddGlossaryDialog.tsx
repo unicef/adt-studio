@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+﻿import { useEffect, useMemo, useRef, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
 import { Loader2, RotateCw } from "lucide-react"
@@ -127,7 +127,7 @@ export function AddGlossaryDialog({
 }) {
   const { t } = useLingui()
   const wordIndex = useBookWords(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
 
   const [word, setWord] = useState("")
   const [definition, setDefinition] = useState("")
@@ -156,7 +156,7 @@ export function AddGlossaryDialog({
   }, [open])
 
   const autoGenerate = async (targetWord: string, sample: string) => {
-    if (!hasApiKey || !targetWord) return
+    if (!hasStructuredTextProvider || !targetWord) return
     const reqId = ++generateReqId.current
     setGenerating(true)
     setError(null)
@@ -285,7 +285,7 @@ export function AddGlossaryDialog({
                   if (e.relatedTarget === regenerateButtonRef.current) return
                   const trimmed = word.trim()
                   if (
-                    hasApiKey &&
+                    hasStructuredTextProvider &&
                     trimmed &&
                     !definition.trim() &&
                     !generating
@@ -304,12 +304,12 @@ export function AddGlossaryDialog({
                 type="button"
                 variant="ghost"
                 size="icon"
-                disabled={!hasApiKey || !word.trim() || generating}
+                disabled={!hasStructuredTextProvider || !word.trim() || generating}
                 onClick={() => {
                   const sample = wordIndex.get(normalize(word))?.sample ?? ""
                   void autoGenerate(word.trim(), sample)
                 }}
-                title={hasApiKey ? t`Regenerate definition, variations, and emoji` : t`Set your API key to auto-generate`}
+                title={hasStructuredTextProvider ? t`Regenerate definition, variations, and emoji` : t`Set your API key to auto-generate`}
                 className="shrink-0 text-muted-foreground"
               >
                 {generating ? (

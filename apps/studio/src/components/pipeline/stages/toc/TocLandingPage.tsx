@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+﻿import { useState, useEffect, useMemo } from "react"
 import { flushSync } from "react-dom"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
@@ -22,7 +22,7 @@ export function TocLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("toc")
   const storyboardStatus = useStageStatus("storyboard")
@@ -55,7 +55,7 @@ export function TocLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (!hasStructuredTextProvider || !storyboardReady || status.isRunning) return
     queueRun({ fromStage: "toc", toStage: "toc", apiKey, viewAfter: true })
   }
 
@@ -67,7 +67,7 @@ export function TocLandingPage({ bookLabel }: { bookLabel: string }) {
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run TOC generation.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — the table of contents lists the typed sections it produces.</Trans>
@@ -85,7 +85,7 @@ export function TocLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady}
+      extraDisabled={!hasStructuredTextProvider || !storyboardReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run TOC</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

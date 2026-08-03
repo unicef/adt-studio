@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+﻿import { useState, useEffect, useMemo } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
 import { CascadeWarning } from "@/components/pipeline/components/CascadeWarning"
@@ -23,7 +23,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("sectioning")
   const extractStatus = useStageStatus("extract")
@@ -78,7 +78,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || status.isRunning) return
+    if (!hasStructuredTextProvider || status.isRunning) return
     // Cue from here even if Extract hasn't run yet. If Extract is already
     // done/running/queued it will produce its output, so queue Sectioning
     // behind it; only pull Extract into the run when it isn't covered.
@@ -94,7 +94,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run sectioning.</Trans>
   ) : undefined
 
@@ -110,7 +110,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey}
+      extraDisabled={!hasStructuredTextProvider}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Sectioning</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

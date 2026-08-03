@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+﻿import { useState, type ReactNode } from "react"
 import { ImagePlus, Loader2, RefreshCw, X } from "lucide-react"
 import { SectionActionsDropdown } from "./SectionActionsDropdown"
 import { ActivityAnswersEditor } from "./ActivityAnswersEditor"
@@ -67,7 +67,7 @@ interface SectionEditPanelProps {
   rerendering: boolean
   dirty: boolean
   renderingDirty: boolean
-  hasApiKey: boolean
+  hasStructuredTextProvider: boolean
 }
 
 export function SectionEditPanel({
@@ -107,7 +107,7 @@ export function SectionEditPanel({
   rerendering,
   dirty,
   renderingDirty,
-  hasApiKey,
+  hasStructuredTextProvider,
 }: SectionEditPanelProps) {
   const { t } = useLingui()
   const [rerenderOpen, setRerenderOpen] = useState(false)
@@ -170,7 +170,7 @@ export function SectionEditPanel({
                 dirty ||
                 renderingDirty ||
                 saving ||
-                !hasApiKey ||
+                !hasStructuredTextProvider ||
                 isCustomActivity
               }
               className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
@@ -179,7 +179,7 @@ export function SectionEditPanel({
                   ? t`Re-render is disabled for custom activities — it would discard the interactive script. Use "View HTML source" or AI edit instead.`
                   : pipelineRunning
                     ? t`Wait for storyboard to complete`
-                    : !hasApiKey
+                    : !hasStructuredTextProvider
                       ? t`API key required to re-render`
                       : dirty
                         ? t`Save changes before re-rendering`

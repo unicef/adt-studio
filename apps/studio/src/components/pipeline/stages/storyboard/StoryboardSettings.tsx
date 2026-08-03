@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+﻿import { useState, useEffect, useMemo } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Eye, Wand2, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -145,7 +145,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const queryClient = useQueryClient()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
 
   // Form state
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
@@ -231,7 +231,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
   }
 
   const handleGenerate = () => {
-    if (selectedPageIds.size === 0 || !hasApiKey) return
+    if (selectedPageIds.size === 0 || !hasStructuredTextProvider) return
     generateStyleguideMutation.mutate(
       { label: bookLabel, pageIds: Array.from(selectedPageIds), apiKey },
       {
@@ -981,7 +981,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               </Button>
               <Button
                 onClick={handleGenerate}
-                disabled={selectedPageIds.size === 0 || !hasApiKey || generateStyleguideMutation.isPending}
+                disabled={selectedPageIds.size === 0 || !hasStructuredTextProvider || generateStyleguideMutation.isPending}
               >
                 {generateStyleguideMutation.isPending ? (
                   <>

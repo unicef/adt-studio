@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query"
+﻿import { useQuery } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
 import { api } from "@/api/client"
 import { useBookRun } from "@/hooks/use-book-run"
@@ -17,7 +17,7 @@ export function EasyReadView({
   onSelectPage?: (pageId: string | null) => void
 }) {
   const { t } = useLingui()
-  const { runEasyRead, hasApiKey, isRunning } = useRunEasyRead(bookLabel)
+  const { runEasyRead, hasStructuredTextProvider, isRunning } = useRunEasyRead(bookLabel)
   const { stageState } = useBookRun()
   const status = stageState("easy-read")
   const isDone = status === "done"
@@ -43,7 +43,7 @@ export function EasyReadView({
           isRunning={isStageRunning}
           completed={isDone}
           onRun={() => void runEasyRead()}
-          disabled={!hasApiKey || isRunning}
+          disabled={!hasStructuredTextProvider || isRunning}
         />
       }
     >
@@ -52,7 +52,7 @@ export function EasyReadView({
         selectedPageId={selectedPageId}
         onSelectPage={onSelectPage}
         isRunning={isRunning || isStageRunning}
-        hasApiKey={hasApiKey}
+        hasStructuredTextProvider={hasStructuredTextProvider}
         onRegenerate={() => void runEasyRead()}
       />
     </StageContentGuard>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Check, ChevronDown, ChevronRight, ChevronLeft, ExternalLink, List, Loader2, Plus, Search, Trash2, X } from "lucide-react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
@@ -129,7 +129,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   const { data, isLoading } = useToc(bookLabel)
   const { setExtra } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const tocState = stageState("toc")
   const tocDone = tocState === "done"
   const tocRunning = tocState === "running" || tocState === "queued"
@@ -142,9 +142,9 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   })
 
   const handleRunToc = useCallback(() => {
-    if (!hasApiKey || tocRunning) return
+    if (!hasStructuredTextProvider || tocRunning) return
     queueRun({ fromStage: "toc", toStage: "toc", apiKey })
-  }, [hasApiKey, tocRunning, apiKey, queueRun])
+  }, [hasStructuredTextProvider, tocRunning, apiKey, queueRun])
 
   const [pending, setPending] = useState<TocData | null>(null)
   const [saving, setSaving] = useState(false)
@@ -288,7 +288,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
           isRunning={tocRunning}
           completed={tocDone}
           onRun={handleRunToc}
-          disabled={!hasApiKey || tocRunning}
+          disabled={!hasStructuredTextProvider || tocRunning}
         />
       }
     >

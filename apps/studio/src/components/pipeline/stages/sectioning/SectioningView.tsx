@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react"
+﻿import { useEffect, useCallback, useState } from "react"
 import { ArrowLeft, ArrowRight, LayoutGrid, Table2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
@@ -19,7 +19,7 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const [overviewMode, setOverviewMode] = useState(false)
   const { setExtra, setOnLabelClick } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const sectioningState = stageState("sectioning")
   const sectioningDone = sectioningState === "done"
   const sectioningRunning = sectioningState === "running" || sectioningState === "queued"
@@ -29,9 +29,9 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
     : !sectioningDone
 
   const handleRunSectioning = useCallback(() => {
-    if (!hasApiKey || sectioningRunning) return
+    if (!hasStructuredTextProvider || sectioningRunning) return
     queueRun({ fromStage: "sectioning", toStage: "sectioning", apiKey })
-  }, [hasApiKey, sectioningRunning, apiKey, queueRun])
+  }, [hasStructuredTextProvider, sectioningRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
 
@@ -179,7 +179,7 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={sectioningRunning}
           completed={sectioningDone}
           onRun={handleRunSectioning}
-          disabled={!hasApiKey || sectioningRunning}
+          disabled={!hasStructuredTextProvider || sectioningRunning}
         />
       </div>
     )
@@ -227,7 +227,7 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={sectioningRunning}
           completed={sectioningDone}
           onRun={handleRunSectioning}
-          disabled={!hasApiKey || sectioningRunning}
+          disabled={!hasStructuredTextProvider || sectioningRunning}
         />
       </div>
     )

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+﻿import { useState, useEffect, useRef } from "react"
 import { flushSync } from "react-dom"
 import { AlertCircle, Images, Pencil, X } from "lucide-react"
 import { SettingExplainer } from "@/components/pipeline/components/SettingExplainer"
@@ -39,7 +39,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const { data: book } = useBook(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("translate")
   const storyboardStatus = useStageStatus("storyboard")
@@ -151,7 +151,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (!hasStructuredTextProvider || !storyboardReady || status.isRunning) return
     queueRun({ fromStage: "translate", toStage: "translate", apiKey, viewAfter: true })
   }
 
@@ -162,7 +162,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
     (code) => normalizeLocale(code) !== baseLanguage,
   )
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run translation.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — translation needs the typed sections placed by Storyboard.</Trans>
@@ -182,7 +182,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady || !hasLanguages}
+      extraDisabled={!hasStructuredTextProvider || !storyboardReady || !hasLanguages}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Translation</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

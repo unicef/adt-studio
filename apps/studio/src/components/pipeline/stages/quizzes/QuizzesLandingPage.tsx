@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+﻿import { useState, useEffect, useRef } from "react"
 import { Plus } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
@@ -31,7 +31,7 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("quizzes")
   const storyboardStatus = useStageStatus("storyboard")
@@ -71,11 +71,11 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (!hasStructuredTextProvider || !storyboardReady || status.isRunning) return
     queueRun({ fromStage: "quizzes", toStage: "quizzes", apiKey, viewAfter: true })
   }
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to generate quizzes.</Trans>
   ) : !storyboardReady ? (
     <Trans>
@@ -103,7 +103,7 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady}
+      extraDisabled={!hasStructuredTextProvider || !storyboardReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Quizzes</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
@@ -197,7 +197,7 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
           >
             <Button
               onClick={() => setShowAddQuiz(true)}
-              disabled={!hasApiKey || !storyboardReady || status.isRunning}
+              disabled={!hasStructuredTextProvider || !storyboardReady || status.isRunning}
               className="h-10 gap-1.5 border-0 bg-orange-600 px-4 text-white hover:bg-orange-700"
             >
               <Plus className="h-4 w-4" />

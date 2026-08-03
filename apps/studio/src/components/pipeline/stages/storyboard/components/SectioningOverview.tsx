@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+﻿import { useState, useEffect, useRef, useCallback } from "react"
 import { useQueries, useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
 import { api, BASE_URL, type PageSummaryItem, type PageDetail } from "@/api/client"
 import type { ContentNodeData, PageSectioningOutput, PageSectioningSection } from "@adt/types"
@@ -720,7 +720,7 @@ function SectionDetail({
   isMutating: boolean
 }) {
   const { t } = useLingui()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasImageProvider } = useApiKey()
   const { stageState: detailStageState } = useBookRun()
   const storyboardRunning = detailStageState("storyboard") === "running" || detailStageState("storyboard") === "queued"
   const queryClient = useQueryClient()
@@ -997,7 +997,7 @@ function SectionDetail({
             onCrop={!storyboardRunning ? handleCrop : undefined}
             onRecropFromPage={!storyboardRunning ? handleRecropFromPage : undefined}
             onReplace={!storyboardRunning ? handleReplace : undefined}
-            onAiImage={hasApiKey && !storyboardRunning ? handleAiImage : undefined}
+            onAiImage={hasImageProvider && !storyboardRunning ? handleAiImage : undefined}
             onDelete={!storyboardRunning ? (dataId) => {
               onConfirmAction({
                 message: t`Are you sure you want to delete this image? This action cannot be undone.`,

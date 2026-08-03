@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { AlertTriangle, Check, Crop, Eye, EyeOff, FileText, Image, ImageOff, Layers, Loader2, ChevronDown, Scissors, Square, Type, X } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { usePage, usePageImage } from "@/hooks/use-pages"
@@ -121,7 +121,7 @@ export function ExtractPageDetail({
   const { data: page, isLoading } = usePage(bookLabel, pageId)
   const { data: imageData } = usePageImage(bookLabel, pageId)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const [pageImageDims, setPageImageDims] = useState<{ w: number; h: number } | null>(null)
   const { stageState, stepState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
@@ -193,7 +193,7 @@ export function ExtractPageDetail({
   // boxes). The editor always opens: if the LLM detects a composite we seed its
   // boxes, otherwise we seed a single full-image box the user can adjust to crop.
   const handleSegment = useCallback(async (imageId: string) => {
-    if (!hasApiKey || segmentingId) return
+    if (!hasStructuredTextProvider || segmentingId) return
     setSegmentError(null)
     setSegmentingId(imageId)
     try {
@@ -220,7 +220,7 @@ export function ExtractPageDetail({
     } finally {
       setSegmentingId(null)
     }
-  }, [bookLabel, pageId, apiKey, hasApiKey, segmentingId, t])
+  }, [bookLabel, pageId, apiKey, hasStructuredTextProvider, segmentingId, t])
 
   // Apply confirmed segmentation (phase 2: crop, save, and add the new segment
   // images to the image-filtering classification. The original is kept but
@@ -449,7 +449,7 @@ export function ExtractPageDetail({
                     bounds={boundsByImageId.get(img.imageId)}
                     onTogglePrune={() => toggleImagePrune(img.imageId)}
                     onRecrop={!storyboardRunning ? () => handleRecropFromPage(img.imageId) : undefined}
-                    onSegment={hasApiKey && !storyboardRunning ? () => handleSegment(img.imageId) : undefined}
+                    onSegment={hasStructuredTextProvider && !storyboardRunning ? () => handleSegment(img.imageId) : undefined}
                     segmenting={segmentingId === img.imageId}
                     cacheBust={cacheBust}
                   />

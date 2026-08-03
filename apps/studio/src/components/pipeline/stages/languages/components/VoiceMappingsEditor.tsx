@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Plus, X } from "lucide-react"
@@ -36,7 +36,7 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
   const queryClient = useQueryClient()
   const remount = useSettingsRemount()
   const { queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasSpeechProvider } = useApiKey()
   const navigate = useNavigate()
   const { data: bookConfigData, isLoading: isBookConfigLoading } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
@@ -188,7 +188,7 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
       queueRun({ fromStage: "speech", toStage: "speech", apiKey })
     },
     onDiscard: remount,
-    rerunDisabledReason: !hasApiKey
+    rerunDisabledReason: !hasSpeechProvider
       ? t`Add an API key to re-run`
       : dirtyDefaultVoice && isBookConfigLoading
         ? t`Loading book config…`

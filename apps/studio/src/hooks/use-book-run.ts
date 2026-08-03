@@ -115,7 +115,16 @@ const stepStatusKey = (label: string) => ["books", label, "step-status"] as cons
 
 export function useBookRunStatus(label: string): BookRunContextValue {
   const queryClient = useQueryClient()
-  const { anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
+  const {
+    credentials: storedProviderCredentials,
+    anthropicKey,
+    googleKey,
+    customBaseUrl,
+    customApiKey,
+    azureKey,
+    azureRegion,
+    geminiKey,
+  } = useApiKey()
 
   // Screen-reader announcements for long-running jobs. Held in a ref so the
   // always-on SSE effect (keyed on [label, queryClient]) can announce without
@@ -611,13 +620,14 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     (options: QueueRunOptions) => {
       const { fromStage, toStage, apiKey, renderOnly, viewAfter } = options
       const providerCredentials: StageRunProviderCredentials = {
+        ...options.providerCredentials,
+        values: storedProviderCredentials,
         anthropicApiKey: anthropicKey || undefined,
         googleApiKey: googleKey || undefined,
         customBaseUrl: customBaseUrl || undefined,
         customApiKey: customApiKey || undefined,
         azure: { key: azureKey, region: azureRegion },
         geminiApiKey: geminiKey || undefined,
-        ...options.providerCredentials,
       }
 
       // Optimistically mark target stage(s) as queued and clear downstream
@@ -734,7 +744,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
       })
     },
-    [label, navigate, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey]
+    [label, navigate, queryClient, storedProviderCredentials, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey]
   )
 
   // ------------------------------------------------------------------

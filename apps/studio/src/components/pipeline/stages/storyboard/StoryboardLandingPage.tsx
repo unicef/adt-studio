@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+﻿import { useState, useEffect, useCallback, useMemo } from "react"
 import type { ComponentType, ReactNode, SVGProps } from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import {
@@ -138,7 +138,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("storyboard")
   const sectioningStatus = useStageStatus("sectioning")
@@ -231,7 +231,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || status.isRunning) return
+    if (!hasStructuredTextProvider || status.isRunning) return
     // Cue from here even if upstream stages haven't run. Queue from the first
     // upstream stage that isn't already covered (done/running/queued) so we
     // never try to re-run a stage that's mid-flight.
@@ -258,7 +258,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
     (option) => option.id === activityMode,
   )
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run storyboard.</Trans>
   ) : undefined
 
@@ -274,7 +274,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey}
+      extraDisabled={!hasStructuredTextProvider}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Storyboard</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

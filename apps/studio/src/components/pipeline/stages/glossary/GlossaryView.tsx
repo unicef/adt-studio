@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react"
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import {
   ArrowDownAZ,
   ArrowDownWideNarrow,
@@ -80,15 +80,15 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
   const { data, isLoading } = useGlossary(bookLabel)
   const { setExtra } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const glossaryState = stageState("glossary")
   const glossaryDone = glossaryState === "done"
   const glossaryRunning = glossaryState === "running" || glossaryState === "queued"
 
   const handleRunGlossary = useCallback(() => {
-    if (!hasApiKey || glossaryRunning) return
+    if (!hasStructuredTextProvider || glossaryRunning) return
     queueRun({ fromStage: "glossary", toStage: "glossary", apiKey })
-  }, [hasApiKey, glossaryRunning, apiKey, queueRun])
+  }, [hasStructuredTextProvider, glossaryRunning, apiKey, queueRun])
 
   const [pending, setPending] = useState<GlossaryData | null>(null)
   const [saving, setSaving] = useState(false)
@@ -331,7 +331,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
             isRunning={glossaryRunning}
             completed={glossaryDone}
             onRun={handleRunGlossary}
-            disabled={!hasApiKey || glossaryRunning}
+            disabled={!hasStructuredTextProvider || glossaryRunning}
           />
           <AddGlossaryDialog
             open={showAddDialog}

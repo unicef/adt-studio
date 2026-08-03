@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react"
+﻿import { useEffect, useMemo, useRef, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import {
@@ -207,7 +207,7 @@ export function AddQuizDialog({
   const { data: existingQuizzes } = useQuizzes(bookLabel)
   const {
     apiKey,
-    hasApiKey,
+    hasStructuredTextProvider,
     anthropicKey,
     googleKey,
     customBaseUrl,
@@ -320,7 +320,7 @@ export function AddQuizDialog({
 
   const handleGenerate = async () => {
     if (
-      !hasApiKey ||
+      !hasStructuredTextProvider ||
       selected.length === 0 ||
       !afterPageId ||
       generating ||
@@ -564,7 +564,7 @@ export function AddQuizDialog({
             onClick={handleGenerate}
             disabled={
               generating ||
-              !hasApiKey ||
+              !hasStructuredTextProvider ||
               selected.length === 0 ||
               !afterPageId ||
               stageRunning

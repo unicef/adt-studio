@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+﻿import { useCallback, useEffect, useRef, useState } from "react"
 import { AlignLeft, ArrowLeft, ArrowRight, FileText, Image, TriangleAlert } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -123,7 +123,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   const { t } = useLingui()
   const { data: pages, isLoading } = usePages(bookLabel)
   const { stageState, stepState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const selectedPageId = selectedPageIdProp ?? null
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()
@@ -148,9 +148,9 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   const showRunCard = extractError || extractInterrupted ? true : !hasPages
 
   const handleRetryExtract = useCallback(() => {
-    if (!hasApiKey || extractRunning) return
+    if (!hasStructuredTextProvider || extractRunning) return
     queueRun({ fromStage: "extract", toStage: "extract", apiKey })
-  }, [hasApiKey, extractRunning, apiKey, queueRun])
+  }, [hasStructuredTextProvider, extractRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
   const warnPages = pageList.filter((p) => p.extractionWarning)
@@ -254,7 +254,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
           isRunning={extractRunning}
           completed={extractDone}
           onRun={handleRetryExtract}
-          disabled={(!extractError && !extractInterrupted) || !hasApiKey || extractRunning}
+          disabled={(!extractError && !extractInterrupted) || !hasStructuredTextProvider || extractRunning}
         />
       ) : pageList.length === 0 ? (
         <StageEmptyState

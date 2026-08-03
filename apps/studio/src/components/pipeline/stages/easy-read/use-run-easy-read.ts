@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+﻿import { useCallback } from "react"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useBookRun } from "@/hooks/use-book-run"
@@ -13,13 +13,13 @@ import { useBookRun } from "@/hooks/use-book-run"
  * languages, editing language, …) would be wiped.
  */
 export function useRunEasyRead(bookLabel: string) {
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const { isRunning, queueRun } = useBookRun()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
 
   const runEasyRead = useCallback(async () => {
-    if (!hasApiKey || isRunning) return
+    if (!hasStructuredTextProvider || isRunning) return
     const currentConfig = { ...(bookConfigData?.config ?? {}) } as Record<string, unknown>
     const existingEasyRead =
       currentConfig.easy_read && typeof currentConfig.easy_read === "object"
@@ -30,7 +30,7 @@ export function useRunEasyRead(bookLabel: string) {
       await updateConfig.mutateAsync({ label: bookLabel, config: currentConfig })
     }
     queueRun({ fromStage: "easy-read", toStage: "easy-read", apiKey })
-  }, [apiKey, hasApiKey, isRunning, bookConfigData?.config, bookLabel, updateConfig, queueRun])
+  }, [apiKey, hasStructuredTextProvider, isRunning, bookConfigData?.config, bookLabel, updateConfig, queueRun])
 
-  return { runEasyRead, hasApiKey, isRunning }
+  return { runEasyRead, hasStructuredTextProvider, isRunning }
 }

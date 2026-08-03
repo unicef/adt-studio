@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { ChevronDown, Loader2, Plus, RotateCcw, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -30,7 +30,7 @@ const ANALYZE_POLL_MS = 3000
 export function FontSettings({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const navigate = useNavigate()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
 
   const [analyzing, setAnalyzing] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
@@ -190,7 +190,7 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
             <Button
               size="sm"
               onClick={handleAnalyze}
-              disabled={!hasApiKey || fonts.length === 0 || analyzeFonts.isPending || analyzing}
+              disabled={!hasStructuredTextProvider || fonts.length === 0 || analyzeFonts.isPending || analyzing}
             >
               {analyzing || analyzeFonts.isPending ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />

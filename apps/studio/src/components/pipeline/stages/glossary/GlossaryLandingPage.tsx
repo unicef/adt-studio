@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+﻿import { useState, useEffect } from "react"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { AddGlossaryDialog } from "./AddGlossaryDialog"
@@ -28,7 +28,7 @@ export function GlossaryLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("glossary")
   const storyboardStatus = useStageStatus("storyboard")
@@ -84,11 +84,11 @@ export function GlossaryLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (!hasStructuredTextProvider || !storyboardReady || status.isRunning) return
     queueRun({ fromStage: "glossary", toStage: "glossary", apiKey, viewAfter: true })
   }
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run the glossary.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — the glossary is built from the typed sections placed by Storyboard.</Trans>
@@ -106,7 +106,7 @@ export function GlossaryLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady}
+      extraDisabled={!hasStructuredTextProvider || !storyboardReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Glossary</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}

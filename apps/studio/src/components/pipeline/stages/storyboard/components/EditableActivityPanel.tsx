@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CMS-style editor for a step-by-step (editable) activity, presented as a
  * slide-out side panel (same pattern as SectionEditPanel) so the storyboard
  * preview area stays a plain preview with working device viewports.
@@ -123,7 +123,7 @@ export function EditableActivityPanel({
   const [draft, setDraft] = useState<EditableActivity>(activity)
   const save = useSaveEditableActivities(bookLabel, pageId)
   const generateFeedback = useGenerateActivityFeedback(bookLabel, pageId)
-  const { apiKey, hasApiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, geminiKey } =
+  const { apiKey, hasStructuredTextProvider, anthropicKey, googleKey, customBaseUrl, customApiKey, geminiKey } =
     useApiKey()
 
   const dirty = useMemo(
@@ -715,9 +715,9 @@ export function EditableActivityPanel({
             <button
               type="button"
               onClick={handleGenerateFeedback}
-              disabled={!hasApiKey || generateFeedback.isPending}
+              disabled={!hasStructuredTextProvider || generateFeedback.isPending}
               title={
-                hasApiKey
+                hasStructuredTextProvider
                   ? t`Write correct/incorrect feedback for every step with AI`
                   : t`Add your OpenAI API key first`
               }

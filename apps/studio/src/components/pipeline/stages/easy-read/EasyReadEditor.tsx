@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Check, ChevronDown, FileText, Loader2, RotateCcw, Search, Sparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
@@ -18,14 +18,14 @@ export function EasyReadEditor({
   selectedPageId,
   onSelectPage,
   isRunning,
-  hasApiKey,
+  hasStructuredTextProvider,
   onRegenerate,
 }: {
   bookLabel: string
   selectedPageId?: string
   onSelectPage?: (pageId: string | null) => void
   isRunning: boolean
-  hasApiKey: boolean
+  hasStructuredTextProvider: boolean
   onRegenerate: () => void
 }) {
   const { t } = useLingui()
@@ -204,7 +204,7 @@ export function EasyReadEditor({
 
   const currentVersion = data?.version ?? null
   const saving = saveMutation.isPending
-  const regenerateDisabled = !hasApiKey || isRunning || dirty
+  const regenerateDisabled = !hasStructuredTextProvider || isRunning || dirty
 
   useEffect(() => {
     setExtra(

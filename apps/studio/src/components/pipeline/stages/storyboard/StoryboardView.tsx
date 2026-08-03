@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react"
+﻿import { useEffect, useRef, useCallback, useState } from "react"
 import { ArrowLeft, ArrowRight, LayoutGrid, Table2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
@@ -24,7 +24,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const hasUnsavedChanges = useHasUnsavedChanges()
   const { setExtra, setOnLabelClick } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const storyboardState = stageState("storyboard")
   const storyboardDone = storyboardState === "done"
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
@@ -41,9 +41,9 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     : !storyboardDone
 
   const handleRunStoryboard = useCallback(() => {
-    if (!hasApiKey || !sectioningReady || storyboardRunning) return
+    if (!hasStructuredTextProvider || !sectioningReady || storyboardRunning) return
     queueRun({ fromStage: "storyboard", toStage: "storyboard", apiKey })
-  }, [hasApiKey, sectioningReady, storyboardRunning, apiKey, queueRun])
+  }, [hasStructuredTextProvider, sectioningReady, storyboardRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
   const { sectionIndex, setSectionIndex, skipNextResetRef } = useSectionNav()
@@ -310,7 +310,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={storyboardRunning}
           completed={storyboardDone}
           onRun={handleRunStoryboard}
-          disabled={!hasApiKey || !sectioningReady || storyboardRunning}
+          disabled={!hasStructuredTextProvider || !sectioningReady || storyboardRunning}
         />
       </div>
     )
@@ -373,7 +373,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={storyboardRunning}
           completed={storyboardDone}
           onRun={handleRunStoryboard}
-          disabled={!hasApiKey || !sectioningReady || storyboardRunning}
+          disabled={!hasStructuredTextProvider || !sectioningReady || storyboardRunning}
         />
       </div>
     )

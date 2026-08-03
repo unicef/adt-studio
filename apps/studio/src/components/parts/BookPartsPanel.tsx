@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+﻿import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Scissors, Combine, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, ArrowRight, FileArchive, X, Info } from "lucide-react"
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
@@ -244,7 +244,7 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
   const previewMutation = usePreviewMerge(bookLabel)
   const mergeMutation = useMergePart(bookLabel)
   const regenerateSummary = useRegenerateBookSummary()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
 
   const reset = () => {
     setFile(null)
@@ -414,8 +414,8 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
                   variant="outline"
                   size="sm"
                   className="self-start"
-                  disabled={!hasApiKey || regenerateSummary.isPending}
-                  title={!hasApiKey ? t`Set your API key first` : undefined}
+                  disabled={!hasStructuredTextProvider || regenerateSummary.isPending}
+                  title={!hasStructuredTextProvider ? t`Set your API key first` : undefined}
                   onClick={() => regenerateSummary.mutate({ label: bookLabel, apiKey })}
                 >
                   {regenerateSummary.isPending ? (

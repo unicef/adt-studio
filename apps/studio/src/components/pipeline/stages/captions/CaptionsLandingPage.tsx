@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+﻿import { useState, useEffect, useMemo } from "react"
 import { BookOpen, GraduationCap, Sprout } from "lucide-react"
 import { CustomInstructionsField } from "@/components/pipeline/components/CustomInstructionsField"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -33,7 +33,7 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("captions")
   const storyboardStatus = useStageStatus("storyboard")
@@ -72,7 +72,7 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !storyboardReady || status.isRunning) return
+    if (!hasStructuredTextProvider || !storyboardReady || status.isRunning) return
     queueRun({ fromStage: "captions", toStage: "captions", apiKey, viewAfter: true })
   }
 
@@ -99,7 +99,7 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
+  const disabledReason = !hasStructuredTextProvider ? (
     <Trans>Add an API key in Book settings to run captions.</Trans>
   ) : !storyboardReady ? (
     <Trans>Run Storyboard first — captions describe the images placed by Storyboard.</Trans>
@@ -117,7 +117,7 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || !storyboardReady}
+      extraDisabled={!hasStructuredTextProvider || !storyboardReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Captions</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
