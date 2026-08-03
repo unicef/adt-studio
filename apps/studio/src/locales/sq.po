@@ -873,8 +873,8 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar nxjerr
 msgid "Add an API key in Book settings to run sectioning."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar ndarjen në seksione."
 
-msgid "Add an API key in Book settings to run speech."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar të folurit."
+#~ msgid "Add an API key in Book settings to run speech."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar të folurit."
 
 msgid "Add an API key in Book settings to run storyboard."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar storyboard-in."
@@ -1151,6 +1151,9 @@ msgstr "AI vendos imazhet dhe tekstin për çdo seksion, duke iu përshtatur sa 
 msgid "AI Overlay"
 msgstr "Mbivendosje AI"
 
+msgid "AI provider credentials"
+msgstr "Kredencialet e ofruesve të IA-së"
+
 msgid "AI Rendering"
 msgstr "Renderim me AI"
 
@@ -1163,8 +1166,8 @@ msgstr "I fuqizuar nga AI"
 msgid "AI-powered layout that preserves the original page as a background with text overlay."
 msgstr "Paraqitje e fuqizuar nga AI që ruan faqen origjinale si sfond me mbivendosje teksti."
 
-msgid "AIza..."
-msgstr "AIza..."
+#~ msgid "AIza..."
+#~ msgstr "AIza..."
 
 msgid "Albanian"
 msgstr "Shqip"
@@ -1293,17 +1296,17 @@ msgstr "Përgjigjet"
 msgid "Answers revealed in activities."
 msgstr "Përgjigjet që shfaqen në aktivitete."
 
-msgid "Anthropic"
-msgstr "Anthropic"
+#~ msgid "Anthropic"
+#~ msgstr "Anthropic"
 
-msgid "Anthropic API Key"
-msgstr "Çelësi API Anthropic"
+#~ msgid "Anthropic API Key"
+#~ msgstr "Çelësi API Anthropic"
 
 msgid "Any content type"
 msgstr "Çdo lloj përmbajtjeje"
 
-msgid "Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the \"custom:\" prefix when selecting models, e.g. custom:llama3."
-msgstr "Çdo pikë fundore e përputhshme me OpenAI (Ollama, vLLM, Together AI, etj.). Përdor prefiksin \"custom:\" kur zgjedhësh modele, p.sh. custom:llama3."
+#~ msgid "Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the \"custom:\" prefix when selecting models, e.g. custom:llama3."
+#~ msgstr "Çdo pikë fundore e përputhshme me OpenAI (Ollama, vLLM, Together AI, etj.). Përdor prefiksin \"custom:\" kur zgjedhësh modele, p.sh. custom:llama3."
 
 msgid "Any other section type."
 msgstr "Çdo lloj tjetër seksioni."
@@ -1317,8 +1320,8 @@ msgstr "API"
 msgid "API Key"
 msgstr "Çelës API"
 
-msgid "API Key (optional)"
-msgstr "Çelës API (opsional)"
+#~ msgid "API Key (optional)"
+#~ msgstr "Çelës API (opsional)"
 
 msgid "API key required to re-render"
 msgstr "Kërkohet çelës API për ri-renderim"
@@ -1332,8 +1335,8 @@ msgstr "Çelësat API"
 msgid "API Keys"
 msgstr "Çelësat API"
 
-msgid "API keys saved."
-msgstr "Çelësat API u ruajtën."
+#~ msgid "API keys saved."
+#~ msgstr "Çelësat API u ruajtën."
 
 msgid "API Logs"
 msgstr "Regjistrat API"
@@ -1496,11 +1499,11 @@ msgstr "Axe nuk mund t'i vlerësonte plotësisht këto kontrolle në pamje parap
 msgid "Azure"
 msgstr "Azure"
 
-msgid "Azure Speech subscription key"
-msgstr "Çelësi i abonimit të Azure Speech"
+#~ msgid "Azure Speech subscription key"
+#~ msgstr "Çelësi i abonimit të Azure Speech"
 
-msgid "Azure Speech Subscription Key"
-msgstr "Çelësi i abonimit të Azure Speech"
+#~ msgid "Azure Speech Subscription Key"
+#~ msgstr "Çelësi i abonimit të Azure Speech"
 
 msgid "Azure Voice"
 msgstr "Zë Azure"
@@ -1551,8 +1554,8 @@ msgstr "bazë"
 msgid "Base Language"
 msgstr "Gjuha bazë"
 
-msgid "Base URL"
-msgstr "URL bazë"
+#~ msgid "Base URL"
+#~ msgstr "URL bazë"
 
 msgid "Basic Information"
 msgstr "Informacion bazë"
@@ -2184,8 +2187,8 @@ msgstr "Konfigurim"
 msgid "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 msgstr "Konfiguroni zbulimin e aktivitetit dhe opsionet e përpunimit të imazheve për përmbajtjen e ekstraktuar. Kaloni kursorin mbi çdo cilësim për të parë si ndikon në pamjen paraprake."
 
-msgid "Configure API keys for AI pipeline features."
-msgstr "Konfiguroni çelësat API për funksionet e zinxhirit të AI."
+#~ msgid "Configure API keys for AI pipeline features."
+#~ msgstr "Konfiguroni çelësat API për funksionet e zinxhirit të AI."
 
 msgid "Configure basic document information and file paths"
 msgstr "Konfiguroni informacionin bazë të dokumentit dhe shtigjet e skedarëve"
@@ -2202,11 +2205,17 @@ msgstr "Konfiguroni funksionet për t'i përfshirë në eksportim"
 msgid "Configure provider credentials used by AI pipeline features on this machine."
 msgstr "Konfiguroni kredencialet e ofruesve që përdoren nga veçoritë e pipeline-it të IA-së në këtë pajisje."
 
+msgid "Configure the credentials used by AI features on this device."
+msgstr "Konfiguroni kredencialet që përdoren nga veçoritë e IA-së në këtë pajisje."
+
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Konfiguro kredencialet e ofruesve që përdoren kur ADT Studio ekzekuton hapat e pipeline-it të IA-së në këtë makinë."
 
 msgid "Configure voices and accents"
 msgstr "Konfiguroni zërat dhe thekset"
+
+msgid "Configured on server"
+msgstr "Konfiguruar në server"
 
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
@@ -2321,6 +2330,9 @@ msgstr "Përgjigja e saktë (alternativat ndahen me |)"
 
 msgid "Correct the metadata extracted from the document."
 msgstr "Korrigjoni meta të dhënat e nxjerra nga dokumenti."
+
+msgid "Could not load the AI provider catalogue."
+msgstr "Katalogu i ofruesve të IA-së nuk mund të ngarkohej."
 
 msgid "Could not load the Google Fonts catalog. Check your connection and try again."
 msgstr "Katalogu i Google Fonts nuk u ngarkua dot. Kontrolloni lidhjen tuaj dhe provoni përsëri."
@@ -2918,8 +2930,8 @@ msgstr "p.sh. alloy"
 msgid "e.g. early readers"
 msgstr "p.sh. lexues të hershëm"
 
-msgid "e.g. eastus, westeurope"
-msgstr "p.sh. eastus, westeurope"
+#~ msgid "e.g. eastus, westeurope"
+#~ msgstr "p.sh. eastus, westeurope"
 
 msgid "e.g. emphasize cultural context, avoid technical jargon, mention colors when relevant…"
 msgstr "p.sh. theksoni kontekstin kulturor, shmangni zhargonin teknik, përmendni ngjyrat kur është e përshtatshme…"
@@ -2933,8 +2945,8 @@ msgstr "p.sh. fokusohuni në fjalorin shkencor, shmangni emrat e vendeve, përku
 msgid "e.g. fr, es-mx"
 msgstr "p.sh. fr, es-mx"
 
-msgid "e.g. http://localhost:11434/v1"
-msgstr "p.sh. http://localhost:11434/v1"
+#~ msgid "e.g. http://localhost:11434/v1"
+#~ msgstr "p.sh. http://localhost:11434/v1"
 
 msgid "e.g. keep a warm children's-book tone"
 msgstr "p.sh. mbani një ton të ngrohtë të librit për fëmijë"
@@ -3166,6 +3178,9 @@ msgstr "Vendosni një ID modeli për çdo detyrë."
 
 msgid "Enter a model id."
 msgstr "Shkruaj një id modeli."
+
+msgid "Enter a valid HTTP or HTTPS URL."
+msgstr "Jepni një URL të vlefshme HTTP ose HTTPS."
 
 msgid "Enter a valid minimum dimension (whole number ≥ 0)"
 msgstr "Shkruani një dimension minimal të vlefshëm (numër i plotë ≥ 0)"
@@ -3869,11 +3884,11 @@ msgstr "Shko te kryefaqja"
 msgid "Go to Storyboard"
 msgstr "Shko te Storyboard"
 
-msgid "Google"
-msgstr "Google"
+#~ msgid "Google"
+#~ msgstr "Google"
 
-msgid "Google AI API Key"
-msgstr "Çelësi API i Google AI"
+#~ msgid "Google AI API Key"
+#~ msgstr "Çelësi API i Google AI"
 
 msgid "Google font added."
 msgstr "Fonti i Google u shtua."
@@ -3938,8 +3953,11 @@ msgstr "Fshih"
 msgid "Hide AI edit history"
 msgstr "Fshih historikun e editimeve të AI"
 
-msgid "Hide API key"
-msgstr "Fshih çelësin API"
+#~ msgid "Hide API key"
+#~ msgstr "Fshih çelësin API"
+
+msgid "Hide credential"
+msgstr "Fshih kredencialin"
 
 msgid "Hide error details"
 msgstr "Fshih detajet e gabimit"
@@ -4315,6 +4333,9 @@ msgstr "Arkivë projekti e pavlefshme"
 msgid "Invalid range"
 msgstr "Interval i pavlefshëm"
 
+msgid "Invalid value."
+msgstr "Vlerë e pavlefshme."
+
 msgid "Isolated asset"
 msgstr "Asete e izoluar"
 
@@ -4388,11 +4409,11 @@ msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërk
 msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
 msgstr "Mban faqen si një seksion si parazgjedhje, por ndan me inteligjencë kur zbulon aktivitete të shumta të dallueshme - si një kombinim pyetjesh me zgjedhje të shumëfishta, të hapura dhe ushtrime renditjeje në të njëjtën faqe. Më i miri për tekstet shkollore me ushtrime të ndryshme."
 
-msgid "Key must start with \"sk-\""
-msgstr "Çelësi duhet të fillojë me \"sk-\""
+#~ msgid "Key must start with \"sk-\""
+#~ msgstr "Çelësi duhet të fillojë me \"sk-\""
 
-msgid "Key must start with sk-"
-msgstr "Çelësi duhet të fillojë me sk-"
+#~ msgid "Key must start with sk-"
+#~ msgstr "Çelësi duhet të fillojë me sk-"
 
 msgid "Keyboard & navigation"
 msgstr "Tastierë dhe navigim"
@@ -4471,8 +4492,8 @@ msgstr "Më pak i përdorur"
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Lëre në Asnjë për të ekzekutuar segmentimin në të gjitha imazhet e kualifikuara (sipas rregullave të pipeline)."
 
-msgid "Leave empty if not required"
-msgstr "Lëre bosh nëse nuk kërkohet"
+#~ msgid "Leave empty if not required"
+#~ msgstr "Lëre bosh nëse nuk kërkohet"
 
 msgid "Leave empty to output only in the book language."
 msgstr "Lëre bosh për të dalë vetëm në gjuhën e librit."
@@ -4599,6 +4620,9 @@ msgstr "Gati për LMS me gjurmim të përfundimit"
 
 msgid "Loading accessibility summary..."
 msgstr "Duke ngarkuar përmbledhjen e aksesueshmërisë..."
+
+msgid "Loading AI providers…"
+msgstr "Po ngarkohen ofruesit e IA-së…"
 
 msgid "Loading beta versions…"
 msgstr "Po ngarkohen versionet beta…"
@@ -4818,6 +4842,10 @@ msgstr "Gjerësia maksimale"
 
 msgid "Maximize"
 msgstr "Maksimizo"
+
+#. placeholder {0}: field.maxLength
+msgid "Maximum length is {0} characters."
+msgstr "Gjatësia maksimale është {0} karaktere."
 
 msgid "Meaning"
 msgstr "Kuptimi"
@@ -5706,14 +5734,14 @@ msgstr "Licencë open-source"
 msgid "OpenAI"
 msgstr "OpenAI"
 
-msgid "OpenAI API Key"
-msgstr "Çelësi API i OpenAI"
+#~ msgid "OpenAI API Key"
+#~ msgstr "Çelësi API i OpenAI"
 
 msgid "OpenAI image-edit model used to regenerate each image with translated text."
 msgstr "Modeli image-edit i OpenAI i përdorur për të rigjeneruar çdo imazh me tekst të përkthyer."
 
-msgid "OpenAI key required"
-msgstr "Kërkohet çelësi i OpenAI"
+#~ msgid "OpenAI key required"
+#~ msgstr "Kërkohet çelësi i OpenAI"
 
 msgid "OpenAI Voice"
 msgstr "Zëri i OpenAI"
@@ -6418,8 +6446,26 @@ msgstr "Promptet"
 msgid "Provider"
 msgstr "Ofruesi"
 
+msgid "Provider \"{providerId}\" does not support image generation."
+msgstr "Ofruesi \"{providerId}\" nuk mbështet gjenerimin e imazheve."
+
+msgid "Provider \"{providerId}\" does not support text generation."
+msgstr "Ofruesi \"{providerId}\" nuk mbështet gjenerimin e tekstit."
+
+msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
+msgstr "Ofruesi \"{providerId}\" nuk është i regjistruar. Shto çelësat e tij API te Cilësimet ose zgjidh një model tjetër."
+
 msgid "Provider credentials"
 msgstr "Kredencialet e ofruesit"
+
+msgid "Provider credentials saved."
+msgstr "Kredencialet e ofruesve u ruajtën."
+
+msgid "Provider documentation"
+msgstr "Dokumentacioni i ofruesit"
+
+msgid "Providers unavailable"
+msgstr "Ofruesit nuk janë të disponueshëm"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Siguron modele të qëndrueshme HTML/CSS për faqet e gjeneruara nga LLM."
@@ -7686,8 +7732,11 @@ msgstr "Shfaq të gjitha faqet"
 msgid "Show all translations"
 msgstr "Shfaq të gjitha përkthimet"
 
-msgid "Show API key"
-msgstr "Shfaq çelësin API"
+#~ msgid "Show API key"
+#~ msgstr "Shfaq çelësin API"
+
+msgid "Show credential"
+msgstr "Shfaq kredencialin"
 
 msgid "Show error details"
 msgstr "Shfaq detajet e gabimit"
@@ -7770,11 +7819,11 @@ msgstr "Madhësia"
 msgid "Sizing"
 msgstr "Dimensionimi"
 
-msgid "sk-..."
-msgstr "sk-..."
+#~ msgid "sk-..."
+#~ msgstr "sk-..."
 
-msgid "sk-ant-..."
-msgstr "sk-ant-..."
+#~ msgid "sk-ant-..."
+#~ msgstr "sk-ant-..."
 
 msgid "Skip for now"
 msgstr "Kalo tani"
@@ -8690,6 +8739,9 @@ msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundr
 #~ msgid "This prompt is using the latest global version. Reset removes that version and returns to the shipped default."
 #~ msgstr "Ky prompt po përdor versionin më të fundit global. Resetimi heq atë version dhe kthen parazgjedhjen e shpërndarë."
 
+msgid "This provider does not require local credentials."
+msgstr "Ky ofrues nuk kërkon kredenciale lokale."
+
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Ky test do të hiqet nga libri. Mund ta rikthesh nga historia e versioneve."
 
@@ -8788,6 +8840,12 @@ msgstr "Tokenë Gjithsej"
 
 msgid "Track reviewer progress and review findings captured from Preview."
 msgstr "Gjurmo progresin e rishikuesit dhe gjetjet e rishikimit të kaptura nga Paraparimimi."
+
+msgid "Transcription provider is not configured"
+msgstr "Ofruesi i transkriptimit nuk është konfiguruar"
+
+msgid "Transcription provider required"
+msgstr "Kërkohet një ofrues transkriptimi"
 
 msgid "Translate"
 msgstr "Përkthe"
@@ -9195,14 +9253,14 @@ msgstr "Përdoret për"
 msgid "Used for AI image generation, editing, and these pipeline tasks:"
 msgstr "Përdoret për gjenerimin dhe redaktimin e imazheve me IA dhe për këto detyra të rrjedhës së punës:"
 
-msgid "Used for Azure Speech TTS provider."
-msgstr "Përdoret për ofruesin Azure Speech TTS."
+#~ msgid "Used for Azure Speech TTS provider."
+#~ msgstr "Përdoret për ofruesin Azure Speech TTS."
 
-msgid "Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)"
-msgstr "Përdoret për modelet Claude (claude-opus-4-6, claude-sonnet-4-6, etj.)"
+#~ msgid "Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)"
+#~ msgstr "Përdoret për modelet Claude (claude-opus-4-6, claude-sonnet-4-6, etj.)"
 
-msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
-msgstr "Përdoret për modelet Gemini — si LLM (gemini-2.5-pro, etj.) ashtu edhe TTS (gemini-2.5-pro-preview-tts, etj.)"
+#~ msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
+#~ msgstr "Përdoret për modelet Gemini — si LLM (gemini-2.5-pro, etj.) ashtu edhe TTS (gemini-2.5-pro-preview-tts, etj.)"
 
 #~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
 #~ msgstr "Përdoret për shndërrimin e tekstit në të folur nga OpenAI në këto detyra të rrjedhës së punës:"

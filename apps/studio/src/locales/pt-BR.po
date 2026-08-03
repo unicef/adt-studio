@@ -872,8 +872,8 @@ msgstr "Adicione uma chave de API nas configurações do Livro para executar ext
 msgid "Add an API key in Book settings to run sectioning."
 msgstr "Adicione uma chave de API nas configurações do Livro para executar seccionamento."
 
-msgid "Add an API key in Book settings to run speech."
-msgstr "Adicione uma chave de API nas configurações do Livro para executar fala."
+#~ msgid "Add an API key in Book settings to run speech."
+#~ msgstr "Adicione uma chave de API nas configurações do Livro para executar fala."
 
 msgid "Add an API key in Book settings to run storyboard."
 msgstr "Adicione uma chave de API nas configurações do Livro para executar storyboard."
@@ -1150,6 +1150,9 @@ msgstr "IA organiza imagens e texto por seção, correspondendo ao design do liv
 msgid "AI Overlay"
 msgstr "Sobreposição por IA"
 
+msgid "AI provider credentials"
+msgstr "Credenciais de provedores de IA"
+
 msgid "AI Rendering"
 msgstr "Renderização com IA"
 
@@ -1162,8 +1165,8 @@ msgstr "IA"
 msgid "AI-powered layout that preserves the original page as a background with text overlay."
 msgstr "Layout impulsionado por IA que preserva a página original como fundo com sobreposição de texto."
 
-msgid "AIza..."
-msgstr "AIza..."
+#~ msgid "AIza..."
+#~ msgstr "AIza..."
 
 msgid "Albanian"
 msgstr "Albanês"
@@ -1292,17 +1295,17 @@ msgstr "Respostas"
 msgid "Answers revealed in activities."
 msgstr "Respostas reveladas nas atividades."
 
-msgid "Anthropic"
-msgstr "Anthropic"
+#~ msgid "Anthropic"
+#~ msgstr "Anthropic"
 
-msgid "Anthropic API Key"
-msgstr "Chave de API da Anthropic"
+#~ msgid "Anthropic API Key"
+#~ msgstr "Chave de API da Anthropic"
 
 msgid "Any content type"
 msgstr "Qualquer tipo de conteúdo"
 
-msgid "Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the \"custom:\" prefix when selecting models, e.g. custom:llama3."
-msgstr "Qualquer endpoint compatível com OpenAI (Ollama, vLLM, Together AI, etc.). Use o prefixo \"custom:\" ao selecionar modelos, ex. custom:llama3."
+#~ msgid "Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the \"custom:\" prefix when selecting models, e.g. custom:llama3."
+#~ msgstr "Qualquer endpoint compatível com OpenAI (Ollama, vLLM, Together AI, etc.). Use o prefixo \"custom:\" ao selecionar modelos, ex. custom:llama3."
 
 msgid "Any other section type."
 msgstr "Qualquer outro tipo de seção."
@@ -1316,8 +1319,8 @@ msgstr "API"
 msgid "API Key"
 msgstr "Chave de API"
 
-msgid "API Key (optional)"
-msgstr "Chave de API (opcional)"
+#~ msgid "API Key (optional)"
+#~ msgstr "Chave de API (opcional)"
 
 msgid "API key required to re-render"
 msgstr "Chave de API necessária para rerenderizar"
@@ -1331,8 +1334,8 @@ msgstr "Chaves de API"
 msgid "API Keys"
 msgstr "Chaves de API"
 
-msgid "API keys saved."
-msgstr "Chaves de API salvas."
+#~ msgid "API keys saved."
+#~ msgstr "Chaves de API salvas."
 
 msgid "API Logs"
 msgstr "Logs de API"
@@ -1495,11 +1498,11 @@ msgstr "Axe não pôde avaliar completamente essas verificações na pré-visual
 msgid "Azure"
 msgstr "Azure"
 
-msgid "Azure Speech subscription key"
-msgstr "Chave de assinatura do Azure Speech"
+#~ msgid "Azure Speech subscription key"
+#~ msgstr "Chave de assinatura do Azure Speech"
 
-msgid "Azure Speech Subscription Key"
-msgstr "Chave de assinatura do Azure Speech"
+#~ msgid "Azure Speech Subscription Key"
+#~ msgstr "Chave de assinatura do Azure Speech"
 
 msgid "Azure Voice"
 msgstr "Voz Azure"
@@ -1550,8 +1553,8 @@ msgstr "base"
 msgid "Base Language"
 msgstr "Idioma base"
 
-msgid "Base URL"
-msgstr "URL base"
+#~ msgid "Base URL"
+#~ msgstr "URL base"
 
 msgid "Basic Information"
 msgstr "Informações Básicas"
@@ -2183,8 +2186,8 @@ msgstr "Configuração"
 msgid "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 msgstr "Configure as opções de detecção de atividade e processamento de imagem para o conteúdo extraído. Passe o mouse sobre qualquer configuração para ver como ela afeta a visualização."
 
-msgid "Configure API keys for AI pipeline features."
-msgstr "Configure as chaves de API para os recursos de IA."
+#~ msgid "Configure API keys for AI pipeline features."
+#~ msgstr "Configure as chaves de API para os recursos de IA."
 
 msgid "Configure basic document information and file paths"
 msgstr "Configurar informações básicas do documento e caminhos de arquivos"
@@ -2201,11 +2204,17 @@ msgstr "Configure as funcionalidades a incluir na exportação"
 msgid "Configure provider credentials used by AI pipeline features on this machine."
 msgstr "Configure as credenciais dos provedores usadas pelos recursos da pipeline de IA nesta máquina."
 
+msgid "Configure the credentials used by AI features on this device."
+msgstr "Configure as credenciais usadas pelos recursos de IA neste dispositivo."
+
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configure as credenciais dos provedores usadas quando o ADT Studio executa etapas da pipeline de IA nesta máquina."
 
 msgid "Configure voices and accents"
 msgstr "Configurar vozes e sotaques"
+
+msgid "Configured on server"
+msgstr "Configurado no servidor"
 
 msgid "Confirm merge"
 msgstr "Confirmar mesclagem"
@@ -2320,6 +2329,9 @@ msgstr "Resposta correta (alternativas separadas por |)"
 
 msgid "Correct the metadata extracted from the document."
 msgstr "Corrija os metadados extraídos do documento."
+
+msgid "Could not load the AI provider catalogue."
+msgstr "Não foi possível carregar o catálogo de provedores de IA."
 
 msgid "Could not load the Google Fonts catalog. Check your connection and try again."
 msgstr "Não foi possível carregar o catálogo do Google Fonts. Verifique sua conexão e tente novamente."
@@ -2917,8 +2929,8 @@ msgstr "ex.: alloy"
 msgid "e.g. early readers"
 msgstr "ex.: leitores iniciantes"
 
-msgid "e.g. eastus, westeurope"
-msgstr "ex.: eastus, westeurope"
+#~ msgid "e.g. eastus, westeurope"
+#~ msgstr "ex.: eastus, westeurope"
 
 msgid "e.g. emphasize cultural context, avoid technical jargon, mention colors when relevant…"
 msgstr "ex.: enfatizar contexto cultural, evitar jargão técnico, mencionar cores quando relevante…"
@@ -2932,8 +2944,8 @@ msgstr "ex.: focar em vocabulário científico, pular nomes de lugares, definir 
 msgid "e.g. fr, es-mx"
 msgstr "ex.: fr, es-mx"
 
-msgid "e.g. http://localhost:11434/v1"
-msgstr "ex. http://localhost:11434/v1"
+#~ msgid "e.g. http://localhost:11434/v1"
+#~ msgstr "ex. http://localhost:11434/v1"
 
 msgid "e.g. keep a warm children's-book tone"
 msgstr "ex.: manter um tom acolhedor de livro infantil"
@@ -3165,6 +3177,9 @@ msgstr "Informe um ID de modelo para cada tarefa."
 
 msgid "Enter a model id."
 msgstr "Informe um id de modelo."
+
+msgid "Enter a valid HTTP or HTTPS URL."
+msgstr "Insira uma URL HTTP ou HTTPS válida."
 
 msgid "Enter a valid minimum dimension (whole number ≥ 0)"
 msgstr "Insira uma dimensão mínima válida (número inteiro ≥ 0)"
@@ -3868,11 +3883,11 @@ msgstr "Ir para início"
 msgid "Go to Storyboard"
 msgstr "Ir para Storyboard"
 
-msgid "Google"
-msgstr "Google"
+#~ msgid "Google"
+#~ msgstr "Google"
 
-msgid "Google AI API Key"
-msgstr "Chave de API do Google AI"
+#~ msgid "Google AI API Key"
+#~ msgstr "Chave de API do Google AI"
 
 msgid "Google font added."
 msgstr "Fonte do Google adicionada."
@@ -3937,8 +3952,11 @@ msgstr "Ocultar"
 msgid "Hide AI edit history"
 msgstr "Ocultar histórico de edições com IA"
 
-msgid "Hide API key"
-msgstr "Ocultar chave de API"
+#~ msgid "Hide API key"
+#~ msgstr "Ocultar chave de API"
+
+msgid "Hide credential"
+msgstr "Ocultar credencial"
 
 msgid "Hide error details"
 msgstr "Ocultar detalhes do erro"
@@ -4314,6 +4332,9 @@ msgstr "Arquivo de projeto inválido"
 msgid "Invalid range"
 msgstr "Intervalo inválido"
 
+msgid "Invalid value."
+msgstr "Valor inválido."
+
 msgid "Isolated asset"
 msgstr "Recurso isolado"
 
@@ -4387,11 +4408,11 @@ msgstr "Mantém páginas inteiras, a menos que tipos mistos de atividade exijam 
 msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
 msgstr "Mantém a página como uma seção por padrão, mas divide inteligentemente quando detecta várias atividades distintas - como uma mistura de exercícios de múltipla escolha, abertos e de classificação na mesma página. Melhor para livros didáticos com exercícios variados."
 
-msgid "Key must start with \"sk-\""
-msgstr "A chave deve começar com \"sk-\""
+#~ msgid "Key must start with \"sk-\""
+#~ msgstr "A chave deve começar com \"sk-\""
 
-msgid "Key must start with sk-"
-msgstr "A chave deve começar com sk-"
+#~ msgid "Key must start with sk-"
+#~ msgstr "A chave deve começar com sk-"
 
 msgid "Keyboard & navigation"
 msgstr "Keyboard & navigation"
@@ -4470,8 +4491,8 @@ msgstr "Menos usado"
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Deixe em Nenhum para executar segmentação em todas as imagens qualificadas (sujeito às regras do pipeline)."
 
-msgid "Leave empty if not required"
-msgstr "Deixe vazio se não for necessário"
+#~ msgid "Leave empty if not required"
+#~ msgstr "Deixe vazio se não for necessário"
 
 msgid "Leave empty to output only in the book language."
 msgstr "Deixe vazio para gerar apenas no idioma do livro."
@@ -4598,6 +4619,9 @@ msgstr "Pronto para LMS com rastreamento de conclusão"
 
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
+
+msgid "Loading AI providers…"
+msgstr "Carregando provedores de IA…"
 
 msgid "Loading beta versions…"
 msgstr "Carregando versões beta…"
@@ -4817,6 +4841,10 @@ msgstr "Largura máx"
 
 msgid "Maximize"
 msgstr "Maximizar"
+
+#. placeholder {0}: field.maxLength
+msgid "Maximum length is {0} characters."
+msgstr "O comprimento máximo é de {0} caracteres."
 
 msgid "Meaning"
 msgstr "Significado"
@@ -5705,14 +5733,14 @@ msgstr "Licença open-source"
 msgid "OpenAI"
 msgstr "OpenAI"
 
-msgid "OpenAI API Key"
-msgstr "Chave de API da OpenAI"
+#~ msgid "OpenAI API Key"
+#~ msgstr "Chave de API da OpenAI"
 
 msgid "OpenAI image-edit model used to regenerate each image with translated text."
 msgstr "Modelo de edição de imagens da OpenAI usado para regenerar cada imagem com o texto traduzido."
 
-msgid "OpenAI key required"
-msgstr "Chave da OpenAI necessária"
+#~ msgid "OpenAI key required"
+#~ msgstr "Chave da OpenAI necessária"
 
 msgid "OpenAI Voice"
 msgstr "Voz OpenAI"
@@ -6417,8 +6445,26 @@ msgstr "Prompts"
 msgid "Provider"
 msgstr "Provedor"
 
+msgid "Provider \"{providerId}\" does not support image generation."
+msgstr "O provedor \"{providerId}\" não oferece suporte à geração de imagens."
+
+msgid "Provider \"{providerId}\" does not support text generation."
+msgstr "O provedor \"{providerId}\" não oferece suporte à geração de texto."
+
+msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
+msgstr "O provedor \"{providerId}\" não está registrado. Adicione as chaves de API dele em Configurações ou escolha outro modelo."
+
 msgid "Provider credentials"
 msgstr "Credenciais do provedor"
+
+msgid "Provider credentials saved."
+msgstr "Credenciais dos provedores salvas."
+
+msgid "Provider documentation"
+msgstr "Documentação do provedor"
+
+msgid "Providers unavailable"
+msgstr "Provedores indisponíveis"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Fornece padrões HTML/CSS consistentes para páginas geradas por LLM."
@@ -7685,8 +7731,11 @@ msgstr "Mostrar todas as páginas"
 msgid "Show all translations"
 msgstr "Mostrar todas as traduções"
 
-msgid "Show API key"
-msgstr "Mostrar chave de API"
+#~ msgid "Show API key"
+#~ msgstr "Mostrar chave de API"
+
+msgid "Show credential"
+msgstr "Mostrar credencial"
 
 msgid "Show error details"
 msgstr "Mostrar detalhes do erro"
@@ -7769,11 +7818,11 @@ msgstr "Tamanho"
 msgid "Sizing"
 msgstr "Dimensionamento"
 
-msgid "sk-..."
-msgstr "sk-..."
+#~ msgid "sk-..."
+#~ msgstr "sk-..."
 
-msgid "sk-ant-..."
-msgstr "sk-ant-..."
+#~ msgid "sk-ant-..."
+#~ msgstr "sk-ant-..."
 
 msgid "Skip for now"
 msgstr "Pular por enquanto"
@@ -8689,6 +8738,9 @@ msgstr "Este prompt instrui o LLM sobre como avaliar o HTML renderizado em rela�
 #~ msgid "This prompt is using the latest global version. Reset removes that version and returns to the shipped default."
 #~ msgstr "Este prompt está usando a versão global mais recente. Resetar remove essa versão e retorna ao padrão distribuído."
 
+msgid "This provider does not require local credentials."
+msgstr "Este provedor não requer credenciais locais."
+
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Este questionário será removido do livro. Você ainda pode restaurá-lo pelo histórico de versões."
 
@@ -8787,6 +8839,12 @@ msgstr "Total de tokens"
 
 msgid "Track reviewer progress and review findings captured from Preview."
 msgstr "Track reviewer progress and review findings captured from Preview."
+
+msgid "Transcription provider is not configured"
+msgstr "O provedor de transcrição não está configurado"
+
+msgid "Transcription provider required"
+msgstr "É necessário um provedor de transcrição"
 
 msgid "Translate"
 msgstr "Traduzir"
@@ -9194,14 +9252,14 @@ msgstr "Usada para"
 msgid "Used for AI image generation, editing, and these pipeline tasks:"
 msgstr "Usado para geração e edição de imagens com IA e para estas tarefas do pipeline:"
 
-msgid "Used for Azure Speech TTS provider."
-msgstr "Utilizada para o provedor de TTS do Azure Speech."
+#~ msgid "Used for Azure Speech TTS provider."
+#~ msgstr "Utilizada para o provedor de TTS do Azure Speech."
 
-msgid "Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)"
-msgstr "Utilizada para modelos Claude (claude-opus-4-6, claude-sonnet-4-6, etc.)"
+#~ msgid "Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)"
+#~ msgstr "Utilizada para modelos Claude (claude-opus-4-6, claude-sonnet-4-6, etc.)"
 
-msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
-msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) quanto TTS (gemini-2.5-pro-preview-tts, etc.)"
+#~ msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
+#~ msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) quanto TTS (gemini-2.5-pro-preview-tts, etc.)"
 
 #~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
 #~ msgstr "Usado para conversão de texto em fala da OpenAI nestas tarefas do pipeline:"
