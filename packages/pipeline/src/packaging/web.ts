@@ -49,7 +49,10 @@ import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
-import { readKidsInterfaceOverrides } from "../kids-interface-translation.js"
+import {
+  assertKidsInterfaceLanguageParity,
+  readKidsInterfaceOverrides,
+} from "../kids-interface-translation.js"
 import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getRenderSectioning } from "../render-sectioning.js"
@@ -284,6 +287,13 @@ export async function packageAdtWeb(
   } = options
   const language = normalizeLocale(rawLanguage)
   const outputLanguages = Array.from(new Set(rawOutputLanguages.map((code) => normalizeLocale(code))))
+  if (features?.kidsMode === true) {
+    assertKidsInterfaceLanguageParity({
+      bookDir,
+      webAssetsDir,
+      languages: outputLanguages,
+    })
+  }
   // Reflowable base font (serif/sans default from the detected profile, or an
   // explicit override). undefined for fixed-layout / Merriweather-default.
   const bodyFontFamily = resolveReflowableFontChain(storage, { fixedLayout, reflowableFont })

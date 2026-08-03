@@ -4,6 +4,8 @@ import os from "node:os"
 import path from "node:path"
 import type { LLMModel } from "@adt/llm"
 import {
+  assertKidsInterfaceLanguageParity,
+  getKidsInterfaceParityStatus,
   readKidsInterfaceOverrides,
   readKidsInterfaceSource,
   translateKidsInterface,
@@ -57,6 +59,71 @@ describe("readKidsInterfaceSource", () => {
       "kids-buddy-greet",
       "kids-comfort-title",
     ])
+  })
+})
+
+describe("Kids interface language parity", () => {
+  it("requires every key to resolve to a non-empty string in every language", () => {
+    const webAssetsDir = path.join(tmp, "assets")
+    const bookDir = path.join(tmp, "book")
+    fs.mkdirSync(path.join(bookDir, "kids-i18n"), { recursive: true })
+    writeEnCatalog(webAssetsDir, {
+      "kids-buddy-greet": "Hi!",
+      "kids-comfort-title": "Make it comfy",
+    })
+    fs.writeFileSync(
+      path.join(bookDir, "kids-i18n", "pt-BR.json"),
+      JSON.stringify({
+        "kids-buddy-greet": "Oi!",
+        "kids-comfort-title": "   ",
+      }),
+    )
+
+    const incomplete = getKidsInterfaceParityStatus({
+      bookDir,
+      webAssetsDir,
+      languages: ["en-US", "pt_BR"],
+    })
+    expect(incomplete.ready).toBe(false)
+    expect(incomplete.languages).toEqual([
+      { language: "en-US", ready: true, missingKeys: [] },
+      {
+        language: "pt-BR",
+        ready: false,
+        missingKeys: ["kids-comfort-title"],
+      },
+    ])
+    expect(() =>
+      assertKidsInterfaceLanguageParity({
+        bookDir,
+        webAssetsDir,
+        languages: ["en-US", "pt-BR"],
+      }),
+    ).toThrow(/pt-BR \(1 missing\)/)
+
+    fs.writeFileSync(
+      path.join(bookDir, "kids-i18n", "pt-BR.json"),
+      JSON.stringify({
+        "kids-buddy-greet": "Oi!",
+        "kids-comfort-title": "Deixe confortável",
+      }),
+    )
+    expect(
+      getKidsInterfaceParityStatus({
+        bookDir,
+        webAssetsDir,
+        languages: ["en-US", "pt-BR"],
+      }).ready,
+    ).toBe(true)
+  })
+
+  it("is not ready without a source catalog or book languages", () => {
+    const status = getKidsInterfaceParityStatus({
+      bookDir: path.join(tmp, "book"),
+      webAssetsDir: path.join(tmp, "assets"),
+      languages: [],
+    })
+    expect(status).toEqual({ ready: false, sourceKeyCount: 0, languages: [] })
   })
 })
 

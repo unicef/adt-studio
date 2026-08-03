@@ -8620,6 +8620,12 @@ msgstr "Le choix idéal pour les romans, axé sur une expérience de lecture flu
 msgid "The inside cover of the book."
 msgstr "La page de garde du livre."
 
+msgid "The Kids interface is ready in every book language."
+msgstr "L’interface enfant est prête dans toutes les langues du livre."
+
+msgid "The Kids interface source catalog is unavailable."
+msgstr "Le catalogue source de l’interface enfant est indisponible."
+
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "La dernière révision de traduction a échoué avant de produire des résultats fiables par élément. Relancez Réviser pour les traductions visibles."
 
@@ -9020,6 +9026,10 @@ msgstr "Traduisez le livre dans des langues supplémentaires. Chaque langue est 
 
 msgid "Translate the book into other languages and generate narration. These stages are optional — skip them if your book doesn't need multilingual or audio output."
 msgstr "Traduisez le livre dans d'autres langues et générez la narration. Ces étapes sont facultatives — ignorez-les si votre livre n'a pas besoin de sortie multilingue ou audio."
+
+#. placeholder {0}: missingInterfaceLanguages .map((language) => language.language.toUpperCase()) .join(", ")
+msgid "Translate the Kids interface before enabling Kids Mode. Missing: {0}."
+msgstr "Traduisez l’interface enfant avant d’activer le mode enfant. Langues manquantes : {0}."
 
 #. placeholder {0}: translateInterface.data?.languages.length
 msgid "Translated the kids interface into {0} language(s)."

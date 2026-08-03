@@ -126,3 +126,19 @@ export const TranslateKidsInterfaceResponseSchema = z.object({
 export type TranslateKidsInterfaceResponse = z.infer<
   typeof TranslateKidsInterfaceResponseSchema
 >
+
+export const KidsInterfaceLanguageStatusSchema = z.object({
+  language: z.string(),
+  ready: z.boolean(),
+  missingKeys: z.array(z.string()),
+})
+export type KidsInterfaceLanguageStatus = z.infer<
+  typeof KidsInterfaceLanguageStatusSchema
+>
+
+export const KidsInterfaceStatusSchema = z.object({
+  ready: z.boolean(),
+  sourceKeyCount: z.number().int().nonnegative(),
+  languages: z.array(KidsInterfaceLanguageStatusSchema),
+})
+export type KidsInterfaceStatus = z.infer<typeof KidsInterfaceStatusSchema>

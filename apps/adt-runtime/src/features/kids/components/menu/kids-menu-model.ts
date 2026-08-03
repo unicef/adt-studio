@@ -1,13 +1,9 @@
 /**
- * Shared data model for every buddy-menu variant.
+ * Shared data model for the responsive buddy menu.
  *
- * The menu is being explored as several radically different interaction
- * models (board, conversation, dial, shelf). They all need exactly the same
- * actions, labels and state, so the wiring lives here once and each variant
- * is a pure presentation of `KidsMenuModel`. A variant should never reach for
- * a jotai atom directly.
+ * Desktop list and mobile bottom-sheet presentations use the same actions,
+ * labels and state. Presentation components never reach for jotai directly.
  */
-import type { KidsAvatarConfig } from "@adt/types/kids"
 import type { BuddyImageSet } from "@/features/kids/assets/buddy-images"
 
 export type KidsMenuGroup = "reading" | "look" | "mine" | "footer"
@@ -50,8 +46,6 @@ export interface KidsMenuModel {
   buddyName: string
   buddyBackground: string
   buddyImages: BuddyImageSet
-  /** The child's own avatar, for variants that show it. */
-  avatar: KidsAvatarConfig
   actions: KidsMenuAction[]
   groups: KidsMenuGroupInfo[]
   speed: number
@@ -62,9 +56,7 @@ export interface KidsMenuModel {
   offLabel: string
   closeLabel: string
   regionLabel: string
-  /** Navigation labels for variants that page or drill down. */
-  backLabel: string
-  moreLabel: string
+  /** Navigation labels for the bottom sheet's horizontal action rows. */
   previousLabel: string
   nextLabel: string
   close: () => void

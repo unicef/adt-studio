@@ -53,8 +53,7 @@ export function KidsLanguageDialog() {
   const { tk } = useKidsTranslation()
   const [open, setOpen] = useAtom(kidsLanguageDialogOpenAtom)
   const [currentLanguage, setCurrentLanguage] = useAtom(currentLanguageAtom)
-  // Languages the kids reader can meaningfully switch to — the book content
-  // or the kids interface (buddy UI + onboarding + voices) is translated.
+  // Only offer languages where book content and the Kids UI are both present.
   const { languages, names } = useKidsAvailableLanguages()
   const { say } = useBuddySpeech()
   const reduceMotion = usePrefersReducedMotion()

@@ -54,6 +54,7 @@ import {
 import { useApiKey } from "@/hooks/use-api-key"
 import {
   useGenerateKidsVoice,
+  useKidsInterfaceStatus,
   useKidsMode,
   useKidsVoiceStatus,
   useKidsVoices,
@@ -192,6 +193,7 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
   const { data: config } = useKidsMode(bookLabel)
   const updateKidsMode = useUpdateKidsMode(bookLabel)
   const { data: voiceStatus } = useKidsVoiceStatus(bookLabel)
+  const { data: interfaceStatus } = useKidsInterfaceStatus(bookLabel)
   const { data: voicesData } = useKidsVoices(bookLabel)
   const generateVoice = useGenerateKidsVoice(bookLabel)
   const translateInterface = useTranslateKidsInterface(bookLabel)
@@ -228,6 +230,9 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
   const auditionEntry =
     languages.find((entry) => entry.language === auditionLang) ?? null
   const anyPackReady = languages.some((entry) => entry.hasPack)
+  const interfaceReady = interfaceStatus?.ready ?? false
+  const missingInterfaceLanguages =
+    interfaceStatus?.languages.filter((language) => !language.ready) ?? []
 
   const selectedBuddy =
     KIDS_BUDDIES.find((buddy) => buddy.id === selectedBuddyId) ??
@@ -458,7 +463,11 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
               <Switch
                 checked={enabled}
                 onCheckedChange={setEnabled}
-                disabled={updateKidsMode.isPending || !config}
+                disabled={
+                  updateKidsMode.isPending ||
+                  !config ||
+                  (!enabled && !interfaceReady)
+                }
                 aria-label={t`This is a kids book`}
               />
               <Trans>This is a kids book</Trans>
@@ -571,6 +580,38 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
 
       {/* GLOBAL ACTIONS — audition, plan check, bulk voice generation */}
       <div className="flex shrink-0 flex-col gap-2 border-b border-[#e5e5e5] pb-3">
+        {interfaceStatus && (
+          <div
+            className={cn(
+              "flex items-center gap-2 rounded-lg border px-3 py-2 text-[12px]",
+              interfaceReady
+                ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                : "border-amber-200 bg-amber-50 text-amber-900",
+            )}
+          >
+            {interfaceReady ? (
+              <CheckCircle2 className="h-4 w-4 shrink-0" aria-hidden />
+            ) : (
+              <Languages className="h-4 w-4 shrink-0" aria-hidden />
+            )}
+            <span>
+              {interfaceReady ? (
+                <Trans>
+                  The Kids interface is ready in every book language.
+                </Trans>
+              ) : interfaceStatus.sourceKeyCount === 0 ? (
+                <Trans>The Kids interface source catalog is unavailable.</Trans>
+              ) : (
+                <Trans>
+                  Translate the Kids interface before enabling Kids Mode.
+                  Missing: {missingInterfaceLanguages
+                    .map((language) => language.language.toUpperCase())
+                    .join(", ")}.
+                </Trans>
+              )}
+            </span>
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <span className="text-[11px] font-medium text-[#a3a3a3]">
             <Plural
@@ -633,10 +674,11 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
                   variant="outline"
                   size="sm"
                   disabled={
-                    !enabled ||
                     !hasApiKey ||
                     translateInterface.isPending ||
-                    languages.length <= 1
+                    !interfaceStatus ||
+                    interfaceStatus.sourceKeyCount === 0 ||
+                    missingInterfaceLanguages.length === 0
                   }
                   onClick={runTranslate}
                   className="shrink-0 bg-white"
@@ -731,7 +773,7 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
               </p>
             )}
 
-          {enabled && (translateInterface.data || translateInterface.error) && (
+          {(translateInterface.data || translateInterface.error) && (
             <p
               className={cn(
                 "max-w-md text-right text-[12px] leading-snug",
@@ -757,7 +799,7 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
             </p>
           )}
 
-          {!enabled && (
+          {!enabled && interfaceReady && (
             <p className="text-[12px] text-[#737373]">
               <Trans>Turn on kids mode to configure buddies and voices.</Trans>
             </p>

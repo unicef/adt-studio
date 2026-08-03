@@ -2,12 +2,9 @@
  * Languages the kids reader can meaningfully switch to.
  *
  * Like the regular reader's `useAvailableLanguages`, but a language counts as
- * available when EITHER the book content is translated (`content/i18n/<lang>/
- * texts.json`) OR the kids interface is translated (`kids-*` keys in
- * `interface_translations/<lang>`). A kids book often ships the translated
- * buddy UI + voices for a language before (or instead of) the full book-text
- * translation, and switching should still localize the kids experience — so
- * the buddy language picker must offer it.
+ * available only when BOTH the book content and kids interface exist in that
+ * language. The source/default language's book content is packaged directly,
+ * so it does not need a `content/i18n/<lang>/texts.json` file.
  */
 import { useAtomValue } from "jotai"
 import { useEffect, useMemo, useState } from "react"
@@ -24,6 +21,7 @@ export function useKidsAvailableLanguages(): KidsAvailableLanguagesResult {
     () => config.languages.available ?? [],
     [config.languages.available],
   )
+  const defaultLanguage = config.languages.default
 
   const [languages, setLanguages] = useState<string[]>([])
   const [names, setNames] = useState<Record<string, string>>({})
@@ -35,10 +33,10 @@ export function useKidsAvailableLanguages(): KidsAvailableLanguagesResult {
       declared.map(async (lang) => {
         const [name, hasBook, hasKids] = await Promise.all([
           fetchLanguageName(lang),
-          hasBookContent(lang),
+          lang === defaultLanguage ? Promise.resolve(true) : hasBookContent(lang),
           hasKidsInterface(lang),
         ])
-        return { lang, name, available: hasBook || hasKids }
+        return { lang, name, available: hasBook && hasKids }
       }),
     ).then((results) => {
       if (cancelled) return
@@ -55,7 +53,7 @@ export function useKidsAvailableLanguages(): KidsAvailableLanguagesResult {
     return () => {
       cancelled = true
     }
-  }, [declared])
+  }, [declared, defaultLanguage])
 
   return { languages, names }
 }

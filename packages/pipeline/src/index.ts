@@ -216,11 +216,16 @@ export {
 } from "./catalog-translation.js"
 export {
   translateKidsInterface,
+  assertKidsInterfaceLanguageParity,
+  getKidsInterfaceParityStatus,
   readKidsInterfaceOverrides,
   readKidsInterfaceSource,
   KIDS_I18N_DIR,
   type TranslateKidsInterfaceOptions,
   type TranslateKidsInterfaceResult,
+  type KidsInterfaceLanguageStatus,
+  type KidsInterfaceParityStatus,
+  type KidsInterfaceParityOptions,
 } from "./kids-interface-translation.js"
 export {
   translateImage,

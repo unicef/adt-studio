@@ -26,7 +26,7 @@ import {
   getTargetLanguages,
   translateCatalogBatch,
 } from "./catalog-translation.js"
-import { normalizeLocale } from "./language-context.js"
+import { getBaseLanguage, normalizeLocale } from "./language-context.js"
 
 /** Directory inside a book dir holding per-language kids UI overrides. */
 export const KIDS_I18N_DIR = "kids-i18n"
@@ -66,6 +66,29 @@ function overridesPath(bookDir: string, lang: string): string {
   return path.join(bookDir, KIDS_I18N_DIR, `${normalizeLocale(lang)}.json`)
 }
 
+function readSharedInterfaceCatalog(
+  webAssetsDir: string,
+  lang: string,
+): Record<string, string> {
+  const normalized = normalizeLocale(lang)
+  const candidates = [...new Set([normalized, getBaseLanguage(normalized)])]
+  for (const candidate of candidates) {
+    const file = path.join(
+      webAssetsDir,
+      "interface_translations",
+      candidate,
+      "interface_translations.json",
+    )
+    if (!fs.existsSync(file)) continue
+    try {
+      return JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, string>
+    } catch {
+      return {}
+    }
+  }
+  return {}
+}
+
 /** Per-book kids UI overrides for one language (empty if none generated). */
 export function readKidsInterfaceOverrides(
   bookDir: string,
@@ -78,6 +101,79 @@ export function readKidsInterfaceOverrides(
   } catch {
     return {}
   }
+}
+
+export interface KidsInterfaceLanguageStatus {
+  language: string
+  ready: boolean
+  missingKeys: string[]
+}
+
+export interface KidsInterfaceParityStatus {
+  ready: boolean
+  sourceKeyCount: number
+  languages: KidsInterfaceLanguageStatus[]
+}
+
+export interface KidsInterfaceParityOptions {
+  bookDir: string
+  webAssetsDir: string
+  languages: string[]
+}
+
+/**
+ * Verify that every book language can resolve every kids-* interface key.
+ * Shared catalogs and per-book overrides are merged using the same locale
+ * fallback rules as web packaging.
+ */
+export function getKidsInterfaceParityStatus(
+  options: KidsInterfaceParityOptions,
+): KidsInterfaceParityStatus {
+  const sourceKeys = Object.keys(readKidsInterfaceSource(options.webAssetsDir))
+  const languages = [...new Set(options.languages.map(normalizeLocale).filter(Boolean))]
+  const statuses = languages.map((language) => {
+    const catalog = {
+      ...readSharedInterfaceCatalog(options.webAssetsDir, language),
+      ...readKidsInterfaceOverrides(options.bookDir, language),
+    }
+    const missingKeys = sourceKeys.filter(
+      (key) => typeof catalog[key] !== "string" || catalog[key].trim() === "",
+    )
+    return {
+      language,
+      ready: sourceKeys.length > 0 && missingKeys.length === 0,
+      missingKeys,
+    }
+  })
+
+  return {
+    ready:
+      sourceKeys.length > 0 &&
+      statuses.length > 0 &&
+      statuses.every((status) => status.ready),
+    sourceKeyCount: sourceKeys.length,
+    languages: statuses,
+  }
+}
+
+export function assertKidsInterfaceLanguageParity(
+  options: KidsInterfaceParityOptions,
+): KidsInterfaceParityStatus {
+  const status = getKidsInterfaceParityStatus(options)
+  if (status.ready) return status
+
+  const incomplete = status.languages
+    .filter((language) => !language.ready)
+    .map((language) => `${language.language} (${language.missingKeys.length} missing)`)
+  const detail =
+    status.sourceKeyCount === 0
+      ? "the English kids interface source catalog has no keys"
+      : incomplete.length > 0
+        ? incomplete.join(", ")
+        : "the book has no languages"
+  throw new Error(
+    `Kids Mode requires complete interface translations for every book language: ${detail}`,
+  )
 }
 
 function writeKidsInterfaceOverrides(
@@ -143,7 +239,14 @@ export async function translateKidsInterface(
   for (const lang of targets) {
     if (!options.force) {
       const existing = readKidsInterfaceOverrides(options.bookDir, lang)
-      if (keys.every((key) => key in existing)) continue
+      if (
+        keys.every(
+          (key) =>
+            typeof existing[key] === "string" && existing[key].trim() !== "",
+        )
+      ) {
+        continue
+      }
     }
     const translated = await translateCatalogBatch(
       entries,

@@ -80,9 +80,8 @@ const LANG_DISPLAY_NAMES: Record<string, string> = {
   sq: "Shqip",
 }
 
-// `useKidsAvailableLanguages` fetches per-language catalogs to decide which
-// languages the buddy can offer. Stub fetch so every declared language counts
-// as available (via a translated kids interface) with its real display name.
+// `useKidsAvailableLanguages` requires localized book content and Kids UI.
+// Stub both so every declared test language is complete.
 beforeEach(() => {
   vi.stubGlobal(
     "fetch",
@@ -97,6 +96,12 @@ beforeEach(() => {
             "language-name": LANG_DISPLAY_NAMES[lang] ?? lang,
             "kids-action-language": "x",
           }),
+        } as Response
+      }
+      if (url.includes("/content/i18n/")) {
+        return {
+          ok: true,
+          json: async () => ({ paragraph: "Translated content" }),
         } as Response
       }
       return { ok: false, json: async () => ({}) } as Response
@@ -286,6 +291,34 @@ describe("KidsBuddy", () => {
 
     expect(fab.getAttribute("aria-expanded")).toBe("false")
     expect(queryByTestId("kids-buddy-panel")).toBeNull()
+  })
+
+  it("uses the list on larger screens and the bottom sheet on mobile", () => {
+    const desktop = renderKidsChrome()
+    openBuddy()
+    expect(
+      desktop.getByTestId("kids-buddy-panel").getAttribute("data-menu-layout"),
+    ).toBe("list")
+    desktop.unmount()
+
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: true,
+        media: "(max-width: 639px)",
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    )
+    renderKidsChrome()
+    openBuddy()
+    expect(
+      screen.getByTestId("kids-buddy-panel").getAttribute("data-menu-layout"),
+    ).toBe("bottom-sheet")
   })
 
   it("closes the action panel from the header close button", async () => {
@@ -493,6 +526,32 @@ describe("KidsBuddy", () => {
 
     expect(store.get(currentLanguageAtom)).toBe("es")
     expect(store.get(buddySpeechAtom)).toBe("Okay, Español is on!")
+  })
+
+  it("does not offer a language that lacks translated book content", async () => {
+    const fetchMock = vi.fn(async (input: unknown) => {
+      const url = String(input)
+      const match = url.match(/interface_translations\/([^/]+)\//)
+      if (match) {
+        const lang = match[1]
+        return {
+          ok: true,
+          json: async () => ({
+            "language-name": LANG_DISPLAY_NAMES[lang] ?? lang,
+            "kids-action-language": "x",
+          }),
+        } as Response
+      }
+      return { ok: false, json: async () => ({}) } as Response
+    })
+    vi.stubGlobal("fetch", fetchMock)
+    renderKidsChrome(createKidsStore({ languages: ["en", "es"] }))
+    openBuddy()
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith("./content/i18n/es/texts.json"),
+    )
+    expect(screen.queryByTestId("kids-action-language")).toBeNull()
   })
 
   it("shows the resume chip when the saved spot differs and navigates back", () => {

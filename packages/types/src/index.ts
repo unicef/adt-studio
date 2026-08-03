@@ -444,6 +444,8 @@ export {
   KidsBuddyVoiceOverrideSchema,
   KidsVoicesResponseSchema,
   TranslateKidsInterfaceResponseSchema,
+  KidsInterfaceLanguageStatusSchema,
+  KidsInterfaceStatusSchema,
   type KidsModeConfig,
   type GenerateKidsVoiceRequest,
   type TranslateKidsInterfaceRequest,
@@ -456,4 +458,6 @@ export {
   type KidsBuddyVoiceOverride,
   type KidsVoicesResponse,
   type TranslateKidsInterfaceResponse,
+  type KidsInterfaceLanguageStatus,
+  type KidsInterfaceStatus,
 } from "./kids-api.js"

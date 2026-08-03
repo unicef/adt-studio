@@ -711,6 +711,65 @@ describe("ADT preview routes", () => {
     expect(texts.pg001_tx001_easy_read).toBe("Texto facil.")
   })
 
+  it("merges book Kids UI overrides and suppresses invalid Kids preview mode", async () => {
+    const englishCatalogDir = path.join(
+      webAssetsDir,
+      "interface_translations",
+      "en",
+    )
+    fs.mkdirSync(englishCatalogDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(englishCatalogDir, "interface_translations.json"),
+      JSON.stringify({
+        "kids-buddy-greet": "Hello!",
+        "kids-comfort-title": "Make it comfy",
+      }),
+    )
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      "editing_language: en\noutput_languages:\n  - es\n",
+    )
+    fs.writeFileSync(
+      path.join(tmpDir, label, "kids-mode.json"),
+      JSON.stringify({ enabled: true, buddies: ["dino"] }),
+    )
+
+    const app = createAdtPreviewRoutes(
+      tmpDir,
+      webAssetsDir,
+      path.resolve(process.cwd(), "config.yaml"),
+    )
+    const blockedConfig = await app.request(
+      `/books/${label}/adt-preview/assets/config.json`,
+    )
+    expect(blockedConfig.status).toBe(200)
+    expect((await blockedConfig.json()).features.kidsMode).toBe(false)
+
+    const overrideDir = path.join(tmpDir, label, "kids-i18n")
+    fs.mkdirSync(overrideDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(overrideDir, "es.json"),
+      JSON.stringify({
+        "kids-buddy-greet": "¡Hola!",
+        "kids-comfort-title": "Ponte cómodo",
+      }),
+    )
+
+    const catalogRes = await app.request(
+      `/books/${label}/adt-preview/assets/interface_translations/es/interface_translations.json`,
+    )
+    expect(catalogRes.status).toBe(200)
+    expect(await catalogRes.json()).toMatchObject({
+      "kids-buddy-greet": "¡Hola!",
+      "kids-comfort-title": "Ponte cómodo",
+    })
+
+    const readyConfig = await app.request(
+      `/books/${label}/adt-preview/assets/config.json`,
+    )
+    expect((await readyConfig.json()).features.kidsMode).toBe(true)
+  })
+
   it("orders pages.json sections by sectionIndex when rendering rows are out of order", async () => {
     const storage = createBookStorage(label, tmpDir)
     try {

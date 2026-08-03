@@ -14,6 +14,7 @@ import type {
   GenerateKidsVoiceRequest,
   KidsBuddyVoiceOverride,
   KidsModeConfig,
+  KidsInterfaceStatus,
   KidsVoiceGenerationSummary,
   KidsVoiceOverrideRequest,
   KidsVoiceStatus,
@@ -864,6 +865,9 @@ export const api = {
 
   getKidsVoiceStatus: (label: string) =>
     request<KidsVoiceStatus>(`/books/${label}/kids-voice`),
+
+  getKidsInterfaceStatus: (label: string) =>
+    request<KidsInterfaceStatus>(`/books/${label}/kids-interface/status`),
 
   generateKidsVoice: (
     label: string,

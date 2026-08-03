@@ -25,7 +25,7 @@ const GROUP_DELAYS = ["delay-75", "delay-150", "delay-[225ms]"]
 const FOCUS_RING =
   "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
 
-/** Responsive action shelf that becomes three browsable columns on wide screens. */
+/** Touch-friendly bottom sheet for mobile viewports. */
 export function KidsMenuShelf({
   model,
   panelRef,
@@ -45,6 +45,7 @@ export function KidsMenuShelf({
     <div
       ref={panelRef}
       data-testid="kids-buddy-panel"
+      data-menu-layout="bottom-sheet"
       role="region"
       aria-labelledby="kids-buddy-panel-message"
       tabIndex={-1}

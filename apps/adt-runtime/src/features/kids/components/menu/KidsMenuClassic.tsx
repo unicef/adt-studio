@@ -31,7 +31,7 @@ const GROUP_TITLE_TONE: Record<KidsActionTone, string> = {
 }
 
 /**
- * Grouped two-column popover — the current shipped design.
+ * Grouped list popover for tablet and desktop viewports.
  */
 export function KidsMenuClassic({
   model,
@@ -47,6 +47,7 @@ export function KidsMenuClassic({
     <div
       ref={panelRef}
       data-testid="kids-buddy-panel"
+      data-menu-layout="list"
       role="region"
       aria-labelledby="kids-buddy-panel-message"
       tabIndex={-1}

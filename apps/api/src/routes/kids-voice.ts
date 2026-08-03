@@ -30,6 +30,7 @@ import { createLLMModel, createPromptEngine, createTTSSynthesizer } from "@adt/l
 import { createBookStorage } from "@adt/storage"
 import {
   generateKidsVoicePack,
+  getKidsInterfaceParityStatus,
   loadBookConfig,
   loadVoicesConfig,
   normalizeLocale,
@@ -226,6 +227,14 @@ export function createKidsVoiceRoutes(
 ): Hono {
   const app = new Hono()
 
+  function getInterfaceStatus(safeLabel: string, bookDir: string) {
+    return getKidsInterfaceParityStatus({
+      bookDir,
+      webAssetsDir,
+      languages: getBookLanguages(safeLabel, booksDir, configPath),
+    })
+  }
+
   // Translate the kids UI into the given languages, storing per-book overrides.
   // Shared by the explicit "Translate interface" endpoint (force = true) and
   // the voice generator (force = false — only fills untranslated languages so
@@ -271,6 +280,12 @@ export function createKidsVoiceRoutes(
     return c.json(readKidsModeConfig(bookDir))
   })
 
+  app.get("/books/:label/kids-interface/status", (c) => {
+    const safeLabel = safeParseLabel(c.req.param("label"))
+    const bookDir = getBookDir(booksDir, safeLabel)
+    return c.json(getInterfaceStatus(safeLabel, bookDir))
+  })
+
   app.put("/books/:label/kids-mode", async (c) => {
     const safeLabel = safeParseLabel(c.req.param("label"))
     const bookDir = getBookDir(booksDir, safeLabel)
@@ -286,6 +301,27 @@ export function createKidsVoiceRoutes(
       throw new HTTPException(400, {
         message: `Invalid kids mode config: ${parsed.error.message}`,
       })
+    }
+
+    if (parsed.data.enabled) {
+      const status = getInterfaceStatus(safeLabel, bookDir)
+      if (!status.ready) {
+        const missing = status.languages
+          .filter((language) => !language.ready)
+          .map(
+            (language) =>
+              `${language.language} (${language.missingKeys.length} missing)`,
+          )
+        const detail =
+          status.sourceKeyCount === 0
+            ? "the English Kids UI source catalog is unavailable"
+            : missing.length > 0
+              ? missing.join(", ")
+              : "the book has no configured languages"
+        throw new HTTPException(409, {
+          message: `Translate the Kids UI for every book language before enabling Kids Mode: ${detail}`,
+        })
+      }
     }
 
     writeKidsModeConfig(bookDir, parsed.data)

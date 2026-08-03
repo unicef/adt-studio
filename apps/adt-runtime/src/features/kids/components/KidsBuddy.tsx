@@ -52,7 +52,6 @@ import {
   kidsBuddyPanelOpenAtom,
   kidsBuddyAtom,
   kidsLanguageDialogOpenAtom,
-  kidsMenuVariantAtom,
   kidsOnboardingDoneAtom,
   kidsPlayerNameAtom,
   kidsStoryMapDialogOpenAtom,
@@ -99,9 +98,7 @@ export function KidsBuddy() {
   const avatar = useAtomValue(kidsAvatarAtom)
   const chatter = useAtomValue(kidsBuddyChatterAtom)
   const setOnboardingDone = useSetAtom(kidsOnboardingDoneAtom)
-  // Count languages the kids reader can meaningfully switch to (book content
-  // or the kids interface is translated) — a book may declare a language with
-  // nothing translated yet.
+  // Only count languages that have both book content and a localized Kids UI.
   const languageCount = useKidsAvailableLanguages().languages.length
   const fabRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -109,7 +106,6 @@ export function KidsBuddy() {
   const wasOpenRef = useRef(false)
   // Guards the gap between the buddy's line and the narration starting.
   const readIntentRef = useRef(0)
-  const menuVariant = useAtomValue(kidsMenuVariantAtom)
 
   useBuddyIdleChatter({
     say,
@@ -436,7 +432,6 @@ export function KidsBuddy() {
     buddyName,
     buddyBackground: buddy.backgroundColor,
     buddyImages: getBuddyImages(buddy.character),
-    avatar,
     actions,
     groups: [
       { id: "reading", title: tk("kids-group-reading", "Reading") },
@@ -456,8 +451,6 @@ export function KidsBuddy() {
     offLabel,
     closeLabel: tk("kids-dialog-close", "Close"),
     regionLabel: tk("kids-buddy-actions-region", "Buddy actions"),
-    backLabel: tk("kids-menu-back", "Go back"),
-    moreLabel: tk("kids-menu-more", "More"),
     previousLabel: tk("kids-menu-scroll-previous", "Show earlier"),
     nextLabel: tk("kids-menu-scroll-next", "Show more"),
     close: () => setOpen(false),
@@ -471,7 +464,6 @@ export function KidsBuddy() {
       <KidsResumeChip />
       {open ? (
         <KidsMenu
-          variant={menuVariant}
           model={model}
           panelRef={panelRef}
           panelCloseRef={panelCloseRef}

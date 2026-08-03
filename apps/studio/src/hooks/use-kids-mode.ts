@@ -29,6 +29,14 @@ export function useKidsVoiceStatus(bookLabel: string) {
   })
 }
 
+export function useKidsInterfaceStatus(bookLabel: string) {
+  return useQuery({
+    queryKey: ["books", bookLabel, "kids-interface-status"],
+    queryFn: () => api.getKidsInterfaceStatus(bookLabel),
+    enabled: !!bookLabel,
+  })
+}
+
 export function useGenerateKidsVoice(bookLabel: string) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -58,6 +66,7 @@ export function useGenerateKidsVoice(bookLabel: string) {
 }
 
 export function useTranslateKidsInterface(bookLabel: string) {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (options: { languages?: string[]; apiKey?: string }) =>
       api.translateKidsInterface(
@@ -65,6 +74,14 @@ export function useTranslateKidsInterface(bookLabel: string) {
         { languages: options.languages },
         options.apiKey,
       ),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["books", bookLabel, "kids-interface-status"],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: ["books", bookLabel, "kids-voice"],
+      })
+    },
   })
 }
 

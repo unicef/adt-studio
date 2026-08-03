@@ -44,6 +44,8 @@ import {
   isFixedLayoutBook,
   resolveReflowableFontChain,
   getRenderSectioning,
+  getKidsInterfaceParityStatus,
+  readKidsInterfaceOverrides,
   readEditableActivities,
   enabledEditableActivity,
   renderEditableActivityHtml,
@@ -603,6 +605,12 @@ export function createAdtPreviewRoutes(
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const previewConfig = withStorage(c.req.param("label"), (storage, _label, bookDir) => {
       const language = getBookLanguage(storage)
+      const kidsMode = readKidsModeConfig(bookDir)
+      const kidsInterfaceReady = getKidsInterfaceParityStatus({
+        bookDir,
+        webAssetsDir,
+        languages: [language, ...(bookConfig.output_languages ?? [])],
+      }).ready
       return buildPreviewConfig(
         storage,
         language,
@@ -610,7 +618,7 @@ export function createAdtPreviewRoutes(
         bookConfig.speech,
         bookConfig.output_languages,
         isFixedLayoutBook(bookConfig),
-        readKidsModeConfig(bookDir),
+        { ...kidsMode, enabled: kidsMode.enabled && kidsInterfaceReady },
       )
     })
     setNoStoreHeaders(c)
@@ -620,7 +628,7 @@ export function createAdtPreviewRoutes(
 
   // /assets/* — Static files from webAssetsDir
   app.get("/books/:label/adt-preview/assets/*", async (c) => {
-    resolveBook(c.req.param("label")) // validate label
+    const { bookDir } = resolveBook(c.req.param("label"))
     const assetPath = c.req.path.split("/adt-preview/assets/")[1]
     if (!assetPath) throw new HTTPException(400, { message: "Missing asset path" })
 
@@ -628,6 +636,42 @@ export function createAdtPreviewRoutes(
     const resolved = path.resolve(webAssetsDir, assetPath)
     if (!resolved.startsWith(path.resolve(webAssetsDir))) {
       throw new HTTPException(403, { message: "Forbidden" })
+    }
+
+    const interfaceMatch = assetPath.match(
+      /^interface_translations\/([^/]+)\/interface_translations\.json$/,
+    )
+    if (interfaceMatch) {
+      const language = normalizeLocale(interfaceMatch[1])
+      const candidates = [...new Set([language, getBaseLanguage(language)])]
+      let shared: Record<string, string> = {}
+      let foundShared = false
+      for (const candidate of candidates) {
+        const catalogPath = path.join(
+          webAssetsDir,
+          "interface_translations",
+          candidate,
+          "interface_translations.json",
+        )
+        if (!fs.existsSync(catalogPath)) continue
+        try {
+          shared = JSON.parse(fs.readFileSync(catalogPath, "utf8")) as Record<
+            string,
+            string
+          >
+          foundShared = true
+        } catch {
+          shared = {}
+        }
+        break
+      }
+      const overrides = readKidsInterfaceOverrides(bookDir, language)
+      if (!foundShared && Object.keys(overrides).length === 0) {
+        throw new HTTPException(404, { message: "Asset not found" })
+      }
+      setNoStoreHeaders(c)
+      c.header("Content-Type", "application/json")
+      return c.body(JSON.stringify({ ...shared, ...overrides }))
     }
 
     // Auto-build the runtime bundle on-the-fly if it's missing OR stale

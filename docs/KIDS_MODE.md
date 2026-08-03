@@ -57,6 +57,8 @@ Activation is **config-only**: `kidsModeActiveAtom` derives solely from the pack
 
 The runtime's `t()` returns the **raw key** when missing, and books ship frozen catalogs — old bundles would render literal keys. Every kids string therefore goes through `tk(key, fallback, vars?)` (`useKidsTranslation` → pure `kidsTranslate`): catalog hit → translation; missing/empty → inline English fallback; `${var}` interpolation either way. Real translations are added to `assets/adt/interface_translations/*` in a consolidated pass before merge.
 
+Kids Mode has a strict language-parity gate. Studio reports completeness for every configured book language and refuses to enable the mode until every `kids-*` source key resolves to a non-empty localized string. Packaging repeats the assertion before touching the output directory, so config edits or older invalid books cannot bypass the authoring check. The runtime language picker is the final guard: it offers a language only when both book content and the Kids UI are available (the default language's content is the packaged source itself).
+
 ### Buddy voices (per-buddy, editable, pre-baked, offline)
 
 Everything the buddy can say lives in the shared registry (`@adt/types/kids`): greeting, action confirmations, pick phrases. Each buddy has a **default** OpenAI TTS voice preset (voice id + style-instructions prompt), and the author can **edit both per book** on the Studio Kids Mode screen — overrides persist in `kids-voices.json` and are merged over the defaults (`resolveKidsBuddyVoice`); editing a voice changes the cache key so only that buddy's clips regenerate. The buddy voice-id dropdown **excludes the book's own narration voice** so a buddy never sounds like the neutral narrator (below). The Studio screen generates clips **per buddy × per book language** through `POST /books/:label/kids-voice/generate` (author's `X-OpenAI-Key`; `dryRun` plans and reports cache hits without spending) — per-buddy, per-language, or global.
@@ -77,7 +79,7 @@ The `/books/:label/kids` screen is a canvas+inspector authoring tool: a persiste
 
 ### Buddy interaction
 
-FAB bottom-right (idle bob, reduce-motion aware; expression swaps standing/happy/excited). Tap → one unified speech-bubble panel: header line, action list (read to me / speed turtle-normal-rabbit / signs / easy read / word helper / explain it / my notes / change language / story map — each gated by the book's `features.*`), X + Escape + tail pointing at the buddy. Three menu layouts remain available for author testing, but their switch and `?kidsMenu=` override work only in Studio/dev preview contexts; shipped books use the default layout. **Every state change updates the header with a confirmation phrase** and plays its voice clip when the book ships one. Resume chip ("take me back") appears when `kidsLastSpot` differs from the current page. Kids mode never auto-starts the book's story narration; the onboarding narrator and optional buddy idle chatter are separate.
+FAB bottom-right (idle bob, reduce-motion aware; expression swaps standing/happy/excited). Tap → one responsive menu: a grouped list on tablet/desktop and a touch-friendly bottom sheet on mobile. It contains read to me / speed turtle-normal-rabbit / signs / easy read / word helper / explain it / my notes / change language / story map (each gated by the book's `features.*`), with X and Escape dismissal. **Every state change updates the header with a confirmation phrase** and plays its voice clip when the book ships one. Resume chip ("take me back") appears when `kidsLastSpot` differs from the current page. Kids mode never auto-starts the book's story narration; the onboarding narrator and optional buddy idle chatter are separate.
 
 ### Design language ("sunny sky")
 
@@ -110,7 +112,6 @@ The Studio preview lets an author flip the book between the KIDS and REGULAR chr
 
 1. **Custom buddies (Studio upload).** Name + 7 numbered PNGs into the book dir via the API; the numbered-folder contract and the generic phrase pool make the runtime side additive. Optional server-side background removal on upload.
 2. **Voice polish.** Real-key end-to-end generation pass and review of each buddy/language combination.
-3. **Choose the production menu layout.** Remove the two unused variants and the preview-only comparison switch after classroom review.
 
 ## Working notes
 

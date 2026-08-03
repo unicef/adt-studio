@@ -67,6 +67,15 @@ function createWebAssets(webAssetsDir: string): void {
     path.join(webAssetsDir, "tailwind_css.css"),
     "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n",
   )
+  const interfaceDir = path.join(webAssetsDir, "interface_translations", "en")
+  fs.mkdirSync(interfaceDir, { recursive: true })
+  fs.writeFileSync(
+    path.join(interfaceDir, "interface_translations.json"),
+    JSON.stringify({
+      "kids-buddy-greet": "Hello!",
+      "kids-comfort-title": "Make it comfy",
+    }),
+  )
 }
 
 function createMinimalStorage(): Storage {
@@ -664,6 +673,48 @@ describe("packageAdtWeb", () => {
     expect(
       fs.existsSync(path.join(plainBook, "adt", "assets", "kids-buddies")),
     ).toBe(false)
+  })
+
+  it("refuses to package Kids Mode until every book language has a complete UI", async () => {
+    const bookDir = path.join(tmpDir, "kids-parity-book")
+    const webAssetsDir = path.join(tmpDir, "kids-parity-assets")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    await expect(
+      packageAdtWeb(createMinimalStorage(), {
+        bookDir,
+        label: "kids-parity",
+        language: "en",
+        outputLanguages: ["en", "es"],
+        title: "Kids Parity",
+        webAssetsDir,
+        features: { kidsMode: true },
+      }),
+    ).rejects.toThrow(/es \(2 missing\)/)
+    expect(fs.existsSync(path.join(bookDir, "adt"))).toBe(false)
+
+    const overrideDir = path.join(bookDir, "kids-i18n")
+    fs.mkdirSync(overrideDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(overrideDir, "es.json"),
+      JSON.stringify({
+        "kids-buddy-greet": "¡Hola!",
+        "kids-comfort-title": "Ponte cómodo",
+      }),
+    )
+
+    await expect(
+      packageAdtWeb(createMinimalStorage(), {
+        bookDir,
+        label: "kids-parity",
+        language: "en",
+        outputLanguages: ["en", "es"],
+        title: "Kids Parity",
+        webAssetsDir,
+        features: { kidsMode: true },
+      }),
+    ).resolves.toBeUndefined()
   })
 
   it("packages persisted Easy Read entries for the source language", async () => {

@@ -27,6 +27,15 @@ structure_types:
   )
 }
 
+function writeKidsCatalog(entries: Record<string, string>): void {
+  const dir = path.join(webAssetsDir, "interface_translations", "en")
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(
+    path.join(dir, "interface_translations.json"),
+    JSON.stringify(entries),
+  )
+}
+
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-kids-voice-route-"))
   booksDir = path.join(tmpDir, "books")
@@ -37,6 +46,10 @@ beforeEach(() => {
   fs.mkdirSync(webAssetsDir, { recursive: true })
   fs.mkdirSync(promptsDir, { recursive: true })
   writeBaseConfig()
+  writeKidsCatalog({
+    "kids-buddy-greet": "Hello!",
+    "kids-comfort-title": "Make it comfy",
+  })
 })
 
 afterEach(() => {
@@ -296,6 +309,63 @@ describe("GET/PUT /books/:label/kids-mode", () => {
       enabled: true,
       buddies: ["cat", "dino"],
     })
+  })
+
+  it("blocks enablement until every configured language has a complete Kids UI", async () => {
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+editing_language: en
+output_languages:
+  - es
+`,
+    )
+    createTestBook("book-language-gate")
+    const app = makeApp()
+
+    const statusBefore = await app.request(
+      "/books/book-language-gate/kids-interface/status",
+    )
+    expect(statusBefore.status).toBe(200)
+    expect(await statusBefore.json()).toMatchObject({
+      ready: false,
+      languages: [
+        { language: "en", ready: true, missingKeys: [] },
+        { language: "es", ready: false },
+      ],
+    })
+
+    const blocked = await app.request("/books/book-language-gate/kids-mode", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: true, buddies: ["cat"] }),
+    })
+    expect(blocked.status).toBe(409)
+    expect(await blocked.text()).toMatch(/es \(2 missing\)/)
+
+    const overrideDir = path.join(
+      booksDir,
+      "book-language-gate",
+      "kids-i18n",
+    )
+    fs.mkdirSync(overrideDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(overrideDir, "es.json"),
+      JSON.stringify({
+        "kids-buddy-greet": "¡Hola!",
+        "kids-comfort-title": "Ponte cómodo",
+      }),
+    )
+
+    const enabled = await app.request("/books/book-language-gate/kids-mode", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: true, buddies: ["cat"] }),
+    })
+    expect(enabled.status).toBe(200)
   })
 
   it("rejects duplicate buddy ids", async () => {
