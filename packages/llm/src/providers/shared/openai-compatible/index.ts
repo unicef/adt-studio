@@ -7,7 +7,10 @@ import type {
   ProviderCredentialValues,
   ProviderModule,
 } from "../../../ports/index.js"
-import { createAiSdkStructuredTextBackend } from "../ai-sdk/structured-text.js"
+import {
+  createAiSdkStructuredTextBackend,
+  type AiSdkModelOptions,
+} from "../ai-sdk/structured-text.js"
 import { createAiSdkAgentBackend } from "../ai-sdk/agent.js"
 import { createOpenAiImageBackend } from "../openai-rest/image.js"
 import { listOpenAiCompatibleModels } from "../openai-rest/models.js"
@@ -21,6 +24,9 @@ export interface OpenAiCompatibleEndpoint {
   apiKey?: string
 }
 
+/** "none" is beyond the SDK's union but accepted by runtimes such as Ollama. */
+export type ReasoningEffort = "none" | "low" | "medium" | "high"
+
 export interface OpenAiCompatibleConfig<C extends ProviderCredentialValues> {
   manifest: ProviderManifest
   credentialSchema: z.ZodType<C, z.ZodTypeDef, unknown>
@@ -30,6 +36,12 @@ export interface OpenAiCompatibleConfig<C extends ProviderCredentialValues> {
   /** Bump when the request shape changes in a way that invalidates cached results. */
   adapterVersion: string
   capabilitiesFor?: ProviderModule<C>["capabilitiesFor"]
+  /**
+   * Sent as `reasoning_effort` on every chat completion. Thinking models
+   * otherwise spend the whole `max_tokens` budget on reasoning and return an
+   * empty, unparseable body with `finish_reason: length`.
+   */
+  reasoningEffortFor?: (modelId: string) => ReasoningEffort | undefined
   /** Extra non-secret cache discriminators. */
   fingerprintExtra?: (credentials: C) => Record<string, string | number | boolean>
 }
@@ -87,23 +99,35 @@ export function createOpenAiCompatibleModule<C extends ProviderCredentialValues>
     },
   }
 
+  const chatSettingsFor = (modelId: string, options: AiSdkModelOptions = {}) => {
+    const settings: Record<string, unknown> = {}
+    if (options.structuredOutputs !== undefined) {
+      settings.structuredOutputs = options.structuredOutputs
+    }
+    const reasoningEffort = config.reasoningEffortFor?.(modelId)
+    if (reasoningEffort) settings.reasoningEffort = reasoningEffort
+    return Object.keys(settings).length > 0
+      ? (settings as Parameters<ReturnType<typeof createOpenAI>>[1])
+      : undefined
+  }
+
   if (modalities.includes("structured-text")) {
     module.createStructuredTextBackend = (context) => {
       const client = clientFor(context.credentials)
       return createAiSdkStructuredTextBackend((options) =>
-        client(
-          context.modelId,
-          options.structuredOutputs !== undefined
-            ? { structuredOutputs: options.structuredOutputs }
-            : undefined,
-        ),
+        client(context.modelId, chatSettingsFor(context.modelId, options)),
       )
     }
   }
 
   if (modalities.includes("agent")) {
     module.createAgentBackend = (context) =>
-      createAiSdkAgentBackend(clientFor(context.credentials)(context.modelId))
+      createAiSdkAgentBackend(
+        clientFor(context.credentials)(
+          context.modelId,
+          chatSettingsFor(context.modelId),
+        ),
+      )
   }
 
   if (modalities.includes("image")) {

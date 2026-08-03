@@ -1,12 +1,15 @@
 import { z } from "zod"
 import type { ProviderManifest, StructuredTextCapabilities } from "@adt/types"
 import type { ProviderModule } from "../../ports/index.js"
-import { createOpenAiCompatibleModule } from "../shared/openai-compatible/index.js"
+import {
+  createOpenAiCompatibleModule,
+  type ReasoningEffort,
+} from "../shared/openai-compatible/index.js"
 import { EndpointUrl } from "../shared/endpoint.js"
 import { LABEL_BASE_URL } from "../shared/i18n.js"
 
 export const OLLAMA_PROVIDER_ID = "ollama"
-const ADAPTER_VERSION = "ollama-1"
+const ADAPTER_VERSION = "ollama-2"
 
 /**
  * Only a sensible starting point, not a promise. `localhost` resolves inside the
@@ -81,6 +84,21 @@ const TOOL_CAPABLE_MODEL_PATTERN =
 /** Small models where even Ollama's `format: json` is unreliable. */
 const JSON_MODE_UNRELIABLE_PATTERN = /(:0\.5b|:1b|:1\.5b|:2b|tinyllama|phi-?2|gemma:2b)/i
 
+/**
+ * Models whose thinking can only be lowered, not turned off — Ollama rejects
+ * `reasoning_effort: "none"` for them.
+ */
+const THINKING_LEVELS_ONLY_PATTERN = /gpt-oss/i
+
+/**
+ * Thinking would otherwise stream into the separate `reasoning` field until
+ * `max_tokens` is exhausted, leaving an empty `content` that fails JSON
+ * parsing. Non-thinking models ignore the parameter.
+ */
+export function ollamaReasoningEffortFor(modelId: string): ReasoningEffort {
+  return THINKING_LEVELS_ONLY_PATTERN.test(modelId) ? "low" : "none"
+}
+
 function structuredTextFor(modelId: string): StructuredTextCapabilities {
   const base = ollamaManifest.capabilities["structured-text"]!
   if (JSON_MODE_UNRELIABLE_PATTERN.test(modelId)) {
@@ -104,6 +122,7 @@ export const ollamaProvider: ProviderModule<OllamaCredentials> =
       baseURL: credentials.baseUrl,
       apiKey: credentials.apiKey,
     }),
+    reasoningEffortFor: ollamaReasoningEffortFor,
     capabilitiesFor: (modality, modelId) => {
       if (modality === "structured-text") return structuredTextFor(modelId) as never
       if (modality === "agent") {
