@@ -303,6 +303,30 @@ export function KidsAvatarBuilder({
             />
           ))}
         </div>
+
+        <p className="text-center text-xs leading-relaxed text-slate-500">
+          {tk(
+            "kids-avatar-credit",
+            "Avatar art adapted from Adventurer by Lisa Wischofsky.",
+          )}{" "}
+          <a
+            href="https://www.figma.com/community/file/1184595184137881796"
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold underline underline-offset-2 hover:text-sky-700"
+          >
+            {tk("kids-avatar-credit-source", "Source")}
+          </a>{" "}
+          ·{" "}
+          <a
+            href="https://creativecommons.org/licenses/by/4.0/"
+            target="_blank"
+            rel="noreferrer"
+            className="font-bold underline underline-offset-2 hover:text-sky-700"
+          >
+            CC BY 4.0
+          </a>
+        </p>
       </div>
     </div>
   )

@@ -16,7 +16,6 @@
  * hash of text + voice + model + instructions + provider), so re-runs and
  * re-packs only pay for lines whose text or voice actually changed.
  */
-import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 import {
@@ -359,54 +358,4 @@ export async function generateKidsVoicePack(
     generated,
     dryRun,
   }
-}
-
-/**
- * Stable fingerprint of one language's voice-pack inputs — lets callers show
- * "up to date / stale" in the UI without running a dry-run synthesis pass.
- */
-export function computeKidsVoicePackFingerprint(options: {
-  language: string
-  characters: string[]
-  dict: Record<string, string>
-  model: string
-  provider?: string
-  voiceOverrides?: Record<string, Partial<KidsBuddyVoiceConfig>>
-  narratorVoiceByLanguage?: Record<string, KidsBuddyVoiceConfig>
-}): string {
-  const {
-    language,
-    characters,
-    dict,
-    model,
-    provider = "openai",
-    voiceOverrides,
-    narratorVoiceByLanguage,
-  } = options
-  const texts: Record<string, string> = {}
-  for (const characterId of [...characters].sort()) {
-    const voice = resolveKidsBuddyVoice(characterId, voiceOverrides)
-    for (const line of getKidsSpeakableLines(characterId)) {
-      texts[`${characterId}:${line.key}`] = resolveKidsLineText({
-        lineKey: line.key,
-        fallback: line.fallback,
-        language,
-        characterId,
-        dict,
-      })
-      texts[`${characterId}:voice`] = `${voice.voice}|${voice.instructions}`
-    }
-  }
-  const narratorVoice = narratorVoiceByLanguage?.[language]
-  if (narratorVoice) {
-    for (const line of getKidsNarratorLines()) {
-      texts[`${KIDS_NARRATOR_ID}:${line.key}`] = dict[line.key] || line.fallback
-    }
-    texts[`${KIDS_NARRATOR_ID}:voice`] =
-      `${narratorVoice.voice}|${narratorVoice.instructions}`
-  }
-  return crypto
-    .createHash("sha256")
-    .update(JSON.stringify({ language, model, provider, texts }))
-    .digest("hex")
 }

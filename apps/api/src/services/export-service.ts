@@ -5,7 +5,7 @@ import { parseBookLabel } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
-import { readKidsModeConfig } from "../routes/kids-voice.js"
+import { readKidsModeConfig } from "./kids-mode-service.js"
 import { readPartInfo } from "./book-service.js"
 
 export interface ExportResult {

@@ -44,7 +44,7 @@ import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import { useTouchOnlyDevice } from "@/features/kids/hooks/useTouchOnlyDevice"
 import {
-  BUDDY_BACKGROUNDS,
+  DEFAULT_BUDDY_BACKGROUND,
   KIDS_CHARACTERS,
   getCharacter,
   type KidsCharacter,
@@ -178,7 +178,7 @@ export function KidsOnboarding() {
   const [isPickConfirming, setIsPickConfirming] = useState(false)
   const [pickPhrase, setPickPhrase] = useState<BuddyPhrase | null>(null)
   const character = useMemo(() => getCharacter(characterId), [characterId])
-  const backgroundColor = BUDDY_BACKGROUNDS[0].value
+  const backgroundColor = DEFAULT_BUDDY_BACKGROUND
   const headingRef = useRef<HTMLHeadingElement>(null)
   const pickConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,

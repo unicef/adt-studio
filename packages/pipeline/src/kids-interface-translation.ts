@@ -93,8 +93,7 @@ function writeKidsInterfaceOverrides(
 export interface TranslateKidsInterfaceOptions {
   bookDir: string
   webAssetsDir: string
-  sourceLanguage: string
-  /** Book output languages; the source language and duplicates are skipped. */
+  /** Book languages; English (the UI catalog source) and duplicates are skipped. */
   targetLanguages: string[]
   appConfig: AppConfig
   llmModel: LLMModel
@@ -125,7 +124,7 @@ export async function translateKidsInterface(
   const keys = Object.keys(source)
   const targets = getTargetLanguages(
     options.targetLanguages,
-    options.sourceLanguage,
+    "en",
   )
   if (keys.length === 0 || targets.length === 0) {
     return { languages: [], keyCount: keys.length }
@@ -133,7 +132,7 @@ export async function translateKidsInterface(
 
   const config = buildCatalogTranslationConfig(
     options.appConfig,
-    options.sourceLanguage,
+    "en",
   )
   const entries: TextCatalogEntry[] = keys.map((id) => ({
     id,

@@ -6,6 +6,7 @@ import {
   type KidsMenuVariant,
 } from "@/features/kids/components/menu/kids-menu-variant"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
+import { isKidsPreviewContext } from "@/features/kids/lib/kids-preview"
 import { cn } from "@/shared/lib/utils"
 
 const OPTIONS: Record<
@@ -26,6 +27,8 @@ const OPTIONS: Record<
 export function KidsMenuVariantSwitch() {
   const [variant, setVariant] = useAtom(kidsMenuVariantAtom)
   const reduceMotion = usePrefersReducedMotion()
+
+  if (!isKidsPreviewContext()) return null
 
   return (
     <div

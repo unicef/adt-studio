@@ -35,14 +35,7 @@ export const KIDS_CHARACTERS: readonly KidsCharacter[] = KIDS_BUDDIES.map(
   }),
 )
 
-export const BUDDY_BACKGROUNDS: readonly { id: string; value: string }[] = [
-  { id: "sunbeam", value: "#FEF3C7" },
-  { id: "sky", value: "#DBEAFE" },
-  { id: "mint", value: "#D1FAE5" },
-  { id: "lavender", value: "#EDE9FE" },
-  { id: "peach", value: "#FED7AA" },
-  { id: "rose", value: "#FFE4E6" },
-]
+export const DEFAULT_BUDDY_BACKGROUND = "#FEF3C7"
 
 export function getCharacter(id: string): KidsCharacter {
   return KIDS_CHARACTERS.find((character) => character.id === id) ?? KIDS_CHARACTERS[0]

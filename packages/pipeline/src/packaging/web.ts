@@ -57,7 +57,6 @@ import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantic
 import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
 import { buildTailwindCss } from "../tailwind.js"
 
-
 export interface PackageAdtWebOptions {
   bookDir: string
   label: string
@@ -232,7 +231,7 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   const videoEntries = collectDirectoryFingerprint(videosDir).sort((a, b) => a[0].localeCompare(b[0]))
   hash.update(JSON.stringify(videoEntries))
 
-  // 7. Kids-mode generated assets — voice packs and per-book interface
+  // 8. Kids-mode generated assets — voice packs and per-book interface
   // translation overrides are merged into the bundle at packaging time, so
   // regenerating them must bust the cache or the packaged book keeps stale audio/text.
   const kidsVoiceDir = path.join(options.bookDir, "kids-voice")

@@ -615,7 +615,7 @@ export const KIDS_LANGUAGE_NAMES: Record<string, string> = {
  * The child's own avatar — a personal character they build, shown in greetings
  * and beside the buddy during activity reactions / the finish screen. Rendered
  * offline in the runtime from DiceBear's "adventurer" style; only these IDs are
- * stored (the art ships in @dicebear/collection). Empty string = "none" for the
+ * stored (the art ships in @dicebear/adventurer). Empty string = "none" for the
  * optional parts (hair/glasses/earrings/features).
  */
 export interface KidsAvatarConfig {

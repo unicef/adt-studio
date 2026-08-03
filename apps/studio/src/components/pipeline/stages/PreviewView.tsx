@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import type { AccessibilityFinding } from "@adt/types"
-import { Trans } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { Baby } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -38,6 +38,7 @@ const HIGHLIGHT_SEVERITY_ATTR = "data-adt-a11y-hover-severity"
 const HIGHLIGHT_PAGE_ATTR = "data-adt-a11y-hover-page"
 
 export function PreviewView({ bookLabel }: { bookLabel: string }) {
+  const { t } = useLingui()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { previewHref?: string }
@@ -174,10 +175,10 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
       setPendingVersion(null)
       setIsSubmittingPackage(false)
       if (!ready) {
-        setError(task.error ?? "Packaging failed")
+        setError(task.error ?? t`Packaging failed`)
       }
     }
-  }, [pendingTaskId, getTask, bookLabel, queryClient, ready])
+  }, [pendingTaskId, getTask, bookLabel, queryClient, ready, t])
 
   useEffect(() => {
     if (!pendingVersion || ready) return
@@ -214,10 +215,10 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         setReady(true)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Packaging failed")
+      setError(e instanceof Error ? e.message : t`Packaging failed`)
       setIsSubmittingPackage(false)
     }
-  }, [bookLabel, queryClient])
+  }, [bookLabel, queryClient, t])
 
   // Only trigger packaging when storyboard is done
   useEffect(() => {
@@ -324,7 +325,10 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     const kidsParam =
       kidsPreview ??
       (packedKidsMode === undefined ? null : packedKidsMode ? "on" : "off")
-    const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/${kidsParam ? `?kidsMode=${kidsParam}` : ""}`
+    const previewParams = new URLSearchParams()
+    if (kidsParam) previewParams.set("kidsMode", kidsParam)
+    const previewSearch = previewParams.toString()
+    const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/${previewSearch ? `?${previewSearch}` : ""}`
     const isDesktop = deviceView === "desktop"
     const frame = getDeviceFrame(deviceView, DEVICE_WIDTHS[deviceView])
     const cap = getTargetVisibleWidth(deviceView) / frame.chromeWidth

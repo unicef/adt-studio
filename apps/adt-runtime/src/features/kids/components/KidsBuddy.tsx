@@ -42,6 +42,7 @@ import { useBuddyIdleChatter } from "@/features/kids/hooks/useBuddyIdleChatter"
 import { BUDDY_LINES } from "@/features/kids/lib/buddy-lines"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
+import { stopBuddyLine } from "@/features/kids/lib/buddy-voice"
 import {
   buddySpeechAtom,
   kidsAccessibilityDialogOpenAtom,
@@ -80,7 +81,7 @@ export function KidsBuddy() {
   const speech = useAtomValue(buddySpeechAtom)
   const setSpeech = useSetAtom(buddySpeechAtom)
   const reduceMotion = usePrefersReducedMotion()
-  const { isPlaying, hasItems, togglePlayPause } = useAudioPlayerContext()
+  const { isPlaying, hasItems, togglePlayPause, stop } = useAudioPlayerContext()
   const { say } = useBuddySpeech()
   const [open, setOpen] = useAtom(kidsBuddyPanelOpenAtom)
   const [speed, setSpeed] = useAtom(audioSpeedAtom)
@@ -260,6 +261,8 @@ export function KidsBuddy() {
   }
 
   const meetBuddyAgain = () => {
+    stop()
+    stopBuddyLine()
     setOnboardingDone(false)
     setOpen(false)
   }

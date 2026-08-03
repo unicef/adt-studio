@@ -27,8 +27,10 @@ import {
   KIDS_BUDDIES,
   KIDS_BUDDY_LINES,
   KIDS_LANGUAGE_NAMES,
+  type KidsBuddyId,
   type KidsBuddyLine,
   type KidsBuddyMeta,
+  type KidsOpenAiVoice,
 } from "@adt/types/kids"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -175,12 +177,12 @@ function writeKidsIntroCollapsed(collapsed: boolean): void {
 }
 
 interface VoiceDraft {
-  voice: string
+  voice: KidsOpenAiVoice
   instructions: string
 }
 
 interface BuddyVoiceInfo {
-  voice: string
+  voice: KidsOpenAiVoice
   instructions: string
   isDefault: boolean
 }
@@ -238,7 +240,7 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
   const getBuddyVoiceInfo = (buddy: KidsBuddyMeta): BuddyVoiceInfo => {
     const override = voicesData?.buddies.find((entry) => entry.id === buddy.id)
     return {
-      voice: override?.voice ?? buddy.voice.voice,
+      voice: override?.voice ?? (buddy.voice.voice as KidsOpenAiVoice),
       instructions: override?.instructions ?? buddy.voice.instructions,
       isDefault: override?.isDefault ?? true,
     }
@@ -277,7 +279,7 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
     })
   }
 
-  const toggleBuddy = (id: string) => {
+  const toggleBuddy = (id: KidsBuddyId) => {
     const next = buddies.includes(id)
       ? buddies.filter((buddy) => buddy !== id)
       : [...buddies, id]
@@ -507,10 +509,10 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
             <p className="max-w-3xl text-[13px] leading-relaxed text-[#404040]">
               <Trans>
                 Kids Mode swaps the standard reading menus for a friendly,
-                buddy-guided experience: the reader picks a reading buddy that
-                fronts every accessibility feature. It's an authoring decision
-                baked into the live preview and every export — readers can't
-                turn it off or change buddies themselves.
+                buddy-guided experience. The author chooses which buddies ship
+                with the book, and the reader picks one during onboarding. The
+                setting is baked into the live preview and web book exports,
+                so readers can't turn Kids Mode off.
               </Trans>
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -556,8 +558,8 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
                   </span>
                   <p className="text-[12px] leading-relaxed text-[#737373]">
                     <Trans>
-                      Applies to the live preview and every exported format —
-                      readers can't turn it off.
+                      Applies to the live preview and web book exports — readers
+                      can't turn it off.
                     </Trans>
                   </p>
                 </div>
@@ -1038,7 +1040,7 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
                   value={effectiveVoice}
                   onValueChange={(value) =>
                     setVoiceDraft({
-                      voice: value,
+                      voice: value as KidsOpenAiVoice,
                       instructions: effectiveInstructions,
                     })
                   }

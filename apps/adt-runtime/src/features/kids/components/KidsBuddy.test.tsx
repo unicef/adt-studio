@@ -460,6 +460,7 @@ describe("KidsBuddy", () => {
 
     fireEvent.click(screen.getByTestId("kids-action-meet-again"))
 
+    expect(audioMock.player.stop).toHaveBeenCalledOnce()
     expect(store.get(kidsOnboardingDoneAtom)).toBe(false)
     expect(screen.queryByTestId("kids-buddy-panel")).toBeNull()
     expect(screen.queryByTestId("kids-onboarding")).not.toBeNull()

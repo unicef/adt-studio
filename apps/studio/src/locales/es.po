@@ -1394,8 +1394,11 @@ msgstr "Aparece en las páginas {0}"
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Interfaz de programación de aplicaciones (API): conjunto de reglas que permite que los programas se comuniquen."
 
-msgid "Applies to the live preview and every exported format — readers can't turn it off."
-msgstr "Se aplica a la vista previa en vivo y a todos los formatos exportados — los lectores no pueden desactivarlo."
+#~ msgid "Applies to the live preview and every exported format — readers can't turn it off."
+#~ msgstr "Se aplica a la vista previa en vivo y a todos los formatos exportados — los lectores no pueden desactivarlo."
+
+msgid "Applies to the live preview and web book exports — readers can't turn it off."
+msgstr "Se aplica a la vista previa en vivo y a las exportaciones de libros web; los lectores no pueden desactivarlo."
 
 msgid "Apply"
 msgstr "Aplicar"
@@ -4521,8 +4524,11 @@ msgstr "Las claves se almacenan localmente en este navegador o sesión de escrit
 msgid "Kids Mode"
 msgstr "Modo Niños"
 
-msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
-msgstr "El Modo Niños reemplaza los menús de lectura estándar por una experiencia amigable guiada por un compañero: el lector elige un compañero de lectura que representa cada función de accesibilidad. Es una decisión de autoría integrada en la vista previa en vivo y en cada exportación — los lectores no pueden desactivarla ni cambiar de compañero por su cuenta."
+#~ msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
+#~ msgstr "El Modo Niños reemplaza los menús de lectura estándar por una experiencia amigable guiada por un compañero: el lector elige un compañero de lectura que representa cada función de accesibilidad. Es una decisión de autoría integrada en la vista previa en vivo y en cada exportación — los lectores no pueden desactivarla ni cambiar de compañero por su cuenta."
+
+msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setting is baked into the live preview and web book exports, so readers can't turn Kids Mode off."
+msgstr "El Modo Niños reemplaza los menús de lectura estándar por una experiencia amigable guiada por un compañero. El autor elige qué compañeros se incluyen con el libro y el lector elige uno durante la introducción. La configuración se integra en la vista previa en vivo y en las exportaciones de libros web, por lo que los lectores no pueden desactivar el Modo Niños."
 
 #. placeholder {0}: afterPage.pageNumber
 msgid "Knowledge check generated from the source pages, after page {0}."

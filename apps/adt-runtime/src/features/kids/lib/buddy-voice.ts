@@ -14,15 +14,15 @@
  * languages), a missing character, or a missing line key simply means the
  * buddy speaks through the text bubble only. Playback must never throw.
  */
-
-export interface KidsVoiceManifest {
-  version: number
-  characters: Record<string, Record<string, string>>
-}
+import {
+  KIDS_VOICE_MANIFEST_VERSION,
+  type KidsVoiceManifest,
+} from "@adt/types/kids"
 
 const manifestCache = new Map<string, Promise<KidsVoiceManifest | null>>()
 
 let currentAudio: HTMLAudioElement | null = null
+let currentPlaybackDone: (() => void) | null = null
 // Bumped whenever playback changes (a new single line, a new sequence, or a
 // stop) so an in-flight `playBuddyLineSequence` knows it was superseded and
 // halts instead of talking over the newer audio.
@@ -42,7 +42,15 @@ export function loadKidsVoiceManifest(
     try {
       const res = await fetch(`${voiceBase(lang)}/manifest.json`)
       if (!res.ok) return null
-      return (await res.json()) as KidsVoiceManifest
+      const manifest = (await res.json()) as Partial<KidsVoiceManifest>
+      if (
+        manifest.version !== KIDS_VOICE_MANIFEST_VERSION ||
+        typeof manifest.characters !== "object" ||
+        manifest.characters === null
+      ) {
+        return null
+      }
+      return manifest as KidsVoiceManifest
     } catch {
       return null
     }
@@ -54,7 +62,7 @@ export function loadKidsVoiceManifest(
 /** Test-only: reset the module-level manifest cache. */
 export function clearKidsVoiceCache(): void {
   manifestCache.clear()
-  currentAudio = null
+  interruptCurrentPlayback()
 }
 
 /**
@@ -72,12 +80,27 @@ function playToEnd(audio: HTMLAudioElement): Promise<void> {
     const done = () => {
       if (settled) return
       settled = true
+      audio.removeEventListener("ended", done)
+      audio.removeEventListener("error", done)
+      if (currentPlaybackDone === done) currentPlaybackDone = null
+      if (currentAudio === audio) currentAudio = null
       resolve()
     }
+    currentPlaybackDone = done
     audio.addEventListener("ended", done, { once: true })
     audio.addEventListener("error", done, { once: true })
     Promise.resolve(audio.play()).catch(() => done())
   })
+}
+
+function interruptCurrentPlayback(): void {
+  const done = currentPlaybackDone
+  currentPlaybackDone = null
+  currentAudio?.pause()
+  currentAudio = null
+  // `pause()` does not reliably emit `ended` or `error`. Explicitly settle a
+  // waiter so callers sequencing work after speech cannot hang forever.
+  done?.()
 }
 
 export async function playBuddyLine(
@@ -94,7 +117,7 @@ export async function playBuddyLine(
     const file = manifest?.characters?.[characterId]?.[lineKey]
     if (!file) return false
 
-    currentAudio?.pause()
+    interruptCurrentPlayback()
     const audio = new Audio(`${voiceBase(lang)}/${file}`)
     currentAudio = audio
     await Promise.resolve(audio.play()).catch(() => undefined)
@@ -120,7 +143,7 @@ export async function playBuddyLineToEnd(
     const manifest = await loadKidsVoiceManifest(lang)
     const file = manifest?.characters?.[characterId]?.[lineKey]
     if (!file || token !== playbackToken) return
-    currentAudio?.pause()
+    interruptCurrentPlayback()
     const audio = new Audio(`${voiceBase(lang)}/${file}`)
     currentAudio = audio
     await playToEnd(audio)
@@ -147,7 +170,7 @@ export async function playBuddyLineSequence(
     if (token !== playbackToken) return
     const file = manifest?.characters?.[characterId]?.[lineKey]
     if (!file) continue
-    currentAudio?.pause()
+    interruptCurrentPlayback()
     const audio = new Audio(`${voiceBase(lang)}/${file}`)
     currentAudio = audio
     await playToEnd(audio)
@@ -157,6 +180,5 @@ export async function playBuddyLineSequence(
 /** Stop the currently-playing clip or sequence, if any. Safe to call anytime. */
 export function stopBuddyLine(): void {
   playbackToken++
-  currentAudio?.pause()
-  currentAudio = null
+  interruptCurrentPlayback()
 }

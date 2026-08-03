@@ -1,13 +1,13 @@
 /**
  * Renders a kid's avatar config to an SVG string, fully offline.
  *
- * The art ships inside `@dicebear/collection` (the "adventurer" style); only
+ * The art ships inside `@dicebear/adventurer`; only
  * the part IDs come from the stored config, so nothing is fetched at runtime.
  * `background: false` renders a transparent avatar (the container paints the
  * colour — used by tiles/preview); otherwise the chosen background is baked in.
  */
 import { createAvatar } from "@dicebear/core"
-import { adventurer } from "@dicebear/collection"
+import * as adventurer from "@dicebear/adventurer"
 import type { KidsAvatarConfig } from "@adt/types/kids"
 
 type AdventurerOptions = NonNullable<

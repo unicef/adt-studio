@@ -34,7 +34,7 @@ import {
   type ExportResult,
 } from "../services/export-service.js"
 import { importProject, previewImport } from "../services/import-service.js"
-import { readKidsModeConfig } from "./kids-voice.js"
+import { readKidsModeConfig } from "../services/kids-mode-service.js"
 import {
   exportPart,
   importPart,

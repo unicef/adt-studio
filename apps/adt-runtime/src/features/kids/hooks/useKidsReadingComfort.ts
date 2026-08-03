@@ -11,8 +11,6 @@
 import { useAtomValue } from "jotai"
 import { useLayoutEffect } from "react"
 import {
-} from "@/features/kids/state/kids.atoms"
-import {
   readingFontAtom,
   textScaleAtom,
   type ReadingFont,

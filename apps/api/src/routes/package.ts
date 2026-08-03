@@ -16,7 +16,7 @@ import {
 } from "@adt/pipeline"
 import type { Storage } from "@adt/storage"
 import type { TaskService } from "../services/task-service.js"
-import { readKidsModeConfig } from "./kids-voice.js"
+import { readKidsModeConfig } from "../services/kids-mode-service.js"
 
 const PACKAGE_VERSION_LENGTH = 16
 

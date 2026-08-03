@@ -14,9 +14,9 @@
  * honoring it for the rest of the tab's session. A fresh preview (new tab,
  * new iframe src without the param) starts overrideless again.
  *
- * This only ever takes effect in the dev/authoring preview context (see
- * `isKidsPreviewContext`), so a shipped, standalone book can never be
- * affected — even if a stray `?kidsMode=` query string somehow reached it.
+ * This only ever takes effect in the runtime dev server or an ADT Studio API
+ * preview route (see `isKidsPreviewContext`), so a shipped book cannot be
+ * affected — even when another site embeds it in an iframe.
  */
 
 const OVERRIDE_STORAGE_KEY = "kidsModePreviewOverride"
@@ -24,11 +24,10 @@ const OVERRIDE_STORAGE_KEY = "kidsModePreviewOverride"
 export type KidsModePreviewOverride = "on" | "off" | null
 
 /**
- * Detects the Studio dev/authoring preview context: the runtime dev server
- * (NODE_ENV=development) or any iframed runtime (Studio's preview always
- * runs the book in an iframe). A shipped book runs standalone
- * (window.parent === window) in production, so this never fires for real
- * readers.
+ * Detects the Studio dev/authoring preview context: the runtime dev server or
+ * Studio's `/api/books/:label/adt...` routes. An iframe check is deliberately
+ * insufficient: exported books can legitimately be embedded by third-party
+ * readers, and those hosts must not gain access to author-only overrides.
  *
  * NOTE: `import.meta.env` is unusable here — the esbuild runtime build
  * leaves it undefined and reading it throws (this previously crashed the
@@ -38,13 +37,11 @@ export function isKidsPreviewContext(): boolean {
   if (typeof window === "undefined") return false
   if (process.env.NODE_ENV === "development") return true
   try {
-    // Any iframed runtime is a preview context — Studio's preview always runs
-    // the book in an iframe. A shipped book runs standalone
-    // (window.parent === window), so this never fires for real readers.
-    if (window.parent !== window) return true
+    return /^\/api\/books\/[^/]+\/adt(?:-preview)?(?:\/|$)/.test(
+      window.location.pathname,
+    )
   } catch {
-    // Cross-origin parent access can throw in sandboxed iframes — fall
-    // through to "not a preview context".
+    // A location access failure means this is not a trusted preview context.
   }
   return false
 }

@@ -403,6 +403,8 @@ function KidsModal({
   children: ReactNode
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (!open) return
@@ -416,7 +418,7 @@ function KidsModal({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose()
+        onCloseRef.current()
         return
       }
       if (event.key !== "Tab") return
@@ -442,7 +444,7 @@ function KidsModal({
       document.removeEventListener("keydown", handleKeyDown)
       previous?.focus()
     }
-  }, [onClose, open])
+  }, [open])
 
   if (!open) return null
 
@@ -500,18 +502,19 @@ export function KidsResumeChip() {
   const currentSectionId = useAtomValue(currentSectionIdAtom)
   const currentPage = useAtomValue(currentPageNumberAtom)
   const initialLastSpotRef = useRef<KidsLastSpot | null>(lastSpot)
-  const shouldOfferResumeRef = useRef(
-    typeof window !== "undefined" &&
-      window.sessionStorage.getItem(RESUME_SESSION_KEY) !== "true",
-  )
+  const shouldOfferResumeRef = useRef(shouldOfferResume())
   const currentSpot = useMemo(
     () => getCurrentSpot(pages, currentSectionId, currentPage),
     [currentPage, currentSectionId, pages],
   )
 
   useEffect(() => {
-    if (typeof window === "undefined") return
-    window.sessionStorage.setItem(RESUME_SESSION_KEY, "true")
+    try {
+      window.sessionStorage.setItem(RESUME_SESSION_KEY, "true")
+    } catch {
+      // Storage is best-effort; the ephemeral dismissal still prevents a
+      // repeated offer on the current page.
+    }
   }, [])
 
   useEffect(() => {
@@ -551,6 +554,15 @@ export function KidsResumeChip() {
       </button>
     </div>
   )
+}
+
+function shouldOfferResume(): boolean {
+  if (typeof window === "undefined") return false
+  try {
+    return window.sessionStorage.getItem(RESUME_SESSION_KEY) !== "true"
+  } catch {
+    return true
+  }
 }
 
 export function KidsDialogClose({

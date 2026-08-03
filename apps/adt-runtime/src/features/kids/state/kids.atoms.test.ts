@@ -11,28 +11,18 @@ function configWithKidsMode(kidsMode: boolean): AppConfig {
   }
 }
 
-function enterIframeContext() {
-  Object.defineProperty(window, "parent", { value: {}, configurable: true })
-}
-
-function exitIframeContext() {
-  Object.defineProperty(window, "parent", { value: window, configurable: true })
-}
-
-function setSearch(search: string) {
-  window.history.replaceState(null, "", `/${search}`)
+function setLocation(pathname = "/", search = "") {
+  window.history.replaceState(null, "", `${pathname}${search}`)
 }
 
 beforeEach(() => {
   sessionStorage.clear()
-  exitIframeContext()
-  setSearch("")
+  setLocation()
 })
 
 afterEach(() => {
   sessionStorage.clear()
-  exitIframeContext()
-  setSearch("")
+  setLocation()
 })
 
 describe("kidsModeActiveAtom", () => {
@@ -46,8 +36,7 @@ describe("kidsModeActiveAtom", () => {
   })
 
   it("override off hides kids chrome even when features.kidsMode is true", () => {
-    enterIframeContext()
-    setSearch("?kidsMode=off")
+    setLocation("/api/books/demo/adt/page.html", "?kidsMode=off")
 
     const store = createStore()
     store.set(appConfigAtom, configWithKidsMode(true))
@@ -55,20 +44,20 @@ describe("kidsModeActiveAtom", () => {
   })
 
   it("override on shows kids chrome when config is off, but only in preview context", () => {
-    // Same query param, but not iframed/dev — override must not apply.
-    setSearch("?kidsMode=on")
+    // Same query param outside Studio/dev — override must not apply.
+    setLocation("/book/page.html", "?kidsMode=on")
     const standaloneStore = createStore()
     standaloneStore.set(appConfigAtom, configWithKidsMode(false))
     expect(standaloneStore.get(kidsModeActiveAtom)).toBe(false)
 
-    enterIframeContext()
+    setLocation("/api/books/demo/adt/page.html", "?kidsMode=on")
     const previewStore = createStore()
     previewStore.set(appConfigAtom, configWithKidsMode(false))
     expect(previewStore.get(kidsModeActiveAtom)).toBe(true)
   })
 
   it("has no effect when absent, letting the packed config decide", () => {
-    enterIframeContext()
+    setLocation("/api/books/demo/adt/page.html")
     const store = createStore()
     store.set(appConfigAtom, configWithKidsMode(true))
     expect(store.get(kidsModeActiveAtom)).toBe(true)
@@ -78,8 +67,7 @@ describe("kidsModeActiveAtom", () => {
   })
 
   it("persists the override across a simulated reload (query string dropped on the next page)", () => {
-    enterIframeContext()
-    setSearch("?kidsMode=on")
+    setLocation("/api/books/demo/adt/page.html", "?kidsMode=on")
 
     const firstPageStore = createStore()
     firstPageStore.set(appConfigAtom, configWithKidsMode(false))
@@ -87,7 +75,7 @@ describe("kidsModeActiveAtom", () => {
 
     // Simulate the next page turn: fresh store (new document/runtime boot),
     // query string gone, but sessionStorage carries the override forward.
-    setSearch("")
+    setLocation("/api/books/demo/adt/next.html")
     const secondPageStore = createStore()
     secondPageStore.set(appConfigAtom, configWithKidsMode(false))
     expect(secondPageStore.get(kidsModeActiveAtom)).toBe(true)

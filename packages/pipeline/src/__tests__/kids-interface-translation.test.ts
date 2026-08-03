@@ -73,7 +73,6 @@ describe("translateKidsInterface", () => {
     const result = await translateKidsInterface({
       bookDir,
       webAssetsDir,
-      sourceLanguage: "en",
       targetLanguages: ["en", "pt-BR"], // en is the source → skipped
       appConfig: {} as never,
       llmModel: mockModel(),
@@ -113,7 +112,6 @@ describe("translateKidsInterface", () => {
     const result = await translateKidsInterface({
       bookDir,
       webAssetsDir,
-      sourceLanguage: "en",
       targetLanguages: ["pt-BR"],
       appConfig: {} as never,
       llmModel: model,
@@ -136,7 +134,6 @@ describe("translateKidsInterface", () => {
     const result = await translateKidsInterface({
       bookDir,
       webAssetsDir,
-      sourceLanguage: "en",
       targetLanguages: ["pt-BR"],
       appConfig: {} as never,
       llmModel: mockModel(),
@@ -158,7 +155,6 @@ describe("translateKidsInterface", () => {
     const result = await translateKidsInterface({
       bookDir,
       webAssetsDir,
-      sourceLanguage: "en",
       targetLanguages: ["pt-BR"],
       appConfig: {} as never,
       llmModel: mockModel(),

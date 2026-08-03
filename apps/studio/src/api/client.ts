@@ -11,12 +11,21 @@ import type {
   EditableActivity,
   FontAssignmentOutput,
   ExtractionWarning,
+  GenerateKidsVoiceRequest,
+  KidsBuddyVoiceOverride,
+  KidsModeConfig,
+  KidsVoiceGenerationSummary,
+  KidsVoiceOverrideRequest,
+  KidsVoiceStatus,
+  KidsVoicesResponse,
   ReviewerPageValidationRecord,
   ReviewerValidationIdentificationField,
   ReviewerValidationInstruction,
   ReviewerValidationSection,
   ReviewerValidationSession,
   TranslationEvaluationResult,
+  TranslateKidsInterfaceRequest,
+  TranslateKidsInterfaceResponse,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 
@@ -224,51 +233,12 @@ export interface RunStagesOptions {
   pageErrorPolicy?: "ask" | "stop"
 }
 
-export interface KidsModeConfig {
-  enabled: boolean
-  buddies: string[]
-}
-
-export interface KidsVoiceLanguageStatus {
-  language: string
-  hasPack: boolean
-  clipCount: number
-  characters: string[]
-}
-
-export interface KidsVoiceStatus {
-  languages: KidsVoiceLanguageStatus[]
-}
-
-export interface KidsVoiceClipSummary {
-  language: string
-  character: string
-  lineKey: string
-  fileName: string
-  cached: boolean
-}
-
-export interface KidsVoiceGenerationSummary {
-  languages: string[]
-  characters: string[]
-  model: string
-  total: number
-  generated: number
-  cachedHits: number
-  dryRun: boolean
-  clips: KidsVoiceClipSummary[]
-}
-
-export interface KidsBuddyVoiceOverride {
-  id: string
-  voice: string
-  instructions: string
-  isDefault: boolean
-}
-
-export interface KidsVoicesResponse {
-  voices: string[]
-  buddies: KidsBuddyVoiceOverride[]
+export type {
+  KidsBuddyVoiceOverride,
+  KidsModeConfig,
+  KidsVoiceGenerationSummary,
+  KidsVoiceStatus,
+  KidsVoicesResponse,
 }
 
 function buildApiHeaders(
@@ -897,7 +867,7 @@ export const api = {
 
   generateKidsVoice: (
     label: string,
-    body: { languages?: string[]; characters?: string[]; dryRun?: boolean },
+    body: GenerateKidsVoiceRequest,
     apiKey?: string,
   ) =>
     request<KidsVoiceGenerationSummary>(`/books/${label}/kids-voice/generate`, {
@@ -908,10 +878,10 @@ export const api = {
 
   translateKidsInterface: (
     label: string,
-    body: { languages?: string[] },
+    body: TranslateKidsInterfaceRequest,
     apiKey?: string,
   ) =>
-    request<{ languages: string[]; keyCount: number }>(
+    request<TranslateKidsInterfaceResponse>(
       `/books/${label}/kids-interface/translate`,
       {
         method: "POST",
@@ -926,7 +896,7 @@ export const api = {
   updateKidsBuddyVoice: (
     label: string,
     buddyId: string,
-    body: { voice: string; instructions: string },
+    body: KidsVoiceOverrideRequest,
   ) =>
     request<KidsBuddyVoiceOverride>(`/books/${label}/kids-voices/${buddyId}`, {
       method: "PUT",

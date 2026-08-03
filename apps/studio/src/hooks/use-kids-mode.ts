@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import type { KidsOpenAiVoice } from "@adt/types/kids"
 import { api, type KidsModeConfig } from "@/api/client"
 
 export function useKidsMode(bookLabel: string) {
@@ -80,7 +81,7 @@ export function useUpdateKidsBuddyVoice(bookLabel: string) {
   return useMutation({
     mutationFn: (options: {
       buddyId: string
-      voice: string
+      voice: KidsOpenAiVoice
       instructions: string
     }) =>
       api.updateKidsBuddyVoice(bookLabel, options.buddyId, {

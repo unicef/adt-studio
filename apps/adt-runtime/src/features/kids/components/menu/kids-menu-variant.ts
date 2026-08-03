@@ -1,10 +1,12 @@
+import { isKidsPreviewContext } from "@/features/kids/lib/kids-preview"
+
 /**
  * Which buddy-menu design to render.
  *
  * Three interaction models ship side by side while the team decides which one
- * children get on with. The choice comes from the temporary dev switch in the
- * reader and can be forced with `?kidsMenu=<id>` for review; it is stored per
- * reader, never in the book config.
+ * children get on with. The choice comes from the temporary preview-only
+ * switch and can be forced with `?kidsMenu=<id>` for review; it is stored per
+ * browser, never in the book config.
  */
 export const KIDS_MENU_VARIANTS = ["classic", "chat", "shelf"] as const
 
@@ -23,7 +25,7 @@ export function isKidsMenuVariant(
 
 /** Drops the query override so a stored choice can take effect again. */
 export function clearKidsMenuVariantOverride(): void {
-  if (typeof window === "undefined") return
+  if (!isKidsPreviewContext()) return
   try {
     const url = new URL(window.location.href)
     if (!url.searchParams.has("kidsMenu")) return
@@ -39,7 +41,7 @@ export function clearKidsMenuVariantOverride(): void {
  * jump straight to one design.
  */
 export function getKidsMenuVariantOverride(): KidsMenuVariant | null {
-  if (typeof window === "undefined") return null
+  if (!isKidsPreviewContext()) return null
   try {
     const fromQuery = new URLSearchParams(window.location.search).get(
       "kidsMenu",

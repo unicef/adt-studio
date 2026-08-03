@@ -1394,8 +1394,11 @@ msgstr "Appears on pages {0}"
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Application Programming Interface — a set of rules that allows programs to communicate."
 
-msgid "Applies to the live preview and every exported format — readers can't turn it off."
-msgstr "Applies to the live preview and every exported format — readers can't turn it off."
+#~ msgid "Applies to the live preview and every exported format — readers can't turn it off."
+#~ msgstr "Applies to the live preview and every exported format — readers can't turn it off."
+
+msgid "Applies to the live preview and web book exports — readers can't turn it off."
+msgstr "Applies to the live preview and web book exports — readers can't turn it off."
 
 msgid "Apply"
 msgstr "Apply"
@@ -4521,8 +4524,11 @@ msgstr "Keys are stored locally in this browser or desktop session and are sent 
 msgid "Kids Mode"
 msgstr "Kids Mode"
 
-msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
-msgstr "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
+#~ msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
+#~ msgstr "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
+
+msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setting is baked into the live preview and web book exports, so readers can't turn Kids Mode off."
+msgstr "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setting is baked into the live preview and web book exports, so readers can't turn Kids Mode off."
 
 #. placeholder {0}: afterPage.pageNumber
 msgid "Knowledge check generated from the source pages, after page {0}."

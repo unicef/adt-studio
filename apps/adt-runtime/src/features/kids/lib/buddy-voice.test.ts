@@ -4,6 +4,8 @@ import {
   clearKidsVoiceCache,
   loadKidsVoiceManifest,
   playBuddyLine,
+  playBuddyLineToEnd,
+  stopBuddyLine,
 } from "@/features/kids/lib/buddy-voice"
 
 const MANIFEST = {
@@ -23,6 +25,8 @@ class AudioMock {
   }
   play = vi.fn(() => Promise.resolve())
   pause = vi.fn()
+  addEventListener = vi.fn()
+  removeEventListener = vi.fn()
 }
 
 beforeEach(() => {
@@ -100,6 +104,22 @@ describe("buddy-voice", () => {
     await playBuddyLine("en", "dino", "kids-buddy-greet")
     await playBuddyLine("en", "dino", "kids-buddy-greet")
     expect(AudioMock.instances).toHaveLength(2)
+    expect(AudioMock.instances[0]?.pause).toHaveBeenCalled()
+  })
+
+  it("settles wait-for-finish playback when a newer action interrupts it", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({ ok: true, json: () => Promise.resolve(MANIFEST) }),
+      ),
+    )
+
+    const playback = playBuddyLineToEnd("en", "dino", "kids-buddy-greet")
+    await vi.waitFor(() => expect(AudioMock.instances).toHaveLength(1))
+    stopBuddyLine()
+
+    await expect(playback).resolves.toBeUndefined()
     expect(AudioMock.instances[0]?.pause).toHaveBeenCalled()
   })
 })

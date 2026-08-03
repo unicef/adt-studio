@@ -16,7 +16,7 @@ import {
   persistedStringAtom,
 } from "@/shared/state/persist"
 import {
-  BUDDY_BACKGROUNDS,
+  DEFAULT_BUDDY_BACKGROUND,
   KIDS_CHARACTERS,
   type KidsCharacterId,
 } from "@/features/kids/lib/characters"
@@ -51,7 +51,7 @@ export interface KidsBuddyConfig {
 
 export const kidsBuddyAtom = persistedJsonAtom<KidsBuddyConfig>("kidsBuddy", {
   character: KIDS_CHARACTERS[0].id,
-  backgroundColor: BUDDY_BACKGROUNDS[0].value,
+  backgroundColor: DEFAULT_BUDDY_BACKGROUND,
 })
 
 export const kidsPlayerNameAtom = persistedStringAtom("kidsPlayerName", "")
@@ -70,9 +70,9 @@ export const kidsAvatarAtom = persistedJsonAtom<KidsAvatarConfig>(
 // Whether the buddy chats unprompted while the child reads (idle chatter).
 export const kidsBuddyChatterAtom = persistedBoolAtom("kidsBuddyChatter", true)
 
-// Which buddy-menu design this reader sees. Three ship side by side while the
-// team decides which one children get on with; the temporary dev switch in the
-// reader writes it. A `?kidsMenu=` query parameter overrides it for review.
+// Which buddy-menu design the author preview shows. Three ship side by side
+// while the team decides which one children get on with; the temporary switch
+// and `?kidsMenu=` override are restricted to Studio/dev preview contexts.
 const storedMenuVariantAtom = persistedStringAtom(
   "kidsMenuVariant",
   DEFAULT_KIDS_MENU_VARIANT,

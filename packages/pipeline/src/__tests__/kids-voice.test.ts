@@ -3,11 +3,7 @@ import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { KIDS_NARRATOR_ID, getKidsNarratorLines, getKidsSpeakableLines } from "@adt/types"
-import {
-  computeKidsVoicePackFingerprint,
-  generateKidsVoicePack,
-  resolveKidsLineText,
-} from "../kids-voice.js"
+import { generateKidsVoicePack, resolveKidsLineText } from "../kids-voice.js"
 
 let tmpDir: string
 
@@ -406,65 +402,5 @@ describe("generateKidsVoicePack — narrator track", () => {
     const manifestPath = path.join(tmpDir, "kids-voice", "en", "manifest.json")
     const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"))
     expect(Object.keys(manifest.characters)).not.toContain(KIDS_NARRATOR_ID)
-  })
-})
-
-describe("computeKidsVoicePackFingerprint", () => {
-  it("changes when a voice override is supplied and is stable when omitted", () => {
-    const base = {
-      language: "en",
-      characters: ["dino"],
-      dict: {},
-      model: "gpt-4o-mini-tts",
-    }
-
-    const withoutOverride = computeKidsVoicePackFingerprint(base)
-    const sameAgain = computeKidsVoicePackFingerprint(base)
-    expect(sameAgain).toBe(withoutOverride)
-
-    const withOverride = computeKidsVoicePackFingerprint({
-      ...base,
-      voiceOverrides: {
-        dino: { voice: "nova", instructions: "A completely different tone." },
-      },
-    })
-    expect(withOverride).not.toBe(withoutOverride)
-  })
-
-  it("changes when the narrator voice for that language changes", () => {
-    const base = {
-      language: "en",
-      characters: ["dino"],
-      dict: {},
-      model: "gpt-4o-mini-tts",
-    }
-
-    const withoutNarrator = computeKidsVoicePackFingerprint(base)
-
-    const withNarrator = computeKidsVoicePackFingerprint({
-      ...base,
-      narratorVoiceByLanguage: {
-        en: { voice: "alloy", instructions: "Neutral narrator." },
-      },
-    })
-    expect(withNarrator).not.toBe(withoutNarrator)
-
-    const withDifferentNarratorVoice = computeKidsVoicePackFingerprint({
-      ...base,
-      narratorVoiceByLanguage: {
-        en: { voice: "nova", instructions: "Neutral narrator." },
-      },
-    })
-    expect(withDifferentNarratorVoice).not.toBe(withNarrator)
-
-    // A narrator entry for a different language doesn't affect this
-    // language's fingerprint.
-    const withOtherLanguageNarrator = computeKidsVoicePackFingerprint({
-      ...base,
-      narratorVoiceByLanguage: {
-        es: { voice: "nova", instructions: "Neutral narrator." },
-      },
-    })
-    expect(withOtherLanguageNarrator).toBe(withoutNarrator)
   })
 })

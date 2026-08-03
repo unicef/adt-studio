@@ -4,8 +4,8 @@ import { createHash } from "node:crypto"
 import { pathToFileURL } from "node:url"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { isTtsExcluded, parseBookLabel } from "@adt/types"
-import { readKidsModeConfig, type KidsModeConfig } from "./kids-voice.js"
+import { isTtsExcluded, parseBookLabel, type KidsModeConfig } from "@adt/types"
+import { readKidsModeConfig } from "../services/kids-mode-service.js"
 import {
   WebRenderingOutput,
   type SpeechConfig,

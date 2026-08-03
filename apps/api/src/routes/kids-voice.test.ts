@@ -234,6 +234,115 @@ describe("PUT /books/:label/kids-voices/:buddyId", () => {
     })
     expect(res.status).toBe(404)
   })
+
+  it("invalidates that buddy's baked clips when its voice changes", async () => {
+    createTestBook("book-stale")
+    const languageDir = path.join(
+      booksDir,
+      "book-stale",
+      "kids-voice",
+      "en",
+    )
+    const buddyDir = path.join(languageDir, "dino")
+    fs.mkdirSync(buddyDir, { recursive: true })
+    fs.writeFileSync(path.join(buddyDir, "kids-buddy-greet.mp3"), "old")
+    fs.writeFileSync(
+      path.join(languageDir, "manifest.json"),
+      JSON.stringify({
+        version: 1,
+        characters: {
+          dino: { "kids-buddy-greet": "dino/kids-buddy-greet.mp3" },
+          cat: { "kids-buddy-greet": "cat/kids-buddy-greet.mp3" },
+        },
+      }),
+    )
+
+    const app = makeApp()
+    const res = await app.request("/books/book-stale/kids-voices/dino", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voice: "nova", instructions: "New voice." }),
+    })
+
+    expect(res.status).toBe(200)
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(languageDir, "manifest.json"), "utf8"),
+    )
+    expect(manifest.characters.dino).toBeUndefined()
+    expect(manifest.characters.cat).toBeDefined()
+    expect(fs.existsSync(buddyDir)).toBe(false)
+  })
+})
+
+describe("GET/PUT /books/:label/kids-mode", () => {
+  it("defaults off with the full roster and persists a valid selection", async () => {
+    createTestBook("book-mode")
+    const app = makeApp()
+
+    const initial = await app.request("/books/book-mode/kids-mode")
+    expect(initial.status).toBe(200)
+    expect(await initial.json()).toEqual({
+      enabled: false,
+      buddies: KIDS_BUDDIES.map((buddy) => buddy.id),
+    })
+
+    const update = await app.request("/books/book-mode/kids-mode", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: true, buddies: ["cat", "dino"] }),
+    })
+    expect(update.status).toBe(200)
+    expect(await update.json()).toEqual({
+      enabled: true,
+      buddies: ["cat", "dino"],
+    })
+  })
+
+  it("rejects duplicate buddy ids", async () => {
+    createTestBook("book-duplicates")
+    const app = makeApp()
+    const res = await app.request("/books/book-duplicates/kids-mode", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: true, buddies: ["cat", "cat"] }),
+    })
+    expect(res.status).toBe(400)
+  })
+})
+
+describe("GET /books/:label/kids-voice", () => {
+  it("does not report a narrator-only manifest as a ready buddy pack", async () => {
+    createTestBook("book-narrator-only")
+    const languageDir = path.join(
+      booksDir,
+      "book-narrator-only",
+      "kids-voice",
+      "en",
+    )
+    fs.mkdirSync(languageDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(languageDir, "manifest.json"),
+      JSON.stringify({
+        version: 1,
+        characters: {
+          narrator: {
+            "kids-onboarding-welcome-title":
+              "narrator/kids-onboarding-welcome-title.mp3",
+          },
+        },
+      }),
+    )
+
+    const res = await makeApp().request(
+      "/books/book-narrator-only/kids-voice",
+    )
+    expect(res.status).toBe(200)
+    expect((await res.json()).languages[0]).toMatchObject({
+      language: "en",
+      hasPack: false,
+      characters: [],
+    })
+  })
 })
 
 describe("DELETE /books/:label/kids-voices/:buddyId", () => {

@@ -12,11 +12,15 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { z } from "zod"
 import {
+  GenerateKidsVoiceRequestSchema,
   KIDS_BUDDY_IDS,
   KIDS_OPENAI_VOICES,
   KIDS_VOICE_DIR,
+  KIDS_VOICE_MANIFEST_VERSION,
+  KidsModeConfigSchema,
+  KidsVoiceOverrideRequestSchema,
+  TranslateKidsInterfaceRequestSchema,
   parseBookLabel,
   resolveKidsBuddyVoice,
   type KidsBuddyVoiceConfig,
@@ -35,63 +39,12 @@ import {
   resolveVoice,
   translateKidsInterface,
 } from "@adt/pipeline"
-
-const GenerateKidsVoiceBody = z
-  .object({
-    languages: z.array(z.string().min(1)).optional(),
-    characters: z.array(z.string().min(1)).optional(),
-    dryRun: z.boolean().optional(),
-  })
-  .strict()
-
-const TranslateKidsInterfaceBody = z
-  .object({
-    languages: z.array(z.string().min(1)).optional(),
-  })
-  .strict()
-
-const KidsModeConfigBody = z
-  .object({
-    enabled: z.boolean(),
-    buddies: z
-      .array(z.enum(KIDS_BUDDY_IDS as unknown as [string, ...string[]]))
-      .min(1),
-  })
-  .strict()
-
-export interface KidsModeConfig {
-  enabled: boolean
-  buddies: string[]
-}
-
-const KIDS_MODE_CONFIG_FILE = "kids-mode.json"
-
-const KidsVoiceOverrideBody = z
-  .object({
-    voice: z.enum(KIDS_OPENAI_VOICES as unknown as [string, ...string[]]),
-    instructions: z.string().trim().min(1),
-  })
-  .strict()
-
-const KidsVoicesConfigFile = z
-  .object({
-    overrides: z.record(
-      z.string(),
-      z
-        .object({
-          voice: z.string(),
-          instructions: z.string(),
-        })
-        .strict(),
-    ),
-  })
-  .strict()
-
-export interface KidsVoicesConfig {
-  overrides: Record<string, KidsBuddyVoiceConfig>
-}
-
-const KIDS_VOICES_CONFIG_FILE = "kids-voices.json"
+import {
+  readKidsModeConfig,
+  readKidsVoicesConfig,
+  writeKidsModeConfig,
+  writeKidsVoicesConfig,
+} from "../services/kids-mode-service.js"
 
 /**
  * Style instructions for the neutral narrator track — plain, warm reading of
@@ -139,41 +92,6 @@ function resolveBookNarrationVoices(
  * `features.kidsMode` / `features.kidsBuddies` into the packaged config —
  * the reader never toggles kids mode.
  */
-export function readKidsModeConfig(bookDir: string): KidsModeConfig {
-  const file = path.join(bookDir, KIDS_MODE_CONFIG_FILE)
-  const fallback: KidsModeConfig = { enabled: false, buddies: [...KIDS_BUDDY_IDS] }
-  if (!fs.existsSync(file)) return fallback
-  try {
-    const parsed = KidsModeConfigBody.safeParse(
-      JSON.parse(fs.readFileSync(file, "utf8")),
-    )
-    return parsed.success ? parsed.data : fallback
-  } catch {
-    return fallback
-  }
-}
-
-/**
- * Author-time per-buddy voice overrides (voice id + instructions prompt),
- * stored as a flat file in the book dir (book-level storage). Generation
- * merges these over each buddy's shared default (`resolveKidsBuddyVoice`);
- * an edit changes the TTS cache key so it triggers regeneration of that
- * buddy's clips.
- */
-export function readKidsVoicesConfig(bookDir: string): KidsVoicesConfig {
-  const file = path.join(bookDir, KIDS_VOICES_CONFIG_FILE)
-  const fallback: KidsVoicesConfig = { overrides: {} }
-  if (!fs.existsSync(file)) return fallback
-  try {
-    const parsed = KidsVoicesConfigFile.safeParse(
-      JSON.parse(fs.readFileSync(file, "utf8")),
-    )
-    return parsed.success ? parsed.data : fallback
-  } catch {
-    return fallback
-  }
-}
-
 function safeParseLabel(label: string): string {
   try {
     return parseBookLabel(label)
@@ -241,8 +159,12 @@ function loadInterfaceTranslations(
 
 function resolveCharacters(requested: string[] | undefined): string[] {
   const pool = requested ?? [...KIDS_BUDDY_IDS]
-  const known = pool.filter((id) =>
-    (KIDS_BUDDY_IDS as readonly string[]).includes(id),
+  const known = Array.from(
+    new Set(
+      pool.filter((id) =>
+        (KIDS_BUDDY_IDS as readonly string[]).includes(id),
+      ),
+    ),
   )
   if (known.length === 0) {
     throw new HTTPException(400, {
@@ -250,6 +172,50 @@ function resolveCharacters(requested: string[] | undefined): string[] {
     })
   }
   return known
+}
+
+/** Mark one buddy's baked clips stale after its voice configuration changes. */
+function invalidateKidsVoiceCharacter(bookDir: string, buddyId: string): void {
+  const root = path.join(bookDir, KIDS_VOICE_DIR)
+  if (!fs.existsSync(root)) return
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const languageDir = path.join(root, entry.name)
+    const manifestPath = path.join(languageDir, "manifest.json")
+    try {
+      if (fs.existsSync(manifestPath)) {
+        const manifest = JSON.parse(
+          fs.readFileSync(manifestPath, "utf8"),
+        ) as KidsVoiceManifest
+        if (manifest.characters?.[buddyId]) {
+          delete manifest.characters[buddyId]
+          fs.writeFileSync(
+            manifestPath,
+            `${JSON.stringify(manifest, null, 2)}\n`,
+          )
+        }
+      }
+      fs.rmSync(path.join(languageDir, buddyId), {
+        recursive: true,
+        force: true,
+      })
+    } catch {
+      // A malformed old pack is already unusable. Generation will replace it.
+    }
+  }
+}
+
+/** Translated line text changes every clip in that language. */
+function invalidateKidsVoiceLanguages(
+  bookDir: string,
+  languages: readonly string[],
+): void {
+  const root = path.resolve(bookDir, KIDS_VOICE_DIR)
+  for (const language of languages) {
+    const languageDir = path.resolve(root, language)
+    if (!languageDir.startsWith(root + path.sep)) continue
+    fs.rmSync(languageDir, { recursive: true, force: true })
+  }
 }
 
 export function createKidsVoiceRoutes(
@@ -289,7 +255,6 @@ export function createKidsVoiceRoutes(
       return await translateKidsInterface({
         bookDir: options.bookDir,
         webAssetsDir,
-        sourceLanguage: normalizeLocale(options.config.editing_language ?? "en"),
         targetLanguages: options.targetLanguages,
         appConfig: options.config,
         llmModel,
@@ -316,17 +281,14 @@ export function createKidsVoiceRoutes(
     } catch {
       throw new HTTPException(400, { message: "Invalid JSON body" })
     }
-    const parsed = KidsModeConfigBody.safeParse(body)
+    const parsed = KidsModeConfigSchema.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid kids mode config: ${parsed.error.message}`,
       })
     }
 
-    fs.writeFileSync(
-      path.join(bookDir, KIDS_MODE_CONFIG_FILE),
-      `${JSON.stringify(parsed.data, null, 2)}\n`,
-    )
+    writeKidsModeConfig(bookDir, parsed.data)
     return c.json(parsed.data)
   })
 
@@ -380,7 +342,7 @@ export function createKidsVoiceRoutes(
     } catch {
       throw new HTTPException(400, { message: "Invalid JSON body" })
     }
-    const parsed = KidsVoiceOverrideBody.safeParse(body)
+    const parsed = KidsVoiceOverrideRequestSchema.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid voice override: ${parsed.error.message}`,
@@ -392,10 +354,8 @@ export function createKidsVoiceRoutes(
       voice: parsed.data.voice,
       instructions: parsed.data.instructions,
     }
-    fs.writeFileSync(
-      path.join(bookDir, KIDS_VOICES_CONFIG_FILE),
-      `${JSON.stringify(config, null, 2)}\n`,
-    )
+    writeKidsVoicesConfig(bookDir, config)
+    invalidateKidsVoiceCharacter(bookDir, buddyId)
 
     return c.json({
       id: buddyId,
@@ -416,10 +376,8 @@ export function createKidsVoiceRoutes(
     const config = readKidsVoicesConfig(bookDir)
     if (buddyId in config.overrides) {
       delete config.overrides[buddyId]
-      fs.writeFileSync(
-        path.join(bookDir, KIDS_VOICES_CONFIG_FILE),
-        `${JSON.stringify(config, null, 2)}\n`,
-      )
+      writeKidsVoicesConfig(bookDir, config)
+      invalidateKidsVoiceCharacter(bookDir, buddyId)
     }
 
     const fallback = resolveKidsBuddyVoice(buddyId)
@@ -450,12 +408,23 @@ export function createKidsVoiceRoutes(
         const manifest = JSON.parse(
           fs.readFileSync(manifestPath, "utf8"),
         ) as KidsVoiceManifest
-        const characters = Object.keys(manifest.characters ?? {})
-        const clipCount = characters.reduce(
+        if (manifest.version !== KIDS_VOICE_MANIFEST_VERSION) {
+          return { language, hasPack: false, clipCount: 0, characters: [] }
+        }
+        const allCharacters = Object.keys(manifest.characters ?? {})
+        const characters = allCharacters.filter((id) =>
+          (KIDS_BUDDY_IDS as readonly string[]).includes(id),
+        )
+        const clipCount = allCharacters.reduce(
           (sum, id) => sum + Object.keys(manifest.characters[id] ?? {}).length,
           0,
         )
-        return { language, hasPack: true, clipCount, characters }
+        return {
+          language,
+          hasPack: characters.length > 0,
+          clipCount,
+          characters,
+        }
       } catch {
         return { language, hasPack: false, clipCount: 0, characters: [] }
       }
@@ -477,7 +446,7 @@ export function createKidsVoiceRoutes(
         throw new HTTPException(400, { message: "Invalid JSON body" })
       }
     }
-    const parsed = GenerateKidsVoiceBody.safeParse(body)
+    const parsed = GenerateKidsVoiceRequestSchema.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid kids-voice request: ${parsed.error.message}`,
@@ -494,10 +463,14 @@ export function createKidsVoiceRoutes(
 
     const config = loadBookConfig(safeLabel, booksDir, configPath)
     const bookLanguages = getBookLanguages(safeLabel, booksDir, configPath)
-    const languages = (
-      parsed.data.languages?.map((code) => normalizeLocale(code)) ??
-      bookLanguages
-    ).filter((code) => bookLanguages.includes(code))
+    const languages = Array.from(
+      new Set(
+        (
+          parsed.data.languages?.map((code) => normalizeLocale(code)) ??
+          bookLanguages
+        ).filter((code) => bookLanguages.includes(code)),
+      ),
+    )
     if (languages.length === 0) {
       throw new HTTPException(400, {
         message: `No requested language is configured for this book (configured: ${bookLanguages.join(", ")})`,
@@ -608,7 +581,7 @@ export function createKidsVoiceRoutes(
         throw new HTTPException(400, { message: "Invalid JSON body" })
       }
     }
-    const parsed = TranslateKidsInterfaceBody.safeParse(body)
+    const parsed = TranslateKidsInterfaceRequestSchema.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid translate request: ${parsed.error.message}`,
@@ -617,10 +590,14 @@ export function createKidsVoiceRoutes(
 
     const config = loadBookConfig(safeLabel, booksDir, configPath)
     const bookLanguages = getBookLanguages(safeLabel, booksDir, configPath)
-    const targetLanguages = (
-      parsed.data.languages?.map((code) => normalizeLocale(code)) ??
-      bookLanguages
-    ).filter((code) => bookLanguages.includes(code))
+    const targetLanguages = Array.from(
+      new Set(
+        (
+          parsed.data.languages?.map((code) => normalizeLocale(code)) ??
+          bookLanguages
+        ).filter((code) => bookLanguages.includes(code)),
+      ),
+    )
 
     try {
       const result = await runKidsInterfaceTranslation({
@@ -631,6 +608,7 @@ export function createKidsVoiceRoutes(
         openaiApiKey,
         force: true,
       })
+      invalidateKidsVoiceLanguages(bookDir, result.languages)
       return c.json(result)
     } catch (err) {
       throw new HTTPException(502, {

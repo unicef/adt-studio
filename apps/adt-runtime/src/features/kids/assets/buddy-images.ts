@@ -23,6 +23,7 @@
  * Because the sets are plain book-relative URLs (not bundled data URLs),
  * future user-created characters follow the same numbering and folder layout.
  */
+import { KIDS_BUDDIES } from "@adt/types/kids"
 
 export type BuddyExpression =
   | "standing"
@@ -78,13 +79,14 @@ function buddyImageSet(
   }
 }
 
-export const BUDDY_IMAGE_SETS: readonly BuddyImageSet[] = [
-  buddyImageSet("dino", "Dinosaur", "Rex"),
-  buddyImageSet("robot", "Robot", "Bolt"),
-  buddyImageSet("bunny", "Bunny", "Pip"),
-  buddyImageSet("cat", "Cat", "Luna"),
-  buddyImageSet("alien", "Alien", "Zibby"),
-]
+export const BUDDY_IMAGE_SETS: readonly BuddyImageSet[] = KIDS_BUDDIES.map(
+  (buddy) =>
+    buddyImageSet(
+      buddy.id,
+      buddy.labelFallback,
+      buddy.defaultNameFallback,
+    ),
+)
 
 export function getBuddyImages(id: string): BuddyImageSet {
   return BUDDY_IMAGE_SETS.find((s) => s.id === id) ?? BUDDY_IMAGE_SETS[0]
