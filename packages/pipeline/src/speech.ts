@@ -50,6 +50,52 @@ export function isSpeakableText(text: string): boolean {
   return /[\p{L}\p{N}]/u.test(text)
 }
 
+/**
+ * Spoken form of a mathematical operator that carries meaning but no letter or
+ * number. In a maths textbook these appear as their own text leaf — the "×" in
+ * a columnar sum is a table cell of its own — so `isSpeakableText` rejects them
+ * and the learner hears nothing where the operator should be.
+ *
+ * `latexToSpeech` cannot help: it gates on `containsMathNotation`, which needs a
+ * LaTeX command or `$…$` delimiters. A bare Unicode operator was never LaTeX, so
+ * it passes through untouched.
+ */
+const STANDALONE_MATH_WORDS: Record<string, string> = {
+  "×": "times",
+  "x": "times",
+  "*": "times",
+  "÷": "divided by",
+  "/": "divided by",
+  "=": "equals",
+  "+": "plus",
+  "−": "minus",
+  "-": "minus",
+  "<": "is less than",
+  ">": "is greater than",
+  "≤": "is less than or equal to",
+  "≥": "is greater than or equal to",
+  "≠": "is not equal to",
+  "±": "plus or minus",
+  "%": "percent",
+}
+
+/**
+ * Expand an operator-only entry to its spoken word, e.g. "×" → "times".
+ *
+ * Deliberately applied ONLY to text that is otherwise unspeakable. Rewriting
+ * operators inside ordinary sentences would change `computeSpeechCacheKey` for
+ * every entry containing one and force the whole book to re-synthesize; entries
+ * caught here have no audio in the first place, so nothing is invalidated.
+ *
+ * Returns the input unchanged when it is already speakable or is not a bare
+ * operator.
+ */
+export function expandStandaloneMathSymbol(text: string): string {
+  const trimmed = text.trim()
+  if (!trimmed || isSpeakableText(trimmed)) return text
+  return STANDALONE_MATH_WORDS[trimmed] ?? text
+}
+
 // ---------------------------------------------------------------------------
 // Voice resolution
 // ---------------------------------------------------------------------------
@@ -353,7 +399,7 @@ export async function generateSpeechFile(
   } = options
 
   // Strip emojis, convert any LaTeX to a spoken form, and validate
-  const sanitized = latexToSpeech(stripEmojis(text)).trim()
+  const sanitized = expandStandaloneMathSymbol(latexToSpeech(stripEmojis(text)).trim())
   if (!isSpeakableText(sanitized)) return null
 
   const safeTextId = assertSafeSegment(textId, SAFE_TEXT_ID_RE, "text id")
@@ -498,7 +544,7 @@ export async function generatePageSpeechFiles(
   const usable = entries
     .map((e) => ({
       id: assertSafeSegment(e.id, SAFE_TEXT_ID_RE, "text id"),
-      text: latexToSpeech(stripEmojis(e.text)).trim(),
+      text: expandStandaloneMathSymbol(latexToSpeech(stripEmojis(e.text)).trim()),
     }))
     .filter((e) => isSpeakableText(e.text))
   if (usable.length === 0) return []

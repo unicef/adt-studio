@@ -185,6 +185,7 @@ export {
   getDocumentedGeminiTtsRpm,
   type ResolvedGeminiTtsRateLimit,
   isSpeakableText,
+  expandStandaloneMathSymbol,
   stripEmojis,
   loadVoicesConfig,
   loadSpeechInstructions,

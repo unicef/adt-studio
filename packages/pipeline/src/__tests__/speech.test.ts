@@ -5,6 +5,7 @@ import os from "node:os"
 import {
   stripEmojis,
   isSpeakableText,
+  expandStandaloneMathSymbol,
   resolveVoice,
   resolveInstructions,
   resolveSpeechModel,
@@ -86,6 +87,38 @@ describe("isSpeakableText", () => {
 // ---------------------------------------------------------------------------
 // resolveVoice
 // ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// expandStandaloneMathSymbol
+// ---------------------------------------------------------------------------
+
+describe("expandStandaloneMathSymbol", () => {
+  it("gives a bare operator its spoken word", () => {
+    expect(expandStandaloneMathSymbol("×")).toBe("times")
+    expect(expandStandaloneMathSymbol("÷")).toBe("divided by")
+    expect(expandStandaloneMathSymbol("=")).toBe("equals")
+    expect(expandStandaloneMathSymbol("≠")).toBe("is not equal to")
+  })
+
+  it("makes an operator-only entry speakable", () => {
+    expect(isSpeakableText("×")).toBe(false)
+    expect(isSpeakableText(expandStandaloneMathSymbol("×"))).toBe(true)
+  })
+
+  it("tolerates surrounding whitespace", () => {
+    expect(expandStandaloneMathSymbol("  ×  ")).toBe("times")
+  })
+
+  it("leaves already-speakable text untouched, keeping its cache key stable", () => {
+    expect(expandStandaloneMathSymbol("3 × 4 = 12")).toBe("3 × 4 = 12")
+    expect(expandStandaloneMathSymbol("hello")).toBe("hello")
+  })
+
+  it("leaves unmapped punctuation alone", () => {
+    expect(expandStandaloneMathSymbol("—")).toBe("—")
+    expect(expandStandaloneMathSymbol("...")).toBe("...")
+  })
+})
 
 describe("resolveVoice", () => {
   const voiceMaps: VoiceMaps = {
