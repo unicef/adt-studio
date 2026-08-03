@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { QualifiedModelId } from "./model-id.js"
 import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
 import { ReviewerValidationConfig } from "./reviewer-validation-config.js"
@@ -17,11 +18,7 @@ export const DEFAULT_OPENAI_TTS_MODEL_ID = "gpt-4o-mini-tts"
  */
 export const DEFAULT_BASE_PROMPT_MODEL_ID = "openai:gpt-5.4"
 
-export const LLMModelId = z
-  .string()
-  .trim()
-  .regex(/^[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/)
-  .transform((value) => value.toLowerCase())
+export const LLMModelId = QualifiedModelId
 export type LLMModelId = z.infer<typeof LLMModelId>
 
 export const SpeechGenerationModelId = z
