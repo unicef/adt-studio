@@ -6,6 +6,7 @@ import mdx from 'fumadocs-mdx/vite';
 import { nitro } from 'nitro/vite';
 import { lingui } from '@lingui/vite-plugin';
 import * as babel from '@babel/core';
+import { LOCALES } from './src/i18n/locales';
 
 /**
  * @vitejs/plugin-react v6 transforms with oxc and no longer accepts a `babel`
@@ -67,6 +68,7 @@ export default defineConfig({
         { path: '/releases' },
         { path: '/docs' },
         { path: '/api/search' },
+        ...LOCALES.map((locale) => ({ path: `/llms-full/${locale}.txt` })),
       ],
     }),
     linguiMacro(),
