@@ -1,11 +1,17 @@
 import {
+  PUBLISH_AUTHOR_NAME_HEADER,
   PublicationCreateResponse,
   PublicationDetail,
   PublicationResponse,
   PublicationVersionCreateResponse,
+  PublishCommentListResponse,
+  PublishCommentResponse,
   PublishErrorResponse,
   type PublicationCreateRequest,
   type PublicationPageEntry,
+  type PublishCommentCreateRequest,
+  type PublishCommentListQuery,
+  type PublishCommentResolveRequest,
   type PublishErrorCode,
 } from "@adt/types"
 import type { FetchLike } from "./cloudflare/client.js"
@@ -46,6 +52,37 @@ export interface PublishWorkerClient {
   revoke(token: string): Promise<PublicationResponse>
   setExpiry(token: string, expiresAt: string | null): Promise<PublicationResponse>
   getPublication(token: string): Promise<PublicationDetail>
+  listComments(
+    token: string,
+    query: PublishCommentListQuery,
+    authorName?: string,
+  ): Promise<PublishCommentListResponse>
+  createComment(
+    token: string,
+    request: PublishCommentCreateRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
+  resolveComment(
+    token: string,
+    id: string,
+    request: PublishCommentResolveRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
+}
+
+function commentQueryString(query: PublishCommentListQuery): string {
+  const params = new URLSearchParams()
+  if (query.page_section_id !== undefined) params.set("page_section_id", query.page_section_id)
+  if (query.version !== undefined) params.set("version", String(query.version))
+  if (query.include_resolved !== undefined) {
+    params.set("include_resolved", query.include_resolved ? "true" : "false")
+  }
+  const search = params.toString()
+  return search.length === 0 ? "" : `?${search}`
+}
+
+function authorHeaders(authorName: string | undefined): Record<string, string> {
+  return authorName === undefined ? {} : { [PUBLISH_AUTHOR_NAME_HEADER]: authorName }
 }
 
 export interface PublishWorkerClientOptions {
@@ -173,6 +210,38 @@ export function createPublishWorkerClient({
         { method: "GET" },
         PublicationDetail,
       )) as PublicationDetail
+    },
+
+    async listComments(token, query, authorName) {
+      return (await request(
+        `/p/${token}/comments${commentQueryString(query)}`,
+        { method: "GET", headers: authorHeaders(authorName) },
+        PublishCommentListResponse,
+      )) as PublishCommentListResponse
+    },
+
+    async createComment(token, createRequest, authorName) {
+      return (await request(
+        `/p/${token}/comments`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json", ...authorHeaders(authorName) },
+          body: JSON.stringify(createRequest),
+        },
+        PublishCommentResponse,
+      )) as PublishCommentResponse
+    },
+
+    async resolveComment(token, id, resolveRequest, authorName) {
+      return (await request(
+        `/p/${token}/comments/${encodeURIComponent(id)}/resolve`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json", ...authorHeaders(authorName) },
+          body: JSON.stringify(resolveRequest),
+        },
+        PublishCommentResponse,
+      )) as PublishCommentResponse
     },
   }
 }

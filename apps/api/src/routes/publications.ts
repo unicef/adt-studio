@@ -4,9 +4,14 @@ import { Hono } from "hono"
 import type { Context } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { streamSSE } from "hono/streaming"
+import type { ContentfulStatusCode } from "hono/utils/http-status"
 import {
   BookPublishRequest,
+  PUBLISH_AUTHOR_NAME_HEADER,
   PublicationExpiryUpdateRequest,
+  PublishCommentCreateRequest,
+  PublishCommentListQuery,
+  PublishCommentResolveRequest,
   parseBookLabel,
   type BookPublicationRecord,
   type BookPublicationStatus,
@@ -321,7 +326,89 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     return c.json(response)
   })
 
+  /** §5.3 author proxies. They add `MGMT_SECRET` on the way out so the browser never holds
+   *  it, and they answer with the worker's own error envelope so a rejected comment write is
+   *  not laundered into a publish-step code. */
+  const authorProxy = async (
+    c: Context,
+    rawLabel: string,
+    call: (client: PublishWorkerClient, token: string, authorName?: string) => Promise<unknown>,
+  ): Promise<Response> => {
+    const label = parseBookLabel(rawLabel)
+    requireBook(label)
+
+    const connection = store.read()
+    if (!connection) {
+      return failure(
+        c,
+        412,
+        "publish_not_connected",
+        "Connect a Cloudflare account before reading this book's feedback",
+      )
+    }
+
+    const record = readPublicationRecord(label, deps.booksDir)
+    if (!record) {
+      return failure(c, 409, "not_published", "This book has never been published")
+    }
+
+    const authorName = c.req.header(PUBLISH_AUTHOR_NAME_HEADER)
+    try {
+      const payload = await call(clientFor(connection), record.token, authorName)
+      return c.json(payload as Record<string, unknown>)
+    } catch (error) {
+      return proxyFailure(c, error)
+    }
+  }
+
+  // GET /books/:label/publication/comments — author read of every comment, deleted included
+  app.get("/books/:label/publication/comments", async (c) => {
+    const query = PublishCommentListQuery.safeParse(c.req.query())
+    if (!query.success) {
+      return c.json({ error: query.error.message, code: "invalid_request" }, 400)
+    }
+    return authorProxy(c, c.req.param("label"), (client, token, authorName) =>
+      client.listComments(token, query.data, authorName),
+    )
+  })
+
+  // POST /books/:label/publication/comments — author reply or new author comment
+  app.post("/books/:label/publication/comments", async (c) => {
+    const body = PublishCommentCreateRequest.safeParse(await readBody(c))
+    if (!body.success) {
+      return c.json({ error: body.error.message, code: "invalid_request" }, 400)
+    }
+    return authorProxy(c, c.req.param("label"), (client, token, authorName) =>
+      client.createComment(token, body.data, authorName),
+    )
+  })
+
+  // POST /books/:label/publication/comments/:id/resolve — author resolve or unresolve
+  app.post("/books/:label/publication/comments/:id/resolve", async (c) => {
+    const body = PublishCommentResolveRequest.safeParse(await readBody(c))
+    if (!body.success) {
+      return c.json({ error: body.error.message, code: "invalid_request" }, 400)
+    }
+    const id = c.req.param("id")
+    return authorProxy(c, c.req.param("label"), (client, token, authorName) =>
+      client.resolveComment(token, id, body.data, authorName),
+    )
+  })
+
   return app
+}
+
+function proxyFailure(c: Context, error: unknown): Response {
+  if (isPublishWorkerError(error)) {
+    if (error.unreachable) {
+      return failure(c, 502, "worker_unreachable", error.message)
+    }
+    return c.json(
+      { error: error.code ?? "internal_error", message: error.message },
+      (error.status ?? 502) as ContentfulStatusCode,
+    )
+  }
+  throw error
 }
 
 function workerFailure(c: Context, error: unknown): Response {

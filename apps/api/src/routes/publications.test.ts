@@ -4,7 +4,13 @@ import path from "node:path"
 import { Hono } from "hono"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { openBookDb } from "@adt/storage"
-import type { BookPublicationStatus, PublishProgressEvent } from "@adt/types"
+import {
+  PUBLISH_AUTHOR_NAME_HEADER,
+  type BookPublicationStatus,
+  type PublishCommentListResponse,
+  type PublishCommentResponse,
+  type PublishProgressEvent,
+} from "@adt/types"
 import { createFakePublishWorker } from "../services/fake-publish-worker.js"
 import {
   createConnectionStore,
@@ -462,5 +468,141 @@ describe("no Cloudflare connection", () => {
         code: "publish_not_connected",
       })
     }
+  })
+})
+
+describe("author comment proxies", () => {
+  async function published(): Promise<{ app: Hono; worker: ReturnType<typeof createFakePublishWorker> }> {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    return { app, worker }
+  }
+
+  it("reads comments with the management secret and passes the query through", async () => {
+    const { app, worker } = await published()
+
+    const created = await app.request(
+      `/api/books/${LABEL}/publication/comments`,
+      publishRequest({
+        page_section_id: "pg001_sec001",
+        body: "Softened the palette in this version",
+      }),
+    )
+    expect(created.status).toBe(200)
+    const createdBody = (await created.json()) as PublishCommentResponse
+    expect(createdBody.comment.author_name).toBe("Author")
+
+    const res = await app.request(
+      `/api/books/${LABEL}/publication/comments?page_section_id=pg001_sec001&include_resolved=true&version=1`,
+    )
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as PublishCommentListResponse
+    expect(body.comments.map((comment) => comment.body)).toEqual([
+      "Softened the palette in this version",
+    ])
+    expect(body.session?.is_author).toBe(true)
+
+    const listCall = worker.state.calls.find(
+      (call) => call.method === "GET" && call.path.endsWith("/comments"),
+    )
+    expect(listCall?.search).toContain("page_section_id=pg001_sec001")
+    expect(listCall?.search).toContain("include_resolved=true")
+    expect(listCall?.search).toContain("version=1")
+    expect(worker.state.bearerTokens).toContain("fake-mgmt-secret")
+  })
+
+  it("resolves a comment and forwards an author display name when the caller sends one", async () => {
+    const { app, worker } = await published()
+    const created = await app.request(
+      `/api/books/${LABEL}/publication/comments`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", [PUBLISH_AUTHOR_NAME_HEADER]: "Eliezir" },
+        body: JSON.stringify({ page_section_id: "pg001_sec001", body: "Author reply" }),
+      },
+    )
+    const comment = ((await created.json()) as PublishCommentResponse).comment
+    expect(comment.author_name).toBe("Eliezir")
+    expect(worker.state.authorNames).toContain("Eliezir")
+
+    const resolved = await app.request(
+      `/api/books/${LABEL}/publication/comments/${comment.id}/resolve`,
+      publishRequest({ resolved: true }),
+    )
+    expect(resolved.status).toBe(200)
+    const resolvedBody = (await resolved.json()) as PublishCommentResponse
+    expect(resolvedBody.comment.resolved_at).not.toBeNull()
+
+    const unresolved = await app.request(
+      `/api/books/${LABEL}/publication/comments/${comment.id}/resolve`,
+      publishRequest({ resolved: false }),
+    )
+    expect(((await unresolved.json()) as PublishCommentResponse).comment.resolved_at).toBeNull()
+  })
+
+  it("keeps the management secret out of the responses", async () => {
+    const { app } = await published()
+    const res = await app.request(`/api/books/${LABEL}/publication/comments`)
+    expect(await res.text()).not.toContain("fake-mgmt-secret")
+  })
+
+  it("passes the worker's own error envelope back on a rejected write", async () => {
+    const { app } = await published()
+    const res = await app.request(
+      `/api/books/${LABEL}/publication/comments/nope/resolve`,
+      publishRequest({ resolved: true }),
+    )
+    expect(res.status).toBe(404)
+    await expect(res.json()).resolves.toMatchObject({ error: "not_found" })
+  })
+
+  it("guards a missing book, a missing connection and a book that was never published", async () => {
+    const missingBook = await routes().request(`/api/books/no_such_book/publication/comments`)
+    expect(missingBook.status).toBe(404)
+
+    const notConnected = await routes().request(`/api/books/${LABEL}/publication/comments`)
+    expect(notConnected.status).toBe(412)
+    await expect(notConnected.json()).resolves.toMatchObject({ code: "publish_not_connected" })
+
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const notPublished = await routes({ fetchFn: worker.fetchFn }).request(
+      `/api/books/${LABEL}/publication/comments`,
+    )
+    expect(notPublished.status).toBe(409)
+    await expect(notPublished.json()).resolves.toMatchObject({ code: "not_published" })
+  })
+
+  it("rejects a malformed body and a malformed query before calling the worker", async () => {
+    const { app, worker } = await published()
+    const before = worker.state.calls.length
+
+    const badBody = await app.request(
+      `/api/books/${LABEL}/publication/comments`,
+      publishRequest({ page_section_id: "pg001_sec001", body: "   " }),
+    )
+    expect(badBody.status).toBe(400)
+
+    const badQuery = await app.request(
+      `/api/books/${LABEL}/publication/comments?version=zero`,
+    )
+    expect(badQuery.status).toBe(400)
+    expect(worker.state.calls.length).toBe(before)
+  })
+
+  it("reports an unreachable worker as 502 worker_unreachable", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    const offline = createFakePublishWorker({ unreachable: true })
+    const res = await routes({ fetchFn: offline.fetchFn }).request(
+      `/api/books/${LABEL}/publication/comments`,
+    )
+    expect(res.status).toBe(502)
+    await expect(res.json()).resolves.toMatchObject({ code: "worker_unreachable" })
   })
 })

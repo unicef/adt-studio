@@ -1,10 +1,17 @@
 import { unzipSync } from "fflate"
 import {
+  PUBLISH_AUTHOR_COLOR,
+  PUBLISH_AUTHOR_DEFAULT_NAME,
+  PUBLISH_AUTHOR_NAME_HEADER,
   PublicationCreateRequest,
   PublicationVersionCreateRequest,
+  PublishCommentCreateRequest,
+  PublishCommentResolveRequest,
   publicationStateAt,
+  type CommenterSession,
   type Publication,
   type PublicationPageEntry,
+  type PublishComment,
 } from "@adt/types"
 import type { FetchLike } from "./cloudflare/client.js"
 
@@ -21,8 +28,10 @@ export interface FakePublishedVersion {
 export interface FakePublishWorkerState {
   publications: Map<string, Publication>
   versions: Map<string, FakePublishedVersion[]>
+  comments: PublishComment[]
+  authorNames: Array<string | undefined>
   bearerTokens: string[]
-  calls: Array<{ method: string; path: string }>
+  calls: Array<{ method: string; path: string; search: string }>
 }
 
 export interface FakePublishWorkerOptions {
@@ -62,9 +71,18 @@ export function createFakePublishWorker(
   const state: FakePublishWorkerState = {
     publications: new Map(),
     versions: new Map(),
+    comments: [],
+    authorNames: [],
     bearerTokens: [],
     calls: [],
   }
+
+  const authorSession = (token: string, name: string | undefined): CommenterSession => ({
+    id: `author-${token}`,
+    name: name ?? PUBLISH_AUTHOR_DEFAULT_NAME,
+    color: PUBLISH_AUTHOR_COLOR,
+    is_author: true,
+  })
 
   const shareUrl = (token: string): string => `${baseUrl}/p/${token}/`
 
@@ -75,7 +93,11 @@ export function createFakePublishWorker(
 
     const url = new URL(input)
     const method = (init?.method ?? "GET").toUpperCase()
-    state.calls.push({ method, path: url.pathname })
+    state.calls.push({ method, path: url.pathname, search: url.search })
+
+    const headers = new Headers(init?.headers)
+    const authorName = headers.get(PUBLISH_AUTHOR_NAME_HEADER) ?? undefined
+    state.authorNames.push(authorName)
 
     const authorization = new Headers(init?.headers).get("Authorization")
     const presented = authorization?.startsWith("Bearer ")
@@ -205,6 +227,73 @@ export function createFakePublishWorker(
         versions: (state.versions.get(token) ?? []).map(toWireVersion),
         url: shareUrl(token),
       })
+    }
+
+    /** Every call from the Studio carries `MGMT_SECRET`, so the comment routes below answer
+     *  as the worker does for the author: revoked and expired publications stay readable. */
+    const commentsMatch = /^\/p\/([^/]+)\/comments$/.exec(url.pathname)
+    if (commentsMatch) {
+      const token = commentsMatch[1] as string
+      const publication = state.publications.get(token)
+      if (!publication) return json({ error: "not_found" }, 404)
+
+      if (method === "GET") {
+        const includeResolved = url.searchParams.get("include_resolved") === "true"
+        const pageSectionId = url.searchParams.get("page_section_id")
+        const version = url.searchParams.get("version")
+        const comments = state.comments.filter((comment) => {
+          if (comment.token !== token) return false
+          if (pageSectionId !== null && comment.page_section_id !== pageSectionId) return false
+          if (version !== null && comment.version !== Number(version)) return false
+          return includeResolved || comment.resolved_at === null
+        })
+        return json({ comments, session: authorSession(token, authorName) })
+      }
+
+      if (method === "POST") {
+        const parsed = PublishCommentCreateRequest.safeParse((await request.json()) as unknown)
+        if (!parsed.success) {
+          return json({ error: "invalid_request", message: parsed.error.message }, 400)
+        }
+        const comment: PublishComment = {
+          id: `comment-${state.comments.length + 1}`,
+          token,
+          version: publication.current_version,
+          page_section_id: parsed.data.page_section_id,
+          parent_id: parsed.data.parent_id ?? null,
+          session_id: `author-${token}`,
+          author_name: authorName ?? PUBLISH_AUTHOR_DEFAULT_NAME,
+          author_color: PUBLISH_AUTHOR_COLOR,
+          body: parsed.data.body,
+          anchor: parsed.data.anchor ?? null,
+          resolved_at: null,
+          edited_at: null,
+          deleted_at: null,
+          created_at: createdAt,
+        }
+        state.comments.push(comment)
+        return json({ comment }, 201)
+      }
+    }
+
+    const resolveMatch = /^\/p\/([^/]+)\/comments\/([^/]+)\/resolve$/.exec(url.pathname)
+    if (resolveMatch && method === "POST") {
+      const token = resolveMatch[1] as string
+      const id = decodeURIComponent(resolveMatch[2] as string)
+      const parsed = PublishCommentResolveRequest.safeParse((await request.json()) as unknown)
+      if (!parsed.success) {
+        return json({ error: "invalid_request", message: parsed.error.message }, 400)
+      }
+      const index = state.comments.findIndex(
+        (comment) => comment.token === token && comment.id === id,
+      )
+      if (index === -1) return json({ error: "not_found" }, 404)
+      const comment: PublishComment = {
+        ...(state.comments[index] as PublishComment),
+        resolved_at: parsed.data.resolved ? createdAt : null,
+      }
+      state.comments[index] = comment
+      return json({ comment })
     }
 
     const serveMatch = /^\/p\/([^/]+)\/?(.*)$/.exec(url.pathname)
