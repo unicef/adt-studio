@@ -135,6 +135,37 @@ describe("renderPageHtml", () => {
     expect(html).toContain('style="font-family:Arial"')
   })
 
+  it("injects the data-text-color apply script, and excludes anchors so links keep their color", () => {
+    const html = renderPageHtml({
+      content: `<p data-text-color="#111827" data-id="x">Body <a data-id="l" href="#">link</a></p>`,
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect(html).toContain('querySelectorAll("[data-text-color]")')
+    // The inherit pass must skip anchors (and their contents) so link colors
+    // are not flattened into the surrounding body/heading color.
+    expect(html).toContain('!d.closest("a")')
+  })
+
+  it("omits the data-text-color apply script when no element carries the attribute", () => {
+    const html = renderPageHtml({
+      content: `<p data-id="x">Body</p>`,
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect(html).not.toContain('querySelectorAll("[data-text-color]")')
+  })
+
   it("injects a Google Fonts stylesheet for fonts the page actually uses", () => {
     const html = renderPageHtml({
       content: `<p><span style="font-family:'Mouse Memoirs',Merriweather,serif">Hi</span></p>`,

@@ -20,30 +20,30 @@ section-wide value cannot represent both. Instead, put `data-text-color`
 directly on each heading element (`h1`/`h2` rendering a `heading`,
 `chapter_title`, `section_heading`, etc.) using the Headings color, and
 directly on each body-text element (`p` rendering `section_text`,
-`standalone_text`, etc.) using the Body Text color ? see the Page Templates
+`standalone_text`, etc.) using the Body Text color — see the Page Templates
 below for concrete examples. Exception: templates that already define their
 own distinct, non-default color scheme (e.g. the Table of Contents) should
-NOT add `data-text-color` to their custom-colored elements ? leave those to
+NOT add `data-text-color` to their custom-colored elements — leave those to
 their own explicit color classes instead of forcing the generic Headings/Body
 Text colors onto them.
 
 ## Visual Defaults
 
-These are the book-wide defaults for this styleguide. They take precedence over any generic example or convention shown elsewhere in this prompt ? apply them consistently across every page unless a specific template below explicitly overrides one of them. Headings and body text are scoped separately below: a setting under one does not affect the other.
+These are the book-wide defaults for this styleguide. They take precedence over any generic example or convention shown elsewhere in this prompt — apply them consistently across every page unless a specific template below explicitly overrides one of them. Headings and body text are scoped separately below: a setting under one does not affect the other.
 
 ### Page-level
 
 | Property | Default | Notes |
 |----------|---------|-------|
 | Background color | `#FFFFFF` | Applied via `data-background-color` on the outer container. |
-| Max paragraph width (reading column) | `max-w-7xl` | Applies to the inner container on every page ? never vary this per page. |
-| Paragraph spacing | Spacious (`space-y-8` inside a Content Card, `space-y-6` for a bare Text Group) | Vertical gap between paragraphs ? keep it consistent with the component used. |
+| Max paragraph width (reading column) | `max-w-7xl` | Applies to the inner container on every page — never vary this per page. |
+| Paragraph spacing | Spacious (`space-y-8` inside a Content Card, `space-y-6` for a bare Text Group) | Vertical gap between paragraphs — keep it consistent with the component used. |
 
 ### Headings
 
 | Property | Default | Notes |
 |----------|---------|-------|
-| Text color | `#F12929` | Applied to headings (`heading`, `chapter_title`, `section_heading`, etc.) via `data-text-color` ? does not affect the other role. |
+| Text color | `#111827` | Applied to headings (`heading`, `chapter_title`, `section_heading`, etc.) via `data-text-color` — does not affect the other role. |
 | Text alignment | Center | Only applies to headings (`heading`, `chapter_title`, `section_heading`, etc.). Only center/right-align where a template below explicitly shows it (e.g. cover/title pages, the Table of Contents). |
 | Bold / Italic / Underline | Bold | Controls whether headings (`heading`, `chapter_title`, `section_heading`, etc.) is bold/italic/underlined by default. |
 | Line-height | `leading-loose` | Applies to headings (`heading`, `chapter_title`, `section_heading`, etc.). Keep it consistent across all pages. |
@@ -52,7 +52,7 @@ These are the book-wide defaults for this styleguide. They take precedence over 
 
 | Property | Default | Notes |
 |----------|---------|-------|
-| Text color | `#3AED09` | Applied to body text (`section_text`, `standalone_text`) via `data-text-color` ? does not affect the other role. |
+| Text color | `#1F2937` | Applied to body text (`section_text`, `standalone_text`) via `data-text-color` — does not affect the other role. |
 | Text alignment | Left | Only applies to body text (`section_text`, `standalone_text`). Only center/right-align where a template below explicitly shows it (e.g. cover/title pages, the Table of Contents). |
 | Bold / Italic / Underline | Italic | Controls whether body text (`section_text`, `standalone_text`) is bold/italic/underlined by default. |
 | Line-height | `leading-relaxed` | Applies to body text (`section_text`, `standalone_text`). Keep it consistent across all pages. |
@@ -147,7 +147,7 @@ Use when page has "CHAPTER" and a number:
   <section class="w-full" data-section-id="SECTION_ID" data-section-type="text_and_single_image"
       id="simple-main" role="article">
     <div class="mx-auto w-full max-w-5xl space-y-8">
-      <!-- Chapter Badge (heading role ? data-text-color on each heading, not the section) -->
+      <!-- Chapter Badge (heading role — data-text-color on each heading, not the section) -->
       <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
         <div class="flex items-start gap-6">
           <div class="shrink-0 rounded-3xl bg-purple-200 px-6 py-5 shadow-sm">
@@ -159,7 +159,7 @@ Use when page has "CHAPTER" and a number:
           </div>
         </div>
       </div>
-      <!-- Content Card (body role ? data-text-color on each paragraph) -->
+      <!-- Content Card (body role — data-text-color on each paragraph) -->
       <div class="space-y-4 rounded-3xl bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
         <p class="text-lg md:text-xl leading-relaxed" data-text-color="BODY_TEXT_COLOR" data-id="text-1">Paragraph one.</p>
         <p class="text-lg md:text-xl leading-relaxed" data-text-color="BODY_TEXT_COLOR" data-id="text-2">Paragraph two.</p>
@@ -181,7 +181,7 @@ Use for pages with just text and images (no chapter header):
   <section class="w-full" data-section-id="SECTION_ID" data-section-type="text_and_images"
       id="simple-main" role="article">
     <div class="mx-auto w-full max-w-5xl space-y-8">
-      <!-- Text Group (body role ? data-text-color on each paragraph) -->
+      <!-- Text Group (body role — data-text-color on each paragraph) -->
       <div class="space-y-3">
         <p class="text-lg md:text-xl leading-relaxed" data-text-color="BODY_TEXT_COLOR" data-id="text-1">First paragraph.</p>
         <p class="text-lg md:text-xl leading-relaxed" data-text-color="BODY_TEXT_COLOR" data-id="text-2">Second paragraph.</p>
@@ -201,7 +201,7 @@ Use for pages with just text and images (no chapter header):
 
 ### Template: Text-Only Page (prose only, no images)
 
-Use for pages with only text ? no images, no activities (`section_type: "text_only"`):
+Use for pages with only text — no images, no activities (`section_type: "text_only"`):
 
 ```html
 <div class="container content mx-auto flex min-h-screen w-full items-center justify-center px-6 py-12"
@@ -241,7 +241,7 @@ Use for pages with only text ? no images, no activities (`section_type: "text_on
 
 Use this EXACT structure for table of contents pages. This template intentionally
 uses its own purple/gray color scheme instead of the Headings/Body Text
-defaults ? do NOT add `data-text-color` to its title, subtitle, or entries;
+defaults — do NOT add `data-text-color` to its title, subtitle, or entries;
 leave them to their own explicit color classes shown below.
 
 ```html

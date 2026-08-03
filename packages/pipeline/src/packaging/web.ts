@@ -1305,9 +1305,17 @@ ${fallbackHeadingHtml}${contentBlock}
   // element carrying the attribute, and force any descendant that does NOT
   // have its own `data-text-color` to inherit it (!important) too, so it
   // wins over incidental Tailwind color utility classes (e.g. `text-black`)
-  // the LLM may have added on its own.
-  const textColorScript = /data-text-color="[^"]*"/.test(normalizedContent)
-    ? `\n    <script>(function(){function apply(){document.querySelectorAll("[data-text-color]").forEach(function(el){var c=el.getAttribute("data-text-color");if(!c)return;el.style.setProperty("color",c,"important");el.querySelectorAll("*").forEach(function(d){if(d.closest("[data-text-color]")===el){d.style.setProperty("color","inherit","important")}})})}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",apply)}else{apply()}})();</script>`
+  // the LLM may have added on its own. Anchors (`<a>`) and their contents are
+  // deliberately excluded so links keep their own (usually distinct) color
+  // instead of being flattened into the surrounding body/heading color.
+  //
+  // NOTE: this is the injected-into-exported-HTML twin of `applyTextColors`
+  // in apps/studio's BookPreviewFrame.tsx. The two must stay behaviorally
+  // identical so the Studio preview matches the packaged output. They can't
+  // share one implementation because the frontend may not import from
+  // `packages/*` (see the layer rule in AGENTS.md); keep both in sync by hand.
+  const textColorScript = /data-text-color=/.test(normalizedContent)
+    ? `\n    <script>(function(){function apply(){document.querySelectorAll("[data-text-color]").forEach(function(el){var c=el.getAttribute("data-text-color");if(!c)return;el.style.setProperty("color",c,"important");el.querySelectorAll("*").forEach(function(d){if(d.closest("[data-text-color]")===el&&!d.closest("a")){d.style.setProperty("color","inherit","important")}})})}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",apply)}else{apply()}})();</script>`
     : ""
 
   // In embed mode, hide non-essential chrome. The React runtime mounts the

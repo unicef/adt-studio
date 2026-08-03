@@ -535,7 +535,15 @@ ${autoFitScript}
    * the attribute, and force any descendant that does NOT have its own
    * `data-text-color` to inherit it (!important) too, so it wins over
    * incidental Tailwind color utility classes (e.g. `text-black`) the LLM
-   * may have added on its own.
+   * may have added on its own. Anchors (`<a>`) and their contents are
+   * deliberately excluded so links keep their own (usually distinct) color
+   * instead of being flattened into the surrounding body/heading color.
+   *
+   * NOTE: this mirrors the injected `textColorScript` in
+   * packages/pipeline/src/packaging/web.ts so the Studio preview renders
+   * identically to the packaged/exported HTML. The two intentionally can't
+   * share one implementation because the frontend may not import from
+   * `packages/*` (see the layer rule in AGENTS.md); keep both in sync by hand.
    */
   function applyTextColors(doc: Document) {
     const colorEls = doc.querySelectorAll<HTMLElement>("[data-text-color]")
@@ -545,7 +553,7 @@ ${autoFitScript}
       el.style.setProperty("color", color, "important")
       const descendants = el.querySelectorAll<HTMLElement>("*")
       for (const d of descendants) {
-        if (d.closest("[data-text-color]") === el) {
+        if (d.closest("[data-text-color]") === el && !d.closest("a")) {
           d.style.setProperty("color", "inherit", "important")
         }
       }
