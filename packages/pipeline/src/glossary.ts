@@ -10,6 +10,7 @@ import type { Storage, PageData } from "@adt/storage"
 import { processWithConcurrency } from "./concurrency.js"
 import { getRenderSectioning } from "./render-sectioning.js"
 import { buildLanguageContext } from "./language-context.js"
+import { isInstitutionalEndMatter } from "./content-filtering.js"
 
 export interface GlossaryConfig {
   promptName: string
@@ -261,6 +262,7 @@ export function collectPageTexts(
         (s) => !sectioning || !sectioning.sections[s.sectionIndex]?.isPruned
       )
       .map((s) => s.html)
+    if (isInstitutionalEndMatter(htmlParts.join(" "))) continue
     const text = stripHtml(htmlParts.join(" "))
     if (text.length > 0) {
       result.push({ pageNumber: page.pageNumber, text })

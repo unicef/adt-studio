@@ -11,6 +11,8 @@ ADT Studio runs Gemma 4 inside the desktop app. Users do **not** need Ollama, Py
 
 The app bundle contains a pinned llama.cpp runtime (about 26 MB on macOS), not model weights. Models download on demand to Electron `userData/models/llm`. Interrupted downloads remain resumable. PDFs, images, and prompts stay on the computer.
 
+Hugging Face is the download source, not the inference runtime. Its JavaScript SDK cannot run a multi-gigabyte GGUF model by itself; ADT uses the embedded native runtime after the verified download completes.
+
 | System memory | Recommended model | Download |
 | --- | --- | ---: |
 | 8–11 GB | Gemma 4 E2B Q4 | 3.2 GB |
@@ -25,6 +27,7 @@ Recommendations are conservative starting points, not performance guarantees. Th
 - `local:*` is the default provider.
 - The API supervises a loopback-only `llama-server` process and lazily loads the selected model.
 - The existing OpenAI-compatible client is proxied internally, so text, image inputs, structured-output validation, cancellation, caching, and logs keep one provider boundary.
+- The optional image-meaningfulness LLM refinement is skipped by default for embedded local models. The deterministic image filter remains active; authors can explicitly select a model for the refinement when its extra latency is justified.
 - Ollama remains supported through `ollama:*` IDs for developers who already use it; it is never required.
 - Runtime releases, model revisions, sizes, and hashes are pinned. Model data is never shipped in the installer or exported ADT.
 
@@ -46,6 +49,8 @@ In **Local speech**, search Hugging Face or paste an `owner/model` ID/URL. ADT v
 Kokoro synthesizes WAV files during authoring. Those audio files are embedded in the final static HTML/JS ADT. Neither Kokoro nor Gemma is bundled in the export, so the ADT plays normally without an AI runtime.
 
 Current local speech is English-only. Unsupported languages must use a configured replaceable provider until a tested multilingual adapter is added.
+
+The Local AI diagnostics panel shows the selected and loaded models, runtime version, actual compute backend/device, GPU layers and model memory, context size, process ID, latency, and prompt/generation token speeds. This is operational evidence, not a hardware-performance promise.
 
 ## Build and operations
 

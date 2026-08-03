@@ -118,6 +118,11 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       const effectiveMode = isLocalModelId(modelId)
         ? opts.mode ?? "json"
         : opts.mode
+      const structuredOutputs = effectiveMode === "json"
+        ? false
+        : isLocalModelId(modelId)
+          ? true
+          : undefined
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         const hash = computeHash({
@@ -146,7 +151,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               if (rateLimiter) await rateLimiter.acquire()
               const generated = await callLLM<T>(
                 resolveModel(modelId, credentials, {
-                  structuredOutputs: effectiveMode === "json" ? false : undefined,
+                  structuredOutputs,
                 }),
                 { ...opts, mode: effectiveMode },
                 system,
@@ -164,7 +169,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             if (rateLimiter) await rateLimiter.acquire()
             const generated = await callLLM<T>(
               resolveModel(modelId, credentials, {
-                structuredOutputs: effectiveMode === "json" ? false : undefined,
+                structuredOutputs,
               }),
               { ...opts, mode: effectiveMode },
               system,

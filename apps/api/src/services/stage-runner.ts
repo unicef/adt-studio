@@ -92,6 +92,7 @@ import type { TTSSynthesizer } from "@adt/llm"
 import { STAGE_ORDER, isTtsExcluded } from "@adt/types"
 import type { PageErrorPolicy, PageErrorAction } from "@adt/types"
 import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
+import { runPackaging } from "../routes/package.js"
 import type {
   AppConfig,
   ImageClassificationOutput,
@@ -804,7 +805,35 @@ const STAGE_RUNNERS: Record<StageName, RunFn> = {
   "easy-read": runEasyReadStep,
   "translate": runTranslateStep,
   "speech": runSpeechStep,
-  "package": async () => { /* packaging handled separately */ },
+  "package": runPackageStep,
+}
+
+async function runPackageStep(
+  label: string,
+  options: StageRunOptions,
+  progress: StageRunProgress,
+): Promise<void> {
+  if (!options.webAssetsDir) throw new Error("Web assets directory is required for packaging")
+  const bookDir = path.join(path.resolve(options.booksDir), label)
+  let packageMarked = false
+  const markPackageBuilt = () => {
+    if (packageMarked) return
+    packageMarked = true
+    progress.emit({ type: "step-complete", step: "package-web" })
+    progress.emit({ type: "step-start", step: "accessibility-assessment" })
+  }
+
+  progress.emit({ type: "step-start", step: "package-web" })
+  await runPackaging(
+    label,
+    options.booksDir,
+    bookDir,
+    options.webAssetsDir,
+    options.configPath,
+    markPackageBuilt,
+  )
+  markPackageBuilt()
+  progress.emit({ type: "step-complete", step: "accessibility-assessment" })
 }
 
 /**

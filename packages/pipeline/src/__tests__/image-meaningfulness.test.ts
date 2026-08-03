@@ -91,6 +91,21 @@ describe("buildMeaningfulnessConfig", () => {
     }
     expect(buildMeaningfulnessConfig(appConfig)).not.toBeNull()
   })
+
+  it("keeps optional meaningfulness filtering off for embedded defaults", () => {
+    const appConfig: AppConfig = {
+      role_types: { section_text: "Main body text" },
+      structure_types: { paragraph: "Paragraph" },
+      default_model: "local:gemma4-12b",
+    }
+    expect(buildMeaningfulnessConfig(appConfig)).toBeNull()
+
+    appConfig.image_filters = { meaningfulness: true }
+    expect(buildMeaningfulnessConfig(appConfig)).toBeNull()
+
+    appConfig.image_meaningfulness = { model: "local:gemma4-12b" }
+    expect(buildMeaningfulnessConfig(appConfig)?.modelId).toBe("local:gemma4-12b")
+  })
 })
 
 describe("filterPageImageMeaningfulness", () => {
@@ -216,6 +231,8 @@ describe("filterPageImageMeaningfulness", () => {
     expect(capturedOptions?.context?.page_image_base64).toBe("base64page")
     expect(capturedOptions?.context?.images).toHaveLength(1)
     expect(capturedOptions?.context?.images[0].imageId).toBe("pg001_im001")
+    expect(capturedOptions?.mode).toBe("auto")
+    expect(capturedOptions?.maxTokens).toBe(256)
     expect(capturedOptions?.log?.taskType).toBe("image-meaningfulness")
     expect(capturedOptions?.log?.pageId).toBe("pg001")
   })

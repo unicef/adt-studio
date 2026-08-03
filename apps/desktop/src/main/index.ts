@@ -36,73 +36,89 @@ import { checkForUpdates } from "./services/auto-updater";
 import { initPostUpdateDetection } from "./services/update-state";
 import { setStartupError } from "./services/debug-info";
 
-protocol.registerSchemesAsPrivileged([
-  STUDIO_APP_SCHEME_PRIVILEGES,
-  HTML_RENDER_SCHEME_PRIVILEGES,
-]);
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
-app.whenReady().then(async () => {
-  const isBeta = app.getVersion().includes("-beta");
-  electronApp.setAppUserModelId(
-    isBeta ? "com.nees.adt-studio.beta" : "com.nees.adt-studio",
-  );
+if (!hasSingleInstanceLock) {
+  app.quit();
+} else {
+  protocol.registerSchemesAsPrivileged([
+    STUDIO_APP_SCHEME_PRIVILEGES,
+    HTML_RENDER_SCHEME_PRIVILEGES,
+  ]);
 
-  registerAppInfoIpc();
-  registerSplashIpc();
-  registerUpdatesIpc();
-  initPostUpdateDetection();
-
-  const splashWindow = createSplashWindow();
-
-  registerStudioAppProtocol(join(__dirname, "../renderer"));
-  registerHtmlRenderProtocol();
-  registerTitleBarIpc();
-  registerWindowCloseIpc();
-  registerFileDialogIpc();
-
-  let apiProcess: Electron.UtilityProcess;
-
-  try {
-    apiProcess = (await startApiServer()).apiProcess;
-  } catch (err) {
-    setStartupError(err);
-    throw err;
-  }
-
-  app.on("browser-window-created", (_, window) => {
-    optimizer.watchWindowShortcuts(window);
+  app.on("second-instance", () => {
+    const window = BrowserWindow.getAllWindows().find(
+      (candidate) => !candidate.isDestroyed(),
+    );
+    if (!window) return;
+    if (window.isMinimized()) window.restore();
+    window.show();
+    window.focus();
   });
 
-  apiProcess.on("message", handleScreenshotMessages(apiProcess));
-  apiProcess.on("message", handleAccessibilityAuditMessages(apiProcess));
+  app.whenReady().then(async () => {
+    const isBeta = app.getVersion().includes("-beta");
+    electronApp.setAppUserModelId(
+      isBeta ? "com.nees.adt-studio.beta" : "com.nees.adt-studio",
+    );
 
-  app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
-  });
+    registerAppInfoIpc();
+    registerSplashIpc();
+    registerUpdatesIpc();
+    initPostUpdateDetection();
 
-  ipcMain.handle("api-debug-mode", () => isApiDebugMode);
-  ipcMain.on("api-port", (event) => {
-    event.returnValue = apiPort;
-  });
+    const splashWindow = createSplashWindow();
 
-  if (isApiDebugMode) {
-    setLogForwarder((entry) => {
-      BrowserWindow.getAllWindows().forEach((win) => {
-        win.webContents.send("api-log", entry);
-      });
-    });
-  }
+    registerStudioAppProtocol(join(__dirname, "../renderer"));
+    registerHtmlRenderProtocol();
+    registerTitleBarIpc();
+    registerWindowCloseIpc();
+    registerFileDialogIpc();
 
-  const mainWindow = createMainWindow();
+    let apiProcess: Electron.UtilityProcess;
 
-  mainWindow.once("ready-to-show", () => {
-    if (!splashWindow.isDestroyed()) {
-      splashWindow.destroy();
+    try {
+      apiProcess = (await startApiServer()).apiProcess;
+    } catch (err) {
+      setStartupError(err);
+      throw err;
     }
 
-    checkForUpdates().catch(() => {});
+    app.on("browser-window-created", (_, window) => {
+      optimizer.watchWindowShortcuts(window);
+    });
+
+    apiProcess.on("message", handleScreenshotMessages(apiProcess));
+    apiProcess.on("message", handleAccessibilityAuditMessages(apiProcess));
+
+    app.on("activate", function () {
+      if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+    });
+
+    ipcMain.handle("api-debug-mode", () => isApiDebugMode);
+    ipcMain.on("api-port", (event) => {
+      event.returnValue = apiPort;
+    });
+
+    if (isApiDebugMode) {
+      setLogForwarder((entry) => {
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send("api-log", entry);
+        });
+      });
+    }
+
+    const mainWindow = createMainWindow();
+
+    mainWindow.once("ready-to-show", () => {
+      if (!splashWindow.isDestroyed()) {
+        splashWindow.destroy();
+      }
+
+      checkForUpdates().catch(() => {});
+    });
   });
-});
+}
 
 app.on("will-quit", () => {
   stopApiServer();
@@ -110,9 +126,7 @@ app.on("will-quit", () => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
-
     app.quit();
     stopApiServer();
-
   }
 });

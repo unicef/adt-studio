@@ -4,7 +4,7 @@
 
 ADT Studio has a strong product concept, strict TypeScript, a meaningful automated test suite, and unusually good pipeline observability. It is not production-ready for untrusted or multi-user hosting. The desktop/local workflow is the safest deployment model today.
 
-This branch adds tested local-first Gemma 4 and Kokoro paths. The complete 20-page Momo book completed extraction, metadata, summary, sectioning, storyboard, quizzes, captions, glossary, TOC, speech, packaging, and reader smoke testing without cloud credentials. The final static ADT has 22 reader pages, 5 quizzes, 9 glossary terms, and 118 valid local WAV files.
+This branch adds tested local-first Gemma 4 and Kokoro paths. The complete 20-page Momo book completed extraction, metadata, summary, sectioning, storyboard, quizzes, captions, glossary, TOC, speech, packaging, and reader smoke testing without cloud credentials or Ollama. The embedded Gemma 4 12B result has 22 reader pages, 5 quizzes, 13 glossary terms, and 129 valid local WAV files.
 
 ## What is good
 
@@ -104,6 +104,10 @@ This branch adds tested local-first Gemma 4 and Kokoro paths. The complete 20-pa
 
     **Recommendation:** snapshot chosen styleguide assets/config into each book and treat global assets as read-only templates.
 
+21. **Lint coverage stops at Studio.** The root `lint` script filters only `@adt/studio`; API, desktop main/preload code, and shared packages have no enforced lint target. The desktop's direct ESLint invocation currently has no applicable flat config.
+
+    **Recommendation:** add one workspace-aware flat config and CI lint targets for every shipped TypeScript package.
+
 ## Local Gemma 4 implementation
 
 - Default provider IDs: `local:gemma4-e2b`, `e4b`, `12b`, and `26b`.
@@ -114,7 +118,8 @@ This branch adds tested local-first Gemma 4 and Kokoro paths. The complete 20-pa
 - Local structured output: uses JSON mode, disables reasoning output, serializes requests, and recovers schema-echo responses so domain validation can give Gemma corrective retry feedback.
 - Local text and vision: verified through the app's authenticated loopback proxy with the official E2B GGUF and multimodal projector on Metal.
 - Runtime diagnostics: the debug panel reports the model, runtime version, backend/device, GPU layers and memory, request latency, and token speeds.
-- Historical full-PDF proof: the 20-page Momo baseline used local Gemma 4 26B through Ollama plus Kokoro. See `docs/MOMO_LOCAL_GEMMA_KOKORO_BASELINE_2026-08-02.md`. The embedded-runtime baseline is recorded separately so the two are not conflated.
+- Embedded full-PDF proof: Gemma 4 12B through bundled llama.cpp plus Kokoro completed all stages. See `docs/MOMO_EMBEDDED_GEMMA_BASELINE_2026-08-03.md`.
+- Historical comparison only: the earlier Momo baseline used Gemma 4 26B through optional Ollama. See `docs/MOMO_LOCAL_GEMMA_KOKORO_BASELINE_2026-08-02.md`.
 - Cloud improvement path: adding OpenAI credentials and selecting an OpenAI model lets the user rerun any stage; the local result remains versioned.
 
 Known capability boundary: Gemma 4 is used for text and image understanding. English speech synthesis is now available through the separate optional Kokoro/native-CPU provider; image generation and word-level speech alignment still require separate local engines or optional cloud providers.

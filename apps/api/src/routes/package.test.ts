@@ -167,6 +167,27 @@ describe("Package routes", () => {
       expect(parsed.success && parsed.data.summary.pageCount).toBe(1)
     })
 
+    it("repairs a missing accessibility result instead of trusting the disk cache", { timeout: 20_000 }, async () => {
+      const label = "book-a11y-cache-repair"
+      createRenderedBook(label)
+      createWebAssets()
+
+      const first = await app.request(`/api/books/${label}/package-adt`, { method: "POST" })
+      expect(first.status).toBe(200)
+
+      const storage = createBookStorage(label, tmpDir)
+      storage.clearNodesByType(["accessibility-assessment"])
+      expect(storage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
+      storage.close()
+
+      const second = await app.request(`/api/books/${label}/package-adt`, { method: "POST" })
+      expect(second.status).toBe(200)
+
+      const repaired = createBookStorage(label, tmpDir)
+      expect(repaired.getLatestNodeData("accessibility-assessment", "book")).not.toBeNull()
+      repaired.close()
+    })
+
     it("repackages when Easy Read content changes even if the stored version is unchanged", { timeout: 20_000 }, async () => {
       createRenderedBook("book-easy-cache")
       createWebAssets()

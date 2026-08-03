@@ -49,6 +49,7 @@ vi.mock("@ai-sdk/google", () => ({
 describe("createLLMModel credentials", () => {
   afterEach(() => {
     vi.clearAllMocks()
+    delete process.env.LOCAL_LLM_OPENAI_BASE_URL
   })
 
   it("uses a request-scoped OpenAI client when openaiApiKey is provided", async () => {
@@ -172,6 +173,28 @@ describe("createLLMModel credentials", () => {
         providerOptions: { openai: { reasoningEffort: "none" } },
       }),
     )
+  })
+
+  it("enables provider-enforced schemas for local auto mode", async () => {
+    process.env.LOCAL_LLM_OPENAI_BASE_URL = "http://127.0.0.1:3133/api/local-ai/openai/v1"
+    const localModel = { provider: "local" }
+    const localProvider = vi.fn(() => localModel)
+    createOpenAIMock.mockReturnValue(localProvider)
+    generateObjectMock.mockResolvedValue({
+      object: { ok: true },
+      usage: { promptTokens: 1, completionTokens: 2 },
+    })
+
+    const llm = createLLMModel({ modelId: "local:gemma4-12b" })
+    await llm.generateObject({
+      schema: z.object({ ok: z.boolean() }),
+      mode: "auto",
+      messages: [{ role: "user", content: "hello" }],
+    })
+
+    expect(localProvider).toHaveBeenCalledWith("gemma4-12b", {
+      structuredOutputs: true,
+    })
   })
 
   it("schema-validates recovered local JSON before custom validation", async () => {

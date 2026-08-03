@@ -175,7 +175,9 @@ export function createLocalLlmRuntime(options: {
       "--metrics",
       "--api-key", apiKey,
       "--reasoning", "off",
-      "--verbosity", "3",
+      // Trace output contains backend/device/offload details used by the debug
+      // panel. It is parsed but only forwarded when explicitly requested.
+      "--verbosity", "4",
     ]
     child = spawn(executable, args, {
       cwd: options.runtimeDir,

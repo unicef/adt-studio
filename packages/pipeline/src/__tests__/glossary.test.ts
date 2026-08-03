@@ -176,6 +176,32 @@ describe("collectPageTexts", () => {
     const result = collectPageTexts(storage, pages)
     expect(result).toHaveLength(0)
   })
+
+  it("excludes institutional vision and copyright matter", () => {
+    const renderings: Record<string, WebRenderingOutput> = {
+      pg001: {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: "<h1>VISION</h1><p>An enlightened society built on Bhutanese values and GNH.</p>" }],
+      },
+      pg002: {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>Copyright 2026. All rights reserved.</p>" }],
+      },
+      pg003: {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>The leopard climbed the tree.</p>" }],
+      },
+    }
+    const storage = {
+      getLatestNodeData: (node: string, itemId: string) =>
+        node === "web-rendering" ? { version: 1, data: renderings[itemId] } : null,
+    } as Storage
+
+    const result = collectPageTexts(storage, [
+      { pageId: "pg001", pageNumber: 1, text: "" },
+      { pageId: "pg002", pageNumber: 2, text: "" },
+      { pageId: "pg003", pageNumber: 3, text: "" },
+    ])
+
+    expect(result).toEqual([{ pageNumber: 3, text: "The leopard climbed the tree." }])
+  })
 })
 
 function makeFakeLLMModel(
