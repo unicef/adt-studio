@@ -31,6 +31,11 @@ import {
   resolveVisibleTarget,
   type ActivityAnchor,
 } from "./activity-link"
+import {
+  applyTextColors,
+  restoreAppliedTextColors,
+  type ElementClassChangeOptions,
+} from "./text-color"
 import { primaryFontFamily, googleFontsCss2Url, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 
 export type { ComputedTypographyStyles }
@@ -81,7 +86,11 @@ export interface BookPreviewFrameHandle {
   /** Read the Tailwind classes on an element by data-id */
   getElementClasses: (dataId: string) => string[]
   /** Set the full class list on an element by data-id. Returns updated full HTML, or null. */
-  setElementClasses: (dataId: string, classes: string[]) => string | null
+  setElementClasses: (
+    dataId: string,
+    classes: string[],
+    options?: ElementClassChangeOptions,
+  ) => string | null
   /** Set (or remove, when value is empty) a single inline CSS property on an
    *  element by data-id. Returns updated full HTML, or null. Used for styling
    *  that must win over class/cascade rules (e.g. per-element font-family). */
@@ -220,12 +229,23 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       if (!el) return []
       return Array.from(el.classList)
     },
-    setElementClasses: (dataId: string, classes: string[]): string | null => {
+    setElementClasses: (
+      dataId: string,
+      classes: string[],
+      options: ElementClassChangeOptions = {},
+    ): string | null => {
       const doc = iframeRef.current?.contentDocument
       if (!doc) return null
       const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
       if (!el) return null
       el.className = classes.join(" ")
+      for (const attribute of options.removeAttributes ?? []) {
+        el.removeAttribute(attribute)
+      }
+      for (const attribute of options.setAttributes ?? []) {
+        el.setAttribute(attribute, "")
+      }
+      restoreAppliedTextColors(doc)
       // Don't strip `_el#` data-ids here — the inspector relies on them across
       // edits in a session. They're stripped only at API persist time.
       stripTransientAttributes(doc)
@@ -238,6 +258,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
         html = doc.body.innerHTML
       }
       el.setAttribute("data-adt-selected", "true")
+      applyTextColors(doc)
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
     setElementStyleProp: (dataId: string, property: string, value: string): string | null => {
@@ -247,6 +268,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       if (!el) return null
       if (value) el.style.setProperty(property, value)
       else el.style.removeProperty(property)
+      restoreAppliedTextColors(doc)
       stripTransientAttributes(doc)
       const wrapper = doc.getElementById("content")
       let html: string
@@ -257,6 +279,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
         html = doc.body.innerHTML
       }
       el.setAttribute("data-adt-selected", "true")
+      applyTextColors(doc)
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
     resetContent: () => {
@@ -526,38 +549,6 @@ ${autoFitScript}
     const main = doc.querySelector("main")
     const h = (main ?? doc.body).scrollHeight
     if (h > 0) setContentHeight(h)
-  }
-
-  /**
-   * `data-text-color` is a semantic marker the styleguide/LLM stamps onto
-   * headings/paragraphs — by itself it has no visual effect. Apply it as a
-   * real, cascading color: force it (!important) on every element carrying
-   * the attribute, and force any descendant that does NOT have its own
-   * `data-text-color` to inherit it (!important) too, so it wins over
-   * incidental Tailwind color utility classes (e.g. `text-black`) the LLM
-   * may have added on its own. Anchors (`<a>`) and their contents are
-   * deliberately excluded so links keep their own (usually distinct) color
-   * instead of being flattened into the surrounding body/heading color.
-   *
-   * NOTE: this mirrors the injected `textColorScript` in
-   * packages/pipeline/src/packaging/web.ts so the Studio preview renders
-   * identically to the packaged/exported HTML. The two intentionally can't
-   * share one implementation because the frontend may not import from
-   * `packages/*` (see the layer rule in AGENTS.md); keep both in sync by hand.
-   */
-  function applyTextColors(doc: Document) {
-    const colorEls = doc.querySelectorAll<HTMLElement>("[data-text-color]")
-    for (const el of colorEls) {
-      const color = el.getAttribute("data-text-color")
-      if (!color) continue
-      el.style.setProperty("color", color, "important")
-      const descendants = el.querySelectorAll<HTMLElement>("*")
-      for (const d of descendants) {
-        if (d.closest("[data-text-color]") === el && !d.closest("a")) {
-          d.style.setProperty("color", "inherit", "important")
-        }
-      }
-    }
   }
 
   /** Inject HTML into the iframe body (preserving the interactive script). */

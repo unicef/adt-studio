@@ -38,8 +38,11 @@ export function useUploadStyleguide() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (file: File) => api.uploadStyleguide(file),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["styleguides"] })
+      queryClient.invalidateQueries({
+        queryKey: ["styleguide-preview", data.name],
+      })
     },
   })
 }

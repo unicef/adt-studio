@@ -28,6 +28,7 @@ import {
 import { useElementStyles } from "../use-element-styles"
 import { useElementContext } from "../element-context"
 import { FontFamilyControl } from "./FontFamilyControl"
+import { MANUAL_TEXT_COLOR_ATTRIBUTE } from "../../text-color"
 
 const WEIGHT_OPTIONS: ReadonlyArray<SelectOption<string>> = [
   { value: "thin", label: "thin", preview: <span className="font-thin">Aa</span> },
@@ -42,6 +43,10 @@ const WEIGHT_OPTIONS: ReadonlyArray<SelectOption<string>> = [
 ]
 
 const EMPTY_DECOR: string[] = []
+const TEXT_COLOR_CHANGE_OPTIONS = {
+  removeAttributes: ["data-text-color"],
+  setAttributes: [MANUAL_TEXT_COLOR_ATTRIBUTE],
+} as const
 
 export function TypographySection() {
   const { t } = useLingui()
@@ -57,7 +62,11 @@ export function TypographySection() {
   const decor = useElementStyles(textDecorationClassMap, EMPTY_DECOR)
   const align = useElementStyles(textAlignClassMap, inheritedAlign ?? "left")
   const leading = useElementStyles(lineHeightClassMap, inheritedLeading ?? 1.5)
-  const textColor = useElementStyles(textColorClassMap, inheritedColor ?? "")
+  const textColor = useElementStyles(
+    textColorClassMap,
+    inheritedColor ?? "",
+    TEXT_COLOR_CHANGE_OPTIONS,
+  )
 
   const decorItems = [
     { value: "italic", icon: Italic, label: t`Italic` },

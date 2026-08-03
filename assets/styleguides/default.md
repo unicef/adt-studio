@@ -36,8 +36,8 @@ These are the book-wide defaults for this styleguide. They take precedence over 
 | Property | Default | Notes |
 |----------|---------|-------|
 | Background color | `#FFFFFF` | Applied via `data-background-color` on the outer container. |
-| Max paragraph width (reading column) | `max-w-7xl` | Applies to the inner container on every page — never vary this per page. |
-| Paragraph spacing | Spacious (`space-y-8` inside a Content Card, `space-y-6` for a bare Text Group) | Vertical gap between paragraphs — keep it consistent with the component used. |
+| Max paragraph width (reading column) | `max-w-5xl` | Applies to the inner container on every page — never vary this per page. |
+| Paragraph spacing | `space-y-4` inside a Content Card, `space-y-3` for a bare Text Group | Vertical gap between paragraphs — keep it consistent with the component used. |
 
 ### Headings
 

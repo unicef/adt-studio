@@ -8,6 +8,7 @@ import {
   type DeviceView,
 } from "./device-breakpoint"
 import type { ClassMap } from "./class-maps/types"
+import type { ElementClassChangeOptions } from "../text-color"
 
 export interface OverrideInfo {
   currentPrefix: string
@@ -74,7 +75,8 @@ function arraysEqual(a: readonly string[], b: readonly string[]): boolean {
 
 export function useElementStyles<TValue>(
   classMap: ClassMap<TValue>,
-  defaultValue: TValue
+  defaultValue: TValue,
+  changeOptions?: ElementClassChangeOptions,
 ): UseElementStylesResult<TValue> {
   const { dataId, classes, onClassesChange, deviceView } = useElementContext()
 
@@ -123,7 +125,7 @@ export function useElementStyles<TValue>(
         merged = [...stripped, ...additions]
       }
 
-      onClassesChange(dataId, merged)
+      onClassesChange(dataId, merged, changeOptions)
     },
     [
       classes,
@@ -132,6 +134,7 @@ export function useElementStyles<TValue>(
       dataId,
       defaultValue,
       onClassesChange,
+      changeOptions,
       resolveAt,
       widerPrefixes,
     ]
@@ -143,8 +146,15 @@ export function useElementStyles<TValue>(
       if (!c.startsWith(currentPrefix)) return true
       return !classMap.matches(c.slice(currentPrefix.length))
     })
-    onClassesChange(dataId, stripped)
-  }, [classes, classMap, currentPrefix, dataId, onClassesChange])
+    onClassesChange(dataId, stripped, changeOptions)
+  }, [
+    classes,
+    classMap,
+    currentPrefix,
+    dataId,
+    onClassesChange,
+    changeOptions,
+  ])
 
   const override = useMemo<OverrideInfo | null>(() => {
     if (currentPrefix === "") return null

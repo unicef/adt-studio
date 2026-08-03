@@ -1308,6 +1308,8 @@ ${fallbackHeadingHtml}${contentBlock}
   // the LLM may have added on its own. Anchors (`<a>`) and their contents are
   // deliberately excluded so links keep their own (usually distinct) color
   // instead of being flattened into the surrounding body/heading color.
+  // Elements marked by a manual Storyboard color edit are also excluded so
+  // their persisted Tailwind color class remains authoritative.
   //
   // NOTE: this is the injected-into-exported-HTML twin of `applyTextColors`
   // in apps/studio's BookPreviewFrame.tsx. The two must stay behaviorally
@@ -1315,7 +1317,7 @@ ${fallbackHeadingHtml}${contentBlock}
   // share one implementation because the frontend may not import from
   // `packages/*` (see the layer rule in AGENTS.md); keep both in sync by hand.
   const textColorScript = /data-text-color=/.test(normalizedContent)
-    ? `\n    <script>(function(){function apply(){document.querySelectorAll("[data-text-color]").forEach(function(el){var c=el.getAttribute("data-text-color");if(!c)return;el.style.setProperty("color",c,"important");el.querySelectorAll("*").forEach(function(d){if(d.closest("[data-text-color]")===el&&!d.closest("a")){d.style.setProperty("color","inherit","important")}})})}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",apply)}else{apply()}})();</script>`
+    ? `\n    <script>(function(){function apply(){document.querySelectorAll("[data-text-color]").forEach(function(el){var c=el.getAttribute("data-text-color");if(!c||el.hasAttribute("data-adt-manual-text-color"))return;el.style.setProperty("color",c,"important");el.querySelectorAll("*").forEach(function(d){if(d.closest("[data-text-color]")===el&&!d.closest("a")&&!d.closest("[data-adt-manual-text-color]")){d.style.setProperty("color","inherit","important")}})})}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",apply)}else{apply()}})();</script>`
     : ""
 
   // In embed mode, hide non-essential chrome. The React runtime mounts the

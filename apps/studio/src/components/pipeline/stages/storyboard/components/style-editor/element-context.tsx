@@ -1,5 +1,6 @@
 import { createContext, useContext, type ReactNode } from "react"
 import type { DeviceView } from "./device-breakpoint"
+import type { ElementClassChangeOptions } from "../text-color"
 
 interface ElementCtx {
   /** data-id of the currently-selected element */
@@ -7,7 +8,11 @@ interface ElementCtx {
   /** Tailwind class list, in source order */
   classes: string[]
   /** Persists a new class list back to the element. */
-  onClassesChange: (dataId: string, classes: string[]) => void
+  onClassesChange: (
+    dataId: string,
+    classes: string[],
+    options?: ElementClassChangeOptions,
+  ) => void
   /** Persists a single inline CSS property (or removes it when value is empty).
    *  Used for styling that must override class/cascade rules — e.g. the
    *  per-element font, which is applied as an inline `font-family` so it isn't
