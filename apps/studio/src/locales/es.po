@@ -1756,6 +1756,9 @@ msgstr "Rama"
 msgid "Branch out"
 msgstr "Ramificar"
 
+msgid "Brazilian PNLD digital work (.zip) with HTML5 content, content.opf and toc.ncx metadata, for submission to the FNDE VALIDE reader."
+msgstr "Obra digital PNLD brasileña (.zip) con contenido HTML5 y metadatos content.opf y toc.ncx, para enviar al lector VALIDE del FNDE."
+
 msgid "Breakpoint override"
 msgstr "Anulación de punto de ruptura"
 
@@ -1955,6 +1958,9 @@ msgstr "Archivos modificados del libro"
 
 msgid "Changes"
 msgstr "Cambios"
+
+msgid "Changes detected"
+msgstr "Cambios detectados"
 
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Cambiar las fuentes afecta cómo se renderizan las páginas — vuelve a ejecutar Storyboard y Exportar para aplicar las nuevas fuentes."
@@ -2211,6 +2217,12 @@ msgstr "Comparar"
 msgid "Compare the current book with the last published version."
 msgstr "Compara el libro actual con la última versión publicada."
 
+msgid "Compare the current version with a chosen version at the same screen size."
+msgstr "Compara la versión actual con una versión elegida en el mismo tamaño de pantalla."
+
+msgid "Compare versions"
+msgstr "Comparar versiones"
+
 msgid "Compared with fallback prompt."
 msgstr "Comparado con el prompt fallback."
 
@@ -2462,8 +2474,14 @@ msgstr "No se pudo cargar la vista previa del PDF. Las páginas aún se pueden d
 msgid "Couldn't load the PDF preview. You can still mark spreads once the pages load."
 msgstr "No se pudo cargar la vista previa del PDF. Aún puedes marcar dobles páginas una vez que las páginas se carguen."
 
+msgid "Couldn't load versions."
+msgstr "No se pudieron cargar las versiones."
+
 msgid "Couldn't read this PDF"
 msgstr "No se pudo leer este PDF"
+
+msgid "Couldn't restore v{version}. Please try again."
+msgstr "No se pudo restaurar la v{version}. Inténtalo de nuevo."
 
 msgid "Counting occurrences…"
 msgstr "Contando ocurrencias…"
@@ -2592,8 +2610,14 @@ msgstr "Indicación de recorte"
 msgid "Crops each image to its visible bounding box."
 msgstr "Recorta cada imagen a su cuadro delimitador visible."
 
+msgid "current"
+msgstr "actual"
+
 msgid "Current"
 msgstr "Actual"
+
+msgid "Current (v{currentVersion})"
+msgstr "Actual (v{currentVersion})"
 
 msgid "Current book font"
 msgstr "Fuente actual del libro"
@@ -2606,6 +2630,9 @@ msgstr "Current Preview Page"
 
 msgid "Current repository:"
 msgstr "Repositorio actual:"
+
+msgid "Current version (v{currentVersion})"
+msgstr "Versión actual (v{currentVersion})"
 
 msgid "Cursor"
 msgstr "Cursor"
@@ -3043,6 +3070,12 @@ msgstr "Lista desplegable"
 msgid "Duplicate"
 msgstr "Duplicar"
 
+msgid "Duplicate section"
+msgstr "Duplicar sección"
+
+msgid "duplicate this section"
+msgstr "duplicar esta sección"
+
 msgid "Duration"
 msgstr "Duración"
 
@@ -3205,6 +3238,9 @@ msgstr "Editable por bloque"
 
 msgid "edited"
 msgstr "editado"
+
+msgid "Edited"
+msgstr "Editado"
 
 msgid "Edited in"
 msgstr "Editado en"
@@ -3641,6 +3677,9 @@ msgstr "Filtrar cuestionarios…"
 msgid "Filtered by:"
 msgstr "Filtered by:"
 
+msgid "Filtered out"
+msgstr "Descartado"
+
 msgid "Filters out decorative or non-content images on each page."
 msgstr "Filtra imágenes decorativas o sin contenido en cada página."
 
@@ -3700,6 +3739,9 @@ msgstr "Flexible"
 
 msgid "Fluency"
 msgstr "Fluidez"
+
+msgid "FNDE-ready HTML5 package (.zip)"
+msgstr "Paquete HTML5 listo para el FNDE (.zip)"
 
 msgid "Folder actions"
 msgstr "Acciones de la carpeta"
@@ -4061,6 +4103,9 @@ msgstr "Ir al libro"
 msgid "Go to home"
 msgstr "Ir a inicio"
 
+msgid "Go to latest"
+msgstr "Ir a la última"
+
 msgid "Go to Storyboard"
 msgstr "Ir al Storyboard"
 
@@ -4222,6 +4267,9 @@ msgstr "Cómo configurar un token de acceso personal de GitHub"
 
 msgid "HTML"
 msgstr "HTML"
+
+msgid "HTML5 + EPUB"
+msgstr "HTML5 + EPUB"
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "Entiendo que la parte se procesó con distintos prompts/modelos y quiero fusionarla de todos modos."
@@ -4589,6 +4637,9 @@ msgstr "Mantiene las páginas completas a menos que tipos mixtos de actividad re
 msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
 msgstr "Mantiene la página como una sección por defecto, pero divide inteligentemente cuando detecta múltiples actividades distintas - como una mezcla de ejercicios de opción múltiple, abiertos y de clasificación en la misma página. Mejor para libros de texto con ejercicios variados."
 
+msgid "Kept"
+msgstr "Conservado"
+
 msgid "Key must start with \"sk-\""
 msgstr "La clave debe comenzar con \"sk-\""
 
@@ -4614,6 +4665,9 @@ msgstr "Variables conocidas"
 #. placeholder {0}: entry.level
 msgid "L{0}"
 msgstr "N{0}"
+
+msgid "L{level}"
+msgstr "N{level}"
 
 msgid "Label"
 msgstr "Etiqueta"
@@ -4920,6 +4974,9 @@ msgstr "Cargando tamaños de texto…"
 
 msgid "Loading validation..."
 msgstr "Cargando validación..."
+
+msgid "Loading versions…"
+msgstr "Cargando versiones…"
 
 msgid "Loading voice mappings..."
 msgstr "Cargando asignaciones de voz..."
@@ -5451,6 +5508,9 @@ msgstr "No se encontraron versiones beta"
 msgid "No books match your search"
 msgstr "Ningún libro coincide con tu búsqueda"
 
+msgid "No caption (decorative)"
+msgstr "Sin descripción (decorativa)"
+
 msgid "No captioned images yet. Run the image-captioning step first."
 msgstr "Aún no hay imágenes con subtítulo. Ejecuta primero el paso de generación de subtítulos."
 
@@ -5465,6 +5525,9 @@ msgstr "No hay leyendas que coincidan con tu búsqueda"
 
 msgid "No changed content needs speech regeneration"
 msgstr "Ningún contenido modificado necesita regeneración de voz"
+
+msgid "no changes"
+msgstr "sin cambios"
 
 msgid "No changes"
 msgstr "Sin cambios"
@@ -5591,6 +5654,9 @@ msgstr "Todavía no hay variables mapeadas para este prompt."
 
 msgid "No matches for \"{search}\""
 msgstr "Sin resultados para \"{0}\""
+
+msgid "No matches."
+msgstr "Sin coincidencias."
 
 msgid "No matching blocks"
 msgstr "No hay bloques coincidentes"
@@ -5829,6 +5895,9 @@ msgstr "Nada que mostrar"
 msgid "Now click the end page."
 msgstr "Ahora haz clic en la página final."
 
+msgid "now correct"
+msgstr "ahora correcta"
+
 msgid "Number of pages of content to include per quiz question."
 msgstr "Número de páginas de contenido a incluir por pregunta de quiz."
 
@@ -5855,6 +5924,9 @@ msgstr "Omisión o adición"
 
 msgid "On"
 msgstr "Encendido"
+
+msgid "On v{currentVersion} · latest is v{latestVersion}"
+msgstr "En v{currentVersion} · la última es v{latestVersion}"
 
 msgid "One Column"
 msgstr "Una Columna"
@@ -6161,6 +6233,9 @@ msgstr "Empaquetar libro"
 msgid "Package preview to generate results"
 msgstr "Package preview to generate results"
 
+msgid "Package structure"
+msgstr "Estructura del paquete"
+
 msgid "Package the book for distribution. Pick a format, choose what content goes in, and we'll bundle everything into a downloadable archive."
 msgstr "Empaqueta el libro para distribución. Elige un formato, selecciona qué contenido incluir, y empaquetaremos todo en un archivo descargable."
 
@@ -6215,6 +6290,9 @@ msgstr "Página {n}"
 
 msgid "Page {page}"
 msgstr "Página {page}"
+
+msgid "Page {page} of {pageCount}"
+msgstr "Página {page} de {pageCount}"
 
 msgid "Page {pageId}"
 msgstr "Página {0}"
@@ -6453,6 +6531,9 @@ msgstr "Elige un preajuste"
 msgid "Pick a source section. Its layout will be applied to this section while keeping this section's content and data-ids."
 msgstr "Elige una sección de origen. Su diseño se aplicará a esta sección manteniendo el contenido y los data-ids de esta sección."
 
+msgid "Pick another version above to compare it with the current one."
+msgstr "Elige otra versión arriba para compararla con la actual."
+
 msgid "Pick from book"
 msgstr "Elegir del libro"
 
@@ -6530,6 +6611,18 @@ msgstr "Reproducir video"
 
 msgid "Please wait for the current operation to finish"
 msgstr "Espera a que termine la operación actual"
+
+msgid "PNLD Digital · FNDE"
+msgstr "PNLD Digital · FNDE"
+
+msgid "PNLD Digital Work"
+msgstr "Obra Digital PNLD"
+
+msgid "PNLD Export"
+msgstr "Exportar PNLD"
+
+msgid "PNLD Package"
+msgstr "Paquete PNLD"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Puliendo párrafos a la perfección..."
@@ -7162,6 +7255,9 @@ msgstr "Eliminar tipo"
 msgid "removed"
 msgstr "eliminado"
 
+msgid "Removed"
+msgstr "Eliminado"
+
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Renderiza cada sección escrita en una página HTML interactiva. Elige una estrategia de diseño que coincida con el libro y deja que el storyboard maneje el resto."
 
@@ -7288,6 +7384,9 @@ msgstr "Restaurar este término — será elegible nuevamente en la próxima reg
 msgid "restored"
 msgstr "restaurado"
 
+msgid "Restored to v{version}"
+msgstr "Restaurado a v{version}"
+
 msgid "Restricted license"
 msgstr "Licencia restringida"
 
@@ -7374,6 +7473,9 @@ msgstr "Revisa los detalles del PDF fuente a continuación y continúa configura
 
 msgid "Review visible translations"
 msgstr "Revisar traducciones visibles"
+
+msgid "Review what restoring version {selected} would change, grouped by edited, added, and removed."
+msgstr "Revisa qué cambiaría al restaurar la versión {selected}, agrupado por editados, añadidos y eliminados."
 
 msgid "Reviewed"
 msgstr "Revisada"
@@ -7601,6 +7703,9 @@ msgstr "Primero guarda o descarta tus cambios"
 msgid "Save page review"
 msgstr "Save page review"
 
+msgid "Save section changes?"
+msgstr "¿Guardar los cambios de las secciones?"
+
 msgid "Save selection"
 msgstr "Guardar selección"
 
@@ -7685,8 +7790,14 @@ msgstr "Buscar idiomas..."
 msgid "Search original or Easy Read text…"
 msgstr "Buscar texto original o de Lectura Fácil…"
 
+msgid "Search original or translation…"
+msgstr "Buscar original o traducción…"
+
 msgid "Search questions or options…"
 msgstr "Buscar preguntas u opciones…"
+
+msgid "Search questions, answers, or explanations…"
+msgstr "Buscar preguntas, respuestas o explicaciones…"
 
 msgid "Search sections..."
 msgstr "Buscar secciones..."
@@ -7699,6 +7810,9 @@ msgstr "Buscar términos o definiciones…"
 
 msgid "Search..."
 msgstr "Buscar..."
+
+msgid "Search…"
+msgstr "Buscar…"
 
 msgid "section"
 msgstr "sección"
@@ -8068,6 +8182,9 @@ msgstr "Mostrar justificación de la revisión"
 msgid "Show reviewer validation"
 msgstr "Show reviewer validation"
 
+msgid "Show unchanged"
+msgstr "Mostrar sin cambios"
+
 msgid "Show:"
 msgstr "Mostrar:"
 
@@ -8289,11 +8406,17 @@ msgstr "Dividir en dos secciones en este punto"
 msgid "Split preview"
 msgstr "Previsualización de división"
 
+msgid "Split section"
+msgstr "Dividir sección"
+
 msgid "Split segments"
 msgstr "Segmentos divididos"
 
 msgid "Split spread {left}–{right} back into single pages"
 msgstr "Dividir la doble página {left}–{right} de nuevo en páginas individuales"
+
+msgid "split this section"
+msgstr "dividir esta sección"
 
 msgid "Spread"
 msgstr "Extensión"
@@ -8494,6 +8617,9 @@ msgstr "Subtítulo"
 
 msgid "Submit"
 msgstr "Enviar"
+
+msgid "Submit to the FNDE PNLD Digital platform and validate with VALIDE."
+msgstr "Envíe a la plataforma PNLD Digital del FNDE y valide con VALIDE."
 
 msgid "Success"
 msgstr "Éxito"
@@ -8997,6 +9123,9 @@ msgstr "¡Este es Pip! Tiene una cola que se mueve."
 msgid "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
 msgstr "¡Este es Pip! Es un perro caramelo feliz con una cola muy movida. A Pip le encanta el césped verde, el brillante sol amarillo y hacer nuevos amigos en su jardín."
 
+msgid "This is the active version — pick another above to compare and restore it. Everything it contains:"
+msgstr "Esta es la versión activa: elige otra arriba para compararla y restaurarla. Todo lo que contiene:"
+
 msgid "This isn't a completed part"
 msgstr "Esto no es una parte completada"
 
@@ -9090,6 +9219,9 @@ msgstr "Esto restaura la fuente predeterminada en todas las páginas y borra los
 msgid "This screen couldn’t load"
 msgstr "Esta pantalla no pudo cargarse"
 
+msgid "This section doesn't exist in this version."
+msgstr "Esta sección no existe en esta versión."
+
 msgid "This section has no storyboard rendering yet"
 msgstr "Esta sección aún no tiene renderización de storyboard"
 
@@ -9101,6 +9233,9 @@ msgstr "This session is using an older reviewer checklist snapshot. Newer checkl
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Este texto solo es perceptible para tecnologías de asistencia."
+
+msgid "This version is empty."
+msgstr "Esta versión está vacía."
 
 msgid "Thorium Reader"
 msgstr "Thorium Reader"
@@ -9405,6 +9540,9 @@ msgstr "Unavailable"
 msgid "Uncategorized"
 msgstr "Uncategorized"
 
+msgid "Unchanged"
+msgstr "Sin cambios"
+
 msgid "Under Repository permissions, set Contents to Read and write so ADT can pull and push book files."
 msgstr "En Permisos del repositorio, configura Contenido como Lectura y escritura para que ADT pueda descargar y enviar los archivos del libro."
 
@@ -9595,6 +9733,9 @@ msgstr "Usa este formato para respaldar el proyecto o moverlo a otra máquina."
 msgid "Use this picture"
 msgstr "Usar esta imagen"
 
+msgid "Use version {selected}"
+msgstr "Usar la versión {selected}"
+
 msgid "Use video"
 msgstr "Usar video"
 
@@ -9622,8 +9763,14 @@ msgstr "Se usa en este cuestionario"
 msgid "Using fallback"
 msgstr "Usando fallback"
 
+msgid "v{hovered} preview"
+msgstr "Vista previa de v{hovered}"
+
 msgid "Validated"
 msgstr "Validada"
+
+msgid "Validates in VALIDE Desktop — the official PNLD reader"
+msgstr "Se valida en VALIDE Desktop, el lector oficial del PNLD"
 
 msgid "Validation"
 msgstr "Validation"
@@ -9653,6 +9800,9 @@ msgstr "Versión {0}"
 
 msgid "Version {current}"
 msgstr "Versión {current}"
+
+msgid "Version {selected}"
+msgstr "Versión {selected}"
 
 msgid "Versioned"
 msgstr "Versionado"
@@ -9753,6 +9903,9 @@ msgstr "Tiempo transcurrido"
 msgid "Warning: Image Captions are required for accessibility"
 msgstr "Advertencia: Las Leyendas de Imágenes son necesarias para la accesibilidad"
 
+msgid "was correct"
+msgstr "era correcta"
+
 msgid "Water is always moving. It travels from the oceans into the sky, falls as rain or snow, flows through rivers, and eventually returns to the sea. This continuous journey is called the water cycle."
 msgstr "El agua siempre está en movimiento. Viaja desde los océanos al cielo, cae como lluvia o nieve, fluye a través de ríos y finalmente regresa al mar. Este viaje continuo se llama el ciclo del agua."
 
@@ -9765,12 +9918,10 @@ msgstr "Agua que se mueve a través de una membrana."
 msgid "Watercolor"
 msgstr "Acuarela"
 
-msgid ""
-"wcag2a\n"
+msgid "wcag2a\n"
 "wcag2aa\n"
 "best-practice"
-msgstr ""
-"wcag2a\n"
+msgstr "wcag2a\n"
 "wcag2aa\n"
 "best-practice"
 
@@ -9985,159 +10136,6 @@ msgstr "Acercar"
 
 msgid "Zoom out"
 msgstr "Alejar"
-
-msgid "Brazilian PNLD digital work (.zip) with HTML5 content, content.opf and toc.ncx metadata, for submission to the FNDE VALIDE reader."
-msgstr "Obra digital PNLD brasileña (.zip) con contenido HTML5 y metadatos content.opf y toc.ncx, para enviar al lector VALIDE del FNDE."
-
-msgid "Duplicate section"
-msgstr "Duplicar sección"
-
-msgid "duplicate this section"
-msgstr "duplicar esta sección"
-
-msgid "FNDE-ready HTML5 package (.zip)"
-msgstr "Paquete HTML5 listo para el FNDE (.zip)"
-
-msgid "HTML5 + EPUB"
-msgstr "HTML5 + EPUB"
-
-msgid "Package structure"
-msgstr "Estructura del paquete"
-
-msgid "PNLD Digital · FNDE"
-msgstr "PNLD Digital · FNDE"
-
-msgid "PNLD Digital Work"
-msgstr "Obra Digital PNLD"
-
-msgid "PNLD Export"
-msgstr "Exportar PNLD"
-
-msgid "PNLD Package"
-msgstr "Paquete PNLD"
-
-msgid "Save section changes?"
-msgstr "¿Guardar los cambios de las secciones?"
-
-msgid "Split section"
-msgstr "Dividir sección"
-
-msgid "split this section"
-msgstr "dividir esta sección"
-
-msgid "Submit to the FNDE PNLD Digital platform and validate with VALIDE."
-msgstr "Envíe a la plataforma PNLD Digital del FNDE y valide con VALIDE."
-
-msgid "Validates in VALIDE Desktop — the official PNLD reader"
-msgstr "Se valida en VALIDE Desktop, el lector oficial del PNLD"
-
-msgid "Page {page} of {pageCount}"
-msgstr "Página {page} de {pageCount}"
-
-msgid "Changes detected"
-msgstr "Cambios detectados"
-
-msgid "Compare the current version with a chosen version at the same screen size."
-msgstr "Compara la versión actual con una versión elegida en el mismo tamaño de pantalla."
-
-msgid "Compare versions"
-msgstr "Comparar versiones"
-
-msgid "Couldn't load versions."
-msgstr "No se pudieron cargar las versiones."
-
-msgid "Couldn't restore v{version}. Please try again."
-msgstr "No se pudo restaurar la v{version}. Inténtalo de nuevo."
-
-msgid "current"
-msgstr "actual"
-
-msgid "Current (v{currentVersion})"
-msgstr "Actual (v{currentVersion})"
-
-msgid "Current version (v{currentVersion})"
-msgstr "Versión actual (v{currentVersion})"
-
-msgid "Edited"
-msgstr "Editado"
-
-msgid "Filtered out"
-msgstr "Descartado"
-
-msgid "Go to latest"
-msgstr "Ir a la última"
-
-msgid "Kept"
-msgstr "Conservado"
-
-msgid "L{level}"
-msgstr "N{level}"
-
-msgid "Loading versions…"
-msgstr "Cargando versiones…"
-
-msgid "No caption (decorative)"
-msgstr "Sin descripción (decorativa)"
-
-msgid "no changes"
-msgstr "sin cambios"
-
-msgid "No matches."
-msgstr "Sin coincidencias."
-
-msgid "now correct"
-msgstr "ahora correcta"
-
-msgid "On v{currentVersion} · latest is v{latestVersion}"
-msgstr "En v{currentVersion} · la última es v{latestVersion}"
-
-msgid "Pick another version above to compare it with the current one."
-msgstr "Elige otra versión arriba para compararla con la actual."
-
-msgid "Removed"
-msgstr "Eliminado"
-
-msgid "Restored to v{version}"
-msgstr "Restaurado a v{version}"
-
-msgid "Review what restoring version {selected} would change, grouped by edited, added, and removed."
-msgstr "Revisa qué cambiaría al restaurar la versión {selected}, agrupado por editados, añadidos y eliminados."
-
-msgid "Search original or translation…"
-msgstr "Buscar original o traducción…"
-
-msgid "Search questions, answers, or explanations…"
-msgstr "Buscar preguntas, respuestas o explicaciones…"
-
-msgid "Search…"
-msgstr "Buscar…"
-
-msgid "Show unchanged"
-msgstr "Mostrar sin cambios"
-
-msgid "This is the active version — pick another above to compare and restore it. Everything it contains:"
-msgstr "Esta es la versión activa: elige otra arriba para compararla y restaurarla. Todo lo que contiene:"
-
-msgid "This section doesn't exist in this version."
-msgstr "Esta sección no existe en esta versión."
-
-msgid "This version is empty."
-msgstr "Esta versión está vacía."
-
-msgid "Unchanged"
-msgstr "Sin cambios"
-
-msgid "Use version {selected}"
-msgstr "Usar la versión {selected}"
-
-msgid "v{hovered} preview"
-msgstr "Vista previa de v{hovered}"
-
-msgid "Version {selected}"
-msgstr "Versión {selected}"
-
-msgid "was correct"
-msgstr "era correcta"
 
 #. placeholder {0}: changesQuery.data.changes.length
 #~ msgid "{0} unpublished file changes"
