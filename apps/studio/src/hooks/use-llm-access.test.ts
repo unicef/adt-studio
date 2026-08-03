@@ -9,7 +9,8 @@ const none: LlmCredentialState = {
 }
 
 describe("hasCredentialForModel", () => {
-  it("allows local Ollama models without a cloud credential", () => {
+  it("allows embedded and Ollama models without a cloud credential", () => {
+    expect(hasCredentialForModel("local:gemma4-e2b", none)).toBe(true)
     expect(hasCredentialForModel("ollama:gemma4-26b", none)).toBe(true)
   })
 
@@ -20,4 +21,3 @@ describe("hasCredentialForModel", () => {
     expect(hasCredentialForModel("custom:model", { ...none, customBaseUrl: "http://localhost" })).toBe(true)
   })
 })
-

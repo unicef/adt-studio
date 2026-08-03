@@ -2184,6 +2184,9 @@ msgstr "Integral"
 msgid "Compressed archive · ~ 42 MB"
 msgstr "Archivo comprimido · ~ 42 MB"
 
+msgid "Compute"
+msgstr "Cómputo"
+
 msgid "Concise"
 msgstr "Conciso"
 
@@ -3852,6 +3855,9 @@ msgstr "Falló la generación. Por favor, inténtalo de nuevo."
 msgid "Generation Prompt"
 msgstr "Prompt de generación"
 
+msgid "Generation speed"
+msgstr "Velocidad de generación"
+
 msgid "Get started"
 msgstr "Comenzar"
 
@@ -3920,6 +3926,9 @@ msgstr "Voces de Google con fuerte entonación para contenido narrativo."
 
 msgid "Got it"
 msgstr "Entendido"
+
+msgid "GPU layers"
+msgstr "Capas en la GPU"
 
 msgid "Grade Level"
 msgstr "Nivel de Grado"
@@ -4304,14 +4313,14 @@ msgstr "Contraportada interna"
 msgid "Install an older beta?"
 msgstr "¿Instalar una beta anterior?"
 
-msgid "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
-msgstr "Instala y abre Ollama y vuelve a comprobarlo. Tus PDF y prompts permanecen en este ordenador."
+#~ msgid "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
+#~ msgstr "Instala y abre Ollama y vuelve a comprobarlo. Tus PDF y prompts permanecen en este ordenador."
 
 msgid "Install older version"
 msgstr "Instalar versión anterior"
 
-msgid "Install Ollama"
-msgstr "Instalar Ollama"
+#~ msgid "Install Ollama"
+#~ msgstr "Instalar Ollama"
 
 msgid "Install on quit"
 msgstr "Instalar al salir"
@@ -4489,6 +4498,9 @@ msgstr "Último cambio"
 
 msgid "Last modified"
 msgstr "Última modificación"
+
+msgid "Last request"
+msgstr "Última solicitud"
 
 msgid "Launch the app with"
 msgstr "Iniciar la aplicación con"
@@ -4756,6 +4768,12 @@ msgstr "Local"
 
 msgid "Local AI"
 msgstr "IA local"
+
+msgid "Local AI runtime"
+msgstr "Motor de IA local"
+
+msgid "Local AI runtime is unavailable"
+msgstr "El motor de IA local no está disponible"
 
 msgid "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
 msgstr "La generación local es la opción privada predeterminada. Si más adelante añades créditos de OpenAI, selecciona un modelo de OpenAI y vuelve a ejecutar cualquier paso para regenerar o mejorar el resultado."
@@ -5102,6 +5120,9 @@ msgstr "La descarga del modelo ha fallado."
 
 msgid "Model downloaded and selected."
 msgstr "Modelo descargado y seleccionado."
+
+msgid "Model on GPU"
+msgstr "Modelo en la GPU"
 
 msgid "Model overrides"
 msgstr "Sustituciones de modelos"
@@ -5662,8 +5683,8 @@ msgstr "of"
 msgid "Off"
 msgstr "Apagado"
 
-msgid "Ollama is not running"
-msgstr "Ollama no está en ejecución"
+#~ msgid "Ollama is not running"
+#~ msgstr "Ollama no está en ejecución"
 
 msgid "Omission or addition"
 msgstr "Omisión o adición"
@@ -6437,6 +6458,9 @@ msgstr "Narración privada sin conexión en inglés con un modelo Kokoro descarg
 msgid "Private on-device models"
 msgstr "Modelos privados en el dispositivo"
 
+msgid "Process"
+msgstr "Proceso"
+
 msgid "Process every page on this machine."
 msgstr "Procesar todas las páginas en esta máquina."
 
@@ -6475,6 +6499,9 @@ msgstr "Carpeta de prompts eliminada."
 
 #~ msgid "Prompt Settings"
 #~ msgstr "Configuración de prompts"
+
+msgid "Prompt speed"
+msgstr "Velocidad de entrada"
 
 msgid "Prompt template"
 msgstr "Plantilla de prompt"
@@ -6959,6 +6986,9 @@ msgstr "Reemplazar cuestionarios"
 msgid "Replace this audio file"
 msgstr "Reemplazar este archivo de audio"
 
+msgid "Requests"
+msgstr "Solicitudes"
+
 msgid "Require comment on failure"
 msgstr "Require comment on failure"
 
@@ -7176,8 +7206,11 @@ msgstr "Ejecuta {upstreamLabel} primero"
 msgid "Run anyway"
 msgstr "Ejecutar de todos modos"
 
-msgid "Run book generation privately on this computer with Gemma 4 and Ollama."
-msgstr "Ejecuta la generación de libros de forma privada en este ordenador con Gemma 4 y Ollama."
+#~ msgid "Run book generation privately on this computer with Gemma 4 and Ollama."
+#~ msgstr "Ejecuta la generación de libros de forma privada en este ordenador con Gemma 4 y Ollama."
+
+msgid "Run book generation privately with Gemma 4. No separate AI app is required."
+msgstr "Genera el libro de forma privada con Gemma 4. No se necesita otra aplicación de IA."
 
 msgid "Run cancelled"
 msgstr "Ejecución cancelada"
@@ -7274,6 +7307,9 @@ msgstr "Realiza comprobaciones de accesibilidad en el libro empaquetado."
 
 msgid "Runs in background — you can keep editing"
 msgstr "Se ejecuta en segundo plano — puedes seguir editando"
+
+msgid "Runtime"
+msgstr "Motor"
 
 msgid "Sample"
 msgstr "Muestra"
@@ -8638,6 +8674,9 @@ msgstr "Liberan oxígeno directamente al aire."
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Esta actividad no tiene textos ni respuestas direccionables. Vuelve a generarla o usa \"Editar diseño\" para modificar la página directamente."
 
+msgid "This app build is missing its embedded inference runtime. Reinstall ADT Studio or ask your administrator for a complete build."
+msgstr "Esta versión de la aplicación no incluye el motor de inferencia integrado. Reinstala ADT Studio o solicita una versión completa a tu administrador."
+
 msgid "This archive can't be opened safely"
 msgstr "Este archivo no se puede abrir de forma segura"
 
@@ -9072,6 +9111,9 @@ msgstr "No se pudo seleccionar el modelo local."
 msgid "Unable to select prompt version."
 msgstr "No se pudo seleccionar la versión del prompt."
 
+msgid "Unable to unload local model."
+msgstr "No se pudo descargar de la memoria el modelo local."
+
 msgid "Unable to update the book model overrides."
 msgstr "No se pudieron actualizar las sustituciones de modelos del libro."
 
@@ -9122,6 +9164,9 @@ msgstr "Slug de etapa desconocido: {0}"
 
 msgid "Unknown step: {step}"
 msgstr "Paso desconocido: {0}"
+
+msgid "Unload model"
+msgstr "Descargar modelo de la memoria"
 
 msgid "Unprune image"
 msgstr "Restaurar imagen"

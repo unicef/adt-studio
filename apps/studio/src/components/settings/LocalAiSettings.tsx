@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Check, CircleAlert, Download, ExternalLink, Loader2, MonitorCog } from "lucide-react"
+import { Check, CircleAlert, Download, ExternalLink, Loader2, MonitorCog, X } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { api, type LocalAIModel, type LocalModelPullProgress } from "@/api/client"
 import { Button } from "@/components/ui/button"
@@ -23,11 +23,13 @@ export function LocalAiSettings({ compact = false }: { compact?: boolean }) {
   const queryClient = useQueryClient()
   const [pullingModelId, setPullingModelId] = useState<string | null>(null)
   const [pullProgress, setPullProgress] = useState<LocalModelPullProgress | null>(null)
+  const downloadAbortRef = useRef<AbortController | null>(null)
 
   const statusQuery = useQuery({
     queryKey: ["local-ai", "status"],
     queryFn: api.getLocalAIStatus,
     refetchOnWindowFocus: false,
+    refetchInterval: 5000,
   })
   const defaultModelQuery = useQuery({
     queryKey: ["default-model"],
@@ -43,6 +45,11 @@ export function LocalAiSettings({ compact = false }: { compact?: boolean }) {
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : t`Unable to select local model.`),
   })
+  const stopMutation = useMutation({
+    mutationFn: api.stopLocalAI,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["local-ai", "status"] }),
+    onError: (error) => toast.error(error instanceof Error ? error.message : t`Unable to unload local model.`),
+  })
 
   const installedCount = useMemo(
     () => statusQuery.data?.models.filter((model) => model.installed).length ?? 0,
@@ -52,14 +59,18 @@ export function LocalAiSettings({ compact = false }: { compact?: boolean }) {
   async function download(model: LocalAIModel) {
     setPullingModelId(model.id)
     setPullProgress(null)
+    const controller = new AbortController()
+    downloadAbortRef.current = controller
     try {
-      await api.pullLocalModel(model.id, setPullProgress)
+      await api.pullLocalModel(model.id, setPullProgress, controller.signal)
       await queryClient.invalidateQueries({ queryKey: ["local-ai", "status"] })
       await selectMutation.mutateAsync(model.id)
       toast.success(t`Model downloaded and selected.`)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : t`Model download failed.`)
+      if (controller.signal.aborted) toast.info(t`Model download paused. You can resume it later.`)
+      else toast.error(error instanceof Error ? error.message : t`Model download failed.`)
     } finally {
+      downloadAbortRef.current = null
       setPullingModelId(null)
       setPullProgress(null)
     }
@@ -79,7 +90,7 @@ export function LocalAiSettings({ compact = false }: { compact?: boolean }) {
             <Trans>Local AI</Trans>
           </h1>
           <p className="mt-1.5 max-w-3xl text-sm leading-6 text-muted-foreground">
-            <Trans>Run book generation privately on this computer with Gemma 4 and Ollama.</Trans>
+            <Trans>Run book generation privately with Gemma 4. No separate AI app is required.</Trans>
           </p>
         </header>
       )}
@@ -95,17 +106,11 @@ export function LocalAiSettings({ compact = false }: { compact?: boolean }) {
           <div className="flex items-start gap-3">
             <CircleAlert className="mt-0.5 size-5 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden="true" />
             <div className="min-w-0 flex-1">
-              <p className="font-medium"><Trans>Ollama is not running</Trans></p>
+              <p className="font-medium"><Trans>Local AI runtime is unavailable</Trans></p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                <Trans>Install and open Ollama, then check again. Your PDFs and prompts remain on this computer.</Trans>
+                <Trans>This app build is missing its embedded inference runtime. Reinstall ADT Studio or ask your administrator for a complete build.</Trans>
               </p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button asChild size="sm">
-                  <a href={status.runtimeInstallUrl} target="_blank" rel="noreferrer">
-                    <ExternalLink className="size-4" aria-hidden="true" />
-                    <Trans>Install Ollama</Trans>
-                  </a>
-                </Button>
+              <div className="mt-3">
                 <Button size="sm" variant="outline" onClick={() => statusQuery.refetch()}>
                   <Trans>Check again</Trans>
                 </Button>
@@ -115,7 +120,7 @@ export function LocalAiSettings({ compact = false }: { compact?: boolean }) {
         </div>
       )}
 
-      {status?.runtimeAvailable && (
+      {status && (
         <>
           <div className="flex flex-wrap items-center gap-3 rounded-lg border bg-muted/20 px-4 py-3 text-sm">
             <MonitorCog className="size-5 text-primary" aria-hidden="true" />
@@ -126,6 +131,15 @@ export function LocalAiSettings({ compact = false }: { compact?: boolean }) {
             <span className="text-muted-foreground">
               <Trans>{installedCount} local models installed</Trans>
             </span>
+            <span className="text-muted-foreground">•</span>
+            <span className="text-muted-foreground">
+              {status.state === "ready" ? `${status.backend} · ${status.loadedModelId}` : `${status.runtime} ${status.runtimeVersion ?? ""}`}
+            </span>
+            {status.state === "ready" && (
+              <Button size="sm" variant="ghost" className="ml-auto" disabled={stopMutation.isPending} onClick={() => stopMutation.mutate()}>
+                <Trans>Unload model</Trans>
+              </Button>
+            )}
           </div>
 
           <div className={cn("grid gap-3", !compact && "md:grid-cols-2 xl:grid-cols-3")}>
@@ -146,6 +160,16 @@ export function LocalAiSettings({ compact = false }: { compact?: boolean }) {
                       <p className="mt-1 text-xs text-muted-foreground">
                         <Trans>{formatGiB(model.downloadBytes)} download</Trans>
                       </p>
+                      <a
+                        className="mt-1 flex items-center gap-1 truncate text-[11px] text-muted-foreground hover:text-foreground"
+                        href={`https://huggingface.co/${model.repository}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={`${model.repository}@${model.revision}`}
+                      >
+                        {model.repository} · {model.license}
+                        <ExternalLink className="size-3 shrink-0" aria-hidden="true" />
+                      </a>
                     </div>
                     <div className="flex flex-wrap justify-end gap-1">
                       {model.recommended && (
@@ -187,17 +211,17 @@ export function LocalAiSettings({ compact = false }: { compact?: boolean }) {
                     size="sm"
                     variant={model.installed ? "outline" : "default"}
                     className="mt-4 w-full"
-                    disabled={Boolean(pullingModelId) || isSelected || selectMutation.isPending}
-                    onClick={() => model.installed ? selectMutation.mutate(model.id) : download(model)}
+                    disabled={(Boolean(pullingModelId) && !isPulling) || isSelected || selectMutation.isPending}
+                    onClick={() => isPulling ? downloadAbortRef.current?.abort() : model.installed ? selectMutation.mutate(model.id) : download(model)}
                   >
                     {isPulling ? (
-                      <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+                      <X className="size-4" aria-hidden="true" />
                     ) : model.installed ? (
                       <Check className="size-4" aria-hidden="true" />
                     ) : (
                       <Download className="size-4" aria-hidden="true" />
                     )}
-                    {isSelected ? <Trans>In use</Trans> : model.installed ? <Trans>Use this model</Trans> : <Trans>Download model</Trans>}
+                    {isPulling ? <Trans>Pause download</Trans> : isSelected ? <Trans>In use</Trans> : model.installed ? <Trans>Use this model</Trans> : <Trans>Download model</Trans>}
                   </Button>
                 </section>
               )

@@ -175,16 +175,19 @@ function findModelPromptTemplate(
   modelId: string,
   variantName: string,
 ): string | null {
-  const modelFolder = promptModelFolderName(modelId)
+  const modelFolders = [promptModelFolderName(modelId)]
+  if (/^(?:local|ollama):gemma4-/i.test(modelId)) modelFolders.push("gemma4")
   for (const root of roots) {
     const versionedPath = latestVersionedPromptPath(root, variantName)
     if (versionedPath) {
       return versionedPath
     }
 
-    const folderPath = path.join(root, modelFolder, `${templateName}.liquid`)
-    if (fs.existsSync(folderPath)) {
-      return folderPath
+    for (const modelFolder of modelFolders) {
+      const folderPath = path.join(root, modelFolder, `${templateName}.liquid`)
+      if (fs.existsSync(folderPath)) {
+        return folderPath
+      }
     }
 
     const legacyFlatPath = path.join(root, `${variantName}.liquid`)

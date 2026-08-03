@@ -2185,6 +2185,9 @@ msgstr "Gjithëpërfshirës"
 msgid "Compressed archive · ~ 42 MB"
 msgstr "Arkiv i kompresuar · ~ 42 MB"
 
+msgid "Compute"
+msgstr "Përpunimi"
+
 msgid "Concise"
 msgstr "Konciz"
 
@@ -3853,6 +3856,9 @@ msgstr "Gjenerimi dështoi. Ju lutemi provoni përsëri."
 msgid "Generation Prompt"
 msgstr "Prompt Gjenerimi"
 
+msgid "Generation speed"
+msgstr "Shpejtësia e gjenerimit"
+
 msgid "Get started"
 msgstr "Filloni"
 
@@ -3921,6 +3927,9 @@ msgstr "Zërat e Google me intonacion të fortë për përmbajtje narrative."
 
 msgid "Got it"
 msgstr "Në rregull"
+
+msgid "GPU layers"
+msgstr "Shtresat në GPU"
 
 msgid "Grade Level"
 msgstr "Niveli Shkollor"
@@ -4305,14 +4314,14 @@ msgstr "Kapaku i brendshëm"
 msgid "Install an older beta?"
 msgstr "Të instalohet një beta më e vjetër?"
 
-msgid "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
-msgstr "Instalo dhe hap Ollama-n, pastaj kontrollo përsëri. PDF-të dhe udhëzimet e tua mbeten në këtë kompjuter."
+#~ msgid "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
+#~ msgstr "Instalo dhe hap Ollama-n, pastaj kontrollo përsëri. PDF-të dhe udhëzimet e tua mbeten në këtë kompjuter."
 
 msgid "Install older version"
 msgstr "Instalo versionin më të vjetër"
 
-msgid "Install Ollama"
-msgstr "Instalo Ollama-n"
+#~ msgid "Install Ollama"
+#~ msgstr "Instalo Ollama-n"
 
 msgid "Install on quit"
 msgstr "Instalo gjatë daljes"
@@ -4490,6 +4499,9 @@ msgstr "Ndryshimi i fundit"
 
 msgid "Last modified"
 msgstr "Modifikuar së fundmi"
+
+msgid "Last request"
+msgstr "Kërkesa e fundit"
 
 msgid "Launch the app with"
 msgstr "Hap aplikacionin me"
@@ -4757,6 +4769,12 @@ msgstr "Lokal"
 
 msgid "Local AI"
 msgstr "IA lokale"
+
+msgid "Local AI runtime"
+msgstr "Motori lokal i IA-së"
+
+msgid "Local AI runtime is unavailable"
+msgstr "Motori lokal i IA-së nuk është i disponueshëm"
 
 msgid "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
 msgstr "Gjenerimi lokal është zgjedhja private e paracaktuar. Nëse shton kredite OpenAI më vonë, zgjidh një model OpenAI dhe riekzekuto çdo hap për ta rigjeneruar ose përmirësuar rezultatin."
@@ -5103,6 +5121,9 @@ msgstr "Shkarkimi i modelit dështoi."
 
 msgid "Model downloaded and selected."
 msgstr "Modeli u shkarkua dhe u zgjodh."
+
+msgid "Model on GPU"
+msgstr "Modeli në GPU"
 
 msgid "Model overrides"
 msgstr "Mbivendosjet e modeleve"
@@ -5663,8 +5684,8 @@ msgstr "nga"
 msgid "Off"
 msgstr "Joaktiv"
 
-msgid "Ollama is not running"
-msgstr "Ollama nuk po ekzekutohet"
+#~ msgid "Ollama is not running"
+#~ msgstr "Ollama nuk po ekzekutohet"
 
 msgid "Omission or addition"
 msgstr "Mungesë ose shtesë"
@@ -6438,6 +6459,9 @@ msgstr "Narracion privat jashtë linje në anglisht me një model Kokoro të shk
 msgid "Private on-device models"
 msgstr "Modele private në pajisje"
 
+msgid "Process"
+msgstr "Procesi"
+
 msgid "Process every page on this machine."
 msgstr "Përpunoni çdo faqe në këtë makinë."
 
@@ -6476,6 +6500,9 @@ msgstr "Dosja e prompteve u fshi."
 
 #~ msgid "Prompt Settings"
 #~ msgstr "Cilësimet e promptit"
+
+msgid "Prompt speed"
+msgstr "Shpejtësia e kërkesës"
 
 msgid "Prompt template"
 msgstr "Shabllon prompt"
@@ -6960,6 +6987,9 @@ msgstr "Zëvendëso kuizet"
 msgid "Replace this audio file"
 msgstr "Zëvendëso këtë skedar audio"
 
+msgid "Requests"
+msgstr "Kërkesat"
+
 msgid "Require comment on failure"
 msgstr "Kërko koment në rast dështimi"
 
@@ -7177,8 +7207,11 @@ msgstr "Ekzekuto {upstreamLabel} së pari"
 msgid "Run anyway"
 msgstr "Ekzekuto gjithsesi"
 
-msgid "Run book generation privately on this computer with Gemma 4 and Ollama."
-msgstr "Gjenero libra privatisht në këtë kompjuter me Gemma 4 dhe Ollama."
+#~ msgid "Run book generation privately on this computer with Gemma 4 and Ollama."
+#~ msgstr "Gjenero libra privatisht në këtë kompjuter me Gemma 4 dhe Ollama."
+
+msgid "Run book generation privately with Gemma 4. No separate AI app is required."
+msgstr "Gjenerojeni librin privatisht me Gemma 4. Nuk nevojitet një aplikacion tjetër i IA-së."
 
 msgid "Run cancelled"
 msgstr "Ekzekutimi u anulua"
@@ -7275,6 +7308,9 @@ msgstr "Ekzekuton kontrolle aksesueshmërie kundrejt librit të paketuar."
 
 msgid "Runs in background — you can keep editing"
 msgstr "Ekzekutohet në sfond — mund të vazhdoni editimin"
+
+msgid "Runtime"
+msgstr "Motori"
 
 msgid "Sample"
 msgstr "Shembull"
@@ -8639,6 +8675,9 @@ msgstr "Ato lëshojnë oksigjen drejtpërdrejt në ajër."
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Ky aktivitet nuk ka tekste apo përgjigje të adresueshme. Rigjeneroni atë ose përdorni \"Ndrysho paraqitjen\" për ta ndryshuar faqen drejtpërdrejt."
 
+msgid "This app build is missing its embedded inference runtime. Reinstall ADT Studio or ask your administrator for a complete build."
+msgstr "Këtij versioni të aplikacionit i mungon motori i integruar i inferencës. Riinstaloni ADT Studio ose kërkojini administratorit një version të plotë."
+
 msgid "This archive can't be opened safely"
 msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"
 
@@ -9073,6 +9112,9 @@ msgstr "Modeli lokal nuk mund të zgjidhej."
 msgid "Unable to select prompt version."
 msgstr "Nuk mund të zgjidhet versioni i promptit."
 
+msgid "Unable to unload local model."
+msgstr "Modeli lokal nuk mund të shkarkohej nga memoria."
+
 msgid "Unable to update the book model overrides."
 msgstr "Mbivendosjet e modeleve të librit nuk mund të përditësoheshin."
 
@@ -9123,6 +9165,9 @@ msgstr "Slug i hapit i panjohur: {step}"
 
 msgid "Unknown step: {step}"
 msgstr "Hap i panjohur: {step}"
+
+msgid "Unload model"
+msgstr "Shkarko modelin nga memoria"
 
 msgid "Unprune image"
 msgstr "Rikthe imazhin"

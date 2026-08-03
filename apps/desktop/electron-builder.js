@@ -33,6 +33,10 @@ const extraResources = [
     from: "../../assets",
     to: "assets",
   },
+  {
+    from: ".runtime/llama",
+    to: "llama",
+  },
 ];
 
 const version = process.env.APP_VERSION || require("./package.json").version;
@@ -112,7 +116,6 @@ const config = {
     entitlementsInherit: "build/entitlements.mac.plist",
     identity: skipMac ? null : "Developer ID Application",
     ...(skipMac ? { notarize: false } : {}),
-    extraResources,
     extendInfo: {
       NSCameraUsageDescription:
         "Application requests access to the device's camera.",

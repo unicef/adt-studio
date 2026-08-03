@@ -74,7 +74,9 @@ import { nullProgress, type Progress } from "./progress.js"
 import { processWithConcurrency } from "./concurrency.js"
 import { runPipelineDAG, type StepExecutor, type PipelineDAGResult } from "./dag.js"
 
-const DEFAULT_METADATA_PAGES = 3
+// Keep CLI and desktop metadata sampling identical. Early front matter often
+// has publisher names but no representative narrative language.
+const DEFAULT_METADATA_PAGES = 5
 
 /**
  * Wrap a Progress so only step-progress and llm-log events pass through.
@@ -901,7 +903,7 @@ export async function runFullPipeline(
       // account. Speech is optional and can be generated later after a cloud
       // TTS provider is configured.
       if (
-        config.default_model?.startsWith("ollama:") &&
+        (config.default_model?.startsWith("local:") || config.default_model?.startsWith("ollama:")) &&
         defaultProvider === "openai" &&
         !process.env.OPENAI_API_KEY?.trim()
       ) {

@@ -19,17 +19,21 @@ export interface ApiServerPaths {
   adtResourcesZip: string;
   webAssetsDir: string;
   localTtsModelsDir: string;
+  localLlmModelsDir: string;
+  localLlmRuntimeDir: string;
 }
 
 export function resolvePaths(): ApiServerPaths {
   const appDataDir = app.getPath("userData");
   const booksDir = join(appDataDir, "books");
   const localTtsModelsDir = join(appDataDir, "models", "tts");
+  const localLlmModelsDir = join(appDataDir, "models", "llm");
 
   if (!existsSync(booksDir)) {
     mkdirSync(booksDir, { recursive: true });
   }
   if (!existsSync(localTtsModelsDir)) mkdirSync(localTtsModelsDir, { recursive: true });
+  if (!existsSync(localLlmModelsDir)) mkdirSync(localLlmModelsDir, { recursive: true });
 
   const root = resolveAppResourcesRoot();
 
@@ -74,6 +78,8 @@ export function resolvePaths(): ApiServerPaths {
       adtResourcesZip: join(root, "assets", "adt-resources.zip"),
       webAssetsDir: join(root, "assets", "adt"),
       localTtsModelsDir,
+      localLlmModelsDir,
+      localLlmRuntimeDir: join(root, "llama"),
     };
   }
 
@@ -87,5 +93,7 @@ export function resolvePaths(): ApiServerPaths {
     adtResourcesZip: join(root, "assets", "adt-resources.zip"),
     webAssetsDir: join(root, "assets", "adt"),
     localTtsModelsDir,
+    localLlmModelsDir,
+    localLlmRuntimeDir: join(root, "apps", "desktop", ".runtime", "llama"),
   };
 }

@@ -47,6 +47,7 @@ export function startServer(options: StartServerOptions = {}): unknown {
   })
 
   return serveFn({ fetch: fetchHandler, port, hostname }, (info) => {
+    process.env.LOCAL_LLM_OPENAI_BASE_URL = `http://${hostname}:${info.port}/api/local-ai/openai/v1`
     log(`API server running on http://${hostname}:${info.port}`)
     process.parentPort?.postMessage({ type: "api-ready", port: info.port })
   })

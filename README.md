@@ -218,7 +218,7 @@ pnpm dev
 
 ### Local Gemma 4 (Mac and Windows)
 
-Install and open [Ollama](https://ollama.com/download), then choose **Local AI** during onboarding or in **Settings → Local AI**. ADT Studio detects system memory, recommends and downloads a suitable Gemma 4 model, and runs text/vision generation locally. Cloud providers remain optional for later regeneration or improvement.
+Choose **Local AI** during onboarding or in **Settings → Local AI**. ADT Studio detects system memory, downloads a verified Gemma 4 model from Hugging Face on demand, and runs text/vision generation through its embedded llama.cpp runtime. No Ollama or cloud key is required. Cloud providers remain optional for later regeneration or improvement.
 
 Optional English narration also runs locally: download a compatible Kokoro model from Hugging Face in **Settings → Local AI**, then select **Local** in Speech. Generated WAV files are embedded in the exported static ADT; the model is not shipped in the export.
 

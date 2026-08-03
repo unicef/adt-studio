@@ -96,7 +96,8 @@ export function createStageRoutes(
     const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
 
     const config = loadBookConfig(label, booksDir, configPath)
-    const hasLocalModel = JSON.stringify(config).includes('"ollama:')
+    const serializedConfig = JSON.stringify(config)
+    const hasLocalModel = serializedConfig.includes('"local:') || serializedConfig.includes('"ollama:')
     if (!apiKey && !anthropicApiKey && !googleApiKey && !customBaseUrl && !hasLocalModel) {
       throw new HTTPException(400, {
         message: "No usable AI provider configured. Select a local model or provide the matching cloud credential.",

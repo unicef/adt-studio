@@ -57,6 +57,12 @@ export {
 } from "./ollama.js"
 
 export {
+  isEmbeddedLocalModelId,
+  isLocalModelId,
+  localLlmOpenAIBaseUrl,
+} from "./local.js"
+
+export {
   createTTSSynthesizer,
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,

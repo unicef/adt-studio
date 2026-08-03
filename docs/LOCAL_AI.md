@@ -1,80 +1,57 @@
 # Local AI on Mac and Windows
 
-ADT Studio can create books with Gemma 4 through Ollama without a cloud LLM key.
+ADT Studio runs Gemma 4 inside the desktop app. Users do **not** need Ollama, Python, Homebrew, or a Hugging Face account.
 
-## Mac app
+## User flow
 
-1. Install and open [Ollama](https://ollama.com/download).
-2. Open ADT Studio.
-3. In onboarding, keep **Local AI** selected. Later, use **Settings → Local AI**.
-4. Download the recommended Gemma 4 model, or select an already installed model.
-5. Create/import a book and run the pipeline normally.
+1. Open **Settings → Local AI**.
+2. Download the recommended Gemma 4 model.
+3. ADT verifies the immutable Hugging Face revision and SHA-256 checksums, then selects it.
+4. The model loads on first use. Later requests reuse the loaded runtime.
 
-The app detects system memory, streams download progress, and writes model files to Ollama's normal model storage—not inside the book or app bundle.
+The app bundle contains a pinned llama.cpp runtime (about 26 MB on macOS), not model weights. Models download on demand to Electron `userData/models/llm`. Interrupted downloads remain resumable. PDFs, images, and prompts stay on the computer.
 
-## Windows app
+| System memory | Recommended model | Download |
+| --- | --- | ---: |
+| 8–11 GB | Gemma 4 E2B Q4 | 3.2 GB |
+| 12–19 GB | Gemma 4 E4B Q4 | 4.8 GB |
+| 20–47 GB | Gemma 4 12B Q4 | 6.9 GB |
+| 48 GB+ | Gemma 4 26B A4B Q4 | 14.4 GB |
 
-The flow is the same: install Ollama for Windows, start it, then select/download a model in **Settings → Local AI**. The integration uses `127.0.0.1` and contains no macOS-only model code.
+Recommendations are conservative starting points, not performance guarantees. The debug panel reports the active model, llama.cpp version, Metal/CUDA/Vulkan/CPU backend, context size, latency, and token speed.
 
-## Model guidance
+## Runtime architecture
 
-| System memory | Suggested model |
-|---:|---|
-| 8 GB | Gemma 4 E2B |
-| 12–19 GB | Gemma 4 E4B |
-| 20–47 GB | Gemma 4 12B |
-| 48–63 GB | Gemma 4 26B A4B |
-| 64 GB+ | Gemma 4 31B |
+- `local:*` is the default provider.
+- The API supervises a loopback-only `llama-server` process and lazily loads the selected model.
+- The existing OpenAI-compatible client is proxied internally, so text, image inputs, structured-output validation, cancellation, caching, and logs keep one provider boundary.
+- Ollama remains supported through `ollama:*` IDs for developers who already use it; it is never required.
+- Runtime releases, model revisions, sizes, and hashes are pinned. Model data is never shipped in the installer or exported ADT.
 
-Use the recommendation as a safe default. Faster GPUs and available memory bandwidth affect real performance; the benchmark round should refine these thresholds.
+## Platform matrix
 
-## Privacy and networking
+| Platform | Bundled backend | Status |
+| --- | --- | --- |
+| macOS Apple Silicon | Metal + CPU fallback | Implemented and locally testable |
+| macOS Intel | Metal + CPU fallback | Packaging supported; requires Intel runner verification |
+| Windows x64/ARM64 | CPU baseline | Packaging supported; requires Windows runner verification |
+| Linux x64/ARM64 | CPU baseline | Packaging supported; requires Linux runner verification |
 
-- PDF content and prompts are sent only to the loopback Ollama service.
-- The ADT API binds to `127.0.0.1` by default.
-- Model download contacts Ollama's registry.
-- No cloud LLM key is required.
-- English TTS can run locally with a downloaded Kokoro ONNX model. Other languages stay explicitly routed to a configured cloud provider.
+Windows GPU acceleration should be added as a separately tested Vulkan/CUDA runtime choice with automatic CPU fallback. Do not claim cross-platform performance from macOS-only measurements.
 
-## Local speech and exported ADTs
+## Local speech and exports
 
-In **Settings → Local AI → Local speech**, paste an `owner/model` ID or Hugging Face model URL, or search Hugging Face. ADT validates Kokoro compatibility before downloading the selected q8 model and voice into Electron `userData/models/tts`.
+In **Local speech**, search Hugging Face or paste an `owner/model` ID/URL. ADT validates compatible Kokoro ONNX repositories and downloads the selected model and voices to `userData/models/tts`.
 
-Select **Local** in the Speech stage. The desktop API runs Kokoro through native ONNX Runtime on the CPU, produces mono 24 kHz PCM16 WAV files, and passes them to the existing speech pipeline. Packaging copies those files into the final static HTML/JS ADT; the exported ADT does not load or run the model.
+Kokoro synthesizes WAV files during authoring. Those audio files are embedded in the final static HTML/JS ADT. Neither Kokoro nor Gemma is bundled in the export, so the ADT plays normally without an AI runtime.
 
-Current limits:
+Current local speech is English-only. Unsupported languages must use a configured replaceable provider until a tested multilingual adapter is added.
 
-- Kokoro support is English (US/UK) only.
-- Sentence highlighting is fully offline. Per-word highlighting still needs the optional OpenAI Whisper alignment step.
-- Model download needs network access; synthesis and export work offline afterward.
-- Only compatible public, ungated Kokoro ONNX repositories are accepted.
+## Build and operations
 
-## Optional OpenAI improvement pass
+- `pnpm --filter @adt/desktop prepare:llama` downloads and verifies the pinned runtime for the build host.
+- Native CI must build/test each target. Cross-building alone is not runtime verification.
+- Set `LOCAL_LLM_SERVER_PATH` only for development overrides.
+- The tested default context is 16K; set `LOCAL_LLM_CONTEXT_SIZE` or `LOCAL_LLM_GPU_LAYERS` only after benchmark validation.
 
-Add an OpenAI key in provider settings, select an OpenAI model as the default or step override, and rerun the desired stage. The previous local output remains available through the project's version history.
-
-## Developer verification
-
-```bash
-pnpm install --frozen-lockfile
-pnpm typecheck
-pnpm test
-pnpm build:desktop
-SKIP_NOTARIZE=MAC pnpm --filter @adt/desktop build:unpack
-```
-
-Runtime check:
-
-```bash
-curl http://127.0.0.1:11434/api/tags
-```
-
-Supported stable ADT model IDs map to Ollama tags in `packages/llm/src/ollama.ts`.
-
-## Troubleshooting
-
-- **Ollama is not running:** open Ollama, then select **Check again**.
-- **Model is slow or memory pressure is high:** select the next smaller model and keep local concurrency at 1.
-- **Structured response retry:** expected occasionally. ADT validates Gemma's JSON and sends precise correction feedback.
-- **Speech has no audio:** download a Kokoro model and select **Local**, or configure OpenAI, Azure, or Gemini TTS. Gemma 4 itself is not a speech synthesizer.
-- **App cannot edit prompts/config after packaging:** current builds seed writable copies into Electron `userData`. Existing user changes are preserved on update.
+Official references: [llama.cpp](https://github.com/ggml-org/llama.cpp), [multimodal llama.cpp](https://github.com/ggml-org/llama.cpp/blob/master/docs/multimodal.md), [Hugging Face Hub JS](https://huggingface.co/docs/huggingface.js/en/hub/README).

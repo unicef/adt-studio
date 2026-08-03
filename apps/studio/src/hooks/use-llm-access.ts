@@ -15,6 +15,7 @@ export function hasCredentialForModel(
   const separator = modelId.indexOf(":")
   const provider = separator >= 0 ? modelId.slice(0, separator) : "openai"
   switch (provider) {
+    case "local":
     case "ollama":
       return true
     case "anthropic":
@@ -37,4 +38,3 @@ export function useLlmAccess(bookLabel?: string) {
     hasLlmAccess: hasCredentialForModel(modelId, credentials),
   }
 }
-

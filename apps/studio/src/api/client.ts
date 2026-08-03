@@ -198,8 +198,10 @@ export interface AzureCredentials {
 
 export interface LocalAIModel {
   id: string
-  ollamaName: string
   label: string
+  repository: string
+  revision: string
+  license: string
   downloadBytes: number
   minimumMemoryBytes: number
   installed: boolean
@@ -207,11 +209,25 @@ export interface LocalAIModel {
 }
 
 export interface LocalAIStatus {
-  runtime: "ollama"
+  runtime: "embedded-llama.cpp"
   runtimeAvailable: boolean
-  runtimeInstallUrl: string
-  endpoint: string
-  error?: string
+  runtimeVersion: string | null
+  state: "stopped" | "starting" | "ready" | "error"
+  backend: "Metal" | "CUDA" | "Vulkan" | "CPU" | "detecting"
+  device: string | null
+  deviceMemoryBytes: number | null
+  modelGpuMemoryBytes: number | null
+  loadedModelId: string | null
+  endpoint: string | null
+  contextSize: number
+  gpuLayersRequested: number
+  gpuLayersLoaded: number | null
+  processId: number | null
+  requests: number
+  lastRequestMs: number | null
+  promptTokensPerSecond: number | null
+  generatedTokensPerSecond: number | null
+  error: string | null
   system: {
     platform: string
     architecture: string
@@ -1841,6 +1857,8 @@ export const api = {
 
   getLocalAIStatus: () => request<LocalAIStatus>(`/local-ai/status`),
 
+  stopLocalAI: () => request<{ state: LocalAIStatus["state"] }>(`/local-ai/stop`, { method: "POST" }),
+
   getLocalSpeechStatus: () => request<LocalSpeechStatus>(`/local-speech/status`),
 
   searchLocalSpeechModels: (query: string) =>
@@ -1869,11 +1887,13 @@ export const api = {
   pullLocalModel: async (
     modelId: string,
     onProgress?: (progress: LocalModelPullProgress) => void,
+    signal?: AbortSignal,
   ): Promise<void> => {
     const response = await fetch(`${BASE_URL}/local-ai/pull`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ modelId }),
+      signal,
     })
     if (!response.ok || !response.body) {
       const text = await response.text().catch(() => "")

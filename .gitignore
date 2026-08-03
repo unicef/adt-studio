@@ -76,6 +76,7 @@ coverage/
 
 # Local working docs (not tracked)
 .local-docs/
+.local-models/
 
 # Auto-generated TTS cache artifacts from pipeline test runs
 packages/pipeline/src/__tests__/fixtures/raven-cache/tts/*.mp3
@@ -86,6 +87,7 @@ packages/pipeline/src/__tests__/fixtures/raven-cache/tts/*.mp3
 
 # Others
 apps/desktop/electron.vite.config*.mjs
+apps/desktop/.runtime/
 PLAN*.md
 prompts/.versions
 prompts/.models.json

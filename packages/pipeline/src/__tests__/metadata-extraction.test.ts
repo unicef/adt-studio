@@ -103,6 +103,35 @@ describe("extractMetadata", () => {
     expect(opts.log.taskType).toBe("metadata")
     expect(opts.log.promptName).toBe("metadata_extraction")
   })
+
+  it("rejects a country-based language guess when the narrative is clearly English", async () => {
+    const pages: MetadataPageInput[] = [{
+      pageNumber: 1,
+      imageBase64: "data",
+      text: "This is the story of a monkey in the forest. The monkey and the leopard are in a tree. They are there with their friends, and the animals will be safe in the forest. This is a book for children who are learning to read.",
+    }]
+    let capturedOptions: GenerateObjectOptions | undefined
+    const llmModel: LLMModel = {
+      generateObject: async <T>(options: GenerateObjectOptions) => {
+        capturedOptions = options
+        return { object: sampleMetadata as T, usage: { inputTokens: 1, outputTokens: 1 } }
+      },
+    }
+
+    await extractMetadata(pages, config, llmModel)
+    const validation = capturedOptions?.validate?.({ ...sampleMetadata, language_code: "bh" }, {})
+    expect(validation?.valid).toBe(false)
+    expect(validation?.errors[0]).toContain('language_code "en"')
+  })
+
+  it("removes placeholder author names", async () => {
+    const result = await extractMetadata(
+      [{ pageNumber: 1, text: "Cover", imageBase64: "data" }],
+      config,
+      makeFakeLLMModel({ ...sampleMetadata, authors: ["null", "Unknown", "Edgar Allan Poe"] }),
+    )
+    expect(result.authors).toEqual(["Edgar Allan Poe"])
+  })
 })
 
 describe("buildMetadataConfig", () => {

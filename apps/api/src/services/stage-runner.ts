@@ -119,7 +119,9 @@ import type {
   StageRunOptions,
 } from "./stage-service.js"
 
-const DEFAULT_METADATA_PAGES = 3
+// Covers/title/copyright pages often contain no narrative text. Five pages
+// gives language detection a representative sample without a large vision cost.
+const DEFAULT_METADATA_PAGES = 5
 // Per-item retry budget for a 429/quota response. Higher than a plain fixed
 // limiter would need, because the adaptive limiter starts optimistically high
 // and takes a few back-off steps to converge on the account's real quota.
@@ -2605,7 +2607,7 @@ async function runSpeechStep(
     }
 
     if (
-      config.default_model?.startsWith("ollama:") &&
+      (config.default_model?.startsWith("local:") || config.default_model?.startsWith("ollama:")) &&
       defaultProvider === "openai" &&
       !options.apiKey?.trim()
     ) {

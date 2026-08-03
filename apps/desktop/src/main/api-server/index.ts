@@ -30,6 +30,8 @@ async function startApiServer(): Promise<{
     "Prompts dir": paths.promptsDir,
     "Config path": paths.configPath,
     "Local TTS models": paths.localTtsModelsDir,
+    "Local LLM models": paths.localLlmModelsDir,
+    "Local LLM runtime": paths.localLlmRuntimeDir,
     "Debug mode": isApiDebugMode ? "true" : "false",
   });
 
@@ -53,6 +55,8 @@ async function startApiServer(): Promise<{
       WEB_ASSETS_DIR: paths.webAssetsDir,
       ADT_ENVIRONMENT: "electron",
       LOCAL_TTS_MODELS_DIR: paths.localTtsModelsDir,
+      LOCAL_LLM_MODELS_DIR: paths.localLlmModelsDir,
+      LOCAL_LLM_RUNTIME_DIR: paths.localLlmRuntimeDir,
     },
   });
 

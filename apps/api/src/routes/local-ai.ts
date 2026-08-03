@@ -1,167 +1,173 @@
 import os from "node:os"
+import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { DEFAULT_OLLAMA_BASE_URL, resolveOllamaModelName } from "@adt/llm"
+import {
+  LOCAL_GEMMA_MODELS,
+  findLocalLlmModel,
+  localLlmDownloadBytes,
+  recommendLocalGemma,
+} from "../services/local-llm-catalog.js"
+import {
+  installLocalLlmModel,
+  isLocalLlmModelInstalled,
+  removeLocalLlmModel,
+} from "../services/local-llm-model-store.js"
+import {
+  createLocalLlmRuntime,
+  type LocalLlmRuntime,
+} from "../services/local-llm-runtime.js"
 
-const GiB = 1024 ** 3
+const ModelRequest = z.object({ modelId: z.string().startsWith("local:") })
+const installing = new Set<string>()
 
-export const LOCAL_GEMMA_MODELS = [
-  {
-    id: "ollama:gemma4-e2b",
-    ollamaName: "gemma4:e2b",
-    label: "Gemma 4 E2B",
-    downloadBytes: 7.2 * GiB,
-    minimumMemoryBytes: 8 * GiB,
-  },
-  {
-    id: "ollama:gemma4-e4b",
-    ollamaName: "gemma4:e4b",
-    label: "Gemma 4 E4B",
-    downloadBytes: 9.6 * GiB,
-    minimumMemoryBytes: 12 * GiB,
-  },
-  {
-    id: "ollama:gemma4-12b",
-    ollamaName: "gemma4:12b",
-    label: "Gemma 4 12B",
-    downloadBytes: 7.6 * GiB,
-    minimumMemoryBytes: 20 * GiB,
-  },
-  {
-    id: "ollama:gemma4-26b",
-    ollamaName: "gemma4:26b",
-    label: "Gemma 4 26B A4B",
-    downloadBytes: 18 * GiB,
-    minimumMemoryBytes: 48 * GiB,
-  },
-  {
-    id: "ollama:gemma4-31b",
-    ollamaName: "gemma4:31b",
-    label: "Gemma 4 31B",
-    downloadBytes: 20 * GiB,
-    minimumMemoryBytes: 64 * GiB,
-  },
-] as const
-
-const LocalModelId = z.enum(LOCAL_GEMMA_MODELS.map((model) => model.id) as [
-  (typeof LOCAL_GEMMA_MODELS)[number]["id"],
-  ...(typeof LOCAL_GEMMA_MODELS)[number]["id"][],
-])
-
-const PullRequest = z.object({ modelId: LocalModelId })
-
-interface OllamaTagsResponse {
-  models?: Array<{ name?: string; model?: string; size?: number }>
-}
-
-export function recommendLocalGemma(totalMemoryBytes: number) {
-  const candidates = LOCAL_GEMMA_MODELS.filter(
-    (model) => totalMemoryBytes >= model.minimumMemoryBytes,
-  )
-  return candidates.at(-1) ?? LOCAL_GEMMA_MODELS[0]
-}
-
-function ollamaUrl(path: string): string {
-  const base = (process.env.OLLAMA_BASE_URL || DEFAULT_OLLAMA_BASE_URL).replace(/\/+$/, "")
-  return `${base}${path}`
-}
+export { LOCAL_GEMMA_MODELS, recommendLocalGemma }
 
 export function createLocalAIRoutes(options: {
+  modelsDir?: string
+  runtimeDir?: string
+  runtime?: LocalLlmRuntime
   fetchImpl?: typeof fetch
   totalMemoryBytes?: number
 } = {}) {
   const app = new Hono()
   const fetchImpl = options.fetchImpl ?? fetch
+  const projectRoot = process.env.PROJECT_ROOT ?? process.cwd()
+  const modelsDir = path.resolve(options.modelsDir ?? process.env.LOCAL_LLM_MODELS_DIR ?? path.join(projectRoot, ".local-models", "llm"))
+  const runtimeDir = path.resolve(options.runtimeDir ?? process.env.LOCAL_LLM_RUNTIME_DIR ?? path.join(projectRoot, "apps", "desktop", ".runtime", "llama"))
+  const runtime = options.runtime ?? createLocalLlmRuntime({ runtimeDir, modelsDir, fetchImpl })
 
   app.get("/local-ai/status", async (c) => {
     const totalMemoryBytes = options.totalMemoryBytes ?? os.totalmem()
     const recommended = recommendLocalGemma(totalMemoryBytes)
-
-    try {
-      const tagsResponse = await fetchImpl(ollamaUrl("/api/tags"), {
-        signal: AbortSignal.timeout(3_000),
-      })
-      if (!tagsResponse.ok) throw new Error(`Ollama returned HTTP ${tagsResponse.status}`)
-      const tags = await tagsResponse.json() as OllamaTagsResponse
-      const installedNames = new Set(
-        (tags.models ?? [])
-          .map((model) => model.model || model.name)
-          .filter((name): name is string => Boolean(name))
-          .map((name) => name.replace(/:latest$/, "")),
-      )
-
-      return c.json({
-        runtime: "ollama" as const,
-        runtimeAvailable: true,
-        runtimeInstallUrl: "https://ollama.com/download",
-        endpoint: ollamaUrl(""),
-        system: {
-          platform: os.platform(),
-          architecture: os.arch(),
-          totalMemoryBytes,
-        },
-        recommendedModelId: recommended.id,
-        models: LOCAL_GEMMA_MODELS.map((model) => ({
-          ...model,
-          installed: installedNames.has(model.ollamaName),
-          recommended: model.id === recommended.id,
-        })),
-      })
-    } catch (error) {
-      return c.json({
-        runtime: "ollama" as const,
-        runtimeAvailable: false,
-        runtimeInstallUrl: "https://ollama.com/download",
-        endpoint: ollamaUrl(""),
-        error: error instanceof Error ? error.message : String(error),
-        system: {
-          platform: os.platform(),
-          architecture: os.arch(),
-          totalMemoryBytes,
-        },
-        recommendedModelId: recommended.id,
-        models: LOCAL_GEMMA_MODELS.map((model) => ({
-          ...model,
-          installed: false,
-          recommended: model.id === recommended.id,
-        })),
-      })
-    }
+    return c.json({
+      ...runtime.status(),
+      system: {
+        platform: os.platform(),
+        architecture: os.arch(),
+        totalMemoryBytes,
+      },
+      recommendedModelId: recommended.id,
+      models: LOCAL_GEMMA_MODELS.map((model) => ({
+        id: model.id,
+        label: model.label,
+        repository: model.repository,
+        revision: model.revision,
+        license: model.license,
+        downloadBytes: localLlmDownloadBytes(model),
+        minimumMemoryBytes: model.minimumMemoryBytes,
+        installed: isLocalLlmModelInstalled(modelsDir, model),
+        recommended: model.id === recommended.id,
+        downloading: installing.has(model.id),
+      })),
+    })
   })
 
   app.post("/local-ai/pull", async (c) => {
-    const parsed = PullRequest.safeParse(await c.req.json().catch(() => null))
-    if (!parsed.success) {
-      throw new HTTPException(400, { message: "Invalid local model id" })
-    }
+    const parsed = ModelRequest.safeParse(await c.req.json().catch(() => null))
+    const model = parsed.success ? findLocalLlmModel(parsed.data.modelId) : undefined
+    if (!model) throw new HTTPException(400, { message: "Invalid local model id" })
+    if (installing.has(model.id)) throw new HTTPException(409, { message: "This model is already downloading" })
 
-    const model = LOCAL_GEMMA_MODELS.find((item) => item.id === parsed.data.modelId)!
-    const response = await fetchImpl(ollamaUrl("/api/pull"), {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ model: resolveOllamaModelName(model.id.slice("ollama:".length)) }),
-      signal: c.req.raw.signal,
-    }).catch((error: unknown) => {
-      throw new HTTPException(503, {
-        message: `Unable to reach Ollama: ${error instanceof Error ? error.message : String(error)}`,
-      })
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        installing.add(model.id)
+        let closed = false
+        const send = (value: unknown) => {
+          if (closed) return
+          try { controller.enqueue(encoder.encode(`${JSON.stringify(value)}\n`)) }
+          catch { closed = true }
+        }
+        void installLocalLlmModel({
+          modelsDir,
+          id: model.id,
+          fetchImpl,
+          signal: c.req.raw.signal,
+          onProgress: send,
+        }).then(() => {
+          send({ status: "complete", total: localLlmDownloadBytes(model), completed: localLlmDownloadBytes(model) })
+          if (!closed) controller.close()
+        }).catch((error: unknown) => {
+          send({ error: error instanceof Error ? error.message : String(error) })
+          if (!closed) controller.close()
+        }).finally(() => installing.delete(model.id))
+      },
     })
 
-    if (!response.ok || !response.body) {
-      const detail = await response.text().catch(() => "")
-      throw new HTTPException(502, {
-        message: detail || `Ollama returned HTTP ${response.status}`,
-      })
-    }
-
-    return new Response(response.body, {
-      status: 200,
+    return new Response(stream, {
       headers: {
         "Content-Type": "application/x-ndjson",
         "Cache-Control": "no-store",
       },
     })
+  })
+
+  app.delete("/local-ai/models/:alias", async (c) => {
+    const model = findLocalLlmModel(c.req.param("alias"))
+    if (!model) throw new HTTPException(404, { message: "Unknown local model" })
+    if (runtime.status().loadedModelId === model.id) await runtime.stop()
+    try {
+      removeLocalLlmModel(modelsDir, model.id)
+    } catch (error) {
+      throw new HTTPException(404, { message: error instanceof Error ? error.message : String(error) })
+    }
+    return c.json({ removed: model.id })
+  })
+
+  app.post("/local-ai/stop", async (c) => {
+    await runtime.stop()
+    return c.json(runtime.status())
+  })
+
+  app.all("/local-ai/openai/v1/*", async (c) => {
+    const requestUrl = new URL(c.req.url)
+    const suffix = requestUrl.pathname.split("/local-ai/openai/v1")[1] || "/"
+    const rawBody = c.req.method === "GET" || c.req.method === "HEAD"
+      ? undefined
+      : await c.req.arrayBuffer()
+    let modelId = ""
+    if (rawBody?.byteLength) {
+      try {
+        const body = JSON.parse(new TextDecoder().decode(rawBody)) as { model?: unknown }
+        if (typeof body.model === "string") modelId = body.model
+      } catch {
+        throw new HTTPException(400, { message: "Invalid OpenAI-compatible request body" })
+      }
+    }
+    const model = findLocalLlmModel(modelId)
+    if (!model) throw new HTTPException(400, { message: "Unknown embedded local model" })
+
+    let endpoint: { baseUrl: string; apiKey: string }
+    try {
+      endpoint = await runtime.ensureRunning(model.id)
+    } catch (error) {
+      throw new HTTPException(503, { message: error instanceof Error ? error.message : String(error) })
+    }
+
+    const headers = new Headers(c.req.raw.headers)
+    headers.delete("host")
+    headers.delete("content-length")
+    headers.set("authorization", `Bearer ${endpoint.apiKey}`)
+    const startedAt = Date.now()
+    const upstream = await fetchImpl(`${endpoint.baseUrl}${suffix}${requestUrl.search}`, {
+      method: c.req.method,
+      headers,
+      body: rawBody,
+      signal: c.req.raw.signal,
+    }).catch((error: unknown) => {
+      throw new HTTPException(502, { message: `Local inference failed: ${error instanceof Error ? error.message : String(error)}` })
+    })
+
+    const contentType = upstream.headers.get("content-type") || ""
+    if (contentType.includes("application/json")) {
+      const body = await upstream.text()
+      try { runtime.recordResponse(Date.now() - startedAt, JSON.parse(body)) }
+      catch { runtime.recordResponse(Date.now() - startedAt, null) }
+      return new Response(body, { status: upstream.status, headers: upstream.headers })
+    }
+    return new Response(upstream.body, { status: upstream.status, headers: upstream.headers })
   })
 
   return app

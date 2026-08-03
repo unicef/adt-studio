@@ -1,5 +1,7 @@
 # Momo local Gemma + Kokoro baseline — 2026-08-02
 
+> Historical baseline: this run used the optional Ollama provider. The default desktop path now uses the embedded llama.cpp runtime with on-demand Hugging Face downloads; its results are documented separately.
+
 ## Verdict
 
 **PASS for an offline macOS authoring baseline.** The packaged Electron app converted the complete Momo PDF into a working static ADT using Gemma 4 and Kokoro without cloud AI credentials. Model weights were downloaded on demand and are not inside the app or exported ADT.

@@ -17,6 +17,7 @@ import { computeHash, readCache, writeCache, bustCache } from "./cache.js"
 import { sanitizeMessages, type LlmLogEntry } from "./log.js"
 import { createLogger, type LogLevel } from "./logger.js"
 import { ollamaOpenAIBaseUrl, resolveOllamaModelName } from "./ollama.js"
+import { isLocalModelId, localLlmOpenAIBaseUrl } from "./local.js"
 
 export interface LLMProviderCredentials {
   openaiApiKey?: string
@@ -114,7 +115,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           ? opts.log.promptName
           : opts.log?.requestedPromptName
 
-      const effectiveMode = modelId.startsWith("ollama:")
+      const effectiveMode = isLocalModelId(modelId)
         ? opts.mode ?? "json"
         : opts.mode
 
@@ -461,6 +462,18 @@ function resolveModel(
           : undefined,
       )
     }
+    case "local": {
+      const local = createOpenAI({
+        baseURL: localLlmOpenAIBaseUrl(),
+        apiKey: "local",
+      })
+      return local(
+        model,
+        options.structuredOutputs !== undefined
+          ? { structuredOutputs: options.structuredOutputs }
+          : undefined,
+      )
+    }
     default:
       throw new Error(`Unsupported LLM provider: ${provider}`)
   }
@@ -472,6 +485,7 @@ function providerCacheIdentity(
 ): string {
   const provider = modelId.includes(":") ? modelId.slice(0, modelId.indexOf(":")) : "openai"
   if (provider === "ollama") return ollamaOpenAIBaseUrl()
+  if (provider === "local") return localLlmOpenAIBaseUrl()
   if (provider === "custom") {
     return credentials?.customBaseUrl ?? process.env.CUSTOM_OPENAI_BASE_URL ?? "custom:unconfigured"
   }
@@ -535,7 +549,9 @@ async function callLLM<T>(
   // Requires Node 20.3+ (see the "engines" field). The timeout rejects with a
   // TimeoutError (still a retryable failure); the external signal aborts with an
   // AbortError (a deliberate cancel — the retry loop stops on it).
-  const timeoutSignal = AbortSignal.timeout(opts.timeoutMs ?? 90_000)
+  const timeoutSignal = AbortSignal.timeout(
+    opts.timeoutMs ?? (isLocalModelId(modelId) ? 5 * 60_000 : 90_000),
+  )
   const abortSignal = externalSignal
     ? AbortSignal.any([timeoutSignal, externalSignal])
     : timeoutSignal
@@ -556,7 +572,7 @@ async function callLLM<T>(
   if (opts.temperature !== undefined) {
     generateOpts.temperature = opts.temperature
   }
-  if (modelId?.startsWith("ollama:")) {
+  if (isLocalModelId(modelId)) {
     generateOpts.providerOptions = {
       openai: { reasoningEffort: "none" },
     }
@@ -564,8 +580,8 @@ async function callLLM<T>(
   const invoke = () => (generateObject as Function)(generateOpts) as Promise<Awaited<ReturnType<typeof generateObject>>>
   let generated: Awaited<ReturnType<typeof generateObject>>
   try {
-    generated = modelId?.startsWith("ollama:")
-      ? await withOllamaSlot(invoke, externalSignal)
+    generated = isLocalModelId(modelId)
+      ? await withLocalModelSlot(invoke, externalSignal)
       : await invoke()
   } catch (error) {
     // Ollama models sometimes echo the JSON schema into an otherwise usable
@@ -573,7 +589,7 @@ async function callLLM<T>(
     // provide precise retry feedback. Recover the raw object only when a
     // caller supplied that validator; it will accept, clean, or reject it.
     if (
-      modelId?.startsWith("ollama:") &&
+      isLocalModelId(modelId) &&
       opts.validate &&
       NoObjectGeneratedError.isInstance(error) &&
       error.text
@@ -614,12 +630,12 @@ function parseJSONCandidate(text: string): unknown | undefined {
   }
 }
 
-let ollamaQueueTail: Promise<void> = Promise.resolve()
+let localModelQueueTail: Promise<void> = Promise.resolve()
 
-async function withOllamaSlot<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
-  const previous = ollamaQueueTail
+async function withLocalModelSlot<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  const previous = localModelQueueTail
   let release!: () => void
-  ollamaQueueTail = new Promise<void>((resolve) => { release = resolve })
+  localModelQueueTail = new Promise<void>((resolve) => { release = resolve })
   await previous
   try {
     if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError")

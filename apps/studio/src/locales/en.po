@@ -2184,6 +2184,9 @@ msgstr "Comprehensive"
 msgid "Compressed archive · ~ 42 MB"
 msgstr "Compressed archive · ~ 42 MB"
 
+msgid "Compute"
+msgstr "Compute"
+
 msgid "Concise"
 msgstr "Concise"
 
@@ -3852,6 +3855,9 @@ msgstr "Generation failed. Please try again."
 msgid "Generation Prompt"
 msgstr "Generation Prompt"
 
+msgid "Generation speed"
+msgstr "Generation speed"
+
 msgid "Get started"
 msgstr "Get started"
 
@@ -3920,6 +3926,9 @@ msgstr "Google's voices with strong intonation for narrative content."
 
 msgid "Got it"
 msgstr "Got it"
+
+msgid "GPU layers"
+msgstr "GPU layers"
 
 msgid "Grade Level"
 msgstr "Grade Level"
@@ -4304,14 +4313,14 @@ msgstr "Inside Cover"
 msgid "Install an older beta?"
 msgstr "Install an older beta?"
 
-msgid "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
-msgstr "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
+#~ msgid "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
+#~ msgstr "Install and open Ollama, then check again. Your PDFs and prompts remain on this computer."
 
 msgid "Install older version"
 msgstr "Install older version"
 
-msgid "Install Ollama"
-msgstr "Install Ollama"
+#~ msgid "Install Ollama"
+#~ msgstr "Install Ollama"
 
 msgid "Install on quit"
 msgstr "Install on quit"
@@ -4489,6 +4498,9 @@ msgstr "Last change"
 
 msgid "Last modified"
 msgstr "Last modified"
+
+msgid "Last request"
+msgstr "Last request"
 
 msgid "Launch the app with"
 msgstr "Launch the app with"
@@ -4756,6 +4768,12 @@ msgstr "Local"
 
 msgid "Local AI"
 msgstr "Local AI"
+
+msgid "Local AI runtime"
+msgstr "Local AI runtime"
+
+msgid "Local AI runtime is unavailable"
+msgstr "Local AI runtime is unavailable"
 
 msgid "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
 msgstr "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
@@ -5102,6 +5120,9 @@ msgstr "Model download failed."
 
 msgid "Model downloaded and selected."
 msgstr "Model downloaded and selected."
+
+msgid "Model on GPU"
+msgstr "Model on GPU"
 
 msgid "Model overrides"
 msgstr "Model overrides"
@@ -5662,8 +5683,8 @@ msgstr "of"
 msgid "Off"
 msgstr "Off"
 
-msgid "Ollama is not running"
-msgstr "Ollama is not running"
+#~ msgid "Ollama is not running"
+#~ msgstr "Ollama is not running"
 
 msgid "Omission or addition"
 msgstr "Omission or addition"
@@ -6437,6 +6458,9 @@ msgstr "Private offline English narration with a downloaded Kokoro model."
 msgid "Private on-device models"
 msgstr "Private on-device models"
 
+msgid "Process"
+msgstr "Process"
+
 msgid "Process every page on this machine."
 msgstr "Process every page on this machine."
 
@@ -6475,6 +6499,9 @@ msgstr "Prompt folder deleted."
 
 #~ msgid "Prompt Settings"
 #~ msgstr "Prompt Settings"
+
+msgid "Prompt speed"
+msgstr "Prompt speed"
 
 msgid "Prompt template"
 msgstr "Prompt template"
@@ -6959,6 +6986,9 @@ msgstr "Replace quizzes"
 msgid "Replace this audio file"
 msgstr "Replace this audio file"
 
+msgid "Requests"
+msgstr "Requests"
+
 msgid "Require comment on failure"
 msgstr "Require comment on failure"
 
@@ -7176,8 +7206,11 @@ msgstr "Run {upstreamLabel} first"
 msgid "Run anyway"
 msgstr "Run anyway"
 
-msgid "Run book generation privately on this computer with Gemma 4 and Ollama."
-msgstr "Run book generation privately on this computer with Gemma 4 and Ollama."
+#~ msgid "Run book generation privately on this computer with Gemma 4 and Ollama."
+#~ msgstr "Run book generation privately on this computer with Gemma 4 and Ollama."
+
+msgid "Run book generation privately with Gemma 4. No separate AI app is required."
+msgstr "Run book generation privately with Gemma 4. No separate AI app is required."
 
 msgid "Run cancelled"
 msgstr "Run cancelled"
@@ -7274,6 +7307,9 @@ msgstr "Runs accessibility checks against the packaged book."
 
 msgid "Runs in background — you can keep editing"
 msgstr "Runs in background — you can keep editing"
+
+msgid "Runtime"
+msgstr "Runtime"
 
 msgid "Sample"
 msgstr "Sample"
@@ -8638,6 +8674,9 @@ msgstr "They release oxygen directly into the air."
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 
+msgid "This app build is missing its embedded inference runtime. Reinstall ADT Studio or ask your administrator for a complete build."
+msgstr "This app build is missing its embedded inference runtime. Reinstall ADT Studio or ask your administrator for a complete build."
+
 msgid "This archive can't be opened safely"
 msgstr "This archive can't be opened safely"
 
@@ -9072,6 +9111,9 @@ msgstr "Unable to select local model."
 msgid "Unable to select prompt version."
 msgstr "Unable to select prompt version."
 
+msgid "Unable to unload local model."
+msgstr "Unable to unload local model."
+
 msgid "Unable to update the book model overrides."
 msgstr "Unable to update the book model overrides."
 
@@ -9122,6 +9164,9 @@ msgstr "Unknown step slug: {step}"
 
 msgid "Unknown step: {step}"
 msgstr "Unknown step: {step}"
+
+msgid "Unload model"
+msgstr "Unload model"
 
 msgid "Unprune image"
 msgstr "Unprune image"

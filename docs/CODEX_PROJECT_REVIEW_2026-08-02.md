@@ -66,7 +66,7 @@ This branch adds tested local-first Gemma 4 and Kokoro paths. The complete 20-pa
 
 11. **Unbounded local concurrency.** The global default of 32 LLM calls can thrash one local GPU and multiply memory use.
 
-    **Fixed here:** Ollama inference is serialized. Follow-up benchmarking should expose a measured local concurrency value, normally 1.
+    **Fixed here:** embedded and optional Ollama inference are serialized. Follow-up benchmarking should expose a measured local concurrency value, normally 1.
 
 12. **LLM cache identity was incomplete.** Cache keys omitted `maxTokens` and endpoint/provider identity, allowing stale or cross-endpoint hits; writes were non-atomic.
 
@@ -106,18 +106,20 @@ This branch adds tested local-first Gemma 4 and Kokoro paths. The complete 20-pa
 
 ## Local Gemma 4 implementation
 
-- Provider IDs: `ollama:gemma4-e2b`, `e4b`, `12b`, `26b`, `31b`.
-- Runtime: Ollama's loopback OpenAI-compatible API.
-- Hardware-aware recommendation: E2B at 8 GB, E4B at 12 GB, 12B at 20 GB, 26B at 48 GB, 31B at 64 GB. The 26B model also ran on the tested 32 GB M2 Max, but remains an opt-in installed model rather than the conservative recommendation.
-- Desktop onboarding: detects memory/runtime/models, recommends a model, streams download progress, and selects it as the default.
+- Default provider IDs: `local:gemma4-e2b`, `e4b`, `12b`, and `26b`.
+- Runtime: a pinned llama.cpp server is included in the signed desktop application. Ollama is an optional advanced provider, not a dependency.
+- Model delivery: weights and multimodal projectors download on demand from immutable Hugging Face revisions, resume after interruption, and are verified by size and SHA-256. No model weights are included in the installer or exported ADT.
+- Hardware-aware recommendation: E2B at 8 GB, E4B at 12 GB, 12B at 20 GB, and 26B at 48 GB. Recommendations are conservative starting points, not performance guarantees.
+- Desktop onboarding: detects memory/runtime/models, recommends a model, streams resumable download progress, and selects it as the default.
 - Local structured output: uses JSON mode, disables reasoning output, serializes requests, and recovers schema-echo responses so domain validation can give Gemma corrective retry feedback.
-- Local text and vision: both verified against a real `gemma4:26b` runtime.
-- Full PDF proof: 20-page `momograde1.pdf`, no cloud keys, all creation, local speech, package, integrity, and reader smoke checks passed. See `docs/MOMO_LOCAL_GEMMA_KOKORO_BASELINE_2026-08-02.md`.
+- Local text and vision: verified through the app's authenticated loopback proxy with the official E2B GGUF and multimodal projector on Metal.
+- Runtime diagnostics: the debug panel reports the model, runtime version, backend/device, GPU layers and memory, request latency, and token speeds.
+- Historical full-PDF proof: the 20-page Momo baseline used local Gemma 4 26B through Ollama plus Kokoro. See `docs/MOMO_LOCAL_GEMMA_KOKORO_BASELINE_2026-08-02.md`. The embedded-runtime baseline is recorded separately so the two are not conflated.
 - Cloud improvement path: adding OpenAI credentials and selecting an OpenAI model lets the user rerun any stage; the local result remains versioned.
 
 Known capability boundary: Gemma 4 is used for text and image understanding. English speech synthesis is now available through the separate optional Kokoro/native-CPU provider; image generation and word-level speech alignment still require separate local engines or optional cloud providers.
 
-Official references: [Gemma 4](https://ai.google.dev/gemma/docs/core), [Ollama Gemma 4 models](https://ollama.com/library/gemma4), [Ollama OpenAI compatibility](https://docs.ollama.com/api/openai-compatibility), [structured outputs](https://docs.ollama.com/capabilities/structured-outputs).
+Official references: [Gemma 4](https://ai.google.dev/gemma/docs/core), [llama.cpp](https://github.com/ggml-org/llama.cpp), [llama.cpp multimodal support](https://github.com/ggml-org/llama.cpp/blob/master/docs/multimodal.md), [Hugging Face Hub JS](https://huggingface.co/docs/huggingface.js/en/hub/README).
 
 ## Dependency review
 

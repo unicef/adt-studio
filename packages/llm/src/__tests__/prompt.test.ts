@@ -173,6 +173,21 @@ After.{% endchat %}`
       .toBe("section__openai_gpt_5_5")
   })
 
+  it("uses the shared Gemma 4 prompt family for embedded models", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(path.join(dir, "caption.liquid"), `{% chat role: "user" %}Base{% endchat %}`)
+    fs.mkdirSync(path.join(dir, "gemma4"))
+    fs.writeFileSync(path.join(dir, "gemma4", "caption.liquid"), `{% chat role: "user" %}Gemma{% endchat %}`)
+
+    const engine = createPromptEngine(dir)
+    const messages = await engine.renderPrompt("caption", {}, { modelId: "local:gemma4-e2b" })
+
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Gemma" }],
+    })
+  })
+
   it("uses prompt files from model folders before legacy flat variants", async () => {
     const dir = tmpDir()
     fs.writeFileSync(
