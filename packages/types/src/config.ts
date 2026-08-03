@@ -10,6 +10,13 @@ export const DEFAULT_LLM_MODEL_ID = "openai:gpt-5.4"
 export const DEFAULT_IMAGE_GENERATION_MODEL_ID = "openai:gpt-image-2"
 export const DEFAULT_OPENAI_TTS_MODEL_ID = "gpt-4o-mini-tts"
 
+/**
+ * Model the un-suffixed base prompt templates are authored for. A pipeline step
+ * running on this model uses the base prompt directly; any other model resolves
+ * its own prompt-variant folder first. Overridable via `base_prompt_model`.
+ */
+export const DEFAULT_BASE_PROMPT_MODEL_ID = "openai:gpt-5.4"
+
 export const LLMModelId = z
   .string()
   .trim()
@@ -185,6 +192,9 @@ export const AppConfig = z
     default_model: LLMModelId.optional(),
     default_image_generation_model: LLMModelId.optional(),
     default_speech_generation_model: SpeechGenerationModelId.optional(),
+    /** Model the base (un-suffixed) prompt templates target. Defaults to
+     *  DEFAULT_BASE_PROMPT_MODEL_ID. Steps on this model skip variant lookup. */
+    base_prompt_model: LLMModelId.optional(),
     structure_types: z.record(z.string(), z.string()),
     role_types: z.record(z.string(), z.string()),
     section_types: z.record(z.string(), z.string()).optional(),
