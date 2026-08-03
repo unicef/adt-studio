@@ -60,7 +60,7 @@ const IDLE_STATE: ProvisionState = {
  * `start` accepts the step number to resume from.
  */
 export function useCloudflareProvision(
-  credentials: CloudflareCredentials,
+  credentials: Partial<CloudflareCredentials>,
 ): CloudflareProvisionController {
   const queryClient = useQueryClient()
   const [state, setState] = useState<ProvisionState>(IDLE_STATE)

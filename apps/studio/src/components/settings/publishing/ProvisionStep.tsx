@@ -11,7 +11,7 @@ import { WizardStepShell } from "./WizardStepShell"
 interface ProvisionStepProps {
   stepNumber: number
   stepCount: number
-  credentials: CloudflareCredentials
+  credentials: Partial<CloudflareCredentials>
   onBack: () => void
   onProvisioned: () => void
 }

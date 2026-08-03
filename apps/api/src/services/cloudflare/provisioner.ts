@@ -4,6 +4,7 @@ import {
   CLOUDFLARE_R2_BUCKET_NAME,
   CLOUDFLARE_WORKER_NAME,
   PUBLISH_WORKER_VERSION,
+  type CloudflareAuthMethod,
   type CloudflareConnectionStatus,
   type ProvisionProgressEvent,
   type ProvisionStepId,
@@ -35,6 +36,7 @@ export interface ProvisionOptions {
   artifact: WorkerArtifact
   store: ConnectionStore
   emit: ProvisionEmit
+  authMethod?: CloudflareAuthMethod
   fetchFn?: FetchLike
   sleep?: (ms: number) => Promise<void>
   now?: () => Date
@@ -98,6 +100,7 @@ export async function provisionCloudflare(
     artifact,
     store,
     emit,
+    authMethod = "token",
     fetchFn,
     sleep = defaultSleep,
     now = () => new Date(),
@@ -145,7 +148,7 @@ export async function provisionCloudflare(
   }
 
   const accountName = await runStep("verify-token", async () => {
-    const probe = await probeCloudflareAccess(client)
+    const probe = await probeCloudflareAccess(client, { verifyToken: authMethod !== "oauth" })
     if (probe.tokenInvalid) {
       throw new ProvisionError({
         code: "bad_token_scope",
@@ -166,7 +169,10 @@ export async function provisionCloudflare(
       throw new ProvisionError({
         code: "bad_token_scope",
         stepId: "verify-token",
-        message: `The Cloudflare API token is missing these permissions: ${probe.missingScopes.join(", ")}.`,
+        message:
+          authMethod === "oauth"
+            ? `This Cloudflare login is missing these permissions: ${probe.missingScopes.join(", ")}. Disconnect and connect again, and allow every permission ADT Studio asks for.`
+            : `The Cloudflare API token is missing these permissions: ${probe.missingScopes.join(", ")}.`,
         missingScopes: probe.missingScopes,
       })
     }
@@ -409,6 +415,7 @@ export async function provisionCloudflare(
   const status = toConnectionStatus(record, {
     workerVersion: deployedVersion,
     reachable: true,
+    authMethod,
   })
   await emit({ type: "complete", connection: status })
   return status

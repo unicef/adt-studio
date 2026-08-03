@@ -94,8 +94,12 @@ export const CloudflareConnectionResources = z.object({
 })
 export type CloudflareConnectionResources = z.infer<typeof CloudflareConnectionResources>
 
+export const CloudflareAuthMethod = z.enum(["oauth", "token"])
+export type CloudflareAuthMethod = z.infer<typeof CloudflareAuthMethod>
+
 export const CloudflareConnectionStatus = z.object({
   connected: z.boolean(),
+  auth_method: CloudflareAuthMethod.nullable(),
   worker_url: z.string().nullable(),
   worker_version: z.string().nullable(),
   latest_version: z.string().min(1),
@@ -110,10 +114,60 @@ export type CloudflareConnectionStatus = z.infer<typeof CloudflareConnectionStat
 export const CloudflareConnectionDeleteResponse = z.object({
   forgotten: z.boolean(),
   deleted_resources: z.boolean(),
+  oauth_cleared: z.boolean(),
 })
 export type CloudflareConnectionDeleteResponse = z.infer<
   typeof CloudflareConnectionDeleteResponse
 >
+
+export const CloudflareOAuthErrorCode = z.enum([
+  "oauth_port_busy",
+  "oauth_flow_pending",
+  "oauth_denied",
+  "oauth_expired",
+  "oauth_state_mismatch",
+  "oauth_exchange_failed",
+  "oauth_no_accounts",
+  "reconnect_required",
+  "account_choice_required",
+])
+export type CloudflareOAuthErrorCode = z.infer<typeof CloudflareOAuthErrorCode>
+
+export const CloudflareOAuthStartResponse = z.object({
+  auth_url: z.string().min(1),
+  state: z.string().min(1),
+})
+export type CloudflareOAuthStartResponse = z.infer<typeof CloudflareOAuthStartResponse>
+
+export const CloudflareOAuthAccount = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+})
+export type CloudflareOAuthAccount = z.infer<typeof CloudflareOAuthAccount>
+
+export const CloudflareOAuthFlowStatus = z.enum(["pending", "complete", "error", "expired"])
+export type CloudflareOAuthFlowStatus = z.infer<typeof CloudflareOAuthFlowStatus>
+
+export const CloudflareOAuthStatusResponse = z.object({
+  status: CloudflareOAuthFlowStatus,
+  error: CloudflareOAuthErrorCode.optional(),
+  error_message: z.string().optional(),
+  accounts: z.array(CloudflareOAuthAccount).optional(),
+  account_choice_required: z.boolean(),
+  account_id: z.string().nullable().optional(),
+})
+export type CloudflareOAuthStatusResponse = z.infer<typeof CloudflareOAuthStatusResponse>
+
+export const CloudflareOAuthAccountRequest = z.object({
+  account_id: z.string().min(1),
+})
+export type CloudflareOAuthAccountRequest = z.infer<typeof CloudflareOAuthAccountRequest>
+
+export const CloudflareOAuthAccountResponse = z.object({
+  account_id: z.string().min(1),
+  account_name: z.string().nullable(),
+})
+export type CloudflareOAuthAccountResponse = z.infer<typeof CloudflareOAuthAccountResponse>
 
 export const ProvisionProgressEvent = z.discriminatedUnion("type", [
   z.object({

@@ -1,7 +1,10 @@
 import { Trans } from "@lingui/react/macro"
-import { Clock, Cloud, MessagesSquare, ShieldCheck } from "lucide-react"
+import { Clock, Cloud, Loader2, MessagesSquare, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import type { CloudflareOAuthErrorCode } from "@/api/client"
+import type { CloudflareOAuthPhase } from "@/hooks/use-cloudflare-oauth"
 import { ExternalLinkButton } from "./ExternalLinkButton"
+import { OAuthErrorNotice, OAuthWaitingNotice } from "./OAuthConnectNotice"
 import { WizardStepShell } from "./WizardStepShell"
 import { CLOUDFLARE_SIGNUP_URL } from "./cloudflare-links"
 
@@ -42,11 +45,11 @@ const POINTS = [
   {
     id: "time",
     icon: Clock,
-    title: <Trans>About five minutes, only once</Trans>,
+    title: <Trans>One click, then you're done</Trans>,
     body: (
       <Trans>
-        This setup connects the Studio to your Cloudflare account. After it's done, publishing a
-        book is one click.
+        Sign in to Cloudflare once and allow ADT Studio. After that, publishing a book is one
+        click.
       </Trans>
     ),
   },
@@ -55,10 +58,28 @@ const POINTS = [
 interface IntroStepProps {
   stepNumber: number
   stepCount: number
-  onContinue: () => void
+  oauthPhase: CloudflareOAuthPhase
+  oauthErrorCode: CloudflareOAuthErrorCode | "unknown" | null
+  oauthErrorMessage: string | null
+  authUrl: string | null
+  onConnectWithCloudflare: () => void
+  onCancelOAuth: () => void
+  onUseApiToken: () => void
 }
 
-export function IntroStep({ stepNumber, stepCount, onContinue }: IntroStepProps) {
+export function IntroStep({
+  stepNumber,
+  stepCount,
+  oauthPhase,
+  oauthErrorCode,
+  oauthErrorMessage,
+  authUrl,
+  onConnectWithCloudflare,
+  onCancelOAuth,
+  onUseApiToken,
+}: IntroStepProps) {
+  const isBusy = oauthPhase === "starting" || oauthPhase === "waiting"
+
   return (
     <WizardStepShell
       stepNumber={stepNumber}
@@ -73,8 +94,11 @@ export function IntroStep({ stepNumber, stepCount, onContinue }: IntroStepProps)
       }
       footer={
         <>
-          <Button onClick={onContinue}>
-            <Trans>Start setup</Trans>
+          <Button onClick={onConnectWithCloudflare} disabled={isBusy}>
+            {isBusy && (
+              <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+            )}
+            <Trans>Connect with Cloudflare</Trans>
           </Button>
           <ExternalLinkButton href={CLOUDFLARE_SIGNUP_URL} variant="ghost">
             <Trans>Create a free Cloudflare account</Trans>
@@ -96,6 +120,36 @@ export function IntroStep({ stepNumber, stepCount, onContinue }: IntroStepProps)
           </li>
         ))}
       </ul>
+
+      {oauthPhase === "waiting" && (
+        <OAuthWaitingNotice authUrl={authUrl} onCancel={onCancelOAuth} />
+      )}
+
+      {oauthPhase === "error" && (
+        <OAuthErrorNotice
+          code={oauthErrorCode}
+          detail={oauthErrorMessage}
+          onRetry={onConnectWithCloudflare}
+          onUseApiToken={onUseApiToken}
+        />
+      )}
+
+      <div className="flex flex-col gap-1 border-t pt-4">
+        <Button
+          variant="link"
+          className="h-auto self-start p-0 text-sm"
+          onClick={onUseApiToken}
+          disabled={isBusy}
+        >
+          <Trans>Connect with an API token instead</Trans>
+        </Button>
+        <p className="text-sm leading-6 text-muted-foreground">
+          <Trans>
+            Use this if the Studio runs on a different computer or a server, where the one-click
+            login cannot come back to your browser.
+          </Trans>
+        </p>
+      </div>
     </WizardStepShell>
   )
 }

@@ -14,7 +14,7 @@ import { ProvisionErrorNotice } from "./ProvisionErrorNotice"
 
 interface ConnectedCardProps {
   connection: CloudflareConnectionStatus
-  credentials: CloudflareCredentials
+  credentials: Partial<CloudflareCredentials>
   onDisconnected: () => void
 }
 
@@ -104,6 +104,16 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
           <span>
             {connection.resources?.account_name ||
               connection.resources?.account_id || <Trans>Connected</Trans>}
+          </span>
+        </DetailRow>
+
+        <DetailRow label={<Trans>How you connected</Trans>}>
+          <span data-testid={`connection-method-${connection.auth_method ?? "unknown"}`}>
+            {connection.auth_method === "oauth" ? (
+              <Trans>Connected via Cloudflare login</Trans>
+            ) : (
+              <Trans>Connected with API token</Trans>
+            )}
           </span>
         </DetailRow>
 

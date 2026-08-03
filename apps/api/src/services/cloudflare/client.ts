@@ -279,6 +279,47 @@ export function createCloudflareClient(
   }
 }
 
+export interface ListCloudflareAccountsOptions {
+  token: string
+  fetchFn?: FetchLike
+  baseUrl?: string
+}
+
+/** Account listing for a credential that is not yet bound to an account — the OAuth
+ *  grant covers every account the user is a member of, so the account id has to be
+ *  resolved after the token exchange rather than typed in. */
+export async function listCloudflareAccounts(
+  options: ListCloudflareAccountsOptions,
+): Promise<CloudflareAccount[]> {
+  const fetchFn: FetchLike = options.fetchFn ?? ((input, init) => fetch(input, init))
+  const baseUrl = (options.baseUrl ?? CLOUDFLARE_API_BASE_URL).replace(/\/$/, "")
+  const response = await fetchFn(`${baseUrl}/accounts?per_page=50`, {
+    headers: { Authorization: `Bearer ${options.token}` },
+  })
+  const text = await response.text()
+
+  let envelope: CloudflareEnvelope<Array<{ id?: string; name?: string }>> | null = null
+  if (text.length > 0) {
+    try {
+      envelope = JSON.parse(text) as CloudflareEnvelope<Array<{ id?: string; name?: string }>>
+    } catch {
+      envelope = null
+    }
+  }
+
+  if (!response.ok || envelope?.success === false) {
+    throw new CloudflareApiError(
+      response.status,
+      normalizeIssues(envelope?.errors),
+      `Cloudflare API GET /accounts failed with status ${response.status}`,
+    )
+  }
+
+  return (envelope?.result ?? []).flatMap((entry) =>
+    entry.id ? [{ id: entry.id, name: entry.name ?? "" }] : [],
+  )
+}
+
 export interface WorkerHealth {
   reachable: boolean
   version: string | null

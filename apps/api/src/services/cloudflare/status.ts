@@ -1,14 +1,18 @@
 import {
   PUBLISH_WORKER_VERSION,
+  type CloudflareAuthMethod,
   type CloudflareConnectionStatus,
 } from "@adt/types"
 import { fetchWorkerHealth, type CloudflareClient, type FetchLike } from "./client.js"
 import type { CloudflareConnectionRecord, ConnectionStore } from "./connection-store.js"
 import { describeError } from "./errors.js"
 
-export function disconnectedStatus(): CloudflareConnectionStatus {
+export function disconnectedStatus(
+  authMethod: CloudflareAuthMethod | null = null,
+): CloudflareConnectionStatus {
   return {
     connected: false,
+    auth_method: authMethod,
     worker_url: null,
     worker_version: null,
     latest_version: PUBLISH_WORKER_VERSION,
@@ -22,11 +26,16 @@ export function disconnectedStatus(): CloudflareConnectionStatus {
 
 export function toConnectionStatus(
   record: CloudflareConnectionRecord,
-  live: { workerVersion: string | null; reachable: boolean },
+  live: {
+    workerVersion: string | null
+    reachable: boolean
+    authMethod?: CloudflareAuthMethod
+  },
 ): CloudflareConnectionStatus {
   const workerVersion = live.workerVersion ?? record.worker_version
   return {
     connected: true,
+    auth_method: live.authMethod ?? "token",
     worker_url: record.worker_url,
     worker_version: workerVersion,
     latest_version: PUBLISH_WORKER_VERSION,
@@ -51,21 +60,35 @@ export interface ReadConnectionStatusOptions {
   probeWorker?: boolean
 }
 
+/** A grant still waiting for its account choice cannot be the credential behind a
+ *  connection, so it is not reported as the auth method either. */
+export function readAuthMethod(store: ConnectionStore): CloudflareAuthMethod | null {
+  const grant = store.readOAuth()
+  if (grant && grant.account_id !== null) return "oauth"
+  return store.read() ? "token" : null
+}
+
 export async function readConnectionStatus(
   store: ConnectionStore,
   options: ReadConnectionStatusOptions = {},
 ): Promise<CloudflareConnectionStatus> {
+  const authMethod = readAuthMethod(store)
   const record = store.read()
-  if (!record) return disconnectedStatus()
+  if (!record) return disconnectedStatus(authMethod)
 
   if (options.probeWorker === false) {
-    return toConnectionStatus(record, { workerVersion: null, reachable: false })
+    return toConnectionStatus(record, {
+      workerVersion: null,
+      reachable: false,
+      ...(authMethod === null ? {} : { authMethod }),
+    })
   }
 
   const health = await fetchWorkerHealth(record.worker_url, options.fetchFn)
   return toConnectionStatus(record, {
     workerVersion: health.version,
     reachable: health.reachable,
+    ...(authMethod === null ? {} : { authMethod }),
   })
 }
 

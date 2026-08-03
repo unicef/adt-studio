@@ -3,9 +3,15 @@ import { readEventStream } from "@/api/sse"
 import { CLOUDFLARE_ACCOUNT_ID_HEADER, CLOUDFLARE_TOKEN_HEADER } from "@adt/types"
 import type {
   AccessibilityAssessmentOutput,
+  CloudflareAuthMethod,
   CloudflareConnectionDeleteResponse,
   CloudflareConnectionResources,
   CloudflareConnectionStatus,
+  CloudflareOAuthAccount,
+  CloudflareOAuthAccountResponse,
+  CloudflareOAuthErrorCode,
+  CloudflareOAuthStartResponse,
+  CloudflareOAuthStatusResponse,
   CloudflareTokenScope,
   CloudflareVerifyResponse,
   ProvisionErrorCode,
@@ -108,15 +114,36 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => "")
     let message: string | undefined
+    let code: string | null = null
     try {
-      message = (JSON.parse(text) as { error?: string }).error
+      const body = JSON.parse(text) as { error?: string; code?: string }
+      message = body.error
+      code = typeof body.code === "string" ? body.code : null
     } catch {
       message = text || undefined
     }
-    throw new Error(message ?? `Request failed: ${res.status}`)
+    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, code)
   }
 
   return res.json()
+}
+
+/** Carries the machine-readable `code` some routes return alongside `error`, so callers
+ *  can branch on the reason instead of matching on prose. */
+export class ApiError extends Error {
+  readonly status: number
+  readonly code: string | null
+
+  constructor(message: string, status: number, code: string | null = null) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+    this.code = code
+  }
+}
+
+export function apiErrorCode(error: unknown): string | null {
+  return error instanceof ApiError ? error.code : null
 }
 
 export interface ImportPreview {
@@ -812,9 +839,15 @@ export function getBookFontFileUrl(label: string, fontId: string, file: string):
 // --- Cloudflare connection & provisioning ---
 
 export type {
+  CloudflareAuthMethod,
   CloudflareConnectionDeleteResponse,
   CloudflareConnectionResources,
   CloudflareConnectionStatus,
+  CloudflareOAuthAccount,
+  CloudflareOAuthAccountResponse,
+  CloudflareOAuthErrorCode,
+  CloudflareOAuthStartResponse,
+  CloudflareOAuthStatusResponse,
   CloudflareTokenScope,
   CloudflareVerifyResponse,
   ProvisionErrorCode,
@@ -2003,7 +2036,21 @@ export const api = {
 
   // --- Cloudflare connection & provisioning ---
 
-  verifyCloudflare: (credentials: CloudflareCredentials) =>
+  startCloudflareOAuth: () =>
+    request<CloudflareOAuthStartResponse>("/cloudflare/oauth/start", { method: "POST" }),
+
+  getCloudflareOAuthStatus: (state: string) =>
+    request<CloudflareOAuthStatusResponse>(
+      `/cloudflare/oauth/status?state=${encodeURIComponent(state)}`,
+    ),
+
+  pickCloudflareOAuthAccount: (state: string, accountId: string) =>
+    request<CloudflareOAuthAccountResponse>("/cloudflare/oauth/account", {
+      method: "POST",
+      body: JSON.stringify({ state, account_id: accountId }),
+    }),
+
+  verifyCloudflare: (credentials: Partial<CloudflareCredentials>) =>
     request<CloudflareVerifyResponse>("/cloudflare/verify", {
       method: "POST",
       headers: buildCloudflareHeaders(credentials),
@@ -2026,7 +2073,7 @@ export const api = {
   /** Runs the provisioning sequence, streaming per-step progress as SSE.
    *  Resolves when the stream closes; rejects if the request itself fails. */
   provisionCloudflare: async (
-    credentials: CloudflareCredentials,
+    credentials: Partial<CloudflareCredentials>,
     options: ProvisionOptions,
   ): Promise<void> => {
     const res = await fetch(`${BASE_URL}/cloudflare/provision`, {

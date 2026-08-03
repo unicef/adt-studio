@@ -19,6 +19,11 @@ export interface FakeCloudflareState {
   uploadCount: number
   healthCalls: number
   calls: Array<{ method: string; url: string }>
+  tokenRequests: Array<Record<string, string>>
+  revocations: Array<Record<string, string>>
+  bearerTokens: string[]
+  issuedAccessTokens: string[]
+  issuedRefreshTokens: string[]
 }
 
 export interface FakeCloudflareOptions {
@@ -41,6 +46,14 @@ export interface FakeCloudflareOptions {
   workerVersion?: string
   healthFailures?: number
   healthUnreachable?: boolean
+  /** Accounts the OAuth grant can see. Defaults to the single configured account. */
+  oauthAccounts?: Array<{ id: string; name: string }> | null
+  accountsListForbidden?: boolean
+  oauthTokenError?: string
+  oauthTokenStatus?: number
+  oauthExpiresIn?: number
+  oauthRefreshTokenAbsent?: boolean
+  revokeFails?: boolean
 }
 
 export interface FakeCloudflare {
@@ -88,11 +101,53 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
     uploadCount: 0,
     healthCalls: 0,
     calls: [],
+    tokenRequests: [],
+    revocations: [],
+    bearerTokens: [],
+    issuedAccessTokens: [],
+    issuedRefreshTokens: [],
+  }
+
+  function formBody(init?: RequestInit): Record<string, string> {
+    return Object.fromEntries(new URLSearchParams(String(init?.body ?? "")).entries())
   }
 
   const fetchFn: FetchLike = async (input, init) => {
     const method = (init?.method ?? "GET").toUpperCase()
     state.calls.push({ method, url: input })
+    const authorization = new Headers(init?.headers).get("Authorization")
+    if (authorization?.startsWith("Bearer ")) {
+      state.bearerTokens.push(authorization.slice("Bearer ".length))
+    }
+
+    if (input.includes("/oauth2/token")) {
+      const params = formBody(init)
+      state.tokenRequests.push(params)
+      if (options.oauthTokenError) {
+        return json(
+          { error: options.oauthTokenError, error_description: options.oauthTokenError },
+          options.oauthTokenStatus ?? 400,
+        )
+      }
+      const issue = state.tokenRequests.length
+      const accessToken = `cf-oauth-access-${issue}`
+      const refreshToken = `cf-oauth-refresh-${issue}`
+      state.issuedAccessTokens.push(accessToken)
+      if (!options.oauthRefreshTokenAbsent) state.issuedRefreshTokens.push(refreshToken)
+      return json({
+        access_token: accessToken,
+        ...(options.oauthRefreshTokenAbsent ? {} : { refresh_token: refreshToken }),
+        expires_in: options.oauthExpiresIn ?? 3600,
+        token_type: "bearer",
+        scope: "account:read user:read workers_scripts:write workers:write d1:write",
+      })
+    }
+
+    if (input.includes("/oauth2/revoke")) {
+      state.revocations.push(formBody(init))
+      if (options.revokeFails) return json({ error: "invalid_token" }, 400)
+      return new Response("", { status: 200 })
+    }
 
     if (input.includes(".workers.dev/health")) {
       state.healthCalls += 1
@@ -118,6 +173,17 @@ export function createFakeCloudflare(options: FakeCloudflareOptions = {}): FakeC
         return fail(401, 1000, "Invalid API Token")
       }
       return ok({ id: "token-1", status: "active" })
+    }
+
+    if (route === "/accounts" && method === "GET") {
+      if (options.accountsListForbidden) {
+        return fail(FORBIDDEN.status, FORBIDDEN.code, FORBIDDEN.message)
+      }
+      const accounts =
+        options.oauthAccounts === undefined
+          ? [{ id: accountId, name: accountName }]
+          : (options.oauthAccounts ?? [])
+      return ok(accounts)
     }
 
     if (!route.startsWith(accountPrefix)) {

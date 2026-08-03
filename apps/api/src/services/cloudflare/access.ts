@@ -22,14 +22,32 @@ function isScopeFailure(error: unknown): error is CloudflareApiError {
  *  so scope coverage is probed with the cheapest read on each product. A successful read
  *  does not prove the matching `:Edit` permission — a write-scope gap surfaces later as
  *  `upload_failed` / `migration_failed`. */
+export interface CloudflareAccessProbeOptions {
+  /** `GET /user/tokens/verify` only understands API tokens — an OAuth access token is
+   *  rejected there, so the probe skips it and lets the per-product reads speak. */
+  verifyToken?: boolean
+}
+
 export async function probeCloudflareAccess(
   client: CloudflareClient,
+  options: CloudflareAccessProbeOptions = {},
 ): Promise<CloudflareAccessProbe> {
   const missingScopes: CloudflareTokenScope[] = []
 
-  try {
-    const verification = await client.verifyToken()
-    if (verification.status !== "active") {
+  if (options.verifyToken !== false) {
+    try {
+      const verification = await client.verifyToken()
+      if (verification.status !== "active") {
+        return {
+          ok: false,
+          accountName: null,
+          missingScopes: [...CLOUDFLARE_REQUIRED_SCOPES],
+          workersDevSubdomain: null,
+          tokenInvalid: true,
+          accountNotFound: false,
+        }
+      }
+    } catch {
       return {
         ok: false,
         accountName: null,
@@ -38,15 +56,6 @@ export async function probeCloudflareAccess(
         tokenInvalid: true,
         accountNotFound: false,
       }
-    }
-  } catch {
-    return {
-      ok: false,
-      accountName: null,
-      missingScopes: [...CLOUDFLARE_REQUIRED_SCOPES],
-      workersDevSubdomain: null,
-      tokenInvalid: true,
-      accountNotFound: false,
     }
   }
 

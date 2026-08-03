@@ -23,7 +23,7 @@ export function useCloudflareConnection(
 }
 
 export function useVerifyCloudflareToken() {
-  return useMutation<CloudflareVerifyResponse, Error, CloudflareCredentials>({
+  return useMutation<CloudflareVerifyResponse, Error, Partial<CloudflareCredentials>>({
     mutationFn: (credentials) => api.verifyCloudflare(credentials),
   })
 }

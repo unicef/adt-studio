@@ -6,7 +6,7 @@ import { ConnectedCard } from "./ConnectedCard"
 
 interface DoneStepProps {
   connection: CloudflareConnectionStatus | undefined
-  credentials: CloudflareCredentials
+  credentials: Partial<CloudflareCredentials>
   isRefreshing: boolean
   onRefresh: () => void
   onDisconnected: () => void

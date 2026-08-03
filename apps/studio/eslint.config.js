@@ -153,6 +153,7 @@ export default [
             "Error",
             "TypeError",
             "RangeError",
+            "ApiError",
 
             // --- Module system ---
             "require",

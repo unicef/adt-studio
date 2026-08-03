@@ -22,6 +22,11 @@ import {
   createFakeCloudflare,
   type FakeCloudflareOptions,
 } from "../services/cloudflare/fake-cloudflare-api.js"
+import {
+  CLOUDFLARE_OAUTH_CLIENT_ID,
+  type OAuthCallbackHandler,
+  type OAuthCallbackListenerFactory,
+} from "../services/cloudflare/oauth.js"
 
 const AUTH = {
   [CLOUDFLARE_TOKEN_HEADER]: "cf-token",
@@ -80,11 +85,27 @@ describe("cloudflare routes", () => {
   let artifactDir = ""
   let migrationsDir = ""
 
+  interface ListenerHarness {
+    factory: OAuthCallbackListenerFactory
+    handle: OAuthCallbackHandler | null
+  }
+
   function buildApp(
     fakeOptions: FakeCloudflareOptions = {},
     overrides: Partial<CloudflareRoutesDeps> = {},
-  ): { app: Hono; fake: ReturnType<typeof createFakeCloudflare> } {
+  ): {
+    app: Hono
+    fake: ReturnType<typeof createFakeCloudflare>
+    listener: ListenerHarness
+  } {
     const fake = createFakeCloudflare(fakeOptions)
+    const listener: ListenerHarness = {
+      factory: async ({ handle }) => {
+        listener.handle = handle
+        return { close: async () => {} }
+      },
+      handle: null,
+    }
     const app = new Hono()
     app.onError(errorHandler)
     app.route(
@@ -100,10 +121,28 @@ describe("cloudflare routes", () => {
         now: () => new Date("2026-08-03T12:00:00.000Z"),
         generateSecret: () => "mgmt-secret-1",
         healthAttempts: 2,
+        createOAuthListener: listener.factory,
         ...overrides,
       }),
     )
-    return { app, fake }
+    return { app, fake, listener }
+  }
+
+  async function startOAuthFlow(app: Hono): Promise<{ state: string; authUrl: string }> {
+    const res = await app.request("/api/cloudflare/oauth/start", { method: "POST" })
+    const body = (await res.json()) as { auth_url: string; state: string }
+    return { state: body.state, authUrl: body.auth_url }
+  }
+
+  async function completeOAuthFlow(
+    app: Hono,
+    listener: ListenerHarness,
+  ): Promise<{ state: string }> {
+    const { state } = await startOAuthFlow(app)
+    await listener.handle?.(
+      new URL(`http://localhost:8976/oauth/callback?code=auth-code&state=${state}`),
+    )
+    return { state }
   }
 
   beforeEach(() => {
@@ -120,6 +159,220 @@ describe("cloudflare routes", () => {
 
   afterEach(() => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  describe("cloudflare oauth routes", () => {
+    it("starts a flow and hands back a real dash.cloudflare.com consent url", async () => {
+      const { app, listener } = buildApp()
+      const res = await app.request("/api/cloudflare/oauth/start", { method: "POST" })
+
+      expect(res.status).toBe(200)
+      const body = (await res.json()) as { auth_url: string; state: string }
+      const url = new URL(body.auth_url)
+      expect(`${url.origin}${url.pathname}`).toBe("https://dash.cloudflare.com/oauth2/auth")
+      expect(url.searchParams.get("client_id")).toBe(CLOUDFLARE_OAUTH_CLIENT_ID)
+      expect(url.searchParams.get("redirect_uri")).toBe("http://localhost:8976/oauth/callback")
+      expect(url.searchParams.get("code_challenge_method")).toBe("S256")
+      expect(url.searchParams.get("state")).toBe(body.state)
+      expect(url.searchParams.get("scope")).toContain("offline_access")
+      expect(listener.handle).not.toBeNull()
+    })
+
+    it("409s with a code when a flow is already pending", async () => {
+      const { app, listener } = buildApp()
+      await startOAuthFlow(app)
+
+      const res = await app.request("/api/cloudflare/oauth/start", { method: "POST" })
+      expect(res.status).toBe(409)
+      expect(await res.json()).toMatchObject({ code: "oauth_flow_pending" })
+    })
+
+    it("409s with a code when the callback port is taken", async () => {
+      const { app } = buildApp(
+        {},
+        {
+          createOAuthListener: async () => {
+            const { CloudflareOAuthError } = await import("../services/cloudflare/oauth.js")
+            throw new CloudflareOAuthError("oauth_port_busy", "Port 8976 is already in use.")
+          },
+        },
+      )
+
+      const res = await app.request("/api/cloudflare/oauth/start", { method: "POST" })
+      expect(res.status).toBe(409)
+      expect(await res.json()).toMatchObject({ code: "oauth_port_busy" })
+    })
+
+    it("reports pending, then complete once the callback lands", async () => {
+      const { app, listener } = buildApp()
+      const { state } = await startOAuthFlow(app)
+
+      const pending = await app.request(
+        `/api/cloudflare/oauth/status?state=${encodeURIComponent(state)}`,
+      )
+      expect(await pending.json()).toMatchObject({
+        status: "pending",
+        account_choice_required: false,
+      })
+
+      await listener.handle?.(
+        new URL(`http://localhost:8976/oauth/callback?code=auth-code&state=${state}`),
+      )
+
+      const complete = await app.request(
+        `/api/cloudflare/oauth/status?state=${encodeURIComponent(state)}`,
+      )
+      const body = await complete.json()
+      expect(body).toMatchObject({
+        status: "complete",
+        account_choice_required: false,
+        account_id: "acct-1",
+      })
+      expect(JSON.stringify(body)).not.toContain("cf-oauth-access-1")
+      expect(JSON.stringify(body)).not.toContain("cf-oauth-refresh-1")
+    })
+
+    it("requires the state query param", async () => {
+      const { app } = buildApp()
+      const res = await app.request("/api/cloudflare/oauth/status")
+      expect(res.status).toBe(400)
+    })
+
+    it("reports an unknown flow as expired", async () => {
+      const { app } = buildApp()
+      const res = await app.request("/api/cloudflare/oauth/status?state=gone")
+      expect(await res.json()).toMatchObject({ status: "expired", error: "oauth_expired" })
+    })
+
+    it("reports a denied consent", async () => {
+      const { app, listener } = buildApp()
+      const { state } = await startOAuthFlow(app)
+      await listener.handle?.(
+        new URL(`http://localhost:8976/oauth/callback?error=access_denied&state=${state}`),
+      )
+
+      const res = await app.request(
+        `/api/cloudflare/oauth/status?state=${encodeURIComponent(state)}`,
+      )
+      expect(await res.json()).toMatchObject({ status: "error", error: "oauth_denied" })
+    })
+
+    it("lists the accounts to pick from and finalises the choice", async () => {
+      const { app, listener } = buildApp({
+        oauthAccounts: [
+          { id: "acct-1", name: "Escola Azul" },
+          { id: "acct-2", name: "Escola Verde" },
+        ],
+      })
+      const { state } = await completeOAuthFlow(app, listener)
+
+      const status = await app.request(
+        `/api/cloudflare/oauth/status?state=${encodeURIComponent(state)}`,
+      )
+      expect(await status.json()).toMatchObject({
+        status: "complete",
+        account_choice_required: true,
+        accounts: [
+          { id: "acct-1", name: "Escola Azul" },
+          { id: "acct-2", name: "Escola Verde" },
+        ],
+      })
+
+      const picked = await app.request("/api/cloudflare/oauth/account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state, account_id: "acct-2" }),
+      })
+      expect(picked.status).toBe(200)
+      expect(await picked.json()).toEqual({ account_id: "acct-2", account_name: "Escola Verde" })
+
+      const after = await app.request(
+        `/api/cloudflare/oauth/status?state=${encodeURIComponent(state)}`,
+      )
+      expect(await after.json()).toMatchObject({ account_choice_required: false })
+    })
+
+    it("409s when the picked account is not part of the login", async () => {
+      const { app, listener } = buildApp({
+        oauthAccounts: [
+          { id: "acct-1", name: "One" },
+          { id: "acct-2", name: "Two" },
+        ],
+      })
+      const { state } = await completeOAuthFlow(app, listener)
+
+      const res = await app.request("/api/cloudflare/oauth/account", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ state, account_id: "acct-9" }),
+      })
+      expect(res.status).toBe(409)
+      expect(await res.json()).toMatchObject({ code: "account_choice_required" })
+    })
+
+    it("verifies and provisions with the stored grant and no credential headers", async () => {
+      const { app, listener, fake } = buildApp()
+      await completeOAuthFlow(app, listener)
+
+      const verify = await app.request("/api/cloudflare/verify", { method: "POST" })
+      expect(verify.status).toBe(200)
+      expect(await verify.json()).toMatchObject({ ok: true, account_name: "Test Account" })
+      expect(fake.state.calls.some((call) => call.url.includes("/user/tokens/verify"))).toBe(false)
+      expect(fake.state.bearerTokens).toContain("cf-oauth-access-1")
+
+      const provision = await app.request("/api/cloudflare/provision", { method: "POST" })
+      const events = parseSSE(await provision.text())
+      const last = events.at(-1)
+      if (last?.type !== "complete") throw new Error("expected a complete event")
+      expect(last.connection).toMatchObject({ connected: true, auth_method: "oauth" })
+    })
+
+    it("409s the provision when the account has not been chosen yet", async () => {
+      const { app, listener } = buildApp({
+        oauthAccounts: [
+          { id: "acct-1", name: "One" },
+          { id: "acct-2", name: "Two" },
+        ],
+      })
+      await completeOAuthFlow(app, listener)
+
+      const res = await app.request("/api/cloudflare/provision", { method: "POST" })
+      expect(res.status).toBe(409)
+      expect(await res.json()).toMatchObject({ code: "account_choice_required" })
+    })
+
+    it("lets the manual token through while an account choice is still open", async () => {
+      const { app, listener } = buildApp({
+        oauthAccounts: [
+          { id: "acct-1", name: "One" },
+          { id: "acct-2", name: "Two" },
+        ],
+      })
+      await completeOAuthFlow(app, listener)
+
+      const res = await app.request("/api/cloudflare/verify", { method: "POST", headers: AUTH })
+      expect(res.status).toBe(200)
+      expect(await res.json()).toMatchObject({ ok: true })
+    })
+
+    it("401s with reconnect_required once the grant can no longer be refreshed", async () => {
+      const fake = createFakeCloudflare({ oauthExpiresIn: 0 })
+      const rejectRefresh: FetchLike = async (url, init) => {
+        if (url.includes("/oauth2/token") && String(init?.body).includes("grant_type=refresh")) {
+          return new Response(JSON.stringify({ error: "invalid_grant" }), { status: 400 })
+        }
+        return fake.fetchFn(url, init)
+      }
+      const { app, listener } = buildApp({}, { fetchFn: rejectRefresh })
+      await completeOAuthFlow(app, listener)
+
+      const res = await app.request("/api/cloudflare/verify", { method: "POST" })
+      expect(res.status).toBe(401)
+      expect(await res.json()).toMatchObject({ code: "reconnect_required" })
+
+      const connection = await app.request("/api/cloudflare/connection")
+      expect(await connection.json()).toMatchObject({ connected: false, auth_method: null })
+    })
   })
 
   describe("POST /cloudflare/verify", () => {
@@ -270,6 +523,7 @@ describe("cloudflare routes", () => {
       const body = await res.json()
       expect(body).toMatchObject({
         connected: true,
+        auth_method: "token",
         worker_url: record.worker_url,
         worker_version: PUBLISH_WORKER_VERSION,
         worker_reachable: true,
@@ -317,7 +571,31 @@ describe("cloudflare routes", () => {
     it("is a no-op when nothing is connected", async () => {
       const { app } = buildApp()
       const res = await app.request("/api/cloudflare/connection", { method: "DELETE" })
-      expect(await res.json()).toMatchObject({ forgotten: false, deleted_resources: false })
+      expect(await res.json()).toMatchObject({
+        forgotten: false,
+        deleted_resources: false,
+        oauth_cleared: false,
+      })
+    })
+
+    it("forgets the oauth grant and revokes it at Cloudflare", async () => {
+      const { app, listener, fake } = buildApp()
+      await completeOAuthFlow(app, listener)
+      createConnectionStore(stateDir).write(record)
+
+      const res = await app.request("/api/cloudflare/connection", { method: "DELETE" })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body).toMatchObject({ forgotten: true, oauth_cleared: true })
+      expect(body.connection).toMatchObject({ connected: false, auth_method: null })
+      expect(fake.state.revocations[0]).toMatchObject({
+        token_type_hint: "refresh_token",
+        token: "cf-oauth-refresh-1",
+      })
+
+      const after = await app.request("/api/cloudflare/oauth/start", { method: "POST" })
+      expect(after.status).toBe(200)
     })
 
     it("requires the token before deleting resources", async () => {
