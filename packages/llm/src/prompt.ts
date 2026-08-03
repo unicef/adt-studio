@@ -9,13 +9,19 @@ import {
 } from "liquidjs"
 import fs from "node:fs"
 import path from "node:path"
+import { DEFAULT_BASE_PROMPT_MODEL_ID } from "@adt/types"
 import type { Message, ContentPart } from "./types.js"
 
 const IMAGE_MARKER_START = "\x00IMG:"
 const IMAGE_MARKER_END = "\x00"
 const PROMPT_VERSIONS_DIR = ".versions"
 const PROMPT_CURRENT_VERSION_FILE = ".current"
-const BASE_PROMPT_MODEL_ID = "openai:gpt-5.4"
+
+export interface CreatePromptEngineOptions {
+  /** Model the base templates target; steps on it skip variant lookup.
+   *  Defaults to DEFAULT_BASE_PROMPT_MODEL_ID. */
+  basePromptModelId?: string
+}
 
 export interface PromptRenderOptions {
   modelId?: string
@@ -41,20 +47,24 @@ export interface PromptEngine {
  * Create a prompt engine that renders Liquid templates from a directory.
  * Supports custom {% chat %} and {% image %} tags.
  */
-export function createPromptEngine(promptsDir: string | string[]): PromptEngine {
+export function createPromptEngine(
+  promptsDir: string | string[],
+  options?: CreatePromptEngineOptions,
+): PromptEngine {
   const roots = Array.isArray(promptsDir) ? promptsDir : [promptsDir]
+  const basePromptModelId = options?.basePromptModelId ?? DEFAULT_BASE_PROMPT_MODEL_ID
 
   return {
-    resolvePrompt(templateName: string, options?: PromptRenderOptions): PromptResolution {
-      return resolvePromptTemplate(roots, templateName, options)
+    resolvePrompt(templateName: string, renderOptions?: PromptRenderOptions): PromptResolution {
+      return resolvePromptTemplate(roots, templateName, renderOptions, basePromptModelId)
     },
 
     async renderPrompt(
       templateName: string,
       context: Record<string, unknown>,
-      options?: PromptRenderOptions,
+      renderOptions?: PromptRenderOptions,
     ): Promise<Message[]> {
-      const resolved = resolvePromptTemplate(roots, templateName, options)
+      const resolved = resolvePromptTemplate(roots, templateName, renderOptions, basePromptModelId)
       const template = fs.readFileSync(resolved.filePath, "utf-8")
       const engine = createLiquidEngine(renderRootsForResolution(roots, resolved))
       const raw = await engine.parseAndRender(template, context)
@@ -101,20 +111,24 @@ function renderRootsForResolution(roots: string[], resolved: PromptResolution): 
   return renderRoots
 }
 
-export function resolvePromptModelId(modelId: string | undefined): string | null {
+export function resolvePromptModelId(
+  modelId: string | undefined,
+  basePromptModelId: string = DEFAULT_BASE_PROMPT_MODEL_ID,
+): string | null {
   if (!modelId) return null
   const normalized = modelId.trim().toLowerCase()
   if (!normalized) return null
   const canonical = normalized.includes(":") ? normalized : `openai:${normalized}`
-  if (canonical === BASE_PROMPT_MODEL_ID) return null
+  if (canonical === basePromptModelId.trim().toLowerCase()) return null
   return canonical
 }
 
 export function promptNameForModel(
   templateName: string,
   modelId: string | null | undefined,
+  basePromptModelId: string = DEFAULT_BASE_PROMPT_MODEL_ID,
 ): string {
-  const resolvedModelId = resolvePromptModelId(modelId ?? undefined)
+  const resolvedModelId = resolvePromptModelId(modelId ?? undefined, basePromptModelId)
   if (!resolvedModelId) return templateName
   return `${templateName}__${promptModelFolderName(resolvedModelId)}`
 }
@@ -127,11 +141,12 @@ function resolvePromptTemplate(
   roots: string[],
   templateName: string,
   options?: PromptRenderOptions,
+  basePromptModelId: string = DEFAULT_BASE_PROMPT_MODEL_ID,
 ): PromptResolution {
-  const modelId = resolvePromptModelId(options?.modelId)
+  const modelId = resolvePromptModelId(options?.modelId, basePromptModelId)
 
   if (modelId) {
-    const variantName = promptNameForModel(templateName, modelId)
+    const variantName = promptNameForModel(templateName, modelId, basePromptModelId)
     const variant = findModelPromptTemplate(roots, templateName, modelId, variantName)
     if (variant) {
       return { requestedName: templateName, resolvedName: variantName, modelId, filePath: variant }

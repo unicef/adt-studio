@@ -1,145 +1,288 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import { z } from "zod"
+import type { LocalizedText, ProviderManifest, StructuredOutputStrategy } from "@adt/types"
 import { createLLMModel } from "../client.js"
+import { computeHash, computeCacheKeyV2, readCache, writeCache } from "../cache.js"
+import { createProviderRegistry, type ProviderRegistry } from "../registry.js"
+import { AiProviderError } from "../ports/errors.js"
+import type {
+  AnyProviderModule,
+  BackendContext,
+  CacheFingerprint,
+  ProviderModule,
+  StructuredTextRequest,
+  StructuredTextResult,
+} from "../ports/index.js"
 
-const {
-  generateObjectMock,
-  openaiProviderMock,
-  createOpenAIMock,
-  anthropicProviderMock,
-  createAnthropicMock,
-  googleProviderMock,
-  createGoogleGenerativeAIMock,
-} = vi.hoisted(() => {
+const label: LocalizedText = {
+  en: "API key",
+  "pt-BR": "Chave de API",
+  es: "Clave de API",
+  fr: "Clé d'API",
+  sq: "Kyçi API",
+}
+
+interface FakeProviderOptions {
+  id?: string
+  strategies?: StructuredOutputStrategy[]
+  recursiveSchemas?: boolean
+  temperature?: boolean
+  requiredCredential?: boolean
+  fingerprint?: CacheFingerprint
+}
+
+function makeManifest(options: FakeProviderOptions): ProviderManifest {
+  const id = options.id ?? "fake"
   return {
-    generateObjectMock: vi.fn(),
-    openaiProviderMock: vi.fn(),
-    createOpenAIMock: vi.fn(),
-    anthropicProviderMock: vi.fn(),
-    createAnthropicMock: vi.fn(),
-    googleProviderMock: vi.fn(),
-    createGoogleGenerativeAIMock: vi.fn(),
+    id,
+    displayName: id,
+    modalities: ["structured-text"],
+    credentialFields: [
+      {
+        key: "apiKey",
+        kind: "secret",
+        label,
+        required: options.requiredCredential ?? false,
+        header: `X-ADT-${id}-Key`,
+        legacyHeaders: [],
+        storageKey: `adt-studio-${id}-key`,
+        legacyStorageKeys: [],
+      },
+    ],
+    capabilities: {
+      "structured-text": {
+        strategies: options.strategies ?? ["native-schema", "json-mode"],
+        recursiveSchemas: options.recursiveSchemas ?? true,
+        imageInput: false,
+        temperature: options.temperature ?? true,
+      },
+    },
+    defaultModels: { "structured-text": "fake-1" },
   }
-})
+}
 
-vi.mock("ai", () => ({
-  generateObject: generateObjectMock,
-  APICallError: { isInstance: () => false },
-  NoObjectGeneratedError: { isInstance: () => false },
-}))
+function makeRegistry(options: FakeProviderOptions = {}): {
+  registry: ProviderRegistry
+  requests: StructuredTextRequest[]
+  contexts: Array<BackendContext<{ apiKey?: string }>>
+  generate: ReturnType<typeof vi.fn>
+} {
+  const requests: StructuredTextRequest[] = []
+  const contexts: Array<BackendContext<{ apiKey?: string }>> = []
+  const generate = vi.fn(
+    async (): Promise<StructuredTextResult<unknown>> => ({
+      object: { ok: true },
+      usage: { inputTokens: 1, outputTokens: 2 },
+    }),
+  )
 
-vi.mock("@ai-sdk/openai", () => ({
-  openai: openaiProviderMock,
-  createOpenAI: createOpenAIMock,
-}))
+  const module: ProviderModule<{ apiKey?: string }> = {
+    manifest: makeManifest(options),
+    credentialSchema: options.requiredCredential
+      ? z.object({ apiKey: z.string().min(1) })
+      : z.object({ apiKey: z.string().min(1).optional() }),
+    cacheFingerprint: () => options.fingerprint ?? { adapterVersion: "fake-1" },
+    createStructuredTextBackend: (context) => {
+      contexts.push(context)
+      return {
+        generateStructured: async <T>(request: StructuredTextRequest) => {
+          requests.push(request)
+          return (await generate()) as StructuredTextResult<T>
+        },
+      }
+    },
+  }
 
-vi.mock("@ai-sdk/anthropic", () => ({
-  anthropic: anthropicProviderMock,
-  createAnthropic: createAnthropicMock,
-}))
+  const registry = createProviderRegistry()
+    .register(module as AnyProviderModule)
+    .freeze()
 
-vi.mock("@ai-sdk/google", () => ({
-  google: googleProviderMock,
-  createGoogleGenerativeAI: createGoogleGenerativeAIMock,
-}))
+  return { registry, requests, contexts, generate }
+}
 
-describe("createLLMModel credentials", () => {
+const schema = z.object({ ok: z.boolean() })
+const messages = [{ role: "user" as const, content: "hello" }]
+
+describe("createLLMModel provider resolution", () => {
   afterEach(() => {
     vi.clearAllMocks()
   })
 
-  it("uses a request-scoped OpenAI client when openaiApiKey is provided", async () => {
-    const requestScopedModel = { provider: "request-openai" }
-    const defaultModel = { provider: "default-openai" }
-
-    openaiProviderMock.mockReturnValue(defaultModel)
-    createOpenAIMock.mockReturnValue(vi.fn(() => requestScopedModel))
-    generateObjectMock.mockResolvedValue({
-      object: { ok: true },
-      usage: { promptTokens: 1, completionTokens: 2 },
-    })
+  it("forwards request-scoped credentials to the resolved backend", async () => {
+    const { registry, contexts } = makeRegistry({ id: "openai" })
 
     const llm = createLLMModel({
       modelId: "openai:gpt-4.1",
+      registry,
       credentials: { openaiApiKey: "sk-request" },
+      logLevel: "silent",
     })
+    await llm.generateObject({ schema, messages })
 
-    await llm.generateObject({
-      schema: z.object({ ok: z.boolean() }),
-      messages: [{ role: "user", content: "hello" }],
-    })
-
-    expect(createOpenAIMock).toHaveBeenCalledWith({ apiKey: "sk-request" })
-    expect(openaiProviderMock).not.toHaveBeenCalled()
-    expect(generateObjectMock).toHaveBeenCalledWith(
-      expect.objectContaining({ model: requestScopedModel }),
-    )
+    expect(contexts).toHaveLength(1)
+    expect(contexts[0]?.credentials).toEqual({ apiKey: "sk-request" })
+    expect(contexts[0]?.modelId).toBe("gpt-4.1")
   })
 
-  it("falls back to the default provider client when no request-scoped key is provided", async () => {
-    const defaultModel = { provider: "default-openai" }
+  it("never forwards one provider's credential to another provider", async () => {
+    const { registry, contexts } = makeRegistry({ id: "anthropic" })
 
-    openaiProviderMock.mockReturnValue(defaultModel)
-    generateObjectMock.mockResolvedValue({
-      object: { ok: true },
-      usage: { promptTokens: 1, completionTokens: 2 },
+    const llm = createLLMModel({
+      modelId: "anthropic:claude-3-5-sonnet-latest",
+      registry,
+      credentials: { openaiApiKey: "sk-openai", anthropicApiKey: "ak-anthropic" },
+      logLevel: "silent",
     })
+    await llm.generateObject({ schema, messages })
+
+    expect(contexts[0]?.credentials).toEqual({ apiKey: "ak-anthropic" })
+  })
+
+  it("merges manifest-driven credentials over the legacy struct", async () => {
+    const { registry, contexts } = makeRegistry({ id: "openai" })
 
     const llm = createLLMModel({
       modelId: "openai:gpt-4.1",
+      registry,
+      credentials: { openaiApiKey: "sk-legacy" },
+      providerCredentials: { openai: { apiKey: "sk-declarative" } },
+      logLevel: "silent",
     })
+    await llm.generateObject({ schema, messages })
 
-    await llm.generateObject({
-      schema: z.object({ ok: z.boolean() }),
-      messages: [{ role: "user", content: "hello" }],
-    })
-
-    expect(createOpenAIMock).not.toHaveBeenCalled()
-    expect(openaiProviderMock).toHaveBeenCalled()
-    expect(generateObjectMock).toHaveBeenCalledWith(
-      expect.objectContaining({ model: defaultModel }),
-    )
+    expect(contexts[0]?.credentials).toEqual({ apiKey: "sk-declarative" })
   })
 
-  it("supports request-scoped Anthropic and Google credentials", async () => {
-    const anthropicModel = { provider: "request-anthropic" }
-    const googleModel = { provider: "request-google" }
+  it("does not retry a configuration error", async () => {
+    const { registry } = makeRegistry({ id: "openai" })
 
-    createAnthropicMock.mockReturnValue(vi.fn(() => anthropicModel))
-    createGoogleGenerativeAIMock.mockReturnValue(vi.fn(() => googleModel))
-    generateObjectMock.mockResolvedValue({
-      object: { ok: true },
-      usage: { promptTokens: 1, completionTokens: 2 },
+    const llm = createLLMModel({
+      modelId: "unregistered:some-model",
+      registry,
+      logLevel: "silent",
     })
 
-    const anthropicLlm = createLLMModel({
-      modelId: "anthropic:claude-3-5-sonnet-latest",
-      credentials: { anthropicApiKey: "ak-request" },
-    })
-    await anthropicLlm.generateObject({
-      schema: z.object({ ok: z.boolean() }),
-      messages: [{ role: "user", content: "hello" }],
+    await expect(
+      llm.generateObject({ schema, messages, maxRetries: 5 }),
+    ).rejects.toThrow(AiProviderError)
+  })
+
+  it("fails with a credential error naming no value when a required key is missing", async () => {
+    const { registry } = makeRegistry({ id: "openai", requiredCredential: true })
+
+    const llm = createLLMModel({
+      modelId: "openai:gpt-4.1",
+      registry,
+      logLevel: "silent",
     })
 
-    const googleLlm = createLLMModel({
-      modelId: "google:gemini-2.5-flash",
-      credentials: { googleApiKey: "gk-request" },
-    })
-    await googleLlm.generateObject({
-      schema: z.object({ ok: z.boolean() }),
-      messages: [{ role: "user", content: "hello" }],
-    })
-
-    expect(createAnthropicMock).toHaveBeenCalledWith({ apiKey: "ak-request" })
-    expect(createGoogleGenerativeAIMock).toHaveBeenCalledWith({ apiKey: "gk-request" })
-    expect(generateObjectMock).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({ model: anthropicModel }),
+    await expect(llm.generateObject({ schema, messages })).rejects.toThrow(
+      AiProviderError,
     )
-    expect(generateObjectMock).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({ model: googleModel }),
-    )
+  })
+})
+
+describe("createLLMModel strategy selection", () => {
+  it("uses the provider's preferred strategy when no mode is requested", async () => {
+    const { registry, requests } = makeRegistry({
+      strategies: ["native-schema", "json-mode"],
+    })
+
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+    await llm.generateObject({ schema, messages })
+
+    expect(requests[0]?.strategy).toBe("native-schema")
+  })
+
+  it("honours mode: json when the provider declares json-mode", async () => {
+    const { registry, requests } = makeRegistry({
+      strategies: ["native-schema", "json-mode"],
+    })
+
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+    await llm.generateObject({ schema, messages, mode: "json" })
+
+    expect(requests[0]?.strategy).toBe("json-mode")
+  })
+
+  it("falls back to the provider's preference when mode is unsupported", async () => {
+    const { registry, requests } = makeRegistry({ strategies: ["tool-call"] })
+
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+    await llm.generateObject({ schema, messages, mode: "json" })
+
+    expect(requests[0]?.strategy).toBe("tool-call")
+  })
+
+  it("avoids the native strict schema for a recursive schema the provider can't nest", async () => {
+    const { registry, requests } = makeRegistry({
+      strategies: ["native-schema", "json-mode", "tool-call"],
+      recursiveSchemas: false,
+    })
+
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+    await llm.generateObject({ schema, messages, recursiveSchema: true })
+
+    expect(requests[0]?.strategy).toBe("json-mode")
+  })
+
+  it("keeps the native strict schema when the provider nests recursion natively", async () => {
+    const { registry, requests } = makeRegistry({
+      strategies: ["native-schema", "json-mode"],
+      recursiveSchemas: true,
+    })
+
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+    await llm.generateObject({ schema, messages, recursiveSchema: true })
+
+    expect(requests[0]?.strategy).toBe("native-schema")
+  })
+
+  it("treats a loose schema like a recursive one when native strict can't express it", async () => {
+    const { registry, requests } = makeRegistry({
+      strategies: ["native-schema", "parse-repair"],
+      recursiveSchemas: false,
+    })
+
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+    await llm.generateObject({ schema, messages, looseSchema: true })
+
+    expect(requests[0]?.strategy).toBe("parse-repair")
+  })
+
+  it("resolves a recursive schema to tool calling on a tool-only adapter", async () => {
+    const { registry, requests } = makeRegistry({
+      strategies: ["tool-call"],
+      recursiveSchemas: false,
+    })
+
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+    await llm.generateObject({ schema, messages, recursiveSchema: true })
+
+    expect(requests[0]?.strategy).toBe("tool-call")
+  })
+})
+
+describe("createLLMModel capability gating", () => {
+  it("forwards temperature when the model accepts it", async () => {
+    const { registry, requests } = makeRegistry({ temperature: true })
+
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+    await llm.generateObject({ schema, messages, temperature: 0.7 })
+
+    expect(requests[0]?.temperature).toBe(0.7)
+  })
+
+  it("drops temperature when the model rejects it", async () => {
+    const { registry, requests } = makeRegistry({ temperature: false })
+
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+    await llm.generateObject({ schema, messages, temperature: 0.7 })
+
+    expect(requests[0]?.temperature).toBeUndefined()
   })
 })
 
@@ -148,67 +291,194 @@ describe("createLLMModel cancellation", () => {
     vi.clearAllMocks()
   })
 
-  it("combines the external signal into the request abort signal", async () => {
-    openaiProviderMock.mockReturnValue({ provider: "openai" })
-    let captured: AbortSignal | undefined
-    generateObjectMock.mockImplementation((opts: { abortSignal?: AbortSignal }) => {
-      captured = opts.abortSignal
-      return Promise.resolve({
-        object: { ok: true },
-        usage: { promptTokens: 1, completionTokens: 1 },
-      })
-    })
+  it("passes the external signal through to the backend", async () => {
+    const { registry, requests } = makeRegistry()
 
     const controller = new AbortController()
-    const llm = createLLMModel({ modelId: "openai:gpt-4.1", signal: controller.signal })
-    await llm.generateObject({
-      schema: z.object({ ok: z.boolean() }),
-      messages: [{ role: "user", content: "hi" }],
+    const llm = createLLMModel({
+      modelId: "fake:fake-1",
+      registry,
+      signal: controller.signal,
+      logLevel: "silent",
     })
+    await llm.generateObject({ schema, messages })
 
-    expect(captured).toBeInstanceOf(AbortSignal)
-    expect(captured?.aborted).toBe(false)
-    // Aborting the external signal aborts the combined request signal.
-    controller.abort()
-    expect(captured?.aborted).toBe(true)
+    expect(requests[0]?.signal).toBe(controller.signal)
+    expect(requests[0]?.signal?.aborted).toBe(false)
   })
 
   it("does not retry when the external signal is aborted", async () => {
-    openaiProviderMock.mockReturnValue({ provider: "openai" })
-    generateObjectMock.mockRejectedValue(new Error("aborted"))
+    const { registry, generate } = makeRegistry()
+    generate.mockRejectedValue(new Error("aborted"))
 
     const controller = new AbortController()
     controller.abort()
-    const llm = createLLMModel({ modelId: "openai:gpt-4.1", signal: controller.signal })
+    const llm = createLLMModel({
+      modelId: "fake:fake-1",
+      registry,
+      signal: controller.signal,
+      logLevel: "silent",
+    })
 
     await expect(
-      llm.generateObject({
-        schema: z.object({ ok: z.boolean() }),
-        messages: [{ role: "user", content: "hi" }],
-        maxRetries: 5,
-      }),
+      llm.generateObject({ schema, messages, maxRetries: 5 }),
     ).rejects.toThrow()
-    // Cancelled: exactly one attempt, no retries despite maxRetries: 5.
-    expect(generateObjectMock).toHaveBeenCalledTimes(1)
+    expect(generate).toHaveBeenCalledTimes(1)
   })
 
   it("still retries a normal failure when no signal is aborted", async () => {
-    openaiProviderMock.mockReturnValue({ provider: "openai" })
-    generateObjectMock
+    const { registry, generate } = makeRegistry()
+    generate
       .mockRejectedValueOnce(new Error("transient"))
-      .mockResolvedValueOnce({
-        object: { ok: true },
-        usage: { promptTokens: 1, completionTokens: 1 },
-      })
+      .mockResolvedValueOnce({ object: { ok: true }, usage: { inputTokens: 1, outputTokens: 1 } })
 
-    const llm = createLLMModel({ modelId: "openai:gpt-4.1" })
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
     const result = await llm.generateObject<{ ok: boolean }>({
-      schema: z.object({ ok: z.boolean() }),
-      messages: [{ role: "user", content: "hi" }],
+      schema,
+      messages,
       maxRetries: 1,
     })
 
     expect(result.object).toEqual({ ok: true })
-    expect(generateObjectMock).toHaveBeenCalledTimes(2)
+    expect(generate).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe("createLLMModel cache v2", () => {
+  const cacheDirs: string[] = []
+  function tmpCacheDir(): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "llm-client-cache-"))
+    cacheDirs.push(dir)
+    return dir
+  }
+
+  afterEach(() => {
+    for (const dir of cacheDirs) fs.rmSync(dir, { recursive: true, force: true })
+    cacheDirs.length = 0
+    vi.clearAllMocks()
+  })
+
+  it("promotes a legacy v1 hit for a fixed-origin provider", async () => {
+    const fingerprint: CacheFingerprint = {
+      adapterVersion: "openai-1",
+      origin: "https://api.openai.com",
+    }
+    const { registry, generate } = makeRegistry({ id: "openai", fingerprint })
+    const cacheDir = tmpCacheDir()
+
+    const legacyHash = computeHash({ modelId: "openai:gpt-4.1", messages, schema })
+    writeCache(cacheDir, legacyHash, { ok: false })
+
+    const llm = createLLMModel({ modelId: "openai:gpt-4.1", registry, cacheDir, logLevel: "silent" })
+    const result = await llm.generateObject<{ ok: boolean }>({ schema, messages })
+
+    expect(result.cached).toBe(true)
+    expect(result.object).toEqual({ ok: false })
+    expect(generate).not.toHaveBeenCalled()
+
+    const v2Hash = computeCacheKeyV2({
+      providerId: "openai",
+      modelId: "gpt-4.1",
+      fingerprint,
+      operation: "structured-text",
+      messages,
+      schema,
+      structuredOutputStrategy: "native-schema",
+    })
+    expect(readCache(cacheDir, v2Hash)).toEqual({ ok: false })
+  })
+
+  it("promotes a legacy v1 hit written with mode: json when the call site now uses a trait", async () => {
+    const fingerprint: CacheFingerprint = {
+      adapterVersion: "openai-1",
+      origin: "https://api.openai.com",
+    }
+    const { registry, generate } = makeRegistry({
+      id: "openai",
+      strategies: ["native-schema", "json-mode"],
+      recursiveSchemas: false,
+      fingerprint,
+    })
+    const cacheDir = tmpCacheDir()
+
+    const legacyHash = computeHash({ modelId: "openai:gpt-4.1", mode: "json", messages, schema })
+    writeCache(cacheDir, legacyHash, { ok: false })
+
+    const llm = createLLMModel({ modelId: "openai:gpt-4.1", registry, cacheDir, logLevel: "silent" })
+    const result = await llm.generateObject<{ ok: boolean }>({
+      schema,
+      messages,
+      recursiveSchema: true,
+    })
+
+    expect(result.cached).toBe(true)
+    expect(result.object).toEqual({ ok: false })
+    expect(generate).not.toHaveBeenCalled()
+
+    const v2Hash = computeCacheKeyV2({
+      providerId: "openai",
+      modelId: "gpt-4.1",
+      fingerprint,
+      operation: "structured-text",
+      messages,
+      schema,
+      structuredOutputStrategy: "json-mode",
+    })
+    expect(readCache(cacheDir, v2Hash)).toEqual({ ok: false })
+  })
+
+  it("never reads a legacy entry for a configurable-origin provider", async () => {
+    const { registry, generate } = makeRegistry({
+      id: "custom",
+      strategies: ["json-mode"],
+      fingerprint: {
+        adapterVersion: "openai-compatible-1",
+        origin: "https://a.local",
+        configurableOrigin: true,
+      },
+    })
+    const cacheDir = tmpCacheDir()
+
+    const legacyHash = computeHash({ modelId: "custom:llama", messages, schema })
+    writeCache(cacheDir, legacyHash, { ok: false })
+
+    const llm = createLLMModel({ modelId: "custom:llama", registry, cacheDir, logLevel: "silent" })
+    const result = await llm.generateObject<{ ok: boolean }>({ schema, messages })
+
+    expect(generate).toHaveBeenCalledTimes(1)
+    expect(result.object).toEqual({ ok: true })
+  })
+
+  it("does not share cache between two custom endpoints with the same model id", async () => {
+    const cacheDir = tmpCacheDir()
+
+    const a = makeRegistry({
+      id: "custom",
+      strategies: ["json-mode"],
+      fingerprint: {
+        adapterVersion: "openai-compatible-1",
+        origin: "https://a.local",
+        configurableOrigin: true,
+      },
+    })
+    const b = makeRegistry({
+      id: "custom",
+      strategies: ["json-mode"],
+      fingerprint: {
+        adapterVersion: "openai-compatible-1",
+        origin: "https://b.local",
+        configurableOrigin: true,
+      },
+    })
+
+    const llmA = createLLMModel({ modelId: "custom:llama", registry: a.registry, cacheDir, logLevel: "silent" })
+    await llmA.generateObject({ schema, messages })
+
+    const llmB = createLLMModel({ modelId: "custom:llama", registry: b.registry, cacheDir, logLevel: "silent" })
+    const resultB = await llmB.generateObject({ schema, messages })
+
+    expect(a.generate).toHaveBeenCalledTimes(1)
+    expect(b.generate).toHaveBeenCalledTimes(1)
+    expect(resultB.cached).toBe(false)
   })
 })
