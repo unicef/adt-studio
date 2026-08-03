@@ -8,7 +8,10 @@ import {
 } from "@testing-library/react"
 import { createStore, Provider } from "jotai"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { audioSpeedAtom } from "@/features/audio/state/audio.atoms"
+import {
+  audioSpeedAtom,
+  readAloudModeAtom,
+} from "@/features/audio/state/audio.atoms"
 import {
   currentPageNumberAtom,
   currentSectionIdAtom,
@@ -211,6 +214,8 @@ describe("KidsBuddy", () => {
 
     const bubble = first.queryByTestId("kids-speech-bubble")
     expect(bubble?.textContent).toBe("Hi Mina! Tap me if you need help.")
+    expect(bubble?.className).toContain("bottom-[6rem]")
+    expect(bubble?.className).toContain("right-3")
     expect(bubble?.className).toContain("bottom-[7.25rem]")
 
     fireEvent.click(first.getByTestId("kids-buddy-fab"))
@@ -314,11 +319,42 @@ describe("KidsBuddy", () => {
         dispatchEvent: vi.fn(),
       })),
     )
-    renderKidsChrome()
+    const mobileStore = createKidsStore()
+    mobileStore.set(readAloudModeAtom, true)
+    renderKidsChrome(mobileStore)
+    expect(screen.getByTestId("kids-buddy-fab").className).toContain("h-16")
+    expect(screen.getByTestId("kids-play-bar").className).toContain(
+      "right-[5rem]",
+    )
+    expect(screen.getByTestId("kids-page-arrow-right").className).toContain(
+      "top-1/2",
+    )
+    expect(screen.getByTestId("kids-page-arrow-right").className).toContain(
+      "-translate-y-1/2",
+    )
+    expect(
+      document.getElementById("kids-mobile-chrome-insets")?.textContent,
+    ).toContain("padding-bottom")
     openBuddy()
     expect(
       screen.getByTestId("kids-buddy-panel").getAttribute("data-menu-layout"),
     ).toBe("bottom-sheet")
+    expect(screen.getByRole("dialog").getAttribute("aria-modal")).toBe("true")
+    expect(screen.queryByTestId("kids-buddy-fab")).toBeNull()
+    expect(screen.queryByTestId("kids-play-bar")).toBeNull()
+    expect(screen.queryByTestId("kids-page-arrow-right")).toBeNull()
+    expect(
+      screen.getByTestId("kids-action-read").getAttribute("data-action-layout"),
+    ).toBe("primary")
+    expect(screen.getByTestId("kids-action-comfort").className).toContain(
+      "min-h-[6.75rem]",
+    )
+    expect(screen.getByTestId("kids-action-easy-read").textContent).not.toContain(
+      "Off",
+    )
+    expect(screen.getByTestId("kids-action-meet-again").className).toContain(
+      "w-full",
+    )
   })
 
   it("closes the action panel from the header close button", async () => {

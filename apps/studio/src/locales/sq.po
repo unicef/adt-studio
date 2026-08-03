@@ -72,6 +72,10 @@ msgstr "(shabllon)"
 msgid "(this section)"
 msgstr "(ky seksion)"
 
+#. placeholder {0}: language.missingKeys.length
+msgid "{0, plural, one {# message missing} other {# messages missing}}"
+msgstr "{0, plural, one {Mungon # mesazh} other {Mungojnë # mesazhe}}"
+
 #. placeholder {0}: buddies.length
 #. placeholder {1}: KIDS_BUDDIES.length
 #. placeholder {2}: KIDS_BUDDIES.length
@@ -3602,6 +3606,9 @@ msgstr "Filtron imazhet dekorative ose pa përmbajtje nga çdo faqe."
 msgid "Final Page"
 msgstr "Faqja e fundit"
 
+msgid "Finish translating Kids Mode"
+msgstr "Përfundoni përkthimin e Modalitetit për Fëmijë"
+
 msgid "First images from the deep-field telescope."
 msgstr "Imazhet e para nga teleskopi i fushës së thellë."
 
@@ -3981,6 +3988,9 @@ msgstr "Shko te libri"
 
 msgid "Go to home"
 msgstr "Shko te kryefaqja"
+
+msgid "Go to Kids Mode"
+msgstr "Shko te Modaliteti për Fëmijë"
 
 msgid "Go to Storyboard"
 msgstr "Shko te Storyboard"
@@ -4525,6 +4535,9 @@ msgstr "Çelësat ruhen lokalisht në këtë shfletues ose sesion desktop dhe d�
 msgid "Kids Mode"
 msgstr "Modaliteti për Fëmijë"
 
+msgid "Kids Mode setup"
+msgstr "Konfigurimi i Modalitetit për Fëmijë"
+
 #~ msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
 #~ msgstr "Modaliteti për Fëmijë zëvendëson menytë standarde të leximit me një përvojë miqësore të udhëhequr nga një shok: lexuesi zgjedh një shok leximi që përfaqëson çdo veçori aksesueshmërie. Është një vendim autorial i integruar në pamjen paraprake të drejtpërdrejtë dhe në çdo eksportim — lexuesit nuk mund ta çaktivizojnë apo të ndryshojnë shokun vetë."
 
@@ -4559,6 +4572,9 @@ msgstr "Nxitje specifike për gjuhën"
 
 msgid "Languages"
 msgstr "Gjuhët"
+
+msgid "Languages to finish"
+msgstr "Gjuhët për t’u përfunduar"
 
 msgid "Large"
 msgstr "I madh"
@@ -9026,6 +9042,9 @@ msgstr "Përkthe librin në gjuhë shtesë. Çdo gjuhë gjenerohet bashkë me or
 msgid "Translate the book into other languages and generate narration. These stages are optional — skip them if your book doesn't need multilingual or audio output."
 msgstr "Përkthe librin në gjuhë të tjera dhe gjenerо tregimin. Këto faza janë opsionale — anashkaloi nëse libri juaj nuk ka nevojë për dalje shumëgjuhëshe ose audio."
 
+msgid "Translate the interface there, then return to rebuild the preview."
+msgstr "Përkthejeni ndërfaqen atje, pastaj kthehuni për ta rindërtuar pamjen paraprake."
+
 #. placeholder {0}: missingInterfaceLanguages .map((language) => language.language.toUpperCase()) .join(", ")
 msgid "Translate the Kids interface before enabling Kids Mode. Missing: {0}."
 msgstr "Përkthejeni ndërfaqen për fëmijë para se të aktivizoni Modalitetin për Fëmijë. Mungojnë: {0}."
@@ -9538,6 +9557,9 @@ msgstr "Shiko faqen"
 msgid "View page {pageNum} larger"
 msgstr "Shiko faqen {pageNum} më të madhe"
 
+msgid "View technical details"
+msgstr "Shfaq detajet teknike"
+
 msgid "Visible page entries"
 msgstr "Hyrjet e dukshme të faqes"
 
@@ -9792,6 +9814,9 @@ msgstr "Fiksion për të rinj"
 
 msgid "Your book"
 msgstr "Libri yt"
+
+msgid "Your book is ready, but its child-friendly controls are missing translations in some book languages. Complete them so the book and Kids Mode always speak the same language."
+msgstr "Libri juaj është gati, por komandat për fëmijë nuk janë përkthyer ende në disa gjuhë të librit. Përfundojini që libri dhe Modaliteti për Fëmijë të përdorin gjithmonë të njëjtën gjuhë."
 
 msgid "Your Books"
 msgstr "Librat tuaj"

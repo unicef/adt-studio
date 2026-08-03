@@ -42,6 +42,7 @@ import { useBuddyIdleChatter } from "@/features/kids/hooks/useBuddyIdleChatter"
 import { BUDDY_LINES } from "@/features/kids/lib/buddy-lines"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
+import { useMobileViewport } from "@/features/kids/hooks/useMobileViewport"
 import { stopBuddyLine } from "@/features/kids/lib/buddy-voice"
 import {
   buddySpeechAtom,
@@ -80,6 +81,7 @@ export function KidsBuddy() {
   const speech = useAtomValue(buddySpeechAtom)
   const setSpeech = useSetAtom(buddySpeechAtom)
   const reduceMotion = usePrefersReducedMotion()
+  const mobile = useMobileViewport()
   const { isPlaying, hasItems, togglePlayPause, stop } = useAudioPlayerContext()
   const { say } = useBuddySpeech()
   const [open, setOpen] = useAtom(kidsBuddyPanelOpenAtom)
@@ -451,15 +453,13 @@ export function KidsBuddy() {
     offLabel,
     closeLabel: tk("kids-dialog-close", "Close"),
     regionLabel: tk("kids-buddy-actions-region", "Buddy actions"),
-    previousLabel: tk("kids-menu-scroll-previous", "Show earlier"),
-    nextLabel: tk("kids-menu-scroll-next", "Show more"),
     close: () => setOpen(false),
   }
 
   return (
     <div
       data-testid="kids-buddy"
-      className="pointer-events-auto fixed bottom-5 right-5 z-[59] flex flex-col items-end gap-3"
+      className="pointer-events-auto fixed bottom-3 right-3 z-[59] flex flex-col items-end gap-3 sm:bottom-5 sm:right-5"
     >
       <KidsResumeChip />
       {open ? (
@@ -476,35 +476,37 @@ export function KidsBuddy() {
       <KidsAccessibilityDialog />
       <KidsAvatarDialog />
 
-      <button
-        ref={fabRef}
-        type="button"
-        data-testid="kids-buddy-fab"
-        aria-expanded={open}
-        aria-label={tk("kids-buddy-open", "Talk to ${name}", {
-          name: buddyName,
-        })}
-        onClick={handleFabClick}
-        className={cn(
-          "flex h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-full",
-          "shadow-2xl ring-4 ring-white/90",
-          "transition-all duration-200 ease-out hover:scale-105 active:scale-95",
-          "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 focus-visible:ring-offset-2",
-          !reduceMotion && "kids-buddy-idle",
-        )}
-        style={{ backgroundColor: buddy.backgroundColor }}
-      >
-        <KidsBuddyImage
-          key={fabVariant}
-          images={getBuddyImages(buddy.character)}
-          variant={fabVariant}
-          title={buddyName}
+      {!open || !mobile ? (
+        <button
+          ref={fabRef}
+          type="button"
+          data-testid="kids-buddy-fab"
+          aria-expanded={open}
+          aria-label={tk("kids-buddy-open", "Talk to ${name}", {
+            name: buddyName,
+          })}
+          onClick={handleFabClick}
           className={cn(
-            "h-[68px] w-[68px]",
-            !reduceMotion && "animate-kidsBuddyPop",
+            "flex h-16 w-16 items-center justify-center overflow-hidden rounded-full sm:h-[76px] sm:w-[76px]",
+            "shadow-2xl ring-4 ring-white/90",
+            "transition-all duration-200 ease-out hover:scale-105 active:scale-95",
+            "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 focus-visible:ring-offset-2",
+            !reduceMotion && "kids-buddy-idle",
           )}
-        />
-      </button>
+          style={{ backgroundColor: buddy.backgroundColor }}
+        >
+          <KidsBuddyImage
+            key={fabVariant}
+            images={getBuddyImages(buddy.character)}
+            variant={fabVariant}
+            title={buddyName}
+            className={cn(
+              "h-14 w-14 sm:h-[68px] sm:w-[68px]",
+              !reduceMotion && "animate-kidsBuddyPop",
+            )}
+          />
+        </button>
+      ) : null}
     </div>
   )
 }

@@ -56,9 +56,6 @@ export interface KidsMenuModel {
   offLabel: string
   closeLabel: string
   regionLabel: string
-  /** Navigation labels for the bottom sheet's horizontal action rows. */
-  previousLabel: string
-  nextLabel: string
   close: () => void
 }
 

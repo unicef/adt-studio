@@ -73,6 +73,10 @@ msgstr "(modèle)"
 msgid "(this section)"
 msgstr "(cette section)"
 
+#. placeholder {0}: language.missingKeys.length
+msgid "{0, plural, one {# message missing} other {# messages missing}}"
+msgstr "{0, plural, one {# message manquant} other {# messages manquants}}"
+
 #. placeholder {0}: buddies.length
 #. placeholder {1}: KIDS_BUDDIES.length
 #. placeholder {2}: KIDS_BUDDIES.length
@@ -3603,6 +3607,9 @@ msgstr "Filtre les images décoratives ou non pertinentes sur chaque page."
 msgid "Final Page"
 msgstr "Page finale"
 
+msgid "Finish translating Kids Mode"
+msgstr "Terminer la traduction du mode enfant"
+
 msgid "First images from the deep-field telescope."
 msgstr "Premières images du télescope à champ profond."
 
@@ -3982,6 +3989,9 @@ msgstr "Aller au livre"
 
 msgid "Go to home"
 msgstr "Aller à l'accueil"
+
+msgid "Go to Kids Mode"
+msgstr "Accéder au mode enfant"
 
 msgid "Go to Storyboard"
 msgstr "Aller au Storyboard"
@@ -4526,6 +4536,9 @@ msgstr "Les clés sont stockées localement dans ce navigateur ou cette session 
 msgid "Kids Mode"
 msgstr "Mode Enfants"
 
+msgid "Kids Mode setup"
+msgstr "Configuration du mode enfant"
+
 #~ msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
 #~ msgstr "Le Mode Enfants remplace les menus de lecture standards par une expérience conviviale guidée par un compagnon : le lecteur choisit un compagnon de lecture qui incarne chaque fonctionnalité d'accessibilité. C'est une décision d'auteur intégrée à l'aperçu en direct et à chaque export — les lecteurs ne peuvent ni la désactiver ni changer de compagnon eux-mêmes."
 
@@ -4560,6 +4573,9 @@ msgstr "Langue-Specific Invites"
 
 msgid "Languages"
 msgstr "Langues"
+
+msgid "Languages to finish"
+msgstr "Langues à terminer"
 
 msgid "Large"
 msgstr "Grand"
@@ -9027,6 +9043,9 @@ msgstr "Traduisez le livre dans des langues supplémentaires. Chaque langue est 
 msgid "Translate the book into other languages and generate narration. These stages are optional — skip them if your book doesn't need multilingual or audio output."
 msgstr "Traduisez le livre dans d'autres langues et générez la narration. Ces étapes sont facultatives — ignorez-les si votre livre n'a pas besoin de sortie multilingue ou audio."
 
+msgid "Translate the interface there, then return to rebuild the preview."
+msgstr "Traduisez-y l’interface, puis revenez reconstruire l’aperçu."
+
 #. placeholder {0}: missingInterfaceLanguages .map((language) => language.language.toUpperCase()) .join(", ")
 msgid "Translate the Kids interface before enabling Kids Mode. Missing: {0}."
 msgstr "Traduisez l’interface enfant avant d’activer le mode enfant. Langues manquantes : {0}."
@@ -9539,6 +9558,9 @@ msgstr "Voir la page"
 msgid "View page {pageNum} larger"
 msgstr "Voir la page {pageNum} en grand"
 
+msgid "View technical details"
+msgstr "Afficher les détails techniques"
+
 msgid "Visible page entries"
 msgstr "Entrées visibles de la page"
 
@@ -9793,6 +9815,9 @@ msgstr "fiction jeune adulte"
 
 msgid "Your book"
 msgstr "Votre livre"
+
+msgid "Your book is ready, but its child-friendly controls are missing translations in some book languages. Complete them so the book and Kids Mode always speak the same language."
+msgstr "Votre livre est prêt, mais les commandes adaptées aux enfants ne sont pas encore traduites dans certaines langues du livre. Complétez-les pour que le livre et le mode enfant utilisent toujours la même langue."
 
 msgid "Your Books"
 msgstr "Vos livres"

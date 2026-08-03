@@ -34,9 +34,8 @@ export function KidsSpeechBubble() {
       role="status"
       aria-live="polite"
       className={cn(
-        "pointer-events-none fixed right-5",
-        "bottom-[7.25rem] z-[58] max-w-[min(18rem,calc(100vw-2.5rem))]",
-        "rounded-2xl bg-white px-4 py-3 text-base font-semibold leading-snug text-slate-900",
+        "pointer-events-none fixed bottom-[6rem] right-3 z-[58] max-w-[min(18rem,calc(100vw-1.5rem))] sm:bottom-[7.25rem] sm:right-5 sm:max-w-[min(18rem,calc(100vw-2.5rem))]",
+        "rounded-2xl bg-[#FFFEFA] px-3 py-2 text-left text-sm font-semibold leading-snug text-slate-900 sm:px-4 sm:py-3 sm:text-base",
         "shadow-xl ring-1 ring-black/10",
         reduceMotion
           ? "transition-none"
@@ -44,7 +43,7 @@ export function KidsSpeechBubble() {
         visible
           ? "translate-y-0 scale-100 opacity-100"
           : "translate-y-2 scale-95 opacity-0",
-        "after:absolute after:-bottom-2 after:right-10 after:h-4 after:w-4 after:rotate-45 after:bg-white after:ring-black/10",
+        "after:absolute after:-bottom-2 after:right-6 after:block after:h-4 after:w-4 after:rotate-45 after:bg-[#FFFEFA] after:ring-black/10",
       )}
     >
       {renderedSpeech}

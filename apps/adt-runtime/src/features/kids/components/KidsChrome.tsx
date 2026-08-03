@@ -9,6 +9,7 @@ import { KidsPageArrows } from "@/features/kids/components/KidsPageArrows"
 import { KidsPlayBar } from "@/features/kids/components/KidsPlayBar"
 import { KidsSpeechBubble } from "@/features/kids/components/KidsSpeechBubble"
 import { useKidsReadingComfort } from "@/features/kids/hooks/useKidsReadingComfort"
+import { useKidsMobileChromeInsets } from "@/features/kids/hooks/useKidsMobileChromeInsets"
 import {
   kidsModeActiveAtom,
   kidsOnboardingDoneAtom,
@@ -19,6 +20,7 @@ export function KidsChrome() {
   const kidsOnboardingDone = useAtomValue(kidsOnboardingDoneAtom)
 
   useKidsReadingComfort(kidsModeActive)
+  useKidsMobileChromeInsets(kidsModeActive && kidsOnboardingDone)
 
   // The page-turn cue is seeked past its quiet build, which needs metadata
   // loaded — fetch it up front so the very first turn is audible.

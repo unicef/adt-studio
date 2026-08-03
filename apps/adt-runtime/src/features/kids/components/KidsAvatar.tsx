@@ -35,7 +35,7 @@ export function KidsAvatar({
     <span
       aria-hidden="true"
       className={cn(
-        "shrink-0 overflow-hidden rounded-full",
+        "shrink-0 overflow-hidden rounded-full [&_svg]:block [&_svg]:h-full [&_svg]:w-full",
         fill ? "block h-full w-full" : "inline-block",
         className,
       )}

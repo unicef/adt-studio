@@ -71,6 +71,10 @@ msgstr "(plantilla)"
 msgid "(this section)"
 msgstr "(esta sección)"
 
+#. placeholder {0}: language.missingKeys.length
+msgid "{0, plural, one {# message missing} other {# messages missing}}"
+msgstr "{0, plural, one {Falta # mensaje} other {Faltan # mensajes}}"
+
 #. placeholder {0}: buddies.length
 #. placeholder {1}: KIDS_BUDDIES.length
 #. placeholder {2}: KIDS_BUDDIES.length
@@ -3601,6 +3605,9 @@ msgstr "Filtra imágenes decorativas o sin contenido en cada página."
 msgid "Final Page"
 msgstr "Página Final"
 
+msgid "Finish translating Kids Mode"
+msgstr "Termina de traducir el modo infantil"
+
 msgid "First images from the deep-field telescope."
 msgstr "Primeras imágenes del telescopio de campo profundo."
 
@@ -3980,6 +3987,9 @@ msgstr "Ir al libro"
 
 msgid "Go to home"
 msgstr "Ir a inicio"
+
+msgid "Go to Kids Mode"
+msgstr "Ir al modo infantil"
 
 msgid "Go to Storyboard"
 msgstr "Ir al Storyboard"
@@ -4524,6 +4534,9 @@ msgstr "Las claves se almacenan localmente en este navegador o sesión de escrit
 msgid "Kids Mode"
 msgstr "Modo Niños"
 
+msgid "Kids Mode setup"
+msgstr "Configuración del modo infantil"
+
 #~ msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
 #~ msgstr "El Modo Niños reemplaza los menús de lectura estándar por una experiencia amigable guiada por un compañero: el lector elige un compañero de lectura que representa cada función de accesibilidad. Es una decisión de autoría integrada en la vista previa en vivo y en cada exportación — los lectores no pueden desactivarla ni cambiar de compañero por su cuenta."
 
@@ -4558,6 +4571,9 @@ msgstr "Prompts por idioma"
 
 msgid "Languages"
 msgstr "Idiomas"
+
+msgid "Languages to finish"
+msgstr "Idiomas pendientes"
 
 msgid "Large"
 msgstr "Grande"
@@ -9025,6 +9041,9 @@ msgstr "Traduce el libro a idiomas adicionales. Cada idioma se genera junto al o
 msgid "Translate the book into other languages and generate narration. These stages are optional — skip them if your book doesn't need multilingual or audio output."
 msgstr "Traduce el libro a otros idiomas y genera narración. Estas etapas son opcionales: omítelas si tu libro no necesita salida multilingüe o de audio."
 
+msgid "Translate the interface there, then return to rebuild the preview."
+msgstr "Traduce allí la interfaz y vuelve para reconstruir la vista previa."
+
 #. placeholder {0}: missingInterfaceLanguages .map((language) => language.language.toUpperCase()) .join(", ")
 msgid "Translate the Kids interface before enabling Kids Mode. Missing: {0}."
 msgstr "Traduce la interfaz infantil antes de activar el modo infantil. Faltan: {0}."
@@ -9537,6 +9556,9 @@ msgstr "Ver página"
 msgid "View page {pageNum} larger"
 msgstr "Ver la página {pageNum} más grande"
 
+msgid "View technical details"
+msgstr "Ver detalles técnicos"
+
 msgid "Visible page entries"
 msgstr "Entradas visibles de la página"
 
@@ -9791,6 +9813,9 @@ msgstr "Ficción para jóvenes adultos"
 
 msgid "Your book"
 msgstr "Tu libro"
+
+msgid "Your book is ready, but its child-friendly controls are missing translations in some book languages. Complete them so the book and Kids Mode always speak the same language."
+msgstr "Tu libro está listo, pero los controles infantiles aún no están traducidos a algunos idiomas del libro. Complétalos para que el libro y el modo infantil siempre usen el mismo idioma."
 
 msgid "Your Books"
 msgstr "Tus libros"

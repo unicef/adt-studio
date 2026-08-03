@@ -1,9 +1,10 @@
-import { useAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { Pause, Play, Rewind, FastForward, X } from "lucide-react"
 import { readAloudModeAtom } from "@/features/audio/state/audio.atoms"
 import { useAudioPlayerContext } from "@/features/audio/hooks/AudioPlayerContext"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
+import { kidsBuddyPanelOpenAtom } from "@/features/kids/state/kids.atoms"
 import { cn } from "@/shared/lib/utils"
 
 /**
@@ -24,11 +25,12 @@ import { cn } from "@/shared/lib/utils"
 export function KidsPlayBar() {
   const { tk } = useKidsTranslation()
   const reduceMotion = usePrefersReducedMotion()
+  const buddyPanelOpen = useAtomValue(kidsBuddyPanelOpenAtom)
   const [readAloud, setReadAloud] = useAtom(readAloudModeAtom)
   const { isPlaying, hasItems, togglePlayPause, playNext, playPrevious, stop } =
     useAudioPlayerContext()
 
-  if (!readAloud || !hasItems) return null
+  if (!readAloud || !hasItems || buddyPanelOpen) return null
 
   // The cross is "turn reading off", not "hide the controls" — otherwise the
   // child would dismiss the panel and read-aloud would silently stay on.
@@ -45,9 +47,9 @@ export function KidsPlayBar() {
       className={cn(
         // Centred once there is room; on a narrow screen it would sit under the
         // buddy in the corner, so it shifts left of it instead.
-        "pointer-events-auto fixed bottom-5 z-[58]",
-        "left-3 right-[6.5rem] sm:left-1/2 sm:right-auto sm:-translate-x-1/2",
-        "flex items-center justify-center gap-2 rounded-full bg-white p-2",
+        "pointer-events-auto fixed bottom-3 z-[58] sm:bottom-5",
+        "left-2 right-[5rem] sm:left-1/2 sm:right-auto sm:-translate-x-1/2",
+        "flex items-center justify-center gap-1 rounded-full bg-[#FFFEFA] p-1.5 sm:gap-2 sm:p-2",
         "shadow-2xl ring-2 ring-sky-100",
         reduceMotion ? "transition-none" : "animate-kidsPanelOpen",
       )}
@@ -88,7 +90,10 @@ export function KidsPlayBar() {
         <FastForward className="h-6 w-6" fill="currentColor" />
       </PlayBarButton>
 
-      <span className="mx-1 h-8 w-0.5 rounded-full bg-sky-100" aria-hidden="true" />
+      <span
+        className="mx-0.5 h-8 w-0.5 rounded-full bg-sky-100 sm:mx-1"
+        aria-hidden="true"
+      />
 
       <PlayBarButton
         testId="kids-player-stop"
@@ -128,9 +133,9 @@ function PlayBarButton({
       onClick={onClick}
       className={cn(
         "flex shrink-0 items-center justify-center rounded-full",
-        primary ? "h-16 w-16" : "h-12 w-12",
+        primary ? "h-14 w-14 sm:h-16 sm:w-16" : "h-11 w-11 sm:h-12 sm:w-12",
         primary
-          ? "bg-sky-600 text-white shadow-[0_3px_0_#075985] hover:bg-sky-500"
+          ? "bg-sky-600 text-[#F8FCFF] shadow-[0_3px_0_#075985] hover:bg-sky-500"
           : quiet
             ? "bg-slate-100 text-slate-600 hover:bg-slate-200"
             : "bg-sky-100 text-sky-700 hover:bg-sky-200",

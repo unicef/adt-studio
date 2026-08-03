@@ -4,7 +4,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Baby } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { useKidsMode } from "@/hooks/use-kids-mode"
+import { useKidsInterfaceStatus, useKidsMode } from "@/hooks/use-kids-mode"
 import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
 import { useAllPagesPruned } from "@/hooks/use-all-pages-pruned"
@@ -26,6 +26,7 @@ import { createPortal } from "react-dom"
 import { useStepHeader } from "@/components/pipeline/components/StepViewRouter"
 import { PreviewAccessibilityCard } from "./PreviewAccessibilityCard"
 import { PreviewValidationCard } from "./PreviewValidationCard"
+import { KidsPreviewLanguageGate } from "./KidsPreviewLanguageGate"
 import { useDeviceView, DEVICE_WIDTHS } from "./storyboard/components/style-editor/device-breakpoint"
 import { getDeviceFrame, getTargetVisibleWidth } from "./storyboard/components/style-editor/device-chrome"
 import { ViewportToggle } from "./storyboard/components/style-editor/ViewportToggle"
@@ -75,6 +76,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   // the dev/authoring preview context (see the runtime's kids-preview.ts).
   const [kidsPreview, setKidsPreview] = useState<"on" | "off" | null>(null)
   const { data: kidsModeConfig } = useKidsMode(bookLabel)
+  const { data: kidsInterfaceStatus } = useKidsInterfaceStatus(bookLabel)
   const packedKidsMode = kidsModeConfig?.enabled
   const { data, isLoading: assessmentLoading, error: assessmentError } = useAccessibilityAssessment(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel, {
@@ -304,6 +306,22 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }
 
   if (error) {
+    const isKidsLanguageGate =
+      error.includes(
+        "Kids Mode requires complete interface translations for every book language",
+      ) ||
+      (kidsModeConfig?.enabled === true && kidsInterfaceStatus?.ready === false)
+
+    if (isKidsLanguageGate) {
+      return (
+        <KidsPreviewLanguageGate
+          bookLabel={bookLabel}
+          error={error}
+          status={kidsInterfaceStatus}
+        />
+      )
+    }
+
     return (
       <div className="p-4 max-w-xl">
         <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2">
