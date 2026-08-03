@@ -21,7 +21,7 @@ import {
   hashPdfBytes,
 } from "@adt/types/fingerprint"
 import { renderPdfCover, countPdfPages } from "@adt/pdf"
-import { openBookDb, resolveBookPaths } from "@adt/storage"
+import { CURRENT_VERSION_ORDER, openBookDb, resolveBookPaths } from "@adt/storage"
 import { loadBookConfig } from "@adt/pipeline"
 import { createZipStreamFromEntries } from "./zip-util.js"
 import { getBookConfig, readPartInfo, type BookSummary } from "./book-service.js"
@@ -730,14 +730,24 @@ export function mergePart(
       else addedPages++
     }
 
-    // Latest version of every node_data row in the part.
-    const latestNodes = part.db.all(
-      `SELECT nd.node, nd.item_id, nd.data
+    // Current version of every node_data row in the part. A contributor may
+    // have intentionally restored an older version, so MAX(version) is not
+    // necessarily the version that should be merged.
+    const orderedNodes = part.db.all(
+      `SELECT nd.node AS node, nd.item_id AS item_id, nd.data AS data
          FROM node_data nd
-         JOIN (SELECT node, item_id, MAX(version) AS mv FROM node_data GROUP BY node, item_id) m
-           ON nd.node = m.node AND nd.item_id = m.item_id AND nd.version = m.mv`,
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         ORDER BY nd.node, nd.item_id, ${CURRENT_VERSION_ORDER}`,
     ) as Array<{ node: string; item_id: string; data: string | null }>
-    const perPageNodes = latestNodes.filter((row) => {
+    const currentNodes: typeof orderedNodes = []
+    const seenNodes = new Set<string>()
+    for (const row of orderedNodes) {
+      const key = `${row.node}\0${row.item_id}`
+      if (seenNodes.has(key)) continue
+      seenNodes.add(key)
+      currentNodes.push(row)
+    }
+    const perPageNodes = currentNodes.filter((row) => {
       const pid = pageIdOfItem(row.item_id)
       return pid !== null && pageIdSet.has(pid)
     })
@@ -794,6 +804,11 @@ export function mergePart(
           "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
           [row.node, row.item_id, nextVersion, row.data],
         )
+        targetDb.run(
+          `INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)
+           ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version`,
+          [row.node, row.item_id, nextVersion],
+        )
       }
 
       // Book-level metadata (title/authors/publisher/language/cover) is the one
@@ -809,11 +824,15 @@ export function mergePart(
           (targetDb.all(
             "SELECT 1 FROM node_data WHERE node = 'metadata' AND item_id = 'book' LIMIT 1",
           ) as unknown[]).length > 0
-        const metaRow = latestNodes.find((r) => r.node === "metadata" && r.item_id === "book")
+        const metaRow = currentNodes.find((r) => r.node === "metadata" && r.item_id === "book")
         if (!targetHasMetadata && metaRow) {
           targetDb.run(
             "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
             ["metadata", "book", 1, metaRow.data],
+          )
+          targetDb.run(
+            "INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)",
+            ["metadata", "book", 1],
           )
           metadataMerged = true
         }

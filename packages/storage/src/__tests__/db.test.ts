@@ -44,6 +44,79 @@ describe("openBookDb", () => {
     raw.close()
   })
 
+  it("migrates v13 books with each newest entity version still active", () => {
+    const dbPath = makeDbPath("v13-book.db")
+    const old = new sqlite.Database(dbPath)
+    old.exec(`
+      CREATE TABLE schema_version (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        version INTEGER NOT NULL
+      );
+      INSERT INTO schema_version (id, version) VALUES (1, 13);
+
+      CREATE TABLE node_data (
+        node TEXT NOT NULL,
+        item_id TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        data TEXT,
+        PRIMARY KEY (node, item_id, version)
+      );
+      INSERT INTO node_data (node, item_id, version, data) VALUES
+        ('web-rendering', 'pg001', 1, '{"html":"first"}'),
+        ('web-rendering', 'pg001', 2, '{"html":"newest"}'),
+        ('quiz-generation', 'book', 1, '{"quizzes":[]}');
+    `)
+    old.close()
+
+    const migrated = openBookDb(dbPath)
+    const schemaVersion = migrated.all(
+      "SELECT version FROM schema_version WHERE id = 1"
+    ) as Array<{ version: number }>
+    expect(schemaVersion).toEqual([{ version: SCHEMA_VERSION }])
+
+    const activeVersions = migrated.all(
+      `SELECT node, item_id AS itemId, version
+       FROM node_current
+       ORDER BY node, item_id`
+    ) as Array<{ node: string; itemId: string; version: number }>
+    expect(activeVersions).toEqual([
+      { node: "quiz-generation", itemId: "book", version: 1 },
+      { node: "web-rendering", itemId: "pg001", version: 2 },
+    ])
+
+    const storedVersions = migrated.all(
+      `SELECT node, item_id AS itemId, version, data
+       FROM node_data
+       ORDER BY node, item_id, version`
+    ) as Array<{
+      node: string
+      itemId: string
+      version: number
+      data: string
+    }>
+    expect(storedVersions).toEqual([
+      {
+        node: "quiz-generation",
+        itemId: "book",
+        version: 1,
+        data: '{"quizzes":[]}',
+      },
+      {
+        node: "web-rendering",
+        itemId: "pg001",
+        version: 1,
+        data: '{"html":"first"}',
+      },
+      {
+        node: "web-rendering",
+        itemId: "pg001",
+        version: 2,
+        data: '{"html":"newest"}',
+      },
+    ])
+    migrated.close()
+  })
+
   it("throws when schema version does not match", () => {
     const dbPath = makeDbPath("mismatch.db")
     const old = new sqlite.Database(dbPath)

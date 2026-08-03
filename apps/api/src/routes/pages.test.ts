@@ -260,6 +260,101 @@ describe("Page routes", () => {
 
       expect(res.status).toBe(404)
     })
+
+    it("marks the storyboard chain as needing a re-run, keeping node data", async () => {
+      // A sectioning edit invalidates the rendered HTML that every later stage
+      // is derived from, so those stages must stop reporting "done" — but their
+      // data (and version history) must survive.
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepCompleted("web-rendering")
+        seed.markStepCompleted("quiz-generation")
+        seed.markStepCompleted("toc-generation")
+        seed.putNodeData("web-rendering", `${label}_p1`, { sections: [] })
+      } finally {
+        seed.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sectioning`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reasoning: "r", sections: [] }),
+        }
+      )
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        const steps = after.getStepRuns().map((r) => r.step)
+        expect(steps).not.toContain("web-rendering")
+        expect(steps).not.toContain("quiz-generation")
+        expect(steps).not.toContain("toc-generation")
+        // Non-destructive: the rendering itself is untouched.
+        expect(after.getLatestNodeData("web-rendering", `${label}_p1`)).toBeTruthy()
+      } finally {
+        after.close()
+      }
+    })
+
+    it("rejects sectioning changes while a pipeline step is running", async () => {
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepStarted("web-rendering")
+      } finally {
+        seed.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sectioning`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reasoning: "r", sections: [] }),
+        }
+      )
+      expect(res.status).toBe(409)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        expect(
+          after.getLatestNodeData("page-sectioning", `${label}_p1`)?.version
+        ).toBe(1)
+        expect(after.getStepRuns()).toContainEqual(
+          expect.objectContaining({ step: "web-rendering", status: "running" })
+        )
+      } finally {
+        after.close()
+      }
+    })
+
+    it("does not mark storyboard stale when only the rendering is saved", async () => {
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepCompleted("web-rendering")
+      } finally {
+        seed.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/rendering`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sections: [] }),
+        }
+      )
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        // Saving the storyboard's own output must not invalidate itself.
+        expect(after.getStepRuns().map((r) => r.step)).toContain("web-rendering")
+      } finally {
+        after.close()
+      }
+    })
   })
 
   describe("PUT /api/books/:label/pages/:pageId/image-filtering", () => {
@@ -574,6 +669,70 @@ describe("Page routes", () => {
         storage.close()
       }
     }
+
+    it("marks the storyboard chain stale, since both halves lose their HTML", async () => {
+      seedThreeNodeSection({ rendering: true })
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepCompleted("web-rendering")
+        seed.markStepCompleted("package-web")
+      } finally {
+        seed.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeIndex: 1 }),
+        }
+      )
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        // Without this the split sections would silently vanish from the
+        // packaged book while the storyboard still reported "done".
+        const steps = after.getStepRuns().map((r) => r.step)
+        expect(steps).not.toContain("web-rendering")
+        expect(steps).not.toContain("package-web")
+      } finally {
+        after.close()
+      }
+    })
+
+    it("does not split while a pipeline step is running", async () => {
+      seedThreeNodeSection({ rendering: true })
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepStarted("web-rendering")
+      } finally {
+        seed.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeIndex: 1 }),
+        }
+      )
+      expect(res.status).toBe(409)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        const sectioning = after.getLatestNodeData("page-sectioning", `${label}_p1`)
+          ?.data as { sections: unknown[] }
+        expect(sectioning.sections).toHaveLength(2)
+        expect(after.getStepRuns()).toContainEqual(
+          expect.objectContaining({ step: "web-rendering", status: "running" })
+        )
+      } finally {
+        after.close()
+      }
+    })
 
     it("splits a section before a top-level node and renumbers sectionIds", async () => {
       seedThreeNodeSection({ rendering: true })
@@ -1589,6 +1748,67 @@ describe("Page routes", () => {
       // image-captioning was just saved (new version), so it should exist
       // but text-catalog, translations, tts should be cleared
       expectTextAndSpeechCleared(tmpDir, label)
+    })
+  })
+
+  describe("POST /api/books/:label/versions/:node/:itemId/restore", () => {
+    it("rolls the current pointer back to an existing version without adding one", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      storage.putNodeData("web-rendering", `${label}_p1`, {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "v2", html: "<div>v2</div>" }],
+      })
+      storage.close()
+      seedDownstreamData(tmpDir, label)
+
+      const res = await app.request(
+        `/api/books/${label}/versions/web-rendering/${label}_p1/restore`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ version: 1 }),
+        }
+      )
+      expect(res.status).toBe(200)
+
+      const check = createBookStorage(label, tmpDir)
+      // Pointer moved back to v1, and no new version was created (max still 2).
+      expect(check.getCurrentNodeVersion("web-rendering", `${label}_p1`)).toBe(1)
+      expect(check.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
+      check.close()
+      expectAllDownstreamCleared(tmpDir, label)
+    })
+
+    it("rejects nodes that are not exposed by the version picker", async () => {
+      const res = await app.request(
+        `/api/books/${label}/versions/metadata/book/restore`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1 }) }
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it("returns 400 for an invalid version", async () => {
+      const res = await app.request(
+        `/api/books/${label}/versions/web-rendering/${label}_p1/restore`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 0 }) }
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it("returns 404 for a nonexistent version", async () => {
+      const res = await app.request(
+        `/api/books/${label}/versions/web-rendering/${label}_p1/restore`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 99 }) }
+      )
+      expect(res.status).toBe(404)
+    })
+
+    it("returns 404 for a nonexistent book without creating it", async () => {
+      const res = await app.request(
+        `/api/books/ghost-book/versions/web-rendering/x/restore`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1 }) }
+      )
+      expect(res.status).toBe(404)
+      expect(fs.existsSync(path.join(tmpDir, "ghost-book"))).toBe(false)
     })
   })
 })

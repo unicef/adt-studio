@@ -1,7 +1,7 @@
 /**
  * Image Flip Transform Utilities
  *
- * Detects and applies current transformation matrix (CTM) based flip transformations 
+ * Detects and applies current transformation matrix (CTM) based flip transformations
  * to raster images extracted from PDFs. Handles both JPEG and PNG formats.
  */
 

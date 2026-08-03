@@ -1370,15 +1370,61 @@ export function LanguageView({
             bookLabel={bookLabel}
             pendingLabel={pendingLabel}
             pendingLabelKey={pendingLabelKey}
-            onPreview={(d) => {
-              const data = d as { entries?: TextCatalogEntry[] };
-              setPendingEntries(data?.entries ?? []);
+            onRestored={() => {
+              setPendingEntries(null);
               setAppliedSuggestionEntryIds(new Set());
             }}
             onSave={() => saveRef.current()}
             onDiscard={() => {
               setPendingEntries(null);
               setAppliedSuggestionEntryIds(new Set());
+            }}
+            diff={{
+              items: (d) => (d as { entries?: TextCatalogEntry[] } | null)?.entries ?? [],
+              keyOf: (it) => (it as TextCatalogEntry).id,
+              diffText: (it) => (it as TextCatalogEntry).text ?? "",
+              searchText: (it) => {
+                const e = it as TextCatalogEntry;
+                return `${e.id} ${sourceEntriesById.get(e.id) ?? ""} ${e.text ?? ""}`;
+              },
+              searchPlaceholder: t`Search original or translation…`,
+              renderItem: (it, ctx) => {
+                const e = it as TextCatalogEntry;
+                const cat = getEntryCategory(e.id);
+                const catLabel =
+                  cat === "captions"
+                    ? t`Caption`
+                    : cat === "answers"
+                      ? t`Answer`
+                      : cat === "glossary"
+                        ? t`Glossary`
+                        : cat === "easy-read"
+                          ? t`Easy Read`
+                          : t`Text`;
+                const pageMatch = /^pg0*(\d+)/.exec(e.id);
+                const pageRef = pageMatch ? t`p${pageMatch[1]}` : null;
+                // Original (source-language) text for this entry — shown as
+                // context so a translation change can be judged against it.
+                const source = sourceEntriesById.get(e.id);
+                return (
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">
+                      <span className="rounded bg-muted px-1 py-0.5 font-semibold" title={e.id}>
+                        {catLabel}
+                      </span>
+                      {pageRef ? <span className="tabular-nums">{pageRef}</span> : null}
+                    </span>
+                    {source && source !== e.text ? (
+                      <span className="line-clamp-2 text-[11px] text-muted-foreground">{source}</span>
+                    ) : null}
+                    {ctx?.diff ? (
+                      <span className="text-foreground">{ctx.diff}</span>
+                    ) : e.text ? (
+                      <span className="text-foreground">{e.text}</span>
+                    ) : null}
+                  </span>
+                );
+              },
             }}
           />
         )}

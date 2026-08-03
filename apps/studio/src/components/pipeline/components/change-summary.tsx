@@ -12,7 +12,10 @@ export interface EntityNoun {
 export type ChangeKind = "added" | "edited" | "removed" | "pruned" | "restored"
 
 const KIND_ORDER: ChangeKind[] = ["added", "edited", "removed", "pruned", "restored"]
-const KIND_ICON: Record<ChangeKind, LucideIcon> = {
+
+/** Single source of truth for a change kind's icon — shared by the pending-save
+ *  chips, the version-picker popover, and the compare dialog. */
+export const KIND_ICON: Record<ChangeKind, LucideIcon> = {
   added: Plus,
   edited: Pencil,
   removed: Trash2,
@@ -20,7 +23,65 @@ const KIND_ICON: Record<ChangeKind, LucideIcon> = {
   restored: Eye,
 }
 
-function diffById<T>(
+/** Hex color per change kind — used where alpha compositing is needed (e.g.
+ *  `${KIND_COLOR.edited}1a` tinted badges). For solid text prefer
+ *  {@link KIND_TEXT_CLASS} so styling stays in Tailwind utilities. */
+export const KIND_COLOR: Record<ChangeKind, string> = {
+  added: "#10b981",
+  edited: "#f59e0b",
+  removed: "#f43f5e",
+  pruned: "#a3a3a3",
+  restored: "#0ea5e9",
+}
+
+/** Tailwind text-color utility per change kind (mirrors {@link KIND_COLOR}). */
+export const KIND_TEXT_CLASS: Record<ChangeKind, string> = {
+  added: "text-emerald-500",
+  edited: "text-amber-500",
+  removed: "text-rose-500",
+  pruned: "text-neutral-400",
+  restored: "text-sky-500",
+}
+
+/** Tailwind chip classes (tinted bg + AA-dark text + ring) per change kind, for
+ *  small accent elements (e.g. a level badge) that should match their section's
+ *  color while staying legible. Use with a `ring-1` base class. */
+export const KIND_CHIP_CLASS: Record<ChangeKind, string> = {
+  added: "bg-emerald-100 text-emerald-800 ring-emerald-300",
+  edited: "bg-amber-100 text-amber-800 ring-amber-300",
+  removed: "bg-rose-100 text-rose-800 ring-rose-300",
+  pruned: "bg-neutral-100 text-neutral-700 ring-neutral-300",
+  restored: "bg-sky-100 text-sky-800 ring-sky-300",
+}
+
+/** Neutral chip classes for unchanged / no-kind contexts (pairs with
+ *  {@link KIND_CHIP_CLASS}). Use with a `ring-1` base class. */
+export const NEUTRAL_CHIP_CLASS = "bg-slate-100 text-slate-700 ring-slate-300"
+
+/**
+ * Deterministic JSON string with object keys sorted recursively, so equality
+ * checks aren't fooled by key-insertion-order differences between versions
+ * (e.g. one version serialized `{word,…,source}` and another `{source,word,…}`).
+ * Use this for diff descriptors' `isEqual` instead of raw `JSON.stringify`.
+ */
+export function stableStringify(value: unknown): string {
+  return JSON.stringify(value, (_key, val) =>
+    val && typeof val === "object" && !Array.isArray(val)
+      ? Object.fromEntries(
+          Object.keys(val as Record<string, unknown>)
+            .sort()
+            .map((k) => [k, (val as Record<string, unknown>)[k]])
+        )
+      : val
+  )
+}
+
+/** Default item equality for diff descriptors: deep, key-order-insensitive. */
+export function stableEqual(a: unknown, b: unknown): boolean {
+  return stableStringify(a) === stableStringify(b)
+}
+
+export function diffById<T>(
   prev: T[],
   next: T[],
   keyOf: (item: T) => string,
