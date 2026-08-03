@@ -213,9 +213,48 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
           bookLabel={bookLabel}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
-          onPreview={(d) => setPending(d as TocData)}
+          onRestored={() => setPending(null)}
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
+          diff={{
+            items: (d) => (d as TocData | null)?.entries ?? [],
+            keyOf: (e) => (e as TocEntry).id,
+            isEqual: (a, b) => {
+              const x = a as TocEntry
+              const y = b as TocEntry
+              return (
+                x.title === y.title &&
+                x.sectionId === y.sectionId &&
+                x.href === y.href &&
+                x.level === y.level
+              )
+            },
+            diffText: (e) => (e as TocEntry).title,
+            searchText: (e) => (e as TocEntry).title,
+            searchPlaceholder: t`Search entries…`,
+            renderItem: (e, ctx) => {
+              const s = e as TocEntry
+              const level = s.level ?? 1
+              return (
+                <span
+                  className="flex items-center gap-1.5"
+                  style={{ paddingLeft: (Math.min(level, 3) - 1) * 20 }}
+                >
+                  {/* Level chip tinted to the item's change color (amber/emerald/
+                      rose, neutral when unchanged) via the section accent, with
+                      an AA-dark text shade so it stays legible on any tint. */}
+                  <span
+                    className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider tabular-nums ring-1 ${
+                      ctx?.accentClass ?? "bg-slate-100 text-slate-700 ring-slate-300"
+                    }`}
+                  >
+                    {t`L${level}`}
+                  </span>
+                  <span className="truncate font-medium text-foreground">{ctx?.diff ?? s.title}</span>
+                </span>
+              )
+            },
+          }}
         />
       </div>,
     )

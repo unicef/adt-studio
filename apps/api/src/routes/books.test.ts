@@ -1608,6 +1608,29 @@ describe("GET /books/:label/captioned-images", () => {
     expect(body.images.find((i) => i.imageId === "pg001_im001")?.caption).toBe("First caption")
   })
 
+  it("uses the restored caption version instead of MAX(version)", async () => {
+    setupBook("cap-restored")
+    const storage = createBookStorage("cap-restored", tmpDir)
+    try {
+      storage.putNodeData("image-captioning", "pg001", {
+        captions: [
+          { imageId: "pg001_im001", caption: "Superseded caption", decorative: true },
+          { imageId: "pg001_im002", caption: "Newer second caption" },
+        ],
+      })
+      expect(storage.setCurrentNodeVersion("image-captioning", "pg001", 1)).toBe(true)
+    } finally {
+      storage.close()
+    }
+
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/cap-restored/captioned-images")
+    expect(res.status).toBe(200)
+    const body = await res.json() as { images: Array<{ imageId: string; caption: string }> }
+    expect(body.images.find((i) => i.imageId === "pg001_im001")?.caption).toBe("First caption")
+    expect(body.images.find((i) => i.imageId === "pg001_im002")?.caption).toBe("Second caption")
+  })
+
   it("returns 404 for missing book", async () => {
     const app = createBookRoutes(tmpDir)
     const res = await app.request("/books/no-such/captioned-images")

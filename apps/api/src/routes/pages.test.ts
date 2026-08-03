@@ -1750,4 +1750,65 @@ describe("Page routes", () => {
       expectTextAndSpeechCleared(tmpDir, label)
     })
   })
+
+  describe("POST /api/books/:label/versions/:node/:itemId/restore", () => {
+    it("rolls the current pointer back to an existing version without adding one", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      storage.putNodeData("web-rendering", `${label}_p1`, {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "v2", html: "<div>v2</div>" }],
+      })
+      storage.close()
+      seedDownstreamData(tmpDir, label)
+
+      const res = await app.request(
+        `/api/books/${label}/versions/web-rendering/${label}_p1/restore`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ version: 1 }),
+        }
+      )
+      expect(res.status).toBe(200)
+
+      const check = createBookStorage(label, tmpDir)
+      // Pointer moved back to v1, and no new version was created (max still 2).
+      expect(check.getCurrentNodeVersion("web-rendering", `${label}_p1`)).toBe(1)
+      expect(check.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
+      check.close()
+      expectAllDownstreamCleared(tmpDir, label)
+    })
+
+    it("rejects nodes that are not exposed by the version picker", async () => {
+      const res = await app.request(
+        `/api/books/${label}/versions/metadata/book/restore`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1 }) }
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it("returns 400 for an invalid version", async () => {
+      const res = await app.request(
+        `/api/books/${label}/versions/web-rendering/${label}_p1/restore`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 0 }) }
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it("returns 404 for a nonexistent version", async () => {
+      const res = await app.request(
+        `/api/books/${label}/versions/web-rendering/${label}_p1/restore`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 99 }) }
+      )
+      expect(res.status).toBe(404)
+    })
+
+    it("returns 404 for a nonexistent book without creating it", async () => {
+      const res = await app.request(
+        `/api/books/ghost-book/versions/web-rendering/x/restore`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: 1 }) }
+      )
+      expect(res.status).toBe(404)
+      expect(fs.existsSync(path.join(tmpDir, "ghost-book"))).toBe(false)
+    })
+  })
 })

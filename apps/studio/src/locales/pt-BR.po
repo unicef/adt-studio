@@ -10031,6 +10031,114 @@ msgstr "Envie para a plataforma PNLD Digital do FNDE e valide com o VALIDE."
 msgid "Validates in VALIDE Desktop — the official PNLD reader"
 msgstr "Validado no VALIDE Desktop — o leitor oficial do PNLD"
 
+msgid "Page {page} of {pageCount}"
+msgstr "Página {page} de {pageCount}"
+
+msgid "Changes detected"
+msgstr "Alterações detectadas"
+
+msgid "Compare the current version with a chosen version at the same screen size."
+msgstr "Compare a versão atual com uma versão escolhida no mesmo tamanho de tela."
+
+msgid "Compare versions"
+msgstr "Comparar versões"
+
+msgid "Couldn't load versions."
+msgstr "Não foi possível carregar as versões."
+
+msgid "Couldn't restore v{version}. Please try again."
+msgstr "Não foi possível restaurar a v{version}. Tente novamente."
+
+msgid "current"
+msgstr "atual"
+
+msgid "Current (v{currentVersion})"
+msgstr "Atual (v{currentVersion})"
+
+msgid "Current version (v{currentVersion})"
+msgstr "Versão atual (v{currentVersion})"
+
+msgid "Edited"
+msgstr "Editado"
+
+msgid "Filtered out"
+msgstr "Descartado"
+
+msgid "Go to latest"
+msgstr "Ir para a mais recente"
+
+msgid "Kept"
+msgstr "Mantido"
+
+msgid "L{level}"
+msgstr "N{level}"
+
+msgid "Loading versions…"
+msgstr "Carregando versões…"
+
+msgid "No caption (decorative)"
+msgstr "Sem legenda (decorativa)"
+
+msgid "no changes"
+msgstr "sem alterações"
+
+msgid "No matches."
+msgstr "Nenhuma correspondência."
+
+msgid "now correct"
+msgstr "agora correta"
+
+msgid "On v{currentVersion} · latest is v{latestVersion}"
+msgstr "Na v{currentVersion} · a mais recente é a v{latestVersion}"
+
+msgid "Pick another version above to compare it with the current one."
+msgstr "Escolha outra versão acima para compará-la com a atual."
+
+msgid "Removed"
+msgstr "Removido"
+
+msgid "Restored to v{version}"
+msgstr "Restaurado para a v{version}"
+
+msgid "Review what restoring version {selected} would change, grouped by edited, added, and removed."
+msgstr "Revise o que restaurar a versão {selected} mudaria, agrupado por editados, adicionados e removidos."
+
+msgid "Search original or translation…"
+msgstr "Buscar original ou tradução…"
+
+msgid "Search questions, answers, or explanations…"
+msgstr "Pesquisar perguntas, respostas ou explicações…"
+
+msgid "Search…"
+msgstr "Buscar…"
+
+msgid "Show unchanged"
+msgstr "Mostrar inalterados"
+
+msgid "This is the active version — pick another above to compare and restore it. Everything it contains:"
+msgstr "Esta é a versão ativa — escolha outra acima para compará-la e restaurá-la. Tudo o que ela contém:"
+
+msgid "This section doesn't exist in this version."
+msgstr "Esta seção não existe nesta versão."
+
+msgid "This version is empty."
+msgstr "Esta versão está vazia."
+
+msgid "Unchanged"
+msgstr "Inalterado"
+
+msgid "Use version {selected}"
+msgstr "Usar a versão {selected}"
+
+msgid "v{hovered} preview"
+msgstr "Prévia da v{hovered}"
+
+msgid "Version {selected}"
+msgstr "Versão {selected}"
+
+msgid "was correct"
+msgstr "era correta"
+
 #. placeholder {0}: changesQuery.data.changes.length
 #~ msgid "{0} unpublished file changes"
 #~ msgstr "{0} alterações de arquivo não publicadas"
@@ -10339,5 +10447,235 @@ msgstr "Validado no VALIDE Desktop — o leitor oficial do PNLD"
 
 #~ msgid "Workspace changes"
 #~ msgstr "Alterações do espaço de trabalho"
-msgid "Page {page} of {pageCount}"
-msgstr "Página {page} de {pageCount}"
+
+#~ msgid "{0} added"
+#~ msgstr "{0} adicionadas"
+
+#. placeholder {0}: formatVersion(group.series)
+#~ msgid "{0} series"
+#~ msgstr "Série {0}"
+
+#~ msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
+#~ msgstr "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marcado."
+
+#~ msgid "ADT Studio"
+#~ msgstr "ADT Studio"
+
+#~ msgid "Apply spreads"
+#~ msgstr "Aplicar spreads"
+
+#~ msgid "Applying…"
+#~ msgstr "Aplicando…"
+
+#~ msgid "Available beta versions"
+#~ msgstr "Versões beta disponíveis"
+
+#~ msgid "Available versions"
+#~ msgstr "Versões disponíveis"
+
+#~ msgid "Back to Editor"
+#~ msgstr "Voltar ao editor"
+
+#~ msgid "Browse beta releases by series."
+#~ msgstr "Explore as versões beta por série."
+
+#~ msgid "Built from"
+#~ msgstr "Compilado a partir de"
+
+#~ msgid "Cancelling step"
+#~ msgstr "Cancelando etapa"
+
+#~ msgid "Check for updates"
+#~ msgstr "Verificar atualizações"
+
+#~ msgid "Current version"
+#~ msgstr "Versão atual"
+
+#~ msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
+#~ msgstr "Detectado {confirmCount} possível {confirmCount, plural, one {spread} other {spreads}} — confirme qual mesclar"
+
+#~ msgid "Downgrade"
+#~ msgstr "Downgrade"
+
+#~ msgid "Download size"
+#~ msgstr "Tamanho do download"
+
+#~ msgid "Downloading… {0}% · {1}/s"
+#~ msgstr "Baixando… {0}% · {1}/s"
+
+#~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
+#~ msgstr "Edite o template Liquid/HTML abaixo. As alterações são salvas quando você clica em Salvar e reexecutar."
+
+#~ msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
+#~ msgstr "Tamanhos fixos e acessíveis aplicados a todas as páginas. Os tamanhos usam a escala Tailwind do livro (escolha um token ou digite um valor exato em px), são dimensionados de forma fluida entre celular e desktop, e substituem qualquer tamanho escolhido pela IA — assim os títulos e o texto do corpo permanecem consistentes em todo o livro."
+
+#~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. A lower temperature (e.g. 0.4) reduces that variation and a fixed seed makes delivery reproducible. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+#~ msgstr "O Gemini gera cada frase em sua própria requisição, então o tom pode variar entre as frases. Uma temperatura mais baixa (ex.: 0,4) reduz essa variação e uma semente fixa torna a leitura reproduzível. Afeta apenas os idiomas roteados para o Gemini — o OpenAI e o Azure ignoram esses valores. Alterar qualquer um deles regenera o áudio do Gemini na próxima execução."
+
+#~ msgid "Installing an older version can break books or settings that were created or edited with a newer one. Back up your books before downgrading."
+#~ msgstr "Instalar uma versão mais antiga pode danificar livros ou configurações criados ou editados em uma versão mais nova. Faça backup dos seus livros antes de voltar a uma versão anterior."
+
+#~ msgid "Last"
+#~ msgstr "Última"
+
+#~ msgid "Last week"
+#~ msgstr "Semana passada"
+
+#~ msgid "merge into next page"
+#~ msgstr "mesclar na próxima página"
+
+#~ msgid "Merge into next page"
+#~ msgstr "Mesclar na próxima página"
+
+#~ msgid "merge into previous page"
+#~ msgstr "mesclar na página anterior"
+
+#~ msgid "Merge into previous page"
+#~ msgstr "Mesclar na página anterior"
+
+#~ msgid "Merged:"
+#~ msgstr "Mesclado:"
+
+#~ msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
+#~ msgstr "A maioria dos livros é lida uma página de cada vez. Se o seu tiver uma ilustração que abrange duas páginas opostas, vincule essas páginas para que sejam processadas juntas como um único spread em vez de serem divididas ao meio."
+
+#~ msgid "New version"
+#~ msgstr "Nova versão"
+
+#~ msgid "Newer"
+#~ msgstr "Mais recente"
+
+#~ msgid "No beta versions are available for this platform."
+#~ msgstr "Nenhuma versão beta está disponível para esta plataforma."
+
+#~ msgid "No beta versions match your search."
+#~ msgstr "Nenhuma versão beta corresponde à sua busca."
+
+#~ msgid "No readable text extracted from this page"
+#~ msgstr "Nenhum texto legível extraído desta página"
+
+#~ msgid "No versions match your search."
+#~ msgstr "Nenhuma versão corresponde à sua busca."
+
+#~ msgid "Older"
+#~ msgstr "Mais antiga"
+
+#~ msgid "Open commit {shortSha}"
+#~ msgstr "Abrir commit {shortSha}"
+
+#~ msgid "Other beta versions"
+#~ msgstr "Outras versões beta"
+
+#~ msgid "Page {p}"
+#~ msgstr "Página {p}"
+
+#~ msgid "Refresh beta versions"
+#~ msgstr "Atualizar versões beta"
+
+#~ msgid "Refresh list"
+#~ msgstr "Atualizar lista"
+
+#~ msgid "Release library"
+#~ msgstr "Biblioteca de versões"
+
+#~ msgid "Review {selectedCount} selected"
+#~ msgstr "Revisar {selectedCount} selecionado(s)"
+
+#~ msgid "Review this beta release and its notes before installing."
+#~ msgstr "Revise esta versão beta e suas notas antes de instalar."
+
+#~ msgid "Running {stageLabel}"
+#~ msgstr "Executando {stageLabel}"
+
+#~ msgid "Running..."
+#~ msgstr "Executando..."
+
+#~ msgid "Search questions or answers…"
+#~ msgstr "Buscar perguntas ou respostas…"
+
+#~ msgid "Search versions"
+#~ msgstr "Buscar versões"
+
+#~ msgid "Search versions…"
+#~ msgstr "Buscar versões…"
+
+#~ msgid "See the current version and a chosen version rendered side by side."
+#~ msgstr "Veja a versão atual e uma versão escolhida lado a lado."
+
+#~ msgid "Select {title}"
+#~ msgstr "Selecionar {title}"
+
+#~ msgid "Select a version to see details and installation options."
+#~ msgstr "Selecione uma versão para ver os detalhes e as opções de instalação."
+
+#~ msgid "Select a version to see its release notes."
+#~ msgstr "Selecione uma versão para ver as notas da versão."
+
+#~ msgid "Software Update"
+#~ msgstr "Atualização de Software"
+
+#~ msgid "Split into parts for others"
+#~ msgstr "Dividir em partes para outras pessoas"
+
+#~ msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
+#~ msgstr "Tamanhos de texto salvos. Execute novamente o Storyboard e a Exportação para aplicá-los."
+
+#~ msgid "This week"
+#~ msgstr "Esta semana"
+
+#~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
+#~ msgstr "Isso salvará suas configurações de Leitura Fácil e gerará uma nova versão editável de Leitura Fácil."
+
+#~ msgid "This will save your settings and re-generate the table of contents."
+#~ msgstr "Isso salvará suas configurações e gerará novamente o sumário."
+
+#~ msgid "This will save your settings and re-run glossary generation."
+#~ msgstr "Isso salvará suas configurações e reexecutará a geração do glossário."
+
+#~ msgid "This will save your settings and re-run image captioning."
+#~ msgstr "Isso salvará suas configurações e reexecutará a legendagem de imagens."
+
+#~ msgid "This will save your settings and re-run quiz generation."
+#~ msgstr "Isso salvará suas configurações e reexecutará a geração de quizzes."
+
+#~ msgid "This will save your settings and re-run sectioning for all pages."
+#~ msgstr "Isso salvará suas configurações e reexecutará o seccionamento para todas as páginas."
+
+#~ msgid "This will save your settings and re-run speech generation."
+#~ msgstr "Isso salvará suas configurações e reexecutará a geração de voz."
+
+#~ msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
+#~ msgstr "Isso salvará suas configurações e reexecutará o pipeline de extração. Edições manuais no texto extraído serão sobrescritas nas páginas afetadas."
+
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
+#~ msgstr "Isso salvará suas configurações e reexecutará o pipeline do storyboard. Apenas a renderização será regenerada — suas seções existentes serão preservadas."
+
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
+#~ msgstr "Isso salvará suas configurações e reexecutará o pipeline do storyboard. O seccionamento e a renderização serão executados para todas as páginas."
+
+#~ msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
+#~ msgstr "Isso salvará suas configurações e reexecutará as traduções, reconstruindo o catálogo de texto e traduzindo para os idiomas de saída."
+
+#~ msgid "Today"
+#~ msgstr "Hoje"
+
+#~ msgid "Update"
+#~ msgstr "Atualização"
+
+#~ msgid "View release details"
+#~ msgstr "Ver detalhes da versão"
+
+#~ msgid "What's next for this book?"
+#~ msgstr "O que vem a seguir para este livro?"
+
+#~ msgid "When enabled, text labels near vector images (e.g. chart dimensions, speech bubbles) are grouped together and extracted as raster crops. Disable to extract only the core vector shapes without text."
+#~ msgstr "Quando ativado, rótulos de texto próximos a imagens vetoriais (ex.: dimensões de gráficos, balões de fala) são agrupados e extraídos como recortes rasterizados. Desative para extrair apenas as formas vetoriais sem texto."
+
+#~ msgid "Yesterday"
+#~ msgstr "Ontem"
+
+#~ msgid "You have unsaved changes. If you leave, they'll be lost."
+#~ msgstr "Você tem alterações não salvas. Se sair, elas serão perdidas."
+
+#~ msgid "Your app is up to date. There's nothing to do."
+#~ msgstr "Seu aplicativo está atualizado. Não há nada a fazer."

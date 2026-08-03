@@ -5,3 +5,4 @@ export {
   type BookPaths,
 } from "./book-storage.js"
 export { openBookDb, cleanupInterruptedSteps } from "./db.js"
+export { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "./node-current.js"

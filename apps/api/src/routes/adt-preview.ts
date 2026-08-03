@@ -688,43 +688,79 @@ export function createAdtPreviewRoutes(
     return c.body(NAV_HTML)
   })
 
-  // /content/tailwind_output.css — rebuilt on every request (no cache, dev tool)
+  // /content/tailwind_output.css — generated from the current book fingerprint.
   // GET: generates CSS from DB content only.
   // POST: accepts { extraHtml } to include unsaved content (e.g., AI edits) in the scan.
+
+  const tailwindCssCache = new Map<string, string>()
+  const tailwindCssInFlight = new Map<string, Promise<string>>()
+  const TAILWIND_CACHE_CAP = 4
+
+  function rememberTailwindCss(key: string, css: string): void {
+    tailwindCssCache.delete(key)
+    tailwindCssCache.set(key, css)
+    if (tailwindCssCache.size > TAILWIND_CACHE_CAP) {
+      tailwindCssCache.delete(tailwindCssCache.keys().next().value as string)
+    }
+  }
 
   /** Collect all rendered HTML from the DB + optional extra HTML for Tailwind scanning. */
   async function generateTailwindCss(safeLabel: string, extraHtml?: string): Promise<string> {
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const pages = storage.getPages()
-      let allHtml = ""
-      for (const page of pages) {
-        const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        if (renderRow) {
-          const parsed = WebRenderingOutput.safeParse(renderRow.data)
-          if (parsed.success) {
-            for (const section of parsed.data.sections) {
-              allHtml += section.html + "\n"
+      const fingerprint = storage.getNodeVersionFingerprint()
+      const cacheKey = createHash("sha256")
+        .update(safeLabel)
+        .update("\0")
+        .update(JSON.stringify(fingerprint))
+        .update("\0")
+        .update(extraHtml ?? "")
+        .digest("hex")
+      const cached = tailwindCssCache.get(cacheKey)
+      if (cached != null) return cached
+
+      const pending = tailwindCssInFlight.get(cacheKey)
+      if (pending) return await pending
+
+      const build = (async () => {
+        const pages = storage.getPages()
+        let allHtml = ""
+        for (const page of pages) {
+          const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+          if (renderRow) {
+            const parsed = WebRenderingOutput.safeParse(renderRow.data)
+            if (parsed.success) {
+              for (const section of parsed.data.sections) {
+                allHtml += section.html + "\n"
+              }
             }
           }
         }
-      }
 
-      // Include quiz HTML so Tailwind scans quiz classes
-      const quizData = getQuizData(storage)
-      const catalog = await getTextCatalog(storage)
-      if (quizData?.quizzes) {
-        for (let i = 0; i < quizData.quizzes.length; i++) {
-          const quizId = `qz${pad3(i + 1)}`
-          allHtml += renderQuizHtml(quizData.quizzes[i], quizId, catalog) + "\n"
+        // Include quiz HTML so Tailwind scans quiz classes
+        const quizData = getQuizData(storage)
+        const catalog = await getTextCatalog(storage)
+        if (quizData?.quizzes) {
+          for (let i = 0; i < quizData.quizzes.length; i++) {
+            const quizId = `qz${pad3(i + 1)}`
+            allHtml += renderQuizHtml(quizData.quizzes[i], quizId, catalog) + "\n"
+          }
         }
+
+        // Include unsaved content (e.g., AI-edited section HTML) so new Tailwind classes
+        // are picked up before the edit is persisted to the DB.
+        if (extraHtml) allHtml += "\n" + extraHtml
+
+        const css = await buildPreviewTailwindCss(allHtml, webAssetsDir, resolveTypographyCss(storage))
+        rememberTailwindCss(cacheKey, css)
+        return css
+      })()
+      tailwindCssInFlight.set(cacheKey, build)
+      try {
+        return await build
+      } finally {
+        tailwindCssInFlight.delete(cacheKey)
       }
-
-      // Include unsaved content (e.g., AI-edited section HTML) so new Tailwind classes
-      // are picked up before the edit is persisted to the DB.
-      if (extraHtml) allHtml += "\n" + extraHtml
-
-      return await buildPreviewTailwindCss(allHtml, webAssetsDir, resolveTypographyCss(storage))
     } finally {
       storage.close()
     }

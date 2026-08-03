@@ -1445,6 +1445,14 @@ export const api = {
       `/books/${label}/debug/versions/${node}/${itemId}${includeData ? "?includeData=true" : ""}`
     ),
 
+  /** Roll an entity back to an existing version (moves the current-version
+   *  pointer; does not create a new version). */
+  restoreVersion: (label: string, node: string, itemId: string, version: number) =>
+    request<{ node: string; itemId: string; version: number }>(
+      `/books/${label}/versions/${node}/${itemId}/restore`,
+      { method: "POST", body: JSON.stringify({ version }) }
+    ),
+
   getBookConfig: (label: string) =>
     request<BookConfigResponse>(`/books/${label}/config`),
 

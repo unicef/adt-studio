@@ -132,6 +132,9 @@ export interface BookPreviewFrameProps {
   selectedDataId?: string | null
   /** Inner viewport width the iframe renders at; the wrapper scales it to fit. */
   renderWidth?: number
+  /** Optional visible-height cap. The complete page/device frame scales down
+   *  to fit instead of introducing a scroll region. */
+  maxVisibleHeight?: number
   /** When set, draws device chrome (bezel + rounded corners) around the iframe. */
   deviceView?: DeviceView
   /** Reports the iframe's current on-screen width in CSS pixels (renderWidth × scale).
@@ -157,6 +160,16 @@ export interface BookPreviewFrameProps {
    *  family from Google Fonts and overrides the global Merriweather, matching
    *  packaged output. Omit for fixed-layout (keeps per-span fonts). */
   bodyFontFamily?: string
+  /** Fires once the iframe has loaded, fonts are ready, and content injected —
+   *  useful for revealing the frame after a loading skeleton. */
+  onReady?: () => void
+  /** Lightweight read-only mode for tiny previews: don't block first paint on
+   *  web-font loading and skip LaTeX→MathML conversion. Approximate but fast. */
+  thumbnail?: boolean
+  /** Recompile Tailwind for this frame's own HTML once ready, so a version
+   *  whose classes aren't in the shared tailwind_output.css still renders
+   *  correctly. Needed for accurate version previews (adds one CSS request). */
+  autoRefreshCss?: boolean
 }
 
 /**
@@ -187,6 +200,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   applyBodyBackground,
   selectedDataId,
   renderWidth = DEFAULT_RENDER_WIDTH,
+  maxVisibleHeight,
   deviceView,
   onVisibleWidthChange,
   linkMode = false,
@@ -195,6 +209,9 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   onLinkSelect,
   onLinkHover,
   bodyFontFamily,
+  onReady,
+  thumbnail = false,
+  autoRefreshCss = false,
 }, ref) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const selectedDataIdsRef = useRef<string[]>([])
@@ -202,6 +219,43 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   const refreshIdRef = useRef(0)
 
   const assetsPrefix = previewAssetsUrl(bookLabel)
+
+  // Recompile Tailwind for the given HTML and inject the result, so classes not
+  // present in the static tailwind_output.css (e.g. classes unique to another
+  // version) still get styled. Called imperatively by the live editor, and
+  // self-triggered by preview frames via `autoRefreshCss`.
+  const refreshCssInternal = useCallback(async (extraHtml: string, signal?: AbortSignal) => {
+    const id = ++refreshIdRef.current
+    const doc = iframeRef.current?.contentDocument
+    if (!doc?.head) return
+    const res = await fetch(`${assetsPrefix}/content/tailwind_output.css`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ extraHtml }),
+      signal,
+    })
+    if (id !== refreshIdRef.current || !res.ok) return
+    const css = await res.text()
+    if (id !== refreshIdRef.current) return
+    const styleId = "adt-dynamic-css"
+    let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
+    if (!styleEl) {
+      styleEl = doc.createElement("style")
+      styleEl.id = styleId
+      doc.head.appendChild(styleEl)
+    }
+    styleEl.textContent = css
+    // Resolve only after the post-CSS height is measured, so callers that
+    // reveal on completion (autoRefreshCss) don't flash a pre-reflow layout.
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => {
+        const main = doc.querySelector("main")
+        const h = (main ?? doc.body)?.scrollHeight
+        if (h && h > 0) setContentHeight(h)
+        resolve()
+      })
+    )
+  }, [assetsPrefix])
 
   useImperativeHandle(ref, () => ({
     getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
@@ -237,32 +291,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       element.dispatchEvent(new MouseEvent("click", { bubbles: true }))
       return id
     },
-    refreshCss: async (extraHtml: string) => {
-      const id = ++refreshIdRef.current
-      const doc = iframeRef.current?.contentDocument
-      if (!doc?.head) return
-      const res = await fetch(`${assetsPrefix}/content/tailwind_output.css`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ extraHtml }),
-      })
-      if (id !== refreshIdRef.current || !res.ok) return
-      const css = await res.text()
-      if (id !== refreshIdRef.current) return
-      const styleId = "adt-dynamic-css"
-      let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
-      if (!styleEl) {
-        styleEl = doc.createElement("style")
-        styleEl.id = styleId
-        doc.head.appendChild(styleEl)
-      }
-      styleEl.textContent = css
-      requestAnimationFrame(() => {
-        const main = doc.querySelector("main")
-        const h = (main ?? doc.body)?.scrollHeight
-        if (h && h > 0) setContentHeight(h)
-      })
-    },
+    refreshCss: refreshCssInternal,
     getElementClasses: (dataId: string): string[] => {
       const doc = iframeRef.current?.contentDocument
       if (!doc) return []
@@ -396,6 +425,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   const [displayHtml, setDisplayHtml] = useState(sanitizedHtml)
   useEffect(() => {
     setDisplayHtml(sanitizedHtml)
+    if (thumbnail) return // skip math conversion round-trip for tiny previews
     let cancelled = false
     fetch(`${assetsPrefix}/convert-math`, {
       method: "POST",
@@ -410,7 +440,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       })
       .catch(() => {}) // fallback: display without math conversion
     return () => { cancelled = true }
-  }, [sanitizedHtml, assetsPrefix])
+  }, [sanitizedHtml, assetsPrefix, thumbnail])
   latestHtmlRef.current = displayHtml
   sanitizedHtmlRef.current = sanitizedHtml
 
@@ -901,7 +931,16 @@ ${selectors}:hover {
   // mobile/tablet grown up to a target visible width for legibility.
   useEffect(() => {
     if (fixedLayoutSize) {
-      setScale(Math.min(FIXED_LAYOUT_MAX_SCALE, availableWidth / fixedLayoutSize.referenceWidth))
+      const heightScale = maxVisibleHeight
+        ? maxVisibleHeight / fixedLayoutSize.height
+        : Number.POSITIVE_INFINITY
+      setScale(
+        Math.min(
+          FIXED_LAYOUT_MAX_SCALE,
+          availableWidth / fixedLayoutSize.referenceWidth,
+          heightScale
+        )
+      )
       return
     }
     const fitScale = Math.max(0, availableWidth / baseWidth)
@@ -909,8 +948,25 @@ ${selectors}:hover {
       deviceView === "desktop" || deviceView === undefined
         ? 1
         : targetVisibleWidth / baseWidth
-    setScale(Math.min(cap, fitScale))
-  }, [availableWidth, fixedLayoutSize, baseWidth, targetVisibleWidth, deviceView])
+    const naturalHeight =
+      deviceView === "desktop" || deviceView === undefined
+        ? contentHeight
+        : frame.chromeHeight
+    const heightScale =
+      maxVisibleHeight && naturalHeight > 0
+        ? maxVisibleHeight / naturalHeight
+        : Number.POSITIVE_INFINITY
+    setScale(Math.min(cap, fitScale, heightScale))
+  }, [
+    availableWidth,
+    fixedLayoutSize,
+    baseWidth,
+    targetVisibleWidth,
+    deviceView,
+    contentHeight,
+    frame.chromeHeight,
+    maxVisibleHeight,
+  ])
 
   // Ref callback so the iframe re-initializes whenever the conditional
   // device-frame branch swaps it out (toggling Desktop ↔ Mobile ↔ Tablet
@@ -933,10 +989,12 @@ ${selectors}:hover {
         setIframeReady(true)
         injectContent(latestHtmlRef.current)
       }
-      if (doc.fonts?.ready) {
-        doc.fonts.ready.then(start)
-      } else {
+      // Thumbnails render read-only at tiny scale — don't block first paint on
+      // web-font loading (fonts swap in a beat later, invisible at that size).
+      if (thumbnail || !doc.fonts?.ready) {
         start()
+      } else {
+        doc.fonts.ready.then(start)
       }
     }
 
@@ -954,6 +1012,39 @@ ${selectors}:hover {
   useEffect(() => {
     onVisibleWidthChange?.(visibleWidth)
   }, [visibleWidth, onVisibleWidthChange])
+
+  // Keep onReady in a ref so the reveal effect can fire it without re-running
+  // (and re-POSTing the CSS recompile) on every render.
+  const onReadyRef = useRef(onReady)
+  onReadyRef.current = onReady
+
+  // Reveal the frame once ready. For preview frames that self-recompile their
+  // CSS (autoRefreshCss), defer "ready" until the recompiled styles are injected
+  // and the post-reflow height is measured — otherwise the content paints with
+  // the base stylesheet and visibly reflows when the correct CSS lands.
+  useEffect(() => {
+    if (!iframeReady) return
+    if (!autoRefreshCss) {
+      onReadyRef.current?.()
+      return
+    }
+    let cancelled = false
+    const controller = new AbortController()
+    void (async () => {
+      try {
+        await refreshCssInternal(sanitizedHtmlRef.current, controller.signal)
+      } catch {
+        // The base stylesheet is still usable. Revealing it is preferable to
+        // leaving a compare pane stuck when the preview CSS request disconnects.
+      } finally {
+        if (!cancelled) onReadyRef.current?.()
+      }
+    })()
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [iframeReady, autoRefreshCss, refreshCssInternal])
 
   // Fixed-layout pages carry explicit pixel dimensions and ignore device
   // chrome. Reflowable: mobile/tablet keep their fixed device-screen height
