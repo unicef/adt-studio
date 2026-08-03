@@ -7,6 +7,14 @@ export const COMMENTER_NAME_MAX_LENGTH = 60
 
 export const PUBLISH_COMMENT_BODY_MAX_LENGTH = 2000
 
+/** Optional display name for the `MGMT_SECRET`-derived author session. The Studio has no
+ *  user names yet, so the worker falls back to `PUBLISH_AUTHOR_DEFAULT_NAME`. */
+export const PUBLISH_AUTHOR_NAME_HEADER = "X-Adt-Author-Name"
+
+export const PUBLISH_AUTHOR_DEFAULT_NAME = "Author"
+
+export const PUBLISH_AUTHOR_COLOR = "#8d8d8d"
+
 export const COMMENTER_COLORS = [
   "#e5484d",
   "#f76808",

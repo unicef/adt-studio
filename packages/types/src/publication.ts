@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const PUBLISH_WORKER_VERSION = "0.2.0"
+export const PUBLISH_WORKER_VERSION = "0.3.0"
 
 export const PUBLICATION_SNAPSHOT_MAX_BYTES = 100 * 1024 * 1024
 

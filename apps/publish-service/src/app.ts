@@ -15,9 +15,12 @@ import {
   type PublicationVersionCreateResponse,
   type PublishWorkerHealth,
 } from "@adt/types"
+import { registerCommentRoutes } from "./comments.js"
 import { createD1PublicationStore } from "./d1-store.js"
 import type { Env } from "./env.js"
 import { errorResponse } from "./errors.js"
+import { readJsonBody } from "./http.js"
+import { randomId } from "./identity.js"
 import { mgmtAuth } from "./middleware/mgmt-auth.js"
 import { publicationLookup, type PublicationVariables } from "./middleware/publication-lookup.js"
 import {
@@ -44,6 +47,7 @@ export interface AppOptions {
   maxSnapshotBytes?: number
   snapshotLimits?: SnapshotLimits
   now?: () => Date
+  newId?: () => string
 }
 
 type SnapshotUpload<T> =
@@ -115,25 +119,6 @@ async function readSnapshotUpload<S extends z.ZodTypeAny>(
   }
 
   return { ok: true, metadata: parsed.data, snapshot }
-}
-
-async function readJsonBody<S extends z.ZodTypeAny>(
-  c: Context,
-  schema: S,
-): Promise<{ ok: true; data: z.infer<S> } | { ok: false; message: string }> {
-  let body: unknown
-  try {
-    body = await c.req.json()
-  } catch {
-    return { ok: false, message: "Expected a JSON body" }
-  }
-
-  const parsed = schema.safeParse(body)
-  if (!parsed.success) {
-    return { ok: false, message: parsed.error.message }
-  }
-
-  return { ok: true, data: parsed.data }
 }
 
 export function createApp(options: AppOptions = {}): Hono<AppEnv> {
@@ -355,6 +340,13 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
 
   app.use("/p/:token", requirePublication)
   app.use("/p/:token/*", requirePublication)
+
+  registerCommentRoutes(app, {
+    resolveStore,
+    timestamp,
+    newId: options.newId ?? (() => randomId()),
+  })
+
   app.get("/p/:token", serveSnapshot)
   app.get("/p/:token/*", serveSnapshot)
 
