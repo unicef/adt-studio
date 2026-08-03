@@ -1,6 +1,17 @@
 import { isElectron } from "@/lib/utils"
+import { readEventStream } from "@/api/sse"
+import { CLOUDFLARE_ACCOUNT_ID_HEADER, CLOUDFLARE_TOKEN_HEADER } from "@adt/types"
 import type {
   AccessibilityAssessmentOutput,
+  CloudflareConnectionDeleteResponse,
+  CloudflareConnectionResources,
+  CloudflareConnectionStatus,
+  CloudflareTokenScope,
+  CloudflareVerifyResponse,
+  ProvisionErrorCode,
+  ProvisionProgressEvent,
+  ProvisionStepId,
+  ProvisionStepStatus,
   BookDetail,
   BookFont,
   BookFontRole,
@@ -797,6 +808,43 @@ export function getBookFontFileUrl(label: string, fontId: string, file: string):
 }
 
 // --- Task types ---
+
+// --- Cloudflare connection & provisioning ---
+
+export type {
+  CloudflareConnectionDeleteResponse,
+  CloudflareConnectionResources,
+  CloudflareConnectionStatus,
+  CloudflareTokenScope,
+  CloudflareVerifyResponse,
+  ProvisionErrorCode,
+  ProvisionProgressEvent,
+  ProvisionStepId,
+  ProvisionStepStatus,
+}
+
+/** User-supplied Cloudflare credentials. Held in localStorage on this machine
+ *  and sent per-request to the Studio API only — never to the worker. */
+export interface CloudflareCredentials {
+  token: string
+  accountId: string
+}
+
+export interface ProvisionOptions {
+  onEvent: (event: ProvisionProgressEvent) => void
+  /** Resume a partially completed run from this 1-based step number. */
+  resumeFromStep?: number
+  signal?: AbortSignal
+}
+
+function buildCloudflareHeaders(
+  credentials?: Partial<CloudflareCredentials>,
+): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (credentials?.token) headers[CLOUDFLARE_TOKEN_HEADER] = credentials.token
+  if (credentials?.accountId) headers[CLOUDFLARE_ACCOUNT_ID_HEADER] = credentials.accountId
+  return headers
+}
 
 export interface TaskInfoResponse {
   taskId: string
@@ -1951,6 +1999,73 @@ export const api = {
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
+  },
+
+  // --- Cloudflare connection & provisioning ---
+
+  verifyCloudflare: (credentials: CloudflareCredentials) =>
+    request<CloudflareVerifyResponse>("/cloudflare/verify", {
+      method: "POST",
+      headers: buildCloudflareHeaders(credentials),
+    }),
+
+  getCloudflareConnection: (credentials?: Partial<CloudflareCredentials>) =>
+    request<CloudflareConnectionStatus>("/cloudflare/connection", {
+      headers: buildCloudflareHeaders(credentials),
+    }),
+
+  disconnectCloudflare: (
+    credentials: Partial<CloudflareCredentials>,
+    options?: { deleteResources?: boolean },
+  ) =>
+    request<CloudflareConnectionDeleteResponse>(
+      `/cloudflare/connection${options?.deleteResources ? "?delete_resources=1" : ""}`,
+      { method: "DELETE", headers: buildCloudflareHeaders(credentials) },
+    ),
+
+  /** Runs the provisioning sequence, streaming per-step progress as SSE.
+   *  Resolves when the stream closes; rejects if the request itself fails. */
+  provisionCloudflare: async (
+    credentials: CloudflareCredentials,
+    options: ProvisionOptions,
+  ): Promise<void> => {
+    const res = await fetch(`${BASE_URL}/cloudflare/provision`, {
+      method: "POST",
+      headers: {
+        ...buildCloudflareHeaders(credentials),
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+      },
+      body: JSON.stringify(
+        options.resumeFromStep ? { resume_from_step: options.resumeFromStep } : {},
+      ),
+      signal: options.signal,
+    })
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "")
+      let message: string | undefined
+      try {
+        message = (JSON.parse(text) as { error?: string }).error
+      } catch {
+        message = text || undefined
+      }
+      throw new Error(message ?? `Request failed: ${res.status}`)
+    }
+
+    if (!res.body) throw new Error(`Request failed: ${res.status}`)
+
+    await readEventStream(res.body, ({ event, data }) => {
+      if (!data) return
+      let payload: Record<string, unknown>
+      try {
+        payload = JSON.parse(data) as Record<string, unknown>
+      } catch {
+        return
+      }
+      const type = typeof payload.type === "string" ? payload.type : event
+      options.onEvent({ ...payload, type } as ProvisionProgressEvent)
+    })
   },
 
   exportPnld: async (label: string): Promise<Blob | null> => {

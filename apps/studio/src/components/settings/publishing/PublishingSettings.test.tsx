@@ -1,0 +1,304 @@
+// @vitest-environment jsdom
+import React from "react"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import type {
+  CloudflareConnectionStatus,
+  ProvisionOptions,
+  ProvisionProgressEvent,
+} from "@/api/client"
+
+vi.mock("@lingui/react/macro", () => {
+  function templateToString(strings: TemplateStringsArray, ...values: unknown[]) {
+    return strings.reduce(
+      (acc, part, index) => acc + part + (index < values.length ? String(values[index]) : ""),
+      "",
+    )
+  }
+  return {
+    Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    useLingui: () => ({
+      t: templateToString,
+      i18n: { _: (descriptor: { id?: string }) => descriptor?.id ?? "" },
+    }),
+  }
+})
+
+vi.mock("@lingui/core/macro", () => {
+  function templateToString(strings: TemplateStringsArray, ...values: unknown[]) {
+    return strings.reduce(
+      (acc, part, index) => acc + part + (index < values.length ? String(values[index]) : ""),
+      "",
+    )
+  }
+  return {
+    msg: (strings: TemplateStringsArray, ...values: unknown[]) => ({
+      id: templateToString(strings, ...values),
+    }),
+  }
+})
+
+vi.mock("@/components/ui/sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}))
+
+const verifyCloudflare = vi.fn()
+const getCloudflareConnection = vi.fn()
+const provisionCloudflare = vi.fn()
+const disconnectCloudflare = vi.fn()
+
+vi.mock("@/api/client", () => ({
+  api: {
+    verifyCloudflare,
+    getCloudflareConnection,
+    provisionCloudflare,
+    disconnectCloudflare,
+  },
+}))
+
+const { PublishingSettings } = await import("./PublishingSettings")
+
+const TOKEN_KEY = "adt-studio-cloudflare-token"
+const ACCOUNT_KEY = "adt-studio-cloudflare-account-id"
+
+function connectionStatus(
+  overrides: Partial<CloudflareConnectionStatus> = {},
+): CloudflareConnectionStatus {
+  return {
+    connected: true,
+    worker_url: "https://adt-publish.escola-azul.workers.dev",
+    worker_version: "0.1.0",
+    latest_version: "0.1.0",
+    upgrade_available: false,
+    worker_reachable: true,
+    resources: {
+      account_id: "acct-123",
+      account_name: "Escola Azul",
+      worker_name: "adt-publish",
+      workers_dev_subdomain: "escola-azul",
+      d1_database_name: "adt-publish",
+      d1_database_uuid: "d1-uuid",
+      r2_bucket_name: "adt-publish-snapshots",
+    },
+    provisioned_at: "2026-08-03T10:00:00.000Z",
+    updated_at: "2026-08-03T10:00:00.000Z",
+    ...overrides,
+  }
+}
+
+function disconnectedStatus(): CloudflareConnectionStatus {
+  return {
+    connected: false,
+    worker_url: null,
+    worker_version: null,
+    latest_version: "0.1.0",
+    upgrade_available: false,
+    worker_reachable: false,
+    resources: null,
+    provisioned_at: null,
+    updated_at: null,
+  }
+}
+
+function renderSettings() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <PublishingSettings />
+    </QueryClientProvider>,
+  )
+}
+
+beforeEach(() => {
+  localStorage.clear()
+  getCloudflareConnection.mockResolvedValue(disconnectedStatus())
+})
+
+afterEach(() => {
+  cleanup()
+  localStorage.clear()
+  vi.clearAllMocks()
+})
+
+describe("PublishingSettings — connect wizard", () => {
+  it("walks from the intro to a finished setup", async () => {
+    verifyCloudflare.mockResolvedValue({
+      ok: true,
+      account_name: "Escola Azul",
+      missing_scopes: [],
+      workers_dev_subdomain: "escola-azul",
+    })
+
+    let emit: ((event: ProvisionProgressEvent) => void) | null = null
+    let finishStream: (() => void) | null = null
+    provisionCloudflare.mockImplementation((_credentials: unknown, options: ProvisionOptions) => {
+      emit = options.onEvent
+      return new Promise<void>((resolve) => {
+        finishStream = resolve
+      })
+    })
+
+    renderSettings()
+
+    expect(screen.getByRole("heading", { level: 2 }).textContent).toContain(
+      "Share your book with a link",
+    )
+
+    fireEvent.click(screen.getByRole("button", { name: /start setup/i }))
+
+    expect(screen.getByTestId("token-permission-workers-scripts")).toBeTruthy()
+    expect(screen.getByTestId("token-permission-d1")).toBeTruthy()
+    expect(screen.getByTestId("token-permission-r2")).toBeTruthy()
+    expect(screen.getByTestId("token-permission-account-settings")).toBeTruthy()
+
+    fireEvent.click(screen.getByRole("button", { name: /i have my token/i }))
+
+    fireEvent.change(screen.getByLabelText("Cloudflare API token"), {
+      target: { value: "cf-token" },
+    })
+    fireEvent.change(screen.getByLabelText("Account ID"), { target: { value: "acct-123" } })
+    fireEvent.click(screen.getByRole("button", { name: /check my token/i }))
+
+    await waitFor(() => expect(screen.getByTestId("verify-success")).toBeTruthy())
+    expect(verifyCloudflare).toHaveBeenCalledWith({ token: "cf-token", accountId: "acct-123" })
+    expect(localStorage.getItem(TOKEN_KEY)).toBe("cf-token")
+    expect(localStorage.getItem(ACCOUNT_KEY)).toBe("acct-123")
+
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
+    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+
+    expect(provisionCloudflare).toHaveBeenCalledTimes(1)
+
+    act(() => {
+      emit?.({ type: "step", id: "verify-token", number: 1, label: "Verify", status: "running" })
+    })
+    expect(screen.getByTestId("provision-step-1").getAttribute("data-state")).toBe("running")
+    expect(screen.getByTestId("provision-step-8").getAttribute("data-state")).toBe("pending")
+
+    act(() => {
+      emit?.({ type: "step", id: "verify-token", number: 1, label: "Verify", status: "done" })
+      emit?.({
+        type: "step",
+        id: "find-or-create-d1",
+        number: 2,
+        label: "D1",
+        status: "running",
+      })
+    })
+    expect(screen.getByTestId("provision-step-1").getAttribute("data-state")).toBe("done")
+    expect(screen.getByTestId("provision-step-2").getAttribute("data-state")).toBe("running")
+
+    getCloudflareConnection.mockResolvedValue(connectionStatus())
+
+    await act(async () => {
+      emit?.({ type: "complete", connection: connectionStatus() })
+      finishStream?.()
+    })
+
+    await waitFor(() =>
+      expect(document.body.textContent).toContain("Publishing is set up"),
+    )
+    await waitFor(() =>
+      expect(document.body.textContent).toContain(
+        "https://adt-publish.escola-azul.workers.dev",
+      ),
+    )
+  })
+
+  it("maps a failed step to human guidance and resumes from it on retry", async () => {
+    localStorage.setItem(TOKEN_KEY, "cf-token")
+    localStorage.setItem(ACCOUNT_KEY, "acct-123")
+    verifyCloudflare.mockResolvedValue({
+      ok: true,
+      account_name: "Escola Azul",
+      missing_scopes: [],
+      workers_dev_subdomain: "escola-azul",
+    })
+
+    let emit: ((event: ProvisionProgressEvent) => void) | null = null
+    provisionCloudflare.mockImplementation((_credentials: unknown, options: ProvisionOptions) => {
+      emit = options.onEvent
+      return new Promise<void>(() => {})
+    })
+
+    renderSettings()
+
+    await waitFor(() => expect(screen.getByRole("button", { name: /start setup/i })).toBeTruthy())
+    fireEvent.click(screen.getByRole("button", { name: /start setup/i }))
+    fireEvent.click(screen.getByRole("button", { name: /i have my token/i }))
+    fireEvent.click(screen.getByRole("button", { name: /check my token/i }))
+    await waitFor(() => expect(screen.getByTestId("verify-success")).toBeTruthy())
+    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
+    fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
+
+    act(() => {
+      emit?.({
+        type: "step",
+        id: "enable-workers-dev",
+        number: 7,
+        label: "Enable workers.dev",
+        status: "error",
+      })
+      emit?.({
+        type: "error",
+        code: "no_workers_subdomain",
+        message: "Account has no workers.dev subdomain",
+        step_id: "enable-workers-dev",
+        resume_from_step: 7,
+      })
+    })
+
+    expect(screen.getByTestId("provision-error-no_workers_subdomain")).toBeTruthy()
+    expect(screen.getByTestId("provision-step-7").getAttribute("data-state")).toBe("error")
+
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }))
+
+    expect(provisionCloudflare).toHaveBeenCalledTimes(2)
+    expect(provisionCloudflare.mock.calls[1][1].resumeFromStep).toBe(7)
+  })
+})
+
+describe("PublishingSettings — already connected", () => {
+  beforeEach(() => {
+    localStorage.setItem(TOKEN_KEY, "cf-token")
+    localStorage.setItem(ACCOUNT_KEY, "acct-123")
+  })
+
+  it("shows the connected card instead of the wizard", async () => {
+    getCloudflareConnection.mockResolvedValue(connectionStatus())
+
+    renderSettings()
+
+    await waitFor(() => expect(document.body.textContent).toContain("Publishing is ready"))
+    expect(document.body.textContent).toContain("https://adt-publish.escola-azul.workers.dev")
+    expect(screen.getByRole("button", { name: /disconnect/i })).toBeTruthy()
+    expect(screen.queryByRole("button", { name: /start setup/i })).toBeNull()
+  })
+
+  it("offers the upgrade when a newer service version is available", async () => {
+    getCloudflareConnection.mockResolvedValue(
+      connectionStatus({ upgrade_available: true, latest_version: "0.2.0" }),
+    )
+
+    renderSettings()
+
+    await waitFor(() => expect(document.body.textContent).toContain("Update available"))
+    expect(screen.getByRole("button", { name: /install the update/i })).toBeTruthy()
+  })
+
+  it("keeps the saved token and explains itself when the status check fails", async () => {
+    getCloudflareConnection.mockRejectedValue(new Error("Request failed: 404"))
+
+    renderSettings()
+
+    await waitFor(() => expect(screen.getByTestId("connection-check-error")).toBeTruthy())
+    expect(screen.getByTestId("connection-check-error").textContent).toContain(
+      "Request failed: 404",
+    )
+    expect(localStorage.getItem(TOKEN_KEY)).toBe("cf-token")
+    expect(screen.getByRole("button", { name: /start setup/i })).toBeTruthy()
+  })
+})

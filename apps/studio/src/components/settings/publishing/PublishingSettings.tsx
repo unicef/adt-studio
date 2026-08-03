@@ -1,0 +1,102 @@
+import { useState } from "react"
+import { Trans } from "@lingui/react/macro"
+import { AlertTriangle, Loader2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { useCloudflareConnection } from "@/hooks/use-cloudflare-connection"
+import { useCloudflareCredentials } from "@/hooks/use-cloudflare-credentials"
+import { ConnectCloudflareWizard } from "./ConnectCloudflareWizard"
+import { ConnectedCard } from "./ConnectedCard"
+
+export function PublishingSettings() {
+  const { token, accountId, credentials, hasCredentials, setCredentials, clearCredentials } =
+    useCloudflareCredentials()
+  const connection = useCloudflareConnection(credentials, { enabled: hasCredentials })
+  const [hadCredentialsOnMount] = useState(hasCredentials)
+  const [justProvisioned, setJustProvisioned] = useState(false)
+  const isConnected = connection.data?.connected === true
+  const isChecking = hadCredentialsOnMount && hasCredentials && connection.isPending
+  const showConnectedCard = !isChecking && isConnected && !justProvisioned
+
+  return (
+    <div className="mx-auto flex w-full flex-col gap-6 p-5">
+      <header>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+          <Trans>Publishing</Trans>
+        </h1>
+        <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
+          <Trans>
+            Connect a Cloudflare account once. After that you can share any finished book as a link
+            and collect comments on it.
+          </Trans>
+        </p>
+      </header>
+
+      {hasCredentials && connection.isError && (
+        <div
+          data-testid="connection-check-error"
+          className="flex flex-col gap-2 rounded-xl border border-amber-500/40 bg-amber-500/5 p-4"
+        >
+          <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <AlertTriangle className="size-4 shrink-0 text-amber-600" aria-hidden="true" />
+            <Trans>We couldn't check your publishing setup</Trans>
+          </span>
+          <p className="text-sm leading-6 text-muted-foreground">
+            <Trans>
+              Your saved token is still here. The Studio just couldn't confirm what is set up in
+              your Cloudflare account — try again in a moment.
+            </Trans>
+          </p>
+          {connection.error?.message && (
+            <p className="text-xs leading-5 text-muted-foreground">{connection.error.message}</p>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start"
+            onClick={() => void connection.refetch()}
+            disabled={connection.isFetching}
+          >
+            {connection.isFetching && (
+              <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
+            )}
+            <Trans>Try again</Trans>
+          </Button>
+        </div>
+      )}
+
+      {isChecking && (
+        <div className="flex items-center gap-2.5 rounded-xl border bg-card p-4 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
+          <Trans>Checking your publishing setup…</Trans>
+        </div>
+      )}
+
+      {showConnectedCard && connection.data && (
+        <ConnectedCard
+          connection={connection.data}
+          credentials={credentials}
+          onDisconnected={() => {
+            clearCredentials()
+            setJustProvisioned(false)
+          }}
+        />
+      )}
+
+      {!isChecking && !showConnectedCard && (
+        <ConnectCloudflareWizard
+          storedToken={token}
+          storedAccountId={accountId}
+          connection={connection.data}
+          isConnectionRefreshing={connection.isFetching}
+          onVerified={setCredentials}
+          onProvisioned={() => setJustProvisioned(true)}
+          onRefreshConnection={() => void connection.refetch()}
+          onDisconnected={() => {
+            clearCredentials()
+            setJustProvisioned(false)
+          }}
+        />
+      )}
+    </div>
+  )
+}

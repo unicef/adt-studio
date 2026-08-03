@@ -1,4 +1,4 @@
-export const SETTINGS_SECTIONS = ["default-model", "api-keys", "prompts"] as const
+export const SETTINGS_SECTIONS = ["default-model", "api-keys", "publishing", "prompts"] as const
 
 export type SettingsSection = (typeof SETTINGS_SECTIONS)[number]
 
