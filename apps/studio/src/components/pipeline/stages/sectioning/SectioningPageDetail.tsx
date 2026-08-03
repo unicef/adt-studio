@@ -169,9 +169,16 @@ export function SectioningPageDetail({
         await queryClient.invalidateQueries({
           queryKey: ["books", bookLabel, "pages", pageId],
         })
+        // Section ops migrate the index-keyed editable-activities map too.
+        await queryClient.invalidateQueries({
+          queryKey: ["editable-activities", bookLabel, pageId],
+        })
         if (otherPageId) {
           await queryClient.invalidateQueries({
             queryKey: ["books", bookLabel, "pages", otherPageId],
+          })
+          await queryClient.invalidateQueries({
+            queryKey: ["editable-activities", bookLabel, otherPageId],
           })
         }
         await queryClient.invalidateQueries({

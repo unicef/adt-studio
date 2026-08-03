@@ -28,8 +28,10 @@ import { dockMenuValueAtom, sidebarOpenAtom } from "@/shared/state/ui.atoms"
  *     group tracks its own selection + validation state independently.
  *     Standalone quiz pages use a single synthetic group.
  */
+// :not([data-activity-variant="stepper"]) — sections converted to the
+// step-by-step presentation are rendered by activity-stepper.tsx instead.
 const QUIZ_SELECTOR =
-  'section[data-section-type="activity_quiz"], section[data-section-type="activity_multiple_choice"]'
+  'section[data-section-type="activity_quiz"]:not([data-activity-variant="stepper"]), section[data-section-type="activity_multiple_choice"]:not([data-activity-variant="stepper"])'
 const CORRECT_ANSWERS_SCRIPT_ID = "quiz-correct-answers"
 const DEFAULT_GROUP_KEY = "__default__"
 
@@ -38,16 +40,9 @@ function tr(key: string, fallback: string): string {
   return dict[key] || fallback
 }
 
-declare global {
-  interface Window {
-    /**
-     * Map of item id → correctness. Multiple-choice ships boolean values;
-     * other text-input activities ship strings. Injected by
-     * `packages/pipeline/src/package-web.ts:renderPageHtml`.
-     */
-    correctAnswers?: Record<string, unknown>
-  }
-}
+// `window.correctAnswers` is declared once in ./activity-globals.d.ts.
+// Multiple-choice ships boolean values; other text-input activities ship
+// strings.
 
 function readCorrectAnswers(section: HTMLElement): Record<string, boolean> {
   const attr = section.getAttribute("data-correct-answers")

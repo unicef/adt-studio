@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "प्रशासक साधने पुढील अपडेटमध्ये जोडली जातील.",
     "main-menu-label": "मुख्य मेनू",
     "cover-label": "मुखपृष्ठ",
-    "print-page-label": "पृष्ठ मुद्रित करा"
+    "print-page-label": "पृष्ठ मुद्रित करा",
+    "stepper-progress-n-of-m": "पायरी ${n} / ${m}",
+    "stepper-word-bank": "निवडण्यासाठी शब्द",
+    "stepper-open-ended-saved": "छान — तुमचे उत्तर जतन झाले आहे.",
+    "stepper-open-ended-rephrase": "आपण प्रेमळ राहू या — तुमचे उत्तर वेगळ्या शब्दांत लिहून पाहा.",
+    "open-ended-answer-label": "तुमचे उत्तर"
 }

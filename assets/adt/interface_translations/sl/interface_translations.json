@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Skrbniška orodja bodo dodana v prihodnji posodobitvi.",
     "main-menu-label": "Glavni meni",
     "cover-label": "Naslovnica",
-    "print-page-label": "Natisni stran"
+    "print-page-label": "Natisni stran",
+    "stepper-progress-n-of-m": "Korak ${n} od ${m}",
+    "stepper-word-bank": "Besede na izbiro",
+    "stepper-open-ended-saved": "Odlično — tvoj odgovor je shranjen.",
+    "stepper-open-ended-rephrase": "Bodimo prijazni — poskusi svoj odgovor napisati drugače.",
+    "open-ended-answer-label": "Tvoj odgovor"
 }

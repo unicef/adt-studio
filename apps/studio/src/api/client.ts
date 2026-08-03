@@ -7,6 +7,8 @@ import type {
   BookMetadata,
   BookSummary,
   BookTypography,
+  ActivityOutline,
+  EditableActivity,
   FontAssignmentOutput,
   ExtractionWarning,
   ReviewerPageValidationRecord,
@@ -880,6 +882,68 @@ export const api = {
     ),
 
   getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
+
+  getEditableActivities: (label: string, pageId: string) =>
+    request<{
+      activities: Record<string, EditableActivity>
+      version: number
+      /** Book-derived accent used when an activity has no override. */
+      paletteAccent: string
+    }>(`/books/${label}/pages/${pageId}/editable-activities`),
+
+  updateEditableActivities: (
+    label: string,
+    pageId: string,
+    activities: Record<string, EditableActivity>,
+  ) =>
+    request<{ version: number }>(`/books/${label}/pages/${pageId}/editable-activities`, {
+      method: "PUT",
+      body: JSON.stringify({ activities }),
+    }),
+
+  getActivityStructure: (label: string, pageId: string, sectionIndex: number) =>
+    request<{
+      activity: EditableActivity | null
+      outline: ActivityOutline | null
+      errors: string[]
+      renderingVersion?: number
+    }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/activity-structure`),
+
+  convertEditableActivity: (label: string, pageId: string, sectionIndex: number) =>
+    request<{ activity: EditableActivity; warnings: string[]; version: number }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/convert`,
+      { method: "POST" },
+    ),
+
+  setEditableActivityPresentation: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    enabled: boolean,
+  ) =>
+    request<{ version: number; enabled: boolean }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/presentation`,
+      { method: "POST", body: JSON.stringify({ enabled }) },
+    ),
+
+  generateEditableActivityFeedback: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    apiKey: string,
+    providerCredentials?: StageRunProviderCredentials,
+    // The unsaved draft, so feedback reflects what the user is editing —
+    // the server falls back to the last saved entity when omitted.
+    activity?: EditableActivity,
+  ) =>
+    request<{ feedback: Record<string, { correct?: string; incorrect?: string }> }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/generate-feedback`,
+      {
+        method: "POST",
+        headers: buildApiHeaders(apiKey, providerCredentials),
+        body: JSON.stringify(activity ? { activity } : {}),
+      },
+    ),
 
   getTypography: (label: string) =>
     request<{ data: BookTypography; version: number; isDefault: boolean; detected: BookTypography }>(
@@ -1957,6 +2021,26 @@ export const api = {
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
       throw new Error(body.error ?? `ADT export failed: ${res.status}`)
+    }
+    const buf = await res.arrayBuffer()
+    return new Blob([buf], { type: "application/zip" })
+  },
+
+  exportPnld: async (label: string): Promise<Blob | null> => {
+    if (!isDesktop()) {
+      triggerDirectDownload(`${BASE_URL}/books/${label}/export-pnld`)
+      return null
+    }
+    const url = `${BASE_URL}/books/${label}/export-pnld`
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/zip" },
+      mode: "cors",
+      signal: AbortSignal.timeout(1_800_000),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error(body.error ?? `PNLD export failed: ${res.status}`)
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })

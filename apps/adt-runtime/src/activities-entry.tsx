@@ -42,6 +42,7 @@ import { initializeOpenEndedActivity } from "@/features/activity/runtime/activit
 import { initializeTrueFalseActivity } from "@/features/activity/runtime/activity-true-false"
 import { initializeSortingActivity } from "@/features/activity/runtime/activity-sorting"
 import { initializeMatchingActivity } from "@/features/activity/runtime/activity-matching"
+import { initializeStepperActivity } from "@/features/activity/runtime/activity-stepper"
 import { initializeCustomActivity } from "@/features/activity/runtime/activity-custom"
 
 const store = getDefaultStore()
@@ -112,6 +113,10 @@ async function bootActivities(): Promise<void> {
   store.set(isActivityPageAtom, isActivity)
   store.set(activityModeAtom, isActivity)
 
+  // Stepper first — sections it owns carry data-activity-variant="stepper"
+  // and are excluded from the classic initializers' selectors (it renders its
+  // own in-card controls and stands the shared dock down).
+  initializeStepperActivity()
   initializeQuizActivity()
   initializeMultiSelectActivity()
   initializeUnderlineTextActivity()

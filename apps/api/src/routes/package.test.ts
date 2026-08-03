@@ -204,6 +204,63 @@ describe("Package routes", () => {
       expect(JSON.parse(fs.readFileSync(configPath, "utf-8")).bundleVersion).toBe(secondBody.version)
     })
 
+    it("repackages when a sign-language video assignment changes", { timeout: 20_000 }, async () => {
+      const label = "book-sign-language-cache"
+      createRenderedBook(label)
+      createWebAssets()
+
+      const storage = createBookStorage(label, tmpDir)
+      storage.putSignLanguageVideo(
+        "video-1",
+        Buffer.from("video-content"),
+        "video.mp4",
+        "video/mp4",
+      )
+      storage.close()
+
+      const packageBook = async () => {
+        const response = await app.request(`/api/books/${label}/package-adt`, {
+          method: "POST",
+        })
+        expect(response.status).toBe(200)
+        return await response.json() as { version: string }
+      }
+      const videosPath = path.join(
+        tmpDir,
+        label,
+        "adt",
+        "content",
+        "i18n",
+        "en",
+        "videos.json",
+      )
+      const configPath = path.join(tmpDir, label, "adt", "assets", "config.json")
+
+      const unassignedPackage = await packageBook()
+      expect(JSON.parse(fs.readFileSync(videosPath, "utf-8"))).toEqual({})
+      expect(JSON.parse(fs.readFileSync(configPath, "utf-8")).features.signLanguage).toBe(false)
+
+      const assignedStorage = createBookStorage(label, tmpDir)
+      assignedStorage.assignSignLanguageVideo("video-1", "pg001_sec001")
+      assignedStorage.close()
+
+      const assignedPackage = await packageBook()
+      expect(assignedPackage.version).not.toBe(unassignedPackage.version)
+      expect(JSON.parse(fs.readFileSync(videosPath, "utf-8"))).toEqual({
+        "video-1": "sl_pg001_sec001.mp4",
+      })
+      expect(JSON.parse(fs.readFileSync(configPath, "utf-8")).features.signLanguage).toBe(true)
+
+      const unassignedStorage = createBookStorage(label, tmpDir)
+      unassignedStorage.assignSignLanguageVideo("video-1", null)
+      unassignedStorage.close()
+
+      const unassignedAgainPackage = await packageBook()
+      expect(unassignedAgainPackage.version).not.toBe(assignedPackage.version)
+      expect(JSON.parse(fs.readFileSync(videosPath, "utf-8"))).toEqual({})
+      expect(JSON.parse(fs.readFileSync(configPath, "utf-8")).features.signLanguage).toBe(false)
+    })
+
     it("reuses an active packaging task for duplicate preview requests", async () => {
       createRenderedBook("book-package-dedupe")
       createWebAssets()

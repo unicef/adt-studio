@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "അഡ്മിൻ ടൂളുകൾ വരാനിരിക്കുന്ന അപ്ഡേറ്റിൽ ചേർക്കും.",
     "main-menu-label": "പ്രധാന മെനു",
     "cover-label": "പുറംചട്ട",
-    "print-page-label": "പേജ് പ്രിന്റ് ചെയ്യുക"
+    "print-page-label": "പേജ് പ്രിന്റ് ചെയ്യുക",
+    "stepper-progress-n-of-m": "ഘട്ടം ${n} / ${m}",
+    "stepper-word-bank": "തിരഞ്ഞെടുക്കാനുള്ള വാക്കുകൾ",
+    "stepper-open-ended-saved": "കൊള്ളാം — നിങ്ങളുടെ ഉത്തരം സംരക്ഷിച്ചിരിക്കുന്നു.",
+    "stepper-open-ended-rephrase": "നമുക്ക് ദയയോടെ ഇരിക്കാം — ഉത്തരം മറ്റൊരു രീതിയിൽ എഴുതി നോക്കൂ.",
+    "open-ended-answer-label": "നിങ്ങളുടെ ഉത്തരം"
 }

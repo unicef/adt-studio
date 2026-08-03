@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "நிர்வாக கருவிகள் வரும் புதுப்பிப்பில் சேர்க்கப்படும்.",
     "main-menu-label": "முதன்மை மெனு",
     "cover-label": "அட்டை",
-    "print-page-label": "பக்கத்தை அச்சிடு"
+    "print-page-label": "பக்கத்தை அச்சிடு",
+    "stepper-progress-n-of-m": "படி ${n} / ${m}",
+    "stepper-word-bank": "தேர்ந்தெடுக்க வேண்டிய சொற்கள்",
+    "stepper-open-ended-saved": "அருமை — உங்கள் பதில் சேமிக்கப்பட்டது.",
+    "stepper-open-ended-rephrase": "அன்பாக இருப்போம் — உங்கள் பதிலை வேறு விதமாக எழுத முயற்சிக்கவும்.",
+    "open-ended-answer-label": "உங்கள் பதில்"
 }

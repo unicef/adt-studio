@@ -132,6 +132,8 @@ async function triggerExportDownload(
     blob = await api.exportEpub(label)
   } else if (format === "scorm") {
     blob = await api.exportScorm(label)
+  } else if (format === "pnld") {
+    blob = await api.exportPnld(label)
   } else {
     blob = await api.exportAdt(label)
   }
@@ -149,6 +151,7 @@ async function triggerExportDownload(
     scorm: { ext: "zip", suffix: "-scorm", filterName: i18n._(msg`SCORM Package`) },
     adt: { ext: "zip", suffix: "-adt", filterName: i18n._(msg`ADT Package`) },
     epub: { ext: "epub", suffix: "", filterName: i18n._(msg`EPUB`) },
+    pnld: { ext: "zip", suffix: "-pnld", filterName: i18n._(msg`PNLD Package`) },
   }
   /* eslint-enable lingui/no-unlocalized-strings */
   const meta = formatMeta[format]

@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Алатке администратора биће додате у наредном ажурирању.",
     "main-menu-label": "Главни мени",
     "cover-label": "Корица",
-    "print-page-label": "Штампај страницу"
+    "print-page-label": "Штампај страницу",
+    "stepper-progress-n-of-m": "Korak ${n} od ${m}",
+    "stepper-word-bank": "Reči za izbor",
+    "stepper-open-ended-saved": "Bravo — tvoj odgovor je sačuvan.",
+    "stepper-open-ended-rephrase": "Budimo ljubazni — pokušaj da drugačije napišeš svoj odgovor.",
+    "open-ended-answer-label": "Tvoj odgovor"
 }

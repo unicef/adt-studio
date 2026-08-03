@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Administratorverktøyene legges til i en senere oppdatering.",
     "main-menu-label": "Hovedmeny",
     "cover-label": "Forside",
-    "print-page-label": "Skriv ut side"
+    "print-page-label": "Skriv ut side",
+    "stepper-progress-n-of-m": "Trinn ${n} av ${m}",
+    "stepper-word-bank": "Ord å velge mellom",
+    "stepper-open-ended-saved": "Bra jobbet — svaret ditt er lagret.",
+    "stepper-open-ended-rephrase": "La oss være vennlige — prøv å omformulere svaret ditt.",
+    "open-ended-answer-label": "Svaret ditt"
 }

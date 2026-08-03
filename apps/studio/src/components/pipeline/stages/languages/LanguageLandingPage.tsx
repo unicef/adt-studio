@@ -25,6 +25,7 @@ import { usePersistConfig } from "@/hooks/use-persist-config"
 import { useBook } from "@/hooks/use-books"
 import { normalizeLocale } from "@/lib/languages"
 import { reconcileSourceOutputLanguage } from "./lib/translations-view-state"
+import { prefersReducedMotion } from "@/lib/utils"
 import { displayLang } from "./lib/display-lang"
 import { SelectImagesDialog } from "./components/SelectImagesDialog"
 import { ImageTranslationVisual } from "./components/ImageTranslationVisual"
@@ -99,10 +100,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   }, [activeConfigData, book, baseLanguage])
 
   const withChipTransition = (update: () => void) => {
-    const reduceMotion =
-      typeof window !== "undefined" &&
-      // eslint-disable-next-line lingui/no-unlocalized-strings -- CSS media query, not user-visible
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const reduceMotion = prefersReducedMotion()
     const doc = typeof document !== "undefined" ? document : null
     if (!doc || typeof doc.startViewTransition !== "function" || reduceMotion) {
       update()

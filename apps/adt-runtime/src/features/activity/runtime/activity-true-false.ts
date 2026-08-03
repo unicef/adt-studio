@@ -32,7 +32,10 @@ import { playActivitySound } from "./sounds"
 import { showActivityProgressToast } from "../lib/progress-toast"
 import { announceToScreenReader } from "../../../shared/lib/aria-live"
 
-const TF_SELECTOR = 'section[data-section-type="activity_true_false"]'
+// :not([data-activity-variant="stepper"]) — sections converted to the
+// step-by-step presentation are rendered by activity-stepper.tsx instead.
+const TF_SELECTOR =
+  'section[data-section-type="activity_true_false"]:not([data-activity-variant="stepper"])'
 
 function tr(key: string, fallback: string): string {
   const dict = getDefaultStore().get(translationsAtom)
