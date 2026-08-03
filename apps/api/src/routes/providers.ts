@@ -8,11 +8,13 @@ import {
   DEFAULT_LLM_MODEL_ID,
   DEFAULT_OPENAI_TTS_MODEL_ID,
   ModelDiscoveryResponse,
+  ProviderHealthResponse,
   ProvidersResponse,
   normalizeModelId,
   type AiModality,
 } from "@adt/types"
 import {
+  checkProviderConnection,
   discoverModels,
   getDefaultProviderRegistry,
   type ProviderRegistry,
@@ -94,6 +96,19 @@ export function createProviderRoutes(
     })
 
     return c.json(ModelDiscoveryResponse.parse(result))
+  })
+
+  app.get("/providers/:id/health", async (c) => {
+    const providerId = c.req.param("id")
+    if (!registry.has(providerId)) {
+      return c.json({ error: `Unknown provider "${providerId}"` }, 404)
+    }
+
+    const result = await checkProviderConnection(registry, providerId, {
+      credentials: readProviderCredentials(c, registry),
+    })
+
+    return c.json(ProviderHealthResponse.parse(result))
   })
 
   return app

@@ -2,7 +2,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { ModelDiscoveryResponse, ProvidersResponse } from "@adt/types"
+import { ModelDiscoveryResponse, ProviderHealthResponse, ProvidersResponse } from "@adt/types"
 import { createProviderRoutes } from "./providers.js"
 
 let tmpDir: string
@@ -30,6 +30,8 @@ describe("GET /providers", () => {
     expect(body.providers.map((p) => p.manifest.id)).toEqual([
       "openai",
       "anthropic",
+      "claude-agent",
+      "codex",
       "google",
       "custom",
       "ollama",
@@ -142,5 +144,67 @@ describe("GET /providers/:id/models", () => {
     const body = ModelDiscoveryResponse.parse(await response.json())
     expect(body.supported).toBe(false)
     expect(body.error).toBe("unsupported")
+  })
+})
+
+describe("GET /providers/:id/health", () => {
+  async function getHealth(
+    providerId: string,
+    headers?: Record<string, string>,
+  ): Promise<ProviderHealthResponse> {
+    const app = createProviderRoutes(configPath)
+    const response = await app.request(`/providers/${providerId}/health`, { headers })
+    expect(response.status).toBe(200)
+    return ProviderHealthResponse.parse(await response.json())
+  }
+
+  it("returns 404 for an unknown provider", async () => {
+    const app = createProviderRoutes(configPath)
+    const response = await app.request("/providers/nope/health")
+    expect(response.status).toBe(404)
+  })
+
+  it("reports a missing credential instead of contacting the provider", async () => {
+    const body = await getHealth("openai")
+    expect(body.providerId).toBe("openai")
+    expect(body.ok).toBe(false)
+    expect(body.code).toBe("missing-credential")
+  })
+
+  it("reports configured for a provider with no live probe", async () => {
+    const body = await getHealth("azure", {
+      "X-Azure-Speech-Key": "azure-key",
+      "X-Azure-Speech-Region": "westeurope",
+    })
+    expect(body).toEqual({ providerId: "azure", ok: true, code: "configured" })
+  })
+
+  it("never echoes a submitted credential", async () => {
+    const app = createProviderRoutes(configPath)
+    const response = await app.request("/providers/openai/health", {
+      headers: { "X-OpenAI-Key": "sk-do-not-leak" },
+    })
+    expect(await response.text()).not.toContain("sk-do-not-leak")
+  })
+
+  it("verifies the codex CLI login without an API key", async () => {
+    const ambient = {
+      CODEX_API_KEY: process.env.CODEX_API_KEY,
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    }
+    delete process.env.CODEX_API_KEY
+    delete process.env.OPENAI_API_KEY
+    try {
+      const body = await getHealth("codex")
+      expect(body.providerId).toBe("codex")
+      expect(["local-login", "not-logged-in", "cli-not-found", "unreachable"]).toContain(
+        body.code,
+      )
+      expect(body.detail ?? "").not.toMatch(/sk-/)
+    } finally {
+      for (const [key, value] of Object.entries(ambient)) {
+        if (value !== undefined) process.env[key] = value
+      }
+    }
   })
 })
