@@ -43,6 +43,7 @@ function readBookTitle(label: string, resolvedDir: string): string {
 export interface ExportFeatures {
   glossary?: boolean
   readAloud?: boolean
+  ttsRegeneration?: boolean
   quizzes?: boolean
   signLanguage?: boolean
   languages?: string[]

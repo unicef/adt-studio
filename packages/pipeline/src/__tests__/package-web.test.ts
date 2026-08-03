@@ -1004,6 +1004,19 @@ describe("packageAdtWeb", () => {
     ) as { languages: { en: { entrySettings: Record<string, { provider: string }> } } }
     expect(manifest.languages.en.entrySettings.pg001_fallback.provider).toBe("openai")
     expect(manifest.languages.en.entrySettings.pg001_gemini.provider).toBe("gemini")
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      features: { ttsRegeneration: false },
+    })
+
+    expect(fs.existsSync(path.join(bookDir, "adt", "tools"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "adt", "regen"))).toBe(false)
   })
 
   it("drops read-aloud excluded entries from audios.json and timecodes", async () => {

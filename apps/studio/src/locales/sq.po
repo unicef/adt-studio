@@ -3306,6 +3306,9 @@ msgstr "Eksportoni librin e paketuar dhe artefaktet përkatëse për dorëzim."
 msgid "Export to a reader"
 msgstr "Eksporto tek një lexues"
 
+msgid "Export Tools"
+msgstr "Mjetet e eksportimit"
+
 msgid "Exported"
 msgstr "Eksportuar"
 
@@ -4215,6 +4218,9 @@ msgstr "Përfshi në leximin me zë"
 
 msgid "Include in render"
 msgstr "Përfshi në paraqitje"
+
+msgid "Include the tools/ and regen/ folders so read-aloud audio can be regenerated after export"
+msgstr "Përfshi dosjet tools/ dhe regen/ që audioja e leximit me zë të mund të rigjenerohet pas eksportimit"
 
 msgid "Includes:"
 msgstr "Përfshin:"
@@ -8863,6 +8869,9 @@ msgstr "Provo problemin praktik"
 
 msgid "Try this screen again"
 msgstr "Provo këtë ekran sërish"
+
+msgid "TTS regeneration tool"
+msgstr "Mjeti i rigjenerimit TTS"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Rregullo se si thjeshtohet teksti në cilësimet e Udhëzimit Easy Read. Pas ekzekutimit, çdo bllok bëhet i redaktueshëm këtu në hapin Easy Read."

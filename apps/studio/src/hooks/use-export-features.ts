@@ -4,6 +4,7 @@ import { useSignLanguageVideos } from "./use-sign-language-videos"
 export interface ExportFeatureToggles {
   glossary: boolean
   readAloud: boolean
+  ttsRegeneration: boolean
   quizzes: boolean
   signLanguage: boolean
   languages?: string[]

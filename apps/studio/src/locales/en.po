@@ -3305,6 +3305,9 @@ msgstr "Export the packaged book and related artifacts for delivery."
 msgid "Export to a reader"
 msgstr "Export to a reader"
 
+msgid "Export Tools"
+msgstr "Export Tools"
+
 msgid "Exported"
 msgstr "Exported"
 
@@ -4214,6 +4217,9 @@ msgstr "Include in read-aloud"
 
 msgid "Include in render"
 msgstr "Include in render"
+
+msgid "Include the tools/ and regen/ folders so read-aloud audio can be regenerated after export"
+msgstr "Include the tools/ and regen/ folders so read-aloud audio can be regenerated after export"
 
 msgid "Includes:"
 msgstr "Includes:"
@@ -8862,6 +8868,9 @@ msgstr "Try the practice problem"
 
 msgid "Try this screen again"
 msgstr "Try this screen again"
+
+msgid "TTS regeneration tool"
+msgstr "TTS regeneration tool"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."

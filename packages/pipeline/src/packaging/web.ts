@@ -84,6 +84,8 @@ export interface PackageAdtWebOptions {
   features?: {
     glossary?: boolean
     readAloud?: boolean
+    /** Include the standalone TTS regeneration tool and manifest. Defaults to true. */
+    ttsRegeneration?: boolean
     quizzes?: boolean
     signLanguage?: boolean
   }
@@ -855,7 +857,10 @@ export async function packageAdtWeb(
   // ------------------------------------------------------------------
   // Lets a user re-record edited text offline without ADT Studio. No-ops when
   // nothing is regeneratable (no TTS, or all audio manually uploaded).
-  if (features?.readAloud !== false) {
+  if (
+    features?.readAloud !== false &&
+    features?.ttsRegeneration !== false
+  ) {
     emitRegenAssets({
       adtDir,
       languages: regenLanguages,
