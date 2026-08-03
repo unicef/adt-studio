@@ -19,6 +19,7 @@ import {
   type QuizPageInput,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
 function safeParseLabel(label: string): string {
   try {
@@ -132,17 +133,7 @@ export function createQuizRoutes(
     const { label } = c.req.param()
     const safeLabel = safeParseLabel(label)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
-    }
-    const credentials = {
-      openaiApiKey: apiKey,
-      anthropicApiKey: c.req.header("X-Anthropic-API-Key") || undefined,
-      googleApiKey: c.req.header("X-Google-API-Key") || undefined,
-      customBaseUrl: c.req.header("X-Custom-Base-URL") || undefined,
-      customApiKey: c.req.header("X-Custom-API-Key") || undefined,
-    }
+    const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
     const parsed = GenerateOneBody.safeParse(body)
@@ -214,13 +205,13 @@ export function createQuizRoutes(
 
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
       const llmModel = createLLMModel({
         modelId: quizConfig.modelId,
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),
-        credentials,
+        providerCredentials: credentials,
       })
 
       const generated = await generateQuiz(batch, 0, quizConfig, llmModel)

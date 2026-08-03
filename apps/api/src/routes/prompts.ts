@@ -1,6 +1,8 @@
 import path from "node:path"
 import fs from "node:fs"
 import { Hono } from "hono"
+import yaml from "js-yaml"
+import { AppConfig, DEFAULT_BASE_PROMPT_MODEL_ID } from "@adt/types"
 import { resolvePromptModelId } from "@adt/llm"
 
 const VALID_NAME = /^[a-zA-Z0-9_]+$/
@@ -30,9 +32,19 @@ interface PromptVersionSummary {
 export function createPromptRoutes(
   promptsDir: string,
   booksDir: string,
+  configPath?: string,
 ) {
   const app = new Hono()
   const templatesDir = path.join(path.dirname(promptsDir), "templates")
+  const basePromptModelId = (): string => {
+    if (!configPath || !fs.existsSync(configPath)) return DEFAULT_BASE_PROMPT_MODEL_ID
+    try {
+      const parsed = AppConfig.parse(yaml.load(fs.readFileSync(configPath, "utf-8")))
+      return parsed.base_prompt_model ?? DEFAULT_BASE_PROMPT_MODEL_ID
+    } catch {
+      return DEFAULT_BASE_PROMPT_MODEL_ID
+    }
+  }
 
   // GET /prompt-models - list additional globally configured prompt model IDs
   app.get("/prompt-models", (c) => {
@@ -81,7 +93,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -103,7 +115,7 @@ export function createPromptRoutes(
     if (!VALID_VERSION_FILE.test(version)) {
       return c.json({ error: "Invalid prompt version" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -134,7 +146,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -153,7 +165,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -182,7 +194,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -212,7 +224,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -243,7 +255,7 @@ export function createPromptRoutes(
     if (!VALID_VERSION_FILE.test(version)) {
       return c.json({ error: "Invalid prompt version" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -275,7 +287,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -295,7 +307,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
@@ -338,7 +350,7 @@ export function createPromptRoutes(
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
-    const modelId = resolvePromptModelId(c.req.query("model"))
+    const modelId = resolvePromptModelId(c.req.query("model"), basePromptModelId())
     if (!isValidPromptModelId(promptsDir, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }

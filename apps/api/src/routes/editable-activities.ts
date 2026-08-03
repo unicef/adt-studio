@@ -26,6 +26,7 @@ import {
   DEFAULT_QUIZ_PALETTE,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
 /** Section-tree nodes for a section — the outline's semantic-role source.
  *  Best-effort: an unparseable/missing sectioning row just means no roles. */
@@ -299,17 +300,7 @@ export function createEditableActivitiesRoutes(
       const pageId = c.req.param("pageId")
       const sectionIndex = parseSectionIndex(c.req.param("sectionIndex"))
 
-      const apiKey = c.req.header("X-OpenAI-Key")
-      if (!apiKey) {
-        throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
-      }
-      const credentials = {
-        openaiApiKey: apiKey,
-        anthropicApiKey: c.req.header("X-Anthropic-API-Key") || undefined,
-        googleApiKey: c.req.header("X-Google-API-Key") || undefined,
-        customBaseUrl: c.req.header("X-Custom-Base-URL") || undefined,
-        customApiKey: c.req.header("X-Custom-API-Key") || undefined,
-      }
+      const credentials = readProviderCredentials(c)
 
       // The studio may send its unsaved draft so feedback matches what the
       // user is editing; otherwise fall back to the last saved entity.
@@ -341,7 +332,7 @@ export function createEditableActivitiesRoutes(
 
         const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
         const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-        const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+        const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
         const llmModel = createLLMModel({
           modelId:
             appConfig.quiz_generation?.model ??
@@ -350,7 +341,7 @@ export function createEditableActivitiesRoutes(
           cacheDir,
           promptEngine,
           onLog: (entry) => storage.appendLlmLog(entry),
-          credentials,
+          providerCredentials: credentials,
         })
 
         const feedback = await generateActivityFeedback(

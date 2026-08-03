@@ -14,6 +14,7 @@ import {
   normalizeLocale,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
 function getDbPath(label: string, booksDir: string): string {
   const safeLabel = parseBookLabel(label)
@@ -193,12 +194,7 @@ export function createEasyReadRoutes(
   app.post("/books/:label/easy-read/regenerate", async (c) => {
     const { label } = c.req.param()
     const safeLabel = parseBookLabel(label)
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, {
-        message: "API key required. Set X-OpenAI-Key header.",
-      })
-    }
+    const credentials = readProviderCredentials(c)
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
@@ -215,35 +211,26 @@ export function createEasyReadRoutes(
       const blocks = buildEasyReadSourceBlocks(storage, pages)
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
       const rateLimiter = config.rate_limit
         ? createRateLimiter(config.rate_limit.requests_per_minute)
         : undefined
-      const previousKey = process.env.OPENAI_API_KEY
-      process.env.OPENAI_API_KEY = apiKey
-      try {
-        const model = createLLMModel({
-          modelId: easyReadConfig.modelId,
-          cacheDir,
-          promptEngine,
-          rateLimiter,
-          onLog: (entry) => storage.appendLlmLog(entry),
-        })
-        const output: EasyReadOutputType = await generateEasyRead(blocks, easyReadConfig, model, {
-          concurrency: config.concurrency ?? 32,
-        })
-        const previousRow = storage.getLatestNodeData("easy-read", "book")
-        const previousEasyRead = parseStoredEasyRead(previousRow?.data)
-        const version = storage.putNodeData("easy-read", "book", output)
-        clearEasyReadDependents(storage, previousEasyRead, output)
-        return c.json({ ...output, version })
-      } finally {
-        if (previousKey !== undefined) {
-          process.env.OPENAI_API_KEY = previousKey
-        } else {
-          delete process.env.OPENAI_API_KEY
-        }
-      }
+      const model = createLLMModel({
+        modelId: easyReadConfig.modelId,
+        cacheDir,
+        promptEngine,
+        rateLimiter,
+        onLog: (entry) => storage.appendLlmLog(entry),
+        providerCredentials: credentials,
+      })
+      const output: EasyReadOutputType = await generateEasyRead(blocks, easyReadConfig, model, {
+        concurrency: config.concurrency ?? 32,
+      })
+      const previousRow = storage.getLatestNodeData("easy-read", "book")
+      const previousEasyRead = parseStoredEasyRead(previousRow?.data)
+      const version = storage.putNodeData("easy-read", "book", output)
+      clearEasyReadDependents(storage, previousEasyRead, output)
+      return c.json({ ...output, version })
     } finally {
       storage.close()
     }

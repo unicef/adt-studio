@@ -351,7 +351,7 @@ describe("createStageRunner captions step", () => {
       "with-summary",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "captions",
@@ -382,7 +382,7 @@ describe("createStageRunner captions step", () => {
       "without-summary",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "captions",
@@ -433,7 +433,7 @@ describe("createStageRunner captions step", () => {
     const runner = createStageRunner()
     await runner.run(
       "rerun-manual",
-      { booksDir, apiKey: "sk-test", promptsDir, configPath, fromStage: "captions", toStage: "captions" },
+      { booksDir, credentials: { openai: { apiKey: "sk-test" } }, promptsDir, configPath, fromStage: "captions", toStage: "captions" },
       { emit: () => {} }
     )
 
@@ -486,7 +486,7 @@ describe("createStageRunner captions step", () => {
     const runner = createStageRunner()
     await runner.run(
       "rerun-ai",
-      { booksDir, apiKey: "sk-test", promptsDir, configPath, fromStage: "captions", toStage: "captions" },
+      { booksDir, credentials: { openai: { apiKey: "sk-test" } }, promptsDir, configPath, fromStage: "captions", toStage: "captions" },
       { emit: () => {} }
     )
 
@@ -531,7 +531,7 @@ describe("createStageRunner storyboard render-only", () => {
       "render-only",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "storyboard",
@@ -590,7 +590,7 @@ describe("createStageRunner easy read step", () => {
       "explicit-easy-read",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "easy-read",
@@ -712,7 +712,7 @@ output_languages:
       "translate-no-catalog",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -828,7 +828,7 @@ output_languages:
       "translate-empty-catalog",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -926,7 +926,7 @@ output_languages:
         "catalog-translation-failure",
         {
           booksDir,
-          apiKey: "sk-test",
+          credentials: { openai: { apiKey: "sk-test" } },
           promptsDir,
           configPath,
           fromStage: "translate",
@@ -991,8 +991,7 @@ speech:
       "gemini-tts-failure",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1064,8 +1063,7 @@ speech:
       "gemini-tts-retry",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1136,8 +1134,7 @@ speech:
       "gemini-tts-transient",
       {
         booksDir,
-        apiKey: "sk-test",
-        geminiApiKey: "gm-test",
+        credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1216,8 +1213,7 @@ speech:
         "gemini-tts-cancel",
         {
           booksDir,
-          apiKey: "sk-test",
-          geminiApiKey: "gm-test",
+          credentials: { openai: { apiKey: "sk-test" }, gemini: { apiKey: "gm-test" } },
           promptsDir,
           configPath,
           fromStage: "speech",
@@ -1284,7 +1280,7 @@ speech:
       "speech-word-timestamps",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1368,7 +1364,7 @@ speech:
       "speech-word-timestamps-fail",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1470,7 +1466,7 @@ speech:
       "speech-empty-slice",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1555,7 +1551,7 @@ speech:
       "speech-word-highlight-disabled",
       {
         booksDir,
-        apiKey: "sk-test",
+        credentials: { openai: { apiKey: "sk-test" } },
         promptsDir,
         configPath,
         fromStage: "translate",

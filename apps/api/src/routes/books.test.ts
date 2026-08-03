@@ -703,7 +703,7 @@ function addExtractNodes(label: string, count: number, includeSummary = true): v
 }
 
 describe("POST /books/:label/stages/run", () => {
-  it("passes renderOnly and preserves page sectioning data for storyboard reruns", async () => {
+  it("starts without an OpenAI key and preserves page sectioning data for storyboard reruns", async () => {
     const label = "render-only-route"
     createTestBook(label)
     const storage = createBookStorage(label, tmpDir)
@@ -737,7 +737,6 @@ describe("POST /books/:label/stages/run", () => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-OpenAI-Key": "sk-test",
       },
       body: JSON.stringify({
         fromStage: "storyboard",
@@ -748,6 +747,7 @@ describe("POST /books/:label/stages/run", () => {
 
     expect(res.status).toBe(200)
     expect(receivedOptions?.renderOnly).toBe(true)
+    expect(receivedOptions?.credentials).toEqual({})
 
     const verifyStorage = createBookStorage(label, tmpDir)
     try {
@@ -761,7 +761,7 @@ describe("POST /books/:label/stages/run", () => {
     }
   })
 
-  it("passes Gemini credentials through to the stage runner options", async () => {
+  it("passes manifest-declared credentials through to the stage runner options", async () => {
     const label = "gemini-stage-run"
     createTestBook(label)
 
@@ -783,6 +783,7 @@ describe("POST /books/:label/stages/run", () => {
         "Content-Type": "application/json",
         "X-OpenAI-Key": "sk-test",
         "X-Gemini-API-Key": "gm-test",
+        "X-ADT-Provider-Ollama-Base-URL": "http://localhost:11434/v1",
       },
       body: JSON.stringify({
         fromStage: "translate",
@@ -791,7 +792,11 @@ describe("POST /books/:label/stages/run", () => {
     })
 
     expect(res.status).toBe(200)
-    expect(receivedOptions?.geminiApiKey).toBe("gm-test")
+    expect(receivedOptions?.credentials).toEqual({
+      openai: { apiKey: "sk-test" },
+      gemini: { apiKey: "gm-test" },
+      ollama: { baseUrl: "http://localhost:11434/v1" },
+    })
   })
 })
 

@@ -20,6 +20,7 @@ import {
   normalizeLocale,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
 function safeParseLabel(label: string): string {
   try {
@@ -187,10 +188,7 @@ export function createGlossaryRoutes(
     const { label } = c.req.param()
     const safeLabel = safeParseLabel(label)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
-    }
+    const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
     const parsed = GenerateOneBody.safeParse(body)
@@ -214,15 +212,13 @@ export function createGlossaryRoutes(
 
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
       const llmModel = createLLMModel({
         modelId: glossaryConfig.modelId,
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),
-        credentials: {
-          openaiApiKey: apiKey,
-        },
+        providerCredentials: credentials,
       })
 
       const result = await generateGlossaryItem({

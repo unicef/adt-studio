@@ -56,7 +56,9 @@ import {
   isFixedLayoutBook,
   type ScreenshotRenderer,
 } from "@adt/pipeline"
-import { createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
+import { AiProviderError, createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
+import type { ResolvedCredentials } from "@adt/llm"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
 /**
  * Lazily-initialized shared Playwright renderer for section screenshots.
@@ -203,7 +205,7 @@ interface AiImageGenParams {
   safeLabel: string
   bookDir: string
   dbPath: string
-  apiKey: string
+  credentials: ResolvedCredentials
   pageId: string
   prompt: string
   referenceImageId?: string
@@ -224,7 +226,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   imageId: string; width: number; height: number; originalWidth: number; originalHeight: number
 }> {
   const {
-    bookDir, dbPath, apiKey, pageId, prompt,
+    bookDir, dbPath, credentials, pageId, prompt,
     referenceImageId, targetImageId, style, imageType, styleImageId, promptsDir,
     modelId,
   } = params
@@ -314,7 +316,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   let generated: Awaited<ReturnType<typeof generateImageWithCache>>
   try {
     generated = await generateImageWithCache({
-      apiKey,
+      providerCredentials: credentials,
       modelId,
       prompt: finalPrompt,
       size: size as `${number}x${number}`,
@@ -1352,12 +1354,7 @@ export function createPageRoutes(
     }
     const { sectionIndex } = queryParsed.data
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, {
-        message: "Missing X-OpenAI-Key header",
-      })
-    }
+    const credentials = readProviderCredentials(c)
 
     // Optional prompt for LLM guidance during re-render
     let prompt: string | undefined
@@ -1419,7 +1416,7 @@ export function createPageRoutes(
             promptsDir,
             webAssetsDir,
             configPath,
-            apiKey,
+            credentials,
           })
         },
         { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
@@ -1437,7 +1434,7 @@ export function createPageRoutes(
       promptsDir,
       webAssetsDir,
       configPath,
-      apiKey,
+      credentials,
     })
 
     return c.json(result)
@@ -1453,10 +1450,7 @@ export function createPageRoutes(
       throw new HTTPException(400, { message: "Invalid section index" })
     }
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
-    }
+    const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
     const instruction = body?.instruction
@@ -1482,7 +1476,7 @@ export function createPageRoutes(
             promptsDir,
             webAssetsDir,
             configPath,
-            apiKey,
+            credentials,
           })
 
           // Save the edited HTML as a new rendering version
@@ -1520,7 +1514,7 @@ export function createPageRoutes(
       promptsDir,
       webAssetsDir,
       configPath,
-      apiKey,
+      credentials,
     })
 
     return c.json(result)
@@ -2337,10 +2331,7 @@ export function createPageRoutes(
         return c.json({ error: `Book not found: ${safeLabel}` }, 404)
       }
 
-      const apiKey = c.req.header("X-OpenAI-Key")
-      if (!apiKey) {
-        return c.json({ error: "Missing X-OpenAI-Key header" }, 400)
-      }
+      const credentials = readProviderCredentials(c)
 
       const pageId = c.req.query("pageId")
       if (!pageId) {
@@ -2399,7 +2390,7 @@ export function createPageRoutes(
           desc,
           async () => {
             return await executeAiImageGeneration({
-              safeLabel, bookDir, dbPath, apiKey, pageId,
+              safeLabel, bookDir, dbPath, credentials, pageId,
               prompt, referenceImageId, targetImageId,
               style, imageType, styleImageId, promptsDir,
               sectionIndex, mode, booksDir,
@@ -2413,7 +2404,7 @@ export function createPageRoutes(
 
       // Fallback: run synchronously
       const result = await executeAiImageGeneration({
-        safeLabel, bookDir, dbPath, apiKey, pageId,
+        safeLabel, bookDir, dbPath, credentials, pageId,
         prompt, referenceImageId, targetImageId,
         style, imageType, styleImageId, promptsDir,
         sectionIndex, mode, booksDir,
@@ -2424,6 +2415,7 @@ export function createPageRoutes(
       if (err instanceof HTTPException) {
         return c.json({ error: err.message }, err.status)
       }
+      if (AiProviderError.is(err)) throw err
       console.error("[ai-generate] UNHANDLED ERROR:", err)
       return c.json({ error: err instanceof Error ? err.message : "Internal server error" }, 500)
     }
@@ -2621,13 +2613,7 @@ export function createPageRoutes(
     }
     validateImageId(pageId)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      return c.json({ error: "Missing X-OpenAI-Key header" }, 400)
-    }
-
-    const previousKey = process.env.OPENAI_API_KEY
-    process.env.OPENAI_API_KEY = apiKey
+    const credentials = readProviderCredentials(c)
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
@@ -2648,13 +2634,14 @@ export function createPageRoutes(
         config.image_segmentation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES
 
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const llmModel = createLLMModel({
         modelId,
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),
+        providerCredentials: credentials,
       })
 
       const imageBase64 = storage.getImageBase64(imageId)
@@ -2699,15 +2686,11 @@ export function createPageRoutes(
         })),
       })
     } catch (err) {
+      if (AiProviderError.is(err)) throw err
       console.error(`[segment] Error analyzing ${imageId}:`, err)
       return c.json({ error: err instanceof Error ? err.message : "Segmentation failed" }, 500)
     } finally {
       storage.close()
-      if (previousKey !== undefined) {
-        process.env.OPENAI_API_KEY = previousKey
-      } else {
-        delete process.env.OPENAI_API_KEY
-      }
     }
   })
 
@@ -2802,10 +2785,7 @@ export function createPageRoutes(
     const { label } = c.req.param()
     const safeLabel = parseBookLabel(label)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
-    }
+    const credentials = readProviderCredentials(c)
 
     const body = await c.req.json()
     const PageIdsSchema = z.object({
@@ -2852,51 +2832,40 @@ export function createPageRoutes(
       storage.close()
     }
 
-    // Set API key for LLM
-    const previousKey = process.env.OPENAI_API_KEY
-    process.env.OPENAI_API_KEY = apiKey
+    const bookPromptsDir = path.join(bookDir, "prompts")
+    const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
+    const cacheDir = path.join(bookDir, ".cache")
+    const config = buildStyleguideGenerationConfig(
+      undefined,
+      appConfig.default_model,
+    )
+    const llmModel = createLLMModel({
+      modelId: config.modelId,
+      cacheDir,
+      promptEngine,
+      providerCredentials: credentials,
+    })
 
-    try {
-      const bookPromptsDir = path.join(bookDir, "prompts")
-      const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
-      const cacheDir = path.join(bookDir, ".cache")
-      const config = buildStyleguideGenerationConfig(
-        undefined,
-        appConfig.default_model,
-      )
-      const llmModel = createLLMModel({
-        modelId: config.modelId,
-        cacheDir,
-        promptEngine,
-      })
+    const result = await generateStyleguide(
+      { pageImages, bookFonts, typography },
+      config,
+      llmModel
+    )
 
-      const result = await generateStyleguide(
-        { pageImages, bookFonts, typography },
-        config,
-        llmModel
-      )
+    // Save to assets/styleguides/{label}-generated.md
+    const projectRoot = configPath ? path.dirname(configPath) : path.resolve(booksDir, "..")
+    const styleguidesDir = path.join(projectRoot, "assets", "styleguides")
+    fs.mkdirSync(styleguidesDir, { recursive: true })
+    const sgName = `${safeLabel}-generated`
+    fs.writeFileSync(path.join(styleguidesDir, `${sgName}.md`), result.content, "utf-8")
+    fs.writeFileSync(path.join(styleguidesDir, `${sgName}-preview.html`), result.preview_html, "utf-8")
 
-      // Save to assets/styleguides/{label}-generated.md
-      const projectRoot = configPath ? path.dirname(configPath) : path.resolve(booksDir, "..")
-      const styleguidesDir = path.join(projectRoot, "assets", "styleguides")
-      fs.mkdirSync(styleguidesDir, { recursive: true })
-      const sgName = `${safeLabel}-generated`
-      fs.writeFileSync(path.join(styleguidesDir, `${sgName}.md`), result.content, "utf-8")
-      fs.writeFileSync(path.join(styleguidesDir, `${sgName}-preview.html`), result.preview_html, "utf-8")
-
-      return c.json({
-        name: sgName,
-        content: result.content,
-        reasoning: result.reasoning,
-      })
-    } finally {
-      if (previousKey !== undefined) {
-        process.env.OPENAI_API_KEY = previousKey
-      } else {
-        delete process.env.OPENAI_API_KEY
-      }
-    }
+    return c.json({
+      name: sgName,
+      content: result.content,
+      reasoning: result.reasoning,
+    })
   })
 
   return app

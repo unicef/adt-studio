@@ -18,10 +18,12 @@ import {
 } from "@adt/types"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import {
+  AiProviderError,
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,
   createTTSSynthesizer,
   type LlmLogEntry,
+  type ResolvedCredentials,
 } from "@adt/llm"
 import {
   getBaseLanguage,
@@ -39,6 +41,22 @@ import {
   type ProviderRouting,
 } from "@adt/pipeline"
 import { getLiveSpeechRun } from "../services/speech-progress.js"
+import {
+  credentialValue,
+  readProviderCredentials,
+} from "../middleware/provider-credentials.js"
+
+/**
+ * Word timestamps come from Whisper, so the transcription provider is fixed
+ * until the speech modality is resolved through the registry.
+ */
+function requireTranscriberKey(credentials: ResolvedCredentials): string {
+  const apiKey = credentialValue(credentials, "openai", "apiKey")
+  if (!apiKey) {
+    throw AiProviderError.missingCredential("openai", "apiKey", "API key")
+  }
+  return apiKey
+}
 
 const GenerateSingleTTSBody = z
   .object({
@@ -694,15 +712,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       })
     }
 
-    const geminiApiKey = c.req.header("X-Gemini-API-Key")?.trim()
-    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
-    const azureSpeechKey = c.req.header("X-Azure-Speech-Key")?.trim()
-    const azureSpeechRegion = c.req.header("X-Azure-Speech-Region")?.trim()
-    if (!geminiApiKey) {
-      throw new HTTPException(400, {
-        message: "Gemini API key required. Set X-Gemini-API-Key header.",
-      })
-    }
+    const credentials = readProviderCredentials(c)
+    const geminiApiKey = credentialValue(credentials, "gemini", "apiKey")
+    const openaiApiKey = credentialValue(credentials, "openai", "apiKey")
+    const azureSpeechKey = credentialValue(credentials, "azure", "apiKey")
+    const azureSpeechRegion = credentialValue(credentials, "azure", "region")
 
     const normalizedLanguage = normalizeLocale(parsed.data.language)
     const storage = createBookStorage(safeLabel, booksDir)
@@ -733,6 +747,9 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           message:
             "Single-item audio generation is only available when Gemini is selected for that language.",
         })
+      }
+      if (!geminiApiKey) {
+        throw AiProviderError.missingCredential("gemini", "apiKey", "API key")
       }
 
       const languageEntries = getCatalogEntriesForLanguage(
@@ -1133,12 +1150,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       })
     }
 
-    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
-    if (!openaiApiKey) {
-      throw new HTTPException(400, {
-        message: "OpenAI API key required for Whisper transcription. Set X-OpenAI-Key header.",
-      })
-    }
+    const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
 
     const normalizedLanguage = normalizeLocale(parsed.data.language)
     const storage = createBookStorage(safeLabel, booksDir)
@@ -1246,12 +1258,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       })
     }
 
-    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
-    if (!openaiApiKey) {
-      throw new HTTPException(400, {
-        message: "OpenAI API key required for Whisper transcription. Set X-OpenAI-Key header.",
-      })
-    }
+    const openaiApiKey = requireTranscriberKey(readProviderCredentials(c))
 
     const normalizedLanguage = normalizeLocale(parsed.data.language)
 

@@ -9,6 +9,7 @@ import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNod
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
+import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
 const StageRunBody = z
   .object({
@@ -72,13 +73,6 @@ export function createStageRoutes(
   // POST /books/:label/stages/run — Start or queue a stage-scoped run
   app.post("/books/:label/stages/run", async (c) => {
     const { label } = c.req.param()
-    const apiKey = c.req.header("X-OpenAI-Key")
-
-    if (!apiKey) {
-      throw new HTTPException(400, {
-        message: "API key required. Set X-OpenAI-Key header.",
-      })
-    }
 
     let body: unknown
     try {
@@ -95,26 +89,18 @@ export function createStageRoutes(
     }
 
     const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
+    const credentials = readProviderCredentials(c)
 
-    const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
-    const googleApiKey = c.req.header("X-Google-API-Key") || undefined
-    const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
-    const customApiKey = c.req.header("X-Custom-API-Key") || undefined
-    const azureSpeechKey = c.req.header("X-Azure-Speech-Key") || undefined
-    const azureSpeechRegion = c.req.header("X-Azure-Speech-Region") || undefined
-    const geminiApiKey = c.req.header("X-Gemini-API-Key") || undefined
-
-    console.log(`[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} azureKey=${azureSpeechKey ? "set" : "NOT SET"} azureRegion=${azureSpeechRegion ?? "NOT SET"} geminiKey=${geminiApiKey ? "set" : "NOT SET"}`)
+    console.log(
+      `[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} ` +
+      `credentialProviders=${Object.keys(credentials).join(",") || "(none)"}`,
+    )
 
     const clearData = makeBeforeRun(label, fromStage, toStage, booksDir)
 
     const result = stageService.startStageRun(label, {
       booksDir,
-      apiKey,
-      anthropicApiKey,
-      googleApiKey,
-      customBaseUrl,
-      customApiKey,
+      credentials,
       promptsDir,
       webAssetsDir,
       configPath,
@@ -122,9 +108,6 @@ export function createStageRoutes(
       toStage,
       renderOnly,
       pageErrorPolicy,
-      azureSpeechKey,
-      azureSpeechRegion,
-      geminiApiKey,
       // Queued jobs clear data when they start executing
       beforeRun: clearData,
     })

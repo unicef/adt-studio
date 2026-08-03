@@ -1066,15 +1066,15 @@ describe("Page routes", () => {
   })
 
   describe("POST /api/books/:label/pages/:pageId/re-render", () => {
-    it("returns 400 when X-OpenAI-Key header is missing", async () => {
+    it("validates the request without requiring an unconditional OpenAI key", async () => {
       const res = await app.request(
-        `/api/books/${label}/pages/${label}_p1/re-render`,
+        `/api/books/${label}/pages/${label}_p1/re-render?sectionIndex=99`,
         { method: "POST" }
       )
 
       expect(res.status).toBe(400)
       const body = await res.json()
-      expect(body.error).toContain("X-OpenAI-Key")
+      expect(body.error).toContain("out of range")
     })
 
     it("returns 400 when sectionIndex query is out of range", async () => {
@@ -1096,7 +1096,7 @@ describe("Page routes", () => {
     const pageId = "test-book_p1"
     const endpoint = `/api/books/${label}/images/ai-generate?pageId=${pageId}`
 
-    it("returns 400 when X-OpenAI-Key header is missing", async () => {
+    it("returns 400 when the selected image provider credential is missing", async () => {
       const res = await app.request(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1105,7 +1105,7 @@ describe("Page routes", () => {
 
       expect(res.status).toBe(400)
       const body = await res.json()
-      expect(body.error).toContain("X-OpenAI-Key")
+      expect(body.error).toContain('Provider "openai" requires API key')
     })
 
     it("returns 400 when pageId query param is missing", async () => {

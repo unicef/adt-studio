@@ -11,23 +11,13 @@ import { loadBookConfig } from "@adt/pipeline"
 import { loadStyleguideContent } from "./styleguide.js"
 
 /**
- * Per-provider API keys forwarded from the request headers. Each provider is
- * authenticated with its own key — they are never cross-wired — so a book that
- * overrides `agents.model` to an `anthropic:` or `google:` model works as long
- * as the matching key was sent.
+ * Request-scoped credentials for every registered provider. Each provider is
+ * authenticated with its own values — they are never cross-wired — so a book
+ * that overrides `agents.model` to any provider works as long as that
+ * provider's credentials were sent or configured on the server.
  */
-export interface AgentApiKeys {
-  openaiApiKey?: string
-  anthropicApiKey?: string
-  googleApiKey?: string
-}
-
-function toCredentials(keys: AgentApiKeys): AgentCredentials {
-  return {
-    ...(keys.openaiApiKey ? { openaiApiKey: keys.openaiApiKey } : {}),
-    ...(keys.anthropicApiKey ? { anthropicApiKey: keys.anthropicApiKey } : {}),
-    ...(keys.googleApiKey ? { googleApiKey: keys.googleApiKey } : {}),
-  }
+export interface AgentCredentialOptions {
+  credentials: AgentCredentials
 }
 
 /** Model the agent prompts are tuned for. Used when a book sets no override. */
@@ -65,7 +55,7 @@ function resolveStyleguide(
   return loadStyleguideContent(name, configPath)
 }
 
-export interface LayoutMirrorServiceOptions extends AgentApiKeys {
+export interface LayoutMirrorServiceOptions extends AgentCredentialOptions {
   label: string
   booksDir: string
   configPath?: string
@@ -85,6 +75,7 @@ export async function layoutMirrorService(
     source,
     targets,
     instruction,
+    credentials,
     onProgress,
   } = options
 
@@ -99,7 +90,7 @@ export async function layoutMirrorService(
       targets,
       instruction,
       modelId,
-      credentials: toCredentials(options),
+      credentials,
       onProgress,
     })
 
@@ -120,7 +111,7 @@ export async function layoutMirrorService(
   }
 }
 
-export interface GenerateActivityServiceOptions extends AgentApiKeys {
+export interface GenerateActivityServiceOptions extends AgentCredentialOptions {
   label: string
   booksDir: string
   promptsDir: string
@@ -147,6 +138,7 @@ export async function generateActivityService(
     description,
     inclusiveDesign,
     mode,
+    credentials,
     onProgress,
   } = options
 
@@ -166,7 +158,7 @@ export async function generateActivityService(
       mode,
       modelId,
       styleguide,
-      credentials: toCredentials(options),
+      credentials,
       onProgress,
     })
 
