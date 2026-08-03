@@ -22,6 +22,9 @@ import {
   normalizePromptModelInput,
 } from "@/components/pipeline/stages/book/GlobalPromptsSettings/promptSettings"
 import { promptModelForSelectedModel } from "@/components/pipeline/components/PromptViewer/promptModel"
+import { checkModelModalitySupport } from "@/api/provider-credentials"
+import { useProviderCredentials } from "@/hooks/use-provider-credentials"
+import { useDiscoveredModelIds } from "@/hooks/use-discovered-models"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { getStepLabelI18n } from "@/components/pipeline/pipeline-i18n"
@@ -68,6 +71,7 @@ function TaskList({
 export function DefaultModelSettings() {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const { providers } = useProviderCredentials()
   const [draft, setDraft] = useState(DEFAULT_MODEL)
   const [imageDraft, setImageDraft] = useState(
     DEFAULT_IMAGE_GENERATION_MODEL_ID,
@@ -90,12 +94,13 @@ export function DefaultModelSettings() {
   })
 
   const savedModel = defaultModelQuery.data?.model ?? DEFAULT_MODEL
+  const discoveredModelIds = useDiscoveredModelIds("structured-text")
   const modelGroups = useMemo(
     () => mergePromptModelGroups(
       LLM_MODEL_GROUPS,
-      [...(promptModelsQuery.data?.models ?? []), savedModel],
+      [...(promptModelsQuery.data?.models ?? []), ...discoveredModelIds, savedModel],
     ),
-    [promptModelsQuery.data?.models, savedModel],
+    [promptModelsQuery.data?.models, discoveredModelIds, savedModel],
   )
 
   useEffect(() => {
@@ -186,6 +191,31 @@ export function DefaultModelSettings() {
   const isLoading = defaultModelQuery.isLoading || promptModelsQuery.isLoading
   const specializedIsLoading = specializedDefaultsQuery.isLoading
 
+  const providersLoaded = providers.length > 0
+  const defaultModelSupport =
+    providersLoaded && normalizedDraft
+      ? checkModelModalitySupport(providers, normalizedDraft, "structured-text")
+      : null
+  const imageModelSupport =
+    providersLoaded && normalizedImageDraft
+      ? checkModelModalitySupport(providers, normalizedImageDraft, "image")
+      : null
+  const defaultModelUnsupported = defaultModelSupport?.ok === false
+  const imageModelUnsupported = imageModelSupport?.ok === false
+
+  const unsupportedMessage = (
+    providerId: string,
+    reason: "unknown-provider" | "unsupported-modality",
+    modality: "text" | "image",
+  ): string => {
+    if (reason === "unknown-provider") {
+      return t`Provider "${providerId}" is not registered. Add its API keys in Settings or choose another model.`
+    }
+    return modality === "image"
+      ? t`Provider "${providerId}" does not support image generation.`
+      : t`Provider "${providerId}" does not support text generation.`
+  }
+
   return (
     <div className="flex w-full flex-col p-5 antialiased">
       <header className="border-b pb-6">
@@ -218,7 +248,7 @@ export function DefaultModelSettings() {
             <Button
               type="button"
               className="h-11 shrink-0 transition-[background-color,transform] duration-150 ease-out motion-safe:active:scale-[0.96]"
-              disabled={isLoading || mutation.isPending || !isDirty}
+              disabled={isLoading || mutation.isPending || !isDirty || defaultModelUnsupported}
               onClick={() => mutation.mutate()}
             >
               {mutation.isPending && (
@@ -230,6 +260,11 @@ export function DefaultModelSettings() {
           {defaultModelQuery.isError && (
             <p role="alert" className="border-t px-5 py-3 text-sm text-destructive">
               <Trans>Unable to load the default LLM.</Trans>
+            </p>
+          )}
+          {defaultModelSupport?.ok === false && (
+            <p role="alert" className="border-t px-5 py-3 text-sm text-destructive">
+              {unsupportedMessage(defaultModelSupport.providerId, defaultModelSupport.reason, "text")}
             </p>
           )}
           {showPromptWarning && (
@@ -288,7 +323,8 @@ export function DefaultModelSettings() {
             disabled={
               specializedIsLoading ||
               specializedMutation.isPending ||
-              !specializedIsDirty
+              !specializedIsDirty ||
+              imageModelUnsupported
             }
             onClick={() => specializedMutation.mutate()}
           >
@@ -323,6 +359,11 @@ export function DefaultModelSettings() {
               disabled={specializedIsLoading || specializedMutation.isPending}
               commitOnInput
             />
+            {imageModelSupport?.ok === false && (
+              <p role="alert" className="mt-2 text-sm text-destructive">
+                {unsupportedMessage(imageModelSupport.providerId, imageModelSupport.reason, "image")}
+              </p>
+            )}
             <p className="mt-5 text-pretty text-sm leading-6 text-muted-foreground">
               <Trans>Used for AI image generation, editing, and these pipeline tasks:</Trans>
             </p>

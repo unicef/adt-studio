@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AudioLines, Bot, ImageIcon, Loader2 } from "lucide-react"
@@ -21,6 +21,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
+import { checkModelModalitySupport } from "@/api/provider-credentials"
+import { useProviderCredentials } from "@/hooks/use-provider-credentials"
+import { useDiscoveredModelIds } from "@/hooks/use-discovered-models"
+import { mergePromptModelGroups } from "@/components/pipeline/stages/book/GlobalPromptsSettings/promptSettings"
 
 const LLM_MODEL_KEY = "default_model"
 const IMAGE_MODEL_KEY = "default_image_generation_model"
@@ -39,6 +43,7 @@ function normalizeSpeechModel(value: string): string {
 
 export function BookModelSettings({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
+  const { providers } = useProviderCredentials()
   const bookConfigQuery = useBookConfig(bookLabel)
   const platformDefaultsQuery = useQuery({
     queryKey: ["specialized-model-defaults"],
@@ -87,6 +92,41 @@ export function BookModelSettings({ bookLabel }: { bookLabel: string }) {
   const platformSpeechModel =
     platformDefaultsQuery.data?.speechGeneration ??
     DEFAULT_OPENAI_TTS_MODEL_ID
+
+  const discoveredModelIds = useDiscoveredModelIds("structured-text")
+  const llmModelGroups = useMemo(
+    () =>
+      mergePromptModelGroups(
+        LLM_MODEL_GROUPS,
+        savedLlmModel ? [...discoveredModelIds, savedLlmModel] : discoveredModelIds,
+      ),
+    [discoveredModelIds, savedLlmModel],
+  )
+
+  const providersLoaded = providers.length > 0
+  const llmModelSupport =
+    providersLoaded && normalizedLlmModel
+      ? checkModelModalitySupport(providers, normalizedLlmModel, "structured-text")
+      : null
+  const imageModelSupport =
+    providersLoaded && normalizedImageModel
+      ? checkModelModalitySupport(providers, normalizedImageModel, "image")
+      : null
+  const hasUnsupportedModel =
+    llmModelSupport?.ok === false || imageModelSupport?.ok === false
+
+  const unsupportedMessage = (
+    providerId: string,
+    reason: "unknown-provider" | "unsupported-modality",
+    modality: "text" | "image",
+  ): string => {
+    if (reason === "unknown-provider") {
+      return t`Provider "${providerId}" is not registered. Add its API keys in Settings or choose another model.`
+    }
+    return modality === "image"
+      ? t`Provider "${providerId}" does not support image generation.`
+      : t`Provider "${providerId}" does not support text generation.`
+  }
 
   const save = async () => {
     const config = { ...(bookConfigQuery.data?.config ?? {}) }
@@ -143,11 +183,16 @@ export function BookModelSettings({ bookLabel }: { bookLabel: string }) {
           value={llmModel}
           onChange={setLlmModel}
           placeholder={platformLlmModel}
-          groups={LLM_MODEL_GROUPS}
+          groups={llmModelGroups}
           inputClassName="h-10 font-mono text-sm"
           disabled={isLoading || updateConfig.isPending}
           commitOnInput
         />
+        {llmModelSupport?.ok === false && (
+          <p role="alert" className="mt-2 text-sm text-destructive">
+            {unsupportedMessage(llmModelSupport.providerId, llmModelSupport.reason, "text")}
+          </p>
+        )}
       </SettingsField>
 
       <div className="grid gap-5 border-t pt-5 md:grid-cols-2">
@@ -171,6 +216,11 @@ export function BookModelSettings({ bookLabel }: { bookLabel: string }) {
             disabled={isLoading || updateConfig.isPending}
             commitOnInput
           />
+          {imageModelSupport?.ok === false && (
+            <p role="alert" className="mt-2 text-sm text-destructive">
+              {unsupportedMessage(imageModelSupport.providerId, imageModelSupport.reason, "image")}
+            </p>
+          )}
         </SettingsField>
 
         <SettingsField
@@ -207,7 +257,7 @@ export function BookModelSettings({ bookLabel }: { bookLabel: string }) {
         <Button
           type="button"
           className="h-10 transition-[background-color,transform] duration-150 ease-out motion-safe:active:scale-[0.96]"
-          disabled={isLoading || updateConfig.isPending || !isDirty}
+          disabled={isLoading || updateConfig.isPending || !isDirty || hasUnsupportedModel}
           onClick={save}
         >
           {updateConfig.isPending && (
