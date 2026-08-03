@@ -49,6 +49,8 @@ import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
+import { loadSpeechInstructions, resolveInstructions, resolveSpeechFormat } from "../speech.js"
+import { emitRegenAssets, type RegenLanguageInput } from "../regen/regen-emit.js"
 import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getRenderSectioning } from "../render-sectioning.js"
@@ -66,6 +68,10 @@ export interface PackageAdtWebOptions {
   bundleVersion?: string
   applyBodyBackground?: boolean
   speechConfig?: SpeechConfig
+  /** Config dir (holds voices.yaml / speech_instructions.yaml). Used to resolve
+   *  the per-language speech settings shipped for standalone TTS regeneration.
+   *  When absent, regeneration assets fall back to empty instructions. */
+  configDir?: string
   features?: {
     glossary?: boolean
     readAloud?: boolean
@@ -261,6 +267,7 @@ export async function packageAdtWeb(
     bundleVersion = "1",
     applyBodyBackground,
     speechConfig,
+    configDir,
     features,
     defaultSettings,
     lockedSettings,
@@ -612,6 +619,11 @@ export async function packageAdtWeb(
   )
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
 
+  // Per-language speech settings + entries collected for the standalone TTS
+  // regenerator shipped in the bundle (tools/regenerate-tts.mjs).
+  const speechInstructionsMap = configDir ? loadSpeechInstructions(configDir) : {}
+  const regenLanguages: RegenLanguageInput[] = []
+
   for (const lang of outputLanguages) {
     const localeDir = path.join(contentDir, "i18n", lang)
     fs.mkdirSync(localeDir, { recursive: true })
@@ -670,6 +682,40 @@ export async function packageAdtWeb(
             fs.copyFileSync(resolvedSrcFile, destFile)
             audioMap[entry.textId] = entry.fileName
           }
+        }
+      }
+
+      // Collect inputs for the standalone TTS regenerator. Only published,
+      // non-excluded entries; manual (uploaded) entries are recorded so the
+      // script skips them but can warn when their text was edited.
+      if (ttsData?.entries && ttsData.entries.length > 0) {
+        const published = ttsData.entries.filter(
+          (e) => audioMap[e.textId] !== undefined && !isTtsExcluded(e.textId, speechConfig),
+        )
+        if (published.length > 0) {
+          const generatable = published.filter((e) => e.provider !== "manual")
+          const manual = published.filter((e) => e.provider === "manual")
+          const representative = generatable[0]
+          const provider = representative?.provider ?? "openai"
+          const representativeFormat = representative
+            ? path.extname(representative.fileName).slice(1).toLowerCase()
+            : ""
+          regenLanguages.push({
+            lang,
+            provider,
+            model: representative?.model ?? "",
+            voice: representative?.voice ?? "",
+            instructions: resolveInstructions(lang, speechInstructionsMap),
+            format: representativeFormat || resolveSpeechFormat(provider, speechConfig?.format),
+            wordHighlighting: highlightEnabled,
+            geminiTemperature: speechConfig?.temperature,
+            geminiSeed: speechConfig?.seed,
+            entries: generatable
+              .map((e) => ({ textId: e.textId, fileName: e.fileName, text: textsMap[e.textId] ?? "" }))
+              .filter((e) => e.text.trim().length > 0),
+            manualTextIds: manual.map((e) => e.textId),
+            manualTexts: Object.fromEntries(manual.map((e) => [e.textId, textsMap[e.textId] ?? ""])),
+          })
         }
       }
     }
@@ -760,6 +806,15 @@ export async function packageAdtWeb(
       )
       writeJson(path.join(localeDir, "glossary.json"), glossaryJson)
     }
+  }
+
+  // ------------------------------------------------------------------
+  // Standalone TTS regeneration assets (regen/ + tools/regenerate-tts.mjs)
+  // ------------------------------------------------------------------
+  // Lets a user re-record edited text offline without ADT Studio. No-ops when
+  // nothing is regeneratable (no TTS, or all audio manually uploaded).
+  if (features?.readAloud !== false) {
+    emitRegenAssets({ adtDir, languages: regenLanguages })
   }
 
   // ------------------------------------------------------------------
