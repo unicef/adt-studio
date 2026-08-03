@@ -2992,6 +2992,12 @@ msgstr "Lista suspensa"
 msgid "Duplicate"
 msgstr "Duplicar"
 
+msgid "Duplicate section"
+msgstr "Duplicar seção"
+
+msgid "duplicate this section"
+msgstr "duplicar esta seção"
+
 msgid "Duration"
 msgstr "Duração"
 
@@ -7441,14 +7447,14 @@ msgstr "Save checklist"
 msgid "Save failed"
 msgstr "Save failed"
 
-msgid "Save or discard your edits before splitting"
-msgstr "Salve ou descarte suas edições antes de dividir"
-
 msgid "Save or discard your edits first"
 msgstr "Salve ou descarte suas edições primeiro"
 
 msgid "Save page review"
 msgstr "Save page review"
+
+msgid "Save section changes?"
+msgstr "Salvar as alterações das seções?"
 
 msgid "Save selection"
 msgstr "Salvar seleção"
@@ -8128,11 +8134,17 @@ msgstr "Dividir em duas seções neste ponto"
 msgid "Split preview"
 msgstr "Pré-visualização da divisão"
 
+msgid "Split section"
+msgstr "Dividir seção"
+
 msgid "Split segments"
 msgstr "Segmentos divididos"
 
 msgid "Split spread {left}–{right} back into single pages"
 msgstr "Dividir spread {left}–{right} de volta em páginas únicas"
+
+msgid "split this section"
+msgstr "dividir esta seção"
 
 msgid "Spoken buddy voices"
 msgstr "Vozes faladas do amigo"

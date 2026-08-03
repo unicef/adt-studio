@@ -2993,6 +2993,12 @@ msgstr "Listë me zgjedhje"
 msgid "Duplicate"
 msgstr "Dupliko"
 
+msgid "Duplicate section"
+msgstr "Dyfisho seksionin"
+
+msgid "duplicate this section"
+msgstr "dyfisho këtë seksion"
+
 msgid "Duration"
 msgstr "Kohëzgjatje"
 
@@ -7442,14 +7448,14 @@ msgstr "Ruaj listën e kontrollit"
 msgid "Save failed"
 msgstr "Ruajtja dështoi"
 
-msgid "Save or discard your edits before splitting"
-msgstr "Ruani ose hidhni poshtë ndryshimet para se të ndani"
-
 msgid "Save or discard your edits first"
 msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet"
 
 msgid "Save page review"
 msgstr "Ruaj rishikimin e faqes"
+
+msgid "Save section changes?"
+msgstr "Të ruhen ndryshimet e seksioneve?"
 
 msgid "Save selection"
 msgstr "Ruaj zgjedhjen"
@@ -8129,11 +8135,17 @@ msgstr "Ndajeni në dy seksione në këtë pikë"
 msgid "Split preview"
 msgstr "Pamja paraprake e ndarjes"
 
+msgid "Split section"
+msgstr "Ndaj seksionin"
+
 msgid "Split segments"
 msgstr "Ndaj segmentet"
 
 msgid "Split spread {left}–{right} back into single pages"
 msgstr "Nda faqen e përbashkët {left}–{right} përsëri në faqe të vetme"
+
+msgid "split this section"
+msgstr "ndaj këtë seksion"
 
 msgid "Spoken buddy voices"
 msgstr "Zërat e folur të shokut"
