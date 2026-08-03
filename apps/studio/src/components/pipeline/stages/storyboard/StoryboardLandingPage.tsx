@@ -32,6 +32,7 @@ import {
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { useActiveConfig } from "@/hooks/use-debug"
+import { resolveEffectiveDefaultModel } from "@/hooks/use-effective-default-model"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -138,7 +139,11 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey, isAvailable } = useApiKey()
+  const hasStructuredTextProvider = isAvailable(
+    "structured-text",
+    resolveEffectiveDefaultModel(activeConfigData),
+  )
   const { queueRun } = useBookRun()
   const status = useStageStatus("storyboard")
   const sectioningStatus = useStageStatus("sectioning")
