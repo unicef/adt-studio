@@ -3,7 +3,7 @@ import path from "node:path"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
-import { packageAdtWeb, packageWebpub, packageEpub, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
+import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
 import { readPartInfo } from "./book-service.js"
 
@@ -66,7 +66,7 @@ export interface ExportDefaultSettings {
  */
 export async function prepareExport(
   label: string,
-  format: "project" | "webpub" | "scorm" | "adt" | "epub",
+  format: "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld",
   booksDir: string,
   webAssetsDir: string,
   configPath?: string,
@@ -163,6 +163,8 @@ export async function prepareExport(
       packageWebpub(storage, opts)
     } else if (format === "epub") {
       packageEpub(storage, opts)
+    } else if (format === "pnld") {
+      packagePnld(storage, opts)
     }
   } finally {
     storage.close()
@@ -316,5 +318,30 @@ export async function exportEpub(
     stream: createZipStream(epubDir),
     filename: `${title}.epub`,
     safeFilename: `${safeLabel}.epub`,
+  }
+}
+
+export async function exportPnld(
+  label: string,
+  booksDir: string,
+): Promise<ExportResult> {
+  const safeLabel = parseBookLabel(label)
+  const resolvedDir = path.resolve(booksDir)
+  const bookDir = path.join(resolvedDir, safeLabel)
+
+  if (!fs.existsSync(bookDir)) {
+    throwBookNotFound(safeLabel)
+  }
+
+  const title = readBookTitle(safeLabel, resolvedDir)
+  const pnldDir = path.join(bookDir, "pnld")
+  if (!fs.existsSync(pnldDir)) {
+    throw new HTTPException(400, { message: "PNLD directory not found — run prepare-export first" })
+  }
+
+  return {
+    stream: createZipStream(pnldDir),
+    filename: `${title}.zip`,
+    safeFilename: `${safeLabel}-pnld.zip`,
   }
 }

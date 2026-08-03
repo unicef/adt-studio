@@ -2757,6 +2757,7 @@ export const EXPORT_MIME_TYPES: Record<string, string> = {
   ".svg": "image/svg+xml",
   ".webp": "image/webp",
   ".mp3": "audio/mpeg",
+  ".flac": "audio/flac",
   ".mp4": "video/mp4",
   ".webm": "video/webm",
   ".ogg": "audio/ogg",

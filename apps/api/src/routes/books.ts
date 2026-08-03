@@ -10,7 +10,7 @@ import {
   LLMModelId,
   SpeechGenerationModelId,
 } from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
 import { normalizeLocale, getBaseLanguage } from "@adt/pipeline"
 import {
@@ -28,6 +28,7 @@ import {
   exportScorm,
   exportAdt,
   exportEpub,
+  exportPnld,
   type ExportFeatures,
   type ExportDefaultSettings,
   type ExportResult,
@@ -431,7 +432,7 @@ export function createBookRoutes(
   // POST /books/:label/prepare-export — Rebuild adt/ (and webpub/ if needed) before download
   app.post("/books/:label/prepare-export", async (c) => {
     const { label } = c.req.param()
-    const format = (c.req.query("format") ?? "project") as "project" | "webpub" | "scorm" | "adt" | "epub"
+    const format = (c.req.query("format") ?? "project") as "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld"
     let features: ExportFeatures | undefined
     let defaultSettings: ExportDefaultSettings | undefined
     const hasBody = (c.req.header("content-length") ?? "0") !== "0"
@@ -473,6 +474,7 @@ export function createBookRoutes(
     "export-webpub": exportWebpub,
     "export-scorm": exportScorm,
     "export-adt": exportAdt,
+    "export-pnld": exportPnld,
   }
 
   for (const [route, handler] of Object.entries(exportHandlers)) {
@@ -601,15 +603,20 @@ export function createBookRoutes(
     try {
       // Pull every image-captioning row (one per page) and union the
       // imageIds referenced inside their captions[] arrays.
-      const captionRows = db.all(
-        `SELECT data FROM node_data
-         WHERE node = 'image-captioning'
-         AND (node, item_id, version) IN (
-           SELECT node, item_id, MAX(version) FROM node_data
-           WHERE node = 'image-captioning'
-           GROUP BY node, item_id
-         )`
-      ) as Array<{ data: string }>
+      const orderedCaptionRows = db.all(
+        `SELECT nd.item_id AS item_id, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = 'image-captioning'
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`
+      ) as Array<{ item_id: string; data: string }>
+      const captionRows: Array<{ data: string }> = []
+      const seenPages = new Set<string>()
+      for (const row of orderedCaptionRows) {
+        if (seenPages.has(row.item_id)) continue
+        seenPages.add(row.item_id)
+        captionRows.push(row)
+      }
 
       const captionedIds = new Map<string, string>()
       for (const row of captionRows) {
