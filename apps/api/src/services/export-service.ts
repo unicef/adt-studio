@@ -29,7 +29,7 @@ function throwAdtDirMissing(): never {
  * Read book title from metadata for use in export filenames.
  * Falls back to the safe label if metadata is not available.
  */
-function readBookTitle(label: string, resolvedDir: string): string {
+export function readBookTitle(label: string, resolvedDir: string): string {
   const storage = createBookStorage(label, resolvedDir)
   try {
     const metadataRow = storage.getLatestNodeData("metadata", "book")

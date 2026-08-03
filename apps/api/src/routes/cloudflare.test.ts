@@ -402,6 +402,7 @@ describe("cloudflare routes", () => {
         account_name: "Test Account",
         missing_scopes: [],
         workers_dev_subdomain: "teacher",
+        r2_not_enabled: false,
       })
     })
 
