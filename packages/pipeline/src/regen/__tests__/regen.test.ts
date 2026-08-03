@@ -6,18 +6,32 @@ import { fileURLToPath } from "node:url"
 
 import { computeSpeechCacheKey as realCacheKey, stripEmojis as realStripEmojis } from "../../speech.js"
 import { getTextCatalogCategory as realGetCategory, isTtsExcluded as realIsExcluded } from "@adt/types"
-import { emitRegenAssets } from "../regen-emit.js"
+import { emitRegenAssets, normalizeRegenSpeechText as emitterNormalizeText } from "../regen-emit.js"
 import { REGEN_SCRIPT_SOURCE } from "../regen-source.generated.js"
 // The .mjs guards its own main(), so importing it only pulls in the helpers.
 import {
   computeSpeechCacheKey as scriptCacheKey,
   stripEmojis as scriptStripEmojis,
+  normalizeRegenSpeechText as scriptNormalizeText,
   getTextCatalogCategory as scriptGetCategory,
   isTtsExcluded as scriptIsExcluded,
   main as runScript,
 } from "../regenerate-tts.mjs"
 
 const mjsPath = fileURLToPath(new URL("../regenerate-tts.mjs", import.meta.url))
+
+function openAiEntry(textId: string, text: string, format = "mp3") {
+  return {
+    textId,
+    fileName: `${textId}.${format}`,
+    text,
+    provider: "openai",
+    model: "gpt-4o-mini-tts",
+    voice: "alloy",
+    instructions: "",
+    format,
+  }
+}
 
 describe("regenerate-tts cache-key parity with speech.ts", () => {
   it("stripEmojis matches the pipeline implementation", () => {
@@ -39,6 +53,14 @@ describe("regenerate-tts cache-key parity with speech.ts", () => {
     for (const c of cases) {
       expect(scriptCacheKey(c)).toBe(realCacheKey(c))
     }
+  })
+
+  it("normalizes packaged MathML identically", () => {
+    const text = 'The area is <math><mrow><mi>π</mi><msup><mi>r</mi><mn>2</mn></msup></mrow></math> &amp; more'
+    expect(scriptNormalizeText(text)).toBe("The area is π r 2 & more")
+    expect(scriptNormalizeText(text)).toBe(emitterNormalizeText(text))
+    expect(scriptNormalizeText("2 < 3 and 4 > 1")).toBe("2 < 3 and 4 > 1")
+    expect(scriptNormalizeText("Keep &#99999999; intact")).toBe("Keep &#99999999; intact")
   })
 })
 
@@ -104,12 +126,10 @@ function makeBundle(opts: { wordHighlighting?: boolean } = {}): {
         instructions: "",
         format: "mp3",
         wordHighlighting: opts.wordHighlighting ?? false,
-        entries: [
-          { textId: "t1", fileName: "t1.mp3", text: "Hello world" },
-          { textId: "t2", fileName: "t2.mp3", text: "Second line" },
-        ],
+        entries: [openAiEntry("t1", "Hello world"), openAiEntry("t2", "Second line")],
         manualTextIds: [],
         manualTexts: {},
+        manualFiles: {},
       },
     ],
   })
@@ -146,7 +166,14 @@ describe("emitRegenAssets", () => {
         provider: "openai",
       })
       const manifest = JSON.parse(fs.readFileSync(path.join(root, "regen", "manifest.json"), "utf-8"))
+      expect(manifest.version).toBe(2)
       expect(manifest.languages.en.entries.t1).toBe(key)
+      expect(manifest.languages.en.entrySettings.t1).toMatchObject({
+        provider: "openai",
+        model: "gpt-4o-mini-tts",
+        voice: "alloy",
+        format: "mp3",
+      })
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }
@@ -157,6 +184,8 @@ describe("regenerate-tts.mjs run", () => {
   const origArgv = process.argv
   const origKey = process.env.OPENAI_API_KEY
   const origGeminiKey = process.env.GEMINI_API_KEY
+  const origTtsKey = process.env.TTS_API_KEY
+  const origExitCode = process.exitCode
   const geminiPcmBase64 = Buffer.from([1, 2, 3, 4]).toString("base64")
   let fetchMock: ReturnType<typeof vi.fn>
 
@@ -190,6 +219,9 @@ describe("regenerate-tts.mjs run", () => {
     else process.env.OPENAI_API_KEY = origKey
     if (origGeminiKey === undefined) delete process.env.GEMINI_API_KEY
     else process.env.GEMINI_API_KEY = origGeminiKey
+    if (origTtsKey === undefined) delete process.env.TTS_API_KEY
+    else process.env.TTS_API_KEY = origTtsKey
+    process.exitCode = origExitCode
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
   })
@@ -252,9 +284,10 @@ describe("regenerate-tts.mjs run", () => {
             instructions: "",
             format: "mp3",
             wordHighlighting: false,
-            entries: [{ textId: "t1", fileName: "t1.mp3", text: "Hello world" }],
+            entries: [openAiEntry("t1", "Hello world")],
             manualTextIds: ["m1"],
             manualTexts: { m1: "Recorded text" },
+            manualFiles: { m1: "m1.mp3" },
           },
         ],
       })
@@ -266,6 +299,51 @@ describe("regenerate-tts.mjs run", () => {
 
       expect(fetchMock).not.toHaveBeenCalled()
       expect(fs.readFileSync(path.join(audioDir, "m1.mp3")).toString()).toBe("HUMAN-RECORDING")
+
+      // Excluding a manual entry mutes it without deleting the recording, and
+      // removing the exclusion restores the original audios.json mapping.
+      editConfig(root, (cfg) => { (cfg.exclude as { textIds: string[] }).textIds = ["m1"] })
+      await runScript()
+      let audios = readJsonFile(path.join(localeDir, "audios.json"))
+      expect(audios.m1).toBeUndefined()
+      expect(fs.readFileSync(path.join(audioDir, "m1.mp3")).toString()).toBe("HUMAN-RECORDING")
+
+      editConfig(root, (cfg) => { (cfg.exclude as { textIds: string[] }).textIds = [] })
+      await runScript()
+      audios = readJsonFile(path.join(localeDir, "audios.json"))
+      expect(audios.m1).toBe("m1.mp3")
+      expect(fetchMock).not.toHaveBeenCalled()
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("rejects a missing --id value instead of broadening --force to the whole bundle", async () => {
+    const { root } = makeBundle()
+    try {
+      process.argv = ["node", mjsPath, root, "--force", "--id"]
+      await expect(runScript()).rejects.toThrow("--id requires a value")
+      expect(fetchMock).not.toHaveBeenCalled()
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("rejects an audios.json filename that escapes the audio directory", async () => {
+    const { root, textsFile } = makeBundle()
+    try {
+      const localeDir = path.join(root, "content", "i18n", "en")
+      fs.writeFileSync(textsFile, JSON.stringify({ t1: "Changed text", t2: "Second line" }))
+      fs.writeFileSync(
+        path.join(localeDir, "audios.json"),
+        JSON.stringify({ t1: "../../../../escaped.mp3", t2: "t2.mp3" }),
+      )
+      process.argv = ["node", mjsPath, root]
+      await runScript()
+
+      expect(fetchMock).not.toHaveBeenCalled()
+      expect(fs.existsSync(path.join(root, "escaped.mp3"))).toBe(false)
+      expect(process.exitCode).toBe(1)
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }
@@ -316,11 +394,8 @@ describe("regenerate-tts.mjs run", () => {
         languages: [{
           lang: "en", provider: "openai", model: "gpt-4o-mini-tts", voice: "alloy",
           instructions: "", format: "mp3", wordHighlighting: false,
-          entries: [
-            { textId: "t1", fileName: "t1.mp3", text: "Hello world" },
-            { textId: "pg001_ans_a", fileName: "pg001_ans_a.mp3", text: "The answer" },
-          ],
-          manualTextIds: [], manualTexts: {},
+          entries: [openAiEntry("t1", "Hello world"), openAiEntry("pg001_ans_a", "The answer")],
+          manualTextIds: [], manualTexts: {}, manualFiles: {},
         }],
       })
 
@@ -355,8 +430,8 @@ describe("regenerate-tts.mjs run", () => {
         languages: [{
           lang: "en", provider: "openai", model: "gpt-4o-mini-tts", voice: "alloy",
           instructions: "", format: "mp3", wordHighlighting: false,
-          entries: [{ textId: "t1", fileName: "t1.mp3", text: "Hello world" }],
-          manualTextIds: [], manualTexts: {},
+          entries: [openAiEntry("t1", "Hello world")],
+          manualTextIds: [], manualTexts: {}, manualFiles: {},
         }],
         exclude: { categories: ["answers"], textIds: [] },
       })
@@ -393,8 +468,11 @@ describe("regenerate-tts.mjs run", () => {
         languages: [{
           lang: "es", provider: "gemini", model: "gemini-2.5-flash-preview-tts", voice: "Kore",
           instructions: "", format: "wav", wordHighlighting: false,
-          entries: [{ textId: "g1", fileName: "g1.wav", text: "Hola mundo" }],
-          manualTextIds: [], manualTexts: {},
+          entries: [{
+            textId: "g1", fileName: "g1.wav", text: "Hola mundo", provider: "gemini",
+            model: "gemini-2.5-flash-preview-tts", voice: "Kore", instructions: "", format: "wav",
+          }],
+          manualTextIds: [], manualTexts: {}, manualFiles: {},
         }],
       })
 
@@ -416,6 +494,96 @@ describe("regenerate-tts.mjs run", () => {
     }
   })
 
+  it("uses per-entry fallback settings without changing the language default", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "adt-regen-mixed-provider-"))
+    try {
+      const localeDir = path.join(root, "content", "i18n", "es")
+      const audioDir = path.join(localeDir, "audio")
+      fs.mkdirSync(audioDir, { recursive: true })
+      fs.mkdirSync(path.join(localeDir, "timecode"), { recursive: true })
+      const textsFile = path.join(localeDir, "texts.json")
+      fs.writeFileSync(textsFile, JSON.stringify({ fallback: "Fallback line", gemini: "Gemini line" }))
+      fs.writeFileSync(path.join(localeDir, "audios.json"), JSON.stringify({ fallback: "fallback.wav", gemini: "gemini.wav" }))
+      fs.writeFileSync(path.join(localeDir, "timecode", "timecode_output.json"), JSON.stringify({}))
+      fs.writeFileSync(path.join(audioDir, "fallback.wav"), Buffer.from("OPENAI-FALLBACK"))
+      fs.writeFileSync(path.join(audioDir, "gemini.wav"), Buffer.from("GEMINI-AUDIO"))
+
+      emitRegenAssets({
+        adtDir: root,
+        languages: [{
+          lang: "es", provider: "gemini", model: "gemini-2.5-flash-preview-tts", voice: "Kore",
+          instructions: "", format: "wav", wordHighlighting: false,
+          entries: [
+            {
+              textId: "fallback", fileName: "fallback.wav", text: "Fallback line", provider: "openai",
+              model: "gpt-4o-mini-tts", voice: "alloy", instructions: "", format: "wav",
+            },
+            {
+              textId: "gemini", fileName: "gemini.wav", text: "Gemini line", provider: "gemini",
+              model: "gemini-2.5-flash-preview-tts", voice: "Kore", instructions: "", format: "wav",
+            },
+          ],
+          manualTextIds: [], manualTexts: {}, manualFiles: {},
+        }],
+      })
+
+      const cfg = readJsonFile(path.join(root, "tools", "tts.config.json")) as {
+        languages: { es: { provider: string } }
+      }
+      expect(cfg.languages.es.provider).toBe("gemini")
+
+      fs.writeFileSync(textsFile, JSON.stringify({ fallback: "Edited fallback", gemini: "Gemini line" }))
+      process.argv = ["node", mjsPath, root]
+      await runScript()
+
+      const openaiCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("/audio/speech"))
+      const geminiCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("generativelanguage.googleapis.com"))
+      expect(openaiCalls).toHaveLength(1)
+      expect(geminiCalls).toHaveLength(0)
+
+      // An explicit language-level edit still applies to every entry, including
+      // fallback clips whose stored provider differs from the default.
+      editConfig(root, (config) => {
+        (config.languages as { es: { voice: string } }).es.voice = "Aoede"
+      })
+      fetchMock.mockClear()
+      await runScript()
+      const overrideCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("generativelanguage.googleapis.com"))
+      expect(overrideCalls).toHaveLength(2)
+
+      editConfig(root, (config) => {
+        (config.languages as { es: { voice: string } }).es.voice = "Kore"
+      })
+      fetchMock.mockClear()
+      await runScript()
+      const revertCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("generativelanguage.googleapis.com"))
+      expect(revertCalls).toHaveLength(2)
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("sends visible MathML text rather than markup to TTS", async () => {
+    const { root, textsFile } = makeBundle()
+    try {
+      fs.writeFileSync(
+        textsFile,
+        JSON.stringify({
+          t1: "Updated <math><mrow><mi>π</mi><msup><mi>r</mi><mn>2</mn></msup></mrow></math>",
+          t2: "Second line",
+        }),
+      )
+      process.argv = ["node", mjsPath, root]
+      await runScript()
+
+      const speechCall = fetchMock.mock.calls.find((c) => String(c[0]).includes("/audio/speech"))
+      const body = JSON.parse(String((speechCall?.[1] as RequestInit | undefined)?.body))
+      expect(body.input).toBe("Updated π r 2")
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
   it("backfills word timings for audio missing them when highlighting is on", async () => {
     const { root } = makeBundle({ wordHighlighting: true })
     try {
@@ -430,6 +598,41 @@ describe("regenerate-tts.mjs run", () => {
       const timecodes = readJsonFile(path.join(root, "content", "i18n", "en", "timecode", "timecode_output.json"))
       expect(timecodes.t1).toBeDefined()
       expect(timecodes.t2).toBeDefined()
+    } finally {
+      fs.rmSync(root, { recursive: true, force: true })
+    }
+  })
+
+  it("removes stale timings so a later run can retry failed realignment", async () => {
+    const { root, textsFile } = makeBundle({ wordHighlighting: true })
+    try {
+      const timecodeFile = path.join(root, "content", "i18n", "en", "timecode", "timecode_output.json")
+      fs.writeFileSync(timecodeFile, JSON.stringify({
+        t1: { timecodes: [null, { word_timestamps: [{ text: "old", start: 0, end: 1 }] }] },
+        t2: { timecodes: [null, { word_timestamps: [{ text: "second", start: 0, end: 1 }] }] },
+      }))
+      editConfig(root, (cfg) => {
+        (cfg.providers as { openai: { apiKeyEnv: string } }).openai.apiKeyEnv = "TTS_API_KEY"
+      })
+      process.env.TTS_API_KEY = "tts-key"
+      delete process.env.OPENAI_API_KEY
+      fs.writeFileSync(textsFile, JSON.stringify({ t1: "Edited line", t2: "Second line" }))
+      process.argv = ["node", mjsPath, root]
+      await runScript()
+
+      let timecodes = readJsonFile(timecodeFile)
+      expect(timecodes.t1).toBeUndefined()
+      expect(timecodes.t2).toBeDefined()
+
+      process.env.OPENAI_API_KEY = "whisper-key"
+      fetchMock.mockClear()
+      await runScript()
+      const speechCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("/audio/speech"))
+      const whisperCalls = fetchMock.mock.calls.filter((c) => String(c[0]).includes("/audio/transcriptions"))
+      expect(speechCalls).toHaveLength(0)
+      expect(whisperCalls).toHaveLength(1)
+      timecodes = readJsonFile(timecodeFile)
+      expect(timecodes.t1).toBeDefined()
     } finally {
       fs.rmSync(root, { recursive: true, force: true })
     }

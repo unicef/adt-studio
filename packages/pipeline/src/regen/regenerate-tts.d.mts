@@ -14,6 +14,8 @@ export function computeSpeechCacheKey(data: {
 
 export function stripEmojis(text: string): string
 
+export function normalizeRegenSpeechText(text: string): string
+
 export function isSpeakableText(text: string): boolean
 
 export function getTextCatalogCategory(id: string): string

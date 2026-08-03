@@ -49,7 +49,15 @@ import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
-import { loadSpeechInstructions, resolveInstructions, resolveSpeechFormat } from "../speech.js"
+import {
+  loadSpeechInstructions,
+  loadVoicesConfig,
+  resolveInstructions,
+  resolveProviderForLanguage,
+  resolveSpeechFormat,
+  resolveSpeechModel,
+  resolveVoice,
+} from "../speech.js"
 import { supportsPageBatchedSpeech } from "../speech-batch.js"
 import { emitRegenAssets, type RegenLanguageInput } from "../regen/regen-emit.js"
 import { buildTextCatalog } from "../text-catalog.js"
@@ -171,7 +179,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 4
+const PACKAGING_FORMAT_VERSION = 5
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -623,6 +631,12 @@ export async function packageAdtWeb(
   // Per-language speech settings + entries collected for the standalone TTS
   // regenerator shipped in the bundle (tools/regenerate-tts.mjs).
   const speechInstructionsMap = configDir ? loadSpeechInstructions(configDir) : {}
+  const voiceMaps = configDir ? loadVoicesConfig(configDir) : {}
+  const providerConfigs = speechConfig?.providers ?? {}
+  const providerRouting = {
+    providers: providerConfigs,
+    defaultProvider: speechConfig?.default_provider ?? "openai",
+  }
   const regenLanguages: RegenLanguageInput[] = []
 
   for (const lang of outputLanguages) {
@@ -696,18 +710,24 @@ export async function packageAdtWeb(
         if (published.length > 0) {
           const generatable = published.filter((e) => e.provider !== "manual")
           const manual = published.filter((e) => e.provider === "manual")
-          const representative = generatable[0]
-          const provider = representative?.provider ?? "openai"
-          const representativeFormat = representative
-            ? path.extname(representative.fileName).slice(1).toLowerCase()
+          // ttsData can contain per-entry fallbacks (for example a Gemini item
+          // generated with OpenAI). Keep those actual settings in each entry,
+          // while the editable language config reflects the configured default.
+          const provider = resolveProviderForLanguage(lang, providerRouting)
+          const providerEntry = generatable.find((e) => (e.provider ?? "openai") === provider)
+          const model = providerConfigs[provider]?.model?.trim()
+            || providerEntry?.model
+            || resolveSpeechModel(provider, providerConfigs, speechConfig?.model)
+          const instructions = provider === "openai" || provider === "gemini"
+            ? resolveInstructions(lang, speechInstructionsMap)
             : ""
           regenLanguages.push({
             lang,
             provider,
-            model: representative?.model ?? "",
-            voice: representative?.voice ?? "",
-            instructions: resolveInstructions(lang, speechInstructionsMap),
-            format: representativeFormat || resolveSpeechFormat(provider, speechConfig?.format),
+            model,
+            voice: resolveVoice(provider, lang, voiceMaps, speechConfig?.voice),
+            instructions,
+            format: resolveSpeechFormat(provider, speechConfig?.format),
             wordHighlighting: highlightEnabled,
             batchByPage:
               provider === "gemini" &&
@@ -715,11 +735,28 @@ export async function packageAdtWeb(
               supportsPageBatchedSpeech(lang),
             geminiTemperature: speechConfig?.temperature,
             geminiSeed: speechConfig?.seed,
-            entries: generatable
-              .map((e) => ({ textId: e.textId, fileName: e.fileName, text: textsMap[e.textId] ?? "" }))
+            entries: generatable.map((e) => {
+              const entryProvider = e.provider ?? "openai"
+              return {
+                textId: e.textId,
+                fileName: e.fileName,
+                text: textsMap[e.textId] ?? "",
+                provider: entryProvider,
+                model: e.model,
+                voice: e.voice,
+                instructions:
+                  entryProvider === "openai" || entryProvider === "gemini"
+                    ? resolveInstructions(lang, speechInstructionsMap)
+                    : "",
+                format:
+                  path.extname(e.fileName).slice(1).toLowerCase()
+                  || resolveSpeechFormat(entryProvider, speechConfig?.format),
+              }
+            })
               .filter((e) => e.text.trim().length > 0),
             manualTextIds: manual.map((e) => e.textId),
             manualTexts: Object.fromEntries(manual.map((e) => [e.textId, textsMap[e.textId] ?? ""])),
+            manualFiles: Object.fromEntries(manual.map((e) => [e.textId, e.fileName])),
           })
         }
       }

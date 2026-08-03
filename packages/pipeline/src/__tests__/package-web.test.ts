@@ -921,6 +921,91 @@ describe("packageAdtWeb", () => {
     expect(preloader).toContain("timecode/timecode_output.json")
   })
 
+  it("ships configured language defaults while preserving per-entry TTS fallbacks", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    fs.writeFileSync(path.join(audioDir, "pg001_fallback.wav"), "openai fallback")
+    fs.writeFileSync(path.join(audioDir, "pg001_gemini.wav"), "gemini audio")
+
+    const storage = createMockStorage(
+      [{ pageId: "pg001", pageNumber: 1, text: "Page one" }],
+      {
+        "web-rendering": {
+          pg001: {
+            sections: [{
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: '<p data-id="pg001_fallback">Fallback</p><p data-id="pg001_gemini">Gemini</p>',
+            }],
+          },
+        },
+        "page-sectioning": {
+          pg001: {
+            reasoning: "ok",
+            sections: [{
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            }],
+          },
+        },
+        "tts": {
+          en: {
+            entries: [
+              {
+                textId: "pg001_fallback", language: "en", fileName: "pg001_fallback.wav",
+                voice: "alloy", model: "gpt-4o-mini-tts", provider: "openai", cached: false,
+              },
+              {
+                textId: "pg001_gemini", language: "en", fileName: "pg001_gemini.wav",
+                voice: "Kore", model: "gemini-2.5-flash-preview-tts", provider: "gemini", cached: false,
+              },
+            ],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      },
+    )
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      speechConfig: {
+        default_provider: "gemini",
+        providers: {
+          gemini: { model: "gemini-2.5-flash-preview-tts", languages: ["en"] },
+        },
+      },
+    })
+
+    const config = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "tools", "tts.config.json"), "utf-8"),
+    ) as { languages: { en: { provider: string; model: string; voice: string } } }
+    expect(config.languages.en).toMatchObject({
+      provider: "gemini",
+      model: "gemini-2.5-flash-preview-tts",
+      voice: "Kore",
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "regen", "manifest.json"), "utf-8"),
+    ) as { languages: { en: { entrySettings: Record<string, { provider: string }> } } }
+    expect(manifest.languages.en.entrySettings.pg001_fallback.provider).toBe("openai")
+    expect(manifest.languages.en.entrySettings.pg001_gemini.provider).toBe("gemini")
+  })
+
   it("drops read-aloud excluded entries from audios.json and timecodes", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")

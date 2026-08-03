@@ -49,6 +49,30 @@ function stripEmojis(text) {
   return text.replace(EMOJI_RE, "")
 }
 
+const HTML_ENTITY_RE = /&(?:#(\d+)|#x([\da-f]+)|(amp|lt|gt|quot|apos|nbsp));/gi
+const NAMED_HTML_ENTITIES = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+}
+
+// Must match normalizeRegenSpeechText in regen-emit.ts. Exported texts can
+// contain rendered MathML, but TTS providers need the visible text, not tags.
+function normalizeRegenSpeechText(text) {
+  const withoutMarkup = stripEmojis(String(text || "")).replace(/<\/?[A-Za-z][^>]*>/g, " ")
+  const decoded = withoutMarkup.replace(HTML_ENTITY_RE, (match, decimal, hex, named) => {
+    if (decimal || hex) {
+      const codePoint = Number.parseInt(decimal ?? hex, decimal ? 10 : 16)
+      return codePoint <= 0x10FFFF ? String.fromCodePoint(codePoint) : match
+    }
+    return named ? (NAMED_HTML_ENTITIES[named.toLowerCase()] ?? match) : match
+  })
+  return decoded.replace(/\s+/g, " ").trim()
+}
+
 function isSpeakableText(text) {
   if (!text || !text.trim()) return false
   return /[\p{L}\p{N}]/u.test(text)
@@ -85,7 +109,26 @@ function getBaseLanguage(languageCode) {
 }
 
 const SAFE_TEXT_ID_RE = /^[A-Za-z0-9._-]+$/
+const SAFE_LANGUAGE_RE = /^[A-Za-z0-9_-]+$/
+const SAFE_AUDIO_FILE_RE = /^[A-Za-z0-9._-]+$/
+const SAFE_FORMAT_RE = /^[a-z0-9]+$/
 const EASY_READ_SUFFIX_RE = /_easy_read$/
+
+function assertSafeSegment(value, pattern, label) {
+  if (typeof value !== "string" || !pattern.test(value)) {
+    throw new Error(`Unsafe ${label}: ${String(value)}`)
+  }
+  return value
+}
+
+function resolveWithin(baseDir, value, label) {
+  const base = path.resolve(baseDir)
+  const resolved = path.resolve(base, value)
+  if (resolved !== base && !resolved.startsWith(base + path.sep)) {
+    throw new Error(`${label} escapes its base directory: ${value}`)
+  }
+  return resolved
+}
 
 // Category inference + TTS exclusion, mirrored from
 // packages/types/src/text-catalog.ts (getTextCatalogCategory) and
@@ -321,6 +364,26 @@ function fmtOf(fileName) {
   return (path.extname(fileName).slice(1) || "mp3").toLowerCase()
 }
 
+function normalizeSpeechSettings(value, fallbackFormat = "mp3") {
+  return {
+    provider: String(value?.provider || "openai"),
+    model: String(value?.model || ""),
+    voice: String(value?.voice || ""),
+    instructions: String(value?.instructions || ""),
+    format: String(value?.format || fallbackFormat).toLowerCase(),
+  }
+}
+
+function sameSpeechSettings(a, b) {
+  return (
+    a.provider === b.provider &&
+    a.model === b.model &&
+    a.voice === b.voice &&
+    a.instructions === b.instructions &&
+    a.format === b.format
+  )
+}
+
 // --------------------------------------------------------------------------
 // Main
 // --------------------------------------------------------------------------
@@ -350,7 +413,12 @@ async function main() {
   const valueFlags = new Set(["--lang", "--id"])
   const flagValue = (name) => {
     const i = args.indexOf(name)
-    return i !== -1 ? args[i + 1] : null
+    if (i === -1) return null
+    const value = args[i + 1]
+    if (!value || value.startsWith("--")) {
+      throw new Error(`${name} requires a value.`)
+    }
+    return value
   }
   const onlyLang = flagValue("--lang")
   const onlyId = flagValue("--id")
@@ -389,7 +457,8 @@ async function main() {
   const summary = []
 
   for (const lang of languages) {
-    const langCfg = config.languages[lang]
+    const safeLang = assertSafeSegment(lang, SAFE_LANGUAGE_RE, "language code")
+    const langCfg = config.languages[lang] || {}
     if (!manifest.languages) manifest.languages = {}
     if (!manifest.languages[lang]) manifest.languages[lang] = {}
     const manifestLang = manifest.languages[lang]
@@ -397,15 +466,18 @@ async function main() {
     // Updated in place as lines are re-recorded, then persisted at the end so
     // re-runs are idempotent.
     const baselineEntries = manifestLang.entries || (manifestLang.entries = {})
-    const provider = langCfg.provider || "openai"
-    const providerCfg = (config.providers && config.providers[provider]) || {}
+    const storedEntrySettings = manifestLang.entrySettings || (manifestLang.entrySettings = {})
+    const storedConfigBaselines = manifestLang.entryConfigBaselines || (manifestLang.entryConfigBaselines = {})
+    const configSettings = normalizeSpeechSettings(langCfg)
+    const exportedDefaults = normalizeSpeechSettings(manifestLang.defaults || langCfg)
     const manualTextIds = new Set(manifestLang.manualTextIds || [])
     const manualTexts = manifestLang.manualTexts || {}
+    const manualFiles = manifestLang.manualFiles || {}
 
-    const localeDir = path.join(contentRoot, lang)
+    const localeDir = resolveWithin(contentRoot, safeLang, "language directory")
     const texts = readJson(path.join(localeDir, "texts.json"), {})
     const audios = readJson(path.join(localeDir, "audios.json"), {})
-    const audioDir = path.join(localeDir, "audio")
+    const audioDir = resolveWithin(localeDir, "audio", "audio directory")
 
     const result = { lang, unchanged: 0, regenerated: 0, manualSkipped: 0, excludedRemoved: 0, realigned: 0, warnings: [], errors: [] }
     const changedIds = []
@@ -415,17 +487,21 @@ async function main() {
     const timecodes = readJson(timecodeFile, {})
     let timecodesDirty = false
 
-    // API key is only required once we know there is real work to do.
-    let synthesize = null
-    const ensureSynth = () => {
-      if (synthesize) return synthesize
+    // API keys and clients are only resolved once there is real work. A language
+    // may contain per-entry provider fallbacks, so cache one client per provider.
+    const synthesizers = new Map()
+    const ensureSynth = (settings) => {
+      if (synthesizers.has(settings.provider)) return synthesizers.get(settings.provider)
+      const provider = settings.provider
+      const providerCfg = (config.providers && config.providers[provider]) || {}
       const apiKeyEnv = providerCfg.apiKeyEnv || (provider === "gemini" ? "GEMINI_API_KEY" : "OPENAI_API_KEY")
       const apiKey = process.env[apiKeyEnv]
       if (!apiKey) throw new Error(`Environment variable ${apiKeyEnv} is not set (needed for ${provider} TTS).`)
-      synthesize = makeSynthesizer(provider, providerCfg, apiKey, {
+      const synthesize = makeSynthesizer(provider, providerCfg, apiKey, {
         temperature: manifestLang.geminiTemperature,
         seed: manifestLang.geminiSeed,
       })
+      synthesizers.set(provider, synthesize)
       return synthesize
     }
 
@@ -437,35 +513,55 @@ async function main() {
       if (onlyId && textId !== onlyId) continue
       try {
         const raw = texts[textId]
-        const sanitized = stripEmojis(raw || "").trim()
+        const sanitized = normalizeRegenSpeechText(raw)
         const speakable = isSpeakableText(sanitized)
         const excluded = isTtsExcluded(textId, exclude)
-        const hasAudio = audios[textId] !== undefined
+        let hasAudio = audios[textId] !== undefined
         const isManual = manualTextIds.has(textId)
 
-        // Not a spoken unit (excluded, or nothing speakable): drop any generated
-        // audio so it stops playing. Manual recordings are always preserved.
+        // Not a spoken unit (excluded, or nothing speakable): drop its mapping so
+        // it stops playing. Files stay on disk, including manual recordings.
         if (excluded || !speakable) {
-          if (hasAudio && !isManual) {
+          if (hasAudio) {
             result.excludedRemoved++
             if (dryRun) continue
             delete audios[textId]
             audiosDirty = true
-            if (timecodes[textId]) {
+            if (timecodes[textId] !== undefined) {
               delete timecodes[textId]
               timecodesDirty = true
             }
-            if (baselineEntries[textId] !== undefined) {
+            if (!isManual && baselineEntries[textId] !== undefined) {
               delete baselineEntries[textId]
+              delete storedEntrySettings[textId]
+              delete storedConfigBaselines[textId]
               manifestDirty = true
             }
           }
           continue
         }
 
-        // Manual: never regenerated. Warn if its text was edited.
+        // Manual: never regenerated. Restore a previously excluded mapping from
+        // the manifest, and warn if the displayed text was edited.
         if (isManual) {
           result.manualSkipped++
+          if (!hasAudio) {
+            const manualFile = assertSafeSegment(
+              manualFiles[textId],
+              SAFE_AUDIO_FILE_RE,
+              `manual audio filename for ${textId}`,
+            )
+            const manualPath = resolveWithin(audioDir, manualFile, "manual audio file")
+            if (fs.existsSync(manualPath)) {
+              if (!dryRun) {
+                audios[textId] = manualFile
+                audiosDirty = true
+                hasAudio = true
+              }
+            } else {
+              result.warnings.push(`${textId}: manual recording file is missing (${manualFile}).`)
+            }
+          }
           if (manualTexts[textId] !== undefined && manualTexts[textId] !== raw) {
             result.warnings.push(
               `${textId}: manually recorded audio, but its text changed — audio left as-is (re-record in ADT Studio if needed).`,
@@ -479,22 +575,42 @@ async function main() {
           continue
         }
 
-        const fmt = hasAudio ? fmtOf(audios[textId]) : String(langCfg.format || "mp3").toLowerCase()
-        const fileName = hasAudio ? audios[textId] : `${textId}.${fmt}`
-        const publishedPath = path.join(audioDir, fileName)
+        const existingFileName = hasAudio
+          ? assertSafeSegment(audios[textId], SAFE_AUDIO_FILE_RE, `audio filename for ${textId}`)
+          : null
+        const existingFormat = existingFileName ? fmtOf(existingFileName) : configSettings.format
+        const entryConfigBaseline = normalizeSpeechSettings(
+          storedConfigBaselines[textId] || exportedDefaults,
+          existingFormat,
+        )
+        const configOverridesEntry = !sameSpeechSettings(configSettings, entryConfigBaseline)
+        const settings = configOverridesEntry
+          ? configSettings
+          : normalizeSpeechSettings(storedEntrySettings[textId] || configSettings, existingFormat)
+        const fmt = assertSafeSegment(settings.format, SAFE_FORMAT_RE, `audio format for ${textId}`)
+        const fileName = existingFileName && fmtOf(existingFileName) === fmt
+          ? existingFileName
+          : `${textId}.${fmt}`
+        assertSafeSegment(fileName, SAFE_AUDIO_FILE_RE, `audio filename for ${textId}`)
+        const publishedPath = resolveWithin(audioDir, fileName, "published audio file")
         const currentKey = computeSpeechCacheKey({
           text: sanitized,
-          voice: langCfg.voice,
-          model: langCfg.model,
-          instructions: langCfg.instructions || "",
-          provider,
+          voice: settings.voice,
+          model: settings.model,
+          instructions: settings.instructions,
+          provider: settings.provider,
           geminiTemperature: manifestLang.geminiTemperature,
           geminiSeed: manifestLang.geminiSeed,
         })
 
         // Unchanged: text (+ config) still matches the audio already present.
         // --force re-records anyway.
-        if (!force && baselineEntries[textId] === currentKey && fs.existsSync(publishedPath)) {
+        if (
+          !force &&
+          baselineEntries[textId] === currentKey &&
+          audios[textId] === fileName &&
+          fs.existsSync(publishedPath)
+        ) {
           result.unchanged++
           continue
         }
@@ -503,20 +619,28 @@ async function main() {
           changedIds.push(textId)
           continue
         }
-        const buffer = await ensureSynth()({
-          model: langCfg.model,
-          voice: langCfg.voice,
+        const buffer = await ensureSynth(settings)({
+          model: settings.model,
+          voice: settings.voice,
           input: sanitized,
           responseFormat: fmt,
-          instructions: langCfg.instructions || "",
+          instructions: settings.instructions,
         })
         fs.mkdirSync(audioDir, { recursive: true })
         fs.writeFileSync(publishedPath, buffer)
-        if (!hasAudio) {
-          audios[textId] = fileName // newly included unit
+        if (audios[textId] !== fileName) {
+          audios[textId] = fileName
           audiosDirty = true
         }
+        if (langCfg.wordHighlighting && timecodes[textId] !== undefined) {
+          // Do not leave precise timings for the old audio behind. If Whisper is
+          // unavailable/fails below, the missing entry makes the next run retry.
+          delete timecodes[textId]
+          timecodesDirty = true
+        }
         baselineEntries[textId] = currentKey
+        storedEntrySettings[textId] = settings
+        storedConfigBaselines[textId] = configSettings
         manifestDirty = true
         changedIds.push(textId)
         result.regenerated++
@@ -559,13 +683,14 @@ async function main() {
               try {
                 const fileName = audios[id]
                 if (!fileName) continue
-                const audioBuf = fs.readFileSync(path.join(audioDir, fileName))
+                assertSafeSegment(fileName, SAFE_AUDIO_FILE_RE, `audio filename for ${id}`)
+                const audioBuf = fs.readFileSync(resolveWithin(audioDir, fileName, "audio file"))
                 const words = await transcribeWithWhisper(
                   audioBuf,
                   fileName,
                   whisperKey,
                   getBaseLanguage(lang),
-                  stripEmojis(texts[id] || "").trim(),
+                  normalizeRegenSpeechText(texts[id]),
                 )
                 if (words.length > 0) {
                   timecodes[id] = { timecodes: [null, { word_timestamps: words }] }
@@ -636,4 +761,12 @@ if (invokedDirectly) {
   })
 }
 
-export { computeSpeechCacheKey, stripEmojis, isSpeakableText, getTextCatalogCategory, isTtsExcluded, main }
+export {
+  computeSpeechCacheKey,
+  stripEmojis,
+  normalizeRegenSpeechText,
+  isSpeakableText,
+  getTextCatalogCategory,
+  isTtsExcluded,
+  main,
+}

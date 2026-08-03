@@ -24,6 +24,11 @@ export interface RegenEntry {
   textId: string
   fileName: string
   text: string
+  provider: string
+  model: string
+  voice: string
+  instructions: string
+  format: string
 }
 
 /** Resolved, per-language speech settings that produced the shipped audio. */
@@ -45,6 +50,9 @@ export interface RegenLanguageInput {
   manualTextIds: string[]
   /** Baseline text for manual units, so the script can warn when it changed. */
   manualTexts: Record<string, string>
+  /** Published filenames for manual units, so exclusions can remove and later
+   *  restore their audios.json mappings without touching the recordings. */
+  manualFiles: Record<string, string>
 }
 
 export interface EmitRegenAssetsInput {
@@ -56,7 +64,35 @@ export interface EmitRegenAssetsInput {
   exclude?: { categories: string[]; textIds: string[] }
 }
 
-const REGEN_MANIFEST_VERSION = 1
+const REGEN_MANIFEST_VERSION = 2
+
+const HTML_ENTITY_RE = /&(?:#(\d+)|#x([\da-f]+)|(amp|lt|gt|quot|apos|nbsp));/gi
+const NAMED_HTML_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  nbsp: " ",
+}
+
+/** Convert rendered text (notably packaged MathML) back to a dependency-free,
+ *  speakable string before hashing or sending it to a TTS provider. Mirrored in
+ *  regenerate-tts.mjs; the parity test keeps the two implementations aligned. */
+export function normalizeRegenSpeechText(text: string): string {
+  const withoutMarkup = stripEmojis(text).replace(/<\/?[A-Za-z][^>]*>/g, " ")
+  const decoded = withoutMarkup.replace(
+    HTML_ENTITY_RE,
+    (_match, decimal: string | undefined, hex: string | undefined, named: string | undefined) => {
+      if (decimal || hex) {
+        const codePoint = Number.parseInt((decimal ?? hex)!, decimal ? 10 : 16)
+        return codePoint <= 0x10FFFF ? String.fromCodePoint(codePoint) : _match
+      }
+      return named ? (NAMED_HTML_ENTITIES[named.toLowerCase()] ?? _match) : _match
+    },
+  )
+  return decoded.replace(/\s+/g, " ").trim()
+}
 
 function writeJson(filePath: string, data: unknown): void {
   fs.mkdirSync(path.dirname(filePath), { recursive: true })
@@ -89,28 +125,57 @@ export function emitRegenAssets(input: EmitRegenAssetsInput): number {
       ...(lang.batchByPage ? { batchByPage: true } : {}),
     }
 
+    const defaults = {
+      provider: lang.provider,
+      model: lang.model,
+      voice: lang.voice,
+      instructions: lang.instructions,
+      format: lang.format,
+    }
+
     // Baseline cache key per unit: identifies the text (+ voice/model/
     // instructions/provider) that produced the audio currently in the bundle.
     // The regenerator recomputes each key from the edited text and re-records
     // only the units whose key changed — no audio is duplicated.
     const entries: Record<string, string> = {}
+    const entrySettings: Record<string, {
+      provider: string
+      model: string
+      voice: string
+      instructions: string
+      format: string
+    }> = {}
+    const entryConfigBaselines: Record<string, typeof defaults> = {}
     for (const entry of lang.entries) {
+      const settings = {
+        provider: entry.provider,
+        model: entry.model,
+        voice: entry.voice,
+        instructions: entry.instructions,
+        format: entry.format,
+      }
       entries[entry.textId] = computeSpeechCacheKey({
-        text: stripEmojis(entry.text).trim(),
-        voice: lang.voice,
-        model: lang.model,
-        instructions: lang.instructions,
-        provider: lang.provider,
+        text: normalizeRegenSpeechText(entry.text),
+        voice: settings.voice,
+        model: settings.model,
+        instructions: settings.instructions,
+        provider: settings.provider,
         geminiTemperature: lang.geminiTemperature,
         geminiSeed: lang.geminiSeed,
       })
+      entrySettings[entry.textId] = settings
+      entryConfigBaselines[entry.textId] = defaults
       unitsRecorded++
     }
 
     manifestLanguages[lang.lang] = {
       entries,
+      entrySettings,
+      entryConfigBaselines,
+      defaults,
       manualTextIds: lang.manualTextIds,
       manualTexts: lang.manualTexts,
+      manualFiles: lang.manualFiles,
       geminiTemperature: lang.geminiTemperature ?? null,
       geminiSeed: lang.geminiSeed ?? null,
     }
