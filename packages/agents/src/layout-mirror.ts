@@ -4,7 +4,7 @@ import { z } from "zod"
 import type { Storage } from "@adt/storage"
 import { WebRenderingOutput, PageSectioningOutput } from "@adt/types"
 import { createLLMModel } from "@adt/llm"
-import type { AgentCredentials } from "./resolve-model.js"
+import type { AgentCredentials } from "./credentials.js"
 import { buildSectioningSectionFromHtml } from "./tools/build-sectioning.js"
 import {
   LAYOUT_MIRROR_SYSTEM_PROMPT,
