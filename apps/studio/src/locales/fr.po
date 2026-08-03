@@ -115,6 +115,9 @@ msgstr "{0} × {1}px · {2} points"
 msgid "{0} accepted anyway"
 msgstr "{0} acceptées quand même"
 
+#~ msgid "{0} added"
+#~ msgstr "{0} ajoutées"
+
 #. placeholder {0}: String(totalAudioFiles)
 msgid "{0} audio"
 msgstr "{0} audio"
@@ -250,6 +253,10 @@ msgstr "{0} sélectionnés"
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} images sélectionnées ne figurent plus dans le storyboard."
 
+#. placeholder {0}: formatVersion(group.series)
+#~ msgid "{0} series"
+#~ msgstr "Série {0}"
+
 #. placeholder {0}: String(visibleCount)
 msgid "{0} terms"
 msgstr "{0} termes"
@@ -261,6 +268,14 @@ msgstr "{0} textes"
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
 msgstr "{0} traductions"
+
+#. placeholder {0}: changesQuery.data.changes.length
+#~ msgid "{0} unpublished file changes"
+#~ msgstr "{0} modifications de fichiers non publiées"
+
+#. placeholder {0}: versions.length
+#~ msgid "{0} versions"
+#~ msgstr "{0} versions"
 
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
@@ -341,6 +356,9 @@ msgstr "{disabledProvidersText} est désactivé — ajoutez sa clé API dans les
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
 
+#~ msgid "{expectedModelPromptName} does not exist yet. Saving while this model is selected creates that global model-specific prompt."
+#~ msgstr "{expectedModelPromptName} n'existe pas encore. Enregistrer avec ce modèle sélectionné crée ce prompt global spécifique au modèle."
+
 msgid "{formatted} will be reset and need to run again before final outputs are available."
 msgstr "{formatted} sera réinitialisé et devra être exécuté à nouveau avant que les résultats finaux ne soient disponibles."
 
@@ -410,6 +428,9 @@ msgstr "{reviewed}/{0} vérifié"
 
 msgid "{sections} sections"
 msgstr "{sections} sections"
+
+#~ msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
+#~ msgstr "{spreadCount} {spreadCount, plural, one {fusion} other {fusions}} marquées."
 
 msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 msgstr "{spreadCount} {spreadCount, plural, one {double page sélectionnée} other {doubles pages sélectionnées}}"
@@ -572,6 +593,9 @@ msgstr "Une activité à choix multiple."
 
 msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
 msgstr "Une nouvelle section d'activité sera ajoutée à la page {anchorPageNumber} ({anchorPageId}). L'agent peut lire d'autres pages du livre pour reproduire leur mise en page."
+
+#~ msgid "A new version is available for download."
+#~ msgstr "Une nouvelle version est disponible au téléchargement."
 
 msgid "A page failed in {stageLabel}"
 msgstr "Une page a échoué dans {stageLabel}"
@@ -810,8 +834,8 @@ msgstr "Activité : Choix multiple"
 msgid "Activity: Open-Ended Answer"
 msgstr "Activité : Réponse ouverte"
 
-msgid "Activity: Ordering"
-msgstr "Activité : Mise en ordre"
+#~ msgid "Activity: Ordering"
+#~ msgstr "Activité : Mise en ordre"
 
 msgid "Activity: Other"
 msgstr "Activité : Autre"
@@ -946,11 +970,17 @@ msgstr "Ajouter une langue"
 msgid "Add languages to translate the book content into."
 msgstr "Ajoutez des langues pour traduire le contenu du livre."
 
+#~ msgid "Add model"
+#~ msgstr "Ajouter un modèle"
+
 msgid "Add new font"
 msgstr "Ajouter une police"
 
 msgid "Add option"
 msgstr "Ajouter une option"
+
+#~ msgid "Add or create model prompt files"
+#~ msgstr "Ajouter ou créer des fichiers de prompt du modèle"
 
 msgid "Add picture"
 msgstr "Ajouter une image"
@@ -1063,6 +1093,9 @@ msgstr "ADT Livre - {0}"
 
 msgid "ADT Package"
 msgstr "Paquet ADT"
+
+#~ msgid "ADT Studio"
+#~ msgstr "ADT Studio"
 
 msgid "ADT Studio can create this public repository or update it when it already exists."
 msgstr "ADT Studio peut créer ce dépôt public ou le mettre à jour s’il existe déjà."
@@ -1255,8 +1288,8 @@ msgstr "Montant"
 msgid "An activity that does not fit the standard categories."
 msgstr "Une activité qui ne correspond pas aux catégories standard."
 
-msgid "An activity where learners arrange items into the correct order."
-msgstr "Une activité dans laquelle les élèves placent des éléments dans le bon ordre."
+#~ msgid "An activity where learners arrange items into the correct order."
+#~ msgstr "Une activité dans laquelle les élèves placent des éléments dans le bon ordre."
 
 msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
 msgstr "Une activité où l'apprenant souligne un ou plusieurs mots, expressions ou phrases directement dans le texte."
@@ -1358,6 +1391,9 @@ msgstr "Apparence"
 msgid "Appears on pages {0}"
 msgstr "Apparaît sur les pages {0}"
 
+#~ msgid "Application"
+#~ msgstr "Application"
+
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Interface de programmation d'applications — un ensemble de règles permettant aux programmes de communiquer."
 
@@ -1376,11 +1412,17 @@ msgstr "Appliquer page background colors"
 msgid "Apply Segmentation"
 msgstr "Appliquer Segmentation"
 
+#~ msgid "Apply spreads"
+#~ msgstr "Appliquer les fusions"
+
 msgid "Apply suggestion"
 msgstr "Appliquer la suggestion"
 
 msgid "Apply to all errors in this run"
 msgstr "Appliquer à toutes les erreurs de cette exécution"
+
+#~ msgid "Applying…"
+#~ msgstr "Application…"
 
 msgid "AR"
 msgstr "AR"
@@ -1519,6 +1561,12 @@ msgstr "Créez automatiquement des quiz dans tout le livre selon une fréquence 
 msgid "Automatically generated from book changes"
 msgstr "Généré automatiquement à partir des modifications du livre"
 
+#~ msgid "Available beta versions"
+#~ msgstr "Versions bêta disponibles"
+
+#~ msgid "Available versions"
+#~ msgstr "Versions disponibles"
+
 msgid "Avg Duration"
 msgstr "Avg Durée"
 
@@ -1554,6 +1602,9 @@ msgstr "Revenir à l'activité classique"
 
 msgid "Back to deployments"
 msgstr "Retour aux déploiements"
+
+#~ msgid "Back to Editor"
+#~ msgstr "Retour à l'éditeur"
 
 msgid "Back to git history"
 msgstr "Retour à l’historique Git"
@@ -1671,6 +1722,9 @@ msgstr "Le corps du texte utilise cette police aujourd'hui. Joignez une police c
 msgid "Book"
 msgstr "Livre"
 
+#~ msgid "Book change history"
+#~ msgstr "Historique des modifications du livre"
+
 msgid "Book coverage"
 msgstr "Couverture du livre"
 
@@ -1694,6 +1748,9 @@ msgstr "Images du livre"
 
 msgid "Book info"
 msgstr "Infos du livre"
+
+#~ msgid "Book is published"
+#~ msgstr "Le livre est publié"
 
 msgid "Book Language"
 msgstr "Livre Langue"
@@ -1773,6 +1830,9 @@ msgstr "Parcourir toutes les Google Fonts…"
 msgid "Browse and edit Liquid templates used for template-based rendering strategies."
 msgstr "Parcourez et modifiez les modèles Liquid utilisés pour les stratégies de rendu basées sur des modèles."
 
+#~ msgid "Browse beta releases by series."
+#~ msgstr "Parcourez les versions bêta par série."
+
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Parcourez chaque section du Storyboard et téléchargez, remplacez ou supprimez sa vidéo en langue des signes."
 
@@ -1808,6 +1868,9 @@ msgstr "Construit un glossaire des termes clés et définitions trouvés dans le
 
 msgid "Builds the table of contents from the book's sections."
 msgstr "Construit la table des matières à partir des sections du livre."
+
+#~ msgid "Built from"
+#~ msgstr "Compilé à partir de"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Regroupe le livre rendu en un package web déployable."
@@ -1874,6 +1937,9 @@ msgstr "Annulation de l’exécution"
 
 msgid "Cancelling run…"
 msgstr "Annulation de l’exécution…"
+
+#~ msgid "Cancelling step"
+#~ msgstr "Annulation de l’étape"
 
 msgid "Cancelling..."
 msgstr "Annulation..."
@@ -1958,8 +2024,14 @@ msgstr "Changer l'image de ce terme"
 msgid "Changed book files"
 msgstr "Fichiers du livre modifiés"
 
+#~ msgid "Changed files"
+#~ msgstr "Fichiers modifiés"
+
 msgid "Changes"
 msgstr "Modifications"
+
+#~ msgid "Changes apply the next time you run Storyboard and Export."
+#~ msgstr "Les modifications s'appliquent au prochain lancement du Storyboard et de l'Export."
 
 msgid "Changes detected"
 msgstr "Modifications détectées"
@@ -2003,6 +2075,12 @@ msgstr "Titre de chapitre"
 msgid "Chart / Graph"
 msgstr "Graphique / Diagramme"
 
+#~ msgid "Check changes"
+#~ msgstr "Vérifier les modifications"
+
+#~ msgid "Check for updates"
+#~ msgstr "Vérifier les mises à jour"
+
 msgid "Check GitHub now"
 msgstr "Vérifier GitHub maintenant"
 
@@ -2045,8 +2123,14 @@ msgstr "Choisissez une vidéo déjà téléversée ou téléversez-en une nouvel
 msgid "Choose an existing image from this project"
 msgstr "Choisissez une image existante de ce projet"
 
+#~ msgid "Choose an existing model or type a new provider:model id. Adding stores it in global prompt settings. Creating files copies the current base prompt content into missing model-specific versions."
+#~ msgstr "Choisissez un modèle existant ou saisissez un nouvel id provider:model. L'ajout l'enregistre dans les paramètres globaux des prompts. Créer des fichiers copie le contenu actuel du prompt de base dans les versions spécifiques au modèle manquantes."
+
 msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
 msgstr "Choisissez un modèle existant ou saisissez un nouvel id provider:model. La création de fichiers enregistre le modèle dans les paramètres globaux des prompts et copie le contenu actuel du prompt de base dans les versions propres au modèle qui manquent."
+
+#~ msgid "Choose any available beta version to install."
+#~ msgstr "Choisissez n’importe quelle version bêta disponible à installer."
 
 msgid "Choose features to include in this export"
 msgstr "Choisissez les fonctionnalités à inclure dans cette exportation"
@@ -2065,6 +2149,9 @@ msgstr "Choisir des images..."
 
 msgid "Choose Provider"
 msgstr "Choisir le fournisseur"
+
+#~ msgid "Choose the model used when a pipeline step does not specify its own model."
+#~ msgstr "Choisissez le modèle utilisé lorsqu’une étape du pipeline ne spécifie pas son propre modèle."
 
 msgid "Choose the page to crop from."
 msgstr "Choisissez la page à recadrer."
@@ -2174,6 +2261,12 @@ msgstr "Réduire le résumé d'accessibilité"
 msgid "Collapse all sections"
 msgstr "Réduire toutes les sections"
 
+#~ msgid "Collapse model prompts"
+#~ msgstr "Réduire les prompts du modèle"
+
+#~ msgid "Collapse prompt variants"
+#~ msgstr "Replier les variantes du prompt"
+
 msgid "Collapse validation"
 msgstr "Réduire la validation"
 
@@ -2225,8 +2318,14 @@ msgstr "Comparez la version actuelle avec une version choisie à la même taille
 msgid "Compare versions"
 msgstr "Comparer les versions"
 
+#~ msgid "Compared with current content."
+#~ msgstr "Comparé au contenu actuel."
+
 msgid "Compared with fallback prompt."
 msgstr "Comparé au prompt de repli."
+
+#~ msgid "Complete the guided setup before starting the publishing workflow."
+#~ msgstr "Terminez la configuration guidée avant de lancer le flux de publication."
 
 msgid "Completed"
 msgstr "Terminé"
@@ -2288,6 +2387,15 @@ msgstr "Configurer les fonctionnalités à inclure dans l'exportation"
 msgid "Configure GitHub Pages for the published book."
 msgstr "Configurez GitHub Pages pour le livre publié."
 
+#~ msgid "Configure GitHub publishing"
+#~ msgstr "Configurer la publication GitHub"
+
+#~ msgid "Configure GitHub to start publishing"
+#~ msgstr "Configurez GitHub pour commencer la publication"
+
+#~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
+#~ msgstr "Configurez les identifiants des fournisseurs et les prompts de fallback globaux utilisés par ADT Studio."
+
 msgid "Configure provider credentials used by AI pipeline features on this machine."
 msgstr "Configurez les identifiants des fournisseurs utilisés par les fonctionnalités du pipeline d’IA sur cette machine."
 
@@ -2306,8 +2414,14 @@ msgstr "Confirmer la fusion"
 msgid "Confirm that the public book link is available and healthy."
 msgstr "Confirmez que le lien public du livre est disponible et fonctionnel."
 
+#~ msgid "Confirm the destination below. Publishing will open the live workflow screen automatically."
+#~ msgstr "Confirmez la destination ci-dessous. La publication ouvrira automatiquement l’écran du flux en direct."
+
 msgid "Connect"
 msgstr "Connecter"
+
+#~ msgid "Connect an account and choose a repository before running this workflow."
+#~ msgstr "Connectez un compte et choisissez un dépôt avant d’exécuter ce flux."
 
 msgid "Connect an AI provider"
 msgstr "Connectez un fournisseur d'IA"
@@ -2531,6 +2645,9 @@ msgstr "Créez un commit Git versionné décrivant les modifications du livre."
 msgid "Create ADT"
 msgstr "Créer ADT"
 
+#~ msgid "Create classic token on GitHub"
+#~ msgstr "Créer un jeton classique sur GitHub"
+
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Créez des légendes descriptives pour les images afin d'améliorer l'accessibilité."
 
@@ -2539,6 +2656,9 @@ msgstr "Créer le fichier"
 
 msgid "Create files"
 msgstr "Créer les fichiers"
+
+#~ msgid "Create fine-grained token on GitHub"
+#~ msgstr "Créer un jeton à granularité fine sur GitHub"
 
 msgid "Create from scratch using your description"
 msgstr "Créer à partir de zéro en utilisant votre description"
@@ -2557,6 +2677,9 @@ msgstr "Créer une session"
 
 msgid "Create the destination repository first, choose its Resource owner, then limit Repository access to that repository."
 msgstr "Créez d’abord le dépôt de destination, choisissez son propriétaire de ressource, puis limitez l’accès au dépôt à ce dépôt."
+
+#~ msgid "Create the destination repository first, then select its owner and that repository as the token resource."
+#~ msgstr "Créez d’abord le dépôt de destination, puis sélectionnez son propriétaire et ce dépôt comme ressource du jeton."
 
 msgid "Created"
 msgstr "Créé"
@@ -2624,6 +2747,9 @@ msgstr "Actuelle (v{currentVersion})"
 msgid "Current book font"
 msgstr "Police actuelle du livre"
 
+#~ msgid "Current book workspace"
+#~ msgstr "Espace de travail actuel du livre"
+
 msgid "Current effective values"
 msgstr "Valeurs effectives actuelles"
 
@@ -2632,6 +2758,9 @@ msgstr "Page d'aperçu actuelle"
 
 msgid "Current repository:"
 msgstr "Dépôt actuel :"
+
+#~ msgid "Current version"
+#~ msgstr "Version actuelle"
 
 msgid "Current version (v{currentVersion})"
 msgstr "Version actuelle (v{currentVersion})"
@@ -2660,6 +2789,9 @@ msgstr "Section personnalisée {index}"
 msgid "Cut a region out of any page"
 msgstr "Découpez une région de n'importe quelle page"
 
+#~ msgid "Date unavailable"
+#~ msgstr "Date indisponible"
+
 msgid "Debug mode is not enabled."
 msgstr "Le mode débogage n'est pas activé."
 
@@ -2687,6 +2819,9 @@ msgstr "Par défaut (hériter)"
 msgid "Default (no text detected yet)"
 msgstr "Par défaut (aucun texte détecté pour l'instant)"
 
+#~ msgid "Default LLM"
+#~ msgstr "LLM par défaut"
+
 msgid "Default LLM updated."
 msgstr "Le LLM par défaut a été mis à jour."
 
@@ -2695,6 +2830,12 @@ msgstr "Par défaut modèle"
 
 msgid "Default model cannot be used as a template target."
 msgstr "Le modèle par défaut ne peut pas être utilisé comme cible de modèle."
+
+#~ msgid "Default model updated."
+#~ msgstr "Modèle par défaut mis à jour."
+
+#~ msgid "Default model uses the base prompt files and does not need model-specific copies."
+#~ msgstr "Le modèle par défaut utilise les fichiers de prompt de base et n'a pas besoin de copies spécifiques au modèle."
 
 msgid "Default N/A"
 msgstr "Par défaut N/A"
@@ -2907,6 +3048,9 @@ msgstr "Détails"
 msgid "Detect changes"
 msgstr "Détecter les modifications"
 
+#~ msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
+#~ msgstr "{confirmCount} {confirmCount, plural, one {fusion} other {fusions}} possibles détectées — confirmez lesquelles fusionner"
+
 msgid "Detected {left}–{right}"
 msgstr "Détecté {left}–{right}"
 
@@ -2940,6 +3084,9 @@ msgstr "Le saviez-vous ?"
 msgid "Diff"
 msgstr "Diff"
 
+#~ msgid "Diff against current"
+#~ msgstr "Diff avec l'actuelle"
+
 msgid "Diff against fallback"
 msgstr "Diff avec le repli"
 
@@ -2966,6 +3113,9 @@ msgstr "Abandonner"
 
 msgid "Discard & leave"
 msgstr "Abandonner et quitter"
+
+#~ msgid "Discard unsaved changes?"
+#~ msgstr "Ignorer les modifications non enregistrées ?"
 
 msgid "Discard unsaved prompt changes?"
 msgstr "Abandonner les modifications non enregistrées du prompt ?"
@@ -3000,6 +3150,9 @@ msgstr "Terminé"
 msgid "DONE"
 msgstr "TERMINÉ"
 
+#~ msgid "Downgrade"
+#~ msgstr "Rétrogradation"
+
 msgid "Download a full backup of this project"
 msgstr "Télécharger une sauvegarde complète de ce projet"
 
@@ -3009,6 +3162,9 @@ msgstr "Téléchargez une partie légère (le PDF complet, une plage de pages et
 msgid "Download part"
 msgstr "Télécharger la partie"
 
+#~ msgid "Download size"
+#~ msgstr "Taille du téléchargement"
+
 msgid "Download update"
 msgstr "Télécharger la mise à jour"
 
@@ -3017,6 +3173,9 @@ msgstr "Téléchargée"
 
 msgid "Downloading update…"
 msgstr "Téléchargement de la mise à jour…"
+
+#~ msgid "Downloading… {0}% · {1}/s"
+#~ msgstr "Téléchargement… {0}% · {1}/s"
 
 msgid "Downloads at extraction"
 msgstr "Téléchargée à l'extraction"
@@ -3147,6 +3306,9 @@ msgstr "Chaque itération est un appel LLM. Des valeurs plus basses sont plus ra
 msgid "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
 msgstr "Chaque type de tâche du pipeline utilise un modèle compatible. La génération d’images et la synthèse vocale utilisent leurs propres modèles par défaut spécifiques."
 
+#~ msgid "Each node updates live as ADT Studio publishes the book."
+#~ msgstr "Chaque nœud se met à jour en direct pendant qu’ADT Studio publie le livre."
+
 msgid "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
 msgstr "Chaque polype sécrète un squelette rigide de carbonate de calcium. Au fil de centaines d'années, des millions de ces squelettes s'accumulent pour former les immenses structures récifales que nous voyons aujourd'hui."
 
@@ -3226,6 +3388,9 @@ msgstr "Modifier Invites"
 msgid "Edit spreads"
 msgstr "Modifier les fusions"
 
+#~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
+#~ msgstr "Modifiez le modèle Liquid/HTML ci-dessous. Les modifications sont enregistrées lorsque vous cliquez sur Enregistrer et relancer."
+
 msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
 msgstr "Modifiez le modèle Liquid/HTML ci-dessous. Les modifications sont enregistrées lorsque vous cliquez sur Enregistrer."
 
@@ -3244,6 +3409,9 @@ msgstr "modifié"
 msgid "Edited"
 msgstr "Modifié"
 
+#~ msgid "Edited globally"
+#~ msgstr "Modifié globalement"
+
 msgid "Edited in"
 msgstr "Modifié dans"
 
@@ -3261,6 +3429,9 @@ msgstr "Langue d'édition"
 
 msgid "Editor"
 msgstr "Éditeur"
+
+#~ msgid "Edits apply to the matching elements of the activity's layout. To change the layout itself, use \"Edit layout\" in the banner."
+#~ msgstr "Les modifications s'appliquent aux éléments correspondants de la mise en page de l'activité. Pour modifier la mise en page elle-même, utilisez \\\"Modifier la mise en page\\\" dans la bannière."
 
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Les modifications vont à ce préfixe de variante Tailwind"
@@ -3453,6 +3624,12 @@ msgstr "Développer"
 msgid "Expand all sections"
 msgstr "Développer toutes les sections"
 
+#~ msgid "Expand model prompts"
+#~ msgstr "Développer les prompts du modèle"
+
+#~ msgid "Expand prompt variants"
+#~ msgstr "Déplier les variantes du prompt"
+
 msgid "Experimental configurations"
 msgstr "Configurations expérimentales"
 
@@ -3613,6 +3790,9 @@ msgstr "Échec de l'enregistrement des métadonnées. Veuillez réessayer."
 msgid "Failed:"
 msgstr "Échoué :"
 
+#~ msgid "Fallback"
+#~ msgstr "Fallback"
+
 msgid "Falls back to"
 msgstr "Hérite de"
 
@@ -3714,6 +3894,9 @@ msgstr "Les livres à mise en page fixe utilisent les images de page d'origine c
 
 msgid "Fixed-layout pages preserve the original book fonts."
 msgstr "Les pages à mise en page fixe conservent les polices originales du livre."
+
+#~ msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
+#~ msgstr "Tailles fixes et accessibles appliquées à chaque page. Les tailles utilisent l'échelle Tailwind du livre (choisissez un token ou saisissez une valeur exacte en px), s'adaptent de façon fluide entre mobile et ordinateur, et remplacent toute taille choisie par l'IA — ainsi les titres et le corps de texte restent cohérents dans tout le livre."
 
 msgid "Flag severity threshold"
 msgstr "Seuil de gravité du signalement"
@@ -3853,6 +4036,12 @@ msgstr "Rassembler les preuves"
 msgid "Gemini"
 msgstr "Gemini"
 
+#~ msgid "Gemini API key is required to generate audio."
+#~ msgstr "La clé API Gemini est requise pour générer l'audio."
+
+#~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. A lower temperature (e.g. 0.4) reduces that variation and a fixed seed makes delivery reproducible. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+#~ msgstr "Gemini génère chaque phrase dans sa propre requête, si bien que son ton peut varier d'une phrase à l'autre. Une température plus basse (p. ex. 0,4) réduit cette variation et une graine fixe rend la lecture reproductible. Ne concerne que les langues acheminées vers Gemini — OpenAI et Azure les ignorent. Modifier l'une de ces valeurs régénère l'audio Gemini lors de la prochaine exécution."
+
 msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
 msgstr "Gemini génère chaque phrase dans sa propre requête, si bien que son ton peut varier d'une phrase à l'autre. Définissez une température plus basse (p. ex. 0,4) pour réduire cette variation et une graine fixe pour rendre la lecture reproductible ; laissez les deux vides pour les désactiver et utiliser les valeurs par défaut de Gemini. Ne concerne que les langues acheminées vers Gemini — OpenAI et Azure les ignorent. Modifier l'une de ces valeurs régénère l'audio Gemini lors de la prochaine exécution."
 
@@ -3921,6 +4110,9 @@ msgstr "Générer à partir des pages"
 
 msgid "Generate global prompts"
 msgstr "Générer des prompts globaux"
+
+#~ msgid "Generate missing Gemini audio"
+#~ msgstr "Générer l'audio Gemini manquant"
 
 msgid "Generate multiple-choice comprehension quizzes from the book's content. Create them automatically across the whole book, or add a single quiz from specific pages."
 msgstr "Générez des quiz de compréhension à choix multiples à partir du contenu du livre. Créez-les automatiquement dans tout le livre ou ajoutez un seul quiz à partir de pages spécifiques."
@@ -4028,6 +4220,9 @@ msgstr "Historique Git"
 
 msgid "Git History"
 msgstr "Historique Git"
+
+#~ msgid "Git publishing workflow"
+#~ msgstr "Flux de publication Git"
 
 msgid "GitHub account"
 msgstr "Compte GitHub"
@@ -4491,6 +4686,9 @@ msgstr "Augmenter l'indentation"
 msgid "Individual sides"
 msgstr "Côtés individuels"
 
+#~ msgid "Individual steps can still override this model in their own settings."
+#~ msgstr "Les étapes individuelles peuvent toujours remplacer ce modèle dans leurs propres paramètres."
+
 msgid "Infographic"
 msgstr "Infographie"
 
@@ -4529,6 +4727,9 @@ msgstr "Installer la mise à jour"
 
 msgid "Installed"
 msgstr "Installée"
+
+#~ msgid "Installing an older version can break books or settings that were created or edited with a newer one. Back up your books before downgrading."
+#~ msgstr "Installer une version plus ancienne peut endommager des livres ou des réglages créés ou modifiés avec une version plus récente. Sauvegardez vos livres avant de revenir à une version antérieure."
 
 msgid "Installing update…"
 msgstr "Installation de la mise à jour…"
@@ -4695,14 +4896,29 @@ msgstr "Assez grand"
 msgid "Large images, narrative flow. Best for illustrated books with high-fidelity TTS voices."
 msgstr "Grandes images, flux narratif. Idéal pour les livres illustrés avec des voix TTS haute fidélité."
 
+#~ msgid "Last"
+#~ msgstr "Dernier"
+
+#~ msgid "Last activity"
+#~ msgstr "Dernière activité"
+
 msgid "Last change"
 msgstr "Dernière modification"
 
 msgid "Last modified"
 msgstr "Dernière modification"
 
+#~ msgid "Last week"
+#~ msgstr "La semaine dernière"
+
+#~ msgid "Latest deployment"
+#~ msgstr "Dernier déploiement"
+
 msgid "Latest deployment failed"
 msgstr "Le dernier déploiement a échoué"
+
+#~ msgid "Latest GitHub changes synchronized."
+#~ msgstr "Dernières modifications GitHub synchronisées."
 
 msgid "Launch the app with"
 msgstr "Lancer l'application avec"
@@ -4727,6 +4943,9 @@ msgstr "Interligne"
 
 msgid "Learn"
 msgstr "Découvrir"
+
+#~ msgid "Learn how with a guided setup"
+#~ msgstr "Suivez la configuration guidée"
 
 msgid "Least used"
 msgstr "Moins utilisé"
@@ -4890,6 +5109,9 @@ msgstr "Chargement des fichiers modifiés du livre"
 msgid "Loading deployed file differences"
 msgstr "Chargement des différences des fichiers déployés"
 
+#~ msgid "Loading deployments"
+#~ msgstr "Chargement des déploiements"
+
 msgid "Loading Easy Read..."
 msgstr "Chargement de Lecture Facile..."
 
@@ -4995,8 +5217,14 @@ msgstr "Local"
 msgid "Local and GitHub changes need resolution"
 msgstr "Les modifications locales et GitHub doivent être résolues"
 
+#~ msgid "Local and GitHub changes need resolution before synchronization."
+#~ msgstr "Les modifications locales et GitHub doivent être résolues avant la synchronisation."
+
 msgid "Local book is up to date"
 msgstr "Le livre local est à jour"
+
+#~ msgid "Local book is up to date."
+#~ msgstr "Le livre local est à jour."
 
 msgid "Local book workspace"
 msgstr "Espace de travail local du livre"
@@ -5172,6 +5400,18 @@ msgstr "Fusionner une autre partie"
 msgid "Merge failed"
 msgstr "La fusion a échoué"
 
+#~ msgid "merge into next page"
+#~ msgstr "fusionner avec la page suivante"
+
+#~ msgid "Merge into next page"
+#~ msgstr "Fusionner avec la page suivante"
+
+#~ msgid "merge into previous page"
+#~ msgstr "fusionner avec la page précédente"
+
+#~ msgid "Merge into previous page"
+#~ msgstr "Fusionner avec la page précédente"
+
 #. placeholder {0}: prev[0]
 #. placeholder {1}: group[0]
 msgid "Merge pages {0} and {1} into a spread"
@@ -5223,6 +5463,9 @@ msgstr "Fusionnées · {0}/{1}"
 
 msgid "Merged {left}–{right}"
 msgstr "Fusionnées {left}–{right}"
+
+#~ msgid "Merged:"
+#~ msgstr "Fusionné :"
 
 msgid "Merging spreads…"
 msgstr "Fusion des doubles pages…"
@@ -5335,8 +5578,14 @@ msgstr "Mobile"
 msgid "Model"
 msgstr "Modèle"
 
+#~ msgid "Model {normalizedTargetModel} added."
+#~ msgstr "Modèle {normalizedTargetModel} ajouté."
+
 msgid "Model overrides"
 msgstr "Remplacements de modèles"
+
+#~ msgid "Model variant"
+#~ msgstr "Variante de modèle"
 
 msgid "Model-specific prompt not found"
 msgstr "Prompt spécifique au modèle introuvable"
@@ -5358,6 +5607,9 @@ msgstr "À chasse fixe"
 
 msgid "More info"
 msgstr "Plus d'infos"
+
+#~ msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
+#~ msgstr "La plupart des livres se lisent une page à la fois. Si le vôtre a une illustration qui s'étend sur deux pages en vis-à-vis, liez ces pages pour qu'elles soient traitées ensemble comme une seule fusion au lieu d'être divisées en deux."
 
 msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
 msgstr "La plupart des livres se lisent une page à la fois. Si le vôtre comporte une illustration qui s'étend sur deux pages en vis-à-vis, liez ces pages pour qu'elles soient traitées ensemble comme une seule double page au lieu d'être coupées au milieu. Rien ne change tant que vous n'appuyez pas sur Appliquer."
@@ -5440,8 +5692,14 @@ msgstr "Nouvelle session"
 msgid "New text"
 msgstr "Nouveau texte"
 
+#~ msgid "New version"
+#~ msgstr "Nouvelle version"
+
 msgid "new_type_key"
 msgstr "new_type_key"
+
+#~ msgid "Newer"
+#~ msgstr "Plus récente"
 
 msgid "Newest"
 msgstr "Plus récentes"
@@ -5501,11 +5759,17 @@ msgstr "Pas de son pour cette page"
 msgid "No automatic suggestion is shown because the proposed fix did not pass validation."
 msgstr "Aucune suggestion automatique n'est affichée, car la correction proposée n'a pas réussi la validation."
 
+#~ msgid "No beta versions are available for this platform."
+#~ msgstr "Aucune version bêta n’est disponible pour cette plateforme."
+
 msgid "No beta versions are available."
 msgstr "Aucune version bêta n’est disponible."
 
 msgid "No beta versions found"
 msgstr "Aucune version bêta trouvée"
+
+#~ msgid "No beta versions match your search."
+#~ msgstr "Aucune version bêta ne correspond à votre recherche."
 
 msgid "No books match your search"
 msgstr "Aucun livre ne correspond à votre recherche"
@@ -5551,6 +5815,9 @@ msgstr "Aucune donnée"
 
 msgid "No deployments have been recorded yet."
 msgstr "Aucun déploiement n’a encore été enregistré."
+
+msgid "No differences from the current version."
+msgstr "Aucune différence avec la version actuelle."
 
 msgid "No differences from the fallback prompt."
 msgstr "Aucune différence avec le prompt de repli."
@@ -5729,6 +5996,9 @@ msgstr "Aucun quiz pour cette page"
 msgid "No quizzes match your search"
 msgstr "Aucun quiz ne correspond à votre recherche"
 
+#~ msgid "No readable text extracted from this page"
+#~ msgstr "Aucun texte lisible extrait de cette page"
+
 msgid "No release notes were provided for this version."
 msgstr "Aucune note de version n’a été fournie pour cette version."
 
@@ -5831,6 +6101,9 @@ msgstr "Aucune version"
 msgid "No versions found for {node} / {itemId}"
 msgstr "Aucune version trouvée pour {node} / {itemId}"
 
+#~ msgid "No versions match your search."
+#~ msgstr "Aucune version ne correspond à votre recherche."
+
 msgid "No videos assigned yet"
 msgstr "Aucune vidéo assignée pour le moment"
 
@@ -5849,8 +6122,14 @@ msgstr "bruit"
 msgid "None"
 msgstr "Aucun"
 
+#~ msgid "Not committed yet"
+#~ msgstr "Pas encore validé"
+
 msgid "Not compatible with Fixed Layout"
 msgstr "Incompatible avec la mise en page fixe"
+
+#~ msgid "Not configured"
+#~ msgstr "Non configuré"
 
 msgid "Not detected"
 msgstr "Non détecté"
@@ -5920,6 +6199,9 @@ msgstr "sur"
 
 msgid "Off"
 msgstr "Désactivé"
+
+#~ msgid "Older"
+#~ msgstr "Plus ancienne"
 
 msgid "Omission or addition"
 msgstr "Omission ou ajout"
@@ -5995,6 +6277,9 @@ msgstr "Ouvrir les paramètres des clés API"
 msgid "Open commit {0}"
 msgstr "Ouvrir le commit {0}"
 
+#~ msgid "Open commit {shortSha}"
+#~ msgstr "Ouvrir le commit {shortSha}"
+
 msgid "Open comparison"
 msgstr "Ouvrir la comparaison"
 
@@ -6024,6 +6309,9 @@ msgstr "Ouvrir l'aperçu de la page {pageId}"
 
 msgid "Open Preview"
 msgstr "Ouvrir l'aperçu"
+
+#~ msgid "Open public book"
+#~ msgstr "Ouvrir le livre public"
 
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
@@ -6153,6 +6441,9 @@ msgstr "osmose"
 msgid "Other"
 msgstr "Autre"
 
+#~ msgid "Other beta versions"
+#~ msgstr "Autres versions bêta"
+
 msgid "Other images"
 msgstr "Autres images"
 
@@ -6185,6 +6476,9 @@ msgstr "Jetons de sortie"
 
 msgid "Overall page note"
 msgstr "Note globale de la page"
+
+#~ msgid "Override specialized models for this book. Empty fields inherit the platform defaults."
+#~ msgstr "Remplacez les modèles spécialisés pour ce livre. Les champs vides héritent des valeurs par défaut de la plateforme."
 
 msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
 msgstr "Remplacez le LLM par défaut et les modèles spécialisés pour ce livre. Les champs vides héritent des valeurs par défaut de la plateforme."
@@ -6223,6 +6517,8 @@ msgid "p. 7"
 msgstr "p. 7"
 
 #. placeholder {0}: String(current.pageNumber)
+#. placeholder {0}: m[1]
+#. placeholder {0}: pageMatch[1]
 msgid "p{0}"
 msgstr "p{0}"
 
@@ -6243,6 +6539,9 @@ msgstr "Emballez le livre pour la distribution. Choisissez un format, sélection
 
 msgid "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
 msgstr "Empaquetez le livre terminé avec toutes les fonctionnalités d'accessibilité intégrées — prêt pour qu'un enfant l'ouvre, l'écoute et suive la lecture."
+
+#~ msgid "Package, commit, push, host, and preview the accessible book without leaving ADT Studio."
+#~ msgstr "Créez le paquet, validez, publiez, hébergez et prévisualisez le livre accessible sans quitter ADT Studio."
 
 msgid "Packaging"
 msgstr "Empaquetage"
@@ -6289,6 +6588,9 @@ msgstr "Page {0} sur {1}"
 
 msgid "Page {n}"
 msgstr "Page {n}"
+
+#~ msgid "Page {p}"
+#~ msgstr "Page {p}"
 
 msgid "Page {page}"
 msgstr "Page {page}"
@@ -6545,8 +6847,14 @@ msgstr "Choisir dans le livre"
 msgid "Pick one layout approach."
 msgstr "Choisissez une approche de mise en page."
 
+#~ msgid "Pick one of the book's images to illustrate this glossary term on the glossary page."
+#~ msgstr "Choisissez une des images du livre pour illustrer ce terme sur la page de glossaire."
+
 msgid "Pick one of the book's images, crop a region from a page, or upload your own picture."
 msgstr "Choisissez une des images du livre, recadrez une région d'une page ou téléversez votre propre image."
+
+#~ msgid "Pick page range"
+#~ msgstr "Choisir la plage de pages"
 
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Choisissez les langues vers lesquelles vous souhaitez traduire. La langue originale du livre reste inchangée."
@@ -6571,6 +6879,9 @@ msgstr "Pipeline · extraction"
 
 msgid "Pipeline · storyboard"
 msgstr "Pipeline · storyboard"
+
+#~ msgid "Pipeline default"
+#~ msgstr "Valeur par défaut du pipeline"
 
 msgid "Pipeline fallback model"
 msgstr "Modèle de secours du pipeline"
@@ -6762,8 +7073,14 @@ msgstr "Fichier de prompt créé à partir du modèle."
 msgid "Prompt file deleted."
 msgstr "Fichier de prompt supprimé."
 
+#~ msgid "Prompt files"
+#~ msgstr "Fichiers de prompt"
+
 msgid "Prompt folder deleted."
 msgstr "Dossier de prompts supprimé."
+
+#~ msgid "Prompt Settings"
+#~ msgstr "Paramètres des prompts"
 
 msgid "Prompt template"
 msgstr "Modèle d'invite"
@@ -6819,11 +7136,17 @@ msgstr "PT"
 msgid "Publish"
 msgstr "Publier"
 
+#~ msgid "Publish book"
+#~ msgstr "Publier le livre"
+
 msgid "Publish book changes"
 msgstr "Publier les modifications du livre"
 
 msgid "Publish latest changes"
 msgstr "Publier les dernières modifications"
+
+#~ msgid "Publish with GitHub Pages"
+#~ msgstr "Publier avec GitHub Pages"
 
 msgid "Published"
 msgstr "Publié"
@@ -6848,6 +7171,9 @@ msgstr "Vues de publication"
 
 msgid "Publishing..."
 msgstr "Publication..."
+
+#~ msgid "Pull remote changes"
+#~ msgstr "Récupérer les modifications distantes"
 
 msgid "Pull requests"
 msgstr "Pull requests"
@@ -7133,6 +7459,12 @@ msgstr "Référence"
 msgid "Refinement Prompt"
 msgstr "Prompt de raffinement"
 
+#~ msgid "Refresh beta versions"
+#~ msgstr "Actualiser les versions bêta"
+
+#~ msgid "Refresh list"
+#~ msgstr "Actualiser la liste"
+
 msgid "Refresh validation"
 msgstr "Actualiser validation"
 
@@ -7157,6 +7489,10 @@ msgstr "Régénérer uniquement les extraits audio sélectionnés"
 msgid "Regenerate selected"
 msgstr "Régénérer la sélection"
 
+#. placeholder {0}: selectedAudioIds.size
+#~ msgid "Regenerate selected ({0})"
+#~ msgstr "Régénérer la sélection ({0})"
+
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Régénère les images sélectionnées pour chaque langue de sortie afin que tout texte intégré soit affiché dans la langue cible."
 
@@ -7178,6 +7514,9 @@ msgstr "Détendu"
 msgid "Release"
 msgstr "Version"
 
+#~ msgid "Release library"
+#~ msgstr "Bibliothèque des versions"
+
 msgid "Release notes"
 msgstr "Notes de version"
 
@@ -7186,6 +7525,12 @@ msgstr "Relâchez pour importer"
 
 msgid "Reload app"
 msgstr "Recharger l'application"
+
+#~ msgid "Remote changes are available."
+#~ msgstr "Des modifications distantes sont disponibles."
+
+#~ msgid "Remote changes available"
+#~ msgstr "Des modifications distantes sont disponibles"
 
 msgid "Remove"
 msgstr "Retirer"
@@ -7423,6 +7768,12 @@ msgstr "Revenir à {originalLanguageName}"
 msgid "Review"
 msgstr "Réviser"
 
+#~ msgid "Review {selectedCount} selected"
+#~ msgstr "Revoir {selectedCount} sélectionnées"
+
+#~ msgid "Review and publish"
+#~ msgstr "Vérifier et publier"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Examinez et peaufinez chaque bloc simplifié côte à côte avec l'original avant l'emballage."
 
@@ -7467,11 +7818,17 @@ msgstr "Rigueur de la révision"
 msgid "Review style"
 msgstr "Style de révision"
 
+#~ msgid "Review the most recent publishing workflow and open its public result."
+#~ msgstr "Consultez le flux de publication le plus récent et ouvrez son résultat public."
+
 msgid "Review the project details below and confirm the import."
 msgstr "Vérifiez les détails du projet ci-dessous et confirmez l'importation."
 
 msgid "Review the source PDF details below and continue to configure how your book will be converted into an Accessible Digital Textbook."
 msgstr "Examinez les détails du PDF source ci-dessous et continuez à configurer comment votre livre sera converti en manuel numérique accessible."
+
+#~ msgid "Review this beta release and its notes before installing."
+#~ msgstr "Consultez cette version bêta et ses notes avant de l’installer."
 
 msgid "Review visible translations"
 msgstr "Réviser les traductions visibles"
@@ -7615,6 +7972,9 @@ msgstr "Exécuter la traduction"
 msgid "Run whole-book validation checks and configure accessibility assessment settings."
 msgstr "Exécutez les vérifications de validation du livre entier et configurez les paramètres d'évaluation d'accessibilité."
 
+#~ msgid "Run workflow"
+#~ msgstr "Exécuter le flux"
+
 msgid "Run-only tags"
 msgstr "Tags d'exécution uniquement"
 
@@ -7624,6 +7984,9 @@ msgstr "En cours"
 msgid "RUNNING"
 msgstr "EN COURS"
 
+#~ msgid "Running {stageLabel}"
+#~ msgstr "Exécution de {stageLabel}"
+
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Lancer Sectioning exécutera d'abord Extraction, puis découpera en sections les pages extraites."
 
@@ -7632,6 +7995,9 @@ msgstr "Lancer Storyboard exécutera d'abord les étapes principales précédent
 
 msgid "Running Validation..."
 msgstr "Validation en cours..."
+
+#~ msgid "Running..."
+#~ msgstr "En cours..."
 
 msgid "Runs accessibility checks against the packaged book."
 msgstr "Effectue des vérifications d'accessibilité sur le livre empaqueté."
@@ -7675,6 +8041,9 @@ msgstr "Enregistrer l'activité"
 msgid "Save activity (⌘S)"
 msgstr "Enregistrer l'activité (⌘S)"
 
+#~ msgid "Save and publish"
+#~ msgstr "Enregistrer et publier"
+
 msgid "Save changes"
 msgstr "Enregistrer les modifications"
 
@@ -7696,8 +8065,8 @@ msgstr "Enregistrer la liste de contrôle"
 msgid "Save failed"
 msgstr "L'enregistrement a échoué"
 
-msgid "Save or discard your edits before splitting"
-msgstr "Enregistrez ou abandonnez vos modifications avant de diviser"
+#~ msgid "Save or discard your edits before splitting"
+#~ msgstr "Enregistrez ou abandonnez vos modifications avant de diviser"
 
 msgid "Save or discard your edits first"
 msgstr "Enregistrez ou abandonnez d'abord vos modifications"
@@ -7795,6 +8164,9 @@ msgstr "Rechercher le texte original ou en lecture facile…"
 msgid "Search original or translation…"
 msgstr "Rechercher l'original ou la traduction…"
 
+#~ msgid "Search questions or answers…"
+#~ msgstr "Rechercher des questions ou des réponses…"
+
 msgid "Search questions or options…"
 msgstr "Rechercher des questions ou des options…"
 
@@ -7809,6 +8181,12 @@ msgstr "Rechercher des guides de style..."
 
 msgid "Search terms or definitions…"
 msgstr "Rechercher des termes ou des définitions…"
+
+#~ msgid "Search versions"
+#~ msgstr "Rechercher des versions"
+
+#~ msgid "Search versions…"
+#~ msgstr "Rechercher des versions…"
 
 msgid "Search..."
 msgstr "Rechercher..."
@@ -7910,11 +8288,17 @@ msgstr "Sections"
 msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token locally on this device and does not store it in the book directory."
 msgstr "Sécurité : utilisez la durée d’expiration pratique la plus courte, ne partagez jamais le jeton et révoquez-le dans GitHub lorsqu’il n’est plus nécessaire. ADT Studio conserve ce jeton localement sur cet appareil et ne le stocke pas dans le dossier du livre."
 
+#~ msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token only for the current browser session and does not store it in the book directory."
+#~ msgstr "Sécurité : utilisez la durée d’expiration pratique la plus courte, ne partagez jamais le jeton et révoquez-le dans GitHub lorsqu’il n’est plus nécessaire. ADT Studio conserve ce jeton uniquement pendant la session actuelle du navigateur et ne le stocke pas dans le dossier du livre."
+
 msgid "See examples"
 msgstr "Voir les exemples"
 
 msgid "See the book & pick pages"
 msgstr "Voir le livre et choisir les pages"
+
+#~ msgid "See the current version and a chosen version rendered side by side."
+#~ msgstr "Affichez la version actuelle et une version choisie côte à côte."
 
 msgid "Seed"
 msgstr "Graine"
@@ -7955,6 +8339,9 @@ msgstr "Segmentation..."
 msgid "Segmenting…"
 msgstr "Segmentation…"
 
+#~ msgid "Select {title}"
+#~ msgstr "Sélectionner {title}"
+
 msgid "Select a .zip project archive exported from ADT Studio."
 msgstr "Sélectionnez une archive de projet .zip exportée depuis ADT Studio."
 
@@ -7966,6 +8353,9 @@ msgstr "Sélectionnez un type de nœud et saisissez un ID d'élément pour voir 
 
 msgid "Select a page grouping to continue"
 msgstr "Sélectionnez un regroupement de pages pour continuer"
+
+#~ msgid "Select a prompt"
+#~ msgstr "Sélectionner un prompt"
 
 msgid "Select a render strategy to continue"
 msgstr "Sélectionnez une stratégie de rendu pour continuer"
@@ -7984,6 +8374,12 @@ msgstr "Sélectionnez un guide de style pour prévisualiser comment il stylise l
 
 msgid "Select a target language first."
 msgstr "Sélectionnez d'abord une langue cible."
+
+#~ msgid "Select a version to see details and installation options."
+#~ msgstr "Sélectionnez une version pour afficher les détails et les options d’installation."
+
+#~ msgid "Select a version to see its release notes."
+#~ msgstr "Sélectionnez une version pour afficher ses notes de version."
 
 msgid "Select activity mode..."
 msgstr "Sélectionnez le mode d'activité..."
@@ -8025,6 +8421,9 @@ msgstr "Sélectionner un modèle..."
 msgid "Select the pages the quiz is written from, then choose where it appears using the buttons between pages."
 msgstr "Sélectionnez les pages sur lesquelles le quiz est basé, puis choisissez où il apparaît à l'aide des boutons entre les pages."
 
+#~ msgid "Select the repo scope. It covers repository creation, file publishing, and GitHub Pages configuration."
+#~ msgstr "Sélectionnez l’autorisation repo. Elle couvre la création du dépôt, la publication des fichiers et la configuration de GitHub Pages."
+
 msgid "Select this audio"
 msgstr "Sélectionner cet audio"
 
@@ -8033,6 +8432,9 @@ msgstr "Sélectionnez jusqu'à 5 pages à utiliser comme références visuelles.
 
 msgid "Select visible audio"
 msgstr "Sélectionner les audios visibles"
+
+#~ msgid "Selected"
+#~ msgstr "Sélectionnée"
 
 msgid "Selected file"
 msgstr "Fichier sélectionné"
@@ -8089,6 +8491,9 @@ msgstr "Les sessions permettent à différents réviseurs de capturer leurs rés
 
 msgid "Set a clear name and a short expiration date."
 msgstr "Définissez un nom clair et une date d’expiration courte."
+
+#~ msgid "Set a Gemini API key to generate audio"
+#~ msgstr "Définissez une clé API Gemini pour générer l'audio"
 
 msgid "Set Administration to Read and write so ADT can configure the repository and create the GitHub Pages site."
 msgstr "Réglez Administration sur Lecture et écriture afin qu’ADT puisse configurer le dépôt et créer le site GitHub Pages."
@@ -8293,6 +8698,9 @@ msgstr "Recadrage intelligent"
 msgid "Software update"
 msgstr "Mise à jour logicielle"
 
+#~ msgid "Software Update"
+#~ msgstr "Mise à jour logicielle"
+
 msgid "Software update status"
 msgstr "Statut de la mise à jour logicielle"
 
@@ -8401,6 +8809,9 @@ msgstr "Diviser en une nouvelle section"
 
 msgid "Split into parts"
 msgstr "Diviser en parties"
+
+#~ msgid "Split into parts for others"
+#~ msgstr "Diviser en parties pour d'autres"
 
 msgid "Split into two sections at this point"
 msgstr "Diviser en deux sections à cet endroit"
@@ -8747,6 +9158,9 @@ msgstr "Tâche en cours..."
 msgid "Task-specific defaults"
 msgstr "Modèles par défaut propres à chaque tâche"
 
+#~ msgid "Task-specific model defaults"
+#~ msgstr "Modèles par défaut spécifiques à chaque tâche"
+
 msgid "Task-specific model defaults updated."
 msgstr "Les modèles par défaut propres à chaque tâche ont été mis à jour."
 
@@ -8767,6 +9181,9 @@ msgstr "Température"
 
 msgid "Template"
 msgstr "Modèle"
+
+#~ msgid "Template applied to current draft."
+#~ msgstr "Modèle appliqué au brouillon actuel."
 
 msgid "Template not found."
 msgstr "Modèle non trouvé."
@@ -8843,6 +9260,9 @@ msgstr "Les tailles de texte s'appliquent immédiatement ici — réexportez pou
 
 msgid "Text sizes saved."
 msgstr "Tailles de texte enregistrées."
+
+#~ msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
+#~ msgstr "Tailles de texte enregistrées. Relancez le Storyboard et l'Export pour les appliquer."
 
 msgid "Text Types"
 msgstr "Types de texte"
@@ -8988,6 +9408,9 @@ msgstr "La rivière rejoint la mer"
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "La révision de traduction enregistrée est obsolète. Relancez Réviser pour les traductions visibles."
 
+#~ msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
+#~ msgstr "La section a été modifiée après la conversion — repassez en mode classique puis convertissez à nouveau pour actualiser les étapes."
+
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "La section a été modifiée après la conversion — utilisez « Reconstruire depuis la page » pour actualiser les étapes."
 
@@ -9005,6 +9428,9 @@ msgstr "La table des matières."
 
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "La table des matières liste les sections tapées placées par le Storyboard. Terminez le Storyboard avant d'exécuter cette étape."
+
+#~ msgid "The token needs repository contents, administration, and Pages permissions."
+#~ msgstr "Le jeton nécessite les autorisations de contenu du dépôt, d’administration et de Pages."
 
 msgid "The Water Cycle"
 msgstr "Le cycle de l'eau"
@@ -9062,6 +9488,9 @@ msgstr "Cette activité ne contient aucun texte ni aucune réponse adressable. R
 
 msgid "This archive can't be opened safely"
 msgstr "Cette archive ne peut pas être ouverte en toute sécurité"
+
+#~ msgid "This book asset will be included in the next commit."
+#~ msgstr "Cette ressource du livre sera incluse dans le prochain commit."
 
 msgid "This book has {pageCount} pages."
 msgstr "Ce livre comporte {pageCount} pages."
@@ -9149,6 +9578,9 @@ msgstr "Cette opération fusionne une activité. La section combinée est régé
 msgid "This model already has prompt files for every base prompt."
 msgstr "Ce modèle possède déjà des fichiers de prompt pour chaque prompt de base."
 
+#~ msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a book-level prompt variant for it."
+#~ msgstr "Ce modèle utilise le prompt de base, car {expectedModelPromptName} n'existe pas encore. Enregistrer des modifications pendant que ce modèle est sélectionné créera une variante de prompt au niveau du livre pour celui-ci."
+
 msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a prompt variant for it."
 msgstr "Ce modèle utilise le prompt de base car {expectedModelPromptName} n'existe pas encore. Enregistrer les modifications avec ce modèle sélectionné créera une variante de prompt pour lui."
 
@@ -9203,6 +9635,9 @@ msgstr "Cette position contient déjà un quiz. Ajoutez-en un autre juste après
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Cette invite indique au LLM comment évaluer le HTML rendu par rapport à la page originale. La sélection ci-dessus contrôle le modèle utilisé."
 
+#~ msgid "This prompt is using the latest global version. Reset removes that version and returns to the shipped default."
+#~ msgstr "Ce prompt utilise la dernière version globale. La réinitialisation supprime cette version et revient au défaut fourni."
+
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Ce quiz sera retiré du livre. Vous pourrez toujours le restaurer depuis l'historique des versions."
 
@@ -9238,6 +9673,42 @@ msgstr "Ce texte n'est perceptible que par les technologies d'assistance."
 
 msgid "This version is empty."
 msgstr "Cette version est vide."
+
+#~ msgid "This week"
+#~ msgstr "Cette semaine"
+
+#~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
+#~ msgstr "Cela enregistrera vos paramètres Lecture Facile et générera une nouvelle version Lecture Facile modifiable."
+
+#~ msgid "This will save your settings and re-generate the table of contents."
+#~ msgstr "Cela enregistrera vos paramètres et régénérera la table des matières."
+
+#~ msgid "This will save your settings and re-run glossary generation."
+#~ msgstr "Cela enregistrera vos paramètres et relancera la génération du glossaire."
+
+#~ msgid "This will save your settings and re-run image captioning."
+#~ msgstr "Cela enregistrera vos paramètres et relancera la génération des légendes d'images."
+
+#~ msgid "This will save your settings and re-run quiz generation."
+#~ msgstr "Cela enregistrera vos paramètres et relancera la génération des quiz."
+
+#~ msgid "This will save your settings and re-run sectioning for all pages."
+#~ msgstr "Ceci enregistrera vos paramètres et relancera le sectionnement pour toutes les pages."
+
+#~ msgid "This will save your settings and re-run speech generation."
+#~ msgstr "Cela enregistrera vos paramètres et relancera la génération de la synthèse vocale."
+
+#~ msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
+#~ msgstr "Cela enregistrera vos paramètres et relancera le pipeline d'extraction. Les modifications manuelles du texte extrait seront écrasées pour les pages concernées."
+
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
+#~ msgstr "Cela enregistrera vos paramètres et relancera le pipeline du scénarimage. Seul le rendu sera régénéré — vos sections existantes seront conservées."
+
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
+#~ msgstr "Ceci enregistrera vos paramètres et relancera le pipeline du storyboard. Le sectionnement et le rendu seront exécutés pour toutes les pages."
+
+#~ msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
+#~ msgstr "Cela enregistrera vos paramètres et relancera les traductions, en reconstruisant le catalogue de texte et en traduisant vers les langues de sortie."
 
 msgid "Thorium Reader"
 msgstr "Thorium Reader"
@@ -9281,6 +9752,9 @@ msgstr "Mode table des matières"
 msgid "TOC Preview"
 msgstr "Aperçu de la table des matières"
 
+#~ msgid "Today"
+#~ msgstr "Aujourd’hui"
+
 msgid "Toggle model list"
 msgstr "Afficher/masquer la liste des modèles"
 
@@ -9307,6 +9781,9 @@ msgstr "Jetons totaux"
 
 msgid "Track reviewer progress and review findings captured from Preview."
 msgstr "Suivez la progression du réviseur et les résultats de révision capturés depuis l'aperçu."
+
+#~ msgid "Track the book's local edits, commits, publishing status, and GitHub metadata."
+#~ msgstr "Suivez les modifications locales, les commits, l’état de publication et les métadonnées GitHub du livre."
 
 msgid "Translate"
 msgstr "Traduire"
@@ -9455,6 +9932,9 @@ msgstr "Types utilisés lors du découpage des pages en sections. Les types éla
 msgid "Typography"
 msgstr "Typographie"
 
+#~ msgid "Unable to apply template."
+#~ msgstr "Impossible d’appliquer le modèle."
+
 msgid "Unable to check GitHub for changes."
 msgstr "Impossible de rechercher les modifications sur GitHub."
 
@@ -9491,6 +9971,9 @@ msgstr "Impossible de charger les paramètres de la liste de contrôle du révis
 msgid "Unable to load the default LLM."
 msgstr "Impossible de charger le LLM par défaut."
 
+#~ msgid "Unable to load the default model."
+#~ msgstr "Impossible de charger le modèle par défaut."
+
 msgid "Unable to load the model settings."
 msgstr "Impossible de charger les paramètres des modèles."
 
@@ -9508,6 +9991,9 @@ msgstr "Impossible de réinitialiser le prompt global."
 
 msgid "Unable to save global prompt."
 msgstr "Impossible d'enregistrer le prompt global."
+
+#~ msgid "Unable to save prompt model."
+#~ msgstr "Impossible d'enregistrer le modèle de prompt."
 
 msgid "Unable to select prompt version."
 msgstr "Impossible de sélectionner la version du prompt."
@@ -9527,6 +10013,9 @@ msgstr "Impossible de mettre à jour les remplacements de modèles du livre."
 msgid "Unable to update the default LLM."
 msgstr "Impossible de mettre à jour le LLM par défaut."
 
+#~ msgid "Unable to update the default model."
+#~ msgstr "Impossible de mettre à jour le modèle par défaut."
+
 msgid "Unable to update the task-specific model defaults."
 msgstr "Impossible de mettre à jour les modèles par défaut propres à chaque tâche."
 
@@ -9544,6 +10033,9 @@ msgstr "Non catégorisé"
 
 msgid "Unchanged"
 msgstr "Inchangé"
+
+#~ msgid "Under Repository permissions, grant Contents, Administration, and Pages read and write access."
+#~ msgstr "Dans les autorisations du dépôt, accordez l’accès en lecture et écriture à Contents, Administration et Pages."
 
 msgid "Under Repository permissions, set Contents to Read and write so ADT can pull and push book files."
 msgstr "Dans les autorisations du dépôt, réglez Contenu sur Lecture et écriture afin qu’ADT puisse récupérer et envoyer les fichiers du livre."
@@ -9599,8 +10091,17 @@ msgstr "Quiz sans titre"
 msgid "Unverified license"
 msgstr "Licence non vérifiée"
 
+#~ msgid "Update"
+#~ msgstr "Mise à jour"
+
 msgid "Update available"
 msgstr "Mise à jour disponible"
+
+#~ msgid "Update downloaded. Restart to install."
+#~ msgstr "Mise à jour téléchargée. Redémarrer pour installer."
+
+#~ msgid "Update model"
+#~ msgstr "Mettre à jour le modèle"
 
 msgid "Update ready to install"
 msgstr "Mise à jour prête à être installée"
@@ -9756,11 +10257,20 @@ msgstr "Utilisé pour les modèles Claude (claude-opus-4-6, claude-sonnet-4-6, e
 msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
 msgstr "Utilisé pour les modèles Gemini — LLM (gemini-2.5-pro, etc.) et TTS (gemini-2.5-pro-preview-tts, etc.)"
 
+#~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
+#~ msgstr "Utilisé pour la synthèse vocale OpenAI dans ces tâches du pipeline :"
+
 msgid "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
 msgstr "Utilisé pour la synthèse vocale OpenAI, Azure et Gemini dans ces tâches du pipeline :"
 
+#~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
+#~ msgstr "Utilisé pour la génération de texte et l’analyse visuelle lorsqu’une étape ne précise pas de LLM. Chaque étape peut toujours le remplacer."
+
 msgid "Used for this quiz"
 msgstr "Utilisée pour ce quiz"
+
+#~ msgid "Used when a pipeline step does not specify its own model."
+#~ msgstr "Utilisé lorsqu’une étape du pipeline ne spécifie pas son propre modèle."
 
 msgid "Using fallback"
 msgstr "Fallback utilisé"
@@ -9806,6 +10316,12 @@ msgstr "Version {current}"
 msgid "Version {selected}"
 msgstr "Version {selected}"
 
+#~ msgid "Version {targetVersion}"
+#~ msgstr "Version {targetVersion}"
+
+msgid "Version history"
+msgstr "Historique des versions"
+
 msgid "Versioned"
 msgstr "Versionné"
 
@@ -9823,6 +10339,12 @@ msgstr "Vidéos"
 
 msgid "View"
 msgstr "Voir"
+
+#~ msgid "View all changes"
+#~ msgstr "Voir toutes les modifications"
+
+#~ msgid "View deployment"
+#~ msgstr "Voir le déploiement"
 
 msgid "View details"
 msgstr "Voir les détails"
@@ -9844,6 +10366,9 @@ msgstr "Voir la page"
 
 msgid "View page {pageNum} larger"
 msgstr "Voir la page {pageNum} en grand"
+
+#~ msgid "View release details"
+#~ msgstr "Voir les détails de la version"
 
 msgid "Visible page entries"
 msgstr "Entrées visibles de la page"
@@ -9987,6 +10512,9 @@ msgstr "Quoi de neuf"
 msgid "What's new in this release"
 msgstr "Nouveautés de cette version"
 
+#~ msgid "What's next for this book?"
+#~ msgstr "Et ensuite pour ce livre ?"
+
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "Lors de la description des images, mentionnez par leur nom tout objet, lieu ou personnage récurrent culturellement spécifique."
 
@@ -9995,6 +10523,9 @@ msgstr "Lorsque cette option est activée, les couleurs d'arrière-plan du guide
 
 msgid "When enabled, Studio can evaluate saved translations with the configured judge."
 msgstr "Lorsque cette option est activée, Studio peut évaluer les traductions enregistrées avec le juge configuré."
+
+#~ msgid "When enabled, text labels near vector images (e.g. chart dimensions, speech bubbles) are grouped together and extracted as raster crops. Disable to extract only the core vector shapes without text."
+#~ msgstr "Lorsque cette option est activée, les libellés de texte proches des images vectorielles (par ex. dimensions de graphique, bulles de dialogue) sont regroupés et extraits en recadrages raster. Désactivez pour extraire uniquement les formes vectorielles sans texte."
 
 msgid "When enabled, the selected images below are regenerated for every output language during the translate stage."
 msgstr "Lorsqu'activé, les images sélectionnées ci-dessous sont régénérées pour chaque langue de sortie pendant l'étape de traduction."
@@ -10059,6 +10590,9 @@ msgstr "mots"
 msgid "Working tree"
 msgstr "Arbre de travail"
 
+#~ msgid "Workspace changes"
+#~ msgstr "Modifications de l’espace de travail"
+
 msgid "Wrap in group"
 msgstr "Encapsuler dans un groupe"
 
@@ -10075,6 +10609,9 @@ msgstr "Rédiger avec l'IA le retour correct/incorrect pour chaque étape"
 msgid "Write your sentence with a {0} marker."
 msgstr "Écrivez votre phrase avec un marqueur {0}."
 
+#~ msgid "Yesterday"
+#~ msgstr "Hier"
+
 #. placeholder {0}: formatVersion(release.version)
 msgid "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."
 msgstr "Vous êtes sur le point d’installer {0}. Les livres ou paramètres modifiés avec une version plus récente risquent de ne pas fonctionner comme prévu. Sauvegardez vos livres avant de continuer."
@@ -10087,6 +10624,9 @@ msgstr "Vous contrôlez quand ADT Studio vérifie et récupère les modification
 
 msgid "You have changes that haven't been saved yet. If you quit now, they'll be lost."
 msgstr "Vous avez des modifications qui n'ont pas encore été enregistrées. Si vous quittez maintenant, elles seront perdues."
+
+#~ msgid "You have unsaved changes. If you leave, they'll be lost."
+#~ msgstr "Vous avez des modifications non enregistrées. Si vous quittez, elles seront perdues."
 
 msgid "You haven't added any terms manually yet"
 msgstr "Vous n'avez pas encore ajouté de termes manuellement"
@@ -10105,6 +10645,9 @@ msgstr "Vous utilisez la dernière version d’ADT Studio."
 
 msgid "Young adult fiction"
 msgstr "fiction jeune adulte"
+
+#~ msgid "Your app is up to date. There's nothing to do."
+#~ msgstr "Votre application est à jour. Il n'y a rien à faire."
 
 msgid "Your book"
 msgstr "Votre livre"
@@ -10138,544 +10681,3 @@ msgstr "Zoom avant"
 
 msgid "Zoom out"
 msgstr "Zoom arrière"
-
-#. placeholder {0}: changesQuery.data.changes.length
-#~ msgid "{0} unpublished file changes"
-#~ msgstr "{0} modifications de fichiers non publiées"
-
-#. placeholder {0}: versions.length
-#~ msgid "{0} versions"
-#~ msgstr "{0} versions"
-
-#~ msgid "{expectedModelPromptName} does not exist yet. Saving while this model is selected creates that global model-specific prompt."
-#~ msgstr "{expectedModelPromptName} n'existe pas encore. Enregistrer avec ce modèle sélectionné crée ce prompt global spécifique au modèle."
-
-#~ msgid "A new version is available for download."
-#~ msgstr "Une nouvelle version est disponible au téléchargement."
-
-#~ msgid "Add model"
-#~ msgstr "Ajouter un modèle"
-
-#~ msgid "Add or create model prompt files"
-#~ msgstr "Ajouter ou créer des fichiers de prompt du modèle"
-
-#~ msgid "Application"
-#~ msgstr "Application"
-
-#~ msgid "Book change history"
-#~ msgstr "Historique des modifications du livre"
-
-#~ msgid "Book is published"
-#~ msgstr "Le livre est publié"
-
-#~ msgid "Changed files"
-#~ msgstr "Fichiers modifiés"
-
-#~ msgid "Changes apply the next time you run Storyboard and Export."
-#~ msgstr "Les modifications s'appliquent au prochain lancement du Storyboard et de l'Export."
-
-#~ msgid "Check changes"
-#~ msgstr "Vérifier les modifications"
-
-#~ msgid "Choose an existing model or type a new provider:model id. Adding stores it in global prompt settings. Creating files copies the current base prompt content into missing model-specific versions."
-#~ msgstr "Choisissez un modèle existant ou saisissez un nouvel id provider:model. L'ajout l'enregistre dans les paramètres globaux des prompts. Créer des fichiers copie le contenu actuel du prompt de base dans les versions spécifiques au modèle manquantes."
-
-#~ msgid "Choose any available beta version to install."
-#~ msgstr "Choisissez n’importe quelle version bêta disponible à installer."
-
-#~ msgid "Choose the model used when a pipeline step does not specify its own model."
-#~ msgstr "Choisissez le modèle utilisé lorsqu’une étape du pipeline ne spécifie pas son propre modèle."
-
-#~ msgid "Collapse model prompts"
-#~ msgstr "Réduire les prompts du modèle"
-
-#~ msgid "Collapse prompt variants"
-#~ msgstr "Replier les variantes du prompt"
-
-#~ msgid "Compared with current content."
-#~ msgstr "Comparé au contenu actuel."
-
-#~ msgid "Complete the guided setup before starting the publishing workflow."
-#~ msgstr "Terminez la configuration guidée avant de lancer le flux de publication."
-
-#~ msgid "Configure GitHub publishing"
-#~ msgstr "Configurer la publication GitHub"
-
-#~ msgid "Configure GitHub to start publishing"
-#~ msgstr "Configurez GitHub pour commencer la publication"
-
-#~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
-#~ msgstr "Configurez les identifiants des fournisseurs et les prompts de fallback globaux utilisés par ADT Studio."
-
-#~ msgid "Confirm the destination below. Publishing will open the live workflow screen automatically."
-#~ msgstr "Confirmez la destination ci-dessous. La publication ouvrira automatiquement l’écran du flux en direct."
-
-#~ msgid "Connect an account and choose a repository before running this workflow."
-#~ msgstr "Connectez un compte et choisissez un dépôt avant d’exécuter ce flux."
-
-#~ msgid "Create classic token on GitHub"
-#~ msgstr "Créer un jeton classique sur GitHub"
-
-#~ msgid "Create fine-grained token on GitHub"
-#~ msgstr "Créer un jeton à granularité fine sur GitHub"
-
-#~ msgid "Create the destination repository first, then select its owner and that repository as the token resource."
-#~ msgstr "Créez d’abord le dépôt de destination, puis sélectionnez son propriétaire et ce dépôt comme ressource du jeton."
-
-#~ msgid "Current book workspace"
-#~ msgstr "Espace de travail actuel du livre"
-
-#~ msgid "Date unavailable"
-#~ msgstr "Date indisponible"
-
-#~ msgid "Default LLM"
-#~ msgstr "LLM par défaut"
-
-#~ msgid "Default model updated."
-#~ msgstr "Modèle par défaut mis à jour."
-
-#~ msgid "Default model uses the base prompt files and does not need model-specific copies."
-#~ msgstr "Le modèle par défaut utilise les fichiers de prompt de base et n'a pas besoin de copies spécifiques au modèle."
-
-#~ msgid "Diff against current"
-#~ msgstr "Diff avec l'actuelle"
-
-#~ msgid "Discard unsaved changes?"
-#~ msgstr "Ignorer les modifications non enregistrées ?"
-
-#~ msgid "Each node updates live as ADT Studio publishes the book."
-#~ msgstr "Chaque nœud se met à jour en direct pendant qu’ADT Studio publie le livre."
-
-#~ msgid "Edited globally"
-#~ msgstr "Modifié globalement"
-
-#~ msgid "Edits apply to the matching elements of the activity's layout. To change the layout itself, use \"Edit layout\" in the banner."
-#~ msgstr "Les modifications s'appliquent aux éléments correspondants de la mise en page de l'activité. Pour modifier la mise en page elle-même, utilisez \\\"Modifier la mise en page\\\" dans la bannière."
-
-#~ msgid "Expand model prompts"
-#~ msgstr "Développer les prompts du modèle"
-
-#~ msgid "Expand prompt variants"
-#~ msgstr "Déplier les variantes du prompt"
-
-#~ msgid "Fallback"
-#~ msgstr "Fallback"
-
-#~ msgid "Gemini API key is required to generate audio."
-#~ msgstr "La clé API Gemini est requise pour générer l'audio."
-
-#~ msgid "Generate missing Gemini audio"
-#~ msgstr "Générer l'audio Gemini manquant"
-
-#~ msgid "Git publishing workflow"
-#~ msgstr "Flux de publication Git"
-
-#~ msgid "Individual steps can still override this model in their own settings."
-#~ msgstr "Les étapes individuelles peuvent toujours remplacer ce modèle dans leurs propres paramètres."
-
-#~ msgid "Last activity"
-#~ msgstr "Dernière activité"
-
-#~ msgid "Latest deployment"
-#~ msgstr "Dernier déploiement"
-
-#~ msgid "Latest GitHub changes synchronized."
-#~ msgstr "Dernières modifications GitHub synchronisées."
-
-#~ msgid "Learn how with a guided setup"
-#~ msgstr "Suivez la configuration guidée"
-
-#~ msgid "Loading deployments"
-#~ msgstr "Chargement des déploiements"
-
-#~ msgid "Local and GitHub changes need resolution before synchronization."
-#~ msgstr "Les modifications locales et GitHub doivent être résolues avant la synchronisation."
-
-#~ msgid "Local book is up to date."
-#~ msgstr "Le livre local est à jour."
-
-#~ msgid "Model {normalizedTargetModel} added."
-#~ msgstr "Modèle {normalizedTargetModel} ajouté."
-
-#~ msgid "Model variant"
-#~ msgstr "Variante de modèle"
-
-#~ msgid "No differences from the current version."
-#~ msgstr "Aucune différence avec la version actuelle."
-
-#~ msgid "Not committed yet"
-#~ msgstr "Pas encore validé"
-
-#~ msgid "Not configured"
-#~ msgstr "Non configuré"
-
-#~ msgid "Open public book"
-#~ msgstr "Ouvrir le livre public"
-
-#~ msgid "Override specialized models for this book. Empty fields inherit the platform defaults."
-#~ msgstr "Remplacez les modèles spécialisés pour ce livre. Les champs vides héritent des valeurs par défaut de la plateforme."
-
-#~ msgid "Package, commit, push, host, and preview the accessible book without leaving ADT Studio."
-#~ msgstr "Créez le paquet, validez, publiez, hébergez et prévisualisez le livre accessible sans quitter ADT Studio."
-
-#~ msgid "Pick one of the book's images to illustrate this glossary term on the glossary page."
-#~ msgstr "Choisissez une des images du livre pour illustrer ce terme sur la page de glossaire."
-
-#~ msgid "Pick page range"
-#~ msgstr "Choisir la plage de pages"
-
-#~ msgid "Pipeline default"
-#~ msgstr "Valeur par défaut du pipeline"
-
-#~ msgid "Prompt files"
-#~ msgstr "Fichiers de prompt"
-
-#~ msgid "Prompt Settings"
-#~ msgstr "Paramètres des prompts"
-
-#~ msgid "Publish book"
-#~ msgstr "Publier le livre"
-
-#~ msgid "Publish with GitHub Pages"
-#~ msgstr "Publier avec GitHub Pages"
-
-#~ msgid "Pull remote changes"
-#~ msgstr "Récupérer les modifications distantes"
-
-#. placeholder {0}: selectedAudioIds.size
-#~ msgid "Regenerate selected ({0})"
-#~ msgstr "Régénérer la sélection ({0})"
-
-#~ msgid "Remote changes are available."
-#~ msgstr "Des modifications distantes sont disponibles."
-
-#~ msgid "Remote changes available"
-#~ msgstr "Des modifications distantes sont disponibles"
-
-#~ msgid "Review and publish"
-#~ msgstr "Vérifier et publier"
-
-#~ msgid "Review the most recent publishing workflow and open its public result."
-#~ msgstr "Consultez le flux de publication le plus récent et ouvrez son résultat public."
-
-#~ msgid "Run workflow"
-#~ msgstr "Exécuter le flux"
-
-#~ msgid "Save and publish"
-#~ msgstr "Enregistrer et publier"
-
-#~ msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token only for the current browser session and does not store it in the book directory."
-#~ msgstr "Sécurité : utilisez la durée d’expiration pratique la plus courte, ne partagez jamais le jeton et révoquez-le dans GitHub lorsqu’il n’est plus nécessaire. ADT Studio conserve ce jeton uniquement pendant la session actuelle du navigateur et ne le stocke pas dans le dossier du livre."
-
-#~ msgid "Select a prompt"
-#~ msgstr "Sélectionner un prompt"
-
-#~ msgid "Select the repo scope. It covers repository creation, file publishing, and GitHub Pages configuration."
-#~ msgstr "Sélectionnez l’autorisation repo. Elle couvre la création du dépôt, la publication des fichiers et la configuration de GitHub Pages."
-
-#~ msgid "Selected"
-#~ msgstr "Sélectionnée"
-
-#~ msgid "Set a Gemini API key to generate audio"
-#~ msgstr "Définissez une clé API Gemini pour générer l'audio"
-
-#~ msgid "Task-specific model defaults"
-#~ msgstr "Modèles par défaut spécifiques à chaque tâche"
-
-#~ msgid "Template applied to current draft."
-#~ msgstr "Modèle appliqué au brouillon actuel."
-
-#~ msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
-#~ msgstr "La section a été modifiée après la conversion — repassez en mode classique puis convertissez à nouveau pour actualiser les étapes."
-
-#~ msgid "The token needs repository contents, administration, and Pages permissions."
-#~ msgstr "Le jeton nécessite les autorisations de contenu du dépôt, d’administration et de Pages."
-
-#~ msgid "This book asset will be included in the next commit."
-#~ msgstr "Cette ressource du livre sera incluse dans le prochain commit."
-
-#~ msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a book-level prompt variant for it."
-#~ msgstr "Ce modèle utilise le prompt de base, car {expectedModelPromptName} n'existe pas encore. Enregistrer des modifications pendant que ce modèle est sélectionné créera une variante de prompt au niveau du livre pour celui-ci."
-
-#~ msgid "This prompt is using the latest global version. Reset removes that version and returns to the shipped default."
-#~ msgstr "Ce prompt utilise la dernière version globale. La réinitialisation supprime cette version et revient au défaut fourni."
-
-#~ msgid "Track the book's local edits, commits, publishing status, and GitHub metadata."
-#~ msgstr "Suivez les modifications locales, les commits, l’état de publication et les métadonnées GitHub du livre."
-
-#~ msgid "Unable to apply template."
-#~ msgstr "Impossible d’appliquer le modèle."
-
-#~ msgid "Unable to load the default model."
-#~ msgstr "Impossible de charger le modèle par défaut."
-
-#~ msgid "Unable to save prompt model."
-#~ msgstr "Impossible d'enregistrer le modèle de prompt."
-
-#~ msgid "Unable to update the default model."
-#~ msgstr "Impossible de mettre à jour le modèle par défaut."
-
-#~ msgid "Under Repository permissions, grant Contents, Administration, and Pages read and write access."
-#~ msgstr "Dans les autorisations du dépôt, accordez l’accès en lecture et écriture à Contents, Administration et Pages."
-
-#~ msgid "Update downloaded. Restart to install."
-#~ msgstr "Mise à jour téléchargée. Redémarrer pour installer."
-
-#~ msgid "Update model"
-#~ msgstr "Mettre à jour le modèle"
-
-#~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
-#~ msgstr "Utilisé pour la synthèse vocale OpenAI dans ces tâches du pipeline :"
-
-#~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
-#~ msgstr "Utilisé pour la génération de texte et l’analyse visuelle lorsqu’une étape ne précise pas de LLM. Chaque étape peut toujours le remplacer."
-
-#~ msgid "Used when a pipeline step does not specify its own model."
-#~ msgstr "Utilisé lorsqu’une étape du pipeline ne spécifie pas son propre modèle."
-
-#~ msgid "Version {targetVersion}"
-#~ msgstr "Version {targetVersion}"
-
-#~ msgid "Version history"
-#~ msgstr "Historique des versions"
-
-#~ msgid "View all changes"
-#~ msgstr "Voir toutes les modifications"
-
-#~ msgid "View deployment"
-#~ msgstr "Voir le déploiement"
-
-#~ msgid "Workspace changes"
-#~ msgstr "Modifications de l’espace de travail"
-
-#~ msgid "{0} added"
-#~ msgstr "{0} ajoutées"
-
-#. placeholder {0}: formatVersion(group.series)
-#~ msgid "{0} series"
-#~ msgstr "Série {0}"
-
-#~ msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
-#~ msgstr "{spreadCount} {spreadCount, plural, one {fusion} other {fusions}} marquées."
-
-#~ msgid "ADT Studio"
-#~ msgstr "ADT Studio"
-
-#~ msgid "Apply spreads"
-#~ msgstr "Appliquer les fusions"
-
-#~ msgid "Applying…"
-#~ msgstr "Application…"
-
-#~ msgid "Available beta versions"
-#~ msgstr "Versions bêta disponibles"
-
-#~ msgid "Available versions"
-#~ msgstr "Versions disponibles"
-
-#~ msgid "Back to Editor"
-#~ msgstr "Retour à l'éditeur"
-
-#~ msgid "Browse beta releases by series."
-#~ msgstr "Parcourez les versions bêta par série."
-
-#~ msgid "Built from"
-#~ msgstr "Compilé à partir de"
-
-#~ msgid "Cancelling step"
-#~ msgstr "Annulation de l’étape"
-
-#~ msgid "Check for updates"
-#~ msgstr "Vérifier les mises à jour"
-
-#~ msgid "Current version"
-#~ msgstr "Version actuelle"
-
-#~ msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
-#~ msgstr "{confirmCount} {confirmCount, plural, one {fusion} other {fusions}} possibles détectées — confirmez lesquelles fusionner"
-
-#~ msgid "Downgrade"
-#~ msgstr "Rétrogradation"
-
-#~ msgid "Download size"
-#~ msgstr "Taille du téléchargement"
-
-#~ msgid "Downloading… {0}% · {1}/s"
-#~ msgstr "Téléchargement… {0}% · {1}/s"
-
-#~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
-#~ msgstr "Modifiez le modèle Liquid/HTML ci-dessous. Les modifications sont enregistrées lorsque vous cliquez sur Enregistrer et relancer."
-
-#~ msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
-#~ msgstr "Tailles fixes et accessibles appliquées à chaque page. Les tailles utilisent l'échelle Tailwind du livre (choisissez un token ou saisissez une valeur exacte en px), s'adaptent de façon fluide entre mobile et ordinateur, et remplacent toute taille choisie par l'IA — ainsi les titres et le corps de texte restent cohérents dans tout le livre."
-
-#~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. A lower temperature (e.g. 0.4) reduces that variation and a fixed seed makes delivery reproducible. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
-#~ msgstr "Gemini génère chaque phrase dans sa propre requête, si bien que son ton peut varier d'une phrase à l'autre. Une température plus basse (p. ex. 0,4) réduit cette variation et une graine fixe rend la lecture reproductible. Ne concerne que les langues acheminées vers Gemini — OpenAI et Azure les ignorent. Modifier l'une de ces valeurs régénère l'audio Gemini lors de la prochaine exécution."
-
-#~ msgid "Installing an older version can break books or settings that were created or edited with a newer one. Back up your books before downgrading."
-#~ msgstr "Installer une version plus ancienne peut endommager des livres ou des réglages créés ou modifiés avec une version plus récente. Sauvegardez vos livres avant de revenir à une version antérieure."
-
-#~ msgid "Last"
-#~ msgstr "Dernier"
-
-#~ msgid "Last week"
-#~ msgstr "La semaine dernière"
-
-#~ msgid "merge into next page"
-#~ msgstr "fusionner avec la page suivante"
-
-#~ msgid "Merge into next page"
-#~ msgstr "Fusionner avec la page suivante"
-
-#~ msgid "merge into previous page"
-#~ msgstr "fusionner avec la page précédente"
-
-#~ msgid "Merge into previous page"
-#~ msgstr "Fusionner avec la page précédente"
-
-#~ msgid "Merged:"
-#~ msgstr "Fusionné :"
-
-#~ msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
-#~ msgstr "La plupart des livres se lisent une page à la fois. Si le vôtre a une illustration qui s'étend sur deux pages en vis-à-vis, liez ces pages pour qu'elles soient traitées ensemble comme une seule fusion au lieu d'être divisées en deux."
-
-#~ msgid "New version"
-#~ msgstr "Nouvelle version"
-
-#~ msgid "Newer"
-#~ msgstr "Plus récente"
-
-#~ msgid "No beta versions are available for this platform."
-#~ msgstr "Aucune version bêta n’est disponible pour cette plateforme."
-
-#~ msgid "No beta versions match your search."
-#~ msgstr "Aucune version bêta ne correspond à votre recherche."
-
-#~ msgid "No readable text extracted from this page"
-#~ msgstr "Aucun texte lisible extrait de cette page"
-
-#~ msgid "No versions match your search."
-#~ msgstr "Aucune version ne correspond à votre recherche."
-
-#~ msgid "Older"
-#~ msgstr "Plus ancienne"
-
-#~ msgid "Open commit {shortSha}"
-#~ msgstr "Ouvrir le commit {shortSha}"
-
-#~ msgid "Other beta versions"
-#~ msgstr "Autres versions bêta"
-
-#~ msgid "Page {p}"
-#~ msgstr "Page {p}"
-
-#~ msgid "Refresh beta versions"
-#~ msgstr "Actualiser les versions bêta"
-
-#~ msgid "Refresh list"
-#~ msgstr "Actualiser la liste"
-
-#~ msgid "Release library"
-#~ msgstr "Bibliothèque des versions"
-
-#~ msgid "Review {selectedCount} selected"
-#~ msgstr "Revoir {selectedCount} sélectionnées"
-
-#~ msgid "Review this beta release and its notes before installing."
-#~ msgstr "Consultez cette version bêta et ses notes avant de l’installer."
-
-#~ msgid "Running {stageLabel}"
-#~ msgstr "Exécution de {stageLabel}"
-
-#~ msgid "Running..."
-#~ msgstr "En cours..."
-
-#~ msgid "Search questions or answers…"
-#~ msgstr "Rechercher des questions ou des réponses…"
-
-#~ msgid "Search versions"
-#~ msgstr "Rechercher des versions"
-
-#~ msgid "Search versions…"
-#~ msgstr "Rechercher des versions…"
-
-#~ msgid "See the current version and a chosen version rendered side by side."
-#~ msgstr "Affichez la version actuelle et une version choisie côte à côte."
-
-#~ msgid "Select {title}"
-#~ msgstr "Sélectionner {title}"
-
-#~ msgid "Select a version to see details and installation options."
-#~ msgstr "Sélectionnez une version pour afficher les détails et les options d’installation."
-
-#~ msgid "Select a version to see its release notes."
-#~ msgstr "Sélectionnez une version pour afficher ses notes de version."
-
-#~ msgid "Software Update"
-#~ msgstr "Mise à jour logicielle"
-
-#~ msgid "Split into parts for others"
-#~ msgstr "Diviser en parties pour d'autres"
-
-#~ msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
-#~ msgstr "Tailles de texte enregistrées. Relancez le Storyboard et l'Export pour les appliquer."
-
-#~ msgid "This week"
-#~ msgstr "Cette semaine"
-
-#~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
-#~ msgstr "Cela enregistrera vos paramètres Lecture Facile et générera une nouvelle version Lecture Facile modifiable."
-
-#~ msgid "This will save your settings and re-generate the table of contents."
-#~ msgstr "Cela enregistrera vos paramètres et régénérera la table des matières."
-
-#~ msgid "This will save your settings and re-run glossary generation."
-#~ msgstr "Cela enregistrera vos paramètres et relancera la génération du glossaire."
-
-#~ msgid "This will save your settings and re-run image captioning."
-#~ msgstr "Cela enregistrera vos paramètres et relancera la génération des légendes d'images."
-
-#~ msgid "This will save your settings and re-run quiz generation."
-#~ msgstr "Cela enregistrera vos paramètres et relancera la génération des quiz."
-
-#~ msgid "This will save your settings and re-run sectioning for all pages."
-#~ msgstr "Ceci enregistrera vos paramètres et relancera le sectionnement pour toutes les pages."
-
-#~ msgid "This will save your settings and re-run speech generation."
-#~ msgstr "Cela enregistrera vos paramètres et relancera la génération de la synthèse vocale."
-
-#~ msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
-#~ msgstr "Cela enregistrera vos paramètres et relancera le pipeline d'extraction. Les modifications manuelles du texte extrait seront écrasées pour les pages concernées."
-
-#~ msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
-#~ msgstr "Cela enregistrera vos paramètres et relancera le pipeline du scénarimage. Seul le rendu sera régénéré — vos sections existantes seront conservées."
-
-#~ msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
-#~ msgstr "Ceci enregistrera vos paramètres et relancera le pipeline du storyboard. Le sectionnement et le rendu seront exécutés pour toutes les pages."
-
-#~ msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
-#~ msgstr "Cela enregistrera vos paramètres et relancera les traductions, en reconstruisant le catalogue de texte et en traduisant vers les langues de sortie."
-
-#~ msgid "Today"
-#~ msgstr "Aujourd’hui"
-
-#~ msgid "Update"
-#~ msgstr "Mise à jour"
-
-#~ msgid "View release details"
-#~ msgstr "Voir les détails de la version"
-
-#~ msgid "What's next for this book?"
-#~ msgstr "Et ensuite pour ce livre ?"
-
-#~ msgid "When enabled, text labels near vector images (e.g. chart dimensions, speech bubbles) are grouped together and extracted as raster crops. Disable to extract only the core vector shapes without text."
-#~ msgstr "Lorsque cette option est activée, les libellés de texte proches des images vectorielles (par ex. dimensions de graphique, bulles de dialogue) sont regroupés et extraits en recadrages raster. Désactivez pour extraire uniquement les formes vectorielles sans texte."
-
-#~ msgid "Yesterday"
-#~ msgstr "Hier"
-
-#~ msgid "You have unsaved changes. If you leave, they'll be lost."
-#~ msgstr "Vous avez des modifications non enregistrées. Si vous quittez, elles seront perdues."
-
-#~ msgid "Your app is up to date. There's nothing to do."
-#~ msgstr "Votre application est à jour. Il n'y a rien à faire."
