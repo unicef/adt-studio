@@ -26,6 +26,7 @@ await build({
         "@tailwindcss/oxide",
         "lightningcss",
         "postcss",
+        "@anthropic-ai/claude-agent-sdk",
     ],
     banner: {
       js: [

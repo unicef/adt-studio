@@ -106,7 +106,11 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 - `docker/entrypoint.sh` — starts API + nginx in the `app` stage, health-checks API before nginx starts
 - `docker/compose-release.yml.template` — template for the release asset
 
-**External packages in Docker:** `jsdom`, `esbuild`, `tailwindcss`, `postcss`, and `playwright` cannot be bundled by esbuild because they read data files relative to their own `__dirname`. They are installed into `apps/api/dist/node_modules/` by the Dockerfile build stage via npm. If a new package exhibits the same pattern (ENOENT error pointing to a path under `/app/apps/`), add it to both the `external` array in `apps/api/scripts/bundle-server.mjs` and the npm install step in the Dockerfile.
+**External packages in Docker:** `jsdom`, `esbuild`, `tailwindcss`, `postcss`, `playwright`, and `@anthropic-ai/claude-agent-sdk` cannot be bundled by esbuild because they read data files relative to their own `__dirname` (the Claude Agent SDK resolves its `claude` executable through its own optional dependencies). They are installed into `apps/api/dist/node_modules/` by the Dockerfile build stage via npm. If a new package exhibits the same pattern (ENOENT error pointing to a path under `/app/apps/`), add it to both the `external` array in `apps/api/scripts/bundle-server.mjs` and the npm install step in the Dockerfile.
+
+The Claude Agent SDK also ships one ~250 MB `claude` binary per platform. The build stage is Debian (glibc), so the `app` stage (Alpine/musl) swaps the glibc variant for the musl one instead of carrying both.
+
+**The `codex` provider ships no dependency at all.** It spawns whatever `codex` is on the machine's PATH (`CODEX_EXECUTABLE` overrides the lookup) via `packages/llm/src/providers/codex/cli.ts`, reusing that machine's `codex login`. `@openai/codex-sdk` is deliberately *not* a dependency — it carries its own copy of the CLI (~410 MB per platform), and the ADT only needs the `codex exec --json` contract. So nothing has to be added to the `external` array, the Dockerfile npm step, or `install-server-runtime.mjs`: the provider simply reports "Codex CLI not found" wherever no CLI is installed (containers included), exactly like the keyless auth it depends on.
 
 ## Commands
 

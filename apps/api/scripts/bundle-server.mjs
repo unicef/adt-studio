@@ -41,6 +41,9 @@ await build({
     "playwright",
     "playwright-core",
     "jsdom",
+    // Resolves its platform-specific `claude` executable through its own
+    // optional dependencies, so it must stay a real package on disk.
+    "@anthropic-ai/claude-agent-sdk",
   ],
   banner: {
     js: [

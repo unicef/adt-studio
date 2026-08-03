@@ -2,6 +2,8 @@ import { createProviderRegistry, type ProviderRegistry } from "../registry.js"
 import type { AnyProviderModule } from "../ports/index.js"
 import { openaiProvider } from "./openai/index.js"
 import { anthropicProvider } from "./anthropic/index.js"
+import { claudeAgentProvider } from "./claude-agent/index.js"
+import { codexProvider } from "./codex/index.js"
 import { googleProvider } from "./google/index.js"
 import { customProvider } from "./custom/index.js"
 import { ollamaProvider } from "./ollama/index.js"
@@ -14,6 +16,12 @@ export {
   anthropicManifest,
   ANTHROPIC_PROVIDER_ID,
 } from "./anthropic/index.js"
+export {
+  claudeAgentProvider,
+  claudeAgentManifest,
+  CLAUDE_AGENT_PROVIDER_ID,
+} from "./claude-agent/index.js"
+export { codexProvider, codexManifest, CODEX_PROVIDER_ID } from "./codex/index.js"
 export { googleProvider, googleManifest, GOOGLE_PROVIDER_ID } from "./google/index.js"
 export { customProvider, customManifest, CUSTOM_PROVIDER_ID } from "./custom/index.js"
 export {
@@ -29,6 +37,8 @@ export { geminiProvider, geminiManifest, GEMINI_PROVIDER_ID } from "./gemini/ind
 export const BUILT_IN_PROVIDERS: readonly AnyProviderModule[] = [
   openaiProvider as AnyProviderModule,
   anthropicProvider as AnyProviderModule,
+  claudeAgentProvider as AnyProviderModule,
+  codexProvider as AnyProviderModule,
   googleProvider as AnyProviderModule,
   customProvider as AnyProviderModule,
   ollamaProvider as AnyProviderModule,

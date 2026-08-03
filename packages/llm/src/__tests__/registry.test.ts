@@ -249,6 +249,8 @@ describe("built-in provider registry", () => {
     expect(registry.ids).toEqual([
       "openai",
       "anthropic",
+      "claude-agent",
+      "codex",
       "google",
       "custom",
       "ollama",
