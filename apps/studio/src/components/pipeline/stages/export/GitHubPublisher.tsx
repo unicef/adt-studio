@@ -365,7 +365,17 @@ function DeploymentsTable({ deployments, connection, onInspect, isLoading }: {
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {visibleDeployments.map((deployment) => (
+          {isLoading ? Array.from({ length: pageSize }, (_, index) => (
+            <tr key={`deployment-skeleton-${index}`} className="h-[3.75rem]" aria-hidden="true">
+              <td className="px-4 py-3"><div className="h-3 w-64 animate-pulse rounded bg-muted" /><div className="mt-2 h-2.5 w-16 animate-pulse rounded bg-muted" /></td>
+              <td className="px-4 py-3"><div className="h-3 w-24 animate-pulse rounded bg-muted" /></td>
+              <td className="px-4 py-3"><div className="h-6 w-20 animate-pulse rounded-full bg-muted" /></td>
+              <td className="px-4 py-3"><div className="h-3 w-14 animate-pulse rounded bg-muted" /></td>
+              <td className="px-4 py-3"><div className="h-3 w-12 animate-pulse rounded bg-muted" /></td>
+              <td className="px-4 py-3"><div className="h-3 w-32 animate-pulse rounded bg-muted" /></td>
+              <td className="px-4 py-3"><div className="ml-auto h-8 w-20 animate-pulse rounded-md bg-muted" /></td>
+            </tr>
+          )) : visibleDeployments.map((deployment) => (
             <tr key={deployment.id} className="transition-colors hover:bg-muted/20">
               <td className="max-w-[22rem] px-4 py-3"><p className="truncate font-medium">{deployment.commitMessage || <Trans>Book deployment</Trans>}</p><p className="mt-1 text-[11px] text-muted-foreground">{deployment.changes.length} <Trans>files</Trans></p></td>
               <td className="px-4 py-3"><span className="inline-flex items-center gap-1.5 capitalize"><span className={`h-2 w-2 rounded-full ${deployment.status === "completed" ? "bg-emerald-500" : deployment.status === "failed" ? "bg-red-500" : "bg-indigo-500"}`} />{deployment.status} <span className="text-muted-foreground">{deploymentDuration(deployment)}</span></span></td>
@@ -376,17 +386,6 @@ function DeploymentsTable({ deployments, connection, onInspect, isLoading }: {
               <td className="px-4 py-3 text-right"><Button type="button" size="sm" variant="outline" onClick={() => onInspect(deployment)}>{deployment.status === "running" ? <LoaderCircle className="mr-2 h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <ScanSearch className="mr-2 h-3.5 w-3.5" aria-hidden="true" />}<Trans>Inspect</Trans></Button></td>
             </tr>
           ))}
-          {isLoading ? Array.from({ length: Math.max(3, pageSize - visibleDeployments.length) }, (_, index) => (
-            <tr key={`deployment-skeleton-${index}`} className="h-[3.75rem]" aria-hidden="true">
-              <td className="px-4 py-3"><div className="h-3 w-64 animate-pulse rounded bg-muted" /><div className="mt-2 h-2.5 w-16 animate-pulse rounded bg-muted" /></td>
-              <td className="px-4 py-3"><div className="h-3 w-24 animate-pulse rounded bg-muted" /></td>
-              <td className="px-4 py-3"><div className="h-6 w-20 animate-pulse rounded-full bg-muted" /></td>
-              <td className="px-4 py-3"><div className="h-3 w-14 animate-pulse rounded bg-muted" /></td>
-              <td className="px-4 py-3"><div className="h-3 w-12 animate-pulse rounded bg-muted" /></td>
-              <td className="px-4 py-3"><div className="h-3 w-32 animate-pulse rounded bg-muted" /></td>
-              <td className="px-4 py-3"><div className="ml-auto h-8 w-20 animate-pulse rounded-md bg-muted" /></td>
-            </tr>
-          )) : null}
         </tbody>
         </table>
       </div>
@@ -1109,7 +1108,7 @@ export function GitHubPublisher({ bookLabel }: { bookLabel: string }) {
                     : (deploymentsQuery.data ?? [])}
                   connection={connection}
                   onInspect={setInspectedDeployment}
-                  isLoading={deploymentsQuery.isLoading}
+                  isLoading={deploymentsQuery.isFetching}
                 />
               )}
             </div>
