@@ -416,8 +416,12 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
     },
 
     async updateComment({ token, id, body, anchor, editedAt }: UpdateCommentInput) {
-      const assignments = ["edited_at = ?"]
-      const values: Array<string | null> = [editedAt]
+      const assignments: string[] = []
+      const values: Array<string | null> = []
+      if (editedAt !== undefined) {
+        assignments.push("edited_at = ?")
+        values.push(editedAt)
+      }
       if (body !== undefined) {
         assignments.push("body = ?")
         values.push(body)

@@ -25,6 +25,7 @@ import { mgmtAuth } from "./middleware/mgmt-auth.js"
 import { publicationLookup, type PublicationVariables } from "./middleware/publication-lookup.js"
 import {
   cacheControlFor,
+  conditionalEtag,
   contentTypeFor,
   snapshotPathFromUrl,
 } from "./serve.js"
@@ -332,7 +333,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     }
 
     const key = `${publication.token}/v${publication.current_version}/${relative}`
-    const ifNoneMatch = c.req.header("If-None-Match")
+    const ifNoneMatch = conditionalEtag(c.req.header("If-None-Match"))
     const object = await c.env.SNAPSHOTS.get(
       key,
       ifNoneMatch === undefined ? undefined : { onlyIf: { etagDoesNotMatch: ifNoneMatch } },

@@ -51,8 +51,14 @@ export function createMemoryR2Bucket(): MemoryR2Bucket {
       if (!bytes) return null
       const httpEtag = `"${etagOf(bytes)}"`
 
-      if (options?.onlyIf?.etagDoesNotMatch === httpEtag) {
-        return { key, size: bytes.length, httpEtag, etag: httpEtag.slice(1, -1) }
+      const condition = options?.onlyIf?.etagDoesNotMatch
+      if (condition !== undefined) {
+        if (condition.includes('"') || condition.startsWith("W/")) {
+          throw new Error("etagDoesNotMatch must be an unquoted etag (workerd rejects quoted forms)")
+        }
+        if (condition === etagOf(bytes)) {
+          return { key, size: bytes.length, httpEtag, etag: httpEtag.slice(1, -1) }
+        }
       }
 
       return {
@@ -278,7 +284,7 @@ export function createMemoryPublicationStore(): PublicationStore {
         ...comment,
         ...(body === undefined ? {} : { body }),
         ...(anchor === undefined ? {} : { anchor }),
-        edited_at: editedAt,
+        ...(editedAt === undefined ? {} : { edited_at: editedAt }),
       }
       comments.set(id, updated)
       return withAuthor(updated)

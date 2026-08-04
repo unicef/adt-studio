@@ -75,6 +75,20 @@ export function cacheControlFor(pathname: string): string {
   return MEDIA_CACHE_CONTROL
 }
 
+/** R2's `onlyIf.etagDoesNotMatch` wants the bare etag, but browsers echo the quoted
+ *  (or weak `W/"…"`) form we ourselves send — workerd rejects those outright. Lists
+ *  and `*` fall back to an unconditional read rather than guessing. */
+export function conditionalEtag(header: string | undefined): string | undefined {
+  if (header === undefined) return undefined
+  const value = header.trim()
+  if (value === "" || value === "*" || value.includes(",")) return undefined
+  const strong = value.startsWith("W/") ? value.slice(2) : value
+  if (strong.startsWith('"') && strong.endsWith('"') && strong.length >= 2) {
+    return strong.slice(1, -1)
+  }
+  return strong
+}
+
 export function isHtmlRequest(pathname: string): boolean {
   const extension = extensionOf(pathname)
   return extension === "" || extension === "html" || extension === "htm"

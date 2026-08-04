@@ -63,7 +63,8 @@ export interface UpdateCommentInput {
   id: string
   body?: string
   anchor?: CommentAnchor | null
-  editedAt: string
+  /** Absent for anchor-only updates: moving a pin is not an edit. */
+  editedAt?: string
 }
 
 export interface PublicationStore {

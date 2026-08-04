@@ -389,7 +389,7 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       id: existing.id,
       ...(body.data.body === undefined ? {} : { body: body.data.body }),
       ...(body.data.anchor === undefined ? {} : { anchor: body.data.anchor }),
-      editedAt: deps.timestamp(),
+      ...(body.data.body === undefined ? {} : { editedAt: deps.timestamp() }),
     })
     if (!updated) {
       return errorResponse(c, "not_found", 404)

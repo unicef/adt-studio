@@ -347,6 +347,7 @@ describe("comment lifecycle", () => {
     const draggedBody = ((await dragged.json()) as PublishCommentResponse).comment
     expect(draggedBody.anchor?.xOffsetPct).toBe(80)
     expect(draggedBody.body).toBe("The sun looks angry on this page")
+    expect(draggedBody.edited_at).toBe(editedBody.edited_at)
 
     const deleted = await app().request(
       `${BASE}/p/${token}/comments/${reply.id}`,
