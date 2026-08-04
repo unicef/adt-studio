@@ -50,6 +50,7 @@ const getBookPublication = vi.fn()
 const publishBook = vi.fn()
 const publishBookVersion = vi.fn()
 const revokeBookPublication = vi.fn()
+const resumeBookPublication = vi.fn()
 const setBookPublicationExpiry = vi.fn()
 const getCloudflareConnection = vi.fn()
 
@@ -70,6 +71,7 @@ vi.mock("@/api/client", () => ({
     publishBook,
     publishBookVersion,
     revokeBookPublication,
+    resumeBookPublication,
     setBookPublicationExpiry,
     getCloudflareConnection,
   },
@@ -209,17 +211,23 @@ describe("PublishPanel — states", () => {
     expect(screen.getByRole("button", { name: /try again/i })).toBeTruthy()
   })
 
-  it("offers a fresh link after the author stopped sharing", async () => {
+  it("offers both ways back after the author stopped sharing, resuming first", async () => {
     getBookPublication.mockResolvedValue(revokedStatus())
 
     renderPanel()
 
     await waitFor(() => expect(screen.getByTestId("publication-revoked")).toBeTruthy())
-    expect(screen.getByTestId("publication-revoked").textContent).toContain(
-      "old link no longer opens",
-    )
+    const notice = screen.getByTestId("publication-revoked")
+    expect(notice.textContent).toContain("old link no longer opens")
+    expect(notice.textContent).toContain("same address starts working again")
+    expect(notice.textContent).toContain("all the comments are kept")
+    expect(screen.getByTestId("publish-resume-button").textContent).toContain("Resume sharing")
+
     expect(screen.getByTestId("publish-start-button").textContent).toContain("Publish again")
+    expect(document.body.textContent).toContain("new address instead")
+    expect(document.body.textContent).toContain("old link stays off")
     expect(screen.queryByTestId("publish-share-link")).toBeNull()
+    expect(resumeBookPublication).not.toHaveBeenCalled()
   })
 
   it("makes the link the hero of the published state, with its version history", async () => {
@@ -441,6 +449,44 @@ describe("PublishPanel — link management", () => {
 
     expect(revokeBookPublication).toHaveBeenCalledWith("meu-livro")
     await waitFor(() => expect(screen.getByTestId("publication-revoked")).toBeTruthy())
+  })
+
+  it("resumes sharing on the same link and lands back on the published state", async () => {
+    getBookPublication.mockResolvedValue(revokedStatus())
+    resumeBookPublication.mockResolvedValue({ publication: publishedStatus().publication })
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-resume-button")).toBeTruthy())
+    getBookPublication.mockResolvedValue(publishedStatus())
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("publish-resume-button"))
+    })
+
+    expect(resumeBookPublication).toHaveBeenCalledWith("meu-livro")
+    await waitFor(() => expect(screen.getByTestId("publish-share-link")).toBeTruthy())
+    expect(screen.getByTestId("publish-share-link").textContent).toContain(SHARE_URL)
+    expect(screen.queryByTestId("publication-revoked")).toBeNull()
+  })
+
+  it("keeps the link off and says so when resuming fails", async () => {
+    getBookPublication.mockResolvedValue(revokedStatus())
+    resumeBookPublication.mockRejectedValue(
+      new MockApiError("The publish worker answered 502", 502, "worker_unreachable"),
+    )
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-resume-button")).toBeTruthy())
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("publish-resume-button"))
+    })
+
+    await waitFor(() => expect(screen.getByTestId("publish-resume-error")).toBeTruthy())
+    const error = screen.getByTestId("publish-resume-error")
+    expect(error.textContent).toContain("still off")
+    expect(error.textContent).toContain("The publish worker answered 502")
+    expect(screen.getByTestId("publication-revoked")).toBeTruthy()
   })
 
   it("changes the end date through the expiry route", async () => {

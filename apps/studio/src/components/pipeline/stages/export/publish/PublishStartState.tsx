@@ -13,6 +13,9 @@ interface PublishStartStateProps {
   kind: "first" | "again"
   isRunning: boolean
   hasFailed?: boolean
+  /** Set when something else on the panel is the primary way forward — today that is
+   *  "Resume sharing" on a revoked publication. */
+  secondary?: boolean
   onPublish: (expiresAt: string | null) => void
 }
 
@@ -20,6 +23,7 @@ export function PublishStartState({
   kind,
   isRunning,
   hasFailed = false,
+  secondary = false,
   onPublish,
 }: PublishStartStateProps) {
   const { t } = useLingui()
@@ -33,6 +37,11 @@ export function PublishStartState({
             Publishing puts a frozen copy of the book online — exactly as it looks right now — and
             gives you a link to share. You keep editing freely afterwards: the shared copy only
             changes when you choose "Update site".
+          </Trans>
+        ) : secondary ? (
+          <Trans>
+            Publishing again gets you a new address instead — the old link stays off, and you share
+            the new one with everybody again.
           </Trans>
         ) : (
           <Trans>
@@ -55,6 +64,7 @@ export function PublishStartState({
       <div>
         <Button
           data-testid="publish-start-button"
+          variant={secondary ? "outline" : "default"}
           disabled={isRunning}
           onClick={() => onPublish(expiryChoiceToIso(choice))}
         >

@@ -104,6 +104,7 @@ const PUBLISH_ERROR_CODES: readonly PublishErrorCodeStudio[] = [
   "upload_failed",
   "worker_unreachable",
   "snapshot_too_large",
+  "not_revoked",
 ]
 
 function toPublishErrorCode(code: string | null): PublishErrorCodeStudio | "unknown" {
@@ -264,6 +265,16 @@ export function useRevokePublication(label: string) {
   const queryClient = useQueryClient()
   return useMutation<PublicationResponse, Error, void>({
     mutationFn: () => api.revokeBookPublication(label),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: bookPublicationKey(label) })
+    },
+  })
+}
+
+export function useResumePublication(label: string) {
+  const queryClient = useQueryClient()
+  return useMutation<PublicationResponse, Error, void>({
+    mutationFn: () => api.resumeBookPublication(label),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookPublicationKey(label) })
     },

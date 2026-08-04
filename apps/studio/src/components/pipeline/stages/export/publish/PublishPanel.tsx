@@ -14,6 +14,7 @@ import { PublishErrorNotice } from "./PublishErrorNotice"
 import { PublishStartState } from "./PublishStartState"
 import { PublishedState } from "./PublishedState"
 import { PublishingSettingsLink } from "./PublishingSettingsLink"
+import { RevokedNotice } from "./RevokedNotice"
 
 /**
  * "Share online" — the publish half of the Export stage. Sits beside the export
@@ -110,24 +111,21 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
 
       {!status.isPending && !status.isError && connected && (
         <div className="flex flex-col gap-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300">
-          {(lifecycle === "revoked" || lifecycle === "expired") && (
+          {lifecycle === "revoked" && (
+            <RevokedNotice bookLabel={bookLabel} disabled={isRunning} />
+          )}
+
+          {lifecycle === "expired" && (
             <div
-              data-testid={`publication-${lifecycle}`}
+              data-testid="publication-expired"
               className="flex items-start gap-2.5 rounded-lg border border-border bg-muted/30 p-3.5"
             >
               <CalendarOff className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <p className="text-sm leading-6 text-muted-foreground">
-                {lifecycle === "revoked" ? (
-                  <Trans>
-                    You stopped sharing this book, so the old link no longer opens. Publishing again
-                    gives you a new link to share.
-                  </Trans>
-                ) : (
-                  <Trans>
-                    This book's link has reached its end date and no longer opens. Publishing again
-                    gives you a new link to share.
-                  </Trans>
-                )}
+                <Trans>
+                  This book's link has reached its end date and no longer opens. Publishing again
+                  gives you a new link to share.
+                </Trans>
               </p>
             </div>
           )}
@@ -165,6 +163,7 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
               kind={lifecycle === "none" ? "first" : "again"}
               isRunning={isRunning}
               hasFailed={run.status === "error"}
+              secondary={lifecycle === "revoked"}
               onPublish={(expiresAt) => run.publish(expiresAt)}
             />
           )}

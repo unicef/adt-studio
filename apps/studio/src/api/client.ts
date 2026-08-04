@@ -2132,6 +2132,12 @@ export const api = {
       method: "POST",
     }),
 
+  /** "Resume sharing": clears the revocation, so the same address serves again. */
+  resumeBookPublication: (label: string) =>
+    request<PublicationResponse>(`/books/${label}/publication/resume`, {
+      method: "POST",
+    }),
+
   setBookPublicationExpiry: (label: string, expiresAt: string | null) =>
     request<PublicationResponse>(`/books/${label}/publication`, {
       method: "PATCH",
