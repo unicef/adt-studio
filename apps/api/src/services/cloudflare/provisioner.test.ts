@@ -281,24 +281,33 @@ describe("provisionCloudflare — idempotent re-run", () => {
     expect(step?.message).toContain("0002_extra.sql")
   })
 
-  /** The one migration test that reads the real `apps/publish-service/migrations` directory:
-   *  a worker provisioned in M2 has only `0001_init.sql` in `_migrations`, and re-provisioning
-   *  is the only thing that ever adds the session-PIN column to it. */
-  it("applies the shipped session-pin migration to a deployment that only has 0001", async () => {
+  /** The migration tests that read the real `apps/publish-service/migrations` directory.
+   *  Re-provisioning is the *only* thing that ever adds a column to an already-deployed
+   *  worker's database, so each shipped migration gets one test proving it arrives that way. */
+  const shippedMigrations = (): Array<{ name: string; sql: string }> => {
     const migrationsDir = path.resolve(
       path.dirname(fileURLToPath(import.meta.url)),
       "../../../../publish-service/migrations",
     )
-    const migrations = fs
+    return fs
       .readdirSync(migrationsDir)
       .filter((file) => file.endsWith(".sql"))
       .sort()
       .map((name) => ({ name, sql: fs.readFileSync(path.join(migrationsDir, name), "utf-8") }))
+  }
 
-    expect(migrations.map((migration) => migration.name)).toEqual([
-      "0001_init.sql",
-      "0002_session_pin.sql",
-    ])
+  const MIGRATION_NAMES = [
+    "0001_init.sql",
+    "0002_session_pin.sql",
+    "0003_publication_access.sql",
+  ]
+
+  it("ships exactly the migrations the contract documents", () => {
+    expect(shippedMigrations().map((migration) => migration.name)).toEqual(MIGRATION_NAMES)
+  })
+
+  it("applies the shipped session-pin migration to a deployment that only has 0001", async () => {
+    const migrations = shippedMigrations()
 
     const { fake, events, error } = await run({
       artifact: artifact(migrations),
@@ -311,15 +320,61 @@ describe("provisionCloudflare — idempotent re-run", () => {
     })
 
     expect(error).toBeNull()
-    expect(fake.state.executedSql).toEqual([migrations[1]?.sql])
+    expect(fake.state.executedSql).toEqual([migrations[1]?.sql, migrations[2]?.sql])
     expect(fake.state.executedSql[0]).toContain("ALTER TABLE sessions ADD COLUMN pin")
-    expect(fake.state.migrationRows.map((row) => row.name)).toEqual([
-      "0001_init.sql",
-      "0002_session_pin.sql",
-    ])
+    expect(fake.state.migrationRows.map((row) => row.name)).toEqual(MIGRATION_NAMES)
     expect(finishedStep(events, "apply-migrations")?.message).toBe(
-      "Applied 0002_session_pin.sql",
+      "Applied 0002_session_pin.sql, 0003_publication_access.sql",
     )
+  })
+
+  /** An M2.5 deployment (0001 + 0002) is the one every existing user is on: re-provisioning is
+   *  what gives their publications an access-code column, and it must be the *only* statement
+   *  that runs — an already-applied file re-running is what would break the upgrade. */
+  it("applies the publication-access migration to a deployment that has 0001 and 0002", async () => {
+    const migrations = shippedMigrations()
+
+    const { fake, events, error } = await run({
+      artifact: artifact(migrations),
+      fake: {
+        databases: [{ uuid: "db-uuid-1", name: CLOUDFLARE_D1_DATABASE_NAME }],
+        buckets: [CLOUDFLARE_R2_BUCKET_NAME],
+        scripts: [CLOUDFLARE_WORKER_NAME],
+        migrationRows: [
+          { name: "0001_init.sql", applied_at: NOW.toISOString() },
+          { name: "0002_session_pin.sql", applied_at: NOW.toISOString() },
+        ],
+      },
+    })
+
+    expect(error).toBeNull()
+    expect(fake.state.executedSql).toEqual([migrations[2]?.sql])
+    expect(fake.state.executedSql[0]).toContain("ALTER TABLE publications ADD COLUMN access_code")
+    expect(fake.state.migrationRows.map((row) => row.name)).toEqual(MIGRATION_NAMES)
+    expect(finishedStep(events, "apply-migrations")?.message).toBe(
+      "Applied 0003_publication_access.sql",
+    )
+  })
+
+  it("re-provisions a current deployment without touching the schema", async () => {
+    const migrations = shippedMigrations()
+
+    const { fake, events, error } = await run({
+      artifact: artifact(migrations),
+      fake: {
+        databases: [{ uuid: "db-uuid-1", name: CLOUDFLARE_D1_DATABASE_NAME }],
+        buckets: [CLOUDFLARE_R2_BUCKET_NAME],
+        scripts: [CLOUDFLARE_WORKER_NAME],
+        migrationRows: MIGRATION_NAMES.map((name) => ({
+          name,
+          applied_at: NOW.toISOString(),
+        })),
+      },
+    })
+
+    expect(error).toBeNull()
+    expect(fake.state.executedSql).toEqual([])
+    expect(finishedStep(events, "apply-migrations")?.message).toBe("Schema already up to date")
   })
 
   it("preserves provisioned_at and refreshes updated_at on upgrade", async () => {

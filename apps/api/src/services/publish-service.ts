@@ -343,6 +343,9 @@ export interface PublishBookOptions extends PublishExportOptions {
   connection: CloudflareConnectionRecord
   emit: PublishEmit
   expiresAt?: string | null
+  /** Plaintext. It goes to the worker to be hashed, and into the book's own record so the
+   *  author can read back the code they have to share — the worker cannot tell them. */
+  accessCode?: string | null
   now?: () => Date
   generateToken?: () => string
   createClient?: (connection: CloudflareConnectionRecord) => PublishWorkerClient
@@ -394,6 +397,7 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
         book_label: parseBookLabel(options.label),
         page_manifest: built.pageManifest,
         ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
+        ...(options.accessCode ? { access_code: options.accessCode } : {}),
       },
       built.snapshot,
     )
@@ -417,6 +421,8 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
         page_count: built.pageManifest.length,
       },
     ],
+    access_code: options.accessCode ?? null,
+    has_access_code: created.has_access_code,
   }
   savePublicationRecord(options.label, options.booksDir, record)
   await emit(stepEvent("register", "done"))

@@ -167,6 +167,7 @@ describe("GET /books/:label/publication", () => {
       publication: null,
       url: null,
       worker_reachable: false,
+      has_access_code: false,
     })
   })
 
@@ -533,6 +534,163 @@ describe("PATCH /books/:label/publication", () => {
       },
     )
     expect(res.status).toBe(400)
+  })
+})
+
+describe("access codes", () => {
+  const patch = (app: Hono, body: unknown): Promise<Response> =>
+    app.request(`/api/books/${LABEL}/publication`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+    })
+
+  it("sends the code to the worker and keeps the plaintext in the book's record", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+
+    const res = await drain(
+      app,
+      `/api/books/${LABEL}/publication`,
+      publishRequest({ access_code: "K7M4QP" }),
+    )
+    expect(res.status).toBe(200)
+
+    const record = readPublicationRecord(LABEL, tmpDir)
+    expect(record?.access_code).toBe("K7M4QP")
+    expect(record?.has_access_code).toBe(true)
+    expect(worker.state.accessCodes.get(record?.token as string)).toBe("K7M4QP")
+
+    const status = (await (
+      await app.request(`/api/books/${LABEL}/publication`)
+    ).json()) as BookPublicationStatus
+    expect(status.has_access_code).toBe(true)
+    expect(status.record?.access_code).toBe("K7M4QP")
+  })
+
+  it("publishes without a code when none is asked for", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    const record = readPublicationRecord(LABEL, tmpDir)
+    expect(record?.access_code).toBeNull()
+    expect(record?.has_access_code).toBe(false)
+    expect(worker.state.accessCodes.size).toBe(0)
+  })
+
+  it("rotates the code and stores the new plaintext", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(
+      app,
+      `/api/books/${LABEL}/publication`,
+      publishRequest({ access_code: "K7M4QP" }),
+    )
+
+    const rotated = await patch(app, { access_code: "R9T2WX" })
+    expect(rotated.status).toBe(200)
+    await expect(rotated.json()).resolves.toMatchObject({ has_access_code: true })
+
+    const record = readPublicationRecord(LABEL, tmpDir)
+    expect(record?.access_code).toBe("R9T2WX")
+    expect(worker.state.accessCodes.get(record?.token as string)).toBe("R9T2WX")
+  })
+
+  it("removes the code and forgets the plaintext with it", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(
+      app,
+      `/api/books/${LABEL}/publication`,
+      publishRequest({ access_code: "K7M4QP" }),
+    )
+
+    const removed = await patch(app, { access_code: null })
+    expect(removed.status).toBe(200)
+    await expect(removed.json()).resolves.toMatchObject({ has_access_code: false })
+
+    const record = readPublicationRecord(LABEL, tmpDir)
+    expect(record?.access_code).toBeNull()
+    expect(record?.has_access_code).toBe(false)
+    expect(worker.state.accessCodes.size).toBe(0)
+  })
+
+  it("adds a code to a book that was published without one", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    expect((await patch(app, { access_code: "K7M4QP" })).status).toBe(200)
+    expect(readPublicationRecord(LABEL, tmpDir)?.access_code).toBe("K7M4QP")
+  })
+
+  it("keeps the code when only the expiry moves, and the expiry when only the code does", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(
+      app,
+      `/api/books/${LABEL}/publication`,
+      publishRequest({ access_code: "K7M4QP" }),
+    )
+
+    expect((await patch(app, { expires_at: "2027-06-01T00:00:00.000Z" })).status).toBe(200)
+    const dated = readPublicationRecord(LABEL, tmpDir)
+    expect(dated?.expires_at).toBe("2027-06-01T00:00:00.000Z")
+    expect(dated?.access_code).toBe("K7M4QP")
+    expect(dated?.has_access_code).toBe(true)
+
+    expect((await patch(app, { access_code: "R9T2WX" })).status).toBe(200)
+    const recoded = readPublicationRecord(LABEL, tmpDir)
+    expect(recoded?.expires_at).toBe("2027-06-01T00:00:00.000Z")
+    expect(recoded?.access_code).toBe("R9T2WX")
+  })
+
+  it("keeps the code across an Update site", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(
+      app,
+      `/api/books/${LABEL}/publication`,
+      publishRequest({ access_code: "K7M4QP" }),
+    )
+    await drain(app, `/api/books/${LABEL}/publication/versions`, publishRequest())
+
+    const record = readPublicationRecord(LABEL, tmpDir)
+    expect(record?.versions.length).toBe(2)
+    expect(record?.access_code).toBe("K7M4QP")
+    expect(record?.has_access_code).toBe(true)
+  })
+
+  it("refuses a code that is too short, too long or has whitespace", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+
+    for (const access_code of ["abc", "abcdefghijklm", "a b c d"]) {
+      const res = await app.request(
+        `/api/books/${LABEL}/publication`,
+        publishRequest({ access_code }),
+      )
+      expect(res.status, access_code).toBe(400)
+      expect(worker.state.publications.size).toBe(0)
+    }
+  })
+
+  it("rejects a PATCH that changes nothing", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    expect((await patch(app, {})).status).toBe(400)
   })
 })
 

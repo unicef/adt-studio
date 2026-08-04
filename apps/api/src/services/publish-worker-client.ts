@@ -9,6 +9,7 @@ import {
   PublishErrorResponse,
   type PublicationCreateRequest,
   type PublicationPageEntry,
+  type PublicationUpdateRequest,
   type PublishCommentCreateRequest,
   type PublishCommentListQuery,
   type PublishCommentResolveRequest,
@@ -52,6 +53,12 @@ export interface PublishWorkerClient {
   revoke(token: string): Promise<PublicationResponse>
   reinstate(token: string): Promise<PublicationResponse>
   setExpiry(token: string, expiresAt: string | null): Promise<PublicationResponse>
+  /** One PATCH for both knobs. An absent key is left alone by the worker, so this is also how
+   *  the code is rotated (`access_code: "NEW"`) and removed (`access_code: null`). */
+  updatePublication(
+    token: string,
+    update: PublicationUpdateRequest,
+  ): Promise<PublicationResponse>
   getPublication(token: string): Promise<PublicationDetail>
   listComments(
     token: string,
@@ -208,6 +215,18 @@ export function createPublishWorkerClient({
           method: "PATCH",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ expires_at: expiresAt }),
+        },
+        PublicationResponse,
+      )) as PublicationResponse
+    },
+
+    async updatePublication(token, update) {
+      return (await request(
+        `/api/publications/${token}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(update),
         },
         PublicationResponse,
       )) as PublicationResponse

@@ -4,6 +4,7 @@ import {
   PUBLISH_AUTHOR_DEFAULT_NAME,
   PUBLISH_AUTHOR_NAME_HEADER,
   PublicationCreateRequest,
+  PublicationUpdateRequest,
   PublicationVersionCreateRequest,
   PublishCommentCreateRequest,
   PublishCommentResolveRequest,
@@ -27,6 +28,9 @@ export interface FakePublishedVersion {
 
 export interface FakePublishWorkerState {
   publications: Map<string, Publication>
+  /** What the real worker keeps as a PBKDF2 hash. The double keeps the plaintext instead, so a
+   *  test can assert *which* code the Studio sent — the point here is the wire, not the KDF. */
+  accessCodes: Map<string, string>
   versions: Map<string, FakePublishedVersion[]>
   comments: PublishComment[]
   authorNames: Array<string | undefined>
@@ -70,6 +74,7 @@ export function createFakePublishWorker(
 
   const state: FakePublishWorkerState = {
     publications: new Map(),
+    accessCodes: new Map(),
     versions: new Map(),
     comments: [],
     authorNames: [],
@@ -151,12 +156,16 @@ export function createFakePublishWorker(
       }
       state.publications.set(publication.token, publication)
       state.versions.set(publication.token, [version])
+      if (metadata.data.access_code) {
+        state.accessCodes.set(publication.token, metadata.data.access_code)
+      }
 
       return json(
         {
           publication,
           version: toWireVersion(version),
           url: shareUrl(publication.token),
+          has_access_code: state.accessCodes.has(publication.token),
         },
         201,
       )
@@ -204,7 +213,7 @@ export function createFakePublishWorker(
         revoked_at: publication.revoked_at ?? createdAt,
       }
       state.publications.set(token, updated)
-      return json({ publication: updated })
+      return json({ publication: updated, has_access_code: state.accessCodes.has(token) })
     }
 
     const reinstateMatch = /^\/api\/publications\/([^/]+)\/reinstate$/.exec(url.pathname)
@@ -214,7 +223,7 @@ export function createFakePublishWorker(
       if (!publication) return json({ error: "not_found" }, 404)
       const updated: Publication = { ...publication, revoked_at: null }
       state.publications.set(token, updated)
-      return json({ publication: updated })
+      return json({ publication: updated, has_access_code: state.accessCodes.has(token) })
     }
 
     const detailMatch = /^\/api\/publications\/([^/]+)$/.exec(url.pathname)
@@ -222,10 +231,21 @@ export function createFakePublishWorker(
       const token = detailMatch[1] as string
       const publication = state.publications.get(token)
       if (!publication) return json({ error: "not_found" }, 404)
-      const body = (await request.json()) as { expires_at: string | null }
-      const updated: Publication = { ...publication, expires_at: body.expires_at }
+      const body = PublicationUpdateRequest.safeParse((await request.json()) as unknown)
+      if (!body.success) {
+        return json({ error: "invalid_request", message: body.error.message }, 400)
+      }
+      /** Absent keys are left alone, exactly as the worker does. */
+      const updated: Publication = {
+        ...publication,
+        ...(body.data.expires_at === undefined ? {} : { expires_at: body.data.expires_at }),
+      }
       state.publications.set(token, updated)
-      return json({ publication: updated })
+      if (body.data.access_code === null) state.accessCodes.delete(token)
+      else if (body.data.access_code !== undefined) {
+        state.accessCodes.set(token, body.data.access_code)
+      }
+      return json({ publication: updated, has_access_code: state.accessCodes.has(token) })
     }
 
     if (detailMatch && method === "GET") {
@@ -236,6 +256,7 @@ export function createFakePublishWorker(
         publication,
         versions: (state.versions.get(token) ?? []).map(toWireVersion),
         url: shareUrl(token),
+        has_access_code: state.accessCodes.has(token),
       })
     }
 

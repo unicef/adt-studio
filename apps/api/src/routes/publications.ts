@@ -8,7 +8,7 @@ import type { ContentfulStatusCode } from "hono/utils/http-status"
 import {
   BookPublishRequest,
   PUBLISH_AUTHOR_NAME_HEADER,
-  PublicationExpiryUpdateRequest,
+  PublicationUpdateRequest,
   PublishCommentCreateRequest,
   PublishCommentListQuery,
   PublishCommentResolveRequest,
@@ -127,6 +127,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         publication: null,
         url: record?.base_url ?? null,
         worker_reachable: false,
+        has_access_code: record?.has_access_code ?? false,
       }
       return c.json(status)
     }
@@ -139,6 +140,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         publication: detail.publication,
         url: detail.url,
         worker_reachable: true,
+        has_access_code: detail.has_access_code,
       }
       return c.json(status)
     } catch (error) {
@@ -149,6 +151,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
           publication: null,
           url: record.base_url,
           worker_reachable: true,
+          has_access_code: record.has_access_code,
         }
         return c.json(status)
       }
@@ -158,6 +161,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         publication: null,
         url: record.base_url,
         worker_reachable: false,
+        has_access_code: record.has_access_code,
       }
       return c.json(status)
     }
@@ -199,7 +203,13 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       }
 
       try {
-        await publishBook({ ...publishDeps(label), connection, emit, expiresAt: body.data.expires_at ?? null })
+        await publishBook({
+          ...publishDeps(label),
+          connection,
+          emit,
+          expiresAt: body.data.expires_at ?? null,
+          accessCode: body.data.access_code ?? null,
+        })
       } catch (error) {
         await emit(toPublishErrorEvent(error))
       }
@@ -329,12 +339,12 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     return c.json(response)
   })
 
-  // PATCH /books/:label/publication — set or clear the expiry
+  // PATCH /books/:label/publication — set or clear the expiry and/or the access code
   app.patch("/books/:label/publication", async (c) => {
     const label = parseBookLabel(c.req.param("label"))
     requireBook(label)
 
-    const body = PublicationExpiryUpdateRequest.safeParse(await readBody(c))
+    const body = PublicationUpdateRequest.safeParse(await readBody(c))
     if (!body.success) {
       return c.json({ error: body.error.message, code: "invalid_request" }, 400)
     }
@@ -356,15 +366,22 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
 
     let response: PublicationResponse
     try {
-      response = await clientFor(connection).setExpiry(record.token, body.data.expires_at)
+      response = await clientFor(connection).updatePublication(record.token, body.data)
     } catch (error) {
       return workerFailure(c, error)
     }
 
+    /** The plaintext copy only moves when the request actually carried a code, and it follows
+     *  the worker's own `has_access_code`: the local record never claims a lock the worker did
+     *  not confirm, and it never keeps a code the worker has forgotten. */
     savePublicationRecord(label, deps.booksDir, {
       ...record,
       expires_at: response.publication.expires_at,
       revoked_at: response.publication.revoked_at,
+      has_access_code: response.has_access_code,
+      access_code: response.has_access_code
+        ? (body.data.access_code ?? record.access_code)
+        : null,
     })
 
     return c.json(response)
