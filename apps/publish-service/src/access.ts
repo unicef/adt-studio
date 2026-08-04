@@ -172,23 +172,30 @@ export function gatePage(publication: Publication, options: GatePageOptions = {}
  * answers `410` rather than asking for a code it would refuse anyway, and `MGMT_SECRET` walks
  * straight through — the author reads their own feedback through these routes.
  */
-export const accessGate = createMiddleware<AccessAppEnv>(async (c, next) => {
+/**
+ * "Is this request allowed past the door?" — the gate's own condition, factored out so the
+ * realtime room route (§4.16), which has to sit *ahead* of the middleware to accept its own
+ * alternative credential, can ask exactly the same question rather than a similar one.
+ */
+export async function accessGranted(c: AccessContext): Promise<boolean> {
   const packed = c.get("accessCodeHash")
-  if (packed === null || c.get("isAuthor")) return next()
+  if (packed === null || c.get("isAuthor")) return true
+
+  const secret = c.env?.MGMT_SECRET
+  if (secret === undefined) return false
+
+  return accessCookieIsValid(
+    getCookie(c, PUBLICATION_ACCESS_COOKIE),
+    c.get("publication").token,
+    packed,
+    secret,
+  )
+}
+
+export const accessGate = createMiddleware<AccessAppEnv>(async (c, next) => {
+  if (await accessGranted(c)) return next()
 
   const publication = c.get("publication")
-  const secret = c.env?.MGMT_SECRET
-  if (
-    secret !== undefined &&
-    (await accessCookieIsValid(
-      getCookie(c, PUBLICATION_ACCESS_COOKIE),
-      publication.token,
-      packed,
-      secret,
-    ))
-  ) {
-    return next()
-  }
 
   if (!wantsHtml(c)) {
     return errorResponse(c, "unauthorized", 401, UNAUTHORIZED_MESSAGE)

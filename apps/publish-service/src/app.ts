@@ -24,6 +24,7 @@ import { readJsonBody } from "./http.js"
 import { hashAccessCode, randomId } from "./identity.js"
 import { mgmtAuth } from "./middleware/mgmt-auth.js"
 import { publicationLookup, type PublicationVariables } from "./middleware/publication-lookup.js"
+import { registerRoomRoutes } from "./room-routes.js"
 import {
   cacheControlFor,
   conditionalEtag,
@@ -412,6 +413,10 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
   }
 
   registerAccessRoute(app, sessionDeps)
+
+  /** Ahead of the gate for the same reason the door is: the room's ticket is an alternative
+   *  credential, and the middleware only understands the grant cookie. */
+  registerRoomRoutes(app, sessionDeps)
 
   app.use("/p/:token", accessGate)
   app.use("/p/:token/*", accessGate)

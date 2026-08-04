@@ -453,6 +453,29 @@ export {
 } from "./publish-comment.js"
 
 export {
+  PUBLICATION_ROOM_MAX_PEERS,
+  PUBLICATION_ROOM_MAX_FRAME_BYTES,
+  PUBLICATION_ROOM_TICKET_TTL_SECONDS,
+  PUBLICATION_ROOM_TICKET_PARAM,
+  PUBLICATION_ROOM_CURSOR_THROTTLE_MS,
+  PUBLICATION_ROOM_CURSOR_STALE_MS,
+  PUBLISH_ANONYMOUS_NAME,
+  PUBLISH_ANONYMOUS_COLOR,
+  ROOM_COMMENT_EVENTS,
+  RoomPeer,
+  RoomHelloFrame,
+  RoomCursorMoveFrame,
+  RoomPageFrame,
+  RoomClientFrame,
+  RoomPresenceFrame,
+  RoomPeerCursorFrame,
+  RoomCommentEvent,
+  RoomCommentFrame,
+  RoomServerFrame,
+  PublicationRoomTicketResponse,
+} from "./publication-room.js"
+
+export {
   CLOUDFLARE_TOKEN_HEADER,
   CLOUDFLARE_ACCOUNT_ID_HEADER,
   CLOUDFLARE_WORKER_NAME,

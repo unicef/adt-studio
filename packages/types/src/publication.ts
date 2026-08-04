@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { CommenterDisplayName } from "./commenter-name.js"
 
-export const PUBLISH_WORKER_VERSION = "0.5.1"
+export const PUBLISH_WORKER_VERSION = "0.6.0"
 
 export const PUBLICATION_SNAPSHOT_MAX_BYTES = 100 * 1024 * 1024
 

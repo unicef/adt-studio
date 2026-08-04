@@ -58,13 +58,17 @@ export function nameKey(value: string): string {
   return value.trim().normalize("NFC").toLowerCase()
 }
 
-function constantTimeEqual(a: string, b: string): boolean {
+export function constantTimeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false
   let mismatch = 0
   for (let index = 0; index < a.length; index += 1) {
     mismatch |= a.charCodeAt(index) ^ b.charCodeAt(index)
   }
   return mismatch === 0
+}
+
+export async function hmacTag(payload: string, secret: string): Promise<string> {
+  return tagFor(payload, secret)
 }
 
 async function tagFor(sessionId: string, secret: string): Promise<string> {
