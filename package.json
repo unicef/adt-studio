@@ -23,6 +23,7 @@
     "eval:adt": "node scripts/adt-eval.mjs",
     "eval:adt:matrix": "node scripts/run-adt-eval-matrix.mjs",
     "eval:adt:judge": "node scripts/judge-adt-eval-pack.mjs",
+    "eval:adt:tts": "node scripts/evaluate-adt-tts.mjs",
     "a11y:regression": "tsx scripts/run-curated-a11y-regression.ts --build",
     "a11y:regression:json": "tsx scripts/run-curated-a11y-regression.ts --build --format json",
     "a11y:browser-recheck": "tsx scripts/run-browser-a11y-recheck.ts --build",

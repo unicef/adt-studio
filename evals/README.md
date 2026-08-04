@@ -5,6 +5,9 @@ invalid outputs, creates blind review packs, and produces quality, balanced,
 and Pareto rankings. It deliberately separates generation, deterministic
 checks, judging, and ranking so a model cannot grade its own hidden failures.
 
+The full research-backed methodology, evidence tiers, multilingual/content
+taxonomy and publication rules are in [`docs/EVALUATION_FRAMEWORK.md`](../docs/EVALUATION_FRAMEWORK.md).
+
 Developer prerequisites are the repository dependencies plus `sqlite3` and
 `ffprobe` on `PATH`; Chromium comes from the existing Playwright dependency.
 
@@ -26,14 +29,16 @@ the weighted absolute score.
 
 ## Valid evaluation protocol
 
-1. Use at least five versioned PDFs covering storybooks, dense textbooks,
-   scans/OCR, tables, multilingual/RTL material, and difficult images.
+1. Use at least 30 versioned PDFs for a public comparison, with at least three
+   documents in every claimed language/domain/layout cell. A 15-document set is
+   acceptable for an internal pilot only.
 2. Run every model at least three times. The matrix randomizes model order but
    runs sequentially so local memory, thermal load, and API contention do not
    invalidate timing.
 3. Hold non-LLM settings constant. Use the same TTS provider when comparing
    LLMs; evaluate speech models in a separate matrix.
-4. Use two independent human reviewers and preferably two judge-model families.
+4. Use two independent native-language human reviewers and at least two
+   judge-model families for published comparisons.
    Candidate aliases are randomized. A candidate model must not be its own sole
    judge. Human adjudication resolves material disagreement.
 5. Keep the private blind key separate from reviewers. Commit final rubrics,
@@ -85,8 +90,10 @@ pnpm eval:adt blind-pack \
   --key-out .local-evals/momo/blind-key.private.json
 ```
 
-Give only `blind-pack.json` to a reviewer. They score fidelity, completeness,
-and clarity from 1–5. Convert the completed pack into evaluator input:
+Give only `blind-pack.json` to a reviewer. They mark each atomic criterion
+`met`, `not_met`, or `uncertain`, add brief evidence, and choose a pairwise
+preference. The legacy 1–5 fields remain accepted for old reviews. Convert the
+completed pack into evaluator input:
 
 ```sh
 pnpm eval:adt resolve-review \
@@ -96,24 +103,44 @@ pnpm eval:adt resolve-review \
   --out .local-evals/momo/reviewer-1.json
 ```
 
-For an OpenAI-compatible judge endpoint:
+For the current multimodal GPT-5.6 Sol judge path:
 
 ```sh
 pnpm eval:adt:judge \
   --pack .local-evals/momo/blind-pack.json \
   --key .local-evals/momo/blind-key.private.json \
-  --model judge-model-id \
-  --endpoint https://provider.example/v1/chat/completions \
-  --api-key-env JUDGE_API_KEY \
+  --model gpt-5.6-sol \
+  --endpoint https://api.openai.com/v1/responses \
+  --api-key-env OPENAI_API_KEY \
+  --passes 2 \
+  --reasoning-effort high \
   --out .local-evals/momo/judge-1.json
 ```
 
 Add review files to `suite.generated.json`, then run `pnpm eval:adt evaluate`.
-The judge command refuses to send credentials to non-HTTPS remote endpoints and
-keeps candidates anonymous in prompts. Judge rationales and usage are retained.
+The judge sees the source PDF page, uses atomic `met` / `not_met` / `uncertain`
+criteria, reverses candidate order on pass two, refuses to send credentials to
+non-HTTPS remote endpoints, and retains evidence, confidence, usage and bias
+audit metadata.
+
+## Speech evaluation
+
+```sh
+pnpm eval:adt:tts \
+  --export books/<book>/adt \
+  --language pt-BR \
+  --api-key-env OPENAI_API_KEY \
+  --out .local-evals/tts.json
+```
+
+Without an API key this still checks every bundled file, expected-text
+coverage, duration, clipping and excessive silence. With a key it adds ASR
+round-trip WER/CER using `gpt-transcribe`. Native-speaker MOS and paired review
+remain required for publishable TTS claims.
 
 ## Files
 
+- `benchmark-policy.json`: machine-readable publication and calibration gates.
 - `corpora/`: source-document metadata and gold page rubrics.
 - `matrices/`: model generation configurations with no credentials.
 - `reviews/`: resolved judgments; legacy unblinded data is labelled as such.
@@ -123,6 +150,7 @@ keeps candidates anonymous in prompts. Judge rationales and usage are retained.
 - `scripts/run-adt-eval-matrix.mjs`: repeated multi-model ADT generation.
 - `scripts/judge-adt-eval-pack.mjs`: optional blind LLM judge adapter.
 
-Current limitations: automatic source fidelity is lexical, axe results do not
-replace manual WCAG testing, caption judging is the first gold content rubric,
-and quiz/glossary/TOC gold rubrics still need to be added with the larger corpus.
+Current evidence limitation: Momo is one English storybook, so both candidates
+remain ineligible for a public recommendation. Native multilingual documents,
+domain rubrics, quiz/glossary/TOC criteria, human calibration labels and a
+second judge family must be collected using the implemented protocol.

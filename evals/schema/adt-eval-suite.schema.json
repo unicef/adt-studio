@@ -20,6 +20,27 @@
       "items": { "$ref": "#/$defs/candidate" }
     },
     "reviewFiles": { "type": "array", "items": { "type": "string" } },
+    "recommendationPolicy": {
+      "type": "object",
+      "properties": {
+        "minimumDocuments": { "type": "integer", "minimum": 2 },
+        "minimumDocumentsPerStratum": { "type": "integer", "minimum": 2 },
+        "minimumPracticalDifference": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "judgePolicy": {
+      "type": "object",
+      "properties": {
+        "humanReviewerIds": { "type": "array", "items": { "type": "string" } },
+        "minimumHumanReviewers": { "type": "integer", "minimum": 1 },
+        "minimumMetaExamples": { "type": "integer", "minimum": 1 },
+        "minimumMacroF1": { "type": "number", "minimum": 0, "maximum": 1 },
+        "minimumKappa": { "type": "number", "minimum": -1, "maximum": 1 },
+        "minimumCoverage": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
     "gates": {
       "type": "object",
       "properties": {
@@ -30,6 +51,7 @@
         "minimumReviewCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
         "minimumReviewers": { "type": "integer", "minimum": 0 },
         "minimumHumanReviewers": { "type": "integer", "minimum": 0 },
+        "minimumAtomicDecisionCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
         "minimumCaptionScore": { "type": "number", "minimum": 0, "maximum": 100 }
         ,"requireBrowserSmoke": { "type": "boolean" }
       },
@@ -71,6 +93,19 @@
         "id": { "type": "string", "minLength": 1 },
         "title": { "type": "string" },
         "language": { "type": "string" },
+        "strata": {
+          "type": "object",
+          "properties": {
+            "language": { "type": "string" },
+            "domain": { "type": "string" },
+            "contentType": { "type": "string" },
+            "audience": { "type": "string" },
+            "layoutComplexity": { "type": "string" },
+            "sourceQuality": { "type": "string" },
+            "riskLevel": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
         "tags": { "type": "array", "items": { "type": "string" } },
         "expectedPages": { "type": "integer", "minimum": 1 },
         "sourcePdf": { "type": "string" },
@@ -101,6 +136,7 @@
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "displayName": { "type": "string" },
+        "systemId": { "type": "string", "minLength": 1 },
         "model": { "type": "string", "minLength": 1 },
         "local": { "type": "boolean" },
         "documentId": { "type": "string", "minLength": 1 },

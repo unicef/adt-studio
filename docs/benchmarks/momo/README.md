@@ -22,6 +22,19 @@ Date: 2026-08-03
 - `model-evaluation-v1.json`: evaluation-framework proof comparing the final
   Gemma E4B run with GPT-5.4. Its ranking is provisional because the corpus is
   one PDF and the inherited manual review was neither blind nor duplicated.
+- `model-evaluation-v2.json`: document-level strata, recommendation eligibility,
+  paired inference, multiplicity control and judge meta-evaluation.
+- `gpt56-sol-multimodal-judge-v2-summary.json`: real two-pass, position-swapped
+  GPT-5.6 Sol page-image judge run with atomic criteria, bias audit, token use
+  and estimated cost. It remains provisional until native human calibration.
+- `gpt56-sol-multimodal-judge-v2.json`: complete anonymous judgments, evidence,
+  rationales, presentation order, and usage for independent audit.
+- `tts-gemma-mac-fast-static-v1.json` and `tts-openai-static-v1.json`: complete
+  bundled-audio signal and expected-text checks; ASR and native-listener
+  judgments are not yet present.
+- `tts-gemma-mac-fast-asr-v2.json` and `tts-openai-asr-v2.json`: full-file
+  `gpt-transcribe` round-trip WER/CER plus signal checks. They measure
+  intelligibility only; native-listener MOS remains required.
 - `export-smoke-*-eval-v1.json`: per-candidate Chromium runtime evidence consumed
   as a hard evaluation gate.
 

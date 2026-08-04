@@ -53,4 +53,26 @@ describe("ADT evaluation core", () => {
     expect(result.reviews[0].items[0].score).toBe(0.5)
     expect(result.comparisons[0].winnerCandidateId).toBe("model-a")
   })
+
+  it("resolves atomic caption rubrics with explicit abstention", () => {
+    const criteria = {
+      groundedness: { verdict: "met", confidence: 1, evidence: "visible" },
+      essentialCoverage: { verdict: "not_met", confidence: 0.9, evidence: "missing actor" },
+      languageClarity: { verdict: "uncertain", confidence: 0.4, evidence: "needs native review" },
+      accessibilityUsefulness: { verdict: "met", confidence: 0.8, evidence: "clear action" },
+    }
+    const pack = {
+      schemaVersion: 1,
+      suiteId: "test",
+      samples: [{
+        sampleId: "doc:caption:pg001", itemId: "pg001", options: [{ alias: "A", output: "caption" }],
+        judgment: { criteria: { A: criteria }, preferred: "A", rationale: "atomic" },
+      }],
+    }
+    const key = { schemaVersion: 1, suiteId: "test", mappings: [{ sampleId: "doc:caption:pg001", alias: "A", candidateId: "model-a", reviewItemId: "pg001" }] }
+    const result = resolveBlindCaptionReview(pack, key, "human-native")
+    expect(result.reviews[0].items[0].score).toBe(0.666667)
+    expect(result.reviews[0].items[0].atomicDecisionCoverage).toBe(0.75)
+    expect(result.reviews[0].items[0].atomicCriteria).toHaveLength(4)
+  })
 })

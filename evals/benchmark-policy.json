@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "adt-system-benchmark-2026-08",
+  "statisticalUnit": "document",
+  "splits": ["development", "validation", "private-test"],
+  "requiredStrata": [
+    "language",
+    "domain",
+    "contentType",
+    "audience",
+    "layoutComplexity",
+    "sourceQuality",
+    "riskLevel"
+  ],
+  "generation": {
+    "minimumRepetitions": 3,
+    "randomizeSystemOrder": true,
+    "runTimingSequentially": true,
+    "holdNonModelSettingsConstant": true
+  },
+  "recommendation": {
+    "minimumDocuments": 30,
+    "minimumDocumentsPerReportedStratum": 3,
+    "minimumNativeDocumentsPerLanguage": 5,
+    "minimumNativeReviewersPerLanguage": 2,
+    "minimumPracticalQualityDifference": 2,
+    "requireAllTechnicalGates": true,
+    "requireHeldOutTest": true
+  },
+  "judges": {
+    "minimumModelFamilies": 2,
+    "minimumPositionSwappedPasses": 2,
+    "minimumHumanMetaExamples": 50,
+    "minimumHumanReviewers": 2,
+    "minimumMacroF1": 0.8,
+    "minimumCohenKappa": 0.6,
+    "minimumDecisionCoverage": 0.9,
+    "allowAbstention": true,
+    "calibratePerLanguageAndHighRiskDomain": true,
+    "candidateCannotBeSoleJudge": true
+  },
+  "statistics": {
+    "confidenceLevel": 0.95,
+    "bootstrapUnit": "document",
+    "pairedComparisons": true,
+    "multipleComparisonCorrection": "Holm-Bonferroni",
+    "pairwiseRanking": "Bradley-Terry",
+    "reportWorstOfN": true
+  },
+  "tts": {
+    "automatic": ["decode", "expectedTextCoverage", "duration", "clippingRisk", "silenceRatio", "WER", "CER"],
+    "human": ["naturalnessMOS", "intelligibilityMOS", "pronunciationMOS", "prosodyMOS", "pairedPreference"],
+    "nativeReviewRequired": true
+  }
+}

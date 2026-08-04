@@ -246,6 +246,12 @@ see [`caption-review-e4b-final.csv`](benchmarks/momo/caption-review-e4b-final.cs
 The remaining failures are action/actor interpretation, so editorial preview is
 still mandatory.
 
+The new ASR round-trip check covered every bundled utterance. Mac system speech
+measured **5.05% macro WER / 4.12% macro CER** across 116 files; OpenAI speech
+measured **6.34% / 5.11%** across 146 files. These results test intelligibility,
+not naturalness, and do not establish a speech winner without blinded native-
+speaker MOS and preference review.
+
 Full-book measurements rejected three attractive microbenchmark ideas:
 
 - Two persistent MLX workers: 30-item sample improved, full speech regressed from 167.6 to 219.6 seconds.
@@ -312,13 +318,21 @@ Acceptance gate for any replacement: fixed multilingual corpus, coordinate fidel
 | 61–90 days | Add PDF classifier routing and compare Docling/MinerU on the hard corpus | Routing improves quality or time without regressing normal PDFs |
 | 61–90 days | Validate signed/notarized macOS and real Windows x64 builds | Clean-machine install, model download/resume, Momo generation, export playback, update/uninstall tests |
 
-The reusable harness for the evaluation-corpus row now exists in
-[`evals/README.md`](../evals/README.md): repeated randomized model matrices,
-source hashes, hard technical gates, browser export checks, blinded human/LLM
-review, bootstrap intervals, pairwise preferences, weighted profiles, and a
-Pareto frontier. Momo is wired as the first case; adding the remaining 4–6
-document types and two independent reviewers is still required before treating
-its ranking as a general model verdict.
+The reusable harness now follows the stricter methodology in
+[`docs/EVALUATION_FRAMEWORK.md`](EVALUATION_FRAMEWORK.md): multilingual/domain/
+layout strata, atomic multimodal judging, human calibration, position-bias
+audits, document-clustered intervals, paired tests with multiplicity control,
+worst-run reliability, TTS WER/CER and native review, Bradley-Terry preferences,
+and publication thresholds. Momo is only a harness proof; it is explicitly
+ineligible for any general model recommendation.
+
+A paid multimodal GPT-5.6 Sol judge proof examined all 15 source pages twice
+with reversed candidate order. GPT-5.4 met 118/120 atomic decisions (98.3%);
+Gemma E4B met 82/120 (68.3%). Position consistency was 13/15 (86.7%), elapsed
+time was 237.4 seconds, and estimated cost was $1.23. This supports—not
+independently proves—the existing Momo conclusion because the judge is from the
+same provider family as one candidate and has not been calibrated against two
+blinded human reviewers.
 
 ## Final recommendation to the team
 

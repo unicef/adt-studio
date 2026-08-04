@@ -3,6 +3,15 @@
   "id": "momo-grade1",
   "title": "Momo and the Leopards, Grade 1",
   "language": "en",
+  "strata": {
+    "language": "en",
+    "domain": "general-literacy",
+    "contentType": "illustrated-storybook",
+    "audience": "grade-1",
+    "layoutComplexity": "sparse-illustrated",
+    "sourceQuality": "born-digital",
+    "riskLevel": "standard"
+  },
   "tags": ["storybook", "early-reader", "illustrated", "born-digital-pdf"],
   "expectedPages": 20,
   "sourcePdf": "../../../momograde1.pdf",

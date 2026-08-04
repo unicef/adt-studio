@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-04",
+  "status": "provisional-not-human-calibrated",
+  "judge": {
+    "model": "gpt-5.6-sol",
+    "endpoint": "responses",
+    "reasoningEffort": "high",
+    "multimodal": true,
+    "structuredOutputs": true,
+    "sourcePages": 15,
+    "positionSwappedPasses": 2,
+    "judgments": 30,
+    "durationMs": 237364,
+    "usage": {
+      "inputTokens": 94538,
+      "cacheWriteTokens": 94394,
+      "cachedInputTokens": 0,
+      "outputTokensIncludingReasoning": 21302,
+      "reasoningTokens": 9964
+    },
+    "estimatedCostUsd": 1.229743,
+    "pricingBasis": "2026-08-04 standard GPT-5.6 Sol: $5/M input, $30/M output; cache writes at 1.25x input"
+  },
+  "candidateResults": {
+    "gpt-5.4": {
+      "atomicCriteriaMet": 118,
+      "atomicCriteriaTotal": 120,
+      "score": 0.983333,
+      "axes": {
+        "groundedness": { "met": 28, "notMet": 2, "uncertain": 0 },
+        "essentialCoverage": { "met": 30, "notMet": 0, "uncertain": 0 },
+        "languageClarity": { "met": 30, "notMet": 0, "uncertain": 0 },
+        "accessibilityUsefulness": { "met": 30, "notMet": 0, "uncertain": 0 }
+      }
+    },
+    "gemma-e4b": {
+      "atomicCriteriaMet": 82,
+      "atomicCriteriaTotal": 120,
+      "score": 0.683333,
+      "axes": {
+        "groundedness": { "met": 21, "notMet": 9, "uncertain": 0 },
+        "essentialCoverage": { "met": 14, "notMet": 16, "uncertain": 0 },
+        "languageClarity": { "met": 27, "notMet": 3, "uncertain": 0 },
+        "accessibilityUsefulness": { "met": 20, "notMet": 10, "uncertain": 0 }
+      }
+    }
+  },
+  "biasAudit": {
+    "repeatedPairs": 15,
+    "positionConsistentPairs": 13,
+    "positionConsistency": 0.866667,
+    "firstPositionWinRate": 0.5,
+    "abstentionRate": 0,
+    "inconsistentItems": ["pg006", "pg007"]
+  },
+  "interpretation": [
+    "This result supports the existing Momo finding that GPT-5.4 captions are stronger than Gemma E4B captions on this English storybook.",
+    "The judge was not calibrated against two blinded atomic human reviewers, so its score cannot be used as a publishable model recommendation.",
+    "One document is not an independent sample of language, domain, audience, or layout performance."
+  ]
+}

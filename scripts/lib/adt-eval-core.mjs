@@ -3,11 +3,14 @@ import crypto from "node:crypto"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
+import { analyzeSystems, metaEvaluateJudges } from "./adt-eval-science.mjs"
 
 const DEFAULT_PROFILES = {
   quality: { fidelity: 0.55, completeness: 0.15, accessibility: 0.15, reliability: 0.15 },
   balanced: { fidelity: 0.44, completeness: 0.12, accessibility: 0.12, reliability: 0.12, latency: 0.1, cost: 0.1 },
 }
+
+const ATOMIC_CAPTION_AXES = ["groundedness", "essentialCoverage", "languageClarity", "accessibilityUsefulness"]
 
 function assert(condition, message) {
   if (!condition) throw new Error(message)
@@ -313,7 +316,16 @@ function standardDeviation(values) {
 export function collectCandidate(candidate, document, baseDirectory) {
   const descriptors = candidate.runs ?? [candidate]
   const runs = descriptors.map((descriptor, index) => collectRun(candidate, descriptor, document, baseDirectory, index))
-  if (runs.length === 1) return { ...runs[0], repetitions: 1, runSummaries: [{ runId: runs[0].runId, runDurationMs: runs[0].runDurationMs }] }
+  const summary = (run) => ({
+    runId: run.runId,
+    label: run.run.label,
+    runDurationMs: run.runDurationMs,
+    costUsd: run.costUsd,
+    technicalPassed: run.run.pipelineComplete && run.run.llmErrors === 0
+      && run.metrics.export.audioDecodeErrors === 0 && run.metrics.export.emptyMediaFiles === 0
+      && run.metrics.export.missingAssets.length === 0 && run.metrics.export.browserSmoke?.passed === true,
+  })
+  if (runs.length === 1) return { ...runs[0], repetitions: 1, runSummaries: [summary(runs[0])] }
   const durations = runs.map((run) => run.runDurationMs)
   const disabledRules = new Set(runs.flatMap((run) => run.metrics.accessibility.disabledRules))
   return {
@@ -369,7 +381,7 @@ export function collectCandidate(candidate, document, baseDirectory) {
       glossary: runs.flatMap((run) => run.samples.glossary.map((sample) => ({ ...sample, _evalRunId: run.runId }))),
       toc: runs.flatMap((run) => run.samples.toc.map((sample) => ({ ...sample, _evalRunId: run.runId }))),
     },
-    runSummaries: runs.map((run) => ({ runId: run.runId, label: run.run.label, runDurationMs: run.runDurationMs, costUsd: run.costUsd })),
+    runSummaries: runs.map(summary),
   }
 }
 
@@ -406,6 +418,13 @@ function reviewSummary(candidateId, document, reviews, repetitions) {
     : null
   const reviewers = new Set(relevant.map((review) => review.reviewerId)).size
   const humanReviewers = new Set(relevant.filter((review) => !review.judgeModel).map((review) => review.reviewerId)).size
+  const atomicCoverages = relevant.flatMap((review) => (review.items ?? []).map((item) => item.atomicDecisionCoverage)).filter(Number.isFinite)
+  const byRun = new Map()
+  for (const item of itemScores) {
+    const run = item.itemId.match(/^(r\d+):/)?.[1] ?? "r1"
+    if (!byRun.has(run)) byRun.set(run, [])
+    byRun.get(run).push(item.score)
+  }
   return {
     score: mean,
     itemScores,
@@ -415,6 +434,8 @@ function reviewSummary(candidateId, document, reviews, repetitions) {
     reviewers,
     humanReviewers,
     blinded: relevant.length > 0 && relevant.every((review) => review.blinded === true),
+    worstRunScore: byRun.size ? Math.min(...[...byRun.values()].map((scores) => scores.reduce((sum, score) => sum + score, 0) / scores.length)) : null,
+    atomicDecisionCoverage: atomicCoverages.length ? atomicCoverages.reduce((sum, value) => sum + value, 0) / atomicCoverages.length : null,
   }
 }
 
@@ -495,6 +516,7 @@ function candidateScores(candidate, document, reviews, suite) {
   if (review.coverage < (suite.gates?.minimumReviewCoverage ?? 1)) gateFailures.push("human review coverage below gate")
   if (review.reviewers < (suite.gates?.minimumReviewers ?? 1)) gateFailures.push("not enough reviewers")
   if (review.humanReviewers < (suite.gates?.minimumHumanReviewers ?? 0)) gateFailures.push("not enough human reviewers")
+  if (review.atomicDecisionCoverage != null && review.atomicDecisionCoverage < (suite.gates?.minimumAtomicDecisionCoverage ?? 0.9)) gateFailures.push("atomic judge decision coverage below gate")
   if (captionScore != null && captionScore < (suite.gates?.minimumCaptionScore ?? 0)) gateFailures.push("caption quality below gate")
   if (dimensions.fidelity == null) gateFailures.push("required fidelity score is missing")
 
@@ -537,7 +559,11 @@ export function evaluateSuite(suite, baseDirectory) {
   const candidates = suite.candidates.map((candidate) => {
     const document = documentById.get(candidate.documentId)
     const collected = collectCandidate(candidate, document, baseDirectory)
-    return { ...collected, scores: candidateScores(collected, document, reviews, suite) }
+    return {
+      ...collected,
+      systemId: candidate.systemId ?? candidate.id,
+      scores: candidateScores(collected, document, reviews, suite),
+    }
   })
   const profileNames = Object.keys(suite.profiles ?? DEFAULT_PROFILES)
   const rankings = Object.fromEntries(profileNames.map((profile) => [profile, candidates
@@ -566,13 +592,23 @@ export function evaluateSuite(suite, baseDirectory) {
   for (const candidate of candidates) {
     if (judgeModels.has(candidate.model)) warnings.push(`Judge leakage risk: ${candidate.model} also appears as a candidate model.`)
   }
-  if (suite.documents.length < 5) warnings.push("The corpus has fewer than five documents; do not generalize this ranking beyond the represented document type.")
+  const minimumDocuments = suite.recommendationPolicy?.minimumDocuments ?? 5
+  if (suite.documents.length < minimumDocuments) warnings.push(`The corpus has fewer than ${minimumDocuments} documents; do not generalize this ranking beyond the represented document type.`)
+  const systemAnalysis = analyzeSystems(candidates, suite.documents, comparisons, suite)
+  const judgeMetaEvaluation = metaEvaluateJudges(reviews, suite.judgePolicy ?? {})
+  if (reviews.some((review) => review.judgeModel) && !judgeMetaEvaluation.calibrated) {
+    warnings.push("Automated judges have not met the configured human-agreement evidence bar; judge-derived recommendations are provisional.")
+  }
+  if (systemAnalysis.systems.some((system) => !system.recommendationEligible)) {
+    warnings.push("At least one system lacks the minimum document coverage required for a publishable recommendation.")
+  }
   return {
     schemaVersion: 1,
     suite: { id: suite.id, title: suite.title, seed: suite.seed ?? 1 },
     generatedAt: new Date().toISOString(),
     methodology: {
       rankingRule: "Hard gates first; then transparent weighted profiles. Quality confidence intervals bootstrap reviewed rubric items.",
+      statisticalUnit: "Documents, not pages or rubric items, are the independent unit for system-level confidence intervals and paired comparisons.",
       dimensions: {
         fidelity: "40% lexical source-text preservation and 60% reviewed caption fidelity.",
         completeness: "Minimum expected page sectioning/rendering coverage across repetitions.",
@@ -591,6 +627,8 @@ export function evaluateSuite(suite, baseDirectory) {
     rankings,
     pairwiseRanking,
     paretoFrontier: paretoFrontier(candidates),
+    systemAnalysis,
+    judgeMetaEvaluation,
   }
 }
 
@@ -632,9 +670,16 @@ export function createBlindCaptionPack(suite, baseDirectory) {
           itemId: rubric.itemId,
           reviewItemId,
           criterion: rubric.criterion,
+          sourcePdf: document.sourcePdf ?? null,
+          sourcePage: Number.parseInt(rubric.itemId.replace(/^pg/, ""), 10),
           options,
           judgment: {
             scores: Object.fromEntries(options.map((option) => [option.alias, { fidelity: null, completeness: null, clarity: null }])),
+            criteria: Object.fromEntries(options.map((option) => [option.alias, Object.fromEntries(ATOMIC_CAPTION_AXES.map((axis) => [axis, {
+              verdict: null,
+              confidence: null,
+              evidence: "",
+            }]))])),
             preferred: null,
             rationale: "",
           },
@@ -663,14 +708,24 @@ export function resolveBlindCaptionReview(pack, key, reviewerId) {
       assert(mapping, `Missing key mapping for ${sample.sampleId}/${option.alias}`)
       const scores = sample.judgment?.scores?.[option.alias]
       const values = [scores?.fidelity, scores?.completeness, scores?.clarity].map(Number)
-      assert(values.every((value) => Number.isFinite(value) && value >= 1 && value <= 5), `Incomplete 1-5 scores for ${sample.sampleId}/${option.alias}`)
-      const normalized = values.reduce((sum, value) => sum + (value - 1) / 4, 0) / values.length
+      const atomic = sample.judgment?.criteria?.[option.alias]
+      const atomicComplete = ATOMIC_CAPTION_AXES.every((axis) => ["met", "not_met", "uncertain"].includes(atomic?.[axis]?.verdict))
+      const legacyComplete = values.every((value) => Number.isFinite(value) && value >= 1 && value <= 5)
+      assert(atomicComplete || legacyComplete, `Incomplete atomic or 1-5 scores for ${sample.sampleId}/${option.alias}`)
+      const decidedAtomic = atomicComplete ? ATOMIC_CAPTION_AXES.filter((axis) => atomic[axis].verdict !== "uncertain") : []
+      const normalized = atomicComplete
+        ? (decidedAtomic.length
+          ? decidedAtomic.reduce((sum, axis) => sum + Number(atomic[axis].verdict === "met"), 0) / decidedAtomic.length
+          : 0.5)
+        : values.reduce((sum, value) => sum + (value - 1) / 4, 0) / values.length
       if (!itemsByCandidate.has(mapping.candidateId)) itemsByCandidate.set(mapping.candidateId, [])
       sampleMappings.push({ alias: option.alias, candidateId: mapping.candidateId })
       itemsByCandidate.get(mapping.candidateId).push({
         itemId: mapping.reviewItemId ?? sample.reviewItemId ?? sample.itemId,
         score: Number(normalized.toFixed(6)),
         rationale: sample.judgment?.rationale ?? "",
+        ...(atomicComplete ? { atomicCriteria: ATOMIC_CAPTION_AXES.map((axis) => ({ rubricId: axis, ...atomic[axis] })) } : {}),
+        ...(atomicComplete ? { atomicDecisionCoverage: decidedAtomic.length / ATOMIC_CAPTION_AXES.length } : {}),
       })
     }
     const preferred = sample.judgment?.preferred
