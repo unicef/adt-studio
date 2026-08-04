@@ -9933,3 +9933,50 @@ msgstr "Zoom in"
 
 msgid "Zoom out"
 msgstr "Zoom out"
+
+#. placeholder {0}: selectedAudioIds.size
+msgid "{0} selected"
+msgstr "{0} selected"
+
+msgid "All audio"
+msgstr "All audio"
+
+msgid "Clear visible selection"
+msgstr "Clear visible selection"
+
+msgid "Git has not detected changed text entities for this view."
+msgstr "Git has not detected changed text entities for this view."
+
+msgid "No changed content needs speech regeneration"
+msgstr "No changed content needs speech regeneration"
+
+msgid "Regenerate only the selected audio clips"
+msgstr "Regenerate only the selected audio clips"
+
+msgid "Regenerate selected"
+msgstr "Regenerate selected"
+
+msgid "Regenerate this audio clip"
+msgstr "Regenerate this audio clip"
+
+#. placeholder {0}: entry.text
+msgid "Select audio for {0}"
+msgstr "Select audio for {0}"
+
+msgid "Select this audio"
+msgstr "Select this audio"
+
+msgid "Select visible audio"
+msgstr "Select visible audio"
+
+msgid "Set the selected speech provider's API key to generate audio"
+msgstr "Set the selected speech provider's API key to generate audio"
+
+msgid "Speech regeneration views"
+msgstr "Speech regeneration views"
+
+msgid "Suggested"
+msgstr "Suggested"
+
+msgid "The selected speech provider requires an API key."
+msgstr "The selected speech provider requires an API key."

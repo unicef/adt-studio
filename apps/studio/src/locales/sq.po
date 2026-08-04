@@ -9934,3 +9934,50 @@ msgstr "Zmadhim"
 
 msgid "Zoom out"
 msgstr "Zvogëlim"
+
+#. placeholder {0}: selectedAudioIds.size
+msgid "{0} selected"
+msgstr "{0} të përzgjedhura"
+
+msgid "All audio"
+msgstr "Të gjitha audiot"
+
+msgid "Clear visible selection"
+msgstr "Pastro përzgjedhjen e dukshme"
+
+msgid "Git has not detected changed text entities for this view."
+msgstr "Git nuk ka zbuluar entitete teksti të ndryshuara për këtë pamje."
+
+msgid "No changed content needs speech regeneration"
+msgstr "Asnjë përmbajtje e ndryshuar nuk ka nevojë për rigjenerim të zërit"
+
+msgid "Regenerate only the selected audio clips"
+msgstr "Rigjenero vetëm klipet e përzgjedhura të audios"
+
+msgid "Regenerate selected"
+msgstr "Rigjenero të përzgjedhurat"
+
+msgid "Regenerate this audio clip"
+msgstr "Rigjenero këtë klip audio"
+
+#. placeholder {0}: entry.text
+msgid "Select audio for {0}"
+msgstr "Përzgjidh audion për {0}"
+
+msgid "Select this audio"
+msgstr "Përzgjidh këtë audio"
+
+msgid "Select visible audio"
+msgstr "Përzgjidh audiot e dukshme"
+
+msgid "Set the selected speech provider's API key to generate audio"
+msgstr "Vendos çelësin API të ofruesit të përzgjedhur të zërit për të gjeneruar audio"
+
+msgid "Speech regeneration views"
+msgstr "Pamjet e rigjenerimit të zërit"
+
+msgid "Suggested"
+msgstr "Të sugjeruara"
+
+msgid "The selected speech provider requires an API key."
+msgstr "Ofruesi i përzgjedhur i zërit kërkon një çelës API."

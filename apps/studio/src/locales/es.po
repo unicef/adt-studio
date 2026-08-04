@@ -9933,3 +9933,50 @@ msgstr "Acercar"
 
 msgid "Zoom out"
 msgstr "Alejar"
+
+#. placeholder {0}: selectedAudioIds.size
+msgid "{0} selected"
+msgstr "{0} seleccionados"
+
+msgid "All audio"
+msgstr "Todo el audio"
+
+msgid "Clear visible selection"
+msgstr "Limpiar selección visible"
+
+msgid "Git has not detected changed text entities for this view."
+msgstr "Git no ha detectado entidades de texto modificadas para esta vista."
+
+msgid "No changed content needs speech regeneration"
+msgstr "Ningún contenido modificado necesita regeneración de voz"
+
+msgid "Regenerate only the selected audio clips"
+msgstr "Regenerar solo los clips de audio seleccionados"
+
+msgid "Regenerate selected"
+msgstr "Regenerar seleccionados"
+
+msgid "Regenerate this audio clip"
+msgstr "Regenerar este clip de audio"
+
+#. placeholder {0}: entry.text
+msgid "Select audio for {0}"
+msgstr "Seleccionar audio para {0}"
+
+msgid "Select this audio"
+msgstr "Seleccionar este audio"
+
+msgid "Select visible audio"
+msgstr "Seleccionar audio visible"
+
+msgid "Set the selected speech provider's API key to generate audio"
+msgstr "Configure la clave API del proveedor de voz seleccionado para generar audio"
+
+msgid "Speech regeneration views"
+msgstr "Vistas de regeneración de voz"
+
+msgid "Suggested"
+msgstr "Sugerido"
+
+msgid "The selected speech provider requires an API key."
+msgstr "El proveedor de voz seleccionado requiere una clave API."
