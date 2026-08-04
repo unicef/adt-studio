@@ -1,3 +1,6 @@
+import fs from "node:fs"
+import path from "node:path"
+import { fileURLToPath } from "node:url"
 import { describe, expect, it } from "vitest"
 import {
   CLOUDFLARE_D1_DATABASE_NAME,
@@ -276,6 +279,47 @@ describe("provisionCloudflare — idempotent re-run", () => {
     ])
     const step = finishedStep(events, "apply-migrations")
     expect(step?.message).toContain("0002_extra.sql")
+  })
+
+  /** The one migration test that reads the real `apps/publish-service/migrations` directory:
+   *  a worker provisioned in M2 has only `0001_init.sql` in `_migrations`, and re-provisioning
+   *  is the only thing that ever adds the session-PIN column to it. */
+  it("applies the shipped session-pin migration to a deployment that only has 0001", async () => {
+    const migrationsDir = path.resolve(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "../../../../publish-service/migrations",
+    )
+    const migrations = fs
+      .readdirSync(migrationsDir)
+      .filter((file) => file.endsWith(".sql"))
+      .sort()
+      .map((name) => ({ name, sql: fs.readFileSync(path.join(migrationsDir, name), "utf-8") }))
+
+    expect(migrations.map((migration) => migration.name)).toEqual([
+      "0001_init.sql",
+      "0002_session_pin.sql",
+    ])
+
+    const { fake, events, error } = await run({
+      artifact: artifact(migrations),
+      fake: {
+        databases: [{ uuid: "db-uuid-1", name: CLOUDFLARE_D1_DATABASE_NAME }],
+        buckets: [CLOUDFLARE_R2_BUCKET_NAME],
+        scripts: [CLOUDFLARE_WORKER_NAME],
+        migrationRows: [{ name: "0001_init.sql", applied_at: NOW.toISOString() }],
+      },
+    })
+
+    expect(error).toBeNull()
+    expect(fake.state.executedSql).toEqual([migrations[1]?.sql])
+    expect(fake.state.executedSql[0]).toContain("ALTER TABLE sessions ADD COLUMN pin")
+    expect(fake.state.migrationRows.map((row) => row.name)).toEqual([
+      "0001_init.sql",
+      "0002_session_pin.sql",
+    ])
+    expect(finishedStep(events, "apply-migrations")?.message).toBe(
+      "Applied 0002_session_pin.sql",
+    )
   })
 
   it("preserves provisioned_at and refreshes updated_at on upgrade", async () => {

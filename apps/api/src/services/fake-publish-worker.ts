@@ -207,6 +207,16 @@ export function createFakePublishWorker(
       return json({ publication: updated })
     }
 
+    const reinstateMatch = /^\/api\/publications\/([^/]+)\/reinstate$/.exec(url.pathname)
+    if (reinstateMatch && method === "POST") {
+      const token = reinstateMatch[1] as string
+      const publication = state.publications.get(token)
+      if (!publication) return json({ error: "not_found" }, 404)
+      const updated: Publication = { ...publication, revoked_at: null }
+      state.publications.set(token, updated)
+      return json({ publication: updated })
+    }
+
     const detailMatch = /^\/api\/publications\/([^/]+)$/.exec(url.pathname)
     if (detailMatch && method === "PATCH") {
       const token = detailMatch[1] as string

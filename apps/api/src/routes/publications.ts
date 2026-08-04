@@ -285,6 +285,50 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     return c.json(response)
   })
 
+  // POST /books/:label/publication/resume — bring the same link back to life
+  app.post("/books/:label/publication/resume", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    requireBook(label)
+
+    const connection = store.read()
+    if (!connection) {
+      return failure(
+        c,
+        412,
+        "publish_not_connected",
+        "Connect a Cloudflare account before managing this publication",
+      )
+    }
+
+    const record = readPublicationRecord(label, deps.booksDir)
+    if (!record) {
+      return failure(c, 409, "not_published", "This book has never been published")
+    }
+    if (record.revoked_at === null) {
+      return failure(
+        c,
+        409,
+        "not_revoked",
+        "This book's link is not stopped, so there is nothing to resume",
+      )
+    }
+
+    let response: PublicationResponse
+    try {
+      response = await clientFor(connection).reinstate(record.token)
+    } catch (error) {
+      return workerFailure(c, error)
+    }
+
+    savePublicationRecord(label, deps.booksDir, {
+      ...record,
+      expires_at: response.publication.expires_at,
+      revoked_at: response.publication.revoked_at,
+    })
+
+    return c.json(response)
+  })
+
   // PATCH /books/:label/publication — set or clear the expiry
   app.patch("/books/:label/publication", async (c) => {
     const label = parseBookLabel(c.req.param("label"))

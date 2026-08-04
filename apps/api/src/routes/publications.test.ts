@@ -404,6 +404,91 @@ describe("POST /books/:label/publication/revoke", () => {
   })
 })
 
+describe("POST /books/:label/publication/resume", () => {
+  it("clears the revocation on the worker and in the local record", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    const token = readPublicationRecord(LABEL, tmpDir)?.token as string
+    await app.request(`/api/books/${LABEL}/publication/revoke`, { method: "POST" })
+
+    const res = await app.request(`/api/books/${LABEL}/publication/resume`, { method: "POST" })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { publication: { token: string; revoked_at: string | null } }
+    expect(body.publication.revoked_at).toBeNull()
+    expect(body.publication.token).toBe(token)
+
+    const record = readPublicationRecord(LABEL, tmpDir)
+    expect(record?.revoked_at).toBeNull()
+    expect(record?.token).toBe(token)
+    expect(worker.state.publications.get(token)?.revoked_at).toBeNull()
+
+    const status = (await (
+      await app.request(`/api/books/${LABEL}/publication`)
+    ).json()) as BookPublicationStatus
+    expect(status.publication?.revoked_at).toBeNull()
+  })
+
+  it("keeps the version history and the expiry", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(
+      app,
+      `/api/books/${LABEL}/publication`,
+      publishRequest({ expires_at: "2027-06-01T00:00:00.000Z" }),
+    )
+    await drain(app, `/api/books/${LABEL}/publication/versions`, publishRequest())
+    await app.request(`/api/books/${LABEL}/publication/revoke`, { method: "POST" })
+
+    const res = await app.request(`/api/books/${LABEL}/publication/resume`, { method: "POST" })
+    expect(res.status).toBe(200)
+    const record = readPublicationRecord(LABEL, tmpDir)
+    expect(record?.versions.map((version) => version.version)).toEqual([1, 2])
+    expect(record?.expires_at).toBe("2027-06-01T00:00:00.000Z")
+  })
+
+  it("answers 409 not_revoked when the link is still live", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    const res = await app.request(`/api/books/${LABEL}/publication/resume`, { method: "POST" })
+    expect(res.status).toBe(409)
+    await expect(res.json()).resolves.toMatchObject({ code: "not_revoked" })
+  })
+
+  it("answers 409 not_published for a book that was never published", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const res = await routes({ fetchFn: worker.fetchFn }).request(
+      `/api/books/${LABEL}/publication/resume`,
+      { method: "POST" },
+    )
+    expect(res.status).toBe(409)
+    await expect(res.json()).resolves.toMatchObject({ code: "not_published" })
+  })
+
+  it("answers 502 worker_unreachable when the worker is down", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    await app.request(`/api/books/${LABEL}/publication/revoke`, { method: "POST" })
+
+    const offline = createFakePublishWorker({ unreachable: true })
+    const res = await routes({ fetchFn: offline.fetchFn }).request(
+      `/api/books/${LABEL}/publication/resume`,
+      { method: "POST" },
+    )
+    expect(res.status).toBe(502)
+    await expect(res.json()).resolves.toMatchObject({ code: "worker_unreachable" })
+    expect(readPublicationRecord(LABEL, tmpDir)?.revoked_at).not.toBeNull()
+  })
+})
+
 describe("PATCH /books/:label/publication", () => {
   it("sets and clears the expiry through the worker", async () => {
     const worker = createFakePublishWorker()
@@ -450,6 +535,7 @@ describe("no Cloudflare connection", () => {
       ["POST", `/api/books/${LABEL}/publication`, publishRequest()],
       ["POST", `/api/books/${LABEL}/publication/versions`, publishRequest()],
       ["POST", `/api/books/${LABEL}/publication/revoke`, { method: "POST" }],
+      ["POST", `/api/books/${LABEL}/publication/resume`, { method: "POST" }],
       [
         "PATCH",
         `/api/books/${LABEL}/publication`,

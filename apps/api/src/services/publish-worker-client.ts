@@ -50,6 +50,7 @@ export interface PublishWorkerClient {
     snapshot: Uint8Array,
   ): Promise<PublicationVersionCreateResponse>
   revoke(token: string): Promise<PublicationResponse>
+  reinstate(token: string): Promise<PublicationResponse>
   setExpiry(token: string, expiresAt: string | null): Promise<PublicationResponse>
   getPublication(token: string): Promise<PublicationDetail>
   listComments(
@@ -187,6 +188,14 @@ export function createPublishWorkerClient({
     async revoke(token) {
       return (await request(
         `/api/publications/${token}/revoke`,
+        { method: "POST" },
+        PublicationResponse,
+      )) as PublicationResponse
+    },
+
+    async reinstate(token) {
+      return (await request(
+        `/api/publications/${token}/reinstate`,
         { method: "POST" },
         PublicationResponse,
       )) as PublicationResponse
