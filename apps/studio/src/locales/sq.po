@@ -244,6 +244,10 @@ msgstr "{0} pyetje"
 msgid "{0} sections"
 msgstr "{0} seksione"
 
+#. placeholder {0}: selectedAudioIds.size
+msgid "{0} selected"
+msgstr "{0} të përzgjedhura"
+
 #. placeholder {0}: String(stale.length)
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} imazhe të zgjedhura nuk janë më në storyboard."
@@ -263,6 +267,10 @@ msgstr "{0} tekste"
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
 msgstr "{0} përkthime"
+
+#. placeholder {0}: changesQuery.data.changes.length
+#~ msgid "{0} unpublished file changes"
+#~ msgstr "{0} ndryshime skedarësh të papublikuara"
 
 #. placeholder {0}: versions.length
 #~ msgid "{0} versions"
@@ -822,6 +830,9 @@ msgstr "Aktivitet: Zgjedhje e Shumëfishtë"
 msgid "Activity: Open-Ended Answer"
 msgstr "Aktivitet: Përgjigje e Hapur"
 
+#~ msgid "Activity: Ordering"
+#~ msgstr "Aktivitet: Renditje"
+
 msgid "Activity: Other"
 msgstr "Aktivitet: Tjetër"
 
@@ -1204,6 +1215,9 @@ msgstr "Të gjitha"
 msgid "All {0} pages merged in"
 msgstr "Të {0} faqet janë bashkuar"
 
+msgid "All audio"
+msgstr "Të gjitha audiot"
+
 msgid "All categories"
 msgstr "Të gjitha kategoritë"
 
@@ -1260,6 +1274,9 @@ msgstr "Sasia"
 
 msgid "An activity that does not fit the standard categories."
 msgstr "Një aktivitet që nuk i përshtatet kategorive standarde."
+
+#~ msgid "An activity where learners arrange items into the correct order."
+#~ msgstr "Një aktivitet ku nxënësit i vendosin elementet në rendin e duhur."
 
 msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
 msgstr "Një aktivitet ku nxënësi nënvizon një ose më shumë fjalë, fraza ose fjali drejtpërdrejt në tekst."
@@ -1655,6 +1672,9 @@ msgstr "Teksti kryesor përdor këtë font sot. Bashkëngjitni një font më pos
 msgid "Book"
 msgstr "Libër"
 
+#~ msgid "Book change history"
+#~ msgstr "Historiku i ndryshimeve të librit"
+
 msgid "Book coverage"
 msgstr "Mbulimi i librit"
 
@@ -1672,6 +1692,9 @@ msgstr "Figurat e librit"
 
 msgid "Book info"
 msgstr "Info libri"
+
+#~ msgid "Book is published"
+#~ msgstr "Libri është publikuar"
 
 msgid "Book Language"
 msgstr "Gjuha e librit"
@@ -1930,6 +1953,9 @@ msgstr "Të ndryshohet gjuha e librit?"
 msgid "Change the picture for this term"
 msgstr "Ndrysho figurën e këtij termi"
 
+#~ msgid "Changed files"
+#~ msgstr "Skedarë të ndryshuar"
+
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "Ndryshimet zbatohen herën tjetër që ekzekutoni Storyboard dhe Eksportin."
 
@@ -1974,6 +2000,9 @@ msgstr "Titulli i kapitullit"
 
 msgid "Chart / Graph"
 msgstr "Tabelë / Grafik"
+
+#~ msgid "Check changes"
+#~ msgstr "Kontrollo ndryshimet"
 
 #~ msgid "Check for updates"
 #~ msgstr "Kontrollo për përditësime"
@@ -2086,6 +2115,9 @@ msgstr "Pastro modelin"
 msgid "Clear search"
 msgstr "Pastro kërkimin"
 
+msgid "Clear visible selection"
+msgstr "Pastro përzgjedhjen e dukshme"
+
 msgid "Clear, descriptive captions for middle and high school readers."
 msgstr "Përshkrime të qarta dhe përshkruese për lexues të shkollave të mesme."
 
@@ -2191,6 +2223,9 @@ msgstr "Krahaso versionet"
 msgid "Compared with fallback prompt."
 msgstr "Krahasuar me prompt-in fallback."
 
+#~ msgid "Complete the guided setup before starting the publishing workflow."
+#~ msgstr "Përfundoni konfigurimin e udhëzuar para se të nisni rrjedhën e publikimit."
+
 msgid "Completed"
 msgstr "Përfunduar"
 
@@ -2245,6 +2280,12 @@ msgstr "Konfiguroni çdo fazë — ekstraktim, storyboard, faqosje — pastaj l�
 msgid "Configure features to include in the export"
 msgstr "Konfiguroni funksionet për t'i përfshirë në eksportim"
 
+#~ msgid "Configure GitHub publishing"
+#~ msgstr "Konfiguro publikimin në GitHub"
+
+#~ msgid "Configure GitHub to start publishing"
+#~ msgstr "Konfiguroni GitHub-in për të filluar publikimin"
+
 #~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
 #~ msgstr "Konfiguro kredencialet e ofruesve dhe promptet globale fallback që përdor ADT Studio."
 
@@ -2259,6 +2300,12 @@ msgstr "Konfiguroni zërat dhe thekset"
 
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
+
+#~ msgid "Confirm the destination below. Publishing will open the live workflow screen automatically."
+#~ msgstr "Konfirmoni destinacionin më poshtë. Publikimi do ta hapë automatikisht ekranin e rrjedhës së drejtpërdrejtë."
+
+#~ msgid "Connect an account and choose a repository before running this workflow."
+#~ msgstr "Lidhni një llogari dhe zgjidhni një depo para se ta ekzekutoni këtë rrjedhë."
 
 msgid "Connect an AI provider"
 msgstr "Lidheni një ofrues AI"
@@ -2283,6 +2330,9 @@ msgstr "Përpunim Përmbajtjeje"
 
 msgid "Contents"
 msgstr "Përmbajtja"
+
+msgid "Contents — Read and write; Administration — Read and write; Pages — Read and write; Metadata — Read-only."
+msgstr "Përmbajtja — Lexim dhe shkrim; Administrimi — Lexim dhe shkrim; Pages — Lexim dhe shkrim; Metadata — Vetëm lexim."
 
 msgid "Context"
 msgstr "Konteksti"
@@ -2447,6 +2497,9 @@ msgstr "Krijoni një sesion rishikuesi për këtë libër."
 msgid "Create ADT"
 msgstr "Krijo ADT"
 
+#~ msgid "Create classic token on GitHub"
+#~ msgstr "Krijo token klasik në GitHub"
+
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Krijoni përshkrime përshkruese për imazhet për të përmirësuar aksesueshmërinë."
 
@@ -2455,6 +2508,9 @@ msgstr "Krijo skedar"
 
 msgid "Create files"
 msgstr "Krijo skedarë"
+
+#~ msgid "Create fine-grained token on GitHub"
+#~ msgstr "Krijo token të detajuar në GitHub"
 
 msgid "Create from scratch using your description"
 msgstr "Krijo nga e para duke përdorur përshkrimin tuaj"
@@ -2470,6 +2526,9 @@ msgstr "Krijo skedar prompti nga shablloni"
 
 msgid "Create session"
 msgstr "Krijo sesion"
+
+#~ msgid "Create the destination repository first, then select its owner and that repository as the token resource."
+#~ msgstr "Fillimisht krijoni depon e destinacionit, pastaj zgjidhni pronarin dhe atë depo si burim të tokenit."
 
 msgid "Created {created} prompt files for {normalizedTargetModel}."
 msgstr "U krijuan {created} skedarë prompti për {normalizedTargetModel}."
@@ -2533,6 +2592,9 @@ msgstr "Aktual (v{currentVersion})"
 
 msgid "Current book font"
 msgstr "Fonti aktual i librit"
+
+#~ msgid "Current book workspace"
+#~ msgstr "Hapësira aktuale e punës së librit"
 
 msgid "Current effective values"
 msgstr "Vlerat aktuale efektive"
@@ -3054,6 +3116,9 @@ msgstr "Çdo iteracion është një thirrje LLM. Vlerat e ulëta janë më të s
 msgid "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
 msgstr "Çdo lloj detyre në rrjedhën e punës përdor një model të përshtatshëm. Gjenerimi i imazheve dhe i të folurit përdorin modelet e veta të parazgjedhura sipas detyrës."
 
+#~ msgid "Each node updates live as ADT Studio publishes the book."
+#~ msgstr "Çdo nyje përditësohet drejtpërdrejt ndërsa ADT Studio publikon librin."
+
 msgid "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
 msgstr "Çdo polip sekreton një skelet të fortë karbonati kalciumi. Gjatë qindra viteve, miliona prej këtyre skeletve grumbullohen duke formuar strukturat masive të rifeve që shohim sot."
 
@@ -3071,6 +3136,9 @@ msgstr "Fazat e mëhershme nuk janë ekzekutuar ende"
 
 msgid "Early"
 msgstr "Herët"
+
+msgid "Easiest complete setup"
+msgstr "Konfigurimi i plotë më i lehtë"
 
 msgid "Easy Read"
 msgstr "Easy Read"
@@ -3592,6 +3660,9 @@ msgstr "Filtron imazhet dekorative ose pa përmbajtje nga çdo faqe."
 msgid "Final Page"
 msgstr "Faqja e fundit"
 
+msgid "Fine-grained token for an existing repository"
+msgstr "Token i detajuar për një depo ekzistuese"
+
 msgid "First images from the deep-field telescope."
 msgstr "Imazhet e para nga teleskopi i fushës së thellë."
 
@@ -3748,8 +3819,8 @@ msgstr "Mbledhja e dëshmive"
 msgid "Gemini"
 msgstr "Gemini"
 
-msgid "Gemini API key is required to generate audio."
-msgstr "Çelësi API i Gemini është i nevojshëm për të gjeneruar audio."
+#~ msgid "Gemini API key is required to generate audio."
+#~ msgstr "Çelësi API i Gemini është i nevojshëm për të gjeneruar audio."
 
 #~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. A lower temperature (e.g. 0.4) reduces that variation and a fixed seed makes delivery reproducible. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
 #~ msgstr "Gemini e gjeneron çdo fjali në kërkesën e vet, prandaj toni mund të ndryshojë nga një fjali te tjetra. Një temperaturë më e ulët (p.sh. 0.4) e zvogëlon këtë variacion dhe një farë e fiksuar e bën leximin të riprodhueshëm. Prek vetëm gjuhët e drejtuara te Gemini — OpenAI dhe Azure i shpërfillin. Ndryshimi i secilës vlerë e rigjeneron audion e Gemini në ekzekutimin e ardhshëm."
@@ -3823,8 +3894,8 @@ msgstr "Gjenero nga faqet"
 msgid "Generate global prompts"
 msgstr "Gjenero prompt-e globale"
 
-msgid "Generate missing Gemini audio"
-msgstr "Gjenero audion Gemini që mungon"
+#~ msgid "Generate missing Gemini audio"
+#~ msgstr "Gjenero audion Gemini që mungon"
 
 msgid "Generate multiple-choice comprehension quizzes from the book's content. Create them automatically across the whole book, or add a single quiz from specific pages."
 msgstr "Gjenero kuize me zgjedhje të shumëfishta nga përmbajtja e librit. Krijo ato automatikisht në të gjithë librin ose shto një kuiz të vetëm nga faqe specifike."
@@ -3920,6 +3991,12 @@ msgstr "Prompt Gjenerimi"
 
 msgid "Get started"
 msgstr "Filloni"
+
+msgid "Git has not detected changed text entities for this view."
+msgstr "Git nuk ka zbuluar entitete teksti të ndryshuara për këtë pamje."
+
+#~ msgid "Git publishing workflow"
+#~ msgstr "Rrjedha e publikimit Git"
 
 msgid "Global prompt reset to default."
 msgstr "Prompti global u resetua në parazgjedhje."
@@ -4553,6 +4630,9 @@ msgstr "Imazhe të mëdha, rrjedhje narrative. Më i miri për libra të ilustru
 #~ msgid "Last"
 #~ msgstr "I fundit"
 
+#~ msgid "Last activity"
+#~ msgstr "Aktiviteti i fundit"
+
 msgid "Last change"
 msgstr "Ndryshimi i fundit"
 
@@ -4561,6 +4641,12 @@ msgstr "Modifikuar së fundmi"
 
 #~ msgid "Last week"
 #~ msgstr "Java e kaluar"
+
+#~ msgid "Latest deployment"
+#~ msgstr "Publikimi më i fundit"
+
+#~ msgid "Latest GitHub changes synchronized."
+#~ msgstr "Ndryshimet më të fundit të GitHub u sinkronizuan."
 
 msgid "Launch the app with"
 msgstr "Hap aplikacionin me"
@@ -4582,6 +4668,9 @@ msgstr "Struktura u pasqyrua në këtë seksion"
 
 msgid "Leading"
 msgstr "Hapësira ndër-rreshta"
+
+#~ msgid "Learn how with a guided setup"
+#~ msgstr "Mësoni me konfigurimin e udhëzuar"
 
 msgid "Least used"
 msgstr "Më pak i përdorur"
@@ -4733,6 +4822,9 @@ msgstr "Duke ngarkuar librat..."
 msgid "Loading catalog..."
 msgstr "Duke ngarkuar katalogun..."
 
+#~ msgid "Loading deployments"
+#~ msgstr "Duke ngarkuar publikimet"
+
 msgid "Loading Easy Read..."
 msgstr "Duke ngarkuar Leximin e Lehtë..."
 
@@ -4825,6 +4917,12 @@ msgstr "Duke ngarkuar..."
 
 msgid "Loading…"
 msgstr "Duke ngarkuar…"
+
+#~ msgid "Local and GitHub changes need resolution before synchronization."
+#~ msgstr "Ndryshimet lokale dhe ato në GitHub duhet të zgjidhen para sinkronizimit."
+
+#~ msgid "Local book is up to date."
+#~ msgstr "Libri lokal është i përditësuar."
 
 msgid "Localization"
 msgstr "Lokalizim"
@@ -5365,6 +5463,9 @@ msgstr "Asnjë titull nuk përputhet me këta filtra"
 msgid "No captions match your search"
 msgstr "Asnjë titull nuk përputhet me kërkimin tuaj"
 
+msgid "No changed content needs speech regeneration"
+msgstr "Asnjë përmbajtje e ndryshuar nuk ka nevojë për rigjenerim të zërit"
+
 msgid "no changes"
 msgstr "pa ndryshime"
 
@@ -5680,8 +5781,14 @@ msgstr "zhurmë"
 msgid "None"
 msgstr "Asnjë"
 
+#~ msgid "Not committed yet"
+#~ msgstr "Ende pa commit"
+
 msgid "Not compatible with Fixed Layout"
 msgstr "I papajtueshëm me Paraqitjen e fiksuar"
+
+#~ msgid "Not configured"
+#~ msgstr "I pakonfiguruar"
 
 msgid "Not detected"
 msgstr "Nuk u zbulua"
@@ -5855,6 +5962,9 @@ msgstr "Hapni pamjen paraprake të faqes për {pageId}"
 
 msgid "Open Preview"
 msgstr "Hapni Pamjen Paraprake"
+
+#~ msgid "Open public book"
+#~ msgstr "Hap librin publik"
 
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
@@ -6067,6 +6177,9 @@ msgstr "Paketoni librin për shpërndarje. Zgjidhni një format, vendosni çfar�
 
 msgid "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
 msgstr "Paketoni librin e përfunduar me të gjitha veçoritë e aksesueshmërisë të integruara — gati për t'u hapur, dëgjuar dhe lexuar nga një fëmijë."
+
+#~ msgid "Package, commit, push, host, and preview the accessible book without leaving ADT Studio."
+#~ msgstr "Paketoje, regjistroje, publikoje, hostoje dhe shikoje librin e qasshëm pa dalë nga ADT Studio."
 
 msgid "Packaging"
 msgstr "Paketimi"
@@ -6643,11 +6756,20 @@ msgstr "Shkurtuar: {reason}"
 msgid "PT"
 msgstr "PT"
 
+#~ msgid "Publish book"
+#~ msgstr "Publiko librin"
+
+#~ msgid "Publish with GitHub Pages"
+#~ msgstr "Publiko me GitHub Pages"
+
 msgid "published in"
 msgstr "botuar në"
 
 msgid "Publisher"
 msgstr "Botuesi"
+
+#~ msgid "Pull remote changes"
+#~ msgstr "Merr ndryshimet në distancë"
 
 msgid "Pull requests"
 msgstr "Pull request-e"
@@ -6894,6 +7016,9 @@ msgstr "I rekomanduar për"
 msgid "Recommended for {0}"
 msgstr "I rekomanduar për {0}"
 
+msgid "Recommended for creating a new repository"
+msgstr "Rekomandohet për krijimin e një depoje të re"
+
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Regjistroni gjetjet e rishikuesit për faqen aktuale dhe ruajini në sesionin aktiv të validimit."
 
@@ -6936,11 +7061,24 @@ msgstr "Rigenero përkufizimin, variacionet dhe emoji"
 msgid "Regenerate Easy Read"
 msgstr "Rigenero Easy Read"
 
+msgid "Regenerate only the selected audio clips"
+msgstr "Rigjenero vetëm klipet e përzgjedhura të audios"
+
+msgid "Regenerate selected"
+msgstr "Rigjenero të përzgjedhurat"
+
+#. placeholder {0}: selectedAudioIds.size
+#~ msgid "Regenerate selected ({0})"
+#~ msgstr "Rigjenero të përzgjedhurat ({0})"
+
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Rigenero imazhet e zgjedhura për çdo gjuhë dalëse, në mënyrë që çdo tekst i djegur mbi to të shfaqet në gjuhën e synuar."
 
 msgid "Regenerate this activity with AI (requires a saved state and an API key)"
 msgstr "Rigjeneroni këtë aktivitet me AI (kërkon gjendje të ruajtur dhe një çelës API)"
+
+msgid "Regenerate this audio clip"
+msgstr "Rigjenero këtë klip audio"
 
 msgid "Region"
 msgstr "Rajon"
@@ -6965,6 +7103,12 @@ msgstr "Lëshoni për të ngarkuar"
 
 msgid "Reload app"
 msgstr "Rinis aplikacionin"
+
+#~ msgid "Remote changes are available."
+#~ msgstr "Ka ndryshime në distancë."
+
+#~ msgid "Remote changes available"
+#~ msgstr "Ka ndryshime në distancë"
 
 msgid "Remove"
 msgstr "Hiq"
@@ -7190,6 +7334,9 @@ msgstr "Rishiko"
 #~ msgid "Review {selectedCount} selected"
 #~ msgstr "Rishiko {selectedCount} të zgjedhura"
 
+#~ msgid "Review and publish"
+#~ msgstr "Rishiko dhe publiko"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Rishikoni dhe rafinoni çdo bllok të thjeshtëzuar krahas origjinalit përpara paketimit."
 
@@ -7233,6 +7380,9 @@ msgstr "Rreptësia e rishikimit"
 
 msgid "Review style"
 msgstr "Stili i rishikimit"
+
+#~ msgid "Review the most recent publishing workflow and open its public result."
+#~ msgstr "Rishiko rrjedhën më të fundit të publikimit dhe hap rezultatin e saj publik."
 
 msgid "Review the project details below and confirm the import."
 msgstr "Rishikoni detajet e projektit më poshtë dhe konfirmoni importimin."
@@ -7382,6 +7532,9 @@ msgstr "Ekzekuto Përkthimin"
 msgid "Run whole-book validation checks and configure accessibility assessment settings."
 msgstr "Ekzekutoni kontrollet e validimit të librit të plotë dhe konfiguroni cilësimet e vlerësimit të aksesueshmërisë."
 
+#~ msgid "Run workflow"
+#~ msgstr "Ekzekuto rrjedhën"
+
 msgid "Run-only tags"
 msgstr "Etiketa vetëm-ekzekutimi"
 
@@ -7448,6 +7601,9 @@ msgstr "Ruaj aktivitetin"
 msgid "Save activity (⌘S)"
 msgstr "Ruaj aktivitetin (⌘S)"
 
+#~ msgid "Save and publish"
+#~ msgstr "Ruaj dhe publiko"
+
 msgid "Save changes"
 msgstr "Ruaj ndryshimet"
 
@@ -7468,6 +7624,9 @@ msgstr "Ruaj listën e kontrollit"
 
 msgid "Save failed"
 msgstr "Ruajtja dështoi"
+
+#~ msgid "Save or discard your edits before splitting"
+#~ msgstr "Ruani ose hidhni poshtë ndryshimet para se të ndani"
 
 msgid "Save or discard your edits first"
 msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet"
@@ -7686,6 +7845,12 @@ msgstr "seksione"
 msgid "Sections"
 msgstr "Seksione"
 
+msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token locally on this device and does not store it in the book directory."
+msgstr "Siguria: përdorni afatin më të shkurtër praktik, mos e ndani kurrë tokenin dhe revokojeni në GitHub kur nuk nevojitet më. ADT Studio e ruan këtë token lokalisht në këtë pajisje dhe nuk e ruan në dosjen e librit."
+
+#~ msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token only for the current browser session and does not store it in the book directory."
+#~ msgstr "Siguria: përdorni afatin më të shkurtër praktik, mos e ndani kurrë tokenin dhe revokojeni në GitHub kur të mos nevojitet më. ADT Studio e ruan këtë token vetëm gjatë sesionit aktual të shfletuesit dhe nuk e ruan në dosjen e librit."
+
 msgid "See examples"
 msgstr "Shiko shembuj"
 
@@ -7785,6 +7950,10 @@ msgstr "Zgjidhni të gjitha"
 msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
 msgstr "Zgjidhni një element për të redaktuar tekstin e tij — [[blank:…]] shënon vendin ku shfaqet një hapësirë bosh, prandaj ruajeni që të ruhet hapësira."
 
+#. placeholder {0}: entry.text
+msgid "Select audio for {0}"
+msgstr "Përzgjidh audion për {0}"
+
 msgid "Select images to translate"
 msgstr "Zgjidhni imazhet për të përkthyer"
 
@@ -7809,8 +7978,17 @@ msgstr "Zgjidhni shabllonin..."
 msgid "Select the pages the quiz is written from, then choose where it appears using the buttons between pages."
 msgstr "Zgjidhni faqet nga të cilat është shkruar kuizi, pastaj zgjidhni ku shfaqet duke përdorur butonat ndërmjet faqeve."
 
+#~ msgid "Select the repo scope. It covers repository creation, file publishing, and GitHub Pages configuration."
+#~ msgstr "Zgjidhni fushëveprimin repo. Ai mbulon krijimin e depos, publikimin e skedarëve dhe konfigurimin e GitHub Pages."
+
+msgid "Select this audio"
+msgstr "Përzgjidh këtë audio"
+
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Zgjidhni deri në 5 faqe për t'i përdorur si referenca vizuale. LLM do t'i analizojë dhe do të gjenerojë një udhëzues stili."
+
+msgid "Select visible audio"
+msgstr "Përzgjidh audiot e dukshme"
 
 #~ msgid "Selected"
 #~ msgstr "I zgjedhur"
@@ -7868,8 +8046,11 @@ msgstr "Sesione"
 msgid "Sessions let different reviewers capture findings independently, including language-specific reviews."
 msgstr "Sesionet u lejojnë rishikuesve të ndryshëm të regjistrojnë gjetjet në mënyrë të pavarur, duke përfshirë rishikimet specifike për gjuhë."
 
-msgid "Set a Gemini API key to generate audio"
-msgstr "Vendosni një çelës API Gemini për të gjeneruar audio"
+#~ msgid "Set a Gemini API key to generate audio"
+#~ msgstr "Vendosni një çelës API Gemini për të gjeneruar audio"
+
+msgid "Set Administration to Read and write so ADT can configure the repository and create the GitHub Pages site."
+msgstr "Vendosni Administrimin në Lexim dhe shkrim që ADT të konfigurojë depon dhe të krijojë faqen GitHub Pages."
 
 msgid "Set fonts for the whole book"
 msgstr "Vendos fontet për të gjithë librin"
@@ -7879,6 +8060,9 @@ msgstr "Caktuar manualisht"
 
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Vendosni gjuhën e redaktimit dhe zgjidhni gjuhët e daljes për librin."
+
+msgid "Set the selected speech provider's API key to generate audio"
+msgstr "Vendos çelësin API të ofruesit të përzgjedhur të zërit për të gjeneruar audio"
 
 msgid "Set your API key first"
 msgstr "Vendos fillimisht çelësin tënd të API-t"
@@ -8140,6 +8324,9 @@ msgstr "Parashikim i të Folurit"
 msgid "Speech Prompts"
 msgstr "Prompte të të Folurit"
 
+msgid "Speech regeneration views"
+msgstr "Pamjet e rigjenerimit të zërit"
+
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
 
@@ -8397,6 +8584,9 @@ msgstr "Ngarkuar me sukses"
 
 msgid "Suggest improved translations when an entry needs attention"
 msgstr "Sugjero përkthime të përmirësuara kur një hyrje kërkon vëmendje"
+
+msgid "Suggested"
+msgstr "Të sugjeruara"
 
 msgid "Suggested modification"
 msgstr "Modifikim i sugjeruar"
@@ -8748,6 +8938,9 @@ msgstr "Rishikimi i ruajtur i përkthimit është i vjetëruar. Ekzekutoni Rishi
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "Seksioni u ndryshua pas konvertimit — përdor «Rindërto nga faqja» për të rifreskuar hapat."
 
+msgid "The selected speech provider requires an API key."
+msgstr "Ofruesi i përzgjedhur i zërit kërkon një çelës API."
+
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Storyboard duhet të plotësohet para gjenerimit të {stageName}. Ekzekuto fazën Storyboard fillimisht."
 
@@ -8759,6 +8952,9 @@ msgstr "Tabela e përmbajtjes."
 
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "TOC liston seksionet e shtypura të vendosura nga Storyboard. Përfundo Storyboard para se të ekzekutosh këtë fazë."
+
+#~ msgid "The token needs repository contents, administration, and Pages permissions."
+#~ msgstr "Tokeni kërkon leje për përmbajtjen e depos, administrimin dhe Pages."
 
 msgid "The Water Cycle"
 msgstr "Cikli i Ujit"
@@ -8816,6 +9012,9 @@ msgstr "Ky aktivitet nuk ka tekste apo përgjigje të adresueshme. Rigjeneroni a
 
 msgid "This archive can't be opened safely"
 msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"
+
+#~ msgid "This book asset will be included in the next commit."
+#~ msgstr "Ky burim i librit do të përfshihet në commit-in e ardhshëm."
 
 msgid "This book has {pageCount} pages."
 msgstr "Ky libër ka {pageCount} faqe."
@@ -9104,6 +9303,9 @@ msgstr "Tokenë Gjithsej"
 msgid "Track reviewer progress and review findings captured from Preview."
 msgstr "Gjurmo progresin e rishikuesit dhe gjetjet e rishikimit të kaptura nga Paraparimimi."
 
+#~ msgid "Track the book's local edits, commits, publishing status, and GitHub metadata."
+#~ msgstr "Ndiqni redaktimet lokale, commit-et, statusin e publikimit dhe metadatat GitHub të librit."
+
 msgid "Translate"
 msgstr "Përkthe"
 
@@ -9319,6 +9521,9 @@ msgstr "Pa kategori"
 
 msgid "Unchanged"
 msgstr "I pandryshuar"
+
+#~ msgid "Under Repository permissions, grant Contents, Administration, and Pages read and write access."
+#~ msgstr "Te lejet e depos, jepni qasje leximi dhe shkrimi për Contents, Administration dhe Pages."
 
 msgid "Underline"
 msgstr "Nënvizim"
@@ -9611,6 +9816,9 @@ msgstr "Shiko"
 #~ msgid "View all changes"
 #~ msgstr "Shiko të gjitha ndryshimet"
 
+#~ msgid "View deployment"
+#~ msgstr "Shiko publikimin"
+
 msgid "View details"
 msgstr "Shiko detajet"
 
@@ -9849,6 +10057,9 @@ msgstr "Theksim në nivel fjale"
 msgid "words"
 msgstr "fjalë"
 
+#~ msgid "Workspace changes"
+#~ msgstr "Ndryshimet e hapësirës së punës"
+
 msgid "Wrap in group"
 msgstr "Mbështjell në grup"
 
@@ -9934,50 +10145,3 @@ msgstr "Zmadhim"
 
 msgid "Zoom out"
 msgstr "Zvogëlim"
-
-#. placeholder {0}: selectedAudioIds.size
-msgid "{0} selected"
-msgstr "{0} të përzgjedhura"
-
-msgid "All audio"
-msgstr "Të gjitha audiot"
-
-msgid "Clear visible selection"
-msgstr "Pastro përzgjedhjen e dukshme"
-
-msgid "Git has not detected changed text entities for this view."
-msgstr "Git nuk ka zbuluar entitete teksti të ndryshuara për këtë pamje."
-
-msgid "No changed content needs speech regeneration"
-msgstr "Asnjë përmbajtje e ndryshuar nuk ka nevojë për rigjenerim të zërit"
-
-msgid "Regenerate only the selected audio clips"
-msgstr "Rigjenero vetëm klipet e përzgjedhura të audios"
-
-msgid "Regenerate selected"
-msgstr "Rigjenero të përzgjedhurat"
-
-msgid "Regenerate this audio clip"
-msgstr "Rigjenero këtë klip audio"
-
-#. placeholder {0}: entry.text
-msgid "Select audio for {0}"
-msgstr "Përzgjidh audion për {0}"
-
-msgid "Select this audio"
-msgstr "Përzgjidh këtë audio"
-
-msgid "Select visible audio"
-msgstr "Përzgjidh audiot e dukshme"
-
-msgid "Set the selected speech provider's API key to generate audio"
-msgstr "Vendos çelësin API të ofruesit të përzgjedhur të zërit për të gjeneruar audio"
-
-msgid "Speech regeneration views"
-msgstr "Pamjet e rigjenerimit të zërit"
-
-msgid "Suggested"
-msgstr "Të sugjeruara"
-
-msgid "The selected speech provider requires an API key."
-msgstr "Ofruesi i përzgjedhur i zërit kërkon një çelës API."
