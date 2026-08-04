@@ -21,7 +21,13 @@ import { Route as PromptsSettingsRouteImport } from "./routes/prompts.settings"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
+import { Route as RedesignSettingsIndexRouteImport } from "./routes/redesign.settings.index"
 import { Route as BooksLabelIndexRouteImport } from "./routes/books.$label.index"
+import { Route as RedesignSettingsThemeRouteImport } from "./routes/redesign.settings.theme"
+import { Route as RedesignSettingsProvidersRouteImport } from "./routes/redesign.settings.providers"
+import { Route as RedesignSettingsNotificationsRouteImport } from "./routes/redesign.settings.notifications"
+import { Route as RedesignSettingsLanguageRouteImport } from "./routes/redesign.settings.language"
+import { Route as RedesignSettingsAboutRouteImport } from "./routes/redesign.settings.about"
 import { Route as BooksLabelDebugRouteImport } from "./routes/books.$label.debug"
 import { Route as BooksLabelStepRouteImport } from "./routes/books.$label.$step"
 import { Route as BooksLabelStepIndexRouteImport } from "./routes/books.$label.$step.index"
@@ -88,10 +94,43 @@ const BooksLabelRoute = BooksLabelRouteImport.update({
   path: "/books/$label",
   getParentRoute: () => rootRouteImport,
 } as any)
+const RedesignSettingsIndexRoute = RedesignSettingsIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => RedesignSettingsRoute,
+} as any)
 const BooksLabelIndexRoute = BooksLabelIndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => BooksLabelRoute,
+} as any)
+const RedesignSettingsThemeRoute = RedesignSettingsThemeRouteImport.update({
+  id: "/theme",
+  path: "/theme",
+  getParentRoute: () => RedesignSettingsRoute,
+} as any)
+const RedesignSettingsProvidersRoute =
+  RedesignSettingsProvidersRouteImport.update({
+    id: "/providers",
+    path: "/providers",
+    getParentRoute: () => RedesignSettingsRoute,
+  } as any)
+const RedesignSettingsNotificationsRoute =
+  RedesignSettingsNotificationsRouteImport.update({
+    id: "/notifications",
+    path: "/notifications",
+    getParentRoute: () => RedesignSettingsRoute,
+  } as any)
+const RedesignSettingsLanguageRoute =
+  RedesignSettingsLanguageRouteImport.update({
+    id: "/language",
+    path: "/language",
+    getParentRoute: () => RedesignSettingsRoute,
+  } as any)
+const RedesignSettingsAboutRoute = RedesignSettingsAboutRouteImport.update({
+  id: "/about",
+  path: "/about",
+  getParentRoute: () => RedesignSettingsRoute,
 } as any)
 const BooksLabelDebugRoute = BooksLabelDebugRouteImport.update({
   id: "/debug",
@@ -130,11 +169,17 @@ export interface FileRoutesByFullPath {
   "/prompts/settings": typeof PromptsSettingsRoute
   "/redesign/handoffs": typeof RedesignHandoffsRoute
   "/redesign/library": typeof RedesignLibraryRoute
-  "/redesign/settings": typeof RedesignSettingsRoute
+  "/redesign/settings": typeof RedesignSettingsRouteWithChildren
   "/redesign/": typeof RedesignIndexRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/redesign/settings/about": typeof RedesignSettingsAboutRoute
+  "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
+  "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
+  "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
+  "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
   "/books/$label/": typeof BooksLabelIndexRoute
+  "/redesign/settings/": typeof RedesignSettingsIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
   "/books/$label/$step/": typeof BooksLabelStepIndexRoute
@@ -148,10 +193,15 @@ export interface FileRoutesByTo {
   "/prompts/settings": typeof PromptsSettingsRoute
   "/redesign/handoffs": typeof RedesignHandoffsRoute
   "/redesign/library": typeof RedesignLibraryRoute
-  "/redesign/settings": typeof RedesignSettingsRoute
   "/redesign": typeof RedesignIndexRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/redesign/settings/about": typeof RedesignSettingsAboutRoute
+  "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
+  "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
+  "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
+  "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
   "/books/$label": typeof BooksLabelIndexRoute
+  "/redesign/settings": typeof RedesignSettingsIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
   "/books/$label/$step": typeof BooksLabelStepIndexRoute
@@ -168,11 +218,17 @@ export interface FileRoutesById {
   "/prompts/settings": typeof PromptsSettingsRoute
   "/redesign/handoffs": typeof RedesignHandoffsRoute
   "/redesign/library": typeof RedesignLibraryRoute
-  "/redesign/settings": typeof RedesignSettingsRoute
+  "/redesign/settings": typeof RedesignSettingsRouteWithChildren
   "/redesign/": typeof RedesignIndexRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/redesign/settings/about": typeof RedesignSettingsAboutRoute
+  "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
+  "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
+  "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
+  "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
   "/books/$label/": typeof BooksLabelIndexRoute
+  "/redesign/settings/": typeof RedesignSettingsIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
   "/books/$label/$step/": typeof BooksLabelStepIndexRoute
@@ -194,7 +250,13 @@ export interface FileRouteTypes {
     | "/redesign/"
     | "/books/$label/$step"
     | "/books/$label/debug"
+    | "/redesign/settings/about"
+    | "/redesign/settings/language"
+    | "/redesign/settings/notifications"
+    | "/redesign/settings/providers"
+    | "/redesign/settings/theme"
     | "/books/$label/"
+    | "/redesign/settings/"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
     | "/books/$label/$step/"
@@ -208,10 +270,15 @@ export interface FileRouteTypes {
     | "/prompts/settings"
     | "/redesign/handoffs"
     | "/redesign/library"
-    | "/redesign/settings"
     | "/redesign"
     | "/books/$label/debug"
+    | "/redesign/settings/about"
+    | "/redesign/settings/language"
+    | "/redesign/settings/notifications"
+    | "/redesign/settings/providers"
+    | "/redesign/settings/theme"
     | "/books/$label"
+    | "/redesign/settings"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
     | "/books/$label/$step"
@@ -231,7 +298,13 @@ export interface FileRouteTypes {
     | "/redesign/"
     | "/books/$label/$step"
     | "/books/$label/debug"
+    | "/redesign/settings/about"
+    | "/redesign/settings/language"
+    | "/redesign/settings/notifications"
+    | "/redesign/settings/providers"
+    | "/redesign/settings/theme"
     | "/books/$label/"
+    | "/redesign/settings/"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
     | "/books/$label/$step/"
@@ -334,12 +407,54 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof BooksLabelRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/redesign/settings/": {
+      id: "/redesign/settings/"
+      path: "/"
+      fullPath: "/redesign/settings/"
+      preLoaderRoute: typeof RedesignSettingsIndexRouteImport
+      parentRoute: typeof RedesignSettingsRoute
+    }
     "/books/$label/": {
       id: "/books/$label/"
       path: "/"
       fullPath: "/books/$label/"
       preLoaderRoute: typeof BooksLabelIndexRouteImport
       parentRoute: typeof BooksLabelRoute
+    }
+    "/redesign/settings/theme": {
+      id: "/redesign/settings/theme"
+      path: "/theme"
+      fullPath: "/redesign/settings/theme"
+      preLoaderRoute: typeof RedesignSettingsThemeRouteImport
+      parentRoute: typeof RedesignSettingsRoute
+    }
+    "/redesign/settings/providers": {
+      id: "/redesign/settings/providers"
+      path: "/providers"
+      fullPath: "/redesign/settings/providers"
+      preLoaderRoute: typeof RedesignSettingsProvidersRouteImport
+      parentRoute: typeof RedesignSettingsRoute
+    }
+    "/redesign/settings/notifications": {
+      id: "/redesign/settings/notifications"
+      path: "/notifications"
+      fullPath: "/redesign/settings/notifications"
+      preLoaderRoute: typeof RedesignSettingsNotificationsRouteImport
+      parentRoute: typeof RedesignSettingsRoute
+    }
+    "/redesign/settings/language": {
+      id: "/redesign/settings/language"
+      path: "/language"
+      fullPath: "/redesign/settings/language"
+      preLoaderRoute: typeof RedesignSettingsLanguageRouteImport
+      parentRoute: typeof RedesignSettingsRoute
+    }
+    "/redesign/settings/about": {
+      id: "/redesign/settings/about"
+      path: "/about"
+      fullPath: "/redesign/settings/about"
+      preLoaderRoute: typeof RedesignSettingsAboutRouteImport
+      parentRoute: typeof RedesignSettingsRoute
     }
     "/books/$label/debug": {
       id: "/books/$label/debug"
@@ -379,17 +494,38 @@ declare module "@tanstack/react-router" {
   }
 }
 
+interface RedesignSettingsRouteChildren {
+  RedesignSettingsAboutRoute: typeof RedesignSettingsAboutRoute
+  RedesignSettingsLanguageRoute: typeof RedesignSettingsLanguageRoute
+  RedesignSettingsNotificationsRoute: typeof RedesignSettingsNotificationsRoute
+  RedesignSettingsProvidersRoute: typeof RedesignSettingsProvidersRoute
+  RedesignSettingsThemeRoute: typeof RedesignSettingsThemeRoute
+  RedesignSettingsIndexRoute: typeof RedesignSettingsIndexRoute
+}
+
+const RedesignSettingsRouteChildren: RedesignSettingsRouteChildren = {
+  RedesignSettingsAboutRoute: RedesignSettingsAboutRoute,
+  RedesignSettingsLanguageRoute: RedesignSettingsLanguageRoute,
+  RedesignSettingsNotificationsRoute: RedesignSettingsNotificationsRoute,
+  RedesignSettingsProvidersRoute: RedesignSettingsProvidersRoute,
+  RedesignSettingsThemeRoute: RedesignSettingsThemeRoute,
+  RedesignSettingsIndexRoute: RedesignSettingsIndexRoute,
+}
+
+const RedesignSettingsRouteWithChildren =
+  RedesignSettingsRoute._addFileChildren(RedesignSettingsRouteChildren)
+
 interface RedesignRouteChildren {
   RedesignHandoffsRoute: typeof RedesignHandoffsRoute
   RedesignLibraryRoute: typeof RedesignLibraryRoute
-  RedesignSettingsRoute: typeof RedesignSettingsRoute
+  RedesignSettingsRoute: typeof RedesignSettingsRouteWithChildren
   RedesignIndexRoute: typeof RedesignIndexRoute
 }
 
 const RedesignRouteChildren: RedesignRouteChildren = {
   RedesignHandoffsRoute: RedesignHandoffsRoute,
   RedesignLibraryRoute: RedesignLibraryRoute,
-  RedesignSettingsRoute: RedesignSettingsRoute,
+  RedesignSettingsRoute: RedesignSettingsRouteWithChildren,
   RedesignIndexRoute: RedesignIndexRoute,
 }
 
