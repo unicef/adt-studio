@@ -1,3 +1,6 @@
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { z } from "zod"
 import { createLLMModel } from "../client.js"
@@ -275,6 +278,79 @@ describe("createLLMModel cancellation", () => {
         finalError: true,
       }),
     )
+  })
+
+  it("preserves logs and cache across exhausted automatic retries and a manual retry", async () => {
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "llm-page-retry-cache-"))
+    try {
+      openaiProviderMock.mockReturnValue({ provider: "openai" })
+      generateObjectMock.mockReset()
+      generateObjectMock
+        .mockRejectedValueOnce(new Error("Cannot connect to API: other side closed"))
+        .mockRejectedValueOnce(new Error("Cannot connect to API: other side closed"))
+        .mockResolvedValueOnce({
+          object: { images: [{ image_id: "pg002_im001", is_meaningful: true }] },
+          usage: { promptTokens: 4, completionTokens: 2 },
+        })
+      const onLog = vi.fn()
+      const llm = createLLMModel({
+        modelId: "openai:gpt-4.1",
+        cacheDir,
+        onLog,
+      })
+      const schema = z.object({
+        images: z.array(
+          z.object({ image_id: z.string(), is_meaningful: z.boolean() }),
+        ),
+      })
+      const request = {
+        schema,
+        messages: [{ role: "user" as const, content: "Evaluate pg002" }],
+        maxRetries: 1,
+        log: {
+          taskType: "image-meaningfulness",
+          pageId: "pg002",
+          promptName: "image_meaningfulness",
+        },
+      }
+
+      await expect(llm.generateObject(request)).rejects.toThrow("other side closed")
+      expect(generateObjectMock).toHaveBeenCalledTimes(2)
+      expect(onLog).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          pageId: "pg002",
+          success: false,
+          attempt: 1,
+          maxAttempts: 2,
+          errorClass: "connection-closed",
+          retryable: true,
+          finalError: true,
+        }),
+      )
+
+      const manualRetry = await llm.generateObject(request)
+      expect(manualRetry.object.images).toEqual([
+        { image_id: "pg002_im001", is_meaningful: true },
+      ])
+      expect(generateObjectMock).toHaveBeenCalledTimes(3)
+      expect(fs.readdirSync(cacheDir).filter((name) => name.endsWith(".json"))).toHaveLength(1)
+
+      const cachedRetry = await llm.generateObject(request)
+      expect(cachedRetry.object).toEqual(manualRetry.object)
+      expect(cachedRetry.cached).toBe(true)
+      expect(generateObjectMock).toHaveBeenCalledTimes(3)
+      expect(onLog).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          pageId: "pg002",
+          success: true,
+          cacheHit: true,
+          attempt: 0,
+        }),
+      )
+    } finally {
+      fs.rmSync(cacheDir, { recursive: true, force: true })
+    }
   })
 })
 

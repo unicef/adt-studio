@@ -98,11 +98,11 @@ export function PageErrorDecisionDialog() {
           <Trans>Apply skip or stop to all errors in this run</Trans>
         </label>
 
-        <DialogFooter className="-mt-1 gap-2">
+        <DialogFooter className="-mt-1 min-w-0 flex-col gap-2 sm:grid sm:grid-cols-2 sm:space-x-0">
           {current.canRetry && (
             <Button
               onClick={() => resolve("retry")}
-              className="h-10 px-4 font-medium"
+              className="h-10 px-4 font-medium sm:col-span-2"
               title={i18n._(msg`Retry this page`)}
             >
               <RotateCcw className="mr-2 h-4 w-4" />

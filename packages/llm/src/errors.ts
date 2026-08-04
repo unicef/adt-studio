@@ -20,6 +20,11 @@ const CONNECT_TIMEOUT_CODES = new Set([
   "UND_ERR_CONNECT_TIMEOUT",
 ])
 
+const REQUEST_TIMEOUT_CODES = new Set([
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+])
+
 const CONNECTION_CLOSED_CODES = new Set([
   "ECONNABORTED",
   "ECONNRESET",
@@ -33,6 +38,8 @@ interface ErrorLike {
   message?: unknown
   name?: unknown
   statusCode?: unknown
+  status?: unknown
+  response?: unknown
   isRetryable?: unknown
 }
 
@@ -80,6 +87,7 @@ export function classifyLLMError(error: unknown): LLMErrorClassification {
 
     if (
       name === "TimeoutError" ||
+      REQUEST_TIMEOUT_CODES.has(code) ||
       /request\s*timeout|headers\s*timeout|body\s*timeout/i.test(message)
     ) {
       return { errorClass: "request-timeout", retryable: true }
@@ -118,7 +126,12 @@ function isErrorLike(value: unknown): value is ErrorLike {
 
 function statusCode(value: unknown): number | undefined {
   if (!isErrorLike(value)) return undefined
-  return typeof value.statusCode === "number" ? value.statusCode : undefined
+  if (typeof value.statusCode === "number") return value.statusCode
+  if (typeof value.status === "number") return value.status
+  if (isErrorLike(value.response) && typeof value.response.status === "number") {
+    return value.response.status
+  }
+  return undefined
 }
 
 function errorCode(value: unknown): string {

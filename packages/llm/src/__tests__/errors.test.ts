@@ -37,6 +37,16 @@ describe("classifyLLMError", () => {
     })
   })
 
+  it.each(["UND_ERR_HEADERS_TIMEOUT", "UND_ERR_BODY_TIMEOUT"])(
+    "classifies Undici %s as a transient request timeout",
+    (code) => {
+      expect(classifyLLMError(Object.assign(new Error("fetch failed"), { code }))).toEqual({
+        errorClass: "request-timeout",
+        retryable: true,
+      })
+    },
+  )
+
   it.each([
     [408, "request-timeout"],
     [429, "rate-limit"],
@@ -62,6 +72,31 @@ describe("classifyLLMError", () => {
       errorClass: "non-retryable",
       retryable: false,
       statusCode: 401,
+    })
+  })
+
+  it.each([
+    [{ status: 429 }, "rate-limit", 429],
+    [{ response: { status: 503 } }, "server-error", 503],
+    [{ cause: { response: { status: 408 } } }, "request-timeout", 408],
+  ] as const)(
+    "classifies provider-shaped HTTP metadata %# as transient",
+    (error, errorClass, statusCode) => {
+      expect(classifyLLMError(error)).toEqual({
+        errorClass,
+        retryable: true,
+        statusCode,
+      })
+    },
+  )
+
+  it("stops walking a cyclic cause chain", () => {
+    const error = new Error("Invalid request") as Error & { cause?: unknown }
+    error.cause = error
+
+    expect(classifyLLMError(error)).toEqual({
+      errorClass: "non-retryable",
+      retryable: false,
     })
   })
 })
