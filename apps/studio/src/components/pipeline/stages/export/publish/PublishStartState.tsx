@@ -2,7 +2,15 @@ import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Globe, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { AccessChoice } from "./AccessChoice"
 import { ExpiryChoice } from "./ExpiryChoice"
+import {
+  DEFAULT_ACCESS_CHOICE,
+  generateAccessCode,
+  isValidAccessCode,
+  normalizeAccessCodeInput,
+  type AccessChoiceValue,
+} from "./access-code"
 import {
   DEFAULT_EXPIRY_CHOICE,
   expiryChoiceToIso,
@@ -16,7 +24,7 @@ interface PublishStartStateProps {
   /** Set when something else on the panel is the primary way forward — today that is
    *  "Resume sharing" on a revoked publication. */
   secondary?: boolean
-  onPublish: (expiresAt: string | null) => void
+  onPublish: (options: { expiresAt: string | null; accessCode: string | null }) => void
 }
 
 export function PublishStartState({
@@ -28,6 +36,11 @@ export function PublishStartState({
 }: PublishStartStateProps) {
   const { t } = useLingui()
   const [choice, setChoice] = useState<ExpiryChoiceValue>(DEFAULT_EXPIRY_CHOICE)
+  const [access, setAccess] = useState<AccessChoiceValue>(DEFAULT_ACCESS_CHOICE)
+  /** Generated once per mount so the code the author is looking at is the code that gets
+   *  published — it must not change under them while they copy it. */
+  const [code, setCode] = useState(() => generateAccessCode())
+  const codeReady = access === "open" || isValidAccessCode(code)
 
   return (
     <div className="flex flex-col gap-4">
@@ -51,6 +64,15 @@ export function PublishStartState({
         )}
       </p>
 
+      <AccessChoice
+        value={access}
+        onChange={setAccess}
+        code={code}
+        onCodeChange={(next) => setCode(normalizeAccessCodeInput(next))}
+        onRegenerate={() => setCode(generateAccessCode())}
+        disabled={isRunning}
+      />
+
       <ExpiryChoice
         value={choice}
         onChange={setChoice}
@@ -65,8 +87,13 @@ export function PublishStartState({
         <Button
           data-testid="publish-start-button"
           variant={secondary ? "outline" : "default"}
-          disabled={isRunning}
-          onClick={() => onPublish(expiryChoiceToIso(choice))}
+          disabled={isRunning || !codeReady}
+          onClick={() =>
+            onPublish({
+              expiresAt: expiryChoiceToIso(choice),
+              accessCode: access === "code" ? normalizeAccessCodeInput(code) : null,
+            })
+          }
         >
           {isRunning ? (
             <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />

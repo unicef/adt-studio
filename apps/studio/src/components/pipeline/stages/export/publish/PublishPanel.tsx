@@ -152,6 +152,7 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
               record={status.data?.record ?? null}
               publication={status.data?.publication ?? null}
               workerReachable={status.data?.worker_reachable ?? true}
+              hasAccessCode={status.data?.has_access_code ?? false}
               isUpdating={isRunning}
               recentRun={recentRun}
               onUpdate={run.update}
@@ -164,7 +165,7 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
               isRunning={isRunning}
               hasFailed={run.status === "error"}
               secondary={lifecycle === "revoked"}
-              onPublish={(expiresAt) => run.publish(expiresAt)}
+              onPublish={({ expiresAt, accessCode }) => run.publish({ expiresAt, accessCode })}
             />
           )}
 

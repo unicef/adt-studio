@@ -55,6 +55,11 @@ export interface PublishFailure {
   stepId: PublishStepId | null
 }
 
+export interface PublishOptions {
+  expiresAt?: string | null
+  accessCode?: string | null
+}
+
 export interface PublishRunResult {
   publication: Publication
   url: string
@@ -67,7 +72,7 @@ export interface BookPublishRunController {
   activeStep: number | null
   failure: PublishFailure | null
   result: PublishRunResult | null
-  publish: (expiresAt?: string | null) => void
+  publish: (options?: PublishOptions) => void
   update: () => void
   retry: () => void
   reset: () => void
@@ -120,8 +125,9 @@ export function useBookPublishRun(label: string): BookPublishRunController {
   const queryClient = useQueryClient()
   const [state, setState] = useState<RunState>(IDLE_STATE)
   const abortRef = useRef<AbortController | null>(null)
-  const lastRunRef = useRef<{ kind: PublishRunKind; expiresAt?: string | null }>({
+  const lastRunRef = useRef<{ kind: PublishRunKind; options: PublishOptions }>({
     kind: "publish",
+    options: {},
   })
 
   useEffect(
@@ -138,11 +144,11 @@ export function useBookPublishRun(label: string): BookPublishRunController {
   }, [])
 
   const run = useCallback(
-    (kind: PublishRunKind, expiresAt?: string | null) => {
+    (kind: PublishRunKind, options: PublishOptions = {}) => {
       abortRef.current?.abort()
       const controller = new AbortController()
       abortRef.current = controller
-      lastRunRef.current = { kind, expiresAt }
+      lastRunRef.current = { kind, options }
 
       setState({
         status: "running",
@@ -205,7 +211,8 @@ export function useBookPublishRun(label: string): BookPublishRunController {
         kind === "publish"
           ? api.publishBook(label, {
               onEvent: handleEvent,
-              expiresAt: expiresAt ?? null,
+              expiresAt: options.expiresAt ?? null,
+              accessCode: options.accessCode ?? null,
               signal: controller.signal,
             })
           : api.publishBookVersion(label, {
@@ -243,8 +250,8 @@ export function useBookPublishRun(label: string): BookPublishRunController {
   )
 
   const publish = useCallback(
-    (expiresAt?: string | null) => {
-      run("publish", expiresAt)
+    (options?: PublishOptions) => {
+      run("publish", options)
     },
     [run],
   )
@@ -255,7 +262,7 @@ export function useBookPublishRun(label: string): BookPublishRunController {
 
   const retry = useCallback(() => {
     const last = lastRunRef.current
-    run(last.kind, last.expiresAt)
+    run(last.kind, last.options)
   }, [run])
 
   return { ...state, publish, update, retry, reset }
@@ -275,6 +282,16 @@ export function useResumePublication(label: string) {
   const queryClient = useQueryClient()
   return useMutation<PublicationResponse, Error, void>({
     mutationFn: () => api.resumeBookPublication(label),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: bookPublicationKey(label) })
+    },
+  })
+}
+
+export function useSetPublicationAccessCode(label: string) {
+  const queryClient = useQueryClient()
+  return useMutation<PublicationResponse, Error, string | null>({
+    mutationFn: (accessCode) => api.setBookPublicationAccessCode(label, accessCode),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: bookPublicationKey(label) })
     },

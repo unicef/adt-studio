@@ -9,6 +9,7 @@ import {
   type PublishRunKind,
 } from "@/hooks/use-book-publication"
 import { Button } from "@/components/ui/button"
+import { AccessCodeCard } from "./AccessCodeCard"
 import { ExpiryChoice } from "./ExpiryChoice"
 import { PublicationVersionList } from "./PublicationVersionList"
 import { RevokeDialog } from "./RevokeDialog"
@@ -26,6 +27,7 @@ interface PublishedStateProps {
   record: BookPublicationRecord | null
   publication: Publication | null
   workerReachable: boolean
+  hasAccessCode: boolean
   isUpdating: boolean
   /** Set right after a finished run, so the link can acknowledge it. */
   recentRun: PublishRunKind | null
@@ -38,6 +40,7 @@ export function PublishedState({
   record,
   publication,
   workerReachable,
+  hasAccessCode,
   isUpdating,
   recentRun,
   onUpdate,
@@ -115,6 +118,13 @@ export function PublishedState({
           </Trans>
         </p>
       )}
+
+      <AccessCodeCard
+        bookLabel={bookLabel}
+        hasAccessCode={hasAccessCode}
+        code={record?.access_code ?? null}
+        disabled={busy}
+      />
 
       <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/20 p-3">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">

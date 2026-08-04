@@ -52,6 +52,7 @@ const publishBookVersion = vi.fn()
 const revokeBookPublication = vi.fn()
 const resumeBookPublication = vi.fn()
 const setBookPublicationExpiry = vi.fn()
+const setBookPublicationAccessCode = vi.fn()
 const getCloudflareConnection = vi.fn()
 
 class MockApiError extends Error {
@@ -73,6 +74,7 @@ vi.mock("@/api/client", () => ({
     revokeBookPublication,
     resumeBookPublication,
     setBookPublicationExpiry,
+    setBookPublicationAccessCode,
     getCloudflareConnection,
   },
   ApiError: MockApiError,
@@ -84,11 +86,25 @@ const { PublishPanel } = await import("./PublishPanel")
 const SHARE_URL = "https://adt-publish.escola-azul.workers.dev/p/abcdefghijklmnopqrstuvwxyz012345"
 
 function notConnected(): BookPublicationStatus {
-  return { connected: false, record: null, publication: null, url: null, worker_reachable: false }
+  return {
+    connected: false,
+    record: null,
+    publication: null,
+    url: null,
+    worker_reachable: false,
+    has_access_code: false,
+  }
 }
 
 function neverPublished(): BookPublicationStatus {
-  return { connected: true, record: null, publication: null, url: null, worker_reachable: true }
+  return {
+    connected: true,
+    record: null,
+    publication: null,
+    url: null,
+    worker_reachable: true,
+    has_access_code: false,
+  }
 }
 
 function publishedStatus(
@@ -98,7 +114,10 @@ function publishedStatus(
     connected: true,
     worker_reachable: true,
     url: SHARE_URL,
+    has_access_code: false,
     record: {
+      access_code: null,
+      has_access_code: false,
       token: "abcdefghijklmnopqrstuvwxyz012345",
       base_url: "https://adt-publish.escola-azul.workers.dev",
       worker_url: "https://adt-publish.escola-azul.workers.dev",
@@ -120,6 +139,15 @@ function publishedStatus(
       revoked_at: null,
     },
     ...overrides,
+  }
+}
+
+function gatedStatus(code: string | null = "K7M4QP"): BookPublicationStatus {
+  const base = publishedStatus()
+  return {
+    ...base,
+    has_access_code: true,
+    record: { ...base.record!, access_code: code, has_access_code: true },
   }
 }
 
@@ -193,7 +221,8 @@ describe("PublishPanel — states", () => {
     await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
     expect(document.body.textContent).toContain("frozen copy")
     expect(document.body.textContent).toContain("Update site")
-    expect(screen.getAllByRole("radio").length).toBe(4)
+    /** Two access answers plus the four end-date answers. */
+    expect(screen.getAllByRole("radio").length).toBe(6)
     expect(screen.getByTestId("publish-start-button").textContent).toContain(
       "Publish and get a link",
     )
@@ -337,6 +366,91 @@ describe("PublishPanel — publishing", () => {
     const days = (Date.parse(expiresAt) - Date.now()) / (24 * 60 * 60 * 1000)
     expect(days).toBeGreaterThan(6.9)
     expect(days).toBeLessThan(7.1)
+  })
+
+  it("asks for an access code by default and publishes with the one it shows", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    publishBook.mockImplementation(() => new Promise<void>(() => {}))
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
+    const requireCode = screen.getByRole("radio", { name: /require an access code/i })
+    expect((requireCode as HTMLInputElement).checked).toBe(true)
+    expect((screen.getByRole("radio", { name: /anyone with the link/i }) as HTMLInputElement).checked).toBe(false)
+
+    const shown = (screen.getByTestId("publish-access-code-input") as HTMLInputElement).value
+    expect(shown).toMatch(/^[A-HJ-NP-Z2-9]{6}$/)
+
+    fireEvent.click(screen.getByTestId("publish-start-button"))
+    expect(publishBook.mock.calls[0][1].accessCode).toBe(shown)
+  })
+
+  it("gives a fresh code on demand and keeps the one the author is looking at", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    publishBook.mockImplementation(() => new Promise<void>(() => {}))
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-access-code-input")).toBeTruthy())
+    const input = () => screen.getByTestId("publish-access-code-input") as HTMLInputElement
+    const first = input().value
+    fireEvent.click(screen.getByTestId("publish-access-code-regenerate"))
+    const second = input().value
+    expect(second).not.toBe(first)
+    expect(second).toMatch(/^[A-HJ-NP-Z2-9]{6}$/)
+
+    fireEvent.click(screen.getByTestId("publish-start-button"))
+    expect(publishBook.mock.calls[0][1].accessCode).toBe(second)
+  })
+
+  it("takes the author's own code, upper-cased and space-free", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    publishBook.mockImplementation(() => new Promise<void>(() => {}))
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-access-code-input")).toBeTruthy())
+    fireEvent.change(screen.getByTestId("publish-access-code-input"), {
+      target: { value: " turma 3b " },
+    })
+    expect((screen.getByTestId("publish-access-code-input") as HTMLInputElement).value).toBe(
+      "TURMA3B",
+    )
+
+    fireEvent.click(screen.getByTestId("publish-start-button"))
+    expect(publishBook.mock.calls[0][1].accessCode).toBe("TURMA3B")
+  })
+
+  it("refuses to publish a code that is too short, and says why", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    publishBook.mockImplementation(() => new Promise<void>(() => {}))
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-access-code-input")).toBeTruthy())
+    fireEvent.change(screen.getByTestId("publish-access-code-input"), { target: { value: "ab" } })
+
+    expect(screen.getByTestId("publish-access-code-invalid").textContent).toContain(
+      "4 to 12 characters",
+    )
+    expect((screen.getByTestId("publish-start-button") as HTMLButtonElement).disabled).toBe(true)
+    fireEvent.click(screen.getByTestId("publish-start-button"))
+    expect(publishBook).not.toHaveBeenCalled()
+  })
+
+  it("publishes an open link when the author chooses anyone with the link", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    publishBook.mockImplementation(() => new Promise<void>(() => {}))
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
+    fireEvent.click(screen.getByRole("radio", { name: /anyone with the link/i }))
+    expect(screen.queryByTestId("publish-access-code-input")).toBeNull()
+
+    fireEvent.click(screen.getByTestId("publish-start-button"))
+    expect(publishBook.mock.calls[0][1].accessCode).toBeNull()
   })
 
   it("turns an unreachable service into human guidance and keeps a retry", async () => {
@@ -487,6 +601,130 @@ describe("PublishPanel — link management", () => {
     expect(error.textContent).toContain("still off")
     expect(error.textContent).toContain("The publish worker answered 502")
     expect(screen.getByTestId("publication-revoked")).toBeTruthy()
+  })
+
+  it("shows the code beside the link, with what to share and what a change costs", async () => {
+    getBookPublication.mockResolvedValue(gatedStatus())
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-access-code")).toBeTruthy())
+    const card = screen.getByTestId("publish-access-code")
+    expect(screen.getByTestId("publish-access-code-value").textContent).toBe("K7M4QP")
+    expect(card.textContent).toContain("Share the link and this code")
+    expect(card.textContent).toContain("locks out everybody who typed the old one")
+    expect(card.textContent).toContain("reading right now")
+    expect(card.textContent).toContain("Removing the code opens the book to anyone with the link")
+    expect(screen.queryByTestId("publish-access-open")).toBeNull()
+  })
+
+  it("copies the access code", async () => {
+    getBookPublication.mockResolvedValue(gatedStatus())
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-access-code-copy")).toBeTruthy())
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("publish-access-code-copy"))
+    })
+
+    expect(writeText).toHaveBeenCalledWith("K7M4QP")
+    await waitFor(() =>
+      expect(screen.getByTestId("publish-access-code").textContent).toContain("Copied"),
+    )
+  })
+
+  it("rotates the code to a fresh one from the safe alphabet", async () => {
+    getBookPublication.mockResolvedValue(gatedStatus())
+    setBookPublicationAccessCode.mockResolvedValue({
+      publication: publishedStatus().publication,
+      has_access_code: true,
+    })
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-access-rotate-button")).toBeTruthy())
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("publish-access-rotate-button"))
+    })
+
+    expect(setBookPublicationAccessCode).toHaveBeenCalledTimes(1)
+    expect(setBookPublicationAccessCode.mock.calls[0][0]).toBe("meu-livro")
+    const rotated = setBookPublicationAccessCode.mock.calls[0][1] as string
+    expect(rotated).toMatch(/^[A-HJ-NP-Z2-9]{6}$/)
+    expect(rotated).not.toBe("K7M4QP")
+  })
+
+  it("removes the code with a null update", async () => {
+    getBookPublication.mockResolvedValue(gatedStatus())
+    setBookPublicationAccessCode.mockResolvedValue({
+      publication: publishedStatus().publication,
+      has_access_code: false,
+    })
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-access-remove-button")).toBeTruthy())
+    getBookPublication.mockResolvedValue(publishedStatus())
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("publish-access-remove-button"))
+    })
+
+    expect(setBookPublicationAccessCode).toHaveBeenCalledWith("meu-livro", null)
+    await waitFor(() => expect(screen.getByTestId("publish-access-open")).toBeTruthy())
+  })
+
+  it("offers to close an open link, and says what that does", async () => {
+    getBookPublication.mockResolvedValue(publishedStatus())
+    setBookPublicationAccessCode.mockResolvedValue({
+      publication: publishedStatus().publication,
+      has_access_code: true,
+    })
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-access-open")).toBeTruthy())
+    const open = screen.getByTestId("publish-access-open")
+    expect(open.textContent).toContain("Anyone with the link can open this book")
+    expect(open.textContent).toContain("closes the book to everyone who has only the link")
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("publish-access-add-button"))
+    })
+    expect(setBookPublicationAccessCode.mock.calls[0][1] as string).toMatch(
+      /^[A-HJ-NP-Z2-9]{6}$/,
+    )
+  })
+
+  it("stays honest when the code was set on another computer", async () => {
+    getBookPublication.mockResolvedValue(gatedStatus(null))
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-access-code-unknown")).toBeTruthy())
+    expect(screen.getByTestId("publish-access-code-unknown").textContent).toContain(
+      "doesn't have a copy of it",
+    )
+    expect(screen.queryByTestId("publish-access-code-value")).toBeNull()
+    expect(screen.getByTestId("publish-access-rotate-button")).toBeTruthy()
+  })
+
+  it("keeps the code and the link intact when the change fails", async () => {
+    getBookPublication.mockResolvedValue(gatedStatus())
+    setBookPublicationAccessCode.mockRejectedValue(
+      new MockApiError("The publish worker answered 502", 502, "worker_unreachable"),
+    )
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-access-rotate-button")).toBeTruthy())
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("publish-access-rotate-button"))
+    })
+
+    await waitFor(() => expect(screen.getByTestId("publish-access-error")).toBeTruthy())
+    expect(screen.getByTestId("publish-access-error").textContent).toContain("nothing changed")
+    expect(screen.getByTestId("publish-access-code-value").textContent).toBe("K7M4QP")
   })
 
   it("changes the end date through the expiry route", async () => {

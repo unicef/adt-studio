@@ -2115,11 +2115,14 @@ export const api = {
   /** First publish: mints a token and uploads v1. Streams the four publish steps. */
   publishBook: (
     label: string,
-    options: PublishStreamOptions & { expiresAt?: string | null },
+    options: PublishStreamOptions & { expiresAt?: string | null; accessCode?: string | null },
   ): Promise<void> =>
     streamPublishEvents(
       `/books/${label}/publication`,
-      options.expiresAt === undefined ? {} : { expires_at: options.expiresAt },
+      {
+        ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
+        ...(options.accessCode === undefined ? {} : { access_code: options.accessCode }),
+      },
       options,
     ),
 
@@ -2142,6 +2145,14 @@ export const api = {
     request<PublicationResponse>(`/books/${label}/publication`, {
       method: "PATCH",
       body: JSON.stringify({ expires_at: expiresAt }),
+    }),
+
+  /** Sets, rotates or (with `null`) removes the code readers have to type. Every code already
+   *  entered on a reader's device stops working the moment this lands. */
+  setBookPublicationAccessCode: (label: string, accessCode: string | null) =>
+    request<PublicationResponse>(`/books/${label}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ access_code: accessCode }),
     }),
 
   // --- Cloudflare connection & provisioning ---
