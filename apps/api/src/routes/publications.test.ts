@@ -86,7 +86,15 @@ const MANIFEST = [
 function fakeExport(): typeof prepareExport {
   return (async (label: string) => {
     const contentDir = path.join(tmpDir, label, "adt", "content")
+    const assetsDir = path.join(tmpDir, label, "adt", "assets")
     fs.mkdirSync(contentDir, { recursive: true })
+    fs.mkdirSync(assetsDir, { recursive: true })
+    // `packageAdtWeb` always writes this; publish patches `features.comments`
+    // into a copy of it, so its absence fails the package step.
+    fs.writeFileSync(
+      path.join(assetsDir, "config.json"),
+      JSON.stringify({ languages: { available: ["en"], default: "en" }, features: {} }, null, 2),
+    )
     fs.writeFileSync(path.join(tmpDir, label, "adt", "index.html"), "<h1>page one</h1>")
     fs.writeFileSync(
       path.join(tmpDir, label, "adt", "pg002_sec001.html"),

@@ -140,7 +140,46 @@ function adtFiles(manifest: unknown = MANIFEST, indexBody = "<h1>page one</h1>")
     "pg002_sec001.html": "<h1>page two</h1>",
     "content/pages.json": JSON.stringify(manifest),
     "assets/base.bundle.min.js": "console.log(1)",
+    "assets/config.json": CONFIG_JSON,
+    "assets/offline-preloader.js": PRELOADER_JS,
   }
+}
+
+const CONFIG = {
+  title: "Raven and the Sun",
+  languages: { available: ["en"], default: "en" },
+  features: { glossary: true, activities: true },
+}
+
+const CONFIG_JSON = JSON.stringify(CONFIG, null, 2)
+
+/** Same shape `generateOfflinePreloader` emits: the parsed config inlined into an
+ *  `INLINE` map, keyed `"./assets/config.json"`. */
+const PRELOADER_JS = `// offline-preloader.js — auto-generated, do not edit by hand
+(function () {
+  var INLINE = ${JSON.stringify({
+    "./assets/config.json": CONFIG,
+    "./content/pages.json": MANIFEST,
+  })};
+  window.fetch = function () { return INLINE };
+})();
+`
+
+function inlinedPreloaderConfig(source: string): { features: Record<string, unknown> } {
+  const marker = '"./assets/config.json":'
+  const start = source.indexOf(marker) + marker.length
+  const rest = source.slice(start)
+  let depth = 0
+  for (let index = 0; index < rest.length; index += 1) {
+    if (rest[index] === "{") depth += 1
+    if (rest[index] === "}") {
+      depth -= 1
+      if (depth === 0) {
+        return JSON.parse(rest.slice(0, index + 1)) as { features: Record<string, unknown> }
+      }
+    }
+  }
+  throw new Error("no inlined config in the preloader")
 }
 
 function connection(workerUrl: string): CloudflareConnectionRecord {
@@ -277,10 +316,93 @@ describe("publishBook", () => {
     expect(uploaded?.page_manifest).toEqual(MANIFEST)
     expect(uploaded?.files).toEqual([
       "assets/base.bundle.min.js",
+      "assets/config.json",
+      "assets/offline-preloader.js",
       "content/pages.json",
       "index.html",
       "pg002_sec001.html",
     ])
+  })
+
+  it("turns features.comments on inside the snapshot and leaves the local export alone", async () => {
+    createBook(LABEL, "Raven and the Sun")
+    const worker = createFakePublishWorker()
+    const { emit } = collector()
+    const snapshots: Uint8Array[] = []
+
+    await publishBook({
+      ...publishOptions(worker),
+      createClient: () =>
+        createPublishWorkerClient({
+          workerUrl: worker.baseUrl,
+          mgmtSecret: "fake-mgmt-secret",
+          fetchFn: async (input, init) => {
+            const body = init?.body
+            if (body instanceof FormData) {
+              const snapshot = body.get("snapshot")
+              if (snapshot instanceof Blob) {
+                snapshots.push(new Uint8Array(await snapshot.arrayBuffer()))
+              }
+            }
+            return worker.fetchFn(input, init)
+          },
+        }),
+      emit,
+    })
+
+    expect(snapshots.length).toBe(1)
+    const published = unzipSync(snapshots[0]!)
+    const publishedConfig = JSON.parse(
+      Buffer.from(published["assets/config.json"]!).toString("utf-8"),
+    ) as { features: Record<string, unknown> }
+    expect(publishedConfig.features.comments).toBe(true)
+    expect(publishedConfig.features.glossary).toBe(true)
+
+    // The runtime reads the preloader's inlined copy, not the served file.
+    const publishedPreloader = Buffer.from(
+      published["assets/offline-preloader.js"]!,
+    ).toString("utf-8")
+    expect(inlinedPreloaderConfig(publishedPreloader).features.comments).toBe(true)
+
+    const onDisk = fs.readFileSync(
+      path.join(tmpDir, LABEL, "adt", "assets", "config.json"),
+      "utf-8",
+    )
+    expect(onDisk).toBe(CONFIG_JSON)
+    expect((JSON.parse(onDisk) as { features: Record<string, unknown> }).features.comments).toBe(
+      undefined,
+    )
+
+    const preloaderOnDisk = fs.readFileSync(
+      path.join(tmpDir, LABEL, "adt", "assets", "offline-preloader.js"),
+      "utf-8",
+    )
+    expect(preloaderOnDisk).toBe(PRELOADER_JS)
+    expect(inlinedPreloaderConfig(preloaderOnDisk).features.comments).toBe(undefined)
+  })
+
+  it("refuses to publish when the preloader no longer inlines the config it can patch", async () => {
+    createBook(LABEL, "Raven")
+    const worker = createFakePublishWorker()
+    const { emit } = collector()
+    const files = { ...adtFiles(), "assets/offline-preloader.js": "var INLINE = {};" }
+
+    await expect(publishBook({ ...publishOptions(worker, files), emit })).rejects.toMatchObject({
+      name: "PublishStepError",
+      code: "package_failed",
+    })
+  })
+
+  it("fails with package_failed when the export produced no config.json", async () => {
+    createBook(LABEL, "Raven")
+    const worker = createFakePublishWorker()
+    const { emit } = collector()
+    const files = adtFiles()
+    delete (files as Record<string, string>)["assets/config.json"]
+
+    await expect(
+      publishBook({ ...publishOptions(worker, files), emit }),
+    ).rejects.toMatchObject({ name: "PublishStepError", code: "package_failed" })
   })
 
   it("persists the record as a versioned node_data entity", async () => {
@@ -430,6 +552,8 @@ describe("publishBook", () => {
     const files = unzipSync(captured[0] as Uint8Array)
     expect(Object.keys(files).sort()).toEqual([
       "assets/base.bundle.min.js",
+      "assets/config.json",
+      "assets/offline-preloader.js",
       "content/pages.json",
       "index.html",
       "pg002_sec001.html",
