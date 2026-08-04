@@ -424,6 +424,7 @@ Notes:
 | [docs/AGENT_ROLES.md](docs/AGENT_ROLES.md) | Reference role definitions for focused agent tasks |
 | [docs/GUIDELINES.md](docs/GUIDELINES.md) | Full coding standards, security, patterns |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture decision records with reasoning |
+| [docs/STORYBOARD-BOOK-REMEDIATION-GUIDE.md](docs/STORYBOARD-BOOK-REMEDIATION-GUIDE.md) | Reusable non-destructive Storyboard remediation and quality gates |
 | [docs/architecture.html](docs/architecture.html) | Interactive architecture diagram (open in browser) |
 | [docs/I18N_ADD_LANGUAGE.md](docs/I18N_ADD_LANGUAGE.md) | How to add a new UI language (Lingui i18n) |
 

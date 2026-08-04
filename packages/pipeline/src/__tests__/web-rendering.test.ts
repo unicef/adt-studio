@@ -987,6 +987,73 @@ describe("renderPage", () => {
     expect(result.sections[0].activityAnswers).toEqual({ activity_gen_opt1: "A" })
   })
 
+  it("derives ordering ranks deterministically without a second LLM call", async () => {
+    const llmCalls: string[] = []
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        llmCalls.push(opts.log?.taskType ?? "unknown")
+        return {
+          object: {
+            reasoning: "ordering reasoning",
+            content: `<div id="content"><section data-section-type="activity_ordering" data-section-id="pg001_sec001" data-correct-order="item-2,item-1,item-3">
+              <p data-id="pg001_gp001_tx001">Arrange the items.</p>
+              <ol data-activity-order-list>
+                <li data-activity-item="item-1"><span data-id="activity_gen_item1">One</span></li>
+                <li data-activity-item="item-2"><span data-id="activity_gen_item2">Two</span></li>
+                <li data-activity-item="item-3"><span data-id="activity_gen_item3">Three</span></li>
+              </ol>
+            </section></div>`,
+          } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "activity_ordering",
+              nodes: [
+                groupNode("pg001_gp001", "activity", [
+                  leafNode("pg001_gp001_tx001", "activity_question", "Arrange the items."),
+                ]),
+              ],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      () => ({
+        renderType: "activity",
+        promptName: "activity_ordering",
+        modelId: "openai:gpt-5.4",
+        maxRetries: 5,
+        timeoutMs: 180000,
+        answerPromptName: "must-not-be-called-for-ordering",
+        templateName: "",
+      }),
+      fakeLlm,
+    )
+
+    expect(llmCalls).toEqual(["activity-rendering"])
+    expect(result.sections[0].activityReasoning).toContain("Derived deterministically")
+    expect(result.sections[0].activityAnswers).toEqual({
+      "item-2": "1",
+      "item-1": "2",
+      "item-3": "3",
+    })
+  })
+
   it("skips answer generation when answerPromptName is empty", async () => {
     const llmCalls: string[] = []
     const activityHtmlResponse = {

@@ -27,6 +27,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
 import type { PageDetail } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
+import { ReadyOnMount } from "@/components/pipeline/components/LazyThumb"
 import type {
   ContentNodeData,
   PageSectioningOutput,
@@ -64,6 +65,8 @@ import {
 } from "./BookPreviewFrame"
 import { SectionEditPanel } from "./SectionEditPanel"
 import { writeCustomAnswerToHtml } from "../lib/activity-answer-labels"
+import { updateOrderingAnswer } from "../lib/ordering-answers"
+import { detectChangedStoryboardViewports } from "../lib/storyboard-viewport-changes"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
@@ -221,6 +224,7 @@ function getRenderedSectionByIndex(
 ) {
   return rendering?.sections.find((s) => s.sectionIndex === sectionIndex)
 }
+
 
 /**
  * Pull the sectionIndex the generate-activity agent actually wrote to out of a
@@ -810,6 +814,16 @@ export function StoryboardSectionDetail({
 
   // Current section data
   const section = sectioningData?.sections[sectionIndex]
+
+  // Keep the viewed section in range — e.g. after rolling back to a version
+  // with fewer sections, clamp to the last one instead of showing a blank pane.
+  useEffect(() => {
+    const count = sectioningData?.sections.length ?? 0
+    if (count > 0 && sectionIndex >= count) {
+      onNavigateSection?.(count - 1)
+    }
+  }, [sectioningData, sectionIndex, onNavigateSection])
+
   const renderingData = pendingRendering ?? page.rendering
   const renderedSection = getRenderedSectionByIndex(renderingData, sectionIndex)
   // Fixed-layout pages style every element via inline CSS (the `<p>`'s own
@@ -1335,19 +1349,34 @@ export function StoryboardSectionDetail({
   // grading script) read the correct answer straight from the section HTML —
   // `data-correct-items` on a drop target, or `data-answer` on a per-slot input
   // — so for custom sections we also write each edit back into the HTML, or the
-  // change would be cosmetic and never affect grading. Templated activities
-  // grade off `window.correctAnswers` (built from `activityAnswers`), so the
-  // derived update alone is enough for them.
+  // change would be cosmetic and never affect grading. Ordering activities
+  // also carry an inspectable HTML order, so rank edits atomically swap the
+  // displaced item and update both representations.
   const updateAnswers = useCallback(
     (patch: Record<string, string | boolean>) => {
       const rBase = pendingRendering ?? page.rendering
       if (!rBase) return
       const isCustom = section?.sectionType.startsWith("activity_custom") ?? false
+      const isOrdering = section?.sectionType === "activity_ordering"
+      const currentSection = rBase.sections.find((s) => s.sectionIndex === sectionIndex)
+      let orderingUpdate: ReturnType<typeof updateOrderingAnswer> = null
+      if (isOrdering) {
+        const entries = Object.entries(patch)
+        if (entries.length !== 1 || !currentSection) return
+        const [itemId, value] = entries[0]
+        orderingUpdate = updateOrderingAnswer(
+          currentSection.html,
+          currentSection.activityAnswers ?? {},
+          itemId,
+          value,
+        )
+        if (!orderingUpdate) return
+      }
       const updated = {
         ...rBase,
         sections: rBase.sections.map((s) => {
           if (s.sectionIndex !== sectionIndex) return s
-          let html = s.html
+          let html = orderingUpdate?.html ?? s.html
           if (isCustom && html) {
             for (const [itemKey, value] of Object.entries(patch)) {
               html = writeCustomAnswerToHtml(html, itemKey, String(value))
@@ -1356,7 +1385,7 @@ export function StoryboardSectionDetail({
           return {
             ...s,
             html,
-            activityAnswers: { ...s.activityAnswers, ...patch },
+            activityAnswers: orderingUpdate?.answers ?? { ...s.activityAnswers, ...patch },
           }
         }),
       }
@@ -2341,6 +2370,24 @@ export function StoryboardSectionDetail({
     })
   }
 
+  const getChangedPreviewViewports = useCallback(
+    (currentData: unknown, selectedData: unknown) => {
+      const currentSection = getRenderedSectionByIndex(
+        currentData as RenderingData,
+        sectionIndex
+      )
+      const selectedSection = getRenderedSectionByIndex(
+        selectedData as RenderingData,
+        sectionIndex
+      )
+      return detectChangedStoryboardViewports(
+        currentSection?.html ?? "",
+        selectedSection?.html ?? ""
+      )
+    },
+    [sectionIndex]
+  )
+
   // Header controls rendered via portal into the purple step header
   const headerControls = (
     <>
@@ -2368,10 +2415,43 @@ export function StoryboardSectionDetail({
         saving={saving}
         dirty={renderingDirty}
         bookLabel={bookLabel}
-        onPreview={(data) => setPendingRendering(data as RenderingData)}
+        onRestored={discardAll}
         onSave={saveRendering}
         onDiscard={discardAll}
         renderSaveBar={false}
+        previewViewport={deviceView}
+        getChangedPreviewViewports={getChangedPreviewViewports}
+        renderPreview={(data, onReady, opts) => {
+          const sec = getRenderedSectionByIndex(data as RenderingData, sectionIndex)
+          if (!sec) {
+            return (
+              <ReadyOnMount onReady={onReady}>
+                <div className="flex h-full items-center justify-center p-2 text-center text-[11px] text-muted-foreground">
+                  {t`This section doesn't exist in this version.`}
+                </div>
+              </ReadyOnMount>
+            )
+          }
+          const previewViewport = opts?.viewport ?? (opts?.lite ? "desktop" : deviceView)
+          return (
+            <BookPreviewFrame
+              html={sec.html}
+              bookLabel={bookLabel}
+              editable={false}
+              renderWidth={DEVICE_WIDTHS[previewViewport]}
+              deviceView={previewViewport}
+              maxVisibleHeight={opts?.maxHeight}
+              thumbnail={Boolean(opts?.lite)}
+              // Skip the per-version Tailwind recompile for the tiny list chips
+              // (base CSS is enough at chip size); keep it for the full-size
+              // hover preview and compare panes where missing classes show.
+              autoRefreshCss={!opts?.lite}
+              applyBodyBackground
+              bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
+              onReady={onReady}
+            />
+          )
+        }}
       />
       <ViewportToggle
         value={deviceView}
@@ -2985,13 +3065,7 @@ export function StoryboardSectionDetail({
             saving={saving}
             dirty={dirty}
             bookLabel={bookLabel}
-            onPreview={(data) => {
-              const s = data as SectioningData
-              setPendingSectioning(s)
-              if (s.sections && sectionIndex >= s.sections.length) {
-                onNavigateSection?.(Math.max(0, s.sections.length - 1))
-              }
-            }}
+            onRestored={discardAll}
             onSave={saveSectioning}
             onDiscard={discardAll}
             renderSaveBar={false}

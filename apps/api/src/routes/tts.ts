@@ -20,6 +20,7 @@ import { openBookDb, createBookStorage } from "@adt/storage"
 import {
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,
+  createElevenLabsTTSSynthesizer,
   createTTSSynthesizer,
   type LlmLogEntry,
 } from "@adt/llm"
@@ -36,6 +37,11 @@ import {
   resolveVoice,
   generateSpeechFile,
   generateWordTimestamps,
+  findAdjacentSpeechText,
+  elevenLabsVoiceSettingsFromConfig,
+  buildElevenLabsTtsLogParams,
+  classifyElevenLabsTtsError,
+  elevenLabsTtsRetryDelayMs,
   type ProviderRouting,
 } from "@adt/pipeline"
 import { getLiveSpeechRun } from "../services/speech-progress.js"
@@ -71,7 +77,7 @@ const AUDIO_UPLOAD_FORMAT_BY_MIME: Record<string, "mp3" | "wav" | "ogg"> = {
 const AUDIO_UPLOAD_EXTENSIONS = new Set([".mp3", ".wav", ".ogg"])
 
 interface SingleItemFallbackAttempt {
-  provider: "openai" | "azure"
+  provider: "openai" | "azure" | "elevenlabs"
   model: string
   voice: string
 }
@@ -260,14 +266,60 @@ function getGeminiFallbackModel(model: string): string | null {
   return null
 }
 
+// Retries for a single-item ElevenLabs regeneration. Much lower than the batch
+// paths' ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES (5, backing off to 30s) because
+// this runs inside an HTTP request: 2 retries at 2s + 4s absorb a transient
+// concurrency 429 while keeping the response well inside client/proxy timeouts.
+const ELEVENLABS_SINGLE_ITEM_MAX_RETRIES = 2
+
+/**
+ * The credential a given TTS provider needs for single-item regeneration, or
+ * null when the request already carries it. Returns a message naming the
+ * missing header so the UI can tell the user which key to add, rather than
+ * failing with a generic "provider not supported".
+ */
+function getMissingProviderKeyMessage(
+  provider: string,
+  keys: {
+    geminiApiKey?: string
+    openaiApiKey?: string
+    azureSpeechKey?: string
+    azureSpeechRegion?: string
+    elevenLabsApiKey?: string
+  },
+): string | null {
+  switch (provider) {
+    case "gemini":
+      return keys.geminiApiKey
+        ? null
+        : "Gemini API key required. Set X-Gemini-API-Key header."
+    case "elevenlabs":
+      return keys.elevenLabsApiKey
+        ? null
+        : "ElevenLabs API key required. Set X-ElevenLabs-API-Key header."
+    case "azure":
+      return keys.azureSpeechKey && keys.azureSpeechRegion
+        ? null
+        : "Azure Speech key and region required. Set X-Azure-Speech-Key and X-Azure-Speech-Region headers."
+    default:
+      return keys.openaiApiKey
+        ? null
+        : "OpenAI API key required. Set X-OpenAI-Key header."
+  }
+}
+
 function getSingleItemFallbackAttempts(options: {
   openaiApiKey?: string
   azureSpeechKey?: string
   azureSpeechRegion?: string
+  elevenLabsApiKey?: string
   language: string
   providerConfigs: Record<string, TTSProviderConfig>
   voiceMaps: ReturnType<typeof loadVoicesConfig>
   defaultOpenAIModel?: string
+  /** The provider already tried as the primary attempt — excluded so a
+   *  failure isn't retried against the same provider that just failed. */
+  primaryProvider?: string
 }): SingleItemFallbackAttempt[] {
   const attempts: SingleItemFallbackAttempt[] = []
 
@@ -291,7 +343,15 @@ function getSingleItemFallbackAttempts(options: {
     })
   }
 
-  return attempts
+  if (options.elevenLabsApiKey) {
+    attempts.push({
+      provider: "elevenlabs",
+      model: resolveSpeechModel("elevenlabs", options.providerConfigs),
+      voice: resolveVoice("elevenlabs", options.language, options.voiceMaps),
+    })
+  }
+
+  return attempts.filter((attempt) => attempt.provider !== options.primaryProvider)
 }
 
 function resolveUploadedAudioFormat(file: File): "mp3" | "wav" | "ogg" {
@@ -356,6 +416,8 @@ function appendSingleTtsLog(
     success: boolean
     cached: boolean
     error?: string
+    /** Resolved provider request parameters, for the debug panel. */
+    params?: Record<string, unknown>
   }
 ): void {
   const logEntry: LlmLogEntry = {
@@ -370,6 +432,7 @@ function appendSingleTtsLog(
     errorCount: options.success ? 0 : 1,
     attempt: 1,
     durationMs: options.durationMs,
+    ...(options.params ? { params: options.params } : {}),
     messages: [{
       role: "user",
       content: [{
@@ -698,11 +761,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
     const azureSpeechKey = c.req.header("X-Azure-Speech-Key")?.trim()
     const azureSpeechRegion = c.req.header("X-Azure-Speech-Region")?.trim()
-    if (!geminiApiKey) {
-      throw new HTTPException(400, {
-        message: "Gemini API key required. Set X-Gemini-API-Key header.",
-      })
-    }
+    const elevenLabsApiKey = c.req.header("X-ElevenLabs-API-Key")?.trim()
 
     const normalizedLanguage = normalizeLocale(parsed.data.language)
     const storage = createBookStorage(safeLabel, booksDir)
@@ -728,11 +787,20 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         defaultProvider: config.speech?.default_provider ?? "openai",
       }
       const provider = resolveProviderForLanguage(normalizedLanguage, routing)
-      if (provider !== "gemini") {
-        throw new HTTPException(400, {
-          message:
-            "Single-item audio generation is only available when Gemini is selected for that language.",
-        })
+      // The API key is validated against the *resolved* provider rather than
+      // always demanding a Gemini key: a book routed to ElevenLabs (or Azure,
+      // or OpenAI) has no Gemini key to give, and previously got turned away
+      // before this point — making single-item regeneration unreachable for
+      // every provider but Gemini.
+      const missingKeyMessage = getMissingProviderKeyMessage(provider, {
+        geminiApiKey,
+        openaiApiKey,
+        azureSpeechKey,
+        azureSpeechRegion,
+        elevenLabsApiKey,
+      })
+      if (missingKeyMessage) {
+        throw new HTTPException(400, { message: missingKeyMessage })
       }
 
       const languageEntries = getCatalogEntriesForLanguage(
@@ -740,9 +808,10 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         sourceLanguage,
         normalizedLanguage
       )
-      const textEntry = languageEntries.find(
+      const entryIndex = languageEntries.findIndex(
         (entry) => entry.id === parsed.data.textId
       )
+      const textEntry = entryIndex === -1 ? undefined : languageEntries[entryIndex]
       if (!textEntry) {
         throw new HTTPException(404, {
           message: `Text entry not found for ${parsed.data.textId} (${normalizedLanguage})`,
@@ -770,16 +839,48 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         openaiApiKey,
         azureSpeechKey,
         azureSpeechRegion,
+        elevenLabsApiKey,
         language: normalizedLanguage,
         providerConfigs,
         voiceMaps,
         defaultOpenAIModel: defaultSpeechModel,
+        primaryProvider: provider,
       })
       const bookDir = path.join(path.resolve(booksDir), safeLabel)
       const cacheDir = path.join(bookDir, ".cache")
 
+      // Request parameters recorded on the debug log entry so the settings that
+      // produced this audio are inspectable. Takes provider/model/voice per call
+      // because a fallback attempt logs a different provider than the primary.
+      // ElevenLabs only for now — the other providers' params are a separate change.
+      const logParamsFor = (
+        targetProvider: string,
+        targetModel: string,
+        targetVoice: string,
+      ): Record<string, unknown> | undefined =>
+        targetProvider === "elevenlabs"
+          ? buildElevenLabsTtsLogParams({
+              model: targetModel,
+              voice: targetVoice,
+              language: normalizedLanguage,
+              format,
+              sampleRate: config.speech?.sample_rate,
+              bitRate: config.speech?.bit_rate,
+              applyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+              // Must match what generateEntry sends below, or the log would
+              // describe a request we didn't make.
+              previousText: config.speech?.elevenlabs_use_context
+                ? findAdjacentSpeechText(languageEntries, entryIndex, -1, config.speech)
+                : undefined,
+              nextText: config.speech?.elevenlabs_use_context
+                ? findAdjacentSpeechText(languageEntries, entryIndex, 1, config.speech)
+                : undefined,
+              ...elevenLabsVoiceSettingsFromConfig(config.speech),
+            })
+          : undefined
+
       const startMs = Date.now()
-      const generateEntry = async (options: {
+      const synthesizeEntry = async (options: {
         targetProvider: string
         targetModel: string
         targetVoice: string
@@ -791,8 +892,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           model: options.targetModel,
           voice: options.targetVoice,
           // Gemini embeds these in the prompt text; OpenAI uses its instructions
-          // field. Azure has no instruction channel. Mirrors stage-runner.ts so the
-          // single-item cache key matches the batch path.
+          // field. Azure has no instruction channel. Mirrors stage-runner.ts and
+          // pipeline-dag.ts so the single-item cache key matches the batch path.
           instructions:
             options.targetProvider === "openai" ||
             options.targetProvider === "gemini"
@@ -809,11 +910,81 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                     subscriptionKey: azureSpeechKey!,
                     region: azureSpeechRegion!,
                   })
-                : createTTSSynthesizer(openaiApiKey),
+                : options.targetProvider === "elevenlabs"
+                  ? createElevenLabsTTSSynthesizer(
+                      { apiKey: elevenLabsApiKey! },
+                      // Must match stage-runner.ts and pipeline-dag.ts: without
+                      // these, a regenerated entry is synthesized at ElevenLabs'
+                      // default mp3_44100_128 while the rest of the book used the
+                      // configured rates, and `logParamsFor` below (which does
+                      // read them) would report a format we never requested.
+                      {
+                        sampleRate: config.speech?.sample_rate,
+                        bitRate: config.speech?.bit_rate,
+                      },
+                    )
+                  : createTTSSynthesizer(openaiApiKey),
           provider: options.targetProvider,
           geminiTemperature: config.speech?.temperature,
           geminiSeed: config.speech?.seed,
+          // ElevenLabs-only: adjacent-entry context, opt-in via
+          // elevenlabs_use_context. Must resolve identically to stage-runner.ts
+          // and pipeline-dag.ts so the cache key stays in sync across paths.
+          elevenLabsPreviousText:
+            options.targetProvider === "elevenlabs" && config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(languageEntries, entryIndex, -1, config.speech)
+              : undefined,
+          elevenLabsNextText:
+            options.targetProvider === "elevenlabs" && config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(languageEntries, entryIndex, 1, config.speech)
+              : undefined,
+          elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+          // Voice-tuning overrides. Shared helper so this path hashes the same
+          // cache key as stage-runner.ts and pipeline-dag.ts.
+          ...elevenLabsVoiceSettingsFromConfig(config.speech),
         })
+
+      /**
+       * `synthesizeEntry` plus the ElevenLabs 429/5xx retry.
+       *
+       * ElevenLabs throttles on *concurrent* requests rather than by RPM, so a
+       * user clicking regenerate while a run is in flight — or retuning a voice
+       * in quick succession, which is what the voice-tuning sliders invite —
+       * gets a 429 that both full-run paths retry but this one used to surface
+       * as an outright failure. (The cross-provider fallback below can't help:
+       * it is gated on Gemini's "did not include audio data".)
+       *
+       * The retry budget is deliberately smaller than the batch paths': this is
+       * a synchronous HTTP handler, so it absorbs the transient concurrency hit
+       * without holding the request open long enough to trip a client or proxy
+       * timeout. Wrapping here rather than at the call sites covers the fallback
+       * attempts too.
+       */
+      const generateEntry = async (options: {
+        targetProvider: string
+        targetModel: string
+        targetVoice: string
+      }): Promise<Awaited<ReturnType<typeof synthesizeEntry>>> => {
+        for (let attemptCount = 1; ; attemptCount++) {
+          try {
+            return await synthesizeEntry(options)
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err)
+            if (
+              options.targetProvider !== "elevenlabs" ||
+              attemptCount > ELEVENLABS_SINGLE_ITEM_MAX_RETRIES ||
+              classifyElevenLabsTtsError(message) === "permanent"
+            ) {
+              throw err
+            }
+            const delayMs = elevenLabsTtsRetryDelayMs(attemptCount)
+            console.warn(
+              `[tts] ${safeLabel}: ElevenLabs TTS failed for ${textEntry.id}; retrying ${attemptCount + 1}/${ELEVENLABS_SINGLE_ITEM_MAX_RETRIES + 1} in ${delayMs}ms: ${message}`
+            )
+            await new Promise((resolve) => setTimeout(resolve, delayMs))
+          }
+        }
+      }
 
       try {
         let usedProvider = provider
@@ -864,6 +1035,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           durationMs: Date.now() - startMs,
           success: true,
           cached: entry.cached,
+          params: logParamsFor(usedProvider, usedModel, usedVoice),
         })
 
         const mergedEntries = mergeSpeechEntry(
@@ -892,7 +1064,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           if (currentStatus === "error") {
             storage.recordStepError(
               "tts",
-              `${completion.remainingItems} Gemini audio item(s) still need generation.`
+              `${completion.remainingItems} audio item(s) still need generation.`
             )
           }
         }
@@ -939,6 +1111,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 durationMs: Date.now() - startMs,
                 success: true,
                 cached: entry.cached,
+                params: logParamsFor(attempt.provider, attempt.model, attempt.voice),
               })
 
               const mergedEntries = mergeSpeechEntry(
@@ -967,7 +1140,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 if (currentStatus === "error") {
                   storage.recordStepError(
                     "tts",
-                    `${completion.remainingItems} Gemini audio item(s) still need generation.`
+                    `${completion.remainingItems} audio item(s) still need generation.`
                   )
                 }
               }
@@ -1000,6 +1173,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           success: false,
           cached: false,
           error: fallbackFailureMessage,
+          params: logParamsFor(provider, model, voice),
         })
         storage.recordStepError(
           "tts",

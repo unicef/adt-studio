@@ -9,6 +9,7 @@ import {
   createTTSSynthesizer,
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,
+  createElevenLabsTTSSynthesizer,
 } from "@adt/llm"
 import type { LLMModel, LlmLogEntry, LogLevel, TTSSynthesizer } from "@adt/llm"
 import type {
@@ -63,6 +64,12 @@ import {
   resolveSpeechModel,
   resolveSpeechFormat,
   generateSpeechFile,
+  findAdjacentSpeechText,
+  elevenLabsVoiceSettingsFromConfig,
+  classifyElevenLabsTtsError,
+  elevenLabsTtsRetryDelayMs,
+  ELEVENLABS_TTS_MAX_CONCURRENCY,
+  ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
   type ProviderRouting,
 } from "./speech.js"
 import { packageAdtWeb } from "./packaging/web.js"
@@ -110,6 +117,7 @@ export interface FullPipelineOptions {
   azureSpeechKey?: string
   azureSpeechRegion?: string
   geminiApiKey?: string
+  elevenLabsApiKey?: string
 }
 
 /**
@@ -889,6 +897,9 @@ export async function runFullPipeline(
       const geminiConfig = options.geminiApiKey
         ? { apiKey: options.geminiApiKey }
         : undefined
+      const elevenLabsConfig = options.elevenLabsApiKey
+        ? { apiKey: options.elevenLabsApiKey }
+        : undefined
       const voiceMaps = loadVoicesConfig(configDir)
       const instructionsMap = loadSpeechInstructions(configDir)
       const speechModel =
@@ -914,12 +925,23 @@ export async function runFullPipeline(
           synthesizers.set("gemini", synth)
           return synth
         }
+        if (providerName === "elevenlabs") {
+          if (!elevenLabsConfig && !process.env.ELEVENLABS_API_KEY) {
+            throw new Error("ELEVENLABS_API_KEY is required for ElevenLabs TTS provider")
+          }
+          const synth = createElevenLabsTTSSynthesizer(elevenLabsConfig, {
+            sampleRate: config.speech?.sample_rate,
+            bitRate: config.speech?.bit_rate,
+          })
+          synthesizers.set("elevenlabs", synth)
+          return synth
+        }
         const synth = createTTSSynthesizer()
         synthesizers.set(providerName, synth)
         return synth
       }
 
-      interface TTSWorkItem { textId: string; text: string; language: string }
+      interface TTSWorkItem { textId: string; text: string; language: string; previousText?: string; nextText?: string }
       const workItems: TTSWorkItem[] = []
       for (const lang of outputLanguages) {
         const baseSource = getBaseLanguage(language)
@@ -935,9 +957,22 @@ export async function runFullPipeline(
           if (!translatedRow) throw new Error(`Missing translated catalog for output language: ${lang}`)
           entries = (translatedRow.data as TextCatalogOutput).entries
         }
-        for (const entry of entries) {
+        const provider = resolveProviderForLanguage(lang, routing)
+        for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
+          const entry = entries[entryIndex]
           if (isTtsExcluded(entry.id, config.speech)) continue
-          workItems.push({ textId: entry.id, text: entry.text, language: lang })
+          // ElevenLabs-only: adjacent-entry context, opt-in via
+          // elevenlabs_use_context. Must resolve identically to stage-runner.ts
+          // so the shared cache key (computeSpeechCacheKey) stays in sync.
+          const previousText =
+            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
+              : undefined
+          const nextText =
+            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
+              : undefined
+          workItems.push({ textId: entry.id, text: entry.text, language: lang, previousText, nextText })
         }
       }
 
@@ -946,7 +981,9 @@ export async function runFullPipeline(
       const resultsByLang = new Map<string, SpeechFileEntry[]>()
       for (const lang of outputLanguages) resultsByLang.set(lang, [])
 
-      await processWithConcurrency(workItems, effectiveConcurrency, async (item) => {
+      const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(config.speech)
+
+      const runTtsItem = async (item: TTSWorkItem) => {
         const provider = resolveProviderForLanguage(item.language, routing)
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
@@ -959,21 +996,55 @@ export async function runFullPipeline(
             ? resolveInstructions(item.language, instructionsMap)
             : ""
         const ttsSynthesizer = getSynthesizer(provider)
-        const entry = await generateSpeechFile({
-          textId: item.textId,
-          text: item.text,
-          language: item.language,
-          model: providerModel,
-          voice,
-          instructions,
-          format: outputFormat,
-          bookDir: path.join(path.resolve(booksRoot), label),
-          cacheDir,
-          ttsSynthesizer,
-          provider,
-          geminiTemperature: config.speech?.temperature,
-          geminiSeed: config.speech?.seed,
-        })
+        const generate = () =>
+          generateSpeechFile({
+            textId: item.textId,
+            text: item.text,
+            language: item.language,
+            model: providerModel,
+            voice,
+            instructions,
+            format: outputFormat,
+            bookDir: path.join(path.resolve(booksRoot), label),
+            cacheDir,
+            ttsSynthesizer,
+            provider,
+            geminiTemperature: config.speech?.temperature,
+            geminiSeed: config.speech?.seed,
+            elevenLabsPreviousText: item.previousText,
+            elevenLabsNextText: item.nextText,
+            elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+            ...elevenLabsVoiceSettings,
+          })
+
+        // ElevenLabs throttles on concurrent requests, so a burst returns 429s
+        // that would otherwise fail the entry outright. Retry 429/5xx with the
+        // same backoff the API stage-runner uses.
+        let entry: Awaited<ReturnType<typeof generateSpeechFile>>
+        if (provider === "elevenlabs") {
+          for (let attemptCount = 1; ; attemptCount++) {
+            try {
+              entry = await generate()
+              break
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err)
+              if (
+                classifyElevenLabsTtsError(message) === "permanent" ||
+                attemptCount > ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES
+              ) {
+                throw err
+              }
+              const delayMs = elevenLabsTtsRetryDelayMs(attemptCount)
+              console.warn(
+                `[pipeline] ElevenLabs TTS failed for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${delayMs}ms: ${message}`
+              )
+              await new Promise((resolve) => setTimeout(resolve, delayMs))
+            }
+          }
+        } else {
+          entry = await generate()
+        }
+
         if (entry) resultsByLang.get(item.language)!.push(entry)
         completedItems++
         p.emit({
@@ -983,7 +1054,26 @@ export async function runFullPipeline(
           page: completedItems,
           totalPages: totalItems,
         })
-      })
+      }
+
+      // ElevenLabs plans cap *concurrent* requests (Free ~4, Starter ~5), far
+      // below the default concurrency of 32, so its items run in their own
+      // capped pass. Everything else keeps full concurrency — the two passes run
+      // together so a mixed book doesn't throttle its non-ElevenLabs languages.
+      const elevenLabsItems = workItems.filter(
+        (item) => resolveProviderForLanguage(item.language, routing) === "elevenlabs"
+      )
+      const otherItems = workItems.filter(
+        (item) => resolveProviderForLanguage(item.language, routing) !== "elevenlabs"
+      )
+      await Promise.all([
+        processWithConcurrency(otherItems, effectiveConcurrency, runTtsItem),
+        processWithConcurrency(
+          elevenLabsItems,
+          Math.min(ELEVENLABS_TTS_MAX_CONCURRENCY, effectiveConcurrency),
+          runTtsItem
+        ),
+      ])
 
       for (const lang of outputLanguages) {
         const entries = resultsByLang.get(lang)!

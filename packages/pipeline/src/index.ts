@@ -84,6 +84,12 @@ export {
 } from "./web-rendering.js"
 export { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
 export {
+  inspectOrderingActivityHtml,
+  inspectOrderingSection,
+  type OrderingContract,
+  type OrderingInspection,
+} from "./ordering-contract.js"
+export {
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
   runVisualReviewLoop,
   type VisualReviewDeps,
@@ -189,6 +195,14 @@ export {
   loadVoicesConfig,
   loadSpeechInstructions,
   computeSpeechCacheKey,
+  findAdjacentSpeechText,
+  elevenLabsVoiceSettingsFromConfig,
+  buildElevenLabsTtsLogParams,
+  classifyElevenLabsTtsError,
+  elevenLabsTtsRetryDelayMs,
+  parseElevenLabsErrorStatus,
+  ELEVENLABS_TTS_MAX_CONCURRENCY,
+  ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
   generateSpeechFile,
   generatePageSpeechFiles,
   generateWordTimestamps,

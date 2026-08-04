@@ -9,6 +9,58 @@ export const DEFAULT_LLM_MAX_RETRIES = 5
 export const DEFAULT_LLM_MODEL_ID = "openai:gpt-5.4"
 export const DEFAULT_IMAGE_GENERATION_MODEL_ID = "openai:gpt-image-2"
 export const DEFAULT_OPENAI_TTS_MODEL_ID = "gpt-4o-mini-tts"
+export const DEFAULT_ELEVENLABS_TTS_MODEL_ID = "eleven_multilingual_v2"
+// Rachel — a stable ElevenLabs premade voice ID, used when no voice is
+// configured for the elevenlabs provider.
+export const DEFAULT_ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
+
+/**
+ * Display names for the ElevenLabs voice IDs ADT Studio ships (the
+ * `DEFAULT_ELEVENLABS_VOICE_ID` fallback and the entries in
+ * `config/voices.yaml`).
+ *
+ * ElevenLabs voice IDs are opaque, and the UI normally resolves them to names
+ * through the account's voice list. That lookup can't help in two common cases:
+ * no ElevenLabs API key is configured (the key lives in browser storage, so a
+ * fresh profile has none), and premade library voices that the user has not
+ * added to their own workspace. Both left the UI showing a raw
+ * `21m00Tcm4TlvDq8ikWAM`.
+ *
+ * These are the IDs a user sees before configuring anything, so their names are
+ * known here and need no network call. The live list still wins when available —
+ * it is authoritative and covers the user's own voices too.
+ */
+export const ELEVENLABS_SHIPPED_VOICE_NAMES: Record<string, string> = {
+  [DEFAULT_ELEVENLABS_VOICE_ID]: "Rachel",
+  // Río de la Plata Spanish, mapped to `es-uy` in config/voices.yaml.
+  QK4xDwo9ESPHA4JNUpX3: "Tomás",
+}
+
+/**
+ * Narration-oriented ElevenLabs `voice_settings` defaults, matching ElevenLabs'
+ * own audiobook/narration recommendation.
+ *
+ * These are not cosmetic. ElevenLabs treats `voice_settings` as "voice settings
+ * overriding stored settings for the given voice", so when the field is absent
+ * the voice's own stored dashboard settings apply — arbitrary for community and
+ * cloned voices. ElevenLabs documents that a non-zero `style` "can lead to
+ * instability, including inconsistent speed, mispronunciation and the addition
+ * of extra sounds", and that low `stability` broadens emotional range at the
+ * cost of hallucinations. In practice that surfaces as filler sounds ("ehm",
+ * "uh") the source text never contained, so we always send a resolved block.
+ *
+ * Lives here (rather than beside the synthesizer) because the Studio also needs
+ * the numbers, to show what applies when a book overrides nothing.
+ *
+ * `speed` deliberately has no default: it is only sent when explicitly set, so
+ * an unset value leaves ElevenLabs' own pacing alone rather than pinning it.
+ */
+export const DEFAULT_ELEVENLABS_VOICE_SETTINGS = {
+  stability: 0.7,
+  similarity_boost: 0.5,
+  style: 0,
+  use_speaker_boost: true,
+} as const
 
 export const LLMModelId = z
   .string()

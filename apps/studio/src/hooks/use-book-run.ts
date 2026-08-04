@@ -115,7 +115,7 @@ const stepStatusKey = (label: string) => ["books", label, "step-status"] as cons
 
 export function useBookRunStatus(label: string): BookRunContextValue {
   const queryClient = useQueryClient()
-  const { anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
+  const { anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey, elevenLabsKey } = useApiKey()
 
   // Screen-reader announcements for long-running jobs. Held in a ref so the
   // always-on SSE effect (keyed on [label, queryClient]) can announce without
@@ -617,6 +617,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         customApiKey: customApiKey || undefined,
         azure: { key: azureKey, region: azureRegion },
         geminiApiKey: geminiKey || undefined,
+        elevenLabsApiKey: elevenLabsKey || undefined,
         ...options.providerCredentials,
       }
 
@@ -734,7 +735,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
       })
     },
-    [label, navigate, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey]
+    [label, navigate, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey, elevenLabsKey]
   )
 
   // ------------------------------------------------------------------

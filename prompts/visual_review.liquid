@@ -16,6 +16,17 @@ The content tree below is the current saved user state. Its depth-first order is
 Content tree (authoritative reading order):
 {% include "_render_node", nodes: nodes, depth: 0 %}
 
+{% include "_learner_response_controls" %}
+
+During review, reject any exercise with a missing response control, a control detached from its question or picture, passage blanks moved into a separate questionnaire, a visible screenshot/crop used instead of semantic exercise HTML, a picture input collapsed beside the image, an inaccessible/unlabelled control, or a field clipped at mobile width. Never remove valid learner controls while correcting visual layout.
+
+{% if section_type == "table_of_contents" %}
+## TABLE OF CONTENTS REVIEW (MANDATORY)
+- Every TOC entry must show its title at the left, its terminal Arabic or Roman page number at the far right, and a dotted leader filling the middle. Reject any rendering where the number remains appended to the title, appears in a left-hand column, or the dots occur after the number.
+- OCR may merge title and page number into one text leaf (`"Digestive system1"`, `"Introduction vi"`). For this section only, preserve its one parent `data-id` while using child spans marked `data-toc-title="true"` and `data-toc-page-number="true"`, plus an `aria-hidden` flexible span marked `data-toc-leader="true"` between them. The parent's combined text content must remain exactly equal to the source leaf; the markers let runtime translation preserve the row layout.
+- Preserve chapter/section/subsection indentation from the source page. Do not remove a correct dotted-leader row during review.
+{% endif %}
+
 ## IMPORTANT: SECTION SCOPE
 The screenshots show a **single section**, which is typically only a SUBSET of the original page — not the whole page. A page is usually composed of multiple sections (a header, a body paragraph, an image with caption, a sidebar, etc.), and you are only reviewing ONE of them at a time.
 
@@ -68,7 +79,7 @@ The base (no-prefix) classes are the DESKTOP design — overlay and side-by-side
 
 ## RULES
 - Preserve ALL data-id attributes exactly as they are
-- The only data-id rule is that an element WITH a `data-id` attribute must contain only literal text as its children — no nested HTML tags directly inside that data-id element. Its text content is replaced at render time.
+- The normal data-id rule is that an element WITH a `data-id` attribute contains only literal text. The sole exception is a `table_of_contents` entry, which may contain unlabelled title, dotted-leader, and page-number child spans as described above. Its combined text content must still match exactly.
 - A plain wrapper element WITHOUT its own `data-id` (e.g. a `<p>`, `<div>`, `<li>`, or `<section>`) MAY contain multiple data-id-bearing children (typically `<span data-id="...">…</span>` fragments flowing inline). That is the intended shape for a paragraph or list item whose text is split across several leaves — do NOT flag or rewrite it. Only flag cases where an element that itself has a `data-id` also has child tags inside it.
 - Preserve ALL text content exactly — do not change, add, or remove any words
 - Preserve ALL image tags and their data-id attributes

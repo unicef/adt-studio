@@ -7,7 +7,12 @@ import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js
 import type { RenderConfig, RenderExecutionOptions, RenderNode, RenderSectionInput } from "./web-rendering.js"
 import { runVisualReviewLoop } from "./visual-review.js"
 import { buildTypographyCss, typographyPreservationErrors } from "./typography.js"
+import {
+  repairTableOfContentsLayout,
+  tableOfContentsLayoutErrors,
+} from "./toc-layout.js"
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
+import { inspectOrderingActivityHtml } from "./ordering-contract.js"
 
 /** Dependencies for the optional visual refinement loop. */
 export interface VisualRefinementDeps {
@@ -25,7 +30,8 @@ export interface VisualRefinementDeps {
  *
  * For activity sections (config.renderType === "activity"):
  * - Validation allows activity_gen_* prefixed data-ids
- * - If config.answerPromptName is set, a second LLM call generates correct answers
+ * - Ordering answers are derived deterministically from validated HTML
+ * - Other activities use a second LLM call when config.answerPromptName is set
  */
 export async function renderSectionLlm(
   input: RenderSectionInput,
@@ -150,12 +156,26 @@ export async function renderSectionLlm(
   // underline-text sections can validate against repaired HTML while the saved
   // web-rendering node still contains the unrepaired LLM output.
   generatedHtml = autoRepairUnderlineActivityHtml(generatedHtml, section.sectionType)
+  if (section.sectionType === "table_of_contents") {
+    generatedHtml = repairTableOfContentsLayout(generatedHtml, renderContext.leaf_texts)
+  }
 
-  // Optional: generate activity answers via a second LLM call
+  // Ordering has one inspectable source of truth in the validated HTML. Derive
+  // its rank map deterministically so initial render, rerender, Studio editing,
+  // preview, and export cannot disagree because of a second LLM response.
   let activityReasoning: string | undefined
   let activityAnswers: Record<string, string | boolean | number> | undefined
 
-  if (isActivity && config.answerPromptName) {
+  if (section.sectionType === "activity_ordering") {
+    const inspection = inspectOrderingActivityHtml(generatedHtml)
+    if (!inspection.contract) {
+      throw new Error(
+        `Validated activity_ordering HTML has no usable ordering contract: ${inspection.errors.join(" ")}`,
+      )
+    }
+    activityReasoning = "Derived deterministically from the validated correct item order."
+    activityAnswers = inspection.contract.answers
+  } else if (isActivity && config.answerPromptName) {
     const answersResult = await llmModel.generateObject<{
       reasoning: string
       answers: Array<{ id: string; value: string | boolean | number }>
@@ -212,7 +232,11 @@ function validateWebRendering(
   const imageUrlPrefix = `/api/books/${label}/images`
   const expectedTexts = new Map(leaf_texts.map((t) => [t.text_id, t.text]))
   const optionalTextIds = collectOptionalTextIds(leaf_texts)
-  const candidateHtml = autoRepairUnderlineActivityHtml(r.content, sectionType)
+  let candidateHtml = autoRepairUnderlineActivityHtml(r.content, sectionType)
+  if (sectionType === "table_of_contents") {
+    candidateHtml = repairTableOfContentsLayout(candidateHtml, leaf_texts)
+  }
+  const minimumEditableElements = minimumLearnerResponseCount(nodes)
 
   const check = validateSectionHtml(
     candidateHtml,
@@ -227,8 +251,13 @@ function validateWebRendering(
       expectedSectionId: sectionId,
       optionalTextIds,
       expectedContentIdOrder: collectLeafDataIdOrder(nodes),
+      minimumEditableElements,
     }
   )
+  if (sectionType === "table_of_contents") {
+    check.errors.push(...tableOfContentsLayoutErrors(candidateHtml, leaf_texts))
+    check.valid = check.errors.length === 0
+  }
   if (check.valid && check.sectionHtml) {
     return {
       valid: true,
@@ -238,6 +267,26 @@ function validateWebRendering(
   }
 
   return { valid: check.valid, errors: check.errors }
+}
+
+/** Require one response per explicit question/blank. If the tree only contains
+ * an activity instruction (common on mixed page-mode pages), require at least
+ * one control so a static screenshot cannot pass validation. Questions and
+ * blank leaves often describe the same response, so use the larger count
+ * instead of adding them together. */
+export function minimumLearnerResponseCount(nodes: RenderNode[]): number {
+  let questions = 0
+  let blanks = 0
+  let hasInstruction = false
+  function walk(node: RenderNode): void {
+    if (node.role === "activity_question") questions += 1
+    if (node.role === "activity_fill_in_the_blank") blanks += 1
+    if (node.role === "activity_instruction") hasInstruction = true
+    for (const child of node.children ?? []) walk(child)
+  }
+  for (const node of nodes) walk(node)
+  const explicit = Math.max(questions, blanks)
+  return explicit > 0 ? explicit : hasInstruction ? 1 : 0
 }
 
 function collectLeafDataIdOrder(nodes: RenderNode[]): string[] {

@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { collectOptionalTextIds } from "../render-llm.js"
+import {
+  collectOptionalTextIds,
+  minimumLearnerResponseCount,
+} from "../render-llm.js"
 
 describe("collectOptionalTextIds", () => {
   it("marks single-underscore blank-cell leaves as optional (crossword cells)", () => {
@@ -87,5 +90,35 @@ describe("collectOptionalTextIds", () => {
     expect(collectOptionalTextIds(leaves).has("n1")).toBe(true)
     expect(collectOptionalTextIds(leaves).has("n1")).toBe(true)
     expect(collectOptionalTextIds(leaves).has("n1")).toBe(true)
+  })
+})
+
+describe("minimumLearnerResponseCount", () => {
+  it("does not double-count a question and its response blank", () => {
+    expect(minimumLearnerResponseCount([
+      {
+        node_id: "activity",
+        structure: "activity",
+        children: [
+          { node_id: "q1", role: "activity_question", text: "Name the animal." },
+          { node_id: "b1", role: "activity_fill_in_the_blank", text: "___" },
+        ],
+      },
+    ])).toBe(1)
+  })
+
+  it("requires one response for non-English activity instructions", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "i1", role: "activity_instruction", text: "Completa las frases." },
+      { node_id: "i2", role: "activity_instruction", text: "Usa el banco de palabras." },
+    ])).toBe(1)
+  })
+
+  it("uses the larger of question and blank counts", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "q1", role: "activity_question", text: "First?" },
+      { node_id: "q2", role: "activity_question", text: "Second?" },
+      { node_id: "b1", role: "activity_fill_in_the_blank", text: "___" },
+    ])).toBe(2)
   })
 })
