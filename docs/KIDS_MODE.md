@@ -10,7 +10,9 @@ Branch: `eliezir/kids-mode`. The runtime experience ships inside web kids books 
 
 **Kids mode is prepared by the author and selected per export, never by the reader.** Studio writes reusable setup (`{ enabled, buddies }`) to `kids-mode.json` in the book directory. Preview uses that setup, while each rendered export explicitly selects Standard or Kids Mode and stamps the result into `features.kidsMode` / `features.kidsBuddies`. Choosing Standard never deletes translations, buddy choices, or voice packs. The runtime's `kidsModeActiveAtom` reads only the packed `features.kidsMode === true`. Per-reader state (onboarding done, chosen buddy, player name, last spot) stays persisted locally in the book's storage.
 
-The `/books/:label/adt/*` preview route patches `assets/config.json` on the way out from the live `kids-mode.json` (and serves `content/kids-voice/*` from the book dir), so toggling kids mode in Studio reflects in the preview without re-packaging.
+Kids Mode export is currently limited to **Web Export**. WebPub, EPUB, and PNLD intentionally strip the ADT React runtime and use host-reader controls, so they cannot render the Kids interface. SCORM keeps the runtime but remains disabled until it completes format-specific compatibility testing. Studio explains this limitation and the API rejects an explicit Kids Mode request for every unsupported format.
+
+The `/books/:label/adt/*` preview route patches `assets/config.json` on the way out from the live `kids-mode.json` (and serves `content/kids-voice/*` from the book dir), so toggling kids mode in Studio reflects in the preview without re-packaging. Preview offers the temporary regular/Kids chrome switch only while Kids Mode is enabled in the book's Kids menu.
 
 ### Where it lives
 
@@ -49,6 +51,8 @@ Five buddies with **fixed names** (not user-renameable): dino Rex, robot Bolt, b
 
 The child's avatar uses the [DiceBear Adventurer](https://www.figma.com/community/file/1184595184137881796) design by Lisa Wischofsky, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), with colors and parts customized by the reader. The avatar builder carries the same attribution into every shipped kids book.
 
+The avatar creator exposes named controls, pressed and selected state, a labelled preview, semantic tab and tabpanel relationships, roving arrow-key category navigation, and visible keyboard focus. It has not completed accessibility validation, so Studio states that the character creator is not accessible yet whenever an author selects Kids Mode for export.
+
 ### Mode switch (chrome swap, no forking)
 
 Runtime activation is **config-only**: `kidsModeActiveAtom` derives solely from the packed `features.kidsMode === true` (see "Who decides what" above), and there is no reader-facing toggle anywhere in the runtime. The Studio Export screen owns the Standard/Kids decision for each rendered artifact. The API derives the buddy roster from saved setup, validates interface and voice readiness server-side, and preserves the old book-level default for older callers that omit the new export choice. Old books without the field, or exports choosing Standard, get the normal adult chrome. When active, `NavRoot` swaps `BottomDock` → `KidsChrome` **inside the same `<Dock>`**, so the audio player and keyboard shortcuts keep working; `ChromeRoot` suppresses the adult tutorial overlay. Kids mode re-skins the same feature atoms the dock drives (`readAloudModeAtom`, `easyReadModeAtom`, `glossaryModeAtom`, `signLanguageModeAtom`, notepad/eli5 atoms, `audioSpeedAtom`) — it never reimplements feature logic. The onboarding picker shows only the packed `features.kidsBuddies` roster. Onboarding replay ("Meet my buddy again") lives as an action inside the buddy panel itself (`KidsBuddy.tsx`), not in Settings — it just flips `kidsOnboardingDoneAtom` back to `false` and closes the panel.
@@ -71,7 +75,7 @@ Baking rules: `${name}` = the buddy's fixed default name (resolvable per charact
 
 ### Onboarding (page-based, not a modal)
 
-Full-screen pages navigated with ← → (capture-phase handler intercepts the book's own arrow navigation; inputs guarded via `isTypingTarget`). Sequence: **welcome → how-do-you-want-to-read → your name → build your avatar → pick buddy → "Turn the pages" → "Ask me anytime" → "Here's what I can do" → start**. The keyboard-only page-turn lesson is omitted on touch-only devices. The neutral narrator starts on the welcome step; choosing "I'll read it myself" stops it and keeps the remaining flow silent. Gated by `kidsOnboardingDone`.
+Full-screen pages navigated with ← → (capture-phase handler intercepts the book's own arrow navigation; inputs are guarded via `isTypingTarget`, and controls with local arrow-key behavior opt out). Sequence: **welcome → how-do-you-want-to-read → your name → build your avatar → pick buddy → "Turn the pages" → "Ask me anytime" → "Here's what I can do" → start**. The keyboard-only page-turn lesson is omitted on touch-only devices. The neutral narrator starts on the welcome step; choosing "I'll read it myself" stops it and keeps the remaining flow silent. Gated by `kidsOnboardingDone`.
 
 ### Studio authoring screen (Kids Mode)
 

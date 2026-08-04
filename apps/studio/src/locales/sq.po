@@ -740,6 +740,12 @@ msgstr "Kontrolli i aksesueshmërisë dështoi për këtë faqe"
 msgid "Accessibility Findings"
 msgstr "Gjetjet e Aksesueshmërisë"
 
+msgid "Accessibility notice: the character creator is not accessible yet."
+msgstr "Njoftim për aksesueshmërinë: krijuesi i personazheve nuk është ende i aksesueshëm."
+
+#~ msgid "Accessibility notice: the character creator supports keyboard controls, but its visual choices do not yet have complete screen-reader descriptions."
+#~ msgstr "Njoftim për aksesueshmërinë: krijuesi i personazheve mbështet komandat me tastierë, por zgjedhjet e tij pamore nuk kanë ende përshkrime të plota për lexuesit e ekranit."
+
 msgid "Accessibility results are temporarily unavailable."
 msgstr "Rezultatet e aksesueshmërisë janë përkohësisht të padisponueshme."
 
@@ -1598,8 +1604,8 @@ msgstr "Kthehu te ndërfaqja për fëmijë"
 msgid "Back to preview"
 msgstr "Kthehu te pamja paraprake"
 
-msgid "Back to regular UI"
-msgstr "Kthehu te ndërfaqja normale"
+#~ msgid "Back to regular UI"
+#~ msgstr "Kthehu te ndërfaqja normale"
 
 msgid "Back to Speech overview"
 msgstr "Kthehu te përmbledhja e të folurit"
@@ -6573,8 +6579,8 @@ msgstr "Para"
 msgid "Preview"
 msgstr "Pamje paraprake"
 
-msgid "Preview kids UI"
-msgstr "Shiko ndërfaqen për fëmijë"
+#~ msgid "Preview kids UI"
+#~ msgstr "Shiko ndërfaqen për fëmijë"
 
 msgid "Preview linked page"
 msgstr "Shiko faqen e lidhur"
@@ -8908,6 +8914,9 @@ msgstr "Licenca e këtij fonti nuk është open-source dhe kufizon përfshirjen 
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "Licenca e kësaj fonti kufizon ngulitjen — shpërndarja e saj brenda paketës së librit mund të jetë e paligjshme."
 
+msgid "This format uses its own reader controls. Choose Web Export to include the Kids Mode interface."
+msgstr "Ky format përdor komandat e lexuesit të vet. Zgjidhni Eksport web për të përfshirë ndërfaqen e Modalitetit për Fëmijë."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Ky imazh është dekorativ. Lexuesit e ekranit do ta anashkalojnë dhe nuk nevojitet titull."
 
@@ -9741,6 +9750,9 @@ msgstr "Ndesh një problem gjatë ngarkimit të kësaj pamjeje. Mund të provosh
 
 msgid "Web Export"
 msgstr "Eksport web"
+
+msgid "Web Export only"
+msgstr "Vetëm Eksport web"
 
 msgid "Web Package"
 msgstr "Paketë web"

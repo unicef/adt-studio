@@ -326,6 +326,12 @@ export function KidsOnboarding() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return
       if (isTypingTarget(event.target)) return
+      if (
+        event.target instanceof Element &&
+        event.target.closest("[data-kids-local-arrow-keys]")
+      ) {
+        return
+      }
 
       event.preventDefault()
       event.stopPropagation()

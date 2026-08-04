@@ -321,6 +321,34 @@ describe("KidsOnboarding", () => {
     expect(screen.getByText("Make your character")).not.toBeNull()
   })
 
+  it("keeps arrow-key navigation inside the avatar category tabs", () => {
+    renderWithStore(<KidsChrome />)
+    goToNamePage()
+    fireEvent.click(screen.getByText("That's me!"))
+
+    const skinTab = screen.getByRole("tab", { name: "Skin" })
+    const hairTab = screen.getByRole("tab", { name: "Hair" })
+    skinTab.focus()
+    fireEvent.keyDown(skinTab, { key: "ArrowRight" })
+
+    expect(screen.getByText("Make your character")).not.toBeNull()
+    expect(hairTab.getAttribute("aria-selected")).toBe("true")
+    expect(document.activeElement).toBe(hairTab)
+  })
+
+  it("gives avatar choices and the preview accessible names", () => {
+    renderWithStore(<KidsChrome />)
+    goToNamePage()
+    fireEvent.click(screen.getByText("That's me!"))
+
+    expect(
+      screen.getByRole("img", { name: "Your character" }),
+    ).not.toBeNull()
+    fireEvent.click(screen.getByRole("tab", { name: "Hair" }))
+    expect(screen.getByRole("button", { name: "Style: Off" })).not.toBeNull()
+    expect(screen.getByRole("button", { name: "Style 2" })).not.toBeNull()
+  })
+
   it("sets read-aloud mode from the reading mode page", () => {
     const store = createKidsStore()
     renderWithStore(<KidsChrome />, store)

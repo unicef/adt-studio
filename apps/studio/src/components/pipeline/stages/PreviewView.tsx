@@ -1,9 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import type { AccessibilityFinding } from "@adt/types"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Baby } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import { useKidsInterfaceStatus, useKidsMode } from "@/hooks/use-kids-mode"
 import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
@@ -27,6 +24,7 @@ import { useStepHeader } from "@/components/pipeline/components/StepViewRouter"
 import { PreviewAccessibilityCard } from "./PreviewAccessibilityCard"
 import { PreviewValidationCard } from "./PreviewValidationCard"
 import { KidsPreviewLanguageGate } from "./KidsPreviewLanguageGate"
+import { KidsPreviewToggle } from "./KidsPreviewToggle"
 import { useDeviceView, DEVICE_WIDTHS } from "./storyboard/components/style-editor/device-breakpoint"
 import { getDeviceFrame, getTargetVisibleWidth } from "./storyboard/components/style-editor/device-chrome"
 import { ViewportToggle } from "./storyboard/components/style-editor/ViewportToggle"
@@ -70,11 +68,11 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }>({ sectionId: null, href: null, title: null, hasImages: false, hasActivity: false, signLanguageEnabled: false })
   const [accessibilityCardExpanded, setAccessibilityCardExpanded] = useState(false)
   const [validationCardExpanded, setValidationCardExpanded] = useState(false)
-  // Author-facing preview override: flip the book between KIDS and REGULAR
-  // chrome without touching the packed kids-mode decision. null = follow the
-  // book decision. The runtime honors a `kidsMode=on|off` URL param only in
-  // the dev/authoring preview context (see the runtime's kids-preview.ts).
-  const [kidsPreview, setKidsPreview] = useState<"on" | "off" | null>(null)
+  // Author-facing preview override: a configured Kids book can temporarily
+  // show regular chrome without touching the saved Kids Mode decision.
+  // null = follow the book decision. The runtime honors `kidsMode=on|off`
+  // only in the dev/authoring preview context.
+  const [kidsPreview, setKidsPreview] = useState<"off" | null>(null)
   const { data: kidsModeConfig } = useKidsMode(bookLabel)
   const { data: kidsInterfaceStatus } = useKidsInterfaceStatus(bookLabel)
   const packedKidsMode = kidsModeConfig?.enabled
@@ -237,9 +235,11 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }, [runPackage, storyboardDone])
 
   const toggleKidsPreview = useCallback(() => {
-    setKidsPreview((current) =>
-      current !== null ? null : packedKidsMode ? "off" : "on",
-    )
+    setKidsPreview((current) => (current === "off" ? null : "off"))
+  }, [])
+
+  useEffect(() => {
+    if (packedKidsMode === false) setKidsPreview(null)
   }, [packedKidsMode])
 
   const navigatePreviewToHref = useCallback((href: string) => {
@@ -399,36 +399,12 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
           )}
         </div>
 
-        {packedKidsMode !== undefined ? (
-          <div
-            className={cn(
-              "absolute right-4 top-4 z-30 transition-all duration-200 ease-out",
-              accessibilityCardExpanded
-                ? "pointer-events-none -translate-y-1 opacity-0"
-                : "translate-y-0 opacity-100",
-            )}
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={toggleKidsPreview}
-              className="gap-1.5 rounded-full bg-background/95 shadow-md backdrop-blur-sm supports-[backdrop-filter]:bg-background/90"
-            >
-              <Baby className="h-4 w-4" />
-              {packedKidsMode ? (
-                kidsPreview === "off" ? (
-                  <Trans>Back to kids UI</Trans>
-                ) : (
-                  <Trans>Preview regular UI</Trans>
-                )
-              ) : kidsPreview === "on" ? (
-                <Trans>Back to regular UI</Trans>
-              ) : (
-                <Trans>Preview kids UI</Trans>
-              )}
-            </Button>
-          </div>
-        ) : null}
+        <KidsPreviewToggle
+          enabled={packedKidsMode === true}
+          showingRegular={kidsPreview === "off"}
+          hidden={accessibilityCardExpanded}
+          onToggle={toggleKidsPreview}
+        />
 
         {headerSlotEl &&
           createPortal(

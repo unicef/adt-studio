@@ -65,6 +65,15 @@ export interface ExportDefaultSettings {
   reduceMotion?: boolean
 }
 
+type ExportFormat = "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld"
+
+/**
+ * Kids Mode currently depends on the standalone ADT runtime. Host-reader
+ * formats strip that runtime, and SCORM has not completed compatibility
+ * validation, so only the tested Web Export may opt in for now.
+ */
+const KIDS_MODE_EXPORT_FORMATS = new Set<ExportFormat>(["adt"])
+
 /**
  * Prepare export by rebuilding the adt/ (and optionally webpub/) directories.
  * Called as a separate step before the actual download so the client can show
@@ -72,7 +81,7 @@ export interface ExportDefaultSettings {
  */
 export async function prepareExport(
   label: string,
-  format: "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld",
+  format: ExportFormat,
   booksDir: string,
   webAssetsDir: string,
   configPath?: string,
@@ -161,15 +170,25 @@ export async function prepareExport(
       // setup, never from untrusted request data.
       features: (() => {
         const kidsConfig = readKidsModeConfig(bookDir)
-        const requestedKidsMode = features?.kidsMode ?? kidsConfig.enabled
+        const supportsKidsMode = KIDS_MODE_EXPORT_FORMATS.has(format)
+        const requestedKidsMode =
+          format === "project"
+            ? false
+            : supportsKidsMode
+              ? features?.kidsMode ?? kidsConfig.enabled
+              : features?.kidsMode === true
+        if (requestedKidsMode && !supportsKidsMode) {
+          throw new HTTPException(400, {
+            message:
+              "Kids Mode export is currently supported only for Web Export",
+          })
+        }
         if (requestedKidsMode && !kidsConfig.enabled) {
           throw new Error(
             "Kids Mode setup must be enabled before exporting a Kids Mode book",
           )
         }
-        // Project archives preserve setup data and do not promise a runnable
-        // reading experience, so incomplete voices do not block that format.
-        if (requestedKidsMode && format !== "project") {
+        if (requestedKidsMode) {
           assertKidsVoiceExportReady({
             bookDir,
             languages: exportLanguages,

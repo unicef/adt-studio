@@ -1,11 +1,13 @@
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import {
+  Accessibility,
   AlertTriangle,
   ArrowRight,
   Baby,
   BookOpen,
   Check,
+  Info,
   Loader2,
 } from "lucide-react"
 import type { KidsExportReadiness } from "@/lib/kids-export-readiness"
@@ -20,6 +22,7 @@ export function ReadingExperiencePicker({
   readiness,
   loading,
   disabled,
+  kidsSupported,
 }: {
   bookLabel: string
   selected: ReadingExperience
@@ -27,6 +30,7 @@ export function ReadingExperiencePicker({
   readiness: KidsExportReadiness
   loading: boolean
   disabled: boolean
+  kidsSupported: boolean
 }) {
   const { t } = useLingui()
   return (
@@ -48,14 +52,18 @@ export function ReadingExperiencePicker({
         />
         <ExperienceOption
           selected={selected === "kids"}
-          disabled={disabled}
+          disabled={disabled || !kidsSupported}
           icon={Baby}
           title={<Trans>Kids Mode</Trans>}
           description={
             <Trans>Use buddy-guided onboarding and reading controls.</Trans>
           }
           badge={
-            loading ? (
+            !kidsSupported ? (
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600">
+                <Trans>Web Export only</Trans>
+              </span>
+            ) : loading ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-400" />
             ) : readiness.ready ? (
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
@@ -71,7 +79,20 @@ export function ReadingExperiencePicker({
         />
       </div>
 
-      {selected === "kids" && !loading ? (
+      {!kidsSupported ? (
+        <div
+          role="note"
+          className="flex items-start gap-2 rounded-lg bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-slate-700 ring-1 ring-inset ring-slate-200"
+        >
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <Trans>
+            This format uses its own reader controls. Choose Web Export to
+            include the Kids Mode interface.
+          </Trans>
+        </div>
+      ) : null}
+
+      {kidsSupported && selected === "kids" && !loading ? (
         readiness.ready ? (
           <div
             role="status"
@@ -134,6 +155,21 @@ export function ReadingExperiencePicker({
             </Link>
           </div>
         )
+      ) : null}
+
+      {kidsSupported && selected === "kids" ? (
+        <div
+          role="note"
+          className="flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2.5 text-xs leading-relaxed text-amber-950 ring-1 ring-inset ring-amber-200"
+        >
+          <Accessibility className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>
+            <Trans>
+              Accessibility notice: the character creator is not accessible
+              yet.
+            </Trans>
+          </span>
+        </div>
       ) : null}
     </div>
   )

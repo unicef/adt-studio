@@ -739,6 +739,12 @@ msgstr "Accessibility check failed for this page"
 msgid "Accessibility Findings"
 msgstr "Accessibility Findings"
 
+msgid "Accessibility notice: the character creator is not accessible yet."
+msgstr "Accessibility notice: the character creator is not accessible yet."
+
+#~ msgid "Accessibility notice: the character creator supports keyboard controls, but its visual choices do not yet have complete screen-reader descriptions."
+#~ msgstr "Accessibility notice: the character creator supports keyboard controls, but its visual choices do not yet have complete screen-reader descriptions."
+
 msgid "Accessibility results are temporarily unavailable."
 msgstr "Accessibility results are temporarily unavailable."
 
@@ -1597,8 +1603,8 @@ msgstr "Back to kids UI"
 msgid "Back to preview"
 msgstr "Back to preview"
 
-msgid "Back to regular UI"
-msgstr "Back to regular UI"
+#~ msgid "Back to regular UI"
+#~ msgstr "Back to regular UI"
 
 msgid "Back to Speech overview"
 msgstr "Back to Speech overview"
@@ -6572,8 +6578,8 @@ msgstr "Prev"
 msgid "Preview"
 msgstr "Preview"
 
-msgid "Preview kids UI"
-msgstr "Preview kids UI"
+#~ msgid "Preview kids UI"
+#~ msgstr "Preview kids UI"
 
 msgid "Preview linked page"
 msgstr "Preview linked page"
@@ -8907,6 +8913,9 @@ msgstr "This font's license is not open-source and restricts embedding — distr
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 
+msgid "This format uses its own reader controls. Choose Web Export to include the Kids Mode interface."
+msgstr "This format uses its own reader controls. Choose Web Export to include the Kids Mode interface."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "This image is decorative. Screen readers will skip it and no caption is needed."
 
@@ -9740,6 +9749,9 @@ msgstr "We hit a snag while loading this view. You can try this screen again or 
 
 msgid "Web Export"
 msgstr "Web Export"
+
+msgid "Web Export only"
+msgstr "Web Export only"
 
 msgid "Web Package"
 msgstr "Web Package"

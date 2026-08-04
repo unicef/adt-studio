@@ -741,6 +741,12 @@ msgstr "La vérification d'accessibilité a échoué pour cette page"
 msgid "Accessibility Findings"
 msgstr "Accessibilité Résultats"
 
+msgid "Accessibility notice: the character creator is not accessible yet."
+msgstr "Note d’accessibilité : le créateur de personnage n’est pas encore accessible."
+
+#~ msgid "Accessibility notice: the character creator supports keyboard controls, but its visual choices do not yet have complete screen-reader descriptions."
+#~ msgstr "Note d’accessibilité : le créateur de personnage est utilisable au clavier, mais ses choix visuels ne disposent pas encore de descriptions complètes pour les lecteurs d’écran."
+
 msgid "Accessibility results are temporarily unavailable."
 msgstr "Les résultats d'accessibilité sont temporairement indisponibles."
 
@@ -1599,8 +1605,8 @@ msgstr "Retour à l'interface enfants"
 msgid "Back to preview"
 msgstr "Retour à l'aperçu"
 
-msgid "Back to regular UI"
-msgstr "Retour à l'interface normale"
+#~ msgid "Back to regular UI"
+#~ msgstr "Retour à l'interface normale"
 
 msgid "Back to Speech overview"
 msgstr "Retour à l'aperçu de la parole"
@@ -6574,8 +6580,8 @@ msgstr "Préc."
 msgid "Preview"
 msgstr "Aperçu"
 
-msgid "Preview kids UI"
-msgstr "Aperçu de l'interface enfants"
+#~ msgid "Preview kids UI"
+#~ msgstr "Aperçu de l'interface enfants"
 
 msgid "Preview linked page"
 msgstr "Aperçu de la page liée"
@@ -8909,6 +8915,9 @@ msgstr "La licence de cette police n'est pas open source et restreint l'intégra
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "La licence de cette police restreint l'incorporation — la distribuer dans le paquet du livre peut être illégal."
 
+msgid "This format uses its own reader controls. Choose Web Export to include the Kids Mode interface."
+msgstr "Ce format utilise les commandes de son propre lecteur. Choisissez Exportation Web pour inclure l’interface Mode Enfants."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Cette image est décorative. Les lecteurs d'écran l'ignoreront et aucune légende n'est nécessaire."
 
@@ -9742,6 +9751,9 @@ msgstr "Nous avons rencontré un problème lors du chargement de cette vue. Vous
 
 msgid "Web Export"
 msgstr "Exportation Web"
+
+msgid "Web Export only"
+msgstr "Exportation Web uniquement"
 
 msgid "Web Package"
 msgstr "Package web"

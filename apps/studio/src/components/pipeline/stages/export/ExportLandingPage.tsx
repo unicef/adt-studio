@@ -18,6 +18,7 @@ import {
 } from "@/hooks/use-export-features"
 import {
   buildExportFormatConfig,
+  supportsKidsModeExport,
   type ExportFormat,
 } from "./export-formats"
 import { ExportDialog } from "./ExportDialog"
@@ -89,8 +90,8 @@ function ExportLandingBody({
     experienceInitialized.current = true
   }, [kidsExport.config?.enabled, kidsExport.isLoading])
 
-  const kidsSelected =
-    selectedFormat !== "project" && readingExperience === "kids"
+  const kidsFormatSupported = supportsKidsModeExport(selectedFormat)
+  const kidsSelected = kidsFormatSupported && readingExperience === "kids"
   const kidsBlocked =
     kidsSelected && (kidsExport.isLoading || !kidsExport.readiness.ready)
 
@@ -210,11 +211,12 @@ function ExportLandingBody({
         >
           <ReadingExperiencePicker
             bookLabel={bookLabel}
-            selected={readingExperience}
+            selected={kidsFormatSupported ? readingExperience : "standard"}
             onSelect={setReadingExperience}
             readiness={kidsExport.readiness}
             loading={kidsExport.isLoading}
             disabled={isPreparing}
+            kidsSupported={kidsFormatSupported}
           />
         </SettingsCard>
       ) : null}

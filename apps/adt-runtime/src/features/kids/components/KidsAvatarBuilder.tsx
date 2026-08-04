@@ -1,5 +1,12 @@
 import { Shuffle, X } from "lucide-react"
-import { useLayoutEffect, useMemo, useRef, useState } from "react"
+import {
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react"
 import {
   KIDS_AVATAR_BACKGROUND_COLORS,
   KIDS_AVATAR_EARRINGS,
@@ -191,6 +198,7 @@ export function KidsAvatarBuilder({
   const { tk } = useKidsTranslation()
   const [activeId, setActiveId] = useState(CATEGORIES[0].id)
   const active = CATEGORIES.find((c) => c.id === activeId) ?? CATEGORIES[0]
+  const panelId = useId()
 
   const set = (field: Field, id: string) => onChange({ ...value, [field]: id })
 
@@ -214,11 +222,41 @@ export function KidsAvatarBuilder({
     return () => ro.disconnect()
   }, [activeId])
 
+  const handleCategoryKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    categoryId: string,
+  ) => {
+    const currentIndex = CATEGORIES.findIndex((item) => item.id === categoryId)
+    let nextIndex: number | null = null
+    if (event.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % CATEGORIES.length
+    } else if (event.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + CATEGORIES.length) % CATEGORIES.length
+    } else if (event.key === "Home") {
+      nextIndex = 0
+    } else if (event.key === "End") {
+      nextIndex = CATEGORIES.length - 1
+    }
+    if (nextIndex === null) return
+    event.preventDefault()
+    event.stopPropagation()
+    const next = CATEGORIES[nextIndex]
+    setActiveId(next.id)
+    tabRefs.current[next.id]?.focus()
+  }
+
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4 sm:flex-row sm:items-stretch sm:gap-5">
+    <div
+      data-kids-local-arrow-keys
+      className="flex w-full min-w-0 flex-col gap-4 sm:flex-row sm:items-stretch sm:gap-5"
+    >
       {/* Left column: big portrait preview + shuffle. */}
       <div className="flex shrink-0 flex-col items-center sm:w-[44%]">
-        <div className="relative aspect-square w-full max-w-[18rem] overflow-hidden rounded-[2rem] shadow-[0_6px_0_#C4DFF2] ring-4 ring-white sm:aspect-auto sm:h-full sm:max-w-none">
+        <div
+          role="img"
+          aria-label={tk("kids-avatar-title", "Your character")}
+          className="relative aspect-square w-full max-w-[18rem] overflow-hidden rounded-[2rem] shadow-[0_6px_0_#C4DFF2] ring-4 ring-white sm:aspect-auto sm:h-full sm:max-w-none"
+        >
           <KidsAvatar config={value} fill className="rounded-none" />
           <button
             type="button"
@@ -245,6 +283,7 @@ export function KidsAvatarBuilder({
         <div
           ref={tablistRef}
           role="tablist"
+          aria-orientation="horizontal"
           aria-label={tk("kids-avatar-parts-label", "Avatar parts")}
           className="relative flex w-full min-w-0 items-center gap-1 rounded-2xl bg-slate-100 p-1"
         >
@@ -269,10 +308,16 @@ export function KidsAvatarBuilder({
                 }}
                 type="button"
                 role="tab"
+                id={`${panelId}-${category.id}`}
+                aria-controls={panelId}
                 aria-selected={selected}
                 aria-label={label}
+                tabIndex={selected ? 0 : -1}
                 title={label}
                 onClick={() => setActiveId(category.id)}
+                onKeyDown={(event) =>
+                  handleCategoryKeyDown(event, category.id)
+                }
                 className={cn(
                   "relative z-10 flex h-10 flex-1 items-center justify-center rounded-xl",
                   "transition-colors duration-150 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500",
@@ -287,6 +332,9 @@ export function KidsAvatarBuilder({
         </div>
 
         <div
+          id={panelId}
+          role="tabpanel"
+          aria-labelledby={`${panelId}-${active.id}`}
           className={cn(
             "flex w-full min-w-0 flex-col gap-4 overflow-y-auto p-1",
             KIDS_SCROLLBAR_CLASS,
@@ -343,6 +391,7 @@ function SectionGrid({
   onPick: (field: Field, id: string) => void
   label: string
 }) {
+  const { tk } = useKidsTranslation()
   const tiles = useMemo(() => {
     const items: { id: string; config: KidsAvatarConfig }[] = []
     if (section.kind === "part" && section.allowNone) {
@@ -355,22 +404,20 @@ function SectionGrid({
   }, [section, value])
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-2">
-      <span className="text-lg font-extrabold text-slate-800">{label}</span>
+    <fieldset className="flex w-full min-w-0 flex-col gap-2">
+      <legend className="text-lg font-extrabold text-slate-800">{label}</legend>
       {section.kind === "color" ? (
         <div
           className="grid w-full min-w-0 grid-cols-[repeat(auto-fill,minmax(3.25rem,1fr))] gap-2.5"
-          role="group"
-          aria-label={label}
         >
-          {section.options.map((color) => {
+          {section.options.map((color, index) => {
             const selected = value[section.field] === color
             return (
               <button
                 key={color}
                 type="button"
                 aria-pressed={selected}
-                aria-label={`#${color}`}
+                aria-label={`${label} ${index + 1}: #${color}`}
                 onClick={() => onPick(section.field, color)}
                 className={cn(
                   "rounded-2xl bg-white p-1.5 ring-2 transition-all duration-150 active:scale-95",
@@ -389,16 +436,19 @@ function SectionGrid({
       ) : (
         <div
           className="grid w-full min-w-0 grid-cols-[repeat(auto-fill,minmax(7rem,1fr))] gap-3"
-          role="group"
-          aria-label={label}
         >
-          {tiles.map((tile) => {
+          {tiles.map((tile, index) => {
             const selected = value[section.field] === tile.id
             return (
               <button
                 key={tile.id || "none"}
                 type="button"
                 aria-pressed={selected}
+                aria-label={
+                  tile.id === ""
+                    ? `${label}: ${tk("kids-toggle-off", "Off")}`
+                    : `${label} ${index + 1}`
+                }
                 onClick={() => onPick(section.field, tile.id)}
                 className={cn(
                   "flex aspect-square items-center justify-center overflow-hidden rounded-2xl bg-white p-2 ring-2 transition-all duration-150 active:scale-95",
@@ -420,6 +470,6 @@ function SectionGrid({
           })}
         </div>
       )}
-    </div>
+    </fieldset>
   )
 }

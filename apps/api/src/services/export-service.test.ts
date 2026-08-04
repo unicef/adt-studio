@@ -317,7 +317,7 @@ describe("exportWebpub", () => {
     expect(config.features.kidsBuddies).toBeUndefined()
   })
 
-  it("blocks an explicit Kids Mode export until voices are complete", async () => {
+  it("blocks an explicit Web Export in Kids Mode until voices are complete", async () => {
     createBookWithMetadata("kids-needs-voices", "Kids Needs Voices")
     addPagesAndRenderings("kids-needs-voices", 1)
     fs.writeFileSync(
@@ -328,7 +328,7 @@ describe("exportWebpub", () => {
     await expect(
       prepareExport(
         "kids-needs-voices",
-        "webpub",
+        "adt",
         tmpDir,
         webAssetsDir,
         undefined,
@@ -336,6 +336,30 @@ describe("exportWebpub", () => {
       ),
     ).rejects.toThrow("complete buddy voices")
   })
+
+  it.each(["webpub", "epub", "pnld", "scorm"] as const)(
+    "rejects Kids Mode for the unsupported %s format",
+    async (format) => {
+      const label = `kids-${format}`
+      createBookWithMetadata(label, `Kids ${format}`)
+      addPagesAndRenderings(label, 1)
+      fs.writeFileSync(
+        path.join(tmpDir, label, "kids-mode.json"),
+        JSON.stringify({ enabled: true, buddies: ["cat"] }),
+      )
+
+      await expect(
+        prepareExport(
+          label,
+          format,
+          tmpDir,
+          webAssetsDir,
+          undefined,
+          { kidsMode: true },
+        ),
+      ).rejects.toThrow("supported only for Web Export")
+    },
+  )
 
   it("produces a valid ZIP of the webpub directory", async () => {
     createBookWithMetadata("webpub-test", "Test Book")
