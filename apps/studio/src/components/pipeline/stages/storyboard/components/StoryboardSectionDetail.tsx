@@ -13,6 +13,7 @@ import {
   LayoutGrid,
   Loader2,
   MessageSquare,
+  MousePointer2,
   Palette,
   PanelRightClose,
   PanelRightOpen,
@@ -95,6 +96,7 @@ import { AiEditHistoryDrawer } from "./AiEditHistoryDrawer"
 import { LayoutMirrorDialog } from "./LayoutMirrorDialog"
 import { GenerateActivityDialog } from "./GenerateActivityDialog"
 import { Input } from "@/components/ui/input"
+import { BookDesignPanel, CanvasTransformPanel } from "./CanvasEditingPanels"
 import { useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { i18n } from "@lingui/core"
@@ -500,6 +502,9 @@ export function StoryboardSectionDetail({
     ComputedTypographyStyles | null
   >(null)
   const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
+  const [canvasEditing, setCanvasEditing] = useState(false)
+  const [bookDesignOpen, setBookDesignOpen] = useState(false)
+  const [canvasTransform, setCanvasTransform] = useState({ x: 0, y: 0, angle: 0 })
   const [previewVisibleWidth, setPreviewVisibleWidth] = useState(0)
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -521,6 +526,12 @@ export function StoryboardSectionDetail({
       previewFrameRef.current?.getComputedTypographyStyles(selectedElement.dataId) ?? null,
     )
   }, [selectedElement, selectedElementClasses])
+
+  useEffect(() => {
+    if (!selectedElement) return
+    const value = previewFrameRef.current?.getCanvasTransform(selectedElement.dataId)
+    if (value) setCanvasTransform(value)
+  }, [selectedElement, deviceView])
 
   // Track current pageId so async callbacks can detect stale closures
 
@@ -1535,6 +1546,49 @@ export function StoryboardSectionDetail({
     [page.rendering, pendingRendering, sectionIndex, markPending]
   )
 
+  const handleElementMoved = useCallback(
+    (_dataId: string) => {
+      if (!page.rendering) return
+      const fullHtml = previewFrameRef.current?.getSerializedHtml()
+      if (!fullHtml) return
+      const base = pendingRendering ?? page.rendering
+      setPendingRendering({
+        ...base,
+        sections: base.sections.map((section) =>
+          section.sectionIndex === sectionIndex ? { ...section, html: fullHtml } : section,
+        ),
+      })
+      markPending("style")
+    },
+    [page.rendering, pendingRendering, sectionIndex, markPending],
+  )
+
+  const handleAddCanvasComponent = useCallback(
+    (kind: "text" | "shape") => {
+      const id = previewFrameRef.current?.addComponent(kind, kind === "text" ? t`New text` : undefined)
+      if (id) handleElementMoved(id)
+    },
+    [handleElementMoved, t],
+  )
+
+  const updateCanvasTransform = useCallback(
+    (next: { x: number; y: number; angle: number }) => {
+      if (!selectedElement || !page.rendering) return
+      const fullHtml = previewFrameRef.current?.setCanvasTransform(selectedElement.dataId, next)
+      if (!fullHtml) return
+      setCanvasTransform(next)
+      const base = pendingRendering ?? page.rendering
+      setPendingRendering({
+        ...base,
+        sections: base.sections.map((item) =>
+          item.sectionIndex === sectionIndex ? { ...item, html: fullHtml } : item,
+        ),
+      })
+      markPending("style")
+    },
+    [selectedElement, page.rendering, pendingRendering, sectionIndex, markPending],
+  )
+
   // Handle element selection from BookPreviewFrame
   const handleSelectElement = useCallback((dataId: string, rect: DOMRect, tagName?: string) => {
     if (!dataId) {
@@ -2422,6 +2476,9 @@ export function StoryboardSectionDetail({
               html={sec.html}
               bookLabel={bookLabel}
               editable={false}
+              dragHandleLabel={t`Drag to move`}
+              rotateHandleLabel={t`Rotate`}
+              resizeHandleLabel={t`Resize image`}
               renderWidth={DEVICE_WIDTHS[previewViewport]}
               deviceView={previewViewport}
               maxVisibleHeight={opts?.maxHeight}
@@ -2484,6 +2541,65 @@ export function StoryboardSectionDetail({
         >
           <LayoutGrid className="h-3.5 w-3.5" />
         </button>
+      )}
+      {renderedSection?.html && !hasActiveTask && !storyboardRunning && (
+        <button
+          type="button"
+          onClick={() => {
+            setCanvasEditing((current) => !current)
+            setSelectedElement(null)
+          }}
+          className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] transition-colors ${
+            canvasEditing ? "bg-white text-violet-700" : "bg-white/10 hover:bg-white/20"
+          }`}
+          title={t`Toggle canvas editing mode`}
+          aria-pressed={canvasEditing}
+        >
+          <MousePointer2 className="h-3.5 w-3.5" />
+          {canvasEditing ? t`Finish layout` : t`Edit layout`}
+        </button>
+      )}
+      {renderedSection?.html && (
+        <button
+          type="button"
+          onClick={() => setBookDesignOpen((current) => !current)}
+          className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] transition-colors ${
+            bookDesignOpen ? "bg-white/30" : "bg-white/10 hover:bg-white/20"
+          }`}
+          title={t`Book design`}
+          aria-expanded={bookDesignOpen}
+        >
+          <Palette className="h-3.5 w-3.5" />
+          {t`Book design`}
+        </button>
+      )}
+      {renderedSection?.html && canvasEditing && !hasActiveTask && !storyboardRunning && (
+        <div className="flex items-center gap-0.5 rounded bg-white/10 p-0.5">
+          <button
+            type="button"
+            onClick={() => handleAddCanvasComponent("text")}
+            className="flex h-6 w-6 items-center justify-center rounded hover:bg-white/20"
+            title={t`Add text`}
+          >
+            <Type className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAddCanvasComponent("shape")}
+            className="flex h-6 w-6 items-center justify-center rounded hover:bg-white/20"
+            title={t`Add shape`}
+          >
+            <Boxes className="h-3.5 w-3.5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setAddImageDialogOpen(true)}
+            className="flex h-6 w-6 items-center justify-center rounded hover:bg-white/20"
+            title={t`Add image`}
+          >
+            <ImageIcon className="h-3.5 w-3.5" />
+          </button>
+        </div>
       )}
       {hasAnyAgentKey && (
         <button
@@ -2741,11 +2857,15 @@ export function StoryboardSectionDetail({
                   html={renderedSection.html}
                   bookLabel={bookLabel}
                   className="w-full rounded borde"
-                  editable={!hasActiveTask && !storyboardRunning}
+                  editable={canvasEditing && !hasActiveTask && !storyboardRunning}
                   prunedDataIds={prunedDataIds}
                   changedElements={changedElements}
                   onSelectElement={handleSelectElement}
                   onTextChanged={handleTextChanged}
+                  onElementMoved={handleElementMoved}
+                  dragHandleLabel={t`Drag to move`}
+                  rotateHandleLabel={t`Rotate`}
+                  resizeHandleLabel={t`Resize image`}
                   applyBodyBackground={applyBodyBackground}
                   selectedDataId={selectedElement?.dataId ?? null}
                   renderWidth={DEVICE_WIDTHS[deviceView]}
@@ -3073,9 +3193,21 @@ export function StoryboardSectionDetail({
       )}
     </div>
 
+    {bookDesignOpen && (
+      <BookDesignPanel bookLabel={bookLabel} onClose={() => setBookDesignOpen(false)} />
+    )}
+
+    {canvasEditing && selectedElement && (
+      <CanvasTransformPanel
+        deviceView={deviceView}
+        value={canvasTransform}
+        onChange={updateCanvasTransform}
+      />
+    )}
+
     {/* Inline element style editor — opens automatically on selection */}
     <StyleEditorPanel
-      open={!!selectedElement}
+      open={canvasEditing && !!selectedElement}
       onClose={() => setSelectedElement(null)}
       selectedDataId={selectedElement?.dataId ?? null}
       selectedTagName={selectedElement?.tagName ?? null}

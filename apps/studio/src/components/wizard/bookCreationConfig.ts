@@ -19,6 +19,7 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
   const config: Record<string, unknown> = {
     ...baseConfig,
     default_render_strategy: values.renderStrategy,
+    reflowable_font: values.reflowableFont,
     page_sectioning: { mode: values.sectioningMode },
     spread_mode: values.pageGrouping === "spread",
     vector_text_grouping: values.figureExtraction,

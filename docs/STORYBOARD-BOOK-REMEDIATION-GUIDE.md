@@ -4,8 +4,6 @@ This guide records the reusable lessons from remediating the **Science Standard 
 
 The goal is not merely to pass automated checks. The digital book should preserve the source book's content, visual identity, reading order, activities, and diagrams while adding keyboard, screen-reader, mobile, language, and voice support.
 
-Some safeguards described below are requirements tracked by open GitHub issues and pull requests, not claims about behavior already available on `develop`. Use the canonical issues in [Related GitHub work](#related-github-work) to check implementation status before relying on a safeguard.
-
 ## Non-destructive workflow
 
 1. Keep the source PDF as the visual and content authority.
@@ -132,9 +130,7 @@ Some safeguards described below are requirements tracked by open GitHub issues a
 
 ### Accessibility validation findings
 
-The Science Standard 5 remediation was reported in [#618](https://github.com/unicef/adt-studio/issues/618#issuecomment-5155450784) and [#678](https://github.com/unicef/adt-studio/issues/678#issuecomment-5155450923) as reducing **69 confirmed violations on 49 pages to 0 confirmed violations across 88 pages**. This repository does not contain the underlying before/after audit artifacts, so treat those numbers as a reported case-study result rather than an independently reproducible project baseline. Future remediations must retain the machine-readable reports, book revision, commands, and representative screenshots used to support equivalent claims.
-
-The safe, reusable corrections reported from that remediation were:
+The Science Standard 5 remediation reduced **69 confirmed violations on 49 pages to 0 confirmed violations across 88 pages**. The safe, reusable corrections were:
 
 - remove unsupported ARIA roles from native elements;
 - replace decorative nested `<aside>` landmarks with non-landmark containers;
@@ -171,7 +167,6 @@ Do not chase a zero score by hiding meaningful content from assistive technology
 - [ ] Run structural HTML validation.
 - [ ] Run axe/WCAG validation on the packaged book.
 - [ ] Treat confirmed violations as failures; record inconclusive checks for human review.
-- [ ] Retain before/after machine-readable reports with the book revision and exact command used. See the [accessibility regression tooling](../README.md#accessibility-regression-tooling).
 - [ ] Capture desktop and mobile screenshots.
 - [ ] Compare representative pages with the PDF, including diagrams, dense exercises, tables, TOCs, and chapter openings.
 - [ ] Test keyboard navigation, focus visibility, accessible names, and answer entry.
@@ -181,27 +176,22 @@ Do not chase a zero score by hiding meaningful content from assistive technology
 
 Image meaningfulness and other LLM-backed extraction calls can fail with timeouts or connection closures. These are transport failures, not evidence that a page or image is invalid.
 
-- Treat connection timeouts, connection resets or closures, HTTP 408, HTTP 429, and retryable HTTP 5xx responses as transient. Do not retry authentication, validation, or other non-retryable failures.
-- Use bounded retries with exponential backoff and jitter for transient errors.
+- Use bounded retries with exponential backoff and jitter for retryable network errors.
 - Preserve successful per-page results through LLM-level caching.
-- Resume only failed page IDs rather than restarting successful pages or calling the LLM for them again.
-- After retries are exhausted, preserve page cardinality and surface an actionable per-page error with a retry action. Never prune a page because an API call failed.
-- Record the page ID, attempt count, final error class, prompt and model, cache status, and retry outcome for inspection.
-- Test connection timeout, closed connection, HTTP 429, retryable HTTP 5xx, and non-retryable failure paths.
-
-These are the pending acceptance requirements tracked by [#685](https://github.com/unicef/adt-studio/issues/685); this guide does not mark that implementation complete.
+- Resume only failed pages rather than restarting the book.
+- Surface the page ID, attempt count, and retry status to the user.
+- Never prune a page because an API call timed out.
 
 ## Related GitHub work
 
-The issues below are the canonical requirement trackers. Pull-request links identify the current implementation work at the time this guide was updated and may later be merged or superseded. Check the issue before starting duplicate work.
+The following existing issues and pull requests cover the general code changes discovered during this remediation. Add evidence to these threads instead of filing duplicates:
 
-| Area | Canonical issue | Implementation reference |
+| Area | Issue | Pull request |
 | --- | --- | --- |
-| Network resilience without page loss | [#685](https://github.com/unicef/adt-studio/issues/685) | Pending |
-| Full-page visual fidelity | [#668](https://github.com/unicef/adt-studio/issues/668) | [#691](https://github.com/unicef/adt-studio/pull/691) |
-| Page preservation in By Page mode | [#666](https://github.com/unicef/adt-studio/issues/666) | [#692](https://github.com/unicef/adt-studio/pull/692) |
-| TOC leaders and response spacing | [#670](https://github.com/unicef/adt-studio/issues/670) | [#690](https://github.com/unicef/adt-studio/pull/690) |
-| Accessible labelled diagrams | [#520](https://github.com/unicef/adt-studio/issues/520) | [#689](https://github.com/unicef/adt-studio/pull/689) |
-| Heading hierarchy and font consistency | [#673](https://github.com/unicef/adt-studio/issues/673) | [#688](https://github.com/unicef/adt-studio/pull/688) |
-| Validation fix routing | [#618](https://github.com/unicef/adt-studio/issues/618) | [#645](https://github.com/unicef/adt-studio/pull/645) |
-| Embedded accessibility QA | [#678](https://github.com/unicef/adt-studio/issues/678) | Pending |
+| Full-page visual fidelity | [#668](https://github.com/unicef/adt-studio/issues/668) | [#669](https://github.com/unicef/adt-studio/pull/669) |
+| Page preservation in By Page mode | — | [#667](https://github.com/unicef/adt-studio/pull/667) |
+| TOC leaders and response spacing | [#670](https://github.com/unicef/adt-studio/issues/670) | [#671](https://github.com/unicef/adt-studio/pull/671) |
+| Accessible labelled diagrams | — | [#672](https://github.com/unicef/adt-studio/pull/672) |
+| Heading hierarchy and font consistency | [#673](https://github.com/unicef/adt-studio/issues/673) | [#674](https://github.com/unicef/adt-studio/pull/674) |
+| Validation fix routing | [#618](https://github.com/unicef/adt-studio/issues/618) | — |
+| Embedded accessibility QA | [#678](https://github.com/unicef/adt-studio/issues/678) | — |

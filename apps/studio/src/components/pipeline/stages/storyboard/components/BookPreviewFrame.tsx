@@ -56,6 +56,7 @@ const TRANSIENT_ATTRS = [
   "data-adt-linked",
   "data-adt-preview",
   "data-adt-link-hover",
+  "data-adt-dragging",
   "contenteditable",
 ] as const
 
@@ -75,6 +76,10 @@ function parsePxStyle(value: string | undefined): number | null {
 export interface BookPreviewFrameHandle {
   /** Get the iframe element's bounding rect in the viewport */
   getIframeRect: () => DOMRect | null
+  /** Serialize the current editable iframe DOM without editor-only handles/attributes. */
+  getSerializedHtml: () => string | null
+  /** Add a basic editable text or shape component and return its data-id. */
+  addComponent: (kind: "text" | "shape", text?: string) => string | null
   /** Regenerate Tailwind CSS including the given extra HTML, then inject into iframe.
    *  Use after AI edits introduce new Tailwind classes not yet in the DB. */
   refreshCss: (extraHtml: string) => Promise<void>
@@ -86,6 +91,10 @@ export interface BookPreviewFrameHandle {
    *  element by data-id. Returns updated full HTML, or null. Used for styling
    *  that must win over class/cascade rules (e.g. per-element font-family). */
   setElementStyleProp: (dataId: string, property: string, value: string) => string | null
+  /** Read/write the active device's canvas transform. Device-scoped values
+   *  prevent a desktop adjustment from breaking the mobile composition. */
+  getCanvasTransform: (dataId: string) => { x: number; y: number; angle: number } | null
+  setCanvasTransform: (dataId: string, value: { x: number; y: number; angle: number }) => string | null
   /** Re-inject the current `html` prop into the iframe, discarding any in-iframe
    *  DOM mutations (e.g. live `setElementClasses` edits). Used when the parent
    *  wants to revert to the saved state without changing the html prop. */
@@ -113,6 +122,14 @@ export interface BookPreviewFrameProps {
   onSelectElement?: (dataId: string, rect: DOMRect, tagName?: string) => void
   /** Called when a text element is edited (blur/Enter after contenteditable) */
   onTextChanged?: (dataId: string, newText: string, fullHtml: string) => void
+  /** Called after a selected component has been repositioned with its drag handle. */
+  onElementMoved?: (dataId: string) => void
+  /** Accessible label for the component drag handle. */
+  dragHandleLabel: string
+  /** Accessible label for the component rotation handle. */
+  rotateHandleLabel: string
+  /** Accessible label for image resize handles. */
+  resizeHandleLabel: string
   /** When true (default), applies data-background-color to the iframe body */
   applyBodyBackground?: boolean
   /** data-id of the currently selected element; re-applied after each body rebuild. */
@@ -180,6 +197,10 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   changedElements,
   onSelectElement,
   onTextChanged,
+  onElementMoved,
+  dragHandleLabel,
+  rotateHandleLabel,
+  resizeHandleLabel,
   applyBodyBackground,
   selectedDataId,
   renderWidth = DEFAULT_RENDER_WIDTH,
@@ -197,6 +218,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   autoRefreshCss = false,
 }, ref) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const selectedDataIdsRef = useRef<string[]>([])
   const wrapperRef = useRef<HTMLDivElement>(null)
   const refreshIdRef = useRef(0)
 
@@ -241,6 +263,46 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
 
   useImperativeHandle(ref, () => ({
     getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
+    getSerializedHtml: (): string | null => {
+      const doc = iframeRef.current?.contentDocument
+      if (!doc) return null
+      const wrapper = doc.getElementById("content")
+      const source = (wrapper ?? doc.body).cloneNode(true) as HTMLElement
+      source.querySelectorAll("[data-adt-canvas-handle], [data-adt-marquee]").forEach((el) => el.remove())
+      source.querySelectorAll(TRANSIENT_ATTRS.map((a) => `[${a}]`).join(", ")).forEach((el) => {
+        for (const attr of TRANSIENT_ATTRS) el.removeAttribute(attr)
+      })
+      const html = wrapper
+        ? ((source.getAttribute("class") || "").trim() ? source.outerHTML : source.innerHTML)
+        : source.innerHTML
+      return DOMPurify.sanitize(
+        demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current),
+        { FORBID_ATTR: ["contenteditable"] },
+      )
+    },
+    addComponent: (kind, text): string | null => {
+      const doc = iframeRef.current?.contentDocument
+      if (!doc) return null
+      const win = iframeRef.current?.contentWindow as (Window & { __adtPushUndo?: () => void }) | null
+      win?.__adtPushUndo?.()
+      const host = doc.querySelector("#content > main, #content, main") ?? doc.body
+      const id = `canvas-${kind}-${Date.now().toString(36)}`
+      const element = doc.createElement(kind === "text" ? "p" : "div")
+      element.setAttribute("data-id", id)
+      if (kind === "text") {
+        element.textContent = text ?? ""
+        // Editor-only selection chrome is injected separately. Persist only
+        // neutral layout classes so a newly-added text block does not publish
+        // violet dashed editor scaffolding into the book.
+        element.className = "my-3 min-h-8 p-2"
+      } else {
+        element.setAttribute("aria-hidden", "true")
+        element.className = "my-3 h-24 w-24 rounded-lg bg-violet-200"
+      }
+      host.appendChild(element)
+      element.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+      return id
+    },
     refreshCss: refreshCssInternal,
     getElementClasses: (dataId: string): string[] => {
       const doc = iframeRef.current?.contentDocument
@@ -285,6 +347,39 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       } else {
         html = doc.body.innerHTML
       }
+      el.setAttribute("data-adt-selected", "true")
+      return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
+    },
+    getCanvasTransform: (dataId) => {
+      const doc = iframeRef.current?.contentDocument
+      const el = doc?.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
+      if (!doc || !el) return null
+      const device = doc.body.dataset.deviceView || "desktop"
+      const raw = el.style.translate.trim().split(/\s+/)
+      return {
+        x: Number(el.getAttribute(`data-adt-x-${device}`)) || parseFloat(raw[0] ?? "0") || 0,
+        y: Number(el.getAttribute(`data-adt-y-${device}`)) || parseFloat(raw[1] ?? "0") || 0,
+        angle: Number(el.getAttribute(`data-adt-angle-${device}`)) || parseFloat(el.style.rotate) || 0,
+      }
+    },
+    setCanvasTransform: (dataId, value) => {
+      const doc = iframeRef.current?.contentDocument
+      const el = doc?.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
+      if (!doc || !el) return null
+      const device = doc.body.dataset.deviceView || "desktop"
+      const x = Math.round(value.x)
+      const y = Math.round(value.y)
+      const angle = Math.round(((value.angle % 360) + 360) % 360)
+      el.setAttribute(`data-adt-x-${device}`, String(x))
+      el.setAttribute(`data-adt-y-${device}`, String(y))
+      el.setAttribute(`data-adt-angle-${device}`, String(angle))
+      el.style.translate = `${x}px ${y}px`
+      el.style.rotate = `${angle}deg`
+      stripTransientAttributes(doc)
+      const wrapper = doc.getElementById("content")
+      const html = wrapper
+        ? ((wrapper.getAttribute("class") || "").trim() ? wrapper.outerHTML : wrapper.innerHTML)
+        : doc.body.innerHTML
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
@@ -489,20 +584,23 @@ ${autoFitScript}
   )
 
   // Listen for postMessage from iframe
-  const callbacksRef = useRef({ onSelectElement, onTextChanged, onLinkSelect, onLinkHover })
-  callbacksRef.current = { onSelectElement, onTextChanged, onLinkSelect, onLinkHover }
+  const callbacksRef = useRef({ onSelectElement, onTextChanged, onElementMoved, onLinkSelect, onLinkHover })
+  callbacksRef.current = { onSelectElement, onTextChanged, onElementMoved, onLinkSelect, onLinkHover }
 
   const handleMessage = useCallback((e: MessageEvent) => {
     const iframe = iframeRef.current
     if (!iframe || e.source !== iframe.contentWindow) return
     const data = e.data ?? {}
     if (typeof data !== "object" || !data.type) return
-    const { type, dataId, rect, newText, editedInnerHtml, tagName, kind, id } = data
+    const { type, dataId, rect, newText, editedInnerHtml, tagName, kind, id, selectedDataIds } = data
     if (type === "link-select") {
       callbacksRef.current.onLinkSelect?.(parseAnchor(kind, id))
     } else if (type === "link-hover") {
       callbacksRef.current.onLinkHover?.(parseAnchor(kind, id))
     } else if (type === "select" || type === "select-image" || type === "select-container") {
+      selectedDataIdsRef.current = Array.isArray(selectedDataIds)
+        ? selectedDataIds.filter((value: unknown): value is string => typeof value === "string")
+        : dataId ? [dataId] : []
       callbacksRef.current.onSelectElement?.(dataId, rect, tagName)
     } else if (type === "text-changed") {
       // Splice the edited element's innerHTML into the original LaTeX-form HTML
@@ -522,7 +620,10 @@ ${autoFitScript}
         return
       }
       callbacksRef.current.onTextChanged?.(dataId, newText, reconstructed)
+    } else if (type === "element-moved" || type === "elements-changed") {
+      callbacksRef.current.onElementMoved?.(dataId)
     } else if (type === "deselect") {
+      selectedDataIdsRef.current = []
       callbacksRef.current.onSelectElement?.("", {} as DOMRect)
     }
   }, [])
@@ -584,6 +685,7 @@ ${autoFitScript}
     // Inject original LaTeX texts so startEditing can swap MathML → LaTeX
     const textsEl = doc.createElement("script")
     textsEl.id = "adt-original-texts"
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- Injected JavaScript source, not user-visible text.
     textsEl.textContent = `window.__origTexts=${JSON.stringify(originalTextsRef.current)};`
     doc.body.appendChild(textsEl)
 
@@ -657,14 +759,22 @@ ${autoFitScript}
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument
     if (!doc) return
-    doc.querySelectorAll("[data-adt-selected]").forEach((el) => {
-      if (el.getAttribute("data-id") !== selectedDataId) {
-        el.removeAttribute("data-adt-selected")
-      }
-    })
+    doc.querySelectorAll("[data-adt-selected]").forEach((el) => el.removeAttribute("data-adt-selected"))
     if (!selectedDataId) return
-    const el = doc.querySelector(`[data-id="${CSS.escape(selectedDataId)}"]`)
-    if (el) el.setAttribute("data-adt-selected", "true")
+    const ids = selectedDataIdsRef.current.includes(selectedDataId)
+      ? selectedDataIdsRef.current
+      : [selectedDataId]
+    const iframeWindow = iframeRef.current?.contentWindow as (Window & {
+      __adtRestoreSelection?: (ids: string[]) => void
+    }) | null
+    if (iframeWindow?.__adtRestoreSelection) {
+      iframeWindow.__adtRestoreSelection(ids)
+      return
+    }
+    for (const id of ids) {
+      const el = doc.querySelector(`[data-id="${CSS.escape(id)}"]`)
+      if (el) el.setAttribute("data-adt-selected", "true")
+    }
   }, [selectedDataId, displayHtml, iframeReady])
 
   useEffect(() => {
@@ -672,7 +782,11 @@ ${autoFitScript}
     if (!doc?.body) return
     doc.body.dataset.editable = editable && !linkMode ? "true" : "false"
     doc.body.dataset.linkMode = linkMode ? "true" : "false"
-  }, [editable, linkMode, iframeReady])
+    doc.body.dataset.dragHandleLabel = dragHandleLabel
+    doc.body.dataset.rotateHandleLabel = rotateHandleLabel
+    doc.body.dataset.resizeHandleLabel = resizeHandleLabel
+    doc.body.dataset.deviceView = deviceView ?? "desktop"
+  }, [editable, linkMode, dragHandleLabel, rotateHandleLabel, resizeHandleLabel, deviceView, iframeReady])
 
   const linkedKey = linkedAnchor ? anchorKey(linkedAnchor) : ""
   const previewKey = previewAnchor ? anchorKey(previewAnchor) : ""
