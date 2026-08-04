@@ -159,6 +159,31 @@ function getCatalogEntriesForLanguage(
   return (translatedRow.data as TextCatalogOutput).entries
 }
 
+function persistCatalogTextVersion(
+  storage: ReturnType<typeof createBookStorage>,
+  sourceLanguage: string,
+  language: string,
+  textId: string,
+  text: string,
+): void {
+  const normalizedLanguage = normalizeLocale(language)
+  const isSource = getBaseLanguage(sourceLanguage) === getBaseLanguage(normalizedLanguage)
+  const node = isSource ? "text-catalog" : "text-catalog-translation"
+  const itemId = isSource ? "book" : normalizedLanguage
+  const legacyItemId = normalizedLanguage.replace("-", "_")
+  const row = storage.getLatestNodeData(node, itemId) ??
+    (!isSource ? storage.getLatestNodeData(node, legacyItemId) : undefined)
+  if (!row) throw new HTTPException(404, { message: `Text catalog not found for ${normalizedLanguage}` })
+  const catalog = row.data as TextCatalogOutput
+  const current = catalog.entries.find((entry) => entry.id === textId)
+  if (!current || current.text === text) return
+  storage.putNodeData(node, itemId, {
+    ...catalog,
+    entries: catalog.entries.map((entry) => entry.id === textId ? { ...entry, text } : entry),
+    generatedAt: new Date().toISOString(),
+  } satisfies TextCatalogOutput)
+}
+
 function getLatestTtsEntries(
   storage: ReturnType<typeof createBookStorage>,
   language: string
@@ -758,6 +783,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       // regeneration must synthesize exactly what the user sees, while the
       // catalog lookup still verifies that the requested entity ID exists.
       const requestedText = parsed.data.text ?? textEntry.text
+      persistCatalogTextVersion(storage, sourceLanguage, normalizedLanguage, textEntry.id, requestedText)
 
       const configDir = getConfigDir(configPath)
       const voiceMaps = loadVoicesConfig(configDir)
@@ -871,7 +897,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           voice: usedVoice,
           model: usedModel,
           provider: usedProvider,
-          text: textEntry.text,
+          text: requestedText,
           durationMs: Date.now() - startMs,
           success: true,
           cached: entry.cached,
@@ -883,6 +909,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           languageEntries.map((item) => item.id)
         )
 
+        clearWordTimestampEntry(storage, normalizedLanguage, textEntry.id)
         const version = storage.putNodeData(
           "tts",
           normalizedLanguage,
@@ -946,7 +973,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 voice: attempt.voice,
                 model: attempt.model,
                 provider: attempt.provider,
-                text: textEntry.text,
+                text: requestedText,
                 durationMs: Date.now() - startMs,
                 success: true,
                 cached: entry.cached,
@@ -958,6 +985,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 languageEntries.map((item) => item.id)
               )
 
+              clearWordTimestampEntry(storage, normalizedLanguage, textEntry.id)
               const version = storage.putNodeData(
                 "tts",
                 normalizedLanguage,

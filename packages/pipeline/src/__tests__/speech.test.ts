@@ -470,17 +470,18 @@ describe("generateSpeechFile", () => {
       ttsSynthesizer: mockSynthesizer,
     })
 
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       textId: "p001_t001",
       language: "en",
-      fileName: "p001_t001.mp3",
       voice: "alloy",
       model: "gpt-4o-mini-tts",
       cached: false,
     })
+    expect(result?.fileName).toMatch(/^p001_t001\.[a-f0-9]{12}\.mp3$/)
+    expect(result?.sourceHash).toMatch(/^[a-f0-9]{64}$/)
 
     // Verify file was written
-    const audioPath = path.join(bookDir, "audio", "en", "p001_t001.mp3")
+    const audioPath = path.join(bookDir, "audio", "en", result!.fileName)
     expect(fs.existsSync(audioPath)).toBe(true)
 
     // Verify cache was written
@@ -513,7 +514,7 @@ describe("generateSpeechFile", () => {
     })
 
     expect(result?.language).toBe("en-US")
-    expect(fs.existsSync(path.join(bookDir, "audio", "en-US", "p001_t001.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(bookDir, "audio", "en-US", result!.fileName))).toBe(true)
     expect(fs.readdirSync(path.join(bookDir, "audio"))).toContain("en-US")
   })
 
@@ -553,7 +554,7 @@ describe("generateSpeechFile", () => {
   })
 
   it("synthesizes fresh audio when explicit regeneration bypasses the cache", async () => {
-    await generateSpeechFile({
+    const original = await generateSpeechFile({
       textId: "p001_t001",
       text: "Hello world",
       language: "en",
@@ -585,8 +586,11 @@ describe("generateSpeechFile", () => {
 
     expect(result?.cached).toBe(false)
     expect(mockSynthesize).toHaveBeenCalledTimes(2)
-    expect(fs.readFileSync(path.join(bookDir, "audio", "en", "p001_t001.mp3"), "utf8"))
+    expect(result?.fileName).not.toBe(original?.fileName)
+    expect(fs.readFileSync(path.join(bookDir, "audio", "en", result!.fileName), "utf8"))
       .toBe("fresh-audio-data")
+    expect(fs.readFileSync(path.join(bookDir, "audio", "en", original!.fileName), "utf8"))
+      .toBe("fake-audio-data")
   })
 
   it("only acquires the optional rate limiter when a real synth call is needed", async () => {

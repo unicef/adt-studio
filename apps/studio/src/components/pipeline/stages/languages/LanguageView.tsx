@@ -428,6 +428,7 @@ export function LanguageView({
   // audio yet (toggled from the "N missing" pill in the header).
   const [showMissingOnly, setShowMissingOnly] = useState(false);
   const [speechListTab, setSpeechListTab] = useState<"all" | "suggested">("all");
+  const [audioSelectionMode, setAudioSelectionMode] = useState(false);
   const [selectedAudioIds, setSelectedAudioIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -1083,7 +1084,8 @@ export function LanguageView({
         .filter(
           (entry) =>
             !isAnswerEntry(entry.id) &&
-            !getEntryTtsExclusion(entry.id, ttsExclusionConfig).excluded,
+            !getEntryTtsExclusion(entry.id, ttsExclusionConfig).excluded &&
+            (isSourceLang || translatedMap.has(entry.id)),
         )
         .map((entry) => entry.id)
     : [];
@@ -1223,20 +1225,41 @@ export function LanguageView({
       if (!hasCurrentProviderKey) {
         throw new Error(i18n._(msg`The selected speech provider requires an API key.`));
       }
+      const succeeded: string[] = [];
+      const failed: Array<{ textId: string; error: string }> = [];
       for (const item of variables.items) {
-        await api.generateTTSForItem(bookLabel, item.textId, item.text, variables.language, {
-          geminiApiKey: geminiKey || undefined,
-          openaiApiKey: apiKey || undefined,
-          azure: azureKey && azureRegion ? { key: azureKey, region: azureRegion } : undefined,
-        }, { forceRegenerate: true });
+        try {
+          await api.generateTTSForItem(bookLabel, item.textId, item.text, variables.language, {
+            geminiApiKey: geminiKey || undefined,
+            openaiApiKey: apiKey || undefined,
+            azure: azureKey && azureRegion ? { key: azureKey, region: azureRegion } : undefined,
+          }, { forceRegenerate: true });
+          succeeded.push(item.textId);
+        } catch (error) {
+          failed.push({ textId: item.textId, error: error instanceof Error ? error.message : String(error) });
+        }
       }
+      return { succeeded, failed };
     },
-    onSuccess: async () => {
-      setSelectedAudioIds(new Set());
+    onSuccess: async ({ succeeded, failed }) => {
+      const failedIds = new Set(failed.map((item) => item.textId));
+      setSelectedAudioIds(failedIds);
+      setGenerateErrorById((previous) => {
+        const next = { ...previous };
+        for (const textId of succeeded) delete next[textId];
+        for (const item of failed) next[item.textId] = item.error;
+        return next;
+      });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "tts"] }),
         queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "step-status"] }),
       ]);
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      setGenerateErrorById((previous) => Object.fromEntries(
+        [...selectedAudioIds].map((textId) => [textId, previous[textId] ?? message]),
+      ));
     },
   });
 
@@ -1806,7 +1829,11 @@ export function LanguageView({
                   </span>
                 </button>
               </div>
-              <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-rose-950">
+              {!audioSelectionMode ? (
+                <Button type="button" size="sm" variant="outline" onClick={() => setAudioSelectionMode(true)}>
+                  {t`Select audio`}
+                </Button>
+              ) : <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-rose-950">
                 <input
                   type="checkbox"
                   checked={allVisibleAudioSelected}
@@ -1830,8 +1857,8 @@ export function LanguageView({
                 {allVisibleAudioSelected
                   ? t`Clear visible selection`
                   : t`Select visible audio`}
-              </label>
-              <div className="flex items-center gap-2">
+              </label>}
+              {audioSelectionMode ? <div className="flex items-center gap-2">
                 <span className="text-xs text-rose-800">
                   {t`${selectedAudioIds.size} selected`}
                 </span>
@@ -1846,7 +1873,11 @@ export function LanguageView({
                         if (!entry) return [];
                         const text = isSourceLang
                           ? entry.text
-                          : (translatedMap.get(textId) ?? entry.text);
+                          : translatedMap.get(textId);
+                        // Never synthesize source-language fallback text with
+                        // a target-language voice. Missing translations remain
+                        // visibly unavailable until translation is complete.
+                        if (!text) return [];
                         return [{ textId, text }];
                       }),
                       language: audioLang,
@@ -1873,7 +1904,8 @@ export function LanguageView({
                   )}
                   {t`Regenerate selected`}
                 </Button>
-              </div>
+                <Button type="button" size="sm" variant="ghost" onClick={() => { setSelectedAudioIds(new Set()); setAudioSelectionMode(false); }}>{t`Done selecting`}</Button>
+              </div> : null}
             </div>
           )}
 
@@ -2383,7 +2415,7 @@ export function LanguageView({
                           )}
                         >
                           <div className="flex items-start gap-3">
-                            {isSpeechStage && !isAnswer && !exclusion.excluded && (
+                            {isSpeechStage && audioSelectionMode && !isAnswer && !exclusion.excluded && (
                               <input
                                 type="checkbox"
                                 checked={selectedAudioIds.has(entry.id)}
@@ -2505,7 +2537,7 @@ export function LanguageView({
                             isAnswer ? "bg-amber-50/60" : "bg-card",
                           )}
                         >
-                          {isSpeechStage && !isAnswer && !exclusion.excluded && (
+                          {isSpeechStage && audioSelectionMode && !isAnswer && !exclusion.excluded && (
                             <label className="mb-2 inline-flex items-center gap-2 text-[10px] font-medium text-muted-foreground">
                               <input
                                 type="checkbox"
@@ -2678,8 +2710,8 @@ export function LanguageView({
                                     audioLang={audioLang}
                                     bookLabel={bookLabel}
                                     textId={entry.id}
-                                    text={translated ?? entry.text}
-                                    canGenerate={true}
+                                    text={translated ?? ""}
+                                    canGenerate={translated !== undefined}
                                     hasGeminiKey={hasCurrentProviderKey}
                                     onGenerate={handleGenerateAudio}
                                     isGenerating={

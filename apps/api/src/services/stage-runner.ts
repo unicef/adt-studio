@@ -674,10 +674,12 @@ function canReuseSpeechEntry(
     geminiTemperature: options.geminiTemperature,
     geminiSeed: options.geminiSeed,
   })
+  const outputPath = resolveSpeechOutputPath(options.bookDir, options.language, entry.fileName)
+  if (entry.sourceHash === cacheKey && outputPath && fs.existsSync(outputPath)) {
+    return true
+  }
   const cachePath = resolveSpeechCachePath(options.cacheDir, cacheKey, options.format.toLowerCase())
   if (!cachePath || !fs.existsSync(cachePath)) return false
-
-  const outputPath = resolveSpeechOutputPath(options.bookDir, options.language, entry.fileName)
   if (!outputPath) return false
 
   fs.mkdirSync(path.dirname(outputPath), { recursive: true })
@@ -2735,6 +2737,32 @@ async function runSpeechStep(
         if (isTtsExcluded(entry.id, config.speech)) continue
         languageTextMap.set(entry.id, entry.text)
 
+        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
+        const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
+        const voice = resolveVoice(provider, lang, voiceMaps, config.speech?.voice)
+        const instructions = provider === "openai" || provider === "gemini"
+          ? resolveInstructions(lang, instructionsMap)
+          : ""
+        const existingEntry = existingSpeechEntries.get(entry.id)
+
+        if (canReuseSpeechEntry(existingEntry, {
+          bookDir,
+          cacheDir,
+          language: lang,
+          text: entry.text,
+          provider,
+          model: providerModel,
+          voice,
+          instructions,
+          format: outputFormat,
+          geminiTemperature: config.speech?.temperature,
+          geminiSeed: config.speech?.seed,
+        })) {
+          ttsResultsByLang.get(lang)?.push(existingEntry)
+          reusedEntriesByLang.set(lang, (reusedEntriesByLang.get(lang) ?? 0) + 1)
+          continue
+        }
+
         // Route page-scoped entries of a Gemini language into a per-page group
         // (generated together below). Skips the per-entry reuse check — page
         // audio is cached at the page level inside generatePageSpeechFiles.
@@ -2754,40 +2782,6 @@ async function runSpeechStep(
             pageGroups.set(groupKey, group)
           }
           group.entries.push({ id: entry.id, text: entry.text })
-          continue
-        }
-
-        const provider = resolveProviderForLanguage(lang, routing)
-        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
-        const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-        const voice = resolveVoice(provider, lang, voiceMaps, config.speech?.voice)
-        // OpenAI consumes instructions via its `instructions` field; Gemini embeds
-        // them in the prompt text (it rejects systemInstruction). Both paths must
-        // resolve identically here and in the generation loop below so the cache key
-        // (computeSpeechCacheKey) stays in sync with canReuseSpeechEntry.
-        const instructions =
-          provider === "openai" || provider === "gemini"
-            ? resolveInstructions(lang, instructionsMap)
-            : ""
-        const existingEntry = existingSpeechEntries.get(entry.id)
-
-        if (
-          canReuseSpeechEntry(existingEntry, {
-            bookDir,
-            cacheDir,
-            language: lang,
-            text: entry.text,
-            provider,
-            model: providerModel,
-            voice,
-            instructions,
-            format: outputFormat,
-            geminiTemperature: config.speech?.temperature,
-            geminiSeed: config.speech?.seed,
-          })
-        ) {
-          ttsResultsByLang.get(lang)?.push(existingEntry)
-          reusedEntriesByLang.set(lang, (reusedEntriesByLang.get(lang) ?? 0) + 1)
           continue
         }
 

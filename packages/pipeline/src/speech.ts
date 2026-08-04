@@ -71,7 +71,10 @@ function swahiliIntegerWords(value: number): string {
 }
 
 function swahiliNumberWords(token: string): string {
-  const normalized = token.replace(/\s/g, "")
+  const compact = token.replace(/\s/g, "")
+  const normalized = /^\d{1,3}(?:,\d{3})+$/.test(compact)
+    ? compact.replace(/,/g, "")
+    : compact
   const parts = normalized.split(/[.,]/)
   const whole = parts[0] ?? "0"
   const fraction = parts[1]
@@ -569,7 +572,10 @@ export async function generateSpeechFile(
     geminiSeed,
   })
 
-  const fileName = `${safeTextId}.${safeFormat}`
+  const versionSuffix = forceRegenerate
+    ? `${hash.slice(0, 12)}-${Date.now().toString(36)}-${crypto.randomBytes(4).toString("hex")}`
+    : hash.slice(0, 12)
+  const fileName = `${safeTextId}.${versionSuffix}.${safeFormat}`
   const audioRoot = path.resolve(bookDir, "audio")
   const audioDir = path.resolve(audioRoot, normalizedLanguage)
   assertWithinBase(audioRoot, audioDir, "audio directory")
@@ -578,7 +584,10 @@ export async function generateSpeechFile(
 
   // Check cache
   const cacheRoot = path.resolve(cacheDir, "tts")
-  const cachePath = path.resolve(cacheRoot, `${hash}.${safeFormat}`)
+  const cacheName = forceRegenerate
+    ? `${hash}-${Date.now().toString(36)}-${crypto.randomBytes(4).toString("hex")}.${safeFormat}`
+    : `${hash}.${safeFormat}`
+  const cachePath = path.resolve(cacheRoot, cacheName)
   assertWithinBase(cacheRoot, cachePath, "cache file")
   if (!forceRegenerate && fs.existsSync(cachePath)) {
     fs.mkdirSync(audioDir, { recursive: true })
@@ -591,6 +600,7 @@ export async function generateSpeechFile(
       model,
       cached: true,
       provider,
+      sourceHash: hash,
     }
   }
 
@@ -626,6 +636,7 @@ export async function generateSpeechFile(
     model,
     cached: false,
     provider,
+    sourceHash: hash,
   }
 }
 
@@ -770,10 +781,23 @@ export async function generatePageSpeechFiles(
   const results: SpeechFileEntry[] = []
   for (const range of ranges) {
     signal?.throwIfAborted()
+    const entry = usable.find((candidate) => candidate.id === range.id)
+    if (!entry) continue
+    const sourceHash = computeSpeechCacheKey({
+      text: entry.text,
+      voice,
+      model,
+      instructions,
+      provider,
+      geminiTemperature,
+      geminiSeed,
+    })
     // A short edge fade guarantees zero-amplitude slice edges (belt-and-braces
     // with the silence-snap above) so back-to-back playback has no clicks.
     const slice = sliceWav(pageBytes, range.start, range.end, PAGE_SLICE_FADE_MS)
-    const fileName = `${range.id}.${safeFormat}`
+    // Page-batched clips follow the same entity-versioning rule as clips made
+    // one at a time: changed source text creates a new immutable asset.
+    const fileName = `${range.id}.${sourceHash.slice(0, 12)}.${safeFormat}`
     const outputPath = path.resolve(audioDir, fileName)
     assertWithinBase(audioDir, outputPath, "audio file")
     // Only write when the bytes actually change, so an unchanged slice keeps its
@@ -782,7 +806,16 @@ export async function generatePageSpeechFiles(
     if (!fs.existsSync(outputPath) || !fs.readFileSync(outputPath).equals(slice)) {
       fs.writeFileSync(outputPath, slice)
     }
-    results.push({ textId: range.id, language: normalizedLanguage, fileName, voice, model, cached, provider })
+    results.push({
+      textId: range.id,
+      language: normalizedLanguage,
+      fileName,
+      voice,
+      model,
+      cached,
+      provider,
+      sourceHash,
+    })
   }
   return results
 }
