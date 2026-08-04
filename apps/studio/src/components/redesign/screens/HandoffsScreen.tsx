@@ -2,25 +2,24 @@ import { useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { Scissors } from "lucide-react"
-import type { BookSummary } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { Pager } from "../ui/Pager"
+import { ScreenFallback } from "../ui/ScreenFallback"
+import { useRedesignBooks } from "../use-redesign-books"
 import { HandoffsEmptyState } from "./handoffs/HandoffsEmptyState"
 import { SplitSummaryCard } from "./handoffs/SplitSummaryCard"
 import { ContributionRow } from "./handoffs/ContributionRow"
 
-export interface HandoffsScreenProps {
-  books: BookSummary[]
-  locale: string
-}
-
 const PAGE_SIZE = 4
 const sectionLabel = "text-[11.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground"
 
-export function HandoffsScreen({ books, locale }: HandoffsScreenProps) {
+export function HandoffsScreen() {
   const navigate = useNavigate()
+  const { books, locale, isLoading, error } = useRedesignBooks()
   const [open, setOpen] = useState<Record<string, boolean>>({})
   const [page, setPage] = useState(0)
+
+  if (isLoading || error) return <ScreenFallback error={error} />
 
   const splitBooks = books.filter((b) => b.split)
   const parts = books.filter((b) => b.part)

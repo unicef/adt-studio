@@ -26,6 +26,7 @@ import {
 } from "lucide-react"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useAppVersion } from "@/hooks/use-app-version"
+import { useSettingsDialog } from "@/routes/__root"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -125,12 +126,9 @@ function SettingRow({
   )
 }
 
-export interface SettingsScreenProps {
-  onOpenApiKeys: () => void
-}
-
-export function SettingsScreen({ onOpenApiKeys }: SettingsScreenProps) {
+export function SettingsScreen() {
   const { i18n } = useLingui()
+  const { openSettings } = useSettingsDialog()
   const version = useAppVersion()
   const { apiKey, anthropicKey, googleKey, customApiKey, customBaseUrl, azureKey } = useApiKey()
 
@@ -396,7 +394,7 @@ export function SettingsScreen({ onOpenApiKeys }: SettingsScreenProps) {
                       <div className="mt-0.5 text-xs text-muted-foreground">{i18n._(pr.desc)}</div>
                     </div>
                     {connected && <span className="font-mono text-[12.5px] text-muted-foreground">{mask(pr.key)}</span>}
-                    <Button variant="outline" size="sm" onClick={onOpenApiKeys}>
+                    <Button variant="outline" size="sm" onClick={() => openSettings()}>
                       {connected ? <Pencil className="size-3.5" /> : <Plus className="size-3.5" />}
                       {connected ? <Trans>Update</Trans> : <Trans>Add key</Trans>}
                     </Button>

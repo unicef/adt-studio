@@ -13,6 +13,10 @@ import { Route as SettingsRouteImport } from "./routes/settings"
 import { Route as RedesignRouteImport } from "./routes/redesign"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
 import { Route as IndexRouteImport } from "./routes/index"
+import { Route as RedesignIndexRouteImport } from "./routes/redesign.index"
+import { Route as RedesignSettingsRouteImport } from "./routes/redesign.settings"
+import { Route as RedesignLibraryRouteImport } from "./routes/redesign.library"
+import { Route as RedesignHandoffsRouteImport } from "./routes/redesign.handoffs"
 import { Route as PromptsSettingsRouteImport } from "./routes/prompts.settings"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
@@ -43,6 +47,26 @@ const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => rootRouteImport,
+} as any)
+const RedesignIndexRoute = RedesignIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => RedesignRoute,
+} as any)
+const RedesignSettingsRoute = RedesignSettingsRouteImport.update({
+  id: "/settings",
+  path: "/settings",
+  getParentRoute: () => RedesignRoute,
+} as any)
+const RedesignLibraryRoute = RedesignLibraryRouteImport.update({
+  id: "/library",
+  path: "/library",
+  getParentRoute: () => RedesignRoute,
+} as any)
+const RedesignHandoffsRoute = RedesignHandoffsRouteImport.update({
+  id: "/handoffs",
+  path: "/handoffs",
+  getParentRoute: () => RedesignRoute,
 } as any)
 const PromptsSettingsRoute = PromptsSettingsRouteImport.update({
   id: "/prompts/settings",
@@ -98,12 +122,16 @@ const BooksLabelStepPageIdRoute = BooksLabelStepPageIdRouteImport.update({
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
-  "/redesign": typeof RedesignRoute
+  "/redesign": typeof RedesignRouteWithChildren
   "/settings": typeof SettingsRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
+  "/redesign/handoffs": typeof RedesignHandoffsRoute
+  "/redesign/library": typeof RedesignLibraryRoute
+  "/redesign/settings": typeof RedesignSettingsRoute
+  "/redesign/": typeof RedesignIndexRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -114,11 +142,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
-  "/redesign": typeof RedesignRoute
   "/settings": typeof SettingsRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
+  "/redesign/handoffs": typeof RedesignHandoffsRoute
+  "/redesign/library": typeof RedesignLibraryRoute
+  "/redesign/settings": typeof RedesignSettingsRoute
+  "/redesign": typeof RedesignIndexRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
@@ -129,12 +160,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
-  "/redesign": typeof RedesignRoute
+  "/redesign": typeof RedesignRouteWithChildren
   "/settings": typeof SettingsRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
+  "/redesign/handoffs": typeof RedesignHandoffsRoute
+  "/redesign/library": typeof RedesignLibraryRoute
+  "/redesign/settings": typeof RedesignSettingsRoute
+  "/redesign/": typeof RedesignIndexRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -153,6 +188,10 @@ export interface FileRouteTypes {
     | "/books/import"
     | "/books/new"
     | "/prompts/settings"
+    | "/redesign/handoffs"
+    | "/redesign/library"
+    | "/redesign/settings"
+    | "/redesign/"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -163,11 +202,14 @@ export interface FileRouteTypes {
   to:
     | "/"
     | "/onboarding"
-    | "/redesign"
     | "/settings"
     | "/books/import"
     | "/books/new"
     | "/prompts/settings"
+    | "/redesign/handoffs"
+    | "/redesign/library"
+    | "/redesign/settings"
+    | "/redesign"
     | "/books/$label/debug"
     | "/books/$label"
     | "/books/$label/$step/$pageId"
@@ -183,6 +225,10 @@ export interface FileRouteTypes {
     | "/books/import"
     | "/books/new"
     | "/prompts/settings"
+    | "/redesign/handoffs"
+    | "/redesign/library"
+    | "/redesign/settings"
+    | "/redesign/"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -194,7 +240,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OnboardingRoute: typeof OnboardingRoute
-  RedesignRoute: typeof RedesignRoute
+  RedesignRoute: typeof RedesignRouteWithChildren
   SettingsRoute: typeof SettingsRoute
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
@@ -231,6 +277,34 @@ declare module "@tanstack/react-router" {
       fullPath: "/"
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    "/redesign/": {
+      id: "/redesign/"
+      path: "/"
+      fullPath: "/redesign/"
+      preLoaderRoute: typeof RedesignIndexRouteImport
+      parentRoute: typeof RedesignRoute
+    }
+    "/redesign/settings": {
+      id: "/redesign/settings"
+      path: "/settings"
+      fullPath: "/redesign/settings"
+      preLoaderRoute: typeof RedesignSettingsRouteImport
+      parentRoute: typeof RedesignRoute
+    }
+    "/redesign/library": {
+      id: "/redesign/library"
+      path: "/library"
+      fullPath: "/redesign/library"
+      preLoaderRoute: typeof RedesignLibraryRouteImport
+      parentRoute: typeof RedesignRoute
+    }
+    "/redesign/handoffs": {
+      id: "/redesign/handoffs"
+      path: "/handoffs"
+      fullPath: "/redesign/handoffs"
+      preLoaderRoute: typeof RedesignHandoffsRouteImport
+      parentRoute: typeof RedesignRoute
     }
     "/prompts/settings": {
       id: "/prompts/settings"
@@ -305,6 +379,24 @@ declare module "@tanstack/react-router" {
   }
 }
 
+interface RedesignRouteChildren {
+  RedesignHandoffsRoute: typeof RedesignHandoffsRoute
+  RedesignLibraryRoute: typeof RedesignLibraryRoute
+  RedesignSettingsRoute: typeof RedesignSettingsRoute
+  RedesignIndexRoute: typeof RedesignIndexRoute
+}
+
+const RedesignRouteChildren: RedesignRouteChildren = {
+  RedesignHandoffsRoute: RedesignHandoffsRoute,
+  RedesignLibraryRoute: RedesignLibraryRoute,
+  RedesignSettingsRoute: RedesignSettingsRoute,
+  RedesignIndexRoute: RedesignIndexRoute,
+}
+
+const RedesignRouteWithChildren = RedesignRoute._addFileChildren(
+  RedesignRouteChildren,
+)
+
 interface BooksLabelStepRouteChildren {
   BooksLabelStepPageIdRoute: typeof BooksLabelStepPageIdRoute
   BooksLabelStepSettingsRoute: typeof BooksLabelStepSettingsRoute
@@ -340,7 +432,7 @@ const BooksLabelRouteWithChildren = BooksLabelRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OnboardingRoute: OnboardingRoute,
-  RedesignRoute: RedesignRoute,
+  RedesignRoute: RedesignRouteWithChildren,
   SettingsRoute: SettingsRoute,
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,

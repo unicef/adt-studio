@@ -14,7 +14,7 @@ export function BookGridCard({ book, onOpenDetail }: BookGridCardProps) {
     <button
       type="button"
       onClick={onOpenDetail}
-      className="flex flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
+      className="flex flex-col overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-[transform,border-color,box-shadow] hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-md"
     >
       <div className="relative grid h-[150px] place-items-center border-b bg-muted">
         <span className="absolute right-2.5 top-2.5 z-[2] rounded-md bg-white/90 px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-[#1a1a1a]">

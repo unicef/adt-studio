@@ -10,7 +10,6 @@ export function HandoffsEmptyState() {
   return (
     <div className="relative flex flex-1 items-center justify-center">
       <EmptyState
-        bloom
         className="w-full max-w-[460px]"
         illustration={
           <div aria-hidden className="mb-5 flex items-center justify-center gap-3">

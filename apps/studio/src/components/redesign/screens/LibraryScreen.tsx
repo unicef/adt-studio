@@ -4,7 +4,6 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { msg, plural } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Search, SlidersHorizontal, X, ArrowUpDown, List, LayoutGrid, Plus, SearchX, Check } from "lucide-react"
-import type { BookSummary } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -14,6 +13,9 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { cn } from "@/lib/utils"
 import { toBookVM } from "../data"
 import { Pager } from "../ui/Pager"
+import { ScreenFallback } from "../ui/ScreenFallback"
+import { useRedesignBooks } from "../use-redesign-books"
+import { useRedesignShell } from "../RedesignShellContext"
 import { BookRow } from "./library/BookRow"
 import { BookGridCard } from "./library/BookGridCard"
 import { BookDetailDialog } from "./library/BookDetailDialog"
@@ -27,16 +29,11 @@ const SORTS: { key: SortKey; label: MessageDescriptor }[] = [
 ]
 const PAGE_SIZE = 8
 
-export interface LibraryScreenProps {
-  books: BookSummary[]
-  locale: string
-  onOpenAdd: () => void
-  onDelete: (label: string) => void
-}
-
-export function LibraryScreen({ books, locale, onOpenAdd, onDelete }: LibraryScreenProps) {
+export function LibraryScreen() {
   const navigate = useNavigate()
   const { t, i18n } = useLingui()
+  const { books, locale, isLoading, error } = useRedesignBooks()
+  const { openAdd, requestDelete } = useRedesignShell()
   const openBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
 
   const [view, setView] = useState<"list" | "grid">("grid")
@@ -89,6 +86,8 @@ export function LibraryScreen({ books, locale, onOpenAdd, onDelete }: LibraryScr
 
   const detail = detailLabel ? vms.find((b) => b.label === detailLabel) ?? null : null
 
+  if (isLoading || error) return <ScreenFallback error={error} />
+
   if (books.length === 0) {
     return (
       <div className="flex h-full flex-col overflow-hidden bg-background px-[30px] pb-10 pt-6">
@@ -98,7 +97,7 @@ export function LibraryScreen({ books, locale, onOpenAdd, onDelete }: LibraryScr
           </div>
           <div className="text-[13px] text-muted-foreground">{countText}</div>
         </div>
-        <LibraryEmptyState onOpenAdd={onOpenAdd} />
+        <LibraryEmptyState onOpenAdd={openAdd} />
       </div>
     )
   }
@@ -149,7 +148,12 @@ export function LibraryScreen({ books, locale, onOpenAdd, onDelete }: LibraryScr
                 <span className="text-sm font-semibold">
                   <Trans>Filters</Trans>
                 </span>
-                <button type="button" onClick={() => setFiltersOpen(false)} className="ml-auto grid place-items-center p-0.5 text-muted-foreground hover:text-foreground">
+                <button
+                  type="button"
+                  onClick={() => setFiltersOpen(false)}
+                  aria-label={t`Close filters`}
+                  className="ml-auto grid place-items-center p-0.5 text-muted-foreground hover:text-foreground"
+                >
                   <X className="size-3.5" />
                 </button>
               </div>
@@ -214,7 +218,7 @@ export function LibraryScreen({ books, locale, onOpenAdd, onDelete }: LibraryScr
         </Select>
 
         <SegmentedControl
-          className="h-10 shrink-0"
+          className="h-10 w-20 shrink-0"
           value={view}
           onValueChange={setView}
           options={[
@@ -223,7 +227,7 @@ export function LibraryScreen({ books, locale, onOpenAdd, onDelete }: LibraryScr
           ]}
         />
 
-        <Button className="h-10 shrink-0" onClick={onOpenAdd}>
+        <Button className="h-10 shrink-0" onClick={openAdd}>
           <Plus className="size-3.5" />
           <Trans>Add book</Trans>
         </Button>
@@ -241,6 +245,7 @@ export function LibraryScreen({ books, locale, onOpenAdd, onDelete }: LibraryScr
                   setDraft((d) => d.filter((x) => x !== name))
                   setPage(0)
                 }}
+                aria-label={t`Remove ${name} filter`}
                 className="grid size-[19px] place-items-center rounded-full text-brand-600 hover:bg-brand-100"
               >
                 <X className="size-3" />
@@ -273,7 +278,7 @@ export function LibraryScreen({ books, locale, onOpenAdd, onDelete }: LibraryScr
               book={b}
               onOpenDetail={() => setDetailLabel(b.label)}
               onEdit={() => openBook(b.label)}
-              onDelete={() => onDelete(b.label)}
+              onDelete={() => requestDelete(b.label)}
             />
           ))}
         </div>

@@ -83,10 +83,10 @@ function SplitParts({ label, assembled, onManage }: { label: string; assembled: 
           <Trans>Loading parts…</Trans>
         </div>
       ) : (
-        (status?.exported ?? []).map((r, i) => {
+        (status?.exported ?? []).map((r) => {
           const merged = rangeMerged(r, status?.mergedRanges ?? [])
           return (
-            <div key={i} className="flex items-center gap-3.5 border-t px-5 py-3">
+            <div key={`${r.startPage}-${r.endPage}`} className="flex items-center gap-3.5 border-t px-5 py-3">
               <span className="grid size-[30px] shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
                 {merged ? <CheckCheck className="size-3.5" /> : <Clock className="size-3.5" />}
               </span>

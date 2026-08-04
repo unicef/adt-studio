@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react"
-import { Trans } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 
 export interface PagerProps {
@@ -13,6 +13,7 @@ export interface PagerProps {
 
 /** "Showing a–b of N" summary + numbered page controls. Renders nothing for a single page. */
 export function Pager({ page, totalPages, totalItems, pageSize, onChange, className }: PagerProps) {
+  const { t } = useLingui()
   if (totalPages <= 1) return null
   const start = totalItems === 0 ? 0 : page * pageSize + 1
   const end = Math.min(totalItems, page * pageSize + pageSize)
@@ -28,7 +29,13 @@ export function Pager({ page, totalPages, totalItems, pageSize, onChange, classN
         </Trans>
       </div>
       <div className="flex items-center gap-1.5">
-        <button type="button" className={arrow} disabled={page === 0} onClick={() => onChange(Math.max(0, page - 1))}>
+        <button
+          type="button"
+          aria-label={t`Previous page`}
+          className={arrow}
+          disabled={page === 0}
+          onClick={() => onChange(Math.max(0, page - 1))}
+        >
           <ChevronLeft className="size-3.5" />
         </button>
         {Array.from({ length: totalPages }, (_, i) => (
@@ -48,6 +55,7 @@ export function Pager({ page, totalPages, totalItems, pageSize, onChange, classN
         ))}
         <button
           type="button"
+          aria-label={t`Next page`}
           className={arrow}
           disabled={page >= totalPages - 1}
           onClick={() => onChange(Math.min(totalPages - 1, page + 1))}

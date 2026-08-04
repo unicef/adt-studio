@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
-import { RedesignShell } from "@/components/redesign/RedesignShell"
+import { RedesignLayout } from "@/components/redesign/RedesignLayout"
 
 export const Route = createFileRoute("/redesign")({
-  component: RedesignShell,
+  component: RedesignLayout,
 })

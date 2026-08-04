@@ -1,26 +1,21 @@
 import { useMemo } from "react"
-import { useNavigate } from "@tanstack/react-router"
+import { Link, useNavigate } from "@tanstack/react-router"
 import { Trans, Plural } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { i18n } from "@lingui/core"
 import { Plus, ArrowRight } from "lucide-react"
-import type { BookSummary } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { BookCover } from "../BookCover"
 import { StageDiscs } from "../ui/StageDiscs"
 import { Eyebrow } from "../ui/Eyebrow"
+import { ScreenFallback } from "../ui/ScreenFallback"
 import { WelcomeHero } from "./home/WelcomeHero"
 import { FeatureTour } from "./home/FeatureTour"
 import { SplitsSummaryCard } from "./home/SplitsSummaryCard"
 import { toBookVM, type BookVM } from "../data"
-import type { RedesignView } from "../types"
-
-export interface HomeScreenProps {
-  books: BookSummary[]
-  locale: string
-  onOpenAdd: () => void
-  onNavigate: (view: RedesignView) => void
-}
+import { REDESIGN_PATHS } from "../nav"
+import { useRedesignBooks } from "../use-redesign-books"
+import { useRedesignShell } from "../RedesignShellContext"
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -48,8 +43,10 @@ function RecentBookCard({ book, onOpen }: { book: BookVM; onOpen: () => void }) 
   )
 }
 
-export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenProps) {
+export function HomeScreen() {
   const navigate = useNavigate()
+  const { books, locale, isLoading, error } = useRedesignBooks()
+  const { openAdd } = useRedesignShell()
   const openBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
   const previewBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "preview" } })
 
@@ -58,10 +55,17 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
     return sorted.map((b) => toBookVM(b, locale))
   }, [books, locale])
 
+  const dateFormat = useMemo(
+    () => new Intl.DateTimeFormat(locale, { weekday: "long", month: "long", day: "numeric" }),
+    [locale],
+  )
+
+  if (isLoading || error) return <ScreenFallback error={error} />
+
   const feature = vms[0]
   const recents = vms.slice(1, 8)
   const splitCount = books.filter((b) => b.split && !b.split.fullyMerged).length
-  const dateLabel = new Intl.DateTimeFormat(locale, { weekday: "long", month: "long", day: "numeric" }).format(new Date())
+  const dateLabel = dateFormat.format(new Date())
 
   return (
     <div className="relative h-full overflow-auto bg-background px-[34px] pb-6 pt-3.5">
@@ -92,7 +96,7 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") openBook(feature.label)
                 }}
-                className="group flex flex-1 cursor-pointer items-stretch overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-all hover:-translate-y-px hover:border-brand-300 hover:shadow-md"
+                className="group flex flex-1 cursor-pointer items-stretch overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-[transform,border-color,box-shadow] hover:-translate-y-px hover:border-brand-300 hover:shadow-md"
               >
                 <div className="w-[150px] shrink-0 self-stretch">
                   <BookCover title={feature.displayTitle} author={feature.authors} cover={feature.cover} />
@@ -136,7 +140,7 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
               <div className="flex w-[230px] flex-col gap-2.5">
                 <button
                   type="button"
-                  onClick={onOpenAdd}
+                  onClick={openAdd}
                   className="flex flex-1 flex-col gap-[7px] rounded-2xl border bg-card p-3.5 text-left shadow-sm transition-colors hover:border-brand-300"
                 >
                   <span className="grid size-[34px] place-items-center rounded-[9px] bg-brand-50 text-brand-600">
@@ -149,13 +153,13 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
                     <Trans>Upload a PDF to begin.</Trans>
                   </span>
                 </button>
-                <SplitsSummaryCard books={books} onOpen={() => onNavigate("handoffs")} />
+                <SplitsSummaryCard books={books} onOpen={() => navigate({ to: REDESIGN_PATHS.handoffs })} />
               </div>
             </div>
           </>
         ) : (
           <>
-            <WelcomeHero onOpenAdd={onOpenAdd} />
+            <WelcomeHero onOpenAdd={openAdd} />
             <FeatureTour />
           </>
         )}
@@ -169,18 +173,17 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
               <span className="ml-2.5 text-[13px] text-muted-foreground">
                 <Plural value={books.length} one="# book" other="# books" />
               </span>
-              <button
-                type="button"
-                onClick={() => onNavigate("library")}
+              <Link
+                to={REDESIGN_PATHS.library}
                 className="ml-auto text-[12.5px] font-medium text-brand-700 hover:underline"
               >
                 <Trans>View all →</Trans>
-              </button>
+              </Link>
             </div>
             <div className="flex gap-[18px] overflow-x-auto pb-1">
               <button
                 type="button"
-                onClick={onOpenAdd}
+                onClick={openAdd}
                 className="flex w-[150px] shrink-0 flex-col gap-2.5 text-left"
               >
                 <span className="grid h-[200px] w-[150px] place-items-center rounded-[9px] border-2 border-dashed text-muted-foreground transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600">

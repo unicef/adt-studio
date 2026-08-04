@@ -25,12 +25,13 @@ import {
   HardDrive,
   type LucideIcon,
 } from "lucide-react"
-import { useNavigate } from "@tanstack/react-router"
+import { Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
 import { Kbd } from "./ui/Kbd"
+import { REDESIGN_PATHS, activeRedesignView } from "./nav"
 import type { RedesignView } from "./types"
 
 const DOCS_LABEL: Record<RedesignView, MessageDescriptor> = {
@@ -41,8 +42,6 @@ const DOCS_LABEL: Record<RedesignView, MessageDescriptor> = {
 }
 
 export interface AppSidebarProps {
-  activeView: RedesignView
-  onNavigate: (view: RedesignView) => void
   libraryCount: number
   handoffsCount: number
   onOpenPalette: () => void
@@ -75,8 +74,6 @@ function MenuRow({
 }
 
 export function AppSidebar({
-  activeView,
-  onNavigate,
   libraryCount,
   handoffsCount,
   onOpenPalette,
@@ -85,6 +82,8 @@ export function AppSidebar({
 }: AppSidebarProps) {
   const { t, i18n } = useLingui()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const activeView = activeRedesignView(pathname)
   const [wsOpen, setWsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
 
@@ -115,7 +114,7 @@ export function AppSidebar({
       <button
         type="button"
         onClick={onOpenPalette}
-        className="flex h-9 items-center gap-2.5 rounded-[10px] border bg-card px-3 text-muted-foreground transition-all hover:border-brand-300 hover:shadow-[0_0_0_3px_var(--brand-50)]"
+        className="flex h-9 items-center gap-2.5 rounded-[10px] border bg-card px-3 text-muted-foreground transition-[border-color,box-shadow] hover:border-brand-300 hover:shadow-[0_0_0_3px_var(--brand-50)]"
       >
         <Search className="size-[15px]" />
         <span className="flex-1 text-left text-[13px]">
@@ -129,10 +128,9 @@ export function AppSidebar({
           const Icon = item.icon
           const active = activeView === item.view
           return (
-            <button
+            <Link
               key={item.view}
-              type="button"
-              onClick={() => onNavigate(item.view)}
+              to={REDESIGN_PATHS[item.view]}
               className={cn(
                 "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors",
                 active
@@ -152,7 +150,7 @@ export function AppSidebar({
                   {item.count}
                 </span>
               )}
-            </button>
+            </Link>
           )
         })}
       </nav>
@@ -199,7 +197,7 @@ export function AppSidebar({
               icon={Settings}
               onClick={() => {
                 setWsOpen(false)
-                onNavigate("settings")
+                navigate({ to: REDESIGN_PATHS.settings })
               }}
             >
               <Trans>Open settings</Trans>
@@ -271,7 +269,7 @@ export function AppSidebar({
               icon={Info}
               onClick={() => {
                 setHelpOpen(false)
-                onNavigate("settings")
+                navigate({ to: REDESIGN_PATHS.settings })
               }}
             >
               <Trans>About ADT Studio</Trans>

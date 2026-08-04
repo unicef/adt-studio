@@ -32,7 +32,15 @@ export function AddBookDialog({ open, onClose }: AddBookDialogProps) {
 
         <div className="flex flex-col gap-3 p-6 pt-[18px]">
           <div
+            role="button"
+            tabIndex={0}
             onClick={() => go("/books/new")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault()
+                go("/books/new")
+              }
+            }}
             className="relative flex cursor-pointer items-center gap-5 overflow-hidden rounded-2xl border-[1.5px] border-brand-300 bg-gradient-to-br from-brand-50 to-card p-5 transition hover:border-brand-500 hover:shadow-[0_0_0_3px_var(--brand-50)]"
           >
             <div className="flex shrink-0 items-center gap-3">
@@ -74,9 +82,10 @@ export function AddBookDialog({ open, onClose }: AddBookDialogProps) {
             </Button>
           </div>
 
-          <div
+          <button
+            type="button"
             onClick={() => go("/books/import")}
-            className="flex cursor-pointer items-center gap-3.5 rounded-2xl border-[1.5px] bg-card px-5 py-3.5 transition hover:border-brand-400 hover:shadow-[0_0_0_3px_var(--brand-50)]"
+            className="flex cursor-pointer items-center gap-3.5 rounded-2xl border-[1.5px] bg-card px-5 py-3.5 text-left transition hover:border-brand-400 hover:shadow-[0_0_0_3px_var(--brand-50)]"
           >
             <span className="relative grid size-10 shrink-0 place-items-center rounded-[11px] border bg-white shadow-sm">
               <img src="/logo.png" className="size-[27px]" alt="" />
@@ -97,7 +106,7 @@ export function AddBookDialog({ open, onClose }: AddBookDialogProps) {
               </div>
             </div>
             <ChevronRight className="size-[17px] shrink-0 text-muted-foreground" />
-          </div>
+          </button>
         </div>
       </DialogContent>
     </Dialog>

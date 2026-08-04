@@ -1,5 +1,5 @@
 import { Pencil, Trash2, TriangleAlert } from "lucide-react"
-import { Trans } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { Badge } from "@/components/ui/badge"
 import { BookCover } from "../../BookCover"
 import { StagePill } from "../../ui/StagePill"
@@ -15,8 +15,9 @@ export interface BookRowProps {
 }
 
 export function BookRow({ book, onOpenDetail, onEdit, onDelete }: BookRowProps) {
+  const { t } = useLingui()
   return (
-    <div className="flex items-stretch overflow-hidden rounded-2xl border bg-card shadow-sm transition-all hover:-translate-y-px hover:border-brand-300 hover:shadow-md">
+    <div className="flex items-stretch overflow-hidden rounded-2xl border bg-card shadow-sm transition-[transform,border-color,box-shadow] hover:-translate-y-px hover:border-brand-300 hover:shadow-md">
       <button type="button" onClick={onOpenDetail} className="my-[13px] ml-[15px] h-16 w-12 shrink-0 overflow-hidden rounded-md shadow-sm">
         <BookCover title={book.displayTitle} author={book.authors} cover={book.cover} />
       </button>
@@ -59,6 +60,7 @@ export function BookRow({ book, onOpenDetail, onEdit, onDelete }: BookRowProps) 
         <button
           type="button"
           onClick={onEdit}
+          aria-label={t`Edit ${book.displayTitle}`}
           className="grid w-11 flex-1 place-items-center text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
         >
           <Pencil className="size-3.5" />
@@ -66,6 +68,7 @@ export function BookRow({ book, onOpenDetail, onEdit, onDelete }: BookRowProps) 
         <button
           type="button"
           onClick={onDelete}
+          aria-label={t`Delete ${book.displayTitle}`}
           className="grid w-11 flex-1 place-items-center border-t text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
         >
           <Trash2 className="size-3.5" />
