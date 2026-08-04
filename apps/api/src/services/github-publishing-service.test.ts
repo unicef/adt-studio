@@ -5,6 +5,7 @@ import git from "isomorphic-git"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import {
   buildPublishManifest,
+  assertRemoteNotAdvanced,
   connectGitHub,
   detectGitWorkingTreeChanges,
   diffPublishManifests,
@@ -112,6 +113,24 @@ describe("github publishing state", () => {
     expect(() => resolveRepositoryPath(path.join(bookDir, "pull"), "/tmp/outside.txt")).toThrow(
       "Unsafe repository path",
     )
+  })
+
+  it("blocks a deployment when collaborators advanced the remote branch", () => {
+    expect(() => assertRemoteNotAdvanced({
+      id: "previous",
+      status: "completed",
+      owner: "adt-expert",
+      repository: "science-book",
+      branch: "main",
+      commitSha: "local-sha",
+      changes: [],
+      steps: [],
+      startedAt: "2026-08-04T00:00:00.000Z",
+    }, {
+      owner: "adt-expert",
+      repository: "science-book",
+      commitSha: "collaborator-sha",
+    })).toThrow("Synchronize or resolve")
   })
 
   it("finds changed speech entities in Git HTML and JSON diffs", () => {
