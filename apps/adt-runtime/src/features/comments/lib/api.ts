@@ -83,7 +83,9 @@ export interface ListOptions {
 
 export interface CommentsApi {
   list: (pageSectionId: string, options?: ListOptions) => Promise<ListResponse>
-  createSession: (name: string, pin: string) => Promise<CommenterSession>
+  createSession: (name: string, pin?: string) => Promise<CommenterSession>
+  /** Dormant since M3.5: the reader UI no longer offers PINs, but the worker route is still
+   *  live and still tested, so the client half stays rather than being re-derived later. */
   claimSession: (name: string, pin: string) => Promise<CommenterSession>
   createComment: (input: {
     pageSectionId: string
@@ -111,7 +113,7 @@ export function createCommentsApi(apiBase: string): CommentsApi {
     async createSession(name, pin) {
       const { session } = await request<SessionResponse>(
         `${apiBase}session`,
-        jsonInit("POST", { name, pin }),
+        jsonInit("POST", pin === undefined ? { name } : { name, pin }),
       )
       return session
     },

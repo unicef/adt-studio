@@ -20,8 +20,11 @@ export const COMMENT_BODY_MAX_LENGTH = 2000
 
 export const COMMENTER_NAME_MAX_LENGTH = 60
 
-/** The product ruling is a numeric PIN; the contract's 4–12 any-character
- *  range is wider than what this UI offers, and 6 keeps it memorable. */
+/** Dormant since M3.5 — the reader UI no longer offers PINs (the access code on the door does
+ *  that job now), but the worker route and this client's `claimSession` still exist, so the caps
+ *  stay here under `contract.test.ts`'s drift check rather than being re-derived if it returns.
+ *  The product ruling was a numeric PIN; the contract's 4–12 any-character range is wider than
+ *  what the UI offered, and 6 kept it memorable. */
 export const COMMENTER_PIN_MIN_LENGTH = 4
 
 export const COMMENTER_PIN_MAX_LENGTH = 6

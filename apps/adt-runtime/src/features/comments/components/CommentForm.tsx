@@ -9,8 +9,6 @@ import type { CommentAnchor } from "@/features/comments/lib/anchor"
 import {
   COMMENT_BODY_MAX_LENGTH,
   COMMENTER_NAME_MAX_LENGTH,
-  COMMENTER_PIN_MAX_LENGTH,
-  COMMENTER_PIN_MIN_LENGTH,
   type PublishComment,
 } from "@/features/comments/lib/contract"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
@@ -24,7 +22,9 @@ import {
 
 const NAME_STORAGE_KEY = "commentAuthorName"
 
-type Step = "body" | "identity" | "claim"
+/** M3.5: two steps, not three. The access code on the door is what tells strangers apart from
+ *  invited readers now, so a name is just a label — no PIN to choose, nothing to claim. */
+type Step = "body" | "identity"
 
 export interface CommentFormProps {
   context: CommentsRuntimeContext
@@ -63,14 +63,12 @@ export function CommentForm({
 
   const [body, setBody] = useState("")
   const [name, setName] = useState(rememberedName)
-  const [pin, setPin] = useState("")
   const [step, setStep] = useState<Step>(session ? "body" : "identity")
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
 
   const bodyRef = useRef<HTMLTextAreaElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
-  const pinRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (session && step === "identity") setStep("body")
@@ -80,10 +78,6 @@ export function CommentForm({
     if (!autoFocus) return
     bodyRef.current?.focus()
   }, [autoFocus])
-
-  useEffect(() => {
-    if (step === "claim") pinRef.current?.focus()
-  }, [step])
 
   const rememberName = useCallback(
     (value: string) => {
@@ -110,46 +104,17 @@ export function CommentForm({
     }
 
     const trimmedName = name.trim()
-    if (step !== "body") {
-      if (!trimmedName) {
-        setError(t("comments-name-required-label"))
-        nameRef.current?.focus()
-        return
-      }
-      if (pin.length < COMMENTER_PIN_MIN_LENGTH || pin.length > COMMENTER_PIN_MAX_LENGTH) {
-        setError(t("comments-pin-required-label"))
-        pinRef.current?.focus()
-        return
-      }
+    if (step === "identity" && !trimmedName) {
+      setError(t("comments-name-required-label"))
+      nameRef.current?.focus()
+      return
     }
 
     setBusy(true)
     setError(null)
     try {
       if (step === "identity") {
-        try {
-          setSession(await context.api.createSession(trimmedName, pin))
-        } catch (identityError) {
-          if (identityError instanceof CommentsApiError && identityError.code === "name_taken") {
-            setStep("claim")
-            setPin("")
-            setError(null)
-            return
-          }
-          throw identityError
-        }
-        rememberName(trimmedName)
-      } else if (step === "claim") {
-        try {
-          setSession(await context.api.claimSession(trimmedName, pin))
-        } catch (claimError) {
-          if (claimError instanceof CommentsApiError && claimError.code === "invalid_claim") {
-            setError(t("comments-claim-failed-label"))
-            setPin("")
-            return
-          }
-          throw claimError
-        }
+        setSession(await context.api.createSession(trimmedName))
         rememberName(trimmedName)
       }
 
@@ -193,7 +158,6 @@ export function CommentForm({
     onPosted,
     pageSectionId,
     parentId,
-    pin,
     rememberName,
     setCommentMode,
     setSession,
@@ -238,78 +202,19 @@ export function CommentForm({
           <p className="text-xs font-medium text-foreground/80">
             {t("comments-identity-intro")}
           </p>
-          <div className="flex gap-2">
-            <label className="flex flex-1 flex-col gap-1">
-              <span className="text-[0.7rem] text-muted-foreground">
-                {t("comments-name-label")}
-              </span>
-              <Input
-                ref={nameRef}
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                maxLength={COMMENTER_NAME_MAX_LENGTH}
-                placeholder={t("comments-name-placeholder")}
-                autoComplete="off"
-              />
-            </label>
-            <label className="flex w-28 flex-col gap-1">
-              <span className="text-[0.7rem] text-muted-foreground">
-                {t("comments-pin-label")}
-              </span>
-              <Input
-                ref={pinRef}
-                value={pin}
-                onChange={(event) => setPin(digitsOnly(event.target.value))}
-                type="password"
-                inputMode="numeric"
-                maxLength={COMMENTER_PIN_MAX_LENGTH}
-                placeholder={t("comments-pin-placeholder")}
-                autoComplete="off"
-              />
-            </label>
-          </div>
-          <p className="text-[0.7rem] leading-snug text-muted-foreground">
-            {t("comments-pin-hint")}
-          </p>
-        </div>
-      ) : null}
-
-      {step === "claim" ? (
-        <div className="flex flex-col gap-2 rounded-lg bg-muted/50 p-2.5 duration-200 animate-in fade-in-0 slide-in-from-top-1">
-          <p className="text-xs font-medium text-foreground/80">
-            {t("comments-name-taken-title", { name: name.trim() })}
-          </p>
-          <p className="text-[0.7rem] leading-snug text-muted-foreground">
-            {t("comments-name-taken-hint", { name: name.trim() })}
-          </p>
           <label className="flex flex-col gap-1">
             <span className="text-[0.7rem] text-muted-foreground">
-              {t("comments-claim-pin-label", { name: name.trim() })}
+              {t("comments-name-label")}
             </span>
             <Input
-              ref={pinRef}
-              value={pin}
-              onChange={(event) => setPin(digitsOnly(event.target.value))}
-              type="password"
-              inputMode="numeric"
-              maxLength={COMMENTER_PIN_MAX_LENGTH}
-              placeholder={t("comments-pin-placeholder")}
+              ref={nameRef}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              maxLength={COMMENTER_NAME_MAX_LENGTH}
+              placeholder={t("comments-name-placeholder")}
               autoComplete="off"
             />
           </label>
-          <button
-            type="button"
-            className="self-start text-[0.7rem] underline underline-offset-2 text-muted-foreground transition-colors hover:text-foreground"
-            onClick={() => {
-              setStep("identity")
-              setPin("")
-              setError(null)
-              setName("")
-              nameRef.current?.focus()
-            }}
-          >
-            {t("comments-other-name-label")}
-          </button>
         </div>
       ) : null}
 
@@ -329,19 +234,11 @@ export function CommentForm({
           </Button>
         ) : null}
         <Button type="submit" size="sm" disabled={busy}>
-          {busy
-            ? t("comments-sending-label")
-            : step === "claim"
-              ? t("comments-claim-continue-label")
-              : t("comments-post-label")}
+          {busy ? t("comments-sending-label") : t("comments-post-label")}
         </Button>
       </div>
     </form>
   )
-}
-
-function digitsOnly(value: string): string {
-  return value.replace(/\D/g, "")
 }
 
 export { NAME_STORAGE_KEY }
