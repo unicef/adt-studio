@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import { z } from "zod"
+import { PUBLISH_WORKER_VERSION } from "@adt/types"
 
 export const WORKER_ARTIFACT_SCRIPT_FILE = "worker.js"
 export const WORKER_ARTIFACT_METADATA_FILE = "metadata.json"
@@ -99,6 +100,16 @@ export function loadWorkerArtifact(paths: WorkerArtifactPaths): WorkerArtifact {
     )
   }
   const metadata = parsedMetadata.data
+
+  if (metadata.version !== PUBLISH_WORKER_VERSION) {
+    throw new WorkerArtifactError(
+      `Publish worker artifact is stale: it was built as v${metadata.version} but this ` +
+        `Studio ships v${PUBLISH_WORKER_VERSION}. Uploading it would deploy the old version ` +
+        `and the install would fail its final check. Rebuild it with ` +
+        `\`${WORKER_ARTIFACT_BUILD_COMMAND}\` (restarting \`pnpm dev\` also rebuilds it), ` +
+        `then try again.`,
+    )
+  }
 
   const migrationNames =
     metadata.d1_migrations.length > 0
