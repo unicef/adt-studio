@@ -106,6 +106,8 @@ export const SpeechFileEntry = z.object({
   model: z.string(),
   cached: z.boolean(),
   provider: z.string().optional(),
+  /** Deterministic hash of the spoken text, voice, model, and instructions. */
+  sourceHash: z.string().optional(),
 })
 export type SpeechFileEntry = z.infer<typeof SpeechFileEntry>
 

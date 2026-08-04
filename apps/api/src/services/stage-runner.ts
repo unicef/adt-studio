@@ -68,6 +68,8 @@ import {
   generateWordTimestamps,
   wavDurationSeconds,
   stripEmojis,
+  prepareTextForSpeech,
+  prepareInstructionsForSpeech,
   generateBookSummary,
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
@@ -130,6 +132,8 @@ const GEMINI_TTS_MAX_RETRY_DELAY_MS = 20_000
 // and aren't a rate signal, so they get a shorter delay than a 429 and do not
 // throttle the shared limiter.
 const GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS = 1_500
+const TTS_TRANSIENT_MAX_RETRIES = 3
+const TTS_TRANSIENT_RETRY_DELAY_MS = 1_000
 
 class StepError extends Error {
   readonly step: StepName
@@ -368,6 +372,12 @@ function isGeminiTtsTransientError(message: string): boolean {
   )
 }
 
+function isTtsTransientTransportError(message: string): boolean {
+  return /fetch failed|terminated|socket|network|ECONNRESET|ETIMEDOUT|\(408\)|\(429\)|\(50\d\)/i.test(
+    message,
+  )
+}
+
 function parseGeminiRetryDelayMs(message: string): number | null {
   const match = message.match(/retry in ([\d.]+)s/i)
   if (!match) return null
@@ -486,15 +496,20 @@ function emitSpeechStepProgress(
   audioTotal: number,
   audioFailures: number,
   reusedTotal = 0,
+  pagesCompleted?: number,
+  pagesTotal?: number,
 ): void {
   const reusedSuffix = reusedTotal > 0 ? ` (${reusedTotal} reused)` : ""
   const failureSuffix = audioFailures > 0 ? ` (${audioFailures} failed)` : ""
+  const pagePrefix = pagesTotal
+    ? `${pagesCompleted ?? 0}/${pagesTotal} pages · `
+    : ""
   progress.emit({
     type: "step-progress",
     step: "tts",
-    message: `${audioCompleted}/${audioTotal} audio entries${reusedSuffix}${failureSuffix}`,
-    page: audioCompleted,
-    totalPages: audioTotal,
+    message: `${pagePrefix}${audioCompleted}/${audioTotal} audio entries${reusedSuffix}${failureSuffix}`,
+    page: pagesTotal ? (pagesCompleted ?? 0) : audioCompleted,
+    totalPages: pagesTotal || audioTotal,
   })
 }
 
@@ -633,20 +648,27 @@ function canReuseSpeechEntry(
   const expectedExt = `.${options.format.toLowerCase()}`
   if (path.extname(entry.fileName).toLowerCase() !== expectedExt) return false
 
-  const sanitized = stripEmojis(options.text).trim()
+  const sanitized = prepareTextForSpeech(stripEmojis(options.text).trim(), options.language)
+  const preparedInstructions = prepareInstructionsForSpeech(
+    options.instructions,
+    sanitized,
+    options.language,
+  )
   const cacheKey = computeSpeechCacheKey({
     text: sanitized,
     voice: options.voice,
     model: options.model,
-    instructions: options.instructions,
+    instructions: preparedInstructions,
     provider: options.provider,
     geminiTemperature: options.geminiTemperature,
     geminiSeed: options.geminiSeed,
   })
+  const outputPath = resolveSpeechOutputPath(options.bookDir, options.language, entry.fileName)
+  if (entry.sourceHash === cacheKey && outputPath && fs.existsSync(outputPath)) {
+    return true
+  }
   const cachePath = resolveSpeechCachePath(options.cacheDir, cacheKey, options.format.toLowerCase())
   if (!cachePath || !fs.existsSync(cachePath)) return false
-
-  const outputPath = resolveSpeechOutputPath(options.bookDir, options.language, entry.fileName)
   if (!outputPath) return false
 
   fs.mkdirSync(path.dirname(outputPath), { recursive: true })
@@ -2703,6 +2725,32 @@ async function runSpeechStep(
         if (isTtsExcluded(entry.id, config.speech)) continue
         languageTextMap.set(entry.id, entry.text)
 
+        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
+        const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
+        const voice = resolveVoice(provider, lang, voiceMaps, config.speech?.voice)
+        const instructions = provider === "openai" || provider === "gemini"
+          ? resolveInstructions(lang, instructionsMap)
+          : ""
+        const existingEntry = existingSpeechEntries.get(entry.id)
+
+        if (canReuseSpeechEntry(existingEntry, {
+          bookDir,
+          cacheDir,
+          language: lang,
+          text: entry.text,
+          provider,
+          model: providerModel,
+          voice,
+          instructions,
+          format: outputFormat,
+          geminiTemperature: config.speech?.temperature,
+          geminiSeed: config.speech?.seed,
+        })) {
+          ttsResultsByLang.get(lang)?.push(existingEntry)
+          reusedEntriesByLang.set(lang, (reusedEntriesByLang.get(lang) ?? 0) + 1)
+          continue
+        }
+
         // Route page-scoped entries of a Gemini language into a per-page group
         // (generated together below). Skips the per-entry reuse check — page
         // audio is cached at the page level inside generatePageSpeechFiles.
@@ -2725,40 +2773,6 @@ async function runSpeechStep(
           continue
         }
 
-        const provider = resolveProviderForLanguage(lang, routing)
-        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
-        const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-        const voice = resolveVoice(provider, lang, voiceMaps, config.speech?.voice)
-        // OpenAI consumes instructions via its `instructions` field; Gemini embeds
-        // them in the prompt text (it rejects systemInstruction). Both paths must
-        // resolve identically here and in the generation loop below so the cache key
-        // (computeSpeechCacheKey) stays in sync with canReuseSpeechEntry.
-        const instructions =
-          provider === "openai" || provider === "gemini"
-            ? resolveInstructions(lang, instructionsMap)
-            : ""
-        const existingEntry = existingSpeechEntries.get(entry.id)
-
-        if (
-          canReuseSpeechEntry(existingEntry, {
-            bookDir,
-            cacheDir,
-            language: lang,
-            text: entry.text,
-            provider,
-            model: providerModel,
-            voice,
-            instructions,
-            format: outputFormat,
-            geminiTemperature: config.speech?.temperature,
-            geminiSeed: config.speech?.seed,
-          })
-        ) {
-          ttsResultsByLang.get(lang)?.push(existingEntry)
-          reusedEntriesByLang.set(lang, (reusedEntriesByLang.get(lang) ?? 0) + 1)
-          continue
-        }
-
         ttsWorkItems.push({ textId: entry.id, text: entry.text, language: lang })
       }
       textByLanguage.set(lang, languageTextMap)
@@ -2768,8 +2782,41 @@ async function runSpeechStep(
     const totalItems = ttsWorkItems.length + batchedEntryCount
     let completedItems = 0
 
+    // Track actual page completion independently from audio-entry completion.
+    // One page is complete only after every pending entry on that page has
+    // either generated or failed. Non-page items (glossary, quizzes, etc.) stay
+    // represented in the detailed audio-entry message but not the page count.
+    const pendingEntriesByPage = new Map<string, number>()
+    const completedEntriesByPage = new Map<string, number>()
+    const pageKeyFor = (languageCode: string, textId: string): string | null => {
+      const match = /^(pg\d+)_/i.exec(textId)
+      return match ? `${languageCode}::${match[1]!.toLowerCase()}` : null
+    }
+    const registerPageEntry = (languageCode: string, textId: string): void => {
+      const key = pageKeyFor(languageCode, textId)
+      if (!key) return
+      pendingEntriesByPage.set(key, (pendingEntriesByPage.get(key) ?? 0) + 1)
+    }
+    const completePageEntry = (languageCode: string, textId: string): void => {
+      const key = pageKeyFor(languageCode, textId)
+      if (!key) return
+      completedEntriesByPage.set(key, (completedEntriesByPage.get(key) ?? 0) + 1)
+    }
+    const completedPageCount = (): number => {
+      let count = 0
+      for (const [key, total] of pendingEntriesByPage) {
+        if ((completedEntriesByPage.get(key) ?? 0) >= total) count++
+      }
+      return count
+    }
+    for (const item of ttsWorkItems) registerPageEntry(item.language, item.textId)
+    for (const group of pageGroups.values()) {
+      for (const entry of group.entries) registerPageEntry(group.language, entry.id)
+    }
+    const totalSpeechPages = pendingEntriesByPage.size
+
     const reusedItems = [...reusedEntriesByLang.values()].reduce((sum, count) => sum + count, 0)
-    emitSpeechStepProgress(progress, 0, totalItems, 0, reusedItems)
+    emitSpeechStepProgress(progress, 0, totalItems, 0, reusedItems, 0, totalSpeechPages)
 
     console.log(`[stage-run] ${label}: generating TTS for ${totalItems} entries and reusing ${reusedItems} existing entries across ${outputLanguages.length} languages (${outputLanguages.join(", ")})`)
     console.log(`[stage-run] ${label}: TTS routing — for each language: ${outputLanguages.map((l) => `${l}→${resolveProviderForLanguage(l, routing)}`).join(", ")}`)
@@ -2908,7 +2955,16 @@ async function runSpeechStep(
             }
           }
           completedItems += group.entries.length
-          emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
+          for (const entry of group.entries) completePageEntry(group.language, entry.id)
+          emitSpeechStepProgress(
+            progress,
+            completedItems,
+            totalItems,
+            failedItems.length,
+            reusedItems,
+            completedPageCount(),
+            totalSpeechPages,
+          )
         },
         { runSignal: options.signal }
       )
@@ -2971,6 +3027,7 @@ async function runSpeechStep(
                 provider === "gemini" &&
                 !rateLimited &&
                 isGeminiTtsTransientError(msg)
+              const transportTransient = isTtsTransientTransportError(msg)
               if (
                 (rateLimited || transient) &&
                 !options.signal?.aborted &&
@@ -3002,6 +3059,19 @@ async function runSpeechStep(
                 )
                 console.warn(
                   `[stage-run] ${label}: Gemini TTS transient error for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
+                )
+                await sleep(retryDelayMs, options.signal)
+                if (options.signal?.aborted) throw new RunCancelledError()
+                continue
+              }
+              if (
+                transportTransient &&
+                !options.signal?.aborted &&
+                attemptCount <= TTS_TRANSIENT_MAX_RETRIES
+              ) {
+                const retryDelayMs = TTS_TRANSIENT_RETRY_DELAY_MS * attemptCount
+                console.warn(
+                  `[stage-run] ${label}: ${provider} TTS transport error for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${TTS_TRANSIENT_MAX_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`,
                 )
                 await sleep(retryDelayMs, options.signal)
                 if (options.signal?.aborted) throw new RunCancelledError()
@@ -3087,17 +3157,23 @@ async function runSpeechStep(
             cacheHit: false,
             durationMs,
           })
-          if (provider !== "gemini") {
-            progress.emit({
-              type: "step-error",
-              step: "tts",
-              error: `${item.textId} failed: ${msg}`,
-            })
-          }
+          // This is an item-level gap, not a stopped step. Emitting step-error
+          // here marks the whole Speech stage errored and hides its live
+          // progress even though the remaining items continue. The failed item
+          // is persisted below and the progress event includes the gap count.
         }
 
         completedItems++
-        emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
+        completePageEntry(item.language, item.textId)
+        emitSpeechStepProgress(
+          progress,
+          completedItems,
+          totalItems,
+          failedItems.length,
+          reusedItems,
+          completedPageCount(),
+          totalSpeechPages,
+        )
       },
       { runSignal: options.signal }
     )

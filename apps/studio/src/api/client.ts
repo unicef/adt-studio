@@ -1659,28 +1659,39 @@ export const api = {
   getTTS: (label: string) =>
     request<TTSResponse>(`/books/${label}/tts`),
 
+  // Added by the Publish feature. Keeping the typed client call here lets the
+  // Speech UI consume the changed-entity suggestions once that independent PR
+  // is present, without importing Publish implementation details.
+  getGitHubSpeechSuggestions: (label: string) =>
+    request<{
+      source: "working-tree" | "latest-deployment" | "none"
+      items: Array<{ textId: string; files: string[] }>
+    }>(`/books/${label}/github-publishing/speech-suggestions`),
+
   deleteTTS: (label: string) =>
     request<{ ok: boolean }>(`/books/${label}/tts`, { method: "DELETE" }),
 
-  generateGeminiTTSForItem: (
+  generateTTSForItem: (
     label: string,
     textId: string,
+    text: string,
     language: string,
     credentials: {
-      geminiApiKey: string
+      geminiApiKey?: string
       openaiApiKey?: string
       azure?: AzureCredentials
-    }
+    },
+    options?: { forceRegenerate?: boolean },
   ) =>
     request<GenerateSingleTTSResponse>(`/books/${label}/tts/generate-one`, {
       method: "POST",
       headers: {
-        "X-Gemini-API-Key": credentials.geminiApiKey,
+        ...(credentials.geminiApiKey ? { "X-Gemini-API-Key": credentials.geminiApiKey } : {}),
         ...(credentials.openaiApiKey ? { "X-OpenAI-Key": credentials.openaiApiKey } : {}),
         ...(credentials.azure?.key ? { "X-Azure-Speech-Key": credentials.azure.key } : {}),
         ...(credentials.azure?.region ? { "X-Azure-Speech-Region": credentials.azure.region } : {}),
       },
-      body: JSON.stringify({ textId, language }),
+      body: JSON.stringify({ textId, text, language, forceRegenerate: options?.forceRegenerate ?? false }),
     }),
 
   uploadTTSForItem: (

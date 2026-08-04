@@ -243,6 +243,10 @@ msgstr "{0} questões"
 msgid "{0} sections"
 msgstr "{0} seções"
 
+#. placeholder {0}: selectedAudioIds.size
+msgid "{0} selected"
+msgstr "{0} selecionados"
+
 #. placeholder {0}: String(stale.length)
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} imagens selecionadas não estão mais no storyboard."
@@ -262,6 +266,10 @@ msgstr "{0} textos"
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
 msgstr "{0} traduções"
+
+#. placeholder {0}: changesQuery.data.changes.length
+#~ msgid "{0} unpublished file changes"
+#~ msgstr "{0} alterações de arquivo não publicadas"
 
 #. placeholder {0}: versions.length
 #~ msgid "{0} versions"
@@ -821,6 +829,9 @@ msgstr "Atividade: Múltipla escolha"
 msgid "Activity: Open-Ended Answer"
 msgstr "Atividade: Resposta aberta"
 
+#~ msgid "Activity: Ordering"
+#~ msgstr "Atividade: Ordenação"
+
 msgid "Activity: Other"
 msgstr "Atividade: Outra"
 
@@ -1203,6 +1214,9 @@ msgstr "Tudo"
 msgid "All {0} pages merged in"
 msgstr "As {0} páginas foram mescladas"
 
+msgid "All audio"
+msgstr "Todos os áudios"
+
 msgid "All categories"
 msgstr "Todas as categorias"
 
@@ -1259,6 +1273,9 @@ msgstr "Quantidade"
 
 msgid "An activity that does not fit the standard categories."
 msgstr "Uma atividade que não se enquadra nas categorias padrão."
+
+#~ msgid "An activity where learners arrange items into the correct order."
+#~ msgstr "Uma atividade em que os estudantes organizam itens na ordem correta."
 
 msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
 msgstr "Uma atividade em que o aluno sublinha uma ou mais palavras, expressões ou frases diretamente no texto."
@@ -1654,6 +1671,9 @@ msgstr "O corpo do texto usa esta fonte hoje. Anexe uma fonte abaixo e atribua a
 msgid "Book"
 msgstr "Livro"
 
+#~ msgid "Book change history"
+#~ msgstr "Histórico de alterações do livro"
+
 msgid "Book coverage"
 msgstr "Cobertura do livro"
 
@@ -1671,6 +1691,9 @@ msgstr "Imagens do livro"
 
 msgid "Book info"
 msgstr "Informações do livro"
+
+#~ msgid "Book is published"
+#~ msgstr "O livro está publicado"
 
 msgid "Book Language"
 msgstr "Idioma do livro"
@@ -1929,6 +1952,9 @@ msgstr "Alterar o idioma do livro?"
 msgid "Change the picture for this term"
 msgstr "Alterar a imagem deste termo"
 
+#~ msgid "Changed files"
+#~ msgstr "Arquivos alterados"
+
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "As alterações são aplicadas na próxima vez que você executar o Storyboard e a Exportação."
 
@@ -1973,6 +1999,9 @@ msgstr "Título do capítulo"
 
 msgid "Chart / Graph"
 msgstr "Gráfico / Tabela"
+
+#~ msgid "Check changes"
+#~ msgstr "Verificar alterações"
 
 #~ msgid "Check for updates"
 #~ msgstr "Verificar atualizações"
@@ -2085,6 +2114,9 @@ msgstr "Limpar modelo"
 msgid "Clear search"
 msgstr "Limpar busca"
 
+msgid "Clear visible selection"
+msgstr "Limpar seleção visível"
+
 msgid "Clear, descriptive captions for middle and high school readers."
 msgstr "Legendas claras e descritivas para leitores do ensino fundamental e médio."
 
@@ -2190,6 +2222,9 @@ msgstr "Comparar versões"
 msgid "Compared with fallback prompt."
 msgstr "Comparado com o prompt fallback."
 
+#~ msgid "Complete the guided setup before starting the publishing workflow."
+#~ msgstr "Conclua a configuração guiada antes de iniciar o fluxo de publicação."
+
 msgid "Completed"
 msgstr "Concluído"
 
@@ -2244,6 +2279,12 @@ msgstr "Configure cada etapa — extração, storyboard, layout — e deixe o AD
 msgid "Configure features to include in the export"
 msgstr "Configure as funcionalidades a incluir na exportação"
 
+#~ msgid "Configure GitHub publishing"
+#~ msgstr "Configurar publicação no GitHub"
+
+#~ msgid "Configure GitHub to start publishing"
+#~ msgstr "Configure o GitHub para começar a publicar"
+
 #~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
 #~ msgstr "Configure as credenciais dos provedores e os prompts fallback globais usados pelo ADT Studio."
 
@@ -2258,6 +2299,12 @@ msgstr "Configurar vozes e sotaques"
 
 msgid "Confirm merge"
 msgstr "Confirmar mesclagem"
+
+#~ msgid "Confirm the destination below. Publishing will open the live workflow screen automatically."
+#~ msgstr "Confirme o destino abaixo. A publicação abrirá automaticamente a tela do fluxo ao vivo."
+
+#~ msgid "Connect an account and choose a repository before running this workflow."
+#~ msgstr "Conecte uma conta e escolha um repositório antes de executar este fluxo."
 
 msgid "Connect an AI provider"
 msgstr "Conecte um provedor de IA"
@@ -2282,6 +2329,9 @@ msgstr "Processamento de Conteúdo"
 
 msgid "Contents"
 msgstr "Conteúdo"
+
+msgid "Contents — Read and write; Administration — Read and write; Pages — Read and write; Metadata — Read-only."
+msgstr "Conteúdo — Leitura e gravação; Administração — Leitura e gravação; Pages — Leitura e gravação; Metadados — Somente leitura."
 
 msgid "Context"
 msgstr "Contexto"
@@ -2446,6 +2496,9 @@ msgstr "Create a reviewer session for this book."
 msgid "Create ADT"
 msgstr "Criar ADT"
 
+#~ msgid "Create classic token on GitHub"
+#~ msgstr "Criar token clássico no GitHub"
+
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Cria legendas descritivas para imagens para melhorar a acessibilidade."
 
@@ -2454,6 +2507,9 @@ msgstr "Criar arquivo"
 
 msgid "Create files"
 msgstr "Criar arquivos"
+
+#~ msgid "Create fine-grained token on GitHub"
+#~ msgstr "Criar token de acesso refinado no GitHub"
 
 msgid "Create from scratch using your description"
 msgstr "Criar do zero usando sua descrição"
@@ -2469,6 +2525,9 @@ msgstr "Criar arquivo de prompt a partir do template"
 
 msgid "Create session"
 msgstr "Create session"
+
+#~ msgid "Create the destination repository first, then select its owner and that repository as the token resource."
+#~ msgstr "Primeiro crie o repositório de destino e depois selecione o proprietário e esse repositório como recurso do token."
 
 msgid "Created {created} prompt files for {normalizedTargetModel}."
 msgstr "Criados {created} arquivos de prompt para {normalizedTargetModel}."
@@ -2532,6 +2591,9 @@ msgstr "Atual (v{currentVersion})"
 
 msgid "Current book font"
 msgstr "Fonte atual do livro"
+
+#~ msgid "Current book workspace"
+#~ msgstr "Espaço de trabalho atual do livro"
 
 msgid "Current effective values"
 msgstr "Current effective values"
@@ -2900,6 +2962,9 @@ msgstr "CONCLUÍDO"
 #~ msgid "Downgrade"
 #~ msgstr "Downgrade"
 
+msgid "Done selecting"
+msgstr "Concluir seleção"
+
 msgid "Download a full backup of this project"
 msgstr "Baixar um backup completo deste projeto"
 
@@ -3053,6 +3118,9 @@ msgstr "Cada iteração é uma chamada LLM. Valores menores são mais rápidos e
 msgid "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
 msgstr "Cada tipo de tarefa do pipeline usa um modelo compatível. A geração de imagens e de fala usa seus próprios padrões específicos por tarefa."
 
+#~ msgid "Each node updates live as ADT Studio publishes the book."
+#~ msgstr "Cada nó é atualizado ao vivo enquanto o ADT Studio publica o livro."
+
 msgid "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
 msgstr "Cada pólipo secreta um esqueleto duro de carbonato de cálcio. Ao longo de centenas de anos, milhões desses esqueletos formam as enormes estruturas de recifes que vemos hoje."
 
@@ -3070,6 +3138,9 @@ msgstr "As etapas anteriores ainda não foram executadas"
 
 msgid "Early"
 msgstr "Iniciante"
+
+msgid "Easiest complete setup"
+msgstr "Configuração completa mais fácil"
 
 msgid "Easy Read"
 msgstr "Leitura Fácil"
@@ -3591,6 +3662,9 @@ msgstr "Filtra imagens decorativas ou sem conteúdo em cada página."
 msgid "Final Page"
 msgstr "Página Final"
 
+msgid "Fine-grained token for an existing repository"
+msgstr "Token de acesso refinado para um repositório existente"
+
 msgid "First images from the deep-field telescope."
 msgstr "Primeiras imagens do telescópio de campo profundo."
 
@@ -3823,7 +3897,7 @@ msgid "Generate global prompts"
 msgstr "Gerar prompts globais"
 
 msgid "Generate missing Gemini audio"
-msgstr "Gerar áudio faltante do Gemini"
+msgstr "Gerar o áudio Gemini ausente"
 
 msgid "Generate multiple-choice comprehension quizzes from the book's content. Create them automatically across the whole book, or add a single quiz from specific pages."
 msgstr "Gere questionários de compreensão de múltipla escolha a partir do conteúdo do livro. Crie-os automaticamente em todo o livro ou adicione um único questionário a partir de páginas específicas."
@@ -3919,6 +3993,12 @@ msgstr "Prompt de geração"
 
 msgid "Get started"
 msgstr "Começar"
+
+msgid "Git has not detected changed text entities for this view."
+msgstr "O Git não detectou entidades de texto alteradas nesta visualização."
+
+#~ msgid "Git publishing workflow"
+#~ msgstr "Fluxo de publicação Git"
 
 msgid "Global prompt reset to default."
 msgstr "Prompt global resetado para o padrão."
@@ -4552,6 +4632,9 @@ msgstr "Imagens grandes, fluxo narrativo. Melhor para livros ilustrados com voze
 #~ msgid "Last"
 #~ msgstr "Última"
 
+#~ msgid "Last activity"
+#~ msgstr "Última atividade"
+
 msgid "Last change"
 msgstr "Última alteração"
 
@@ -4560,6 +4643,12 @@ msgstr "Última modificação"
 
 #~ msgid "Last week"
 #~ msgstr "Semana passada"
+
+#~ msgid "Latest deployment"
+#~ msgstr "Implantação mais recente"
+
+#~ msgid "Latest GitHub changes synchronized."
+#~ msgstr "Alterações mais recentes do GitHub sincronizadas."
 
 msgid "Launch the app with"
 msgstr "Iniciar o aplicativo com"
@@ -4581,6 +4670,9 @@ msgstr "Layout espelhado nesta seção"
 
 msgid "Leading"
 msgstr "Entrelinha"
+
+#~ msgid "Learn how with a guided setup"
+#~ msgstr "Aprenda com uma configuração guiada"
 
 msgid "Least used"
 msgstr "Menos usado"
@@ -4732,6 +4824,9 @@ msgstr "Carregando livros..."
 msgid "Loading catalog..."
 msgstr "Carregando catálogo..."
 
+#~ msgid "Loading deployments"
+#~ msgstr "Carregando implantações"
+
 msgid "Loading Easy Read..."
 msgstr "Carregando Leitura Fácil..."
 
@@ -4824,6 +4919,12 @@ msgstr "Carregando..."
 
 msgid "Loading…"
 msgstr "Carregando…"
+
+#~ msgid "Local and GitHub changes need resolution before synchronization."
+#~ msgstr "As alterações locais e do GitHub precisam ser resolvidas antes da sincronização."
+
+#~ msgid "Local book is up to date."
+#~ msgstr "O livro local está atualizado."
 
 msgid "Localization"
 msgstr "Localização"
@@ -5364,6 +5465,9 @@ msgstr "Nenhuma legenda corresponde a esses filtros"
 msgid "No captions match your search"
 msgstr "Nenhuma legenda corresponde à sua pesquisa"
 
+msgid "No changed content needs speech regeneration"
+msgstr "Nenhum conteúdo alterado precisa de regeneração de voz"
+
 msgid "no changes"
 msgstr "sem alterações"
 
@@ -5679,8 +5783,14 @@ msgstr "ruído"
 msgid "None"
 msgstr "Nenhum"
 
+#~ msgid "Not committed yet"
+#~ msgstr "Ainda não confirmado"
+
 msgid "Not compatible with Fixed Layout"
 msgstr "Não compatível com Layout Fixo"
+
+#~ msgid "Not configured"
+#~ msgstr "Não configurado"
 
 msgid "Not detected"
 msgstr "Não detectado"
@@ -5854,6 +5964,9 @@ msgstr "Abrir pré-visualização da página {0}"
 
 msgid "Open Preview"
 msgstr "Open Preview"
+
+#~ msgid "Open public book"
+#~ msgstr "Abrir livro público"
 
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
@@ -6066,6 +6179,9 @@ msgstr "Empacote o livro para distribuição. Escolha um formato, decida o que v
 
 msgid "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
 msgstr "Empacote o livro pronto com todos os recursos de acessibilidade integrados — pronto para uma criança abrir, ouvir e acompanhar a leitura."
+
+#~ msgid "Package, commit, push, host, and preview the accessible book without leaving ADT Studio."
+#~ msgstr "Empacote, confirme, publique, hospede e visualize o livro acessível sem sair do ADT Studio."
 
 msgid "Packaging"
 msgstr "Empacotando"
@@ -6642,11 +6758,20 @@ msgstr "Removido: {0}"
 msgid "PT"
 msgstr "PT"
 
+#~ msgid "Publish book"
+#~ msgstr "Publicar livro"
+
+#~ msgid "Publish with GitHub Pages"
+#~ msgstr "Publicar com GitHub Pages"
+
 msgid "published in"
 msgstr "publicado em"
 
 msgid "Publisher"
 msgstr "Editora"
+
+#~ msgid "Pull remote changes"
+#~ msgstr "Baixar alterações remotas"
 
 msgid "Pull requests"
 msgstr "Pull requests"
@@ -6893,6 +7018,9 @@ msgstr "Recomendado para"
 msgid "Recommended for {0}"
 msgstr "Recomendado para {0}"
 
+msgid "Recommended for creating a new repository"
+msgstr "Recomendado para criar um novo repositório"
+
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Record reviewer findings for the current page and save them to the active validation session."
 
@@ -6935,11 +7063,24 @@ msgstr "Regenerar definição, variações e emoji"
 msgid "Regenerate Easy Read"
 msgstr "Regenerar Leitura Fácil"
 
+msgid "Regenerate only the selected audio clips"
+msgstr "Regenerar apenas os clipes de áudio selecionados"
+
+msgid "Regenerate selected"
+msgstr "Regenerar selecionados"
+
+#. placeholder {0}: selectedAudioIds.size
+#~ msgid "Regenerate selected ({0})"
+#~ msgstr "Regenerar selecionados ({0})"
+
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Regenera as imagens selecionadas para cada idioma de saída para que qualquer texto fixo nelas seja exibido no idioma de destino."
 
 msgid "Regenerate this activity with AI (requires a saved state and an API key)"
 msgstr "Regenerar esta atividade com IA (requer um estado salvo e uma chave de API)"
+
+msgid "Regenerate this audio clip"
+msgstr "Regenerar este clipe de áudio"
 
 msgid "Region"
 msgstr "Região"
@@ -6964,6 +7105,12 @@ msgstr "Solte para enviar"
 
 msgid "Reload app"
 msgstr "Recarregar aplicativo"
+
+#~ msgid "Remote changes are available."
+#~ msgstr "Há alterações remotas disponíveis."
+
+#~ msgid "Remote changes available"
+#~ msgstr "Há alterações remotas disponíveis"
 
 msgid "Remove"
 msgstr "Remover"
@@ -7189,6 +7336,9 @@ msgstr "Revisar"
 #~ msgid "Review {selectedCount} selected"
 #~ msgstr "Revisar {selectedCount} selecionado(s)"
 
+#~ msgid "Review and publish"
+#~ msgstr "Revisar e publicar"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Revise e refine cada bloco simplificado lado a lado com o original antes de empacotar."
 
@@ -7232,6 +7382,9 @@ msgstr "Rigor da revisão"
 
 msgid "Review style"
 msgstr "Estilo de revisão"
+
+#~ msgid "Review the most recent publishing workflow and open its public result."
+#~ msgstr "Revise o fluxo de publicação mais recente e abra seu resultado público."
 
 msgid "Review the project details below and confirm the import."
 msgstr "Revise os detalhes do projeto abaixo e confirme a importação."
@@ -7381,6 +7534,9 @@ msgstr "Executar Tradução"
 msgid "Run whole-book validation checks and configure accessibility assessment settings."
 msgstr "Run whole-book validation checks and configure accessibility assessment settings."
 
+#~ msgid "Run workflow"
+#~ msgstr "Executar fluxo"
+
 msgid "Run-only tags"
 msgstr "Run-only tags"
 
@@ -7447,6 +7603,9 @@ msgstr "Salvar atividade"
 msgid "Save activity (⌘S)"
 msgstr "Salvar atividade (⌘S)"
 
+#~ msgid "Save and publish"
+#~ msgstr "Salvar e publicar"
+
 msgid "Save changes"
 msgstr "Salvar alterações"
 
@@ -7467,6 +7626,9 @@ msgstr "Save checklist"
 
 msgid "Save failed"
 msgstr "Save failed"
+
+#~ msgid "Save or discard your edits before splitting"
+#~ msgstr "Salve ou descarte suas edições antes de dividir"
 
 msgid "Save or discard your edits first"
 msgstr "Salve ou descarte suas edições primeiro"
@@ -7685,6 +7847,12 @@ msgstr "seções"
 msgid "Sections"
 msgstr "Seções"
 
+msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token locally on this device and does not store it in the book directory."
+msgstr "Segurança: use a menor validade prática, nunca compartilhe o token e revogue-o no GitHub quando ele não for mais necessário. O ADT Studio mantém este token localmente neste dispositivo e não o armazena no diretório do livro."
+
+#~ msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token only for the current browser session and does not store it in the book directory."
+#~ msgstr "Segurança: use a menor validade prática, nunca compartilhe o token e revogue-o no GitHub quando não for mais necessário. O ADT Studio mantém esse token somente durante a sessão atual do navegador e não o armazena no diretório do livro."
+
 msgid "See examples"
 msgstr "Ver exemplos"
 
@@ -7784,6 +7952,13 @@ msgstr "Selecionar tudo"
 msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
 msgstr "Selecione um item para editar seu texto: [[blank:…]] marca onde aparece uma lacuna, então mantenha-o para preservar a lacuna."
 
+msgid "Select audio"
+msgstr "Selecionar áudio"
+
+#. placeholder {0}: entry.text
+msgid "Select audio for {0}"
+msgstr "Selecionar áudio para {0}"
+
 msgid "Select images to translate"
 msgstr "Selecionar imagens para traduzir"
 
@@ -7808,8 +7983,17 @@ msgstr "Selecionar template..."
 msgid "Select the pages the quiz is written from, then choose where it appears using the buttons between pages."
 msgstr "Selecione as páginas em que o questionário se baseia e escolha onde ele aparece usando os botões entre as páginas."
 
+#~ msgid "Select the repo scope. It covers repository creation, file publishing, and GitHub Pages configuration."
+#~ msgstr "Selecione o escopo repo. Ele cobre a criação do repositório, a publicação de arquivos e a configuração do GitHub Pages."
+
+msgid "Select this audio"
+msgstr "Selecionar este áudio"
+
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Selecione até 5 páginas para usar como referências visuais. O LLM irá analisá-las e gerar um guia de estilo."
+
+msgid "Select visible audio"
+msgstr "Selecionar áudios visíveis"
 
 #~ msgid "Selected"
 #~ msgstr "Selecionada"
@@ -7870,6 +8054,9 @@ msgstr "Sessions let different reviewers capture findings independently, includi
 msgid "Set a Gemini API key to generate audio"
 msgstr "Defina uma chave de API do Gemini para gerar áudio"
 
+msgid "Set Administration to Read and write so ADT can configure the repository and create the GitHub Pages site."
+msgstr "Defina Administração como Leitura e gravação para que o ADT possa configurar o repositório e criar o site do GitHub Pages."
+
 msgid "Set fonts for the whole book"
 msgstr "Definir fontes do livro todo"
 
@@ -7878,6 +8065,9 @@ msgstr "Definida manualmente"
 
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Defina o idioma de edição e escolha os idiomas de saída para o livro."
+
+msgid "Set the selected speech provider's API key to generate audio"
+msgstr "Configure a chave de API do provedor de voz selecionado para gerar áudio"
 
 msgid "Set your API key first"
 msgstr "Configure primeiro sua chave de API"
@@ -8139,6 +8329,9 @@ msgstr "Pré-visualização de Fala"
 msgid "Speech Prompts"
 msgstr "Prompts de fala"
 
+msgid "Speech regeneration views"
+msgstr "Visualizações de regeneração de voz"
+
 msgid "Speech Settings"
 msgstr "Configurações de Fala"
 
@@ -8396,6 +8589,9 @@ msgstr "Enviado com sucesso"
 
 msgid "Suggest improved translations when an entry needs attention"
 msgstr "Sugerir traduções melhoradas quando uma entrada precisar de atenção"
+
+msgid "Suggested"
+msgstr "Sugerido"
 
 msgid "Suggested modification"
 msgstr "Suggested modification"
@@ -8747,6 +8943,9 @@ msgstr "A revisão de tradução salva está desatualizada. Execute Revisar nova
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "A seção foi editada após a conversão — use «Reconstruir a partir da página» para atualizar as etapas."
 
+msgid "The selected speech provider requires an API key."
+msgstr "O provedor de voz selecionado exige uma chave de API."
+
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "O storyboard deve ser concluído antes de gerar {stageName}. Execute a etapa do Storyboard primeiro."
 
@@ -8758,6 +8957,9 @@ msgstr "O índice."
 
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "O índice lista as seções classificadas colocadas pelo Storyboard. Termine o Storyboard antes de executar esta etapa."
+
+#~ msgid "The token needs repository contents, administration, and Pages permissions."
+#~ msgstr "O token precisa de permissões de conteúdo do repositório, administração e Pages."
 
 msgid "The Water Cycle"
 msgstr "O Ciclo da Água"
@@ -8815,6 +9017,9 @@ msgstr "Esta atividade não tem textos nem respostas endereçáveis. Gere-a nova
 
 msgid "This archive can't be opened safely"
 msgstr "Este arquivo não pode ser aberto com segurança"
+
+#~ msgid "This book asset will be included in the next commit."
+#~ msgstr "Este recurso do livro será incluído no próximo commit."
 
 msgid "This book has {pageCount} pages."
 msgstr "Este livro tem {pageCount} páginas."
@@ -9103,6 +9308,9 @@ msgstr "Total de tokens"
 msgid "Track reviewer progress and review findings captured from Preview."
 msgstr "Track reviewer progress and review findings captured from Preview."
 
+#~ msgid "Track the book's local edits, commits, publishing status, and GitHub metadata."
+#~ msgstr "Acompanhe as edições locais, commits, status de publicação e metadados do GitHub do livro."
+
 msgid "Translate"
 msgstr "Traduzir"
 
@@ -9318,6 +9526,9 @@ msgstr "Uncategorized"
 
 msgid "Unchanged"
 msgstr "Inalterado"
+
+#~ msgid "Under Repository permissions, grant Contents, Administration, and Pages read and write access."
+#~ msgstr "Em Permissões do repositório, conceda acesso de leitura e gravação a Contents, Administration e Pages."
 
 msgid "Underline"
 msgstr "Sublinhado"
@@ -9610,6 +9821,9 @@ msgstr "Ver"
 #~ msgid "View all changes"
 #~ msgstr "Ver todas as alterações"
 
+#~ msgid "View deployment"
+#~ msgstr "Ver implantação"
+
 msgid "View details"
 msgstr "Ver detalhes"
 
@@ -9847,6 +10061,9 @@ msgstr "Destaque por palavra"
 
 msgid "words"
 msgstr "palavras"
+
+#~ msgid "Workspace changes"
+#~ msgstr "Alterações do espaço de trabalho"
 
 msgid "Wrap in group"
 msgstr "Envolver em grupo"
