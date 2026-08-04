@@ -4,6 +4,7 @@ import { msg } from "@lingui/core/macro"
 import { cn } from "@/lib/utils"
 import { contentRoot, resolveAnchorPoint, scrollAnchorIntoView } from "./lib/anchor-resolution"
 import { readableTextColor, type FeedbackThread } from "./lib/threads"
+import type { VisibleCursor } from "./lib/room"
 
 /** Layout settles after `load`: web fonts swap and images arrive late, and either moves the
  *  box a pin is anchored to. The snapshot is static, so two passes are enough where the
@@ -12,6 +13,14 @@ const SETTLE_DELAYS_MS = [120, 700]
 
 interface PinPosition {
   threadId: string
+  x: number
+  y: number
+}
+
+interface CursorPosition {
+  peerId: string
+  name: string
+  color: string
   x: number
   y: number
 }
@@ -26,6 +35,8 @@ export interface FeedbackFrameProps {
   onPageChange: (page: { sectionId: string | null; href: string | null }) => void
   onUnresolvableChange: (threadIds: string[]) => void
   reducedMotion: boolean
+  /** Live reviewer cursors on the framed page, resolved through the same anchor engine. */
+  cursors: VisibleCursor[]
 }
 
 export function FeedbackFrame({
@@ -38,11 +49,13 @@ export function FeedbackFrame({
   onPageChange,
   onUnresolvableChange,
   reducedMotion,
+  cursors,
 }: FeedbackFrameProps) {
   const { i18n } = useLingui()
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [positions, setPositions] = useState<PinPosition[]>([])
+  const [cursorPositions, setCursorPositions] = useState<CursorPosition[]>([])
   const [loadToken, setLoadToken] = useState(0)
   const unresolvableRef = useRef<string>("")
 
@@ -91,12 +104,37 @@ export function FeedbackFrame({
 
     setPositions(next)
 
+    /** Measured in the same pass as the pins, off the same rects: a cursor and a pin sitting on
+     *  the same word must not disagree by a frame's worth of scrolling. */
+    const live: CursorPosition[] = []
+    for (const cursor of cursors) {
+      const point = resolveAnchorPoint(
+        {
+          selector: cursor.selector,
+          xOffsetPct: cursor.xOffsetPct,
+          yOffsetPct: cursor.yOffsetPct,
+        },
+        root,
+      )
+      if (!point) continue
+      if (point.x < 0 || point.y < 0) continue
+      if (point.x > iframeRect.width || point.y > iframeRect.height) continue
+      live.push({
+        peerId: cursor.peerId,
+        name: cursor.name,
+        color: cursor.color,
+        x: offsetX + point.x,
+        y: offsetY + point.y,
+      })
+    }
+    setCursorPositions(live)
+
     const key = missing.sort().join("|")
     if (key !== unresolvableRef.current) {
       unresolvableRef.current = key
       onUnresolvableChange(missing)
     }
-  }, [anchored, onUnresolvableChange])
+  }, [anchored, cursors, onUnresolvableChange])
 
   const syncPage = useCallback(() => {
     const iframe = iframeRef.current
@@ -195,9 +233,45 @@ export function FeedbackFrame({
         className="h-full w-full border-0 bg-white"
       />
 
+      {/* Reviewer cursors, under the pins: a pin is a thing to click, a cursor is a thing to
+          watch, and the click target must never end up behind the decoration. */}
+      <div className="pointer-events-none absolute inset-0 z-[5]" aria-hidden>
+        {cursorPositions.map((cursor) => (
+          <div
+            key={cursor.peerId}
+            className="absolute left-0 top-0 duration-200 animate-in fade-in-0 motion-reduce:animate-none"
+            style={{
+              transform: `translate3d(${cursor.x}px, ${cursor.y}px, 0)`,
+              transition: reducedMotion ? "none" : "transform 70ms linear",
+            }}
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 18 18"
+              className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]"
+            >
+              <path
+                d="M2 1.5 L2 14 L5.6 10.6 L8.2 16 L10.6 14.9 L8 9.7 L13 9.7 Z"
+                fill={cursor.color}
+                stroke="#ffffff"
+                strokeWidth="1.1"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span
+              className="absolute left-3 top-3.5 max-w-[9rem] truncate rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-tight shadow-sm"
+              style={{ backgroundColor: cursor.color, color: readableTextColor(cursor.color) }}
+            >
+              {cursor.name}
+            </span>
+          </div>
+        ))}
+      </div>
+
       {/* The pins duplicate what the threads panel already exposes to assistive tech, so the
           overlay is hidden from it rather than offering a second, worse keyboard path. */}
-      <div className="pointer-events-none absolute inset-0" aria-hidden>
+      <div className="pointer-events-none absolute inset-0 z-10" aria-hidden>
         {positions.map((position) => {
           const isSelected = position.threadId === selectedThreadId
           const thread = threads.find((candidate) => candidate.root.id === position.threadId)

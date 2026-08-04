@@ -3,7 +3,9 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { MessageSquareDashed, RefreshCw, Share2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import type { RoomPeer } from "@adt/types"
 import { AuthorNameField } from "./AuthorNameField"
+import { PresenceChip } from "./PresenceChip"
 import { ThreadRow } from "./ThreadRow"
 import type { AuthorIdentity } from "@/hooks/use-publication-feedback"
 import type { PageThreadGroup, ResolutionFilter, ThreadFilters } from "./lib/threads"
@@ -36,6 +38,8 @@ export interface ThreadsPanelProps {
   onDelete: (commentId: string) => Promise<void>
   busyThreadId: string | null
   onOpenShare: () => void
+  /** Reviewers in the realtime room right now, the author excluded. */
+  livePeers: RoomPeer[]
 }
 
 export function ThreadsPanel({
@@ -64,6 +68,7 @@ export function ThreadsPanel({
   onDelete,
   busyThreadId,
   onOpenShare,
+  livePeers,
 }: ThreadsPanelProps) {
   const { t } = useLingui()
   const listRef = useRef<HTMLDivElement>(null)
@@ -116,6 +121,7 @@ export function ThreadsPanel({
             {t`—`}
           </span>
         )}
+        <PresenceChip peers={livePeers} />
         <Button
           type="button"
           size="sm"

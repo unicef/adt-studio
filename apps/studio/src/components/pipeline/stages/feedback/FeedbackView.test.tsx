@@ -57,6 +57,7 @@ const createPublicationComment = vi.fn()
 const resolvePublicationComment = vi.fn()
 const updatePublicationComment = vi.fn()
 const deletePublicationComment = vi.fn()
+const createPublicationRoomTicket = vi.fn()
 
 class MockApiError extends Error {
   readonly status: number
@@ -77,6 +78,7 @@ vi.mock("@/api/client", () => ({
     resolvePublicationComment,
     updatePublicationComment,
     deletePublicationComment,
+    createPublicationRoomTicket,
   },
   ApiError: MockApiError,
   apiErrorCode: (error: unknown) => (error instanceof MockApiError ? error.code : null),
@@ -168,6 +170,46 @@ function commentList(comments: PublishComment[]): PublishCommentListResponse {
   }
 }
 
+type SocketListener = (event: unknown) => void
+
+/** The realtime room, driven by hand. The view is asserted on what a frame *does* to it. */
+class FakeWebSocket {
+  static instances: FakeWebSocket[] = []
+  private readonly listeners = new Map<string, SocketListener[]>()
+  closed = false
+
+  constructor(readonly url: string) {
+    FakeWebSocket.instances.push(this)
+  }
+
+  send() {}
+
+  close() {
+    this.closed = true
+  }
+
+  addEventListener(type: string, listener: SocketListener) {
+    this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener])
+  }
+
+  removeEventListener() {}
+
+  emit(type: string, event: unknown = {}) {
+    for (const listener of this.listeners.get(type) ?? []) listener(event)
+  }
+}
+
+async function joinedRoom(): Promise<FakeWebSocket> {
+  await waitFor(() => expect(FakeWebSocket.instances.length).toBeGreaterThan(0))
+  const socket = FakeWebSocket.instances[FakeWebSocket.instances.length - 1] as FakeWebSocket
+  socket.emit("open")
+  return socket
+}
+
+function frame(payload: unknown): { data: string } {
+  return { data: JSON.stringify(payload) }
+}
+
 function renderView() {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -186,6 +228,13 @@ beforeEach(() => {
     disconnect() {}
   } as unknown as typeof ResizeObserver
   window.localStorage.clear()
+  FakeWebSocket.instances = []
+  vi.stubGlobal("WebSocket", FakeWebSocket)
+  createPublicationRoomTicket.mockResolvedValue({
+    ticket: "v1.9999999999.nonce.tag",
+    ws_url: `wss://adt-publish.example.workers.dev/p/${TOKEN}/room`,
+    expires_at: "2026-08-04T12:01:00.000Z",
+  })
   getBookPublication.mockResolvedValue(publishedStatus())
   getPublicationPages.mockResolvedValue(PAGES)
   getPublicationComments.mockResolvedValue(commentList([comment({ id: "c1" })]))
@@ -221,7 +270,123 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  vi.unstubAllGlobals()
   vi.clearAllMocks()
+})
+
+describe("FeedbackView — realtime presence", () => {
+  it("counts the readers in the room and names them", async () => {
+    renderView()
+    await screen.findByText("This sentence is hard for the kids")
+    const socket = await joinedRoom()
+
+    socket.emit(
+      "message",
+      frame({
+        t: "presence",
+        self_id: "author-seat",
+        peers: [
+          {
+            id: "author-seat",
+            name: "Author",
+            color: "#8d8d8d",
+            is_author: true,
+            page_section_id: "pg001_sec001",
+          },
+          {
+            id: "maria",
+            name: "Maria",
+            color: "#0091ff",
+            is_author: false,
+            page_section_id: "pg001_sec001",
+          },
+          {
+            id: "ana",
+            name: "Ana",
+            color: "#e5484d",
+            is_author: false,
+            page_section_id: "pg001_sec001",
+          },
+        ],
+      }),
+    )
+
+    /** The author's own seat is not a reader who is "here". */
+    const chip = await screen.findByText("2 readers here")
+    expect(chip.closest("[title]")?.getAttribute("title")).toBe("Maria, Ana")
+  })
+
+  it("shows nothing at all when the author is alone in the book", async () => {
+    renderView()
+    await screen.findByText("This sentence is hard for the kids")
+    const socket = await joinedRoom()
+
+    socket.emit(
+      "message",
+      frame({
+        t: "presence",
+        self_id: "author-seat",
+        peers: [
+          {
+            id: "author-seat",
+            name: "Author",
+            color: "#8d8d8d",
+            is_author: true,
+            page_section_id: null,
+          },
+        ],
+      }),
+    )
+
+    expect(screen.queryByText("1 reader here")).toBeNull()
+  })
+
+  it("lands a live comment in the panel without asking the worker again", async () => {
+    renderView()
+    await screen.findByText("This sentence is hard for the kids")
+    const before = getPublicationComments.mock.calls.length
+    const socket = await joinedRoom()
+
+    socket.emit(
+      "message",
+      frame({
+        t: "comment-created",
+        comment: comment({
+          id: "live-1",
+          body: "Arrived while you were reading",
+          created_at: "2026-08-04T12:00:00.000Z",
+        }),
+      }),
+    )
+
+    await screen.findByText("Arrived while you were reading")
+    expect(getPublicationComments.mock.calls.length).toBe(before)
+  })
+
+  it("takes a thread the reviewer deleted down to its placeholder live", async () => {
+    renderView()
+    await screen.findByText("This sentence is hard for the kids")
+    const socket = await joinedRoom()
+
+    socket.emit(
+      "message",
+      frame({
+        t: "comment-deleted",
+        comment: comment({ id: "c1", deleted_at: "2026-08-04T13:00:00.000Z" }),
+      }),
+    )
+
+    await screen.findByText("This comment was deleted")
+  })
+
+  it("does not join a room for a book that was never published", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+    renderView()
+
+    await screen.findByText("No feedback yet — this book has not been shared")
+    expect(createPublicationRoomTicket).not.toHaveBeenCalled()
+    expect(FakeWebSocket.instances).toEqual([])
+  })
 })
 
 describe("FeedbackView — states", () => {

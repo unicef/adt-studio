@@ -45,6 +45,7 @@ import type {
   CommenterSession,
   PublicationPageEntry,
   PublicationResponse,
+  PublicationRoomTicketResponse,
   PublishComment,
   PublishCommentListResponse,
   PublishCommentResponse,
@@ -907,6 +908,7 @@ export type {
   CommenterSession,
   PublicationPageEntry,
   PublicationResponse,
+  PublicationRoomTicketResponse,
   PublishComment,
   PublishCommentListResponse,
   PublishCommentResponse,
@@ -2270,6 +2272,16 @@ export const api = {
       `/books/${label}/publication/comments/${encodeURIComponent(id)}`,
       { method: "DELETE", headers: authorNameHeader(authorName) },
     ),
+
+  // --- Realtime presence (M6) ---
+
+  /** A 60-second credential for the publication's realtime room, plus the `wss://` address to
+   *  spend it at. The management secret stays in `apps/api`; a ticket is all the browser holds,
+   *  and it is worth nothing after a minute. */
+  createPublicationRoomTicket: (label: string) =>
+    request<PublicationRoomTicketResponse>(`/books/${label}/publication/room-ticket`, {
+      method: "POST",
+    }),
 
   // --- Cloudflare connection & provisioning ---
 

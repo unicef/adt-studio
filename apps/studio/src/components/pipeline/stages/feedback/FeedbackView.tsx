@@ -27,6 +27,7 @@ import {
   useResolveThread,
 } from "@/hooks/use-publication-feedback"
 import { FeedbackFrame } from "./FeedbackFrame"
+import { useFeedbackRoom } from "./use-feedback-room"
 import { ThreadsPanel } from "./ThreadsPanel"
 import {
   buildThreads,
@@ -135,6 +136,12 @@ export function FeedbackView({ bookLabel }: { bookLabel: string }) {
   )
 
   const reducedMotion = prefersReducedMotion()
+
+  /** The author joins the room as soon as there is a publication to join, not only once the
+   *  frame has settled: presence is about who is *here*, and a reader who arrives while the
+   *  snapshot is still loading is exactly the reader worth knowing about. */
+  const room = useFeedbackRoom(bookLabel, feedbackEnabled, currentPageSectionId)
+  const liveCursors = room.cursorsFor(currentPageSectionId)
 
   const selectThread = useCallback(
     (threadId: string) => {
@@ -361,6 +368,7 @@ export function FeedbackView({ bookLabel }: { bookLabel: string }) {
             onPageChange={setCurrentPage}
             onUnresolvableChange={onUnresolvableChange}
             reducedMotion={reducedMotion}
+            cursors={liveCursors}
           />
         )}
 
@@ -393,6 +401,7 @@ export function FeedbackView({ bookLabel }: { bookLabel: string }) {
           onDelete={onDelete}
           busyThreadId={busyThreadId}
           onOpenShare={goToShare}
+          livePeers={room.peers}
         />
       </div>
     </div>
