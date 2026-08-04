@@ -1,13 +1,16 @@
-import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
+import { Bell } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { toast } from "@/components/ui/sonner"
+import { useNotificationPrefs, type ToastPosition } from "@/hooks/use-notification-prefs"
 import { cn } from "@/lib/utils"
 import { CARD, HEADING, LEAD, SettingRow } from "./ui"
 
-const POSITIONS: { key: string; label: MessageDescriptor }[] = [
+const POSITIONS: { key: ToastPosition; label: MessageDescriptor }[] = [
   { key: "top-left", label: msg`Top left` },
   { key: "top-center", label: msg`Top center` },
   { key: "top-right", label: msg`Top right` },
@@ -17,7 +20,7 @@ const POSITIONS: { key: string; label: MessageDescriptor }[] = [
 ]
 
 /* eslint-disable lingui/no-unlocalized-strings -- Tailwind position utilities, not user-visible text */
-const POS_CLASS: Record<string, string> = {
+const POS_CLASS: Record<ToastPosition, string> = {
   "top-left": "top-[22px] left-1.5",
   "top-center": "top-[22px] left-1/2 -translate-x-[38%]",
   "top-right": "top-[22px] right-1.5",
@@ -28,13 +31,16 @@ const POS_CLASS: Record<string, string> = {
 /* eslint-enable lingui/no-unlocalized-strings */
 
 export function NotificationsSection() {
-  const { i18n } = useLingui()
-  const [toastPos, setToastPos] = useState("top-center")
-  const [sound, setSound] = useState(true)
-  const [auto, setAuto] = useState(true)
-  const [autoDelay, setAutoDelay] = useState("4")
+  const { i18n, t } = useLingui()
+  const [prefs, setPrefs] = useNotificationPrefs()
 
-  const posLabel = i18n._(POSITIONS.find((p) => p.key === toastPos)?.label ?? msg`Top center`)
+  const posLabel = i18n._(POSITIONS.find((p) => p.key === prefs.position)?.label ?? msg`Top center`)
+
+  const sendTestToast = () => {
+    toast.success(t`Test notification`, {
+      description: t`This is how notifications will look and sound.`,
+    })
+  }
 
   return (
     <>
@@ -61,12 +67,12 @@ export function NotificationsSection() {
               <span className="size-[5px] rounded-full bg-[#28c840]" />
             </div>
             {POSITIONS.map((p) => {
-              const sel = toastPos === p.key
+              const sel = prefs.position === p.key
               return (
                 <button
                   key={p.key}
                   type="button"
-                  onClick={() => setToastPos(p.key)}
+                  onClick={() => setPrefs({ position: p.key })}
                   title={i18n._(p.label)}
                   className={cn(
                     "absolute flex h-[17px] w-[52px] items-center gap-[3px] rounded-[5px] border px-1",
@@ -82,11 +88,15 @@ export function NotificationsSection() {
           </div>
         </SettingRow>
         <SettingRow title={<Trans>Play a sound</Trans>} subtitle={<Trans>A soft chime when a long task completes.</Trans>}>
-          <Switch checked={sound} onCheckedChange={setSound} />
+          <Switch checked={prefs.sound} onCheckedChange={(sound) => setPrefs({ sound })} />
         </SettingRow>
         <SettingRow title={<Trans>Auto-dismiss</Trans>} subtitle={<Trans>Hide toasts automatically after a delay.</Trans>}>
           <div className="flex items-center gap-3">
-            <Select value={autoDelay} onValueChange={setAutoDelay} disabled={!auto}>
+            <Select
+              value={String(prefs.autoDelay)}
+              onValueChange={(value) => setPrefs({ autoDelay: Number(value) })}
+              disabled={!prefs.autoDismiss}
+            >
               <SelectTrigger className="h-9 w-[124px]">
                 <SelectValue />
               </SelectTrigger>
@@ -102,8 +112,14 @@ export function NotificationsSection() {
                 </SelectItem>
               </SelectContent>
             </Select>
-            <Switch checked={auto} onCheckedChange={setAuto} />
+            <Switch checked={prefs.autoDismiss} onCheckedChange={(autoDismiss) => setPrefs({ autoDismiss })} />
           </div>
+        </SettingRow>
+        <SettingRow title={<Trans>Try it out</Trans>} subtitle={<Trans>Send a sample notification using these settings.</Trans>}>
+          <Button variant="outline" size="sm" onClick={sendTestToast}>
+            <Bell className="size-3.5" />
+            <Trans>Send test</Trans>
+          </Button>
         </SettingRow>
       </div>
     </>

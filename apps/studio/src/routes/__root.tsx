@@ -5,9 +5,9 @@ import {
   useNavigate,
   type ErrorComponentProps,
 } from "@tanstack/react-router"
+import { AppToaster } from "@/components/AppToaster"
 import { ErrorScreen } from "@/components/ErrorScreen"
 import type { SettingsSection } from "@/components/settings/settingsSections"
-import { Toaster } from "@/components/ui/sonner"
 import { UpdateDialogProvider } from "@/components/updates"
 
 const SettingsContext = createContext<{
@@ -45,7 +45,7 @@ function RootLayout() {
           <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Outlet />
           </main>
-          <Toaster position="top-center" richColors closeButton />
+          <AppToaster />
         </div>
       </UpdateDialogProvider>
     </SettingsContext>
