@@ -17,6 +17,7 @@ import {
   Clock,
   Scissors,
   Puzzle,
+  ExternalLink,
 } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -36,6 +37,7 @@ import { DeleteBookDialog } from "@/components/books/DeleteBookDialog"
 import { useBooks, useDeleteBook } from "@/hooks/use-books"
 import {
   getPipelineStages,
+  getWelcomeStages,
   type PipelineStageDefinition,
 } from "@/components/pipeline/stage-config"
 import {
@@ -43,8 +45,9 @@ import {
   getStageDescriptionI18n,
 } from "@/components/pipeline/pipeline-i18n"
 import type { BookSummary } from "@/api/client"
-import { getBookCoverUrl } from "@/api/client"
+import { api, getBookCoverUrl } from "@/api/client"
 import { cn } from "@/lib/utils"
+import { useQuery } from "@tanstack/react-query"
 
 type BookSortKey = "modified" | "created" | "alphabetical"
 
@@ -146,6 +149,7 @@ export const Route = createFileRoute("/")({
 
 /** Pipeline stages shown in the sidebar (skip the "book" overview entry) */
 const PIPELINE_STEPS = getPipelineStages()
+const WELCOME_STEPS = getWelcomeStages()
 
 function CompletedStageBadges({
   completedSet,
@@ -208,6 +212,12 @@ function BookRow({
     () => new Set(book.completedStages),
     [book.completedStages],
   )
+  const publishStatus = useQuery({
+    queryKey: ["github-publishing", book.label],
+    queryFn: () => api.getGitHubPublishStatus(book.label),
+    enabled: completedSet.has("publish"),
+    staleTime: 30_000,
+  })
   const [coverFailed, setCoverFailed] = useState(false)
   // Show the cover when there are extracted pages OR a source PDF — the server
   // falls back to rendering page 1 from the PDF for un-extracted books (e.g. a
@@ -393,6 +403,13 @@ function BookRow({
 
         {/* Actions — always visible */}
         <div className="flex flex-col items-center justify-center gap-1 border-l px-3 shrink-0">
+          {publishStatus.data?.status === "completed" && publishStatus.data.pagesUrl ? (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" asChild>
+              <a href={publishStatus.data.pagesUrl} target="_blank" rel="noreferrer" aria-label={t`Open published book`}>
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             size="icon"
@@ -486,7 +503,7 @@ function HomePage() {
             <Trans>Pipeline Stages</Trans>
           </h2>
           <div className="space-y-1">
-            {PIPELINE_STEPS.map((step, i) => {
+            {WELCOME_STEPS.map((step, i) => {
               const Icon = step.icon
               const label = getStageLabelI18n(step.slug)
               const description = getStageDescriptionI18n(step.slug) ?? ""
@@ -500,7 +517,7 @@ function HomePage() {
                     <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${step.color} text-white`}>
                       <Icon className="h-3 w-3" />
                     </div>
-                    {i < PIPELINE_STEPS.length - 1 && (
+                    {i < WELCOME_STEPS.length - 1 && (
                       <div className="w-px flex-1 bg-border" />
                     )}
                   </div>
