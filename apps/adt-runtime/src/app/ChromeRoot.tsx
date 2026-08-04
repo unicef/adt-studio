@@ -11,6 +11,7 @@ import { GlossaryHighlighter } from "@/features/glossary/components/GlossaryHigh
 import { GlossaryTermPopover } from "@/features/glossary/components/GlossaryTermPopover"
 import { TutorialOverlay } from "@/features/tutorial/components/TutorialOverlay"
 import { PagePrefetcher } from "@/features/navigation/components/PagePrefetcher"
+import { Comments } from "@/features/comments/components/Comments"
 
 /**
  * The React tree mounted into `<div id="interface-container">` on every
@@ -49,6 +50,7 @@ export function ChromeRoot() {
       <GlossaryTermPopover />
       <TutorialOverlay />
       <PagePrefetcher />
+      <Comments />
       <Toaster position="top-center" richColors closeButton />
     </TooltipProvider>
   )

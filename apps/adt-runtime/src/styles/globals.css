@@ -209,6 +209,19 @@ span[data-word-index].bg-yellow-300 span {
 }
 
 /*
+ * Comment mode (published snapshots only). While the reviewer is placing a pin
+ * the book content takes a crosshair and stops selecting text — the click is
+ * cancelled in the capture phase, so a link or quiz option must not look
+ * clickable either. The attribute is set by the comments feature and is absent
+ * everywhere else, which is why this costs a downloaded book nothing.
+ */
+body[data-comment-mode="on"] #content,
+body[data-comment-mode="on"] #content * {
+  cursor: crosshair !important;
+  user-select: none !important;
+}
+
+/*
  * Tutorial popovers — replaces the @keyframes/animation/boxShadow
  * extensions from the legacy v3 tailwind.config.js. Kept as raw CSS since
  * the runtime references `animate-tutorialPopIn` etc. by class name.
