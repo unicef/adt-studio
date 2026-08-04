@@ -29,20 +29,22 @@ export function BookFontSelector({ bookLabel }: { bookLabel: string }) {
   }
 
   return (
-    <label className="no-drag ml-auto flex min-w-0 items-center gap-1.5 text-xs text-white/80">
+    <label className="flex min-w-0 flex-col gap-1.5 text-xs text-foreground">
+      <span className="inline-flex items-center gap-1.5 font-medium">
       <Type className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      <span className="sr-only">{t`Output font family`}</span>
+      {t`Output font family`}
+      </span>
       <select
         aria-label={t`Output font family`}
         value={value}
         disabled={isPending || apply.isPending || current?.fixedLayout}
         onChange={(event) => void changeFont(event.target.value)}
         title={current?.fixedLayout ? t`Fixed-layout pages preserve the original book fonts.` : t`Change the font across generated book pages.`}
-        className="h-7 max-w-44 rounded border border-white/25 bg-black/15 px-2 text-xs text-white outline-none focus:ring-2 focus:ring-white/70 disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-9 min-w-64 rounded border bg-background px-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       >
-        <option className="text-black" value="auto">{t`Automatic — match book`}</option>
-        {REFLOWABLE_FONTS.map((font) => <option className="text-black" key={font.id} value={`reflowable:${font.id}`}>{font.family}</option>)}
-        {data?.fonts.map((font) => <option className="text-black" key={font.id} value={`registry:${font.id}`}>{font.family}</option>)}
+        <option value="auto">{t`Automatic — match book`}</option>
+        {REFLOWABLE_FONTS.map((font) => <option key={font.id} value={`reflowable:${font.id}`}>{font.family}</option>)}
+        {data?.fonts.map((font) => <option key={font.id} value={`registry:${font.id}`}>{font.family}</option>)}
       </select>
     </label>
   )

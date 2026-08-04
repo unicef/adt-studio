@@ -91,6 +91,10 @@ export interface BookPreviewFrameHandle {
    *  element by data-id. Returns updated full HTML, or null. Used for styling
    *  that must win over class/cascade rules (e.g. per-element font-family). */
   setElementStyleProp: (dataId: string, property: string, value: string) => string | null
+  /** Read/write the active device's canvas transform. Device-scoped values
+   *  prevent a desktop adjustment from breaking the mobile composition. */
+  getCanvasTransform: (dataId: string) => { x: number; y: number; angle: number } | null
+  setCanvasTransform: (dataId: string, value: { x: number; y: number; angle: number }) => string | null
   /** Re-inject the current `html` prop into the iframe, discarding any in-iframe
    *  DOM mutations (e.g. live `setElementClasses` edits). Used when the parent
    *  wants to revert to the saved state without changing the html prop. */
@@ -271,18 +275,26 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       const html = wrapper
         ? ((source.getAttribute("class") || "").trim() ? source.outerHTML : source.innerHTML)
         : source.innerHTML
-      return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
+      return DOMPurify.sanitize(
+        demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current),
+        { FORBID_ATTR: ["contenteditable"] },
+      )
     },
     addComponent: (kind, text): string | null => {
       const doc = iframeRef.current?.contentDocument
       if (!doc) return null
+      const win = iframeRef.current?.contentWindow as (Window & { __adtPushUndo?: () => void }) | null
+      win?.__adtPushUndo?.()
       const host = doc.querySelector("#content > main, #content, main") ?? doc.body
       const id = `canvas-${kind}-${Date.now().toString(36)}`
       const element = doc.createElement(kind === "text" ? "p" : "div")
       element.setAttribute("data-id", id)
       if (kind === "text") {
         element.textContent = text ?? ""
-        element.className = "my-3 min-h-8 rounded border border-dashed border-violet-300 p-2"
+        // Editor-only selection chrome is injected separately. Persist only
+        // neutral layout classes so a newly-added text block does not publish
+        // violet dashed editor scaffolding into the book.
+        element.className = "my-3 min-h-8 p-2"
       } else {
         element.setAttribute("aria-hidden", "true")
         element.className = "my-3 h-24 w-24 rounded-lg bg-violet-200"
@@ -335,6 +347,39 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       } else {
         html = doc.body.innerHTML
       }
+      el.setAttribute("data-adt-selected", "true")
+      return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
+    },
+    getCanvasTransform: (dataId) => {
+      const doc = iframeRef.current?.contentDocument
+      const el = doc?.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
+      if (!doc || !el) return null
+      const device = doc.body.dataset.deviceView || "desktop"
+      const raw = el.style.translate.trim().split(/\s+/)
+      return {
+        x: Number(el.getAttribute(`data-adt-x-${device}`)) || parseFloat(raw[0] ?? "0") || 0,
+        y: Number(el.getAttribute(`data-adt-y-${device}`)) || parseFloat(raw[1] ?? "0") || 0,
+        angle: Number(el.getAttribute(`data-adt-angle-${device}`)) || parseFloat(el.style.rotate) || 0,
+      }
+    },
+    setCanvasTransform: (dataId, value) => {
+      const doc = iframeRef.current?.contentDocument
+      const el = doc?.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
+      if (!doc || !el) return null
+      const device = doc.body.dataset.deviceView || "desktop"
+      const x = Math.round(value.x)
+      const y = Math.round(value.y)
+      const angle = Math.round(((value.angle % 360) + 360) % 360)
+      el.setAttribute(`data-adt-x-${device}`, String(x))
+      el.setAttribute(`data-adt-y-${device}`, String(y))
+      el.setAttribute(`data-adt-angle-${device}`, String(angle))
+      el.style.translate = `${x}px ${y}px`
+      el.style.rotate = `${angle}deg`
+      stripTransientAttributes(doc)
+      const wrapper = doc.getElementById("content")
+      const html = wrapper
+        ? ((wrapper.getAttribute("class") || "").trim() ? wrapper.outerHTML : wrapper.innerHTML)
+        : doc.body.innerHTML
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
@@ -740,7 +785,8 @@ ${autoFitScript}
     doc.body.dataset.dragHandleLabel = dragHandleLabel
     doc.body.dataset.rotateHandleLabel = rotateHandleLabel
     doc.body.dataset.resizeHandleLabel = resizeHandleLabel
-  }, [editable, linkMode, dragHandleLabel, rotateHandleLabel, resizeHandleLabel, iframeReady])
+    doc.body.dataset.deviceView = deviceView ?? "desktop"
+  }, [editable, linkMode, dragHandleLabel, rotateHandleLabel, resizeHandleLabel, deviceView, iframeReady])
 
   const linkedKey = linkedAnchor ? anchorKey(linkedAnchor) : ""
   const previewKey = previewAnchor ? anchorKey(previewAnchor) : ""
