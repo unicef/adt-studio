@@ -28,6 +28,7 @@ import { TextRoleSection } from "./sections/TextRole"
 import { ElementProvider } from "./element-context"
 import type { DeviceView } from "./device-breakpoint"
 import type { ComputedTypographyStyles } from "../BookPreviewFrame"
+import type { ElementClassChangeOptions } from "../text-color"
 
 // eslint-disable-next-line lingui/no-unlocalized-strings -- HTML attribute identifier shown verbatim
 const DATA_ID_PREFIX = `data-id="`
@@ -40,7 +41,11 @@ interface StyleEditorPanelProps {
   selectedTagName: string | null
   elementClasses: string[] | null
   elementProps: StyleEditorElementProps | null
-  onClassesChange: (dataId: string, classes: string[]) => void
+  onClassesChange: (
+    dataId: string,
+    classes: string[],
+    options?: ElementClassChangeOptions,
+  ) => void
   onStyleChange?: (dataId: string, property: string, value: string) => void
   deviceView: DeviceView
   /** Snapshot of the iframe element's getComputedStyle for the inheritable
@@ -257,7 +262,11 @@ interface StyleEditorBodyProps {
   classes: string[]
   elementType: ElementType | null
   elementProps: StyleEditorElementProps | null
-  onClassesChange: (dataId: string, classes: string[]) => void
+  onClassesChange: (
+    dataId: string,
+    classes: string[],
+    options?: ElementClassChangeOptions,
+  ) => void
   onStyleChange?: (dataId: string, property: string, value: string) => void
   deviceView: DeviceView
   computedTypography: ComputedTypographyStyles | null
@@ -346,4 +355,3 @@ function FixedLayoutNotice() {
     </div>
   )
 }
-

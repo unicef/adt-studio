@@ -31,6 +31,11 @@ import {
   resolveVisibleTarget,
   type ActivityAnchor,
 } from "./activity-link"
+import {
+  applyTextColors,
+  restoreAppliedTextColors,
+  type ElementClassChangeOptions,
+} from "./text-color"
 import { primaryFontFamily, googleFontsCss2Url, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 
 export type { ComputedTypographyStyles }
@@ -81,7 +86,11 @@ export interface BookPreviewFrameHandle {
   /** Read the Tailwind classes on an element by data-id */
   getElementClasses: (dataId: string) => string[]
   /** Set the full class list on an element by data-id. Returns updated full HTML, or null. */
-  setElementClasses: (dataId: string, classes: string[]) => string | null
+  setElementClasses: (
+    dataId: string,
+    classes: string[],
+    options?: ElementClassChangeOptions,
+  ) => string | null
   /** Set (or remove, when value is empty) a single inline CSS property on an
    *  element by data-id. Returns updated full HTML, or null. Used for styling
    *  that must win over class/cascade rules (e.g. per-element font-family). */
@@ -249,12 +258,23 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       if (!el) return []
       return Array.from(el.classList)
     },
-    setElementClasses: (dataId: string, classes: string[]): string | null => {
+    setElementClasses: (
+      dataId: string,
+      classes: string[],
+      options: ElementClassChangeOptions = {},
+    ): string | null => {
       const doc = iframeRef.current?.contentDocument
       if (!doc) return null
       const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
       if (!el) return null
       el.className = classes.join(" ")
+      for (const attribute of options.removeAttributes ?? []) {
+        el.removeAttribute(attribute)
+      }
+      for (const attribute of options.setAttributes ?? []) {
+        el.setAttribute(attribute, "")
+      }
+      restoreAppliedTextColors(doc)
       // Don't strip `_el#` data-ids here — the inspector relies on them across
       // edits in a session. They're stripped only at API persist time.
       stripTransientAttributes(doc)
@@ -267,6 +287,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
         html = doc.body.innerHTML
       }
       el.setAttribute("data-adt-selected", "true")
+      applyTextColors(doc)
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
     setElementStyleProp: (dataId: string, property: string, value: string): string | null => {
@@ -276,6 +297,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       if (!el) return null
       if (value) el.style.setProperty(property, value)
       else el.style.removeProperty(property)
+      restoreAppliedTextColors(doc)
       stripTransientAttributes(doc)
       const wrapper = doc.getElementById("content")
       let html: string
@@ -286,6 +308,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
         html = doc.body.innerHTML
       }
       el.setAttribute("data-adt-selected", "true")
+      applyTextColors(doc)
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
     resetContent: () => {
@@ -594,6 +617,8 @@ ${autoFitScript}
     } else {
       doc.body.style.backgroundColor = ""
     }
+
+    applyTextColors(doc)
 
     // Force synchronous reflow so the browser repaints the scaled iframe
     // immediately after innerHTML changes (fixes delayed style rendering).

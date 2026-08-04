@@ -107,6 +107,14 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
     fs.mkdirSync(styleguidesDir, { recursive: true })
     const content = await file.text()
     fs.writeFileSync(path.join(styleguidesDir, `${result.data}.md`), content, "utf-8")
+    // Re-uploading an existing styleguide changes its content, so any
+    // previously captured static preview HTML is now stale. Delete it so
+    // GET /styleguides/:name/preview falls back to rendering the fresh
+    // markdown content instead of serving an outdated snapshot.
+    const stalePreviewPath = path.join(styleguidesDir, `${result.data}-preview.html`)
+    if (fs.existsSync(stalePreviewPath)) {
+      fs.rmSync(stalePreviewPath)
+    }
     return c.json({ name: result.data })
   })
 

@@ -96,6 +96,7 @@ import { AiEditHistoryDrawer } from "./AiEditHistoryDrawer"
 import { LayoutMirrorDialog } from "./LayoutMirrorDialog"
 import { GenerateActivityDialog } from "./GenerateActivityDialog"
 import { Input } from "@/components/ui/input"
+import type { ElementClassChangeOptions } from "./text-color"
 import { useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { i18n } from "@lingui/core"
@@ -1603,11 +1604,19 @@ export function StoryboardSectionDetail({
   }, [])
 
   const handleClassesChange = useCallback(
-    (dataId: string, classes: string[]) => {
+    (
+      dataId: string,
+      classes: string[],
+      options: ElementClassChangeOptions = {},
+    ) => {
       if (!page.rendering) return
       // 250ms covers the inspector's 200ms debounce plus slack.
       if (Date.now() - lastDiscardAtRef.current < 250) return
-      const fullHtml = previewFrameRef.current?.setElementClasses(dataId, classes)
+      const fullHtml = previewFrameRef.current?.setElementClasses(
+        dataId,
+        classes,
+        options,
+      )
       if (!fullHtml) return
       setSelectedElementClasses(classes)
       previewFrameRef.current?.refreshCss(fullHtml)

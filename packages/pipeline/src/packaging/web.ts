@@ -1308,6 +1308,27 @@ ${fallbackHeadingHtml}${contentBlock}
       : ""
   }
 
+  // `data-text-color` is a semantic marker the styleguide/LLM stamps onto
+  // headings/paragraphs — by itself it has no visual effect. Apply it as a
+  // real, cascading color at runtime: force it (!important) on every
+  // element carrying the attribute, and force any descendant that does NOT
+  // have its own `data-text-color` to inherit it (!important) too, so it
+  // wins over incidental Tailwind color utility classes (e.g. `text-black`)
+  // the LLM may have added on its own. Anchors (`<a>`) and their contents are
+  // deliberately excluded so links keep their own (usually distinct) color
+  // instead of being flattened into the surrounding body/heading color.
+  // Elements marked by a manual Storyboard color edit are also excluded so
+  // their persisted Tailwind color class remains authoritative.
+  //
+  // NOTE: this is the injected-into-exported-HTML twin of `applyTextColors`
+  // in apps/studio's BookPreviewFrame.tsx. The two must stay behaviorally
+  // identical so the Studio preview matches the packaged output. They can't
+  // share one implementation because the frontend may not import from
+  // `packages/*` (see the layer rule in AGENTS.md); keep both in sync by hand.
+  const textColorScript = /data-text-color=/.test(normalizedContent)
+    ? `\n    <script>(function(){function apply(){document.querySelectorAll("[data-text-color]").forEach(function(el){var c=el.getAttribute("data-text-color");if(!c||el.hasAttribute("data-adt-manual-text-color"))return;el.style.setProperty("color",c,"important");el.querySelectorAll("*").forEach(function(d){if(d.closest("[data-text-color]")===el&&!d.closest("a")&&!d.closest("[data-adt-manual-text-color]")){d.style.setProperty("color","inherit","important")}})})}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",apply)}else{apply()}})();</script>`
+    : ""
+
   // In embed mode, hide non-essential chrome. The React runtime mounts the
   // activity Submit/Skip buttons inside #nav-container, so it must stay
   // visible — BottomDock self-hides via embedModeAtom (see ui.atoms.ts).
@@ -1368,7 +1389,7 @@ ${fallbackHeadingHtml}${contentBlock}
 ${mathScript}${embedStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
 
 <body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:100%;height:100%"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
-${mainBlock}
+${mainBlock}${textColorScript}
 ${flFit ? `${flFit.bodyScript}\n` : ""}${answersScript}
     <div class="relative z-50" id="interface-container"></div>
     <div class="relative z-50" id="nav-container"></div>

@@ -32,7 +32,7 @@ The content tree is the current saved user state. Its depth-first order is the R
 8. The section MUST be wrapped in a container div with `id="content"` and class `container`
 9. Image tags MUST have a `data-id` attribute matching the provided image ID
 10. Do NOT use any `data-id` values other than the ones provided
-11. Text color must be readable against the background — add bg overlays or text shadows as needed
+11. Text color must be readable against the background — add bg overlays or text shadows as needed. The `text-gray-900`/`text-gray-800`/etc. colors shown in the layout examples below are illustrative DEFAULTS only, used when no styleguide is provided. If a STYLEGUIDE section is included later in this prompt, its color and typography classes ALWAYS override these example defaults
 12. Output natural-language text as literal Unicode characters. Do NOT encode letters as numeric or hex HTML entities (for example, avoid `&#...;` and `&#x...;`). Only use standard HTML escaping where required for markup syntax (for example `&amp;`, `&lt;`, `&gt;`, and quotes in attributes).
 
 ## LAYOUT STRATEGY
@@ -141,7 +141,7 @@ Example — three groups forming one column:
 ```
 
 ### Text alignment
-Preserve the original text alignment from the page image. Most body text and headings are LEFT-ALIGNED — do NOT center them unless they are clearly centered in the original. Only use `text-center` when the original page image shows centered text (e.g., titles on cover pages, centered captions). When in doubt, default to left alignment.
+Preserve the original text alignment from the page image. Most body text and headings are LEFT-ALIGNED — do NOT center them unless they are clearly centered in the original. Only use `text-center` when the original page image shows centered text (e.g., titles on cover pages, centered captions). When in doubt, default to left alignment. **Exception:** if the STYLEGUIDE section below defines an explicit default text alignment, use that alignment instead — it overrides this "preserve the original" default, since it is a deliberate book-wide design choice.
 
 ### Text styling for overlay groups:
 
@@ -257,7 +257,9 @@ The base (no-prefix) classes are the DESKTOP overlay layout with positioned text
 Example: `class="absolute max-sm:relative"` to overlay on desktop/tablet but stack on mobile.
 {% if styleguide != "" %}
 
-## STYLEGUIDE (FOLLOW EXACTLY)
+## STYLEGUIDE (FOLLOW EXACTLY — OVERRIDES ALL DEFAULT COLORS/CLASSES ABOVE)
+
+The styleguide below defines the required text colors, font sizes, and component classes for this book. It takes precedence over every color and typography class shown in the layout examples earlier in this prompt (`text-gray-900`, `text-gray-800`, `text-gray-100`, and similar are illustrative defaults only, used solely when no styleguide is provided). Match each heading and paragraph to the styleguide's Text Styles table and use its classes — including color — instead of the example defaults. If the styleguide defines a default text alignment, font styling (bold/italic/underline usage), max line width, line-height, or paragraph spacing, those values also take precedence over the "preserve original alignment" rule above and over any generic spacing/width examples shown elsewhere in this prompt. When the styleguide's Visual Defaults give separate values for headings and body text, apply each value only to its own role — a heading setting must never leak onto body paragraphs, and vice versa.
 
 {{ styleguide }}
 {% endif %}
