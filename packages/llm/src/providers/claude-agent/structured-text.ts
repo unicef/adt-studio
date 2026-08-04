@@ -32,6 +32,12 @@ const DEFAULT_TIMEOUT_MS = 300_000
 
 const NO_BUILT_IN_TOOLS: string[] = []
 const NO_FILESYSTEM_SETTINGS: string[] = []
+
+/**
+ * The CLI defaults to adaptive thinking, which multiplies output tokens 10–30×
+ * on extraction turns without improving schema fidelity.
+ */
+const NO_THINKING = { type: "disabled" } as const
 const CLIENT_APP = "adt-studio"
 
 /**
@@ -92,8 +98,9 @@ export function createClaudeAgentStructuredTextBackend(
             persistSession: false,
             permissionMode: "default",
             ...(native ? { outputFormat: { type: "json_schema" as const, schema } } : {}),
+            thinking: NO_THINKING,
             abortController: controller,
-            env: buildEnv(context.credentials.apiKey),
+            env: buildClaudeAgentEnv(context.credentials.apiKey),
           },
         })
 
@@ -171,7 +178,9 @@ function buildSystemPrompt(
  * one that must be billed, and without one the CLI's own login is the sanctioned
  * fallback — an ambient token nobody configured here must not bill a third party.
  */
-function buildEnv(apiKey: string | undefined): Record<string, string | undefined> {
+export function buildClaudeAgentEnv(
+  apiKey: string | undefined,
+): Record<string, string | undefined> {
   const env: Record<string, string | undefined> = { ...process.env }
   for (const key of NESTED_SESSION_ENV_KEYS) delete env[key]
   for (const key of CLI_CREDENTIAL_ENV_KEYS) delete env[key]

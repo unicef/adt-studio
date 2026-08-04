@@ -1,17 +1,17 @@
 import { z } from "zod"
 import type { LocalizedText, ProviderManifest } from "@adt/types"
 import type { ProviderModule } from "../../ports/index.js"
-import { ModelDiscoveryError } from "../../model-discovery.js"
 import { ANTHROPIC_ORIGIN, listAnthropicModels } from "../shared/anthropic-rest/models.js"
 import { LABEL_API_KEY } from "../shared/i18n.js"
 import { checkClaudeAgentConnection } from "./connection.js"
+import { listClaudeAgentModels } from "./models.js"
 import {
   createClaudeAgentStructuredTextBackend,
   type ClaudeAgentCredentials,
 } from "./structured-text.js"
 
 export const CLAUDE_AGENT_PROVIDER_ID = "claude-agent"
-const ADAPTER_VERSION = "claude-agent-1"
+const ADAPTER_VERSION = "claude-agent-2"
 
 const credentialSchema = z
   .object({ apiKey: z.string().max(400).optional() })
@@ -86,17 +86,10 @@ export const claudeAgentProvider: ProviderModule<ClaudeAgentCredentials> = {
     origin: ANTHROPIC_ORIGIN,
   }),
 
-  /** The CLI login is not an API credential, so discovery only works with a key. */
+  /** With a key the REST catalogue answers; the CLI login asks the SDK instead. */
   listModels: (context) => {
     const apiKey = context.credentials.apiKey
-    if (!apiKey) {
-      return Promise.reject(
-        new ModelDiscoveryError(
-          "missing-credential",
-          "Model discovery needs an Anthropic API key; the Claude Code login cannot list models",
-        ),
-      )
-    }
+    if (!apiKey) return listClaudeAgentModels(context)
     return listAnthropicModels({ apiKey, signal: context.signal })
   },
 

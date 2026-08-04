@@ -62,15 +62,28 @@ export interface ClaudeAgentQueryOptions {
   persistSession?: boolean
   permissionMode?: "default" | "plan" | "acceptEdits" | "bypassPermissions" | "dontAsk"
   outputFormat?: { type: "json_schema"; schema: Record<string, unknown> }
+  thinking?: { type: "disabled" }
   abortController?: AbortController
   env?: Record<string, string | undefined>
   stderr?: (data: string) => void
 }
 
+export interface ClaudeAgentModelInfo {
+  value: string
+  resolvedModel?: string
+  displayName?: string
+  description?: string
+}
+
+/** `supportedModels` stays optional so plain async generators remain valid fakes. */
+export type ClaudeAgentQueryStream = AsyncIterable<ClaudeAgentMessage> & {
+  supportedModels?: () => Promise<ClaudeAgentModelInfo[]>
+}
+
 export type ClaudeAgentQuery = (params: {
   prompt: string | AsyncIterable<ClaudeAgentUserMessage>
   options?: ClaudeAgentQueryOptions
-}) => AsyncIterable<ClaudeAgentMessage>
+}) => ClaudeAgentQueryStream
 
 let sdkPromise: Promise<{ query: ClaudeAgentQuery }> | undefined
 

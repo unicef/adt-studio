@@ -27,14 +27,23 @@ import {
   toResolvedCredentials,
   type LLMProviderCredentials,
 } from "./legacy-credentials.js"
-import { getDefaultProviderRegistry, OLLAMA_PROVIDER_ID } from "./providers/index.js"
+import {
+  CLAUDE_AGENT_PROVIDER_ID,
+  CODEX_PROVIDER_ID,
+  getDefaultProviderRegistry,
+  OLLAMA_PROVIDER_ID,
+} from "./providers/index.js"
 import type { ProviderRegistry, ResolvedBackend } from "./registry.js"
 import type { StructuredTextBackend } from "./ports/index.js"
 
 export type { LLMProviderCredentials }
 
 const LOCAL_PROVIDER_MIN_TIMEOUT_MS = 600_000
-const LOCAL_PROVIDER_IDS = new Set<string>([OLLAMA_PROVIDER_ID])
+const LOCAL_PROVIDER_IDS = new Set<string>([
+  OLLAMA_PROVIDER_ID,
+  CLAUDE_AGENT_PROVIDER_ID,
+  CODEX_PROVIDER_ID,
+])
 
 function resolveEffectiveTimeoutMs(
   providerId: string,

@@ -8,8 +8,10 @@ import {
   toJsonSchema,
   toPromptBlocks,
 } from "../providers/claude-agent/request.js"
+import { listClaudeAgentModels } from "../providers/claude-agent/models.js"
 import type {
   ClaudeAgentMessage,
+  ClaudeAgentModelInfo,
   ClaudeAgentQuery,
   ClaudeAgentQueryOptions,
   ClaudeAgentResultMessage,
@@ -19,7 +21,6 @@ import {
   isProviderConfiguredOnServer,
   validateProviderCredentials,
 } from "../credentials.js"
-import { ModelDiscoveryError } from "../model-discovery.js"
 import type { Message } from "../types.js"
 
 const context: BackendContext<{ apiKey?: string }> = {
@@ -113,13 +114,123 @@ describe("claude-agent manifest", () => {
     expect(validateProviderCredentials(claudeAgentProvider, {})).toEqual({})
   })
 
-  it("refuses model discovery without an api key instead of guessing", async () => {
+})
+
+describe("listClaudeAgentModels", () => {
+  const discoveryContext = { providerId: "claude-agent", credentials: {} }
+
+  function fakeModelQuery(models: ClaudeAgentModelInfo[]): {
+    query: ClaudeAgentQuery
+    calls: ClaudeAgentQueryOptions[]
+  } {
+    const calls: ClaudeAgentQueryOptions[] = []
+    const query: ClaudeAgentQuery = ({ options }) => {
+      if (options) calls.push(options)
+      const stream = (async function* (): AsyncGenerator<ClaudeAgentMessage> {})()
+      return Object.assign(stream, {
+        supportedModels: () => Promise.resolve(models),
+      })
+    }
+    return { query, calls }
+  }
+
+  it("lists the SDK's supported models through the CLI login", async () => {
+    const fake = fakeModelQuery([
+      { value: "default", displayName: "Default (recommended)" },
+      { value: "sonnet", displayName: "Sonnet" },
+      { value: "claude-haiku-4-5", displayName: "Haiku" },
+    ])
+
+    const models = await listClaudeAgentModels(discoveryContext, {
+      loadQuery: () => Promise.resolve(fake.query),
+      hasLogin: () => true,
+      scratchDir: "/tmp/adt-claude-agent-test",
+    })
+
+    expect(models).toEqual([
+      { id: "default", displayName: "Default (recommended)" },
+      { id: "sonnet", displayName: "Sonnet" },
+      { id: "claude-haiku-4-5", displayName: "Haiku" },
+    ])
+  })
+
+  it("spends no turn and never leaks an ambient credential", async () => {
+    const fake = fakeModelQuery([{ value: "sonnet" }])
+    vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-ambient")
+    try {
+      await listClaudeAgentModels(discoveryContext, {
+        loadQuery: () => Promise.resolve(fake.query),
+        hasLogin: () => true,
+      })
+    } finally {
+      vi.unstubAllEnvs()
+    }
+
+    const options = fake.calls[0]!
+    expect(options.maxTurns).toBe(1)
+    expect(options.tools).toEqual([])
+    expect(options.persistSession).toBe(false)
+    expect(options.env?.ANTHROPIC_API_KEY).toBeUndefined()
+  })
+
+  it("drops alias ids the app cannot round-trip as model ids", async () => {
+    const fake = fakeModelQuery([
+      { value: "opus[1m]", displayName: "Opus (1M context)" },
+      { value: "opus", displayName: "Opus" },
+    ])
+
+    const models = await listClaudeAgentModels(discoveryContext, {
+      loadQuery: () => Promise.resolve(fake.query),
+      hasLogin: () => true,
+    })
+
+    expect(models).toEqual([{ id: "opus", displayName: "Opus" }])
+  })
+
+  it("reports missing-credential when neither key nor login exists", async () => {
+    const fake = fakeModelQuery([{ value: "sonnet" }])
+
     await expect(
-      claudeAgentProvider.listModels!({
-        providerId: "claude-agent",
-        credentials: {},
+      listClaudeAgentModels(discoveryContext, {
+        loadQuery: () => Promise.resolve(fake.query),
+        hasLogin: () => false,
       }),
-    ).rejects.toBeInstanceOf(ModelDiscoveryError)
+    ).rejects.toMatchObject({
+      name: "ModelDiscoveryError",
+      code: "missing-credential",
+    })
+  })
+
+  it("reports unreachable when the SDK is not installed", async () => {
+    await expect(
+      listClaudeAgentModels(discoveryContext, {
+        loadQuery: () => Promise.reject(new Error("Cannot find module")),
+        hasLogin: () => true,
+      }),
+    ).rejects.toMatchObject({ code: "unreachable" })
+  })
+
+  it("reports invalid-response when the SDK cannot enumerate models", async () => {
+    const query: ClaudeAgentQuery = () =>
+      (async function* (): AsyncGenerator<ClaudeAgentMessage> {})()
+
+    await expect(
+      listClaudeAgentModels(discoveryContext, {
+        loadQuery: () => Promise.resolve(query),
+        hasLogin: () => true,
+      }),
+    ).rejects.toMatchObject({ code: "invalid-response" })
+  })
+
+  it("reports invalid-response when every model is unusable", async () => {
+    const fake = fakeModelQuery([{ value: "opus[1m]" }])
+
+    await expect(
+      listClaudeAgentModels(discoveryContext, {
+        loadQuery: () => Promise.resolve(fake.query),
+        hasLogin: () => true,
+      }),
+    ).rejects.toMatchObject({ code: "invalid-response" })
   })
 })
 
@@ -154,6 +265,7 @@ describe("createClaudeAgentStructuredTextBackend", () => {
     expect(options.settingSources).toEqual([])
     expect(options.persistSession).toBe(false)
     expect(options.maxTurns).toBe(1)
+    expect(options.thinking).toEqual({ type: "disabled" })
     expect(options.cwd).toBe("/tmp/adt-claude-agent-test")
     expect(options.model).toBe("claude-sonnet-4-5")
   })
