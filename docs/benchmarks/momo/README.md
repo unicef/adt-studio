@@ -19,6 +19,11 @@ Date: 2026-08-03
 - `browser-a11y.json`: browser color-contrast recheck for every exported page.
 - `caption-review.csv`: page-level manual caption rubric and decisions.
 - `caption-review-e4b-final.csv`: final Gemma E4B page-level rubric.
+- `model-evaluation-v1.json`: evaluation-framework proof comparing the final
+  Gemma E4B run with GPT-5.4. Its ranking is provisional because the corpus is
+  one PDF and the inherited manual review was neither blind nor duplicated.
+- `export-smoke-*-eval-v1.json`: per-candidate Chromium runtime evidence consumed
+  as a hard evaluation gate.
 
 Generated books remain under Electron user data and are not committed because they contain large derivative images/audio. JSON records contain no API key.
 

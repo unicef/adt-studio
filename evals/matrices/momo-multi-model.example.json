@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "id": "momo-model-matrix",
+  "seed": 20260804,
+  "repetitions": 3,
+  "pdf": "../../../momograde1.pdf",
+  "documentFile": "../corpora/momo-grade1.json",
+  "baseConfig": {
+    "editing_language": "en",
+    "output_languages": ["en"],
+    "start_page": 1,
+    "end_page": 20,
+    "speech": {
+      "default_provider": "local-system",
+      "format": "wav",
+      "word_highlighting": false,
+      "providers": {
+        "local-system": { "model": "apple-speech", "voice": "Samantha", "speed": 1, "languages": ["en"] }
+      }
+    }
+  },
+  "candidates": [
+    {
+      "id": "gpt-5-4",
+      "model": "openai:gpt-5.4",
+      "local": false,
+      "pricing": { "inputPerMillionUsd": 2.5, "outputPerMillionUsd": 15 },
+      "credentials": [{ "header": "X-OpenAI-Key", "env": "OPENAI_API_KEY" }],
+      "config": { "concurrency": 32 }
+    },
+    {
+      "id": "gemma-e4b",
+      "model": "local:gemma4-e4b",
+      "local": true,
+      "config": { "concurrency": 4 }
+    }
+  ]
+}

@@ -312,6 +312,14 @@ Acceptance gate for any replacement: fixed multilingual corpus, coordinate fidel
 | 61–90 days | Add PDF classifier routing and compare Docling/MinerU on the hard corpus | Routing improves quality or time without regressing normal PDFs |
 | 61–90 days | Validate signed/notarized macOS and real Windows x64 builds | Clean-machine install, model download/resume, Momo generation, export playback, update/uninstall tests |
 
+The reusable harness for the evaluation-corpus row now exists in
+[`evals/README.md`](../evals/README.md): repeated randomized model matrices,
+source hashes, hard technical gates, browser export checks, blinded human/LLM
+review, bootstrap intervals, pairwise preferences, weighted profiles, and a
+Pareto frontier. Momo is wired as the first case; adding the remaining 4–6
+document types and two independent reviewers is still required before treating
+its ranking as a general model verdict.
+
 ## Final recommendation to the team
 
 Keep the current modular, local-first direction. Do not replace it with an Ollama dependency, a generic Hugging Face execution path, or a heavy PDF/TTS runtime bundled for every user. Strengthen the boundaries already present: request-scoped providers, capability registries, verified on-demand artifacts, one orchestrator, hard desktop security, and enforced human review.
