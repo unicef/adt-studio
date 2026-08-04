@@ -1382,14 +1382,17 @@ msgstr "Apliko ngjyrat e sfondit të faqes"
 msgid "Apply Segmentation"
 msgstr "Apliko segmentimin"
 
+msgid "Apply skip or stop to all errors in this run"
+msgstr "Zbato “Kapërce” ose “Ndalo” për të gjitha gabimet në këtë ekzekutim"
+
 #~ msgid "Apply spreads"
 #~ msgstr "Apliko faqet e përbashkëta"
 
 msgid "Apply suggestion"
 msgstr "Zbato sugjerimin"
 
-msgid "Apply to all errors in this run"
-msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
+#~ msgid "Apply to all errors in this run"
+#~ msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
 
 #~ msgid "Applying…"
 #~ msgstr "Duke aplikuar…"
@@ -1460,6 +1463,12 @@ msgstr "Bashkëngjitni skedarë fontesh ose zgjidhni Google Fonts për këtë li
 
 msgid "Attached fonts"
 msgstr "Fontet e bashkëngjitura"
+
+msgid "Attempt"
+msgstr "Përpjekja"
+
+msgid "Attempts"
+msgstr "Përpjekjet"
 
 msgid "Audience or reading level"
 msgstr "Audienca ose niveli i leximit"
@@ -3290,6 +3299,9 @@ msgstr "Eksport EPUB"
 
 msgid "Error"
 msgstr "Gabim"
+
+msgid "Error class"
+msgstr "Klasa e gabimit"
 
 msgid "Error output"
 msgstr "Rezultat i gabimit"
@@ -5304,6 +5316,9 @@ msgstr "Sllajdi tjetër"
 msgid "Next Step"
 msgstr "Hapi tjetër"
 
+msgid "No"
+msgstr "Jo"
+
 msgid "No acceptable review results for this view."
 msgstr "Nuk ka rezultate të pranueshme të rishikimit për këtë pamje."
 
@@ -7084,6 +7099,9 @@ msgstr "Zëvendëso kuizet"
 msgid "Replace this audio file"
 msgstr "Zëvendëso këtë skedar audio"
 
+msgid "Request Error"
+msgstr "Gabim i kërkesës"
+
 msgid "Require comment on failure"
 msgstr "Kërko koment në rast dështimi"
 
@@ -7172,8 +7190,20 @@ msgstr "Riprovo"
 msgid "Retry {stageLabel}"
 msgstr "Riprovo {stageLabel}"
 
+msgid "Retry delay"
+msgstr "Vonesa para riprovimit"
+
 msgid "Retry Export"
 msgstr "Riprovo Eksportimin"
+
+msgid "Retry this page"
+msgstr "Riprovo këtë faqe"
+
+msgid "Retry this page, skip it and continue, or stop the step entirely."
+msgstr "Riprovo këtë faqe, kapërceje dhe vazhdo, ose ndaloje plotësisht hapin."
+
+msgid "Retryable"
+msgstr "Mund të riprovohet"
 
 msgid "Return to coordinator"
 msgstr "Kthejeni te koordinatori"
@@ -8040,8 +8070,8 @@ msgstr "Kapërce faqen dhe vazhdo"
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Kalo segmentimin për imazhet çdofaqja më e shkurtër e të cilave është nën këtë prag."
 
-msgid "Skip this page and continue the step, or stop the step entirely."
-msgstr "Kapërce këtë faqe dhe vazhdo hapin, ose ndale hapin plotësisht."
+#~ msgid "Skip this page and continue the step, or stop the step entirely."
+#~ msgstr "Kapërce këtë faqe dhe vazhdo hapin, ose ndale hapin plotësisht."
 
 msgid "Skipped"
 msgstr "Kaluar"
@@ -9864,6 +9894,9 @@ msgstr "Shkruani me AI reagimin e saktë/gabuar për çdo hap"
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."
 msgstr "Shkruani fjalinë tuaj me një shënues {0}."
+
+msgid "Yes"
+msgstr "Po"
 
 #~ msgid "Yesterday"
 #~ msgstr "Dje"

@@ -1383,14 +1383,17 @@ msgstr "Appliquer page background colors"
 msgid "Apply Segmentation"
 msgstr "Appliquer Segmentation"
 
+msgid "Apply skip or stop to all errors in this run"
+msgstr "Appliquer « Ignorer » ou « Arrêter » à toutes les erreurs de cette exécution"
+
 #~ msgid "Apply spreads"
 #~ msgstr "Appliquer les fusions"
 
 msgid "Apply suggestion"
 msgstr "Appliquer la suggestion"
 
-msgid "Apply to all errors in this run"
-msgstr "Appliquer à toutes les erreurs de cette exécution"
+#~ msgid "Apply to all errors in this run"
+#~ msgstr "Appliquer à toutes les erreurs de cette exécution"
 
 #~ msgid "Applying…"
 #~ msgstr "Application…"
@@ -1461,6 +1464,12 @@ msgstr "Joignez des fichiers de polices ou choisissez des Google Fonts pour ce l
 
 msgid "Attached fonts"
 msgstr "Polices jointes"
+
+msgid "Attempt"
+msgstr "Tentative"
+
+msgid "Attempts"
+msgstr "Tentatives"
 
 msgid "Audience or reading level"
 msgstr "Public ou niveau de lecture"
@@ -3291,6 +3300,9 @@ msgstr "Export EPUB"
 
 msgid "Error"
 msgstr "Erreur"
+
+msgid "Error class"
+msgstr "Classe d’erreur"
 
 msgid "Error output"
 msgstr "Sortie d'erreur"
@@ -5305,6 +5317,9 @@ msgstr "Diapositive suivante"
 msgid "Next Step"
 msgstr "Étape suivante"
 
+msgid "No"
+msgstr "Non"
+
 msgid "No acceptable review results for this view."
 msgstr "Aucun résultat de révision acceptable pour cette vue."
 
@@ -7085,6 +7100,9 @@ msgstr "Remplacer les quiz"
 msgid "Replace this audio file"
 msgstr "Remplacer ce fichier audio"
 
+msgid "Request Error"
+msgstr "Erreur de requête"
+
 msgid "Require comment on failure"
 msgstr "Commentaire requis en cas d'échec"
 
@@ -7173,8 +7191,20 @@ msgstr "Réessayer"
 msgid "Retry {stageLabel}"
 msgstr "Réessayer {stageLabel}"
 
+msgid "Retry delay"
+msgstr "Délai avant nouvelle tentative"
+
 msgid "Retry Export"
 msgstr "Réessayer Exporter"
+
+msgid "Retry this page"
+msgstr "Réessayer cette page"
+
+msgid "Retry this page, skip it and continue, or stop the step entirely."
+msgstr "Réessayez cette page, ignorez-la et continuez, ou arrêtez complètement l’étape."
+
+msgid "Retryable"
+msgstr "Nouvelle tentative possible"
 
 msgid "Return to coordinator"
 msgstr "Renvoyer au coordinateur"
@@ -8041,8 +8071,8 @@ msgstr "Ignorer la page et continuer"
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Ignorer la segmentation pour les images dont le côté le plus court est inférieur à ce seuil."
 
-msgid "Skip this page and continue the step, or stop the step entirely."
-msgstr "Ignorez cette page et continuez l’étape, ou arrêtez complètement l’étape."
+#~ msgid "Skip this page and continue the step, or stop the step entirely."
+#~ msgstr "Ignorez cette page et continuez l’étape, ou arrêtez complètement l’étape."
 
 msgid "Skipped"
 msgstr "Ignoré"
@@ -9865,6 +9895,9 @@ msgstr "Rédiger avec l'IA le retour correct/incorrect pour chaque étape"
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."
 msgstr "Écrivez votre phrase avec un marqueur {0}."
+
+msgid "Yes"
+msgstr "Oui"
 
 #~ msgid "Yesterday"
 #~ msgstr "Hier"

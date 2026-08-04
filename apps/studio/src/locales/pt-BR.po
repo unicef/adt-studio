@@ -1381,14 +1381,17 @@ msgstr "Aplicar cores de fundo da página"
 msgid "Apply Segmentation"
 msgstr "Apply Segmentation"
 
+msgid "Apply skip or stop to all errors in this run"
+msgstr "Aplicar “Ignorar” ou “Parar” a todos os erros desta execução"
+
 #~ msgid "Apply spreads"
 #~ msgstr "Aplicar spreads"
 
 msgid "Apply suggestion"
 msgstr "Aplicar sugestão"
 
-msgid "Apply to all errors in this run"
-msgstr "Aplicar a todos os erros desta execução"
+#~ msgid "Apply to all errors in this run"
+#~ msgstr "Aplicar a todos os erros desta execução"
 
 #~ msgid "Applying…"
 #~ msgstr "Aplicando…"
@@ -1459,6 +1462,12 @@ msgstr "Anexe arquivos de fonte ou escolha Google Fonts para este livro. A IA de
 
 msgid "Attached fonts"
 msgstr "Fontes anexadas"
+
+msgid "Attempt"
+msgstr "Tentativa"
+
+msgid "Attempts"
+msgstr "Tentativas"
 
 msgid "Audience or reading level"
 msgstr "Público ou nível de leitura"
@@ -3289,6 +3298,9 @@ msgstr "Exportar EPUB"
 
 msgid "Error"
 msgstr "Erro"
+
+msgid "Error class"
+msgstr "Classe do erro"
 
 msgid "Error output"
 msgstr "Saída de erro"
@@ -5303,6 +5315,9 @@ msgstr "Próximo slide"
 msgid "Next Step"
 msgstr "Próximo Passo"
 
+msgid "No"
+msgstr "Não"
+
 msgid "No acceptable review results for this view."
 msgstr "Nenhum resultado de revisão aceitável para esta visualização."
 
@@ -7083,6 +7098,9 @@ msgstr "Substituir questionários"
 msgid "Replace this audio file"
 msgstr "Substituir este arquivo de áudio"
 
+msgid "Request Error"
+msgstr "Erro da solicitação"
+
 msgid "Require comment on failure"
 msgstr "Require comment on failure"
 
@@ -7171,8 +7189,20 @@ msgstr "Tentar novamente"
 msgid "Retry {stageLabel}"
 msgstr "Tentar {stageLabel} novamente"
 
+msgid "Retry delay"
+msgstr "Intervalo antes da nova tentativa"
+
 msgid "Retry Export"
 msgstr "Tentar exportar novamente"
+
+msgid "Retry this page"
+msgstr "Tentar esta página novamente"
+
+msgid "Retry this page, skip it and continue, or stop the step entirely."
+msgstr "Tente esta página novamente, ignore-a e continue ou interrompa completamente a etapa."
+
+msgid "Retryable"
+msgstr "Permite nova tentativa"
 
 msgid "Return to coordinator"
 msgstr "Devolver ao coordenador"
@@ -8039,8 +8069,8 @@ msgstr "Pular página e continuar"
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Pular segmentação para imagens cujo lado menor está abaixo deste limite."
 
-msgid "Skip this page and continue the step, or stop the step entirely."
-msgstr "Pule esta página e continue a etapa, ou pare a etapa por completo."
+#~ msgid "Skip this page and continue the step, or stop the step entirely."
+#~ msgstr "Pule esta página e continue a etapa, ou pare a etapa por completo."
 
 msgid "Skipped"
 msgstr "Ignorado"
@@ -9863,6 +9893,9 @@ msgstr "Escreva com IA o feedback de acerto/erro para cada etapa"
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."
 msgstr "Escreva sua frase com um marcador {0}."
+
+msgid "Yes"
+msgstr "Sim"
 
 #~ msgid "Yesterday"
 #~ msgstr "Ontem"

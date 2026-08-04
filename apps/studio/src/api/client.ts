@@ -249,6 +249,9 @@ export interface PendingDecision {
   step: string
   pageId: string
   error: string
+  canRetry?: boolean
+  errorClass?: string
+  attempts?: number
 }
 
 export interface StageRunStatus {
@@ -594,9 +597,18 @@ export interface LlmLogEntry {
     requestedPromptName?: string
     modelId: string
     cacheHit: boolean
+    success?: boolean
+    errorCount?: number
+    attempt?: number
+    maxAttempts?: number
     durationMs: number
     usage?: { inputTokens: number; outputTokens: number }
     validationErrors?: string[]
+    error?: string
+    errorClass?: string
+    retryable?: boolean
+    retryDelayMs?: number
+    finalError?: boolean
     system?: string
     messages: Array<{
       role: string
@@ -1073,7 +1085,7 @@ export const api = {
    *  timeout/cancel) is treated as success — the caller drops the stale dialog. */
   resolveDecision: async (
     label: string,
-    body: { decisionId: string; action: "skip" | "stop"; applyToAll?: boolean },
+    body: { decisionId: string; action: "retry" | "skip" | "stop"; applyToAll?: boolean },
   ): Promise<void> => {
     const res = await fetch(`${BASE_URL}/books/${label}/stages/decision`, {
       method: "POST",

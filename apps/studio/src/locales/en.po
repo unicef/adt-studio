@@ -1381,14 +1381,17 @@ msgstr "Apply page background colors"
 msgid "Apply Segmentation"
 msgstr "Apply Segmentation"
 
+msgid "Apply skip or stop to all errors in this run"
+msgstr "Apply skip or stop to all errors in this run"
+
 #~ msgid "Apply spreads"
 #~ msgstr "Apply spreads"
 
 msgid "Apply suggestion"
 msgstr "Apply suggestion"
 
-msgid "Apply to all errors in this run"
-msgstr "Apply to all errors in this run"
+#~ msgid "Apply to all errors in this run"
+#~ msgstr "Apply to all errors in this run"
 
 #~ msgid "Applying…"
 #~ msgstr "Applying…"
@@ -1459,6 +1462,12 @@ msgstr "Attach font files or pick Google Fonts for this book. The AI assigns whe
 
 msgid "Attached fonts"
 msgstr "Attached fonts"
+
+msgid "Attempt"
+msgstr "Attempt"
+
+msgid "Attempts"
+msgstr "Attempts"
 
 msgid "Audience or reading level"
 msgstr "Audience or reading level"
@@ -3289,6 +3298,9 @@ msgstr "EPUB Export"
 
 msgid "Error"
 msgstr "Error"
+
+msgid "Error class"
+msgstr "Error class"
 
 msgid "Error output"
 msgstr "Error output"
@@ -5303,6 +5315,9 @@ msgstr "Next slide"
 msgid "Next Step"
 msgstr "Next Step"
 
+msgid "No"
+msgstr "No"
+
 msgid "No acceptable review results for this view."
 msgstr "No acceptable review results for this view."
 
@@ -7083,6 +7098,9 @@ msgstr "Replace quizzes"
 msgid "Replace this audio file"
 msgstr "Replace this audio file"
 
+msgid "Request Error"
+msgstr "Request Error"
+
 msgid "Require comment on failure"
 msgstr "Require comment on failure"
 
@@ -7171,8 +7189,20 @@ msgstr "Retry"
 msgid "Retry {stageLabel}"
 msgstr "Retry {stageLabel}"
 
+msgid "Retry delay"
+msgstr "Retry delay"
+
 msgid "Retry Export"
 msgstr "Retry Export"
+
+msgid "Retry this page"
+msgstr "Retry this page"
+
+msgid "Retry this page, skip it and continue, or stop the step entirely."
+msgstr "Retry this page, skip it and continue, or stop the step entirely."
+
+msgid "Retryable"
+msgstr "Retryable"
 
 msgid "Return to coordinator"
 msgstr "Return to coordinator"
@@ -8039,8 +8069,8 @@ msgstr "Skip page and continue"
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Skip segmentation for images whose shortest side is below this threshold."
 
-msgid "Skip this page and continue the step, or stop the step entirely."
-msgstr "Skip this page and continue the step, or stop the step entirely."
+#~ msgid "Skip this page and continue the step, or stop the step entirely."
+#~ msgstr "Skip this page and continue the step, or stop the step entirely."
 
 msgid "Skipped"
 msgstr "Skipped"
@@ -9863,6 +9893,9 @@ msgstr "Write correct/incorrect feedback for every step with AI"
 #. placeholder {0}: `[[blank:item-${n}]]`
 msgid "Write your sentence with a {0} marker."
 msgstr "Write your sentence with a {0} marker."
+
+msgid "Yes"
+msgstr "Yes"
 
 #~ msgid "Yesterday"
 #~ msgstr "Yesterday"

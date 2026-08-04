@@ -3,7 +3,8 @@ import { z } from "zod"
 /** How a run reacts when a page fails inside a per-page step.
  *  - "stop" (default): accumulate failures and fail the step at the end
  *    (the historical behavior — safe for headless/CLI clients).
- *  - "ask": pause and ask the user to skip the page or stop the step. */
+ *  - "ask": pause and ask the user to retry an eligible failure, skip the
+ *    page, or stop the step. */
 export const PageErrorPolicy = z.enum(["ask", "stop"])
 export type PageErrorPolicy = z.infer<typeof PageErrorPolicy>
 

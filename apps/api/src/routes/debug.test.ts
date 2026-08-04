@@ -22,29 +22,34 @@ describe("Debug routes", () => {
         {
           step: "page-sectioning",
           item_id: `${label}_p1`,
+          success: true,
           data: {
             promptName: "classify-text",
             modelId: "gpt-4o",
             cacheHit: false,
             durationMs: 1200,
             usage: { inputTokens: 500, outputTokens: 200 },
-            validationErrors: [],
+            success: true,
+            validationErrors: ["Recovered after validation feedback"],
           },
         },
         {
           step: "page-sectioning",
           item_id: `${label}_p2`,
+          success: true,
           data: {
             promptName: "classify-text",
             modelId: "gpt-4o",
             cacheHit: true,
             durationMs: 50,
             usage: { inputTokens: 500, outputTokens: 200 },
+            success: true,
           },
         },
         {
           step: "page-sectioning",
           item_id: `${label}_p1`,
+          success: false,
           data: {
             promptName: "section-page",
             modelId: "gpt-4o",
@@ -52,25 +57,34 @@ describe("Debug routes", () => {
             durationMs: 2000,
             usage: { inputTokens: 1000, outputTokens: 500 },
             validationErrors: ["Invalid section type"],
+            success: false,
           },
         },
         {
           step: "metadata",
           item_id: "book",
+          success: true,
           data: {
             promptName: "extract-metadata",
             modelId: "gpt-4o",
             cacheHit: false,
             durationMs: 3000,
             usage: { inputTokens: 2000, outputTokens: 300 },
+            success: true,
           },
         },
       ]
 
       for (const entry of entries) {
         db.run(
-          "INSERT INTO llm_log (timestamp, step, item_id, data) VALUES (?, ?, ?, ?)",
-          [new Date().toISOString(), entry.step, entry.item_id, JSON.stringify(entry.data)]
+          "INSERT INTO llm_log (timestamp, step, item_id, success, data) VALUES (?, ?, ?, ?, ?)",
+          [
+            new Date().toISOString(),
+            entry.step,
+            entry.item_id,
+            entry.success ? 1 : 0,
+            JSON.stringify(entry.data),
+          ]
         )
       }
     } finally {
@@ -245,6 +259,7 @@ describe("Debug routes", () => {
       // Check total counts
       expect(body.totals.calls).toBe(4)
       expect(body.totals.cacheHits).toBe(1)
+      expect(body.totals.errorCount).toBe(1)
 
       // Check step-level data
       const textStep = body.steps.find(

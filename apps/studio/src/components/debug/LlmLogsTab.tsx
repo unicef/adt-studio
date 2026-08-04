@@ -39,7 +39,7 @@ function formatSeconds(ms: number): string {
 }
 
 function getStatus(entry: LlmLogEntry): RowStatus {
-  if (entry.data.validationErrors && entry.data.validationErrors.length > 0) return "error"
+  if (entry.data.success === false || entry.data.error) return "error"
   if (entry.data.cacheHit) return "cached"
   return "success"
 }
@@ -75,6 +75,40 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
             </div>
             <div className="font-medium">{data.cacheHit ? t`Hit` : t`Miss`}</div>
           </div>
+          {data.attempt !== undefined && (
+            <div>
+              <div className="text-muted-foreground mb-0.5">
+                <Trans>Attempt</Trans>
+              </div>
+              <div className="font-medium tabular-nums">
+                {data.attempt + 1}/{data.maxAttempts ?? data.attempt + 1}
+              </div>
+            </div>
+          )}
+          {data.errorClass && (
+            <div>
+              <div className="text-muted-foreground mb-0.5">
+                <Trans>Error class</Trans>
+              </div>
+              <div className="font-medium">{data.errorClass.replaceAll("-", " ")}</div>
+            </div>
+          )}
+          {data.retryable !== undefined && (
+            <div>
+              <div className="text-muted-foreground mb-0.5">
+                <Trans>Retryable</Trans>
+              </div>
+              <div className="font-medium">{data.retryable ? t`Yes` : t`No`}</div>
+            </div>
+          )}
+          {data.retryDelayMs !== undefined && (
+            <div>
+              <div className="text-muted-foreground mb-0.5">
+                <Trans>Retry delay</Trans>
+              </div>
+              <div className="font-medium">{formatSeconds(data.retryDelayMs)}</div>
+            </div>
+          )}
           {data.usage && (
             <>
               <div>
@@ -154,6 +188,18 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
             </div>
             <pre className="bg-red-50 dark:bg-red-950/30 p-3 rounded text-[11px] whitespace-pre-wrap text-destructive">
               {data.validationErrors.join("\n")}
+            </pre>
+          </div>
+        )}
+
+        {data.error && (
+          <div>
+            <div className="font-medium text-destructive mb-1 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              <Trans>Request Error</Trans>
+            </div>
+            <pre className="bg-red-50 dark:bg-red-950/30 p-3 rounded text-[11px] whitespace-pre-wrap text-destructive">
+              {data.error}
             </pre>
           </div>
         )}
