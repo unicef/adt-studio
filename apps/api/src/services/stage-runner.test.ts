@@ -1028,6 +1028,60 @@ speech:
     }
   })
 
+  it("keeps OpenAI TTS running progress visible after an item-level failure", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: openai
+`,
+    )
+    seedTextAndSpeechBook(booksDir, "openai-tts-item-failure")
+    generateSpeechFileMock.mockRejectedValueOnce(
+      new Error("OpenAI TTS request failed (400): request rejected"),
+    )
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "openai-tts-item-failure",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) },
+    )
+
+    expect(
+      events.some(
+        (event) =>
+          event.type === "step-progress" &&
+          event.step === "tts" &&
+          event.message?.includes("pages ·") &&
+          event.totalPages !== undefined &&
+          event.page !== undefined,
+      ),
+    ).toBe(true)
+    expect(
+      events.some((event) => event.type === "step-error" && event.step === "tts"),
+    ).toBe(false)
+    expect(
+      events.some((event) => event.type === "step-complete" && event.step === "tts"),
+    ).toBe(true)
+  })
+
   it("retries rate-limited Gemini TTS items and completes the step when a retry succeeds", async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
     const booksDir = path.join(tmpDir, "books")

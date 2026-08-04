@@ -120,7 +120,7 @@ describe("POST /books/:label/tts/generate-one", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.entry.textId).toBe("pg001_t001")
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001\.[a-f0-9]{12}\.wav$/)
     expect(body.completed).toBe(true)
     expect(body.remainingItems).toBe(0)
 
@@ -137,8 +137,44 @@ describe("POST /books/:label/tts/generate-one", () => {
     }
 
     expect(
-      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001.wav"))
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", body.entry.fileName))
     ).toBe(true)
+  })
+
+  it("bypasses the speech cache for an explicit single-clip regeneration", async () => {
+    const label = "force-regenerate-audio"
+    seedBook(label)
+    fetchMock
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ inlineData: { data: Buffer.from("first-audio").toString("base64") } }] } }],
+      }), { status: 200, headers: { "Content-Type": "application/json" } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        candidates: [{ content: { parts: [{ inlineData: { data: Buffer.from("fresh-audio").toString("base64") } }] } }],
+      }), { status: 200, headers: { "Content-Type": "application/json" } }))
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const request = (forceRegenerate: boolean, text?: string) => app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Gemini-API-Key": "gm-test" },
+      body: JSON.stringify({ textId: "pg001_t001", text, language: "en", forceRegenerate }),
+    })
+    const originalResponse = await request(false)
+    expect(originalResponse.status).toBe(200)
+    const originalBody = await originalResponse.json()
+    const regeneratedResponse = await request(true, "You")
+    expect(regeneratedResponse.status).toBe(200)
+    const regeneratedBody = await regeneratedResponse.json()
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    const regenerationRequest = String(fetchMock.mock.calls[1]?.[1]?.body)
+    expect(regenerationRequest).toContain("You")
+    expect(regenerationRequest).not.toContain("Hello world")
+    expect(regeneratedBody.entry.fileName).not.toBe(originalBody.entry.fileName)
+    const regeneratedAudio = fs.readFileSync(path.join(tmpDir, label, "audio", "en", regeneratedBody.entry.fileName), "utf8")
+    expect(regeneratedAudio).toContain("fresh-audio")
+    expect(regeneratedAudio).not.toContain("first-audio")
+    expect(fs.readFileSync(path.join(tmpDir, label, "audio", "en", originalBody.entry.fileName), "utf8"))
+      .toContain("first-audio")
   })
 
   it("treats excluded catalog entries as complete after generating the remaining audio", async () => {
@@ -303,7 +339,7 @@ describe("POST /books/:label/tts/generate-one", () => {
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001\.[a-f0-9]{12}\.wav$/)
     expect(body.remainingItems).toBe(0)
   })
 
@@ -369,7 +405,7 @@ describe("POST /books/:label/tts/generate-one", () => {
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001\.[a-f0-9]{12}\.wav$/)
     expect(body.entry.model).toBe("gemini-2.5-pro-preview-tts")
     expect(fetchMock).toHaveBeenCalledTimes(2)
 
@@ -442,7 +478,7 @@ describe("POST /books/:label/tts/generate-one", () => {
 
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.entry.fileName).toBe("pg001_t001.wav")
+    expect(body.entry.fileName).toMatch(/^pg001_t001\.[a-f0-9]{12}\.wav$/)
     expect(body.entry.provider).toBe("openai")
     expect(body.entry.model).toBe("tts-1-hd")
     expect(fetchMock).toHaveBeenCalledTimes(3)
@@ -460,25 +496,33 @@ describe("POST /books/:label/tts/generate-one", () => {
     expect(JSON.parse(String(thirdInit?.body))).toMatchObject({ model: "tts-1-hd" })
   })
 
-  it("rejects single-item generation when the language is not routed to Gemini", async () => {
+  it("regenerates a single item with the configured OpenAI provider", async () => {
     writeConfig("openai")
     const label = "openai-audio"
     seedBook(label)
+    fetchMock.mockResolvedValue(
+      new Response(new Uint8Array([1, 2, 3, 4]), {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      })
+    )
 
     const app = createTTSRoutes(tmpDir, configPath)
     const res = await app.request(`/books/${label}/tts/generate-one`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-Gemini-API-Key": "gm-test",
+        "X-OpenAI-Key": "sk-test",
       },
       body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
     })
 
-    expect(res.status).toBe(400)
-    await expect(res.text()).resolves.toContain(
-      "Single-item audio generation is only available when Gemini is selected for that language."
-    )
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.entry.textId).toBe("pg001_t001")
+    expect(body.entry.provider).toBe("openai")
+    expect(body.entry.fileName).toMatch(/^pg001_t001\.[a-f0-9]{12}\.mp3$/)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })
 

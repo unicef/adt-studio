@@ -36,6 +36,187 @@ export function stripEmojis(text: string): string {
   return text.replace(EMOJI_RE, "")
 }
 
+const SWAHILI_UNITS = [
+  "sifuri", "moja", "mbili", "tatu", "n-ne", "tano",
+  "sita", "saba", "nane", "tisa",
+] as const
+const SWAHILI_TENS = [
+  "", "kumi", "ishirini", "thelathini", "arobaini",
+  "hamsini", "sitini", "sabini", "themanini", "tisini",
+] as const
+const SWAHILI_SCALES = [
+  { value: 1_000_000_000_000, name: "trilioni" },
+  { value: 1_000_000_000, name: "bilioni" },
+  { value: 1_000_000, name: "milioni" },
+  { value: 1_000, name: "elfu" },
+  { value: 100, name: "mia" },
+] as const
+
+function swahiliIntegerWords(value: number): string {
+  if (value < 10) return SWAHILI_UNITS[value]!
+  if (value < 100) {
+    const tens = SWAHILI_TENS[Math.floor(value / 10)]!
+    const remainder = value % 10
+    return remainder === 0 ? tens : `${tens} na ${SWAHILI_UNITS[remainder]}`
+  }
+  for (const scale of SWAHILI_SCALES) {
+    if (value >= scale.value) {
+      const count = Math.floor(value / scale.value)
+      const remainder = value % scale.value
+      const prefix = `${scale.name} ${swahiliIntegerWords(count)}`
+      return remainder === 0 ? prefix : `${prefix} na ${swahiliIntegerWords(remainder)}`
+    }
+  }
+  return String(value)
+}
+
+function swahiliNumberWords(token: string): string {
+  const compact = token.replace(/\s/g, "")
+  const normalized = /^\d{1,3}(?:,\d{3})+$/.test(compact)
+    ? compact.replace(/,/g, "")
+    : compact
+  const parts = normalized.split(/[.,]/)
+  const whole = parts[0] ?? "0"
+  const fraction = parts[1]
+  const wholeWords =
+    whole.length > 1 && whole.startsWith("0")
+      ? [...whole].map((digit) => SWAHILI_UNITS[Number(digit)]).join(" ")
+      : swahiliIntegerWords(Number(whole))
+  if (fraction === undefined) return wholeWords
+  const separator = normalized.includes(",") ? "koma" : "nukta"
+  return `${wholeWords} ${separator} ${[...fraction]
+    .map((digit) => SWAHILI_UNITS[Number(digit)])
+    .join(" ")}`
+}
+
+const ROMAN_VALUE: Record<string, number> = {
+  I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1_000,
+}
+
+function romanNumeralValue(token: string): number | null {
+  const roman = token.toUpperCase()
+  // Canonical Roman numerals only. This rejects arbitrary words made solely
+  // from Roman letters and malformed forms such as IIII or IC.
+  if (!/^(?=[MDCLXVI]+$)M{0,3}(CM|CD|D?C{0,3})(XC|XL|L?X{0,3})(IX|IV|V?I{0,3})$/.test(roman)) {
+    return null
+  }
+  let total = 0
+  for (let index = 0; index < roman.length; index++) {
+    const current = ROMAN_VALUE[roman[index]!]!
+    const next = ROMAN_VALUE[roman[index + 1]!] ?? 0
+    total += current < next ? -current : current
+  }
+  return total || null
+}
+
+function swahiliRomanWords(token: string): string {
+  const value = romanNumeralValue(token)
+  return value === null ? token : swahiliIntegerWords(value)
+}
+
+const SWAHILI_ORDINAL_CONTEXT_RE = new RegExp(
+  String.raw`\b(mfano|zoezi|swali|sura|sehemu|hatua|ukurasa|darasa|mwezi|safu|mstari|jedwali|kielelezo|picha|aya|kipengele|kifungu|somo)\s+(ya|wa|la|cha|vya|za)\s+(\d+)\b`,
+  "gi",
+)
+
+function swahiliOrdinalWords(token: string): string {
+  const value = Number(token)
+  if (value === 1) return "kwanza"
+  if (value === 2) return "pili"
+  return swahiliIntegerWords(value)
+}
+
+/**
+ * Convert ambiguous written tokens into deterministic, language-native TTS
+ * input without changing the catalog text displayed to the reader.
+ */
+export function prepareTextForSpeech(text: string, language: string): string {
+  if (getBaseLanguage(language) !== "sw") return text
+
+  return text
+    // Pronunciation lexicon for initial syllabic nasals. These separators are
+    // TTS-only syllable boundaries; the visible catalog text is untouched.
+    .replace(/\bmmoja\b/gi, (word) => `${word[0]}-${word.slice(1)}`)
+    .replace(/\bnne\b/gi, (word) => `${word[0]}-${word.slice(1)}`)
+    // Digits following structural nouns are positions, not quantities:
+    // "Mfano wa 1" means "Mfano wa kwanza", while a phrase such as
+    // "thamani ya 8" remains cardinal because it is not a structural label.
+    .replace(
+      SWAHILI_ORDINAL_CONTEXT_RE,
+      (_match, noun: string, connector: string, number: string) =>
+        `${noun} ${connector} ${swahiliOrdinalWords(number)}`,
+    )
+    // Roman ranges must be resolved before the generic character-range rule.
+    .replace(/\b([IVXLCDM]{1,12})\s*[-–—]\s*([IVXLCDM]{1,12})\b/g, (_match, from: string, to: string) => {
+      const fromValue = romanNumeralValue(from)
+      const toValue = romanNumeralValue(to)
+      return fromValue === null || toValue === null
+        ? _match
+        : `${swahiliIntegerWords(fromValue)} hadi ${swahiliIntegerWords(toValue)}`
+    })
+    // Multi-character uppercase numerals are unambiguous. A single numeral is
+    // converted only in list/heading notation such as (V) or X., avoiding math
+    // variables and ordinary alphabetic labels such as lowercase (c).
+    .replace(/\b[IVXLCDM]{2,12}\b/g, (token) => swahiliRomanWords(token))
+    .replace(/\(([IVXLCDM])\)|\b([IVXLCDM])(?=[.)])/g, (_match, wrapped: string | undefined, suffixed: string | undefined) => {
+      const token = (wrapped ?? suffixed)!
+      const words = swahiliRomanWords(token)
+      return wrapped ? `(${words})` : words
+    })
+    .replace(/\(([ivxlcdm]{2,12})\)|\b([ivxlcdm]{2,12})(?=[.)])/g, (match, wrapped: string | undefined, suffixed: string | undefined) => {
+      const token = (wrapped ?? suffixed)!
+      const value = romanNumeralValue(token)
+      if (value === null) return match
+      const words = swahiliIntegerWords(value)
+      return wrapped ? `(${words})` : words
+    })
+    // A bare parenthesized letter is an enumeration/section label, not an
+    // English word. Give it Kiswahili structural context so OpenAI keeps the
+    // selected accent instead of switching to an English alphabet reading.
+    // Multi-letter Roman numerals were already handled above.
+    .replace(/\(([a-z])\)/g, " kipengele $1")
+    // A compact dash is a range; spaced mathematical dashes remain subtraction.
+    .replace(/\b([A-Za-z])\s*[-–—]\s*([A-Za-z])\b/g, "$1 hadi $2")
+    .replace(/\b(\d+)\s*[-–—](?=\d)(\d+)\b/g, "$1 hadi $2")
+    .replace(/(\d+(?:[.,]\d+)?)\s*%/g, "asilimia $1")
+    .replace(/\b\d+(?:[.,]\d+)?\b/g, (token) => swahiliNumberWords(token))
+    .replace(/\s[-–—]\s/g, " toa ")
+    .replace(/\s\+\s/g, " jumlisha ")
+    .replace(/\s[×*]\s/g, " zidisha kwa ")
+    .replace(/\s[÷/]\s/g, " gawanya kwa ")
+    .replace(/\s=\s/g, " ni sawa na ")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+}
+
+/** Add phonetic direction only when the prepared transcript needs it. */
+export function prepareInstructionsForSpeech(
+  instructions: string,
+  preparedText: string,
+  language: string,
+): string {
+  if (getBaseLanguage(language) !== "sw") return instructions
+  const additions: string[] = []
+  if (/\bkipengele [a-z]\b/.test(preparedText)) {
+    additions.push(
+      "Pronounce enumeration letters with native Kiswahili vowel sounds; never use English alphabet names or an English accent.",
+    )
+  }
+  if (/\bn-ne\b/.test(preparedText)) {
+    additions.push(
+      'Pronounce "n-ne" as Tanzanian Kiswahili [ˈn̩.nɛ], with the first syllabic n clearly stressed and audible. Do not reduce it to "ne" and do not speak the hyphen.',
+    )
+  }
+  if (/\bm-moja\b/i.test(preparedText)) {
+    additions.push(
+      'Pronounce "m-moja" as Tanzanian Kiswahili [m̩.ˈmɔ.dʒa]: the first m is its own syllable, stress "mo", and do not speak the hyphen.',
+    )
+  }
+  return additions.length > 0
+    ? [instructions.trim(), ...additions].filter(Boolean).join("\n")
+    : instructions
+}
+
 // ---------------------------------------------------------------------------
 // Speakable text check
 // ---------------------------------------------------------------------------
@@ -273,7 +454,11 @@ export function computeSpeechCacheKey(data: {
           ...(geminiSeed !== undefined ? { geminiSeed } : {}),
         }
       : {}
-  const json = JSON.stringify({ ...base, ...gemini })
+  // Azure SSML v2 derives xml:lang from the selected voice. Include the
+  // synthesis revision so audio cached under the old hard-coded en-US SSML is
+  // regenerated instead of silently reused.
+  const synthesisRevision = base.provider === "azure" ? { synthesisRevision: 2 } : {}
+  const json = JSON.stringify({ ...base, ...gemini, ...synthesisRevision })
   return crypto.createHash("sha256").update(json).digest("hex")
 }
 
@@ -321,6 +506,10 @@ export interface GenerateSpeechFileOptions {
    *  Undefined → not sent; Gemini uses its own defaults (sampling disabled). */
   geminiTemperature?: number
   geminiSeed?: number
+  /** Skip an existing LLM-level cache entry and synthesize fresh audio. Use
+   * only for an explicit user-requested regeneration; normal pipeline runs
+   * must continue to benefit from deterministic cache reuse. */
+  forceRegenerate?: boolean
   /** Run cancellation — aborts the rate-limiter wait and the TTS request. */
   signal?: AbortSignal
 }
@@ -348,12 +537,18 @@ export async function generateSpeechFile(
     provider,
     geminiTemperature,
     geminiSeed,
+    forceRegenerate = false,
     signal,
   } = options
 
   // Strip emojis and validate
-  const sanitized = stripEmojis(text).trim()
+  const sanitized = prepareTextForSpeech(stripEmojis(text).trim(), language)
   if (!isSpeakableText(sanitized)) return null
+  const preparedInstructions = prepareInstructionsForSpeech(
+    instructions,
+    sanitized,
+    language,
+  )
 
   const safeTextId = assertSafeSegment(textId, SAFE_TEXT_ID_RE, "text id")
   const safeFormat = assertSafeSegment(
@@ -371,13 +566,16 @@ export async function generateSpeechFile(
     text: sanitized,
     voice,
     model,
-    instructions,
+    instructions: preparedInstructions,
     provider,
     geminiTemperature,
     geminiSeed,
   })
 
-  const fileName = `${safeTextId}.${safeFormat}`
+  const versionSuffix = forceRegenerate
+    ? `${hash.slice(0, 12)}-${Date.now().toString(36)}-${crypto.randomBytes(4).toString("hex")}`
+    : hash.slice(0, 12)
+  const fileName = `${safeTextId}.${versionSuffix}.${safeFormat}`
   const audioRoot = path.resolve(bookDir, "audio")
   const audioDir = path.resolve(audioRoot, normalizedLanguage)
   assertWithinBase(audioRoot, audioDir, "audio directory")
@@ -386,9 +584,12 @@ export async function generateSpeechFile(
 
   // Check cache
   const cacheRoot = path.resolve(cacheDir, "tts")
-  const cachePath = path.resolve(cacheRoot, `${hash}.${safeFormat}`)
+  const cacheName = forceRegenerate
+    ? `${hash}-${Date.now().toString(36)}-${crypto.randomBytes(4).toString("hex")}.${safeFormat}`
+    : `${hash}.${safeFormat}`
+  const cachePath = path.resolve(cacheRoot, cacheName)
   assertWithinBase(cacheRoot, cachePath, "cache file")
-  if (fs.existsSync(cachePath)) {
+  if (!forceRegenerate && fs.existsSync(cachePath)) {
     fs.mkdirSync(audioDir, { recursive: true })
     fs.copyFileSync(cachePath, outputPath)
     return {
@@ -399,6 +600,7 @@ export async function generateSpeechFile(
       model,
       cached: true,
       provider,
+      sourceHash: hash,
     }
   }
 
@@ -410,7 +612,7 @@ export async function generateSpeechFile(
     voice,
     input: sanitized,
     responseFormat: safeFormat,
-    instructions: instructions || undefined,
+    instructions: preparedInstructions || undefined,
     temperature: geminiTemperature,
     seed: geminiSeed,
     signal,
@@ -434,6 +636,7 @@ export async function generateSpeechFile(
     model,
     cached: false,
     provider,
+    sourceHash: hash,
   }
 }
 
@@ -578,10 +781,23 @@ export async function generatePageSpeechFiles(
   const results: SpeechFileEntry[] = []
   for (const range of ranges) {
     signal?.throwIfAborted()
+    const entry = usable.find((candidate) => candidate.id === range.id)
+    if (!entry) continue
+    const sourceHash = computeSpeechCacheKey({
+      text: entry.text,
+      voice,
+      model,
+      instructions,
+      provider,
+      geminiTemperature,
+      geminiSeed,
+    })
     // A short edge fade guarantees zero-amplitude slice edges (belt-and-braces
     // with the silence-snap above) so back-to-back playback has no clicks.
     const slice = sliceWav(pageBytes, range.start, range.end, PAGE_SLICE_FADE_MS)
-    const fileName = `${range.id}.${safeFormat}`
+    // Page-batched clips follow the same entity-versioning rule as clips made
+    // one at a time: changed source text creates a new immutable asset.
+    const fileName = `${range.id}.${sourceHash.slice(0, 12)}.${safeFormat}`
     const outputPath = path.resolve(audioDir, fileName)
     assertWithinBase(audioDir, outputPath, "audio file")
     // Only write when the bytes actually change, so an unchanged slice keeps its
@@ -590,7 +806,16 @@ export async function generatePageSpeechFiles(
     if (!fs.existsSync(outputPath) || !fs.readFileSync(outputPath).equals(slice)) {
       fs.writeFileSync(outputPath, slice)
     }
-    results.push({ textId: range.id, language: normalizedLanguage, fileName, voice, model, cached, provider })
+    results.push({
+      textId: range.id,
+      language: normalizedLanguage,
+      fileName,
+      voice,
+      model,
+      cached,
+      provider,
+      sourceHash,
+    })
   }
   return results
 }

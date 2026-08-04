@@ -1,5 +1,41 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { createGeminiTTSSynthesizer, transcribeWithWhisper } from "../speech.js"
+import {
+  createAzureTTSSynthesizer,
+  createGeminiTTSSynthesizer,
+  transcribeWithWhisper,
+} from "../speech.js"
+
+describe("createAzureTTSSynthesizer", () => {
+  const fetchMock = vi.fn<typeof fetch>()
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+    fetchMock.mockResolvedValue(new Response(new Uint8Array([1]), { status: 200 }))
+    vi.stubGlobal("fetch", fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("sets the SSML language from the selected voice for native number pronunciation", async () => {
+    const synth = createAzureTTSSynthesizer({
+      subscriptionKey: "test-key",
+      region: "eastus",
+    })
+
+    await synth.synthesize({
+      model: "azure",
+      voice: "sw-TZ-RehemaNeural",
+      input: "Ana vitabu 25.",
+      responseFormat: "mp3",
+    })
+
+    const request = fetchMock.mock.calls[0]?.[1]
+    expect(request?.body).toContain("xml:lang='sw-TZ'")
+    expect(request?.body).toContain("Ana vitabu 25.")
+  })
+})
 
 describe("createGeminiTTSSynthesizer", () => {
   const fetchMock = vi.fn<typeof fetch>()

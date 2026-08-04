@@ -354,6 +354,12 @@ export function LanguageView({
     queryFn: () => api.getTTS(bookLabel),
     enabled: !!bookLabel,
   });
+  const { data: speechSuggestions, isLoading: speechSuggestionsLoading } = useQuery({
+    queryKey: ["books", bookLabel, "github-speech-suggestions"],
+    queryFn: () => api.getGitHubSpeechSuggestions(bookLabel),
+    enabled: isSpeechStage && !!bookLabel,
+    refetchInterval: isSpeechStage ? 5_000 : false,
+  });
 
   const merged = activeConfigData?.merged as
     Record<string, unknown> | undefined;
@@ -421,6 +427,11 @@ export function LanguageView({
   // When active, the entry list is narrowed to speakable items that have no
   // audio yet (toggled from the "N missing" pill in the header).
   const [showMissingOnly, setShowMissingOnly] = useState(false);
+  const [speechListTab, setSpeechListTab] = useState<"all" | "suggested">("all");
+  const [audioSelectionMode, setAudioSelectionMode] = useState(false);
+  const [selectedAudioIds, setSelectedAudioIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const [lightbox, setLightbox] = useState<{
     src: string;
     caption?: string;
@@ -529,6 +540,15 @@ export function LanguageView({
   const currentLanguageUsesGemini =
     !!audioLang &&
     languageUsesSpeechProvider(audioLang, "gemini", speechConfig);
+  const currentSpeechProvider = audioLang
+    ? resolveSpeechProviderForLanguage(audioLang, speechConfig)
+    : null;
+  const hasCurrentProviderKey =
+    currentSpeechProvider === "gemini"
+      ? geminiKey.length > 0
+      : currentSpeechProvider === "azure"
+        ? azureKey.length > 0 && azureRegion.length > 0
+        : apiKey.length > 0;
   // Speech keeps the entry list on screen during runs (audio fills in live via
   // the run's snapshot) and after failures (failed rows are marked); the run
   // card only shows before the first speech run. Translate keeps the original
@@ -1048,7 +1068,43 @@ export function LanguageView({
   );
   const missingFilterActive =
     isSpeechStage && showMissingOnly && missingAudioCount > 0;
-  const visibleEntries = missingFilterActive ? missingEntries : displayEntries;
+  const suggestedAudioIds = useMemo(
+    () => new Set((speechSuggestions?.items ?? []).map((item) => item.textId)),
+    [speechSuggestions?.items],
+  );
+  const speechTabEntries =
+    isSpeechStage && speechListTab === "suggested"
+      ? displayEntries.filter((entry) => suggestedAudioIds.has(entry.id))
+      : displayEntries;
+  const visibleEntries = missingFilterActive
+    ? speechTabEntries.filter((entry) => !audioMap.has(entry.id))
+    : speechTabEntries;
+  const visibleSelectableAudioIds = isSpeechStage
+    ? visibleEntries
+        .filter(
+          (entry) =>
+            !isAnswerEntry(entry.id) &&
+            !getEntryTtsExclusion(entry.id, ttsExclusionConfig).excluded &&
+            (isSourceLang || translatedMap.has(entry.id)),
+        )
+        .map((entry) => entry.id)
+    : [];
+  const allVisibleAudioSelected =
+    visibleSelectableAudioIds.length > 0 &&
+    visibleSelectableAudioIds.every((id) => selectedAudioIds.has(id));
+
+  const toggleAudioSelection = useCallback((textId: string) => {
+    setSelectedAudioIds((current) => {
+      const next = new Set(current);
+      if (next.has(textId)) next.delete(textId);
+      else next.add(textId);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    setSelectedAudioIds(new Set());
+  }, [audioLang, speechListTab]);
 
   // Once every missing item has been generated (or the language changes so the
   // pill disappears), drop back to the full list instead of leaving the user
@@ -1103,24 +1159,24 @@ export function LanguageView({
   ]);
 
   const generateAudioMutation = useMutation({
-    mutationFn: async (variables: { textId: string; language: string }) => {
-      if (!geminiKey) {
-        throw new Error(
-          i18n._(msg`Gemini API key is required to generate audio.`),
-        );
+    mutationFn: async (variables: { textId: string; text: string; language: string }) => {
+      if (!hasCurrentProviderKey) {
+        throw new Error(i18n._(msg`The selected speech provider requires an API key.`));
       }
-      return api.generateGeminiTTSForItem(
+      return api.generateTTSForItem(
         bookLabel,
         variables.textId,
+        variables.text,
         variables.language,
         {
-          geminiApiKey: geminiKey,
+          geminiApiKey: geminiKey || undefined,
           openaiApiKey: apiKey || undefined,
           azure:
             azureKey && azureRegion
               ? { key: azureKey, region: azureRegion }
               : undefined,
         },
+        { forceRegenerate: true },
       );
     },
     onMutate: (variables) => {
@@ -1154,12 +1210,58 @@ export function LanguageView({
   });
 
   const handleGenerateAudio = useCallback(
-    (textId: string) => {
-      if (!audioLang || !currentLanguageUsesGemini) return;
-      generateAudioMutation.mutate({ textId, language: audioLang });
+    (textId: string, text: string) => {
+      if (!audioLang || !hasCurrentProviderKey) return;
+      generateAudioMutation.mutate({ textId, text, language: audioLang });
     },
-    [audioLang, currentLanguageUsesGemini, generateAudioMutation],
+    [audioLang, hasCurrentProviderKey, generateAudioMutation],
   );
+
+  const regenerateSelectedMutation = useMutation({
+    mutationFn: async (variables: {
+      items: Array<{ textId: string; text: string }>;
+      language: string;
+    }) => {
+      if (!hasCurrentProviderKey) {
+        throw new Error(i18n._(msg`The selected speech provider requires an API key.`));
+      }
+      const succeeded: string[] = [];
+      const failed: Array<{ textId: string; error: string }> = [];
+      for (const item of variables.items) {
+        try {
+          await api.generateTTSForItem(bookLabel, item.textId, item.text, variables.language, {
+            geminiApiKey: geminiKey || undefined,
+            openaiApiKey: apiKey || undefined,
+            azure: azureKey && azureRegion ? { key: azureKey, region: azureRegion } : undefined,
+          }, { forceRegenerate: true });
+          succeeded.push(item.textId);
+        } catch (error) {
+          failed.push({ textId: item.textId, error: error instanceof Error ? error.message : String(error) });
+        }
+      }
+      return { succeeded, failed };
+    },
+    onSuccess: async ({ succeeded, failed }) => {
+      const failedIds = new Set(failed.map((item) => item.textId));
+      setSelectedAudioIds(failedIds);
+      setGenerateErrorById((previous) => {
+        const next = { ...previous };
+        for (const textId of succeeded) delete next[textId];
+        for (const item of failed) next[item.textId] = item.error;
+        return next;
+      });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "tts"] }),
+        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "step-status"] }),
+      ]);
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : String(error);
+      setGenerateErrorById((previous) => Object.fromEntries(
+        [...selectedAudioIds].map((textId) => [textId, previous[textId] ?? message]),
+      ));
+    },
+  });
 
   const uploadAudioMutation = useMutation({
     mutationFn: async (variables: {
@@ -1688,6 +1790,125 @@ export function LanguageView({
       <div className="flex flex-col h-full">
         {/* Fixed header: alerts, language tabs, column headers */}
         <div className="shrink-0 px-4 pt-4 space-y-3">
+          {isSpeechStage && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2.5">
+              <div className="flex items-center gap-1 rounded-md border border-rose-200 bg-white p-1" role="tablist" aria-label={t`Speech regeneration views`}>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={speechListTab === "all"}
+                  onClick={() => setSpeechListTab("all")}
+                  className={cn(
+                    "rounded px-2.5 py-1 text-xs font-medium",
+                    speechListTab === "all" ? "bg-rose-600 text-white" : "text-rose-800 hover:bg-rose-50",
+                  )}
+                >
+                  {t`All audio`}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={speechListTab === "suggested"}
+                  onClick={() => setSpeechListTab("suggested")}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded px-2.5 py-1 text-xs font-medium",
+                    speechListTab === "suggested" ? "bg-rose-600 text-white" : "text-rose-800 hover:bg-rose-50",
+                  )}
+                >
+                  {speechSuggestionsLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                  {t`Suggested`}
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 text-[10px]",
+                      speechListTab === "suggested"
+                        ? "bg-white/20 text-white"
+                        : "bg-rose-100 text-rose-800",
+                    )}
+                  >
+                    {suggestedAudioIds.size}
+                  </span>
+                </button>
+              </div>
+              {!audioSelectionMode ? (
+                <Button type="button" size="sm" variant="outline" onClick={() => setAudioSelectionMode(true)}>
+                  {t`Select audio`}
+                </Button>
+              ) : <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-rose-950">
+                <input
+                  type="checkbox"
+                  checked={allVisibleAudioSelected}
+                  onChange={() =>
+                    setSelectedAudioIds((current) => {
+                      const next = new Set(current);
+                      if (allVisibleAudioSelected) {
+                        visibleSelectableAudioIds.forEach((id) => next.delete(id));
+                      } else {
+                        visibleSelectableAudioIds.forEach((id) => next.add(id));
+                      }
+                      return next;
+                    })
+                  }
+                  disabled={
+                    visibleSelectableAudioIds.length === 0 ||
+                    regenerateSelectedMutation.isPending
+                  }
+                  className="h-4 w-4 accent-rose-600"
+                />
+                {allVisibleAudioSelected
+                  ? t`Clear visible selection`
+                  : t`Select visible audio`}
+              </label>}
+              {audioSelectionMode ? <div className="flex items-center gap-2">
+                <span className="text-xs text-rose-800">
+                  {t`${selectedAudioIds.size} selected`}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    if (!audioLang || selectedAudioIds.size === 0) return;
+                    regenerateSelectedMutation.mutate({
+                      items: Array.from(selectedAudioIds).flatMap((textId) => {
+                        const entry = visibleEntries.find((item) => item.id === textId);
+                        if (!entry) return [];
+                        const text = isSourceLang
+                          ? entry.text
+                          : translatedMap.get(textId);
+                        // Never synthesize source-language fallback text with
+                        // a target-language voice. Missing translations remain
+                        // visibly unavailable until translation is complete.
+                        if (!text) return [];
+                        return [{ textId, text }];
+                      }),
+                      language: audioLang,
+                    });
+                  }}
+                  disabled={
+                    selectedAudioIds.size === 0 ||
+                    !audioLang ||
+                    !hasCurrentProviderKey ||
+                    isRunning ||
+                    regenerateSelectedMutation.isPending
+                  }
+                  title={
+                    hasCurrentProviderKey
+                      ? t`Regenerate only the selected audio clips`
+                      : t`The selected speech provider requires an API key.`
+                  }
+                  className="h-8 bg-rose-600 px-3 text-xs text-white hover:bg-rose-700"
+                >
+                  {regenerateSelectedMutation.isPending ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <WandSparkles className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  {t`Regenerate selected`}
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => { setSelectedAudioIds(new Set()); setAudioSelectionMode(false); }}>{t`Done selecting`}</Button>
+              </div> : null}
+            </div>
+          )}
+
           {isSpeechStage && hasStageError && runError && (
             <Alert variant="destructive" className="rounded-md">
               <AlertDescription className="text-xs whitespace-pre-wrap break-words">
@@ -2032,6 +2253,16 @@ export function LanguageView({
             stageSlug="translate"
             label={t`Resolving source language...`}
           />
+        ) : isSpeechStage &&
+          speechListTab === "suggested" &&
+          !speechSuggestionsLoading &&
+          visibleEntries.length === 0 ? (
+          <StageEmptyState
+            icon={AudioLines}
+            color="rose"
+            title={t`No changed content needs speech regeneration`}
+            subtitle={t`Git has not detected changed text entities for this view.`}
+          />
         ) : hasReviewResults &&
           displayEntries.length === 0 &&
           categoryFilteredEntries.length > 0 ? (
@@ -2184,6 +2415,15 @@ export function LanguageView({
                           )}
                         >
                           <div className="flex items-start gap-3">
+                            {isSpeechStage && audioSelectionMode && !isAnswer && !exclusion.excluded && (
+                              <input
+                                type="checkbox"
+                                checked={selectedAudioIds.has(entry.id)}
+                                onChange={() => toggleAudioSelection(entry.id)}
+                                aria-label={t`Select audio for ${entry.text}`}
+                                className="mt-0.5 h-4 w-4 shrink-0 accent-rose-600"
+                              />
+                            )}
                             {isImg && (
                               <img
                                 src={`${BASE_URL}/books/${bookLabel}/images/${entry.id}`}
@@ -2239,8 +2479,9 @@ export function LanguageView({
                                 audioLang={audioLang}
                                 bookLabel={bookLabel}
                                 textId={entry.id}
-                                canGenerate={currentLanguageUsesGemini}
-                                hasGeminiKey={geminiKey.length > 0}
+                                text={entry.text}
+                                canGenerate={true}
+                                hasGeminiKey={hasCurrentProviderKey}
                                 onGenerate={handleGenerateAudio}
                                 isGenerating={
                                   generateAudioMutation.isPending &&
@@ -2296,6 +2537,17 @@ export function LanguageView({
                             isAnswer ? "bg-amber-50/60" : "bg-card",
                           )}
                         >
+                          {isSpeechStage && audioSelectionMode && !isAnswer && !exclusion.excluded && (
+                            <label className="mb-2 inline-flex items-center gap-2 text-[10px] font-medium text-muted-foreground">
+                              <input
+                                type="checkbox"
+                                checked={selectedAudioIds.has(entry.id)}
+                                onChange={() => toggleAudioSelection(entry.id)}
+                                className="h-4 w-4 accent-rose-600"
+                              />
+                              {t`Select this audio`}
+                            </label>
+                          )}
                           <div className="grid grid-cols-2 gap-3">
                             <div>
                               <div className="flex items-start gap-3">
@@ -2458,8 +2710,9 @@ export function LanguageView({
                                     audioLang={audioLang}
                                     bookLabel={bookLabel}
                                     textId={entry.id}
-                                    canGenerate={currentLanguageUsesGemini}
-                                    hasGeminiKey={geminiKey.length > 0}
+                                    text={translated ?? ""}
+                                    canGenerate={translated !== undefined}
+                                    hasGeminiKey={hasCurrentProviderKey}
                                     onGenerate={handleGenerateAudio}
                                     isGenerating={
                                       generateAudioMutation.isPending &&
@@ -3116,6 +3369,7 @@ function AudioAction({
   audioLang,
   bookLabel,
   textId,
+  text,
   canGenerate,
   hasGeminiKey,
   onGenerate,
@@ -3137,9 +3391,10 @@ function AudioAction({
   audioLang: string | null;
   bookLabel: string;
   textId: string;
+  text: string;
   canGenerate: boolean;
   hasGeminiKey: boolean;
-  onGenerate: (textId: string) => void;
+  onGenerate: (textId: string, text: string) => void;
   isGenerating: boolean;
   onUpload?: (textId: string, file: File) => void;
   isUploading?: boolean;
@@ -3198,9 +3453,31 @@ function AudioAction({
   if (audio && audioLang) {
     return (
       <div>
-        {uploadButton && (
-          <div className="mb-1 flex justify-end">{uploadButton}</div>
-        )}
+        <div className="mb-1 flex justify-end gap-1">
+          {canGenerate && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-[10px]"
+              disabled={isGenerating || !hasGeminiKey}
+              onClick={() => onGenerate(textId, text)}
+              title={
+                hasGeminiKey
+                  ? t`Regenerate this audio clip`
+                  : t`Set the selected speech provider's API key to generate audio`
+              }
+            >
+              {isGenerating ? (
+                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+              ) : (
+                <RotateCcw className="mr-1 h-3 w-3" />
+              )}
+              {t`Regenerate`}
+            </Button>
+          )}
+          {uploadButton}
+        </div>
         <WaveformPlayer
           key={`${audioLang}:${audio.fileName}:${audio.cacheKey ?? ""}`}
           audioUrl={getAudioUrl(
@@ -3268,11 +3545,11 @@ function AudioAction({
             size="sm"
             className="h-7 px-2 text-[10px]"
             disabled={isGenerating || !hasGeminiKey}
-            onClick={() => onGenerate(textId)}
+            onClick={() => onGenerate(textId, text)}
             title={
               hasGeminiKey
-                ? t`Generate missing Gemini audio`
-                : t`Set a Gemini API key to generate audio`
+                ? t`Regenerate this audio clip`
+                : t`Set the selected speech provider's API key to generate audio`
             }
           >
             {isGenerating ? (
