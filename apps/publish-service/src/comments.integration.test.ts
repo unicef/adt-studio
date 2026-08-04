@@ -1100,24 +1100,58 @@ describe("reviewer PINs and identity reclaim", () => {
     expect(claimed.status).toBe(400)
   })
 
-  it("reserves a name per publication, ignoring case and surrounding space", async () => {
+  it("reserves a pinned name per publication, ignoring case and surrounding space", async () => {
     const token = await publish()
     await session(token, { name: "Maria", pin: "2468" })
 
-    const taken = await session(token, { name: "  MARIA  " })
+    const taken = await session(token, { name: "  MARIA  ", pin: "1357" })
     expect(taken.status).toBe(409)
     const body = (await taken.json()) as { error: string; message: string }
     expect(body.error).toBe("name_taken")
     expect(body.message).toContain("Enter that person's PIN")
 
-    const elsewhere = await session(await publish(), { name: "Maria" })
+    const elsewhere = await session(await publish(), { name: "Maria", pin: "1357" })
     expect(elsewhere.status).toBe(201)
   })
 
-  it("keeps a pinless session's name reserved too", async () => {
+  /** M3.5: the access code gates the audience, so a name is no longer scarce. Two invited
+   *  Marias must both be able to comment, and both must keep their own pins. */
+  it("lets two pinless reviewers share a name and both post", async () => {
     const token = await publish()
-    await session(token, { name: "João" })
-    expect((await session(token, { name: "joão" })).status).toBe(409)
+    const first = await session(token, { name: "João" })
+    const second = await session(token, { name: "joão" })
+    expect(first.status).toBe(201)
+    expect(second.status).toBe(201)
+
+    const firstId = ((await first.json()) as CommenterSessionResponse).session.id
+    const secondBody = (await second.json()) as CommenterSessionResponse
+    expect(secondBody.session.id).not.toBe(firstId)
+
+    for (const reviewer of [
+      { cookie: cookieFrom(first), session: { id: firstId } },
+      { cookie: cookieFrom(second), session: { id: secondBody.session.id } },
+    ]) {
+      const posted = await comment(
+        token,
+        reviewer as unknown as Reviewer,
+        { page_section_id: "pg001_sec001", body: "Both of us", anchor: ANCHOR },
+      )
+      expect(posted.status).toBe(201)
+    }
+  })
+
+  /** A pinless namesake must not be able to shadow a pinned identity: the claim lookup only
+   *  ever considers rows that actually have a PIN. */
+  it("keeps a pinned identity claimable next to a pinless namesake", async () => {
+    const token = await publish()
+    await session(token, { name: "Maria" })
+    const pinned = await session(token, { name: "Maria", pin: "2468" })
+    expect(pinned.status).toBe(201)
+    const pinnedId = ((await pinned.json()) as CommenterSessionResponse).session.id
+
+    const reclaimed = await claimIdentity(token, "maria", "2468")
+    expect(reclaimed.status).toBe(200)
+    await expect(reclaimed.json()).resolves.toMatchObject({ session: { id: pinnedId } })
   })
 
   it("lets the author and a reviewer share a display name", async () => {
@@ -1202,7 +1236,8 @@ describe("reviewer PINs and identity reclaim", () => {
     )
     expect(created.author_name).toBe("Legacy Maria")
 
-    expect((await session(token, { name: "legacy maria" })).status).toBe(409)
+    /** Pinless, so since M3.5 the name is free — and still unclaimable. */
+    expect((await session(token, { name: "legacy maria" })).status).toBe(201)
     expect((await claimIdentity(token, "Legacy Maria", "2468")).status).toBe(401)
 
     const renamed = await session(token, { name: "Maria (legacy)" }, legacy.cookie)

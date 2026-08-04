@@ -8,6 +8,9 @@ import { mgmtSecretPresented } from "./mgmt-auth.js"
 export interface PublicationVariables {
   publication: Publication
   isAuthor: boolean
+  /** The packed PBKDF2 hash of this publication's access code, or `null` when the link alone
+   *  opens it. Read here so the access gate costs no second query per asset. */
+  accessCodeHash: string | null
 }
 
 export type StoreResolver = (env: Env) => PublicationStore
@@ -19,10 +22,11 @@ export function publicationLookup(resolveStore: StoreResolver) {
       return errorResponse(c, "not_found", 404)
     }
 
-    const publication = await resolveStore(c.env).findByToken(token.data)
-    if (!publication) {
+    const record = await resolveStore(c.env).findRecord(token.data)
+    if (!record) {
       return errorResponse(c, "not_found", 404)
     }
+    const publication = record.publication
 
     /** The author reads and resolves feedback through these same `/p/*` routes from the
      *  Studio, so `MGMT_SECRET` passes the 410 gate that stops reviewers. It never passes
@@ -41,6 +45,7 @@ export function publicationLookup(resolveStore: StoreResolver) {
     }
 
     c.set("publication", publication)
+    c.set("accessCodeHash", record.accessCode)
     return next()
   })
 }

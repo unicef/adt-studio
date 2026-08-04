@@ -23,11 +23,17 @@ function publication(overrides: Partial<Publication> = {}): Publication {
   }
 }
 
-function storeOf(record: Publication | null): PublicationStore {
+function storeOf(record: Publication | null, accessCode: string | null = null): PublicationStore {
+  const of = (token: string): Publication | null =>
+    record && record.token === token ? record : null
   return {
     ...emptyPublicationStore,
     async findByToken(token) {
-      return record && record.token === token ? record : null
+      return of(token)
+    },
+    async findRecord(token) {
+      const found = of(token)
+      return found ? { publication: found, accessCode } : null
     },
   }
 }

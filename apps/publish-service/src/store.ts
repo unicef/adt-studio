@@ -10,6 +10,16 @@ import type {
 export interface CreatePublicationInput {
   publication: Publication
   pageManifest: PublicationPageEntry[]
+  /** `pbkdf2-sha256$<iterations>$<salt>$<hash>`, or absent for a publication the link alone
+   *  opens. The plaintext code never reaches the store. */
+  accessCode?: string | null
+}
+
+/** The publication as the worker itself needs it: the public record plus the access-code hash,
+ *  which is deliberately absent from `Publication` so it cannot ride along into a JSON body. */
+export interface StoredPublication {
+  publication: Publication
+  accessCode: string | null
 }
 
 export interface AddVersionInput {
@@ -69,6 +79,9 @@ export interface UpdateCommentInput {
 
 export interface PublicationStore {
   findByToken(token: string): Promise<Publication | null>
+  /** One read for the ladder *and* the access gate, so gating costs no extra round trip per
+   *  asset request. */
+  findRecord(token: string): Promise<StoredPublication | null>
   listVersions(token: string): Promise<PublicationVersion[]>
   findVersion(token: string, version: number): Promise<PublicationVersion | null>
   create(input: CreatePublicationInput): Promise<PublicationVersion>
@@ -81,6 +94,9 @@ export interface PublicationStore {
    *  publication re-opens the link, it does not extend it. */
   reinstate(token: string): Promise<Publication | null>
   setExpiry(token: string, expiresAt: string | null): Promise<Publication | null>
+  /** Sets, rotates or (with `null`) removes the packed hash. Every previously issued access
+   *  cookie stops verifying, because the cookie's tag is keyed over the value replaced here. */
+  setAccessCode(token: string, accessCode: string | null): Promise<Publication | null>
 
   createSession(input: CreateSessionInput): Promise<CommenterSession>
   /** Find-or-create for the single `is_author = 1` session of a publication. */
@@ -111,6 +127,9 @@ export const emptyPublicationStore: PublicationStore = {
   async findByToken() {
     return null
   },
+  async findRecord() {
+    return null
+  },
   async listVersions() {
     return []
   },
@@ -134,6 +153,9 @@ export const emptyPublicationStore: PublicationStore = {
     return null
   },
   async setExpiry() {
+    return null
+  },
+  async setAccessCode() {
     return null
   },
   async createSession(input) {

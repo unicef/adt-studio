@@ -83,6 +83,7 @@ export function createMemoryR2Bucket(): MemoryR2Bucket {
 
 export function createMemoryPublicationStore(): PublicationStore {
   const publications = new Map<string, Publication>()
+  const accessCodes = new Map<string, string>()
   const versions = new Map<string, PublicationVersion[]>()
   const sessions = new Map<string, StoredCommenterSession>()
   const comments = new Map<string, PublishComment>()
@@ -114,12 +115,19 @@ export function createMemoryPublicationStore(): PublicationStore {
       return record ? { ...record } : null
     },
 
+    async findRecord(token) {
+      const record = publications.get(token)
+      if (!record) return null
+      return { publication: { ...record }, accessCode: accessCodes.get(token) ?? null }
+    },
+
     async listVersions(token) {
       return [...(versions.get(token) ?? [])].sort((a, b) => a.version - b.version)
     },
 
-    async create({ publication, pageManifest }) {
+    async create({ publication, pageManifest, accessCode }) {
       publications.set(publication.token, { ...publication })
+      if (accessCode) accessCodes.set(publication.token, accessCode)
       const version: PublicationVersion = {
         version: publication.current_version,
         page_manifest: pageManifest,
@@ -166,6 +174,14 @@ export function createMemoryPublicationStore(): PublicationStore {
       const updated: Publication = { ...record, expires_at: expiresAt }
       publications.set(token, updated)
       return updated
+    },
+
+    async setAccessCode(token, accessCode) {
+      const record = publications.get(token)
+      if (!record) return null
+      if (accessCode === null) accessCodes.delete(token)
+      else accessCodes.set(token, accessCode)
+      return { ...record }
     },
 
     async findVersion(token, version) {

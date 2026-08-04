@@ -195,20 +195,38 @@ describe("comment route shapes", () => {
     await expect(wrong.json()).resolves.toMatchObject({ error: "invalid_claim" })
   })
 
-  it("refuses a second session on a name that is already commenting here", async () => {
+  /** M3.5: only a name that is *claimable* is reserved, and only against another claim. Two
+   *  pinless namesakes are two invited readers, which the access code already vouched for. */
+  it("refuses a second pinned session on a name that is already claimable here", async () => {
     const { app } = await harness()
     await app.request(
       `/p/${TOKEN}/session`,
-      { method: "POST", body: JSON.stringify({ name: "Maria" }) },
+      { method: "POST", body: JSON.stringify({ name: "Maria", pin: "2468" }) },
       env,
     )
     const again = await app.request(
       `/p/${TOKEN}/session`,
-      { method: "POST", body: JSON.stringify({ name: "maria" }) },
+      { method: "POST", body: JSON.stringify({ name: "maria", pin: "1357" }) },
       env,
     )
     expect(again.status).toBe(409)
     await expect(again.json()).resolves.toMatchObject({ error: "name_taken" })
+  })
+
+  it("lets two pinless namesakes both take the name", async () => {
+    const { app } = await harness()
+    const first = await app.request(
+      `/p/${TOKEN}/session`,
+      { method: "POST", body: JSON.stringify({ name: "Maria" }) },
+      env,
+    )
+    const second = await app.request(
+      `/p/${TOKEN}/session`,
+      { method: "POST", body: JSON.stringify({ name: "maria" }) },
+      env,
+    )
+    expect(first.status).toBe(201)
+    expect(second.status).toBe(201)
   })
 
   it("requires a PIN on the claim route", async () => {

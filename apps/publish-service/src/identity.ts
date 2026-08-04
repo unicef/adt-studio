@@ -136,6 +136,46 @@ export async function hashPin(pin: string): Promise<string> {
   return `${PIN_SCHEME}$${PIN_ITERATIONS}$${base64url(salt)}$${hash}`
 }
 
+/** Trim + upper-case on both sides of the comparison: the code travels by voice and by
+ *  handwriting before it is typed, so case is not part of the secret. */
+export function normalizeAccessCode(code: string): string {
+  return code.trim().toUpperCase()
+}
+
+export async function hashAccessCode(code: string): Promise<string> {
+  return hashPin(normalizeAccessCode(code))
+}
+
+export async function verifyAccessCode(code: string, packed: string | null): Promise<boolean> {
+  return verifyPin(normalizeAccessCode(code), packed)
+}
+
+/** The grant is keyed over the *stored hash*, whose salt is regenerated on every set, so
+ *  rotating (or removing, or re-setting to the same string) the code changes the expected tag
+ *  and every cookie minted for the previous code stops verifying. No revocation list, no extra
+ *  column, no clock: invalidation is a property of the hash the cookie was signed against. */
+async function accessTag(token: string, packed: string, secret: string): Promise<string> {
+  return tagFor(`access:${token}:${packed}`, secret)
+}
+
+export async function accessCookieValue(
+  token: string,
+  packed: string,
+  secret: string,
+): Promise<string> {
+  return accessTag(token, packed, secret)
+}
+
+export async function accessCookieIsValid(
+  cookie: string | undefined,
+  token: string,
+  packed: string,
+  secret: string,
+): Promise<boolean> {
+  if (cookie === undefined) return false
+  return constantTimeEqual(cookie, await accessTag(token, packed, secret))
+}
+
 /** Always derives, even for a session that has no PIN, so the answer time of a failed claim
  *  does not tell an attacker whether the name exists. */
 export async function verifyPin(pin: string, packed: string | null): Promise<boolean> {

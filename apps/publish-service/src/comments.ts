@@ -63,11 +63,11 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 
   /** A cookie can only ever carry a commenter: `is_author` rows are reachable through
    *  `MGMT_SECRET` alone, because `session_id` is public in every comment payload. */
-  const commenterFromCookie = async (
+  const storedCommenterFromCookie = async (
     c: CommentContext,
     store: PublicationStore,
     token: string,
-  ): Promise<CommenterSession | null> => {
+  ): Promise<StoredCommenterSession | null> => {
     const secret = c.env?.MGMT_SECRET
     const cookie = getCookie(c, COMMENTER_SESSION_COOKIE)
     if (!secret || cookie === undefined) return null
@@ -78,6 +78,16 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
     const session = await store.findSession(sessionId)
     if (!session || session.token !== token || session.is_author) return null
 
+    return session
+  }
+
+  const commenterFromCookie = async (
+    c: CommentContext,
+    store: PublicationStore,
+    token: string,
+  ): Promise<CommenterSession | null> => {
+    const session = await storedCommenterFromCookie(c, store, token)
+    if (!session) return null
     return { id: session.id, name: session.name, color: session.color, is_author: false }
   }
 
@@ -126,10 +136,14 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
     })
   }
 
-  /** Name reservation is per publication and over commenters only: the author's display name
-   *  is a Studio-side label, never a claimable identity, so it must not lock a reviewer who
-   *  happens to be called the same out of commenting. */
-  const takenBy = async (
+  /** Name reservation shrank in M3.5 to **sessions that set a PIN**, and only those.
+   *
+   *  The access code now gates who reaches the book at all, so a name is no longer a scarce
+   *  resource to be defended against strangers: two invited Marias must both be able to
+   *  comment. A PIN is different — it is a lookup key, and two pinned Marias would make a
+   *  claim ambiguous — so pinned names still reserve, exactly as in M2.5. Author rows never
+   *  reserve: the author's display name is a Studio-side label, not a claimable identity. */
+  const pinnedHolderOf = async (
     store: PublicationStore,
     token: string,
     name: string,
@@ -137,7 +151,14 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
   ): Promise<StoredCommenterSession | null> => {
     const key = nameKey(name)
     const sessions = await store.listCommenterSessions(token)
-    return sessions.find((session) => session.id !== exceptSessionId && nameKey(session.name) === key) ?? null
+    return (
+      sessions.find(
+        (session) =>
+          session.id !== exceptSessionId &&
+          session.pin !== null &&
+          nameKey(session.name) === key,
+      ) ?? null
+    )
   }
 
   app.post("/p/:token/session", async (c) => {
@@ -153,19 +174,30 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
     }
 
     const store = deps.resolveStore(c.env)
-    const existing = await commenterFromCookie(c, store, publication.token)
+    const existing = await storedCommenterFromCookie(c, store, publication.token)
     const { name, pin } = body.data
 
-    /** The message names the *stored* spelling rather than echoing the request, so the reviewer
+    /** Only a session that will *have* a PIN can collide, and only with another pinned one.
+     *  The message names the *stored* spelling rather than echoing the request, so the reviewer
      *  sees the name as it appears on the pins they are being asked to claim. */
-    const taken = await takenBy(store, publication.token, name, existing?.id ?? null)
-    if (taken) {
-      return errorResponse(c, "name_taken", 409, nameTakenMessage(taken.name))
+    const willHavePin = pin !== undefined || (existing?.pin ?? null) !== null
+    if (willHavePin) {
+      const taken = await pinnedHolderOf(store, publication.token, name, existing?.id ?? null)
+      if (taken) {
+        return errorResponse(c, "name_taken", 409, nameTakenMessage(taken.name))
+      }
     }
 
     let session: CommenterSession
     if (existing) {
-      session = (await store.renameSession(existing.id, name)) ?? existing
+      /** Narrowed by hand: `existing` carries the stored `pin`, and the response body is
+       *  serialised from whatever object lands here. */
+      session = (await store.renameSession(existing.id, name)) ?? {
+        id: existing.id,
+        name: existing.name,
+        color: existing.color,
+        is_author: false,
+      }
       if (pin !== undefined) {
         session = (await store.setSessionPin(existing.id, await hashPin(pin))) ?? session
       }
@@ -200,7 +232,9 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
     }
 
     const store = deps.resolveStore(c.env)
-    const match = await takenBy(store, publication.token, body.data.name, null)
+    /** Pinned rows only — a pinless namesake must not shadow the identity being claimed, which
+     *  is exactly what became possible when pinless names stopped reserving (M3.5). */
+    const match = await pinnedHolderOf(store, publication.token, body.data.name, null)
 
     /** One envelope for "no such name", "that name has no PIN" and "wrong PIN": the create
      *  route already reveals which names exist, this route must not also confirm PINs. */

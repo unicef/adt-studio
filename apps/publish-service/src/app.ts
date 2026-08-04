@@ -5,8 +5,8 @@ import {
   PUBLICATION_SNAPSHOT_MAX_BYTES,
   PUBLISH_WORKER_VERSION,
   PublicationCreateRequest,
-  PublicationExpiryUpdateRequest,
   PublicationToken,
+  PublicationUpdateRequest,
   PublicationVersionCreateRequest,
   type Publication,
   type PublicationCreateResponse,
@@ -15,12 +15,13 @@ import {
   type PublicationVersionCreateResponse,
   type PublishWorkerHealth,
 } from "@adt/types"
+import { accessGate, registerAccessRoute } from "./access.js"
 import { registerCommentRoutes } from "./comments.js"
 import { createD1PublicationStore } from "./d1-store.js"
 import type { Env } from "./env.js"
 import { errorResponse } from "./errors.js"
 import { readJsonBody } from "./http.js"
-import { randomId } from "./identity.js"
+import { hashAccessCode, randomId } from "./identity.js"
 import { mgmtAuth } from "./middleware/mgmt-auth.js"
 import { publicationLookup, type PublicationVariables } from "./middleware/publication-lookup.js"
 import {
@@ -134,6 +135,15 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
   const shareUrl = (c: Context, token: string): string =>
     `${new URL(c.req.url).origin}/p/${token}/`
 
+  /** Management answers report *whether* a code is set, never the code or its hash. */
+  const publicationBody = async (
+    store: PublicationStore,
+    publication: Publication,
+  ): Promise<PublicationResponse> => ({
+    publication,
+    has_access_code: ((await store.findRecord(publication.token))?.accessCode ?? null) !== null,
+  })
+
   const unpack = async (
     c: Context<AppEnv>,
     token: string,
@@ -177,7 +187,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     }
 
     const store = resolveStore(c.env)
-    const { token, title, book_label, page_manifest, expires_at } = upload.metadata
+    const { token, title, book_label, page_manifest, expires_at, access_code } = upload.metadata
 
     if (await store.findByToken(token)) {
       return errorResponse(
@@ -201,11 +211,17 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       revoked_at: null,
     }
 
-    const version = await store.create({ publication, pageManifest: page_manifest })
+    const accessCode = access_code ? await hashAccessCode(access_code) : null
+    const version = await store.create({
+      publication,
+      pageManifest: page_manifest,
+      accessCode,
+    })
     const body: PublicationCreateResponse = {
       publication,
       version,
       url: shareUrl(c, token),
+      has_access_code: accessCode !== null,
     }
     return c.json(body, 201)
   })
@@ -258,13 +274,13 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       return errorResponse(c, "invalid_request", 400, token.error.message)
     }
 
-    const publication = await resolveStore(c.env).revoke(token.data, timestamp())
+    const store = resolveStore(c.env)
+    const publication = await store.revoke(token.data, timestamp())
     if (!publication) {
       return errorResponse(c, "not_found", 404)
     }
 
-    const body: PublicationResponse = { publication }
-    return c.json(body)
+    return c.json(await publicationBody(store, publication))
   })
 
   /** "Resume sharing": the same token starts serving again with every comment intact.
@@ -276,32 +292,51 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       return errorResponse(c, "invalid_request", 400, token.error.message)
     }
 
-    const publication = await resolveStore(c.env).reinstate(token.data)
+    const store = resolveStore(c.env)
+    const publication = await store.reinstate(token.data)
     if (!publication) {
       return errorResponse(c, "not_found", 404)
     }
 
-    const body: PublicationResponse = { publication }
-    return c.json(body)
+    return c.json(await publicationBody(store, publication))
   })
 
+  /** Expiry and the access code are independent knobs on one route: an absent key is left
+   *  alone, so rotating a code cannot silently drop an end date and vice versa. */
   app.patch("/api/publications/:token", async (c) => {
     const token = PublicationToken.safeParse(c.req.param("token"))
     if (!token.success) {
       return errorResponse(c, "invalid_request", 400, token.error.message)
     }
-    const body = await readJsonBody(c, PublicationExpiryUpdateRequest)
+    const body = await readJsonBody(c, PublicationUpdateRequest)
     if (!body.ok) {
       return errorResponse(c, "invalid_request", 400, body.message)
     }
 
-    const publication = await resolveStore(c.env).setExpiry(token.data, body.data.expires_at)
+    const store = resolveStore(c.env)
+    let publication: Publication | null = null
+
+    if (body.data.expires_at !== undefined) {
+      publication = await store.setExpiry(token.data, body.data.expires_at)
+      if (!publication) {
+        return errorResponse(c, "not_found", 404)
+      }
+    }
+
+    if (body.data.access_code !== undefined) {
+      const hashed =
+        body.data.access_code === null ? null : await hashAccessCode(body.data.access_code)
+      publication = await store.setAccessCode(token.data, hashed)
+      if (!publication) {
+        return errorResponse(c, "not_found", 404)
+      }
+    }
+
     if (!publication) {
       return errorResponse(c, "not_found", 404)
     }
 
-    const response: PublicationResponse = { publication }
-    return c.json(response)
+    return c.json(await publicationBody(store, publication))
   })
 
   app.get("/api/publications/:token", async (c) => {
@@ -311,15 +346,16 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     }
 
     const store = resolveStore(c.env)
-    const publication = await store.findByToken(token.data)
-    if (!publication) {
+    const record = await store.findRecord(token.data)
+    if (!record) {
       return errorResponse(c, "not_found", 404)
     }
 
     const body: PublicationDetail = {
-      publication,
+      publication: record.publication,
       versions: await store.listVersions(token.data),
       url: shareUrl(c, token.data),
+      has_access_code: record.accessCode !== null,
     }
     return c.json(body)
   })
@@ -359,6 +395,17 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
 
   app.use("/p/:token", requirePublication)
   app.use("/p/:token/*", requirePublication)
+
+  /** Order is load-bearing three times over. The lookup ladder runs first, so an unknown token
+   *  is still `404` and a revoked one still `410` — the gate only ever guards requests that
+   *  would otherwise be served. `POST /access` is registered *before* the gate, because a
+   *  handler that answers without calling `next()` ends the chain: the code prompt's own form
+   *  target cannot sit behind the prompt. Everything after the gate — comments included — is
+   *  reachable only with a valid grant or `MGMT_SECRET`. */
+  registerAccessRoute(app)
+
+  app.use("/p/:token", accessGate)
+  app.use("/p/:token/*", accessGate)
 
   registerCommentRoutes(app, {
     resolveStore,

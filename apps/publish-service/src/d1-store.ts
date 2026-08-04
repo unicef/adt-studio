@@ -15,6 +15,7 @@ import type {
   CreateSessionInput,
   PublicationStore,
   StoredCommenterSession,
+  StoredPublication,
   UpdateCommentInput,
 } from "./store.js"
 
@@ -26,6 +27,7 @@ interface PublicationRow {
   created_at: string
   expires_at: string | null
   revoked_at: string | null
+  access_code: string | null
 }
 
 interface VersionRow {
@@ -149,19 +151,25 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
     return row ? toSession(row) : null
   }
 
-  const readPublication = async (token: string): Promise<Publication | null> => {
+  const readRecord = async (token: string): Promise<StoredPublication | null> => {
     const row = await db
       .prepare(
-        `SELECT token, title, book_label, current_version, created_at, expires_at, revoked_at
+        `SELECT token, title, book_label, current_version, created_at, expires_at, revoked_at,
+                access_code
          FROM publications WHERE token = ?`,
       )
       .bind(token)
       .first<PublicationRow>()
-    return row ? toPublication(row) : null
+    return row ? { publication: toPublication(row), accessCode: row.access_code ?? null } : null
   }
+
+  const readPublication = async (token: string): Promise<Publication | null> =>
+    (await readRecord(token))?.publication ?? null
 
   return {
     findByToken: readPublication,
+
+    findRecord: readRecord,
 
     async listVersions(token) {
       const result = await db
@@ -185,14 +193,15 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       return row ? toVersion(row) : null
     },
 
-    async create({ publication, pageManifest }: CreatePublicationInput) {
+    async create({ publication, pageManifest, accessCode }: CreatePublicationInput) {
       const manifestJson = JSON.stringify(pageManifest)
       await db.batch([
         db
           .prepare(
             `INSERT INTO publications
-               (token, title, book_label, current_version, created_at, expires_at, revoked_at)
-             VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+               (token, title, book_label, current_version, created_at, expires_at, revoked_at,
+                access_code)
+             VALUES (?, ?, ?, ?, ?, ?, NULL, ?)`,
           )
           .bind(
             publication.token,
@@ -201,6 +210,7 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
             publication.current_version,
             publication.created_at,
             publication.expires_at,
+            accessCode ?? null,
           ),
         db
           .prepare(
@@ -277,6 +287,15 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       const result = await db
         .prepare(`UPDATE publications SET expires_at = ? WHERE token = ?`)
         .bind(expiresAt, token)
+        .run()
+      if ((result.meta.changes ?? 0) === 0) return null
+      return readPublication(token)
+    },
+
+    async setAccessCode(token, accessCode) {
+      const result = await db
+        .prepare(`UPDATE publications SET access_code = ? WHERE token = ?`)
+        .bind(accessCode, token)
         .run()
       if ((result.meta.changes ?? 0) === 0) return null
       return readPublication(token)
