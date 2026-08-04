@@ -1298,6 +1298,9 @@ msgstr "dhe shumë blloqe të tjera në të gjithë librin"
 msgid "and more sections across the page"
 msgstr "dhe seksione të tjera në faqe"
 
+msgid "Angle"
+msgstr "Këndi"
+
 msgid "Answer"
 msgstr "Përgjigje"
 
@@ -1686,6 +1689,9 @@ msgstr "Fazat e krijimit të librit"
 msgid "Book data is outdated and must be rebuilt."
 msgstr "Të dhënat e librit janë të vjetruara dhe duhet të rindërtohen."
 
+msgid "Book design"
+msgstr "Dizajni i librit"
+
 msgid "Book font updated."
 msgstr "Shkronja e librit u përditësua."
 
@@ -2069,6 +2075,9 @@ msgstr "Zgjidhni si duhet të formatohet përmbajtja."
 msgid "Choose images..."
 msgstr "Zgjidhni imazhe..."
 
+msgid "Choose one accessible font family for all reflowable storyboard pages."
+msgstr "Zgjidhni një familje shkronjash të qasshme për të gjitha faqet e rrjedhshme të skenarit."
+
 msgid "Choose Provider"
 msgstr "Zgjidhni Ofruesin"
 
@@ -2158,6 +2167,9 @@ msgstr "Klonifikimi dështoi"
 
 msgid "Close"
 msgstr "Mbyll"
+
+msgid "Close book design"
+msgstr "Mbyll dizajnin e librit"
 
 msgid "Close edit panel"
 msgstr "Mbyll panelin e redaktimit"
@@ -3670,6 +3682,9 @@ msgstr "Faqja e fundit"
 
 msgid "Fine-grained token for an existing repository"
 msgstr "Token i detajuar për një depo ekzistuese"
+
+msgid "Finish layout"
+msgstr "Përfundo paraqitjen"
 
 msgid "First images from the deep-field telescope."
 msgstr "Imazhet e para nga teleskopi i fushës së thellë."
@@ -6608,6 +6623,9 @@ msgstr "Pozicioni"
 msgid "Position {0}, {1} → {2}×{3} pt"
 msgstr "Pozicioni {0}, {1} → {2}×{3} pt"
 
+msgid "Position for {deviceView}"
+msgstr "Pozicioni për {deviceView}"
+
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
 
@@ -9262,6 +9280,9 @@ msgstr "Paraparimimi TOC"
 #~ msgid "Today"
 #~ msgstr "Sot"
 
+msgid "Toggle canvas editing mode"
+msgstr "Ndrysho mënyrën e redaktimit të kanavacës"
+
 msgid "Toggle model list"
 msgstr "Ndrysho listën e modeleve"
 
@@ -10070,6 +10091,12 @@ msgstr "Shkruani fjalinë tuaj me një shënues {0}."
 
 #~ msgid "Yesterday"
 #~ msgstr "Dje"
+
+msgid "X position"
+msgstr "Pozicioni X"
+
+msgid "Y position"
+msgstr "Pozicioni Y"
 
 #. placeholder {0}: formatVersion(release.version)
 msgid "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."

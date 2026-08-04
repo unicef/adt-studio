@@ -1297,6 +1297,9 @@ msgstr "e muitos mais blocos em todo o livro"
 msgid "and more sections across the page"
 msgstr "e mais seções na página"
 
+msgid "Angle"
+msgstr "Ângulo"
+
 msgid "Answer"
 msgstr "Resposta"
 
@@ -1685,6 +1688,9 @@ msgstr "Etapas de criação do livro"
 msgid "Book data is outdated and must be rebuilt."
 msgstr "Os dados do livro estão desatualizados e precisam ser reconstruídos."
 
+msgid "Book design"
+msgstr "Design do livro"
+
 msgid "Book font updated."
 msgstr "Fonte do livro atualizada."
 
@@ -2068,6 +2074,9 @@ msgstr "Escolha como o conteúdo deve ser formatado."
 msgid "Choose images..."
 msgstr "Escolher imagens..."
 
+msgid "Choose one accessible font family for all reflowable storyboard pages."
+msgstr "Escolha uma família de fontes acessível para todas as páginas responsivas do storyboard."
+
 msgid "Choose Provider"
 msgstr "Escolher provedor"
 
@@ -2157,6 +2166,9 @@ msgstr "Clone failed"
 
 msgid "Close"
 msgstr "Close"
+
+msgid "Close book design"
+msgstr "Fechar design do livro"
 
 msgid "Close edit panel"
 msgstr "Fechar painel de edição"
@@ -3669,6 +3681,9 @@ msgstr "Página Final"
 
 msgid "Fine-grained token for an existing repository"
 msgstr "Token de acesso refinado para um repositório existente"
+
+msgid "Finish layout"
+msgstr "Finalizar layout"
 
 msgid "First images from the deep-field telescope."
 msgstr "Primeiras imagens do telescópio de campo profundo."
@@ -6607,6 +6622,9 @@ msgstr "Posição"
 msgid "Position {0}, {1} → {2}×{3} pt"
 msgstr "Posição {0}, {1} → {2}×{3} pt"
 
+msgid "Position for {deviceView}"
+msgstr "Posição para {deviceView}"
+
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
 
@@ -9261,6 +9279,9 @@ msgstr "Pré-visualização do Sumário"
 #~ msgid "Today"
 #~ msgstr "Hoje"
 
+msgid "Toggle canvas editing mode"
+msgstr "Alternar modo de edição da tela"
+
 msgid "Toggle model list"
 msgstr "Alternar lista de modelos"
 
@@ -10069,6 +10090,12 @@ msgstr "Escreva sua frase com um marcador {0}."
 
 #~ msgid "Yesterday"
 #~ msgstr "Ontem"
+
+msgid "X position"
+msgstr "Posição X"
+
+msgid "Y position"
+msgstr "Posição Y"
 
 #. placeholder {0}: formatVersion(release.version)
 msgid "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."

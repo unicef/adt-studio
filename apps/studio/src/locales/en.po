@@ -1297,6 +1297,9 @@ msgstr "and many more blocks across the entire book"
 msgid "and more sections across the page"
 msgstr "and more sections across the page"
 
+msgid "Angle"
+msgstr "Angle"
+
 msgid "Answer"
 msgstr "Answer"
 
@@ -1685,6 +1688,9 @@ msgstr "Book creation stages"
 msgid "Book data is outdated and must be rebuilt."
 msgstr "Book data is outdated and must be rebuilt."
 
+msgid "Book design"
+msgstr "Book design"
+
 msgid "Book font updated."
 msgstr "Book font updated."
 
@@ -2068,6 +2074,9 @@ msgstr "Choose how the content should be formatted."
 msgid "Choose images..."
 msgstr "Choose images..."
 
+msgid "Choose one accessible font family for all reflowable storyboard pages."
+msgstr "Choose one accessible font family for all reflowable storyboard pages."
+
 msgid "Choose Provider"
 msgstr "Choose Provider"
 
@@ -2157,6 +2166,9 @@ msgstr "Clone failed"
 
 msgid "Close"
 msgstr "Close"
+
+msgid "Close book design"
+msgstr "Close book design"
 
 msgid "Close edit panel"
 msgstr "Close edit panel"
@@ -3669,6 +3681,9 @@ msgstr "Final Page"
 
 msgid "Fine-grained token for an existing repository"
 msgstr "Fine-grained token for an existing repository"
+
+msgid "Finish layout"
+msgstr "Finish layout"
 
 msgid "First images from the deep-field telescope."
 msgstr "First images from the deep-field telescope."
@@ -6607,6 +6622,9 @@ msgstr "Position"
 msgid "Position {0}, {1} → {2}×{3} pt"
 msgstr "Position {0}, {1} → {2}×{3} pt"
 
+msgid "Position for {deviceView}"
+msgstr "Position for {deviceView}"
+
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
 
@@ -9261,6 +9279,9 @@ msgstr "TOC Preview"
 #~ msgid "Today"
 #~ msgstr "Today"
 
+msgid "Toggle canvas editing mode"
+msgstr "Toggle canvas editing mode"
+
 msgid "Toggle model list"
 msgstr "Toggle model list"
 
@@ -10069,6 +10090,12 @@ msgstr "Write your sentence with a {0} marker."
 
 #~ msgid "Yesterday"
 #~ msgstr "Yesterday"
+
+msgid "X position"
+msgstr "X position"
+
+msgid "Y position"
+msgstr "Y position"
 
 #. placeholder {0}: formatVersion(release.version)
 msgid "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."
