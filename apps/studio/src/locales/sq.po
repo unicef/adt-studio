@@ -2963,6 +2963,9 @@ msgstr "KRYER"
 #~ msgid "Downgrade"
 #~ msgstr "Kthim në version më të vjetër"
 
+msgid "Done selecting"
+msgstr "Përfundo përzgjedhjen"
+
 msgid "Download a full backup of this project"
 msgstr "Shkarko një kopje rezervë të plotë të këtij projekti"
 
@@ -7949,6 +7952,9 @@ msgstr "Zgjidhni të gjitha"
 
 msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
 msgstr "Zgjidhni një element për të redaktuar tekstin e tij — [[blank:…]] shënon vendin ku shfaqet një hapësirë bosh, prandaj ruajeni që të ruhet hapësira."
+
+msgid "Select audio"
+msgstr "Përzgjidh audion"
 
 #. placeholder {0}: entry.text
 msgid "Select audio for {0}"

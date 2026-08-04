@@ -2962,6 +2962,9 @@ msgstr "HECHO"
 #~ msgid "Downgrade"
 #~ msgstr "Bajar de versión"
 
+msgid "Done selecting"
+msgstr "Finalizar selección"
+
 msgid "Download a full backup of this project"
 msgstr "Descargar una copia de seguridad completa de este proyecto"
 
@@ -7948,6 +7951,9 @@ msgstr "Seleccionar todo"
 
 msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
 msgstr "Selecciona un elemento para editar su texto: [[blank:…]] indica dónde aparece un espacio en blanco, así que consérvalo para mantener el espacio."
+
+msgid "Select audio"
+msgstr "Seleccionar audio"
 
 #. placeholder {0}: entry.text
 msgid "Select audio for {0}"

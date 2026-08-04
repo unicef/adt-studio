@@ -2962,6 +2962,9 @@ msgstr "CONCLUÍDO"
 #~ msgid "Downgrade"
 #~ msgstr "Downgrade"
 
+msgid "Done selecting"
+msgstr "Concluir seleção"
+
 msgid "Download a full backup of this project"
 msgstr "Baixar um backup completo deste projeto"
 
@@ -7948,6 +7951,9 @@ msgstr "Selecionar tudo"
 
 msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
 msgstr "Selecione um item para editar seu texto: [[blank:…]] marca onde aparece uma lacuna, então mantenha-o para preservar a lacuna."
+
+msgid "Select audio"
+msgstr "Selecionar áudio"
 
 #. placeholder {0}: entry.text
 msgid "Select audio for {0}"

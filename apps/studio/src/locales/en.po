@@ -2962,6 +2962,9 @@ msgstr "DONE"
 #~ msgid "Downgrade"
 #~ msgstr "Downgrade"
 
+msgid "Done selecting"
+msgstr "Done selecting"
+
 msgid "Download a full backup of this project"
 msgstr "Download a full backup of this project"
 
@@ -7948,6 +7951,9 @@ msgstr "Select all"
 
 msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
 msgstr "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
+
+msgid "Select audio"
+msgstr "Select audio"
 
 #. placeholder {0}: entry.text
 msgid "Select audio for {0}"
