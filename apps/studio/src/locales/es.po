@@ -9933,3 +9933,499 @@ msgstr "Acercar"
 
 msgid "Zoom out"
 msgstr "Alejar"
+
+msgid "Actions"
+msgstr "Acciones"
+
+msgid "ADT Studio can create this public repository or update it when it already exists."
+msgstr "ADT Studio puede crear este repositorio público o actualizarlo si ya existe."
+
+msgid "ADT Studio will monitor and pull remote changes automatically."
+msgstr "ADT Studio supervisará y obtendrá automáticamente los cambios remotos."
+
+msgid "Authenticate securely with the configured GitHub account."
+msgstr "Autentícate de forma segura con la cuenta de GitHub configurada."
+
+msgid "Automatic"
+msgstr "Automática"
+
+msgid "Automatic GitHub sync"
+msgstr "Sincronización automática con GitHub"
+
+msgid "Automatic sync checks GitHub every 30 seconds and pulls a newer remote version. Manual sync only checks when you request it."
+msgstr "La sincronización automática comprueba GitHub cada 30 segundos y obtiene una versión remota más reciente. La sincronización manual solo comprueba cuando lo solicitas."
+
+#. placeholder {0}: remoteStatusQuery.data.localChangeCount
+msgid "Automatic synchronization is paused to protect {0} local change(s). Open the deployable book worktree in an editor, resolve the differences, then publish the result."
+msgstr "La sincronización automática está pausada para proteger {0} cambio(s) local(es). Abra el árbol de trabajo desplegable del libro en un editor, resuelva las diferencias y publique el resultado."
+
+msgid "Automatically generated from book changes"
+msgstr "Generado automáticamente a partir de los cambios del libro"
+
+msgid "Back to deployments"
+msgstr "Volver a implementaciones"
+
+msgid "Back to git history"
+msgstr "Volver al historial de Git"
+
+msgid "Back to workflow"
+msgstr "Volver al flujo"
+
+msgid "Binary file changed. A line-by-line preview is not available."
+msgstr "El archivo binario cambió. No hay disponible una vista previa línea por línea."
+
+msgid "Book deployment"
+msgstr "Implementación del libro"
+
+msgid "Book published successfully."
+msgstr "Libro publicado correctamente."
+
+msgid "Book worktree opened in the selected editor."
+msgstr "El árbol de trabajo del libro se abrió en el editor seleccionado."
+
+msgid "Build the accessible web book and collect its assets."
+msgstr "Crea el libro web accesible y reúne sus recursos."
+
+msgid "Changed book files"
+msgstr "Archivos modificados del libro"
+
+msgid "Changes"
+msgstr "Cambios"
+
+msgid "Check GitHub now"
+msgstr "Comprobar GitHub ahora"
+
+msgid "Checking GitHub for changes…"
+msgstr "Comprobando cambios en GitHub…"
+
+msgid "Checking local book changes…"
+msgstr "Comprobando cambios locales del libro…"
+
+msgid "Choose how changes are synchronized"
+msgstr "Elige cómo se sincronizan los cambios"
+
+msgid "Choose the repository"
+msgstr "Elegir el repositorio"
+
+msgid "Commit"
+msgstr "Confirmar"
+
+msgid "Commit message"
+msgstr "Mensaje de confirmación"
+
+msgid "Compare the current book with the last published version."
+msgstr "Compara el libro actual con la última versión publicada."
+
+msgid "Configure"
+msgstr "Configurar"
+
+msgid "Configure GitHub Pages for the published book."
+msgstr "Configura GitHub Pages para el libro publicado."
+
+msgid "Configure publishing"
+msgstr "Configurar publicación"
+
+msgid "Confirm that the public book link is available and healthy."
+msgstr "Confirma que el enlace público del libro está disponible y funciona correctamente."
+
+msgid "Connect"
+msgstr "Conectar"
+
+msgid "Connect GitHub"
+msgstr "Conectar GitHub"
+
+msgid "Connect GitHub, choose synchronization behavior, and follow deployment progress."
+msgstr "Conecta GitHub, elige el comportamiento de sincronización y sigue el progreso del despliegue."
+
+msgid "Connect GitHub, publish the accessible book, and manage its hosted GitHub Pages deployment."
+msgstr "Conecta GitHub, publica el libro accesible y administra su despliegue alojado en GitHub Pages."
+
+msgid "Connect GitHub, review book changes, and publish the accessible book to GitHub Pages. Deployment progress and the live preview remain visible inside ADT Studio."
+msgstr "Conecta GitHub, revisa los cambios del libro y publica el libro accesible en GitHub Pages. El progreso del despliegue y la vista previa en vivo permanecen visibles dentro de ADT Studio."
+
+msgid "Connect your GitHub account"
+msgstr "Conecta tu cuenta de GitHub"
+
+#. placeholder {0}: connection.login
+msgid "Connected as {0}"
+msgstr "Conectado como {0}"
+
+#. placeholder {0}: result.login
+msgid "Connected to GitHub as {0}."
+msgstr "Conectado a GitHub como {0}."
+
+msgid "Connecting to GitHub…"
+msgstr "Conectando con GitHub…"
+
+msgid "Continue to deploy"
+msgstr "Continuar al despliegue"
+
+msgid "Create a versioned Git commit describing the book changes."
+msgstr "Crea un commit de Git versionado que describa los cambios del libro."
+
+msgid "Create the destination repository first, choose its Resource owner, then limit Repository access to that repository."
+msgstr "Primero crea el repositorio de destino, elige su propietario de recursos y limita el acceso al repositorio a ese repositorio."
+
+msgid "Created"
+msgstr "Creado"
+
+msgid "Current repository:"
+msgstr "Repositorio actual:"
+
+msgid "Cursor"
+msgstr "Cursor"
+
+msgid "Deploy"
+msgstr "Desplegar"
+
+msgid "Deploy book"
+msgstr "Desplegar libro"
+
+msgid "Deployed files and the exact changes included in this publishing run."
+msgstr "Archivos implementados y cambios exactos incluidos en esta publicación."
+
+msgid "Deployment"
+msgstr "Implementación"
+
+msgid "Deployment details"
+msgstr "Detalles del despliegue"
+
+msgid "Deployment workflow"
+msgstr "Flujo de despliegue"
+
+msgid "Deployments"
+msgstr "Despliegues"
+
+msgid "Detect changes"
+msgstr "Detectar cambios"
+
+msgid "Do not enable workflow, delete_repo, admin:org, packages, or user scopes. ADT Studio does not need them."
+msgstr "No habilites los ámbitos workflow, delete_repo, admin:org, packages ni user. ADT Studio no los necesita."
+
+msgid "Don't know how to get your token?"
+msgstr "¿No sabes cómo obtener tu token?"
+
+msgid "Editor"
+msgstr "Editor"
+
+msgid "Enable Pages"
+msgstr "Activar Pages"
+
+msgid "Enter a new GitHub token to reconnect."
+msgstr "Introduce un nuevo token de GitHub para volver a conectar."
+
+msgid "Environment"
+msgstr "Entorno"
+
+msgid "files"
+msgstr "archivos"
+
+msgid "Files"
+msgstr "Archivos"
+
+msgid "Follow every publishing operation. The active step is highlighted and completed steps play a short confirmation sound."
+msgstr "Sigue cada operación de publicación. El paso activo se resalta y los pasos completados reproducen un breve sonido de confirmación."
+
+msgid "Follow one of these paths, then return to ADT Studio and paste the generated token into the connection field."
+msgstr "Sigue una de estas opciones, vuelve a ADT Studio y pega el token generado en el campo de conexión."
+
+msgid "Generate the token, copy it once, paste it below, and select Connect GitHub."
+msgstr "Genera el token, cópialo una vez, pégalo abajo y selecciona Conectar GitHub."
+
+msgid "Git history"
+msgstr "Historial de Git"
+
+msgid "Git History"
+msgstr "Historial de Git"
+
+msgid "GitHub account"
+msgstr "Cuenta de GitHub"
+
+msgid "GitHub configuration progress"
+msgstr "Progreso de configuración de GitHub"
+
+msgid "GitHub deployment failed"
+msgstr "El despliegue de GitHub falló"
+
+msgid "GitHub deployment failed."
+msgstr "El despliegue de GitHub falló."
+
+msgid "GitHub deployment progress"
+msgstr "Progreso del despliegue en GitHub"
+
+msgid "GitHub deployment started."
+msgstr "Despliegue de GitHub iniciado."
+
+msgid "GitHub did not provide a build error message."
+msgstr "GitHub no proporcionó un mensaje de error de compilación."
+
+msgid "GitHub has changes waiting to be synchronized."
+msgstr "GitHub tiene cambios pendientes de sincronización."
+
+msgid "GitHub personal access token"
+msgstr "Token de acceso personal de GitHub"
+
+#. placeholder {0}: lastSynchronizedAt.toLocaleTimeString()
+msgid "GitHub synchronized at {0}."
+msgstr "GitHub se sincronizó a las {0}."
+
+msgid "Hide preview"
+msgstr "Ocultar vista previa"
+
+msgid "How to configure a GitHub personal access token"
+msgstr "Cómo configurar un token de acceso personal de GitHub"
+
+msgid "If an organization owns the repository, its policy may require administrator approval before the token works."
+msgstr "Si una organización es propietaria del repositorio, su política puede exigir la aprobación de un administrador antes de que funcione el token."
+
+msgid "Inspect"
+msgstr "Inspeccionar"
+
+msgid "Latest deployment failed"
+msgstr "El último despliegue falló"
+
+msgid "Learn"
+msgstr "Aprender"
+
+msgid "Leave empty to generate a change-aware message"
+msgstr "Déjalo vacío para generar un mensaje basado en los cambios"
+
+msgid "Live deployment progress"
+msgstr "Progreso de implementación en vivo"
+
+msgid "Loading changed book files"
+msgstr "Cargando archivos modificados del libro"
+
+msgid "Loading deployed file differences"
+msgstr "Cargando diferencias de archivos implementados"
+
+msgid "Loading file differences"
+msgstr "Cargando diferencias del archivo"
+
+msgid "Loading Git file preview"
+msgstr "Cargando vista previa del archivo Git"
+
+msgid "Local"
+msgstr "Local"
+
+msgid "Local and GitHub changes need resolution"
+msgstr "Los cambios locales y de GitHub necesitan resolución"
+
+msgid "Local book is up to date"
+msgstr "El libro local está actualizado"
+
+msgid "Local book workspace"
+msgstr "Espacio de trabajo local del libro"
+
+msgid "Local changes"
+msgstr "Cambios locales"
+
+msgid "Local changes checked. Connect GitHub to synchronize."
+msgstr "Cambios locales comprobados. Conecte GitHub para sincronizar."
+
+msgid "Local changes checked. GitHub is up to date."
+msgstr "Cambios locales comprobados. GitHub está actualizado."
+
+msgid "Local changes checked. The book is ready for its first deployment."
+msgstr "Cambios locales comprobados. El libro está listo para su primer despliegue."
+
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Metadata remains Read-only automatically. No Actions, Workflows, Issues, Packages, or account permissions are required."
+msgstr "Los metadatos permanecen automáticamente en solo lectura. No se requieren permisos de Actions, Workflows, Issues, Packages ni de cuenta."
+
+msgid "No changes"
+msgstr "Sin cambios"
+
+msgid "No deployments have been recorded yet."
+msgstr "Aún no se han registrado implementaciones."
+
+msgid "No file changes were recorded for this deployment."
+msgstr "No se registraron cambios de archivos para esta implementación."
+
+msgid "No file selected"
+msgstr "Ningún archivo seleccionado"
+
+msgid "No unpublished file changes were detected."
+msgstr "No se detectaron cambios de archivos sin publicar."
+
+msgid "Open GitHub token settings and choose Generate new token (classic)."
+msgstr "Abre la configuración de tokens de GitHub y elige Generar nuevo token (clásico)."
+
+msgid "Open in editor"
+msgstr "Abrir en el editor"
+
+msgid "Open the classic token setup page"
+msgstr "Abrir la configuración del token clásico"
+
+msgid "Open the fine-grained token setup page"
+msgstr "Abrir la configuración del token específico"
+
+msgid "Owner"
+msgstr "Propietario"
+
+msgid "Package book"
+msgstr "Empaquetar libro"
+
+msgid "Page {page} of {pageCount}"
+msgstr "Página {page} de {pageCount}"
+
+msgid "Paste a personal access token with the permissions needed to create repositories, publish files, and enable GitHub Pages."
+msgstr "Pega un token de acceso personal con permisos para crear repositorios, publicar archivos y activar GitHub Pages."
+
+msgid "Preview deployment"
+msgstr "Previsualizar despliegue"
+
+msgid "Previous"
+msgstr "Anterior"
+
+msgid "Production"
+msgstr "Producción"
+
+msgid "Publish"
+msgstr "Publicar"
+
+msgid "Publish book changes"
+msgstr "Publicar cambios del libro"
+
+msgid "Publish latest changes"
+msgstr "Publicar últimos cambios"
+
+msgid "Published"
+msgstr "Publicado"
+
+msgid "Published book preview"
+msgstr "Vista previa del libro publicado"
+
+msgid "Publishing"
+msgstr "Publicando"
+
+msgid "Publishing to GitHub"
+msgstr "Publicando en GitHub"
+
+msgid "Publishing views"
+msgstr "Vistas de publicación"
+
+msgid "Publishing..."
+msgstr "Publicando..."
+
+msgid "Push"
+msgstr "Publicar"
+
+msgid "Re-run deployment"
+msgstr "Volver a ejecutar el despliegue"
+
+msgid "Ready"
+msgstr "Listo"
+
+msgid "Reconnect"
+msgstr "Volver a conectar"
+
+msgid "Reconnect GitHub"
+msgstr "Volver a conectar GitHub"
+
+msgid "Reconnect GitHub once to restore the saved token on this device, then re-run the deployment."
+msgstr "Vuelve a conectar GitHub una vez para restaurar el token guardado en este dispositivo y luego vuelve a ejecutar el despliegue."
+
+msgid "Repository"
+msgstr "Repositorio"
+
+msgid "Repository destination"
+msgstr "Destino del repositorio"
+
+msgid "Required classic scope:"
+msgstr "Ámbito clásico requerido:"
+
+msgid "Required fine-grained repository permissions:"
+msgstr "Permisos detallados de repositorio requeridos:"
+
+msgid "Select a changed file to inspect its publishing metadata."
+msgstr "Selecciona un archivo modificado para inspeccionar sus metadatos de publicación."
+
+msgid "Set a clear name and a short expiration date."
+msgstr "Establece un nombre claro y una fecha de caducidad corta."
+
+msgid "Set Pages to Read and write so ADT can enable, inspect, and update the published site."
+msgstr "Configura Pages como Lectura y escritura para que ADT pueda habilitar, inspeccionar y actualizar el sitio publicado."
+
+msgid "Start deployment"
+msgstr "Iniciar despliegue"
+
+msgid "Starting the GitHub deployment…"
+msgstr "Iniciando el despliegue de GitHub…"
+
+msgid "Status"
+msgstr "Estado"
+
+msgid "Sync latest changes"
+msgstr "Sincronizar últimos cambios"
+
+msgid "Synchronization"
+msgstr "Sincronización"
+
+msgid "Synchronization paused: local and GitHub changes need resolution."
+msgstr "Sincronización pausada: deben resolverse los cambios locales y de GitHub."
+
+msgid "Synchronizing changes from GitHub…"
+msgstr "Sincronizando cambios desde GitHub…"
+
+msgid "System editor"
+msgstr "Editor del sistema"
+
+msgid "The final commit message can be reviewed in Configure before deployment."
+msgstr "El mensaje final del commit se puede revisar en Configurar antes del despliegue."
+
+msgid "This large diff is truncated after 5,000 lines."
+msgstr "Esta comparación grande se ha truncado después de 5.000 líneas."
+
+msgid "Triggered"
+msgstr "Iniciado"
+
+msgid "Unable to check GitHub for changes."
+msgstr "No se pudieron comprobar los cambios en GitHub."
+
+msgid "Unable to check local book changes."
+msgstr "No se pudieron comprobar los cambios locales del libro."
+
+msgid "Unable to connect to GitHub."
+msgstr "No se pudo conectar con GitHub."
+
+msgid "Unable to load deployed file differences."
+msgstr "No se pudieron cargar las diferencias de archivos implementados."
+
+msgid "Unable to load deployments."
+msgstr "No se pudieron cargar las implementaciones."
+
+msgid "Unable to load file differences."
+msgstr "No se pudieron cargar las diferencias del archivo."
+
+msgid "Unable to open the selected editor."
+msgstr "No se pudo abrir el editor seleccionado."
+
+msgid "Unable to start the GitHub deployment."
+msgstr "No se pudo iniciar el despliegue de GitHub."
+
+msgid "Unable to synchronize GitHub changes."
+msgstr "No se pudieron sincronizar los cambios de GitHub."
+
+msgid "Under Repository permissions, set Contents to Read and write so ADT can pull and push book files."
+msgstr "En Permisos del repositorio, configura Contenido como Lectura y escritura para que ADT pueda descargar y enviar los archivos del libro."
+
+msgid "Under Select scopes, enable repo. GitHub requires this classic scope for repository creation, pushing book files, and configuring GitHub Pages."
+msgstr "En Seleccionar ámbitos, habilita repo. GitHub requiere este ámbito clásico para crear repositorios, enviar archivos del libro y configurar GitHub Pages."
+
+msgid "Upload the commit to the configured GitHub repository."
+msgstr "Sube el commit al repositorio de GitHub configurado."
+
+msgid "Verify"
+msgstr "Verificar"
+
+msgid "VS Code"
+msgstr "VS Code"
+
+msgid "Working tree"
+msgstr "Árbol de trabajo"
+
+msgid "You control when ADT Studio checks and pulls remote changes."
+msgstr "Tú controlas cuándo ADT Studio comprueba y obtiene los cambios remotos."

@@ -9934,3 +9934,499 @@ msgstr "Zmadhim"
 
 msgid "Zoom out"
 msgstr "Zvogëlim"
+
+msgid "Actions"
+msgstr "Veprimet"
+
+msgid "ADT Studio can create this public repository or update it when it already exists."
+msgstr "ADT Studio mund ta krijojë këtë depo publike ose ta përditësojë nëse ekziston."
+
+msgid "ADT Studio will monitor and pull remote changes automatically."
+msgstr "ADT Studio do t’i monitorojë dhe marrë automatikisht ndryshimet në distancë."
+
+msgid "Authenticate securely with the configured GitHub account."
+msgstr "Autentikohuni në mënyrë të sigurt me llogarinë e konfiguruar GitHub."
+
+msgid "Automatic"
+msgstr "Automatik"
+
+msgid "Automatic GitHub sync"
+msgstr "Sinkronizim automatik me GitHub"
+
+msgid "Automatic sync checks GitHub every 30 seconds and pulls a newer remote version. Manual sync only checks when you request it."
+msgstr "Sinkronizimi automatik kontrollon GitHub çdo 30 sekonda dhe merr një version më të ri në distancë. Sinkronizimi manual kontrollon vetëm kur e kërkoni."
+
+#. placeholder {0}: remoteStatusQuery.data.localChangeCount
+msgid "Automatic synchronization is paused to protect {0} local change(s). Open the deployable book worktree in an editor, resolve the differences, then publish the result."
+msgstr "Sinkronizimi automatik është ndalur për të mbrojtur {0} ndryshim(e) lokal(e). Hapeni pemën e punës së publikueshme të librit në një redaktues, zgjidhni dallimet dhe më pas publikoni rezultatin."
+
+msgid "Automatically generated from book changes"
+msgstr "Gjeneruar automatikisht nga ndryshimet e librit"
+
+msgid "Back to deployments"
+msgstr "Kthehu te publikimet"
+
+msgid "Back to git history"
+msgstr "Kthehu te historiku i Git"
+
+msgid "Back to workflow"
+msgstr "Kthehu te rrjedha"
+
+msgid "Binary file changed. A line-by-line preview is not available."
+msgstr "Skedari binar ka ndryshuar. Pamja paraprake rresht pas rreshti nuk është e disponueshme."
+
+msgid "Book deployment"
+msgstr "Publikimi i librit"
+
+msgid "Book published successfully."
+msgstr "Libri u publikua me sukses."
+
+msgid "Book worktree opened in the selected editor."
+msgstr "Pema e punës së librit u hap në redaktuesin e zgjedhur."
+
+msgid "Build the accessible web book and collect its assets."
+msgstr "Ndërtoni librin e qasshëm në ueb dhe mblidhni burimet e tij."
+
+msgid "Changed book files"
+msgstr "Skedarët e ndryshuar të librit"
+
+msgid "Changes"
+msgstr "Ndryshimet"
+
+msgid "Check GitHub now"
+msgstr "Kontrollo GitHub tani"
+
+msgid "Checking GitHub for changes…"
+msgstr "Duke kontrolluar GitHub për ndryshime…"
+
+msgid "Checking local book changes…"
+msgstr "Po kontrollohen ndryshimet lokale të librit…"
+
+msgid "Choose how changes are synchronized"
+msgstr "Zgjidhni si sinkronizohen ndryshimet"
+
+msgid "Choose the repository"
+msgstr "Zgjidh depon"
+
+msgid "Commit"
+msgstr "Regjistro"
+
+msgid "Commit message"
+msgstr "Mesazhi i regjistrimit"
+
+msgid "Compare the current book with the last published version."
+msgstr "Krahasoni librin aktual me versionin e fundit të publikuar."
+
+msgid "Configure"
+msgstr "Konfiguro"
+
+msgid "Configure GitHub Pages for the published book."
+msgstr "Konfiguroni GitHub Pages për librin e publikuar."
+
+msgid "Configure publishing"
+msgstr "Konfiguro publikimin"
+
+msgid "Confirm that the public book link is available and healthy."
+msgstr "Konfirmoni që lidhja publike e librit është e disponueshme dhe funksionon."
+
+msgid "Connect"
+msgstr "Lidhu"
+
+msgid "Connect GitHub"
+msgstr "Lidhu me GitHub"
+
+msgid "Connect GitHub, choose synchronization behavior, and follow deployment progress."
+msgstr "Lidhni GitHub, zgjidhni mënyrën e sinkronizimit dhe ndiqni ecurinë e vendosjes."
+
+msgid "Connect GitHub, publish the accessible book, and manage its hosted GitHub Pages deployment."
+msgstr "Lidhni GitHub-in, publikoni librin e qasshëm dhe menaxhoni vendosjen e tij në GitHub Pages."
+
+msgid "Connect GitHub, review book changes, and publish the accessible book to GitHub Pages. Deployment progress and the live preview remain visible inside ADT Studio."
+msgstr "Lidhni GitHub-in, rishikoni ndryshimet e librit dhe publikoni librin e qasshëm në GitHub Pages. Përparimi i vendosjes dhe pamja paraprake e drejtpërdrejtë mbeten të dukshme brenda ADT Studio."
+
+msgid "Connect your GitHub account"
+msgstr "Lidhni llogarinë tuaj GitHub"
+
+#. placeholder {0}: connection.login
+msgid "Connected as {0}"
+msgstr "I lidhur si {0}"
+
+#. placeholder {0}: result.login
+msgid "Connected to GitHub as {0}."
+msgstr "U lidh me GitHub si {0}."
+
+msgid "Connecting to GitHub…"
+msgstr "Duke u lidhur me GitHub…"
+
+msgid "Continue to deploy"
+msgstr "Vazhdo te publikimi"
+
+msgid "Create a versioned Git commit describing the book changes."
+msgstr "Krijoni një commit të versionuar Git që përshkruan ndryshimet e librit."
+
+msgid "Create the destination repository first, choose its Resource owner, then limit Repository access to that repository."
+msgstr "Së pari krijoni depon e destinacionit, zgjidhni pronarin e burimit dhe kufizoni qasjen në atë depo."
+
+msgid "Created"
+msgstr "Krijuar"
+
+msgid "Current repository:"
+msgstr "Depoja aktuale:"
+
+msgid "Cursor"
+msgstr "Cursor"
+
+msgid "Deploy"
+msgstr "Vendos"
+
+msgid "Deploy book"
+msgstr "Publiko librin"
+
+msgid "Deployed files and the exact changes included in this publishing run."
+msgstr "Skedarët e publikuar dhe ndryshimet e sakta të përfshira në këtë publikim."
+
+msgid "Deployment"
+msgstr "Publikimi"
+
+msgid "Deployment details"
+msgstr "Detajet e vendosjes"
+
+msgid "Deployment workflow"
+msgstr "Rrjedha e vendosjes"
+
+msgid "Deployments"
+msgstr "Publikimet"
+
+msgid "Detect changes"
+msgstr "Zbulo ndryshimet"
+
+msgid "Do not enable workflow, delete_repo, admin:org, packages, or user scopes. ADT Studio does not need them."
+msgstr "Mos aktivizoni fushat workflow, delete_repo, admin:org, packages ose user. ADT Studio nuk ka nevojë për to."
+
+msgid "Don't know how to get your token?"
+msgstr "Nuk dini si ta merrni tokenin tuaj?"
+
+msgid "Editor"
+msgstr "Redaktues"
+
+msgid "Enable Pages"
+msgstr "Aktivizo Pages"
+
+msgid "Enter a new GitHub token to reconnect."
+msgstr "Vendosni një token të ri GitHub për t’u rilidhur."
+
+msgid "Environment"
+msgstr "Mjedisi"
+
+msgid "files"
+msgstr "skedarë"
+
+msgid "Files"
+msgstr "Skedarët"
+
+msgid "Follow every publishing operation. The active step is highlighted and completed steps play a short confirmation sound."
+msgstr "Ndiqni çdo veprim publikimi. Hapi aktiv theksohet dhe hapat e përfunduar luajnë një tingull të shkurtër konfirmimi."
+
+msgid "Follow one of these paths, then return to ADT Studio and paste the generated token into the connection field."
+msgstr "Ndiqni njërën nga këto mënyra, pastaj kthehuni në ADT Studio dhe ngjitni tokenin e gjeneruar në fushën e lidhjes."
+
+msgid "Generate the token, copy it once, paste it below, and select Connect GitHub."
+msgstr "Gjeneroni tokenin, kopjojeni një herë, ngjiteni më poshtë dhe zgjidhni Lidh GitHub-in."
+
+msgid "Git history"
+msgstr "Historiku Git"
+
+msgid "Git History"
+msgstr "Historiku i Git-it"
+
+msgid "GitHub account"
+msgstr "Llogaria GitHub"
+
+msgid "GitHub configuration progress"
+msgstr "Progresi i konfigurimit të GitHub-it"
+
+msgid "GitHub deployment failed"
+msgstr "Publikimi në GitHub dështoi"
+
+msgid "GitHub deployment failed."
+msgstr "Vendosja në GitHub dështoi."
+
+msgid "GitHub deployment progress"
+msgstr "Përparimi i publikimit në GitHub"
+
+msgid "GitHub deployment started."
+msgstr "Vendosja në GitHub filloi."
+
+msgid "GitHub did not provide a build error message."
+msgstr "GitHub nuk dha mesazh për gabimin e ndërtimit."
+
+msgid "GitHub has changes waiting to be synchronized."
+msgstr "GitHub ka ndryshime që presin të sinkronizohen."
+
+msgid "GitHub personal access token"
+msgstr "Tokeni personal i qasjes në GitHub"
+
+#. placeholder {0}: lastSynchronizedAt.toLocaleTimeString()
+msgid "GitHub synchronized at {0}."
+msgstr "GitHub u sinkronizua në {0}."
+
+msgid "Hide preview"
+msgstr "Fshih pamjen paraprake"
+
+msgid "How to configure a GitHub personal access token"
+msgstr "Si të konfiguroni një token personal të qasjes në GitHub"
+
+msgid "If an organization owns the repository, its policy may require administrator approval before the token works."
+msgstr "Nëse depoja zotërohet nga një organizatë, politika e saj mund të kërkojë miratimin e administratorit para se tokeni të funksionojë."
+
+msgid "Inspect"
+msgstr "Inspekto"
+
+msgid "Latest deployment failed"
+msgstr "Publikimi i fundit dështoi"
+
+msgid "Learn"
+msgstr "Mëso"
+
+msgid "Leave empty to generate a change-aware message"
+msgstr "Lëre bosh për të gjeneruar një mesazh sipas ndryshimeve"
+
+msgid "Live deployment progress"
+msgstr "Përparimi i publikimit drejtpërdrejt"
+
+msgid "Loading changed book files"
+msgstr "Duke ngarkuar skedarët e ndryshuar të librit"
+
+msgid "Loading deployed file differences"
+msgstr "Duke ngarkuar dallimet e skedarëve të publikuar"
+
+msgid "Loading file differences"
+msgstr "Duke ngarkuar dallimet e skedarit"
+
+msgid "Loading Git file preview"
+msgstr "Duke ngarkuar pamjen paraprake të skedarit Git"
+
+msgid "Local"
+msgstr "Lokal"
+
+msgid "Local and GitHub changes need resolution"
+msgstr "Ndryshimet lokale dhe ato në GitHub duhet të zgjidhen"
+
+msgid "Local book is up to date"
+msgstr "Libri lokal është i përditësuar"
+
+msgid "Local book workspace"
+msgstr "Hapësira lokale e punës së librit"
+
+msgid "Local changes"
+msgstr "Ndryshime lokale"
+
+msgid "Local changes checked. Connect GitHub to synchronize."
+msgstr "Ndryshimet lokale u kontrolluan. Lidhni GitHub për sinkronizim."
+
+msgid "Local changes checked. GitHub is up to date."
+msgstr "Ndryshimet lokale u kontrolluan. GitHub është i përditësuar."
+
+msgid "Local changes checked. The book is ready for its first deployment."
+msgstr "Ndryshimet lokale u kontrolluan. Libri është gati për publikimin e parë."
+
+msgid "Manual"
+msgstr "Manual"
+
+msgid "Metadata remains Read-only automatically. No Actions, Workflows, Issues, Packages, or account permissions are required."
+msgstr "Metadata mbetet automatikisht vetëm për lexim. Nuk kërkohen leje për Actions, Workflows, Issues, Packages ose llogarinë."
+
+msgid "No changes"
+msgstr "Pa ndryshime"
+
+msgid "No deployments have been recorded yet."
+msgstr "Ende nuk është regjistruar asnjë publikim."
+
+msgid "No file changes were recorded for this deployment."
+msgstr "Nuk u regjistruan ndryshime skedarësh për këtë publikim."
+
+msgid "No file selected"
+msgstr "Asnjë skedar i zgjedhur"
+
+msgid "No unpublished file changes were detected."
+msgstr "Nuk u zbuluan ndryshime të papublikuara të skedarëve."
+
+msgid "Open GitHub token settings and choose Generate new token (classic)."
+msgstr "Hapni cilësimet e tokenëve në GitHub dhe zgjidhni Gjenero token të ri (klasik)."
+
+msgid "Open in editor"
+msgstr "Hap në redaktues"
+
+msgid "Open the classic token setup page"
+msgstr "Hap faqen e konfigurimit të tokenit klasik"
+
+msgid "Open the fine-grained token setup page"
+msgstr "Hap faqen e konfigurimit të tokenit të detajuar"
+
+msgid "Owner"
+msgstr "Pronari"
+
+msgid "Package book"
+msgstr "Paketo librin"
+
+msgid "Page {page} of {pageCount}"
+msgstr "Faqja {page} nga {pageCount}"
+
+msgid "Paste a personal access token with the permissions needed to create repositories, publish files, and enable GitHub Pages."
+msgstr "Ngjitni një token personal me lejet për të krijuar depo, publikuar skedarë dhe aktivizuar GitHub Pages."
+
+msgid "Preview deployment"
+msgstr "Shiko publikimin"
+
+msgid "Previous"
+msgstr "Prapa"
+
+msgid "Production"
+msgstr "Prodhim"
+
+msgid "Publish"
+msgstr "Publiko"
+
+msgid "Publish book changes"
+msgstr "Publiko ndryshimet e librit"
+
+msgid "Publish latest changes"
+msgstr "Publiko ndryshimet e fundit"
+
+msgid "Published"
+msgstr "Publikuar"
+
+msgid "Published book preview"
+msgstr "Pamja paraprake e librit të publikuar"
+
+msgid "Publishing"
+msgstr "Duke publikuar"
+
+msgid "Publishing to GitHub"
+msgstr "Publikimi në GitHub"
+
+msgid "Publishing views"
+msgstr "Pamjet e publikimit"
+
+msgid "Publishing..."
+msgstr "Duke publikuar..."
+
+msgid "Push"
+msgstr "Publiko"
+
+msgid "Re-run deployment"
+msgstr "Rinis publikimin"
+
+msgid "Ready"
+msgstr "Gati"
+
+msgid "Reconnect"
+msgstr "Rilidhu"
+
+msgid "Reconnect GitHub"
+msgstr "Rilidh GitHub"
+
+msgid "Reconnect GitHub once to restore the saved token on this device, then re-run the deployment."
+msgstr "Rilidhni GitHub një herë për të rikthyer tokenin e ruajtur në këtë pajisje, pastaj rinisni publikimin."
+
+msgid "Repository"
+msgstr "Depoja"
+
+msgid "Repository destination"
+msgstr "Destinacioni i depos"
+
+msgid "Required classic scope:"
+msgstr "Fusha klasike e kërkuar:"
+
+msgid "Required fine-grained repository permissions:"
+msgstr "Lejet e hollësishme të kërkuara për depon:"
+
+msgid "Select a changed file to inspect its publishing metadata."
+msgstr "Zgjidhni një skedar të ndryshuar për të shqyrtuar metadatat e publikimit."
+
+msgid "Set a clear name and a short expiration date."
+msgstr "Vendosni një emër të qartë dhe një datë të shkurtër skadimi."
+
+msgid "Set Pages to Read and write so ADT can enable, inspect, and update the published site."
+msgstr "Vendosni Pages në Lexim dhe shkrim që ADT të aktivizojë, inspektojë dhe përditësojë faqen e publikuar."
+
+msgid "Start deployment"
+msgstr "Fillo vendosjen"
+
+msgid "Starting the GitHub deployment…"
+msgstr "Duke nisur vendosjen në GitHub…"
+
+msgid "Status"
+msgstr "Statusi"
+
+msgid "Sync latest changes"
+msgstr "Sinkronizo ndryshimet e fundit"
+
+msgid "Synchronization"
+msgstr "Sinkronizimi"
+
+msgid "Synchronization paused: local and GitHub changes need resolution."
+msgstr "Sinkronizimi u ndal: ndryshimet lokale dhe ato në GitHub duhet të zgjidhen."
+
+msgid "Synchronizing changes from GitHub…"
+msgstr "Duke sinkronizuar ndryshimet nga GitHub…"
+
+msgid "System editor"
+msgstr "Redaktuesi i sistemit"
+
+msgid "The final commit message can be reviewed in Configure before deployment."
+msgstr "Mesazhi përfundimtar i commit-it mund të shqyrtohet te Konfiguro para vendosjes."
+
+msgid "This large diff is truncated after 5,000 lines."
+msgstr "Ky krahasim i madh është shkurtuar pas 5 000 rreshtash."
+
+msgid "Triggered"
+msgstr "Nisur"
+
+msgid "Unable to check GitHub for changes."
+msgstr "Nuk mund të kontrollohen ndryshimet në GitHub."
+
+msgid "Unable to check local book changes."
+msgstr "Ndryshimet lokale të librit nuk mund të kontrolloheshin."
+
+msgid "Unable to connect to GitHub."
+msgstr "Nuk mund të lidhet me GitHub."
+
+msgid "Unable to load deployed file differences."
+msgstr "Nuk mund të ngarkohen dallimet e skedarëve të publikuar."
+
+msgid "Unable to load deployments."
+msgstr "Nuk mund të ngarkohen publikimet."
+
+msgid "Unable to load file differences."
+msgstr "Dallimet e skedarit nuk mund të ngarkohen."
+
+msgid "Unable to open the selected editor."
+msgstr "Redaktuesi i zgjedhur nuk mund të hapej."
+
+msgid "Unable to start the GitHub deployment."
+msgstr "Nuk mund të nisë vendosja në GitHub."
+
+msgid "Unable to synchronize GitHub changes."
+msgstr "Nuk mund të sinkronizohen ndryshimet e GitHub."
+
+msgid "Under Repository permissions, set Contents to Read and write so ADT can pull and push book files."
+msgstr "Te lejet e depos, vendosni Përmbajtjen në Lexim dhe shkrim që ADT të marrë dhe të dërgojë skedarët e librit."
+
+msgid "Under Select scopes, enable repo. GitHub requires this classic scope for repository creation, pushing book files, and configuring GitHub Pages."
+msgstr "Te Zgjidh fushat, aktivizoni repo. GitHub e kërkon këtë fushë klasike për krijimin e depos, dërgimin e skedarëve të librit dhe konfigurimin e GitHub Pages."
+
+msgid "Upload the commit to the configured GitHub repository."
+msgstr "Ngarkoni commit-in në depon e konfiguruar GitHub."
+
+msgid "Verify"
+msgstr "Verifiko"
+
+msgid "VS Code"
+msgstr "VS Code"
+
+msgid "Working tree"
+msgstr "Pema e punës"
+
+msgid "You control when ADT Studio checks and pulls remote changes."
+msgstr "Ju kontrolloni kur ADT Studio kontrollon dhe merr ndryshimet në distancë."
