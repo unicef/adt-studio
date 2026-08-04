@@ -424,6 +424,14 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   }
 
+  /** POST /books/:label/publication/room-ticket — the Feedback view's realtime credential.
+   *  `MGMT_SECRET` cannot go to the browser and a worker cookie cannot be presented from the
+   *  Studio's origin, so the browser gets a signed 60-second ticket and the `wss://` address
+   *  to spend it at. Same guards and same transparent envelope as the comment proxies. */
+  app.post("/books/:label/publication/room-ticket", async (c) =>
+    authorProxy(c, c.req.param("label"), (client, token) => client.roomTicket(token)),
+  )
+
   // GET /books/:label/publication/comments — author read of every comment, deleted included
   app.get("/books/:label/publication/comments", async (c) => {
     const query = PublishCommentListQuery.safeParse(c.req.query())

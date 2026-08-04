@@ -3,6 +3,7 @@ import {
   PublicationCreateResponse,
   PublicationDetail,
   PublicationResponse,
+  PublicationRoomTicketResponse,
   PublicationVersionCreateResponse,
   PublishCommentListResponse,
   PublishCommentResponse,
@@ -53,6 +54,9 @@ export interface PublishWorkerClient {
   ): Promise<PublicationVersionCreateResponse>
   revoke(token: string): Promise<PublicationResponse>
   reinstate(token: string): Promise<PublicationResponse>
+  /** A 60-second signed credential for the publication's realtime room (§4.17). The Studio
+   *  spends it on a cross-origin WebSocket, which is the one thing a cookie cannot do. */
+  roomTicket(token: string): Promise<PublicationRoomTicketResponse>
   setExpiry(token: string, expiresAt: string | null): Promise<PublicationResponse>
   /** One PATCH for both knobs. An absent key is left alone by the worker, so this is also how
    *  the code is rotated (`access_code: "NEW"`) and removed (`access_code: null`). */
@@ -218,6 +222,14 @@ export function createPublishWorkerClient({
         { method: "POST" },
         PublicationResponse,
       )) as PublicationResponse
+    },
+
+    async roomTicket(token) {
+      return (await request(
+        `/api/publications/${token}/room-ticket`,
+        { method: "POST" },
+        PublicationRoomTicketResponse,
+      )) as PublicationRoomTicketResponse
     },
 
     async setExpiry(token, expiresAt) {

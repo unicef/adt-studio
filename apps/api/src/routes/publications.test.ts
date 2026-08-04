@@ -7,6 +7,7 @@ import { openBookDb } from "@adt/storage"
 import {
   PUBLISH_AUTHOR_NAME_HEADER,
   type BookPublicationStatus,
+  type PublicationRoomTicketResponse,
   type PublishCommentListResponse,
   type PublishCommentResponse,
   type PublishProgressEvent,
@@ -702,6 +703,7 @@ describe("no Cloudflare connection", () => {
       ["POST", `/api/books/${LABEL}/publication/versions`, publishRequest()],
       ["POST", `/api/books/${LABEL}/publication/revoke`, { method: "POST" }],
       ["POST", `/api/books/${LABEL}/publication/resume`, { method: "POST" }],
+      ["POST", `/api/books/${LABEL}/publication/room-ticket`, { method: "POST" }],
       [
         "PATCH",
         `/api/books/${LABEL}/publication`,
@@ -853,6 +855,68 @@ describe("author comment proxies", () => {
     const offline = createFakePublishWorker({ unreachable: true })
     const res = await routes({ fetchFn: offline.fetchFn }).request(
       `/api/books/${LABEL}/publication/comments`,
+    )
+    expect(res.status).toBe(502)
+    await expect(res.json()).resolves.toMatchObject({ code: "worker_unreachable" })
+  })
+})
+
+describe("realtime room ticket proxy", () => {
+  it("hands the browser a ticket and a wss address, never MGMT_SECRET", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    const res = await app.request(`/api/books/${LABEL}/publication/room-ticket`, {
+      method: "POST",
+    })
+    expect(res.status).toBe(200)
+
+    const body = (await res.json()) as PublicationRoomTicketResponse
+    const record = readPublicationRecord(LABEL, tmpDir)
+    expect(worker.state.roomTickets).toEqual([record?.token])
+    expect(body.ws_url).toContain(`/p/${record?.token}/room`)
+    expect(body.ws_url.startsWith("ws")).toBe(true)
+
+    const serialized = JSON.stringify(body) + [...res.headers].flat().join(" ")
+    expect(serialized).not.toContain("fake-mgmt-secret")
+  })
+
+  it("is 409 not_published for a book that was never shared", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const res = await routes({ fetchFn: worker.fetchFn }).request(
+      `/api/books/${LABEL}/publication/room-ticket`,
+      { method: "POST" },
+    )
+    expect(res.status).toBe(409)
+    await expect(res.json()).resolves.toMatchObject({ code: "not_published" })
+  })
+
+  it("is 404 for an unknown book", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const res = await routes({ fetchFn: worker.fetchFn }).request(
+      "/api/books/nope/publication/room-ticket",
+      { method: "POST" },
+    )
+    expect(res.status).toBe(404)
+  })
+
+  it("reports an unreachable worker as 502 worker_unreachable", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    await drain(
+      routes({ fetchFn: worker.fetchFn }),
+      `/api/books/${LABEL}/publication`,
+      publishRequest(),
+    )
+
+    const offline = createFakePublishWorker({ unreachable: true })
+    const res = await routes({ fetchFn: offline.fetchFn }).request(
+      `/api/books/${LABEL}/publication/room-ticket`,
+      { method: "POST" },
     )
     expect(res.status).toBe(502)
     await expect(res.json()).resolves.toMatchObject({ code: "worker_unreachable" })

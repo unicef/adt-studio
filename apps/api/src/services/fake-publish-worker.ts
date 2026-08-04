@@ -36,6 +36,8 @@ export interface FakePublishWorkerState {
   comments: PublishComment[]
   authorNames: Array<string | undefined>
   bearerTokens: string[]
+  /** Tokens the Studio asked a realtime ticket for. */
+  roomTickets: string[]
   calls: Array<{ method: string; path: string; search: string }>
 }
 
@@ -80,6 +82,7 @@ export function createFakePublishWorker(
     comments: [],
     authorNames: [],
     bearerTokens: [],
+    roomTickets: [],
     calls: [],
   }
 
@@ -225,6 +228,18 @@ export function createFakePublishWorker(
       const updated: Publication = { ...publication, revoked_at: null }
       state.publications.set(token, updated)
       return json({ publication: updated, has_access_code: state.accessCodes.has(token) })
+    }
+
+    const roomTicketMatch = /^\/api\/publications\/([^/]+)\/room-ticket$/.exec(url.pathname)
+    if (roomTicketMatch && method === "POST") {
+      const token = roomTicketMatch[1] as string
+      if (!state.publications.has(token)) return json({ error: "not_found" }, 404)
+      state.roomTickets.push(token)
+      return json({
+        ticket: `v1.9999999999.fake.${token}`,
+        ws_url: `${baseUrl.replace(/^http/, "ws")}/p/${token}/room`,
+        expires_at: createdAt,
+      })
     }
 
     const detailMatch = /^\/api\/publications\/([^/]+)$/.exec(url.pathname)
