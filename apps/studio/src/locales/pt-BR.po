@@ -2156,6 +2156,9 @@ msgstr "Ciências da Natureza - Ensino Fundamental"
 msgid "Classic Storybook"
 msgstr "Livro infantil clássico"
 
+msgid "Classic token for creating a new repository"
+msgstr "Token clássico para criar um novo repositório"
+
 msgid "Classifying images…"
 msgstr "Classificando imagens…"
 
@@ -2445,6 +2448,9 @@ msgstr "Conteúdo"
 
 msgid "Contents — Read and write; Administration — Read and write; Pages — Read and write; Metadata — Read-only."
 msgstr "Conteúdo — Leitura e gravação; Administração — Leitura e gravação; Pages — Leitura e gravação; Metadados — Somente leitura."
+
+msgid "Contents — Read and write; Pages — Read and write; Metadata — Read-only."
+msgstr "Contents — Leitura e gravação; Pages — Leitura e gravação; Metadata — Somente leitura."
 
 msgid "Context"
 msgstr "Contexto"
@@ -3763,6 +3769,9 @@ msgstr "Falhou:"
 #~ msgid "Fallback"
 #~ msgstr "Fallback"
 
+msgid "Fallback for repository creation"
+msgstr "Alternativa para criar o repositório"
+
 msgid "Falls back to"
 msgstr "Reverte para"
 
@@ -3840,6 +3849,9 @@ msgstr "Página Final"
 
 msgid "Fine-grained token for an existing repository"
 msgstr "Token de acesso refinado para um repositório existente"
+
+msgid "Fine-grained token limited to one repository"
+msgstr "Token refinado limitado a um repositório"
 
 msgid "First images from the deep-field telescope."
 msgstr "Primeiras imagens do telescópio de campo profundo."
@@ -6271,6 +6283,9 @@ msgstr "Open Preview"
 #~ msgid "Open public book"
 #~ msgstr "Abrir livro público"
 
+msgid "Open published book"
+msgstr "Abrir livro publicado"
+
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Abrir pull request {0}"
@@ -6838,6 +6853,12 @@ msgstr "Pipeline · storyboard"
 #~ msgid "Pipeline default"
 #~ msgstr "Padrão da pipeline"
 
+msgid "Pipeline changes are ready for Git review."
+msgstr "As alterações do pipeline estão prontas para revisão no Git."
+
+msgid "Pipeline edits are ready to review"
+msgstr "As edições do pipeline estão prontas para revisão"
+
 msgid "Pipeline fallback model"
 msgstr "Modelo fallback da pipeline"
 
@@ -6931,6 +6952,12 @@ msgstr "Precipitação"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Prefira termos centrais ao assunto do livro. Pule vocabulário genérico e nomes próprios que não carregam significado além da página."
+
+msgid "Prepare changes"
+msgstr "Preparar alterações"
+
+msgid "Prepare the latest versioned book entities, then Git will show the exact changed files and lines."
+msgstr "Prepare as entidades versionadas mais recentes do livro; o Git mostrará os arquivos e linhas alterados."
 
 msgid "Preparing speech..."
 msgstr "Preparando o áudio..."
@@ -8224,6 +8251,9 @@ msgstr "seções"
 
 msgid "Sections"
 msgstr "Seções"
+
+msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps the token only for this application session and never stores it in the book directory."
+msgstr "Segurança: use a expiração prática mais curta, nunca compartilhe o token e revogue-o no GitHub quando não for mais necessário. O ADT Studio mantém o token apenas nesta sessão e nunca o armazena na pasta do livro."
 
 msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token locally on this device and does not store it in the book directory."
 msgstr "Segurança: use a menor validade prática, nunca compartilhe o token e revogue-o no GitHub quando ele não for mais necessário. O ADT Studio mantém este token localmente neste dispositivo e não o armazena no diretório do livro."
@@ -9900,6 +9930,9 @@ msgstr "Não foi possível carregar os padrões de modelos específicos por tare
 
 msgid "Unable to open the selected editor."
 msgstr "Não foi possível abrir o editor selecionado."
+
+msgid "Unable to prepare pipeline changes for Git review."
+msgstr "Não foi possível preparar as alterações do pipeline para revisão no Git."
 
 msgid "Unable to render PDF preview."
 msgstr "Não foi possível renderizar a pré-visualização do PDF."

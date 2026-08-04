@@ -2157,6 +2157,9 @@ msgstr "Ciências da Natureza - Ensino Fundamental"
 msgid "Classic Storybook"
 msgstr "Libër Klasik Tregimesh"
 
+msgid "Classic token for creating a new repository"
+msgstr "Token klasik për krijimin e një depoje të re"
+
 msgid "Classifying images…"
 msgstr "Po klasifikohen imazhet…"
 
@@ -2446,6 +2449,9 @@ msgstr "Përmbajtja"
 
 msgid "Contents — Read and write; Administration — Read and write; Pages — Read and write; Metadata — Read-only."
 msgstr "Përmbajtja — Lexim dhe shkrim; Administrimi — Lexim dhe shkrim; Pages — Lexim dhe shkrim; Metadata — Vetëm lexim."
+
+msgid "Contents — Read and write; Pages — Read and write; Metadata — Read-only."
+msgstr "Contents — Lexim dhe shkrim; Pages — Lexim dhe shkrim; Metadata — Vetëm lexim."
 
 msgid "Context"
 msgstr "Konteksti"
@@ -3764,6 +3770,9 @@ msgstr "Dështoi:"
 #~ msgid "Fallback"
 #~ msgstr "Fallback"
 
+msgid "Fallback for repository creation"
+msgstr "Alternativë për krijimin e depos"
+
 msgid "Falls back to"
 msgstr "Kthehet te"
 
@@ -3841,6 +3850,9 @@ msgstr "Faqja e fundit"
 
 msgid "Fine-grained token for an existing repository"
 msgstr "Token i detajuar për një depo ekzistuese"
+
+msgid "Fine-grained token limited to one repository"
+msgstr "Token i detajuar i kufizuar në një depo"
 
 msgid "First images from the deep-field telescope."
 msgstr "Imazhet e para nga teleskopi i fushës së thellë."
@@ -6272,6 +6284,9 @@ msgstr "Hapni Pamjen Paraprake"
 #~ msgid "Open public book"
 #~ msgstr "Hap librin publik"
 
+msgid "Open published book"
+msgstr "Hap librin e publikuar"
+
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Hap pull request-in {0}"
@@ -6839,6 +6854,12 @@ msgstr "Pipeline · storyboard"
 #~ msgid "Pipeline default"
 #~ msgstr "Parazgjedhja e pipeline-it"
 
+msgid "Pipeline changes are ready for Git review."
+msgstr "Ndryshimet e procesit janë gati për shqyrtim në Git."
+
+msgid "Pipeline edits are ready to review"
+msgstr "Ndryshimet e procesit janë gati për shqyrtim"
+
 msgid "Pipeline fallback model"
 msgstr "Modeli rezervë i pipeline-it"
 
@@ -6932,6 +6953,12 @@ msgstr "Reshje"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjeneral dhe emra të përveçëm që nuk bartin kuptim përtej faqes."
+
+msgid "Prepare changes"
+msgstr "Përgatit ndryshimet"
+
+msgid "Prepare the latest versioned book entities, then Git will show the exact changed files and lines."
+msgstr "Përgatitni entitetet më të fundit të versionuara të librit; më pas Git do të tregojë skedarët dhe rreshtat e ndryshuar."
 
 msgid "Preparing speech..."
 msgstr "Duke përgatitur audion..."
@@ -8225,6 +8252,9 @@ msgstr "seksione"
 
 msgid "Sections"
 msgstr "Seksione"
+
+msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps the token only for this application session and never stores it in the book directory."
+msgstr "Siguria: përdorni skadimin më të shkurtër praktik, mos e ndani tokenin dhe revokojeni në GitHub kur nuk nevojitet më. ADT Studio e ruan vetëm gjatë këtij sesioni dhe kurrë në dosjen e librit."
 
 msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token locally on this device and does not store it in the book directory."
 msgstr "Siguria: përdorni afatin më të shkurtër praktik, mos e ndani kurrë tokenin dhe revokojeni në GitHub kur nuk nevojitet më. ADT Studio e ruan këtë token lokalisht në këtë pajisje dhe nuk e ruan në dosjen e librit."
@@ -9901,6 +9931,9 @@ msgstr "Parazgjedhjet e modeleve sipas detyrës nuk mund të ngarkoheshin."
 
 msgid "Unable to open the selected editor."
 msgstr "Redaktuesi i zgjedhur nuk mund të hapej."
+
+msgid "Unable to prepare pipeline changes for Git review."
+msgstr "Ndryshimet e procesit nuk mund të përgatiteshin për shqyrtim në Git."
 
 msgid "Unable to render PDF preview."
 msgstr "Pamja paraprake e PDF nuk mund të shfaqet."

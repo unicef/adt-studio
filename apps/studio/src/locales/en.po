@@ -2156,6 +2156,9 @@ msgstr "Ciências da Natureza - Ensino Fundamental"
 msgid "Classic Storybook"
 msgstr "Classic Storybook"
 
+msgid "Classic token for creating a new repository"
+msgstr "Classic token for creating a new repository"
+
 msgid "Classifying images…"
 msgstr "Classifying images…"
 
@@ -2445,6 +2448,9 @@ msgstr "Contents"
 
 msgid "Contents — Read and write; Administration — Read and write; Pages — Read and write; Metadata — Read-only."
 msgstr "Contents — Read and write; Administration — Read and write; Pages — Read and write; Metadata — Read-only."
+
+msgid "Contents — Read and write; Pages — Read and write; Metadata — Read-only."
+msgstr "Contents — Read and write; Pages — Read and write; Metadata — Read-only."
 
 msgid "Context"
 msgstr "Context"
@@ -3763,6 +3769,9 @@ msgstr "Failed:"
 #~ msgid "Fallback"
 #~ msgstr "Fallback"
 
+msgid "Fallback for repository creation"
+msgstr "Fallback for repository creation"
+
 msgid "Falls back to"
 msgstr "Falls back to"
 
@@ -3840,6 +3849,9 @@ msgstr "Final Page"
 
 msgid "Fine-grained token for an existing repository"
 msgstr "Fine-grained token for an existing repository"
+
+msgid "Fine-grained token limited to one repository"
+msgstr "Fine-grained token limited to one repository"
 
 msgid "First images from the deep-field telescope."
 msgstr "First images from the deep-field telescope."
@@ -6271,6 +6283,9 @@ msgstr "Open Preview"
 #~ msgid "Open public book"
 #~ msgstr "Open public book"
 
+msgid "Open published book"
+msgstr "Open published book"
+
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Open pull request {0}"
@@ -6838,6 +6853,12 @@ msgstr "Pipeline · storyboard"
 #~ msgid "Pipeline default"
 #~ msgstr "Pipeline default"
 
+msgid "Pipeline changes are ready for Git review."
+msgstr "Pipeline changes are ready for Git review."
+
+msgid "Pipeline edits are ready to review"
+msgstr "Pipeline edits are ready to review"
+
 msgid "Pipeline fallback model"
 msgstr "Pipeline fallback model"
 
@@ -6931,6 +6952,12 @@ msgstr "Precipitation"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
+
+msgid "Prepare changes"
+msgstr "Prepare changes"
+
+msgid "Prepare the latest versioned book entities, then Git will show the exact changed files and lines."
+msgstr "Prepare the latest versioned book entities, then Git will show the exact changed files and lines."
 
 msgid "Preparing speech..."
 msgstr "Preparing speech..."
@@ -8224,6 +8251,9 @@ msgstr "sections"
 
 msgid "Sections"
 msgstr "Sections"
+
+msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps the token only for this application session and never stores it in the book directory."
+msgstr "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps the token only for this application session and never stores it in the book directory."
 
 msgid "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token locally on this device and does not store it in the book directory."
 msgstr "Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token locally on this device and does not store it in the book directory."
@@ -9900,6 +9930,9 @@ msgstr "Unable to load the task-specific model defaults."
 
 msgid "Unable to open the selected editor."
 msgstr "Unable to open the selected editor."
+
+msgid "Unable to prepare pipeline changes for Git review."
+msgstr "Unable to prepare pipeline changes for Git review."
 
 msgid "Unable to render PDF preview."
 msgstr "Unable to render PDF preview."
