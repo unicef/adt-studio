@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto"
 import type { Message, TokenUsage } from "./types.js"
+import type { LLMErrorClass } from "./errors.js"
 
 export interface LlmLogEntry {
   requestId: string
@@ -13,9 +14,15 @@ export interface LlmLogEntry {
   success: boolean
   errorCount: number
   attempt: number
+  maxAttempts?: number
   durationMs: number
   usage?: TokenUsage
   validationErrors?: string[]
+  error?: string
+  errorClass?: LLMErrorClass
+  retryable?: boolean
+  retryDelayMs?: number
+  finalError?: boolean
   messages: LlmLogMessage[]
   /** Groups related LLM calls (e.g. an AI edit, its verify, and its retry). */
   correlationId?: string
