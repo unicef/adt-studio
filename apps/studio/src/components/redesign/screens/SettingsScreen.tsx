@@ -24,6 +24,7 @@ import {
   FileDown,
   type LucideIcon,
 } from "lucide-react"
+import { activateLocale, type AppLocale } from "@/i18n/locales"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useAppVersion } from "@/hooks/use-app-version"
 import { useSettingsDialog } from "@/routes/__root"
@@ -38,7 +39,7 @@ type Section = "language" | "theme" | "notifications" | "api" | "about"
 type ThemeMode = "light" | "dark" | "system"
 const THEME_KEY = "adt.theme"
 
-const LOCALES: { code: MessageDescriptor; name: MessageDescriptor; native: MessageDescriptor; key: string }[] = [
+const LOCALES: { code: MessageDescriptor; name: MessageDescriptor; native: MessageDescriptor; key: AppLocale }[] = [
   { code: msg`EN`, name: msg`English`, native: msg`English`, key: "en" },
   { code: msg`PT`, name: msg`Portuguese (BR)`, native: msg`Português (Brasil)`, key: "pt-BR" },
   { code: msg`ES`, name: msg`Spanish`, native: msg`Español`, key: "es" },
@@ -133,7 +134,6 @@ export function SettingsScreen() {
   const { apiKey, anthropicKey, googleKey, customApiKey, customBaseUrl, azureKey } = useApiKey()
 
   const [section, setSection] = useState<Section>("language")
-  const [locale, setLocale] = useState("en")
   const [theme, setTheme] = useState<ThemeMode>("light")
   const [motion, setMotion] = useState(false)
   const [toastPos, setToastPos] = useState("top-center")
@@ -163,6 +163,14 @@ export function SettingsScreen() {
   )
 
   const posLabel = i18n._(POSITIONS.find((p) => p.key === toastPos)?.label ?? msg`Top center`)
+
+  const changeLocale = (next: AppLocale) => {
+    if (next === i18n.locale) return
+    activateLocale(next)
+    const search = new URLSearchParams(window.location.search)
+    search.set("lang", next)
+    window.history.replaceState(null, "", `${window.location.pathname}?${search.toString()}`)
+  }
 
   return (
     <Tabs value={section} onValueChange={(v) => setSection(v as Section)} className="h-full gap-0 overflow-auto bg-background">
@@ -198,12 +206,12 @@ export function SettingsScreen() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               {LOCALES.map((l) => {
-                const sel = locale === l.key
+                const sel = i18n.locale === l.key
                 return (
                   <button
                     key={l.key}
                     type="button"
-                    onClick={() => setLocale(l.key)}
+                    onClick={() => changeLocale(l.key)}
                     className={cn(
                       "flex items-center gap-3.5 rounded-xl border-[1.5px] bg-card px-4 py-[15px] text-left transition-colors hover:border-brand-300",
                       sel ? "border-brand-600 shadow-[0_0_0_3px_var(--brand-50)]" : "border-border",
