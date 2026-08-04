@@ -858,3 +858,246 @@ describe("author comment proxies", () => {
     await expect(res.json()).resolves.toMatchObject({ code: "worker_unreachable" })
   })
 })
+
+describe("author edit and delete proxies", () => {
+  async function publishedWithComment(): Promise<{
+    app: Hono
+    worker: ReturnType<typeof createFakePublishWorker>
+    id: string
+  }> {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    const created = await app.request(
+      `/api/books/${LABEL}/publication/comments`,
+      publishRequest({ page_section_id: "pg001_sec001", body: "First pass" }),
+    )
+    const { comment } = (await created.json()) as PublishCommentResponse
+    return { app, worker, id: comment.id }
+  }
+
+  it("edits the author's own comment and stamps edited_at", async () => {
+    const { app, id } = await publishedWithComment()
+    const res = await app.request(`/api/books/${LABEL}/publication/comments/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ body: "Second pass" }),
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as PublishCommentResponse
+    expect(body.comment.body).toBe("Second pass")
+    expect(body.comment.edited_at).not.toBeNull()
+  })
+
+  it("forwards the author display name on an edit and a delete", async () => {
+    const { app, worker, id } = await publishedWithComment()
+    await app.request(`/api/books/${LABEL}/publication/comments/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json", [PUBLISH_AUTHOR_NAME_HEADER]: "Ana" },
+      body: JSON.stringify({ body: "Renamed while editing" }),
+    })
+    await app.request(`/api/books/${LABEL}/publication/comments/${id}`, {
+      method: "DELETE",
+      headers: { [PUBLISH_AUTHOR_NAME_HEADER]: "Ana" },
+    })
+    expect(worker.state.authorNames.filter((name) => name === "Ana").length).toBe(2)
+  })
+
+  it("soft deletes and stays idempotent", async () => {
+    const { app, id } = await publishedWithComment()
+    const first = await app.request(`/api/books/${LABEL}/publication/comments/${id}`, {
+      method: "DELETE",
+    })
+    expect(first.status).toBe(200)
+    const firstBody = (await first.json()) as PublishCommentResponse
+    expect(firstBody.comment.deleted_at).not.toBeNull()
+
+    const second = await app.request(`/api/books/${LABEL}/publication/comments/${id}`, {
+      method: "DELETE",
+    })
+    expect(((await second.json()) as PublishCommentResponse).comment.deleted_at).toBe(
+      firstBody.comment.deleted_at,
+    )
+  })
+
+  it("rejects a PATCH that changes nothing before calling the worker", async () => {
+    const { app, worker, id } = await publishedWithComment()
+    const before = worker.state.calls.length
+    const res = await app.request(`/api/books/${LABEL}/publication/comments/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ body: "   " }),
+    })
+    expect(res.status).toBe(400)
+    expect(worker.state.calls.length).toBe(before)
+  })
+
+  it("passes the worker's 404 through for an unknown comment", async () => {
+    const { app } = await publishedWithComment()
+    const res = await app.request(`/api/books/${LABEL}/publication/comments/nope`, {
+      method: "DELETE",
+    })
+    expect(res.status).toBe(404)
+    await expect(res.json()).resolves.toMatchObject({ error: "not_found" })
+  })
+
+  it("guards a missing connection and a book that was never published", async () => {
+    const notConnected = await routes().request(
+      `/api/books/${LABEL}/publication/comments/abc`,
+      { method: "DELETE" },
+    )
+    expect(notConnected.status).toBe(412)
+
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const notPublished = await routes({ fetchFn: worker.fetchFn }).request(
+      `/api/books/${LABEL}/publication/comments/abc`,
+      { method: "DELETE" },
+    )
+    expect(notPublished.status).toBe(409)
+    await expect(notPublished.json()).resolves.toMatchObject({ code: "not_published" })
+  })
+})
+
+describe("GET /books/:label/publication/pages", () => {
+  it("answers the published version's own page manifest", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    const res = await app.request(`/api/books/${LABEL}/publication/pages`)
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      current_version: number
+      pages: Array<{ section_id: string; href: string }>
+    }
+    expect(body.current_version).toBe(1)
+    expect(body.pages.map((page) => page.section_id)).toEqual([
+      "pg001_sec001",
+      "pg002_sec001",
+    ])
+  })
+
+  it("follows the current version after an update", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    await drain(app, `/api/books/${LABEL}/publication/versions`, publishRequest())
+
+    const body = (await (await app.request(`/api/books/${LABEL}/publication/pages`)).json()) as {
+      current_version: number
+    }
+    expect(body.current_version).toBe(2)
+  })
+
+  it("guards a missing book, a missing connection and a book that was never published", async () => {
+    expect((await routes().request(`/api/books/no_such_book/publication/pages`)).status).toBe(404)
+    expect((await routes().request(`/api/books/${LABEL}/publication/pages`)).status).toBe(412)
+
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const res = await routes({ fetchFn: worker.fetchFn }).request(
+      `/api/books/${LABEL}/publication/pages`,
+    )
+    expect(res.status).toBe(409)
+    await expect(res.json()).resolves.toMatchObject({ code: "not_published" })
+  })
+})
+
+describe("GET /books/:label/publication/preview/*", () => {
+  async function publishedApp(): Promise<{
+    app: Hono
+    worker: ReturnType<typeof createFakePublishWorker>
+  }> {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    return { app, worker }
+  }
+
+  it("streams the published snapshot with the worker's content type", async () => {
+    const { app } = await publishedApp()
+    const res = await app.request(`/api/books/${LABEL}/publication/preview/index.html`)
+    expect(res.status).toBe(200)
+    expect(res.headers.get("content-type")).toBe("text/html")
+    expect(await res.text()).toBe("served index.html")
+  })
+
+  it("serves index.html for the bare preview root", async () => {
+    const { app } = await publishedApp()
+    const res = await app.request(`/api/books/${LABEL}/publication/preview/`)
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe("served index.html")
+  })
+
+  it("reaches the snapshot with the management secret and never leaks it", async () => {
+    const { app, worker } = await publishedApp()
+    const res = await app.request(`/api/books/${LABEL}/publication/preview/pg002_sec001.html`)
+    expect(worker.state.bearerTokens).toContain("fake-mgmt-secret")
+    const text = await res.text()
+    expect(text).not.toContain("fake-mgmt-secret")
+    for (const [, value] of res.headers.entries()) {
+      expect(value).not.toContain("fake-mgmt-secret")
+    }
+  })
+
+  it("keeps serving the snapshot after the link is revoked", async () => {
+    const { app } = await publishedApp()
+    await app.request(`/api/books/${LABEL}/publication/revoke`, { method: "POST" })
+    const res = await app.request(`/api/books/${LABEL}/publication/preview/index.html`)
+    expect(res.status).toBe(200)
+  })
+
+  it("passes an ETag through and answers 304 on a match", async () => {
+    const { app } = await publishedApp()
+    const first = await app.request(`/api/books/${LABEL}/publication/preview/index.html`)
+    const etag = first.headers.get("etag")
+    expect(etag).toBeTruthy()
+
+    const second = await app.request(`/api/books/${LABEL}/publication/preview/index.html`, {
+      headers: { "if-none-match": etag as string },
+    })
+    expect(second.status).toBe(304)
+  })
+
+  it("answers the worker's 404 for a file the snapshot does not have", async () => {
+    const { app } = await publishedApp()
+    const res = await app.request(`/api/books/${LABEL}/publication/preview/missing.html`)
+    expect(res.status).toBe(404)
+  })
+
+  it("answers 404 for a book that was never published and 404 for an unknown book", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const neverPublished = await routes({ fetchFn: worker.fetchFn }).request(
+      `/api/books/${LABEL}/publication/preview/index.html`,
+    )
+    expect(neverPublished.status).toBe(404)
+    await expect(neverPublished.json()).resolves.toMatchObject({ code: "not_published" })
+
+    const unknownBook = await routes({ fetchFn: worker.fetchFn }).request(
+      `/api/books/no_such_book/publication/preview/index.html`,
+    )
+    expect(unknownBook.status).toBe(404)
+  })
+
+  it("answers 412 with no Cloudflare connection and 502 when the worker is down", async () => {
+    const notConnected = await routes().request(
+      `/api/books/${LABEL}/publication/preview/index.html`,
+    )
+    expect(notConnected.status).toBe(412)
+
+    const { app } = await publishedApp()
+    void app
+    const offline = createFakePublishWorker({ unreachable: true })
+    const res = await routes({ fetchFn: offline.fetchFn }).request(
+      `/api/books/${LABEL}/publication/preview/index.html`,
+    )
+    expect(res.status).toBe(502)
+    await expect(res.json()).resolves.toMatchObject({ code: "worker_unreachable" })
+  })
+})

@@ -8,6 +8,7 @@ import {
   PublicationVersionCreateRequest,
   PublishCommentCreateRequest,
   PublishCommentResolveRequest,
+  PublishCommentUpdateRequest,
   publicationStateAt,
   type CommenterSession,
   type Publication,
@@ -307,6 +308,39 @@ export function createFakePublishWorker(
       }
     }
 
+    const commentMatch = /^\/p\/([^/]+)\/comments\/([^/]+)$/.exec(url.pathname)
+    if (commentMatch && (method === "PATCH" || method === "DELETE")) {
+      const token = commentMatch[1] as string
+      const id = decodeURIComponent(commentMatch[2] as string)
+      const index = state.comments.findIndex(
+        (comment) => comment.token === token && comment.id === id,
+      )
+      if (index === -1) return json({ error: "not_found" }, 404)
+
+      if (method === "DELETE") {
+        const comment: PublishComment = {
+          ...(state.comments[index] as PublishComment),
+          deleted_at: (state.comments[index] as PublishComment).deleted_at ?? createdAt,
+        }
+        state.comments[index] = comment
+        return json({ comment })
+      }
+
+      const parsed = PublishCommentUpdateRequest.safeParse((await request.json()) as unknown)
+      if (!parsed.success) {
+        return json({ error: "invalid_request", message: parsed.error.message }, 400)
+      }
+      const previous = state.comments[index] as PublishComment
+      const comment: PublishComment = {
+        ...previous,
+        ...(parsed.data.body === undefined ? {} : { body: parsed.data.body }),
+        ...(parsed.data.anchor === undefined ? {} : { anchor: parsed.data.anchor }),
+        edited_at: createdAt,
+      }
+      state.comments[index] = comment
+      return json({ comment })
+    }
+
     const resolveMatch = /^\/p\/([^/]+)\/comments\/([^/]+)\/resolve$/.exec(url.pathname)
     if (resolveMatch && method === "POST") {
       const token = resolveMatch[1] as string
@@ -332,22 +366,42 @@ export function createFakePublishWorker(
       const token = serveMatch[1] as string
       const publication = state.publications.get(token)
       if (!publication) return json({ error: "not_found" }, 404)
-      const publicationState = publicationStateAt(publication)
-      if (publicationState !== "active") {
-        return json({ error: publicationState === "revoked" ? "revoked" : "expired" }, 410)
-      }
-      const requested = (serveMatch[2] as string) || "index.html"
+      /** The double is only ever called with `MGMT_SECRET`, and §4.7 step 3 lets the author
+       *  read a revoked or expired snapshot — that carve-out is exactly what the Feedback
+       *  view depends on, so the double honours it instead of answering `410`. */
+      void publicationStateAt(publication)
+      const requested = decodeURIComponent((serveMatch[2] as string) || "index.html")
       const current = (state.versions.get(token) ?? []).find(
         (version) => version.version === publication.current_version,
       )
       if (!current?.files.includes(requested)) return json({ error: "not_found" }, 404)
-      return new Response(`served ${requested}`, { status: 200 })
+      const etag = `"${token}-${String(publication.current_version)}-${requested}"`
+      if (headers.get("if-none-match") === etag) {
+        return new Response(null, { status: 304, headers: { etag } })
+      }
+      return new Response(`served ${requested}`, {
+        status: 200,
+        headers: {
+          "content-type": contentTypeFor(requested),
+          "cache-control": requested.endsWith(".html") ? "no-cache" : "public, max-age=3600",
+          etag,
+        },
+      })
     }
 
     return json({ error: "not_found" }, 404)
   }
 
   return { fetchFn, state, baseUrl, shareUrl }
+}
+
+function contentTypeFor(fileName: string): string {
+  if (fileName.endsWith(".html")) return "text/html"
+  if (fileName.endsWith(".css")) return "text/css"
+  if (fileName.endsWith(".js") || fileName.endsWith(".mjs")) return "application/javascript"
+  if (fileName.endsWith(".json")) return "application/json"
+  if (fileName.endsWith(".png")) return "image/png"
+  return "application/octet-stream"
 }
 
 function toWireVersion(version: FakePublishedVersion) {

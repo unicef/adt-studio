@@ -13,6 +13,7 @@ import {
   type PublishCommentCreateRequest,
   type PublishCommentListQuery,
   type PublishCommentResolveRequest,
+  type PublishCommentUpdateRequest,
   type PublishErrorCode,
 } from "@adt/types"
 import type { FetchLike } from "./cloudflare/client.js"
@@ -76,6 +77,17 @@ export interface PublishWorkerClient {
     request: PublishCommentResolveRequest,
     authorName?: string,
   ): Promise<PublishCommentResponse>
+  updateComment(
+    token: string,
+    id: string,
+    request: PublishCommentUpdateRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
+  deleteComment(token: string, id: string, authorName?: string): Promise<PublishCommentResponse>
+  /** The published snapshot's own bytes, author-authenticated. The `Response` is handed back
+   *  unread so the caller can stream it: a book's audio and video are the whole point of the
+   *  snapshot and buffering them through the Studio would defeat range-free playback. */
+  fetchSnapshotFile(token: string, filePath: string, headers?: Record<string, string>): Promise<Response>
 }
 
 function commentQueryString(query: PublishCommentListQuery): string {
@@ -270,6 +282,45 @@ export function createPublishWorkerClient({
         },
         PublishCommentResponse,
       )) as PublishCommentResponse
+    },
+
+    async updateComment(token, id, updateRequest, authorName) {
+      return (await request(
+        `/p/${token}/comments/${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json", ...authorHeaders(authorName) },
+          body: JSON.stringify(updateRequest),
+        },
+        PublishCommentResponse,
+      )) as PublishCommentResponse
+    },
+
+    async deleteComment(token, id, authorName) {
+      return (await request(
+        `/p/${token}/comments/${encodeURIComponent(id)}`,
+        { method: "DELETE", headers: authorHeaders(authorName) },
+        PublishCommentResponse,
+      )) as PublishCommentResponse
+    },
+
+    async fetchSnapshotFile(token, filePath, headers) {
+      const encoded = filePath
+        .split("/")
+        .filter((segment) => segment.length > 0)
+        .map((segment) => encodeURIComponent(segment))
+        .join("/")
+      try {
+        return await doFetch(`${base}/p/${token}/${encoded}`, {
+          method: "GET",
+          headers: { ...headers, Authorization: `Bearer ${mgmtSecret}` },
+        })
+      } catch (error) {
+        throw new PublishWorkerError({
+          message: `Could not reach your publish worker at ${base}: ${describe(error)}`,
+          unreachable: true,
+        })
+      }
     },
   }
 }

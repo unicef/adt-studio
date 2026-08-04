@@ -12,9 +12,11 @@ import {
   PublishCommentCreateRequest,
   PublishCommentListQuery,
   PublishCommentResolveRequest,
+  PublishCommentUpdateRequest,
   parseBookLabel,
   type BookPublicationRecord,
   type BookPublicationStatus,
+  type PublicationPageEntry,
   type PublicationResponse,
   type PublishErrorCodeStudio,
   type PublishProgressEvent,
@@ -456,7 +458,154 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     )
   })
 
+  // PATCH /books/:label/publication/comments/:id — the author edits their own comment
+  app.patch("/books/:label/publication/comments/:id", async (c) => {
+    const body = PublishCommentUpdateRequest.safeParse(await readBody(c))
+    if (!body.success) {
+      return c.json({ error: body.error.message, code: "invalid_request" }, 400)
+    }
+    const id = c.req.param("id")
+    return authorProxy(c, c.req.param("label"), (client, token, authorName) =>
+      client.updateComment(token, id, body.data, authorName),
+    )
+  })
+
+  // DELETE /books/:label/publication/comments/:id — the author deletes their own comment
+  app.delete("/books/:label/publication/comments/:id", async (c) => {
+    const id = c.req.param("id")
+    return authorProxy(c, c.req.param("label"), (client, token, authorName) =>
+      client.deleteComment(token, id, authorName),
+    )
+  })
+
+  /** GET /books/:label/publication/pages — the published version's own page manifest.
+   *  The Feedback view navigates the *snapshot*, whose pages can differ from the local
+   *  book's after an edit, so the manifest has to come from the publication record and
+   *  not from the book directory. */
+  app.get("/books/:label/publication/pages", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    requireBook(label)
+
+    const connection = store.read()
+    if (!connection) {
+      return failure(
+        c,
+        412,
+        "publish_not_connected",
+        "Connect a Cloudflare account before reading this book's feedback",
+      )
+    }
+
+    const record = readPublicationRecord(label, deps.booksDir)
+    if (!record) {
+      return failure(c, 409, "not_published", "This book has never been published")
+    }
+
+    try {
+      const detail = await clientFor(connection).getPublication(record.token)
+      const current = detail.versions.find(
+        (version) => version.version === detail.publication.current_version,
+      )
+      const pages: PublicationPageEntry[] = current?.page_manifest ?? []
+      return c.json({ current_version: detail.publication.current_version, pages })
+    } catch (error) {
+      return proxyFailure(c, error)
+    }
+  })
+
+  /** GET /books/:label/publication/preview/* — the published snapshot, same-origin.
+   *
+   *  This is what the Feedback view frames: the exact bytes reviewers saw, not a fresh
+   *  local package. `MGMT_SECRET` goes out with the request (so the access gate and the
+   *  410 ladder are bypassed for the author) and never comes back; nothing in the body is
+   *  rewritten, because the snapshot is relative-path'd and the runtime's own comments
+   *  overlay stays inert off the `/p/<token>/` prefix. */
+  app.get("/books/:label/publication/preview/*", async (c) => {
+    const label = parseBookLabel(c.req.param("label"))
+    requireBook(label)
+
+    const connection = store.read()
+    if (!connection) {
+      return c.json(
+        {
+          error: "Connect a Cloudflare account before reading this book's feedback",
+          code: "publish_not_connected" satisfies PublishErrorCodeStudio,
+        },
+        412,
+      )
+    }
+
+    const record = readPublicationRecord(label, deps.booksDir)
+    if (!record) {
+      /** A `404` rather than the `409` the JSON routes answer: this route's client is an
+       *  `<iframe>`, and a missing snapshot is a missing document, not a bad request. */
+      return c.json(
+        {
+          error: "This book has never been published",
+          code: "not_published" satisfies PublishErrorCodeStudio,
+        },
+        404,
+      )
+    }
+
+    const prefix = `/books/${c.req.param("label")}/publication/preview/`
+    const rawPath = c.req.path.slice(c.req.path.indexOf(prefix) + prefix.length)
+    const forwarded: Record<string, string> = {}
+    const ifNoneMatch = c.req.header("if-none-match")
+    if (ifNoneMatch !== undefined) forwarded["if-none-match"] = ifNoneMatch
+
+    let upstream: Response
+    try {
+      upstream = await clientFor(connection).fetchSnapshotFile(
+        record.token,
+        decodeSnapshotPath(rawPath),
+        forwarded,
+      )
+    } catch (error) {
+      return proxyFailure(c, error)
+    }
+
+    return streamSnapshotResponse(upstream)
+  })
+
   return app
+}
+
+/** The wildcard arrives percent-encoded; the client re-encodes per segment, so decoding
+ *  here keeps a file named `Página 2.png` addressable without double-encoding it. */
+function decodeSnapshotPath(rawPath: string): string {
+  const [withoutQuery] = rawPath.split("?")
+  return (withoutQuery ?? "")
+    .split("/")
+    .map((segment) => {
+      try {
+        return decodeURIComponent(segment)
+      } catch {
+        return segment
+      }
+    })
+    .join("/")
+}
+
+const SNAPSHOT_PASSTHROUGH_HEADERS = ["content-type", "cache-control", "etag", "last-modified"]
+
+function streamSnapshotResponse(upstream: Response): Response {
+  const headers = new Headers()
+  for (const name of SNAPSHOT_PASSTHROUGH_HEADERS) {
+    const value = upstream.headers.get(name)
+    if (value !== null) headers.set(name, value)
+  }
+  /** `fetch` transparently decodes a compressed body, so an upstream `Content-Length`
+   *  only still describes what we are about to write when nothing was encoded. */
+  const length = upstream.headers.get("content-length")
+  if (length !== null && upstream.headers.get("content-encoding") === null) {
+    headers.set("content-length", length)
+  }
+
+  if (upstream.status === 304 || upstream.body === null) {
+    return new Response(null, { status: upstream.status, headers })
+  }
+  return new Response(upstream.body, { status: upstream.status, headers })
 }
 
 function proxyFailure(c: Context, error: unknown): Response {
