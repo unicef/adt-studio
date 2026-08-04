@@ -53,7 +53,7 @@ function scopedStorageKey(key: string, bookLabel: string): string {
 
 function readSessionToken(): string {
   if (typeof window === "undefined") return ""
-  return window.localStorage.getItem(TOKEN_STORAGE_KEY) ?? ""
+  return window.sessionStorage.getItem(TOKEN_STORAGE_KEY) ?? ""
 }
 
 function readAutoSyncPreference(): boolean {
@@ -565,13 +565,13 @@ function PersonalAccessTokenGuide() {
           </SheetDescription>
         </SheetHeader>
 
-        <div className="mt-6 space-y-5 text-sm leading-relaxed">
-          <section className="rounded-xl border border-indigo-200 bg-indigo-50/50 p-4" aria-labelledby="classic-token-title">
+        <div className="mt-6 flex flex-col gap-5 text-sm leading-relaxed">
+          <section className="order-2 rounded-xl border border-border p-4" aria-labelledby="classic-token-title">
             <span className="mb-2 inline-flex rounded-full bg-indigo-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-              <Trans>Easiest complete setup</Trans>
+              <Trans>Fallback for repository creation</Trans>
             </span>
             <h3 id="classic-token-title" className="font-semibold text-indigo-950">
-              <Trans>Recommended for creating a new repository</Trans>
+              <Trans>Classic token for creating a new repository</Trans>
             </h3>
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-indigo-950">
               <li><Trans>Open GitHub token settings and choose Generate new token (classic).</Trans></li>
@@ -595,21 +595,21 @@ function PersonalAccessTokenGuide() {
             </a>
           </section>
 
-          <section className="rounded-xl border border-border p-4" aria-labelledby="fine-grained-token-title">
+          <section className="order-1 rounded-xl border border-indigo-200 bg-indigo-50/50 p-4" aria-labelledby="fine-grained-token-title">
+            <span className="mb-2 inline-flex rounded-full bg-indigo-600 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white"><Trans>Recommended</Trans></span>
             <h3 id="fine-grained-token-title" className="font-semibold">
-              <Trans>Fine-grained token for an existing repository</Trans>
+              <Trans>Fine-grained token limited to one repository</Trans>
             </h3>
             <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm text-muted-foreground">
               <li><Trans>Create the destination repository first, choose its Resource owner, then limit Repository access to that repository.</Trans></li>
               <li><Trans>Under Repository permissions, set Contents to Read and write so ADT can pull and push book files.</Trans></li>
-              <li><Trans>Set Administration to Read and write so ADT can configure the repository and create the GitHub Pages site.</Trans></li>
               <li><Trans>Set Pages to Read and write so ADT can enable, inspect, and update the published site.</Trans></li>
               <li><Trans>Metadata remains Read-only automatically. No Actions, Workflows, Issues, Packages, or account permissions are required.</Trans></li>
               <li><Trans>If an organization owns the repository, its policy may require administrator approval before the token works.</Trans></li>
             </ol>
             <div className="mt-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs">
               <strong><Trans>Required fine-grained repository permissions:</Trans></strong>{" "}
-              <Trans>Contents — Read and write; Administration — Read and write; Pages — Read and write; Metadata — Read-only.</Trans>
+              <Trans>Contents — Read and write; Pages — Read and write; Metadata — Read-only.</Trans>
             </div>
             <a
               className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3.5 py-2 text-xs font-semibold shadow-sm transition-colors hover:bg-muted"
@@ -623,7 +623,7 @@ function PersonalAccessTokenGuide() {
           </section>
 
           <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-950">
-            <Trans>Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps this token locally on this device and does not store it in the book directory.</Trans>
+            <Trans>Security: use the shortest practical expiration, never share the token, and revoke it in GitHub when it is no longer needed. ADT Studio keeps the token only for this application session and never stores it in the book directory.</Trans>
           </p>
         </div>
       </SheetContent>
@@ -652,7 +652,7 @@ export function GitHubPublisher({ bookLabel }: { bookLabel: string }) {
   const previousPublishStatus = useRef<GitHubPublishStateType["status"] | null>(null)
 
   const reconnectGitHub = useCallback(() => {
-    window.localStorage.removeItem(TOKEN_STORAGE_KEY)
+    window.sessionStorage.removeItem(TOKEN_STORAGE_KEY)
     setToken("")
     setConnection(null)
     setConfigurationStep(0)
@@ -677,6 +677,14 @@ export function GitHubPublisher({ bookLabel }: { bookLabel: string }) {
     refetchInterval: 3_000,
     refetchOnMount: "always",
   })
+  const materializeMutation = useMutation({
+    mutationFn: () => api.materializeGitHubPublishChanges(bookLabel),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["github-publishing-changes", bookLabel] })
+      toast.success(t`Pipeline changes are ready for Git review.`)
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : t`Unable to prepare pipeline changes for Git review.`),
+  })
   const remoteStatusQuery = useQuery({
     queryKey: ["github-publishing-remote", bookLabel],
     queryFn: () => api.getGitHubRemoteStatus(bookLabel, token.trim()),
@@ -688,7 +696,7 @@ export function GitHubPublisher({ bookLabel }: { bookLabel: string }) {
     mutationFn: () => api.connectGitHub(token.trim()),
     onMutate: () => toast.loading(t`Connecting to GitHub…`, { id: "github-connect" }),
     onSuccess: (result) => {
-      window.localStorage.setItem(TOKEN_STORAGE_KEY, token.trim())
+      window.sessionStorage.setItem(TOKEN_STORAGE_KEY, token.trim())
       setConnection(result)
       setOwner((current) => current || result.login)
       setConfigurationStep(1)
@@ -756,7 +764,7 @@ export function GitHubPublisher({ bookLabel }: { bookLabel: string }) {
 
   const state = statusQuery.data
   const isRunning = state?.status === "running"
-  const hasSavedConfiguration = Boolean(token.trim() && repository.trim())
+  const hasSavedConfiguration = Boolean(repository.trim())
   const hasPublishingProfile = Boolean(state?.owner && state.repository)
   useWorkflowCompletionSound(state)
 
@@ -876,6 +884,15 @@ export function GitHubPublisher({ bookLabel }: { bookLabel: string }) {
           </Button>
         </div>
       </div>
+
+      {screen === "workflow" && changesQuery.data?.sourceChanged ? (
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-indigo-200 bg-indigo-50 p-3 text-indigo-950">
+          <div><p className="text-xs font-semibold"><Trans>Pipeline edits are ready to review</Trans></p><p className="mt-1 text-xs"><Trans>Prepare the latest versioned book entities, then Git will show the exact changed files and lines.</Trans></p></div>
+          <Button type="button" size="sm" onClick={() => materializeMutation.mutate()} disabled={materializeMutation.isPending}>
+            {materializeMutation.isPending ? <LoaderCircle className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <ScanSearch className="mr-2 h-4 w-4" aria-hidden="true" />}<Trans>Prepare changes</Trans>
+          </Button>
+        </div>
+      ) : null}
 
       {screen === "configure" ? (
         <div key="configure" className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-3 motion-safe:duration-300">

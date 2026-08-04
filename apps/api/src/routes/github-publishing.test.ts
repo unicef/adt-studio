@@ -25,6 +25,7 @@ describe("GitHub publishing routes", () => {
     expect(response.status).toBe(200)
     await expect(response.json()).resolves.toEqual({
       packaged: true,
+      sourceChanged: false,
       changes: [{ path: "index.html", status: "added" }],
     })
   })

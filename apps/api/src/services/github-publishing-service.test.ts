@@ -11,6 +11,7 @@ import {
   getPublishedFileDiff,
   readLatestPublishVersion,
   readPublishVersions,
+  resolveRepositoryPath,
   speechEntityIdsFromDiff,
   waitForPages,
   writePublishVersion,
@@ -99,6 +100,18 @@ describe("github publishing state", () => {
       { path: "new.txt", status: "added" },
       { path: "old.txt", status: "deleted" },
     ])
+  })
+
+  it("rejects repository paths that escape the pull directory", () => {
+    expect(resolveRepositoryPath(path.join(bookDir, "pull"), "pages/index.html")).toBe(
+      path.join(bookDir, "pull", "pages", "index.html"),
+    )
+    expect(() => resolveRepositoryPath(path.join(bookDir, "pull"), "../outside.txt")).toThrow(
+      "Unsafe repository path",
+    )
+    expect(() => resolveRepositoryPath(path.join(bookDir, "pull"), "/tmp/outside.txt")).toThrow(
+      "Unsafe repository path",
+    )
   })
 
   it("finds changed speech entities in Git HTML and JSON diffs", () => {

@@ -67,6 +67,15 @@ function gitAuth(token: string): { username: string; password: string } {
   return { username: token, password: "x-oauth-basic" }
 }
 
+export function resolveRepositoryPath(root: string, relativePath: string): string {
+  const resolvedRoot = path.resolve(root)
+  const resolved = path.resolve(resolvedRoot, relativePath)
+  if (resolved !== resolvedRoot && !resolved.startsWith(`${resolvedRoot}${path.sep}`)) {
+    throw new Error(`Unsafe repository path: ${relativePath}`)
+  }
+  return resolved
+}
+
 function encodePathSegment(value: string): string {
   return encodeURIComponent(value).replace(/%2F/gi, "/")
 }
@@ -166,7 +175,7 @@ export async function pullPublishedBookSnapshot(options: {
     if ((entry.size ?? 0) > MAX_BLOB_BYTES) throw new Error(`${entry.path} is too large to pull from GitHub`)
     const blob = await githubRequest<{ content: string; encoding: string }>(token, `${repoPath}/git/blobs/${entry.sha}`)
     if (blob.data.encoding !== "base64") throw new Error(`Unsupported GitHub encoding for ${entry.path}`)
-    const destination = path.join(pullRoot, entry.path)
+    const destination = resolveRepositoryPath(pullRoot, entry.path)
     fs.mkdirSync(path.dirname(destination), { recursive: true })
     fs.writeFileSync(destination, Buffer.from(blob.data.content.replace(/\s/g, ""), "base64"))
   }
@@ -180,6 +189,8 @@ export async function pullPublishedBookSnapshot(options: {
     fs.renameSync(adtDir, backupPath)
   }
   fs.renameSync(pullRoot, adtDir)
+  await synchronizeLocalGitRepository({ bookDir, token, owner, repository, branch })
+  await git.checkout({ fs, dir: adtDir, gitdir: gitDir(bookDir), ref: branch, force: true })
   return { commitSha, files: blobs.length, backupPath }
 }
 
@@ -464,7 +475,9 @@ async function pushWithSystemGit(options: {
     child.stderr.on("data", (chunk: string) => {
       stderr = `${stderr}${chunk}`.slice(-8_000)
     })
-    child.once("error", (error) => reject(new Error(`Unable to start Git transport: ${error.message}`)))
+    child.once("error", (error) => reject(new Error(error.message.includes("ENOENT")
+      ? "System Git is unavailable. Install Git or retry with the built-in Git transport."
+      : `Unable to start Git transport: ${error.message}`)))
     child.once("exit", (code) => {
       if (code === 0) resolve()
       else reject(new Error(stderr.trim() || `Git push failed with exit code ${code ?? "unknown"}`))
@@ -555,9 +568,9 @@ export async function getPublishedFileDiff(
 export function writePublishVersion(bookDir: string, record: PublishVersionRecord): void {
   const dir = versionsDir(bookDir)
   fs.mkdirSync(dir, { recursive: true })
-  const existing = fs.readdirSync(dir).filter((name) => name.endsWith(".json")).length
-  const filename = `${String(existing + 1).padStart(6, "0")}-${record.state.id}.json`
-  fs.writeFileSync(path.join(dir, filename), JSON.stringify(record, null, 2))
+  const timestamp = record.state.startedAt.replace(/[^0-9]/g, "")
+  const filename = `${timestamp}-${record.state.id}.json`
+  fs.writeFileSync(path.join(dir, filename), JSON.stringify(record, null, 2), { flag: "wx" })
 }
 
 function suggestedCommitMessage(changes: GitHubFileChangeType[]): string {
@@ -685,6 +698,11 @@ export async function publishBookToGitHub(options: {
     state.owner = owner
     const branch = await ensureRepository(token, owner, connection.login, request)
     state.branch = branch
+    const remoteHead = await getGitHubRemoteHead(token, owner, request.repository, branch)
+    const previous = readLatestPublishVersion(bookDir)
+    if (previous?.state.commitSha && previous.state.owner === owner && previous.state.repository === request.repository && previous.state.commitSha !== remoteHead) {
+      throw new Error("GitHub contains commits that are not in this book. Synchronize or resolve the remote changes before deploying.")
+    }
     await synchronizeLocalGitRepository({
       bookDir,
       token,

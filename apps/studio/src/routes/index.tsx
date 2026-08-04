@@ -17,6 +17,7 @@ import {
   Clock,
   Scissors,
   Puzzle,
+  ExternalLink,
 } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -44,8 +45,9 @@ import {
   getStageDescriptionI18n,
 } from "@/components/pipeline/pipeline-i18n"
 import type { BookSummary } from "@/api/client"
-import { getBookCoverUrl } from "@/api/client"
+import { api, getBookCoverUrl } from "@/api/client"
 import { cn } from "@/lib/utils"
+import { useQuery } from "@tanstack/react-query"
 
 type BookSortKey = "modified" | "created" | "alphabetical"
 
@@ -210,6 +212,12 @@ function BookRow({
     () => new Set(book.completedStages),
     [book.completedStages],
   )
+  const publishStatus = useQuery({
+    queryKey: ["github-publishing", book.label],
+    queryFn: () => api.getGitHubPublishStatus(book.label),
+    enabled: completedSet.has("publish"),
+    staleTime: 30_000,
+  })
   const [coverFailed, setCoverFailed] = useState(false)
   // Show the cover when there are extracted pages OR a source PDF — the server
   // falls back to rendering page 1 from the PDF for un-extracted books (e.g. a
@@ -395,6 +403,13 @@ function BookRow({
 
         {/* Actions — always visible */}
         <div className="flex flex-col items-center justify-center gap-1 border-l px-3 shrink-0">
+          {publishStatus.data?.status === "completed" && publishStatus.data.pagesUrl ? (
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" asChild>
+              <a href={publishStatus.data.pagesUrl} target="_blank" rel="noreferrer" aria-label={t`Open published book`}>
+                <ExternalLink className="h-4 w-4" />
+              </a>
+            </Button>
+          ) : null}
           <Button
             variant="ghost"
             size="icon"

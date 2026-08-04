@@ -141,18 +141,21 @@ export function createGitHubPublishingRoutes(
   })
 
   app.get("/books/:label/github-publishing/changes", async (c) => {
-    const { safeLabel, bookDir } = resolveBookDir(booksDir, c.req.param("label"))
-    let changes = await detectGitWorkingTreeChanges(bookDir)
+    const { bookDir } = resolveBookDir(booksDir, c.req.param("label"))
+    const changes = await detectGitWorkingTreeChanges(bookDir)
     const stamp = sourceStamp(bookDir)
-    // Pipeline edits live in versioned book storage. Materialize them into the
-    // deployable worktree once, but never overwrite a direct local file edit.
-    if (changes.length === 0 && stamp > readSourceStamp(bookDir)) {
-      await prepareExport(safeLabel, "adt", booksDir, webAssetsDir, configPath)
-      writeSourceStamp(bookDir, stamp)
-      changes = await detectGitWorkingTreeChanges(bookDir)
-    }
     const current = buildPublishManifest(path.join(bookDir, "adt"))
-    return c.json({ changes, packaged: Object.keys(current).length > 0 })
+    return c.json({ changes, packaged: Object.keys(current).length > 0, sourceChanged: stamp > readSourceStamp(bookDir) })
+  })
+
+  app.post("/books/:label/github-publishing/materialize", async (c) => {
+    const { safeLabel, bookDir } = resolveBookDir(booksDir, c.req.param("label"))
+    const existing = await detectGitWorkingTreeChanges(bookDir)
+    if (existing.length > 0) throw new HTTPException(409, { message: "Commit or discard direct book-file changes before rebuilding pipeline edits" })
+    const stamp = sourceStamp(bookDir)
+    await prepareExport(safeLabel, "adt", booksDir, webAssetsDir, configPath)
+    writeSourceStamp(bookDir, stamp)
+    return c.json({ changes: await detectGitWorkingTreeChanges(bookDir) })
   })
 
   app.post("/books/:label/github-publishing/open-editor", async (c) => {
@@ -272,13 +275,11 @@ export function createGitHubPublishingRoutes(
   app.post("/books/:label/github-publishing/publish", async (c) => {
     const token = tokenFromHeader(c.req.header("X-GitHub-Token"))
     const { safeLabel, bookDir } = resolveBookDir(booksDir, c.req.param("label"))
-    if (active.get(safeLabel)?.status === "running") {
-      throw new HTTPException(409, { message: "A GitHub deployment is already running" })
-    }
     const parsed = GitHubPublishRequest.safeParse(await c.req.json().catch(() => ({})))
     if (!parsed.success) {
       throw new HTTPException(400, { message: parsed.error.issues.map((issue) => issue.message).join(", ") })
     }
+    if (active.get(safeLabel)?.status === "running") throw new HTTPException(409, { message: "A GitHub deployment is already running" })
 
     const now = new Date().toISOString()
     const state: GitHubPublishStateType = {
