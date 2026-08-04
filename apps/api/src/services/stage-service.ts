@@ -71,6 +71,9 @@ export interface StageRunOptions {
     step: StepName
     pageId: string
     error: string
+    canRetry?: boolean
+    errorClass?: string
+    attempts?: number
   }) => Promise<PageErrorAction>
 }
 

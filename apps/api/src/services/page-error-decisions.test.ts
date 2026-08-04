@@ -27,6 +27,64 @@ describe("page-error decisions broker", () => {
     expect(broker.getPendingDecisions(LABEL)).toHaveLength(0)
   })
 
+  it("surfaces retry metadata and resolves a retryable page with retry", async () => {
+    const bus = createBookEventBus()
+    const events: unknown[] = []
+    bus.addListener(LABEL, (event) => events.push(event))
+    const broker = createPageErrorDecisions(bus)
+
+    const p = broker.requestDecision({
+      label: LABEL,
+      step: "image-meaningfulness",
+      pageId: "pg024",
+      error: "Cannot connect to API: other side closed",
+      canRetry: true,
+      errorClass: "connection-closed",
+      attempts: 3,
+    })
+    const pending = broker.getPendingDecisions(LABEL)
+
+    expect(pending).toEqual([
+      expect.objectContaining({
+        step: "image-meaningfulness",
+        pageId: "pg024",
+        canRetry: true,
+        errorClass: "connection-closed",
+        attempts: 3,
+      }),
+    ])
+    expect(events).toContainEqual(
+      expect.objectContaining({
+        type: "decision-required",
+        canRetry: true,
+        errorClass: "connection-closed",
+        attempts: 3,
+      }),
+    )
+    expect(broker.resolveDecision(pending[0].decisionId, "retry")).toBe(true)
+    await expect(p).resolves.toBe("retry")
+  })
+
+  it("does not allow retry for a non-retryable page", async () => {
+    const { bus } = withListener()
+    const broker = createPageErrorDecisions(bus)
+
+    const p = broker.requestDecision({
+      label: LABEL,
+      step: "image-meaningfulness",
+      pageId: "pg024",
+      error: "Invalid API key",
+      canRetry: false,
+      errorClass: "non-retryable",
+      attempts: 1,
+    })
+    const pending = broker.getPendingDecisions(LABEL)
+
+    expect(broker.resolveDecision(pending[0].decisionId, "retry")).toBe(false)
+    expect(broker.resolveDecision(pending[0].decisionId, "stop")).toBe(true)
+    await expect(p).resolves.toBe("stop")
+  })
+
   it("applyToAll auto-resolves subsequent decisions without prompting", async () => {
     const { bus } = withListener()
     const broker = createPageErrorDecisions(bus)

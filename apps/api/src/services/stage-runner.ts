@@ -3,7 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate } from "@adt/llm"
+import { classifyLLMError, createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate } from "@adt/llm"
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
@@ -202,6 +202,9 @@ interface PageFailureContext {
   /** step name → set of pageIds skipped by user decision (interactive mode). */
   skippedByStep: Map<string, Set<string>>
   progress: StageRunProgress
+  canRetry?: boolean
+  errorClass?: string
+  attempts?: number
   runSignal?: AbortSignal
   /** Aborts the current step when the user chooses "stop". */
   stepController: AbortController
@@ -211,13 +214,16 @@ interface PageFailureContext {
     step: StepName
     pageId: string
     error: string
+    canRetry?: boolean
+    errorClass?: string
+    attempts?: number
   }) => Promise<PageErrorAction>
 }
 
 /** Shared handling for a page failure inside a per-page step. Covers all six
  *  emission points. Returns after recording/handling; throws only to unwind a
  *  run cancel (an aborted page is not a failure — it re-runs cheaply via cache). */
-async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
+async function handlePageFailure(ctx: PageFailureContext): Promise<PageErrorAction> {
   const { runSignal, stepController } = ctx
 
   // 1. Run cancel — re-throw so the run tears down at once.
@@ -226,7 +232,7 @@ async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
   }
   // 2. Step already stopping (a prior "stop" decision aborted in-flight work) —
   //    swallow quietly; the step throws its own StepError after the loop.
-  if (stepController.signal.aborted) return
+  if (stepController.signal.aborted) return "stop"
 
   const msg = toErrorMessage(ctx.err)
   // Emit step-error as before (per-page). In interactive mode this briefly paints
@@ -245,9 +251,15 @@ async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
         step: ctx.step,
         pageId: ctx.pageId,
         error: msg,
+        canRetry: ctx.canRetry,
+        errorClass: ctx.errorClass,
+        attempts: ctx.attempts,
       })
     } finally {
       ctx.gate.open()
+    }
+    if (action === "retry" && ctx.canRetry) {
+      return "retry"
     }
     if (action === "skip") {
       let set = ctx.skippedByStep.get(ctx.step)
@@ -256,16 +268,17 @@ async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
         ctx.skippedByStep.set(ctx.step, set)
       }
       set.add(ctx.pageId)
-      return
+      return "skip"
     }
     // "stop": abort the step. processWithConcurrency stops admitting new items;
     // the step then throws a StepError so it's marked error and later stages halt.
     stepController.abort()
-    return
+    return "stop"
   }
 
   // Default "stop" policy: accumulate and fail the step at the end.
   ctx.failedPages.push({ pageId: ctx.pageId, step: ctx.step, msg })
+  return "stop"
 }
 
 /** Per-step failure-handling dependencies, built once per page-processing step
@@ -273,8 +286,14 @@ async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
  *  per call by reportPageFailure. */
 type PageFailureDeps = Omit<
   PageFailureContext,
-  "step" | "pageId" | "err" | "progress"
+  "step" | "pageId" | "err" | "progress" | "canRetry" | "errorClass" | "attempts"
 >
+
+interface PageFailureDetails {
+  canRetry?: boolean
+  errorClass?: string
+  attempts?: number
+}
 
 /** Build the per-step failure deps from run options. */
 function buildPageFailureDeps(
@@ -299,9 +318,10 @@ function reportPageFailure(
   progress: StageRunProgress,
   step: StepName,
   pageId: string,
-  err: unknown
-): Promise<void> {
-  return handlePageFailure({ ...deps, progress, step, pageId, err })
+  err: unknown,
+  details: PageFailureDetails = {},
+): Promise<PageErrorAction> {
+  return handlePageFailure({ ...deps, progress, step, pageId, err, ...details })
 }
 
 /** Compose the "Completed — N page(s) skipped" message, or undefined if none. */
@@ -3307,21 +3327,43 @@ async function runMeaningfulnessPass(
           height: img.height,
         }))
 
-      if (unprunedImages.length > 0) {
-        const updated = await filterPageImageMeaningfulness(
-          {
-            pageId: page.pageId,
-            pageImageBase64: storage.getPageImageBase64(page.pageId),
-            images: unprunedImages,
-          },
-          existing,
-          config,
-          model,
-        )
-        results.set(page.pageId, updated)
-        storage.putNodeData("image-filtering", page.pageId, updated)
+      let attempts = 0
+      while (unprunedImages.length > 0) {
+        try {
+          const updated = await filterPageImageMeaningfulness(
+            {
+              pageId: page.pageId,
+              pageImageBase64: storage.getPageImageBase64(page.pageId),
+              images: unprunedImages,
+            },
+            existing,
+            config,
+            model,
+          )
+          results.set(page.pageId, updated)
+          storage.putNodeData("image-filtering", page.pageId, updated)
+          break
+        } catch (err) {
+          const classification = classifyLLMError(err)
+          attempts += classification.retryable ? config.maxRetries + 1 : 1
+          console.error(`[stage-run] ${label}: ${page.pageId} failed at image-meaningfulness: ${toErrorMessage(err)}`)
+          const action = await reportPageFailure(
+            deps,
+            progress,
+            "image-meaningfulness",
+            page.pageId,
+            err,
+            {
+              canRetry: classification.retryable,
+              errorClass: classification.errorClass,
+              attempts,
+            },
+          )
+          if (action !== "retry") break
+        }
       }
     } catch (err) {
+      if (isCancellation(err, [deps.runSignal])) throw err
       console.error(`[stage-run] ${label}: ${page.pageId} failed at image-meaningfulness: ${toErrorMessage(err)}`)
       await reportPageFailure(deps, progress, "image-meaningfulness", page.pageId, err)
     } finally {

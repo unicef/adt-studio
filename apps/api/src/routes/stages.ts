@@ -374,6 +374,9 @@ export function createStageRoutes(
                     step: event.step,
                     pageId: event.pageId,
                     error: event.error,
+                    canRetry: event.canRetry,
+                    errorClass: event.errorClass,
+                    attempts: event.attempts,
                   }),
                 })
               } else if (event.type === "task") {

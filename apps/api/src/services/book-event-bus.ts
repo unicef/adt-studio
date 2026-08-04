@@ -13,6 +13,9 @@ export type BookSSEEvent =
       step: string
       pageId: string
       error: string
+      canRetry?: boolean
+      errorClass?: string
+      attempts?: number
     }
   | { type: "task"; data: TaskEvent }
 

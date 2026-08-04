@@ -15,6 +15,9 @@ export interface RequestDecisionInput {
   step: string
   pageId: string
   error: string
+  canRetry?: boolean
+  errorClass?: string
+  attempts?: number
 }
 
 export interface PageErrorDecisions {
@@ -41,6 +44,9 @@ interface PendingEntry {
   step: string
   pageId: string
   error: string
+  canRetry?: boolean
+  errorClass?: string
+  attempts?: number
   resolve: (action: PageErrorAction) => void
   resolved: boolean
   safetyTimer?: ReturnType<typeof setTimeout>
@@ -52,7 +58,7 @@ export function createPageErrorDecisions(
 ): PageErrorDecisions {
   const pending = new Map<string, PendingEntry>()
   // Per-label "apply to all" policy set once the user checks the box.
-  const bulkPolicy = new Map<string, PageErrorAction>()
+  const bulkPolicy = new Map<string, Exclude<PageErrorAction, "retry">>()
 
   function finish(entry: PendingEntry, action: PageErrorAction): void {
     if (entry.resolved) return
@@ -72,6 +78,9 @@ export function createPageErrorDecisions(
       step: entry.step,
       pageId: entry.pageId,
       error: entry.error,
+      canRetry: entry.canRetry,
+      errorClass: entry.errorClass,
+      attempts: entry.attempts,
     })
     entry.safetyTimer = setTimeout(() => finish(entry, "stop"), DECISION_TIMEOUT_MS)
   }
@@ -90,6 +99,9 @@ export function createPageErrorDecisions(
           step: input.step,
           pageId: input.pageId,
           error: input.error,
+          canRetry: input.canRetry,
+          errorClass: input.errorClass,
+          attempts: input.attempts,
           resolve,
           resolved: false,
         }
@@ -125,7 +137,8 @@ export function createPageErrorDecisions(
     ): boolean {
       const entry = pending.get(decisionId)
       if (!entry) return false
-      if (applyToAll) {
+      if (action === "retry" && !entry.canRetry) return false
+      if (applyToAll && action !== "retry") {
         bulkPolicy.set(entry.label, action)
         // Apply the bulk decision to every other pending decision for this label.
         for (const other of [...pending.values()]) {
@@ -147,6 +160,9 @@ export function createPageErrorDecisions(
             step: entry.step,
             pageId: entry.pageId,
             error: entry.error,
+            canRetry: entry.canRetry,
+            errorClass: entry.errorClass,
+            attempts: entry.attempts,
           })
         }
       }
