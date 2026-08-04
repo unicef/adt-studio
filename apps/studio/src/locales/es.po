@@ -9933,3 +9933,42 @@ msgstr "Acercar"
 
 msgid "Zoom out"
 msgstr "Alejar"
+
+msgid "Add shape"
+msgstr "Añadir forma"
+
+msgid "Automatic — match book"
+msgstr "Automática — coincidir con el libro"
+
+msgid "Automatic — match the book"
+msgstr "Automática — coincidir con el libro"
+
+msgid "Book font updated."
+msgstr "Fuente del libro actualizada."
+
+msgid "Change the font across generated book pages."
+msgstr "Cambiar la fuente en las páginas generadas del libro."
+
+msgid "Commercial fonts such as Sassoon must also be installed or attached to the book for an exact match."
+msgstr "Las fuentes comerciales como Sassoon también deben estar instaladas o adjuntas al libro para obtener una coincidencia exacta."
+
+msgid "Fixed-layout pages preserve the original book fonts."
+msgstr "Las páginas de diseño fijo conservan las fuentes originales del libro."
+
+msgid "New text"
+msgstr "Texto nuevo"
+
+msgid "Output font family"
+msgstr "Familia tipográfica de salida"
+
+msgid "Resize image"
+msgstr "Cambiar tamaño de imagen"
+
+msgid "Rotate"
+msgstr "Girar"
+
+msgid "Unable to update the book font."
+msgstr "No se pudo actualizar la fuente del libro."
+
+msgid "Use one accessible font throughout generated, reflowable pages. You can change it later from the book toolbar."
+msgstr "Use una fuente accesible en todas las páginas generadas y adaptables. Puede cambiarla más tarde desde la barra del libro."

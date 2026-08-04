@@ -9934,3 +9934,42 @@ msgstr "Zmadhim"
 
 msgid "Zoom out"
 msgstr "Zvogëlim"
+
+msgid "Add shape"
+msgstr "Shto formë"
+
+msgid "Automatic — match book"
+msgstr "Automatik — përshtatu me librin"
+
+msgid "Automatic — match the book"
+msgstr "Automatik — përshtatu me librin"
+
+msgid "Book font updated."
+msgstr "Shkronja e librit u përditësua."
+
+msgid "Change the font across generated book pages."
+msgstr "Ndrysho shkronjën në faqet e gjeneruara të librit."
+
+msgid "Commercial fonts such as Sassoon must also be installed or attached to the book for an exact match."
+msgstr "Shkronjat komerciale si Sassoon duhet gjithashtu të instalohen ose t’i bashkëngjiten librit për përputhje të saktë."
+
+msgid "Fixed-layout pages preserve the original book fonts."
+msgstr "Faqet me strukturë fikse ruajnë shkronjat origjinale të librit."
+
+msgid "New text"
+msgstr "Tekst i ri"
+
+msgid "Output font family"
+msgstr "Familja e shkronjave të daljes"
+
+msgid "Resize image"
+msgstr "Ndrysho madhësinë e figurës"
+
+msgid "Rotate"
+msgstr "Rrotullo"
+
+msgid "Unable to update the book font."
+msgstr "Shkronja e librit nuk mund të përditësohej."
+
+msgid "Use one accessible font throughout generated, reflowable pages. You can change it later from the book toolbar."
+msgstr "Përdorni një shkronjë të qasshme në të gjitha faqet e gjeneruara dhe të rrjedhshme. Mund ta ndryshoni më vonë nga shiriti i librit."
