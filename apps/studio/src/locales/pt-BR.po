@@ -4015,8 +4015,8 @@ msgstr "Reunindo as evidências"
 msgid "Gemini"
 msgstr "Gemini"
 
-#~ msgid "Gemini API key is required to generate audio."
-#~ msgstr "É necessária uma chave de API do Gemini para gerar áudio."
+msgid "Gemini API key is required to generate audio."
+msgstr "É necessária uma chave de API do Gemini para gerar áudio."
 
 #~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. A lower temperature (e.g. 0.4) reduces that variation and a fixed seed makes delivery reproducible. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
 #~ msgstr "O Gemini gera cada frase em sua própria requisição, então o tom pode variar entre as frases. Uma temperatura mais baixa (ex.: 0,4) reduz essa variação e uma semente fixa torna a leitura reproduzível. Afeta apenas os idiomas roteados para o Gemini — o OpenAI e o Azure ignoram esses valores. Alterar qualquer um deles regenera o áudio do Gemini na próxima execução."
@@ -4090,8 +4090,8 @@ msgstr "Gerar a partir das páginas"
 msgid "Generate global prompts"
 msgstr "Gerar prompts globais"
 
-#~ msgid "Generate missing Gemini audio"
-#~ msgstr "Gerar áudio faltante do Gemini"
+msgid "Generate missing Gemini audio"
+msgstr "Gerar o áudio Gemini ausente"
 
 msgid "Generate multiple-choice comprehension quizzes from the book's content. Create them automatically across the whole book, or add a single quiz from specific pages."
 msgstr "Gere questionários de compreensão de múltipla escolha a partir do conteúdo do livro. Crie-os automaticamente em todo o livro ou adicione um único questionário a partir de páginas específicas."
@@ -8452,8 +8452,8 @@ msgstr "Sessions let different reviewers capture findings independently, includi
 msgid "Set a clear name and a short expiration date."
 msgstr "Defina um nome claro e uma data de expiração curta."
 
-#~ msgid "Set a Gemini API key to generate audio"
-#~ msgstr "Defina uma chave de API do Gemini para gerar áudio"
+msgid "Set a Gemini API key to generate audio"
+msgstr "Defina uma chave de API do Gemini para gerar áudio"
 
 msgid "Set Administration to Read and write so ADT can configure the repository and create the GitHub Pages site."
 msgstr "Defina Administração como Leitura e gravação para que o ADT possa configurar o repositório e criar o site do GitHub Pages."
