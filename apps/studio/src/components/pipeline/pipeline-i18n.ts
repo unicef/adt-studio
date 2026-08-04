@@ -22,6 +22,7 @@ export const STAGE_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
   validation: msg`Validation`,
   preview: msg`Preview`,
   export: msg`Export`,
+  feedback: msg`Feedback`,
 }
 
 export const STAGE_RUNNING_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
@@ -40,6 +41,7 @@ export const STAGE_RUNNING_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
   validation: msg`Running Validation...`,
   preview: msg`Building Preview...`,
   export: msg`Exporting...`,
+  feedback: msg`Loading Feedback...`,
 }
 
 export const STAGE_DESCRIPTION_MESSAGES: Record<string, MessageDescriptor> = {
@@ -57,6 +59,7 @@ export const STAGE_DESCRIPTION_MESSAGES: Record<string, MessageDescriptor> = {
   validation: msg`Run whole-book validation checks and configure accessibility assessment settings.`,
   preview: msg`Package and preview the final ADT web application.`,
   export: msg`Export the packaged book and related artifacts for delivery.`,
+  feedback: msg`Read, reply to and resolve the comments reviewers left on the published book.`,
 }
 
 export const STEP_LABEL_MESSAGES: Record<string, MessageDescriptor> = {

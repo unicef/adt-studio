@@ -28,7 +28,7 @@ describe("stage-config", () => {
     ])
   })
 
-  it("returns book overview stages including validation before preview and export", () => {
+  it("returns book overview stages including validation before preview, export and feedback", () => {
     const overviewSlugs = getBookOverviewStages().map((stage) => stage.slug)
     expect(overviewSlugs).toEqual([
       "extract",
@@ -45,7 +45,14 @@ describe("stage-config", () => {
       "validation",
       "preview",
       "export",
+      "feedback",
     ])
+  })
+
+  it("puts Feedback after Export and keeps it out of the runnable pipeline", () => {
+    const slugs = STAGES.map((stage) => stage.slug)
+    expect(slugs.indexOf("feedback")).toBe(slugs.indexOf("export") + 1)
+    expect(getPipelineStages().map((stage) => stage.slug)).not.toContain("feedback")
   })
 
   it("includes validation as a non-pipeline stage", () => {

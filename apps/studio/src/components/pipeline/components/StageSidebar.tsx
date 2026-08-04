@@ -25,6 +25,7 @@ import { useDirtyTabsForStage } from "@/hooks/use-settings-dirty-tabs"
 import { getSettingsTabs } from "../settings-tabs"
 import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
+import { useFeedbackBadge } from "../stages/feedback/use-feedback-badge"
 import { StepProgressRing } from "./StepProgressRing"
 import { StoryboardIndex } from "./StoryboardIndex"
 import { useSectionNav } from "@/routes/books.$label"
@@ -81,6 +82,7 @@ export function StageSidebar({
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
+  const feedback = useFeedbackBadge(bookLabel)
   const { tasks } = useBookTasks(bookLabel)
   const stageMissing = useStageMissingCounts(bookLabel)
   const translateNeedsRerun = stageMissing.translate > 0
@@ -91,6 +93,11 @@ export function StageSidebar({
   const noTextLayerLabel = i18n._(
     msg`Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF.`
   )
+
+  const unresolvedFeedbackLabel = (count: number) =>
+    count === 1
+      ? i18n._(msg`1 comment waiting for you`)
+      : i18n._(msg`${count} comments waiting for you`)
 
   const currentState = stageState(activeStep)
   const stageHasContent =
@@ -124,12 +131,16 @@ export function StageSidebar({
   const signLanguageCompleted = signLanguageData?.videos?.some((v) => v.sectionId !== null) ?? false
   const previewCompleted = packageStatus?.hasAdt ?? false
   const exportCompleted = tasks.some((t) => t.kind === "prepare-export" && t.status === "completed")
+  /** Feedback is "done" only once the worker has actually said there is nothing open — a
+   *  published book with an unanswered comment list is not a drained inbox. */
+  const feedbackCompleted = feedback.published && feedback.loaded && feedback.unresolvedCount === 0
 
   const completionOverrides: Record<string, boolean> = {
     "sign-language": signLanguageCompleted,
     validation: validationCompleted,
     preview: previewCompleted,
     export: exportCompleted,
+    feedback: feedbackCompleted,
   }
 
   const stageItems: ReactNode[] = []
@@ -248,7 +259,16 @@ export function StageSidebar({
                 >
                   <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
                 </span>
-              ) : step.slug === "extract" && hasNoTextLayer ? (
+              ) : step.slug === "feedback" && feedback.unresolvedCount > 0 ? (
+              <span
+                role="img"
+                aria-label={unresolvedFeedbackLabel(feedback.unresolvedCount)}
+                title={unresolvedFeedbackLabel(feedback.unresolvedCount)}
+                className="absolute -top-1.5 -right-1.5 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[9px] font-bold leading-none text-white ring-2 ring-background transition-transform duration-200 motion-reduce:transition-none"
+              >
+                {feedback.unresolvedCount > 99 ? "99+" : feedback.unresolvedCount}
+              </span>
+            ) : step.slug === "extract" && hasNoTextLayer ? (
                 <span
                   role="img"
                   aria-label={noTextLayerLabel}

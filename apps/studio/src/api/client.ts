@@ -36,11 +36,18 @@ import type {
   TranslationEvaluationResult,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
+import { PUBLISH_AUTHOR_NAME_HEADER } from "@adt/types"
 import type {
   BookPublicationRecord,
   BookPublicationStatus,
   BookPublicationVersionRecord,
+  CommentAnchor,
+  CommenterSession,
+  PublicationPageEntry,
   PublicationResponse,
+  PublishComment,
+  PublishCommentListResponse,
+  PublishCommentResponse,
   PublishErrorCodeStudio,
   PublishProgressEvent,
   PublishStepDescriptor,
@@ -896,12 +903,58 @@ export type {
   BookPublicationRecord,
   BookPublicationStatus,
   BookPublicationVersionRecord,
+  CommentAnchor,
+  CommenterSession,
+  PublicationPageEntry,
   PublicationResponse,
+  PublishComment,
+  PublishCommentListResponse,
+  PublishCommentResponse,
   PublishErrorCodeStudio,
   PublishProgressEvent,
   PublishStepDescriptor,
   PublishStepId,
   PublishStepStatus,
+}
+
+/** The published version's own pages — what the Feedback view navigates. */
+export interface PublicationPageManifest {
+  current_version: number
+  pages: PublicationPageEntry[]
+}
+
+export interface PublicationCommentQuery {
+  includeResolved?: boolean
+  pageSectionId?: string
+  version?: number
+}
+
+/** Same-origin URL for a file inside the published snapshot. The Studio proxies it with the
+ *  management secret, so the author reads the exact bytes reviewers saw — including on a link
+ *  that has since been stopped — and the browser never holds that secret. */
+export function getPublicationPreviewUrl(label: string, filePath = ""): string {
+  const encoded = filePath
+    .split("/")
+    .filter((segment) => segment.length > 0)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")
+  return `${BASE_URL}/books/${label}/publication/preview/${encoded}`
+}
+
+function authorNameHeader(authorName?: string | null): Record<string, string> {
+  const trimmed = authorName?.trim() ?? ""
+  return trimmed.length === 0 ? {} : { [PUBLISH_AUTHOR_NAME_HEADER]: trimmed }
+}
+
+function commentQueryString(query: PublicationCommentQuery = {}): string {
+  const params = new URLSearchParams()
+  if (query.includeResolved !== undefined) {
+    params.set("include_resolved", query.includeResolved ? "true" : "false")
+  }
+  if (query.pageSectionId !== undefined) params.set("page_section_id", query.pageSectionId)
+  if (query.version !== undefined) params.set("version", String(query.version))
+  const search = params.toString()
+  return search.length === 0 ? "" : `?${search}`
 }
 
 export interface PublishStreamOptions {
@@ -2154,6 +2207,69 @@ export const api = {
       method: "PATCH",
       body: JSON.stringify({ access_code: accessCode }),
     }),
+
+  // --- Feedback view (M4) ---
+
+  getPublicationPages: (label: string) =>
+    request<PublicationPageManifest>(`/books/${label}/publication/pages`),
+
+  getPublicationComments: (label: string, query: PublicationCommentQuery = {}) =>
+    request<PublishCommentListResponse>(
+      `/books/${label}/publication/comments${commentQueryString(query)}`,
+    ),
+
+  createPublicationComment: (
+    label: string,
+    body: { pageSectionId: string; body: string; parentId?: string | null; anchor?: CommentAnchor | null },
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(`/books/${label}/publication/comments`, {
+      method: "POST",
+      headers: authorNameHeader(authorName),
+      body: JSON.stringify({
+        page_section_id: body.pageSectionId,
+        body: body.body,
+        ...(body.parentId === undefined ? {} : { parent_id: body.parentId }),
+        ...(body.anchor === undefined ? {} : { anchor: body.anchor }),
+      }),
+    }),
+
+  /** Author-only, thread level: the reader has no resolve control at all. */
+  resolvePublicationComment: (
+    label: string,
+    id: string,
+    resolved: boolean,
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(
+      `/books/${label}/publication/comments/${encodeURIComponent(id)}/resolve`,
+      {
+        method: "POST",
+        headers: authorNameHeader(authorName),
+        body: JSON.stringify({ resolved }),
+      },
+    ),
+
+  updatePublicationComment: (
+    label: string,
+    id: string,
+    body: string,
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(
+      `/books/${label}/publication/comments/${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: authorNameHeader(authorName),
+        body: JSON.stringify({ body }),
+      },
+    ),
+
+  deletePublicationComment: (label: string, id: string, authorName?: string | null) =>
+    request<PublishCommentResponse>(
+      `/books/${label}/publication/comments/${encodeURIComponent(id)}`,
+      { method: "DELETE", headers: authorNameHeader(authorName) },
+    ),
 
   // --- Cloudflare connection & provisioning ---
 
