@@ -5,6 +5,14 @@ export const COMMENTER_SESSION_COOKIE = "adt_pub_session"
 
 export const COMMENTER_NAME_MAX_LENGTH = 60
 
+export const COMMENTER_PIN_MIN_LENGTH = 4
+
+export const COMMENTER_PIN_MAX_LENGTH = 12
+
+/** 90 days. A reviewer who set a PIN can reclaim the identity anywhere; the long-lived
+ *  cookie is what keeps the PIN prompt rare rather than every-visit. */
+export const COMMENTER_SESSION_MAX_AGE_SECONDS = 90 * 24 * 60 * 60
+
 export const PUBLISH_COMMENT_BODY_MAX_LENGTH = 2000
 
 /** Optional display name for the `MGMT_SECRET`-derived author session. The Studio has no
@@ -61,10 +69,25 @@ export const PublishComment = z.object({
 })
 export type PublishComment = z.infer<typeof PublishComment>
 
+/** No whitespace so a PIN cannot be trimmed into a different secret than the one typed. */
+export const CommenterPin = z
+  .string()
+  .min(COMMENTER_PIN_MIN_LENGTH)
+  .max(COMMENTER_PIN_MAX_LENGTH)
+  .regex(/^\S+$/)
+export type CommenterPin = z.infer<typeof CommenterPin>
+
 export const CommenterSessionCreateRequest = z.object({
   name: z.string().trim().min(1).max(COMMENTER_NAME_MAX_LENGTH),
+  pin: CommenterPin.optional(),
 })
 export type CommenterSessionCreateRequest = z.infer<typeof CommenterSessionCreateRequest>
+
+export const CommenterSessionClaimRequest = z.object({
+  name: z.string().trim().min(1).max(COMMENTER_NAME_MAX_LENGTH),
+  pin: CommenterPin,
+})
+export type CommenterSessionClaimRequest = z.infer<typeof CommenterSessionClaimRequest>
 
 export const CommenterSessionResponse = z.object({
   session: CommenterSession,

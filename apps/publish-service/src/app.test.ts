@@ -135,6 +135,7 @@ describe("management auth", () => {
       ["POST", "/api/publications"],
       ["POST", `/api/publications/${TOKEN}/versions`],
       ["POST", `/api/publications/${TOKEN}/revoke`],
+      ["POST", `/api/publications/${TOKEN}/reinstate`],
       ["PATCH", `/api/publications/${TOKEN}`],
       ["GET", `/api/publications/${TOKEN}`],
     ]
@@ -355,6 +356,36 @@ describe("POST /api/publications/:token/revoke", () => {
     const { app, env: bindings } = harness()
     const res = await app.request(`/api/publications/${TOKEN}/revoke`, mgmt(), bindings)
     expect(res.status).toBe(404)
+  })
+})
+
+describe("POST /api/publications/:token/reinstate", () => {
+  it("clears revoked_at and is idempotent", async () => {
+    const { app, env: bindings } = harness()
+    await app.request(
+      "/api/publications",
+      mgmt(zipForm(createMetadata, { "index.html": "one" })),
+      bindings,
+    )
+    await app.request(`/api/publications/${TOKEN}/revoke`, mgmt(), bindings)
+
+    const first = await app.request(`/api/publications/${TOKEN}/reinstate`, mgmt(), bindings)
+    expect(first.status).toBe(200)
+    await expect(first.json()).resolves.toMatchObject({ publication: { revoked_at: null } })
+
+    const second = await app.request(`/api/publications/${TOKEN}/reinstate`, mgmt(), bindings)
+    expect(second.status).toBe(200)
+    await expect(second.json()).resolves.toMatchObject({ publication: { revoked_at: null } })
+  })
+
+  it("returns 404 for an unknown publication and 400 for a malformed token", async () => {
+    const { app, env: bindings } = harness()
+    expect(
+      (await app.request(`/api/publications/${TOKEN}/reinstate`, mgmt(), bindings)).status,
+    ).toBe(404)
+    expect((await app.request("/api/publications/nope/reinstate", mgmt(), bindings)).status).toBe(
+      400,
+    )
   })
 })
 

@@ -155,13 +155,71 @@ describe("comment route shapes", () => {
 
   it("cannot issue sessions when the worker has no MGMT_SECRET bound", async () => {
     const { app } = await harness()
-    const res = await app.request(
+    for (const path of [`/p/${TOKEN}/session`, `/p/${TOKEN}/session/claim`]) {
+      const res = await app.request(
+        path,
+        { method: "POST", body: JSON.stringify({ name: "Maria", pin: "2468" }) },
+        {},
+      )
+      expect(res.status, path).toBe(500)
+      await expect(res.json(), path).resolves.toMatchObject({ error: "internal_error" })
+    }
+  })
+
+  it("claims a pinned identity with a fresh cookie and refuses a wrong PIN", async () => {
+    const { app } = await harness()
+    const created = await app.request(
+      `/p/${TOKEN}/session`,
+      { method: "POST", body: JSON.stringify({ name: "Maria", pin: "2468" }) },
+      env,
+    )
+    expect(created.status).toBe(201)
+
+    const claimed = await app.request(
+      `/p/${TOKEN}/session/claim`,
+      { method: "POST", body: JSON.stringify({ name: "Maria", pin: "2468" }) },
+      env,
+    )
+    expect(claimed.status).toBe(200)
+    await expect(claimed.json()).resolves.toMatchObject({
+      session: { id: "id-1", name: "Maria", is_author: false },
+    })
+    expect(claimed.headers.get("set-cookie")).toContain("Max-Age=7776000")
+
+    const wrong = await app.request(
+      `/p/${TOKEN}/session/claim`,
+      { method: "POST", body: JSON.stringify({ name: "Maria", pin: "1111" }) },
+      env,
+    )
+    expect(wrong.status).toBe(401)
+    await expect(wrong.json()).resolves.toMatchObject({ error: "invalid_claim" })
+  })
+
+  it("refuses a second session on a name that is already commenting here", async () => {
+    const { app } = await harness()
+    await app.request(
       `/p/${TOKEN}/session`,
       { method: "POST", body: JSON.stringify({ name: "Maria" }) },
-      {},
+      env,
     )
-    expect(res.status).toBe(500)
-    await expect(res.json()).resolves.toMatchObject({ error: "internal_error" })
+    const again = await app.request(
+      `/p/${TOKEN}/session`,
+      { method: "POST", body: JSON.stringify({ name: "maria" }) },
+      env,
+    )
+    expect(again.status).toBe(409)
+    await expect(again.json()).resolves.toMatchObject({ error: "name_taken" })
+  })
+
+  it("requires a PIN on the claim route", async () => {
+    const { app } = await harness()
+    const res = await app.request(
+      `/p/${TOKEN}/session/claim`,
+      { method: "POST", body: JSON.stringify({ name: "Maria" }) },
+      env,
+    )
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toMatchObject({ error: "invalid_request" })
   })
 
   it("answers 404 for comment routes on an unknown or malformed token", async () => {

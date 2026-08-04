@@ -146,6 +146,14 @@ export function createMemoryPublicationStore(): PublicationStore {
       return updated
     },
 
+    async reinstate(token) {
+      const record = publications.get(token)
+      if (!record) return null
+      const updated: Publication = { ...record, revoked_at: null }
+      publications.set(token, updated)
+      return updated
+    },
+
     async setExpiry(token, expiresAt) {
       const record = publications.get(token)
       if (!record) return null
@@ -165,6 +173,7 @@ export function createMemoryPublicationStore(): PublicationStore {
         name: input.name,
         color: input.color,
         is_author: input.isAuthor,
+        pin: input.pin ?? null,
       }
       sessions.set(session.id, session)
       return publicSession(session)
@@ -179,6 +188,7 @@ export function createMemoryPublicationStore(): PublicationStore {
         name: input.name,
         color: input.color,
         is_author: true,
+        pin: null,
       }
       sessions.set(session.id, session)
       return publicSession(session)
@@ -196,10 +206,24 @@ export function createMemoryPublicationStore(): PublicationStore {
       return session ? { ...session } : null
     },
 
+    async listCommenterSessions(token) {
+      return [...sessions.values()]
+        .filter((session) => session.token === token && !session.is_author)
+        .map((session) => ({ ...session }))
+    },
+
     async renameSession(id, name) {
       const session = sessions.get(id)
       if (!session) return null
       const updated: StoredCommenterSession = { ...session, name }
+      sessions.set(id, updated)
+      return publicSession(updated)
+    },
+
+    async setSessionPin(id, pin) {
+      const session = sessions.get(id)
+      if (!session) return null
+      const updated: StoredCommenterSession = { ...session, pin }
       sessions.set(id, updated)
       return publicSession(updated)
     },

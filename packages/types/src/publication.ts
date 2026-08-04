@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const PUBLISH_WORKER_VERSION = "0.3.0"
+export const PUBLISH_WORKER_VERSION = "0.4.0"
 
 export const PUBLICATION_SNAPSHOT_MAX_BYTES = 100 * 1024 * 1024
 
@@ -91,6 +91,8 @@ export const PublishErrorCode = z.enum([
   "invalid_request",
   "unauthorized",
   "not_found",
+  "name_taken",
+  "invalid_claim",
   "expired",
   "revoked",
   "payload_too_large",
@@ -139,6 +141,7 @@ export const PublishErrorCodeStudio = z.enum([
   "upload_failed",
   "worker_unreachable",
   "snapshot_too_large",
+  "not_revoked",
 ])
 export type PublishErrorCodeStudio = z.infer<typeof PublishErrorCodeStudio>
 

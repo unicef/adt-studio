@@ -2,6 +2,8 @@ import type { Context, Hono } from "hono"
 import { getCookie, setCookie } from "hono/cookie"
 import {
   COMMENTER_SESSION_COOKIE,
+  COMMENTER_SESSION_MAX_AGE_SECONDS,
+  CommenterSessionClaimRequest,
   CommenterSessionCreateRequest,
   PUBLISH_AUTHOR_NAME_HEADER,
   PUBLISH_COMMENT_BODY_MAX_LENGTH,
@@ -22,13 +24,16 @@ import { exceedsLength, readJsonBody } from "./http.js"
 import {
   authorSessionMarker,
   commenterColor,
+  hashPin,
+  nameKey,
   normalizeDisplayName,
   randomId,
   sessionCookieValue,
   sessionIdFromCookie,
+  verifyPin,
 } from "./identity.js"
 import type { PublicationVariables } from "./middleware/publication-lookup.js"
-import type { PublicationStore } from "./store.js"
+import type { PublicationStore, StoredCommenterSession } from "./store.js"
 
 export type CommentAppEnv = { Bindings: Env; Variables: PublicationVariables }
 
@@ -106,6 +111,35 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 
   const publicationOf = (c: CommentContext): Publication => c.get("publication")
 
+  const issueCookie = async (
+    c: CommentContext,
+    token: string,
+    sessionId: string,
+    secret: string,
+  ): Promise<void> => {
+    setCookie(c, COMMENTER_SESSION_COOKIE, await sessionCookieValue(sessionId, secret), {
+      path: `/p/${token}`,
+      httpOnly: true,
+      secure: true,
+      sameSite: "Lax",
+      maxAge: COMMENTER_SESSION_MAX_AGE_SECONDS,
+    })
+  }
+
+  /** Name reservation is per publication and over commenters only: the author's display name
+   *  is a Studio-side label, never a claimable identity, so it must not lock a reviewer who
+   *  happens to be called the same out of commenting. */
+  const takenBy = async (
+    store: PublicationStore,
+    token: string,
+    name: string,
+    exceptSessionId: string | null,
+  ): Promise<StoredCommenterSession | null> => {
+    const key = nameKey(name)
+    const sessions = await store.listCommenterSessions(token)
+    return sessions.find((session) => session.id !== exceptSessionId && nameKey(session.name) === key) ?? null
+  }
+
   app.post("/p/:token/session", async (c) => {
     const publication = publicationOf(c)
     const secret = c.env?.MGMT_SECRET
@@ -120,26 +154,71 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 
     const store = deps.resolveStore(c.env)
     const existing = await commenterFromCookie(c, store, publication.token)
-    const session = existing
-      ? ((await store.renameSession(existing.id, body.data.name)) ?? existing)
-      : await store.createSession({
-          id: deps.newId(),
-          token: publication.token,
-          name: body.data.name,
-          color: commenterColor(await store.countCommenterSessions(publication.token)),
-          isAuthor: false,
-          createdAt: deps.timestamp(),
-        })
+    const { name, pin } = body.data
 
-    setCookie(c, COMMENTER_SESSION_COOKIE, await sessionCookieValue(session.id, secret), {
-      path: `/p/${publication.token}`,
-      httpOnly: true,
-      secure: true,
-      sameSite: "Lax",
-    })
+    /** The message names the *stored* spelling rather than echoing the request, so the reviewer
+     *  sees the name as it appears on the pins they are being asked to claim. */
+    const taken = await takenBy(store, publication.token, name, existing?.id ?? null)
+    if (taken) {
+      return errorResponse(c, "name_taken", 409, nameTakenMessage(taken.name))
+    }
+
+    let session: CommenterSession
+    if (existing) {
+      session = (await store.renameSession(existing.id, name)) ?? existing
+      if (pin !== undefined) {
+        session = (await store.setSessionPin(existing.id, await hashPin(pin))) ?? session
+      }
+    } else {
+      session = await store.createSession({
+        id: deps.newId(),
+        token: publication.token,
+        name,
+        color: commenterColor(await store.countCommenterSessions(publication.token)),
+        isAuthor: false,
+        createdAt: deps.timestamp(),
+        ...(pin === undefined ? {} : { pin: await hashPin(pin) }),
+      })
+    }
+
+    await issueCookie(c, publication.token, session.id, secret)
 
     const response: CommenterSessionResponse = { session }
     return c.json(response, 201)
+  })
+
+  app.post("/p/:token/session/claim", async (c) => {
+    const publication = publicationOf(c)
+    const secret = c.env?.MGMT_SECRET
+    if (!secret) {
+      return errorResponse(c, "internal_error", 500, MISSING_SECRET_MESSAGE)
+    }
+
+    const body = await readJsonBody(c, CommenterSessionClaimRequest)
+    if (!body.ok) {
+      return errorResponse(c, "invalid_request", 400, body.message)
+    }
+
+    const store = deps.resolveStore(c.env)
+    const match = await takenBy(store, publication.token, body.data.name, null)
+
+    /** One envelope for "no such name", "that name has no PIN" and "wrong PIN": the create
+     *  route already reveals which names exist, this route must not also confirm PINs. */
+    const verified = await verifyPin(body.data.pin, match?.pin ?? null)
+    if (!verified || !match) {
+      return errorResponse(c, "invalid_claim", 401, INVALID_CLAIM_MESSAGE)
+    }
+
+    const session: CommenterSession = {
+      id: match.id,
+      name: match.name,
+      color: match.color,
+      is_author: false,
+    }
+    await issueCookie(c, publication.token, session.id, secret)
+
+    const response: CommenterSessionResponse = { session }
+    return c.json(response)
   })
 
   app.get("/p/:token/comments", async (c) => {
@@ -402,6 +481,13 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 }
 
 const PARENT_MISSING_MESSAGE = "The parent comment does not exist in this publication"
+
+const INVALID_CLAIM_MESSAGE =
+  "That name and PIN do not match. Check the PIN, or pick a different name to start fresh"
+
+function nameTakenMessage(name: string): string {
+  return `Someone is already commenting as "${name}" here. Enter that person's PIN to continue as them, or pick another name`
+}
 
 function authorNameMessage(): string {
   return `${PUBLISH_AUTHOR_NAME_HEADER} must be 1–60 characters after trimming`

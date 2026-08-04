@@ -266,6 +266,24 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     return c.json(body)
   })
 
+  /** "Resume sharing": the same token starts serving again with every comment intact.
+   *  `expires_at` is untouched on purpose — an expired publication that is reinstated is
+   *  still expired until the Studio PATCHes a new end date. */
+  app.post("/api/publications/:token/reinstate", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+
+    const publication = await resolveStore(c.env).reinstate(token.data)
+    if (!publication) {
+      return errorResponse(c, "not_found", 404)
+    }
+
+    const body: PublicationResponse = { publication }
+    return c.json(body)
+  })
+
   app.patch("/api/publications/:token", async (c) => {
     const token = PublicationToken.safeParse(c.req.param("token"))
     if (!token.success) {

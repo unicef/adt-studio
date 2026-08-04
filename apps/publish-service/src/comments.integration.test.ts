@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { zipSync } from "fflate"
 import {
   COMMENTER_SESSION_COOKIE,
+  COMMENTER_SESSION_MAX_AGE_SECONDS,
   PUBLISH_AUTHOR_NAME_HEADER,
   type CommenterSession,
   type CommenterSessionResponse,
@@ -11,6 +12,7 @@ import {
   type PublishCommentResponse,
 } from "@adt/types"
 import { createApp } from "./app.js"
+import { sessionCookieValue } from "./identity.js"
 
 const SECRET = "local-dev-secret"
 const BASE = "https://adt-publish.example.workers.dev"
@@ -107,6 +109,37 @@ async function claim(token: string, name: string, cookie?: string): Promise<Revi
   expect(res.status).toBe(201)
   const body = (await res.json()) as CommenterSessionResponse
   return { cookie: cookieFrom(res), session: body.session }
+}
+
+async function session(
+  token: string,
+  body: { name: string; pin?: string },
+  cookie?: string,
+): Promise<Response> {
+  return app().request(
+    `${BASE}/p/${token}/session`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(cookie === undefined ? {} : { Cookie: `${COMMENTER_SESSION_COOKIE}=${cookie}` }),
+      },
+      body: JSON.stringify(body),
+    },
+    env,
+  )
+}
+
+async function claimIdentity(token: string, name: string, pin: string): Promise<Response> {
+  return app().request(
+    `${BASE}/p/${token}/session/claim`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ name, pin }),
+    },
+    env,
+  )
 }
 
 function asReviewer(reviewer: Reviewer | null, init: RequestInit = {}): RequestInit {
@@ -960,5 +993,221 @@ describe("revoked and expired publications", () => {
     await expect(reviewerList.json()).resolves.toEqual({ error: "expired" })
 
     expect((await authorList(token)).comments).toHaveLength(1)
+  })
+})
+
+describe("reviewer PINs and identity reclaim", () => {
+  it("applied migration 0002, so sessions carry a pin column", async () => {
+    const columns = await env.DB.prepare(`PRAGMA table_info(sessions)`).all<{ name: string }>()
+    expect((columns.results ?? []).map((column) => column.name)).toContain("pin")
+  })
+
+  it("keeps the PIN out of every response and stores it hashed with a per-session salt", async () => {
+    const token = await publish()
+    const first = await session(token, { name: "Maria", pin: "2468" })
+    expect(first.status).toBe(201)
+    expect(await first.clone().text()).not.toContain("2468")
+
+    const second = await session(token, { name: "Ana", pin: "2468" })
+    expect(second.status).toBe(201)
+
+    const rows = await env.DB.prepare(`SELECT name, pin FROM sessions WHERE token = ?`)
+      .bind(token)
+      .all<{ name: string; pin: string | null }>()
+    const pins = (rows.results ?? []).map((row) => row.pin)
+    expect(pins.every((pin) => pin?.startsWith("pbkdf2-sha256$100000$"))).toBe(true)
+    expect(pins[0]).not.toBe(pins[1])
+    expect(pins.some((pin) => pin?.includes("2468"))).toBe(false)
+  })
+
+  it("sets a 90-day cookie on both create and claim", async () => {
+    const token = await publish()
+    const created = await session(token, { name: "Maria", pin: "2468" })
+    expect(created.headers.get("set-cookie")).toContain(
+      `Max-Age=${COMMENTER_SESSION_MAX_AGE_SECONDS}`,
+    )
+
+    const reclaimed = await claimIdentity(token, "Maria", "2468")
+    expect(reclaimed.status).toBe(200)
+    expect(reclaimed.headers.get("set-cookie")).toContain(
+      `Max-Age=${COMMENTER_SESSION_MAX_AGE_SECONDS}`,
+    )
+  })
+
+  it("reclaims the same session from a clean cookie jar and can edit the old comment", async () => {
+    const token = await publish()
+    const created = await session(token, { name: "Maria", pin: "2468" })
+    const maria: Reviewer = {
+      cookie: cookieFrom(created),
+      session: ((await created.json()) as CommenterSessionResponse).session,
+    }
+    const pin = await commentBody(
+      await comment(token, maria, {
+        page_section_id: "pg001_sec001",
+        body: "The sun looks angry here",
+        anchor: ANCHOR,
+      }),
+    )
+
+    const reclaimed = await claimIdentity(token, "  maria ", "2468")
+    expect(reclaimed.status).toBe(200)
+    const session2 = ((await reclaimed.json()) as CommenterSessionResponse).session
+    expect(session2).toEqual(maria.session)
+
+    const nothing = { cookie: cookieFrom(reclaimed), session: session2 }
+    const edited = await app().request(
+      `${BASE}/p/${token}/comments/${pin.id}`,
+      asReviewer(nothing, { method: "PATCH", body: JSON.stringify({ body: "Softer, please" }) }),
+      env,
+    )
+    expect(edited.status).toBe(200)
+    await expect(edited.json()).resolves.toMatchObject({
+      comment: { body: "Softer, please", author_name: "Maria", session_id: maria.session.id },
+    })
+  })
+
+  it("answers one 401 invalid_claim for a wrong PIN, an unknown name and a pinless session", async () => {
+    const token = await publish()
+    await session(token, { name: "Maria", pin: "2468" })
+    await session(token, { name: "João" })
+
+    const attempts = [
+      ["Maria", "1111"],
+      ["Nobody", "2468"],
+      ["João", "2468"],
+    ] as const
+
+    for (const [name, pin] of attempts) {
+      const res = await claimIdentity(token, name, pin)
+      expect(res.status, `${name}/${pin}`).toBe(401)
+      await expect(res.json(), `${name}/${pin}`).resolves.toEqual({
+        error: "invalid_claim",
+        message:
+          "That name and PIN do not match. Check the PIN, or pick a different name to start fresh",
+      })
+    }
+  })
+
+  it("rejects a PIN that is too short, too long or has whitespace", async () => {
+    const token = await publish()
+    for (const pin of ["123", "1234567890123", "12 34"]) {
+      const res = await session(token, { name: `Reviewer ${pin}`, pin })
+      expect(res.status, pin).toBe(400)
+      await expect(res.json(), pin).resolves.toMatchObject({ error: "invalid_request" })
+    }
+    const claimed = await claimIdentity(token, "Maria", "123")
+    expect(claimed.status).toBe(400)
+  })
+
+  it("reserves a name per publication, ignoring case and surrounding space", async () => {
+    const token = await publish()
+    await session(token, { name: "Maria", pin: "2468" })
+
+    const taken = await session(token, { name: "  MARIA  " })
+    expect(taken.status).toBe(409)
+    const body = (await taken.json()) as { error: string; message: string }
+    expect(body.error).toBe("name_taken")
+    expect(body.message).toContain("Enter that person's PIN")
+
+    const elsewhere = await session(await publish(), { name: "Maria" })
+    expect(elsewhere.status).toBe(201)
+  })
+
+  it("keeps a pinless session's name reserved too", async () => {
+    const token = await publish()
+    await session(token, { name: "João" })
+    expect((await session(token, { name: "joão" })).status).toBe(409)
+  })
+
+  it("lets the author and a reviewer share a display name", async () => {
+    const token = await publish()
+    await app().request(
+      `${BASE}/p/${token}/comments`,
+      asAuthor(
+        {
+          method: "POST",
+          body: JSON.stringify({ page_section_id: "pg001_sec001", body: "Mine", anchor: ANCHOR }),
+        },
+        "Eliezir",
+      ),
+      env,
+    )
+
+    const reviewer = await session(token, { name: "Eliezir", pin: "2468" })
+    expect(reviewer.status).toBe(201)
+    const claimed = await claimIdentity(token, "Eliezir", "2468")
+    expect(claimed.status).toBe(200)
+    await expect(claimed.json()).resolves.toMatchObject({ session: { is_author: false } })
+  })
+
+  it("renames through the cookie, keeps the PIN and refuses another reviewer's name", async () => {
+    const token = await publish()
+    const created = await session(token, { name: "Maria", pin: "2468" })
+    const cookie = cookieFrom(created)
+    await session(token, { name: "Ana", pin: "1357" })
+
+    const collision = await session(token, { name: "ANA" }, cookie)
+    expect(collision.status).toBe(409)
+
+    const renamed = await session(token, { name: "Maria Silva" }, cookie)
+    expect(renamed.status).toBe(201)
+
+    expect((await claimIdentity(token, "Maria", "2468")).status).toBe(401)
+    const reclaimed = await claimIdentity(token, "Maria Silva", "2468")
+    expect(reclaimed.status).toBe(200)
+    await expect(reclaimed.json()).resolves.toMatchObject({
+      session: { name: "Maria Silva", color: "#e5484d" },
+    })
+  })
+
+  it("lets a reviewer add a PIN later through the authenticated repost", async () => {
+    const token = await publish()
+    const created = await session(token, { name: "João" })
+    const cookie = cookieFrom(created)
+    expect((await claimIdentity(token, "João", "2468")).status).toBe(401)
+
+    const upgraded = await session(token, { name: "João", pin: "2468" }, cookie)
+    expect(upgraded.status).toBe(201)
+    expect((await claimIdentity(token, "João", "2468")).status).toBe(200)
+  })
+
+  /** A row written before migration 0002 has no `pin` value at all. It must keep commenting
+   *  and renaming; only reclaiming is unavailable to it until it sets a PIN. */
+  it("keeps sessions stored before the migration working", async () => {
+    const token = await publish()
+    await env.DB.prepare(
+      `INSERT INTO sessions (id, token, name, color, is_author, created_at)
+       VALUES (?, ?, ?, ?, 0, ?)`,
+    )
+      .bind("legacy-session", token, "Legacy Maria", "#e5484d", "2026-07-01T10:00:00.000Z")
+      .run()
+
+    const legacy: Reviewer = {
+      cookie: await sessionCookieValue("legacy-session", SECRET),
+      session: {
+        id: "legacy-session",
+        name: "Legacy Maria",
+        color: "#e5484d",
+        is_author: false,
+      },
+    }
+
+    const created = await commentBody(
+      await comment(token, legacy, {
+        page_section_id: "pg001_sec001",
+        body: "Written before the migration",
+        anchor: ANCHOR,
+      }),
+    )
+    expect(created.author_name).toBe("Legacy Maria")
+
+    expect((await session(token, { name: "legacy maria" })).status).toBe(409)
+    expect((await claimIdentity(token, "Legacy Maria", "2468")).status).toBe(401)
+
+    const renamed = await session(token, { name: "Maria (legacy)" }, legacy.cookie)
+    expect(renamed.status).toBe(201)
+    await expect(renamed.json()).resolves.toMatchObject({
+      session: { id: "legacy-session", name: "Maria (legacy)" },
+    })
   })
 })

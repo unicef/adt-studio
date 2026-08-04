@@ -203,6 +203,51 @@ describe("publish round-trip against real D1 and R2", () => {
     expect(detail.status).toBe(200)
   })
 
+  it("reinstates a revoked publication so the same link serves again", async () => {
+    const token = nextToken()
+    await publish(token, { "index.html": "one" })
+    await app().request(`${BASE}/api/publications/${token}/revoke`, mgmt(), env)
+    expect((await app().request(`${BASE}/p/${token}/index.html`, {}, env)).status).toBe(410)
+
+    const resumed = await app().request(`${BASE}/api/publications/${token}/reinstate`, mgmt(), env)
+    expect(resumed.status).toBe(200)
+    await expect(resumed.json()).resolves.toMatchObject({ publication: { revoked_at: null } })
+
+    const served = await app().request(`${BASE}/p/${token}/index.html`, {}, env)
+    expect(served.status).toBe(200)
+    await expect(served.text()).resolves.toBe("one")
+
+    const again = await app().request(`${BASE}/api/publications/${token}/reinstate`, mgmt(), env)
+    expect(again.status).toBe(200)
+    await expect(again.json()).resolves.toMatchObject({ publication: { revoked_at: null } })
+  })
+
+  it("answers 404 when reinstating an unknown publication", async () => {
+    const res = await app().request(
+      `${BASE}/api/publications/nosuchtokennosuchtokennosuchtok/reinstate`,
+      mgmt(),
+      env,
+    )
+    expect(res.status).toBe(404)
+    await expect(res.json()).resolves.toEqual({ error: "not_found" })
+  })
+
+  it("leaves the expiry alone, so an expired publication stays expired after reinstating", async () => {
+    const token = nextToken()
+    await publish(token, { "index.html": "one" }, { expires_at: "2020-01-01T00:00:00.000Z" })
+    await app().request(`${BASE}/api/publications/${token}/revoke`, mgmt(), env)
+
+    const resumed = await app().request(`${BASE}/api/publications/${token}/reinstate`, mgmt(), env)
+    expect(resumed.status).toBe(200)
+    await expect(resumed.json()).resolves.toMatchObject({
+      publication: { revoked_at: null, expires_at: "2020-01-01T00:00:00.000Z" },
+    })
+
+    const served = await app().request(`${BASE}/p/${token}/index.html`, {}, env)
+    expect(served.status).toBe(410)
+    await expect(served.json()).resolves.toEqual({ error: "expired" })
+  })
+
   it("expires a publication through PATCH and clears it again", async () => {
     const token = nextToken()
     await publish(token, { "index.html": "one" })

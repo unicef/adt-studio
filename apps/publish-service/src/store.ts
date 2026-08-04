@@ -26,6 +26,9 @@ export interface AddVersionResult {
 
 export interface StoredCommenterSession extends CommenterSession {
   token: string
+  /** `pbkdf2-sha256$<iterations>$<salt>$<hash>`, or `null` for the pinless sessions every
+   *  reviewer had before M2.5 — those keep working, they just cannot be reclaimed. */
+  pin: string | null
 }
 
 export interface CreateSessionInput {
@@ -35,6 +38,7 @@ export interface CreateSessionInput {
   color: string
   isAuthor: boolean
   createdAt: string
+  pin?: string | null
 }
 
 export interface CommentListFilter {
@@ -72,6 +76,9 @@ export interface PublicationStore {
    *  to live in the same statement that bumps the pointer. */
   addVersion(input: AddVersionInput): Promise<AddVersionResult | null>
   revoke(token: string, revokedAt: string): Promise<Publication | null>
+  /** Clears `revoked_at`. Idempotent, and deliberately blind to `expires_at`: resuming a
+   *  publication re-opens the link, it does not extend it. */
+  reinstate(token: string): Promise<Publication | null>
   setExpiry(token: string, expiresAt: string | null): Promise<Publication | null>
 
   createSession(input: CreateSessionInput): Promise<CommenterSession>
@@ -79,7 +86,11 @@ export interface PublicationStore {
   ensureAuthorSession(input: CreateSessionInput): Promise<CommenterSession>
   findAuthorSession(token: string): Promise<CommenterSession | null>
   findSession(id: string): Promise<StoredCommenterSession | null>
+  /** Every commenter (`is_author = 0`) row of a publication, so name matching can run on the
+   *  Unicode-aware key `nameKey()` builds instead of SQLite's ASCII-only `lower()`. */
+  listCommenterSessions(token: string): Promise<StoredCommenterSession[]>
   renameSession(id: string, name: string): Promise<CommenterSession | null>
+  setSessionPin(id: string, pin: string): Promise<CommenterSession | null>
   countCommenterSessions(token: string): Promise<number>
 
   createComment(input: CreateCommentInput): Promise<PublishComment>
@@ -118,6 +129,9 @@ export const emptyPublicationStore: PublicationStore = {
   async revoke() {
     return null
   },
+  async reinstate() {
+    return null
+  },
   async setExpiry() {
     return null
   },
@@ -133,7 +147,13 @@ export const emptyPublicationStore: PublicationStore = {
   async findSession() {
     return null
   },
+  async listCommenterSessions() {
+    return []
+  },
   async renameSession() {
+    return null
+  },
+  async setSessionPin() {
     return null
   },
   async countCommenterSessions() {

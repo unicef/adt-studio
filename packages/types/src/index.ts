@@ -418,7 +418,10 @@ export {
 
 export {
   COMMENTER_SESSION_COOKIE,
+  COMMENTER_SESSION_MAX_AGE_SECONDS,
   COMMENTER_NAME_MAX_LENGTH,
+  COMMENTER_PIN_MIN_LENGTH,
+  COMMENTER_PIN_MAX_LENGTH,
   COMMENTER_COLORS,
   PUBLISH_COMMENT_BODY_MAX_LENGTH,
   PUBLISH_AUTHOR_NAME_HEADER,
@@ -427,7 +430,9 @@ export {
   CommentAnchor,
   CommenterSession,
   PublishComment,
+  CommenterPin,
   CommenterSessionCreateRequest,
+  CommenterSessionClaimRequest,
   CommenterSessionResponse,
   PublishCommentCreateRequest,
   PublishCommentUpdateRequest,

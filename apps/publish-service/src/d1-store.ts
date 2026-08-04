@@ -40,6 +40,7 @@ interface SessionRow {
   name: string
   color: string
   is_author: number
+  pin: string | null
 }
 
 interface CommentRow {
@@ -65,6 +66,8 @@ const COMMENT_COLUMNS = `c.id, c.token, c.version, c.page_section_id, c.parent_i
          s.name AS author_name, s.color AS author_color, c.body, c.anchor,
          c.resolved_at, c.edited_at, c.deleted_at, c.created_at`
 
+const SESSION_COLUMNS = `id, token, name, color, is_author, pin`
+
 function toSession(row: SessionRow): StoredCommenterSession {
   return {
     id: row.id,
@@ -72,6 +75,7 @@ function toSession(row: SessionRow): StoredCommenterSession {
     name: row.name,
     color: row.color,
     is_author: row.is_author === 1,
+    pin: row.pin ?? null,
   }
 }
 
@@ -139,7 +143,7 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
 
   const readSession = async (id: string): Promise<StoredCommenterSession | null> => {
     const row = await db
-      .prepare(`SELECT id, token, name, color, is_author FROM sessions WHERE id = ?`)
+      .prepare(`SELECT ${SESSION_COLUMNS} FROM sessions WHERE id = ?`)
       .bind(id)
       .first<SessionRow>()
     return row ? toSession(row) : null
@@ -260,6 +264,15 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       return readPublication(token)
     },
 
+    async reinstate(token) {
+      const result = await db
+        .prepare(`UPDATE publications SET revoked_at = NULL WHERE token = ?`)
+        .bind(token)
+        .run()
+      if ((result.meta.changes ?? 0) === 0) return null
+      return readPublication(token)
+    },
+
     async setExpiry(token, expiresAt) {
       const result = await db
         .prepare(`UPDATE publications SET expires_at = ? WHERE token = ?`)
@@ -272,8 +285,8 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
     async createSession(input: CreateSessionInput) {
       await db
         .prepare(
-          `INSERT INTO sessions (id, token, name, color, is_author, created_at)
-           VALUES (?, ?, ?, ?, ?, ?)`,
+          `INSERT INTO sessions (id, token, name, color, is_author, created_at, pin)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
         )
         .bind(
           input.id,
@@ -282,6 +295,7 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
           input.color,
           input.isAuthor ? 1 : 0,
           input.createdAt,
+          input.pin ?? null,
         )
         .run()
       return { id: input.id, name: input.name, color: input.color, is_author: input.isAuthor }
@@ -304,7 +318,7 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
     async findAuthorSession(token) {
       const row = await db
         .prepare(
-          `SELECT id, token, name, color, is_author FROM sessions
+          `SELECT ${SESSION_COLUMNS} FROM sessions
            WHERE token = ? AND is_author = 1 LIMIT 1`,
         )
         .bind(token)
@@ -314,6 +328,17 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
 
     findSession: readSession,
 
+    async listCommenterSessions(token) {
+      const result = await db
+        .prepare(
+          `SELECT ${SESSION_COLUMNS} FROM sessions
+           WHERE token = ? AND is_author = 0 ORDER BY created_at ASC, id ASC`,
+        )
+        .bind(token)
+        .all<SessionRow>()
+      return (result.results ?? []).map(toSession)
+    },
+
     async renameSession(id, name) {
       const result = await db
         .prepare(`UPDATE sessions SET name = ? WHERE id = ?`)
@@ -322,6 +347,16 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       if ((result.meta.changes ?? 0) === 0) return null
       const renamed = await readSession(id)
       return renamed ? publicSession(renamed) : null
+    },
+
+    async setSessionPin(id, pin) {
+      const result = await db
+        .prepare(`UPDATE sessions SET pin = ? WHERE id = ?`)
+        .bind(pin, id)
+        .run()
+      if ((result.meta.changes ?? 0) === 0) return null
+      const updated = await readSession(id)
+      return updated ? publicSession(updated) : null
     },
 
     async countCommenterSessions(token) {
