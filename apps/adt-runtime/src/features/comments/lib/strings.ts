@@ -75,6 +75,8 @@ export const COMMENT_STRINGS = {
   "comments-placement-instructions-label":
     "Move through the page with the arrow keys, then press Enter to comment there.",
   "comments-mode-keyboard-hint-label": "or tab into the page and press Enter",
+  "comments-presence-one-label": "1 other person is reading",
+  "comments-presence-count-label": "${count} other people are reading",
 } as const
 
 export type CommentStringKey = keyof typeof COMMENT_STRINGS

@@ -4,8 +4,11 @@ import { commentModeAtom, rememberedNameAtom } from "@/features/comments/state/c
 import { useCommentMode } from "@/features/comments/hooks/useCommentMode"
 import { useCommentsContext } from "@/features/comments/hooks/useCommentsContext"
 import { useCommentsData } from "@/features/comments/hooks/useCommentsData"
+import { usePresenceRoom } from "@/features/comments/hooks/usePresenceRoom"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
 import { CommentsOverlay } from "@/features/comments/components/CommentsOverlay"
+import { PeerCursors } from "@/features/comments/components/PeerCursors"
+import { PresenceChip } from "@/features/comments/components/PresenceChip"
 import { NAME_STORAGE_KEY } from "@/features/comments/components/CommentForm"
 
 /**
@@ -21,6 +24,7 @@ export function Comments() {
 
   useCommentMode(context !== null)
   const { refresh } = useCommentsData(context)
+  usePresenceRoom(context)
 
   useEffect(() => {
     if (!context) return
@@ -37,6 +41,8 @@ export function Comments() {
   return (
     <>
       <CommentsOverlay context={context} refresh={refresh} />
+      <PeerCursors />
+      <PresenceChip />
       {mode ? (
         <p
           role="status"

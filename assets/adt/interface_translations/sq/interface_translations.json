@@ -193,5 +193,7 @@
     "comments-list-close-label": "Mbyll listën e komenteve",
     "comments-page-level-label": "Faqja e tërë",
     "comments-placement-instructions-label": "Lëviz nëpër faqe me shigjetat, pastaj shtyp Enter për të komentuar atje.",
-    "comments-mode-keyboard-hint-label": "ose hyr në faqe me Tab dhe shtyp Enter"
+    "comments-mode-keyboard-hint-label": "ose hyr në faqe me Tab dhe shtyp Enter",
+    "comments-presence-one-label": "1 person tjetër po lexon",
+    "comments-presence-count-label": "${count} persona të tjerë po lexojnë"
 }

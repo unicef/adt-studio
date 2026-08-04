@@ -256,5 +256,7 @@
     "comments-list-close-label": "Cerrar la lista de comentarios",
     "comments-page-level-label": "Toda la página",
     "comments-placement-instructions-label": "Recorre la página con las flechas y pulsa Enter para comentar ahí.",
-    "comments-mode-keyboard-hint-label": "o entra en la página con Tab y pulsa Enter"
+    "comments-mode-keyboard-hint-label": "o entra en la página con Tab y pulsa Enter",
+    "comments-presence-one-label": "1 persona más está leyendo",
+    "comments-presence-count-label": "${count} personas más están leyendo"
 }

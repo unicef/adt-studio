@@ -227,5 +227,7 @@
     "comments-list-close-label": "Fechar a lista de comentários",
     "comments-page-level-label": "Página inteira",
     "comments-placement-instructions-label": "Percorra a página com as setas e prima Enter para comentar nesse ponto.",
-    "comments-mode-keyboard-hint-label": "ou entre na página com Tab e prima Enter"
+    "comments-mode-keyboard-hint-label": "ou entre na página com Tab e prima Enter",
+    "comments-presence-one-label": "1 outra pessoa está a ler",
+    "comments-presence-count-label": "${count} outras pessoas estão a ler"
 }
