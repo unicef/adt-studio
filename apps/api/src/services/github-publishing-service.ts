@@ -700,9 +700,7 @@ export async function publishBookToGitHub(options: {
     state.branch = branch
     const remoteHead = await getGitHubRemoteHead(token, owner, request.repository, branch)
     const previous = readLatestPublishVersion(bookDir)
-    if (previous?.state.commitSha && previous.state.owner === owner && previous.state.repository === request.repository && previous.state.commitSha !== remoteHead) {
-      throw new Error("GitHub contains commits that are not in this book. Synchronize or resolve the remote changes before deploying.")
-    }
+    assertRemoteNotAdvanced(previous?.state, { owner, repository: request.repository, commitSha: remoteHead })
     await synchronizeLocalGitRepository({
       bookDir,
       token,
@@ -830,5 +828,21 @@ export async function publishBookToGitHub(options: {
     onState(state)
     writePublishVersion(bookDir, { state, manifest })
     return state
+  }
+}
+
+export function assertRemoteNotAdvanced(
+  previous: GitHubPublishStateType | undefined,
+  remote: { owner: string; repository: string; commitSha: string },
+): void {
+  if (
+    previous?.commitSha &&
+    previous.owner === remote.owner &&
+    previous.repository === remote.repository &&
+    previous.commitSha !== remote.commitSha
+  ) {
+    throw new Error(
+      "GitHub contains commits that are not in this book. Synchronize or resolve the remote changes before deploying.",
+    )
   }
 }
