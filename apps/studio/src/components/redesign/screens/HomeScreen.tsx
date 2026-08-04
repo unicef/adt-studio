@@ -68,7 +68,7 @@ export function HomeScreen() {
   const dateLabel = dateFormat.format(new Date())
 
   return (
-    <div className="relative h-full overflow-auto bg-background px-[34px] pb-6 pt-3.5">
+    <div className="relative h-full bg-background px-[34px] pb-6 pt-3.5">
       <div className="pointer-events-none absolute -top-[120px] right-[-80px] size-[440px] animate-hero-drift rounded-full bg-[radial-gradient(circle,rgba(43,127,255,.12),transparent_70%)]" />
       <div className="relative">
         {feature ? (
@@ -98,7 +98,7 @@ export function HomeScreen() {
                 }}
                 className="group flex flex-1 cursor-pointer items-stretch overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-[transform,border-color,box-shadow] hover:-translate-y-px hover:border-brand-300 hover:shadow-md"
               >
-                <div className="w-[150px] shrink-0 self-stretch">
+                <div className="w-[250px] shrink-0 self-stretch">
                   <BookCover title={feature.displayTitle} author={feature.authors} cover={feature.cover} />
                 </div>
                 <div className="flex flex-col justify-center gap-2.5 px-5 py-3.5">

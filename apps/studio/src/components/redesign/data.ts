@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react"
 import { msg, plural } from "@lingui/core/macro"
 import { i18n } from "@lingui/core"
 import { STAGES } from "@/components/pipeline/stage-config"
-import type { BookSummary } from "@/api/client"
+import { getBookCoverUrl, type BookSummary } from "@/api/client"
 
 /** Cover backgrounds picked deterministically per book label. */
 const COVER_PALETTE = [
@@ -31,6 +31,7 @@ export interface CoverSpec {
   publisherShort: string
   placeholder: boolean
   real: boolean
+  src?: string | null
 }
 
 export function deriveCover(book: BookSummary): CoverSpec {
@@ -50,6 +51,7 @@ export function deriveCover(book: BookSummary): CoverSpec {
     publisherShort,
     placeholder: !hasContent,
     real: hasContent,
+    src: hasContent ? getBookCoverUrl(book.label, book.modifiedAt) : null,
   }
 }
 

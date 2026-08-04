@@ -1,4 +1,6 @@
+import { useState } from "react"
 import { Image } from "lucide-react"
+import { useLingui } from "@lingui/react/macro"
 import type { CoverSpec } from "./data"
 
 export interface BookCoverProps {
@@ -13,20 +15,35 @@ export interface BookCoverProps {
  * design's BookCover.dc.html.
  */
 export function BookCover({ title, author, cover }: BookCoverProps) {
+  const { t } = useLingui()
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const imageSrc = cover.src && cover.src !== failedSrc ? cover.src : null
+
   return (
     <div
       style={{
-        width: "100%",
-        height: "100%",
-        position: "relative",
-        overflow: "hidden",
         containerType: "size",
         background: cover.bg,
         color: cover.fg,
-        fontFamily: "var(--font-sans)",
       }}
+      className="w-full h-full relative overflow-hidden border font-sans"
     >
-      {cover.placeholder ? (
+      {imageSrc ? (
+        <img
+          src={imageSrc}
+          alt={t`Cover of ${title}`}
+          loading="lazy"
+          onError={() => setFailedSrc(imageSrc)}
+          style={{
+            position: "absolute",
+            inset: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+            background: "var(--muted)",
+          }}
+        />
+      ) : cover.placeholder ? (
         <div
           style={{
             position: "absolute",
