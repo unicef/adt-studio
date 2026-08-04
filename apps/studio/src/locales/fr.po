@@ -1064,6 +1064,9 @@ msgstr "Ajoute des pages de glossaire au livre. Les termes renvoient à leur ent
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Ajoute des recommandations de Conception Universelle de l'Apprentissage (langage clair, alternative au glisser-déposer par clavier et clic, retour de correction via aria-live, pas de retour uniquement par la couleur). Désactivez pour comparer le résultat sans cette orientation."
 
+msgid "Adjust voice"
+msgstr "Ajuster la voix"
+
 msgid "ADT"
 msgstr "ADT"
 
@@ -3677,6 +3680,9 @@ msgstr "Polices importées avec succès."
 msgid "For {0}, we recommend {1}."
 msgstr "Pour {0}, nous recommandons {1}."
 
+msgid "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
+msgstr "Par exemple : parlez plus lentement, accentuez le dernier mot et utilisez un ton chaleureux et encourageant."
+
 msgid "Foreword"
 msgstr "Avant-propos"
 
@@ -3832,6 +3838,9 @@ msgstr "Générez des quiz de compréhension à choix multiples à partir du con
 
 msgid "Generate new"
 msgstr "Générer nouveau"
+
+msgid "Generate phrase"
+msgstr "Générer la phrase"
 
 msgid "Generate Prompt"
 msgstr "Générer Invite"
@@ -6937,6 +6946,9 @@ msgstr "Regénérer la définition, les variations et l'emoji"
 msgid "Regenerate Easy Read"
 msgstr "Régénérer Lecture Facile"
 
+msgid "Regenerate phrase"
+msgstr "Régénérer la phrase"
+
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Régénère les images sélectionnées pour chaque langue de sortie afin que tout texte intégré soit affiché dans la langue cible."
 
@@ -8514,6 +8526,9 @@ msgstr "Documentation technique"
 msgid "Technical manuals with diagrams"
 msgstr "Manuels techniques avec diagrammes"
 
+msgid "Tell AI how this phrase should sound"
+msgstr "Indiquez à l’IA comment cette phrase doit être prononcée"
+
 msgid "Temperature"
 msgstr "Température"
 
@@ -9659,6 +9674,9 @@ msgstr "L'édition visuelle des styles n'est pas encore disponible pour les page
 
 msgid "Voice"
 msgstr "Voix"
+
+msgid "Voice instructions"
+msgstr "Instructions vocales"
 
 msgid "Voice Mappings"
 msgstr "Correspondances de voix"

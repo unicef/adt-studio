@@ -1063,6 +1063,9 @@ msgstr "Shton faqe glosari në libër. Termat lidhen me zërin e tyre dhe çdo z
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Shton udhëzime për Dizajnin Universal për të Nxënit (gjuhë e thjeshtë, alternativë me tastierë + klikim për tërheqjen, vlerësim aria-live, pa reagime vetëm me ngjyra). Çaktivizoje për të krahasuar rezultatin pa këto udhëzime."
 
+msgid "Adjust voice"
+msgstr "Rregullo zërin"
+
 msgid "ADT"
 msgstr "ADT"
 
@@ -3676,6 +3679,9 @@ msgstr "Fontet u ngarkuan me sukses."
 msgid "For {0}, we recommend {1}."
 msgstr "Për {0}, rekomandojmë {1}."
 
+msgid "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
+msgstr "Për shembull: fol më ngadalë, thekso fjalën e fundit dhe përdor një ton të ngrohtë e inkurajues."
+
 msgid "Foreword"
 msgstr "Parathënie"
 
@@ -3831,6 +3837,9 @@ msgstr "Gjenero kuize me zgjedhje të shumëfishta nga përmbajtja e librit. Kri
 
 msgid "Generate new"
 msgstr "Gjenero të ri"
+
+msgid "Generate phrase"
+msgstr "Gjenero frazën"
 
 msgid "Generate Prompt"
 msgstr "Gjenero Prompt"
@@ -6936,6 +6945,9 @@ msgstr "Rigenero përkufizimin, variacionet dhe emoji"
 msgid "Regenerate Easy Read"
 msgstr "Rigenero Easy Read"
 
+msgid "Regenerate phrase"
+msgstr "Rigjenero frazën"
+
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Rigenero imazhet e zgjedhura për çdo gjuhë dalëse, në mënyrë që çdo tekst i djegur mbi to të shfaqet në gjuhën e synuar."
 
@@ -8513,6 +8525,9 @@ msgstr "Dokumentacion teknik"
 msgid "Technical manuals with diagrams"
 msgstr "Manuale teknike me diagrama"
 
+msgid "Tell AI how this phrase should sound"
+msgstr "Tregoji AI-së se si duhet të tingëllojë kjo frazë"
+
 msgid "Temperature"
 msgstr "Temperatura"
 
@@ -9658,6 +9673,9 @@ msgstr "Redaktimi vizual i stileve nuk është ende i disponueshëm për faqet m
 
 msgid "Voice"
 msgstr "Zë"
+
+msgid "Voice instructions"
+msgstr "Udhëzime për zërin"
 
 msgid "Voice Mappings"
 msgstr "Hartëzime zërash"

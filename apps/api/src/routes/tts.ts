@@ -44,6 +44,7 @@ const GenerateSingleTTSBody = z
   .object({
     textId: z.string().min(1),
     language: z.string().min(1),
+    instruction: z.string().trim().max(2_000).optional(),
   })
   .strict()
 
@@ -355,6 +356,7 @@ function appendSingleTtsLog(
     durationMs: number
     success: boolean
     cached: boolean
+    instruction?: string
     error?: string
   }
 ): void {
@@ -374,7 +376,7 @@ function appendSingleTtsLog(
       role: "user",
       content: [{
         type: "text" as const,
-        text: `[${options.language}] voice=${options.voice}\n${options.error ? `ERROR: ${options.error}\n\n` : ""}${options.text.slice(0, 300)}`,
+        text: `[${options.language}] voice=${options.voice}${options.instruction ? `\nExpert instruction: ${options.instruction}` : ""}\n${options.error ? `ERROR: ${options.error}\n\n` : ""}${options.text.slice(0, 300)}`,
       }],
     }],
   }
@@ -796,7 +798,14 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           instructions:
             options.targetProvider === "openai" ||
             options.targetProvider === "gemini"
-              ? resolveInstructions(normalizedLanguage, instructionsMap)
+              ? [
+                  resolveInstructions(normalizedLanguage, instructionsMap),
+                  parsed.data.instruction
+                    ? `Expert instruction for this phrase only: ${parsed.data.instruction}`
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join("\n\n")
               : "",
           format,
           bookDir,
@@ -864,6 +873,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           durationMs: Date.now() - startMs,
           success: true,
           cached: entry.cached,
+          instruction: parsed.data.instruction,
         })
 
         const mergedEntries = mergeSpeechEntry(
@@ -877,6 +887,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           normalizedLanguage,
           buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
         )
+        clearWordTimestampEntry(storage, normalizedLanguage, textEntry.id)
 
         const completion = getTtsCompletionSummary(
           storage,
@@ -935,6 +946,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 voice: attempt.voice,
                 model: attempt.model,
                 provider: attempt.provider,
+                instruction: parsed.data.instruction,
                 text: textEntry.text,
                 durationMs: Date.now() - startMs,
                 success: true,
@@ -952,6 +964,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 normalizedLanguage,
                 buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
               )
+              clearWordTimestampEntry(storage, normalizedLanguage, textEntry.id)
 
               const completion = getTtsCompletionSummary(
                 storage,
@@ -995,6 +1008,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           voice,
           model,
           provider,
+          instruction: parsed.data.instruction,
           text: textEntry.text,
           durationMs: Date.now() - startMs,
           success: false,

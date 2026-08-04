@@ -1062,6 +1062,9 @@ msgstr "Adiciona páginas de glossário ao livro. Os termos levam à sua entrada
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Adiciona orientações do Desenho Universal para a Aprendizagem (linguagem clara, alternativa por teclado e clique para arrastar, correção com aria-live, sem retorno apenas por cor). Desative para comparar a saída sem essa orientação."
 
+msgid "Adjust voice"
+msgstr "Ajustar voz"
+
 msgid "ADT"
 msgstr "ADT"
 
@@ -3675,6 +3678,9 @@ msgstr "Fontes enviadas com sucesso."
 msgid "For {0}, we recommend {1}."
 msgstr "Para {0}, recomendamos {1}."
 
+msgid "For example: speak more slowly, emphasize the final word, and use a warm encouraging tone."
+msgstr "Por exemplo: fale mais devagar, enfatize a palavra final e use um tom acolhedor e encorajador."
+
 msgid "Foreword"
 msgstr "Prefácio"
 
@@ -3830,6 +3836,9 @@ msgstr "Gere questionários de compreensão de múltipla escolha a partir do con
 
 msgid "Generate new"
 msgstr "Gerar nova"
+
+msgid "Generate phrase"
+msgstr "Gerar frase"
 
 msgid "Generate Prompt"
 msgstr "Prompt de geração"
@@ -6935,6 +6944,9 @@ msgstr "Regenerar definição, variações e emoji"
 msgid "Regenerate Easy Read"
 msgstr "Regenerar Leitura Fácil"
 
+msgid "Regenerate phrase"
+msgstr "Regenerar frase"
+
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Regenera as imagens selecionadas para cada idioma de saída para que qualquer texto fixo nelas seja exibido no idioma de destino."
 
@@ -8512,6 +8524,9 @@ msgstr "Documentação técnica"
 msgid "Technical manuals with diagrams"
 msgstr "Manuais técnicos com diagramas"
 
+msgid "Tell AI how this phrase should sound"
+msgstr "Diga à IA como esta frase deve soar"
+
 msgid "Temperature"
 msgstr "Temperatura"
 
@@ -9657,6 +9672,9 @@ msgstr "A edição visual de estilos ainda não está disponível para páginas 
 
 msgid "Voice"
 msgstr "Voz"
+
+msgid "Voice instructions"
+msgstr "Instruções de voz"
 
 msgid "Voice Mappings"
 msgstr "Mapeamentos de voz"

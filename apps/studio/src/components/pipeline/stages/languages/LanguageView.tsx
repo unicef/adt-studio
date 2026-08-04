@@ -1103,7 +1103,7 @@ export function LanguageView({
   ]);
 
   const generateAudioMutation = useMutation({
-    mutationFn: async (variables: { textId: string; language: string }) => {
+    mutationFn: async (variables: { textId: string; language: string; instruction?: string }) => {
       if (!geminiKey) {
         throw new Error(
           i18n._(msg`Gemini API key is required to generate audio.`),
@@ -1113,6 +1113,7 @@ export function LanguageView({
         bookLabel,
         variables.textId,
         variables.language,
+        variables.instruction,
         {
           geminiApiKey: geminiKey,
           openaiApiKey: apiKey || undefined,
@@ -1154,9 +1155,9 @@ export function LanguageView({
   });
 
   const handleGenerateAudio = useCallback(
-    (textId: string) => {
+    (textId: string, instruction?: string) => {
       if (!audioLang || !currentLanguageUsesGemini) return;
-      generateAudioMutation.mutate({ textId, language: audioLang });
+      generateAudioMutation.mutate({ textId, language: audioLang, instruction });
     },
     [audioLang, currentLanguageUsesGemini, generateAudioMutation],
   );
@@ -3139,7 +3140,7 @@ function AudioAction({
   textId: string;
   canGenerate: boolean;
   hasGeminiKey: boolean;
-  onGenerate: (textId: string) => void;
+  onGenerate: (textId: string, instruction?: string) => void;
   isGenerating: boolean;
   onUpload?: (textId: string, file: File) => void;
   isUploading?: boolean;
@@ -3156,6 +3157,55 @@ function AudioAction({
 }) {
   const { t } = useLingui();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [showRegenerationPrompt, setShowRegenerationPrompt] = useState(false);
+  const [regenerationInstruction, setRegenerationInstruction] = useState("");
+
+  const regenerationPrompt = canGenerate ? (
+    <div className="mt-1 flex flex-col items-end gap-1">
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2 text-[10px]"
+        onClick={() => setShowRegenerationPrompt((open) => !open)}
+        aria-expanded={showRegenerationPrompt}
+      >
+        <WandSparkles className="mr-1 h-3 w-3" />
+        {audio ? t`Adjust voice` : t`Voice instructions`}
+      </Button>
+      {showRegenerationPrompt && (
+        <div className="w-full max-w-sm rounded-md border bg-muted/30 p-2">
+          <Label htmlFor={`voice-instruction-${textId}`} className="text-[10px]">
+            {t`Tell AI how this phrase should sound`}
+          </Label>
+          <textarea
+            id={`voice-instruction-${textId}`}
+            value={regenerationInstruction}
+            onChange={(event) => setRegenerationInstruction(event.target.value)}
+            maxLength={2000}
+            rows={2}
+            className="mt-1 min-h-16 w-full resize-y rounded-md border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+            placeholder={t`For example: speak more slowly, emphasize the final word, and use a warm encouraging tone.`}
+          />
+          <div className="mt-1 flex justify-end gap-1">
+            <Button type="button" variant="ghost" size="sm" className="h-7 text-[10px]" onClick={() => setShowRegenerationPrompt(false)}>
+              {t`Cancel`}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="h-7 text-[10px]"
+              disabled={isGenerating || !hasGeminiKey || !regenerationInstruction.trim()}
+              onClick={() => onGenerate(textId, regenerationInstruction.trim())}
+            >
+              {isGenerating ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : <WandSparkles className="mr-1 h-3 w-3" />}
+              {audio ? t`Regenerate phrase` : t`Generate phrase`}
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  ) : null;
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -3201,6 +3251,7 @@ function AudioAction({
         {uploadButton && (
           <div className="mb-1 flex justify-end">{uploadButton}</div>
         )}
+        {regenerationPrompt}
         <WaveformPlayer
           key={`${audioLang}:${audio.fileName}:${audio.cacheKey ?? ""}`}
           audioUrl={getAudioUrl(
@@ -3260,6 +3311,7 @@ function AudioAction({
 
   return (
     <div className="flex flex-col items-end gap-1 shrink-0">
+      {regenerationPrompt}
       <div className="flex flex-wrap items-center justify-end gap-1.5">
         {canGenerate && (
           <Button

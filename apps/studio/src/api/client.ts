@@ -1666,6 +1666,7 @@ export const api = {
     label: string,
     textId: string,
     language: string,
+    instruction: string | undefined,
     credentials: {
       geminiApiKey: string
       openaiApiKey?: string
@@ -1680,7 +1681,7 @@ export const api = {
         ...(credentials.azure?.key ? { "X-Azure-Speech-Key": credentials.azure.key } : {}),
         ...(credentials.azure?.region ? { "X-Azure-Speech-Region": credentials.azure.region } : {}),
       },
-      body: JSON.stringify({ textId, language }),
+      body: JSON.stringify({ textId, language, instruction }),
     }),
 
   uploadTTSForItem: (
