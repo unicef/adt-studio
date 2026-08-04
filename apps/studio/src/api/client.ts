@@ -1918,7 +1918,7 @@ export const api = {
   prepareExport: (
     label: string,
     format: ExportFormat = "project",
-    features?: { glossary?: boolean; readAloud?: boolean; quizzes?: boolean; signLanguage?: boolean; languages?: string[] },
+    features?: { glossary?: boolean; readAloud?: boolean; quizzes?: boolean; signLanguage?: boolean; kidsMode?: boolean; languages?: string[] },
     defaultSettings?: {
       dockLayout?: { width?: "compact" | "full"; position?: "top" | "bottom"; align?: "center" | "spread" }
       theme?: "light" | "dark" | "system"

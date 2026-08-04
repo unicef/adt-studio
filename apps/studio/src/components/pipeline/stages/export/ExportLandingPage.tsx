@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Info } from "lucide-react"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
@@ -23,7 +23,12 @@ import {
 import { ExportDialog } from "./ExportDialog"
 import { FormatPicker } from "./components/FormatPicker"
 import { ExportPreview } from "./components/ExportPreview"
+import {
+  ReadingExperiencePicker,
+  type ReadingExperience,
+} from "./components/ReadingExperiencePicker"
 import { useCapturedPreviewSettings } from "@/hooks/use-preview-settings-listener"
+import { useKidsExportReadiness } from "@/hooks/use-kids-mode"
 
 export function ExportLandingPage({ bookLabel }: { bookLabel: string }) {
   const { stageState, isStatusLoading } = useBookRun()
@@ -60,12 +65,16 @@ function ExportLandingBody({
   const { startExport, isPreparing, preparingFormat, error } =
     useExportWatcher()
   const projectFeatures = useAllProjectFeatures(bookLabel)
+  const kidsExport = useKidsExportReadiness(bookLabel)
   const available = projectFeatures.toggleable
   const capturedPreviewSettings = useCapturedPreviewSettings(bookLabel)
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>(
     isPart ? "project" : "adt",
   )
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [readingExperience, setReadingExperience] =
+    useState<ReadingExperience>("standard")
+  const experienceInitialized = useRef(false)
   const [languageOrder, setLanguageOrder] = useState<string[] | null>(null)
   const [featureToggles, setFeatureToggles] = useState<ExportFeatureToggles>({
     glossary: true,
@@ -74,7 +83,19 @@ function ExportLandingBody({
     signLanguage: true,
   })
 
+  useEffect(() => {
+    if (kidsExport.isLoading || experienceInitialized.current) return
+    setReadingExperience(kidsExport.config?.enabled ? "kids" : "standard")
+    experienceInitialized.current = true
+  }, [kidsExport.config?.enabled, kidsExport.isLoading])
+
+  const kidsSelected =
+    selectedFormat !== "project" && readingExperience === "kids"
+  const kidsBlocked =
+    kidsSelected && (kidsExport.isLoading || !kidsExport.readiness.ready)
+
   const handleOpenDialog = () => {
+    if (kidsBlocked) return
     setExportDialogOpen(true)
   }
 
@@ -88,6 +109,7 @@ function ExportLandingBody({
             quizzes: featureToggles.quizzes && available.quizzes,
             signLanguage:
               featureToggles.signLanguage && available.signLanguage,
+            kidsMode: kidsSelected,
             languages: languageOrder ?? undefined,
           }
     const defaultSettings =
@@ -114,15 +136,28 @@ function ExportLandingBody({
       isRunning={isThisFormatPreparing}
       isCompleted={false}
       hasError={!!formatError}
-      canRun={true}
+      canRun={!kidsBlocked}
+      disabledReason={
+        kidsBlocked ? <Trans>Finish Kids Mode setup before exporting.</Trans> : undefined
+      }
       runLabel={
-        <Trans>Export {formatLabels[selectedFormat].label}</Trans>
+        kidsSelected ? (
+          <Trans>Export Kids Mode book</Trans>
+        ) : (
+          <Trans>Export {formatLabels[selectedFormat].label}</Trans>
+        )
       }
       rerunLabel={<Trans>Retry Export</Trans>}
       previewLabel={t`Export Preview`}
       hideAdvancedSettings
       onRun={handleOpenDialog}
-      preview={<ExportPreview format={selectedFormat} isPart={isPart} />}
+      preview={
+        <ExportPreview
+          format={selectedFormat}
+          isPart={isPart}
+          kidsMode={kidsSelected}
+        />
+      }
     >
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
@@ -163,6 +198,27 @@ function ExportLandingBody({
         </SettingsField>
       </SettingsCard>
 
+      {selectedFormat !== "project" ? (
+        <SettingsCard
+          title={<Trans>Reading experience</Trans>}
+          description={
+            <Trans>
+              Choose the interface readers will receive in this export.
+              Your Kids Mode setup is preserved either way.
+            </Trans>
+          }
+        >
+          <ReadingExperiencePicker
+            bookLabel={bookLabel}
+            selected={readingExperience}
+            onSelect={setReadingExperience}
+            readiness={kidsExport.readiness}
+            loading={kidsExport.isLoading}
+            disabled={isPreparing}
+          />
+        </SettingsCard>
+      ) : null}
+
       <ExportDialog
         open={exportDialogOpen}
         onOpenChange={setExportDialogOpen}
@@ -178,6 +234,7 @@ function ExportLandingBody({
         isPreparing={isPreparing}
         preparingFormat={preparingFormat}
         error={error}
+        kidsMode={kidsSelected}
       />
     </LandingPageShell>
   )

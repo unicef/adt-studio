@@ -188,7 +188,13 @@ interface BuddyVoiceInfo {
   isDefault: boolean
 }
 
-export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
+export function KidsModeScreen({
+  bookLabel,
+  returnTo,
+}: {
+  bookLabel: string
+  returnTo?: "export"
+}) {
   const { t, i18n } = useLingui()
   const { data: config } = useKidsMode(bookLabel)
   const updateKidsMode = useUpdateKidsMode(bookLabel)
@@ -404,11 +410,15 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
       <div className="flex shrink-0 items-center">
         <Link
           to="/books/$label/$step"
-          params={{ label: bookLabel, step: "book" }}
+          params={{ label: bookLabel, step: returnTo ?? "book" }}
           className="inline-flex w-fit items-center gap-1.5 rounded text-[13px] font-medium text-[#737373] transition-colors duration-150 hover:text-[#0a0a0a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 focus-visible:ring-offset-2"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
-          <Trans>Back to book</Trans>
+          {returnTo === "export" ? (
+            <Trans>Back to export</Trans>
+          ) : (
+            <Trans>Back to book</Trans>
+          )}
         </Link>
       </div>
 
@@ -468,9 +478,9 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
                   !config ||
                   (!enabled && !interfaceReady)
                 }
-                aria-label={t`This is a kids book`}
+                aria-label={t`Prepare Kids Mode for this book`}
               />
-              <Trans>This is a kids book</Trans>
+              <Trans>Prepare Kids Mode</Trans>
             </label>
             <Badge
               variant="outline"
@@ -482,9 +492,9 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
               )}
             >
               {enabled ? (
-                <Trans>On for this book</Trans>
+                <Trans>Setup active</Trans>
               ) : (
-                <Trans>Off by default</Trans>
+                <Trans>Not set up</Trans>
               )}
             </Badge>
           </div>
@@ -520,8 +530,8 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
                 Kids Mode swaps the standard reading menus for a friendly,
                 buddy-guided experience. The author chooses which buddies ship
                 with the book, and the reader picks one during onboarding. The
-                setting is baked into the live preview and web book exports,
-                so readers can't turn Kids Mode off.
+                setup powers the live preview and stays saved when you choose
+                Standard or Kids Mode during export.
               </Trans>
             </p>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -563,12 +573,12 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
                 </span>
                 <div className="flex flex-col gap-1">
                   <span className="text-[12.5px] font-semibold text-[#0a0a0a]">
-                    <Trans>Baked into the book</Trans>
+                    <Trans>Choose it at export</Trans>
                   </span>
                   <p className="text-[12px] leading-relaxed text-[#737373]">
                     <Trans>
-                      Applies to the live preview and web book exports — readers
-                      can't turn it off.
+                      Setup stays saved, so every export can use Standard or
+                      Kids Mode without repeating this work.
                     </Trans>
                   </p>
                 </div>

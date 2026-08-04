@@ -5,7 +5,10 @@ import { parseBookLabel } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, packagePnld, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
-import { readKidsModeConfig } from "./kids-mode-service.js"
+import {
+  assertKidsVoiceExportReady,
+  readKidsModeConfig,
+} from "./kids-mode-service.js"
 import { readPartInfo } from "./book-service.js"
 
 export interface ExportResult {
@@ -107,6 +110,8 @@ export async function prepareExport(
     const finalLanguages = normalizedRequested.length > 0
       ? normalizedRequested.filter((lang) => outputLanguages.includes(lang))
       : outputLanguages
+    const exportLanguages =
+      finalLanguages.length > 0 ? finalLanguages : outputLanguages
 
     const yamlDefaultSettings = config.default_settings
       ? {
@@ -145,22 +150,41 @@ export async function prepareExport(
       bookDir,
       label: safeLabel,
       language,
-      outputLanguages: finalLanguages.length > 0 ? finalLanguages : outputLanguages,
+      outputLanguages: exportLanguages,
       title,
       webAssetsDir,
       applyBodyBackground: config.apply_body_background,
       speechConfig: config.speech,
-      // The kids-mode decision is author-time book state (kids-mode.json).
-      // It is stamped onto every export server-side, regardless of whatever
-      // the Studio client sends for these two keys — the reader never toggles
-      // kids mode, so the export can't be steered by client-supplied flags.
+      // Setup stays in kids-mode.json, while each rendered export explicitly
+      // chooses its reading experience. Older callers that omit kidsMode keep
+      // the previous book-level default. Buddy ids always come from the saved
+      // setup, never from untrusted request data.
       features: (() => {
         const kidsConfig = readKidsModeConfig(bookDir)
-        const { kidsMode: _kidsMode, kidsBuddies: _kidsBuddies, ...rest } = features ?? {}
+        const requestedKidsMode = features?.kidsMode ?? kidsConfig.enabled
+        if (requestedKidsMode && !kidsConfig.enabled) {
+          throw new Error(
+            "Kids Mode setup must be enabled before exporting a Kids Mode book",
+          )
+        }
+        // Project archives preserve setup data and do not promise a runnable
+        // reading experience, so incomplete voices do not block that format.
+        if (requestedKidsMode && format !== "project") {
+          assertKidsVoiceExportReady({
+            bookDir,
+            languages: exportLanguages,
+            buddies: kidsConfig.buddies,
+          })
+        }
+        const {
+          kidsMode: _kidsMode,
+          kidsBuddies: _kidsBuddies,
+          ...rest
+        } = features ?? {}
         return {
           ...rest,
-          kidsMode: kidsConfig.enabled,
-          ...(kidsConfig.enabled && kidsConfig.buddies.length > 0
+          kidsMode: requestedKidsMode,
+          ...(requestedKidsMode && kidsConfig.buddies.length > 0
             ? { kidsBuddies: kidsConfig.buddies }
             : {}),
         }

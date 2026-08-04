@@ -16,6 +16,7 @@ import {
   ChevronUp,
   Database,
   FolderArchive,
+  Baby,
   type LucideIcon,
 } from "lucide-react";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -549,6 +550,7 @@ interface ExportDialogProps {
   isPreparing: boolean;
   preparingFormat: string | null;
   error: { format: string; message: string } | null;
+  kidsMode: boolean;
 }
 
 export function ExportDialog({
@@ -564,6 +566,7 @@ export function ExportDialog({
   isPreparing,
   preparingFormat,
   error,
+  kidsMode,
 }: ExportDialogProps) {
   const { t } = useLingui();
   const availableFeatures = useAvailableExportFeatures(bookLabel);
@@ -732,6 +735,11 @@ export function ExportDialog({
                   <p className="text-xs text-slate-500">
                     {selectedFormat === "project" ? (
                       <Trans>Download a full backup of this project</Trans>
+                    ) : kidsMode ? (
+                      <span className="inline-flex items-center gap-1.5 font-medium text-sky-700">
+                        <Baby className="h-3.5 w-3.5" aria-hidden />
+                        <Trans>Kids Mode reading experience</Trans>
+                      </span>
                     ) : (
                       <Trans>Choose features to include in this export</Trans>
                     )}
@@ -977,6 +985,8 @@ export function ExportDialog({
                 )}
                 {formatError ? (
                   <Trans>Retry Export</Trans>
+                ) : kidsMode ? (
+                  <Trans>Export Kids Mode book</Trans>
                 ) : (
                   <Trans>Export</Trans>
                 )}

@@ -31,7 +31,7 @@ import {
   getStepLabelI18n,
 } from "../pipeline-i18n"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useKidsMode, useKidsVoiceStatus } from "@/hooks/use-kids-mode"
+import { useKidsExportReadiness } from "@/hooks/use-kids-mode"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { useBook, usePackageAdtStatus } from "@/hooks/use-books"
 import { getSourcePdfUrl } from "@/api/client"
@@ -607,18 +607,13 @@ function OptionalGroupSection({
 
 function KidsModeHomeCard({ bookLabel }: { bookLabel: string }) {
   const navigate = useNavigate()
-  const { data: kidsConfig } = useKidsMode(bookLabel)
-  const { data: voiceStatus } = useKidsVoiceStatus(bookLabel)
-
-  const enabled = kidsConfig?.enabled ?? false
-  const buddyCount = kidsConfig?.buddies.length ?? 0
-  const packCount =
-    voiceStatus?.languages.filter((entry) => entry.hasPack).length ?? 0
+  const { readiness, isLoading } = useKidsExportReadiness(bookLabel)
 
   const handleCardClick = () => {
     navigate({
       to: "/books/$label/kids",
       params: { label: bookLabel },
+      search: { returnTo: undefined },
     })
   }
 
@@ -638,8 +633,6 @@ function KidsModeHomeCard({ bookLabel }: { bookLabel: string }) {
         "hover:border-foreground/15 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
       )}
     >
-      <div aria-hidden className="absolute inset-y-0 left-0 w-1 bg-sky-500" />
-
       <div className="flex items-start gap-5 p-5">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-sky-500 shadow-sm">
           <Baby className="h-6 w-6 text-white" strokeWidth={2} />
@@ -650,42 +643,52 @@ function KidsModeHomeCard({ bookLabel }: { bookLabel: string }) {
             <h3 className="text-lg font-bold leading-tight tracking-tight text-foreground">
               <Trans>Kids Mode</Trans>
             </h3>
-            {enabled ? (
+            {isLoading ? (
+              <Badge
+                variant="outline"
+                className="text-[10px] uppercase tracking-wider text-muted-foreground"
+              >
+                <Trans>Checking</Trans>
+              </Badge>
+            ) : readiness.ready ? (
               <Badge className="border-transparent bg-emerald-100 text-[10px] uppercase tracking-wider text-emerald-900 hover:bg-emerald-100">
-                <Trans>On</Trans>
+                <Trans>Ready</Trans>
+              </Badge>
+            ) : readiness.setupEnabled ? (
+              <Badge className="border-transparent bg-amber-100 text-[10px] uppercase tracking-wider text-amber-900 hover:bg-amber-100">
+                <Trans>Needs attention</Trans>
               </Badge>
             ) : (
               <Badge
                 variant="outline"
                 className="text-[10px] uppercase tracking-wider text-muted-foreground"
               >
-                <Trans>Off</Trans>
+                <Trans>Not set up</Trans>
               </Badge>
             )}
           </div>
 
           <p className="text-sm leading-relaxed text-muted-foreground">
             <Trans>
-              Make this a kids book: pick the reading buddies and generate
-              their voices.
+              Prepare a buddy-guided reading experience, then choose it when
+              you export.
             </Trans>
           </p>
 
-          {enabled && (
+          {readiness.setupEnabled && (
             <p className="text-xs text-muted-foreground tabular-nums">
               <Plural
-                value={buddyCount}
+                value={readiness.buddyCount}
                 one="# buddy"
                 other="# buddies"
               />
-              {packCount > 0 && (
+              {readiness.languageCount > 0 && (
                 <>
                   {" · "}
-                  <Plural
-                    value={packCount}
-                    one="# voice pack"
-                    other="# voice packs"
-                  />
+                  <Trans>
+                    {readiness.readyVoiceLanguageCount} of{" "}
+                    {readiness.languageCount} voice languages ready
+                  </Trans>
                 </>
               )}
             </p>
@@ -866,4 +869,3 @@ function BookOverviewCard({ bookLabel }: { bookLabel: string }) {
     </section>
   )
 }
-

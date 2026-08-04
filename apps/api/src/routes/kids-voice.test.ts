@@ -411,6 +411,8 @@ describe("GET /books/:label/kids-voice", () => {
       language: "en",
       hasPack: false,
       characters: [],
+      completeCharacters: [],
+      narratorReady: false,
     })
   })
 })

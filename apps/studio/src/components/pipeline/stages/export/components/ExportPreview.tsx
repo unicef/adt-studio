@@ -3,6 +3,7 @@ import {
   Activity,
   ArrowDownToLine,
   BarChart3,
+  Baby,
   Bookmark,
   BookText,
   Check,
@@ -133,9 +134,11 @@ const FORMAT_VISUALS: Record<ExportFormat, FormatVisual> = {
 export function ExportPreview({
   format,
   isPart,
+  kidsMode = false,
 }: {
   format: ExportFormat
   isPart?: boolean
+  kidsMode?: boolean
 }) {
   const base = FORMAT_VISUALS[format]
   // A book part exports the project archive as the "Completed Part" the
@@ -178,9 +181,17 @@ export function ExportPreview({
               {visual.eyebrow}
             </span>
           </div>
-          <span className="text-[10px] font-medium uppercase tracking-[0.14em] leading-none text-[#a3a3a3]">
-            <Trans>Sample</Trans>
-          </span>
+          <div className="flex items-center gap-2">
+            {kidsMode && format !== "project" ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.12em] leading-none text-sky-800">
+                <Baby className="h-3 w-3" aria-hidden />
+                <Trans>Kids Mode</Trans>
+              </span>
+            ) : null}
+            <span className="text-[10px] font-medium uppercase tracking-[0.14em] leading-none text-[#a3a3a3]">
+              <Trans>Sample</Trans>
+            </span>
+          </div>
         </div>
 
         {/* Format-specific demonstration */}

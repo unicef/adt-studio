@@ -290,6 +290,53 @@ function addPagesAndRenderings(label: string, count: number): void {
 }
 
 describe("exportWebpub", () => {
+  it("honors an explicit Standard reading experience", async () => {
+    createBookWithMetadata("standard-reader", "Standard Reader")
+    addPagesAndRenderings("standard-reader", 1)
+    fs.writeFileSync(
+      path.join(tmpDir, "standard-reader", "kids-mode.json"),
+      JSON.stringify({ enabled: true, buddies: ["cat"] }),
+    )
+
+    await prepareExport(
+      "standard-reader",
+      "webpub",
+      tmpDir,
+      webAssetsDir,
+      undefined,
+      { kidsMode: false },
+    )
+
+    const config = JSON.parse(
+      fs.readFileSync(
+        path.join(tmpDir, "standard-reader", "adt", "assets", "config.json"),
+        "utf8",
+      ),
+    )
+    expect(config.features.kidsMode).toBe(false)
+    expect(config.features.kidsBuddies).toBeUndefined()
+  })
+
+  it("blocks an explicit Kids Mode export until voices are complete", async () => {
+    createBookWithMetadata("kids-needs-voices", "Kids Needs Voices")
+    addPagesAndRenderings("kids-needs-voices", 1)
+    fs.writeFileSync(
+      path.join(tmpDir, "kids-needs-voices", "kids-mode.json"),
+      JSON.stringify({ enabled: true, buddies: ["cat"] }),
+    )
+
+    await expect(
+      prepareExport(
+        "kids-needs-voices",
+        "webpub",
+        tmpDir,
+        webAssetsDir,
+        undefined,
+        { kidsMode: true },
+      ),
+    ).rejects.toThrow("complete buddy voices")
+  })
+
   it("produces a valid ZIP of the webpub directory", async () => {
     createBookWithMetadata("webpub-test", "Test Book")
     addPagesAndRenderings("webpub-test", 1)

@@ -42,6 +42,7 @@ import {
 } from "@adt/pipeline"
 import {
   readKidsModeConfig,
+  readKidsVoiceStatus,
   readKidsVoicesConfig,
   writeKidsModeConfig,
   writeKidsVoicesConfig,
@@ -429,44 +430,7 @@ export function createKidsVoiceRoutes(
     const safeLabel = safeParseLabel(c.req.param("label"))
     const bookDir = getBookDir(booksDir, safeLabel)
     const languages = getBookLanguages(safeLabel, booksDir, configPath)
-
-    const status = languages.map((language) => {
-      const manifestPath = path.join(
-        bookDir,
-        KIDS_VOICE_DIR,
-        language,
-        "manifest.json",
-      )
-      if (!fs.existsSync(manifestPath)) {
-        return { language, hasPack: false, clipCount: 0, characters: [] }
-      }
-      try {
-        const manifest = JSON.parse(
-          fs.readFileSync(manifestPath, "utf8"),
-        ) as KidsVoiceManifest
-        if (manifest.version !== KIDS_VOICE_MANIFEST_VERSION) {
-          return { language, hasPack: false, clipCount: 0, characters: [] }
-        }
-        const allCharacters = Object.keys(manifest.characters ?? {})
-        const characters = allCharacters.filter((id) =>
-          (KIDS_BUDDY_IDS as readonly string[]).includes(id),
-        )
-        const clipCount = allCharacters.reduce(
-          (sum, id) => sum + Object.keys(manifest.characters[id] ?? {}).length,
-          0,
-        )
-        return {
-          language,
-          hasPack: characters.length > 0,
-          clipCount,
-          characters,
-        }
-      } catch {
-        return { language, hasPack: false, clipCount: 0, characters: [] }
-      }
-    })
-
-    return c.json({ languages: status })
+    return c.json(readKidsVoiceStatus(bookDir, languages))
   })
 
   app.post("/books/:label/kids-voice/generate", async (c) => {

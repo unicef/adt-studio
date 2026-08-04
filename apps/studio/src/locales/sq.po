@@ -72,6 +72,10 @@ msgstr "(shabllon)"
 msgid "(this section)"
 msgstr "(ky seksion)"
 
+#. placeholder {0}: readiness.buddyCount
+msgid "{0, plural, one {# buddy} other {# buddies}}"
+msgstr "{0, plural, one {# shok} other {# shokë}}"
+
 #. placeholder {0}: language.missingKeys.length
 msgid "{0, plural, one {# message missing} other {# messages missing}}"
 msgstr "{0, plural, one {Mungon # mesazh} other {Mungojnë # mesazhe}}"
@@ -230,6 +234,11 @@ msgstr "{0} nga {1} elemente"
 msgid "{0} of {1} pages had no extracted text"
 msgstr "{0} nga {1} faqe nuk kanë tekst të nxjerrë"
 
+#. placeholder {0}: readiness.readyVoiceLanguageCount
+#. placeholder {1}: readiness.languageCount
+msgid "{0} of {1} voice languages ready"
+msgstr "{0} nga {1} gjuhë me zëra gati"
+
 #. placeholder {0}: String(displayPages.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
@@ -322,8 +331,8 @@ msgstr "{0}m më parë"
 msgid "{0}s ago"
 msgstr "{0}s më parë"
 
-msgid "{buddyCount, plural, one {# buddy} other {# buddies}}"
-msgstr "{buddyCount, plural, one {# shok} other {# shokë}}"
+#~ msgid "{buddyCount, plural, one {# buddy} other {# buddies}}"
+#~ msgstr "{buddyCount, plural, one {# shok} other {# shokë}}"
 
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} {confirmCount, plural, one {fletë e dyfishtë e mundshme e zbuluar} other {fletë të dyfishta të mundshme të zbuluara}}"
@@ -411,8 +420,8 @@ msgstr "Shprehjet e {name}"
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} të shënuara"
 
-msgid "{packCount, plural, one {# voice pack} other {# voice packs}}"
-msgstr "{packCount, plural, one {# paketë zëri} other {# paketa zëri}}"
+#~ msgid "{packCount, plural, one {# voice pack} other {# voice packs}}"
+#~ msgstr "{packCount, plural, one {# paketë zëri} other {# paketa zëri}}"
 
 msgid "{pageCount} {pageCount, plural, one {page} other {pages}}"
 msgstr "{pageCount} {pageCount, plural, one {faqe} other {faqe}}"
@@ -1402,8 +1411,8 @@ msgstr "Ndërfaqe Programimi Aplikacioni — një grup rregullash që lejon prog
 #~ msgid "Applies to the live preview and every exported format — readers can't turn it off."
 #~ msgstr "Zbatohet në pamjen paraprake të drejtpërdrejtë dhe në çdo format të eksportuar — lexuesit nuk mund ta çaktivizojnë."
 
-msgid "Applies to the live preview and web book exports — readers can't turn it off."
-msgstr "Zbatohet në pamjen paraprake të drejtpërdrejtë dhe në eksportet e librave për ueb — lexuesit nuk mund ta çaktivizojnë."
+#~ msgid "Applies to the live preview and web book exports — readers can't turn it off."
+#~ msgstr "Zbatohet në pamjen paraprake të drejtpërdrejtë dhe në eksportet e librave për ueb — lexuesit nuk mund ta çaktivizojnë."
 
 msgid "Apply"
 msgstr "Apliko"
@@ -1580,6 +1589,9 @@ msgstr "Kthehu te librat"
 msgid "Back to classic activity"
 msgstr "Kthehu te aktiviteti klasik"
 
+msgid "Back to export"
+msgstr "Kthehu te eksporti"
+
 msgid "Back to kids UI"
 msgstr "Kthehu te ndërfaqja për fëmijë"
 
@@ -1605,8 +1617,8 @@ msgstr "Sfond: {0}"
 msgid "Badge"
 msgstr "Stemë"
 
-msgid "Baked into the book"
-msgstr "I integruar në libër"
+#~ msgid "Baked into the book"
+#~ msgstr "I integruar në libër"
 
 msgid "Balanced"
 msgstr "I balancuar"
@@ -2022,6 +2034,9 @@ msgstr "Kontrollo planin"
 msgid "Checked"
 msgstr "Kontrolluar"
 
+msgid "Checking"
+msgstr "Po kontrollohet"
+
 msgid "Checking accessibility"
 msgstr "Po kontrollohet aksesueshmëria"
 
@@ -2073,8 +2088,14 @@ msgstr "Zgjidhni si duhet të formatohet përmbajtja."
 msgid "Choose images..."
 msgstr "Zgjidhni imazhe..."
 
+msgid "Choose it at export"
+msgstr "Zgjidhe gjatë eksportit"
+
 msgid "Choose Provider"
 msgstr "Zgjidhni Ofruesin"
+
+msgid "Choose the interface readers will receive in this export. Your Kids Mode setup is preserved either way."
+msgstr "Zgjidh ndërfaqen që lexuesit do të marrin në këtë eksport. Konfigurimi i Modalitetit për Fëmijë ruhet në të dyja rastet."
 
 #~ msgid "Choose the model used when a pipeline step does not specify its own model."
 #~ msgstr "Zgjidhni modelin që përdoret kur një hap i pipeline-it nuk përcakton modelin e vet."
@@ -2225,6 +2246,10 @@ msgstr "Krahaso"
 
 msgid "Compared with fallback prompt."
 msgstr "Krahasuar me prompt-in fallback."
+
+#. placeholder {0}: readiness.missingInterfaceLanguages.length > 0 ? `: ${readiness.missingInterfaceLanguages.join(", ").toUpperCase()}` : ""
+msgid "Complete interface translations{0}."
+msgstr "Përfundo përkthimet e ndërfaqes{0}."
 
 msgid "Completed"
 msgstr "Përfunduar"
@@ -3405,6 +3430,9 @@ msgstr "Eksporto një pjesë"
 msgid "Export is not blocked by the stages below. As soon as Storyboard is done, you can ship a bundle. Enhancements, Localization, and Validation are optional ways to enrich the book — you can export again anytime later."
 msgstr "Eksporti nuk bllokohet nga fazat më poshtë. Sapo të përfundojë Storyboard-i, mund të dërgoni një paketë. Përmirësimet, Lokalizimi dhe Validimi janë mënyra opsionale për ta pasuruar librin — mund të eksportoni përsëri në çdo kohë."
 
+msgid "Export Kids Mode book"
+msgstr "Eksporto librin në Modalitetin për Fëmijë"
+
 msgid "Export Options"
 msgstr "Opsionet e eksportit"
 
@@ -3611,6 +3639,12 @@ msgstr "Filtron imazhet dekorative ose pa përmbajtje nga çdo faqe."
 
 msgid "Final Page"
 msgstr "Faqja e fundit"
+
+msgid "Finish Kids Mode setup"
+msgstr "Përfundo konfigurimin e Modalitetit për Fëmijë"
+
+msgid "Finish Kids Mode setup before exporting."
+msgstr "Përfundo konfigurimin e Modalitetit për Fëmijë para eksportit."
 
 msgid "Finish translating Kids Mode"
 msgstr "Përfundoni përkthimin e Modalitetit për Fëmijë"
@@ -3830,6 +3864,10 @@ msgstr "Gjenero narrativë audio për çdo faqe të librit. Zgjidh një ofrues d
 
 msgid "Generate audio narration for the book content."
 msgstr "Gjenero narrativë audio për përmbajtjen e librit."
+
+#. placeholder {0}: readiness.missingVoiceLanguages.length > 0 ? `: ${readiness.missingVoiceLanguages.join(", ").toUpperCase()}` : ""
+msgid "Generate complete buddy voices{0}."
+msgstr "Gjenero zërat e plotë të shokëve{0}."
 
 msgid "Generate comprehension quizzes and activities based on the book content."
 msgstr "Gjenero kuize dhe aktivitete të kuptimit bazuar në përmbajtjen e librit."
@@ -4541,14 +4579,20 @@ msgstr "Çelësat ruhen lokalisht në këtë shfletues ose sesion desktop dhe d�
 msgid "Kids Mode"
 msgstr "Modaliteti për Fëmijë"
 
+msgid "Kids Mode reading experience"
+msgstr "Përvoja e leximit në Modalitetin për Fëmijë"
+
 msgid "Kids Mode setup"
 msgstr "Konfigurimi i Modalitetit për Fëmijë"
 
 #~ msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
 #~ msgstr "Modaliteti për Fëmijë zëvendëson menytë standarde të leximit me një përvojë miqësore të udhëhequr nga një shok: lexuesi zgjedh një shok leximi që përfaqëson çdo veçori aksesueshmërie. Është një vendim autorial i integruar në pamjen paraprake të drejtpërdrejtë dhe në çdo eksportim — lexuesit nuk mund ta çaktivizojnë apo të ndryshojnë shokun vetë."
 
-msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setting is baked into the live preview and web book exports, so readers can't turn Kids Mode off."
-msgstr "Modaliteti për Fëmijë zëvendëson menytë standarde të leximit me një përvojë miqësore të udhëhequr nga një shok. Autori zgjedh cilët shokë përfshihen me librin, ndërsa lexuesi zgjedh njërin gjatë prezantimit. Cilësimi përfshihet në pamjen paraprake të drejtpërdrejtë dhe në eksportet e librave për ueb, ndaj lexuesit nuk mund ta çaktivizojnë Modalitetin për Fëmijë."
+#~ msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setting is baked into the live preview and web book exports, so readers can't turn Kids Mode off."
+#~ msgstr "Modaliteti për Fëmijë zëvendëson menytë standarde të leximit me një përvojë miqësore të udhëhequr nga një shok. Autori zgjedh cilët shokë përfshihen me librin, ndërsa lexuesi zgjedh njërin gjatë prezantimit. Cilësimi përfshihet në pamjen paraprake të drejtpërdrejtë dhe në eksportet e librave për ueb, ndaj lexuesit nuk mund ta çaktivizojnë Modalitetin për Fëmijë."
+
+msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setup powers the live preview and stays saved when you choose Standard or Kids Mode during export."
+msgstr "Modaliteti për Fëmijë zëvendëson menytë standarde të leximit me një përvojë miqësore të udhëhequr nga një shok. Autori zgjedh cilët shokë përfshihen me librin dhe lexuesi zgjedh njërin gjatë hyrjes. Konfigurimi mundëson paraparjen dhe ruhet kur zgjidhet Standard ose Modaliteti për Fëmijë gjatë eksportit."
 
 #. placeholder {0}: afterPage.pageNumber
 msgid "Knowledge check generated from the source pages, after page {0}."
@@ -4900,8 +4944,8 @@ msgstr "Vlerat më të ulëta prodhojnë stil më konsistent nëpër faqe."
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studio."
 
-msgid "Make this a kids book: pick the reading buddies and generate their voices."
-msgstr "Bëje këtë një libër për fëmijë: zgjidh shokët e leximit dhe gjenero zërat e tyre."
+#~ msgid "Make this a kids book: pick the reading buddies and generate their voices."
+#~ msgstr "Bëje këtë një libër për fëmijë: zgjidh shokët e leximit dhe gjenero zërat e tyre."
 
 msgid "Manage all sections"
 msgstr "Menaxho të gjitha seksionet"
@@ -5697,6 +5741,9 @@ msgstr "Nuk u rishikua"
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Nuk u ekzekutua gjatë ekzekutimit të fundit — me shumë gjasë sepse hyrjet e tij nuk ishin gati ose cilësimet e fazës e çaktivizuan."
 
+msgid "Not set up"
+msgstr "I pakonfiguruar"
+
 msgid "Not split yet"
 msgstr "Ende e pandarë"
 
@@ -5748,8 +5795,8 @@ msgstr "nga"
 msgid "Off"
 msgstr "Joaktiv"
 
-msgid "Off by default"
-msgstr "Çaktivizuar si parazgjedhje"
+#~ msgid "Off by default"
+#~ msgstr "Çaktivizuar si parazgjedhje"
 
 msgid "Omission or addition"
 msgstr "Mungesë ose shtesë"
@@ -5757,8 +5804,8 @@ msgstr "Mungesë ose shtesë"
 msgid "On"
 msgstr "Aktiv"
 
-msgid "On for this book"
-msgstr "Aktivizuar për këtë libër"
+#~ msgid "On for this book"
+#~ msgstr "Aktivizuar për këtë libër"
 
 msgid "One Column"
 msgstr "Një kolonë"
@@ -6493,6 +6540,15 @@ msgstr "Reshje"
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjeneral dhe emra të përveçëm që nuk bartin kuptim përtej faqes."
 
+msgid "Prepare a buddy-guided reading experience, then choose it when you export."
+msgstr "Përgatit një përvojë leximi të udhëhequr nga një shok dhe zgjidhe gjatë eksportit."
+
+msgid "Prepare Kids Mode"
+msgstr "Përgatit Modalitetin për Fëmijë"
+
+msgid "Prepare Kids Mode for this book"
+msgstr "Përgatit Modalitetin për Fëmijë për këtë libër"
+
 msgid "Preparing speech..."
 msgstr "Duke përgatitur audion..."
 
@@ -6842,6 +6898,9 @@ msgstr "Lexuesit kalojnë midis tekstit origjinal dhe të thjeshtëzuar me buton
 msgid "Reading archive..."
 msgstr "Duke lexuar arkivin..."
 
+msgid "Reading experience"
+msgstr "Përvoja e leximit"
+
 msgid "Reading PDF..."
 msgstr "Duke lexuar PDF-in..."
 
@@ -6862,6 +6921,11 @@ msgstr "Lexohet në"
 
 msgid "Ready"
 msgstr "Gati"
+
+#. placeholder {0}: readiness.buddyCount
+#. placeholder {1}: readiness.languageCount
+msgid "Ready for export: {0} buddies and {1} languages."
+msgstr "Gati për eksport: {0} shokë dhe {1} gjuhë."
 
 msgid "Real books processed with this preset — before and after."
 msgstr "Libra të vërtetë të procesuar me këtë paracaktim — para dhe pas."
@@ -7849,6 +7913,15 @@ msgstr "Cilësimet për këtë hap nuk janë ende të disponueshme."
 
 msgid "Settings navigation"
 msgstr "Navigimi i cilësimeve"
+
+msgid "Setup active"
+msgstr "Konfigurimi aktiv"
+
+msgid "Setup needed"
+msgstr "Nevojitet konfigurim"
+
+msgid "Setup stays saved, so every export can use Standard or Kids Mode without repeating this work."
+msgstr "Konfigurimi ruhet, prandaj çdo eksport mund të përdorë Standard ose Modalitetin për Fëmijë pa e përsëritur këtë punë."
 
 msgid "Shadow"
 msgstr "Hije"
@@ -8844,8 +8917,8 @@ msgstr "Ky imazh është shënuar si dekorativ — kliko për ta hequr shënimin
 msgid "This is <0>ADT Studio</0>."
 msgstr "Ky është <0>ADT Studio</0>."
 
-msgid "This is a kids book"
-msgstr "Ky është një libër për fëmijë"
+#~ msgid "This is a kids book"
+#~ msgstr "Ky është një libër për fëmijë"
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Ky është një paraparim i opsioneve të zgjedhura për librin tuaj, çdo opsion ndikon paraparimimin në mënyra të ndryshme."
@@ -9161,6 +9234,9 @@ msgstr "Rregullo se si thjeshtohet teksti në cilësimet e Udhëzimit Easy Read.
 msgid "Turn any PDF into a fully accessible book — audio, translations, structured HTML layouts — all generated from your source file, <0>all editable</0>, <1>all yours</1>."
 msgstr "Ktheje çdo PDF në një libër plotësisht të aksesueshëm — audio, përkthime, paraqitje HTML të strukturuara — të gjitha të gjeneruara nga skedari juaj burim, <0>të gjitha të redaktueshme</0>, <1>të gjitha tuajat</1>."
 
+msgid "Turn on Kids Mode setup for this book."
+msgstr "Aktivizo konfigurimin e Modalitetit për Fëmijë për këtë libër."
+
 msgid "Turn on kids mode to configure buddies and voices."
 msgstr "Aktivizo modalitetin për fëmijë për të konfiguruar shokët dhe zërat."
 
@@ -9419,6 +9495,9 @@ msgstr "Përdor si aktual"
 msgid "Use as template"
 msgstr "Përdor si shabllon"
 
+msgid "Use buddy-guided onboarding and reading controls."
+msgstr "Përdor hyrjen dhe kontrollet e leximit të udhëhequra nga një shok."
+
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Përdor sintaksën Liquid për të interpoluar variabla, për të iteruar mbi array dhe për të përfshirë udhëzime me kusht në këtë prompt."
 
@@ -9434,6 +9513,9 @@ msgstr "Përdor Spread për libra të shtypur me paraqitje faqesh ballë për ba
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Përdor + ndërmjet faqeve për të vendosur kuizin"
+
+msgid "Use the familiar reader menus and controls."
+msgstr "Përdor menytë dhe kontrollet e njohura të leximit."
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Përdor shiritin anësor majtas për të hapur çdo fazë të linjës. Çdo fazë ka faqen e saj ku mund të shqyrtosh përmbajtjen, të konfigurosh cilësimet dhe të nisësh një ekzekutim. Kartat më poshtë pasqyrojnë atë navigim — kliko një kartë për të kaluar direkt te faqja e asaj faze."

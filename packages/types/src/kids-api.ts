@@ -68,6 +68,8 @@ export const KidsVoiceLanguageStatusSchema = z.object({
   hasPack: z.boolean(),
   clipCount: z.number().int().nonnegative(),
   characters: z.array(z.string()),
+  completeCharacters: z.array(z.string()),
+  narratorReady: z.boolean(),
 })
 export type KidsVoiceLanguageStatus = z.infer<
   typeof KidsVoiceLanguageStatusSchema

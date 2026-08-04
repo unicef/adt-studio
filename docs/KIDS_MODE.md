@@ -8,7 +8,7 @@ Branch: `eliezir/kids-mode`. The runtime experience ships inside web kids books 
 
 ### Who decides what
 
-**Kids mode is an author-time decision, never a reader toggle.** Studio writes `kids-mode.json` (`{ enabled, buddies }`) into the book dir; preview and export stamp it into the packaged config as `features.kidsMode` / `features.kidsBuddies`. The runtime's `kidsModeActiveAtom` reads only `features.kidsMode === true`. Per-reader state (onboarding done, chosen buddy, player name, last spot) stays persisted locally in the book's storage.
+**Kids mode is prepared by the author and selected per export, never by the reader.** Studio writes reusable setup (`{ enabled, buddies }`) to `kids-mode.json` in the book directory. Preview uses that setup, while each rendered export explicitly selects Standard or Kids Mode and stamps the result into `features.kidsMode` / `features.kidsBuddies`. Choosing Standard never deletes translations, buddy choices, or voice packs. The runtime's `kidsModeActiveAtom` reads only the packed `features.kidsMode === true`. Per-reader state (onboarding done, chosen buddy, player name, last spot) stays persisted locally in the book's storage.
 
 The `/books/:label/adt/*` preview route patches `assets/config.json` on the way out from the live `kids-mode.json` (and serves `content/kids-voice/*` from the book dir), so toggling kids mode in Studio reflects in the preview without re-packaging.
 
@@ -51,7 +51,7 @@ The child's avatar uses the [DiceBear Adventurer](https://www.figma.com/communit
 
 ### Mode switch (chrome swap, no forking)
 
-Activation is **config-only**: `kidsModeActiveAtom` derives solely from the packed `features.kidsMode === true` (see "Who decides what" above) — there is no reader-facing toggle anywhere in the runtime, Settings included. Old books without the field, or with it `false`, get the normal adult chrome. When active, `NavRoot` swaps `BottomDock` → `KidsChrome` **inside the same `<Dock>`**, so the audio player and keyboard shortcuts keep working; `ChromeRoot` suppresses the adult tutorial overlay. Kids mode re-skins the same feature atoms the dock drives (`readAloudModeAtom`, `easyReadModeAtom`, `glossaryModeAtom`, `signLanguageModeAtom`, notepad/eli5 atoms, `audioSpeedAtom`) — it never reimplements feature logic. The onboarding picker shows only the packed `features.kidsBuddies` roster. Onboarding replay ("Meet my buddy again") lives as an action inside the buddy panel itself (`KidsBuddy.tsx`), not in Settings — it just flips `kidsOnboardingDoneAtom` back to `false` and closes the panel.
+Runtime activation is **config-only**: `kidsModeActiveAtom` derives solely from the packed `features.kidsMode === true` (see "Who decides what" above), and there is no reader-facing toggle anywhere in the runtime. The Studio Export screen owns the Standard/Kids decision for each rendered artifact. The API derives the buddy roster from saved setup, validates interface and voice readiness server-side, and preserves the old book-level default for older callers that omit the new export choice. Old books without the field, or exports choosing Standard, get the normal adult chrome. When active, `NavRoot` swaps `BottomDock` → `KidsChrome` **inside the same `<Dock>`**, so the audio player and keyboard shortcuts keep working; `ChromeRoot` suppresses the adult tutorial overlay. Kids mode re-skins the same feature atoms the dock drives (`readAloudModeAtom`, `easyReadModeAtom`, `glossaryModeAtom`, `signLanguageModeAtom`, notepad/eli5 atoms, `audioSpeedAtom`) — it never reimplements feature logic. The onboarding picker shows only the packed `features.kidsBuddies` roster. Onboarding replay ("Meet my buddy again") lives as an action inside the buddy panel itself (`KidsBuddy.tsx`), not in Settings — it just flips `kidsOnboardingDoneAtom` back to `false` and closes the panel.
 
 ### Kids i18n (the `t()` trap)
 
@@ -65,7 +65,7 @@ Everything the buddy can say lives in the shared registry (`@adt/types/kids`): g
 
 **Neutral onboarding narrator:** a reserved `KIDS_NARRATOR_ID` ("narrator") track reads the onboarding text using the **book's own narration voice** (resolved per language from `config.speech`, neutral non-character direction), generated into the same pack (`content/kids-voice/<lang>/narrator/<line-key>.mp3`) and played by the runtime onboarding when read-aloud is on. Clips cache **globally** (`KIDS_VOICE_CACHE_DIR`, default `<BOOKS_DIR>/.kids-voice-cache`, keyed by `hash(text, voice, model, instructions, provider)`) because lines, voices, and languages are book-independent — generating voices for one book makes them free for every other book. The legacy per-book `.cache` is a read-through fallback (hits get promoted into the global cache), so pre-existing packs migrate without re-paying the API. Each book still ships its own baked copy — books stay self-contained and offline.
 
-Output ships in the book: `content/kids-voice/<lang>/manifest.json` + `<character>/<line-key>.mp3`. At runtime `useBuddySpeech.say(line)` shows the bubble text via `tk` and plays the clip when the manifest has it — no pack, no character, no key → silent text-only fallback, so old books and un-generated languages degrade gracefully.
+Output ships in the book: `content/kids-voice/<lang>/manifest.json` + `<character>/<line-key>.mp3`. New Kids Mode exports require complete tracks for every selected buddy and the neutral narrator in every exported language. The API checks both manifest entries and files before packaging. At runtime `useBuddySpeech.say(line)` still has a silent text-only fallback for backward compatibility with older books or damaged assets.
 
 Baking rules: `${name}` = the buddy's fixed default name (resolvable per character per language); `${language}` = the manifest's own language display name; lines interpolating the **player's** name can't be baked and alias a generic clip via `voiceKey`.
 
@@ -75,7 +75,7 @@ Full-screen pages navigated with ← → (capture-phase handler intercepts the b
 
 ### Studio authoring screen (Kids Mode)
 
-The `/books/:label/kids` screen is a canvas+inspector authoring tool: a persistent buddy avatar rail, a center stage with **Character art** / **Lines** tabs (grow-to-fit expression preview + horizontal expression row; the audition lines list), and a right voice inspector (editable preset + prompt, save/reset, per-buddy generation). A collapsible "what is Kids Mode" explainer (buddy cluster + feature cards) sits on top, expanded by default. Studio reads the repo-shared buddy art through the `@kids-buddies` Vite alias.
+The `/books/:label/kids` screen is a preparation workspace: a persistent buddy avatar rail, a center stage with **Character art** / **Lines** tabs (grow-to-fit expression preview + horizontal expression row; the audition lines list), and a right voice inspector (editable preset + prompt, save/reset, per-buddy generation). A collapsible "what is Kids Mode" explainer (buddy cluster + feature cards) sits on top, expanded by default. When opened from Export it links back there after setup. Studio reads the repo-shared buddy art through the `@kids-buddies` Vite alias.
 
 ### Buddy interaction
 

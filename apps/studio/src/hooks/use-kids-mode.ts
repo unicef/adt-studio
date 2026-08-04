@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { KidsOpenAiVoice } from "@adt/types/kids"
 import { api, type KidsModeConfig } from "@/api/client"
+import { getKidsExportReadiness } from "@/lib/kids-export-readiness"
 
 export function useKidsMode(bookLabel: string) {
   return useQuery({
@@ -35,6 +36,24 @@ export function useKidsInterfaceStatus(bookLabel: string) {
     queryFn: () => api.getKidsInterfaceStatus(bookLabel),
     enabled: !!bookLabel,
   })
+}
+
+export function useKidsExportReadiness(bookLabel: string) {
+  const configQuery = useKidsMode(bookLabel)
+  const interfaceQuery = useKidsInterfaceStatus(bookLabel)
+  const voiceQuery = useKidsVoiceStatus(bookLabel)
+  return {
+    readiness: getKidsExportReadiness({
+      config: configQuery.data,
+      interfaceStatus: interfaceQuery.data,
+      voiceStatus: voiceQuery.data,
+    }),
+    config: configQuery.data,
+    isLoading:
+      configQuery.isLoading || interfaceQuery.isLoading || voiceQuery.isLoading,
+    isError:
+      configQuery.isError || interfaceQuery.isError || voiceQuery.isError,
+  }
 }
 
 export function useGenerateKidsVoice(bookLabel: string) {

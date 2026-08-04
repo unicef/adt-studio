@@ -71,6 +71,10 @@ msgstr "(template)"
 msgid "(this section)"
 msgstr "(this section)"
 
+#. placeholder {0}: readiness.buddyCount
+msgid "{0, plural, one {# buddy} other {# buddies}}"
+msgstr "{0, plural, one {# buddy} other {# buddies}}"
+
 #. placeholder {0}: language.missingKeys.length
 msgid "{0, plural, one {# message missing} other {# messages missing}}"
 msgstr "{0, plural, one {# message missing} other {# messages missing}}"
@@ -229,6 +233,11 @@ msgstr "{0} of {1} items"
 msgid "{0} of {1} pages had no extracted text"
 msgstr "{0} of {1} pages had no extracted text"
 
+#. placeholder {0}: readiness.readyVoiceLanguageCount
+#. placeholder {1}: readiness.languageCount
+msgid "{0} of {1} voice languages ready"
+msgstr "{0} of {1} voice languages ready"
+
 #. placeholder {0}: String(displayPages.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
@@ -321,8 +330,8 @@ msgstr "{0}m ago"
 msgid "{0}s ago"
 msgstr "{0}s ago"
 
-msgid "{buddyCount, plural, one {# buddy} other {# buddies}}"
-msgstr "{buddyCount, plural, one {# buddy} other {# buddies}}"
+#~ msgid "{buddyCount, plural, one {# buddy} other {# buddies}}"
+#~ msgstr "{buddyCount, plural, one {# buddy} other {# buddies}}"
 
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
@@ -410,8 +419,8 @@ msgstr "{name}'s expressions"
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} flagged"
 
-msgid "{packCount, plural, one {# voice pack} other {# voice packs}}"
-msgstr "{packCount, plural, one {# voice pack} other {# voice packs}}"
+#~ msgid "{packCount, plural, one {# voice pack} other {# voice packs}}"
+#~ msgstr "{packCount, plural, one {# voice pack} other {# voice packs}}"
 
 msgid "{pageCount} {pageCount, plural, one {page} other {pages}}"
 msgstr "{pageCount} {pageCount, plural, one {page} other {pages}}"
@@ -1401,8 +1410,8 @@ msgstr "Application Programming Interface — a set of rules that allows program
 #~ msgid "Applies to the live preview and every exported format — readers can't turn it off."
 #~ msgstr "Applies to the live preview and every exported format — readers can't turn it off."
 
-msgid "Applies to the live preview and web book exports — readers can't turn it off."
-msgstr "Applies to the live preview and web book exports — readers can't turn it off."
+#~ msgid "Applies to the live preview and web book exports — readers can't turn it off."
+#~ msgstr "Applies to the live preview and web book exports — readers can't turn it off."
 
 msgid "Apply"
 msgstr "Apply"
@@ -1579,6 +1588,9 @@ msgstr "Back to books"
 msgid "Back to classic activity"
 msgstr "Back to classic activity"
 
+msgid "Back to export"
+msgstr "Back to export"
+
 msgid "Back to kids UI"
 msgstr "Back to kids UI"
 
@@ -1604,8 +1616,8 @@ msgstr "Background: {0}"
 msgid "Badge"
 msgstr "Badge"
 
-msgid "Baked into the book"
-msgstr "Baked into the book"
+#~ msgid "Baked into the book"
+#~ msgstr "Baked into the book"
 
 msgid "Balanced"
 msgstr "Balanced"
@@ -2021,6 +2033,9 @@ msgstr "Check plan"
 msgid "Checked"
 msgstr "Checked"
 
+msgid "Checking"
+msgstr "Checking"
+
 msgid "Checking accessibility"
 msgstr "Checking accessibility"
 
@@ -2072,8 +2087,14 @@ msgstr "Choose how the content should be formatted."
 msgid "Choose images..."
 msgstr "Choose images..."
 
+msgid "Choose it at export"
+msgstr "Choose it at export"
+
 msgid "Choose Provider"
 msgstr "Choose Provider"
+
+msgid "Choose the interface readers will receive in this export. Your Kids Mode setup is preserved either way."
+msgstr "Choose the interface readers will receive in this export. Your Kids Mode setup is preserved either way."
 
 #~ msgid "Choose the model used when a pipeline step does not specify its own model."
 #~ msgstr "Choose the model used when a pipeline step does not specify its own model."
@@ -2224,6 +2245,10 @@ msgstr "Compare"
 
 msgid "Compared with fallback prompt."
 msgstr "Compared with fallback prompt."
+
+#. placeholder {0}: readiness.missingInterfaceLanguages.length > 0 ? `: ${readiness.missingInterfaceLanguages.join(", ").toUpperCase()}` : ""
+msgid "Complete interface translations{0}."
+msgstr "Complete interface translations{0}."
 
 msgid "Completed"
 msgstr "Completed"
@@ -3404,6 +3429,9 @@ msgstr "Export a part"
 msgid "Export is not blocked by the stages below. As soon as Storyboard is done, you can ship a bundle. Enhancements, Localization, and Validation are optional ways to enrich the book — you can export again anytime later."
 msgstr "Export is not blocked by the stages below. As soon as Storyboard is done, you can ship a bundle. Enhancements, Localization, and Validation are optional ways to enrich the book — you can export again anytime later."
 
+msgid "Export Kids Mode book"
+msgstr "Export Kids Mode book"
+
 msgid "Export Options"
 msgstr "Export Options"
 
@@ -3610,6 +3638,12 @@ msgstr "Filters out decorative or non-content images on each page."
 
 msgid "Final Page"
 msgstr "Final Page"
+
+msgid "Finish Kids Mode setup"
+msgstr "Finish Kids Mode setup"
+
+msgid "Finish Kids Mode setup before exporting."
+msgstr "Finish Kids Mode setup before exporting."
 
 msgid "Finish translating Kids Mode"
 msgstr "Finish translating Kids Mode"
@@ -3829,6 +3863,10 @@ msgstr "Generate audio narration for every page of the book. Pick a provider and
 
 msgid "Generate audio narration for the book content."
 msgstr "Generate audio narration for the book content."
+
+#. placeholder {0}: readiness.missingVoiceLanguages.length > 0 ? `: ${readiness.missingVoiceLanguages.join(", ").toUpperCase()}` : ""
+msgid "Generate complete buddy voices{0}."
+msgstr "Generate complete buddy voices{0}."
 
 msgid "Generate comprehension quizzes and activities based on the book content."
 msgstr "Generate comprehension quizzes and activities based on the book content."
@@ -4540,14 +4578,20 @@ msgstr "Keys are stored locally in this browser or desktop session and are sent 
 msgid "Kids Mode"
 msgstr "Kids Mode"
 
+msgid "Kids Mode reading experience"
+msgstr "Kids Mode reading experience"
+
 msgid "Kids Mode setup"
 msgstr "Kids Mode setup"
 
 #~ msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
 #~ msgstr "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
 
-msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setting is baked into the live preview and web book exports, so readers can't turn Kids Mode off."
-msgstr "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setting is baked into the live preview and web book exports, so readers can't turn Kids Mode off."
+#~ msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setting is baked into the live preview and web book exports, so readers can't turn Kids Mode off."
+#~ msgstr "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setting is baked into the live preview and web book exports, so readers can't turn Kids Mode off."
+
+msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setup powers the live preview and stays saved when you choose Standard or Kids Mode during export."
+msgstr "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setup powers the live preview and stays saved when you choose Standard or Kids Mode during export."
 
 #. placeholder {0}: afterPage.pageNumber
 msgid "Knowledge check generated from the source pages, after page {0}."
@@ -4899,8 +4943,8 @@ msgstr "Lower values produce more consistent styling across pages."
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Make sure you're uploading a .zip file exported from ADT Studio."
 
-msgid "Make this a kids book: pick the reading buddies and generate their voices."
-msgstr "Make this a kids book: pick the reading buddies and generate their voices."
+#~ msgid "Make this a kids book: pick the reading buddies and generate their voices."
+#~ msgstr "Make this a kids book: pick the reading buddies and generate their voices."
 
 msgid "Manage all sections"
 msgstr "Manage all sections"
@@ -5696,6 +5740,9 @@ msgstr "Not reviewed"
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 
+msgid "Not set up"
+msgstr "Not set up"
+
 msgid "Not split yet"
 msgstr "Not split yet"
 
@@ -5747,8 +5794,8 @@ msgstr "of"
 msgid "Off"
 msgstr "Off"
 
-msgid "Off by default"
-msgstr "Off by default"
+#~ msgid "Off by default"
+#~ msgstr "Off by default"
 
 msgid "Omission or addition"
 msgstr "Omission or addition"
@@ -5756,8 +5803,8 @@ msgstr "Omission or addition"
 msgid "On"
 msgstr "On"
 
-msgid "On for this book"
-msgstr "On for this book"
+#~ msgid "On for this book"
+#~ msgstr "On for this book"
 
 msgid "One Column"
 msgstr "One Column"
@@ -6492,6 +6539,15 @@ msgstr "Precipitation"
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 
+msgid "Prepare a buddy-guided reading experience, then choose it when you export."
+msgstr "Prepare a buddy-guided reading experience, then choose it when you export."
+
+msgid "Prepare Kids Mode"
+msgstr "Prepare Kids Mode"
+
+msgid "Prepare Kids Mode for this book"
+msgstr "Prepare Kids Mode for this book"
+
 msgid "Preparing speech..."
 msgstr "Preparing speech..."
 
@@ -6841,6 +6897,9 @@ msgstr "Readers switch between the original and simplified text with the Easy Re
 msgid "Reading archive..."
 msgstr "Reading archive..."
 
+msgid "Reading experience"
+msgstr "Reading experience"
+
 msgid "Reading PDF..."
 msgstr "Reading PDF..."
 
@@ -6861,6 +6920,11 @@ msgstr "Reads in"
 
 msgid "Ready"
 msgstr "Ready"
+
+#. placeholder {0}: readiness.buddyCount
+#. placeholder {1}: readiness.languageCount
+msgid "Ready for export: {0} buddies and {1} languages."
+msgstr "Ready for export: {0} buddies and {1} languages."
 
 msgid "Real books processed with this preset — before and after."
 msgstr "Real books processed with this preset — before and after."
@@ -7848,6 +7912,15 @@ msgstr "Settings for this step are not yet available."
 
 msgid "Settings navigation"
 msgstr "Settings navigation"
+
+msgid "Setup active"
+msgstr "Setup active"
+
+msgid "Setup needed"
+msgstr "Setup needed"
+
+msgid "Setup stays saved, so every export can use Standard or Kids Mode without repeating this work."
+msgstr "Setup stays saved, so every export can use Standard or Kids Mode without repeating this work."
 
 msgid "Shadow"
 msgstr "Shadow"
@@ -8843,8 +8916,8 @@ msgstr "This image is marked decorative — click to un-mark"
 msgid "This is <0>ADT Studio</0>."
 msgstr "This is <0>ADT Studio</0>."
 
-msgid "This is a kids book"
-msgstr "This is a kids book"
+#~ msgid "This is a kids book"
+#~ msgstr "This is a kids book"
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
@@ -9160,6 +9233,9 @@ msgstr "Tune how text is simplified in the Easy Read Prompt settings. After runn
 msgid "Turn any PDF into a fully accessible book — audio, translations, structured HTML layouts — all generated from your source file, <0>all editable</0>, <1>all yours</1>."
 msgstr "Turn any PDF into a fully accessible book — audio, translations, structured HTML layouts — all generated from your source file, <0>all editable</0>, <1>all yours</1>."
 
+msgid "Turn on Kids Mode setup for this book."
+msgstr "Turn on Kids Mode setup for this book."
+
 msgid "Turn on kids mode to configure buddies and voices."
 msgstr "Turn on kids mode to configure buddies and voices."
 
@@ -9418,6 +9494,9 @@ msgstr "Use as current"
 msgid "Use as template"
 msgstr "Use as template"
 
+msgid "Use buddy-guided onboarding and reading controls."
+msgstr "Use buddy-guided onboarding and reading controls."
+
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 
@@ -9433,6 +9512,9 @@ msgstr "Use Spread for printed books with facing-page layouts (covers stay solo,
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Use the + between pages to place the quiz"
+
+msgid "Use the familiar reader menus and controls."
+msgstr "Use the familiar reader menus and controls."
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."

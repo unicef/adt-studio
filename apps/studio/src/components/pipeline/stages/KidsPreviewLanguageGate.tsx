@@ -92,7 +92,11 @@ export function KidsPreviewLanguageGate({
               size="lg"
               className="h-11 rounded-xl bg-[#087FB8] px-5 font-bold text-[#F8FCFF] shadow-[0_3px_0_#075F88] hover:bg-[#076F9F] active:translate-y-0.5 active:shadow-none"
             >
-              <Link to="/books/$label/kids" params={{ label: bookLabel }}>
+              <Link
+                to="/books/$label/kids"
+                params={{ label: bookLabel }}
+                search={{ returnTo: undefined }}
+              >
                 <Trans>Go to Kids Mode</Trans>
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Link>
