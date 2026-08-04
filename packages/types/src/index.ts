@@ -425,10 +425,11 @@ export {
   publicationStateAt,
 } from "./publication.js"
 
+export { COMMENTER_NAME_MAX_LENGTH, CommenterDisplayName } from "./commenter-name.js"
+
 export {
   COMMENTER_SESSION_COOKIE,
   COMMENTER_SESSION_MAX_AGE_SECONDS,
-  COMMENTER_NAME_MAX_LENGTH,
   COMMENTER_PIN_MIN_LENGTH,
   COMMENTER_PIN_MAX_LENGTH,
   COMMENTER_COLORS,

@@ -1,8 +1,5 @@
 import type { Context, Hono } from "hono"
-import { getCookie, setCookie } from "hono/cookie"
 import {
-  COMMENTER_SESSION_COOKIE,
-  COMMENTER_SESSION_MAX_AGE_SECONDS,
   CommenterSessionClaimRequest,
   CommenterSessionCreateRequest,
   PUBLISH_AUTHOR_NAME_HEADER,
@@ -21,27 +18,21 @@ import { filterCommentThreads } from "./comment-threads.js"
 import type { Env } from "./env.js"
 import { errorResponse } from "./errors.js"
 import { exceedsLength, readJsonBody } from "./http.js"
-import {
-  authorSessionMarker,
-  commenterColor,
-  hashPin,
-  nameKey,
-  normalizeDisplayName,
-  randomId,
-  sessionCookieValue,
-  sessionIdFromCookie,
-  verifyPin,
-} from "./identity.js"
+import { authorSessionMarker, normalizeDisplayName, verifyPin } from "./identity.js"
 import type { PublicationVariables } from "./middleware/publication-lookup.js"
-import type { PublicationStore, StoredCommenterSession } from "./store.js"
+import {
+  commenterFromCookie,
+  issueSessionCookie,
+  pinnedHolderOf,
+  storedCommenterFromCookie,
+  upsertCommenterSession,
+  type SessionDeps,
+} from "./sessions.js"
+import type { PublicationStore } from "./store.js"
 
 export type CommentAppEnv = { Bindings: Env; Variables: PublicationVariables }
 
-export interface CommentRoutesDeps {
-  resolveStore: (env: Env) => PublicationStore
-  timestamp: () => string
-  newId: () => string
-}
+export type CommentRoutesDeps = SessionDeps
 
 type CommentContext = Context<CommentAppEnv>
 
@@ -59,36 +50,6 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
     if (header === undefined) return { ok: true, name: null }
     const name = normalizeDisplayName(header)
     return name === null ? { ok: false } : { ok: true, name }
-  }
-
-  /** A cookie can only ever carry a commenter: `is_author` rows are reachable through
-   *  `MGMT_SECRET` alone, because `session_id` is public in every comment payload. */
-  const storedCommenterFromCookie = async (
-    c: CommentContext,
-    store: PublicationStore,
-    token: string,
-  ): Promise<StoredCommenterSession | null> => {
-    const secret = c.env?.MGMT_SECRET
-    const cookie = getCookie(c, COMMENTER_SESSION_COOKIE)
-    if (!secret || cookie === undefined) return null
-
-    const sessionId = await sessionIdFromCookie(cookie, secret)
-    if (sessionId === null) return null
-
-    const session = await store.findSession(sessionId)
-    if (!session || session.token !== token || session.is_author) return null
-
-    return session
-  }
-
-  const commenterFromCookie = async (
-    c: CommentContext,
-    store: PublicationStore,
-    token: string,
-  ): Promise<CommenterSession | null> => {
-    const session = await storedCommenterFromCookie(c, store, token)
-    if (!session) return null
-    return { id: session.id, name: session.name, color: session.color, is_author: false }
   }
 
   const materializeAuthor = async (
@@ -121,46 +82,6 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
 
   const publicationOf = (c: CommentContext): Publication => c.get("publication")
 
-  const issueCookie = async (
-    c: CommentContext,
-    token: string,
-    sessionId: string,
-    secret: string,
-  ): Promise<void> => {
-    setCookie(c, COMMENTER_SESSION_COOKIE, await sessionCookieValue(sessionId, secret), {
-      path: `/p/${token}`,
-      httpOnly: true,
-      secure: true,
-      sameSite: "Lax",
-      maxAge: COMMENTER_SESSION_MAX_AGE_SECONDS,
-    })
-  }
-
-  /** Name reservation shrank in M3.5 to **sessions that set a PIN**, and only those.
-   *
-   *  The access code now gates who reaches the book at all, so a name is no longer a scarce
-   *  resource to be defended against strangers: two invited Marias must both be able to
-   *  comment. A PIN is different — it is a lookup key, and two pinned Marias would make a
-   *  claim ambiguous — so pinned names still reserve, exactly as in M2.5. Author rows never
-   *  reserve: the author's display name is a Studio-side label, not a claimable identity. */
-  const pinnedHolderOf = async (
-    store: PublicationStore,
-    token: string,
-    name: string,
-    exceptSessionId: string | null,
-  ): Promise<StoredCommenterSession | null> => {
-    const key = nameKey(name)
-    const sessions = await store.listCommenterSessions(token)
-    return (
-      sessions.find(
-        (session) =>
-          session.id !== exceptSessionId &&
-          session.pin !== null &&
-          nameKey(session.name) === key,
-      ) ?? null
-    )
-  }
-
   app.post("/p/:token/session", async (c) => {
     const publication = publicationOf(c)
     const secret = c.env?.MGMT_SECRET
@@ -177,45 +98,24 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
     const existing = await storedCommenterFromCookie(c, store, publication.token)
     const { name, pin } = body.data
 
-    /** Only a session that will *have* a PIN can collide, and only with another pinned one.
-     *  The message names the *stored* spelling rather than echoing the request, so the reviewer
+    const outcome = await upsertCommenterSession({
+      store,
+      deps,
+      token: publication.token,
+      name,
+      existing,
+      ...(pin === undefined ? {} : { pin }),
+    })
+
+    /** The message names the *stored* spelling rather than echoing the request, so the reviewer
      *  sees the name as it appears on the pins they are being asked to claim. */
-    const willHavePin = pin !== undefined || (existing?.pin ?? null) !== null
-    if (willHavePin) {
-      const taken = await pinnedHolderOf(store, publication.token, name, existing?.id ?? null)
-      if (taken) {
-        return errorResponse(c, "name_taken", 409, nameTakenMessage(taken.name))
-      }
+    if (!outcome.ok) {
+      return errorResponse(c, "name_taken", 409, nameTakenMessage(outcome.takenBy))
     }
 
-    let session: CommenterSession
-    if (existing) {
-      /** Narrowed by hand: `existing` carries the stored `pin`, and the response body is
-       *  serialised from whatever object lands here. */
-      session = (await store.renameSession(existing.id, name)) ?? {
-        id: existing.id,
-        name: existing.name,
-        color: existing.color,
-        is_author: false,
-      }
-      if (pin !== undefined) {
-        session = (await store.setSessionPin(existing.id, await hashPin(pin))) ?? session
-      }
-    } else {
-      session = await store.createSession({
-        id: deps.newId(),
-        token: publication.token,
-        name,
-        color: commenterColor(await store.countCommenterSessions(publication.token)),
-        isAuthor: false,
-        createdAt: deps.timestamp(),
-        ...(pin === undefined ? {} : { pin: await hashPin(pin) }),
-      })
-    }
+    await issueSessionCookie(c, publication.token, outcome.session.id, secret)
 
-    await issueCookie(c, publication.token, session.id, secret)
-
-    const response: CommenterSessionResponse = { session }
+    const response: CommenterSessionResponse = { session: outcome.session }
     return c.json(response, 201)
   })
 
@@ -249,7 +149,7 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
       color: match.color,
       is_author: false,
     }
-    await issueCookie(c, publication.token, session.id, secret)
+    await issueSessionCookie(c, publication.token, session.id, secret)
 
     const response: CommenterSessionResponse = { session }
     return c.json(response)

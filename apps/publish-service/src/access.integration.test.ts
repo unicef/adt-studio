@@ -2,10 +2,12 @@ import { env } from "cloudflare:test"
 import { beforeEach, describe, expect, it } from "vitest"
 import { zipSync } from "fflate"
 import {
+  COMMENTER_SESSION_COOKIE,
   PUBLICATION_ACCESS_COOKIE,
   PUBLICATION_ACCESS_MAX_AGE_SECONDS,
   type PublicationDetail,
   type PublicationResponse,
+  type PublishCommentListResponse,
 } from "@adt/types"
 import { createApp } from "./app.js"
 
@@ -532,5 +534,218 @@ describe("access-code gate", () => {
       env,
     )
     expect(res.status).toBe(400)
+  })
+})
+
+/**
+ * Identity is established at the door (worker 0.5.1): the visitor names themselves to get in, so
+ * the grant response carries a commenter session too and the pin composer never asks.
+ */
+describe("the access-code door as the identity step", () => {
+  function cookieFrom(response: Response, name: string): string | null {
+    const header = response.headers.get("set-cookie") ?? ""
+    return new RegExp(`${name}=([^;,]+)`).exec(header)?.[1] ?? null
+  }
+
+  function bothCookies(response: Response): string {
+    const access = cookieFrom(response, PUBLICATION_ACCESS_COOKIE)
+    const session = cookieFrom(response, COMMENTER_SESSION_COOKIE)
+    expect(access, response.headers.get("set-cookie") ?? "").not.toBeNull()
+    expect(session, response.headers.get("set-cookie") ?? "").not.toBeNull()
+    return `${PUBLICATION_ACCESS_COOKIE}=${access}; ${COMMENTER_SESSION_COOKIE}=${session}`
+  }
+
+  function enterAs(token: string, code: string, name?: string): Promise<Response> {
+    return app().request(
+      `${BASE}/p/${token}/access`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(name === undefined ? { code } : { code, name }),
+      },
+      env,
+    )
+  }
+
+  function submit(token: string, fields: Record<string, string>, cookie?: string): Promise<Response> {
+    return app().request(
+      `${BASE}/p/${token}/access`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          ...(cookie === undefined ? {} : { Cookie: cookie }),
+        },
+        body: new URLSearchParams(fields).toString(),
+      },
+      env,
+    )
+  }
+
+  async function sessions(): Promise<{ id: string; name: string }[]> {
+    const { results } = await env.DB.prepare(
+      `SELECT id, name FROM sessions ORDER BY created_at`,
+    ).all<{ id: string; name: string }>()
+    return results
+  }
+
+  it("asks for a name beside the code, and keeps the page script-free", async () => {
+    const token = await publish(CODE)
+    const html = await (await get(token, "", navigation())).text()
+
+    expect(html).toContain(">Your name<")
+    expect(html).toContain(`name="name"`)
+    expect(html).toContain(`id="name"`)
+    expect(html).toContain("required")
+    expect(html).toContain(`id="code"`)
+    expect(html).not.toContain("<script")
+  })
+
+  it("grants access and issues a commenter session on the same response", async () => {
+    const token = await publish(CODE)
+    const res = await enterAs(token, CODE, "  Maria  ")
+    expect(res.status).toBe(204)
+
+    const cookie = bothCookies(res)
+    await expect(sessions()).resolves.toMatchObject([{ name: "Maria" }])
+
+    const posted = await app().request(
+      `${BASE}/p/${token}/comments`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", Cookie: cookie },
+        body: JSON.stringify({ page_section_id: "pg001_sec001", body: "the fox is lovely" }),
+      },
+      env,
+    )
+    expect(posted.status).toBe(201)
+    await expect(posted.json()).resolves.toMatchObject({ comment: { author_name: "Maria" } })
+
+    const listed = await app().request(
+      `${BASE}/p/${token}/comments?page_section_id=pg001_sec001`,
+      { headers: { Cookie: cookie } },
+      env,
+    )
+    const body = (await listed.json()) as PublishCommentListResponse
+    expect(body.session).toMatchObject({ name: "Maria", is_author: false })
+  })
+
+  it("still grants access, and creates nothing, when no name is sent", async () => {
+    const token = await publish(CODE)
+    const res = await enterAs(token, CODE)
+    expect(res.status).toBe(204)
+    expect(cookieFrom(res, PUBLICATION_ACCESS_COOKIE)).not.toBeNull()
+    expect(cookieFrom(res, COMMENTER_SESSION_COOKIE)).toBeNull()
+    await expect(sessions()).resolves.toEqual([])
+
+    /** The composer is the fallback path, so the name still lands through `/session`. */
+    const named = await app().request(
+      `${BASE}/p/${token}/session`,
+      {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          Cookie: `${PUBLICATION_ACCESS_COOKIE}=${cookieFrom(res, PUBLICATION_ACCESS_COOKIE)}`,
+        },
+        body: JSON.stringify({ name: "Maria" }),
+      },
+      env,
+    )
+    expect(named.status).toBe(201)
+  })
+
+  /** A name over 60 characters cannot become an identity, but the code was right, so the door
+   *  opens and the composer asks again rather than the reader being stuck outside. */
+  it("opens the book but skips the session when the name is unusable", async () => {
+    const token = await publish(CODE)
+    const res = await enterAs(token, CODE, "M".repeat(61))
+    expect(res.status).toBe(204)
+    expect(cookieFrom(res, PUBLICATION_ACCESS_COOKIE)).not.toBeNull()
+    expect(cookieFrom(res, COMMENTER_SESSION_COOKIE)).toBeNull()
+    await expect(sessions()).resolves.toEqual([])
+  })
+
+  it("renames the returning visitor instead of giving them a second identity", async () => {
+    const token = await publish(CODE)
+    const first = await enterAs(token, CODE, "Maria")
+    const cookie = bothCookies(first)
+    const [created] = await sessions()
+
+    await app().request(
+      `${BASE}/p/${token}/comments`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", Cookie: cookie },
+        body: JSON.stringify({ page_section_id: "pg001_sec001", body: "first pass" }),
+      },
+      env,
+    )
+
+    const again = await submit(token, { code: CODE, name: "Maria Silva", next: "" }, cookie)
+    expect(again.status).toBe(303)
+
+    const rows = await sessions()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ id: created?.id, name: "Maria Silva" })
+
+    /** The rename reaches the pin she already dropped — same session, same color, same comment. */
+    const listed = await app().request(
+      `${BASE}/p/${token}/comments?page_section_id=pg001_sec001`,
+      { headers: { Cookie: bothCookies(again) } },
+      env,
+    )
+    const body = (await listed.json()) as PublishCommentListResponse
+    expect(body.comments).toHaveLength(1)
+    expect(body.comments[0]).toMatchObject({ author_name: "Maria Silva" })
+    expect(body.session).toMatchObject({ id: created?.id, name: "Maria Silva" })
+  })
+
+  it("creates no session when the code is wrong, however the name was sent", async () => {
+    const token = await publish(CODE)
+
+    const json = await enterAs(token, "WRONG1", "Maria")
+    expect(json.status).toBe(401)
+    expect(json.headers.get("set-cookie")).toBeNull()
+
+    const form = await submit(token, { code: "WRONG1", name: "Maria", next: "" })
+    expect(form.status).toBe(401)
+    expect(form.headers.get("set-cookie")).toBeNull()
+    /** Her name comes back on the re-render: the code is what she has to retype. */
+    await expect(form.text()).resolves.toContain(`value="Maria"`)
+
+    await expect(sessions()).resolves.toEqual([])
+  })
+
+  it("escapes a name on its way back into the page", async () => {
+    const token = await publish(CODE)
+    const form = await submit(token, {
+      code: "WRONG1",
+      name: `Maria" onfocus="alert(1)`,
+      next: "",
+    })
+    const html = await form.text()
+    expect(html).toContain("Maria&quot; onfocus=&quot;alert(1)")
+    expect(html).not.toContain(`onfocus="alert(1)"`)
+  })
+
+  it("carries name and code through the form path to the page being opened", async () => {
+    const token = await publish(CODE)
+    const submitted = await submit(token, {
+      code: CODE,
+      name: "João",
+      next: "assets/app.css",
+    })
+    expect(submitted.status).toBe(303)
+    expect(submitted.headers.get("location")).toBe(`/p/${token}/assets/app.css`)
+    bothCookies(submitted)
+    await expect(sessions()).resolves.toMatchObject([{ name: "João" }])
+  })
+
+  it("leaves a codeless publication alone — the composer is the name step there", async () => {
+    const token = await publish()
+    const res = await enterAs(token, "ANYTHING", "Maria")
+    expect(res.status).toBe(204)
+    expect(res.headers.get("set-cookie")).toBeNull()
+    await expect(sessions()).resolves.toEqual([])
   })
 })

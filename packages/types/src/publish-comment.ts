@@ -1,9 +1,8 @@
 import { z } from "zod"
+import { COMMENTER_NAME_MAX_LENGTH, CommenterDisplayName } from "./commenter-name.js"
 import { PublicationToken } from "./publication.js"
 
 export const COMMENTER_SESSION_COOKIE = "adt_pub_session"
-
-export const COMMENTER_NAME_MAX_LENGTH = 60
 
 export const COMMENTER_PIN_MIN_LENGTH = 4
 
@@ -78,13 +77,13 @@ export const CommenterPin = z
 export type CommenterPin = z.infer<typeof CommenterPin>
 
 export const CommenterSessionCreateRequest = z.object({
-  name: z.string().trim().min(1).max(COMMENTER_NAME_MAX_LENGTH),
+  name: CommenterDisplayName,
   pin: CommenterPin.optional(),
 })
 export type CommenterSessionCreateRequest = z.infer<typeof CommenterSessionCreateRequest>
 
 export const CommenterSessionClaimRequest = z.object({
-  name: z.string().trim().min(1).max(COMMENTER_NAME_MAX_LENGTH),
+  name: CommenterDisplayName,
   pin: CommenterPin,
 })
 export type CommenterSessionClaimRequest = z.infer<typeof CommenterSessionClaimRequest>

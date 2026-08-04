@@ -1,6 +1,7 @@
 import { z } from "zod"
+import { CommenterDisplayName } from "./commenter-name.js"
 
-export const PUBLISH_WORKER_VERSION = "0.5.0"
+export const PUBLISH_WORKER_VERSION = "0.5.1"
 
 export const PUBLICATION_SNAPSHOT_MAX_BYTES = 100 * 1024 * 1024
 
@@ -110,10 +111,13 @@ export const PublicationUpdateRequest = z
   )
 export type PublicationUpdateRequest = z.infer<typeof PublicationUpdateRequest>
 
-/** The code a reviewer types. Deliberately lenient — a wrong code is `401`, never a `400`,
- *  so the route cannot be used to probe the code's length. */
+/** The code a reviewer types, and the name they type beside it. Deliberately lenient — a wrong
+ *  code is `401`, never a `400`, so the route cannot be used to probe the code's length. `name`
+ *  is optional for API compatibility: without it the door only grants admission, and the
+ *  reader's composer asks for a name at the first comment instead. */
 export const PublicationAccessRequest = z.object({
   code: z.string().max(256),
+  name: CommenterDisplayName.optional(),
 })
 export type PublicationAccessRequest = z.infer<typeof PublicationAccessRequest>
 

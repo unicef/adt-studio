@@ -401,17 +401,22 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
    *  would otherwise be served. `POST /access` is registered *before* the gate, because a
    *  handler that answers without calling `next()` ends the chain: the code prompt's own form
    *  target cannot sit behind the prompt. Everything after the gate — comments included — is
-   *  reachable only with a valid grant or `MGMT_SECRET`. */
-  registerAccessRoute(app)
+   *  reachable only with a valid grant or `MGMT_SECRET`.
+   *
+   *  The door shares the comment routes' deps because it now mints commenter sessions too: the
+   *  gate collects the visitor's name, so both cookies are set on the one response. */
+  const sessionDeps = {
+    resolveStore,
+    timestamp,
+    newId: options.newId ?? (() => randomId()),
+  }
+
+  registerAccessRoute(app, sessionDeps)
 
   app.use("/p/:token", accessGate)
   app.use("/p/:token/*", accessGate)
 
-  registerCommentRoutes(app, {
-    resolveStore,
-    timestamp,
-    newId: options.newId ?? (() => randomId()),
-  })
+  registerCommentRoutes(app, sessionDeps)
 
   app.get("/p/:token", serveSnapshot)
   app.get("/p/:token/*", serveSnapshot)

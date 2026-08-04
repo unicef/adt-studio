@@ -2,19 +2,33 @@ import type { Context, Hono } from "hono"
 import { getCookie, setCookie } from "hono/cookie"
 import { createMiddleware } from "hono/factory"
 import {
+  COMMENTER_NAME_MAX_LENGTH,
   PUBLICATION_ACCESS_COOKIE,
   PUBLICATION_ACCESS_MAX_AGE_SECONDS,
   type Publication,
 } from "@adt/types"
 import type { Env } from "./env.js"
 import { errorResponse } from "./errors.js"
-import { accessCookieIsValid, accessCookieValue, verifyAccessCode } from "./identity.js"
+import {
+  accessCookieIsValid,
+  accessCookieValue,
+  normalizeDisplayName,
+  verifyAccessCode,
+} from "./identity.js"
 import type { PublicationVariables } from "./middleware/publication-lookup.js"
+import {
+  issueSessionCookie,
+  storedCommenterFromCookie,
+  upsertCommenterSession,
+  type SessionDeps,
+} from "./sessions.js"
 import { normalizeSnapshotPath } from "./snapshot.js"
 
 export type AccessAppEnv = { Bindings: Env; Variables: PublicationVariables }
 
 type AccessContext = Context<AccessAppEnv>
+
+export type AccessRouteDeps = SessionDeps
 
 const UNAUTHORIZED_MESSAGE = "This book needs an access code — POST it to /p/:token/access"
 
@@ -22,6 +36,8 @@ const MISSING_SECRET_MESSAGE =
   "This worker has no MGMT_SECRET bound, so it cannot check access codes"
 
 const CODE_FIELD = "code"
+
+const NAME_FIELD = "name"
 
 const NEXT_FIELD = "next"
 
@@ -69,6 +85,8 @@ export interface GatePageOptions {
   /** Path inside the publication the reader was heading for, so the code prompt does not
    *  swallow the deep link they followed. */
   next?: string | undefined
+  /** Echoed back on a wrong code so the visitor retypes the code, not their name. */
+  name?: string | null
 }
 
 /**
@@ -77,6 +95,9 @@ export interface GatePageOptions {
  * loaded or after the link was locked mid-visit. Deliberately English (the M1a.5 callback-page
  * precedent — worker-served pages sit outside the Lingui catalogs); see the contract's §4.15
  * note for the localisation follow-up.
+ *
+ * Since worker 0.5.1 it also asks for the visitor's name, so commenter identity is established
+ * at the door and the pin composer never has to interrupt a half-typed comment to ask.
  */
 export function gatePage(publication: Publication, options: GatePageOptions = {}): string {
   const title = escapeHtml(publication.title)
@@ -94,11 +115,14 @@ export function gatePage(publication: Publication, options: GatePageOptions = {}
          animation:rise .3s ease-out both }
   h1 { margin:0 0 .35rem; font-size:1.125rem; line-height:1.4 }
   p { margin:0; font-size:.9375rem; line-height:1.6; color:#52525b }
-  form { margin:1.25rem 0 0; display:flex; flex-direction:column; gap:.4rem }
+  form { margin:1.25rem 0 0; display:flex; flex-direction:column; gap:.85rem; text-align:left }
+  .field { display:flex; flex-direction:column; gap:.35rem }
   label { font-size:.8125rem; font-weight:500; color:#52525b }
-  input { width:100%; padding:.7rem .75rem; font:inherit; font-size:1.05rem; letter-spacing:.14em;
-          text-align:center; text-transform:uppercase; border:1px solid #d4d4d8; border-radius:.6rem;
-          background:#fff; color:inherit; transition:border-color .15s, box-shadow .15s }
+  input { width:100%; padding:.7rem .75rem; font:inherit; border:1px solid #d4d4d8;
+          border-radius:.6rem; background:#fff; color:inherit;
+          transition:border-color .15s, box-shadow .15s }
+  #name { font-size:1rem }
+  #code { font-size:1.05rem; letter-spacing:.14em; text-align:center; text-transform:uppercase }
   input:focus { outline:none; border-color:#4f46e5; box-shadow:0 0 0 3px rgba(79,70,229,.18) }
   input[aria-invalid="true"] { border-color:#dc2626; animation:nudge .28s ease-in-out both }
   button { margin-top:.35rem; padding:.7rem 1rem; font:inherit; font-weight:600; color:#fff; background:#4f46e5; border:0;
@@ -120,12 +144,20 @@ export function gatePage(publication: Publication, options: GatePageOptions = {}
       <path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
   </div>
   <h1>${title}</h1>
-  <p>This book is shared with an access code. Enter the code you were given to open it.</p>
+  <p>This book is shared with an access code. Add your name and enter the code you were given to open it.</p>
   <form method="post" action="/p/${escapeHtml(publication.token)}/access">
     <input type="hidden" name="${NEXT_FIELD}" value="${escapeHtml(options.next ?? "")}">
-    <label for="code">Access code</label>
-    <input id="code" name="${CODE_FIELD}" autofocus autocomplete="off" autocapitalize="characters"
-           spellcheck="false" enterkeyhint="go" maxlength="12"${wrong ? ' aria-invalid="true"' : ""}>
+    <div class="field">
+      <label for="name">Your name</label>
+      <input id="name" name="${NAME_FIELD}" autofocus required autocomplete="name"
+             spellcheck="false" enterkeyhint="next" maxlength="${COMMENTER_NAME_MAX_LENGTH}"
+             value="${escapeHtml(options.name ?? "")}">
+    </div>
+    <div class="field">
+      <label for="code">Access code</label>
+      <input id="code" name="${CODE_FIELD}" required autocomplete="off" autocapitalize="characters"
+             spellcheck="false" enterkeyhint="go" maxlength="12"${wrong ? ' aria-invalid="true"' : ""}>
+    </div>
     ${wrong ? `<p class="error" role="alert">That code doesn't open this book. Check it and try again.</p>` : ""}
     <button type="submit">Open the book</button>
   </form>
@@ -165,38 +197,76 @@ export const accessGate = createMiddleware<AccessAppEnv>(async (c, next) => {
   return c.html(gatePage(publication, { next: currentRelative(c, publication.token) }), 401)
 })
 
-async function readCode(c: AccessContext): Promise<{ code: string; next: string | undefined }> {
+interface AccessSubmission {
+  code: string
+  /** Already through the session routes' own normaliser, so a name that could not become an
+   *  identity is indistinguishable here from one that was never sent. */
+  name: string | null
+  next: string | undefined
+}
+
+const EMPTY_SUBMISSION: AccessSubmission = { code: "", name: null, next: undefined }
+
+function fieldOf(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined
+}
+
+async function readSubmission(c: AccessContext): Promise<AccessSubmission> {
   const contentType = c.req.header("content-type") ?? ""
   if (contentType.includes("json")) {
     try {
       const body = (await c.req.json()) as Record<string, unknown>
-      const code = body[CODE_FIELD]
-      return { code: typeof code === "string" ? code.slice(0, 256) : "", next: undefined }
+      return {
+        code: fieldOf(body[CODE_FIELD])?.slice(0, 256) ?? "",
+        name: normalizeDisplayName(fieldOf(body[NAME_FIELD])),
+        next: undefined,
+      }
     } catch {
-      return { code: "", next: undefined }
+      return EMPTY_SUBMISSION
     }
   }
 
   try {
     const body = await c.req.parseBody()
-    const code = body[CODE_FIELD]
-    const target = body[NEXT_FIELD]
     return {
-      code: typeof code === "string" ? code.slice(0, 256) : "",
-      next: typeof target === "string" ? target : undefined,
+      code: fieldOf(body[CODE_FIELD])?.slice(0, 256) ?? "",
+      name: normalizeDisplayName(fieldOf(body[NAME_FIELD])),
+      next: fieldOf(body[NEXT_FIELD]),
     }
   } catch {
-    return { code: "", next: undefined }
+    return EMPTY_SUBMISSION
   }
 }
 
-export function registerAccessRoute(app: Hono<AccessAppEnv>): void {
+export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDeps): void {
+  /**
+   * Identity at the door (0.5.1): the visitor named themselves to get in, so the same response
+   * that grants admission also carries a commenter session and the composer never asks again.
+   * A visitor who comes back through the gate is *renamed*, not duplicated — the request's own
+   * session cookie is the difference, exactly as on a re-POST to `/p/:token/session`.
+   *
+   * A name that cannot be taken (the dormant pinned-name reservation) still opens the book: the
+   * code was right, and the door is about admission. The session simply keeps the name it had.
+   */
+  const establishIdentity = async (
+    c: AccessContext,
+    token: string,
+    name: string,
+    secret: string,
+  ): Promise<void> => {
+    const store = deps.resolveStore(c.env)
+    const existing = await storedCommenterFromCookie(c, store, token)
+    const outcome = await upsertCommenterSession({ store, deps, token, name, existing })
+    if (!outcome.ok) return
+    await issueSessionCookie(c, token, outcome.session.id, secret)
+  }
+
   /** Registered before `accessGate` on purpose: the door cannot be behind the lock. */
   app.post("/p/:token/access", async (c) => {
     const publication = c.get("publication")
     const packed = c.get("accessCodeHash")
     const secret = c.env?.MGMT_SECRET
-    const { code, next } = await readCode(c)
+    const { code, name, next } = await readSubmission(c)
     const isForm = !(c.req.header("content-type") ?? "").includes("json")
 
     /** Runs even when there is nothing to verify against, so how long the answer takes never
@@ -215,7 +285,7 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>): void {
 
     if (!verified) {
       return isForm
-        ? c.html(gatePage(publication, { wrongCode: true, next }), 401)
+        ? c.html(gatePage(publication, { wrongCode: true, next, name }), 401)
         : errorResponse(c, "unauthorized", 401, WRONG_CODE_MESSAGE)
     }
 
@@ -232,7 +302,11 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>): void {
       },
     )
 
-    /** `c.body`, never a bare `new Response`: the cookie lives in the context's prepared
+    if (name !== null) {
+      await establishIdentity(c, publication.token, name, secret)
+    }
+
+    /** `c.body`, never a bare `new Response`: both cookies live in the context's prepared
      *  headers until the response is built through it. */
     return isForm
       ? c.redirect(safeNext(publication.token, next), 303)
