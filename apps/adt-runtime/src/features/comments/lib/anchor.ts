@@ -169,6 +169,68 @@ export function buildAnchor(
 }
 
 /**
+ * The topmost book-content element under a viewport point, ignoring the pin
+ * overlay that sits above it. `elementsFromPoint` (plural) is what makes a drag
+ * work: the pin being dragged is under the pointer by definition, so the
+ * singular call would hand back the pin and every drop would anchor to nothing.
+ */
+export function elementAtPoint(
+  clientX: number,
+  clientY: number,
+  root: Element,
+): Element | null {
+  const doc = root.ownerDocument as Document & {
+    elementsFromPoint?: (x: number, y: number) => Element[]
+  }
+  const stack = doc.elementsFromPoint?.(clientX, clientY) ?? []
+  for (const candidate of stack) {
+    if (candidate === root || root.contains(candidate)) return candidate
+  }
+  return null
+}
+
+/**
+ * Anchor a dropped pin. `null` when the point is not over book content — which
+ * is how a drag that ends on the dock, on a popover or off the page reverts
+ * instead of silently re-anchoring to the page as a whole.
+ */
+export function anchorFromPoint(
+  clientX: number,
+  clientY: number,
+  options: BuildAnchorOptions = {},
+): CommentAnchor | null {
+  const root = options.root ?? contentRoot()
+  if (!root) return null
+  const element = elementAtPoint(clientX, clientY, root)
+  if (!element) return null
+  return buildAnchor(element, clientX, clientY, { root })
+}
+
+export interface ElementAnchor {
+  anchor: CommentAnchor
+  /** Viewport point the composer should hang off — the element's centre. */
+  point: { x: number; y: number }
+}
+
+/**
+ * Anchor to an element rather than to a point, for the keyboard path: there is
+ * no pointer, so the centre of whatever the reviewer has focused is the honest
+ * equivalent of where they would have clicked.
+ */
+export function anchorForElement(
+  element: Element,
+  options: BuildAnchorOptions = {},
+): ElementAnchor | null {
+  const root = options.root ?? contentRoot(element.ownerDocument)
+  if (!root) return null
+
+  const rect = element.getBoundingClientRect()
+  const point = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+  const anchor = buildAnchor(element, point.x, point.y, { root })
+  return anchor ? { anchor, point } : null
+}
+
+/**
  * Resolve a stored anchor back to an element. Ambiguity is failure: a selector
  * that matches two nodes could put the pin on the wrong one, and a pin in the
  * wrong place is worse than a pin that degrades to the page.

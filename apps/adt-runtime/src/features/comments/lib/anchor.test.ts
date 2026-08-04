@@ -1,8 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from "vitest"
 import {
+  anchorForElement,
+  anchorFromPoint,
   buildAnchor,
   contentRoot,
+  elementAtPoint,
   nearestAnchorElement,
   resolveAnchor,
   type CommentAnchor,
@@ -66,8 +69,19 @@ function stubRect(element: Element, rect: { x: number; y: number; width: number;
     new DOMRect(rect.x, rect.y, rect.width, rect.height)
 }
 
+/**
+ * jsdom implements no hit testing, so the drag path's `elementsFromPoint` is
+ * stubbed with the stack a browser would report: topmost first, which for a drag
+ * is always the pin the pointer is carrying.
+ */
+function stubPointStack(stack: Element[]) {
+  ;(document as Document & { elementsFromPoint: (x: number, y: number) => Element[] })
+    .elementsFromPoint = () => stack
+}
+
 afterEach(() => {
   document.body.innerHTML = ""
+  delete (document as Document & { elementsFromPoint?: unknown }).elementsFromPoint
 })
 
 describe("nearestAnchorElement", () => {
@@ -169,6 +183,86 @@ describe("buildAnchor", () => {
   it("returns null when there is no #content root", () => {
     document.body.innerHTML = "<div><p id='orphan'>text</p></div>"
     expect(buildAnchor(document.getElementById("orphan")!, 0, 0)).toBeNull()
+  })
+})
+
+describe("elementAtPoint", () => {
+  it("looks past the overlay to the book content underneath", () => {
+    const root = renderPage()
+    const pin = document.createElement("button")
+    document.body.append(pin)
+    const span = root.querySelector('[data-id="pg017_n0004"]')!
+    stubPointStack([pin, span, root])
+
+    expect(elementAtPoint(10, 10, root)).toBe(span)
+  })
+
+  it("is null when nothing under the pointer belongs to #content", () => {
+    const root = renderPage()
+    const heading = document.getElementById("page-heading")!
+    stubPointStack([heading, document.body])
+
+    expect(elementAtPoint(10, 10, root)).toBeNull()
+  })
+})
+
+describe("anchorFromPoint", () => {
+  it("re-anchors a dropped pin to whatever it was dropped on", () => {
+    const root = renderPage()
+    const target = root.querySelector('[data-id="pg017_n0012"]')!
+    stubRect(target, { x: 100, y: 500, width: 200, height: 100 })
+    stubPointStack([document.createElement("button"), target, root])
+
+    expect(anchorFromPoint(150, 550, { root })).toEqual({
+      selector: '#content [data-id="pg017_n0012"]',
+      xOffsetPct: 25,
+      yOffsetPct: 50,
+    })
+  })
+
+  it("refuses a drop that landed off the book, so the pin can revert", () => {
+    const root = renderPage()
+    stubPointStack([document.getElementById("page-heading")!])
+
+    expect(anchorFromPoint(5, 5, { root })).toBeNull()
+  })
+
+  it("round-trips a drag: the moved pin resolves back to the drop target", () => {
+    const root = renderPage()
+    const from = root.querySelector('[data-id="pg017_n0004"]')!
+    const to = root.querySelector('[data-id="pg017_n0011"]')!
+    stubRect(from, { x: 0, y: 0, width: 100, height: 20 })
+    stubRect(to, { x: 300, y: 700, width: 400, height: 40 })
+
+    const before = buildAnchor(from, 50, 10, { root })!
+    expect(resolveAnchor(before, { root })!.element).toBe(from)
+
+    stubPointStack([to, root])
+    const after = anchorFromPoint(500, 720, { root })!
+    expect(resolveAnchor(after, { root })!.element).toBe(to)
+    expect(resolveAnchor(after, { root })!.position()).toEqual({ x: 500, y: 720 })
+  })
+})
+
+describe("anchorForElement", () => {
+  it("anchors the keyboard path to the centre of the focused element", () => {
+    const root = renderPage()
+    const span = root.querySelector('[data-id="pg017_n0010"]')!
+    stubRect(span, { x: 40, y: 80, width: 200, height: 50 })
+
+    expect(anchorForElement(span, { root })).toEqual({
+      anchor: {
+        selector: '#content [data-id="pg017_n0010"]',
+        xOffsetPct: 50,
+        yOffsetPct: 50,
+      },
+      point: { x: 140, y: 105 },
+    })
+  })
+
+  it("is null for an element outside the book content", () => {
+    const root = renderPage()
+    expect(anchorForElement(document.getElementById("page-heading")!, { root })).toBeNull()
   })
 })
 

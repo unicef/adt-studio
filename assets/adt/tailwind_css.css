@@ -222,6 +222,61 @@ body[data-comment-mode="on"] #content * {
 }
 
 /*
+ * Keyboard pin placement. Book content is prose, not controls, so the comments
+ * feature lends each stable hook a tabindex while the reviewer is placing (or
+ * moving) a pin and takes it back afterwards — `[data-comment-target]` exists
+ * only for that window. The ring has to be drawn here rather than with a utility
+ * class because these are the book's own elements, which the chrome never
+ * renders and therefore cannot give a className to.
+ */
+[data-comment-target]:focus-visible {
+  /* A literal blue, not var(--ring): these are the book's own elements, and the
+     book's palette resolves --ring to a pale grey that vanishes on a white page.
+     The white halo is what keeps the ring readable over a dark photograph. */
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  background-color: rgba(37, 99, 235, 0.07);
+}
+
+@layer utilities {
+  /*
+   * A dropped or re-anchored pin lands with a short overshoot, so the eye
+   * follows it to its new home instead of losing it. Only the `scale` property
+   * is animated: the pin's own `translate` keeps it sitting on its anchor, and
+   * animating `transform` instead would compose with that translate and throw
+   * the pin a full pin-height off the point it is commenting on.
+   */
+  @keyframes commentPinSettle {
+    0% { scale: 0.82; }
+    55% { scale: 1.12; }
+    100% { scale: 1; }
+  }
+  /* Jumping to a pin from the sidebar: two quiet rings and no movement, because
+     the pin the reviewer is hunting for must not also change position. */
+  @keyframes commentPinFlash {
+    0% { outline-color: color-mix(in oklab, var(--ring, #0091ff) 90%, transparent); outline-offset: 2px; }
+    50% { outline-color: color-mix(in oklab, var(--ring, #0091ff) 0%, transparent); outline-offset: 9px; }
+    100% { outline-color: color-mix(in oklab, var(--ring, #0091ff) 0%, transparent); outline-offset: 9px; }
+  }
+  .animate-comment-settle {
+    animation: commentPinSettle 420ms cubic-bezier(0.34, 1.32, 0.64, 1);
+  }
+  .animate-comment-flash {
+    outline: 2px solid transparent;
+    border-radius: 9999px;
+    animation: commentPinFlash 900ms ease-out 2;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-comment-settle,
+    .animate-comment-flash {
+      animation: none;
+    }
+  }
+}
+
+/*
  * Tutorial popovers — replaces the @keyframes/animation/boxShadow
  * extensions from the legacy v3 tailwind.config.js. Kept as raw CSS since
  * the runtime references `animate-tutorialPopIn` etc. by class name.

@@ -77,8 +77,12 @@ function jsonInit(method: string, body: unknown): RequestInit {
   }
 }
 
+export interface ListOptions {
+  includeResolved?: boolean
+}
+
 export interface CommentsApi {
-  list: (pageSectionId: string) => Promise<ListResponse>
+  list: (pageSectionId: string, options?: ListOptions) => Promise<ListResponse>
   createSession: (name: string, pin: string) => Promise<CommenterSession>
   claimSession: (name: string, pin: string) => Promise<CommenterSession>
   createComment: (input: {
@@ -87,12 +91,20 @@ export interface CommentsApi {
     anchor?: CommentAnchor | null
     parentId?: string | null
   }) => Promise<PublishComment>
+  /** Edit a body, move a pin, or both. An anchor-only patch is how a drag lands. */
+  updateComment: (
+    id: string,
+    input: { body?: string; anchor?: CommentAnchor | null },
+  ) => Promise<PublishComment>
+  /** Soft delete. The row survives so replies keep their parent. */
+  deleteComment: (id: string) => Promise<PublishComment>
 }
 
 export function createCommentsApi(apiBase: string): CommentsApi {
   return {
-    async list(pageSectionId) {
+    async list(pageSectionId, options = {}) {
       const query = new URLSearchParams({ page_section_id: pageSectionId })
+      if (options.includeResolved) query.set("include_resolved", "true")
       return request<ListResponse>(`${apiBase}comments?${query.toString()}`, { method: "GET" })
     },
 
@@ -121,6 +133,25 @@ export function createCommentsApi(apiBase: string): CommentsApi {
           ...(anchor === undefined ? {} : { anchor }),
           ...(parentId === undefined || parentId === null ? {} : { parent_id: parentId }),
         }),
+      )
+      return comment
+    },
+
+    async updateComment(id, { body, anchor }) {
+      const { comment } = await request<CommentResponse>(
+        `${apiBase}comments/${encodeURIComponent(id)}`,
+        jsonInit("PATCH", {
+          ...(body === undefined ? {} : { body }),
+          ...(anchor === undefined ? {} : { anchor }),
+        }),
+      )
+      return comment
+    },
+
+    async deleteComment(id) {
+      const { comment } = await request<CommentResponse>(
+        `${apiBase}comments/${encodeURIComponent(id)}`,
+        { method: "DELETE" },
       )
       return comment
     },

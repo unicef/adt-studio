@@ -1,3 +1,4 @@
 export * from "./components/Comments"
 export * from "./components/CommentsDockButton"
-export * from "./hooks/useCommentsTool"
+export * from "./components/CommentsListButton"
+export * from "./hooks/useCommentsTools"

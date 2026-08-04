@@ -34,7 +34,8 @@ import { LanguageContent } from "@/features/language/components/LanguageDockCont
 import { SettingsContent } from "@/features/settings/components/SettingsDockContent";
 import { currentPageSignLanguageVideoAtom } from "@/features/sign-language/state/sign-language.atoms";
 import { CommentsDockButton } from "@/features/comments/components/CommentsDockButton";
-import { useCommentsTool } from "@/features/comments/hooks/useCommentsTool";
+import { CommentsListButton } from "@/features/comments/components/CommentsListButton";
+import { useCommentsTools } from "@/features/comments/hooks/useCommentsTools";
 import { DockPanel } from "./DockPanel";
 
 interface DockMenuProps {
@@ -88,12 +89,12 @@ export function DockMenu({ className }: DockMenuProps) {
     setSignLanguage(next);
   }, [signLanguage, setSignLanguage]);
 
-  const commentsTool = useCommentsTool();
+  const commentsTools = useCommentsTools();
 
   const tools = useMemo<DockTool[]>(
     () =>
       [
-        commentsTool,
+        ...commentsTools,
         features.glossary && {
           key: "glossary",
           label: t("glossary-label") || "Glossary",
@@ -131,7 +132,7 @@ export function DockMenu({ className }: DockMenuProps) {
         },
       ].filter(Boolean) as DockTool[],
     [
-      commentsTool,
+      commentsTools,
       features.glossary,
       features.readAloud,
       showSignLanguage,
@@ -153,6 +154,7 @@ export function DockMenu({ className }: DockMenuProps) {
       ) : (
         <div className={cn("flex items-center justify-end gap-2 pl-1", className)}>
           <CommentsDockButton />
+          <CommentsListButton />
 
           {features.glossary ? (
             <DockIconButton

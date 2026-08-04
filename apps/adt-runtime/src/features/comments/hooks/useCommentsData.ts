@@ -8,11 +8,14 @@ import {
   commentsAtom,
   commentsSessionAtom,
   commentsStatusAtom,
+  showResolvedAtom,
 } from "@/features/comments/state/comments.atoms"
 
 /**
- * One list request per page load. Resolved threads arrive filtered out by the
- * worker's default, so nothing more is needed to hide them.
+ * One list request per page load, plus one whenever the reviewer flips "show
+ * resolved" — resolved threads are filtered out by the worker's default, so the
+ * toggle is a refetch rather than a client-side filter, and the muted pins can
+ * never be a stale copy of what the author has since re-opened.
  *
  * A `410` means the link was revoked or expired while the page was open: the
  * snapshot bytes are already in the browser, so the reader keeps working and
@@ -23,6 +26,7 @@ export function useCommentsData(context: CommentsRuntimeContext | null): {
   refresh: () => Promise<void>
 } {
   const sectionId = useAtomValue(currentSectionIdAtom)
+  const showResolved = useAtomValue(showResolvedAtom) as boolean
   const setComments = useSetAtom(commentsAtom)
   const setSession = useSetAtom(commentsSessionAtom)
   const setStatus = useSetAtom(commentsStatusAtom)
@@ -32,7 +36,9 @@ export function useCommentsData(context: CommentsRuntimeContext | null): {
     if (!context || !sectionId) return
     setStatus("loading")
     try {
-      const { comments, session } = await context.api.list(sectionId)
+      const { comments, session } = await context.api.list(sectionId, {
+        includeResolved: showResolved,
+      })
       setComments(comments)
       setSession(session)
       setStatus("ready")
@@ -44,7 +50,7 @@ export function useCommentsData(context: CommentsRuntimeContext | null): {
       }
       setStatus("ready")
     }
-  }, [context, sectionId, setComments, setSession, setStatus, setCommentMode])
+  }, [context, sectionId, setComments, setSession, setStatus, setCommentMode, showResolved])
 
   useEffect(() => {
     void refresh()
