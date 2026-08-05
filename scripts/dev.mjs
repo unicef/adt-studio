@@ -49,6 +49,13 @@ const env = {
   ...extraEnv,
 }
 
+// Keep a runaway API/pipeline task from exhausting the host while developing.
+// Production builds are unaffected; users can override this explicitly.
+const apiEnv = {
+  ...env,
+  NODE_OPTIONS: process.env.NODE_OPTIONS ?? "--max-old-space-size=3072",
+}
+
 const children = [
   ...(process.argv.includes("--lite")
     ? []
@@ -67,7 +74,7 @@ const children = [
   spawn("pnpm", ["--filter", "@adt/api", "dev"], {
     stdio: "inherit",
     shell: process.platform === "win32",
-    env,
+    env: apiEnv,
   }),
   spawn("pnpm", ["--filter", "@adt/studio", "dev"], {
     stdio: "inherit",
