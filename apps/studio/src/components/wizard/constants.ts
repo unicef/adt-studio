@@ -344,7 +344,10 @@ export const PRESETS: PresetConfig[] = [
       // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
       // suffixed variants never match, so header/footer would leak in unpruned.
       pruned_role_types: ["header", "footer", "page_number", "watermark"],
-      pruned_section_types: ["back_cover", "credits", "inside_cover"],
+      // Textbooks keep the cover pages (inside/inner cover, back cover) and the
+      // credits page on by default — they carry publisher/ISBN and
+      // contributor/funding info worth retaining.
+      pruned_section_types: [],
       image_filters: { min_stddev: 2 },
     },
   },
