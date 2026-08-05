@@ -260,13 +260,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       // edits in a session. They're stripped only at API persist time.
       stripTransientAttributes(doc)
       const wrapper = doc.getElementById("content")
-      let html: string
-      if (wrapper) {
-        const cls = (wrapper.getAttribute("class") || "").trim()
-        html = cls ? wrapper.outerHTML : wrapper.innerHTML
-      } else {
-        html = doc.body.innerHTML
-      }
+      const html = wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
