@@ -1,7 +1,13 @@
+import type { PromptRenderOptions } from "./prompt.js"
+
 export interface LLMModel {
   generateObject<T>(options: GenerateObjectOptions): Promise<GenerateObjectResult<T>>
   /** Render a Liquid prompt template to messages (system + user/assistant). */
-  renderPrompt(name: string, context: Record<string, unknown>): Promise<Message[]>
+  renderPrompt(
+    name: string,
+    context: Record<string, unknown>,
+    options?: PromptRenderOptions,
+  ): Promise<Message[]>
 }
 
 export interface GenerateObjectOptions {
@@ -32,10 +38,14 @@ export interface GenerateObjectOptions {
   maxTokens?: number
   temperature?: number
   timeoutMs?: number
+  /** External cancellation signal. Combined with the internal request timeout;
+   *  when it aborts, the in-flight call aborts and the retry loop stops. */
+  signal?: AbortSignal
   log?: {
     taskType: string
     pageId?: string
     promptName: string
+    requestedPromptName?: string
     sectionIndex?: number
     correlationId?: string
   }

@@ -3,10 +3,14 @@ import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { createLLMModel, createPromptEngine, createRateLimiter, renderLiquidTemplate } from "@adt/llm"
-import type { LlmLogEntry } from "@adt/llm"
+import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate } from "@adt/llm"
+import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
+  resolveFontsCacheDir,
+  buildBookFontsPromptContext,
+  readTypography,
+  ensureBookGoogleFontsCached,
   extractMetadata,
   buildMetadataConfig,
   classifyPageImages,
@@ -20,20 +24,23 @@ import {
   loadBookConfig,
   renderPage,
   buildRenderStrategyResolver,
+  collectReferencedImageIds,
+  collectSourcePageImages,
   createTemplateEngine,
   // Proof step imports
   captionPageImages,
   buildCaptionConfig,
-  extractImageIds,
-  generateGlossary,
+  collectCaptionImageIds,
+  groupGlossaryImageIdsByPage,
+  regenerateGlossaryPreservingEdits,
   buildGlossaryConfig,
-  mergeGeneratedGlossaryWithManualItems,
-  getPrunedGlossaryWords,
   generateToc,
   buildTocGenerationConfig,
   generateAllQuizzes,
   buildQuizGenerationConfig,
   // Master step imports
+  getRenderSectioning,
+  getSemanticSectioning,
   buildTextCatalog,
   buildEasyReadConfig,
   buildEasyReadSourceBlocks,
@@ -52,10 +59,21 @@ import {
   resolveInstructions,
   resolveProviderForLanguage,
   resolveSpeechModel,
+  resolveGeminiTtsRateLimit,
   resolveSpeechFormat,
   computeSpeechCacheKey,
+  elevenLabsVoiceSettingsFromConfig,
+  buildElevenLabsTtsLogParams,
+  classifyElevenLabsTtsError,
+  elevenLabsTtsRetryDelayMs,
+  ELEVENLABS_TTS_MAX_CONCURRENCY,
+  ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
+  findAdjacentSpeechText,
   generateSpeechFile,
+  generatePageSpeechFiles,
+  supportsPageBatchedSpeech,
   generateWordTimestamps,
+  wavDurationSeconds,
   stripEmojis,
   generateBookSummary,
   buildBookSummaryConfig,
@@ -67,6 +85,7 @@ import {
   getCroppedImageId,
   segmentPageImages,
   applySegmentation,
+  segmentBoundsOnPage,
   buildSegmentationConfig,
   getSegmentedImageId,
   createScreenshotRenderer,
@@ -74,27 +93,31 @@ import {
   isFixedLayoutBook,
 } from "@adt/pipeline"
 import type { PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps } from "@adt/pipeline"
+import type { ElevenLabsVoiceSettingsOverrides } from "@adt/llm"
 import { loadStyleguideContent } from "./styleguide.js"
-import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer } from "@adt/llm"
+import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer, createElevenLabsTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
-import { STAGE_ORDER } from "@adt/types"
+import { STAGE_ORDER, isTtsExcluded } from "@adt/types"
+import type { PageErrorPolicy, PageErrorAction } from "@adt/types"
+import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
 import type {
   AppConfig,
   ImageClassificationOutput,
   PageSectioningOutput,
   WebRenderingOutput,
   ImageCaptioningOutput,
-  GlossaryOutput,
   TextCatalogOutput,
   TextCatalogEntry,
   EasyReadOutput,
   SpeechFileEntry,
+  SpeechFailedEntry,
   TTSOutput,
   WordTimestampEntry,
   WordTimestampOutput,
   StepName,
   StageName,
   BookSummaryOutput,
+  GlossaryOutput,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { PageData } from "@adt/storage"
@@ -105,10 +128,20 @@ import type {
 } from "./stage-service.js"
 
 const DEFAULT_METADATA_PAGES = 3
-const GEMINI_TTS_SAFE_REQUESTS_PER_MINUTE = 10
-const GEMINI_TTS_MAX_RATE_LIMIT_RETRIES = 2
+// Per-item retry budget for a 429/quota response. Higher than a plain fixed
+// limiter would need, because the adaptive limiter starts optimistically high
+// and takes a few back-off steps to converge on the account's real quota.
+const GEMINI_TTS_MAX_RATE_LIMIT_RETRIES = 4
 const GEMINI_TTS_DEFAULT_RETRY_DELAY_MS = 6_000
 const GEMINI_TTS_MAX_RETRY_DELAY_MS = 20_000
+// Backoff for transient server errors (500/empty audio). These clear quickly
+// and aren't a rate signal, so they get a shorter delay than a 429 and do not
+// throttle the shared limiter.
+const GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS = 1_500
+
+// ElevenLabs concurrency cap and retry policy live in @adt/pipeline
+// (ELEVENLABS_TTS_MAX_CONCURRENCY, classifyElevenLabsTtsError, …) so the
+// CLI/`runFullPipeline` DAG executor applies exactly the same limits.
 
 class StepError extends Error {
   readonly step: StepName
@@ -122,6 +155,198 @@ class StepError extends Error {
 
 function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
+}
+
+/** Thrown at a cancellation checkpoint. Distinguished from real errors so the
+ *  general catch neither records step errors nor emits step-error on cancel. */
+export class RunCancelledError extends Error {
+  constructor(message = "Run cancelled") {
+    super(message)
+    this.name = "RunCancelledError"
+  }
+}
+
+/** True when an error is (or was caused by) an abort from one of the given
+ *  signals. Detection is by signal state, not error name: the internal timeout
+ *  and the external cancel both surface as AbortError/TimeoutError and SDKs wrap
+ *  them, so `err.name` is unreliable. A TimeoutError with intact signals is a
+ *  normal page failure and returns false here. */
+function isCancellation(
+  err: unknown,
+  signals: Array<AbortSignal | undefined>
+): boolean {
+  if (err instanceof RunCancelledError) return true
+  return signals.some((s) => s?.aborted === true)
+}
+
+interface FailedPage {
+  pageId: string
+  step: StepName
+  msg: string
+}
+
+/** One-shot admission gate for processWithConcurrency. Closed while a page-error
+ *  decision is pending (interactive mode) so no new items start; in-flight work
+ *  continues. Opened again once the decision resolves. */
+class AdmissionGate {
+  private closed = false
+  private waiters: Array<() => void> = []
+  close(): void {
+    this.closed = true
+  }
+  open(): void {
+    this.closed = false
+    const waiters = this.waiters
+    this.waiters = []
+    for (const w of waiters) w()
+  }
+  wait(): Promise<void> {
+    if (!this.closed) return Promise.resolve()
+    return new Promise((resolve) => this.waiters.push(resolve))
+  }
+}
+
+interface PageFailureContext {
+  step: StepName
+  pageId: string
+  err: unknown
+  failedPages: FailedPage[]
+  /** step name → set of pageIds skipped by user decision (interactive mode). */
+  skippedByStep: Map<string, Set<string>>
+  progress: StageRunProgress
+  runSignal?: AbortSignal
+  /** Aborts the current step when the user chooses "stop". */
+  stepController: AbortController
+  gate: AdmissionGate
+  policy: PageErrorPolicy
+  requestDecision?: (input: {
+    step: StepName
+    pageId: string
+    error: string
+  }) => Promise<PageErrorAction>
+}
+
+/** Shared handling for a page failure inside a per-page step. Covers all six
+ *  emission points. Returns after recording/handling; throws only to unwind a
+ *  run cancel (an aborted page is not a failure — it re-runs cheaply via cache). */
+async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
+  const { runSignal, stepController } = ctx
+
+  // 1. Run cancel — re-throw so the run tears down at once.
+  if (isCancellation(ctx.err, [runSignal])) {
+    throw ctx.err instanceof RunCancelledError ? ctx.err : new RunCancelledError()
+  }
+  // 2. Step already stopping (a prior "stop" decision aborted in-flight work) —
+  //    swallow quietly; the step throws its own StepError after the loop.
+  if (stepController.signal.aborted) return
+
+  const msg = toErrorMessage(ctx.err)
+  // Emit step-error as before (per-page). In interactive mode this briefly paints
+  // the step red until the decision resolves; the step-complete hygiene clears it.
+  ctx.progress.emit({
+    type: "step-error",
+    step: ctx.step,
+    error: `${ctx.pageId} failed: ${msg}`,
+  })
+
+  if (ctx.policy === "ask" && ctx.requestDecision) {
+    ctx.gate.close()
+    let action: PageErrorAction
+    try {
+      action = await ctx.requestDecision({
+        step: ctx.step,
+        pageId: ctx.pageId,
+        error: msg,
+      })
+    } finally {
+      ctx.gate.open()
+    }
+    if (action === "skip") {
+      let set = ctx.skippedByStep.get(ctx.step)
+      if (!set) {
+        set = new Set()
+        ctx.skippedByStep.set(ctx.step, set)
+      }
+      set.add(ctx.pageId)
+      return
+    }
+    // "stop": abort the step. processWithConcurrency stops admitting new items;
+    // the step then throws a StepError so it's marked error and later stages halt.
+    stepController.abort()
+    return
+  }
+
+  // Default "stop" policy: accumulate and fail the step at the end.
+  ctx.failedPages.push({ pageId: ctx.pageId, step: ctx.step, msg })
+}
+
+/** Per-step failure-handling dependencies, built once per page-processing step
+ *  and reused for every page. `progress`, `step`, `pageId` and `err` are supplied
+ *  per call by reportPageFailure. */
+type PageFailureDeps = Omit<
+  PageFailureContext,
+  "step" | "pageId" | "err" | "progress"
+>
+
+/** Build the per-step failure deps from run options. */
+function buildPageFailureDeps(
+  options: StageRunOptions,
+  shared: {
+    failedPages: FailedPage[]
+    skippedByStep: Map<string, Set<string>>
+    gate: AdmissionGate
+    stepController: AbortController
+  }
+): PageFailureDeps {
+  return {
+    ...shared,
+    runSignal: options.signal,
+    policy: options.pageErrorPolicy ?? "stop",
+    requestDecision: options.requestPageDecision,
+  }
+}
+
+function reportPageFailure(
+  deps: PageFailureDeps,
+  progress: StageRunProgress,
+  step: StepName,
+  pageId: string,
+  err: unknown
+): Promise<void> {
+  return handlePageFailure({ ...deps, progress, step, pageId, err })
+}
+
+/** Compose the "Completed — N page(s) skipped" message, or undefined if none. */
+function skipMessage(
+  skippedByStep: Map<string, Set<string>>,
+  step: StepName
+): string | undefined {
+  const n = skippedByStep.get(step)?.size ?? 0
+  return n > 0 ? `Completed — ${n} page(s) skipped` : undefined
+}
+
+/** Finalize one page-processing step: throw if it accumulated real failures
+ *  ("stop" policy), otherwise emit step-complete (with a skip message if the
+ *  user chose to skip pages). */
+function finishPageStep(
+  progress: StageRunProgress,
+  step: StepName,
+  deps: Pick<PageFailureDeps, "failedPages" | "skippedByStep">
+): void {
+  const failures = deps.failedPages.filter((f) => f.step === step)
+  if (failures.length > 0) {
+    throw new StepError(
+      step,
+      `${failures.length} page(s) failed:\n${failures
+        .map((f) => `${f.pageId}: ${f.msg}`)
+        .join("\n")}`
+    )
+  }
+  progress.emit({
+    type: "step-complete",
+    step,
+    message: skipMessage(deps.skippedByStep, step),
+  })
 }
 
 /**
@@ -146,6 +371,15 @@ function isGeminiTtsRateLimitMessage(message: string): boolean {
   return /\(429\)|quota exceeded|rate limit|too many requests/i.test(message)
 }
 
+// Transient Gemini server-side failures that typically clear on a plain retry
+// (Google's own 500 message says "Please retry"). Unlike a 429 these are not a
+// rate signal, so they must not penalize the adaptive limiter.
+function isGeminiTtsTransientError(message: string): boolean {
+  return /\(50\d\)|internal error|did not include audio|overloaded|unavailable|try again/i.test(
+    message
+  )
+}
+
 function parseGeminiRetryDelayMs(message: string): number | null {
   const match = message.match(/retry in ([\d.]+)s/i)
   if (!match) return null
@@ -157,8 +391,24 @@ function parseGeminiRetryDelayMs(message: string): number | null {
   return Math.min(baseMs > 0 ? baseMs + 250 : 0, GEMINI_TTS_MAX_RETRY_DELAY_MS)
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+/** Resolves early (never rejects) when the signal aborts, so retry backoffs
+ *  don't hold a cancelled run open — callers re-check the signal after. */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve()
+      return
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort)
+      resolve()
+    }, ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      resolve()
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+  })
 }
 
 function wrapStepError(step: StepName, err: unknown): never {
@@ -177,22 +427,69 @@ export function buildStageRunnerImageClassifyConfig(
   }
 }
 
-async function processWithConcurrency<T>(
+interface ConcurrencyControls {
+  /** Run cancel — never start remaining items; throw RunCancelledError. */
+  runSignal?: AbortSignal
+  /** Step "stop" — stop admitting new items (in-flight ones finish). */
+  stopSignal?: AbortSignal
+  /** Pause admission while a page-error decision is pending. */
+  gate?: AdmissionGate
+  /** Delay between launches while filling the first wave (see LAUNCH_RAMP_MS).
+   *  Set to 0 to disable the ramp. Defaults to LAUNCH_RAMP_MS. */
+  rampMs?: number
+}
+
+/** Stagger between the first `concurrency` launches of a page-level step.
+ *  Firing the whole first wave at once opens that many cold TLS connections
+ *  simultaneously — a thundering herd the model provider/CDN resets (surfacing
+ *  as `write EPIPE` / `ECONNRESET` / "other side closed" bursts at step start).
+ *  Spacing the opening wave lets keep-alive sockets warm up and be reused; once
+ *  the pool is full, completions pace new launches so steady-state throughput is
+ *  unchanged. ~100ms × concurrency adds a few seconds once per step — far less
+ *  than the many multi-second failed-request retries it avoids. */
+const LAUNCH_RAMP_MS = 100
+
+export async function processWithConcurrency<T>(
   items: T[],
   concurrency: number,
-  fn: (item: T) => Promise<void>
+  fn: (item: T) => Promise<void>,
+  controls?: ConcurrencyControls
 ): Promise<void> {
   const executing = new Set<Promise<void>>()
-  for (const item of items) {
-    const p = fn(item).finally(() => {
-      executing.delete(p)
-    })
-    executing.add(p)
-    if (executing.size >= concurrency) {
-      await Promise.race(executing)
+  const rampMs = controls?.rampMs ?? LAUNCH_RAMP_MS
+  let launched = 0
+  try {
+    for (const item of items) {
+      if (controls?.runSignal?.aborted) throw new RunCancelledError()
+      if (controls?.gate) await controls.gate.wait()
+      // Re-check after the gate: a cancel or "stop" may have arrived while paused.
+      if (controls?.runSignal?.aborted) throw new RunCancelledError()
+      if (controls?.stopSignal?.aborted) break
+      // Space out only the opening wave (the cold-start connection burst). Once
+      // `concurrency` items are in flight, completions pace the rest, so no ramp.
+      if (rampMs > 0 && launched > 0 && launched < concurrency) {
+        await sleep(rampMs, controls?.runSignal)
+        if (controls?.runSignal?.aborted) throw new RunCancelledError()
+        if (controls?.stopSignal?.aborted) break
+      }
+      const p = fn(item).finally(() => {
+        executing.delete(p)
+      })
+      executing.add(p)
+      launched++
+      if (executing.size >= concurrency) {
+        await Promise.race(executing)
+      }
     }
+    await Promise.all(executing)
+  } catch (err) {
+    // Drain any still-running items so none are orphaned (which would surface as
+    // unhandled rejections when they later abort). On cancel their rejections are
+    // expected; swallow them and re-throw a single RunCancelledError.
+    await Promise.allSettled(executing)
+    if (isCancellation(err, [controls?.runSignal])) throw new RunCancelledError()
+    throw err
   }
-  await Promise.all(executing)
 }
 
 function emitSpeechStepProgress(
@@ -300,6 +597,24 @@ function getExistingSpeechEntries(
   return new Map(entries.map((entry) => [entry.textId, entry]))
 }
 
+/**
+ * Page id a text-catalog entry belongs to (`pg001`, spread `pg001002`), or null
+ * for book-level ids (glossary/quiz) that carry no page prefix. Matches the id
+ * convention `pg<NNN>[_sec…]` with an optional `_easy_read` suffix. Used to
+ * group entries for page-batched TTS.
+ */
+function batchPageKeyOf(textId: string): string | null {
+  const base = textId.replace(/_easy_read$/, "")
+  const m = /^(pg\d+)/.exec(base)
+  return m ? m[1] : null
+}
+
+/** Whether an entry participates in page-batched TTS: page-scoped and not an
+ *  easy-read alternate (easy-read tracks stay per-entry). */
+function isBatchableSpeechEntry(textId: string): boolean {
+  return !textId.endsWith("_easy_read") && batchPageKeyOf(textId) !== null
+}
+
 function canReuseSpeechEntry(
   entry: SpeechFileEntry | undefined,
   options: {
@@ -312,7 +627,12 @@ function canReuseSpeechEntry(
     voice: string
     instructions: string
     format: string
-  },
+    geminiTemperature?: number
+    geminiSeed?: number
+    elevenLabsPreviousText?: string
+    elevenLabsNextText?: string
+    elevenLabsApplyTextNormalization?: "auto" | "on" | "off"
+  } & ElevenLabsVoiceSettingsOverrides,
 ): entry is SpeechFileEntry {
   if (!entry) return false
 
@@ -335,6 +655,16 @@ function canReuseSpeechEntry(
     model: options.model,
     instructions: options.instructions,
     provider: options.provider,
+    geminiTemperature: options.geminiTemperature,
+    geminiSeed: options.geminiSeed,
+    elevenLabsPreviousText: options.elevenLabsPreviousText,
+    elevenLabsNextText: options.elevenLabsNextText,
+    elevenLabsApplyTextNormalization: options.elevenLabsApplyTextNormalization,
+    elevenLabsStability: options.elevenLabsStability,
+    elevenLabsSimilarityBoost: options.elevenLabsSimilarityBoost,
+    elevenLabsStyle: options.elevenLabsStyle,
+    elevenLabsUseSpeakerBoost: options.elevenLabsUseSpeakerBoost,
+    elevenLabsSpeed: options.elevenLabsSpeed,
   })
   const cachePath = resolveSpeechCachePath(options.cacheDir, cacheKey, options.format.toLowerCase())
   if (!cachePath || !fs.existsSync(cachePath)) return false
@@ -357,13 +687,19 @@ interface GenerateSpeechWordTimestampsOptions {
   textByLanguage: Map<string, Map<string, string>>
   concurrency: number
   progress: StageRunProgress
+  /** Run cancel — stops admitting new transcription items. */
+  signal?: AbortSignal
 }
+
+/** Whisper rejects audio shorter than ~0.1s; an empty page slice is 0s. */
+const MIN_TRANSCRIBABLE_SECONDS = 0.1
 
 async function generateSpeechWordTimestamps(
   options: GenerateSpeechWordTimestampsOptions,
 ): Promise<{
   entriesByLanguage: Map<string, Record<string, WordTimestampEntry>>
-  failedItems: string[]
+  /** Per-language failures (textId + message) so the Speech view can mark them. */
+  failedByLanguage: Map<string, SpeechFailedEntry[]>
 }> {
   const {
     label,
@@ -375,16 +711,19 @@ async function generateSpeechWordTimestamps(
     textByLanguage,
     concurrency,
     progress,
+    signal,
   } = options
 
   const entriesByLanguage = new Map<string, Record<string, WordTimestampEntry>>()
+  const failedByLanguage = new Map<string, SpeechFailedEntry[]>()
   for (const language of outputLanguages) {
     entriesByLanguage.set(language, {})
+    failedByLanguage.set(language, [])
   }
 
   if (!apiKey?.trim()) {
     console.warn(`[stage-run] ${label}: skipping word timestamp generation because no OpenAI key was provided`)
-    return { entriesByLanguage, failedItems: [] }
+    return { entriesByLanguage, failedByLanguage }
   }
 
   const workItems = outputLanguages.flatMap((language) =>
@@ -396,11 +735,11 @@ async function generateSpeechWordTimestamps(
   )
 
   if (workItems.length === 0) {
-    return { entriesByLanguage, failedItems: [] }
+    return { entriesByLanguage, failedByLanguage }
   }
 
-  const failedItems: string[] = []
   let completed = 0
+  let failedCount = 0
 
   emitWordTimestampStepProgress(progress, 0, workItems.length, 0)
 
@@ -415,6 +754,26 @@ async function generateSpeechWordTimestamps(
         }
 
         const audioBuffer = Buffer.from(fs.readFileSync(audioPath))
+
+        // Page-batched slicing can leave an entry with an empty slice when it
+        // isn't spoken distinctly at the page's start (typically a bare page
+        // number): its [onset, nextOnset) range collapses to zero length.
+        // Whisper rejects empty/too-short audio, so detect it up front and
+        // report an actionable failure instead of making a doomed API call.
+        if (entry.fileName.toLowerCase().endsWith(".wav")) {
+          let seconds = Number.NaN
+          try {
+            seconds = wavDurationSeconds(audioBuffer)
+          } catch {
+            seconds = Number.NaN
+          }
+          if (Number.isFinite(seconds) && seconds < MIN_TRANSCRIBABLE_SECONDS) {
+            throw new Error(
+              `Audio is empty (${seconds.toFixed(2)}s) — in page-batched mode this line (often a bare page number) may not have been spoken separately. Prune it or regenerate its audio.`,
+            )
+          }
+        }
+
         const result = await generateWordTimestamps({
           audioBuffer,
           fileName: entry.fileName,
@@ -435,18 +794,20 @@ async function generateSpeechWordTimestamps(
         }
       } catch (err) {
         const message = toErrorMessage(err)
-        failedItems.push(`${language}/${entry.textId}: ${message}`)
+        failedByLanguage.get(language)!.push({ textId: entry.textId, error: message })
+        failedCount++
         console.warn(
           `[stage-run] ${label}: word timestamp generation failed for ${entry.textId} (${language}): ${message}`,
         )
       } finally {
         completed++
-        emitWordTimestampStepProgress(progress, completed, workItems.length, failedItems.length)
+        emitWordTimestampStepProgress(progress, completed, workItems.length, failedCount)
       }
     },
+    { runSignal: signal },
   )
 
-  return { entriesByLanguage, failedItems }
+  return { entriesByLanguage, failedByLanguage }
 }
 
 type RunFn = (label: string, options: StageRunOptions, progress: StageRunProgress) => Promise<void>
@@ -496,11 +857,14 @@ export function createStageRunner(): StageRunner {
         const trackingProgress: StageRunProgress = {
           emit(event) {
             if (event.type === "step-start") {
+              // Cancellation checkpoint before every step: a cancel that lands
+              // between steps stops the run here, before the step is recorded.
+              if (options.signal?.aborted) throw new RunCancelledError()
               runningSteps.add(event.step)
               completionStorage.markStepStarted(event.step)
             } else if (event.type === "step-complete") {
               runningSteps.delete(event.step)
-              completionStorage.markStepCompleted(event.step)
+              completionStorage.markStepCompleted(event.step, event.message)
             } else if (event.type === "step-skip") {
               runningSteps.delete(event.step)
               completionStorage.markStepSkipped(event.step)
@@ -515,10 +879,18 @@ export function createStageRunner(): StageRunner {
         }
 
         for (let i = fromIndex; i <= toIndex; i++) {
+          if (options.signal?.aborted) throw new RunCancelledError()
           const stage = STAGE_ORDER[i]
           await STAGE_RUNNERS[stage](label, options, trackingProgress)
         }
       } catch (err) {
+        // A cancel is a deliberate action, not a failure: don't record step
+        // errors or emit step-error (that would paint the sidebar red and, with
+        // the error toast/sound, beep on cancel). Just re-throw — executeJob's
+        // abort branch handles persistence cleanup.
+        if (isCancellation(err, [options.signal])) {
+          throw err
+        }
         const message = toErrorMessage(err)
         for (const step of runningSteps) {
           completionStorage.recordStepError(step, message)
@@ -568,8 +940,10 @@ async function runExtractStep(
         startPage: config.start_page,
         endPage: config.end_page,
         spreadMode: config.spread_mode,
+        spreadPairs: config.spread_pairs,
         vectorTextGrouping: config.vector_text_grouping,
         fixedLayout: isFixedLayoutBook(config),
+        fontsCacheDir: resolveFontsCacheDir(booksDir),
       },
       storage,
       progress
@@ -610,6 +984,7 @@ async function runExtractStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const pages = storage.getPages()
@@ -646,6 +1021,7 @@ async function runExtractStep(
         rateLimiter,
         onLog: onLlmLog,
         credentials: llmCredentials,
+        signal: options.signal,
       })
       const summaryPages = pages.map((page) => ({
         pageNumber: page.pageNumber,
@@ -656,6 +1032,9 @@ async function runExtractStep(
       progress.emit({ type: "step-complete", step: "book-summary" })
       console.log(`[stage-run] ${label}: book summary complete`)
     } catch (err) {
+      // A cancel aborts the summary LLM call — re-throw without emitting
+      // step-error so the run tears down cleanly rather than showing a failure.
+      if (isCancellation(err, [options.signal])) throw err
       const msg = toErrorMessage(err)
       console.error(`[stage-run] ${label}: book summary failed: ${msg}`)
       progress.emit({ type: "step-error", step: "book-summary", error: msg })
@@ -677,6 +1056,7 @@ async function runExtractStep(
           rateLimiter,
           onLog: onLlmLog,
           credentials: llmCredentials,
+          signal: options.signal,
         })
       : null
 
@@ -688,6 +1068,7 @@ async function runExtractStep(
           rateLimiter,
           onLog: onLlmLog,
           credentials: llmCredentials,
+          signal: options.signal,
         })
       : null
 
@@ -699,6 +1080,7 @@ async function runExtractStep(
           rateLimiter,
           onLog: onLlmLog,
           credentials: llmCredentials,
+          signal: options.signal,
         })
       : null
 
@@ -707,31 +1089,59 @@ async function runExtractStep(
     console.log(`[stage-run] ${label}: classifying images for ${totalPages} pages (concurrency=${effectiveConcurrency})`)
 
     const pageResults = new Map<string, ImageClassificationOutput>()
-    const failedPages: string[] = []
+    // The four classification passes share one failure/skip/gate/step-controller
+    // context: a "stop" decision in any pass halts the whole classification phase,
+    // and the end-of-stage throw considers real (non-skipped) failures per step.
+    const failedPages: FailedPage[] = []
+    const skippedByStep = new Map<string, Set<string>>()
+    const gate = new AdmissionGate()
+    const stepController = new AbortController()
+    const pageFailureDeps = buildPageFailureDeps(options, {
+      failedPages,
+      skippedByStep,
+      gate,
+      stepController,
+    })
 
     await runFilterPass(
       label, pages, storage, imageClassifyConfig,
-      effectiveConcurrency, pageResults, failedPages, progress
+      effectiveConcurrency, pageResults, pageFailureDeps, progress
     )
 
-    await runMeaningfulnessPass(
-      label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
-      effectiveConcurrency, pageResults, failedPages, progress
-    )
+    if (!stepController.signal.aborted) {
+      await runMeaningfulnessPass(
+        label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
+        effectiveConcurrency, pageResults, pageFailureDeps, progress
+      )
+    }
 
-    await runSegmentationPass(
-      label, pages, storage, segmentationConfig, segmentationModel,
-      effectiveConcurrency, pageResults, progress
-    )
+    if (!stepController.signal.aborted) {
+      await runSegmentationPass(
+        label, pages, storage, segmentationConfig, segmentationModel,
+        effectiveConcurrency, pageResults, progress, options.signal
+      )
+    }
 
-    await runCroppingPass(
-      label, pages, storage, croppingConfig, croppingModel,
-      effectiveConcurrency, pageResults, progress
-    )
+    if (!stepController.signal.aborted) {
+      await runCroppingPass(
+        label, pages, storage, croppingConfig, croppingModel,
+        effectiveConcurrency, pageResults, progress, options.signal
+      )
+    }
 
+    // A "stop" decision aborts the classification phase; the failing step is
+    // already recorded as error via its per-page step-error.
+    if (stepController.signal.aborted) {
+      throw new Error("Stopped by a page-error decision")
+    }
+
+    // Only real (non-skipped) failures fail the stage — matches the per-pass
+    // step-complete gating in runFilterPass/runMeaningfulnessPass.
     if (failedPages.length > 0) {
       throw new Error(
-        `${failedPages.length} page(s) failed:\n${failedPages.join("\n")}`
+        `${failedPages.length} page(s) failed:\n${failedPages
+          .map((f) => `${f.pageId} [${f.step}]: ${f.msg}`)
+          .join("\n")}`
       )
     }
   } finally {
@@ -793,6 +1203,7 @@ async function runSectioningStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const translationModel = translationConfig
@@ -803,6 +1214,7 @@ async function runSectioningStep(
           rateLimiter,
           onLog: onLlmLog,
           credentials: llmCredentials,
+          signal: options.signal,
         })
       : null
 
@@ -815,7 +1227,16 @@ async function runSectioningStep(
     progress.emit({ type: "step-start", step: "page-sectioning" })
     let completedStructuring = 0
     let completedTranslation = 0
-    const failedPages: string[] = []
+    const failedPages: FailedPage[] = []
+    const skippedByStep = new Map<string, Set<string>>()
+    const gate = new AdmissionGate()
+    const stepController = new AbortController()
+    const pageFailureDeps = buildPageFailureDeps(options, {
+      failedPages,
+      skippedByStep,
+      gate,
+      stepController,
+    })
 
     await processWithConcurrency(
       pages,
@@ -871,28 +1292,21 @@ async function runSectioningStep(
             })
           }
         } catch (err) {
-          const msg = toErrorMessage(err)
           const step = err instanceof StepError ? err.step : "page-sectioning"
-          console.error(`[stage-run] ${label}: ${page.pageId} failed at ${step}: ${msg}`)
-          failedPages.push(`${page.pageId} [${step}]: ${msg}`)
-          progress.emit({
-            type: "step-error",
-            step,
-            error: `${page.pageId} failed: ${msg}`,
-          })
+          console.error(`[stage-run] ${label}: ${page.pageId} failed at ${step}: ${toErrorMessage(err)}`)
+          await reportPageFailure(pageFailureDeps, progress, step, page.pageId, err)
         }
       },
+      { runSignal: options.signal, stopSignal: stepController.signal, gate },
     )
 
-    if (failedPages.length > 0) {
-      throw new Error(
-        `${failedPages.length} page(s) failed:\n${failedPages.join("\n")}`
-      )
+    if (stepController.signal.aborted) {
+      throw new StepError("page-sectioning", "Stopped by a page-error decision")
     }
 
-    progress.emit({ type: "step-complete", step: "page-sectioning" })
+    finishPageStep(progress, "page-sectioning", pageFailureDeps)
     if (translationConfig) {
-      progress.emit({ type: "step-complete", step: "translation" })
+      finishPageStep(progress, "translation", pageFailureDeps)
     } else {
       progress.emit({ type: "step-skip", step: "translation" })
     }
@@ -961,6 +1375,7 @@ async function runStoryboardStep(
         rateLimiter,
         onLog: onLlmLog,
         credentials: llmCredentials,
+        signal: options.signal,
       })
       renderModels.set(modelId, model)
       return model
@@ -976,7 +1391,9 @@ async function runStoryboardStep(
         visualRefinement = {
           screenshotRenderer,
           webAssetsDir,
-          llmModel: resolveRenderModel(DEFAULT_VISUAL_REVIEW_MODEL_ID),
+          llmModel: resolveRenderModel(
+            config.default_model ?? DEFAULT_VISUAL_REVIEW_MODEL_ID,
+          ),
           storeScreenshot: (base64: string) => {
             const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
             storage.putDebugImage(hash, Buffer.from(base64, "base64"))
@@ -989,19 +1406,21 @@ async function runStoryboardStep(
     const pages = storage.getPages()
     const totalPages = pages.length
     const effectiveConcurrency = config.concurrency ?? 32
+    // Book typography (editable size-per-role map) — resolve once, share with all pages.
+    const typography = readTypography(storage)
 
     if (isFixedLayoutBook(config)) {
-      // Fixed-layout: both sectioning and rendering happen here, driven
-      // off the positioned-text + image-filtering data the extract step
-      // already wrote. No LLM call. Emit start/complete for both steps so
-      // the progress UI mirrors the reflowable flow's two-step shape.
+      // Fixed-layout: build the positioned tree (into `fixed-layout-sectioning`)
+      // and render from it, driven off the positioned-text + image-filtering
+      // data the extract step already wrote. No LLM call. This is the
+      // web-rendering step only — the semantic `page-sectioning` is owned and
+      // already produced by the sectioning stage, so we don't re-emit its
+      // progress here (that would wrongly re-mark the sectioning stage running).
       console.log(`[stage-run] ${label}: fixed-layout rendering for ${totalPages} pages`)
-      progress.emit({ type: "step-start", step: "page-sectioning" })
       progress.emit({ type: "step-start", step: "web-rendering" })
       const { processFixedLayoutPages } = await import("@adt/pipeline")
       const imageUrlPrefix = `/api/books/${label}/images`
       processFixedLayoutPages(storage, imageUrlPrefix)
-      progress.emit({ type: "step-complete", step: "page-sectioning" })
       progress.emit({ type: "step-complete", step: "web-rendering" })
       console.log(`[stage-run] ${label}: fixed-layout rendering complete`)
       return
@@ -1011,14 +1430,27 @@ async function runStoryboardStep(
       `[stage-run] ${label}: rendering storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
     )
 
+    await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksDir))
+
     let completedRendering = 0
-    const failedPages: string[] = []
+    const failedPages: FailedPage[] = []
+    const skippedByStep = new Map<string, Set<string>>()
+    const gate = new AdmissionGate()
+    const stepController = new AbortController()
+    const pageFailureDeps = buildPageFailureDeps(options, {
+      failedPages,
+      skippedByStep,
+      gate,
+      stepController,
+    })
 
     await processWithConcurrency(
       pages,
       effectiveConcurrency,
       async (page: PageData) => {
         try {
+          if (options.signal?.aborted) throw new RunCancelledError()
+
           const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
           if (!structuringRow) {
             console.log(
@@ -1050,11 +1482,32 @@ async function runStoryboardStep(
           )
           const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
           for (const imageId of unprunedImageIds) {
+            if (options.signal?.aborted) throw new RunCancelledError()
             const dims = pageDims.get(imageId)
             renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
           }
+          // Sections can reference images extracted on other pages (cross-page
+          // merges, images added from another page) — those are not in this
+          // page's image-filtering output, so pull them in by walking the tree.
+          for (const imageId of collectReferencedImageIds(sectioning.sections)) {
+            if (renderImages.has(imageId)) continue
+            try {
+              const dims = storage.getImageDimensions(imageId)
+              renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width ?? undefined, height: dims?.height ?? undefined })
+            } catch {
+              // Image file no longer exists — leave it out; the renderer emits
+              // the URL reference without pixels.
+            }
+          }
 
+          if (options.signal?.aborted) throw new RunCancelledError()
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+          // Page images for content merged in from other pages (cross-page
+          // merges) — per-section provenance recorded in sourcePageIds.
+          const sourcePageImages = collectSourcePageImages(
+            sectioning.sections,
+            (id) => storage.getPageImageBase64(id)
+          )
 
           console.log(`[stage-run] ${label}: rendering ${page.pageId}`)
           const renderResult = await renderPage(
@@ -1064,13 +1517,18 @@ async function runStoryboardStep(
               pageImageBase64,
               sectioning: sectioning,
               images: renderImages,
+              sourcePageImages,
               styleguide: styleguideContent,
+              bookFonts: buildBookFontsPromptContext(storage),
+              typography,
             },
             resolveRenderConfig,
             resolveRenderModel,
             templateEngine,
             visualRefinement,
+            { signal: options.signal },
           )
+          if (options.signal?.aborted) throw new RunCancelledError()
           storage.putNodeData("web-rendering", page.pageId, renderResult)
           completedRendering++
           progress.emit({
@@ -1081,27 +1539,22 @@ async function runStoryboardStep(
             totalPages,
           })
         } catch (err) {
-          const msg = toErrorMessage(err)
-          console.error(
-            `[stage-run] ${label}: ${page.pageId} failed at web-rendering: ${msg}`
-          )
-          failedPages.push(`${page.pageId} [web-rendering]: ${msg}`)
-          progress.emit({
-            type: "step-error",
-            step: "web-rendering",
-            error: `${page.pageId} failed: ${msg}`,
-          })
+          if (!isCancellation(err, [options.signal])) {
+            console.error(
+              `[stage-run] ${label}: ${page.pageId} failed at web-rendering: ${toErrorMessage(err)}`
+            )
+          }
+          await reportPageFailure(pageFailureDeps, progress, "web-rendering", page.pageId, err)
         }
-      }
+      },
+      { runSignal: options.signal, stopSignal: stepController.signal, gate },
     )
 
-    if (failedPages.length > 0) {
-      throw new Error(
-        `${failedPages.length} page(s) failed:\n${failedPages.join("\n")}`
-      )
+    if (stepController.signal.aborted) {
+      throw new StepError("web-rendering", "Stopped by a page-error decision")
     }
 
-    progress.emit({ type: "step-complete", step: "web-rendering" })
+    finishPageStep(progress, "web-rendering", pageFailureDeps)
     console.log(`[stage-run] ${label}: storyboard complete`)
   } finally {
     if (visualRefinement) {
@@ -1170,25 +1623,46 @@ async function runQuizzesStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const effectiveConcurrency = config.concurrency ?? 32
 
     progress.emit({ type: "step-start", step: "quiz-generation" })
 
-    // Gather page data for quiz generation
+    // Gather page data for quiz generation. A page is eligible only when it has
+    // BOTH a web-rendering and a render-sectioning node — the quiz LLM reads
+    // rendered text, and batching counts sectioned content pages.
     const pages = storage.getPages()
     const quizPages: QuizPageInput[] = []
+    let missingRendering = 0
+    let missingSectioning = 0
     for (const page of pages) {
       const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-      const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-      if (!renderingRow || !structuringRow) continue
+      // Filter by the SEMANTIC sectioning (real types like `text_and_single_image`),
+      // not the render sectioning — in fixed-layout the render tree is positioned
+      // and its only section type is `fixed-layout-page`, which never matches
+      // `quiz_section_types`, so no page would qualify and no quiz would generate.
+      const sectioning = getSemanticSectioning(storage, page.pageId)
+      if (!renderingRow) {
+        missingRendering++
+        continue
+      }
+      if (!sectioning) {
+        missingSectioning++
+        continue
+      }
       quizPages.push({
         pageId: page.pageId,
         rendering: renderingRow.data as WebRenderingOutput,
-        sectioning: structuringRow.data as PageSectioningOutput,
+        sectioning,
       })
     }
+    console.log(
+      `[stage-run] ${label}: quiz input — ${quizPages.length}/${pages.length} pages ready ` +
+        `(missing web-rendering: ${missingRendering}, missing sectioning: ${missingSectioning}); ` +
+        `pages_per_quiz=${quizConfig.pagesPerQuiz}`
+    )
 
     if (quizPages.length > 0) {
       const quizResult = await generateAllQuizzes(quizPages, quizConfig, quizModel, {
@@ -1204,10 +1678,26 @@ async function runQuizzesStep(
         },
       })
       storage.putNodeData("quiz-generation", "book", quizResult)
+      console.log(
+        `[stage-run] ${label}: generated ${quizResult.quizzes.length} quiz(zes) from ${quizPages.length} page(s)`
+      )
       progress.emit({
         type: "step-progress",
         step: "quiz-generation",
         message: `${quizResult.quizzes.length} quizzes from ${quizPages.length} pages`,
+      })
+    } else {
+      // Nothing to generate. This is the silent "finished instantly, no quizzes"
+      // case — surface it loudly instead of completing green with no output.
+      console.warn(
+        `[stage-run] ${label}: quiz-generation produced NOTHING — 0 of ${pages.length} pages ` +
+          `had both web-rendering and render-sectioning. Re-run the Storyboard stage first ` +
+          `(fixed-layout writes both there), then Quizzes.`
+      )
+      progress.emit({
+        type: "step-progress",
+        step: "quiz-generation",
+        message: `No quizzes: 0/${pages.length} pages had rendering + sectioning`,
       })
     }
 
@@ -1250,6 +1740,13 @@ async function runCaptionsStep(
     const summaryRow = storage.getLatestNodeData("book-summary", "book")
     const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
 
+    const glossaryRow = storage.getLatestNodeData("glossary", "book")
+    const glossary = glossaryRow?.data as GlossaryOutput | undefined
+    const glossaryImageIdsByPage = groupGlossaryImageIdsByPage(
+      glossary,
+      (imageId) => storage.getImageMeta(imageId)?.pageId,
+    )
+
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)
       const step = entry.taskType as StepName
@@ -1275,13 +1772,23 @@ async function runCaptionsStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const pages = storage.getPages()
     const totalPages = pages.length
     const effectiveConcurrency = config.concurrency ?? 32
     let completedCaptions = 0
-    const failedPages: string[] = []
+    const failedPages: FailedPage[] = []
+    const skippedByStep = new Map<string, Set<string>>()
+    const gate = new AdmissionGate()
+    const stepController = new AbortController()
+    const pageFailureDeps = buildPageFailureDeps(options, {
+      failedPages,
+      skippedByStep,
+      gate,
+      stepController,
+    })
 
     progress.emit({ type: "step-start", step: "image-captioning" })
     progress.emit({
@@ -1317,12 +1824,14 @@ async function runCaptionsStep(
 
           const rendering = renderingRow.data as WebRenderingOutput
           // Filter out pruned sections before extracting image IDs
-          const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-          const sectioning = structuringRow?.data as PageSectioningOutput | undefined
+          const sectioning = getRenderSectioning(storage, page.pageId)
           const htmlSections = rendering.sections
             .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
             .map((s) => s.html)
-          const imageIds = extractImageIds(htmlSections)
+          const imageIds = collectCaptionImageIds(
+            htmlSections,
+            glossaryImageIdsByPage.get(page.pageId),
+          )
 
           if (imageIds.length === 0) {
             storage.putNodeData("image-captioning", page.pageId, { captions: [] })
@@ -1381,24 +1890,17 @@ async function runCaptionsStep(
             totalPages,
           })
         } catch (err) {
-          const msg = toErrorMessage(err)
-          failedPages.push(`${page.pageId}: ${msg}`)
-          progress.emit({
-            type: "step-error",
-            step: "image-captioning",
-            error: `${page.pageId} failed: ${msg}`,
-          })
+          await reportPageFailure(pageFailureDeps, progress, "image-captioning", page.pageId, err)
         }
-      }
+      },
+      { runSignal: options.signal, stopSignal: stepController.signal, gate },
     )
 
-    if (failedPages.length > 0) {
-      throw new Error(
-        `${failedPages.length} page(s) failed captioning:\n${failedPages.join("\n")}`
-      )
+    if (stepController.signal.aborted) {
+      throw new StepError("image-captioning", "Stopped by a page-error decision")
     }
 
-    progress.emit({ type: "step-complete", step: "image-captioning" })
+    finishPageStep(progress, "image-captioning", pageFailureDeps)
     console.log(`[stage-run] ${label}: captions complete`)
   } finally {
     storage.close()
@@ -1458,6 +1960,7 @@ async function runGlossaryStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const pages = storage.getPages()
@@ -1467,18 +1970,12 @@ async function runGlossaryStep(
 
     console.log(`[stage-run] ${label}: generating glossary from ${pages.length} pages`)
 
-    const existingGlossaryRow = storage.getLatestNodeData("glossary", "book")
-    const existingGlossary = existingGlossaryRow?.data as GlossaryOutput | undefined
-
-    const excludedWords = getPrunedGlossaryWords(existingGlossary?.items ?? [])
-
-    const generatedGlossary = await generateGlossary({
+    const glossary = await regenerateGlossaryPreservingEdits({
       storage,
       pages,
       config: glossaryConfig,
       llmModel: glossaryModel,
       concurrency: effectiveConcurrency,
-      excludedWords,
       onBatchComplete: (completed, total) => {
         progress.emit({
           type: "step-progress",
@@ -1489,10 +1986,6 @@ async function runGlossaryStep(
         })
       },
     })
-    const glossary = mergeGeneratedGlossaryWithManualItems(
-      generatedGlossary,
-      existingGlossary?.items ?? [],
-    )
     storage.putNodeData("glossary", "book", glossary)
 
     progress.emit({
@@ -1559,6 +2052,7 @@ async function runTocStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const pages = storage.getPages()
@@ -1687,6 +2181,7 @@ async function runEasyReadStep(
           rateLimiter,
           onLog: onLlmLog,
           credentials: llmCredentials,
+          signal: options.signal,
         })
         const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
         progress.emit({
@@ -1821,6 +2316,7 @@ async function runTranslateStep(
         rateLimiter,
         onLog: onLlmLog,
         credentials: llmCredentials,
+        signal: options.signal,
       })
 
       const batchSize = translationConfig.batchSize
@@ -1877,7 +2373,8 @@ async function runTranslateStep(
             page: completedBatches,
             totalPages: totalBatches,
           })
-        }
+        },
+        { runSignal: options.signal },
       )
 
       for (const lang of targetLanguages) {
@@ -2019,6 +2516,7 @@ async function runTranslateStep(
                 promptName,
               },
               onLog: onLlmLog,
+              signal: options.signal,
             })
 
             storage.putTranslatedImage({
@@ -2030,6 +2528,7 @@ async function runTranslateStep(
               height: result.height,
             })
           } catch (err) {
+            if (isCancellation(err, [options.signal])) throw err
             const message = toErrorMessage(err)
             console.warn(
               `[stage-run] ${label}: image-translation failed for ${item.imageId} → ${item.targetLanguage}: ${message}`
@@ -2044,7 +2543,7 @@ async function runTranslateStep(
               totalPages: total,
             })
           }
-        })
+        }, { runSignal: options.signal })
 
         progress.emit({ type: "step-complete", step: "image-translation" })
         console.log(`[stage-run] ${label}: image translation complete (${completed}/${total})`)
@@ -2116,15 +2615,20 @@ async function runSpeechStep(
     const voiceMaps = loadVoicesConfig(configDir)
     const instructionsMap = loadSpeechInstructions(configDir)
 
-    const speechModel = config.speech?.model
+    const speechModel =
+      config.speech?.model ?? config.default_speech_generation_model
     const defaultProvider = config.speech?.default_provider ?? "openai"
     const providerConfigs = config.speech?.providers ?? {}
     const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
+    // ElevenLabs voice_settings overrides, resolved once for the whole step.
+    // Shared helper so the reuse check, the generation call, and the other two
+    // execution paths all hash the same cache key.
+    const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(config.speech)
 
     console.log(`[stage-run] ${label}: TTS configDir=${configDir} voiceMaps=${Object.keys(voiceMaps).join(",")||"(empty)"}`)
     console.log(`[stage-run] ${label}: TTS config — defaultProvider=${defaultProvider} model=${speechModel ?? "(provider default)"} format=${config.speech?.format ?? "(provider default)"}`)
     console.log(`[stage-run] ${label}: TTS providers=${JSON.stringify(providerConfigs)}`)
-    console.log(`[stage-run] ${label}: TTS azureKey=${options.azureSpeechKey ? "set" : "NOT SET"} azureRegion=${options.azureSpeechRegion ?? "NOT SET"} geminiKey=${options.geminiApiKey ? "set" : "NOT SET"}`)
+    console.log(`[stage-run] ${label}: TTS azureKey=${options.azureSpeechKey ? "set" : "NOT SET"} azureRegion=${options.azureSpeechRegion ?? "NOT SET"} geminiKey=${options.geminiApiKey ? "set" : "NOT SET"} elevenLabsKey=${options.elevenLabsApiKey ? "set" : "NOT SET"}`)
 
     const synthesizers = new Map<string, TTSSynthesizer>()
     function getSynthesizer(providerName: string): TTSSynthesizer {
@@ -2151,6 +2655,17 @@ async function runSpeechStep(
         synthesizers.set("gemini", synth)
         return synth
       }
+      if (providerName === "elevenlabs") {
+        if (!options.elevenLabsApiKey && !process.env.ELEVENLABS_API_KEY) {
+          throw new Error("ElevenLabs API key is required for ElevenLabs TTS provider. Set it in the API Keys dialog (gear icon).")
+        }
+        const synth = createElevenLabsTTSSynthesizer(
+          options.elevenLabsApiKey ? { apiKey: options.elevenLabsApiKey } : undefined,
+          { sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate }
+        )
+        synthesizers.set("elevenlabs", synth)
+        return synth
+      }
       const synth = createTTSSynthesizer(options.apiKey)
       synthesizers.set(providerName, synth)
       return synth
@@ -2162,20 +2677,51 @@ async function runSpeechStep(
       textId: string
       text: string
       language: string
+      /** Adjacent catalog entries' text (ElevenLabs' previous_text/next_text),
+       *  only populated when elevenlabs_use_context is enabled and the entry
+       *  is routed to ElevenLabs. */
+      previousText?: string
+      nextText?: string
     }
     const ttsWorkItems: TTSWorkItem[] = []
+    // Page-batched TTS (experimental, Gemini only): a page's entries are
+    // synthesized in one request then sliced back into per-entry files, which
+    // needs an OpenAI key for the Whisper alignment pass. Non-page entries
+    // (glossary, quiz, easy-read) and non-Gemini languages keep per-entry.
+    const batchByPage = config.speech?.batch_by_page === true && !!options.apiKey?.trim()
+    if (config.speech?.batch_by_page === true && !options.apiKey?.trim()) {
+      console.warn(`[stage-run] ${label}: batch_by_page is enabled but no OpenAI key was provided; falling back to per-entry TTS (the Whisper alignment pass needs an OpenAI key)`)
+    }
+    interface PageGroup { language: string; pageKey: string; entries: { id: string; text: string }[] }
+    const pageGroups = new Map<string, PageGroup>()
     const textByLanguage = new Map<string, Map<string, string>>()
     const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
+    const failedByLang = new Map<string, SpeechFailedEntry[]>()
     const reusedEntriesByLang = new Map<string, number>()
     for (const lang of outputLanguages) {
       ttsResultsByLang.set(lang, [])
+      failedByLang.set(lang, [])
       reusedEntriesByLang.set(lang, 0)
     }
+    // Expose the (live-mutated) result arrays so GET /tts can serve a
+    // progressive snapshot while this run is active. Cleared in `finally`.
+    beginSpeechRun(label, ttsResultsByLang, failedByLang)
 
     for (const lang of outputLanguages) {
       const baseSource = getBaseLanguage(sourceLanguage)
       const baseLang = getBaseLanguage(lang)
       const existingSpeechEntries = getExistingSpeechEntries(storage, lang)
+      const provider = resolveProviderForLanguage(lang, routing)
+      const batchThisLanguage =
+        batchByPage &&
+        provider === "gemini" &&
+        supportsPageBatchedSpeech(lang)
+
+      if (batchByPage && provider === "gemini" && !batchThisLanguage) {
+        console.log(
+          `[stage-run] ${label}: page-batched TTS is disabled for ${lang}; using per-entry TTS`,
+        )
+      }
 
       let entries: TextCatalogEntry[]
       if (baseLang === baseSource) {
@@ -2194,8 +2740,34 @@ async function runSpeechStep(
       }
 
       const languageTextMap = new Map<string, string>()
-      for (const entry of entries) {
+      for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
+        const entry = entries[entryIndex]
+        // Excluded entries get no audio at all — not generated, not reused
+        // into the new TTS output version.
+        if (isTtsExcluded(entry.id, config.speech)) continue
         languageTextMap.set(entry.id, entry.text)
+
+        // Route page-scoped entries of a Gemini language into a per-page group
+        // (generated together below). Skips the per-entry reuse check — page
+        // audio is cached at the page level inside generatePageSpeechFiles.
+        // Entries with an existing MANUAL recording are left on the per-entry
+        // path so canReuseSpeechEntry's manual guard preserves them (batching
+        // would otherwise overwrite the uploaded audio).
+        if (
+          batchThisLanguage &&
+          isBatchableSpeechEntry(entry.id) &&
+          existingSpeechEntries.get(entry.id)?.provider !== "manual"
+        ) {
+          const pageKey = batchPageKeyOf(entry.id)!
+          const groupKey = `${lang}::${pageKey}`
+          let group = pageGroups.get(groupKey)
+          if (!group) {
+            group = { language: lang, pageKey, entries: [] }
+            pageGroups.set(groupKey, group)
+          }
+          group.entries.push({ id: entry.id, text: entry.text })
+          continue
+        }
 
         const provider = resolveProviderForLanguage(lang, routing)
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
@@ -2209,6 +2781,17 @@ async function runSpeechStep(
           provider === "openai" || provider === "gemini"
             ? resolveInstructions(lang, instructionsMap)
             : ""
+        // ElevenLabs-only: adjacent-entry context, opt-in via
+        // elevenlabs_use_context. Must resolve identically here and below so
+        // the cache key stays in sync with canReuseSpeechEntry.
+        const previousText =
+          provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+            ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
+            : undefined
+        const nextText =
+          provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+            ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
+            : undefined
         const existingEntry = existingSpeechEntries.get(entry.id)
 
         if (
@@ -2222,6 +2805,12 @@ async function runSpeechStep(
             voice,
             instructions,
             format: outputFormat,
+            geminiTemperature: config.speech?.temperature,
+            geminiSeed: config.speech?.seed,
+            elevenLabsPreviousText: previousText,
+            elevenLabsNextText: nextText,
+            elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+            ...elevenLabsVoiceSettings,
           })
         ) {
           ttsResultsByLang.get(lang)?.push(existingEntry)
@@ -2229,12 +2818,19 @@ async function runSpeechStep(
           continue
         }
 
-        ttsWorkItems.push({ textId: entry.id, text: entry.text, language: lang })
+        ttsWorkItems.push({
+          textId: entry.id,
+          text: entry.text,
+          language: lang,
+          previousText,
+          nextText,
+        })
       }
       textByLanguage.set(lang, languageTextMap)
     }
 
-    const totalItems = ttsWorkItems.length
+    const batchedEntryCount = [...pageGroups.values()].reduce((n, g) => n + g.entries.length, 0)
+    const totalItems = ttsWorkItems.length + batchedEntryCount
     let completedItems = 0
 
     const reusedItems = [...reusedEntriesByLang.values()].reduce((sum, count) => sum + count, 0)
@@ -2246,169 +2842,401 @@ async function runSpeechStep(
     const hasGeminiTts = outputLanguages.some(
       (lang) => resolveProviderForLanguage(lang, routing) === "gemini"
     )
-    const geminiTtsRequestsPerMinute = Math.min(
-      config.rate_limit?.requests_per_minute ?? GEMINI_TTS_SAFE_REQUESTS_PER_MINUTE,
-      GEMINI_TTS_SAFE_REQUESTS_PER_MINUTE
-    )
-    const geminiTtsRateLimiter = hasGeminiTts
-      ? createRateLimiter(geminiTtsRequestsPerMinute)
+    // Adaptive limiter: start at the documented ceiling for the selected model
+    // (or a user-pinned value) and back off on 429s, so a generous quota runs
+    // fast while a smaller tier self-throttles instead of erroring out.
+    const geminiTtsModel = resolveSpeechModel("gemini", providerConfigs, speechModel)
+    const geminiTtsRate = resolveGeminiTtsRateLimit({
+      model: geminiTtsModel,
+      rateLimit: providerConfigs.gemini?.rate_limit,
+    })
+    const geminiTtsRateLimiter: AdaptiveRateLimiter | undefined = hasGeminiTts
+      ? createAdaptiveRateLimiter({
+          startRpm: geminiTtsRate.startRpm,
+          minRpm: geminiTtsRate.minRpm,
+          maxRpm: geminiTtsRate.maxRpm,
+        })
       : undefined
     if (geminiTtsRateLimiter) {
       console.log(
-        `[stage-run] ${label}: Gemini TTS limiter active at ${geminiTtsRequestsPerMinute} req/min`
+        `[stage-run] ${label}: Gemini TTS adaptive limiter — model=${geminiTtsModel} mode=${geminiTtsRate.mode} start=${geminiTtsRate.startRpm} range=${geminiTtsRate.minRpm}-${geminiTtsRate.maxRpm} req/min`
       )
     }
 
     const failedItems: string[] = []
     const geminiFailedItems: string[] = []
 
-    await processWithConcurrency(
-      ttsWorkItems,
-      effectiveConcurrency,
-      async (item: TTSWorkItem) => {
-        const startMs = Date.now()
-        const provider = resolveProviderForLanguage(item.language, routing)
-        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
-        const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-        const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
-        // Must mirror the reuse-check above: OpenAI + Gemini both receive resolved
-        // instructions (Gemini embeds them in the prompt text), Azure does not.
-        const instructions =
-          provider === "openai" || provider === "gemini"
-            ? resolveInstructions(item.language, instructionsMap)
-            : ""
-        let attemptCount = 0
-
-        console.log(`[stage-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`)
-
-        try {
-          const ttsSynthesizer = getSynthesizer(provider)
-          let entry: SpeechFileEntry | null
-
+    // ── Page-batched pre-pass (Gemini) ──────────────────────────────
+    // One synthesis request per page (consistent tone), sliced into per-entry
+    // files. Shares the adaptive rate limiter, cancellation, and progress with
+    // the per-entry loop below.
+    if (pageGroups.size > 0) {
+      const groups = [...pageGroups.values()]
+      console.log(`[stage-run] ${label}: page-batched TTS — ${groups.length} page group(s), ${batchedEntryCount} entries`)
+      await processWithConcurrency(
+        groups,
+        effectiveConcurrency,
+        async (group: PageGroup) => {
+          const providerModel = resolveSpeechModel("gemini", providerConfigs, speechModel)
+          const outputFormat = resolveSpeechFormat("gemini", config.speech?.format)
+          const voice = resolveVoice("gemini", group.language, voiceMaps, config.speech?.voice)
+          const instructions = resolveInstructions(group.language, instructionsMap)
+          const startMs = Date.now()
+          // Record the page synthesis in the LLM log (transparency + cost
+          // tracking), mirroring the per-entry path so batched Gemini calls
+          // aren't invisible.
+          const emitPageLog = (o: { success: boolean; cacheHit: boolean; attempt: number; error?: string }) => {
+            const preview = group.entries.map((e) => e.text).join(" ").slice(0, 300)
+            const logEntry: LlmLogEntry = {
+              requestId: crypto.randomUUID(),
+              timestamp: new Date().toISOString(),
+              taskType: "tts",
+              pageId: group.pageKey,
+              promptName: "tts-gemini",
+              modelId: `gemini/${providerModel}`,
+              cacheHit: o.cacheHit,
+              success: o.success,
+              errorCount: o.success ? 0 : 1,
+              attempt: Math.max(o.attempt, 1),
+              durationMs: Date.now() - startMs,
+              messages: [{
+                role: "user",
+                content: [{ type: "text" as const, text: `[${group.language}] voice=${voice} (page ${group.pageKey}, ${group.entries.length} entries)${o.error ? `\nERROR: ${o.error}` : ""}\n${preview}` }],
+              }],
+            }
+            storage.appendLlmLog(logEntry)
+            progress.emit({ type: "llm-log", step: "tts", itemId: group.pageKey, promptName: logEntry.promptName, modelId: logEntry.modelId, cacheHit: o.cacheHit, durationMs: logEntry.durationMs })
+          }
+          let attempt = 0
           while (true) {
-            attemptCount++
+            attempt++
             try {
-              entry = await generateSpeechFile({
-                textId: item.textId,
-                text: item.text,
-                language: item.language,
+              const entries = await generatePageSpeechFiles({
+                entries: group.entries,
+                language: group.language,
                 model: providerModel,
                 voice,
                 instructions,
                 format: outputFormat,
                 bookDir,
                 cacheDir,
-                ttsSynthesizer,
-                rateLimiter: provider === "gemini" ? geminiTtsRateLimiter : undefined,
-                provider,
+                ttsSynthesizer: getSynthesizer("gemini"),
+                whisperApiKey: options.apiKey!,
+                rateLimiter: geminiTtsRateLimiter,
+                provider: "gemini",
+                geminiTemperature: config.speech?.temperature,
+                geminiSeed: config.speech?.seed,
+                signal: options.signal,
               })
+              for (const e of entries) ttsResultsByLang.get(group.language)?.push(e)
+              // A page served from cache makes no request — don't reward the
+              // limiter for it (mirrors the per-entry `!entry.cached` guard).
+              const pageCached = entries.length > 0 && entries.every((e) => e.cached)
+              if (entries.length > 0 && !pageCached) geminiTtsRateLimiter?.reward()
+              emitPageLog({ success: true, cacheHit: pageCached, attempt })
               break
             } catch (err) {
+              if (isCancellation(err, [options.signal])) {
+                throw err instanceof RunCancelledError ? err : new RunCancelledError()
+              }
               const msg = toErrorMessage(err)
+              const rateLimited = isGeminiTtsRateLimitMessage(msg)
+              // generatePageSpeechFiles also calls OpenAI Whisper (alignment); a
+              // transient Whisper error (429/5xx) is retryable too, but it must NOT
+              // penalize the Gemini limiter (different service). Retrying prevents a
+              // transient hiccup from failing the whole page and — via
+              // geminiFailedItems — skipping word-timestamps for the entire book.
+              const whisperTransient = /Whisper transcription failed \((?:429|5\d\d)\)/.test(msg)
+              const transient = (!rateLimited && isGeminiTtsTransientError(msg)) || whisperTransient
               if (
-                provider === "gemini" &&
-                isGeminiTtsRateLimitMessage(msg) &&
-                attemptCount <= GEMINI_TTS_MAX_RATE_LIMIT_RETRIES
+                (rateLimited || transient) &&
+                !options.signal?.aborted &&
+                attempt <= GEMINI_TTS_MAX_RATE_LIMIT_RETRIES
               ) {
+                const retryDelayMs = rateLimited
+                  ? (parseGeminiRetryDelayMs(msg) ?? Math.min(GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attempt, GEMINI_TTS_MAX_RETRY_DELAY_MS))
+                  : Math.min(GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS * attempt, GEMINI_TTS_MAX_RETRY_DELAY_MS)
+                if (rateLimited) geminiTtsRateLimiter?.penalize(retryDelayMs)
+                console.warn(`[stage-run] ${label}: page-batched TTS ${rateLimited ? "rate limited" : "transient error"} for ${group.pageKey} (${group.language}); retry ${attempt + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`)
+                await sleep(retryDelayMs, options.signal)
+                if (options.signal?.aborted) throw new RunCancelledError()
+                continue
+              }
+              console.error(`[stage-run] ${label}: page-batched TTS failed for ${group.pageKey} (${group.language}): ${msg}`)
+              emitPageLog({ success: false, cacheHit: false, attempt, error: msg })
+              for (const e of group.entries) {
+                failedItems.push(`${e.id}: ${msg}`)
+                failedByLang.get(group.language)?.push({ textId: e.id, error: msg })
+                geminiFailedItems.push(`${e.id}: ${msg}`)
+              }
+              break
+            }
+          }
+          completedItems += group.entries.length
+          emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
+        },
+        { runSignal: options.signal }
+      )
+    }
+
+    // ElevenLabs' concurrent-request ceiling is low and plan-dependent, so its
+    // items run in a dedicated, capped pass. Partitioning by provider (instead
+    // of capping the whole `ttsWorkItems` list whenever *any* language routes
+    // to ElevenLabs) keeps OpenAI/Azure/Gemini languages in the same book at
+    // `effectiveConcurrency` instead of being dragged down to ElevenLabs'
+    // ceiling — a mixed-provider book no longer loses ~8x TTS throughput just
+    // because one of its languages uses ElevenLabs. Combined with the 429
+    // retry below this still keeps a throttled ElevenLabs run from failing
+    // entries outright.
+    const elevenLabsWorkItems: TTSWorkItem[] = []
+    const otherWorkItems: TTSWorkItem[] = []
+    for (const item of ttsWorkItems) {
+      if (resolveProviderForLanguage(item.language, routing) === "elevenlabs") {
+        elevenLabsWorkItems.push(item)
+      } else {
+        otherWorkItems.push(item)
+      }
+    }
+    const elevenLabsConcurrency = Math.min(effectiveConcurrency, ELEVENLABS_TTS_MAX_CONCURRENCY)
+
+    const processTtsWorkItem = async (item: TTSWorkItem) => {
+      const startMs = Date.now()
+      const provider = resolveProviderForLanguage(item.language, routing)
+      const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
+      const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
+      const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
+      // Must mirror the reuse-check above: OpenAI + Gemini both receive resolved
+      // instructions (Gemini embeds them in the prompt text), Azure does not.
+      const instructions =
+        provider === "openai" || provider === "gemini"
+          ? resolveInstructions(item.language, instructionsMap)
+          : ""
+      // Request parameters recorded on the debug log entry so the settings that
+      // produced this audio are inspectable. ElevenLabs only for now — the other
+      // providers' params are a separate change.
+      const logParams =
+        provider === "elevenlabs"
+          ? buildElevenLabsTtsLogParams({
+              model: providerModel,
+              voice,
+              language: item.language,
+              format: outputFormat,
+              sampleRate: config.speech?.sample_rate,
+              bitRate: config.speech?.bit_rate,
+              applyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+              previousText: item.previousText,
+              nextText: item.nextText,
+              ...elevenLabsVoiceSettings,
+            })
+          : undefined
+      let attemptCount = 0
+
+      console.log(`[stage-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`)
+
+      try {
+        const ttsSynthesizer = getSynthesizer(provider)
+        let entry: SpeechFileEntry | null
+
+        while (true) {
+          attemptCount++
+          try {
+            entry = await generateSpeechFile({
+              textId: item.textId,
+              text: item.text,
+              language: item.language,
+              model: providerModel,
+              voice,
+              instructions,
+              format: outputFormat,
+              bookDir,
+              cacheDir,
+              ttsSynthesizer,
+              rateLimiter: provider === "gemini" ? geminiTtsRateLimiter : undefined,
+              provider,
+              geminiTemperature: config.speech?.temperature,
+              geminiSeed: config.speech?.seed,
+              elevenLabsPreviousText: item.previousText,
+              elevenLabsNextText: item.nextText,
+              elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+              ...elevenLabsVoiceSettings,
+              signal: options.signal,
+            })
+            // A real (non-cached) success means the current rate held —
+            // let the limiter probe back toward the ceiling.
+            if (provider === "gemini" && entry && !entry.cached) {
+              geminiTtsRateLimiter?.reward()
+            }
+            break
+          } catch (err) {
+            const msg = toErrorMessage(err)
+
+            // ElevenLabs: no adaptive limiter, but 429 (concurrency/quota)
+            // and 5xx are retryable with exponential backoff so a transient
+            // throttle doesn't permanently fail the entry. The per-item
+            // concurrency cap above already bounds how many can be in flight.
+            if (provider === "elevenlabs") {
+              const kind = classifyElevenLabsTtsError(msg)
+              if (
+                kind !== "permanent" &&
+                !options.signal?.aborted &&
+                attemptCount <= ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES
+              ) {
+                const retryDelayMs = elevenLabsTtsRetryDelayMs(attemptCount)
+                console.warn(
+                  `[stage-run] ${label}: ElevenLabs TTS ${kind === "rate-limit" ? "rate limited" : "transient error"} for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
+                )
+                await sleep(retryDelayMs, options.signal)
+                if (options.signal?.aborted) throw new RunCancelledError()
+                continue
+              }
+              throw err
+            }
+
+            const rateLimited =
+              provider === "gemini" && isGeminiTtsRateLimitMessage(msg)
+            const transient =
+              provider === "gemini" &&
+              !rateLimited &&
+              isGeminiTtsTransientError(msg)
+            if (
+              (rateLimited || transient) &&
+              !options.signal?.aborted &&
+              attemptCount <= GEMINI_TTS_MAX_RATE_LIMIT_RETRIES
+            ) {
+              if (rateLimited) {
                 const retryDelayMs =
                   parseGeminiRetryDelayMs(msg) ??
                   Math.min(
                     GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attemptCount,
                     GEMINI_TTS_MAX_RETRY_DELAY_MS
                   )
+                // Halve the shared rate and pause all workers for the retry
+                // window, so one 429 throttles the whole batch instead of every
+                // item discovering the limit independently.
+                geminiTtsRateLimiter?.penalize(retryDelayMs)
                 console.warn(
-                  `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
+                  `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); backing off to ${geminiTtsRateLimiter?.currentRpm() ?? "?"} req/min, retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
                 )
-                await sleep(retryDelayMs)
+                await sleep(retryDelayMs, options.signal)
+                if (options.signal?.aborted) throw new RunCancelledError()
                 continue
               }
-              throw err
+              // Transient server error (500/empty audio): retry without
+              // penalizing the limiter — it's a Gemini hiccup, not a rate issue.
+              const retryDelayMs = Math.min(
+                GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS * attemptCount,
+                GEMINI_TTS_MAX_RETRY_DELAY_MS
+              )
+              console.warn(
+                `[stage-run] ${label}: Gemini TTS transient error for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
+              )
+              await sleep(retryDelayMs, options.signal)
+              if (options.signal?.aborted) throw new RunCancelledError()
+              continue
             }
-          }
-
-          const durationMs = Date.now() - startMs
-          const cached = entry?.cached ?? false
-
-          const logEntry: LlmLogEntry = {
-            requestId: crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            taskType: "tts",
-            pageId: item.textId,
-            promptName: `tts-${provider}`,
-            modelId: `${provider}/${providerModel}`,
-            cacheHit: cached,
-            success: true,
-            errorCount: 0,
-            attempt: attemptCount,
-            durationMs,
-            messages: [{
-              role: "user",
-              content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\n${item.text.slice(0, 300)}` }],
-            }],
-          }
-          storage.appendLlmLog(logEntry)
-          progress.emit({
-            type: "llm-log",
-            step: "tts",
-            itemId: item.textId,
-            promptName: logEntry.promptName,
-            modelId: logEntry.modelId,
-            cacheHit: cached,
-            durationMs,
-          })
-
-          if (entry) {
-            ttsResultsByLang.get(item.language)?.push(entry)
-          }
-        } catch (err) {
-          const msg = toErrorMessage(err)
-          const durationMs = Date.now() - startMs
-          console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
-          failedItems.push(`${item.textId}: ${msg}`)
-          if (provider === "gemini") {
-            geminiFailedItems.push(`${item.textId}: ${msg}`)
-          }
-
-          const logEntry: LlmLogEntry = {
-            requestId: crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            taskType: "tts",
-            pageId: item.textId,
-            promptName: `tts-${provider}`,
-            modelId: `${provider}/${providerModel}`,
-            cacheHit: false,
-            success: false,
-            errorCount: 1,
-            attempt: Math.max(attemptCount, 1),
-            durationMs,
-            messages: [{
-              role: "user",
-              content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\nERROR: ${msg}\n\n${item.text.slice(0, 300)}` }],
-            }],
-          }
-          storage.appendLlmLog(logEntry)
-          progress.emit({
-            type: "llm-log",
-            step: "tts",
-            itemId: item.textId,
-            promptName: logEntry.promptName,
-            modelId: logEntry.modelId,
-            cacheHit: false,
-            durationMs,
-          })
-          if (provider !== "gemini") {
-            progress.emit({
-              type: "step-error",
-              step: "tts",
-              error: `${item.textId} failed: ${msg}`,
-            })
+            throw err
           }
         }
 
-        completedItems++
-        emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
+        const durationMs = Date.now() - startMs
+        const cached = entry?.cached ?? false
+
+        const logEntry: LlmLogEntry = {
+          requestId: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          taskType: "tts",
+          pageId: item.textId,
+          promptName: `tts-${provider}`,
+          modelId: `${provider}/${providerModel}`,
+          cacheHit: cached,
+          success: true,
+          errorCount: 0,
+          attempt: attemptCount,
+          durationMs,
+          ...(logParams ? { params: logParams } : {}),
+          messages: [{
+            role: "user",
+            content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\n${item.text.slice(0, 300)}` }],
+          }],
+        }
+        storage.appendLlmLog(logEntry)
+        progress.emit({
+          type: "llm-log",
+          step: "tts",
+          itemId: item.textId,
+          promptName: logEntry.promptName,
+          modelId: logEntry.modelId,
+          cacheHit: cached,
+          durationMs,
+        })
+
+        if (entry) {
+          ttsResultsByLang.get(item.language)?.push(entry)
+        }
+      } catch (err) {
+        // Run cancel — re-throw so processWithConcurrency unwinds; an aborted
+        // item is not a failure (it re-runs cheaply via the TTS cache).
+        if (isCancellation(err, [options.signal])) {
+          throw err instanceof RunCancelledError ? err : new RunCancelledError()
+        }
+        const msg = toErrorMessage(err)
+        const durationMs = Date.now() - startMs
+        console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
+        failedItems.push(`${item.textId}: ${msg}`)
+        failedByLang.get(item.language)?.push({ textId: item.textId, error: msg })
+        if (provider === "gemini") {
+          geminiFailedItems.push(`${item.textId}: ${msg}`)
+        }
+
+        const logEntry: LlmLogEntry = {
+          requestId: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          taskType: "tts",
+          pageId: item.textId,
+          promptName: `tts-${provider}`,
+          modelId: `${provider}/${providerModel}`,
+          cacheHit: false,
+          success: false,
+          errorCount: 1,
+          attempt: Math.max(attemptCount, 1),
+          durationMs,
+          ...(logParams ? { params: logParams } : {}),
+          messages: [{
+            role: "user",
+            content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\nERROR: ${msg}\n\n${item.text.slice(0, 300)}` }],
+          }],
+        }
+        storage.appendLlmLog(logEntry)
+        progress.emit({
+          type: "llm-log",
+          step: "tts",
+          itemId: item.textId,
+          promptName: logEntry.promptName,
+          modelId: logEntry.modelId,
+          cacheHit: false,
+          durationMs,
+        })
+        if (provider !== "gemini") {
+          progress.emit({
+            type: "step-error",
+            step: "tts",
+            error: `${item.textId} failed: ${msg}`,
+          })
+        }
       }
-    )
+
+      completedItems++
+      emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
+    }
+
+    await Promise.all([
+      processWithConcurrency(elevenLabsWorkItems, elevenLabsConcurrency, processTtsWorkItem, {
+        runSignal: options.signal,
+      }),
+      processWithConcurrency(otherWorkItems, effectiveConcurrency, processTtsWorkItem, {
+        runSignal: options.signal,
+      }),
+    ])
 
     if (failedItems.length > 0) {
       console.error(`[stage-run] ${label}: ${failedItems.length} TTS item(s) failed:\n${failedItems.join("\n")}`)
@@ -2417,22 +3245,27 @@ async function runSpeechStep(
     for (const lang of outputLanguages) {
       const entries = ttsResultsByLang.get(lang)
       if (!entries) continue
+      const failed = failedByLang.get(lang) ?? []
       const output: TTSOutput = {
         entries,
         generatedAt: new Date().toISOString(),
+        ...(failed.length > 0 ? { failed } : {}),
       }
       storage.putNodeData("tts", lang, output)
     }
 
     if (geminiFailedItems.length > 0) {
       const summary = `${geminiFailedItems.length} Gemini TTS item(s) failed. Missing Gemini audio can be generated one by one from the Speech view.`
-      progress.emit({
-        type: "step-error",
-        step: "tts",
-        error: summary,
-      })
+      // Complete the step with gaps rather than erroring. The failed items are
+      // persisted per-language in the TTS output (`failed`) and surfaced in the
+      // Speech/Language view for one-by-one regeneration, so a stray transient
+      // failure shouldn't leave the whole stage incomplete and block the export.
+      progress.emit({ type: "step-progress", step: "tts", message: summary })
+      progress.emit({ type: "step-complete", step: "tts" })
       progress.emit({ type: "step-skip", step: "word-timestamps" })
-      console.log(`[stage-run] ${label}: speech completed with Gemini TTS gaps`)
+      console.warn(
+        `[stage-run] ${label}: speech completed with ${geminiFailedItems.length} Gemini TTS gap(s)`
+      )
       return
     }
 
@@ -2440,7 +3273,7 @@ async function runSpeechStep(
 
     const wordHighlightingEnabled = config.speech?.word_highlighting === true
     let wordTimestampsByLang = new Map<string, Record<string, WordTimestampEntry>>()
-    let timestampFailedItems: string[] = []
+    let timestampFailedByLang = new Map<string, SpeechFailedEntry[]>()
     if (wordHighlightingEnabled) {
       progress.emit({ type: "step-start", step: "word-timestamps" })
       const generatedWordTimestamps = await generateSpeechWordTimestamps({
@@ -2453,42 +3286,59 @@ async function runSpeechStep(
         textByLanguage,
         concurrency: effectiveConcurrency,
         progress,
+        signal: options.signal,
       })
       wordTimestampsByLang = generatedWordTimestamps.entriesByLanguage
-      timestampFailedItems = generatedWordTimestamps.failedItems
+      timestampFailedByLang = generatedWordTimestamps.failedByLanguage
 
       // Only persist tts-timestamps when we actually generated them. When
       // highlighting is disabled, leave existing rows untouched so that
       // manually-calculated timestamps (via the speech view) are preserved
-      // across speech re-runs.
+      // across speech re-runs. Per-item failures are persisted alongside the
+      // entries so the Speech view can mark them for pruning / one-by-one
+      // regeneration (mirrors the TTS `failed` list).
       const timestampsGeneratedAt = new Date().toISOString()
       for (const lang of outputLanguages) {
         const entries = wordTimestampsByLang.get(lang) ?? {}
+        const failed = timestampFailedByLang.get(lang) ?? []
         storage.putNodeData("tts-timestamps", lang, {
           entries,
           generatedAt: timestampsGeneratedAt,
+          ...(failed.length > 0 ? { failed } : {}),
         } satisfies WordTimestampOutput)
       }
     }
 
+    const totalTimestampFailed = [...timestampFailedByLang.values()].reduce(
+      (sum, items) => sum + items.length,
+      0,
+    )
+
     if (!wordHighlightingEnabled) {
       progress.emit({ type: "step-skip", step: "word-timestamps" })
       console.log(`[stage-run] ${label}: word-level highlighting disabled; skipping timestamp generation`)
-    } else if (timestampFailedItems.length > 0) {
+    } else if (totalTimestampFailed > 0) {
+      // Complete the step with gaps rather than erroring, mirroring the Gemini
+      // TTS gap path above. The failures are persisted per-language in
+      // tts-timestamps (`failed`) and surfaced in the Speech view, so a few
+      // unspeakable entries (e.g. bare page numbers) don't flip the whole
+      // stage to `error` and strand the user on the Speech landing page.
+      const summary = `${totalTimestampFailed} word timestamp item(s) failed. Missing highlighting is marked in the Speech view — prune those items or regenerate them one by one.`
       console.warn(
-        `[stage-run] ${label}: ${timestampFailedItems.length} word timestamp item(s) failed:\n${timestampFailedItems.join("\n")}`,
+        `[stage-run] ${label}: ${summary}\n` +
+          [...timestampFailedByLang.entries()]
+            .flatMap(([lang, items]) => items.map((i) => `${lang}/${i.textId}: ${i.error}`))
+            .join("\n"),
       )
-      progress.emit({
-        type: "step-error",
-        step: "word-timestamps",
-        error: `${timestampFailedItems.length} word timestamp item(s) failed`,
-      })
+      progress.emit({ type: "step-progress", step: "word-timestamps", message: summary })
+      progress.emit({ type: "step-complete", step: "word-timestamps" })
     } else {
       progress.emit({ type: "step-complete", step: "word-timestamps" })
     }
 
     console.log(`[stage-run] ${label}: speech complete`)
   } finally {
+    endSpeechRun(label)
     storage.close()
   }
 }
@@ -2500,39 +3350,48 @@ async function runFilterPass(
   config: ReturnType<typeof buildStageRunnerImageClassifyConfig>,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
-  failedPages: string[],
+  deps: PageFailureDeps,
   progress: StageRunProgress,
 ): Promise<void> {
   const total = pages.length
   let completed = 0
   progress.emit({ type: "step-start", step: "image-filtering" })
-  await processWithConcurrency(pages, concurrency, async (page) => {
-    try {
-      const images = storage.getPageImages(page.pageId)
-      const result = classifyPageImages(page.pageId, images, config)
-      results.set(page.pageId, result)
-      storage.putNodeData("image-filtering", page.pageId, result)
-    } catch (err) {
-      const msg = toErrorMessage(err)
-      console.error(`[stage-run] ${label}: ${page.pageId} failed at image-filtering: ${msg}`)
-      failedPages.push(`${page.pageId} [image-filtering]: ${msg}`)
-      progress.emit({
-        type: "step-error",
-        step: "image-filtering",
-        error: `${page.pageId} failed: ${msg}`,
-      })
-    } finally {
-      completed++
-      progress.emit({
-        type: "step-progress",
-        step: "image-filtering",
-        message: `${completed}/${total}`,
-        page: completed,
-        totalPages: total,
-      })
-    }
-  })
-  progress.emit({ type: "step-complete", step: "image-filtering" })
+  await processWithConcurrency(
+    pages,
+    concurrency,
+    async (page) => {
+      try {
+        const images = storage.getPageImages(page.pageId)
+        const result = classifyPageImages(page.pageId, images, config)
+        results.set(page.pageId, result)
+        storage.putNodeData("image-filtering", page.pageId, result)
+      } catch (err) {
+        console.error(`[stage-run] ${label}: ${page.pageId} failed at image-filtering: ${toErrorMessage(err)}`)
+        await reportPageFailure(deps, progress, "image-filtering", page.pageId, err)
+      } finally {
+        completed++
+        progress.emit({
+          type: "step-progress",
+          step: "image-filtering",
+          message: `${completed}/${total}`,
+          page: completed,
+          totalPages: total,
+        })
+      }
+    },
+    { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate },
+  )
+  // Only mark the step done when it had no real failures of its own and wasn't
+  // stopped. A spurious step-complete here would overwrite the per-page error in
+  // the DB with "done", leaving the run failing with no step attributed.
+  const failed = deps.failedPages.some((f) => f.step === "image-filtering")
+  if (!failed && !deps.stepController.signal.aborted) {
+    progress.emit({
+      type: "step-complete",
+      step: "image-filtering",
+      message: skipMessage(deps.skippedByStep, "image-filtering"),
+    })
+  }
 }
 
 async function runMeaningfulnessPass(
@@ -2543,7 +3402,7 @@ async function runMeaningfulnessPass(
   model: ReturnType<typeof createLLMModel> | null,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
-  failedPages: string[],
+  deps: PageFailureDeps,
   progress: StageRunProgress,
 ): Promise<void> {
   if (!config || !model) {
@@ -2554,7 +3413,10 @@ async function runMeaningfulnessPass(
   const total = pages.length
   let completed = 0
   progress.emit({ type: "step-start", step: "image-meaningfulness" })
-  await processWithConcurrency(pages, concurrency, async (page) => {
+  await processWithConcurrency(
+    pages,
+    concurrency,
+    async (page) => {
     const existing = results.get(page.pageId)
     if (!existing) {
       completed++
@@ -2596,14 +3458,8 @@ async function runMeaningfulnessPass(
         storage.putNodeData("image-filtering", page.pageId, updated)
       }
     } catch (err) {
-      const msg = toErrorMessage(err)
-      console.error(`[stage-run] ${label}: ${page.pageId} failed at image-meaningfulness: ${msg}`)
-      failedPages.push(`${page.pageId} [image-meaningfulness]: ${msg}`)
-      progress.emit({
-        type: "step-error",
-        step: "image-meaningfulness",
-        error: `${page.pageId} failed: ${msg}`,
-      })
+      console.error(`[stage-run] ${label}: ${page.pageId} failed at image-meaningfulness: ${toErrorMessage(err)}`)
+      await reportPageFailure(deps, progress, "image-meaningfulness", page.pageId, err)
     } finally {
       completed++
       progress.emit({
@@ -2614,8 +3470,17 @@ async function runMeaningfulnessPass(
         totalPages: total,
       })
     }
-  })
-  progress.emit({ type: "step-complete", step: "image-meaningfulness" })
+    },
+    { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate },
+  )
+  const failed = deps.failedPages.some((f) => f.step === "image-meaningfulness")
+  if (!failed && !deps.stepController.signal.aborted) {
+    progress.emit({
+      type: "step-complete",
+      step: "image-meaningfulness",
+      message: skipMessage(deps.skippedByStep, "image-meaningfulness"),
+    })
+  }
 }
 
 async function runSegmentationPass(
@@ -2627,6 +3492,7 @@ async function runSegmentationPass(
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
   progress: StageRunProgress,
+  runSignal?: AbortSignal,
 ): Promise<void> {
   if (!config || !model) {
     progress.emit({ type: "step-skip", step: "image-segmentation" })
@@ -2682,7 +3548,12 @@ async function runSegmentationPass(
           (imageId) => storage.getImageBase64(imageId),
           segDims,
         )
+        const srcMeta = new Map(images.map((img) => [img.imageId, img]))
         for (const seg of applied) {
+          const src = srcMeta.get(seg.sourceImageId)
+          const bounds = src?.bounds
+            ? segmentBoundsOnPage(src.bounds, src.width, src.height, seg)
+            : undefined
           storage.putSegmentedImage({
             sourceImageId: seg.sourceImageId,
             segmentIndex: seg.segmentIndex,
@@ -2691,6 +3562,7 @@ async function runSegmentationPass(
             buffer: seg.buffer,
             width: seg.width,
             height: seg.height,
+            bounds,
           })
           existing.images.push({
             imageId: getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion),
@@ -2710,6 +3582,7 @@ async function runSegmentationPass(
         }
       }
     } catch (err) {
+      if (isCancellation(err, [runSignal])) throw err
       console.error(`[stage-run] ${label}: image segmentation failed for ${page.pageId}: ${toErrorMessage(err)}`)
     } finally {
       completed++
@@ -2721,7 +3594,8 @@ async function runSegmentationPass(
         totalPages: total,
       })
     }
-  })
+  }, { runSignal })
+  if (runSignal?.aborted) return
   progress.emit({ type: "step-complete", step: "image-segmentation" })
 }
 
@@ -2734,6 +3608,7 @@ async function runCroppingPass(
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
   progress: StageRunProgress,
+  runSignal?: AbortSignal,
 ): Promise<void> {
   if (!config || !model) {
     progress.emit({ type: "step-skip", step: "image-cropping" })
@@ -2809,6 +3684,7 @@ async function runCroppingPass(
         }
       }
     } catch (err) {
+      if (isCancellation(err, [runSignal])) throw err
       console.error(`[stage-run] ${label}: image cropping failed for ${page.pageId}: ${toErrorMessage(err)}`)
     } finally {
       completed++
@@ -2820,6 +3696,7 @@ async function runCroppingPass(
         totalPages: total,
       })
     }
-  })
+  }, { runSignal })
+  if (runSignal?.aborted) return
   progress.emit({ type: "step-complete", step: "image-cropping" })
 }

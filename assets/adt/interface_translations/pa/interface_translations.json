@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "ਪ੍ਰਬੰਧਕ ਟੂਲ ਆਉਣ ਵਾਲੇ ਅੱਪਡੇਟ ਵਿੱਚ ਜੋੜੇ ਜਾਣਗੇ।",
     "main-menu-label": "ਮੁੱਖ ਮੇਨੂ",
     "cover-label": "ਕਵਰ",
-    "print-page-label": "ਪੰਨਾ ਛਾਪੋ"
+    "print-page-label": "ਪੰਨਾ ਛਾਪੋ",
+    "stepper-progress-n-of-m": "ਕਦਮ ${n} / ${m}",
+    "stepper-word-bank": "ਚੁਣਨ ਲਈ ਸ਼ਬਦ",
+    "stepper-open-ended-saved": "ਸ਼ਾਬਾਸ਼ — ਤੁਹਾਡਾ ਜਵਾਬ ਸੰਭਾਲ ਲਿਆ ਗਿਆ ਹੈ।",
+    "stepper-open-ended-rephrase": "ਆਓ ਨਿਮਰ ਰਹੀਏ — ਆਪਣਾ ਜਵਾਬ ਹੋਰ ਤਰੀਕੇ ਨਾਲ ਲਿਖਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰੋ।",
+    "open-ended-answer-label": "ਤੁਹਾਡਾ ਜਵਾਬ"
 }

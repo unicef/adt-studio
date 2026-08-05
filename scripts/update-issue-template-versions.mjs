@@ -9,76 +9,36 @@
 // (e.g. during a release run where the tag is created later in the pipeline).
 // Formatting, indentation, and line endings are preserved.
 //
-// Usage: node scripts/update-issue-template-versions.mjs [<tag>]
+// Pass --require-full-history in release automation to fail closed instead of
+// replacing the dropdown from an incomplete shallow-clone tag set.
+//
+// Usage: node scripts/update-issue-template-versions.mjs [<tag>] [--require-full-history]
 
 import { readFileSync, writeFileSync, readdirSync } from "node:fs";
-import { execFileSync } from "node:child_process";
 import { join } from "node:path";
+import {
+  compareReleaseVersions,
+  isBetaVersion,
+  listGitTags,
+  parseReleaseTag,
+} from "./release-version.mjs";
 
-const extraTag = process.argv[2] ?? null;
+const args = process.argv.slice(2);
+const requireFullHistory = args.includes("--require-full-history");
+const positionalArgs = args.filter((arg) => arg !== "--require-full-history");
+
+if (positionalArgs.length > 1) {
+  console.error(
+    "Usage: node scripts/update-issue-template-versions.mjs " +
+      "[<tag>] [--require-full-history]",
+  );
+  process.exit(1);
+}
+
+const extraTag = positionalArgs[0] ?? null;
 
 const KEEP_OFFICIAL = 3;
 const KEEP_BETA = 3;
-
-function parseVersion(raw) {
-  const match = /^v?(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/.exec(raw.trim());
-  if (!match) return null;
-  return {
-    raw,
-    major: Number(match[1]),
-    minor: Number(match[2]),
-    patch: Number(match[3]),
-    prerelease: match[4] ?? null,
-  };
-}
-
-function comparePrerelease(a, b) {
-  const ap = a.split(".");
-  const bp = b.split(".");
-  const len = Math.max(ap.length, bp.length);
-  for (let i = 0; i < len; i++) {
-    if (ap[i] === undefined) return -1;
-    if (bp[i] === undefined) return 1;
-    const an = /^\d+$/.test(ap[i]);
-    const bn = /^\d+$/.test(bp[i]);
-    if (an && bn) {
-      const diff = Number(ap[i]) - Number(bp[i]);
-      if (diff !== 0) return diff < 0 ? -1 : 1;
-    } else if (an !== bn) {
-      return an ? -1 : 1;
-    } else if (ap[i] !== bp[i]) {
-      return ap[i] < bp[i] ? -1 : 1;
-    }
-  }
-  return 0;
-}
-
-function compareVersions(a, b) {
-  if (a.major !== b.major) return a.major < b.major ? -1 : 1;
-  if (a.minor !== b.minor) return a.minor < b.minor ? -1 : 1;
-  if (a.patch !== b.patch) return a.patch < b.patch ? -1 : 1;
-  if (a.prerelease === null && b.prerelease === null) return 0;
-  if (a.prerelease === null) return 1;
-  if (b.prerelease === null) return -1;
-  return comparePrerelease(a.prerelease, b.prerelease);
-}
-
-function listGitTags() {
-  try {
-    const out = execFileSync("git", ["tag", "--list"], { encoding: "utf8" });
-    return out
-      .split(/\r?\n/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-  } catch (err) {
-    console.error(
-      "Failed to list git tags. Run this script inside a git repository " +
-        "with access to its tags (e.g. checkout with fetch-depth: 0).",
-    );
-    console.error(err.message);
-    process.exit(1);
-  }
-}
 
 function topVersions(candidates) {
   const seen = new Set();
@@ -86,18 +46,15 @@ function topVersions(candidates) {
   for (const raw of candidates) {
     if (seen.has(raw)) continue;
     seen.add(raw);
-    const parsed = parseVersion(raw);
-    if (parsed) versions.push(parsed);
+    const parsed = parseReleaseTag(raw);
+    if (parsed) versions.push({ ...parsed, raw });
   }
-  const desc = (a, b) => compareVersions(b, a);
+  const desc = (a, b) => compareReleaseVersions(b, a);
   const official = versions
     .filter((v) => v.prerelease === null)
     .sort(desc)
     .slice(0, KEEP_OFFICIAL);
-  const beta = versions
-    .filter((v) => v.prerelease !== null)
-    .sort(desc)
-    .slice(0, KEEP_BETA);
+  const beta = versions.filter(isBetaVersion).sort(desc).slice(0, KEEP_BETA);
   return {
     topBeta: beta.map((v) => v.raw),
     topOfficial: official.map((v) => v.raw),
@@ -105,7 +62,13 @@ function topVersions(candidates) {
   };
 }
 
-const gitTags = listGitTags();
+let gitTags;
+try {
+  gitTags = listGitTags();
+} catch (err) {
+  console.error(err instanceof Error ? err.message : String(err));
+  process.exit(1);
+}
 const candidates = extraTag ? [...gitTags, extraTag] : gitTags;
 const { topBeta, topOfficial, parsedCount } = topVersions(candidates);
 const topList = [...topBeta, ...topOfficial];
@@ -124,6 +87,18 @@ console.log(
     topOfficial.length ? topOfficial.join(", ") : "(none)"
   }`,
 );
+if (
+  requireFullHistory &&
+  (topBeta.length < KEEP_BETA || topOfficial.length < KEEP_OFFICIAL)
+) {
+  console.error(
+    "Refusing to update issue templates from an incomplete tag set: " +
+      `found ${topBeta.length}/${KEEP_BETA} beta and ` +
+      `${topOfficial.length}/${KEEP_OFFICIAL} official versions. ` +
+      "Fetch all tags before retrying.",
+  );
+  process.exit(1);
+}
 if (gitTags.length <= 1) {
   console.warn(
     "::warning::Only " +
@@ -187,7 +162,7 @@ for (const file of files) {
         i += 1;
         existing.push(lines[i].slice(optionIndent.length + 2).trim());
       }
-      const others = existing.filter((o) => parseVersion(o) === null);
+      const others = existing.filter((o) => parseReleaseTag(o) === null);
 
       for (const opt of [...topList, ...others]) {
         out.push(`${optionIndent}- ${opt}`);

@@ -12,14 +12,16 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { toast } from "@/components/ui/sonner"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 
-type TabKey = "openai" | "anthropic" | "google" | "custom" | "azure"
+type TabKey = "openai" | "anthropic" | "google" | "custom" | "azure" | "elevenlabs"
 
 interface ApiKeyDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  embedded?: boolean
   apiKey: string
   onSaveApiKey: (key: string) => void
   anthropicKey: string
@@ -34,6 +36,8 @@ interface ApiKeyDialogProps {
   onSaveAzureKey: (key: string) => void
   azureRegion: string
   onSaveAzureRegion: (region: string) => void
+  elevenLabsKey: string
+  onSaveElevenLabsKey: (key: string) => void
 }
 
 function isValidOpenAIKey(key: string): boolean {
@@ -43,6 +47,7 @@ function isValidOpenAIKey(key: string): boolean {
 export function ApiKeyDialog({
   open,
   onOpenChange,
+  embedded = false,
   apiKey,
   onSaveApiKey,
   anthropicKey,
@@ -57,6 +62,8 @@ export function ApiKeyDialog({
   onSaveAzureKey,
   azureRegion,
   onSaveAzureRegion,
+  elevenLabsKey,
+  onSaveElevenLabsKey,
 }: ApiKeyDialogProps) {
   const { t } = useLingui()
   const [tab, setTab] = useState<TabKey>("openai")
@@ -67,6 +74,7 @@ export function ApiKeyDialog({
   const [customApiKeyDraft, setCustomApiKeyDraft] = useState(customApiKey)
   const [azureKeyDraft, setAzureKeyDraft] = useState(azureKey)
   const [azureRegionDraft, setAzureRegionDraft] = useState(azureRegion)
+  const [elevenLabsKeyDraft, setElevenLabsKeyDraft] = useState(elevenLabsKey)
   const [showKey, setShowKey] = useState(false)
   const prevOpenRef = useRef(false)
 
@@ -76,6 +84,7 @@ export function ApiKeyDialog({
     { key: "google" as const, label: t`Google` },
     { key: "custom" as const, label: t`Custom` },
     { key: "azure" as const, label: t`Azure` },
+    { key: "elevenlabs" as const, label: t`ElevenLabs` },
   ]
 
   // Reset drafts only when dialog opens (not on every prop change while open)
@@ -88,13 +97,14 @@ export function ApiKeyDialog({
       setCustomApiKeyDraft(customApiKey)
       setAzureKeyDraft(azureKey)
       setAzureRegionDraft(azureRegion)
+      setElevenLabsKeyDraft(elevenLabsKey)
       setShowKey(false)
     }
     prevOpenRef.current = open
-  }, [open, apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion])
+  }, [open, apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, elevenLabsKey])
 
   function handleSave() {
-    // Save all tabs — not just the active one
+    // Save all tabs, not just the active one.
     const trimmedOpenai = openaiDraft.trim()
     if (isValidOpenAIKey(trimmedOpenai) || trimmedOpenai === "") onSaveApiKey(trimmedOpenai)
 
@@ -104,8 +114,10 @@ export function ApiKeyDialog({
     onSaveCustomApiKey(customApiKeyDraft.trim())
     onSaveAzureKey(azureKeyDraft.trim())
     onSaveAzureRegion(azureRegionDraft.trim())
+    onSaveElevenLabsKey(elevenLabsKeyDraft.trim())
 
-    onOpenChange(false)
+    if (embedded) toast.success(t`API keys saved.`)
+    if (!embedded) onOpenChange(false)
   }
 
   // Check if there are any meaningful changes to save
@@ -116,21 +128,23 @@ export function ApiKeyDialog({
     customBaseUrlDraft.trim() !== customBaseUrl.trim() ||
     customApiKeyDraft.trim() !== customApiKey.trim() ||
     azureKeyDraft.trim() !== azureKey.trim() ||
-    azureRegionDraft.trim() !== azureRegion.trim()
+    azureRegionDraft.trim() !== azureRegion.trim() ||
+    elevenLabsKeyDraft.trim() !== elevenLabsKey.trim()
 
   // Validate the OpenAI key if it was changed to a non-empty value
   const openaiValid = openaiDraft.trim() === "" || openaiDraft.trim() === apiKey.trim() || isValidOpenAIKey(openaiDraft)
   const canSave = hasChanges && openaiValid
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle><Trans>API Keys</Trans></DialogTitle>
-          <DialogDescription>
-            <Trans>Configure API keys for AI pipeline features.</Trans>
-          </DialogDescription>
-        </DialogHeader>
+  const content = (
+    <>
+        {!embedded && (
+          <DialogHeader>
+            <DialogTitle><Trans>API Keys</Trans></DialogTitle>
+            <DialogDescription>
+              <Trans>Configure API keys for AI pipeline features.</Trans>
+            </DialogDescription>
+          </DialogHeader>
+        )}
 
         <div className="flex gap-1 border-b mb-3">
           {tabs.map((item) => {
@@ -139,13 +153,15 @@ export function ApiKeyDialog({
                 : item.key === "anthropic" ? anthropicKey.length > 0
                   : item.key === "google" ? googleKey.length > 0
                     : item.key === "custom" ? customBaseUrl.length > 0
-                      : azureKey.length > 0
+                      : item.key === "azure" ? azureKey.length > 0
+                        : elevenLabsKey.length > 0
             return (
               <button
+                type="button"
                 key={item.key}
                 onClick={() => { setTab(item.key); setShowKey(false) }}
                 className={cn(
-                  "flex items-center gap-1 px-2 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
+                  "flex min-h-11 items-center gap-1 px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
                   tab === item.key
                     ? "border-foreground text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground"
@@ -179,7 +195,8 @@ export function ApiKeyDialog({
                 size="icon"
                 className="absolute right-0 top-0 h-10 w-10"
                 onClick={() => setShowKey(!showKey)}
-                tabIndex={-1}
+                aria-label={showKey ? t`Hide API key` : t`Show API key`}
+                title={showKey ? t`Hide API key` : t`Show API key`}
               >
                 {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -213,7 +230,8 @@ export function ApiKeyDialog({
                 size="icon"
                 className="absolute right-0 top-0 h-10 w-10"
                 onClick={() => setShowKey(!showKey)}
-                tabIndex={-1}
+                aria-label={showKey ? t`Hide API key` : t`Show API key`}
+                title={showKey ? t`Hide API key` : t`Show API key`}
               >
                 {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -247,7 +265,8 @@ export function ApiKeyDialog({
                 size="icon"
                 className="absolute right-0 top-0 h-10 w-10"
                 onClick={() => setShowKey(!showKey)}
-                tabIndex={-1}
+                aria-label={showKey ? t`Hide API key` : t`Show API key`}
+                title={showKey ? t`Hide API key` : t`Show API key`}
               >
                 {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -294,7 +313,8 @@ export function ApiKeyDialog({
                   size="icon"
                   className="absolute right-0 top-0 h-10 w-10"
                   onClick={() => setShowKey(!showKey)}
-                  tabIndex={-1}
+                  aria-label={showKey ? t`Hide API key` : t`Show API key`}
+                  title={showKey ? t`Hide API key` : t`Show API key`}
                 >
                   {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
@@ -330,7 +350,8 @@ export function ApiKeyDialog({
                   size="icon"
                   className="absolute right-0 top-0 h-10 w-10"
                   onClick={() => setShowKey(!showKey)}
-                  tabIndex={-1}
+                  aria-label={showKey ? t`Hide API key` : t`Show API key`}
+                  title={showKey ? t`Hide API key` : t`Show API key`}
                 >
                   {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
@@ -354,15 +375,63 @@ export function ApiKeyDialog({
           </div>
         )}
 
+        {tab === "elevenlabs" && (
+          <div className="space-y-2">
+            <Label htmlFor="elevenlabs-key-input">
+              <Trans>ElevenLabs API Key</Trans>
+            </Label>
+            <div className="relative">
+              <Input
+                id="elevenlabs-key-input"
+                type={showKey ? "text" : "password"}
+                placeholder={t`ElevenLabs API key`}
+                value={elevenLabsKeyDraft}
+                onChange={(e) => setElevenLabsKeyDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && canSave) handleSave() }}
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="absolute right-0 top-0 h-10 w-10"
+                onClick={() => setShowKey(!showKey)}
+                aria-label={showKey ? t`Hide API key` : t`Show API key`}
+                title={showKey ? t`Hide API key` : t`Show API key`}
+              >
+                {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              <Trans>Used for the ElevenLabs TTS provider.</Trans>
+            </p>
+          </div>
+        )}
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            <Trans>Cancel</Trans>
-          </Button>
+          {!embedded && (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Trans>Cancel</Trans>
+            </Button>
+          )}
           <Button onClick={handleSave} disabled={!canSave}>
             <Trans>Save</Trans>
           </Button>
         </DialogFooter>
-      </DialogContent>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="rounded-xl border bg-card p-5">
+        {content}
+      </div>
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">{content}</DialogContent>
     </Dialog>
   )
 }

@@ -3,12 +3,12 @@ import type { AppConfig, GlossaryItem, GlossaryOutput } from "@adt/types"
 import {
   glossaryLLMSchema,
   WebRenderingOutput,
-  PageSectioningOutput,
   DEFAULT_LLM_MAX_RETRIES,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
 import { processWithConcurrency } from "./concurrency.js"
+import { getRenderSectioning } from "./render-sectioning.js"
 import { buildLanguageContext } from "./language-context.js"
 
 export interface GlossaryConfig {
@@ -31,6 +31,7 @@ export function buildGlossaryConfig(
     modelId:
       appConfig.glossary?.model ??
       appConfig.page_sectioning?.model ??
+      appConfig.default_model ??
       "openai:gpt-4.1",
     maxRetries: appConfig.glossary?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     language,
@@ -127,6 +128,79 @@ export function mergeGeneratedGlossaryWithManualItems(
   }
 }
 
+/** Index words that occur exactly once. Ambiguous duplicate words are omitted
+ * so media is never guessed onto the wrong regenerated entry. */
+function uniqueGlossaryWordIndexes(items: GlossaryItem[]): Map<string, number> {
+  const indexes = new Map<string, number>()
+  const duplicates = new Set<string>()
+  for (let index = 0; index < items.length; index++) {
+    const word = normalizeGlossaryWord(items[index].word)
+    if (indexes.has(word)) {
+      indexes.delete(word)
+      duplicates.add(word)
+    } else if (!duplicates.has(word)) {
+      indexes.set(word, index)
+    }
+  }
+  return indexes
+}
+
+/** Carry media from unchanged terms into a regenerated glossary. Images live
+ * on the glossary entity; videos remain in the reusable video pool and are
+ * remapped because positional `glNNN` ids can shift when terms are reordered. */
+function preserveGlossaryMedia(
+  regenerated: GlossaryOutput,
+  existingItems: GlossaryItem[],
+  storage: Storage,
+): GlossaryOutput {
+  const existingIndexByWord = uniqueGlossaryWordIndexes(existingItems)
+  const regeneratedIndexByWord = uniqueGlossaryWordIndexes(regenerated.items)
+  const items = regenerated.items.map((item) => ({ ...item }))
+
+  for (const [word, regeneratedIndex] of regeneratedIndexByWord) {
+    const existingIndex = existingIndexByWord.get(word)
+    if (existingIndex === undefined) continue
+    const imageId = existingItems[existingIndex].imageId
+    if (imageId) items[regeneratedIndex].imageId = imageId
+  }
+
+  const existingIndexByTextId = new Map<string, number>()
+  const duplicateTextIds = new Set<string>()
+  for (let index = 0; index < existingItems.length; index++) {
+    const textId = getGlossaryItemTextId(existingItems[index], index)
+    if (existingIndexByTextId.has(textId)) {
+      existingIndexByTextId.delete(textId)
+      duplicateTextIds.add(textId)
+    } else if (!duplicateTextIds.has(textId)) {
+      existingIndexByTextId.set(textId, index)
+    }
+  }
+
+  for (const video of storage.getSignLanguageVideos()) {
+    const sectionId = video.sectionId
+    if (!sectionId) continue
+
+    const existingIndex = existingIndexByTextId.get(sectionId)
+    let nextSectionId: string | null | undefined
+    if (existingIndex !== undefined) {
+      const word = normalizeGlossaryWord(existingItems[existingIndex].word)
+      const regeneratedIndex = regeneratedIndexByWord.get(word)
+      nextSectionId = regeneratedIndex === undefined
+        ? null
+        : getGlossaryItemTextId(items[regeneratedIndex], regeneratedIndex)
+    } else if (/^gl(?:\d+|_manual_)/.test(sectionId)) {
+      // Stale/unknown glossary assignments must not drift onto a new term.
+      nextSectionId = null
+    }
+
+    if (nextSectionId !== undefined && nextSectionId !== sectionId) {
+      storage.assignSignLanguageVideo(video.videoId, nextSectionId)
+    }
+  }
+
+  return { ...regenerated, items }
+}
+
 interface PageText {
   pageNumber: number
   text: string
@@ -147,14 +221,11 @@ export function collectPageTexts(
       )
     }
     const rendering = parsed.data
-    // Filter out pruned sections
-    const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-    const sectioning = structuringRow
-      ? PageSectioningOutput.safeParse(structuringRow.data)
-      : null
+    // Filter out pruned sections (resolver: positioned tree for fixed-layout)
+    const sectioning = getRenderSectioning(storage, page.pageId)
     const htmlParts = rendering.sections
       .filter(
-        (s) => !sectioning?.success || !sectioning.data.sections[s.sectionIndex]?.isPruned
+        (s) => !sectioning || !sectioning.sections[s.sectionIndex]?.isPruned
       )
       .map((s) => s.html)
     const text = stripHtml(htmlParts.join(" "))
@@ -271,6 +342,25 @@ export async function generateGlossary(
   }
 
   return aiGlossary
+}
+
+/** Regenerate the glossary while preserving manually added, edited, and pruned
+ * terms plus media attached to unchanged words. Shared by both pipeline runners
+ * so the behavior can't drift; the caller persists the returned glossary.
+ * Relies on the prior glossary node surviving any pre-run clear (see
+ * getStageRerunClearNodes). */
+export async function regenerateGlossaryPreservingEdits(
+  options: Omit<GenerateGlossaryOptions, "excludedWords">
+): Promise<GlossaryOutput> {
+  const existingRow = options.storage.getLatestNodeData("glossary", "book")
+  const existingItems = (existingRow?.data as GlossaryOutput | undefined)?.items ?? []
+  const generated = await generateGlossary({
+    ...options,
+    excludedWords: getPrunedGlossaryWords(existingItems),
+  })
+  const regenerated = mergeGeneratedGlossaryWithManualItems(generated, existingItems)
+
+  return preserveGlossaryMedia(regenerated, existingItems, options.storage)
 }
 
 export interface GenerateGlossaryItemOptions {

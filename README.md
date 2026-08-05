@@ -16,11 +16,28 @@
 
 <p align="center">
   <a href="https://www.unicef.org/" title="UNICEF">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/e/ed/Logo_of_UNICEF.svg" alt="UNICEF" height="56">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/e/ed/Logo_of_UNICEF.svg" alt="UNICEF" height="40">
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://openai.com/" title="OpenAI">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/4/4d/OpenAI_Logo.svg" alt="OpenAI" height="36">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/openai-dark.svg">
+      <img src=".github/assets/openai-light.svg" alt="OpenAI" height="40">
+    </picture>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://nees.ufal.br/" title="NEES — Núcleo de Excelência em Tecnologias Sociais">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/nees-dark.png">
+      <img src=".github/assets/nees-light.png" alt="NEES" height="44">
+    </picture>
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.ceibal.edu.uy/" title="Ceibal">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset=".github/assets/ceibal-dark.svg">
+      <img src=".github/assets/ceibal-light.svg" alt="Ceibal" height="42">
+    </picture>
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
 </p>
@@ -407,6 +424,7 @@ Notes:
 | [docs/AGENT_ROLES.md](docs/AGENT_ROLES.md) | Reference role definitions for focused agent tasks |
 | [docs/GUIDELINES.md](docs/GUIDELINES.md) | Full coding standards, security, patterns |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture decision records with reasoning |
+| [docs/STORYBOARD-BOOK-REMEDIATION-GUIDE.md](docs/STORYBOARD-BOOK-REMEDIATION-GUIDE.md) | Reusable non-destructive Storyboard remediation and quality gates |
 | [docs/architecture.html](docs/architecture.html) | Interactive architecture diagram (open in browser) |
 | [docs/I18N_ADD_LANGUAGE.md](docs/I18N_ADD_LANGUAGE.md) | How to add a new UI language (Lingui i18n) |
 

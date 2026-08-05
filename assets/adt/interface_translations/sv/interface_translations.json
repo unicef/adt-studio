@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Administrationsverktygen läggs till i en kommande uppdatering.",
     "main-menu-label": "Huvudmeny",
     "cover-label": "Omslag",
-    "print-page-label": "Skriv ut sida"
+    "print-page-label": "Skriv ut sida",
+    "stepper-progress-n-of-m": "Steg ${n} av ${m}",
+    "stepper-word-bank": "Ord att välja bland",
+    "stepper-open-ended-saved": "Bra jobbat — ditt svar har sparats.",
+    "stepper-open-ended-rephrase": "Låt oss vara snälla — försök formulera om ditt svar.",
+    "open-ended-answer-label": "Ditt svar"
 }

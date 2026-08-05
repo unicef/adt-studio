@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Administratorværktøjer tilføjes i en kommende opdatering.",
     "main-menu-label": "Hovedmenu",
     "cover-label": "Forside",
-    "print-page-label": "Udskriv side"
+    "print-page-label": "Udskriv side",
+    "stepper-progress-n-of-m": "Trin ${n} af ${m}",
+    "stepper-word-bank": "Ord at vælge imellem",
+    "stepper-open-ended-saved": "Godt gået — dit svar er gemt.",
+    "stepper-open-ended-rephrase": "Lad os holde en god tone — prøv at omformulere dit svar.",
+    "open-ended-answer-label": "Dit svar"
 }

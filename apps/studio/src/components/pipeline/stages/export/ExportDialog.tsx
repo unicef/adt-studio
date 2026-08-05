@@ -35,6 +35,7 @@ import {
 import { useBook } from "@/hooks/use-books";
 import { usePages, usePageImage } from "@/hooks/use-pages";
 import { useBookConfig } from "@/hooks/use-book-config";
+import { usePartInfo } from "@/hooks/use-parts";
 import { getDisplayName, normalizeLocale } from "@/lib/languages";
 import {
   useAvailableExportFeatures,
@@ -45,6 +46,7 @@ import {
   buildExportFormatConfig,
   type ExportFormat,
 } from "./export-formats";
+import { EpubGlossaryOptions } from "./EpubGlossaryOptions";
 
 function BookCover({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui();
@@ -566,7 +568,8 @@ export function ExportDialog({
   const { t } = useLingui();
   const availableFeatures = useAvailableExportFeatures(bookLabel);
   const allFeatures = useAllProjectFeatures(bookLabel);
-  const formatConfigByType = buildExportFormatConfig(t);
+  const { data: partInfo } = usePartInfo(bookLabel);
+  const formatConfigByType = buildExportFormatConfig(t, { isPart: !!partInfo });
 
   const { data: configData } = useBookConfig(bookLabel);
   const { data: book } = useBook(bookLabel);
@@ -835,21 +838,30 @@ export function ExportDialog({
                     </h4>
                     <div className="space-y-1">
                       {availableFeatures.glossary && (
-                        <FeatureToggleRow
-                          icon={BookOpen}
-                          label={<Trans>Glossary</Trans>}
-                          description={
-                            <Trans>Lookup definitions for key terms</Trans>
-                          }
-                          textColor="text-lime-600"
-                          bgLight="bg-lime-50"
-                          borderColor="border-lime-200"
-                          checked={featureToggles.glossary}
-                          onCheckedChange={(v) =>
-                            onFeatureToggleChange("glossary", v)
-                          }
-                          disabled={isPreparing}
-                        />
+                        <>
+                          <FeatureToggleRow
+                            icon={BookOpen}
+                            label={<Trans>Glossary</Trans>}
+                            description={
+                              <Trans>Lookup definitions for key terms</Trans>
+                            }
+                            textColor="text-lime-600"
+                            bgLight="bg-lime-50"
+                            borderColor="border-lime-200"
+                            checked={featureToggles.glossary}
+                            onCheckedChange={(v) =>
+                              onFeatureToggleChange("glossary", v)
+                            }
+                            disabled={isPreparing}
+                          />
+                          {selectedFormat === "epub" &&
+                            featureToggles.glossary && (
+                              <EpubGlossaryOptions
+                                bookLabel={bookLabel}
+                                disabled={isPreparing}
+                              />
+                            )}
+                        </>
                       )}
                       {availableFeatures.readAloud && (
                         <FeatureToggleRow

@@ -9,6 +9,7 @@ import {
   createTTSSynthesizer,
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,
+  createElevenLabsTTSSynthesizer,
 } from "@adt/llm"
 import type { LLMModel, LlmLogEntry, LogLevel, TTSSynthesizer } from "@adt/llm"
 import type {
@@ -17,6 +18,7 @@ import type {
   PageSectioningOutput,
   BookMetadata,
   BookSummaryOutput,
+  GlossaryOutput,
   TextCatalogOutput,
   TextCatalogEntry,
   EasyReadOutput,
@@ -24,7 +26,14 @@ import type {
   TTSOutput,
   WebRenderingOutput,
 } from "@adt/types"
+import { isTtsExcluded } from "@adt/types"
 import { extractPDF } from "./pdf-extraction.js"
+import {
+  resolveFontsCacheDir,
+  buildBookFontsPromptContext,
+  ensureBookGoogleFontsCached,
+} from "./fonts-bundle.js"
+import { readTypography } from "./typography.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
 import {
@@ -34,12 +43,12 @@ import {
 import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.js"
 import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
-import { segmentPageImages, applySegmentation, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
-import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
+import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
+import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds, collectSourcePageImages } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
-import { captionPageImages, buildCaptionConfig, extractImageIds } from "./image-captioning.js"
-import { generateGlossary, buildGlossaryConfig } from "./glossary.js"
+import { captionPageImages, buildCaptionConfig, collectCaptionImageIds, groupGlossaryImageIdsByPage } from "./image-captioning.js"
+import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
 import { buildTextCatalog } from "./text-catalog.js"
@@ -55,10 +64,17 @@ import {
   resolveSpeechModel,
   resolveSpeechFormat,
   generateSpeechFile,
+  findAdjacentSpeechText,
+  elevenLabsVoiceSettingsFromConfig,
+  classifyElevenLabsTtsError,
+  elevenLabsTtsRetryDelayMs,
+  ELEVENLABS_TTS_MAX_CONCURRENCY,
+  ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
   type ProviderRouting,
 } from "./speech.js"
-import { packageAdtWeb } from "./package-web.js"
+import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
+import { getRenderSectioning, getSemanticSectioning } from "./render-sectioning.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"
 import { loadBookConfig } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
@@ -101,6 +117,7 @@ export interface FullPipelineOptions {
   azureSpeechKey?: string
   azureSpeechRegion?: string
   geminiApiKey?: string
+  elevenLabsApiKey?: string
 }
 
 /**
@@ -199,10 +216,12 @@ export async function runFullPipeline(
           startPage: startPage ?? config.start_page,
           endPage: endPage ?? config.end_page,
           spreadMode: config.spread_mode,
+          spreadPairs: config.spread_pairs,
           vectorTextGrouping: config.vector_text_grouping,
           // Gates the positioned-text pipeline (fixed-layout rendering is its
           // only consumer). Must match stage-runner so re-runs are consistent.
           fixedLayout: isFixedLayoutBook(config),
+          fontsCacheDir: resolveFontsCacheDir(booksRoot),
         },
         storage,
         progressOnly(p),
@@ -296,7 +315,12 @@ export async function runFullPipeline(
               (imageId) => storage.getImageBase64(imageId),
               segDims,
             )
+            const srcMeta = new Map(allImages.map((img) => [img.imageId, img]))
             for (const seg of applied) {
+              const src = srcMeta.get(seg.sourceImageId)
+              const bounds = src?.bounds
+                ? segmentBoundsOnPage(src.bounds, src.width, src.height, seg)
+                : undefined
               storage.putSegmentedImage({
                 sourceImageId: seg.sourceImageId,
                 segmentIndex: seg.segmentIndex,
@@ -305,6 +329,7 @@ export async function runFullPipeline(
                 buffer: seg.buffer,
                 width: seg.width,
                 height: seg.height,
+                bounds,
               })
               const segImageId = getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion)
               imageClassification.images.push({
@@ -453,15 +478,11 @@ export async function runFullPipeline(
     const isFixedLayout = isFixedLayoutBook(config)
 
     executors.set("page-sectioning", async (p) => {
-      if (isFixedLayout) {
-        // Fixed-layout: both sectioning and rendering happen here, driven
-        // off the positioned-text + image-filtering data the extract step
-        // already wrote. No LLM call.
-        const imageUrlPrefix = `/api/books/${label}/images`
-        processFixedLayoutPages(storage, imageUrlPrefix)
-        p.emit({ type: "step-progress", step: "page-sectioning", message: "fixed-layout pages" })
-        return
-      }
+      // Semantic LLM sectioning runs for ALL books (including fixed-layout) so
+      // `page-sectioning` always holds the editable semantic tree, the
+      // Sectioning view never empties, and the render strategy can be toggled
+      // without re-sectioning. Fixed-layout's positioned tree + rendering is
+      // produced in the web-rendering step instead (see below).
       const model = getModel(pageSectioningConfig.modelId)
       const pages = storage.getPages()
       const totalPages = pages.length
@@ -529,8 +550,17 @@ export async function runFullPipeline(
     })
 
     executors.set("web-rendering", async (p) => {
-      // Fixed-layout rendering is already done in page-sectioning step
-      if (isFixedLayout) return
+      if (isFixedLayout) {
+        // Fixed-layout: build the positioned tree (into `fixed-layout-sectioning`)
+        // and render from it. Driven off positioned-text + image-filtering; no
+        // LLM call. `page-sectioning` (semantic) is left intact.
+        const imageUrlPrefix = `/api/books/${label}/images`
+        processFixedLayoutPages(storage, imageUrlPrefix)
+        p.emit({ type: "step-progress", step: "web-rendering", message: "fixed-layout pages" })
+        return
+      }
+
+      await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksRoot))
 
       const renderModels = new Map<string, LLMModel>()
       const resolveRenderModel = (modelId: string): LLMModel => {
@@ -543,6 +573,8 @@ export async function runFullPipeline(
       }
       const pages = storage.getPages()
       const totalPages = pages.length
+      // Resolve once per book — every page shares the same typography.
+      const typography = readTypography(storage)
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
         const imageClassRow = storage.getLatestNodeData("image-filtering", page.pageId)
@@ -558,9 +590,37 @@ export async function runFullPipeline(
           const dims = pageDims.get(imageId)
           renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
         }
+        // Sections can reference images extracted on other pages (cross-page
+        // merges, images added from another page) — those are not in this
+        // page's image-filtering output, so pull them in by walking the tree.
+        for (const imageId of collectReferencedImageIds(sectioning.sections)) {
+          if (renderImages.has(imageId)) continue
+          try {
+            const dims = storage.getImageDimensions(imageId)
+            renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width ?? undefined, height: dims?.height ?? undefined })
+          } catch {
+            // Image file no longer exists — leave it out; the renderer emits
+            // the URL reference without pixels.
+          }
+        }
         const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+        // Page images for content merged in from other pages (cross-page
+        // merges) — per-section provenance recorded in sourcePageIds.
+        const sourcePageImages = collectSourcePageImages(
+          sectioning.sections,
+          (id) => storage.getPageImageBase64(id)
+        )
         const result = await renderPage(
-          { label, pageId: page.pageId, pageImageBase64, sectioning: sectioning, images: renderImages },
+          {
+            label,
+            pageId: page.pageId,
+            pageImageBase64,
+            sectioning: sectioning,
+            images: renderImages,
+            sourcePageImages,
+            bookFonts: buildBookFontsPromptContext(storage),
+            typography,
+          },
           resolveRenderConfig,
           resolveRenderModel,
           templateEngine,
@@ -588,12 +648,17 @@ export async function runFullPipeline(
       const quizPages: QuizPageInput[] = []
       for (const page of pages) {
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        if (!renderingRow || !structuringRow) continue
+        // Filter by the SEMANTIC sectioning (real section types like
+        // `text_and_single_image`), not the render sectioning — in fixed-layout
+        // the latter is the positioned tree whose only type is
+        // `fixed-layout-page`, which never matches `quiz_section_types`, so no
+        // quizzes would ever generate.
+        const sectioning = getSemanticSectioning(storage, page.pageId)
+        if (!renderingRow || !sectioning) continue
         quizPages.push({
           pageId: page.pageId,
           rendering: renderingRow.data as WebRenderingOutput,
-          sectioning: structuringRow.data as PageSectioningOutput,
+          sectioning,
         })
       }
       if (quizPages.length > 0) {
@@ -620,6 +685,12 @@ export async function runFullPipeline(
       const model = getModel(captionConfig.modelId)
       const summaryRow = storage.getLatestNodeData("book-summary", "book")
       const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
+      const glossaryRow = storage.getLatestNodeData("glossary", "book")
+      const glossary = glossaryRow?.data as GlossaryOutput | undefined
+      const glossaryImageIdsByPage = groupGlossaryImageIdsByPage(
+        glossary,
+        (imageId) => storage.getImageMeta(imageId)?.pageId,
+      )
       const pages = storage.getPages()
       const totalPages = pages.length
       let completed = 0
@@ -627,12 +698,14 @@ export async function runFullPipeline(
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
         if (!renderingRow) return
         const rendering = renderingRow.data as WebRenderingOutput
-        const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        const sectioning = structuringRow?.data as PageSectioningOutput | undefined
+        const sectioning = getRenderSectioning(storage, page.pageId)
         const htmlSections = rendering.sections
           .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
           .map((s) => s.html)
-        const imageIds = extractImageIds(htmlSections)
+        const imageIds = collectCaptionImageIds(
+          htmlSections,
+          glossaryImageIdsByPage.get(page.pageId),
+        )
         if (imageIds.length === 0) {
           storage.putNodeData("image-captioning", page.pageId, { captions: [] })
         } else {
@@ -666,7 +739,8 @@ export async function runFullPipeline(
       const glossaryConfig = buildGlossaryConfig(config, language)
       const model = getModel(glossaryConfig.modelId)
       const pages = storage.getPages()
-      const glossary = await generateGlossary({
+
+      const glossary = await regenerateGlossaryPreservingEdits({
         storage,
         pages,
         config: glossaryConfig,
@@ -823,9 +897,13 @@ export async function runFullPipeline(
       const geminiConfig = options.geminiApiKey
         ? { apiKey: options.geminiApiKey }
         : undefined
+      const elevenLabsConfig = options.elevenLabsApiKey
+        ? { apiKey: options.elevenLabsApiKey }
+        : undefined
       const voiceMaps = loadVoicesConfig(configDir)
       const instructionsMap = loadSpeechInstructions(configDir)
-      const speechModel = config.speech?.model
+      const speechModel =
+        config.speech?.model ?? config.default_speech_generation_model
       const defaultProvider = config.speech?.default_provider ?? "openai"
       const providerConfigs = config.speech?.providers ?? {}
       const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
@@ -847,12 +925,23 @@ export async function runFullPipeline(
           synthesizers.set("gemini", synth)
           return synth
         }
+        if (providerName === "elevenlabs") {
+          if (!elevenLabsConfig && !process.env.ELEVENLABS_API_KEY) {
+            throw new Error("ELEVENLABS_API_KEY is required for ElevenLabs TTS provider")
+          }
+          const synth = createElevenLabsTTSSynthesizer(elevenLabsConfig, {
+            sampleRate: config.speech?.sample_rate,
+            bitRate: config.speech?.bit_rate,
+          })
+          synthesizers.set("elevenlabs", synth)
+          return synth
+        }
         const synth = createTTSSynthesizer()
         synthesizers.set(providerName, synth)
         return synth
       }
 
-      interface TTSWorkItem { textId: string; text: string; language: string }
+      interface TTSWorkItem { textId: string; text: string; language: string; previousText?: string; nextText?: string }
       const workItems: TTSWorkItem[] = []
       for (const lang of outputLanguages) {
         const baseSource = getBaseLanguage(language)
@@ -868,8 +957,22 @@ export async function runFullPipeline(
           if (!translatedRow) throw new Error(`Missing translated catalog for output language: ${lang}`)
           entries = (translatedRow.data as TextCatalogOutput).entries
         }
-        for (const entry of entries) {
-          workItems.push({ textId: entry.id, text: entry.text, language: lang })
+        const provider = resolveProviderForLanguage(lang, routing)
+        for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
+          const entry = entries[entryIndex]
+          if (isTtsExcluded(entry.id, config.speech)) continue
+          // ElevenLabs-only: adjacent-entry context, opt-in via
+          // elevenlabs_use_context. Must resolve identically to stage-runner.ts
+          // so the shared cache key (computeSpeechCacheKey) stays in sync.
+          const previousText =
+            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
+              : undefined
+          const nextText =
+            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
+              : undefined
+          workItems.push({ textId: entry.id, text: entry.text, language: lang, previousText, nextText })
         }
       }
 
@@ -878,7 +981,9 @@ export async function runFullPipeline(
       const resultsByLang = new Map<string, SpeechFileEntry[]>()
       for (const lang of outputLanguages) resultsByLang.set(lang, [])
 
-      await processWithConcurrency(workItems, effectiveConcurrency, async (item) => {
+      const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(config.speech)
+
+      const runTtsItem = async (item: TTSWorkItem) => {
         const provider = resolveProviderForLanguage(item.language, routing)
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
@@ -891,19 +996,55 @@ export async function runFullPipeline(
             ? resolveInstructions(item.language, instructionsMap)
             : ""
         const ttsSynthesizer = getSynthesizer(provider)
-        const entry = await generateSpeechFile({
-          textId: item.textId,
-          text: item.text,
-          language: item.language,
-          model: providerModel,
-          voice,
-          instructions,
-          format: outputFormat,
-          bookDir: path.join(path.resolve(booksRoot), label),
-          cacheDir,
-          ttsSynthesizer,
-          provider,
-        })
+        const generate = () =>
+          generateSpeechFile({
+            textId: item.textId,
+            text: item.text,
+            language: item.language,
+            model: providerModel,
+            voice,
+            instructions,
+            format: outputFormat,
+            bookDir: path.join(path.resolve(booksRoot), label),
+            cacheDir,
+            ttsSynthesizer,
+            provider,
+            geminiTemperature: config.speech?.temperature,
+            geminiSeed: config.speech?.seed,
+            elevenLabsPreviousText: item.previousText,
+            elevenLabsNextText: item.nextText,
+            elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+            ...elevenLabsVoiceSettings,
+          })
+
+        // ElevenLabs throttles on concurrent requests, so a burst returns 429s
+        // that would otherwise fail the entry outright. Retry 429/5xx with the
+        // same backoff the API stage-runner uses.
+        let entry: Awaited<ReturnType<typeof generateSpeechFile>>
+        if (provider === "elevenlabs") {
+          for (let attemptCount = 1; ; attemptCount++) {
+            try {
+              entry = await generate()
+              break
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err)
+              if (
+                classifyElevenLabsTtsError(message) === "permanent" ||
+                attemptCount > ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES
+              ) {
+                throw err
+              }
+              const delayMs = elevenLabsTtsRetryDelayMs(attemptCount)
+              console.warn(
+                `[pipeline] ElevenLabs TTS failed for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${delayMs}ms: ${message}`
+              )
+              await new Promise((resolve) => setTimeout(resolve, delayMs))
+            }
+          }
+        } else {
+          entry = await generate()
+        }
+
         if (entry) resultsByLang.get(item.language)!.push(entry)
         completedItems++
         p.emit({
@@ -913,7 +1054,26 @@ export async function runFullPipeline(
           page: completedItems,
           totalPages: totalItems,
         })
-      })
+      }
+
+      // ElevenLabs plans cap *concurrent* requests (Free ~4, Starter ~5), far
+      // below the default concurrency of 32, so its items run in their own
+      // capped pass. Everything else keeps full concurrency — the two passes run
+      // together so a mixed book doesn't throttle its non-ElevenLabs languages.
+      const elevenLabsItems = workItems.filter(
+        (item) => resolveProviderForLanguage(item.language, routing) === "elevenlabs"
+      )
+      const otherItems = workItems.filter(
+        (item) => resolveProviderForLanguage(item.language, routing) !== "elevenlabs"
+      )
+      await Promise.all([
+        processWithConcurrency(otherItems, effectiveConcurrency, runTtsItem),
+        processWithConcurrency(
+          elevenLabsItems,
+          Math.min(ELEVENLABS_TTS_MAX_CONCURRENCY, effectiveConcurrency),
+          runTtsItem
+        ),
+      ])
 
       for (const lang of outputLanguages) {
         const entries = resultsByLang.get(lang)!
@@ -942,6 +1102,7 @@ export async function runFullPipeline(
         speechConfig: config.speech,
         fixedLayout: isFixedLayoutBook(config),
         reflowableFont: config.reflowable_font,
+        quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
       }, progressOnly(p))
     })
 

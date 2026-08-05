@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "የአስተዳዳሪ መሣሪያዎች በቀጣዩ ስሪት ውስጥ ይተላለፋሉ።",
     "main-menu-label": "ዋና ምናሌ",
     "cover-label": "ሽፋን",
-    "print-page-label": "ገጽ አትም"
+    "print-page-label": "ገጽ አትም",
+    "stepper-progress-n-of-m": "ደረጃ ${n} ከ ${m}",
+    "stepper-word-bank": "የሚመረጡ ቃላት",
+    "stepper-open-ended-saved": "ጥሩ ስራ — መልስህ ተቀምጧል።",
+    "stepper-open-ended-rephrase": "ደግ እንሁን — መልስህን በሌላ መንገድ ለመጻፍ ሞክር።",
+    "open-ended-answer-label": "መልስህ"
 }

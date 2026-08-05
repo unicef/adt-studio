@@ -142,3 +142,126 @@ describe("createLLMModel credentials", () => {
     )
   })
 })
+
+describe("createLLMModel cancellation", () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("combines the external signal into the request abort signal", async () => {
+    openaiProviderMock.mockReturnValue({ provider: "openai" })
+    let captured: AbortSignal | undefined
+    generateObjectMock.mockImplementation((opts: { abortSignal?: AbortSignal }) => {
+      captured = opts.abortSignal
+      return Promise.resolve({
+        object: { ok: true },
+        usage: { promptTokens: 1, completionTokens: 1 },
+      })
+    })
+
+    const controller = new AbortController()
+    const llm = createLLMModel({ modelId: "openai:gpt-4.1", signal: controller.signal })
+    await llm.generateObject({
+      schema: z.object({ ok: z.boolean() }),
+      messages: [{ role: "user", content: "hi" }],
+    })
+
+    expect(captured).toBeInstanceOf(AbortSignal)
+    expect(captured?.aborted).toBe(false)
+    // Aborting the external signal aborts the combined request signal.
+    controller.abort()
+    expect(captured?.aborted).toBe(true)
+  })
+
+  it("does not retry when the external signal is aborted", async () => {
+    openaiProviderMock.mockReturnValue({ provider: "openai" })
+    generateObjectMock.mockRejectedValue(new Error("aborted"))
+
+    const controller = new AbortController()
+    controller.abort()
+    const llm = createLLMModel({ modelId: "openai:gpt-4.1", signal: controller.signal })
+
+    await expect(
+      llm.generateObject({
+        schema: z.object({ ok: z.boolean() }),
+        messages: [{ role: "user", content: "hi" }],
+        maxRetries: 5,
+      }),
+    ).rejects.toThrow()
+    // Cancelled: exactly one attempt, no retries despite maxRetries: 5.
+    expect(generateObjectMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("still retries a normal failure when no signal is aborted", async () => {
+    openaiProviderMock.mockReturnValue({ provider: "openai" })
+    generateObjectMock
+      .mockRejectedValueOnce(new Error("transient"))
+      .mockResolvedValueOnce({
+        object: { ok: true },
+        usage: { promptTokens: 1, completionTokens: 1 },
+      })
+
+    const llm = createLLMModel({ modelId: "openai:gpt-4.1" })
+    const result = await llm.generateObject<{ ok: boolean }>({
+      schema: z.object({ ok: z.boolean() }),
+      messages: [{ role: "user", content: "hi" }],
+      maxRetries: 1,
+    })
+
+    expect(result.object).toEqual({ ok: true })
+    expect(generateObjectMock).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe("createLLMModel validation retries", () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("feeds validation errors back to the model before retrying", async () => {
+    const validationError =
+      "Page mode requires exactly one section, but the response contains 2."
+
+    openaiProviderMock.mockReturnValue({ provider: "openai" })
+    generateObjectMock
+      .mockResolvedValueOnce({
+        object: { sections: [{ id: 1 }, { id: 2 }] },
+        usage: { promptTokens: 1, completionTokens: 1 },
+      })
+      .mockResolvedValueOnce({
+        object: { sections: [{ id: 1 }] },
+        usage: { promptTokens: 1, completionTokens: 1 },
+      })
+
+    const llm = createLLMModel({ modelId: "openai:gpt-4.1" })
+    const result = await llm.generateObject<{ sections: Array<{ id: number }> }>({
+      schema: z.object({ sections: z.array(z.object({ id: z.number() })) }),
+      messages: [{ role: "user", content: "Section this page" }],
+      maxRetries: 1,
+      validate: (value) => {
+        const sections = (value as { sections?: unknown[] }).sections
+        return sections?.length === 1
+          ? { valid: true, errors: [] }
+          : { valid: false, errors: [validationError] }
+      },
+    })
+
+    expect(result.object.sections).toEqual([{ id: 1 }])
+    expect(generateObjectMock).toHaveBeenCalledTimes(2)
+
+    const retryOptions = generateObjectMock.mock.calls[1]?.[0] as {
+      messages?: Array<{ role: string; content: string }>
+    }
+    expect(retryOptions.messages).toEqual([
+      { role: "user", content: "Section this page" },
+      {
+        role: "assistant",
+        content: JSON.stringify({ sections: [{ id: 1 }, { id: 2 }] }, null, 2),
+      },
+      {
+        role: "user",
+        content: expect.stringContaining(validationError),
+      },
+    ])
+  })
+})

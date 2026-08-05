@@ -33,7 +33,10 @@ export function buildSegmentationConfig(
 
   return {
     promptName: appConfig.image_segmentation?.prompt ?? "image_segmentation",
-    modelId: appConfig.image_segmentation?.model || DEFAULT_SEGMENTATION_MODEL,
+    modelId:
+      appConfig.image_segmentation?.model
+      || appConfig.default_model
+      || DEFAULT_SEGMENTATION_MODEL,
     maxRetries:
       appConfig.image_segmentation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     minSide: appConfig.image_segmentation?.min_side,
@@ -188,6 +191,34 @@ export interface AppliedSegment {
   buffer: Buffer
   width: number
   height: number
+  /** Final crop box (after padding/clamping) in the source image's pixels. */
+  cropLeft: number
+  cropTop: number
+  cropRight: number
+  cropBottom: number
+}
+
+/**
+ * Map a segment's crop box (in the source image's pixels) to a placement on the
+ * page, in PDF points (top-left origin) — the same coordinate space as the
+ * source image's own `bounds`. Used so recrop-from-page can overlay the crop
+ * box on the region the segment was extracted from.
+ */
+export function segmentBoundsOnPage(
+  sourceBounds: { x: number; y: number; width: number; height: number },
+  sourceWidth: number,
+  sourceHeight: number,
+  crop: { cropLeft: number; cropTop: number; cropRight: number; cropBottom: number },
+): { x: number; y: number; width: number; height: number } {
+  if (sourceWidth <= 0 || sourceHeight <= 0) return { ...sourceBounds }
+  const sx = sourceBounds.width / sourceWidth
+  const sy = sourceBounds.height / sourceHeight
+  return {
+    x: sourceBounds.x + crop.cropLeft * sx,
+    y: sourceBounds.y + crop.cropTop * sy,
+    width: (crop.cropRight - crop.cropLeft) * sx,
+    height: (crop.cropBottom - crop.cropTop) * sy,
+  }
 }
 
 const DEFAULT_SEGMENT_PADDING = 10
@@ -256,6 +287,10 @@ export function applySegmentation(
         buffer: cropped,
         width,
         height,
+        cropLeft: left,
+        cropTop: top,
+        cropRight: right,
+        cropBottom: bottom,
       })
     }
   }

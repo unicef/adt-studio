@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "অ্যাডমিন টুল পরবর্তী আপডেটে যোগ করা হবে।",
     "main-menu-label": "প্রধান মেনু",
     "cover-label": "কভার",
-    "print-page-label": "পৃষ্ঠা মুদ্রণ করুন"
+    "print-page-label": "পৃষ্ঠা মুদ্রণ করুন",
+    "stepper-progress-n-of-m": "ধাপ ${n}, মোট ${m}",
+    "stepper-word-bank": "বেছে নেওয়ার শব্দ",
+    "stepper-open-ended-saved": "দারুণ — তোমার উত্তর সংরক্ষণ করা হয়েছে।",
+    "stepper-open-ended-rephrase": "চলো সদয় থাকি — তোমার উত্তরটি অন্যভাবে লেখার চেষ্টা করো।",
+    "open-ended-answer-label": "তোমার উত্তর"
 }

@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "سيتم نقل أدوات المسؤول في تحديث لاحق.",
     "main-menu-label": "القائمة الرئيسية",
     "cover-label": "الغلاف",
-    "print-page-label": "طباعة الصفحة"
+    "print-page-label": "طباعة الصفحة",
+    "stepper-progress-n-of-m": "الخطوة ${n} من ${m}",
+    "stepper-word-bank": "كلمات للاختيار من بينها",
+    "stepper-open-ended-saved": "أحسنت — تم حفظ إجابتك.",
+    "stepper-open-ended-rephrase": "لنحافظ على اللطف — حاول إعادة صياغة إجابتك.",
+    "open-ended-answer-label": "إجابتك"
 }

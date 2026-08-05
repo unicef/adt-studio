@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Инструментите за администратор ще бъдат добавени в следваща версия.",
     "main-menu-label": "Главно меню",
     "cover-label": "Корица",
-    "print-page-label": "Принтирай страницата"
+    "print-page-label": "Принтирай страницата",
+    "stepper-progress-n-of-m": "Стъпка ${n} от ${m}",
+    "stepper-word-bank": "Думи за избор",
+    "stepper-open-ended-saved": "Браво — отговорът ти е запазен.",
+    "stepper-open-ended-rephrase": "Нека бъдем любезни — опитай да преформулираш отговора си.",
+    "open-ended-answer-label": "Твоят отговор"
 }

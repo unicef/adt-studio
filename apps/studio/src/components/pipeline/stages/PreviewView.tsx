@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import type { AccessibilityFinding } from "@adt/types"
 import { Trans } from "@lingui/react/macro"
 import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
@@ -18,8 +18,15 @@ import {
   normalizeAccessibilityHref,
   summarizeAccessibilityPage,
 } from "@/lib/accessibility-summary"
+import { createPortal } from "react-dom"
+import { useStepHeader } from "@/components/pipeline/components/StepViewRouter"
 import { PreviewAccessibilityCard } from "./PreviewAccessibilityCard"
 import { PreviewValidationCard } from "./PreviewValidationCard"
+import { useDeviceView, DEVICE_WIDTHS } from "./storyboard/components/style-editor/device-breakpoint"
+import { getDeviceFrame, getTargetVisibleWidth } from "./storyboard/components/style-editor/device-chrome"
+import { ViewportToggle } from "./storyboard/components/style-editor/ViewportToggle"
+import { IPhoneFrame } from "./storyboard/components/style-editor/device-frames/iphone-frame"
+import { IPadFrame } from "./storyboard/components/style-editor/device-frames/ipad-frame"
 
 const HIGHLIGHT_STYLE_ID = "adt-preview-a11y-highlights"
 const HIGHLIGHT_ATTR = "data-adt-a11y-hover"
@@ -37,19 +44,10 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const ranRef = useRef(false)
-  // Fixed-layout pages render at their native pixel viewport (e.g.
-  // 1587×1224) which usually exceeds the studio preview pane. Detect the
-  // page's intrinsic size from the iframe body's inline width/height and
-  // CSS-scale the iframe to fit, mirroring the storyboard preview.
-  // null = reflowable (no scaling).
-  // `referenceWidth` is the book-wide widest page (a full spread in spread
-  // mode), read from `#content`'s `data-fl-reference-width`. Scaling off it —
-  // not this page's own width — keeps every page at one uniform scale, so a
-  // single cover/end page renders centered at half-width rather than upscaled
-  // to fill the pane. Falls back to the page's own width when absent.
-  const [fixedLayoutSize, setFixedLayoutSize] = useState<{ height: number; referenceWidth: number } | null>(null)
-  const [availableWidth, setAvailableWidth] = useState(0)
   const { panelOpen } = useDebugPanelState()
+  const { headerSlotEl } = useStepHeader()
+  const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
+  const [available, setAvailable] = useState({ width: 0, height: 0 })
   const [isSubmittingPackage, setIsSubmittingPackage] = useState(false)
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null)
   const [pendingVersion, setPendingVersion] = useState<string | null>(null)
@@ -135,58 +133,11 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
       const signLanguageEnabled =
         iframe.contentDocument.querySelector("#sl-quick-toggle-button, #sign-language-video") !== null
 
-      // Detect fixed-layout pages — `package-web.ts` emits inline
-      // `style="...width:Wpx;height:Hpx..."` on `<body>` for fixed-layout
-      // page HTML. Parse those values; null otherwise. The book-wide
-      // reference width lives on `#content`'s `data-fl-reference-width`.
-      const body = iframe.contentDocument.body
-      const w = parsePxStyle(body?.style.width)
-      const h = parsePxStyle(body?.style.height)
-      const contentEl = iframe.contentDocument.getElementById("content")
-      const refRaw = contentEl?.getAttribute("data-fl-reference-width")
-      const ref = refRaw ? parseFloat(refRaw) : NaN
-      if (w !== null && h !== null && body) {
-        // The iframe is laid out at the book's reference (spread) width so the
-        // reader's full-width bottom dock — fixed to the iframe viewport —
-        // stays one constant width on every page (see iframeStyle). Center this
-        // page's (possibly narrower) body within that viewport so a single
-        // cover/end page sits in the middle with the dock spanning the whole
-        // panel beneath it. Overrides the produced page's inline `margin:0`.
-        body.style.marginLeft = "auto"
-        body.style.marginRight = "auto"
-        setFixedLayoutSize({ height: h, referenceWidth: Number.isFinite(ref) && ref > 0 ? ref : w })
-      } else {
-        setFixedLayoutSize(null)
-      }
-
       setCurrentPreviewPage({ sectionId, href, title, hasImages, hasActivity, signLanguageEnabled })
     } catch {
-      setFixedLayoutSize(null)
       setCurrentPreviewPage({ sectionId: null, href: null, title: null, hasImages: false, hasActivity: false, signLanguageEnabled: false })
     }
   }, [])
-
-  // Track wrapper width so the scale recomputes when the panel resizes
-  // (debug panel toggle, window resize, sidebar collapse, etc.). Depends
-  // on `ready` because the wrapper only renders once packaging is done —
-  // without that dep the effect runs once on mount when the wrapper
-  // doesn't exist yet, ref is null, and the observer never attaches.
-  useEffect(() => {
-    if (!ready) return
-    const el = wrapperRef.current
-    if (!el) return
-    setAvailableWidth(el.getBoundingClientRect().width)
-    const ro = new ResizeObserver((entries) => {
-      const entry = entries[0]
-      if (entry) setAvailableWidth(entry.contentRect.width)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [ready])
-
-  const scale = fixedLayoutSize && availableWidth > 0
-    ? Math.min(1, availableWidth / fixedLayoutSize.referenceWidth)
-    : 1
 
   const packaging = !ready && (isSubmittingPackage || isTaskRunning("package-adt"))
 
@@ -308,6 +259,16 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     })
   }, [bookLabel, currentPreviewPage.href, navigate, navigatePreviewToHref, ready, search.previewHref])
 
+  useEffect(() => {
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+    const update = () => setAvailable({ width: wrapper.clientWidth, height: wrapper.clientHeight })
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(wrapper)
+    return () => ro.disconnect()
+  }, [ready, deviceView])
+
   if (isStatusLoading || prunedLoading) {
     return <LoadingState stageSlug="preview" label={<Trans>Loading preview...</Trans>} />
   }
@@ -335,46 +296,68 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }
 
   if (ready) {
-    // Fixed-layout: lay the iframe out at the book's reference (spread) width —
-    // not this page's own width — and CSS-scale it via transform to fit the
-    // pane. Using the constant reference width keeps the reader's bottom dock
-    // (fixed to the iframe viewport, full-width) one consistent width on every
-    // page; a single page's narrower body is centered within that viewport
-    // (see syncCurrentPreviewPage), so the cover sits in the middle with the
-    // dock spanning the whole panel. The sizing div takes the *scaled*
-    // dimensions (the iframe's layout box stays at native size despite the
-    // transform, so we wrap it to keep page layout honest).
-    // Reflowable: iframe fills the wrapper as before.
-    const iframeStyle: CSSProperties = fixedLayoutSize
-      ? {
-          width: fixedLayoutSize.referenceWidth,
-          height: fixedLayoutSize.height,
-          transform: `scale(${scale})`,
-          transformOrigin: "0 0",
-        }
-      : { width: "100%", height: "100%" }
-    const sizerStyle: CSSProperties = fixedLayoutSize
-      ? {
-          width: fixedLayoutSize.referenceWidth * scale,
-          height: fixedLayoutSize.height * scale,
-          overflow: "hidden",
-          // Center the reader within the pane when it's narrower than the pane
-          // (large screens, scale capped at 1×).
-          margin: "0 auto",
-        }
-      : { width: "100%", height: "100%" }
+    const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/`
+    const isDesktop = deviceView === "desktop"
+    const frame = getDeviceFrame(deviceView, DEVICE_WIDTHS[deviceView])
+    const cap = getTargetVisibleWidth(deviceView) / frame.chromeWidth
+    const fitScale = Math.min(
+      Math.max(0, available.width - 48) / frame.chromeWidth,
+      Math.max(0, available.height - 48) / frame.chromeHeight,
+    )
+    const scale = Number.isFinite(fitScale) ? Math.max(0, Math.min(cap, fitScale)) : 1
+    const measured = available.width > 0 && available.height > 0
+
+    const framedIframe = (
+      <iframe
+        ref={iframeRef}
+        src={previewSrc}
+        title="ADT Preview"
+        onLoad={syncCurrentPreviewPage}
+        className="block border-0 bg-white"
+        style={{ width: frame.screenWidth, height: frame.screenHeight }}
+      />
+    )
+
     return (
-      <div ref={wrapperRef} className="relative h-full w-full bg-muted/20 overflow-auto">
-        <div style={sizerStyle}>
-          <iframe
-            ref={iframeRef}
-            src={`${getAdtUrl(bookLabel)}/v-${version}/`}
-            className="border-0"
-            style={iframeStyle}
-            title="ADT Preview"
-            onLoad={syncCurrentPreviewPage}
-          />
+      <div className="relative h-full w-full bg-muted/20 overflow-hidden">
+        <div ref={wrapperRef} className="absolute inset-0 flex items-center justify-center overflow-hidden">
+          {isDesktop ? (
+            <iframe
+              ref={iframeRef}
+              src={previewSrc}
+              className="h-full w-full border-0"
+              title="ADT Preview"
+              onLoad={syncCurrentPreviewPage}
+            />
+          ) : (
+            <div
+              className="transition-[transform,opacity] duration-200 ease-out"
+              style={{
+                transform: `scale(${scale})`,
+                transformOrigin: "center",
+                opacity: measured ? 1 : 0,
+              }}
+            >
+              {deviceView === "mobile" ? (
+                <IPhoneFrame width={frame.chromeWidth}>{framedIframe}</IPhoneFrame>
+              ) : (
+                <IPadFrame screenWidth={frame.screenWidth} screenHeight={frame.screenHeight}>
+                  {framedIframe}
+                </IPadFrame>
+              )}
+            </div>
+          )}
         </div>
+
+        {headerSlotEl &&
+          createPortal(
+            <ViewportToggle
+              value={deviceView}
+              onChange={setDeviceView}
+              currentWidth={isDesktop ? undefined : Math.round(frame.screenWidth * scale)}
+            />,
+            headerSlotEl,
+          )}
 
         <PreviewAccessibilityCard
           label={bookLabel}
@@ -419,13 +402,6 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }
 
   return null
-}
-
-/** Parse a pixel value (e.g. "1587px") to a number, or null for missing/non-px values. */
-function parsePxStyle(value: string | undefined): number | null {
-  if (!value) return null
-  const match = /^(\d+(?:\.\d+)?)px$/.exec(value.trim())
-  return match ? parseFloat(match[1]) : null
 }
 
 function deriveReviewPageId(sectionId: string | null, href: string | null): string | null {

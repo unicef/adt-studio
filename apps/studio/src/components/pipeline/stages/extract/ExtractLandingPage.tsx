@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { Lock } from "lucide-react"
 import { useBook } from "@/hooks/use-books"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
@@ -10,7 +11,13 @@ import { HelpHint } from "@/components/pipeline/components/HelpHint"
 import { ToggleCard } from "@/components/pipeline/components/ToggleCard"
 import { RangeSlider } from "@/components/ui/range-slider"
 import { SegmentedControl } from "@/components/ui/segmented-control"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 import { useBookConfig } from "@/hooks/use-book-config"
+import { usePartInfo } from "@/hooks/use-parts"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -29,6 +36,10 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   const status = useStageStatus("extract")
   const { data: book } = useBook(bookLabel)
   const { data: sourcePdfInfo, isPending: sourcePdfPending } = useSourcePdfInfo(bookLabel)
+  // A book imported as a part is scoped to a fixed page window — show the
+  // assigned range read-only so the contributor processes exactly that subset.
+  const { data: partInfo } = usePartInfo(bookLabel)
+  const isPart = !!partInfo
 
   const totalPages = sourcePdfInfo?.pageCount ?? book?.pageCount ?? 0
 
@@ -73,7 +84,7 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const handleRun = () => {
     if (!hasApiKey || status.isRunning) return
-    queueRun({ fromStage: "extract", toStage: "extract", apiKey })
+    queueRun({ fromStage: "extract", toStage: "extract", apiKey, viewAfter: true })
   }
 
   const disabledReason = !hasApiKey ? (
@@ -124,10 +135,38 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
         <SettingsField
           label={<Trans>Page Range</Trans>}
           labelAction={
-            <HelpHint
-              ariaLabel={t`Page range help`}
-              content={t`In case you don't want to convert the whole book, adjust the sliders to define which pages will be digitized.`}
-            />
+            isPart ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    tabIndex={0}
+                    aria-label={t`Page range locked`}
+                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[#a3a3a3] transition-colors hover:text-[#737373] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                  >
+                    <Lock className="h-3 w-3" strokeWidth={2} />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-[260px] text-center">
+                  <Trans>
+                    This book is a part — its page range is fixed to the assigned
+                    subset and cannot be changed.
+                  </Trans>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <HelpHint
+                ariaLabel={t`Page range help`}
+                content={t`In case you don't want to convert the whole book, adjust the sliders to define which pages will be digitized.`}
+              />
+            )
+          }
+          hint={
+            isPart ? (
+              <Trans>
+                This book is a part — its page range is fixed to the assigned
+                subset and cannot be changed.
+              </Trans>
+            ) : undefined
           }
         >
           <RangeSlider
@@ -140,6 +179,7 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
             value={pageRange}
             onChange={handlePageRangeChange}
             disabled={pageRangeDisabled}
+            readOnly={isPart}
           />
         </SettingsField>
       </SettingsCard>

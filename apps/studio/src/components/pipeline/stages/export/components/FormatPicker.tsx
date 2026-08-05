@@ -3,20 +3,22 @@ import { cn } from "@/lib/utils"
 import { buildExportFormatConfig, type ExportFormat } from "../export-formats"
 import type { useLingui } from "@lingui/react/macro"
 
-const FORMAT_ORDER: ExportFormat[] = ["project", "adt", "scorm", "webpub", "epub"]
+const FORMAT_ORDER: ExportFormat[] = ["project", "adt", "scorm", "webpub", "epub", "pnld"]
 
 export function FormatPicker({
   selected,
   onSelect,
   t,
   errorFormat,
+  isPart,
 }: {
   selected: ExportFormat
   onSelect: (format: ExportFormat) => void
   t: ReturnType<typeof useLingui>["t"]
   errorFormat?: ExportFormat | null
+  isPart?: boolean
 }) {
-  const formats = buildExportFormatConfig(t)
+  const formats = buildExportFormatConfig(t, { isPart })
   return (
     <ul className="flex flex-col gap-1.5">
       {FORMAT_ORDER.map((fmt) => {

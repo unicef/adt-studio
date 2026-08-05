@@ -114,9 +114,9 @@ describe("update-issue-template-versions", () => {
       "v0.5.0",
       "v0.5.1",
       "v0.6.0",
-      "v0.7.0-rc.1",
-      "v0.7.0-rc.2",
-      "v0.7.0-rc.3",
+      "v0.7.0-beta.1",
+      "v0.7.0-beta.2",
+      "v0.7.0-beta.3",
     );
     writeTemplate("bug_report.yml", versionTemplate());
 
@@ -124,9 +124,9 @@ describe("update-issue-template-versions", () => {
 
     expect(result.status).toBe(0);
     expect(versionOptions("bug_report.yml")).toEqual([
-      "v0.7.0-rc.3",
-      "v0.7.0-rc.2",
-      "v0.7.0-rc.1",
+      "v0.7.0-beta.3",
+      "v0.7.0-beta.2",
+      "v0.7.0-beta.1",
       "v0.6.0",
       "v0.5.1",
       "v0.5.0",
@@ -138,15 +138,22 @@ describe("update-issue-template-versions", () => {
   it("folds the optional <tag> argument into the candidates (not-yet-pushed tag)", () => {
     // git has the historical tags but NOT the new one — the release workflow
     // runs this script before creating the tag.
-    gitTag("v0.4.8", "v0.5.0", "v0.5.1", "v0.6.0", "v0.7.0-rc.1", "v0.7.0-rc.2");
+    gitTag(
+      "v0.4.8",
+      "v0.5.0",
+      "v0.5.1",
+      "v0.6.0",
+      "v0.7.0-beta.1",
+      "v0.7.0-beta.2",
+    );
     writeTemplate("bug_report.yml", versionTemplate());
 
-    run("v0.7.0-rc.3");
+    run("v0.7.0-beta.3");
 
     expect(versionOptions("bug_report.yml")).toEqual([
-      "v0.7.0-rc.3",
-      "v0.7.0-rc.2",
-      "v0.7.0-rc.1",
+      "v0.7.0-beta.3",
+      "v0.7.0-beta.2",
+      "v0.7.0-beta.1",
       "v0.6.0",
       "v0.5.1",
       "v0.5.0",
@@ -154,15 +161,67 @@ describe("update-issue-template-versions", () => {
     ]);
   });
 
+  it("fails closed when release automation cannot see a complete version set", () => {
+    gitTag("v0.7.0-beta.2", "v0.6.0");
+    const original = versionTemplate([
+      "v0.7.0-beta.2",
+      "v0.7.0-beta.1",
+      "v0.6.0",
+      "v0.5.1",
+      "Older / unsure",
+    ]);
+    writeTemplate("bug_report.yml", original);
+
+    const result = run("v0.7.0", "--require-full-history");
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain(
+      "Refusing to update issue templates from an incomplete tag set",
+    );
+    expect(readTemplate("bug_report.yml")).toBe(original);
+  });
+
+  it("accepts the release guard when all dropdown slots can be populated", () => {
+    gitTag(
+      "v0.5.0",
+      "v0.6.0",
+      "v0.7.0",
+      "v0.8.0-beta.1",
+      "v0.8.0-beta.2",
+      "v0.8.0-beta.3",
+    );
+    writeTemplate("bug_report.yml", versionTemplate());
+
+    const result = run("v0.8.0", "--require-full-history");
+
+    expect(result.status).toBe(0);
+    expect(versionOptions("bug_report.yml")).toEqual([
+      "v0.8.0-beta.3",
+      "v0.8.0-beta.2",
+      "v0.8.0-beta.1",
+      "v0.8.0",
+      "v0.7.0",
+      "v0.6.0",
+      "Older / unsure",
+    ]);
+  });
+
   it("a new official tag pushes the oldest official out of the top 3", () => {
-    gitTag("v0.4.8", "v0.5.0", "v0.5.1", "v0.6.0", "v0.7.0-rc.1", "v0.7.0-rc.2");
+    gitTag(
+      "v0.4.8",
+      "v0.5.0",
+      "v0.5.1",
+      "v0.6.0",
+      "v0.7.0-beta.1",
+      "v0.7.0-beta.2",
+    );
     writeTemplate("bug_report.yml", versionTemplate());
 
     run("v0.7.0");
 
     expect(versionOptions("bug_report.yml")).toEqual([
-      "v0.7.0-rc.2",
-      "v0.7.0-rc.1",
+      "v0.7.0-beta.2",
+      "v0.7.0-beta.1",
       "v0.7.0",
       "v0.6.0",
       "v0.5.1",
@@ -171,30 +230,55 @@ describe("update-issue-template-versions", () => {
   });
 
   it("trims the oldest betas beyond the 3 most recent", () => {
-    gitTag("v0.6.0", "v0.7.0-rc.1", "v0.7.0-rc.2", "v0.7.0-rc.3", "v0.7.0-rc.4");
+    gitTag(
+      "v0.6.0",
+      "v0.7.0-beta.1",
+      "v0.7.0-beta.2",
+      "v0.7.0-beta.3",
+      "v0.7.0-beta.4",
+    );
     writeTemplate("bug_report.yml", versionTemplate());
 
     run();
 
     expect(versionOptions("bug_report.yml")).toEqual([
-      "v0.7.0-rc.4",
-      "v0.7.0-rc.3",
-      "v0.7.0-rc.2",
+      "v0.7.0-beta.4",
+      "v0.7.0-beta.3",
+      "v0.7.0-beta.2",
       "v0.6.0",
       "Older / unsure",
     ]);
   });
 
-  it("ranks pre-releases by semver, not lexically (rc.10 > rc.9 > rc.2)", () => {
-    gitTag("v0.6.0", "v0.7.0-rc.2", "v0.7.0-rc.9", "v0.7.0-rc.10");
+  it("ranks betas by semver, not lexically (beta.10 > beta.9 > beta.2)", () => {
+    gitTag("v0.6.0", "v0.7.0-beta.2", "v0.7.0-beta.9", "v0.7.0-beta.10");
     writeTemplate("bug_report.yml", versionTemplate());
 
     run();
 
     expect(versionOptions("bug_report.yml")).toEqual([
-      "v0.7.0-rc.10",
-      "v0.7.0-rc.9",
+      "v0.7.0-beta.10",
+      "v0.7.0-beta.9",
+      "v0.7.0-beta.2",
+      "v0.6.0",
+      "Older / unsure",
+    ]);
+  });
+
+  it("excludes non-beta pre-releases from the beta slots", () => {
+    gitTag(
+      "v0.6.0",
+      "v0.7.0-rc.1",
       "v0.7.0-rc.2",
+      "v0.4.0-electron",
+      "v0.7.0-beta.1",
+    );
+    writeTemplate("bug_report.yml", versionTemplate());
+
+    run();
+
+    expect(versionOptions("bug_report.yml")).toEqual([
+      "v0.7.0-beta.1",
       "v0.6.0",
       "Older / unsure",
     ]);
@@ -220,17 +304,17 @@ describe("update-issue-template-versions", () => {
   });
 
   it("matches the indentation of the options: key (+2 spaces)", () => {
-    gitTag("v0.7.0-rc.3");
+    gitTag("v0.7.0-beta.3");
     writeTemplate("bug_report.yml", versionTemplate());
     run();
     const line = readTemplate("bug_report.yml")
       .split("\n")
-      .find((l) => l.includes("v0.7.0-rc.3"));
-    expect(line).toBe("        - v0.7.0-rc.3");
+      .find((l) => l.includes("v0.7.0-beta.3"));
+    expect(line).toBe("        - v0.7.0-beta.3");
   });
 
   it("is idempotent: re-running with the same git tags leaves the file unchanged", () => {
-    gitTag("v0.6.0", "v0.7.0-rc.1");
+    gitTag("v0.6.0", "v0.7.0-beta.1");
     writeTemplate("bug_report.yml", versionTemplate());
 
     run(); // first run rewrites the dropdown
@@ -311,21 +395,21 @@ describe("update-issue-template-versions", () => {
   });
 
   it("processes both .yml and .yaml files", () => {
-    gitTag("v0.7.0-rc.3");
+    gitTag("v0.7.0-beta.3");
     writeTemplate("bug_report.yml", versionTemplate());
     writeTemplate("question.yaml", versionTemplate());
 
     const result = run();
 
     expect(result.status).toBe(0);
-    expect(readTemplate("bug_report.yml")).toContain("- v0.7.0-rc.3");
-    expect(readTemplate("question.yaml")).toContain("- v0.7.0-rc.3");
+    expect(readTemplate("bug_report.yml")).toContain("- v0.7.0-beta.3");
+    expect(readTemplate("question.yaml")).toContain("- v0.7.0-beta.3");
     expect(result.stdout).toContain("bug_report.yml: updated version options");
     expect(result.stdout).toContain("question.yaml: updated version options");
   });
 
   it("ignores non-template files in the directory", () => {
-    gitTag("v0.7.0-rc.3");
+    gitTag("v0.7.0-beta.3");
     writeTemplate("README.md", "# not a template\n- v0.7.0\n");
     writeTemplate("bug_report.yml", versionTemplate());
 
@@ -337,7 +421,7 @@ describe("update-issue-template-versions", () => {
   });
 
   it("preserves CRLF line endings", () => {
-    gitTag("v0.7.0-rc.3");
+    gitTag("v0.7.0-beta.3");
     writeTemplate("bug_report.yml", versionTemplate().replace(/\n/g, "\r\n"));
 
     run();
@@ -345,11 +429,11 @@ describe("update-issue-template-versions", () => {
     const out = readTemplate("bug_report.yml");
     expect(out).toContain("\r\n");
     expect(out).not.toMatch(/[^\r]\n/);
-    expect(out).toContain("        - v0.7.0-rc.3\r\n");
+    expect(out).toContain("        - v0.7.0-beta.3\r\n");
   });
 
   it("preserves LF line endings", () => {
-    gitTag("v0.7.0-rc.3");
+    gitTag("v0.7.0-beta.3");
     writeTemplate("bug_report.yml", versionTemplate());
 
     run();

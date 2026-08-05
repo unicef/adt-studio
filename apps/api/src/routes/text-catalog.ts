@@ -3,8 +3,8 @@ import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { parseBookLabel } from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { TextCatalogOutput, parseBookLabel } from "@adt/types"
+import { openBookDb, createBookStorage, readCurrentNodeRow, CURRENT_VERSION_ORDER } from "@adt/storage"
 import { buildTextCatalog } from "@adt/pipeline"
 
 const TranslationBody = z
@@ -12,6 +12,7 @@ const TranslationBody = z
     entries: z.array(
       z.object({ id: z.string(), text: z.string() })
     ),
+    generatedAt: z.string().optional(),
   })
   .strict()
 
@@ -56,41 +57,43 @@ export function createTextCatalogRoutes(booksDir: string): Hono {
 
     const db = openBookDb(dbPath)
     try {
-      // Get source catalog
-      const catalogRows = db.all(
-        "SELECT data, version FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-        ["text-catalog", "book"]
-      ) as Array<{ data: string; version: number }>
-
-      if (catalogRows.length === 0) {
+      // Source catalog — the current-pointer version (falls back to MAX).
+      const catalogRow = readCurrentNodeRow(db, "text-catalog", "book")
+      if (!catalogRow) {
         return c.json(null)
       }
 
-      const catalog = JSON.parse(catalogRows[0].data)
+      const catalog = JSON.parse(catalogRow.data)
 
-      // Get all translated catalogs
+      // All translated catalogs, each at its current-pointer version (so a
+      // rollback of a language shows the restored version). Rows are ordered so
+      // the current version is first per language; take the first one seen.
       const translationRows = db.all(
-        `SELECT item_id, data, version FROM node_data
-         WHERE node = ? AND (item_id, version) IN (
-           SELECT item_id, MAX(version) FROM node_data WHERE node = ? GROUP BY item_id
-         )`,
-        ["text-catalog-translation", "text-catalog-translation"]
+        `SELECT nd.item_id AS item_id, nd.data AS data, nd.version AS version
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
+        ["text-catalog-translation"]
       ) as Array<{ item_id: string; data: string; version: number }>
 
       const translations: Record<string, { entries: Array<{ id: string; text: string }>; version: number }> = {}
+      const seen = new Set<string>()
       for (const row of translationRows) {
+        if (seen.has(row.item_id)) continue
+        seen.add(row.item_id)
         try {
           const parsed = JSON.parse(row.data)
           translations[row.item_id] = { entries: parsed.entries, version: row.version }
         } catch {
-          // skip corrupted
+          // skip corrupted current version
         }
       }
 
       return c.json({
         entries: catalog.entries,
         generatedAt: catalog.generatedAt,
-        version: catalogRows[0].version,
+        version: catalogRow.version,
         translations,
       })
     } finally {
@@ -113,10 +116,20 @@ export function createTextCatalogRoutes(booksDir: string): Hono {
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      const previous = storage.getLatestNodeData("text-catalog-translation", language)
+      const previousData = previous?.data && typeof previous.data === "object"
+        ? previous.data as { generatedAt?: unknown }
+        : null
+      const data = TextCatalogOutput.parse({
+        entries: parsed.data.entries,
+        generatedAt: parsed.data.generatedAt
+          ?? (typeof previousData?.generatedAt === "string" ? previousData.generatedAt : undefined)
+          ?? new Date().toISOString(),
+      })
       const version = storage.putNodeData(
         "text-catalog-translation",
         language,
-        parsed.data
+        data
       )
       return c.json({ version })
     } finally {

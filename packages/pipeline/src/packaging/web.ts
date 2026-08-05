@@ -1,0 +1,2831 @@
+import { createHash } from "node:crypto"
+import fs from "node:fs"
+import path from "node:path"
+import { pathToFileURL } from "node:url"
+
+import { parseDocument, DomUtils } from "htmlparser2"
+import temml from "temml"
+import type { Storage } from "@adt/storage"
+import type {
+  ContentNodeData,
+  PageSectioningSection,
+  TextCatalogOutput,
+  EasyReadOutput,
+  GlossaryOutput,
+  QuizGenerationOutput,
+  BookSummaryOutput,
+  BookMetadata,
+  SpeechConfig,
+  TTSOutput,
+  WordTimestampOutput,
+  TocGenerationOutput,
+  Quiz,
+  ImageCaptioningOutput,
+} from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import {
+  GOOGLE_FONTS,
+  googleFontsReferencedIn,
+  googleFontsCss2Url,
+  primaryFontFamily,
+} from "@adt/types"
+import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
+import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
+import {
+  bundleBookFontsIntoCss,
+  readBookFontRegistry,
+  resolveFontsCacheDir,
+} from "../fonts-bundle.js"
+import { resolveTypographyCss } from "../typography.js"
+import { resolveQuizPalette, DEFAULT_QUIZ_PALETTE, type QuizPalette } from "../quiz-palette.js"
+import {
+  readEditableActivities,
+  enabledEditableActivity,
+  resolveEditableActivityImages,
+  renderEditableActivityHtml,
+  maskStepperPayloads,
+} from "../render-editable-activity.js"
+import type { Progress } from "../progress.js"
+import { nullProgress } from "../progress.js"
+import { getGlossaryItemTextId } from "../glossary.js"
+import { getBaseLanguage, normalizeLocale } from "../language-context.js"
+import { buildTextCatalog } from "../text-catalog.js"
+import { flattenEasyReadEntries } from "../easy-read.js"
+import { getRenderSectioning } from "../render-sectioning.js"
+import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
+import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
+import { buildTailwindCss } from "../tailwind.js"
+
+export interface PackageAdtWebOptions {
+  bookDir: string
+  label: string
+  language: string
+  outputLanguages: string[]
+  title: string
+  webAssetsDir: string
+  bundleVersion?: string
+  applyBodyBackground?: boolean
+  speechConfig?: SpeechConfig
+  features?: {
+    glossary?: boolean
+    readAloud?: boolean
+    quizzes?: boolean
+    signLanguage?: boolean
+  }
+  defaultSettings?: {
+    dockLayout?: {
+      width?: "compact" | "full"
+      position?: "top" | "bottom"
+      align?: "center" | "spread"
+    }
+    theme?: "light" | "dark" | "system"
+    iconSize?: "sm" | "md" | "lg"
+    reduceMotion?: boolean
+  }
+  lockedSettings?: ("dockLayout" | "theme" | "iconSize" | "reduceMotion")[]
+  fixedLayout?: boolean
+  /** `reflowable_font` config value (font id or "auto"). Selects the reflowable
+   *  base font; ignored for fixed-layout books. */
+  reflowableFont?: string
+  /** Style quizzes to match the book (typography + derived palette). Defaults
+   *  to true. When false, quizzes use the generic cream/gray template. */
+  quizMatchBookStyle?: boolean
+}
+
+/** Pages with either a dedicated activity section or an inline word bank need
+ * the standalone activity runtime after the full reader bundle is stripped. */
+export function pageNeedsActivitiesBundle(html: string): boolean {
+  return (
+    html.includes('data-section-type="activity_') ||
+    (html.includes("data-word-bank-chip") && html.includes("data-word-bank-target"))
+  )
+}
+
+export interface PageEntry {
+  section_id: string
+  href: string
+  page_number?: number
+}
+
+interface RuntimeTimecodeEntry {
+  timecodes: [null, {
+    word_timestamps: Array<{ text: string; start: number; end: number }>
+  }]
+}
+
+// ---------------------------------------------------------------------------
+// Build-cache helpers
+// ---------------------------------------------------------------------------
+
+function collectDirectoryFingerprint(dirPath: string, prefix = ""): Array<[string, number, number]> {
+  if (!fs.existsSync(dirPath)) return []
+  const entries: Array<[string, number, number]> = []
+  for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+    const rel = prefix ? `${prefix}/${entry.name}` : entry.name
+    if (entry.isDirectory()) {
+      entries.push(...collectDirectoryFingerprint(path.join(dirPath, entry.name), rel))
+    } else {
+      const stat = fs.statSync(path.join(dirPath, entry.name))
+      entries.push([rel, stat.size, Math.trunc(stat.mtimeMs)])
+    }
+  }
+  return entries
+}
+
+export function getWordTimestamps(
+  storage: Storage,
+  language: string,
+): WordTimestampOutput | undefined {
+  const normalizedLanguage = normalizeLocale(language)
+  const legacyLanguage = normalizedLanguage.replace("-", "_")
+  const row =
+    storage.getLatestNodeData("tts-timestamps", normalizedLanguage) ??
+    storage.getLatestNodeData("tts-timestamps", legacyLanguage)
+  return row?.data as WordTimestampOutput | undefined
+}
+
+function buildRuntimeTimecodeMap(
+  timestamps: WordTimestampOutput | undefined,
+  speechConfig?: SpeechConfig,
+): Record<string, RuntimeTimecodeEntry> {
+  const map: Record<string, RuntimeTimecodeEntry> = {}
+
+  for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
+    if (entry.words.length === 0) continue
+    if (isTtsExcluded(textId, speechConfig)) continue
+    map[textId] = {
+      timecodes: [
+        null,
+        {
+          word_timestamps: entry.words.map((word) => ({
+            text: word.word,
+            start: word.start,
+            end: word.end,
+          })),
+        },
+      ],
+    }
+  }
+
+  return map
+}
+
+// Folded into the packaging cache hash so already-packaged books regenerate
+// when renderPageHtml's output format changes (which book inputs don't capture).
+// Bump on any such change.
+const PACKAGING_FORMAT_VERSION = 4
+
+export interface ComputePackagingInputHashOptions {
+  storage: Storage
+  bookDir: string
+  label: string
+  language: string
+  outputLanguages: string[]
+  title: string
+  webAssetsDir: string
+  bundleVersion?: string
+  applyBodyBackground?: boolean
+  config: Record<string, unknown>
+}
+
+export function computePackagingInputHash(options: ComputePackagingInputHashOptions): string {
+  const hash = createHash("sha256")
+
+  // 1. Storage entity versions and content (exclude outputs like accessibility-assessment)
+  const fingerprint = options.storage.getNodeVersionFingerprint(["accessibility-assessment"])
+    .map((entry) => {
+      const row = options.storage.getLatestNodeData(entry.node, entry.itemId)
+      return {
+        ...entry,
+        dataHash: hashValue(row?.data ?? null),
+      }
+    })
+  hash.update(JSON.stringify(fingerprint))
+
+  // 2. Packaging options that affect output
+  hash.update(JSON.stringify({
+    formatVersion: PACKAGING_FORMAT_VERSION,
+    label: options.label,
+    language: options.language,
+    outputLanguages: options.outputLanguages,
+    title: options.title,
+    bundleVersion: options.bundleVersion ?? "1",
+    applyBodyBackground: options.applyBodyBackground ?? false,
+  }))
+
+  // 3. Book config (affects rendering, accessibility, etc.)
+  hash.update(JSON.stringify(options.config))
+
+  // 4. Sign-language metadata. Assigning or reassigning a video only updates
+  // SQLite, so the videos directory fingerprint below does not detect it.
+  const signLanguageVideos = options.storage.getSignLanguageVideos()
+    .map(({ videoId, sectionId, mimeType }) => ({ videoId, sectionId, mimeType }))
+    .sort((a, b) => a.videoId.localeCompare(b.videoId))
+  hash.update(JSON.stringify(signLanguageVideos))
+
+  // 5. Web assets directory fingerprint (file names + sizes + mtimes)
+  const assetEntries = collectDirectoryFingerprint(options.webAssetsDir).sort((a, b) => a[0].localeCompare(b[0]))
+  hash.update(JSON.stringify(assetEntries))
+
+  // 6. Images directory fingerprint
+  const imagesDir = path.join(options.bookDir, "images")
+  const imageEntries = collectDirectoryFingerprint(imagesDir).sort((a, b) => a[0].localeCompare(b[0]))
+  hash.update(JSON.stringify(imageEntries))
+
+  // 7. Videos directory fingerprint
+  const videosDir = path.join(options.bookDir, "videos")
+  const videoEntries = collectDirectoryFingerprint(videosDir).sort((a, b) => a[0].localeCompare(b[0]))
+  hash.update(JSON.stringify(videoEntries))
+
+  return hash.digest("hex")
+}
+
+function hashValue(value: unknown): string {
+  return createHash("sha256")
+    .update(JSON.stringify(value) ?? "undefined")
+    .digest("hex")
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/**
+ * Package all pipeline outputs into a standalone web application at
+ * `{bookDir}/adt/`. The output is a self-contained directory that can be
+ * opened directly in a browser (file://) or served by any static HTTP server.
+ */
+export async function packageAdtWeb(
+  storage: Storage,
+  options: PackageAdtWebOptions,
+  progress: Progress = nullProgress,
+): Promise<void> {
+  const {
+    bookDir,
+    label,
+    language: rawLanguage,
+    outputLanguages: rawOutputLanguages,
+    title,
+    webAssetsDir,
+    bundleVersion = "1",
+    applyBodyBackground,
+    speechConfig,
+    features,
+    defaultSettings,
+    lockedSettings,
+    fixedLayout,
+    reflowableFont,
+    quizMatchBookStyle,
+  } = options
+  const language = normalizeLocale(rawLanguage)
+  const outputLanguages = Array.from(new Set(rawOutputLanguages.map((code) => normalizeLocale(code))))
+  // Reflowable base font (serif/sans default from the detected profile, or an
+  // explicit override). undefined for fixed-layout / Merriweather-default.
+  const bodyFontFamily = resolveReflowableFontChain(storage, { fixedLayout, reflowableFont })
+  // Book typography CSS (fixed size per text role), appended to the compiled
+  // Tailwind stylesheet so every page shares the same sizes.
+  const typographyCss = resolveTypographyCss(storage)
+  // Quiz styling: match the book (typography + derived palette) when enabled AND
+  // the book has a detectable accent color; otherwise keep the clean white default.
+  const quizPalette = (quizMatchBookStyle ?? true) ? resolveQuizPalette(storage) : null
+  const quizStyle = quizPalette ? { palette: quizPalette } : null
+  // Step-by-step activities always need a palette (their UI is deterministic,
+  // not LLM-styled) — fall back to the neutral default when the book has none.
+  const stepperBasePalette = quizPalette ?? DEFAULT_QUIZ_PALETTE
+
+  const step = "package-web" as const
+  progress.emit({ type: "step-start", step })
+  progress.emit({ type: "step-progress", step, message: "Setting up directories..." })
+
+  const adtDir = path.join(bookDir, "adt")
+  const imageDir = path.join(adtDir, "images")
+  const contentDir = path.join(adtDir, "content")
+
+  // Clear & create directory structure
+  if (fs.existsSync(adtDir)) fs.rmSync(adtDir, { recursive: true })
+  fs.mkdirSync(imageDir, { recursive: true })
+  fs.mkdirSync(contentDir, { recursive: true })
+
+  // ------------------------------------------------------------------
+  // Collect data from storage
+  // ------------------------------------------------------------------
+  const pages = storage.getPages()
+  const imageMap = buildImageMap(path.join(bookDir, "images"))
+
+  // Always rebuild the text catalog to avoid staleness; only persist if changed
+  const catalog = await buildTextCatalog(storage, pages)
+  const catalogRow = storage.getLatestNodeData("text-catalog", "book")
+  const storedEntries = catalogRow
+    ? JSON.stringify((catalogRow.data as TextCatalogOutput).entries)
+    : null
+  if (JSON.stringify(catalog.entries) !== storedEntries) {
+    storage.putNodeData("text-catalog", "book", catalog)
+  }
+
+  const glossaryRow = storage.getLatestNodeData("glossary", "book")
+  const glossary = glossaryRow?.data as GlossaryOutput | undefined
+
+  const quizRow = storage.getLatestNodeData("quiz-generation", "book")
+  const quizData = quizRow?.data as QuizGenerationOutput | undefined
+
+  const metadataRow = storage.getLatestNodeData("metadata", "book")
+  const metadata = metadataRow?.data as { title?: string | null; cover_page_number?: number | null } | undefined
+
+  const summaryRow = storage.getLatestNodeData("book-summary", "book")
+  const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
+
+  const tocRow = storage.getLatestNodeData("toc-generation", "book")
+  const llmToc = tocRow?.data as TocGenerationOutput | undefined
+
+  const easyReadRow = storage.getLatestNodeData("easy-read", "book")
+  const easyRead = easyReadRow?.data as EasyReadOutput | undefined
+  const easyReadEntries = flattenEasyReadEntries(easyRead)
+
+  // ------------------------------------------------------------------
+  // Process pages
+  // ------------------------------------------------------------------
+  progress.emit({ type: "step-progress", step, message: "Processing pages..." })
+
+  const pageList: PageEntry[] = []
+  const tocEntries: Array<{ section_id: string; href: string; title: string; chapter_id: string }> = []
+  let hasMath = false
+  let hasActivitySections = false
+  const copiedImages = new Set<string>()
+  const sectionIdToPageIndex = new Map<string, number>()
+
+  // Build a map from afterPageId -> quizzes for interleaving
+  const quizzesByAfterPageId = new Map<string, Quiz[]>()
+  if ((features?.quizzes !== false) && quizData?.quizzes) {
+    for (const quiz of quizData.quizzes) {
+      const existing = quizzesByAfterPageId.get(quiz.afterPageId) ?? []
+      existing.push(quiz)
+      quizzesByAfterPageId.set(quiz.afterPageId, existing)
+    }
+  }
+
+  for (const page of pages) {
+    const quizzes = quizzesByAfterPageId.get(page.pageId) ?? []
+
+    // Resolver: fixed-layout books package from the positioned tree (its ids +
+    // 1-section/page shape match the rendered HTML the runtime hydrates).
+    const sectioning = getRenderSectioning(storage, page.pageId)
+    const imageCaptionMap = loadImageCaptionMap(storage, page.pageId)
+    const decorativeImageIds = buildDecorativeImageIdSet(storage, page.pageId)
+
+    const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+    const editableActivities = readEditableActivities(storage, page.pageId)
+    if (renderRow) {
+      const parsed = WebRenderingOutputSchema.safeParse(renderRow.data)
+      if (parsed.success) {
+        const rendering = parsed.data
+
+        // One HTML file per rendered section (stable by sectionIndex), skip pruned
+        const sections = [...rendering.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
+        for (const rs of sections) {
+          const sectionMeta = sectioning?.sections[rs.sectionIndex]
+          if (sectionMeta?.isPruned) continue
+          const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
+
+          if (rs.sectionType.startsWith("activity_") || sectionMeta?.sectionType.startsWith("activity_")) {
+            hasActivitySections = true
+          }
+
+          // Step-by-step override: an enabled editable activity replaces the
+          // stored LLM HTML with the stepper shell (structured JSON + palette).
+          const stepperActivity = enabledEditableActivity(
+            editableActivities,
+            rs.sectionIndex,
+            rs.sectionType,
+          )
+
+          // Rewrite image URLs and copy referenced images
+          const preferredImageAltMap = buildPreferredImageAltMap(storage, page.pageId, sectionMeta)
+          let rewrittenHtml: string
+          let referencedImages: string[]
+          if (stepperActivity) {
+            const resolved = resolveEditableActivityImages(stepperActivity, imageMap, {
+              preferredAltMap: preferredImageAltMap,
+              decorativeImageIds,
+            })
+            rewrittenHtml = renderEditableActivityHtml(resolved.activity, {
+              palette: stepperBasePalette,
+            })
+            referencedImages = resolved.referencedImages
+          } else {
+            ;({ html: rewrittenHtml, referencedImages } = rewriteImageUrls(
+              rs.html,
+              label,
+              imageMap,
+              preferredImageAltMap,
+              decorativeImageIds,
+            ))
+          }
+
+          for (const imageId of referencedImages) {
+            if (!copiedImages.has(imageId)) {
+              const filename = imageMap.get(imageId)
+              if (filename) {
+                fs.copyFileSync(
+                  path.join(bookDir, "images", filename),
+                  path.join(imageDir, filename),
+                )
+                copiedImages.add(imageId)
+              }
+            }
+          }
+
+          // Convert LaTeX math to MathML (stepper shells are JSON — leave untouched)
+          const sectionHasMath = !stepperActivity && containsMathContent(rewrittenHtml)
+          if (sectionHasMath) {
+            hasMath = true
+            rewrittenHtml = convertLatexToMathml(rewrittenHtml)
+          }
+
+          const isFirstPage = pageList.length === 0
+          const filename = isFirstPage ? "index.html" : `${sectionId}.html`
+
+          const headingText = sectionMeta ? findHeadingText(sectionMeta) : null
+
+          // For fixed-layout pages, extract viewport from the rendered content div.
+          // Viewport matches content dimensions (2x render scale) exactly — no
+          // transform needed, Apple Books scales the viewport to fit the screen.
+          let fixedViewport: { width: number; height: number } | undefined
+          if (fixedLayout) {
+            const vp = rewrittenHtml.match(/width:(\d+)px;height:(\d+)px/)
+            if (vp) {
+              fixedViewport = { width: parseInt(vp[1], 10), height: parseInt(vp[2], 10) }
+            }
+          }
+
+          const pageHtml = renderPageHtml({
+            content: rewrittenHtml,
+            language,
+            sectionId,
+            pageTitle: title,
+            pageHeading: headingText?.text ?? title,
+            pageIndex: pageList.length + 1,
+            // Stepper answers travel inside the embedded JSON payload.
+            activityAnswers: stepperActivity ? undefined : rs.activityAnswers,
+            hasMath: sectionHasMath,
+            bundleVersion,
+            applyBodyBackground,
+            fixedViewport,
+            bodyFontFamily,
+          })
+          fs.writeFileSync(path.join(adtDir, filename), pageHtml)
+
+          const entry: PageEntry = {
+            section_id: sectionId,
+            href: filename,
+          }
+          if (sectionMeta?.pageNumber !== null && sectionMeta?.pageNumber !== undefined) {
+            entry.page_number = sectionMeta.pageNumber
+          }
+          pageList.push(entry)
+
+          // Track sectionId → pageIndex for sign language video mapping
+          sectionIdToPageIndex.set(sectionId, pageList.length) // pageIndex = pageList.length (1-based, already pushed)
+
+          // Build TOC entry from first heading text in this section
+          if (headingText) {
+            tocEntries.push({
+              section_id: sectionId,
+              href: filename,
+              title: headingText.text,
+              chapter_id: headingText.textId,
+            })
+          }
+        }
+      }
+    }
+
+    // Insert quiz pages after this page (even if page content was skipped)
+    for (const quiz of quizzes) {
+      const quizIndex = quizData!.quizzes.indexOf(quiz)
+      const quizId = `qz${pad3(quizIndex + 1)}`
+
+      const isFirstPage = pageList.length === 0
+      const quizFilename = isFirstPage ? "index.html" : `${quizId}.html`
+
+      const quizHtmlContent = renderQuizHtml(quiz, quizId, catalog, quizStyle)
+      const quizPageHtml = renderPageHtml({
+        content: quizHtmlContent,
+        language,
+        sectionId: quizId,
+        pageTitle: title,
+        pageHeading: quiz.question,
+        pageIndex: pageList.length + 1,
+        activityAnswers: buildQuizAnswers(quiz, quizId),
+        hasMath: false,
+        bundleVersion,
+        skipContentWrapper: true,
+        applyBodyBackground,
+        bodyFontFamily,
+      })
+      fs.writeFileSync(path.join(adtDir, quizFilename), quizPageHtml)
+
+      pageList.push({ section_id: quizId, href: quizFilename })
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Write manifests
+  // ------------------------------------------------------------------
+  progress.emit({ type: "step-progress", step, message: "Writing manifests..." })
+
+  writeJson(path.join(contentDir, "pages.json"), pageList)
+
+  // Table of contents — prefer LLM-generated TOC, fallback to heading-based
+  if (llmToc && llmToc.entries.length > 0) {
+    // Map LLM entries to the flat format expected by the runtime, resolving
+    // hrefs from the page list (the first page is always index.html)
+    const hrefMap = new Map(pageList.map((p) => [p.section_id, p.href]))
+    const tocJson = llmToc.entries.map((e) => ({
+      section_id: e.sectionId,
+      href: hrefMap.get(e.sectionId) ?? e.href,
+      title: e.title,
+      chapter_id: e.chapterId,
+      level: e.level,
+    }))
+    writeJson(path.join(contentDir, "toc.json"), tocJson)
+  } else {
+    writeJson(path.join(contentDir, "toc.json"), tocEntries)
+  }
+
+  // ------------------------------------------------------------------
+  // Cover image
+  // ------------------------------------------------------------------
+  if (metadata?.cover_page_number !== null && metadata?.cover_page_number !== undefined) {
+    const coverPageId = pages.find(
+      (p) => p.pageNumber === metadata.cover_page_number,
+    )?.pageId
+    if (coverPageId) {
+      const coverImageId = `${coverPageId}_page`
+      const coverFilename = imageMap.get(coverImageId)
+      if (coverFilename) {
+        fs.copyFileSync(
+          path.join(bookDir, "images", coverFilename),
+          path.join(adtDir, `cover${path.extname(coverFilename)}`),
+        )
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Navigation
+  // ------------------------------------------------------------------
+  const navDir = path.join(contentDir, "navigation")
+  fs.mkdirSync(navDir, { recursive: true })
+  fs.writeFileSync(path.join(navDir, "nav.html"), NAV_HTML)
+
+  // ------------------------------------------------------------------
+  // i18n — per-language content
+  // ------------------------------------------------------------------
+  progress.emit({ type: "step-progress", step, message: "Packaging translations and audio..." })
+
+  const sourceLanguage = getBaseLanguage(language)
+
+  // Glossary term pictures: copy each item's assigned image into the shared
+  // images/ dir (deduped against page images) and remember its bundle href
+  // for glossary.json. Language-neutral, so computed once outside the loop.
+  const glossaryImageHrefs = new Map<string, string>()
+  // Text-catalog ids of active glossary items — sign-language videos attach
+  // to terms via these ids (sign_language_videos.section_id).
+  const glossaryTextIds = new Set<string>()
+  if (features?.glossary !== false && glossary?.items) {
+    glossary.items.forEach((item, i) => {
+      if (item.pruned) return
+      glossaryTextIds.add(getGlossaryItemTextId(item, i))
+      if (!item.imageId || glossaryImageHrefs.has(item.imageId)) return
+      const filename = imageMap.get(item.imageId)
+      if (!filename) return
+      if (!copiedImages.has(item.imageId)) {
+        fs.copyFileSync(
+          path.join(bookDir, "images", filename),
+          path.join(imageDir, filename),
+        )
+        copiedImages.add(item.imageId)
+      }
+      glossaryImageHrefs.set(item.imageId, `images/${filename}`)
+    })
+  }
+
+  const hasTTS = (features?.readAloud !== false) && outputLanguages.some(
+    (lang) => {
+      const legacyLang = lang.replace("-", "_")
+      return (
+        storage.getLatestNodeData("tts", lang) !== null ||
+        storage.getLatestNodeData("tts", legacyLang) !== null
+      )
+    },
+  )
+  const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
+
+  for (const lang of outputLanguages) {
+    const localeDir = path.join(contentDir, "i18n", lang)
+    fs.mkdirSync(localeDir, { recursive: true })
+
+    // texts.json
+    const baseLang = getBaseLanguage(lang)
+    let textsMap: Record<string, string> = {}
+    if (baseLang === sourceLanguage) {
+      // Source language — use original catalog
+      if (catalog?.entries) {
+        for (const e of catalog.entries) textsMap[e.id] = e.text
+      }
+      for (const e of easyReadEntries) textsMap[e.id] = e.text
+    } else {
+      // Translated language
+      const legacyLang = lang.replace("-", "_")
+      const transRow =
+        storage.getLatestNodeData("text-catalog-translation", lang) ??
+        storage.getLatestNodeData("text-catalog-translation", legacyLang)
+      if (transRow) {
+        const translated = transRow.data as TextCatalogOutput
+        for (const e of translated.entries) textsMap[e.id] = e.text
+      }
+    }
+    // Convert any LaTeX in text catalog entries to MathML
+    for (const [id, text] of Object.entries(textsMap)) {
+      if (containsMathContent(text)) {
+        textsMap[id] = convertLatexString(text)
+      }
+    }
+    writeJson(path.join(localeDir, "texts.json"), textsMap)
+
+    // audios.json + copy audio files
+    const audioMap: Record<string, string> = {}
+
+    if (features?.readAloud !== false) {
+      const audioDir = path.join(localeDir, "audio")
+      fs.mkdirSync(audioDir, { recursive: true })
+
+      const legacyLang = lang.replace("-", "_")
+      const ttsRow =
+        storage.getLatestNodeData("tts", lang) ??
+        storage.getLatestNodeData("tts", legacyLang)
+      const ttsData = ttsRow?.data as TTSOutput | undefined
+
+      if (ttsData?.entries) {
+        for (const entry of ttsData.entries) {
+          // Exclusions apply at packaging time too, so muting an element
+          // takes effect without regenerating speech.
+          if (isTtsExcluded(entry.textId, speechConfig)) continue
+          const srcFile = path.join(bookDir, "audio", lang, entry.fileName)
+          const legacySrcFile = path.join(bookDir, "audio", legacyLang, entry.fileName)
+          const resolvedSrcFile = fs.existsSync(srcFile) ? srcFile : legacySrcFile
+          if (fs.existsSync(resolvedSrcFile)) {
+            const destFile = path.join(audioDir, entry.fileName)
+            fs.copyFileSync(resolvedSrcFile, destFile)
+            audioMap[entry.textId] = entry.fileName
+          }
+        }
+      }
+    }
+    writeJson(path.join(localeDir, "audios.json"), audioMap)
+
+    // timecode/timecode_output.json — word timings consumed by the reader runtime
+    const timecodeDir = path.join(localeDir, "timecode")
+    fs.mkdirSync(timecodeDir, { recursive: true })
+    writeJson(
+      path.join(timecodeDir, "timecode_output.json"),
+      highlightEnabled
+        ? buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), speechConfig)
+        : {},
+    )
+
+    // videos.json — map "video-{pageIndex}" → video filename for assigned sign language videos
+    // The ADT JS runtime expects keys prefixed with "video-" and files in a "video/" directory.
+    // Each video is assigned to a sectionId which maps 1:1 to a pageIndex.
+    const videosMap: Record<string, string> = {}
+    // Glossary term id → bundle-relative video href, surfaced through
+    // glossary.json so the runtime popover/panel can embed the sign video.
+    const glossaryVideoHrefs = new Map<string, string>()
+    if (features?.signLanguage !== false) {
+      const allVideos = storage.getSignLanguageVideos()
+      const videoDir = path.join(localeDir, "video")
+      // Page-section videos feed the runtime PIP player (videos.json);
+      // glossary-item videos (sectionId = `gl001`…) feed the glossary
+      // popover/panel instead and stay out of the page map.
+      const pageVideos = allVideos.filter(
+        (v) => v.sectionId && sectionIdToPageIndex.has(v.sectionId),
+      )
+      const glossaryVideos = allVideos.filter(
+        (v) => v.sectionId && glossaryTextIds.has(v.sectionId),
+      )
+      if (pageVideos.length > 0 || glossaryVideos.length > 0) {
+        fs.mkdirSync(videoDir, { recursive: true })
+      }
+      for (const video of pageVideos) {
+        const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
+        // Use section-based naming (e.g. sl_pg001_sec001.mp4) matching audio file conventions
+        const filename = `sl_${video.sectionId}${ext}`
+        const srcPath = storage.getSignLanguageVideoPath(video.videoId)
+        if (srcPath && fs.existsSync(srcPath)) {
+          fs.copyFileSync(srcPath, path.join(videoDir, filename))
+          videosMap[`video-${sectionIdToPageIndex.get(video.sectionId!)}`] = filename
+        }
+      }
+      for (const video of glossaryVideos) {
+        const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
+        const filename = `sl_${video.sectionId}${ext}`
+        const srcPath = storage.getSignLanguageVideoPath(video.videoId)
+        if (srcPath && fs.existsSync(srcPath)) {
+          fs.copyFileSync(srcPath, path.join(videoDir, filename))
+          glossaryVideoHrefs.set(video.sectionId!, `content/i18n/${lang}/video/${filename}`)
+        }
+      }
+    }
+    writeJson(path.join(localeDir, "videos.json"), videosMap)
+
+    // images.json — map original imageId → localized variant filename for this language.
+    // Variants are produced by the image-translation step and stored as
+    // `${sourceImageId}_tr_${languageCode}` in the book images directory.
+    const imagesMap: Record<string, string> = {}
+    const variantSuffix = `_tr_${lang.replace(/[^a-zA-Z0-9-]/g, "_")}`
+    for (const originalImageId of copiedImages) {
+      const variantId = `${originalImageId}${variantSuffix}`
+      const variantFilename = imageMap.get(variantId)
+      if (!variantFilename) continue
+      const destPath = path.join(imageDir, variantFilename)
+      if (!fs.existsSync(destPath)) {
+        fs.copyFileSync(
+          path.join(bookDir, "images", variantFilename),
+          destPath,
+        )
+      }
+      imagesMap[originalImageId] = variantFilename
+    }
+    writeJson(path.join(localeDir, "images.json"), imagesMap)
+
+    if (features?.glossary !== false) {
+      const glossaryJson = buildGlossaryJson(
+        glossary,
+        catalog,
+        textsMap,
+        baseLang === sourceLanguage,
+        glossaryImageHrefs,
+        glossaryVideoHrefs,
+      )
+      writeJson(path.join(localeDir, "glossary.json"), glossaryJson)
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // config.json
+  // ------------------------------------------------------------------
+  const hasGlossary = (features?.glossary !== false) && (glossary !== undefined && glossary.items.some((item) => !item.pruned))
+  const hasQuiz = (features?.quizzes !== false) && (quizData !== undefined && quizData.quizzes.length > 0)
+  const hasEasyRead = easyReadEntries.length > 0
+
+  // Only page-section videos light up the runtime PIP player; glossary-item
+  // videos (sectionId = `gl001`…) are an EPUB glossary-page concern.
+  const hasSignLanguageVideos = (features?.signLanguage !== false) &&
+    storage.getSignLanguageVideos().some((v) => v.sectionId !== null && sectionIdToPageIndex.has(v.sectionId))
+
+  const configJson: Record<string, unknown> = {
+    title,
+    bundleVersion,
+    languages: {
+      available: outputLanguages,
+      default: pickDefaultLanguage(language, outputLanguages),
+    },
+    features: {
+      signLanguage: hasSignLanguageVideos,
+      easyRead: hasEasyRead,
+      glossary: hasGlossary,
+      eli5: false,
+      readAloud: hasTTS,
+      autoplay: true,
+      showTutorial: true,
+      showNavigationControls: true,
+      describeImages: true,
+      notepad: false,
+      state: true,
+      characterDisplay: false,
+      highlight: highlightEnabled,
+      activities: hasQuiz || hasActivitySections,
+    },
+    analytics: {
+      enabled: false,
+      siteId: 0,
+      trackerUrl: "https://unisitetracker.unicef.io/matomo.php",
+      srcUrl: "https://unisitetracker.unicef.io/matomo.js",
+    },
+  }
+  if (defaultSettings && Object.keys(defaultSettings).length > 0) {
+    configJson.defaultSettings = defaultSettings
+  }
+  if (lockedSettings && lockedSettings.length > 0) {
+    configJson.lockedSettings = lockedSettings
+  }
+  if (fixedLayout) {
+    configJson.fixedLayout = true
+  }
+
+  // ------------------------------------------------------------------
+  // Copy web assets
+  // ------------------------------------------------------------------
+  progress.emit({ type: "step-progress", step, message: "Copying web assets..." })
+
+  const assetsDir = path.join(adtDir, "assets")
+  copyDirRecursive(webAssetsDir, assetsDir, new Set(["interface_translations"]))
+
+  // Copy only required interface translations
+  const itSrc = path.join(webAssetsDir, "interface_translations")
+  if (fs.existsSync(itSrc)) {
+    const itDest = path.join(assetsDir, "interface_translations")
+    fs.mkdirSync(itDest, { recursive: true })
+    for (const lang of outputLanguages) {
+      const langSrc = path.join(itSrc, lang)
+      const baseLangSrc = path.join(itSrc, getBaseLanguage(lang))
+      const src = fs.existsSync(langSrc) ? langSrc : fs.existsSync(baseLangSrc) ? baseLangSrc : null
+      if (src) {
+        copyDirRecursive(src, path.join(itDest, lang))
+      }
+    }
+  }
+
+  // Write config.json (overwrites the template one from assets)
+  writeJson(path.join(assetsDir, "config.json"), configJson)
+
+  // ------------------------------------------------------------------
+  // Build JS bundle (base.js → base.bundle.min.js)
+  // ------------------------------------------------------------------
+  progress.emit({ type: "step-progress", step, message: "Building JS bundle..." })
+  await buildJsBundle(webAssetsDir, assetsDir)
+
+  // ------------------------------------------------------------------
+  // Build Tailwind CSS
+  // ------------------------------------------------------------------
+  progress.emit({ type: "step-progress", step, message: "Building Tailwind CSS..." })
+  await buildTailwindCss(adtDir, webAssetsDir, typographyCss)
+
+  // ------------------------------------------------------------------
+  // SCORM + Offline support
+  // ------------------------------------------------------------------
+  progress.emit({ type: "step-progress", step, message: "Generating offline & SCORM support..." })
+
+  const activityIds = collectActivityIds(adtDir, pageList)
+  generateScormAdapter(assetsDir, activityIds)
+
+  // Bundle any Google Fonts the book uses (fetch the woff2 into assets/fonts/
+  // and link them) so they render under file:// / offline; the online <link>
+  // in each page stays as the fallback when the fetch fails. @font-face url()
+  // loads work under file:// — unlike fetch(), which the offline preloader
+  // patches — so fonts are linked, not base64-inlined.
+  progress.emit({ type: "step-progress", step, message: "Bundling fonts..." })
+  const fontsCacheDir = resolveFontsCacheDir(path.dirname(bookDir))
+
+  const fontRegistry = readBookFontRegistry(storage)
+  let bundledBookFonts: string[] = []
+  if (fontRegistry.fonts.length > 0) {
+    bundledBookFonts = await bundleBookFontsIntoCss(adtDir, fontRegistry, {
+      bookFontsDir: path.join(bookDir, "fonts"),
+      googleCacheDir: fontsCacheDir,
+    })
+    if (bundledBookFonts.length > 0) {
+      progress.emit({
+        type: "step-progress",
+        step,
+        message: `Bundled book fonts: ${bundledBookFonts.join(", ")}`,
+      })
+    }
+  }
+
+  const bundledFonts = await bundleGoogleFontsIntoCss(adtDir, {
+    cacheDir: fontsCacheDir,
+    excludeFamilies: bundledBookFonts,
+  })
+  if (bundledFonts.length > 0) {
+    progress.emit({ type: "step-progress", step, message: `Bundled fonts: ${bundledFonts.join(", ")}` })
+  }
+
+  // Offline preloader must run after all asset writes — it snapshots the
+  // final state of every file it inlines (page HTML, content JSON, nav.html).
+  generateOfflinePreloader(adtDir, outputLanguages)
+
+  generateImsManifest(adtDir, title, label, pageList)
+
+  // Render AGENTS.md from Liquid template with book-specific data
+  const agentsMdTemplate = path.join(path.dirname(webAssetsDir), "AGENTS.md.liquid")
+  if (fs.existsSync(agentsMdTemplate)) {
+    const agentsMd = await renderAgentsMd(agentsMdTemplate, {
+      title,
+      label,
+      summary: bookSummary,
+      language,
+      outputLanguages,
+      pageList,
+      catalog,
+      glossary,
+      quizData,
+      imageMap,
+      configJson,
+      hasGlossary,
+      hasQuiz,
+    })
+    fs.writeFileSync(path.join(adtDir, "AGENTS.md"), agentsMd)
+  }
+
+  progress.emit({ type: "step-complete", step })
+}
+
+// ---------------------------------------------------------------------------
+// Reader-override styles (shared by the webpub + epub packagers)
+// ---------------------------------------------------------------------------
+
+const REFLOWABLE_OVERRIDE_CSS = `<style>
+/* ── WebPub / EPUB reader overrides (reflowable) ──
+   EPUB readers like Thorium inject their own column-based pagination.
+   The ADT pages use Tailwind flex centering and responsive breakpoints
+   that don't work well in reflowable EPUB viewports. Override everything
+   to simple block flow with single-column layout. */
+
+/* Prevent reader column pagination */
+:root, html, body {
+  columns: auto !important;
+  column-width: auto !important;
+  column-count: auto !important;
+  column-gap: normal !important;
+  overflow: visible !important;
+}
+
+/* Body: block flow, no flex centering, no viewport-height minimum */
+body {
+  display: block !important;
+  min-height: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+/* Content wrapper: block flow, visible (JS fade-in won't run in readers) */
+#content {
+  display: block !important;
+  min-height: auto !important;
+  height: auto !important;
+  max-width: 100% !important;
+  opacity: 1 !important;
+}
+
+/* Force single-column layout for all section containers.
+   Side-by-side (lg:flex-row) layouts squeeze text in narrow
+   reader viewports. */
+section > div {
+  flex-direction: column !important;
+  max-width: 100% !important;
+}
+
+/* Remove max-width constraints on nested containers (max-w-6xl, max-w-xl, etc.) */
+.container,
+section [class*="max-w-"] {
+  max-width: 100% !important;
+}
+
+/* Responsive images */
+img {
+  max-width: 100% !important;
+  height: auto !important;
+}
+</style>`
+
+const FIXED_LAYOUT_OVERRIDE_CSS = `<style>
+/* ── EPUB reader overrides (fixed-layout) ──
+   Preserve absolute positioning for fixed-layout pages while
+   ensuring content is visible and the viewport is respected. */
+
+/* Prevent reader column pagination */
+:root, html, body {
+  columns: auto !important;
+  column-width: auto !important;
+  column-count: auto !important;
+  column-gap: normal !important;
+}
+
+/* Body: fill viewport, no flex centering */
+body {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: auto !important;
+  overflow: hidden !important;
+}
+
+/* Override Tailwind Preflight img reset that breaks positioned images */
+#content img {
+  max-width: none !important;
+}
+
+/* Content wrapper: keep it visible. Positioning/scale is left to the browser
+   fit script (renderPageHtml's fixedLayoutWebFit) for WebPub, or neutralized
+   for EPUB via FIXED_LAYOUT_FIT_NEUTRALIZE_CSS. */
+#content {
+  opacity: 1 !important;
+  visibility: visible !important;
+  margin: 0 !important;
+}
+
+/* Positioned text must stay absolute */
+.text-overlay {
+  position: absolute !important;
+}
+.text-overlay p {
+  position: absolute !important;
+}
+
+/* SMIL media-overlay active class — declared in the OPF as
+   media:active-class. EPUB readers toggle this on the active text
+   element (a per-word span with an id) during read-aloud playback. The
+   word wrapper carries the word's own font-size (set by wrapWordSpans), so
+   this inline background box is sized to the glyphs and covers the whole
+   word. The em radius tracks that font-size; vertical padding gives the
+   highlight a little breathing room without affecting layout (inline
+   vertical padding doesn't shift surrounding text), so toggling the class
+   causes no reflow. */
+.-epub-media-overlay-active {
+  background: rgba(255, 222, 74, 0.55);
+  border-radius: 0.18em;
+  padding-top: 0.05em;
+  padding-bottom: 0.05em;
+}
+</style>`
+
+/* Appended to the fixed-layout overrides for EPUB only. EPUB/Readium readers
+   size pre-paginated pages themselves, so neutralize renderPageHtml's browser
+   fit script (fixedLayoutWebFit) — the page renders at native size and the
+   reader scales it. WebPub keeps the fit: generic web readers don't reliably
+   scale fixed-layout pages, so the page must fit itself. */
+const FIXED_LAYOUT_FIT_NEUTRALIZE_CSS = `<style>
+#content {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
+}
+</style>`
+
+/**
+ * Fit script for fixed-layout pages in the browser web reader (studio preview +
+ * standalone). Scales `#content` to the viewport from first paint — no iframe
+ * transform, so no native-size flash and the reader's fixed dock stays at the
+ * pane bottom. `#content` starts hidden and is revealed once positioned
+ * (`<noscript>` reveals it without JS). The dock band is read from the
+ * `--dock-height` CSS var (published by `Dock.tsx`), with `dockReserveFallbackPx`
+ * for the first paint before the dock mounts. Neutralized for WebPub/Readium by
+ * FIXED_LAYOUT_OVERRIDE_CSS.
+ */
+function fixedLayoutWebFit(dockReserveFallbackPx: number): { headStyle: string; bodyScript: string } {
+  const headStyle = `    <style>
+      html { width: 100%; height: 100%; }
+      #content { visibility: hidden; }
+    </style>
+    <noscript><style>#content { visibility: visible !important; }</style></noscript>`
+  const bodyScript = `    <script>
+      (function () {
+        var c = document.getElementById("content");
+        if (!c) return;
+        var W = parseFloat(c.style.width) || c.offsetWidth || 1;
+        var H = parseFloat(c.style.height) || c.offsetHeight || 1;
+        var ref = parseFloat(c.getAttribute("data-fl-reference-width"));
+        var refW = ref > 0 ? ref : W;
+        var FALLBACK = ${dockReserveFallbackPx};
+        function dock() {
+          var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dock-height"));
+          return v > 0 ? v : FALLBACK;
+        }
+        function fit() {
+          var DOCK = dock();
+          var byW = window.innerWidth / refW;
+          var byH = (window.innerHeight - DOCK) / H;
+          var s = Math.min(${FIXED_LAYOUT_MAX_SCALE}, byW, byH > 0 ? byH : byW);
+          c.style.position = "absolute";
+          c.style.left = "50%";
+          c.style.top = "calc((100% - " + DOCK + "px) / 2)";
+          c.style.margin = "0";
+          c.style.transformOrigin = "center center";
+          c.style.transform = "translate(-50%, -50%) scale(" + s + ")";
+          c.style.visibility = "visible";
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        window.addEventListener("load", fit);
+        window.addEventListener("adt:dock-resize", fit);
+      })();
+    </script>`
+  return { headStyle, bodyScript }
+}
+
+export interface InjectWebpubStylesOptions {
+  fixedLayout?: boolean
+  /**
+   * Neutralize the browser fixed-layout fit script so the page renders at
+   * native size and the reader scales it. Set for EPUB (Readium/EPUB readers
+   * size pre-paginated pages themselves); omitted for WebPub, whose generic
+   * readers rely on the fit script.
+   */
+  neutralizeFixedLayoutFit?: boolean
+  /**
+   * Extra CSS rules appended inside the injected `<style>` block. Used by the
+   * EPUB packager to ship export-only affordances (e.g. the glossref dotted
+   * underline) without leaking them into the web/webpub output.
+   */
+  extraCss?: string
+}
+
+/**
+ * Walk all .html files in `dir` and inject a `<style>` block right before
+ * `</head>` that overrides reader-injected column pagination CSS.
+ */
+export function injectWebpubStyles(dir: string, options?: InjectWebpubStylesOptions): void {
+  const base = options?.fixedLayout ? FIXED_LAYOUT_OVERRIDE_CSS : REFLOWABLE_OVERRIDE_CSS
+  // Splice any caller-supplied rules in before the closing tag so they share
+  // the single injected <style> block. Function replacer so `$` in the CSS
+  // isn't interpreted as a replacement pattern (`$&`, `$1`, …).
+  const extra = options?.extraCss
+  let css = extra ? base.replace("</style>", () => `${extra}\n</style>`) : base
+  if (options?.fixedLayout && options?.neutralizeFixedLayoutFit) {
+    css = `${css}\n${FIXED_LAYOUT_FIT_NEUTRALIZE_CSS}`
+  }
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      injectWebpubStyles(fullPath, options)
+    } else if (entry.isFile() && entry.name.endsWith(".html")) {
+      let html = fs.readFileSync(fullPath, "utf-8")
+      html = html.replace("</head>", `${css}\n</head>`)
+      fs.writeFileSync(fullPath, html)
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// HTML generation
+// ---------------------------------------------------------------------------
+
+export interface RenderPageOptions {
+  content: string
+  language: string
+  sectionId: string
+  pageTitle: string
+  pageIndex: number
+  activityAnswers?: Record<string, string | boolean | number>
+  hasMath: boolean
+  bundleVersion: string
+  pageHeading?: string
+  /** When true, content is placed directly inside the page-level <main> without adding a
+   *  generated <div id="content"> wrapper. Used for quiz pages whose template provides
+   *  its own #content element. */
+  skipContentWrapper?: boolean
+  applyBodyBackground?: boolean
+  /** When true, renders a minimal page without navigation/sidebar chrome.
+   *  Content is visible immediately (no opacity-0). Used for storyboard preview. */
+  embed?: boolean
+  /** Fixed viewport dimensions for fixed-layout pages (e.g., pre-paginated EPUB).
+   *  When set, overrides the responsive viewport meta with a fixed size. */
+  fixedViewport?: { width: number; height: number }
+  /** CSS font-family chain for the reflowable base font (e.g.
+   *  `'Atkinson Hyperlegible','Merriweather',sans-serif`). When set, overrides
+   *  the global Merriweather rule from fonts.css and the family is loaded via
+   *  Google Fonts. Omit (fixed-layout / serif default) to keep Merriweather. */
+  bodyFontFamily?: string
+}
+
+/**
+ * Add `opacity-0` to the first `<div id="content">` element's class list.
+ * Used when the LLM-generated content already provides its own wrapper div so
+ * we don't add a duplicate — but still need the fade-in class for the ADT animation.
+ */
+function injectOpacityClass(html: string): string {
+  return html.replace(
+    /(<div\b[^>]*\bid="content"[^>]*)>/,
+    (_, opening) => {
+      if (/\bopacity-0\b/.test(opening)) return opening + ">"
+      const hasClass = /\bclass="/.test(opening)
+      if (hasClass) {
+        return opening.replace(/\bclass="([^"]*)"/, 'class="$1 opacity-0"') + ">"
+      }
+      return opening + ' class="opacity-0">'
+    }
+  )
+}
+
+export function stripContentEditable(html: string): string {
+  return html.replace(
+    /\s+contenteditable(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi,
+    "",
+  )
+}
+
+/**
+ * Resolve the reflowable base-font CSS chain for a book, or undefined when no
+ * override is needed (fixed-layout books keep original fonts; the serif default
+ * Merriweather is already the global font). Reads the book-level `font-profile`
+ * node (detected serif/sans category) and the explicit `reflowableFont` setting.
+ */
+export function resolveReflowableFontChain(
+  storage: Storage,
+  opts: { fixedLayout?: boolean; reflowableFont?: string },
+): string | undefined {
+  if (!opts.fixedLayout) {
+    const bodyFont = bookBodyFont(readBookFontRegistry(storage))
+    if (bodyFont) return bookFontFamilyChain(bodyFont)
+  }
+  const row = storage.getLatestNodeData("font-profile", "book")
+  // The font profile only records the auto-detected categories (serif/sans).
+  const category = (row?.data as { category?: "serif" | "sans" | null } | undefined)?.category ?? null
+  // Single source of truth — same resolution packaging, preview, and pages use.
+  return reflowableFontChain(category, opts) ?? undefined
+}
+
+export function renderPageHtml(opts: RenderPageOptions): string {
+  // LaTeX is converted to static MathML at build time by Temml,
+  // so no client-side math library is needed.
+  const mathScript = ""
+
+  const answersScript =
+    opts.activityAnswers && Object.keys(opts.activityAnswers).length > 0
+      ? `\n    <script type="text/javascript">\n        window.correctAnswers = JSON.parse('${escapeInlineScriptJson(JSON.stringify(opts.activityAnswers))}');\n    </script>`
+      : ""
+
+  // Stepper JSON payloads are masked for the whole assembly below — the
+  // regex passes over the page HTML (contenteditable strip, background-color
+  // scan, heading probes) must not match inside the embedded activity JSON.
+  const { masked: maskedContent, restore: restoreStepperPayloads } =
+    maskStepperPayloads(opts.content)
+  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(maskedContent))
+
+  // Custom activities (`activity_custom_*`) ship an inline <script> that calls
+  // window.adtRegisterCustomActivity(section, {validate, reset}) during parse —
+  // BEFORE base.bundle (end of <body>) can define it. Inject a tiny buffering
+  // stub into <head> so that call lands in a queue the runtime drains on boot
+  // (see apps/adt-runtime/src/features/activity/runtime/activity-custom.ts).
+  // Without this the call throws and the activity's Submit button never enables.
+  const customActivityStub = /data-section-type="activity_custom/.test(normalizedContent)
+    ? `\n    <script>(function(){if(window.adtRegisterCustomActivity)return;var q=(window.__adtPendingCustomActivities=window.__adtPendingCustomActivities||[]);window.adtRegisterCustomActivity=function(section,handlers){q.push({section:section,handlers:handlers})}})();</script>`
+    : ""
+
+  // INVARIANT: every page MUST render all TTS-scannable content inside
+  // <div id="content">. The reader's gatherAudioElements scans #content for
+  // [data-id] elements to build the TTS queue; anything outside #content is
+  // invisible to read-aloud. skipContentWrapper is only safe when the source
+  // content already provides its own <div id="content"> wrapper.
+  //
+  // When content already has <div id="content"> (LLM-generated), use it directly to avoid
+  // a duplicate #content element.
+  // Inject opacity-0 into the existing wrapper for the fade-in animation (skip in embed mode).
+  const contentAlreadyWrapped = /^\s*<div\b[^>]*\bid="content"/.test(normalizedContent)
+  const skipOpacity = opts.embed || opts.fixedViewport
+
+  const contentBlock = opts.skipContentWrapper
+    ? `      ${normalizedContent}`
+    : contentAlreadyWrapped
+      ? `      ${!skipOpacity ? injectOpacityClass(normalizedContent) : normalizedContent}`
+      : `      <div id="content"${skipOpacity ? "" : ` class="opacity-0"`}>
+        ${normalizedContent}
+      </div>`
+
+  const fallbackPageHeading = (opts.pageHeading ?? opts.pageTitle).trim()
+  const fallbackHeadingHtml = /<h1\b/i.test(normalizedContent) || fallbackPageHeading.length === 0
+    ? ""
+    : `      <h1 class="sr-only" id="page-heading">${escapeHtml(fallbackPageHeading)}</h1>
+`
+
+  const mainBlock = opts.fixedViewport
+    ? `    <main>
+${contentBlock}
+    </main>`
+    : `    <main class="w-full">
+${fallbackHeadingHtml}${contentBlock}
+    </main>`
+
+  // Extract data-background-color from content to apply on <body>
+  let bodyStyle = ""
+  if (opts.applyBodyBackground !== false) {
+    const bgMatch = normalizedContent.match(/data-background-color="([^"]*)"/)
+    bodyStyle = bgMatch?.[1]
+      ? ` style="background-color: ${escapeAttr(bgMatch[1])};"`
+      : ""
+  }
+
+  // In embed mode, hide non-essential chrome. The React runtime mounts the
+  // activity Submit/Skip buttons inside #nav-container, so it must stay
+  // visible — BottomDock self-hides via embedModeAtom (see ui.atoms.ts).
+  const embedStyles = opts.embed
+    ? `
+    <style>
+      /* Hide navigation, sidebar, and other chrome in embed mode */
+      #back-forward-buttons, #nav-popup,
+      #open-sidebar, #sidebar, #tts-quick-toggle-button, #play-bar,
+      #sl-quick-toggle-button, #sign-language-video,
+      #explain-me-button, #eli5-content, #notepad-button, #notepad-content { display: none !important; }
+    </style>`
+    : ""
+
+  // Reflowable base-font override: re-declare the same elements fonts.css
+  // targets with the chosen family, placed last in <head> so it wins. Omitted
+  // for fixed-layout / serif-default books (keeps the global Merriweather).
+  const bodyFontStyle = opts.bodyFontFamily
+    ? `\n    <style>\n      body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select { font-family: ${opts.bodyFontFamily}; }\n    </style>`
+    : ""
+
+  // Load any Google Fonts the page actually uses — fixed-layout pages declare
+  // the Google family on their text runs, and the reflowable base-font style
+  // (above) declares the body family. The bundled Merriweather remains the
+  // fallback for everything else.
+  const googleFamilies = googleFontsReferencedIn(normalizedContent + bodyFontStyle)
+  const bodyPrimary = opts.bodyFontFamily ? primaryFontFamily(opts.bodyFontFamily) : ""
+  if (
+    bodyPrimary &&
+    GOOGLE_FONTS.some((font) => font.family === bodyPrimary) &&
+    !googleFamilies.includes(bodyPrimary)
+  ) {
+    googleFamilies.push(bodyPrimary)
+  }
+  const googleFontsUrl = googleFontsCss2Url(googleFamilies)
+  const googleFontsLinks = googleFontsUrl
+    ? `
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="${escapeAttr(googleFontsUrl)}" rel="stylesheet">`
+    : ""
+
+  // 96 is the first-paint dock-band fallback; 0 in embed mode (dock hidden).
+  const flFit = opts.fixedViewport ? fixedLayoutWebFit(opts.embed ? 0 : 96) : null
+
+  return restoreStepperPayloads(`<!DOCTYPE html>
+<html lang="${escapeAttr(opts.language)}">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="${opts.fixedViewport ? `width=${opts.fixedViewport.width}, height=${opts.fixedViewport.height}` : "width=device-width, initial-scale=1"}" />
+    <title>${escapeHtml(opts.pageTitle)}</title>
+    <meta name="title-id" content="${escapeAttr(opts.sectionId)}" />
+    <meta name="page-section-id" content="${opts.pageIndex}" />
+    <link href="./content/tailwind_output.css" rel="stylesheet">
+    <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
+    <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}${customActivityStub}
+${mathScript}${embedStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
+
+<body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:100%;height:100%"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
+${mainBlock}
+${flFit ? `${flFit.bodyScript}\n` : ""}${answersScript}
+    <div class="relative z-50" id="interface-container"></div>
+    <div class="relative z-50" id="nav-container"></div>
+${opts.embed
+      ? `    <script src="./assets/base.bundle.min.js?v=${escapeAttr(opts.bundleVersion)}" type="module"></script>`
+      : `    <script src="./assets/offline-preloader.js"></script>
+    <script src="./assets/scorm.js"></script>
+    <script src="./assets/base.bundle.local.js"></script>`}
+</body>
+
+</html>
+`)
+}
+
+// ---------------------------------------------------------------------------
+// Quiz HTML generation
+// ---------------------------------------------------------------------------
+
+export function pad3(n: number): string {
+  return String(n).padStart(3, "0")
+}
+
+/** Book-styled quiz theming derived from the book's palette. When absent,
+ *  `renderQuizHtml` uses the legacy cream/gray/blue template. */
+export interface QuizStyle {
+  palette: QuizPalette
+}
+
+interface QuizTheme {
+  styleBlock: string
+  cardClass: string
+  headerClass: string
+  bodyOpen: string
+  bodyClose: string
+  questionClass: string
+  optionLabelClass: string
+  optionTextClass: string
+  feedbackClass: string
+}
+
+const LEGACY_QUIZ_THEME: QuizTheme = {
+  styleBlock: `<style>
+    .activity-option:focus,
+    .activity-option:focus-within {
+        outline: 3px solid #2563eb;
+        outline-offset: 2px;
+    }
+
+    .activity-option.selected-option {
+        border-color: #1d4ed8;
+        border-width: 4px;
+        background-color: rgba(59, 130, 246, 0.18);
+        box-shadow: 0 14px 0 rgba(29, 78, 216, 0.35);
+        transform: translateY(-3px);
+    }
+
+    .activity-option.selected-option .option-text {
+        color: #1e3a8a;
+        font-weight: 600;
+    }
+</style>`,
+  cardClass: "w-full max-w-3xl rounded-3xl p-10",
+  headerClass: "text-center",
+  bodyOpen: "",
+  bodyClose: "",
+  questionClass: "text-3xl font-bold text-gray-900 tracking-tight",
+  optionLabelClass:
+    "activity-option w-[34rem] max-w-full cursor-pointer rounded-2xl border-2 border-gray-900 bg-[#FFFAF5] px-8 py-6 text-center text-xl font-medium text-gray-900 shadow-[0_6px_0_0_rgba(0,0,0,0.65)] transition-all duration-200 hover:translate-y-[-2px] hover:shadow-[0_8px_0_0_rgba(0,0,0,0.55)]",
+  optionTextClass: "option-text block text-lg md:text-2xl text-gray-900",
+  feedbackClass:
+    "feedback-container hidden w-full rounded-md border border-transparent bg-transparent px-3 py-2 text-gray-700",
+}
+
+/** Build a quiz theme from the book palette — the book's callout aesthetic:
+ *  a colored header band over a pale card body with rounded option cards,
+ *  typography via the `adt-*` type scale, colors via CSS variables. */
+function bookQuizTheme(palette: QuizPalette): QuizTheme {
+  const { accent, accentSoft, headerText, body, optionFill, submit, submitText, optionText, selectedText } = palette
+  return {
+    styleBlock: `<style>
+    #simple-main {
+        --quiz-accent: ${accent};
+        --quiz-accent-soft: ${accentSoft};
+        --quiz-header-text: ${headerText};
+        --quiz-body: ${body};
+        --quiz-option: ${optionFill};
+        --quiz-option-text: ${optionText};
+        --quiz-selected-text: ${selectedText};
+        --quiz-submit: ${submit};
+        --quiz-submit-text: ${submitText};
+    }
+    #simple-main .quiz-card { background-color: var(--quiz-body); box-shadow: 0 12px 34px rgba(0, 0, 0, 0.10); }
+    #simple-main .quiz-header { background-color: var(--quiz-accent); }
+    #simple-main .quiz-question { color: var(--quiz-header-text); }
+    #simple-main .activity-option {
+        background-color: var(--quiz-option);
+        border-color: var(--quiz-accent);
+        color: var(--quiz-option-text);
+        box-shadow: 0 6px 0 0 rgba(0, 0, 0, 0.10);
+    }
+    /* Quiz options read larger than body copy — the adt-body scale bottoms
+       out at 16px, which is too small for a tappable answer. Floor at 20px. */
+    #simple-main .activity-option,
+    #simple-main .activity-option .option-text {
+        font-size: 20px;
+    }
+    #simple-main .activity-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 0 0 rgba(0, 0, 0, 0.12);
+    }
+    #simple-main .activity-option:focus,
+    #simple-main .activity-option:focus-within {
+        outline: 3px solid #2563eb;
+        outline-offset: 2px;
+    }
+    #simple-main .activity-option.selected-option {
+        border-color: var(--quiz-accent);
+        border-width: 4px;
+        background-color: var(--quiz-accent-soft);
+        transform: translateY(-3px);
+    }
+    #simple-main .activity-option.selected-option .option-text {
+        color: var(--quiz-selected-text);
+        font-weight: 600;
+    }
+    #simple-main [data-submit-target] button {
+        background-color: var(--quiz-submit);
+        color: var(--quiz-submit-text);
+        border-color: var(--quiz-submit);
+    }
+</style>`,
+    cardClass: "quiz-card w-full max-w-3xl overflow-hidden rounded-3xl",
+    headerClass: "quiz-header px-8 py-8 text-center",
+    bodyOpen: `<div class="quiz-body px-6 py-10 md:px-10">`,
+    bodyClose: `</div>`,
+    questionClass: "quiz-question adt-h2 font-bold tracking-tight",
+    optionLabelClass:
+      "activity-option w-[34rem] max-w-full cursor-pointer rounded-2xl border-2 px-8 py-6 text-center adt-body font-medium transition-all duration-200",
+    optionTextClass: "option-text block adt-body",
+    feedbackClass:
+      "feedback-container hidden w-full rounded-md border border-transparent bg-transparent px-3 py-2 adt-caption",
+  }
+}
+
+export function renderQuizHtml(
+  quiz: Quiz,
+  quizId: string,
+  catalog: TextCatalogOutput | undefined,
+  style?: QuizStyle | null,
+): string {
+  const theme = style ? bookQuizTheme(style.palette) : LEGACY_QUIZ_THEME
+  const questionId = `${quizId}_que`
+  const texts = new Map<string, string>()
+  if (catalog?.entries) {
+    for (const e of catalog.entries) texts.set(e.id, e.text)
+  }
+
+  const correctAnswers: Record<string, boolean> = {}
+  const explanationMapping: Record<string, string> = {}
+
+  for (let i = 0; i < quiz.options.length; i++) {
+    const optionId = `${quizId}_o${i}`
+    correctAnswers[optionId] = i === quiz.answerIndex
+
+    const expId = `${quizId}_o${i}_exp`
+    if (texts.has(expId)) {
+      explanationMapping[optionId] = expId
+    }
+  }
+
+  let optionsHtml = ""
+  for (let i = 0; i < quiz.options.length; i++) {
+    const optionId = `${quizId}_o${i}`
+    const optionText = texts.get(optionId) ?? quiz.options[i].text
+    const expId = explanationMapping[optionId]
+    const expText = expId ? (texts.get(expId) ?? quiz.options[i].explanation) : ""
+    const expIdAttr = expId ? ` data-explanation-id="${escapeAttr(expId)}"` : ""
+
+    optionsHtml += `
+                    <label
+                        class="${theme.optionLabelClass}"
+                        data-activity-item="${escapeAttr(optionId)}"
+                        data-explanation="${escapeAttr(expText)}"${expIdAttr}
+                        tabindex="0"
+                    >
+                        <input
+                            type="radio"
+                            name="${escapeAttr(quizId)}"
+                            value="${escapeAttr(optionId)}"
+                            data-activity-item="${escapeAttr(optionId)}"
+                            class="sr-only"
+                            aria-labelledby="${escapeAttr(optionId)}-option-label"
+                        />
+                        <span
+                            id="${escapeAttr(optionId)}-option-label"
+                            class="${theme.optionTextClass}"
+                            data-id="${escapeAttr(optionId)}"
+                        >
+                            ${escapeHtml(optionText)}
+                        </span>
+
+                        <div class="${theme.feedbackClass}" aria-live="polite">
+                            <span aria-hidden="true" class="feedback-icon mr-2"></span>
+                            <span class="feedback-text"></span>
+                        </div>
+
+                        <span class="validation-mark hidden"></span>
+                    </label>`
+  }
+
+  const questionText = texts.get(questionId) ?? quiz.question
+
+  return `${theme.styleBlock}
+
+<div id="content" class="container content mx-auto w-full min-h-screen px-8 py-8 flex items-center justify-center opacity-0">
+    <section
+        id="simple-main"
+        data-section-type="activity_quiz"
+        data-id="${escapeAttr(quizId)}"
+        data-area-id="${escapeAttr(quizId)}"
+        data-correct-answers='${escapeAttr(JSON.stringify(correctAnswers))}'
+        data-option-explanations='${escapeAttr(JSON.stringify(explanationMapping))}'
+    >
+        <div class="flex w-full flex-col items-center gap-10 px-6 py-10">
+            <div class="${theme.cardClass}">
+                <header class="${theme.headerClass}">
+                    <p
+                        id="${escapeAttr(quizId)}-question-label"
+                        class="${theme.questionClass}"
+                        data-id="${escapeAttr(questionId)}"
+                    >
+                        ${escapeHtml(questionText)}
+                    </p>
+                </header>
+                ${theme.bodyOpen}
+                <div
+                    class="mt-8 flex flex-col items-center gap-6"
+                    role="group"
+                    aria-labelledby="${escapeAttr(quizId)}-question-label"
+                >
+${optionsHtml}
+                </div>
+
+                <div class="mt-10 flex flex-col items-center gap-4">
+                    <div data-submit-target class="flex flex-wrap items-center justify-center gap-4"></div>
+                </div>
+                ${theme.bodyClose}
+            </div>
+        </div>
+    </section>
+</div>
+
+<script type="application/json" id="quiz-correct-answers">
+${JSON.stringify(correctAnswers)}
+</script>
+<script type="application/json" id="quiz-explanations">
+${JSON.stringify(explanationMapping)}
+</script>`
+}
+
+export function buildQuizAnswers(quiz: Quiz, quizId: string): Record<string, boolean> {
+  const answers: Record<string, boolean> = {}
+  for (let i = 0; i < quiz.options.length; i++) {
+    answers[`${quizId}_o${i}`] = i === quiz.answerIndex
+  }
+  return answers
+}
+
+// ---------------------------------------------------------------------------
+// Image helpers
+// ---------------------------------------------------------------------------
+
+/** Scan the images directory and build imageId → filename map */
+export function buildImageMap(imagesDir: string): Map<string, string> {
+  const map = new Map<string, string>()
+  if (!fs.existsSync(imagesDir)) return map
+
+  for (const file of fs.readdirSync(imagesDir)) {
+    const ext = path.extname(file)
+    if (ext === ".jpg" || ext === ".png") {
+      const id = path.basename(file, ext)
+      map.set(id, file)
+    }
+  }
+  return map
+}
+
+function loadImageCaptionMap(storage: Storage, pageId: string): Map<string, string> {
+  const row = storage.getLatestNodeData("image-captioning", pageId)
+  if (!row) return new Map<string, string>()
+
+  const data = row.data as ImageCaptioningOutput
+  const map = new Map<string, string>()
+  for (const caption of data.captions ?? []) {
+    if (caption.caption?.trim()) {
+      map.set(caption.imageId, caption.caption.trim())
+    }
+  }
+  return map
+}
+
+/** Build the set of image IDs the user has marked as decorative for a page. */
+export function buildDecorativeImageIdSet(storage: Storage, pageId: string): Set<string> {
+  const row = storage.getLatestNodeData("image-captioning", pageId)
+  const ids = new Set<string>()
+  if (!row) return ids
+
+  const data = row.data as ImageCaptioningOutput
+  for (const caption of data.captions ?? []) {
+    if (caption.decorative) ids.add(caption.imageId)
+  }
+  return ids
+}
+
+/** Collect every non-pruned image_group node in a section along with its image id. */
+function collectImageGroups(section: PageSectioningSection): Array<{ group: ContentNodeData; imageId: string }> {
+  const out: Array<{ group: ContentNodeData; imageId: string }> = []
+  const walk = (node: ContentNodeData): void => {
+    if (node.isPruned) return
+    if (node.structure === "image_group") {
+      const imageLeaf = node.children?.find((c) => c.role === "image" && !c.isPruned)
+      if (imageLeaf) out.push({ group: node, imageId: imageLeaf.nodeId })
+    }
+    if (node.children) {
+      for (const c of node.children) walk(c)
+    }
+  }
+  for (const n of section.nodes) walk(n)
+  return out
+}
+
+/** Collect all non-pruned leaf texts matching a role within a subtree. */
+function collectLeafTextsByRole(node: ContentNodeData, role: string): string[] {
+  const out: string[] = []
+  const walk = (n: ContentNodeData): void => {
+    if (n.isPruned) return
+    if (n.role === role && n.text) {
+      const trimmed = n.text.replace(/\s+/g, " ").trim()
+      if (trimmed.length > 0) out.push(trimmed)
+    }
+    if (n.children) {
+      for (const c of n.children) walk(c)
+    }
+  }
+  walk(node)
+  return out
+}
+
+function buildSectionImageAltMap(section: PageSectioningSection): Map<string, string> {
+  const imageGroups = collectImageGroups(section)
+  const map = new Map<string, string>()
+  if (imageGroups.length !== 1) return map
+
+  const captions = collectLeafTextsByRole(imageGroups[0].group, "caption")
+  if (captions.length === 0) return map
+
+  map.set(imageGroups[0].imageId, captions.join(" "))
+  return map
+}
+
+function applyDuplicateImageAltPolicy(
+  section: PageSectioningSection,
+  altTextByImageId: Map<string, string>,
+): Map<string, string> {
+  const normalizedAltToFirstImageId = new Map<string, string>()
+  const normalizedAltMap = new Map(altTextByImageId)
+
+  for (const { imageId } of collectImageGroups(section)) {
+    const altText = normalizedAltMap.get(imageId)?.trim()
+    if (!altText) continue
+
+    const dedupeKey = altText.replace(/\s+/g, " ").trim().toLowerCase()
+    if (!dedupeKey) continue
+
+    if (normalizedAltToFirstImageId.has(dedupeKey)) {
+      normalizedAltMap.set(imageId, "")
+      continue
+    }
+
+    normalizedAltToFirstImageId.set(dedupeKey, imageId)
+  }
+
+  return normalizedAltMap
+}
+
+export function buildPreferredImageAltMap(
+  storage: Storage,
+  pageId: string,
+  section?: PageSectioningSection,
+): Map<string, string> {
+  const imageCaptionMap = loadImageCaptionMap(storage, pageId)
+  const sectionImageAltMap = section ? buildSectionImageAltMap(section) : new Map<string, string>()
+  const preferredImageAltMap = new Map(sectionImageAltMap)
+  for (const [imageId, altText] of imageCaptionMap) {
+    preferredImageAltMap.set(imageId, altText)
+  }
+  return section ? applyDuplicateImageAltPolicy(section, preferredImageAltMap) : preferredImageAltMap
+}
+
+/** Rewrite image URLs from /api/books/{label}/images/{id} to images/{filename} */
+export function rewriteImageUrls(
+  html: string,
+  label: string,
+  imageMap: Map<string, string>,
+  altTextByImageId?: Map<string, string>,
+  decorativeImageIds?: Set<string>,
+): { html: string; referencedImages: string[] } {
+  const prefix = `/api/books/${label}/images/`
+  const referencedImages: string[] = []
+  const doc = parseDocument(normalizeSectionRoles(html))
+
+  const imgs = DomUtils.findAll(
+    (el) => el.type === "tag" && el.name === "img",
+    doc.children,
+  )
+
+  for (const img of imgs) {
+    let resolvedImageId: string | undefined
+    const src = img.attribs.src ?? ""
+    if (src.startsWith(prefix)) {
+      const imageId = src.slice(prefix.length)
+      const filename = imageMap.get(imageId)
+      if (filename) {
+        resolvedImageId = imageId
+        img.attribs.src = `images/${filename}`
+        referencedImages.push(imageId)
+        delete img.attribs.width
+        delete img.attribs.height
+        const existingStyle = img.attribs.style ?? ""
+        // Don't add responsive sizing to absolutely-positioned images (fixed-layout)
+        if (!existingStyle.includes("position:absolute")) {
+          const sizeStyle = "max-width: 100%; height: auto;"
+          if (!existingStyle.includes("max-width")) {
+            img.attribs.style = existingStyle
+              ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
+              : sizeStyle
+          }
+        }
+      }
+    }
+    // Also handle data-id based images
+    const dataId = img.attribs["data-id"]
+    if (dataId && imageMap.has(dataId) && !img.attribs.src?.startsWith("images/")) {
+      const filename = imageMap.get(dataId)!
+      resolvedImageId = dataId
+      img.attribs.src = `images/${filename}`
+      if (!referencedImages.includes(dataId)) {
+        referencedImages.push(dataId)
+      }
+      delete img.attribs.width
+      delete img.attribs.height
+      const existingStyle = img.attribs.style ?? ""
+      // Don't add responsive sizing to absolutely-positioned images (fixed-layout)
+      if (!existingStyle.includes("position:absolute")) {
+        const sizeStyle = "max-width: 100%; height: auto;"
+        if (!existingStyle.includes("max-width")) {
+          img.attribs.style = existingStyle
+            ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
+            : sizeStyle
+        }
+      }
+    }
+
+    const imageIdForAlt = resolvedImageId ?? dataId
+    const isDecorative = imageIdForAlt ? decorativeImageIds?.has(imageIdForAlt) ?? false : false
+    if (isDecorative) {
+      // Decorative image: needs no caption, hidden from assistive technology.
+      img.attribs.alt = ""
+      img.attribs.role = "presentation"
+      img.attribs["aria-hidden"] = "true"
+    } else {
+      const hasPreferredAlt = imageIdForAlt ? altTextByImageId?.has(imageIdForAlt) ?? false : false
+      const altText = imageIdForAlt ? altTextByImageId?.get(imageIdForAlt)?.trim() ?? "" : ""
+      if (hasPreferredAlt && (img.attribs.alt === undefined || img.attribs.alt.trim() === "")) {
+        img.attribs.alt = altText
+      }
+    }
+  }
+
+  const normalizedHtml = DomUtils.getOuterHTML(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
+  return { html: normalizedHtml, referencedImages }
+}
+
+/**
+ * Convert an HTML fragment to well-formed XHTML.
+ * Uses htmlparser2 to parse and re-serialize in XML mode, and replaces
+ * HTML named entities with their numeric equivalents.
+ */
+
+// ---------------------------------------------------------------------------
+// Glossary helpers
+// ---------------------------------------------------------------------------
+
+export interface GlossaryJsonEntry {
+  word: string
+  definition: string
+  variations: string[]
+  emoji: string
+  /** Text-catalog id (`gl001`…) — the stable cross-surface key (e.g. for
+   *  sign-language videos attached to the term). */
+  id: string
+  /** Bundle-relative href of the term's picture (`images/<file>`). */
+  image?: string
+  /** Bundle-relative href of the term's sign-language video
+   *  (`content/i18n/<lang>/video/sl_<id>.<ext>`). */
+  video?: string
+}
+
+export function buildGlossaryJson(
+  glossary: GlossaryOutput | undefined,
+  catalog: TextCatalogOutput | undefined,
+  textsMap: Record<string, string>,
+  isSourceLanguage: boolean,
+  imageHrefByImageId?: Map<string, string>,
+  videoHrefByItemId?: Map<string, string>,
+): Record<string, GlossaryJsonEntry> {
+  if (!glossary?.items) return {}
+
+  const result: Record<string, GlossaryJsonEntry> = {}
+
+  for (let i = 0; i < glossary.items.length; i++) {
+    const item = glossary.items[i]
+    if (item.pruned) continue
+    const glId = getGlossaryItemTextId(item, i)
+    const defId = `${glId}_def`
+
+    // Use translated text if available, otherwise fall back to source
+    const word = textsMap[glId] ?? item.word
+    const definition = textsMap[defId] ?? item.definition
+    const image = item.imageId ? imageHrefByImageId?.get(item.imageId) : undefined
+    const video = videoHrefByItemId?.get(glId)
+
+    result[word] = {
+      word,
+      definition,
+      variations: item.variations,
+      emoji: item.emojis.join(""),
+      id: glId,
+      ...(image ? { image } : {}),
+      ...(video ? { video } : {}),
+    }
+  }
+
+  return result
+}
+
+// ---------------------------------------------------------------------------
+// Math detection
+// ---------------------------------------------------------------------------
+
+/**
+ * `<script>`/`<style>` blocks, whose contents are raw text rather than markup.
+ * The LaTeX passes must not touch these — see `convertLatexToMathml`.
+ *
+ * Built fresh per call rather than shared: these are `/g` regexes driven by
+ * `lastIndex`, so a single shared instance would corrupt an outer scan if a
+ * callback ever reached one of these helpers again.
+ */
+function rawTextBlockRe(): RegExp {
+  return /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi
+}
+
+/**
+ * Apply `fn` to every part of `html` that is NOT inside a `<script>`/`<style>`
+ * block, leaving those blocks byte-identical.
+ */
+function mapOutsideRawText(html: string, fn: (part: string) => string): string {
+  const re = rawTextBlockRe()
+  let out = ""
+  let last = 0
+  let match: RegExpExecArray | null
+  while ((match = re.exec(html)) !== null) {
+    out += fn(html.slice(last, match.index)) + match[0]
+    last = match.index + match[0].length
+  }
+  return out + fn(html.slice(last))
+}
+
+/** Remove `<script>`/`<style>` blocks so their contents can't be scanned. */
+function stripRawTextBlocks(html: string): string {
+  return html.replace(rawTextBlockRe(), "")
+}
+
+const MATH_INDICATORS = [
+  "$",
+  "\\(",
+  "\\[",
+  "<math",
+  "\\begin{",
+  // HTML-encoded forms (htmlparser2's getOuterHTML encodes $ as &#x24;)
+  "&#x24;",
+]
+
+/**
+ * Regex that matches LaTeX commands commonly found undelimited in LLM output.
+ * Matches: \text{}, \hat{}, \frac{}{}, \sqrt{}, \vec{}, \bar{}, \overline{},
+ * \circ, ^\circ, _{...}, ^{...}, \times, \div, \pm, \leq, \geq, \neq,
+ * \mathcal{}, \mathbb{}, \in, \leftarrow, etc.
+ * Also matches bare subscript/superscript like X_i or X^2, but NOT snake_case
+ * identifiers like `variable_name` — the base letter must not be preceded by
+ * another letter, and the subscript char must not be followed by another letter.
+ */
+// NOTE: longer alternatives must precede their prefixes (dfrac/tfrac before frac),
+// otherwise `\dfrac` never matches — the alternation is anchored right after the
+// backslash, so `frac` cannot match the `d`. `begin`/`end` are needed for bare
+// `\begin{array}` blocks (columnar sums, long division), which MATH_INDICATORS
+// recognises for gating but this pass must also match to actually convert them.
+const UNDELIMITED_LATEX_RE = /\\(?:begin|end|dfrac|tfrac|text|mbox|hat|frac|sqrt|vec|bar|overline|underline|mathbf|mathrm|mathit|mathcal|mathbb|mathfrak|mathscr|circ|times|div|pm|mp|leq|geq|neq|approx|equiv|sim|in|notin|subset|supset|cup|cap|leftarrow|rightarrow|Leftarrow|Rightarrow|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|phi|psi|infty|partial|nabla|sum|prod|int|lim|log|ln|sin|cos|tan|sec|csc|cot|left|right|cdot|ldots|cdots|quad|qquad|binom|tag)\b|[_^]\{|(?<![A-Za-z])[A-Za-z][_^][A-Za-z0-9](?![A-Za-z])/
+
+export function containsMathContent(html: string): boolean {
+  // Scan markup only: a `$` or `\(` inside an inline grading script is JS, not
+  // math, and would otherwise flag the whole section as math (loading the
+  // MathML stylesheet on a page that has none).
+  const scannable = stripRawTextBlocks(html)
+  if (MATH_INDICATORS.some((indicator) => scannable.includes(indicator))) return true
+  return UNDELIMITED_LATEX_RE.test(scannable)
+}
+
+/**
+ * Returns true if the text is mixed prose with embedded math, rather than a
+ * pure math expression. We detect this by looking for 3+ consecutive regular
+ * English words — pure LaTeX expressions rarely have that.
+ */
+function isMixedContent(text: string): boolean {
+  const words = text.split(/\s+/)
+  let consecutive = 0
+  for (const word of words) {
+    if (/^[a-zA-Z]{3,}[.,;:!?]?$/.test(word)) {
+      consecutive++
+      if (consecutive >= 3) return true
+    } else {
+      consecutive = 0
+    }
+  }
+  return false
+}
+
+/**
+ * For mixed prose+math text nodes, find individual LaTeX expressions and
+ * convert them to MathML inline, preserving the surrounding prose text.
+ *
+ * Matches compound expressions like `\mathcal{Z}_m`, `Z_r`, `f_\theta`,
+ * `\{P_i, M_i\}`, etc. Each expression must contain at least one LaTeX
+ * marker (backslash command, subscript, or superscript).
+ */
+function convertInlineLatexFragments(text: string): string {
+  // First: handle \{...\} groups (escaped brace groups with content)
+  text = text.replace(/\\{(?:[^{}]|\{[^{}]*\})*\\}/g, (expr) => {
+    const mathml = tryTemml(expr.trim(), false) ?? tryTemml(expr.trim(), true)
+    return mathml ?? expr
+  })
+
+  // Match LaTeX expressions: optional leading alphanumeric, one or more "atoms",
+  // with optional alphanumeric glue between atoms.
+  // Atoms: \command{...}, _\command{...}, _{...}, ^{...}, _x, ^x, \{ or \}
+  // The expression must start at a word boundary (not inside an identifier),
+  // and bare `_x`/`^x` subscripts cannot be followed by more letters — this
+  // prevents snake_case identifiers like `variable_name` from being matched.
+  const LATEX_EXPR_RE = /(?<![A-Za-z0-9])[A-Za-z0-9]*(?:(?:\\[a-zA-Z]+(?:\{(?:[^{}]|\{[^{}]*\})*\})*|[_^]\\[a-zA-Z]+(?:\{(?:[^{}]|\{[^{}]*\})*\})*|[_^]\{(?:[^{}]|\{[^{}]*\})*\}|[_^][A-Za-z0-9](?![A-Za-z])|\\[{}])[A-Za-z0-9]*)+/g
+
+  text = text.replace(LATEX_EXPR_RE, (expr) => {
+    const trimmed = expr.trim()
+    if (!trimmed) return expr
+    const mathml = tryTemml(trimmed, false) ?? tryTemml(trimmed, true)
+    return mathml ?? expr
+  })
+
+  return text
+}
+
+// ---------------------------------------------------------------------------
+// LaTeX → MathML conversion
+// ---------------------------------------------------------------------------
+
+/**
+ * Render LaTeX via Temml. Returns null on failure.
+ * Temml may embed errors as `<span class="temml-error">` instead of throwing,
+ * so we check the output for error spans as well.
+ */
+function tryTemml(latex: string, displayMode: boolean): string | null {
+  try {
+    const result = temml.renderToString(latex, { displayMode })
+    if (result.includes("temml-error")) return null
+    return result
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Try inline mode first, fall back to display mode if that fails.
+ * Handles commands like \tag{} and \\ that require display mode.
+ */
+function renderLatexWithFallback(latex: string): string | null {
+  return tryTemml(latex, false) ?? tryTemml(latex, true)
+}
+
+/**
+ * Decode HTML entities for $ that htmlparser2 serialization may produce,
+ * so that LaTeX delimiters can be matched by the regex patterns below.
+ */
+function decodeDollarEntities(s: string): string {
+  return s.replace(/&#x24;/g, "$").replace(/&#36;/g, "$")
+}
+
+/**
+ * Decode common HTML entities that Liquid's `escape` filter introduces into
+ * LaTeX content (e.g., `>` → `&gt;`, `<` → `&lt;`). Without this, temml
+ * receives `\tau&gt;0` instead of `\tau>0` and fails to parse.
+ */
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&gt;/g, ">")
+    .replace(/&lt;/g, "<")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+}
+
+/**
+ * Convert a plain text string containing LaTeX to MathML.
+ * Handles delimited ($, $$, \(, \[) and undelimited LaTeX.
+ * Used for text catalog entries (texts.json) that are plain strings.
+ *
+ * For mixed prose+math (e.g. "the space M = (X, V), where X ∈ ℝ^{N×3}"),
+ * only delimited math is converted — the undelimited pass is skipped to
+ * avoid rendering the entire paragraph as a math expression.
+ */
+export function convertLatexString(text: string): string {
+  text = decodeDollarEntities(text)
+
+  let converted = convertDelimitedLatex(text)
+
+  // If delimited conversion didn't change anything, try undelimited.
+  if (converted === text && UNDELIMITED_LATEX_RE.test(text)) {
+    // Pure math expression — render as a single block
+    if (!isMixedContent(text)) {
+      return renderLatexWithFallback(text.trim()) ?? converted
+    }
+    // Mixed prose+math — convert individual LaTeX fragments inline
+    return convertInlineLatexFragments(converted)
+  }
+
+  return converted
+}
+
+/**
+ * Replace delimited LaTeX math ($$, $, \[, \() with MathML.
+ */
+function convertDelimitedLatex(text: string): string {
+  // Process display math first ($$...$$ and \[...\]) then inline ($...$ and \(...\))
+  // to avoid $$...$$ being matched as two inline $...$ blocks.
+  // Decode HTML entities (e.g., &gt; → >) inside captured LaTeX before rendering,
+  // since Liquid's escape filter encodes <, >, & in text content.
+
+  // $$...$$ — display math
+  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (_match, latex: string) =>
+    tryTemml(decodeHtmlEntities(latex.trim()), true) ?? _match
+  )
+
+  // \[...\] — display math
+  text = text.replace(/\\\[([\s\S]+?)\\\]/g, (_match, latex: string) =>
+    tryTemml(decodeHtmlEntities(latex.trim()), true) ?? _match
+  )
+
+  // $...$ — inline math (avoid matching escaped \$ or empty $$)
+  // Negative lookbehind for backslash; content must be non-empty and not start/end with space
+  text = text.replace(/(?<!\\)\$([^\s$](?:[^$]*[^\s$])?)\$/g, (_match, latex: string) =>
+    tryTemml(decodeHtmlEntities(latex.trim()), false) ?? _match
+  )
+
+  // \(...\) — inline math
+  text = text.replace(/\\\(([\s\S]+?)\\\)/g, (_match, latex: string) =>
+    tryTemml(decodeHtmlEntities(latex.trim()), false) ?? _match
+  )
+
+  return text
+}
+
+/**
+ * Replace LaTeX math in HTML content with MathML rendered by Temml.
+ * Handles delimited math ($, $$, \(, \[) and undelimited LaTeX in text nodes.
+ *
+ * Both passes only touch text-node content (between > and <), never tag
+ * attributes. Generated activity HTML sometimes echoes the expression into an
+ * attribute (e.g. `<input aria-label="c. $5(2x)$" class="…">`); converting it
+ * there injects MathML whose own quoted attributes (`fence="true"`) terminate
+ * the attribute value early and split the tag open — the input disappears and
+ * its attribute tail renders as page text.
+ *
+ * `<script>`/`<style>` bodies are left untouched — custom-activity sections
+ * (`activity_custom_*`) ship an inline grading script, and JS routinely
+ * contains `$` (template literals) and `\(`…`\)` (regex literals) that this
+ * pass would otherwise rewrite into MathML, breaking the script at package
+ * time while the studio preview still looked fine.
+ */
+export function convertLatexToMathml(html: string): string {
+  return mapOutsideRawText(html, convertLatexInFragment)
+}
+
+function convertLatexInFragment(html: string): string {
+  html = decodeDollarEntities(html)
+
+  // First pass: convert delimited math in text nodes
+  html = html.replace(/(>)([^<]+)(<)/g, (_match, open: string, text: string, close: string) => {
+    const converted = convertDelimitedLatex(text)
+    return converted !== text ? `${open}${converted}${close}` : _match
+  })
+
+  // Second pass: convert undelimited LaTeX in text nodes (content between > and <).
+  // For pure math nodes, render the entire text as a single expression.
+  // For mixed prose+math, find and convert individual LaTeX fragments inline.
+  html = html.replace(/(>)([^<]+)(<)/g, (_match, open: string, text: string, close: string) => {
+    if (!UNDELIMITED_LATEX_RE.test(text)) return _match
+    if (text.includes("<math")) return _match
+    const decoded = decodeHtmlEntities(text)
+    if (isMixedContent(decoded)) {
+      const converted = convertInlineLatexFragments(decoded)
+      return converted !== decoded ? `${open}${converted}${close}` : _match
+    }
+    const mathml = renderLatexWithFallback(decoded.trim())
+    return mathml ? `${open}${mathml}${close}` : _match
+  })
+
+  return html
+}
+
+// ---------------------------------------------------------------------------
+// JS bundle build (base.js → base.bundle.min.js via esbuild)
+// ---------------------------------------------------------------------------
+
+async function buildJsBundle(
+  webAssetsDir: string,
+  outputAssetsDir: string,
+): Promise<void> {
+  // The runtime bundle is produced by apps/adt-runtime/build.config.mjs and
+  // emitted into webAssetsDir as base.bundle.min.js (ESM) +
+  // base.bundle.local.js (IIFE). bundle.mjs pre-builds these for sidecar
+  // mode (esbuild can't run inside the pkg binary). In dev mode we trigger
+  // the build script on-demand if the pre-built files are missing.
+  const preBuiltEsm = path.join(webAssetsDir, "base.bundle.min.js")
+  const preBuiltIife = path.join(webAssetsDir, "base.bundle.local.js")
+
+  if (!fs.existsSync(preBuiltEsm) || !fs.existsSync(preBuiltIife)) {
+    // Resolve apps/adt-runtime/build.config.mjs relative to webAssetsDir
+    // (which is typically <monorepo>/assets/adt). The script writes the
+    // bundles back into webAssetsDir.
+    const buildScript = path.resolve(
+      webAssetsDir,
+      "../../apps/adt-runtime/build.config.mjs",
+    )
+    if (fs.existsSync(buildScript)) {
+      // Convert to a file:// URL so Node's ESM loader doesn't read the
+      // Windows drive letter as a URL scheme.
+      const buildScriptUrl = pathToFileURL(buildScript)
+      buildScriptUrl.searchParams.set("t", String(Date.now()))
+      await import(buildScriptUrl.href)
+    }
+  }
+
+  if (fs.existsSync(preBuiltEsm)) {
+    fs.copyFileSync(preBuiltEsm, path.join(outputAssetsDir, "base.bundle.min.js"))
+  }
+  if (fs.existsSync(preBuiltIife)) {
+    fs.copyFileSync(preBuiltIife, path.join(outputAssetsDir, "base.bundle.local.js"))
+  }
+  // Standalone activities bundle (used by the webpub export). Built alongside
+  // the base bundle by the same adt-runtime build script above.
+  const preBuiltActivities = path.join(webAssetsDir, "activities.bundle.local.js")
+  if (fs.existsSync(preBuiltActivities)) {
+    fs.copyFileSync(preBuiltActivities, path.join(outputAssetsDir, "activities.bundle.local.js"))
+  }
+}
+
+// ---------------------------------------------------------------------------
+// AGENTS.md template rendering
+// ---------------------------------------------------------------------------
+
+interface AgentsMdContext {
+  title: string
+  label: string
+  summary: string | undefined
+  language: string
+  outputLanguages: string[]
+  pageList: PageEntry[]
+  catalog: TextCatalogOutput | undefined
+  glossary: GlossaryOutput | undefined
+  quizData: QuizGenerationOutput | undefined
+  imageMap: Map<string, string>
+  configJson: unknown
+  hasGlossary: boolean
+  hasQuiz: boolean
+}
+
+async function renderAgentsMd(
+  templatePath: string,
+  ctx: AgentsMdContext,
+): Promise<string> {
+  const { Liquid } = await import("liquidjs")
+  const liquid = new Liquid({ strictVariables: false })
+  const template = fs.readFileSync(templatePath, "utf-8")
+
+  const entries = ctx.catalog?.entries ?? []
+
+  // Find sample entries for examples
+  const sampleBodyText = entries.find((e) => /_gp\d+_tx\d+$/.test(e.id)) ?? { id: "pg001_gp001_tx001", text: "" }
+  const sampleImageText = entries.find((e) => /_im\d+$/.test(e.id)) ?? { id: "pg001_im001", text: "" }
+
+  // Derive the page ID from the first content page's section_id (e.g. "pg002_sec001" → "pg002_sec001")
+  const samplePageId = ctx.pageList.find((p) => p.section_id.startsWith("pg") && p.page_number !== undefined)?.section_id
+    ?? ctx.pageList[0]?.section_id ?? "pg001_sec001"
+
+  // Glossary sample
+  let sampleGlossary: Record<string, unknown> | undefined
+  if (ctx.glossary?.items?.length) {
+    const item = ctx.glossary.items[0]
+    const glId = getGlossaryItemTextId(item, 0)
+    sampleGlossary = {
+      id: glId,
+      defId: `${glId}_def`,
+      word: item.word,
+      definition: item.definition,
+      variations: item.variations,
+      variationsJson: JSON.stringify(item.variations),
+      emoji: item.emojis.join(""),
+    }
+  }
+
+  // Quiz sample
+  let sampleQuiz: Record<string, unknown> | undefined
+  if (ctx.quizData?.quizzes?.length) {
+    const quiz = ctx.quizData.quizzes[0]
+    const quizId = "qz001"
+    const correctAnswers: Record<string, boolean> = {}
+    const explanations: Record<string, string> = {}
+    const options = quiz.options.map((opt, i) => {
+      const optId = `${quizId}_o${i}`
+      const expId = `${optId}_exp`
+      correctAnswers[optId] = i === quiz.answerIndex
+      explanations[optId] = expId
+      return {
+        id: optId,
+        text: opt.text,
+        expId,
+        expText: opt.explanation,
+      }
+    })
+    sampleQuiz = {
+      id: quizId,
+      question: quiz.question,
+      options,
+      correctAnswersJson: JSON.stringify(correctAnswers),
+      explanationsJson: JSON.stringify(explanations),
+    }
+  }
+
+  // Page images — collect all pg{NNN}_page.* filenames
+  const pageImages: string[] = []
+  for (const [id, filename] of ctx.imageMap) {
+    if (id.endsWith("_page")) {
+      pageImages.push(filename)
+    }
+  }
+  pageImages.sort()
+
+  return liquid.parseAndRender(template, {
+    title: ctx.title,
+    label: ctx.label,
+    summary: ctx.summary,
+    language: ctx.language,
+    outputLanguages: ctx.outputLanguages,
+    totalPages: ctx.pageList.length,
+    firstPages: ctx.pageList.slice(0, 5),
+    samplePageId,
+    sampleBodyText,
+    sampleImageText,
+    sampleGlossary,
+    sampleQuiz,
+    hasGlossary: ctx.hasGlossary,
+    hasQuiz: ctx.hasQuiz,
+    configJsonFormatted: JSON.stringify(ctx.configJson, null, 2),
+    pageImages,
+  })
+}
+
+// ---------------------------------------------------------------------------
+// SCORM + Offline support generators
+// ---------------------------------------------------------------------------
+
+/**
+ * Generate `assets/offline-preloader.js` — inlines all JSON/HTML files that
+ * the ADT bundle fetches at startup and monkey-patches `window.fetch` to
+ * serve them from memory. This allows the ADT to work when opened via
+ * `file://` (double-click). On HTTP/HTTPS the patch falls through to real
+ * `fetch()`, so it's transparent.
+ */
+function generateOfflinePreloader(
+  adtDir: string,
+  outputLanguages: string[],
+): void {
+  const inline: Record<string, unknown> = {}
+
+  const readTextSafe = (rel: string): string | null => {
+    const p = path.join(adtDir, rel)
+    return fs.existsSync(p) ? fs.readFileSync(p, "utf-8") : null
+  }
+  const readJsonSafe = (rel: string): unknown | null => {
+    const text = readTextSafe(rel)
+    if (text === null) return null
+    try { return JSON.parse(text) } catch { return null }
+  }
+
+  // Shared files
+  // Note: interface.html is no longer emitted — the React runtime mounts
+  // the chrome imperatively into <div id="interface-container">, so there's
+  // nothing to inline. The legacy fragment was inlined here to avoid an
+  // extra round-trip on page load; that round-trip no longer exists.
+
+  for (const rel of [
+    "assets/config.json",
+    "content/pages.json",
+    "content/toc.json",
+  ]) {
+    const data = readJsonSafe(rel)
+    if (data !== null) inline[`./${rel}`] = data
+  }
+
+  const navHtml = readTextSafe("content/navigation/nav.html")
+  if (navHtml !== null) inline["./content/navigation/nav.html"] = navHtml
+
+  // Inline every page HTML at the bundle root (index.html + pgNNN_secMMM.html).
+  // The glossary "show on page" feature fetches these to scan for terms,
+  // which fails under file:// without inlining.
+  for (const name of fs.readdirSync(adtDir)) {
+    if (!name.endsWith(".html")) continue
+    const text = readTextSafe(name)
+    if (text !== null) inline[`./${name}`] = text
+  }
+
+  // Per-language files
+  for (const lang of outputLanguages) {
+    const itPath = `assets/interface_translations/${lang}/interface_translations.json`
+    const itData = readJsonSafe(itPath)
+    if (itData !== null) inline[`./${itPath}`] = itData
+
+    for (const file of [
+      "texts.json",
+      "audios.json",
+      "videos.json",
+      "images.json",
+      "glossary.json",
+      "timecode/timecode_output.json",
+    ]) {
+      const rel = `content/i18n/${lang}/${file}`
+      const data = readJsonSafe(rel)
+      if (data !== null) inline[`./${rel}`] = data
+    }
+  }
+
+  const js = `// offline-preloader.js — auto-generated, do not edit by hand
+(function () {
+  var INLINE = ${JSON.stringify(inline)};
+  var BASE_DIR = (function () {
+    var href = location.href.split("?")[0].split("#")[0];
+    return href.slice(0, href.lastIndexOf("/") + 1);
+  })();
+  function lookup(url) {
+    var clean = String(url).split("?")[0].split("#")[0];
+    if (BASE_DIR && clean.indexOf(BASE_DIR) === 0) clean = clean.slice(BASE_DIR.length);
+    if (clean.indexOf("./") === 0) clean = clean.slice(2);
+    var withDot = "./" + clean;
+    if (Object.prototype.hasOwnProperty.call(INLINE, withDot)) return withDot;
+    if (Object.prototype.hasOwnProperty.call(INLINE, clean)) return clean;
+    return null;
+  }
+  var _realFetch = window.fetch.bind(window);
+  window.fetch = function (url, opts) {
+    // Normalize Request objects to their URL string.
+    var raw = (url && typeof url === "object" && typeof url.url === "string") ? url.url : url;
+    var key = lookup(raw);
+    if (key !== null) {
+      var data = INLINE[key];
+      var isJson = key.slice(-5) === ".json";
+      var body = isJson ? JSON.stringify(data) : data;
+      var ct = isJson ? "application/json" : "text/html; charset=utf-8";
+      return Promise.resolve(
+        new Response(body, { status: 200, headers: { "Content-Type": ct } })
+      );
+    }
+    return _realFetch(url, opts);
+  };
+  if (location.protocol === 'file:') {
+    new MutationObserver(function (mutations) {
+      mutations.forEach(function (m) {
+        m.addedNodes.forEach(function (node) {
+          if (node.nodeType === 1 && node.tagName === 'LINK' && node.rel === 'manifest') {
+            node.parentNode.removeChild(node);
+          }
+        });
+      });
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  }
+})();
+`
+  fs.writeFileSync(path.join(adtDir, "assets", "offline-preloader.js"), js)
+}
+
+/**
+ * Generate `assets/scorm.js` — a SCORM 1.2 adapter that tracks learner
+ * progress across all activity types. Exits silently when no LMS is present.
+ *
+ * @param activityIds - All activity IDs in the ADT (quiz IDs + inline activity IDs).
+ *   When empty, the ADT is content-only and is marked `passed` on first visit.
+ */
+function generateScormAdapter(
+  assetsDir: string,
+  activityIds: string[],
+): void {
+  const js = `// scorm.js — SCORM 1.2 adapter, auto-generated, do not edit by hand
+(function () {
+  'use strict';
+
+  // --- Find the SCORM 1.2 API by traversing parent frames ---
+  function findAPI(win) {
+    var depth = 0;
+    while (depth < 7) {
+      if (win.API) return win.API;
+      if (!win.parent || win.parent === win) break;
+      win = win.parent;
+      depth++;
+    }
+    return null;
+  }
+
+  var API = findAPI(window);
+  if (!API) return; // Not in a SCORM LMS — exit silently
+
+  // --- Initialize the session ---
+  API.LMSInitialize('');
+
+  // --- Identify the current page ---
+  var metaTitleId = document.querySelector('meta[name="title-id"]');
+  var pageId = metaTitleId ? metaTitleId.getAttribute('content') : '';
+
+  // All activity IDs in this ADT (embedded at generation time)
+  var ALL_ACTIVITY_IDS = ${JSON.stringify(activityIds)};
+  var hasActivities = ALL_ACTIVITY_IDS.length > 0;
+
+  // --- Record where the learner is ---
+  API.LMSSetValue('cmi.core.lesson_location', pageId);
+
+  // --- Set lesson status ---
+  if (hasActivities) {
+    applyStatus();
+    watchForCompletions();
+  } else {
+    // Content-only ADT — mark as passed on first visit
+    var existingStatus = API.LMSGetValue('cmi.core.lesson_status') || '';
+    if (existingStatus !== 'passed') {
+      API.LMSSetValue('cmi.core.lesson_status', 'passed');
+      API.LMSSetValue('cmi.core.score.raw', '100');
+      API.LMSSetValue('cmi.core.score.min', '0');
+      API.LMSSetValue('cmi.core.score.max', '100');
+    }
+  }
+
+  API.LMSCommit('');
+
+  // --- Session close ---
+  window.addEventListener('beforeunload', function () {
+    if (hasActivities) applyStatus();
+    API.LMSCommit('');
+    API.LMSFinish('');
+  });
+
+  // -------------------------------------------------------
+  // Helpers
+  // -------------------------------------------------------
+
+  function getCompletedIds() {
+    var completed = [];
+    try {
+      completed = JSON.parse(localStorage.getItem('completedActivities') || '[]');
+    } catch (e) { /* ignore */ }
+
+    var ids = {};
+    for (var i = 0; i < completed.length; i++) {
+      if (typeof completed[i] === 'string') {
+        var dashIdx = completed[i].indexOf('-');
+        var actId = dashIdx > -1 ? completed[i].substring(0, dashIdx) : completed[i];
+        ids[actId] = true;
+      }
+    }
+    return ids;
+  }
+
+  function applyStatus() {
+    var completedIds = getCompletedIds();
+    var completedCount = 0;
+    for (var i = 0; i < ALL_ACTIVITY_IDS.length; i++) {
+      if (completedIds[ALL_ACTIVITY_IDS[i]]) completedCount++;
+    }
+
+    var score = Math.round((completedCount / ALL_ACTIVITY_IDS.length) * 100);
+    API.LMSSetValue('cmi.core.score.raw', String(score));
+    API.LMSSetValue('cmi.core.score.min', '0');
+    API.LMSSetValue('cmi.core.score.max', '100');
+
+    if (completedCount === ALL_ACTIVITY_IDS.length) {
+      API.LMSSetValue('cmi.core.lesson_status', 'passed');
+    } else {
+      var existingStatus = API.LMSGetValue('cmi.core.lesson_status') || '';
+      if (existingStatus !== 'passed') {
+        API.LMSSetValue('cmi.core.lesson_status', 'incomplete');
+      }
+    }
+  }
+
+  function watchForCompletions() {
+    var _origSetItem = localStorage.setItem.bind(localStorage);
+    localStorage.setItem = function (key, value) {
+      _origSetItem(key, value);
+      if (key === 'completedActivities') {
+        applyStatus();
+        API.LMSCommit('');
+      }
+    };
+
+    window.addEventListener('storage', function (e) {
+      if (e.key === 'completedActivities') {
+        applyStatus();
+        API.LMSCommit('');
+      }
+    });
+  }
+})();
+`
+  fs.writeFileSync(path.join(assetsDir, "scorm.js"), js)
+}
+
+/**
+ * Generate `imsmanifest.xml` at the ADT root for SCORM 1.2 LMS upload.
+ * Lists all HTML pages as file entries within a single SCO.
+ */
+function generateImsManifest(
+  adtDir: string,
+  title: string,
+  label: string,
+  pageList: PageEntry[],
+): void {
+  const identifier = `ADT_${label.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`
+  const escapedTitle = escapeHtml(title)
+
+  const fileEntries = pageList
+    .filter((p) => p.href !== "index.html") // index.html already listed above
+    .map((p) => `      <file href="${escapeAttr(p.href)}"/>`)
+    .join("\n")
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<manifest identifier="${escapeAttr(identifier)}" version="1.0"
+  xmlns="http://www.imsproject.org/xsd/imscp_rootv1p1p2"
+  xmlns:adlcp="http://www.adlnet.org/xsd/adlcp_rootv1p2"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.imsproject.org/xsd/imscp_rootv1p1p2 imscp_rootv1p1p2.xsd
+                       http://www.adlnet.org/xsd/adlcp_rootv1p2 adlcp_rootv1p2.xsd">
+
+  <metadata>
+    <schema>ADL SCORM</schema>
+    <schemaversion>1.2</schemaversion>
+  </metadata>
+
+  <organizations default="ADT_ORG">
+    <organization identifier="ADT_ORG">
+      <title>${escapedTitle}</title>
+      <item identifier="ITEM_1" identifierref="RESOURCE_1">
+        <title>${escapedTitle}</title>
+      </item>
+    </organization>
+  </organizations>
+
+  <resources>
+    <resource identifier="RESOURCE_1"
+              type="webcontent"
+              adlcp:scormtype="sco"
+              href="index.html">
+      <file href="index.html"/>
+${fileEntries}
+    </resource>
+  </resources>
+
+</manifest>
+`
+  fs.writeFileSync(path.join(adtDir, "imsmanifest.xml"), xml)
+}
+
+/**
+ * Scan all HTML files in the ADT directory for `data-area-id` attributes
+ * and return the unique set of activity IDs.
+ * Also includes quiz section IDs from the page list (entries starting with "qz").
+ */
+function collectActivityIds(adtDir: string, pageList: PageEntry[]): string[] {
+  const ids = new Set<string>()
+
+  // Quiz IDs from page list
+  for (const page of pageList) {
+    if (page.section_id.startsWith("qz")) {
+      ids.add(page.section_id)
+    }
+  }
+
+  // Scan HTML files for data-area-id (used by activity sections)
+  for (const entry of fs.readdirSync(adtDir)) {
+    if (!entry.endsWith(".html")) continue
+    const html = fs.readFileSync(path.join(adtDir, entry), "utf-8")
+    const matches = html.matchAll(/data-area-id="([^"]+)"/g)
+    for (const match of matches) {
+      ids.add(match[1])
+    }
+  }
+
+  return Array.from(ids).sort()
+}
+
+// ---------------------------------------------------------------------------
+// File utilities
+// ---------------------------------------------------------------------------
+
+/**
+ * Find the first heading-role leaf anywhere in a section's tree.
+ * Returns the nodeId and text of the first heading leaf found, or null.
+ */
+function findHeadingText(
+  section: import("@adt/types").PageSectioningSection,
+): { textId: string; text: string } | null {
+  const walk = (node: ContentNodeData): { textId: string; text: string } | null => {
+    if (node.isPruned) return null
+    if (node.role === "heading" && node.text) {
+      return { textId: node.nodeId, text: node.text }
+    }
+    if (node.children) {
+      for (const c of node.children) {
+        const hit = walk(c)
+        if (hit) return hit
+      }
+    }
+    return null
+  }
+  for (const n of section.nodes) {
+    const hit = walk(n)
+    if (hit) return hit
+  }
+  return null
+}
+
+export function writeJson(filePath: string, data: unknown): void {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2))
+}
+
+function pickDefaultLanguage(
+  preferredLanguage: string,
+  availableLanguages: string[],
+): string {
+  if (availableLanguages.includes(preferredLanguage)) {
+    return preferredLanguage
+  }
+  const preferredBase = getBaseLanguage(preferredLanguage)
+  const matchingBase = availableLanguages.find(
+    (lang) => getBaseLanguage(lang) === preferredBase,
+  )
+  return matchingBase ?? availableLanguages[0] ?? preferredLanguage
+}
+
+/**
+ * Files in the ADT `adt/` package that must not ship in a reader-ready export
+ * (EPUB/WebPub): the SCORM package manifest and the repo's AGENTS.md. Pass as
+ * the `skip` set when copying `adt/` into an export directory.
+ */
+export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md"])
+
+/**
+ * File-extension → MIME type for the resources listed in an export manifest
+ * (EPUB OPF, WebPub `resources`). Shared so both packagers label fonts, video,
+ * and images consistently instead of falling back to application/octet-stream.
+ */
+export const EXPORT_MIME_TYPES: Record<string, string> = {
+  ".xhtml": "application/xhtml+xml",
+  ".html": "text/html",
+  ".css": "text/css",
+  ".js": "application/javascript",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+  ".mp3": "audio/mpeg",
+  ".flac": "audio/flac",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".ogg": "audio/ogg",
+  ".wav": "audio/wav",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
+  ".dic": "application/octet-stream",
+  ".smil": "application/smil+xml",
+}
+
+export function copyDirRecursive(
+  src: string,
+  dest: string,
+  skip?: Set<string>,
+): void {
+  fs.mkdirSync(dest, { recursive: true })
+
+  for (const entry of fs.readdirSync(src)) {
+    if (skip?.has(entry)) continue
+    const srcPath = path.join(src, entry)
+    const destPath = path.join(dest, entry)
+    const stat = fs.statSync(srcPath)
+    if (stat.isDirectory()) {
+      copyDirRecursive(srcPath, destPath)
+    } else {
+      fs.copyFileSync(srcPath, destPath)
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Static HTML: Navigation component
+// ---------------------------------------------------------------------------
+
+export const NAV_HTML = `<nav aria-label="Content Index Menu" aria-labelledby="navPopupTitle" aria-hidden="true" inert class="fixed w-64 sm:w-80 bg-white shadow-lg p-5 border-r border-gray-300 -translate-x-full z-20 hidden rounded-lg top-2 left-0 bottom-2 h-[calc(100vh-5rem)] flex flex-col" id="navPopup" role="navigation">
+    <div class="nav__toggle flex flex-col gap-4 mb-4">
+        <div class="flex justify-between items-center">
+            <h3 class="text-xl font-semibold" data-id="toc-title" id="navPopupTitle">Contents</h3>
+            <button aria-label="Close navigation" class="nav__toggle text-gray-700 text-xl p-2" id="nav-close" type="button"><i class="fas fa-close"></i></button>
+        </div>
+        <div aria-label="Navigation tabs" class="flex rounded-md bg-gray-100 p-1" role="tablist">
+            <button aria-controls="nav-panel-toc" aria-selected="true" class="flex-1 rounded-md px-3 py-2 text-sm font-semibold text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600" data-nav-tab="toc" id="nav-tab-toc" role="tab" type="button">
+                <span data-id="toc-title">Table of Contents</span>
+            </button>
+            <button aria-controls="nav-panel-pages" aria-selected="false" class="flex-1 rounded-md px-3 py-2 text-sm font-semibold text-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600" data-nav-tab="pages" id="nav-tab-pages" role="tab" type="button">
+                <span data-id="nav-page-tab-label">Page List</span>
+            </button>
+        </div>
+        <a class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:p-4 focus:bg-white focus:border-2 focus:border-blue-600 focus:rounded" href="#content">Table of Contents</a>
+    </div>
+    <div class="nav__panels flex-1 min-h-0 overflow-hidden">
+        <div aria-labelledby="nav-tab-toc" class="h-full" data-nav-panel="toc" id="nav-panel-toc" role="tabpanel">
+            <ol class="nav__list overflow-y-auto h-full text-base pr-2" data-id="nav-toc-list" data-nav-type="toc" id="nav-toc-list"></ol>
+        </div>
+        <div aria-labelledby="nav-tab-pages" class="h-full hidden" data-nav-panel="pages" id="nav-panel-pages" role="tabpanel">
+            <ol class="nav__list overflow-y-auto h-full text-base pr-2" data-id="nav-page-list" data-nav-type="pages" id="nav-page-list"></ol>
+        </div>
+    </div>
+</nav>
+`

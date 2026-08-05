@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react"
 import type { LucideIcon } from "lucide-react"
+import { STAGE_ORDER, type StageName } from "@adt/types"
 import { useLingui } from "@lingui/react/macro"
 import { FloatingSaveBar } from "./FloatingSaveBar"
 
@@ -44,9 +45,24 @@ export interface FloatingSaveEntry {
   dirty: boolean
   saving: boolean
   label?: ReactNode
-  onSave?: () => void
-  onDiscard: () => void
+  stage?: StageName
+  /** Completed downstream stages that this save will invalidate. */
+  resetStages?: StageName[]
+  onSave?: () => void | Promise<void>
+  onSaveAndRerun?: () => void
+  /**
+   * Apply the pending changes without navigating. Awaited by
+   * UnsavedChangesGuard's "Save & leave" — MUST reject when the save fails so
+   * the guard keeps the user on the page instead of discarding their edits.
+   * Settings surfaces additionally queue a re-run here, which is why the
+   * dialog's re-run wording keys off `onSaveAndRerun`, not this.
+   */
+  onSaveStay?: () => void | Promise<void>
+  onReset?: () => void
+  onDiscard?: () => void
   saveDisabledReason?: string
+  rerunDisabledReason?: string
+  resetDisabledReason?: string
   /**
    * Primitive that changes when `label` content changes. Required only for
    * entries with a dynamic label (e.g. storyboard's category chips) so the bar
@@ -61,8 +77,15 @@ function signature(e: FloatingSaveEntry): string {
     e.dirty ? "1" : "0",
     e.saving ? "1" : "0",
     e.onSave ? "1" : "0",
+    e.onSaveAndRerun ? "1" : "0",
+    e.onSaveStay ? "1" : "0",
+    e.onReset ? "1" : "0",
     e.saveDisabledReason ?? "",
+    e.rerunDisabledReason ?? "",
+    e.resetDisabledReason ?? "",
     e.labelKey ?? "",
+    e.stage ?? "",
+    e.resetStages?.join(",") ?? "",
   ].join("|")
 }
 
@@ -127,8 +150,12 @@ interface BarProps {
   label?: ReactNode
   saving: boolean
   onSave?: () => void
-  onDiscard: () => void
+  onSaveAndRerun?: () => void
+  onReset?: () => void
+  onDiscard?: () => void
   saveDisabledReason?: string
+  rerunDisabledReason?: string
+  resetDisabledReason?: string
 }
 
 const EXIT_MS = 200
@@ -149,9 +176,17 @@ function FloatingSaveHost({ store }: { store: FloatingSaveStore }) {
     barProps = {
       label: e.label,
       saving: e.saving,
-      onSave: e.onSave ? () => store.get(e.id)?.onSave?.() : undefined,
-      onDiscard: () => store.get(e.id)?.onDiscard(),
+      onSave: e.onSave
+        ? () => {
+            void Promise.resolve(store.get(e.id)?.onSave?.()).catch(() => {})
+          }
+        : undefined,
+      onSaveAndRerun: e.onSaveAndRerun ? () => store.get(e.id)?.onSaveAndRerun?.() : undefined,
+      onReset: e.onReset ? () => store.get(e.id)?.onReset?.() : undefined,
+      onDiscard: e.onDiscard ? () => store.get(e.id)?.onDiscard?.() : undefined,
       saveDisabledReason: e.saveDisabledReason,
+      rerunDisabledReason: e.rerunDisabledReason,
+      resetDisabledReason: e.resetDisabledReason,
     }
   } else if (entries.length > 1) {
     barProps = {
@@ -162,9 +197,15 @@ function FloatingSaveHost({ store }: { store: FloatingSaveStore }) {
       ),
       saving: entries.some((e) => e.saving),
       onSave: entries.some((e) => e.onSave)
-        ? () => store.active().forEach((e) => e.onSave?.())
+        ? () => {
+            void Promise.all(
+              store.active().map((e) => Promise.resolve(e.onSave?.())),
+            ).catch(() => {})
+          }
         : undefined,
-      onDiscard: () => store.active().forEach((e) => e.onDiscard()),
+      onDiscard: entries.some((e) => e.onDiscard)
+        ? () => store.active().forEach((e) => e.onDiscard?.())
+        : undefined,
       saveDisabledReason: entries.find((e) => e.saveDisabledReason)?.saveDisabledReason,
     }
   }
@@ -197,6 +238,51 @@ export function useHasUnsavedChanges(): boolean {
   const subscribe = store ? store.subscribe : noopSubscribe
   const getSnapshot = () => (store ? store.active().length > 0 : false)
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+
+export interface FloatingSaveDirtyEntry {
+  id: string
+  stage?: StageName
+  label?: ReactNode
+}
+
+export function useFloatingSaveDirtyEntries(): FloatingSaveDirtyEntry[] {
+  const store = useContext(FloatingSaveContext)
+  useSyncExternalStore(
+    store ? store.subscribe : noopSubscribe,
+    store ? store.getVersion : () => 0,
+    store ? store.getVersion : () => 0,
+  )
+  if (!store) return []
+  return store.active().map((e) => ({ id: e.id, stage: e.stage, label: e.label }))
+}
+
+export interface FloatingSaveLeaveAction {
+  canSave: boolean
+  willRerun: boolean
+  resetStages: StageName[]
+  saveAndStay: () => Promise<void>
+}
+
+export function useFloatingSaveLeaveAction(): FloatingSaveLeaveAction {
+  const store = useContext(FloatingSaveContext)
+  useSyncExternalStore(
+    store ? store.subscribe : () => () => {},
+    store ? store.getVersion : () => 0,
+    store ? store.getVersion : () => 0,
+  )
+  const entries = store ? store.active() : []
+  const canSave = entries.length > 0 && entries.every((e) => e.onSaveStay || e.onSave)
+  const willRerun = entries.some((e) => e.onSaveAndRerun)
+  const resetStageSet = new Set(entries.flatMap((e) => e.resetStages ?? []))
+  const resetStages = STAGE_ORDER.filter((stage) => resetStageSet.has(stage))
+  const saveAndStay = async () => {
+    if (!store) return
+    await Promise.all(
+      store.active().map((e) => Promise.resolve((e.onSaveStay ?? e.onSave)?.())),
+    )
+  }
+  return { canSave, willRerun, resetStages, saveAndStay }
 }
 
 /**

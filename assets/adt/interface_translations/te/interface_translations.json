@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "నిర్వాహక సాధనాలు రాబోయే అప్‌డేట్‌లో జోడించబడతాయి.",
     "main-menu-label": "ప్రధాన మెను",
     "cover-label": "కవర్",
-    "print-page-label": "పేజీని ముద్రించండి"
+    "print-page-label": "పేజీని ముద్రించండి",
+    "stepper-progress-n-of-m": "దశ ${n} / ${m}",
+    "stepper-word-bank": "ఎంచుకోవడానికి పదాలు",
+    "stepper-open-ended-saved": "భేష్ — మీ సమాధానం భద్రపరచబడింది.",
+    "stepper-open-ended-rephrase": "దయగా ఉందాం — మీ సమాధానాన్ని వేరే విధంగా రాయడానికి ప్రయత్నించండి.",
+    "open-ended-answer-label": "మీ సమాధానం"
 }

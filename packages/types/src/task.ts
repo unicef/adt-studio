@@ -4,10 +4,14 @@ export const TaskKind = z.enum([
   "image-generate",
   "re-render",
   "ai-edit",
+  "layout-mirror",
+  "generate-activity",
   "package-adt",
   "prepare-export",
   "transcribe-timestamps",
+  "translation-evaluation",
   "book-summary",
+  "font-assignment",
 ])
 export type TaskKind = z.infer<typeof TaskKind>
 

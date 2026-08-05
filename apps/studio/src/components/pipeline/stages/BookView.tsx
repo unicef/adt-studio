@@ -37,6 +37,7 @@ import { useBookTasks } from "@/hooks/use-book-tasks"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { Badge } from "@/components/ui/badge"
+import { BookPartsPanel } from "@/components/parts/BookPartsPanel"
 import { cn } from "@/lib/utils"
 
 interface ViewProps {
@@ -138,6 +139,8 @@ export function BookView({ bookLabel }: ViewProps) {
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6">
       <BookOverviewCard bookLabel={bookLabel} />
+
+      <BookPartsPanel bookLabel={bookLabel} />
 
       {/* Core Pipeline cluster — connectors hug the cards. */}
       <div className="flex flex-col gap-2">

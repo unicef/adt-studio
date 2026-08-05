@@ -33,7 +33,8 @@ export function buildCroppingConfig(
 
   const model =
     appConfig.image_cropping?.model ??
-    appConfig.image_meaningfulness?.model
+    appConfig.image_meaningfulness?.model ??
+    appConfig.default_model
   if (!model) return null
 
   return {

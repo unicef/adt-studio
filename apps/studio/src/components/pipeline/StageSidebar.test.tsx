@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import React from "react"
-import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 
-const stageStateMock = vi.fn((slug: string) => {
+const defaultStageState = (slug: string) => {
   if (slug === "storyboard" || slug === "validation") return "done"
   return "idle"
-})
+}
+const stageStateMock = vi.fn(defaultStageState)
+const cancelRunMock = vi.fn()
+const toastInfoMock = vi.fn()
 const matchRouteMock = vi.fn(() => true)
 const searchMock = { tab: "reviewer-checklist" }
 
@@ -48,10 +51,20 @@ vi.mock("@lingui/react", () => ({
 }))
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, title, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-    <a title={title} {...props}>{children}</a>
+  Link: ({
+    children,
+    title,
+    to,
+    search,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+    to?: string
+    search?: { tab?: string }
+  }) => (
+    <a title={title} data-to={to} data-tab={search?.tab} {...props}>{children}</a>
   ),
   useMatchRoute: () => matchRouteMock,
+  useNavigate: () => vi.fn(),
   useSearch: () => searchMock,
 }))
 
@@ -64,7 +77,15 @@ vi.mock("@/hooks/use-book-run", () => ({
     stageState: stageStateMock,
     stepState: vi.fn(() => "idle"),
     stepProgress: vi.fn(() => null),
+    cancelRun: cancelRunMock,
+    isCancelling: false,
   }),
+}))
+
+vi.mock("@/components/ui/sonner", () => ({
+  toast: {
+    info: toastInfoMock,
+  },
 }))
 
 vi.mock("@/hooks/use-debug", () => ({
@@ -107,20 +128,41 @@ vi.mock("@/hooks/use-quizzes", () => ({
   useQuizzes: () => ({ data: null }),
 }))
 
-vi.mock("@/routes/__root", () => ({
-  useSettingsDialog: () => ({ openSettings: vi.fn() }),
-}))
-
 vi.mock("@/routes/books.$label", () => ({
   useSectionNav: () => ({ skipNextResetRef: { current: false } }),
 }))
 
+beforeEach(() => {
+  matchRouteMock.mockReturnValue(true)
+})
+
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  stageStateMock.mockImplementation(defaultStageState)
 })
 
 describe("StageSidebar", () => {
+  it("routes the book settings button to the API Keys section", async () => {
+    matchRouteMock.mockReturnValue(true)
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(
+      <StageSidebar
+        bookLabel="demo-book"
+        activeStep="book"
+      />,
+    )
+
+    const settingsLink = screen.getByTitle("API Key Settings")
+    expect(settingsLink.getAttribute("data-to")).toBe(
+      "/books/$label/$step/settings",
+    )
+    expect(settingsLink.getAttribute("data-tab")).toBe("general")
+    expect(screen.getByText("API Keys")).toBeTruthy()
+    expect(screen.getByText("Models")).toBeTruthy()
+    expect(screen.queryByText("Global Prompts")).toBeNull()
+  })
+
   it("shows Validation before Preview and exposes Validation settings tabs", async () => {
     const { StageSidebar } = await import("./components/StageSidebar")
     const { container } = render(
@@ -139,5 +181,50 @@ describe("StageSidebar", () => {
     expect(screen.getByText("Reviewer Checklist")).toBeTruthy()
     expect(container.textContent).toContain("Validation")
     expect(container.textContent).toContain("Preview")
+  })
+
+  it("shows a red error badge on failed stages", async () => {
+    stageStateMock.mockImplementation((slug: string) => {
+      if (slug === "storyboard") return "error"
+      return defaultStageState(slug)
+    })
+
+    const { StageSidebar } = await import("./components/StageSidebar")
+    const { container } = render(
+      <StageSidebar
+        bookLabel="demo-book"
+        activeStep="storyboard"
+      />,
+    )
+
+    const errorBadge = screen.getByTitle("Storyboard: failed")
+    expect(errorBadge.className).toContain("bg-red-600")
+    expect(errorBadge.getAttribute("role")).toBe("img")
+    expect(container.querySelector('circle[stroke="#ef4444"]')).toBeNull()
+  })
+
+  it("shows a cancel button over a running stage icon and requests cancellation", async () => {
+    stageStateMock.mockImplementation((slug: string) => {
+      if (slug === "storyboard") return "running"
+      return defaultStageState(slug)
+    })
+
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(
+      <StageSidebar
+        bookLabel="demo-book"
+        activeStep="storyboard"
+      />,
+    )
+
+    const cancelButton = screen.getByTitle("Cancel Storyboard step")
+    expect(cancelButton.className).toContain("bg-red-600")
+    expect(cancelButton.className).toContain("left-2")
+    expect(cancelButton.className).not.toContain("left-2.5")
+
+    fireEvent.click(cancelButton)
+
+    expect(cancelRunMock).toHaveBeenCalledTimes(1)
+    expect(toastInfoMock).toHaveBeenCalledWith("Cancelling Storyboard step")
   })
 })

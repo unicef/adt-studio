@@ -37,6 +37,22 @@ describe("isTypingTarget", () => {
     document.body.removeChild(wrapper)
   })
 
+  it("returns false for focused quiz labels so arrows keep turning pages", () => {
+    const option = makeEl("label", {
+      class: "activity-option",
+      role: "radio",
+      "data-activity-item": "item-1",
+    })
+    const inner = makeEl("span")
+    option.appendChild(inner)
+    document.body.appendChild(option)
+
+    expect(isTypingTarget(option)).toBe(false)
+    expect(isTypingTarget(inner)).toBe(false)
+
+    option.remove()
+  })
+
   it("returns false for plain non-interactive elements", () => {
     expect(isTypingTarget(makeEl("div"))).toBe(false)
     expect(isTypingTarget(makeEl("p"))).toBe(false)

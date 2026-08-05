@@ -101,6 +101,13 @@ body[nav-position="bottom"] {
   padding-bottom: var(--nav-height);
 }
 
+body[data-activity-dock="bottom"] {
+  padding-bottom: calc(var(--nav-height) + 3.75rem);
+}
+body[data-activity-dock="top"] {
+  padding-top: calc(var(--nav-height) + 3.75rem);
+}
+
 /*
  * Accessibility — icon size.
  * Scales every SVG inside a dock-trigger button (and the dock activity X /
@@ -152,16 +159,31 @@ section[data-section-type="activity_open_ended_answer"] textarea {
 /*
  * Word-by-word TTS highlight. Forced yellow/black so the active word stays
  * legible regardless of the surrounding text color (the page may render in
- * white, orange, or any other foreground). `transition` smooths the swap
- * between adjacent words.
+ * white, orange, or any other foreground).
+ *
+ * Painted on BOTH the word wrapper and its inner pieces:
+ *   - Reflowable pages hold the text directly in the wrapper, so the wrapper
+ *     selector paints it at the paragraph's font-size.
+ *   - Fixed-layout pages hold the text in inner styled <span> pieces that carry
+ *     the real (e.g. 48px) font-size, so the piece selector covers the full
+ *     word height. The wrapper itself is intentionally unsized (see
+ *     word-highlight.ts), so we must reach the pieces to get the height.
+ *
+ * PAINT-ONLY ON PURPOSE — only background-color, color and border-radius, and
+ * no transition. Never box-model properties (padding / margin / border /
+ * font-size). In fixed layout the words are absolutely positioned at
+ * fractional, auto-fit sizes; toggling ANY layout-affecting property (even a
+ * net-zero padding+negative-margin pair) forces the browser to re-lay-out the
+ * line and re-snap its baseline to the device-pixel grid, which nudges the
+ * glyphs and reads as the word "jumping". Background/color/border-radius are
+ * pure paint — they can't change the box or the glyph position — so the text
+ * stays fixed while the highlight moves across it.
  */
-span[data-word-index].bg-yellow-300 {
+span[data-word-index].bg-yellow-300,
+span[data-word-index].bg-yellow-300 span {
   background-color: #fde047 !important;
   color: #000 !important;
   border-radius: 3px;
-  padding: 0 1px;
-  margin: 0 -1px;
-  transition: background-color 120ms ease, color 120ms ease;
 }
 
 /*

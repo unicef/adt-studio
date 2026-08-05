@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest"
-import { collectOptionalTextIds } from "../render-llm.js"
+import {
+  collectOptionalTextIds,
+  minimumLearnerResponseCount,
+} from "../render-llm.js"
 
 describe("collectOptionalTextIds", () => {
   it("marks single-underscore blank-cell leaves as optional (crossword cells)", () => {
@@ -20,6 +23,26 @@ describe("collectOptionalTextIds", () => {
     ])
     expect(optional.has("n1")).toBe(false)
     expect(optional.has("n2")).toBe(false)
+  })
+
+  it("marks enumeration-marker label leaves as optional, but not real labels", () => {
+    const optional = collectOptionalTextIds([
+      { text_id: "m1", text_type: "label", text: "1." },
+      { text_id: "m2", text_type: "label", text: "10." },
+      { text_id: "m3", text_type: "label", text: "(i)" },
+      { text_id: "m4", text_type: "label", text: "(vii)" },
+      { text_id: "m5", text_type: "label", text: "(a)" },
+      // Real content labels and non-label roles stay required.
+      { text_id: "r1", text_type: "label", text: "Sehemu A" },
+      { text_id: "r2", text_type: "text", text: "1." },
+    ])
+    expect(optional.has("m1")).toBe(true)
+    expect(optional.has("m2")).toBe(true)
+    expect(optional.has("m3")).toBe(true)
+    expect(optional.has("m4")).toBe(true)
+    expect(optional.has("m5")).toBe(true)
+    expect(optional.has("r1")).toBe(false)
+    expect(optional.has("r2")).toBe(false)
   })
 
   it("marks footer/header/page_number roles as optional", () => {
@@ -67,5 +90,35 @@ describe("collectOptionalTextIds", () => {
     expect(collectOptionalTextIds(leaves).has("n1")).toBe(true)
     expect(collectOptionalTextIds(leaves).has("n1")).toBe(true)
     expect(collectOptionalTextIds(leaves).has("n1")).toBe(true)
+  })
+})
+
+describe("minimumLearnerResponseCount", () => {
+  it("does not double-count a question and its response blank", () => {
+    expect(minimumLearnerResponseCount([
+      {
+        node_id: "activity",
+        structure: "activity",
+        children: [
+          { node_id: "q1", role: "activity_question", text: "Name the animal." },
+          { node_id: "b1", role: "activity_fill_in_the_blank", text: "___" },
+        ],
+      },
+    ])).toBe(1)
+  })
+
+  it("requires one response for non-English activity instructions", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "i1", role: "activity_instruction", text: "Completa las frases." },
+      { node_id: "i2", role: "activity_instruction", text: "Usa el banco de palabras." },
+    ])).toBe(1)
+  })
+
+  it("uses the larger of question and blank counts", () => {
+    expect(minimumLearnerResponseCount([
+      { node_id: "q1", role: "activity_question", text: "First?" },
+      { node_id: "q2", role: "activity_question", text: "Second?" },
+      { node_id: "b1", role: "activity_fill_in_the_blank", text: "___" },
+    ])).toBe(2)
   })
 })

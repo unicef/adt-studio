@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { Info } from "lucide-react"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
 import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
@@ -9,6 +10,7 @@ import {
 } from "@/components/pipeline/components/SettingsCard"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useAllPagesPruned } from "@/hooks/use-all-pages-pruned"
+import { usePartInfo } from "@/hooks/use-parts"
 import { useExportWatcher } from "@/hooks/use-export-watcher"
 import {
   type ExportFeatureToggles,
@@ -24,16 +26,45 @@ import { ExportPreview } from "./components/ExportPreview"
 import { useCapturedPreviewSettings } from "@/hooks/use-preview-settings-listener"
 
 export function ExportLandingPage({ bookLabel }: { bookLabel: string }) {
-  const { t } = useLingui()
   const { stageState, isStatusLoading } = useBookRun()
   const storyboardDone = stageState("storyboard") === "done"
   const { allPruned, isLoading: prunedLoading } = useAllPagesPruned(bookLabel)
+  // A book imported as a page-range part should be exported as a Project
+  // Archive (the artifact the coordinator merges back) — wait for this to
+  // resolve before mounting the body so the default format is correct.
+  const { data: partInfo, isLoading: partInfoLoading } = usePartInfo(bookLabel)
+
+  if (isStatusLoading || prunedLoading || partInfoLoading) {
+    return <LoadingState stageSlug="export" label={<Trans>Loading export...</Trans>} />
+  }
+
+  if (!storyboardDone) {
+    return <StageBlockedState bookLabel={bookLabel} reason="storyboard-missing" stageLabel={<Trans>Export</Trans>} />
+  }
+
+  if (allPruned) {
+    return <StageBlockedState bookLabel={bookLabel} reason="all-pruned" stageLabel={<Trans>Export</Trans>} />
+  }
+
+  return <ExportLandingBody bookLabel={bookLabel} isPart={!!partInfo} />
+}
+
+function ExportLandingBody({
+  bookLabel,
+  isPart,
+}: {
+  bookLabel: string
+  isPart: boolean
+}) {
+  const { t } = useLingui()
   const { startExport, isPreparing, preparingFormat, error } =
     useExportWatcher()
   const projectFeatures = useAllProjectFeatures(bookLabel)
   const available = projectFeatures.toggleable
- const capturedPreviewSettings = useCapturedPreviewSettings(bookLabel)
-  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>("adt")
+  const capturedPreviewSettings = useCapturedPreviewSettings(bookLabel)
+  const [selectedFormat, setSelectedFormat] = useState<ExportFormat>(
+    isPart ? "project" : "adt",
+  )
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
   const [languageOrder, setLanguageOrder] = useState<string[] | null>(null)
   const [featureToggles, setFeatureToggles] = useState<ExportFeatureToggles>({
@@ -65,24 +96,12 @@ export function ExportLandingPage({ bookLabel }: { bookLabel: string }) {
     setExportDialogOpen(false)
   }
 
-  const formatLabels = buildExportFormatConfig(t)
+  const formatLabels = buildExportFormatConfig(t, { isPart })
 
   const formatError =
     error?.format === selectedFormat ? error.message : null
 
   const isThisFormatPreparing = preparingFormat === selectedFormat
-
-  if (isStatusLoading || prunedLoading) {
-    return <LoadingState stageSlug="export" label={<Trans>Loading export...</Trans>} />
-  }
-
-  if (!storyboardDone) {
-    return <StageBlockedState bookLabel={bookLabel} reason="storyboard-missing" stageLabel={<Trans>Export</Trans>} />
-  }
-
-  if (allPruned) {
-    return <StageBlockedState bookLabel={bookLabel} reason="all-pruned" stageLabel={<Trans>Export</Trans>} />
-  }
 
   return (
     <LandingPageShell
@@ -103,7 +122,7 @@ export function ExportLandingPage({ bookLabel }: { bookLabel: string }) {
       previewLabel={t`Export Preview`}
       hideAdvancedSettings
       onRun={handleOpenDialog}
-      preview={<ExportPreview format={selectedFormat} />}
+      preview={<ExportPreview format={selectedFormat} isPart={isPart} />}
     >
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
@@ -118,6 +137,20 @@ export function ExportLandingPage({ bookLabel }: { bookLabel: string }) {
         </p>
       </div>
 
+      {isPart && (
+        <div className="flex items-start gap-2.5 rounded-xl border border-border bg-muted/20 px-4 py-3 text-xs leading-relaxed text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
+          <p>
+            <Trans>
+              This book is a part. Export it as a{" "}
+              <span className="font-medium text-foreground">Completed Part</span>{" "}
+              and send the file back to the coordinator to merge into the source
+              book.
+            </Trans>
+          </p>
+        </div>
+      )}
+
       <SettingsCard>
         <SettingsField label={<Trans>Format</Trans>}>
           <FormatPicker
@@ -125,6 +158,7 @@ export function ExportLandingPage({ bookLabel }: { bookLabel: string }) {
             onSelect={setSelectedFormat}
             t={t}
             errorFormat={error?.format ?? null}
+            isPart={isPart}
           />
         </SettingsField>
       </SettingsCard>

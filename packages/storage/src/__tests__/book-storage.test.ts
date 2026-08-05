@@ -155,6 +155,53 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
+  it("persists segment placement bounds and returns them in getPageImages", () => {
+    const { storage } = createTempStorage()
+    storage.putExtractedPage(makePage(1))
+
+    storage.putSegmentedImage({
+      sourceImageId: "pg001_im001",
+      segmentIndex: 1,
+      pageId: "pg001",
+      version: 1,
+      buffer: fakePng(80, 60),
+      width: 80,
+      height: 60,
+      bounds: { x: 12, y: 34, width: 80, height: 60 },
+    })
+
+    const seg = storage
+      .getPageImages("pg001")
+      .find((img) => img.imageId === "pg001_im001_seg001_v1")
+    expect(seg).toBeDefined()
+    expect(seg!.bounds).toEqual({ x: 12, y: 34, width: 80, height: 60 })
+
+    storage.close()
+  })
+
+  it("stores a segment without bounds when none are provided", () => {
+    const { storage } = createTempStorage()
+    storage.putExtractedPage(makePage(1))
+
+    storage.putSegmentedImage({
+      sourceImageId: "pg001_im001",
+      segmentIndex: 1,
+      pageId: "pg001",
+      version: 1,
+      buffer: fakePng(80, 60),
+      width: 80,
+      height: 60,
+    })
+
+    const seg = storage
+      .getPageImages("pg001")
+      .find((img) => img.imageId === "pg001_im001_seg001_v1")
+    expect(seg).toBeDefined()
+    expect(seg!.bounds).toBeUndefined()
+
+    storage.close()
+  })
+
   it("writes translated image variants and looks them up by source id", () => {
     const { storage, paths } = createTempStorage()
     storage.putExtractedPage(makePage(1))
@@ -586,5 +633,49 @@ describe("debug_images", () => {
     expect(files).toHaveLength(0)
 
     storage.close()
+  })
+
+  describe("node version pointer (rollback)", () => {
+    it("tracks latest as current by default, and rolls back without a new version", () => {
+      const { storage } = createTempStorage()
+      storage.putNodeData("web-rendering", "pg001", { v: 1 })
+      storage.putNodeData("web-rendering", "pg001", { v: 2 })
+      const v3 = storage.putNodeData("web-rendering", "pg001", { v: 3 })
+      expect(v3).toBe(3)
+      // Current == latest by default
+      expect(storage.getLatestNodeData("web-rendering", "pg001")?.data).toEqual({ v: 3 })
+      expect(storage.getCurrentNodeVersion("web-rendering", "pg001")).toBe(3)
+
+      // Roll back to v1 — no new version is created, current now reads v1
+      expect(storage.setCurrentNodeVersion("web-rendering", "pg001", 1)).toBe(true)
+      expect(storage.getCurrentNodeVersion("web-rendering", "pg001")).toBe(1)
+      expect(storage.getLatestNodeData("web-rendering", "pg001")?.data).toEqual({ v: 1 })
+
+      // A subsequent write appends v4 and becomes current
+      const v4 = storage.putNodeData("web-rendering", "pg001", { v: 4 })
+      expect(v4).toBe(4)
+      expect(storage.getLatestNodeData("web-rendering", "pg001")?.data).toEqual({ v: 4 })
+      storage.close()
+    })
+
+    it("rejects restoring a nonexistent version", () => {
+      const { storage } = createTempStorage()
+      storage.putNodeData("glossary", "book", { a: 1 })
+      expect(storage.setCurrentNodeVersion("glossary", "book", 99)).toBe(false)
+      expect(storage.getLatestNodeData("glossary", "book")?.data).toEqual({ a: 1 })
+      storage.close()
+    })
+
+    it("reports the current (pointer) version in the fingerprint", () => {
+      const { storage } = createTempStorage()
+      storage.putNodeData("page-sectioning", "pg001", { s: 1 })
+      storage.putNodeData("page-sectioning", "pg001", { s: 2 })
+      storage.setCurrentNodeVersion("page-sectioning", "pg001", 1)
+      const fp = storage
+        .getNodeVersionFingerprint()
+        .find((f) => f.node === "page-sectioning" && f.itemId === "pg001")
+      expect(fp?.version).toBe(1)
+      storage.close()
+    })
   })
 })

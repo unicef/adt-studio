@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Yönetici araçları sonraki bir güncellemede eklenecektir.",
     "main-menu-label": "Ana Menü",
     "cover-label": "Kapak",
-    "print-page-label": "Sayfayı Yazdır"
+    "print-page-label": "Sayfayı Yazdır",
+    "stepper-progress-n-of-m": "Adım ${n}/${m}",
+    "stepper-word-bank": "Seçilecek kelimeler",
+    "stepper-open-ended-saved": "Aferin — cevabın kaydedildi.",
+    "stepper-open-ended-rephrase": "Nazik olalım — cevabını farklı şekilde yazmayı dene.",
+    "open-ended-answer-label": "Cevabın"
 }

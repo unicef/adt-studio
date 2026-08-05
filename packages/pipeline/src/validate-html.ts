@@ -40,6 +40,57 @@ const NON_WRITABLE_INPUT_TYPES = new Set([
   "range",
   "color",
 ])
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function countEditableElements(section: any): number {
+  let count = 0
+  const choiceGroups = new Set<string>()
+  let ungroupedChoiceCount = 0
+  const nodes = DomUtils.findAll(
+    (el) =>
+      el.type === "tag" &&
+      (el.name === "textarea" || el.name === "input" || el.name === "select"),
+    section.children ?? [],
+  )
+  for (const node of nodes) {
+    if (node.name === "textarea" || node.name === "select") {
+      count += 1
+      continue
+    }
+    const type = (node.attribs?.type ?? "text").toLowerCase()
+    if (type === "radio" || type === "checkbox") {
+      const group =
+        node.attribs?.name ??
+        node.attribs?.["data-question-group"] ??
+        node.attribs?.["data-activity-item"]
+      if (group) choiceGroups.add(`${type}:${group}`)
+      else ungroupedChoiceCount += 1
+      continue
+    }
+    if (!NON_WRITABLE_INPUT_TYPES.has(type)) count += 1
+  }
+  count += choiceGroups.size
+  count += ungroupedChoiceCount
+  const markerText = DomUtils.textContent(section)
+  count += markerText.match(BLANK_MARKER_RE)?.length ?? 0
+  return count
+}
+/**
+ * Matches a leaf/text whose whole content is just an enumeration marker: a list
+ * number, single letter, or roman numeral, optionally dotted or parenthesized —
+ * "1.", "10.", "a)", "iv.", "(i)", "(vii)", "(a)". The tight shape (delimiter
+ * required for letters/romans) keeps real prose from matching. Activities use
+ * these as option/row markers; matching activities in particular auto-number
+ * their items and drop or render-bare the provided marker labels.
+ */
+const ENUMERATION_MARKER_RE =
+  /^(?:\d{1,3}[.)]?|[a-z][.)]|[ivxlcdm]{1,7}[.)]|\((?:\d{1,3}|[a-z]|[ivxlcdm]{1,7})\))$/i
+
+/** True if `text` is nothing but an enumeration marker (see ENUMERATION_MARKER_RE). */
+export function isEnumerationMarker(text: string): boolean {
+  return ENUMERATION_MARKER_RE.test(text.trim())
+}
+
 /** Matches placeholder sequences used in textbooks for blanks (3+ underscores or 3+ dots) */
 const TEXTBOOK_BLANK_RE = /_{3,}|\.{3,}/g
 /** Matches [placeholder:word] markers added during text classification */
@@ -112,6 +163,15 @@ export interface HtmlValidationOptions {
    * suppressed if it doesn't.
    */
   optionalTextIds?: Set<string>
+  /**
+   * Leaf data-ids (text and images) in the authoritative content-tree reading
+   * order. When provided, rendered content elements must appear in the same
+   * DOM order. Optional text ids and omitted images may be absent, but any ids
+   * that are present must keep their relative order.
+   */
+  expectedContentIdOrder?: string[]
+  /** Minimum native/marker response controls required by the source activity tree. */
+  minimumEditableElements?: number
 }
 
 export function validateSectionHtml(
@@ -156,6 +216,16 @@ export function validateSectionHtml(
     )
   }
 
+  if ((options?.minimumEditableElements ?? 0) > 0) {
+    const actual = countEditableElements(section)
+    const minimum = options!.minimumEditableElements!
+    if (actual < minimum) {
+      errors.push(
+        `The source contains at least ${minimum} learner response prompt(s), but the rendering has only ${actual} response control(s). Add a labelled input, textarea, select, or choice group next to every answerable prompt.`
+      )
+    }
+  }
+
   // Activity-specific structural checks. These catch failure modes the visual
   // reviewer can't see (missing `.activity-option`, broken true/false pairing,
   // duplicate item ids, etc.) and feed the LLM precise, actionable errors via
@@ -179,6 +249,10 @@ export function validateSectionHtml(
         errors.push(`Missing required text data-id: "${textId}"`)
       }
     }
+  }
+
+  if (options?.expectedContentIdOrder?.length) {
+    validateContentDataIdOrder(section, options.expectedContentIdOrder, errors)
   }
 
   if (imageUrlPrefix) {
@@ -239,7 +313,7 @@ function validateRequiredSectionAttributes(
 function isWritableInput(node: any): boolean {
   if (node.type !== "tag") return false
   const tagName = (node.name ?? "").toLowerCase()
-  if (tagName === "textarea") return true
+  if (tagName === "textarea" || tagName === "select") return true
   if (tagName !== "input") return false
   const inputType = (node.attribs?.type ?? "text").toLowerCase()
   return !NON_WRITABLE_INPUT_TYPES.has(inputType)
@@ -268,6 +342,35 @@ function hasEditableElement(node: any): boolean {
   if (node.children) {
     for (const child of node.children) {
       if (hasEditableElement(child)) return true
+    }
+  }
+  return false
+}
+
+/** Append a class to an element's `class` attribute (no-op if already present). */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function addClass(node: any, cls: string): void {
+  if (node.type !== "tag") return
+  node.attribs = node.attribs ?? {}
+  const existing = typeof node.attribs.class === "string" ? node.attribs.class : ""
+  const classes = existing.split(/\s+/).filter(Boolean)
+  if (!classes.includes(cls)) {
+    classes.push(cls)
+    node.attribs.class = classes.join(" ")
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function hasUnderlineOptionDescendant(node: any): boolean {
+  if (node.type === "tag") {
+    const cls = node.attribs?.class
+    if (typeof cls === "string" && cls.split(/\s+/).includes("activity-underline-option")) {
+      return true
+    }
+  }
+  if (node.children) {
+    for (const child of node.children) {
+      if (hasUnderlineOptionDescendant(child)) return true
     }
   }
   return false
@@ -307,8 +410,11 @@ function walkNode(
       // Allow such text without a data-id since it can't visually pollute
       // the rendered page and improves a11y when the LLM emits it.
       if (hasSrOnlyAncestor(node)) return
-      // Allow single-digit numbers as bare text (used as option markers in activities)
-      if (/^\d$/.test(node.data.trim())) return
+      // Allow bare enumeration markers (list numbers, letters, roman numerals —
+      // "1.", "10", "(i)", "(a)") as text. Activities use them as option/row
+      // markers, and matching activities often render the provided marker label
+      // without wrapping it in its data-id. The tight shape excludes real prose.
+      if (isEnumerationMarker(node.data.trim())) return
       if (!hasAncestorWithDataId(node)) {
         const snippet = node.data.trim().slice(0, 50)
         errors.push(`Text node outside any data-id element: "${snippet}"`)
@@ -324,7 +430,14 @@ function walkNode(
   ) {
     const tagName = (node.name ?? node.type ?? "").toLowerCase()
     if (DISALLOWED_TAGS.has(tagName)) {
-      errors.push(`Disallowed tag: <${tagName}>`)
+      // Script tags are permitted inside a custom-activity section (the only
+      // path where the agent ships its own interaction logic). Everywhere
+      // else they remain disallowed — including iframe/object/embed.
+      if (tagName === "script" && isInsideCustomActivitySection(node)) {
+        // Custom-activity scripts can carry behavior; allow.
+      } else {
+        errors.push(`Disallowed tag: <${tagName}>`)
+      }
     }
 
     const attribs = node.attribs ?? {}
@@ -379,12 +492,12 @@ function walkNode(
       const hasBlankMarkers = BLANK_MARKER_TEST_RE.test(actualText)
 
       if (hasBlankMarkers) {
-        // Verify the fitb-sentence class is present on this element or an ancestor,
+        // The fitb-sentence class must be present on this element or an ancestor,
         // otherwise the runtime JS won't find and hydrate the blank markers.
+        // Adding it is always the correct action when markers are present, so
+        // auto-heal it here rather than failing validation and forcing a retry.
         if (!hasFitbSentenceClass(node)) {
-          errors.push(
-            `Element with data-id "${dataId}" contains [[blank:item-N]] markers but is missing the "fitb-sentence" class (required on the element or an ancestor for runtime hydration)`
-          )
+          addClass(node, "fitb-sentence")
         }
         // Compare without the blank markers in actual and underscore/dot/placeholder markers in expected.
         // Also strip single `_` chars from the expected so inline letter blanks (e.g. source text `"en_ro"`
@@ -446,7 +559,11 @@ function walkNode(
     }
   }
 
-  if (replacementText !== undefined && !hasEditableElement(node)) {
+  if (
+    replacementText !== undefined &&
+    !hasEditableElement(node) &&
+    !hasUnderlineOptionDescendant(node)
+  ) {
     replaceChildrenWithText(node, replacementText)
   }
 }
@@ -522,6 +639,47 @@ function collectDataIds(node: any, ids: Set<string>): void {
   }
 }
 
+/** Validate that rendered text and image leaves preserve the tree's DFS order. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function validateContentDataIdOrder(
+  section: any,
+  expectedOrder: string[],
+  errors: string[],
+): void {
+  const expectedIds = new Set(expectedOrder)
+  const renderedOrder: string[] = []
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function collect(node: any): void {
+    if (node.type === "tag") {
+      const dataId = node.attribs?.["data-id"]
+      if (typeof dataId === "string" && expectedIds.has(dataId)) {
+        renderedOrder.push(dataId)
+      }
+    }
+    if (node.children) {
+      for (const child of node.children) collect(child)
+    }
+  }
+
+  collect(section)
+  const renderedIds = new Set(renderedOrder)
+  const expectedRenderedOrder = expectedOrder.filter((id) => renderedIds.has(id))
+  const mismatchIndex = renderedOrder.findIndex(
+    (id, index) => id !== expectedRenderedOrder[index],
+  )
+  const hasLengthMismatch = renderedOrder.length !== expectedRenderedOrder.length
+
+  if (mismatchIndex !== -1 || hasLengthMismatch) {
+    const index = mismatchIndex === -1
+      ? Math.min(renderedOrder.length, expectedRenderedOrder.length)
+      : mismatchIndex
+    errors.push(
+      `Content data-id order does not match the authoritative content tree at position ${index + 1}: expected "${expectedRenderedOrder[index] ?? "<end>"}" but found "${renderedOrder[index] ?? "<end>"}"`,
+    )
+  }
+}
+
 /**
  * Rewrite src attributes on elements whose data-id matches an image ID.
  */
@@ -538,6 +696,24 @@ function rewriteImageSrcs(node: any, imageIds: Set<string>, urlPrefix: string): 
       rewriteImageSrcs(child, imageIds, urlPrefix)
     }
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isInsideCustomActivitySection(node: any): boolean {
+  let current = node.parent
+  while (current) {
+    if (current.type === "tag" && (current.name ?? "").toLowerCase() === "section") {
+      const sectionType = current.attribs?.["data-section-type"]
+      if (
+        typeof sectionType === "string" &&
+        (sectionType === "activity_custom" || sectionType.startsWith("activity_custom_"))
+      ) {
+        return true
+      }
+    }
+    current = current.parent
+  }
+  return false
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

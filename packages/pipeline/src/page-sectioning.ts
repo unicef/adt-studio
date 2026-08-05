@@ -5,6 +5,7 @@ import {
   type PageSectioningSection,
   type TypeDef,
   DEFAULT_LLM_MAX_RETRIES,
+  DEFAULT_LLM_MODEL_ID,
   buildPageSectioningLLMSchema,
   buildPageSectioningRefinementLLMSchema,
 } from "@adt/types"
@@ -92,6 +93,7 @@ export async function sectionPage(
     roleKeys: new Set(config.roleTypes.map((t) => t.key)),
     sectionTypeKeys: new Set(config.sectionTypes.map((t) => t.key)),
     availableImageIds: new Set(input.availableImages.map((i) => i.imageId)),
+    mode: config.mode,
   }
 
   // Initial generation (with built-in validation retry).
@@ -240,6 +242,15 @@ export function applyAutoRepairs(raw: LLMStructuringResult | null | undefined): 
 
 const SINGLE_LETTER_ROW = /^[A-Za-zÀ-ÿ](\s+[A-Za-zÀ-ÿ])+$/
 
+// Canonicalize structure values the model reliably invents but that aren't in
+// the allowed `structure_types`. The model frequently emits "boxed_text" for a
+// bordered callout/box; "panel" (generic bordered/boxed layout) is the closest
+// valid container. Mapping here (in the pre-validation repair pass) makes the
+// value valid AND flows into the stored tree, avoiding a wasted retry.
+const STRUCTURE_ALIASES: Record<string, string> = {
+  boxed_text: "panel",
+}
+
 function repairChildren(children: LLMNode[]): LLMNode[] {
   const out: LLMNode[] = []
   for (const original of children) {
@@ -252,6 +263,15 @@ function repairChildren(children: LLMNode[]): LLMNode[] {
     // Recurse first so deeper repairs propagate up.
     if (Array.isArray(child.children)) {
       child.children = repairChildren(child.children)
+    }
+
+    // Canonicalize known invented structure synonyms (e.g. "boxed_text" → "panel")
+    // so they pass validation instead of triggering a retry.
+    if (
+      typeof child.structure === "string" &&
+      STRUCTURE_ALIASES[child.structure] !== undefined
+    ) {
+      child.structure = STRUCTURE_ALIASES[child.structure]
     }
 
     // Repair (3) — run before image_group repairs so reordering can still
@@ -320,6 +340,7 @@ interface ValidatorContext {
   roleKeys: Set<string>
   sectionTypeKeys: Set<string>
   availableImageIds: Set<string>
+  mode?: "page" | "dynamic"
 }
 
 /**
@@ -335,6 +356,12 @@ export function runValidator(
   const result = raw as LLMStructuringResult | null
   if (!result || !Array.isArray(result.sections)) {
     return { valid: false, errors: ["Response is missing a `sections` array."] }
+  }
+
+  if (ctx.mode === "page" && result.sections.length !== 1) {
+    errors.push(
+      `Page mode requires exactly one section, but the response contains ${result.sections.length}. Merge all page content into one section.`
+    )
   }
 
   const usedImageIds = new Set<string>()
@@ -684,8 +711,13 @@ export function buildPageSectioningConfig(
     ([key, description]) => ({ key, description })
   )
   const disabledSet = new Set(appConfig.disabled_section_types ?? [])
+  // `generate_activities: false` disables every activity section type by the
+  // `activity_` prefix convention (the same rule web-rendering uses). This is
+  // the single source of truth for the activities on/off choice, so it can't
+  // drift from a hand-maintained list (e.g. missing `activity_other`).
+  const activitiesOff = appConfig.generate_activities === false
   const sectionTypes: TypeDef[] = Object.entries(appConfig.section_types ?? {})
-    .filter(([key]) => !disabledSet.has(key))
+    .filter(([key]) => !disabledSet.has(key) && !(activitiesOff && key.startsWith("activity_")))
     .map(([key, description]) => ({ key, description }))
 
   return {
@@ -697,7 +729,7 @@ export function buildPageSectioningConfig(
     disabledSectionTypes: [...disabledSet],
     promptName: appConfig.page_sectioning?.prompt ?? "page_sectioning",
     refinementPromptName: "page_sectioning_refinement",
-    modelId: appConfig.page_sectioning?.model ?? "openai:gpt-5.4",
+    modelId: appConfig.page_sectioning?.model ?? appConfig.default_model ?? DEFAULT_LLM_MODEL_ID,
     maxRetries:
       appConfig.page_sectioning?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     maxRefinements: appConfig.page_sectioning?.max_refinements ?? 0,

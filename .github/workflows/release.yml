@@ -5,15 +5,24 @@ on:
     branches: [main, develop]
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Release tag (e.g. v0.8.0 on main, v0.8.0-beta.1 on develop)'
+      release_type:
+        description: "Version increment"
         required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - beta-minor
+          - beta-major
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release
   cancel-in-progress: false
 
 # Opt JS actions into Node 24 ahead of the June 2026 default — silences the
@@ -36,6 +45,7 @@ jobs:
       version: ${{ steps.tag.outputs.version }}
       prerelease: ${{ steps.tag.outputs.prerelease }}
       docker_tags: ${{ steps.tag.outputs.docker_tags }}
+      prev_tag: ${{ steps.tag.outputs.prev_tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -46,72 +56,80 @@ jobs:
           echo "Total tags: $(git tag --list | wc -l)"
           git tag --list | sort -V
 
-      - name: Extract tag
+      - name: Calculate release version
         id: tag
         env:
           EVENT_NAME: ${{ github.event_name }}
-          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_RELEASE_TYPE: ${{ inputs.release_type }}
           BRANCH: ${{ github.ref_name }}
         run: |
           MSG=""
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            TAG="$INPUT_TAG"
+            RELEASE_TYPE="$INPUT_RELEASE_TYPE"
           else
             MSG=$(git log -1 --pretty=%s)
             shopt -s nocasematch
-            if [[ "$MSG" =~ ^release:[[:space:]]*([^[:space:]]+) ]]; then
-              TAG="${BASH_REMATCH[1]}"
+            if [[ "$MSG" =~ ^release:[[:space:]]*(major|minor|patch|beta-minor|beta-major|beta)[[:space:]]*$ ]]; then
+              RELEASE_TYPE="${BASH_REMATCH[1],,}"
             fi
             shopt -u nocasematch
           fi
-          if [[ -z "$TAG" ]]; then
-            echo "::error::Could not extract tag. event=$EVENT_NAME input='$INPUT_TAG' subject='$MSG'"
+          if [[ -z "$RELEASE_TYPE" ]]; then
+            echo "::error::Could not resolve release type. event=$EVENT_NAME input='$INPUT_RELEASE_TYPE' subject='$MSG'"
             exit 1
           fi
-          [[ "$TAG" =~ ^v ]] || TAG="v$TAG"
-          # Validate charset before propagating downstream. This both rejects
-          # malformed tags and blocks shell / GITHUB_OUTPUT injection via the tag.
-          if [[ ! "$TAG" =~ ^v[0-9A-Za-z.+_-]+$ ]]; then
-            echo "::error::Invalid tag format: $TAG"
+          if [[ "$BRANCH" == "develop" && "$RELEASE_TYPE" != beta* ]]; then
+            echo "::error::develop only ships beta releases. Select beta, beta-minor, or beta-major."
             exit 1
+          fi
+          if [[ "$BRANCH" == "main" && "$RELEASE_TYPE" == beta* ]]; then
+            echo "::error::main only ships stable releases. Select patch, minor, or major."
+            exit 1
+          fi
+          VERSION=$(node scripts/calculate-release-version.mjs "$RELEASE_TYPE")
+          TAG="v$VERSION"
+          if [[ "$RELEASE_TYPE" == beta* ]]; then
+            PRERELEASE=true
+          else
+            PRERELEASE=false
           fi
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "::error::Tag $TAG already exists on origin. Bump the version."
+            echo "::error::Calculated tag $TAG already exists on origin."
             exit 1
           fi
-          if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta(\.[0-9]+)?$ ]]; then
-            PRERELEASE=true
-          elif [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            PRERELEASE=false
-          else
-            echo "::error::Tag $TAG must be either vX.Y.Z (stable) or vX.Y.Z-beta[.N]."
-            exit 1
-          fi
-          if [[ "$BRANCH" == "main" && "$PRERELEASE" == "true" ]]; then
-            echo "::error::main only ships stable tags (got $TAG). Use vX.Y.Z."
-            exit 1
-          fi
-          VERSION="${TAG#v}"
           DOCKER_TAGS="ghcr.io/unicef/adt-studio:$TAG"
           if [[ "$PRERELEASE" == "false" ]]; then
             DOCKER_TAGS="$DOCKER_TAGS"$'\n'"ghcr.io/unicef/adt-studio:latest"
           fi
+          # Changelog baseline: pin the previous tag so release-note generation
+          # never falls back to the repo's first commit when GitHub can't infer
+          # an ancestor (stable and beta tags live on divergent branch lines).
+          # Stable releases diff against the previous stable so the notes cover
+          # the whole beta cycle; prereleases diff against the most recent tag.
+          if [[ "$PRERELEASE" == "false" ]]; then
+            PREV_TAG=$(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          else
+            PREV_TAG=$(git tag --list 'v*' | sort -V | tail -1)
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
           {
             echo "docker_tags<<EOF"
             echo "$DOCKER_TAGS"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
-          echo "Resolved tag: $TAG (version: $VERSION, prerelease: $PRERELEASE)"
+          echo "Resolved tag: $TAG (type: $RELEASE_TYPE, prerelease: $PRERELEASE)"
 
       - uses: pnpm/action-setup@v4
 
+      # No `cache: pnpm` here: this job never runs `pnpm install`, so the
+      # pnpm store is never created and the post-run cache save fails with
+      # "Path Validation Error: Path(s) specified ... do(es) not exist".
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Update issue template version dropdowns
         env:
@@ -151,6 +169,9 @@ jobs:
       contents: read
     env:
       APP_VERSION: ${{ needs.prepare.outputs.version }}
+      # SKIP_NOTARIZE accepts ALL, MAC, WIN, LINUX (comma/space separated).
+      # "true" is treated as ALL for backward compatibility.
+      SKIP_NOTARIZE: ${{ vars.SKIP_NOTARIZE }}
     steps:
       - uses: actions/checkout@v4
 
@@ -192,9 +213,20 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      - name: Resolve Windows signing skip
+        id: skip
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          tokens=" $(echo "${SKIP_NOTARIZE:-}" | tr '[:lower:]' '[:upper:]' | tr ',' ' ') "
+          skip=false
+          case "$tokens" in
+            *" ALL "*|*" TRUE "*|*" WIN "*) skip=true ;;
+          esac
+          echo "win=$skip" >> "$GITHUB_OUTPUT"
 
       - name: Acquire Azure code signing token
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && steps.skip.outputs.win != 'true'
         shell: bash
         env:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -222,7 +254,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
 
       - name: Cache jsign.jar
         if: matrix.os == 'windows-latest'
@@ -295,6 +327,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+      pull-requests: read
     outputs:
       tag: ${{ needs.prepare.outputs.tag }}
       version: ${{ needs.prepare.outputs.version }}
@@ -303,6 +336,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.RELEASE_PAT }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Restore staged release metadata
         uses: actions/download-artifact@v4
@@ -316,6 +354,23 @@ jobs:
           pattern: installers-*
           path: dist
           merge-multiple: true # flatten the per-OS artifacts into one dir
+
+      - name: Compose beta release notes
+        if: needs.prepare.outputs.prerelease == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          TRIGGER_SHA: ${{ github.sha }}
+        run: |
+          rm -f release-notes.tmp release-notes.md
+          if node scripts/compose-release-notes.mjs > release-notes.tmp && [ -s release-notes.tmp ]; then
+            mv release-notes.tmp release-notes.md
+          else
+            rm -f release-notes.tmp release-notes.md
+            echo "::warning::Could not compose release notes; gh release create will generate them."
+          fi
 
       - name: Commit release metadata and push tag
         id: commit
@@ -349,12 +404,36 @@ jobs:
           TAG: ${{ needs.prepare.outputs.tag }}
           REPO: ${{ github.repository }}
           PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+          PREV_TAG: ${{ needs.prepare.outputs.prev_tag }}
         run: |
           PRERELEASE_FLAG=""
           [[ "$PRERELEASE" == "true" ]] && PRERELEASE_FLAG="--prerelease"
+          START_TAG_FLAG=()
+          [[ -n "$PREV_TAG" ]] && START_TAG_FLAG=(--notes-start-tag "$PREV_TAG")
+          NOTES_ARGS=(--generate-notes "${START_TAG_FLAG[@]}")
+          if [[ "$PRERELEASE" == "true" && -s release-notes.md ]]; then
+            NOTES_ARGS=(--notes-file release-notes.md)
+          fi
           gh release create "$TAG" --repo "$REPO" \
             --title "ADT Studio $TAG" \
-            --generate-notes $PRERELEASE_FLAG \
+            "${NOTES_ARGS[@]}" $PRERELEASE_FLAG \
             dist/* \
             docker-compose.yml \
             scripts/windows-setup-and-run.bat
+
+      - name: Sync issue template versions to default branch
+        if: github.ref_name == 'main'
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          DEFAULT_BRANCH: develop
+        run: |
+          git fetch --force --tags origin "$DEFAULT_BRANCH"
+          git checkout -f -B "$DEFAULT_BRANCH" "origin/$DEFAULT_BRANCH"
+          node scripts/update-issue-template-versions.mjs "$TAG" --require-full-history
+          git add .github/ISSUE_TEMPLATE/*.yml
+          if git diff --staged --quiet; then
+            echo "Default branch issue templates already up to date; nothing to sync."
+          else
+            git commit -m "chore(release): sync issue template versions for $TAG [skip ci]"
+            git push origin "HEAD:$DEFAULT_BRANCH"
+          fi

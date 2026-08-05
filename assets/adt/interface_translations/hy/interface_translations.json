@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Ադմինիստրատորի գործիքները կավելացվեն հաջորդ թարմացման ընթացքում։",
     "main-menu-label": "Հիմնական ընտրացանկ",
     "cover-label": "Շապիկ",
-    "print-page-label": "Տպել էջը"
+    "print-page-label": "Տպել էջը",
+    "stepper-progress-n-of-m": "Քայլ ${n}՝ ${m}-ից",
+    "stepper-word-bank": "Ընտրելու բառեր",
+    "stepper-open-ended-saved": "Կեցցե՛ս — պատասխանդ պահպանվել է:",
+    "stepper-open-ended-rephrase": "Եկեք բարի մնանք — փորձիր այլ կերպ ձևակերպել պատասխանդ:",
+    "open-ended-answer-label": "Քո պատասխանը"
 }

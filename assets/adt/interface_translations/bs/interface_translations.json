@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Administratorski alati će biti dodani u sljedećoj verziji.",
     "main-menu-label": "Glavni meni",
     "cover-label": "Naslovnica",
-    "print-page-label": "Štampaj stranicu"
+    "print-page-label": "Štampaj stranicu",
+    "stepper-progress-n-of-m": "Korak ${n} od ${m}",
+    "stepper-word-bank": "Riječi za odabir",
+    "stepper-open-ended-saved": "Bravo — tvoj odgovor je sačuvan.",
+    "stepper-open-ended-rephrase": "Budimo ljubazni — pokušaj drugačije sročiti svoj odgovor.",
+    "open-ended-answer-label": "Tvoj odgovor"
 }

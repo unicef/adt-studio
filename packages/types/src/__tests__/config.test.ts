@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { AppConfig, RenderStrategyConfig } from "../config.js"
+import {
+  AppConfig,
+  DEFAULT_ELEVENLABS_VOICE_ID,
+  ELEVENLABS_SHIPPED_VOICE_NAMES,
+  RenderStrategyConfig,
+} from "../config.js"
+import { resolveTranslationEvaluationConfig } from "../translation-evaluation.js"
 
 describe("RenderStrategyConfig", () => {
   it("allows answer_prompt for activity render types", () => {
@@ -92,4 +98,49 @@ describe("AppConfig", () => {
     }
   })
 
+  it("accepts translation evaluation judge settings", () => {
+    const result = AppConfig.safeParse({
+      structure_types: { paragraph: "Paragraph" },
+      role_types: { heading: "Heading" },
+      translation_evaluation: {
+        enable_translation_evaluation: true,
+        judge_model: "openai:gpt-4.1",
+        max_retries: 2,
+        batch_size: 1,
+        temperature: 0.1,
+        strictness: "strict",
+        severity_threshold: "low",
+        issue_types: ["meaning", "terminology"],
+        generate_suggestions: true,
+        only_suggest_when_confident: true,
+        context: {
+          book_metadata: true,
+          visible_page_entries: true,
+          source_language: true,
+          target_language: true,
+        },
+        judge_instructions: "Review translations carefully.",
+      },
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it("resolves translation evaluation defaults", () => {
+    const resolved = resolveTranslationEvaluationConfig(undefined)
+
+    expect(resolved.enable_translation_evaluation).toBe(true)
+    expect(resolved.strictness).toBe("balanced")
+    expect(resolved.severity_threshold).toBe("medium")
+    expect(resolved.generate_suggestions).toBe(true)
+    expect(resolved.context.book_metadata).toBe(true)
+    expect(resolved).not.toHaveProperty("batch_size")
+  })
+
+})
+
+describe("ELEVENLABS_SHIPPED_VOICE_NAMES", () => {
+  it("names the default voice", () => {
+    expect(ELEVENLABS_SHIPPED_VOICE_NAMES[DEFAULT_ELEVENLABS_VOICE_ID]).toBe("Rachel")
+  })
 })

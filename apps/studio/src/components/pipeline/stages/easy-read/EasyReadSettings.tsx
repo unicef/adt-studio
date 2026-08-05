@@ -1,25 +1,11 @@
 import { useEffect, useState } from "react"
-import { createPortal } from "react-dom"
-import { useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { Play } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { api } from "@/api/client"
-import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
-import { useApiKey } from "@/hooks/use-api-key"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
+import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
-import { useBookRun } from "@/hooks/use-book-run"
 import { useStepConfig } from "@/hooks/use-step-config"
 import { useLingui } from "@lingui/react/macro"
 
@@ -28,7 +14,6 @@ const DEFAULT_BATCH_SIZE = "50"
 
 export function EasyReadSettings({
   bookLabel,
-  headerTarget,
 }: {
   bookLabel: string
   headerTarget?: HTMLDivElement | null
@@ -39,13 +24,7 @@ export function EasyReadSettings({
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const queryClient = useQueryClient()
-  const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun } = useBookRun()
-  const navigate = useNavigate()
-  const [showRerunDialog, setShowRerunDialog] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [isSavingAndRunning, setIsSavingAndRunning] = useState(false)
-  const [promptDraft, setPromptDraft] = useState<string | null>(null)
+  const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null)
   const [promptName, setPromptName] = useState(DEFAULT_PROMPT)
   const [batchSize, setBatchSize] = useState(DEFAULT_BATCH_SIZE)
 
@@ -91,35 +70,32 @@ export function EasyReadSettings({
     return overrides
   }
 
-  const confirmSaveAndRerun = async () => {
-    const selectedPrompt = promptName.trim() || DEFAULT_PROMPT
-    setSaveError(null)
-    setIsSavingAndRunning(true)
-
-    try {
-      if (promptDraft != null) {
-        const savedPrompt = await api.updatePrompt(selectedPrompt, promptDraft, bookLabel)
-        queryClient.setQueryData(["prompts", selectedPrompt, bookLabel], savedPrompt)
-        await queryClient.invalidateQueries({ queryKey: ["prompts", selectedPrompt, bookLabel] })
-      }
-
-      await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
-      setDirty({})
-      setPromptDraft(null)
-      setShowRerunDialog(false)
-      queueRun({ fromStage: "easy-read", toStage: "easy-read", apiKey })
-      navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "easy-read" } })
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : String(error))
-    } finally {
-      setIsSavingAndRunning(false)
+  const save = async () => {
+    const promptToSave = promptName.trim() || DEFAULT_PROMPT
+    if (promptDraft != null) {
+      await savePromptDraft(queryClient, promptToSave, bookLabel, promptDraft)
     }
+
+    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+    setDirty({})
+    setPromptDraft(null)
   }
+
+  const isDirty = Object.keys(dirty).length > 0 || promptDraft != null
+  useStageSettingsBar({
+    stage: "easy-read",
+    bookLabel,
+    dirty: isDirty,
+    dirtyTabs: isDirty ? ["general"] : [],
+    saving: updateConfig.isPending,
+    save,
+    showSaveOnly: true,
+  })
 
   const selectedPrompt = promptName.trim() || DEFAULT_PROMPT
 
   return (
-    <div className="h-full max-w-4xl">
+    <div className="h-full w-full">
       <div className="border-b px-4 py-3">
         <div className="grid gap-3 md:grid-cols-[minmax(180px,260px)_auto] md:items-end">
           <div>
@@ -156,52 +132,13 @@ export function EasyReadSettings({
         bookLabel={bookLabel}
         title={t`Easy Read Prompt`}
         description={t`The prompt template used to generate editable Easy Read text blocks.`}
+        draft={promptDraft}
         model={easyRead.model}
         onModelChange={easyRead.onModelChange}
         maxRetries={easyRead.maxRetries}
         onMaxRetriesChange={easyRead.onMaxRetriesChange}
-        onContentChange={setPromptDraft}
+        onContentChange={(content, modelId) => setPromptDraft(toPromptDraft(content, modelId))}
       />
-
-      {headerTarget && createPortal(
-        <Button
-          size="sm"
-          className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-          onClick={() => {
-            setSaveError(null)
-            setShowRerunDialog(true)
-          }}
-          disabled={updateConfig.isPending || isSavingAndRunning || !hasApiKey}
-        >
-          <Play className="mr-1.5 h-3.5 w-3.5" />
-          {t`Save & Rerun`}
-        </Button>,
-        headerTarget,
-      )}
-
-      <Dialog open={showRerunDialog} onOpenChange={setShowRerunDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t`Save & Rerun Easy Read`}</DialogTitle>
-            <DialogDescription>
-              {t`This will save your Easy Read settings and generate a new editable Easy Read version.`}
-            </DialogDescription>
-          </DialogHeader>
-          {saveError && (
-            <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-              {saveError}
-            </p>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRerunDialog(false)} disabled={isSavingAndRunning}>
-              {t`Cancel`}
-            </Button>
-            <Button onClick={confirmSaveAndRerun} disabled={updateConfig.isPending || isSavingAndRunning}>
-              {updateConfig.isPending || isSavingAndRunning ? t`Saving...` : t`Confirm Rerun`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

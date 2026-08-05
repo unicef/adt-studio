@@ -14,7 +14,7 @@
  *   8. initAnalytics() — fire and forget
  *   9. installShowContentFallback() — safety net
  */
-import { getDefaultStore } from "jotai"
+import { getDefaultStore, type WritableAtom } from "jotai"
 import { addFavicons } from "@/shared/runtime/favicon"
 import { loadAppConfig, pickLanguage, pickStorageMode } from "@/shared/runtime/config"
 import { applyImageVariants, applyTranslationsToDOM, loadTranslations } from "@/features/language/runtime/i18n"
@@ -62,11 +62,16 @@ import { installShowContentFallback, showMainContent } from "@/shared/lib/errors
 import { activityModeAtom, isActivityPageAtom } from "@/features/activity/state/activity.atoms"
 import { initializeQuizActivity } from "@/features/activity/runtime/activity-quiz"
 import { initializeMultiSelectActivity } from "@/features/activity/runtime/activity-multi-select"
+import { initializeUnderlineTextActivity } from "@/features/activity/runtime/activity-underline-text"
 import { initializeFillInTheBlankActivity } from "@/features/activity/runtime/activity-fill-in-the-blank"
 import { initializeOpenEndedActivity } from "@/features/activity/runtime/activity-open-ended"
 import { initializeTrueFalseActivity } from "@/features/activity/runtime/activity-true-false"
 import { initializeSortingActivity } from "@/features/activity/runtime/activity-sorting"
+import { initializeOrderingActivity } from "@/features/activity/runtime/activity-ordering"
 import { initializeMatchingActivity } from "@/features/activity/runtime/activity-matching"
+import { initializeStepperActivity } from "@/features/activity/runtime/activity-stepper"
+import { initializeCustomActivity } from "@/features/activity/runtime/activity-custom"
+import { initializeWordBankActivity } from "@/features/activity/runtime/activity-word-bank"
 
 function readCurrentSectionId(): string | null {
   if (typeof document === "undefined") return null
@@ -78,11 +83,6 @@ function readCurrentSectionId(): string | null {
 function readIsActivityPage(): boolean {
   if (typeof document === "undefined") return false
   return !!document.querySelector('section[data-section-type^="activity_"]')
-}
-
-function readIsEmbedMode(): boolean {
-  if (typeof window === "undefined") return false
-  return new URLSearchParams(window.location.search).get("embed") === "1"
 }
 
 function readCurrentPageNumber(): number | null {
@@ -107,14 +107,21 @@ function applyConfiguredSettings(config: AppConfig): void {
   const seed = <T>(
     key: LockableSetting,
     storageKey: string,
-    atom: Parameters<typeof store.set>[0],
+    // A persisted atom this T can be written to. Deliberately NOT
+    // `Parameters<typeof store.set>[0]` (= `WritableAtom<unknown, unknown[],
+    // unknown>`): a writable atom's setter args are contravariant, so no
+    // concrete atom is assignable to that — which is what previously forced
+    // `as never` casts on both arguments (and still failed at the call sites).
+    // Typing the args as `[T]` keeps the atom/value pairing type-checked, so
+    // seeding a boolean atom from a string default is a compile error.
+    atom: WritableAtom<unknown, [T], void>,
     value: T | undefined,
   ): void => {
     const locked = isSettingLocked(config, key)
     if (locked && value !== undefined) {
-      store.set(atom as never, value as never)
+      store.set(atom, value)
     } else if (!locked && value !== undefined && !hasPersistedValue(storageKey)) {
-      store.set(atom as never, value as never)
+      store.set(atom, value)
     }
   }
 
@@ -183,20 +190,26 @@ export async function bootRuntime(): Promise<void> {
     const isActivity = readIsActivityPage()
     store.set(isActivityPageAtom, isActivity)
     store.set(activityModeAtom, isActivity)
-    store.set(embedModeAtom, readIsEmbedMode())
 
     applyDOMTranslations()
 
     initAnalytics(config.analytics)
     showMainContent()
     processGlossaryLocateHint()
+    // Stepper first — sections it owns carry data-activity-variant="stepper"
+    // and are excluded from the classic initializers' selectors.
+    initializeStepperActivity()
     initializeQuizActivity()
     initializeMultiSelectActivity()
+    initializeUnderlineTextActivity()
     initializeFillInTheBlankActivity()
     initializeOpenEndedActivity()
     initializeTrueFalseActivity()
     initializeSortingActivity()
+    initializeOrderingActivity()
     initializeMatchingActivity()
+    initializeCustomActivity()
+    initializeWordBankActivity()
   } finally {
     // Always clear the dock skeleton — even on partial-load failures the dock
     // should reveal whatever data DID make it into atoms.
@@ -255,7 +268,8 @@ function applyDOMTranslations(): void {
   applyTranslationsToDOM(translations, { easyReadMode })
   applyImageVariants(images)
 
-  const glossaryEnabled = store.get(glossaryModeAtom) as boolean
+  const glossaryEnabled =
+    (store.get(glossaryModeAtom) as boolean) && !(store.get(embedModeAtom) as boolean)
   if (glossaryEnabled) {
     const glossaryData = store.get(glossaryDataAtom)
     // Always wipe stale spans first so a re-apply (e.g. on language change)

@@ -29,9 +29,24 @@ export {
   type LlmLogImagePlaceholder,
 } from "./log.js"
 
-export { createPromptEngine, renderLiquidTemplate, type PromptEngine } from "./prompt.js"
+export {
+  createPromptEngine,
+  renderLiquidTemplate,
+  resolvePromptModelId,
+  promptModelFolderName,
+  promptNameForModel,
+  type PromptEngine,
+  type PromptRenderOptions,
+  type PromptResolution,
+} from "./prompt.js"
 
-export { createRateLimiter, type RateLimiter } from "./rate-limiter.js"
+export {
+  createRateLimiter,
+  createAdaptiveRateLimiter,
+  type RateLimiter,
+  type AdaptiveRateLimiter,
+  type AdaptiveRateLimiterOptions,
+} from "./rate-limiter.js"
 
 export { createLogger, type LogLevel, type Logger } from "./logger.js"
 
@@ -39,12 +54,19 @@ export {
   createTTSSynthesizer,
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,
+  createElevenLabsTTSSynthesizer,
+  resolveElevenLabsVoiceSettings,
+  buildElevenLabsOutputFormat,
   transcribeWithWhisper,
   type TTSSynthesizer,
+  type ElevenLabsVoiceSettings,
+  type ElevenLabsVoiceSettingsOverrides,
   type SynthesizeSpeechOptions,
   type AzureTTSConfig,
   type AzureAudioOptions,
   type GeminiTTSConfig,
+  type ElevenLabsTTSConfig,
+  type ElevenLabsAudioOptions,
   type WhisperWordTimestamp,
   type WhisperTranscriptionResult,
 } from "./speech.js"

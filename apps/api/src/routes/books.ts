@@ -1,10 +1,17 @@
 import fs from "node:fs"
 import path from "node:path"
+import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, PIPELINE, BookMetadata } from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
-import { countPdfPages } from "@adt/pdf"
+import {
+  parseBookLabel,
+  PIPELINE,
+  BookMetadata,
+  LLMModelId,
+  SpeechGenerationModelId,
+} from "@adt/types"
+import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/storage"
+import { countPdfPages, renderPdfCover } from "@adt/pdf"
 import { normalizeLocale, getBaseLanguage } from "@adt/pipeline"
 import {
   listBooks,
@@ -21,12 +28,33 @@ import {
   exportScorm,
   exportAdt,
   exportEpub,
+  exportPnld,
   type ExportFeatures,
   type ExportDefaultSettings,
   type ExportResult,
 } from "../services/export-service.js"
 import { importProject, previewImport } from "../services/import-service.js"
+import {
+  exportPart,
+  importPart,
+  previewImportPart,
+  isPartArchive,
+  previewMerge,
+  mergePart,
+  getPartInfo,
+  computeSplitStatus,
+} from "../services/part-service.js"
 import type { TaskService } from "../services/task-service.js"
+
+const BookConfigUpdateRequest = z.object({
+  config: z
+    .object({
+      default_model: LLMModelId.optional(),
+      default_image_generation_model: LLMModelId.optional(),
+      default_speech_generation_model: SpeechGenerationModelId.optional(),
+    })
+    .passthrough(),
+})
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -168,8 +196,12 @@ export function createBookRoutes(
     }
 
     const zipBuffer = Buffer.from(await zip.arrayBuffer())
-    const preview = previewImport(zipBuffer)
-    return c.json(preview)
+    // A "part" archive (PDF + window + manifest, no DB) previews differently
+    // from a full project; the response carries `isPart: true` to disambiguate.
+    if (isPartArchive(zipBuffer)) {
+      return c.json(previewImportPart(zipBuffer))
+    }
+    return c.json(previewImport(zipBuffer))
   })
 
   app.post("/books/import", async (c) => {
@@ -181,8 +213,54 @@ export function createBookRoutes(
     }
 
     const zipBuffer = Buffer.from(await zip.arrayBuffer())
-    const book = await importProject(zipBuffer, booksDir)
+    const book = isPartArchive(zipBuffer)
+      ? importPart(zipBuffer, booksDir)
+      : await importProject(zipBuffer, booksDir)
     return c.json(book, 201)
+  })
+
+  // GET /books/:label/part-info — Manifest info if this book is an imported part
+  app.get("/books/:label/part-info", (c) => {
+    const { label } = c.req.param()
+    return c.json(getPartInfo(label, booksDir))
+  })
+
+  // GET /books/:label/split-status — Exported-part ledger + merge coverage
+  app.get("/books/:label/split-status", (c) => {
+    const { label } = c.req.param()
+    return c.json(computeSplitStatus(label, booksDir))
+  })
+
+  // POST /books/:label/preview-merge — Dry-run merge of a completed-part project
+  app.post("/books/:label/preview-merge", async (c) => {
+    const { label } = c.req.param()
+    const formData = await c.req.formData()
+    const zip = formData.get("zip")
+    if (!(zip instanceof File)) {
+      throw new HTTPException(400, { message: "zip file is required" })
+    }
+    const zipBuffer = Buffer.from(await zip.arrayBuffer())
+    return c.json(previewMerge(label, booksDir, zipBuffer, configPath))
+  })
+
+  // POST /books/:label/merge — Merge a completed-part project into the book
+  app.post("/books/:label/merge", async (c) => {
+    const { label } = c.req.param()
+    const formData = await c.req.formData()
+    const zip = formData.get("zip")
+    if (!(zip instanceof File)) {
+      throw new HTTPException(400, { message: "zip file is required" })
+    }
+    const acknowledge = formData.get("acknowledgeSemanticsMismatch") === "true"
+    const zipBuffer = Buffer.from(await zip.arrayBuffer())
+    const result = mergePart(
+      label,
+      booksDir,
+      zipBuffer,
+      { acknowledgeSemanticsMismatch: acknowledge },
+      configPath,
+    )
+    return c.json(result)
   })
 
   app.delete("/books/:label", (c) => {
@@ -217,14 +295,19 @@ export function createBookRoutes(
   // PUT /books/:label/config — Update book-level config overrides
   app.put("/books/:label/config", async (c) => {
     const { label } = c.req.param()
-    const body = await c.req.json<{ config: Record<string, unknown> }>()
-
-    if (!body.config || typeof body.config !== "object") {
+    const parsed = BookConfigUpdateRequest.safeParse(await c.req.json())
+    if (!parsed.success) {
       throw new HTTPException(400, { message: "config object is required" })
     }
+    const body = parsed.data
 
     try {
-      updateBookConfig(label, booksDir, body.config)
+      // A part's page window is fixed — never let a config update move it.
+      const partInfo = getPartInfo(label, booksDir)
+      const config = partInfo
+        ? { ...body.config, start_page: partInfo.range.startPage, end_page: partInfo.range.endPage }
+        : body.config
+      updateBookConfig(label, booksDir, config)
       const updated = getBookConfig(label, booksDir)
       return c.json({ config: updated ?? {} })
     } catch (err) {
@@ -349,7 +432,7 @@ export function createBookRoutes(
   // POST /books/:label/prepare-export — Rebuild adt/ (and webpub/ if needed) before download
   app.post("/books/:label/prepare-export", async (c) => {
     const { label } = c.req.param()
-    const format = (c.req.query("format") ?? "project") as "project" | "webpub" | "scorm" | "adt" | "epub"
+    const format = (c.req.query("format") ?? "project") as "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld"
     let features: ExportFeatures | undefined
     let defaultSettings: ExportDefaultSettings | undefined
     const hasBody = (c.req.header("content-length") ?? "0") !== "0"
@@ -391,6 +474,7 @@ export function createBookRoutes(
     "export-webpub": exportWebpub,
     "export-scorm": exportScorm,
     "export-adt": exportAdt,
+    "export-pnld": exportPnld,
   }
 
   for (const [route, handler] of Object.entries(exportHandlers)) {
@@ -406,6 +490,26 @@ export function createBookRoutes(
       return c.body(result.stream)
     })
   }
+
+  // GET /books/:label/export-part — Download a lightweight page-range part
+  // (full PDF + windowed config + fingerprint manifest) for a contributor to
+  // process independently and merge back later.
+  app.get("/books/:label/export-part", (c) => {
+    const { label } = c.req.param()
+    const startPage = Number(c.req.query("startPage"))
+    const endPage = Number(c.req.query("endPage"))
+    if (!Number.isInteger(startPage) || !Number.isInteger(endPage) || startPage < 1) {
+      throw new HTTPException(400, { message: "startPage and endPage query params are required" })
+    }
+    const result = exportPart(label, booksDir, { startPage, endPage }, configPath)
+    c.header("Content-Type", "application/zip")
+    const encodedName = encodeURIComponent(result.filename)
+    c.header(
+      "Content-Disposition",
+      `attachment; filename="${result.safeFilename}"; filename*=UTF-8''${encodedName}`
+    )
+    return c.body(result.stream)
+  })
 
   // GET /books/:label/export-epub — Download book as EPUB 3
   app.get("/books/:label/export-epub", async (c) => {
@@ -499,15 +603,20 @@ export function createBookRoutes(
     try {
       // Pull every image-captioning row (one per page) and union the
       // imageIds referenced inside their captions[] arrays.
-      const captionRows = db.all(
-        `SELECT data FROM node_data
-         WHERE node = 'image-captioning'
-         AND (node, item_id, version) IN (
-           SELECT node, item_id, MAX(version) FROM node_data
-           WHERE node = 'image-captioning'
-           GROUP BY node, item_id
-         )`
-      ) as Array<{ data: string }>
+      const orderedCaptionRows = db.all(
+        `SELECT nd.item_id AS item_id, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = 'image-captioning'
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`
+      ) as Array<{ item_id: string; data: string }>
+      const captionRows: Array<{ data: string }> = []
+      const seenPages = new Set<string>()
+      for (const row of orderedCaptionRows) {
+        if (seenPages.has(row.item_id)) continue
+        seenPages.add(row.item_id)
+        captionRows.push(row)
+      }
 
       const captionedIds = new Map<string, string>()
       for (const row of captionRows) {
@@ -618,10 +727,25 @@ export function createBookRoutes(
     const bookDir = path.join(resolvedDir, safeLabel)
     const dbPath = path.join(bookDir, `${safeLabel}.db`)
 
+    // Fallback for books with no extracted cover yet (e.g. a freshly-split
+    // shell): render page 1 straight from the source PDF, like the import
+    // preview does. Returns the response, or 404 if there's no usable PDF.
+    const pdfPath = path.join(bookDir, `${safeLabel}.pdf`)
+    const servePdfCover = () => {
+      if (!fs.existsSync(pdfPath)) {
+        throw new HTTPException(404, { message: "No cover available" })
+      }
+      const cover = renderPdfCover(fs.readFileSync(pdfPath), { maxWidth: 320 })
+      if (!cover) {
+        throw new HTTPException(404, { message: "No cover available" })
+      }
+      c.header("Content-Type", "image/png")
+      c.header("Cache-Control", "public, max-age=86400")
+      return c.body(new Uint8Array(cover))
+    }
+
     if (!fs.existsSync(dbPath)) {
-      throw new HTTPException(404, {
-        message: `Book not found: ${safeLabel}`,
-      })
+      return servePdfCover()
     }
 
     const db = openBookDb(dbPath)
@@ -655,7 +779,7 @@ export function createBookRoutes(
             ) as Array<{ page_id: string }>)
 
       if (pageRows.length === 0) {
-        throw new HTTPException(404, { message: "No pages extracted yet" })
+        return servePdfCover()
       }
 
       const imageId = `${pageRows[0].page_id}_page`
@@ -665,7 +789,7 @@ export function createBookRoutes(
       ) as Array<{ path: string }>
 
       if (imageRows.length === 0) {
-        throw new HTTPException(404, { message: "Cover image not found" })
+        return servePdfCover()
       }
 
       const imagePath = path.resolve(bookDir, imageRows[0].path)

@@ -5,6 +5,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { I18nProvider } from "@lingui/react"
 import { i18n } from "@lingui/core"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { LiveRegionAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
+import { CloseGuardProvider } from "@/components/close-guard/CloseGuard"
 import { usePreviewSettingsListener } from "@/hooks/use-preview-settings-listener"
 import { messages as enMessages } from "./locales/en.po"
 import { messages as ptBRMessages } from "./locales/pt-BR.po"
@@ -13,18 +15,28 @@ import { messages as frMessages } from "./locales/fr.po"
 import { messages as sqMessages } from "./locales/sq.po"
 import { routeTree } from "./routeTree.gen"
 import "./styles/globals.css"
-import { LOCALES } from "./i18n/locales"
+import { LOCALES, activateLocale, getStoredLocale, matchSupportedLocale } from "./i18n/locales"
 import type { AppLocale } from "./i18n/locales"
 export { LOCALES, type AppLocale } from "./i18n/locales"
 
+// In Electron, match the OS languages against our supported locales for a
+// sensible first-launch default. Returns null on the web (no `systemLocales`).
+function detectOsLocale(): AppLocale | null {
+  const osLocales = window.api?.systemLocales
+  if (!osLocales || osLocales.length === 0) return null
+  return matchSupportedLocale(osLocales)
+}
+
+// Priority: web ?lang override → stored preference → OS language → English.
 function detectLocale(): AppLocale {
   const urlLang = new URLSearchParams(window.location.search).get("lang")
   if (urlLang && LOCALES.includes(urlLang as AppLocale)) return urlLang as AppLocale
-  return "en"
+  return getStoredLocale() ?? detectOsLocale() ?? "en"
 }
 
 i18n.load({ en: enMessages, "pt-BR": ptBRMessages, es: esMessages, fr: frMessages, sq: sqMessages })
-i18n.activate(detectLocale())
+// activateLocale also sets <html lang> so screen readers use the correct voice.
+activateLocale(detectLocale())
 
 if (import.meta.env.VITE_WORKSPACE_NAME) {
   // eslint-disable-next-line lingui/no-unlocalized-strings -- dev-only tab label; env var is unset in production builds
@@ -46,7 +58,7 @@ const router = createRouter({
     input: ({ url }) => {
       const lang = url.searchParams.get("lang")
       if (lang && LOCALES.includes(lang as AppLocale)) {
-        i18n.activate(lang as AppLocale)
+        activateLocale(lang as AppLocale)
       }
       url.searchParams.delete("lang")
       return url
@@ -76,7 +88,11 @@ createRoot(document.getElementById("root")!).render(
       <QueryClientProvider client={queryClient}>
         <TooltipProvider delayDuration={300}>
           <PreviewSettingsListener />
-          <RouterProvider router={router} />
+          <LiveRegionAnnouncer>
+            <CloseGuardProvider>
+              <RouterProvider router={router} />
+            </CloseGuardProvider>
+          </LiveRegionAnnouncer>
         </TooltipProvider>
       </QueryClientProvider>
     </I18nProvider>

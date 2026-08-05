@@ -56,6 +56,112 @@ describe("validateSectionHtml", () => {
     )
   })
 
+  it("preserves the authoritative text data-id order", () => {
+    const html = `
+      <section>
+        <div data-id="rescue_group">
+          <h2 data-id="rescue_heading">Rescue</h2>
+        </div>
+        <img data-id="rescue_image" src="placeholder" alt="Rescue" />
+        <div data-id="sense_group">
+          <h2 data-id="sense_heading">Sense</h2>
+        </div>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["rescue_heading", "sense_heading"],
+      ["rescue_image"],
+      undefined,
+      {
+        allowedContainerIds: ["rescue_group", "sense_group"],
+        expectedContentIdOrder: [
+          "rescue_heading",
+          "rescue_image",
+          "sense_heading",
+        ],
+      },
+    )
+
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it("rejects text data-ids restored to the original image order", () => {
+    const html = `
+      <section>
+        <h2 data-id="sense_heading">Sense</h2>
+        <h2 data-id="rescue_heading">Rescue</h2>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["rescue_heading", "sense_heading"],
+      [],
+      undefined,
+      { expectedContentIdOrder: ["rescue_heading", "sense_heading"] },
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining(
+        'expected "rescue_heading" but found "sense_heading"',
+      ),
+    )
+  })
+
+  it("keeps relative order when optional text data-ids are omitted", () => {
+    const html = `
+      <section>
+        <p data-id="body_1">First</p>
+        <p data-id="body_2">Second</p>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["page_number", "body_1", "footer", "body_2"],
+      [],
+      undefined,
+      {
+        optionalTextIds: new Set(["page_number", "footer"]),
+        expectedContentIdOrder: ["page_number", "body_1", "footer", "body_2"],
+      },
+    )
+
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it("rejects images restored to their original image order", () => {
+    const html = `
+      <section>
+        <h2 data-id="rescue_heading">Rescue</h2>
+        <h2 data-id="sense_heading">Sense</h2>
+        <img data-id="rescue_image" src="placeholder" alt="Rescue" />
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["rescue_heading", "sense_heading"],
+      ["rescue_image"],
+      undefined,
+      {
+        expectedContentIdOrder: [
+          "rescue_heading",
+          "rescue_image",
+          "sense_heading",
+        ],
+      },
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining(
+        'expected "rescue_image" but found "sense_heading"',
+      ),
+    )
+  })
+
   it("detects unknown data-id", () => {
     const html = `
       <section>
@@ -90,6 +196,26 @@ describe("validateSectionHtml", () => {
     const result = validateSectionHtml(html, [], [])
     expect(result.valid).toBe(false)
     expect(result.errors).toContainEqual(
+      expect.stringContaining("Text node outside any data-id element")
+    )
+  })
+
+  it("allows bare enumeration markers as text, but not bare prose", () => {
+    const markers = `
+      <section>
+        <span>1.</span><span>10.</span><span>(i)</span><span>(vii)</span><span>(a)</span>
+      </section>
+    `
+    expect(validateSectionHtml(markers, [], []).valid).toBe(true)
+
+    const prose = `
+      <section>
+        <span>Salamu</span>
+      </section>
+    `
+    const proseResult = validateSectionHtml(prose, [], [])
+    expect(proseResult.valid).toBe(false)
+    expect(proseResult.errors).toContainEqual(
       expect.stringContaining("Text node outside any data-id element")
     )
   })
@@ -913,7 +1039,7 @@ describe("validateSectionHtml", () => {
     )
   })
 
-  it("reports error when [[blank:item-N]] markers lack fitb-sentence class", () => {
+  it("auto-adds fitb-sentence class when [[blank:item-N]] markers lack it", () => {
     const html = `
       <section>
         <p data-id="tx001">The [[blank:item-1]] is a type of star.</p>
@@ -927,10 +1053,13 @@ describe("validateSectionHtml", () => {
       undefined,
       { expectedTexts }
     )
-    expect(result.valid).toBe(false)
-    expect(result.errors).toContainEqual(
+    // Auto-healed instead of failing: the class is always the correct action
+    // when markers are present, so the validator adds it and passes.
+    expect(result.valid).toBe(true)
+    expect(result.errors).not.toContainEqual(
       expect.stringContaining('missing the "fitb-sentence" class')
     )
+    expect(result.sectionHtml).toContain("fitb-sentence")
   })
 
   it("accepts [[blank:item-N]] markers when fitb-sentence is on an ancestor", () => {
@@ -1259,6 +1388,90 @@ describe("writable section types require editable inputs", () => {
       </section>
     `
     const result = validateSectionHtml(html, ["pg001_gp001"], [])
+    expect(result.valid).toBe(true)
+  })
+
+  it("enforces source-derived response counts on mixed page-mode sections", () => {
+    const html = `
+      <section data-section-type="text_and_images" data-section-id="pg001_section">
+        <p data-id="q1">Name the first animal.</p>
+        <input aria-label="First animal" data-activity-item="item-1" />
+        <p data-id="q2">Name the second animal.</p>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1", "q2"], [], undefined, {
+      minimumEditableElements: 2,
+    })
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining("at least 2 learner response prompt(s)")
+    )
+  })
+
+  it("accepts one labelled response per source prompt", () => {
+    const html = `
+      <section data-section-type="text_and_images" data-section-id="pg001_section">
+        <p data-id="q1">Name the first animal.</p>
+        <input aria-label="First animal" data-activity-item="item-1" />
+        <p data-id="q2">Name the second animal.</p>
+        <input aria-label="Second animal" data-activity-item="item-2" />
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1", "q2"], [], undefined, {
+      minimumEditableElements: 2,
+    })
+
+    expect(result.valid).toBe(true)
+  })
+
+  it("counts one radio group as one learner response", () => {
+    const html = `
+      <section data-section-type="text_and_images" data-section-id="pg001_section">
+        <fieldset data-id="q1">
+          <legend>Choose the first answer.</legend>
+          <label><input type="radio" name="q1" value="a" /> A</label>
+          <label><input type="radio" name="q1" value="b" /> B</label>
+        </fieldset>
+        <fieldset data-id="q2">
+          <legend>Choose the second answer.</legend>
+          <label><input type="radio" name="q2" value="a" /> A</label>
+          <label><input type="radio" name="q2" value="b" /> B</label>
+        </fieldset>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1", "q2"], [], undefined, {
+      minimumEditableElements: 2,
+    })
+
+    expect(result.valid).toBe(true)
+  })
+
+  it("counts native selects as learner responses", () => {
+    const html = `
+      <section data-section-type="text_and_images" data-section-id="pg001_section">
+        <label data-id="q1">Choose the animal.
+          <select aria-label="Animal"><option>Cat</option></select>
+        </label>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1"], [], undefined, {
+      minimumEditableElements: 1,
+    })
+
+    expect(result.valid).toBe(true)
+  })
+
+  it("accepts a select as the editable control for a writable activity", () => {
+    const html = `
+      <section data-section-type="activity_fill_in_the_blank" data-section-id="pg001_section">
+        <label data-id="q1">Choose the animal.
+          <select aria-label="Animal"><option>Cat</option></select>
+        </label>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1"], [])
+
     expect(result.valid).toBe(true)
   })
 })

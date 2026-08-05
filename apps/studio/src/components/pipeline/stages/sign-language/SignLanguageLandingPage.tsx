@@ -34,10 +34,10 @@ import {
   useUploadSignLanguageVideo,
   useAssignSignLanguageVideo,
   useDeleteSignLanguageVideo,
-  useDeleteAllSignLanguageVideos,
 } from "@/hooks/use-sign-language-videos"
 import { getSignLanguageVideoUrl } from "@/api/client"
 import type { SignLanguageVideo } from "@/api/client"
+import { isGlossaryVideoSectionId } from "@/lib/glossary-video"
 import { ManageSectionsDialog } from "./components/ManageSectionsDialog"
 import { SignLanguageReaderPreview } from "./components/SignLanguageReaderPreview"
 import type { FilterValue, SectionEntry } from "./components/types"
@@ -52,17 +52,24 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   const uploadMutation = useUploadSignLanguageVideo(bookLabel)
   const assignMutation = useAssignSignLanguageVideo(bookLabel)
   const deleteMutation = useDeleteSignLanguageVideo(bookLabel)
-  const deleteAllMutation = useDeleteAllSignLanguageVideos(bookLabel)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const targetSectionRef = useRef<string | null>(null)
   const [playingVideo, setPlayingVideo] = useState<SignLanguageVideo | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false)
+  const [deletingAll, setDeletingAll] = useState(false)
+  const [deleteAllError, setDeleteAllError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterValue>("missing")
   const [manageOpen, setManageOpen] = useState(false)
 
-  const videos = videosData?.videos ?? []
+  // Videos attached to glossary items (sectionId like `gl001` / `gl_manual_*`)
+  // are managed from the Glossary stage — keep them out of the page-section
+  // lists and counts here.
+  const videos = useMemo(
+    () => (videosData?.videos ?? []).filter((v) => !isGlossaryVideoSectionId(v.sectionId)),
+    [videosData],
+  )
 
   // Flat list of sections in book order
   const sectionEntries = useMemo<SectionEntry[]>(() => {
@@ -256,7 +263,7 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
                     <button
                       type="button"
                       onClick={() => setConfirmDeleteAll(true)}
-                      disabled={deleteAllMutation.isPending}
+                      disabled={deletingAll}
                       className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-medium text-[#737373] transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
                     >
                       <Trash2 className="h-3 w-3" aria-hidden />
@@ -467,7 +474,14 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
       </Dialog>
 
       {/* Delete-all confirmation */}
-      <Dialog open={confirmDeleteAll} onOpenChange={setConfirmDeleteAll}>
+      <Dialog
+        open={confirmDeleteAll}
+        onOpenChange={(open) => {
+          if (deletingAll) return
+          setConfirmDeleteAll(open)
+          if (!open) setDeleteAllError(null)
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -480,28 +494,65 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
               section assignments. This can't be undone.
             </Trans>
           </p>
+          {deleteAllError && (
+            <p
+              role="alert"
+              className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-700"
+            >
+              {deleteAllError}
+            </p>
+          )}
           <div className="mt-4 flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setConfirmDeleteAll(false)}
-              className="rounded-md px-3 py-1.5 text-[12px] font-medium text-[#737373] transition-colors hover:bg-[#f5f5f5]"
+              onClick={() => {
+                setConfirmDeleteAll(false)
+                setDeleteAllError(null)
+              }}
+              disabled={deletingAll}
+              className="rounded-md px-3 py-1.5 text-[12px] font-medium text-[#737373] transition-colors hover:bg-[#f5f5f5] disabled:opacity-50"
             >
               <Trans>Cancel</Trans>
             </button>
             <button
               type="button"
-              onClick={() => {
-                deleteAllMutation.mutate(undefined, {
-                  onSettled: () => setConfirmDeleteAll(false),
-                })
+              onClick={async () => {
+                // Delete only the page-section videos shown here — videos
+                // attached to glossary terms are managed from the Glossary
+                // stage and must survive a "remove all" on this page.
+                //
+                // Every video is attempted even if one fails, so a single bad
+                // delete can't strand the rest; failures are reported together
+                // and the dialog stays open so the leftovers can be retried
+                // (each success refetches the list, so a retry only re-attempts
+                // what is still there).
+                setDeletingAll(true)
+                setDeleteAllError(null)
+                const total = videos.length
+                let failed = 0
+                for (const v of videos) {
+                  try {
+                    await deleteMutation.mutateAsync(v.videoId)
+                  } catch {
+                    failed += 1
+                  }
+                }
+                setDeletingAll(false)
+                if (failed > 0) {
+                  setDeleteAllError(
+                    t`Could not remove ${failed} of ${total} videos. Please try again.`,
+                  )
+                  return
+                }
+                setConfirmDeleteAll(false)
               }}
-              disabled={deleteAllMutation.isPending}
+              disabled={deletingAll}
               className="inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
             >
-              {deleteAllMutation.isPending && (
+              {deletingAll && (
                 <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
               )}
-              <Trans>Remove all</Trans>
+              {deleteAllError ? <Trans>Retry</Trans> : <Trans>Remove all</Trans>}
             </button>
           </div>
         </DialogContent>

@@ -13,6 +13,14 @@
  * run and their errors concatenate.
  */
 import { DomUtils } from "htmlparser2"
+import {
+  collectUnderlineGroups,
+  containerExclusiveToGroup,
+  findGroupCommonContainer,
+  findUnwrappedWords,
+  isWordLevelGroup,
+} from "./activity-underline-repair.js"
+import { inspectOrderingSection } from "./ordering-contract.js"
 
 // htmlparser2 doesn't export its DOM node type ergonomically; treat nodes as
 // `any` inside this module — DomUtils is the typed surface we rely on.
@@ -91,6 +99,13 @@ function isCheckboxWithItem(el: Element): boolean {
     tag(el, "input") &&
     (attr(el, "type") ?? "").toLowerCase() === "checkbox" &&
     typeof attr(el, "data-activity-item") === "string"
+  )
+}
+
+function isUnderlineOption(el: Element): boolean {
+  return (
+    el.type === "tag" &&
+    hasClass(el, "activity-underline-option")
   )
 }
 
@@ -209,6 +224,109 @@ function msLabelMustWrapCheckbox(ctx: ActivityRuleContext): string[] {
         `A <label class="activity-option"> in a multi-select section contains no ` +
           `<input type="checkbox" data-activity-item="..."> descendant. Every option label ` +
           `must wrap a checkbox with a unique data-activity-item.`,
+      )
+    }
+  }
+  return errors
+}
+
+// ---------------------------------------------------------------------------
+// Underline-text rules (inline selectable words / phrases / sentences)
+// ---------------------------------------------------------------------------
+
+function utSectionMustContainOptions(ctx: ActivityRuleContext): string[] {
+  const options = findAll(ctx.section, isUnderlineOption)
+  if (options.length > 0) return []
+  return [
+    `Underline-text activity sections must include at least one element with class="activity-underline-option". ` +
+      `Wrap each selectable word, phrase, or sentence in an inline element carrying that class.`,
+  ]
+}
+
+function utOptionsMustHaveItemIds(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const option of findAll(ctx.section, isUnderlineOption)) {
+    if (!attr(option, "data-activity-item")) {
+      errors.push(
+        `Each .activity-underline-option must have a unique data-activity-item attribute so the runtime can score selections.`,
+      )
+    }
+  }
+  return errors
+}
+
+function utOptionsMustHaveQuestionGroup(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const option of findAll(ctx.section, isUnderlineOption)) {
+    const item = attr(option, "data-activity-item") ?? "(missing item id)"
+    if (!attr(option, "data-question-group")) {
+      errors.push(
+        `The .activity-underline-option with data-activity-item="${item}" is missing data-question-group. ` +
+          `Underline activities use question groups to keep multiple prompts independent within one section.`,
+      )
+    }
+  }
+  return errors
+}
+
+/**
+ * A selectable token gets its accessible name from its own text content (the
+ * runtime deliberately sets no aria-label so the name follows the visible word
+ * across language switches). An empty token is therefore an unnamed control —
+ * a screen reader announces a bare "checkbox".
+ */
+function utOptionsMustHaveText(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const option of findAll(ctx.section, isUnderlineOption)) {
+    if (DomUtils.getText(option).trim() === "") {
+      const item = attr(option, "data-activity-item") ?? "(missing item id)"
+      errors.push(
+        `The .activity-underline-option with data-activity-item="${item}" has no text ` +
+          `content. Each selectable segment takes its accessible name from its text, so ` +
+          `an empty segment is announced as an unlabeled checkbox.`,
+      )
+    }
+  }
+  return errors
+}
+
+/**
+ * Word-level questions must make EVERY word selectable — learners of the
+ * printed book can underline any word, so a curated candidate subset both
+ * weakens the task and telegraphs the answer. Scoping mirrors the deterministic
+ * completion pass in activity-underline-repair.ts (which normally fixes this
+ * before validation): a group counts as word-level when all of its existing
+ * options are single words, and phrase/sentence-level groups are exempt.
+ */
+function utWordLevelGroupsFullyTokenized(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const group of collectUnderlineGroups(ctx.section)) {
+    if (!group.key) continue // question-group-present rule reports the missing attribute
+    if (!isWordLevelGroup(group.options)) continue
+    const container = findGroupCommonContainer(ctx.section, group.options)
+    if (!container) {
+      errors.push(
+        `The selectable segments of "${group.key}" do not share a wrapper element below the section. ` +
+          `Keep all of one question's segments inside that question's own text wrapper ` +
+          `(normally its data-id element) so the runtime can group and label them.`,
+      )
+      continue
+    }
+    if (!containerExclusiveToGroup(container, group.key)) {
+      errors.push(
+        `The wrapper containing all segments of "${group.key}" also contains segments of other ` +
+          `question groups. Give each question its own wrapper (normally the sentence's data-id ` +
+          `element) so questions stay independent.`,
+      )
+      continue
+    }
+    const missing = findUnwrappedWords(container)
+    if (missing.length > 0) {
+      errors.push(
+        `Word-level underline question "${group.key}" leaves these words unselectable: ` +
+          `${missing.map((w) => `"${w}"`).join(", ")}. When the answer unit is a word, EVERY word ` +
+          `in the sentence must be wrapped in its own .activity-underline-option span — number ` +
+          `markers like "(i)", example labels, and punctuation stay outside the spans.`,
       )
     }
   }
@@ -413,6 +531,177 @@ function uniqueDataActivityItems(ctx: ActivityRuleContext): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// Custom activity (activity_custom_*) accessibility rules
+//
+// Custom activities are LLM-authored free-form HTML, so unlike the templated
+// types there's no fixed structure to validate — but the runtime still shows a
+// Submit button and learners still operate the activity, including by keyboard
+// and screen reader. These rules enforce the accessibility floor the generation
+// prompt asks for: drop zones and cards must be named, focusable, and have a
+// role; the section must be labelled and announce results via a live region.
+// ---------------------------------------------------------------------------
+
+const NATIVE_INTERACTIVE = new Set([
+  "button",
+  "a",
+  "input",
+  "select",
+  "textarea",
+])
+
+function isNativeInteractive(el: Element): boolean {
+  return NATIVE_INTERACTIVE.has((el.name ?? "").toLowerCase())
+}
+
+function hasRoleSemantics(el: Element): boolean {
+  return isNativeInteractive(el) || typeof attr(el, "role") === "string"
+}
+
+function isFocusable(el: Element): boolean {
+  return isNativeInteractive(el) || typeof attr(el, "tabindex") === "string"
+}
+
+function elementById(root: Element, id: string): Element | null {
+  return findAll(root, (n) => attr(n, "id") === id)[0] ?? null
+}
+
+/** Resolve aria-labelledby to the concatenated text of the referenced ids. */
+function labelledByText(section: Element, el: Element): string {
+  const ref = attr(el, "aria-labelledby")
+  if (!ref) return ""
+  return ref
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((id) => {
+      const target = elementById(section, id)
+      return target ? DomUtils.textContent(target) : ""
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+/** True when the element carries an explicit, non-empty ARIA label. */
+function hasExplicitLabel(section: Element, el: Element): boolean {
+  return Boolean(attr(el, "aria-label")?.trim() || labelledByText(section, el))
+}
+
+/** True when the element exposes any accessible name (label, text, or img alt). */
+function hasAccessibleName(section: Element, el: Element): boolean {
+  if (hasExplicitLabel(section, el)) return true
+  if (DomUtils.textContent(el).replace(/\s+/g, " ").trim()) return true
+  // The element may BE the image (a picture card in a jigsaw or picture-match
+  // activity) — findAll only walks descendants, so check the node itself first.
+  if (tag(el, "img") && (attr(el, "alt") ?? "").trim().length > 0) return true
+  return findAll(el, (n) => tag(n, "img")).some(
+    (img) => (attr(img, "alt") ?? "").trim().length > 0,
+  )
+}
+
+function answerKeyId(el: Element): string {
+  return (
+    attr(el, "data-activity-target") ||
+    attr(el, "data-activity-item") ||
+    attr(el, "data-id") ||
+    `<${el.name}>`
+  )
+}
+
+function customDropZonesAreAccessible(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const zone of findAll(
+    ctx.section,
+    (n) => typeof attr(n, "data-activity-target") === "string",
+  )) {
+    const id = answerKeyId(zone)
+    if (!hasExplicitLabel(ctx.section, zone)) {
+      errors.push(
+        `Drop zone data-activity-target="${id}" has no accessible label. ` +
+          `Add aria-label="..." or aria-labelledby="<id>" naming the zone (e.g. "Top left space").`,
+      )
+    }
+    if (!hasRoleSemantics(zone)) {
+      errors.push(
+        `Drop zone data-activity-target="${id}" has no role. ` +
+          `Add role="group" (or "region") so screen readers announce it as a target.`,
+      )
+    }
+    if (!isFocusable(zone)) {
+      errors.push(
+        `Drop zone data-activity-target="${id}" is not keyboard-focusable. ` +
+          `Add tabindex="0" so keyboard users can place items into it.`,
+      )
+    }
+  }
+  return errors
+}
+
+function customCardsAreAccessible(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const card of findAll(
+    ctx.section,
+    (n) => typeof attr(n, "data-activity-item") === "string",
+  )) {
+    const id = answerKeyId(card)
+    if (!hasAccessibleName(ctx.section, card)) {
+      errors.push(
+        `Card data-activity-item="${id}" has no accessible name. ` +
+          `Give it visible text, an <img alt="...">, or aria-label="...".`,
+      )
+    }
+    if (!hasRoleSemantics(card) || !isFocusable(card)) {
+      errors.push(
+        `Card data-activity-item="${id}" is not operable by keyboard. ` +
+          `Use a <button>, or add role="button" and tabindex="0".`,
+      )
+    }
+  }
+  return errors
+}
+
+function customInputsHaveAccessibleLabel(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const input of findAll(ctx.section, isWritableTextInput)) {
+    if (
+      !attr(input, "aria-label") &&
+      !attr(input, "aria-labelledby") &&
+      !attr(input, "title")
+    ) {
+      errors.push(
+        `An <${input.name}> in this custom activity has no accessible label. ` +
+          `Add aria-label="..." describing what the learner must enter (a placeholder is not enough).`,
+      )
+    }
+  }
+  return errors
+}
+
+function customSectionHasLabel(ctx: ActivityRuleContext): string[] {
+  if (hasExplicitLabel(ctx.section, ctx.section)) return []
+  return [
+    `The activity <section> has no accessible name. Add aria-labelledby="<heading-id>" ` +
+      `(or aria-label) so screen readers announce the activity by name.`,
+  ]
+}
+
+function customHasLiveRegion(ctx: ActivityRuleContext): string[] {
+  const hasLive =
+    findAll(
+      ctx.section,
+      (n) =>
+        typeof attr(n, "aria-live") === "string" ||
+        attr(n, "role") === "status" ||
+        attr(n, "role") === "alert" ||
+        typeof attr(n, "data-activity-status") === "string",
+    ).length > 0
+  if (hasLive) return []
+  return [
+    `This custom activity has no live region for feedback. Add an aria-live="polite" ` +
+      `status element (e.g. <div data-activity-status role="status" aria-live="polite">) and write the result into it.`,
+  ]
+}
+
+// ---------------------------------------------------------------------------
 // Rule registry
 // ---------------------------------------------------------------------------
 
@@ -427,6 +716,15 @@ const MULTI_SELECT_RULES: ActivityRule[] = [
   { name: "option-label-class", check: msOptionLabelMustHaveActivityClass },
   { name: "checkbox-has-name", check: msCheckboxMustHaveName },
   { name: "label-wraps-checkbox", check: msLabelMustWrapCheckbox },
+  { name: "unique-items", check: uniqueDataActivityItems },
+]
+
+const UNDERLINE_TEXT_RULES: ActivityRule[] = [
+  { name: "has-options", check: utSectionMustContainOptions },
+  { name: "items-present", check: utOptionsMustHaveItemIds },
+  { name: "question-group-present", check: utOptionsMustHaveQuestionGroup },
+  { name: "options-have-text", check: utOptionsMustHaveText },
+  { name: "word-level-fully-tokenized", check: utWordLevelGroupsFullyTokenized },
   { name: "unique-items", check: uniqueDataActivityItems },
 ]
 
@@ -446,14 +744,31 @@ const OPEN_ENDED_RULES: ActivityRule[] = [
   { name: "inputs-have-aria-label", check: openEndedInputsShouldHaveAriaLabel },
 ]
 
+const ORDERING_RULES: ActivityRule[] = [
+  {
+    name: "ordering-contract",
+    check: ({ section }) => inspectOrderingSection(section).errors,
+  },
+]
+
+const CUSTOM_RULES: ActivityRule[] = [
+  { name: "drop-zones-accessible", check: customDropZonesAreAccessible },
+  { name: "cards-accessible", check: customCardsAreAccessible },
+  { name: "inputs-have-label", check: customInputsHaveAccessibleLabel },
+  { name: "section-has-label", check: customSectionHasLabel },
+  { name: "has-live-region", check: customHasLiveRegion },
+]
+
 export const ACTIVITY_RULES: Record<string, ActivityRule[]> = {
   activity_multiple_choice: MC_RULES,
   activity_quiz: MC_RULES,
   activity_multi_select: MULTI_SELECT_RULES,
+  activity_underline_text: UNDERLINE_TEXT_RULES,
   activity_true_false: TRUE_FALSE_RULES,
   activity_fill_in_the_blank: FITB_RULES,
   activity_fill_in_a_table: FITB_RULES,
   activity_open_ended_answer: OPEN_ENDED_RULES,
+  activity_ordering: ORDERING_RULES,
 }
 
 /**
@@ -465,7 +780,11 @@ export function validateActivityStructure(
   section: Element,
   sectionType: string,
 ): string[] {
-  const rules = ACTIVITY_RULES[sectionType]
+  // Custom activities share one rule set, keyed by the `activity_custom` prefix
+  // (the suffix — _jigsaw, _crossword, … — is free-form).
+  const rules = sectionType.startsWith("activity_custom")
+    ? CUSTOM_RULES
+    : ACTIVITY_RULES[sectionType]
   if (!rules) return []
   const ctx: ActivityRuleContext = { section, sectionType }
   return rules.flatMap((rule) => rule.check(ctx))

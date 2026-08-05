@@ -21,6 +21,32 @@ export {
 } from "./google-fonts.js"
 
 export {
+  BookFontSource,
+  BookFontRole,
+  BookFontCategory,
+  BookFontFormat,
+  BOOK_FONT_FORMATS,
+  BookFontFace,
+  BookFontLicense,
+  BookFont,
+  BookFontRegistry,
+  FONT_REGISTRY_NODE,
+  FONT_REGISTRY_ITEM_ID,
+  FONT_ASSIGNMENT_NODE,
+  FONT_ASSIGNMENT_ITEM_ID,
+  bookFontIdFromName,
+  bookFontsReferencedIn,
+  bookBodyFont,
+  bookFontFamilyChain,
+  classifyFontLicenseOpenSource,
+} from "./book-fonts.js"
+
+export {
+  FontAssignment,
+  FontAssignmentOutput,
+} from "./font-assignment.js"
+
+export {
   type FontCategory,
   type DetectedFontCategory,
   type ReflowableFont,
@@ -36,6 +62,7 @@ export {
 export {
   StepName,
   StageName,
+  ModelDefaultKind,
   type StepDef,
   type StageDef,
   PIPELINE,
@@ -43,22 +70,42 @@ export {
   STEP_TO_STAGE,
   STAGE_BY_NAME,
   ALL_STEP_NAMES,
+  STEPS_BY_DEFAULT_MODEL_KIND,
   PAGE_PROGRESS_STEPS,
+  BOOK_LEVEL_STAGES,
 } from "./pipeline.js"
 
 export {
   type PipelineNodeName,
   type PipelineCacheResource,
   STAGE_OUTPUT_NODES,
+  IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
+  IMAGE_SET_CHANGE_CLEAR_STEPS,
+  IMAGE_SET_CHANGE_CLEAR_STAGES,
   getStageClearOrder,
   getStageClearNodes,
+  getStageRerunClearNodes,
   getCacheResourcesForNode,
   getCacheResourcesForNodes,
   getCacheResourcesForStageOutput,
   getCacheResourcesForStageClear,
 } from "./pipeline-effects.js"
 
+// NOTE: fingerprint.* is intentionally NOT re-exported here. It imports
+// `node:crypto`, which is unavailable in the browser, and this root barrel is
+// imported by the Studio SPA (for PIPELINE and friends). Node-only consumers
+// import it from the "@adt/types/fingerprint" subpath instead.
+
+export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
+
 export { ProgressEvent } from "./progress.js"
+
+export {
+  PageErrorPolicy,
+  PageErrorAction,
+  PendingDecision,
+  DecisionBody,
+} from "./page-error.js"
 
 export {
   TaskKind,
@@ -74,6 +121,17 @@ export {
   LayoutType,
   StyleguideName,
   DEFAULT_LLM_MAX_RETRIES,
+  DEFAULT_LLM_MODEL_ID,
+  DEFAULT_IMAGE_GENERATION_MODEL_ID,
+  DEFAULT_OPENAI_TTS_MODEL_ID,
+  DEFAULT_ELEVENLABS_TTS_MODEL_ID,
+  DEFAULT_ELEVENLABS_VOICE_ID,
+  DEFAULT_ELEVENLABS_VOICE_SETTINGS,
+  ELEVENLABS_SHIPPED_VOICE_NAMES,
+  LLMModelId,
+  SpeechGenerationModelId,
+  DefaultModelConfig,
+  SpecializedModelDefaultsConfig,
   StepConfig,
   QuizGenerationConfig,
   EasyReadConfig,
@@ -82,6 +140,9 @@ export {
   VisualRefinementStrategyConfig,
   RenderStrategyConfig,
   AccessibilityAssessmentConfig,
+  EpubGlossaryMode,
+  EpubGlossaryConfig,
+  AgentsConfig,
   AppConfig,
   type TypeDef,
 } from "./config.js"
@@ -117,6 +178,10 @@ export {
   addContainer,
   nestNode,
   unnestNode,
+  splitContainerBefore,
+  splitNodesBefore,
+  mergeContainerWithPrevious,
+  mergeAdjacentContainers,
   replaceNodeId,
   cloneNodeWithNewIds,
   collectPrunedLeafIds,
@@ -153,7 +218,10 @@ export { BookMetadata } from "./metadata.js"
 
 export { BookSummaryOutput } from "./book-summary.js"
 
+export { ExtractionWarning } from "./extraction-warning.js"
+
 export {
+  FIXED_LAYOUT_MAX_SCALE,
   SectionRendering,
   WebRenderingOutput,
   webRenderingLLMSchema,
@@ -167,6 +235,33 @@ export {
   ImageCaptioningOutput,
   imageCaptioningLLMSchema,
 } from "./image-captioning.js"
+
+export {
+  EDITABLE_ACTIVITY_NODE,
+  BLANK_MARKER_RE,
+  blankItemIdsInText,
+  ActivityImage,
+  ActivityText,
+  FitbBlank,
+  FitbSentence,
+  FitbStep,
+  McOption,
+  McStep,
+  OpenEndedStep,
+  UnderlineToken,
+  UnderlineStep,
+  StepFeedback,
+  EditableActivityTheme,
+  EditableActivity,
+  EditableActivitiesEntity,
+  activityFeedbackLLMSchema,
+  ActivityOutlineText,
+  ActivityOutlineInput,
+  ActivityOutlineOption,
+  ActivityOutlineChoice,
+  ActivityOutlineItem,
+  ActivityOutline,
+} from "./editable-activity.js"
 
 export {
   GlossaryItem,
@@ -184,6 +279,8 @@ export {
 export {
   TextCatalogEntry,
   TextCatalogOutput,
+  TextCatalogCategory,
+  getTextCatalogCategory,
 } from "./text-catalog.js"
 
 export {
@@ -194,9 +291,13 @@ export {
 
 export {
   TTSProviderConfig,
+  TTSRateLimitConfig,
   SpeechConfig,
   isSpeechWordHighlightingEnabled,
+  type TtsExclusionConfig,
+  isTtsExcluded,
   SpeechFileEntry,
+  SpeechFailedEntry,
   TTSOutput,
   WordTimestamp,
   WordTimestampEntry,
@@ -240,6 +341,10 @@ export {
   TextBlockBounds,
 } from "./positioned-text.js"
 
+export { TypeScale } from "./type-scale.js"
+
+export { TypographyStyle, BookTypography, DEFAULT_TYPOGRAPHY } from "./typography.js"
+
 export {
   ReviewerValidationStatus,
   ReviewerValidationFieldType,
@@ -252,6 +357,31 @@ export {
   ReviewerPageValidationResult,
   ReviewerPageValidationRecord,
 } from "./reviewer-validation.js"
+
+export {
+  DEFAULT_TRANSLATION_EVALUATION_CONTEXT_OPTIONS,
+  DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES,
+  DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS,
+  DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL,
+  DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES,
+  DEFAULT_TRANSLATION_EVALUATION_SEVERITY_THRESHOLD,
+  DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE,
+  TranslationEvaluationConfig,
+  TranslationEvaluationContextOptions,
+  TranslationEvaluationIssueType,
+  TranslationEvaluationSeverity,
+  TranslationEvaluationSummary,
+  TranslationEvaluationItem,
+  TranslationEvaluationProvider,
+  TranslationEvaluationJudgeMetadata,
+  TranslationEvaluationMetadata,
+  TranslationEvaluationRunEntry,
+  TranslationEvaluationRunPage,
+  TranslationEvaluationRunRequest,
+  TranslationEvaluationResult,
+  type ResolvedTranslationEvaluationConfig,
+  resolveTranslationEvaluationConfig,
+} from "./translation-evaluation.js"
 
 export {
   screenshotIpcViewportSchema,

@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Admin-Werkzeuge werden in einem nachfolgenden Update bereitgestellt.",
     "main-menu-label": "Hauptmenü",
     "cover-label": "Cover",
-    "print-page-label": "Seite drucken"
+    "print-page-label": "Seite drucken",
+    "stepper-progress-n-of-m": "Schritt ${n} von ${m}",
+    "stepper-word-bank": "Wörter zur Auswahl",
+    "stepper-open-ended-saved": "Gut gemacht — deine Antwort wurde gespeichert.",
+    "stepper-open-ended-rephrase": "Bleiben wir freundlich — formuliere deine Antwort bitte um.",
+    "open-ended-answer-label": "Deine Antwort"
 }

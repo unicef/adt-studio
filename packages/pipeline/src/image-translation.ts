@@ -1,4 +1,4 @@
-import type { AppConfig } from "@adt/types"
+import { DEFAULT_IMAGE_GENERATION_MODEL_ID, type AppConfig } from "@adt/types"
 import { generateImageWithCache, pngDimensions, type LlmLogEntry } from "@adt/llm"
 import { normalizeLocale } from "./language-context.js"
 
@@ -17,7 +17,10 @@ export function buildImageTranslationConfig(appConfig: AppConfig): {
   const cfg = appConfig.image_translation
   return {
     enabled: cfg?.enabled === true,
-    modelId: cfg?.image_model ?? "openai:gpt-image-2",
+    modelId:
+      cfg?.image_model ??
+      appConfig.default_image_generation_model ??
+      DEFAULT_IMAGE_GENERATION_MODEL_ID,
     selectedImageIds: cfg?.selected_image_ids ?? [],
   }
 }
@@ -33,6 +36,7 @@ export interface TranslateImageOptions {
   cacheDir?: string
   log?: { taskType: string; pageId?: string; promptName: string }
   onLog?: (entry: LlmLogEntry) => void
+  signal?: AbortSignal
 }
 
 export interface TranslatedImageResult {
@@ -65,6 +69,7 @@ export async function translateImage(
     cacheDir: options.cacheDir,
     log: options.log,
     onLog: options.onLog,
+    signal: options.signal,
   })
 
   const buffer = Buffer.from(result.base64, "base64")

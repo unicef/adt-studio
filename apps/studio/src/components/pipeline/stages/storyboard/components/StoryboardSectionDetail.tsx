@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import {
+  AlertTriangle,
   Boxes,
+  Check,
   Code,
   Eye,
   EyeOff,
@@ -16,6 +18,7 @@ import {
   PanelRightOpen,
   PenLine,
   Play,
+  RotateCcw,
   Sparkles,
   Type,
   X,
@@ -24,6 +27,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
 import type { PageDetail } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
+import { ReadyOnMount } from "@/components/pipeline/components/LazyThumb"
 import type {
   ContentNodeData,
   PageSectioningOutput,
@@ -49,27 +53,48 @@ import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { useStepHeader } from "../../../components/StepViewRouter"
 import { LoadingState } from "../../../components/LoadingState"
 import { StageEmptyState } from "../../../components/StageEmptyState"
-import { useFloatingSave, PendingChip } from "../../../components/floating-save"
+import {
+  useFloatingSave,
+  useFloatingSaveDirtyEntries,
+  PendingChip,
+} from "../../../components/floating-save"
 import {
   BookPreviewFrame,
   type BookPreviewFrameHandle,
   type ComputedTypographyStyles,
 } from "./BookPreviewFrame"
 import { SectionEditPanel } from "./SectionEditPanel"
+import { writeCustomAnswerToHtml } from "../lib/activity-answer-labels"
+import { updateOrderingAnswer } from "../lib/ordering-answers"
+import { detectChangedStoryboardViewports } from "../lib/storyboard-viewport-changes"
 import { StorySectionBanner } from "./StorySectionBanner"
-import { Puzzle } from "lucide-react"
+import { EditableActivityPanel } from "./EditableActivityPanel"
+import { ClassicActivityPanel } from "./ClassicActivityPanel"
+import { sameAnchor, type ActivityAnchor } from "./activity-link"
+import { scrollBehavior } from "@/lib/utils"
+import { StepperActivityPreview } from "./StepperActivityPreview"
+import {
+  useActivityStructure,
+  useConvertEditableActivity,
+  useEditableActivities,
+  useSetEditableActivityPresentation,
+} from "@/hooks/use-editable-activities"
+import { toast } from "sonner"
+import { Puzzle, ListChecks } from "lucide-react"
 import { StyleEditorPanel } from "./style-editor"
 import { ViewportToggle } from "./style-editor/ViewportToggle"
 import {
   DEVICE_WIDTHS,
   useDeviceView,
 } from "./style-editor/device-breakpoint"
-import { ImageCropDialog } from "./ImageCropDialog"
+import { ImageCropDialog, pageBoundsToCropRect } from "./ImageCropDialog"
 import { AiImageDialog } from "./AiImageDialog"
 import { AddImageDialog } from "./AddImageDialog"
 import { ReplaceFromBookDialog } from "./ReplaceFromBookDialog"
 import { SegmentPreviewDialog, type SegmentRegion } from "./SegmentPreviewDialog"
 import { AiEditHistoryDrawer } from "./AiEditHistoryDrawer"
+import { LayoutMirrorDialog } from "./LayoutMirrorDialog"
+import { GenerateActivityDialog } from "./GenerateActivityDialog"
 import { Input } from "@/components/ui/input"
 import { useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
@@ -198,6 +223,47 @@ function getRenderedSectionByIndex(
   sectionIndex: number
 ) {
   return rendering?.sections.find((s) => s.sectionIndex === sectionIndex)
+}
+
+
+/**
+ * Pull the sectionIndex the generate-activity agent actually wrote to out of a
+ * completed task's result. The agent's create tools return it directly, which
+ * is the only reliable source — rendering skips pruned sections, so the new
+ * section's index can exceed the rendered array's length. Returns undefined
+ * when no create call landed, which just hides the banner's "View" button.
+ */
+function createdSectionIndexOf(result: unknown): number | undefined {
+  const toolCalls = (result as { toolCalls?: unknown })?.toolCalls
+  if (!Array.isArray(toolCalls)) return undefined
+  for (const call of [...toolCalls].reverse()) {
+    const { name, result: callResult } =
+      (call ?? {}) as { name?: string; result?: unknown }
+    if (name !== "createTemplatedActivity" && name !== "createCustomSection") {
+      continue
+    }
+    const index = (callResult as { sectionIndex?: unknown })?.sectionIndex
+    if (typeof index === "number" && Number.isInteger(index) && index >= 0) {
+      return index
+    }
+  }
+  return undefined
+}
+
+/**
+ * Selectable tokens, option markers, and writable fields the activity runtime
+ * binds to. A leaf whose rendered element contains any of these cannot have its
+ * text mirrored in place — flattening it to a text node destroys the activity
+ * (e.g. every `.activity-underline-option` span of an underline sentence, or
+ * the `<input>`s of a fill-in-the-blank). Mirrors the guard the pipeline uses
+ * before `replaceChildrenWithText` in `packages/pipeline/src/validate-html.ts`.
+ */
+const ACTIVITY_INTERACTIVE_DESCENDANT_SELECTOR =
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- CSS selector, not user-visible text
+  ".activity-underline-option, [data-activity-item], input, textarea, select"
+
+function hasActivityInteractiveDescendant(el: Element): boolean {
+  return el.querySelector(ACTIVITY_INTERACTIVE_DESCENDANT_SELECTOR) !== null
 }
 
 /**
@@ -369,7 +435,11 @@ export function StoryboardSectionDetail({
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasApiKey, anthropicKey, googleKey } = useApiKey()
+  // The agent endpoints accept an OpenAI, Anthropic, or Google key (whichever
+  // matches the book's configured agents.model), so gate those features on
+  // having ANY provider key — not just OpenAI like the rest of the panel.
+  const hasAnyAgentKey = hasApiKey || !!anthropicKey || !!googleKey
   const { headerSlotEl } = useStepHeader()
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
@@ -384,7 +454,7 @@ export function StoryboardSectionDetail({
   const [merging, setMerging] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
-  const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string } | null>(null)
+  const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string } | null>(null)
   const [pendingSectioning, setPendingSectioning] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRendering] = useState<RenderingData | null>(null)
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
@@ -545,23 +615,139 @@ export function StoryboardSectionDetail({
     onGeneratingChange?.(aiImageGen?.status === "generating")
   }, [aiImageGen?.status])
 
-  // Activity preview mode (try the activity in the editor)
-  const [activityPreviewMode, setActivityPreviewMode] = useState(false)
+  // Activity preview mode (try the activity in the editor). Activities load
+  // interactive by default — matching the step-by-step presentation — and
+  // "Edit activity" in the banner switches to the WYSIWYG editor. The
+  // per-section reset effect below restores it to interactive on navigation.
+  const [activityPreviewMode, setActivityPreviewMode] = useState(true)
+
+  // Editable (step-by-step) activity — stored in its own node, opt-in per
+  // section. Only fetched when the page actually contains an activity section.
+  const pageHasActivitySection = Boolean(
+    (page.sectioningTree as SectioningData | null)?.sections?.some((s) =>
+      s.sectionType?.startsWith("activity_"),
+    ),
+  )
+  const editableActivitiesQuery = useEditableActivities(
+    bookLabel,
+    pageId,
+    pageHasActivitySection,
+  )
+  const [editActivityPanelOpen, setEditActivityPanelOpen] = useState(false)
+  const floatingDirtyEntries = useFloatingSaveDirtyEntries()
+  const activityDraftDirty = floatingDirtyEntries.some(
+    (entry) => entry.id === `editable-activity:${bookLabel}:${pageId}:${sectionIndex}`,
+  )
+  const [linkedAnchor, setLinkedAnchor] = useState<ActivityAnchor | null>(null)
+  const [linkedFromPage, setLinkedFromPage] = useState(false)
+  const [hoverAnchor, setHoverAnchor] = useState<ActivityAnchor | null>(null)
+  // Read-only structure + outline of a classic activity — organizes the
+  // classic activity editor. Works for all activity types, but is only
+  // consumed by the edit panel, so don't fetch until it opens (the server
+  // re-parses the section HTML on every call).
+  const savedSectionType = (page.sectioningTree as SectioningData | null)?.sections?.[
+    sectionIndex
+  ]?.sectionType
+  const activityStructureQuery = useActivityStructure(
+    bookLabel,
+    pageId,
+    sectionIndex,
+    page.versions.rendering ?? 0,
+    Boolean(savedSectionType?.startsWith("activity_")) && editActivityPanelOpen,
+  )
+  const convertEditableActivity = useConvertEditableActivity(bookLabel, pageId)
+  const setEditablePresentation = useSetEditableActivityPresentation(bookLabel, pageId)
 
   // AI edit state
   const [aiInstruction, setAiInstruction] = useState("")
   const [aiError, setAiError] = useState<string | null>(null)
   const [aiMessageIdx, setAiMessageIdx] = useState(0)
   const [showAiHistory, setShowAiHistory] = useState(false)
+  const [layoutMirrorOpen, setLayoutMirrorOpen] = useState(false)
+  const [generateActivityOpen, setGenerateActivityOpen] = useState(false)
 
   // Derive AI editing state from active tasks
   const aiEditing = useMemo(
     () => bookTasks.some((t) => t.kind === "ai-edit" && t.pageId === pageId && t.status === "running"),
     [bookTasks, pageId]
   )
+  const layoutMirrorRunning = useMemo(
+    () => bookTasks.some((t) => t.kind === "layout-mirror" && t.pageId === pageId && t.status === "running"),
+    [bookTasks, pageId]
+  )
+  const generateActivityRunning = useMemo(
+    () => bookTasks.some((t) => t.kind === "generate-activity" && t.pageId === pageId && t.status === "running"),
+    [bookTasks, pageId]
+  )
+
+  // Surface failed agent tasks on this page through the existing aiError bar.
+  // Watches each failed task once (keyed by taskId) so re-renders don't re-trigger.
+  const reportedFailureIds = useRef(new Set<string>())
+  useEffect(() => {
+    for (const task of bookTasks) {
+      if (
+        (task.kind === "layout-mirror" || task.kind === "generate-activity") &&
+        task.pageId === pageId &&
+        task.status === "failed" &&
+        !reportedFailureIds.current.has(task.taskId)
+      ) {
+        reportedFailureIds.current.add(task.taskId)
+        setAiError(task.error ?? t`Agent task failed`)
+      }
+    }
+  }, [bookTasks, pageId, t])
+
+  // Surface successful agent completions as a transient banner with a "View"
+  // button that scrolls to the newly-created section. Each task is shown at
+  // most once.
+  const [completionBanner, setCompletionBanner] = useState<{
+    taskId: string
+    message: string
+    targetSectionIndex?: number
+  } | null>(null)
+  const announcedCompletionIds = useRef(new Set<string>())
+  useEffect(() => {
+    for (const task of bookTasks) {
+      if (
+        (task.kind === "generate-activity" || task.kind === "layout-mirror") &&
+        task.pageId === pageId &&
+        task.status === "completed" &&
+        !announcedCompletionIds.current.has(task.taskId)
+      ) {
+        announcedCompletionIds.current.add(task.taskId)
+
+        // Take the new section's index from the task result, not from the
+        // page query: this effect runs on the synchronous setQueryData that
+        // marks the task complete, before the page-detail refetch lands. The
+        // agent's own sectionIndex is also the only correct value — rendering
+        // skips pruned sections, so its array length doesn't track the index
+        // the agent assigned.
+        const target =
+          task.kind === "generate-activity"
+            ? createdSectionIndexOf(task.result)
+            : sectionIndex // layout-mirror writes the same section the user was viewing
+
+        setCompletionBanner({
+          taskId: task.taskId,
+          message:
+            task.kind === "generate-activity"
+              ? t`Activity created on this page`
+              : t`Layout mirrored onto this section`,
+          targetSectionIndex: target,
+        })
+      }
+    }
+  }, [bookTasks, pageId, sectionIndex, t])
+
+  // Auto-dismiss the banner after 10s.
+  useEffect(() => {
+    if (!completionBanner) return
+    const handle = setTimeout(() => setCompletionBanner(null), 10_000)
+    return () => clearTimeout(handle)
+  }, [completionBanner])
 
   // Any task running on this page — used to mask the section and prevent stacking operations
-  const hasActiveTask = aiEditing || rerendering || (aiImageGen?.status === "generating")
+  const hasActiveTask = aiEditing || rerendering || layoutMirrorRunning || generateActivityRunning || (aiImageGen?.status === "generating")
   const aiLoading = aiEditing
   const aiMessages = getAiMessages()
 
@@ -610,7 +796,10 @@ export function StoryboardSectionDetail({
     setAiInstruction("")
     setAiError(null)
     setSaving(false)
-    setActivityPreviewMode(false)
+    // Activities open interactive (matching step-by-step); "Edit activity"
+    // in the banner opts into the WYSIWYG editor per section.
+    setActivityPreviewMode(true)
+    setEditActivityPanelOpen(false)
     needsRerenderRef.current = false
   }, [pageId, sectionIndex])
 
@@ -625,6 +814,16 @@ export function StoryboardSectionDetail({
 
   // Current section data
   const section = sectioningData?.sections[sectionIndex]
+
+  // Keep the viewed section in range — e.g. after rolling back to a version
+  // with fewer sections, clamp to the last one instead of showing a blank pane.
+  useEffect(() => {
+    const count = sectioningData?.sections.length ?? 0
+    if (count > 0 && sectionIndex >= count) {
+      onNavigateSection?.(count - 1)
+    }
+  }, [sectioningData, sectionIndex, onNavigateSection])
+
   const renderingData = pendingRendering ?? page.rendering
   const renderedSection = getRenderedSectionByIndex(renderingData, sectionIndex)
   // Fixed-layout pages style every element via inline CSS (the `<p>`'s own
@@ -695,8 +894,12 @@ export function StoryboardSectionDetail({
       await minDelay
 
       // Only re-render when changes require LLM (e.g., unprune, type change, reorder)
-      // Skip for pure prune/delete — those are already handled by local HTML removal
-      if (shouldRerender && hasApiKey) {
+      // Skip for pure prune/delete — those are already handled by local HTML removal.
+      // Also skip custom activities: re-render rebuilds from the flat sectioning
+      // tree and would discard their inline grading script.
+      const isCustomActivity =
+        section?.sectionType?.startsWith("activity_custom") ?? false
+      if (shouldRerender && hasApiKey && !isCustomActivity) {
         api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex).catch(() => {})
       }
     } catch (err) {
@@ -787,6 +990,7 @@ export function StoryboardSectionDetail({
   }
   useFloatingSave({
     id: `storyboard:${pageId}`,
+    stage: "storyboard",
     dirty: dirty || renderingDirty,
     saving,
     labelKey: pendingChipCats.join(","),
@@ -815,6 +1019,7 @@ export function StoryboardSectionDetail({
       const result = await api.cloneSection(bookLabel, pageId, sectionIndex)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       onNavigateSection?.(result.clonedSectionIndex)
     } catch (err) {
@@ -831,6 +1036,7 @@ export function StoryboardSectionDetail({
       const result = await api.mergeSection(bookLabel, pageId, sectionIndex, direction)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       onNavigateSection?.(result.mergedSectionIndex)
 
@@ -853,6 +1059,8 @@ export function StoryboardSectionDetail({
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.sourcePageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.targetPageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, result.sourcePageId] })
+      await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, result.targetPageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       // Navigate to the previous section or 0 since the current section was removed
       onNavigateSection?.(Math.max(0, sectionIndex - 1))
@@ -863,17 +1071,51 @@ export function StoryboardSectionDetail({
     }
   }
 
+  // Merging re-renders the combined section, which restructures activities and,
+  // for a custom activity, discards its inline grading script. Warn when either
+  // the current section or the section it's merging into is an activity.
+  const buildMergeWarning = (otherSectionType?: string): string | undefined => {
+    const types = [section?.sectionType, otherSectionType]
+    const isActivity = (st?: string) => !!st && st.startsWith("activity_")
+    const isCustom = (st?: string) => !!st && st.startsWith("activity_custom")
+    if (types.some(isCustom)) {
+      return t`This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via "View HTML source" instead of merging.`
+    }
+    if (types.some(isActivity)) {
+      return t`This merges an activity. The combined section is re-rendered, so the activity's layout and answer key may change.`
+    }
+    return undefined
+  }
+
   // Confirmation wrappers for merge actions
   const handleMergeSection = (direction: "next" | "prev") => {
     if (merging || dirty || renderingDirty || saving || storyboardRunning) return
     const label = direction === "prev" ? t`merge with previous` : t`merge with next`
-    setConfirmMerge({ action: () => executeMergeSection(direction), label })
+    // Look up the same-page neighbor's type so the warning also fires when
+    // merging a plain section into an adjacent activity.
+    const ordered = [...(page.rendering?.sections ?? [])].sort(
+      (a, b) => a.sectionIndex - b.sectionIndex,
+    )
+    const pos = ordered.findIndex((s) => s.sectionIndex === sectionIndex)
+    const neighbor =
+      pos >= 0 ? ordered[direction === "next" ? pos + 1 : pos - 1] : undefined
+    setConfirmMerge({
+      action: () => executeMergeSection(direction),
+      label,
+      warning: buildMergeWarning(neighbor?.sectionType),
+    })
   }
 
   const handleMergeCrossPage = (direction: "next" | "prev") => {
     if (merging || dirty || renderingDirty || saving || storyboardRunning) return
-    const label = direction === "prev" ? t`merge into previous page` : t`merge into next page`
-    setConfirmMerge({ action: () => executeMergeCrossPage(direction), label })
+    const label = direction === "prev" ? t`merge this section into the last section of the previous page` : t`merge this section into the first section of the next page`
+    // The cross-page neighbor lives on another page we don't have loaded here,
+    // so the warning is based on the current section's type only.
+    setConfirmMerge({
+      action: () => executeMergeCrossPage(direction),
+      label,
+      warning: buildMergeWarning(),
+    })
   }
 
   // Delete current section
@@ -889,6 +1131,7 @@ export function StoryboardSectionDetail({
       const result = await api.deleteSection(bookLabel, pageId, sectionIndex)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       onNavigateSection?.(Math.max(0, Math.min(sectionIndex, result.remainingSections - 1)))
     } catch (err) {
@@ -903,6 +1146,16 @@ export function StoryboardSectionDetail({
   // and inject structured instructions so the LLM preserves the user's changes.
   const handleRerender = (prompt?: string) => {
     if (hasActiveTask || storyboardRunning || dirty || renderingDirty || saving || !hasApiKey) return
+    // Custom activities can't be re-rendered: the renderer rebuilds from the
+    // flat, script-less sectioning tree and would discard the inline grading
+    // script and bespoke markup. The button is disabled for them, but guard
+    // here too so no other caller can wipe the script.
+    if (section?.sectionType?.startsWith("activity_custom")) {
+      setAiError(
+        t`Re-render is disabled for custom activities — it would discard the interactive script. Use "View HTML source" or AI edit instead.`,
+      )
+      return
+    }
     setPanelOpen(false)
 
     // Build edit instructions from pending changes
@@ -1049,20 +1302,27 @@ export function StoryboardSectionDetail({
     [pendingRendering, page.rendering, sectionIndex, markPending]
   )
 
-  // Replace textContent of a single [data-id="..."] element in the rendered HTML.
+  // Replace textContent of a single [data-id="..."] element in the rendered
+  // HTML. Returns false when the edit could NOT be mirrored in place (element
+  // missing or an activity leaf) — only the re-render flag was set, so the
+  // caller must create pending state some other way or the edit is lost.
   const updateElementTextInRendering = useCallback(
-    (dataId: string, newText: string) => {
+    (dataId: string, newText: string): boolean => {
       const rBase = pendingRendering ?? page.rendering
-      if (!rBase) return
+      if (!rBase) return false
       const currentSection = getRenderedSectionByIndex(rBase, sectionIndex)
-      if (!currentSection?.html) return
+      if (!currentSection?.html) return false
       const parser = new DOMParser()
       const doc = parser.parseFromString(currentSection.html, "text/html")
       const el = doc.querySelector(`[data-id="${dataId}"]`)
-      if (!el) {
-        // Element not in HTML — re-render needed to sync
+      // Activity leaves can't be mirrored in place: `textContent` would replace
+      // the interactive children (underline option spans, blank inputs) with a
+      // bare text node and leave a dead activity in the saved HTML. Fall back to
+      // the same re-render path used when the element isn't in the HTML at all,
+      // so the activity is regenerated from the new text on save.
+      if (!el || hasActivityInteractiveDescendant(el)) {
         needsRerenderRef.current = true
-        return
+        return false
       }
       el.textContent = newText
       const newHtml = doc.body.innerHTML
@@ -1075,29 +1335,70 @@ export function StoryboardSectionDetail({
       }
       setPendingRendering(updated)
       markPending("text")
+      return true
     },
     [pendingRendering, page.rendering, sectionIndex, markPending]
   )
 
-  // Update a single activity answer value in the rendering
-  const updateAnswer = useCallback(
-    (itemKey: string, value: string) => {
+  // Atomic multi-key answer update — marking a multiple-choice option correct
+  // must flip the whole radio group (selected → true, siblings → false) in one
+  // pending-state write. Booleans stay booleans: the runtime treats any string
+  // (including "false") as truthy.
+  //
+  // `activityAnswers` is only a DERIVED view. Custom activities (their inline
+  // grading script) read the correct answer straight from the section HTML —
+  // `data-correct-items` on a drop target, or `data-answer` on a per-slot input
+  // — so for custom sections we also write each edit back into the HTML, or the
+  // change would be cosmetic and never affect grading. Ordering activities
+  // also carry an inspectable HTML order, so rank edits atomically swap the
+  // displaced item and update both representations.
+  const updateAnswers = useCallback(
+    (patch: Record<string, string | boolean>) => {
       const rBase = pendingRendering ?? page.rendering
       if (!rBase) return
+      const isCustom = section?.sectionType.startsWith("activity_custom") ?? false
+      const isOrdering = section?.sectionType === "activity_ordering"
+      const currentSection = rBase.sections.find((s) => s.sectionIndex === sectionIndex)
+      let orderingUpdate: ReturnType<typeof updateOrderingAnswer> = null
+      if (isOrdering) {
+        const entries = Object.entries(patch)
+        if (entries.length !== 1 || !currentSection) return
+        const [itemId, value] = entries[0]
+        orderingUpdate = updateOrderingAnswer(
+          currentSection.html,
+          currentSection.activityAnswers ?? {},
+          itemId,
+          value,
+        )
+        if (!orderingUpdate) return
+      }
       const updated = {
         ...rBase,
         sections: rBase.sections.map((s) => {
           if (s.sectionIndex !== sectionIndex) return s
+          let html = orderingUpdate?.html ?? s.html
+          if (isCustom && html) {
+            for (const [itemKey, value] of Object.entries(patch)) {
+              html = writeCustomAnswerToHtml(html, itemKey, String(value))
+            }
+          }
           return {
             ...s,
-            activityAnswers: { ...s.activityAnswers, [itemKey]: value },
+            html,
+            activityAnswers: orderingUpdate?.answers ?? { ...s.activityAnswers, ...patch },
           }
         }),
       }
       setPendingRendering(updated)
       markPending("text")
     },
-    [pendingRendering, page.rendering, sectionIndex, markPending]
+    [pendingRendering, page.rendering, sectionIndex, markPending, section]
+  )
+
+  // Update a single activity answer value in the rendering
+  const updateAnswer = useCallback(
+    (itemKey: string, value: string) => updateAnswers({ [itemKey]: value }),
+    [updateAnswers]
   )
 
   // Delete selected block from rendered HTML and remove the matching leaf from sectioning.
@@ -1187,11 +1488,31 @@ export function StoryboardSectionDetail({
   )
 
   // SectionTreeEditor callbacks — mirror tree changes into the preview HTML.
+  // (The tree editor updates the section tree itself, so the mirror result
+  // can be ignored: pending sectioning state already makes the edit savable.)
   const handleLeafTextEdited = useCallback(
     (nodeId: string, newText: string) => {
       updateElementTextInRendering(nodeId, newText)
     },
     [updateElementTextInRendering]
+  )
+
+  // ClassicActivityPanel text edits — unlike the tree editor, the panel edits
+  // nothing else, so when the edit can't be mirrored into the rendered HTML
+  // (activity leaves with interactive children) it must go into the section
+  // tree instead: that creates pending state (Save enables) and the save path
+  // regenerates the activity HTML from the new text.
+  const handleActivityPanelTextEdited = useCallback(
+    (nodeId: string, newText: string) => {
+      if (updateElementTextInRendering(nodeId, newText)) return
+      const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
+      const currentSection = base?.sections[sectionIndex]
+      if (!base || !currentSection) return
+      const nextNodes = editLeafText(currentSection.nodes, nodeId, newText)
+      if (nextNodes === currentSection.nodes) return
+      setPendingSectioning(withSectionNodes(base, sectionIndex, nextNodes))
+    },
+    [updateElementTextInRendering, pendingSectioning, page.sectioningTree, sectionIndex]
   )
 
   const handleLeafDuplicated = useCallback(
@@ -1250,6 +1571,37 @@ export function StoryboardSectionDetail({
     setSelectedElementClasses(previewFrameRef.current?.getElementClasses(dataId) ?? null)
   }, [])
 
+  const revealAnchorInPage = useCallback((anchor: ActivityAnchor) => {
+    const container = scrollContainerRef.current
+    const rect = previewFrameRef.current?.getAnchorViewportRect(anchor)
+    if (!container || !rect) return
+    const view = container.getBoundingClientRect()
+    const margin = 24
+    if (rect.top >= view.top + margin && rect.bottom <= view.bottom - margin) return
+    container.scrollBy({
+      top: rect.top - view.top - (view.height - rect.height) / 2,
+      behavior: scrollBehavior(),
+    })
+  }, [])
+
+  const handleAnchorSelectFromPanel = useCallback(
+    (anchor: ActivityAnchor | null) => {
+      setLinkedAnchor(anchor)
+      setLinkedFromPage(false)
+      if (anchor) revealAnchorInPage(anchor)
+    },
+    [revealAnchorInPage],
+  )
+
+  const handleLinkSelectFromPage = useCallback((anchor: ActivityAnchor | null) => {
+    setLinkedAnchor(anchor)
+    setLinkedFromPage(true)
+  }, [])
+
+  const handleAnchorHover = useCallback((anchor: ActivityAnchor | null) => {
+    setHoverAnchor((prev) => (sameAnchor(prev, anchor) || prev === anchor ? prev : anchor))
+  }, [])
+
   const handleClassesChange = useCallback(
     (dataId: string, classes: string[]) => {
       if (!page.rendering) return
@@ -1259,6 +1611,25 @@ export function StoryboardSectionDetail({
       if (!fullHtml) return
       setSelectedElementClasses(classes)
       previewFrameRef.current?.refreshCss(fullHtml)
+      pendingHtmlRef.current = { html: fullHtml, sectionIndex }
+      setHasUnflushedEdits(true)
+      markPending("style")
+    },
+    [page.rendering, sectionIndex, markPending]
+  )
+
+  // Inline-style edits (e.g. per-element font-family). Unlike class edits these
+  // need no Tailwind rebuild, so we skip refreshCss; we re-snapshot the
+  // element's computed/inline typography so the inspector reflects the change.
+  const handleStyleChange = useCallback(
+    (dataId: string, property: string, value: string) => {
+      if (!page.rendering) return
+      if (Date.now() - lastDiscardAtRef.current < 250) return
+      const fullHtml = previewFrameRef.current?.setElementStyleProp(dataId, property, value)
+      if (!fullHtml) return
+      setSelectedComputedTypography(
+        previewFrameRef.current?.getComputedTypographyStyles(dataId) ?? null
+      )
       pendingHtmlRef.current = { html: fullHtml, sectionIndex }
       setHasUnflushedEdits(true)
       markPending("style")
@@ -1762,6 +2133,49 @@ export function StoryboardSectionDetail({
     })
   }
 
+  const handleLayoutMirrorSubmit = (
+    source: { pageId: string; sectionIndex: number },
+    instruction: string | undefined,
+  ) => {
+    setLayoutMirrorOpen(false)
+    if (!hasAnyAgentKey) return
+    setAiError(null)
+    api
+      .agentLayoutMirror(
+        bookLabel,
+        source,
+        [{ pageId, sectionIndex }],
+        apiKey,
+        instruction,
+        {
+          anthropicApiKey: anthropicKey || undefined,
+          googleApiKey: googleKey || undefined,
+        },
+      )
+      .catch((err) => {
+        setAiError(err instanceof Error ? err.message : t`Layout mirror failed`)
+      })
+  }
+
+  const handleGenerateActivitySubmit = (
+    description: string,
+    options: { inclusiveDesign: boolean; mode: "auto" | "templated" | "custom" },
+  ) => {
+    setGenerateActivityOpen(false)
+    if (!hasAnyAgentKey) return
+    setAiError(null)
+    api
+      .agentGenerateActivity(bookLabel, pageId, description, apiKey, options, {
+        anthropicApiKey: anthropicKey || undefined,
+        googleApiKey: googleKey || undefined,
+      })
+      .catch((err) => {
+        setAiError(
+          err instanceof Error ? err.message : t`Activity generation failed`,
+        )
+      })
+  }
+
   const getSelectedElementInfo = () => {
     if (!selectedElement || !sectioningData) return null
     const { dataId, tagName } = selectedElement
@@ -1850,6 +2264,8 @@ export function StoryboardSectionDetail({
 
   // Are there any text leaves or image leaves in the section tree?
   const leafNodes = useMemo(() => collectLeafNodes(nodes), [nodes])
+  // Stable identity — the activity panel's memos and resync effect key on it.
+  const unprunedLeafNodes = useMemo(() => leafNodes.filter((l) => !l.isPruned), [leafNodes])
   const hasTextParts = leafNodes.some((l) => l.role && l.role !== "image")
   const hasImageParts = leafNodes.some((l) => l.role === "image")
 
@@ -1865,6 +2281,112 @@ export function StoryboardSectionDetail({
         Object.keys(renderedSection.activityAnswers).length > 0)
   )
   const activityTypeLabel = section?.sectionType ? getSectionTypeLabel(section.sectionType) : ""
+
+  // Editable (step-by-step) state for this section. Conversion extracts the
+  // rendered HTML into structured steps stored in the separate
+  // `editable-activity` node; the classic HTML is never modified.
+  // A stored entry whose sectionType no longer matches the section is ignored
+  // — the same gate packaging applies (enabledEditableActivity), so the editor
+  // never claims stepper mode for a section the export renders classic.
+  const editableEntryRaw = editableActivitiesQuery.data?.activities?.[String(sectionIndex)]
+  const editableEntry =
+    editableEntryRaw && editableEntryRaw.sectionType === section?.sectionType
+      ? editableEntryRaw
+      : undefined
+  const editableVersion = editableActivitiesQuery.data?.version ?? 0
+  const stepperEnabled = Boolean(editableEntry?.enabled)
+  const canBeStepByStep =
+    section?.sectionType === "activity_fill_in_the_blank" ||
+    section?.sectionType === "activity_multiple_choice" ||
+    section?.sectionType === "activity_true_false" ||
+    section?.sectionType === "activity_open_ended_answer" ||
+    section?.sectionType === "activity_underline_text"
+  const editableBusy =
+    convertEditableActivity.isPending || setEditablePresentation.isPending
+
+  const activityLinkMode = isActivitySection && !stepperEnabled && editActivityPanelOpen
+
+  useEffect(() => {
+    setLinkedAnchor(null)
+    setLinkedFromPage(false)
+    setHoverAnchor(null)
+    if (editActivityPanelOpen) {
+      setSelectedElement(null)
+      setSelectedElementClasses(null)
+    }
+  }, [editActivityPanelOpen, sectionIndex, pageId])
+
+  const handleToggleStepper = () => {
+    if (
+      activityDraftDirty &&
+      !window.confirm(t`If you leave now, your unsaved changes will be lost.`)
+    ) {
+      return
+    }
+    if (editableEntry) {
+      const enabling = !editableEntry.enabled
+      if (!enabling) setEditActivityPanelOpen(false)
+      setEditablePresentation.mutate(
+        { sectionIndex, enabled: enabling },
+        {
+          onError: (err) =>
+            toast.error(err instanceof Error ? err.message : t`Switching presentation failed`),
+        },
+      )
+    } else {
+      convertEditableActivity.mutate(sectionIndex, {
+        onSuccess: (result) => {
+          toast.success(t`Converted to a step-by-step activity`)
+          if (result.warnings.length > 0) toast.warning(result.warnings.join(" "))
+          setEditActivityPanelOpen(true)
+        },
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : t`Conversion failed`),
+      })
+    }
+  }
+
+  // Re-run extraction from the section's current HTML, overwriting the stored
+  // step-by-step activity. Toggling the presentation only flips `enabled` and
+  // never re-reads the page, so this is the way to pull in edits made to the
+  // classic activity (or extraction improvements like the word bank) after the
+  // first conversion. It discards manual edits to the steps, so confirm first.
+  const handleReExtract = () => {
+    if (
+      !window.confirm(
+        t`Rebuild this step-by-step activity from the page? Any manual edits to the steps, answers, or feedback will be replaced.`,
+      )
+    ) {
+      return
+    }
+    convertEditableActivity.mutate(sectionIndex, {
+      onSuccess: (result) => {
+        toast.success(t`Rebuilt from the page`)
+        if (result.warnings.length > 0) toast.warning(result.warnings.join(" "))
+        setEditActivityPanelOpen(true)
+      },
+      onError: (err) =>
+        toast.error(err instanceof Error ? err.message : t`Rebuild failed`),
+    })
+  }
+
+  const getChangedPreviewViewports = useCallback(
+    (currentData: unknown, selectedData: unknown) => {
+      const currentSection = getRenderedSectionByIndex(
+        currentData as RenderingData,
+        sectionIndex
+      )
+      const selectedSection = getRenderedSectionByIndex(
+        selectedData as RenderingData,
+        sectionIndex
+      )
+      return detectChangedStoryboardViewports(
+        currentSection?.html ?? "",
+        selectedSection?.html ?? ""
+      )
+    },
+    [sectionIndex]
+  )
 
   // Header controls rendered via portal into the purple step header
   const headerControls = (
@@ -1893,10 +2415,43 @@ export function StoryboardSectionDetail({
         saving={saving}
         dirty={renderingDirty}
         bookLabel={bookLabel}
-        onPreview={(data) => setPendingRendering(data as RenderingData)}
+        onRestored={discardAll}
         onSave={saveRendering}
         onDiscard={discardAll}
         renderSaveBar={false}
+        previewViewport={deviceView}
+        getChangedPreviewViewports={getChangedPreviewViewports}
+        renderPreview={(data, onReady, opts) => {
+          const sec = getRenderedSectionByIndex(data as RenderingData, sectionIndex)
+          if (!sec) {
+            return (
+              <ReadyOnMount onReady={onReady}>
+                <div className="flex h-full items-center justify-center p-2 text-center text-[11px] text-muted-foreground">
+                  {t`This section doesn't exist in this version.`}
+                </div>
+              </ReadyOnMount>
+            )
+          }
+          const previewViewport = opts?.viewport ?? (opts?.lite ? "desktop" : deviceView)
+          return (
+            <BookPreviewFrame
+              html={sec.html}
+              bookLabel={bookLabel}
+              editable={false}
+              renderWidth={DEVICE_WIDTHS[previewViewport]}
+              deviceView={previewViewport}
+              maxVisibleHeight={opts?.maxHeight}
+              thumbnail={Boolean(opts?.lite)}
+              // Skip the per-version Tailwind recompile for the tiny list chips
+              // (base CSS is enough at chip size); keep it for the full-size
+              // hover preview and compare panes where missing classes show.
+              autoRefreshCss={!opts?.lite}
+              applyBodyBackground
+              bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
+              onReady={onReady}
+            />
+          )
+        }}
       />
       <ViewportToggle
         value={deviceView}
@@ -1933,6 +2488,28 @@ export function StoryboardSectionDetail({
           title={showAiHistory ? t`Hide AI edit history` : t`Show AI edit history`}
         >
           <MessageSquare className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {renderedSection?.html && hasAnyAgentKey && (
+        <button
+          type="button"
+          onClick={() => setLayoutMirrorOpen(true)}
+          disabled={hasActiveTask || storyboardRunning}
+          className="flex items-center gap-1 px-2 py-1 rounded bg-white/10 hover:bg-white/20 transition-colors cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          title={t`Mirror layout from another section`}
+        >
+          <LayoutGrid className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {hasAnyAgentKey && (
+        <button
+          type="button"
+          onClick={() => setGenerateActivityOpen(true)}
+          disabled={hasActiveTask || storyboardRunning}
+          className="flex items-center gap-1 px-2 py-1 rounded bg-white/10 hover:bg-white/20 transition-colors cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+          title={t`Generate a new activity from a description`}
+        >
+          <Puzzle className="h-3.5 w-3.5" />
         </button>
       )}
       {renderedSection?.html && (
@@ -1986,6 +2563,46 @@ export function StoryboardSectionDetail({
         </div>
       )}
 
+      {/* Agent completion banner */}
+      {completionBanner && (
+        <div className="px-4 py-2 border-b shrink-0 bg-emerald-50 dark:bg-emerald-950/40 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-emerald-800 dark:text-emerald-200">
+              <Check className="h-3.5 w-3.5" />
+              <p className="text-xs font-medium">{completionBanner.message}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              {completionBanner.targetSectionIndex !== undefined &&
+                completionBanner.targetSectionIndex !== sectionIndex &&
+                onNavigateSection && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (
+                        completionBanner.targetSectionIndex !== undefined
+                      ) {
+                        onNavigateSection(completionBanner.targetSectionIndex)
+                      }
+                      setCompletionBanner(null)
+                    }}
+                    className="text-[11px] font-medium px-2 py-1 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                  >
+                    {t`View`}
+                  </button>
+                )}
+              <button
+                type="button"
+                onClick={() => setCompletionBanner(null)}
+                className="text-emerald-700 dark:text-emerald-300 hover:text-emerald-900 dark:hover:text-emerald-100 transition-colors"
+                aria-label={t`Dismiss`}
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showAiHistory && (
         <div className="px-4 shrink-0">
           <AiEditHistoryDrawer
@@ -2016,15 +2633,124 @@ export function StoryboardSectionDetail({
                 tone="violet"
                 icon={<Puzzle className="w-4 h-4" />}
                 title={activityTypeLabel || t`Activity`}
-                subtitle={t`Interactive page: AI conversion from the original PDF.`}
+                subtitle={
+                  stepperEnabled
+                    ? t`Interactive step-by-step activity.`
+                    : t`Interactive page: AI conversion from the original PDF.`
+                }
+                action={
+                  <div className="flex items-center gap-2">
+                    {stepperEnabled ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setEditActivityPanelOpen((v) => !v)}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
+                        >
+                          <ListChecks className="h-3.5 w-3.5" />
+                          {t`Edit activity`}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleReExtract}
+                          disabled={editableBusy}
+                          title={t`Rebuild the steps from the page's current content`}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          {editableBusy ? t`Rebuilding…` : t`Rebuild from page`}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleToggleStepper}
+                          disabled={editableBusy}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <PenLine className="h-3.5 w-3.5" />
+                          {t`Back to classic activity`}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Content editing lives in the activity panel;
+                            "Edit layout" opens the WYSIWYG editor for
+                            layout/style work. */}
+                        <button
+                          type="button"
+                          onClick={() => setEditActivityPanelOpen((v) => !v)}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
+                        >
+                          <ListChecks className="h-3.5 w-3.5" />
+                          {t`Edit activity`}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditActivityPanelOpen(false)
+                            setActivityPreviewMode((v) => !v)
+                          }}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+                        >
+                          {activityPreviewMode ? (
+                            <>
+                              <PenLine className="h-3.5 w-3.5" />
+                              {t`Edit layout`}
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3.5 w-3.5" />
+                              {t`Try Activity`}
+                            </>
+                          )}
+                        </button>
+                        {canBeStepByStep && (
+                          <button
+                            type="button"
+                            onClick={handleToggleStepper}
+                            disabled={editableBusy}
+                            className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            <ListChecks className="h-3.5 w-3.5" />
+                            {editableBusy ? t`Converting…` : t`Convert to step-by-step`}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                }
               />
             )}
-            {activityPreviewMode ? (
-              <iframe
-                src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=${page.versions.rendering ?? 0}`}
-                className="w-full rounded border"
-                style={{ height: "80vh" }}
-              />
+            {stepperEnabled && editableEntry ? (
+              <>
+                {editableEntry.sourceRenderingVersion !== undefined &&
+                  (page.versions.rendering ?? 0) !== editableEntry.sourceRenderingVersion && (
+                    <div className="mb-2 flex justify-center">
+                      <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded">
+                        {t`The section was edited after conversion — use "Rebuild from page" to refresh the steps.`}
+                      </span>
+                    </div>
+                  )}
+                <StepperActivityPreview
+                  key={`stepper-${sectionIndex}-${editableVersion}`}
+                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=ea${editableVersion}`}
+                  deviceView={deviceView}
+                />
+              </>
+            ) : isActivitySection && activityPreviewMode && !editActivityPanelOpen ? (
+              <>
+                {renderingDirty && (
+                  <div className="mb-2 flex justify-center">
+                    <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded">
+                      {t`Save changes first to preview the latest version`}
+                    </span>
+                  </div>
+                )}
+                <StepperActivityPreview
+                  key={`classic-${sectionIndex}-${page.versions.rendering ?? 0}`}
+                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=${page.versions.rendering ?? 0}`}
+                  deviceView={deviceView}
+                />
+              </>
             ) : (
               <BookPreviewFrame
                   ref={previewFrameRef}
@@ -2040,6 +2766,11 @@ export function StoryboardSectionDetail({
                   selectedDataId={selectedElement?.dataId ?? null}
                   renderWidth={DEVICE_WIDTHS[deviceView]}
                   deviceView={deviceView}
+                  linkMode={activityLinkMode}
+                  linkedAnchor={linkedAnchor}
+                  previewAnchor={linkedAnchor ? null : hoverAnchor}
+                  onLinkSelect={handleLinkSelectFromPage}
+                  onLinkHover={handleAnchorHover}
                   onVisibleWidthChange={setPreviewVisibleWidth}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
@@ -2094,7 +2825,10 @@ export function StoryboardSectionDetail({
           </div>
         </div>
       )}
-      {(aiEditing || (rerendering && !saving)) && (
+      {(aiEditing ||
+        (rerendering && !saving) ||
+        layoutMirrorRunning ||
+        generateActivityRunning) && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-200">
           {aiEditing && (
             <div className="flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium bg-purple-600">
@@ -2106,6 +2840,18 @@ export function StoryboardSectionDetail({
             <div className="flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium bg-blue-600">
               <Loader2 className="h-3 w-3 animate-spin" />
               <span>{t`Re-rendering...`}</span>
+            </div>
+          )}
+          {layoutMirrorRunning && (
+            <div className="flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium bg-blue-600">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>{t`Mirroring layout...`}</span>
+            </div>
+          )}
+          {generateActivityRunning && (
+            <div className="flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium bg-violet-600">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>{t`Generating activity...`}</span>
             </div>
           )}
         </div>
@@ -2219,29 +2965,67 @@ export function StoryboardSectionDetail({
         </div>
       )}
 
-      {/* Activity preview toggle — absolute on outer wrapper, sits left of the debug console button */}
-      {section.sectionType.startsWith("activity_") && renderedSection?.html && (
-        <div className="absolute bottom-4 right-16 z-30 flex items-center gap-2">
-          {activityPreviewMode && renderingDirty && (
-            <span className="text-[10px] text-amber-600 bg-white/90 px-2 py-1 rounded shadow-sm">
-              {t`Save changes first to preview the latest version`}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => setActivityPreviewMode((v) => !v)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 shadow-md border border-blue-200 transition-colors cursor-pointer opacity-80 hover:opacity-100"
-          >
-            {activityPreviewMode ? (
-              <><PenLine className="h-3 w-3" />{t`Back to Editor`}</>
-            ) : (
-              <><Play className="h-3 w-3" />{t`Try Activity`}</>
-            )}
-          </button>
-        </div>
+      {/* Slide-out step-by-step activity editor (CMS). The key MUST include
+          book+page: the component instance survives page navigation, and a
+          colliding key would keep another page's draft alive — saving it
+          would corrupt this page's activity. */}
+      {editableEntry && (
+        <EditableActivityPanel
+          key={`${bookLabel}-${pageId}-${sectionIndex}-${editableVersion}`}
+          open={editActivityPanelOpen && stepperEnabled}
+          onClose={() => setEditActivityPanelOpen(false)}
+          bookLabel={bookLabel}
+          pageId={pageId}
+          sectionIndex={sectionIndex}
+          activity={editableEntry}
+          activities={editableActivitiesQuery.data?.activities ?? {}}
+          paletteAccent={editableActivitiesQuery.data?.paletteAccent ?? "#2563EB"}
+        />
       )}
 
-
+      {/* Slide-out classic-activity content editor — the non-converted
+          counterpart: edits answers and data-id texts of the free-form HTML. */}
+      {isActivitySection && !stepperEnabled && (
+        <ClassicActivityPanel
+          open={editActivityPanelOpen}
+          onClose={() => setEditActivityPanelOpen(false)}
+          bookLabel={bookLabel}
+          leaves={unprunedLeafNodes}
+          answers={renderedSection?.activityAnswers}
+          structure={activityStructureQuery.data?.activity ?? null}
+          outline={activityStructureQuery.data?.outline ?? null}
+          sectionType={section?.sectionType}
+          activityTypes={
+            sectionTypes
+              ? Object.fromEntries(
+                  Object.entries(sectionTypes).filter(([key]) => key.startsWith("activity_")),
+                )
+              : undefined
+          }
+          onChangeType={changeSectionType}
+          onRegenerate={() => handleRerender()}
+          canRegenerate={
+            hasApiKey && !hasActiveTask && !storyboardRunning && !saving && !renderingDirty && !dirty
+          }
+          onTextEdited={handleActivityPanelTextEdited}
+          onAnswerEdited={updateAnswer}
+          onAnswersEdited={updateAnswers}
+          linkedAnchor={linkedAnchor}
+          hoveredAnchor={hoverAnchor}
+          linkedFromPage={linkedFromPage}
+          onAnchorSelect={handleAnchorSelectFromPanel}
+          onAnchorHover={handleAnchorHover}
+          dirty={renderingDirty || dirty}
+          saving={saving}
+          onSave={() => {
+            // Type/tree changes live in pending sectioning — its save path also
+            // persists the rendering AND auto-regenerates when the type changed.
+            if (dirty) void saveSectioning()
+            else void saveRendering()
+          }}
+          onDiscard={discardAll}
+        />
+      )}
 
       {/* Slide-out section data panel */}
       {section && (
@@ -2256,6 +3040,7 @@ export function StoryboardSectionDetail({
         textTypes={textTypes}
         groupTypes={groupTypes}
         activityAnswers={renderedSection?.activityAnswers}
+        activityHtml={renderedSection?.html}
         onChangeSectionType={changeSectionType}
         onToggleSectionPruned={toggleSectionPruned}
         onSectionChange={handleSectionChange}
@@ -2280,13 +3065,7 @@ export function StoryboardSectionDetail({
             saving={saving}
             dirty={dirty}
             bookLabel={bookLabel}
-            onPreview={(data) => {
-              const s = data as SectioningData
-              setPendingSectioning(s)
-              if (s.sections && sectionIndex >= s.sections.length) {
-                onNavigateSection?.(Math.max(0, s.sections.length - 1))
-              }
-            }}
+            onRestored={discardAll}
             onSave={saveSectioning}
             onDiscard={discardAll}
             renderSaveBar={false}
@@ -2365,8 +3144,10 @@ export function StoryboardSectionDetail({
             : null
         }
         onClassesChange={handleClassesChange}
+        onStyleChange={handleStyleChange}
         deviceView={deviceView}
         isFixedLayout={isFixedLayout}
+        bookLabel={bookLabel}
       />
     </div>
 
@@ -2380,13 +3161,21 @@ export function StoryboardSectionDetail({
     />
 
     {/* Image crop dialog */}
-    {cropTarget && (
-      <ImageCropDialog
-        imageSrc={recropPageSrc ?? `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
-        onApply={handleCropApply}
-        onClose={() => { setCropTarget(null); setRecropPageSrc(null) }}
-      />
-    )}
+    {cropTarget && (() => {
+      // Overlay the original placement only when recropping from the full page;
+      // an in-place crop uses the image itself, where the full frame is correct.
+      const bounds = recropPageSrc
+        ? page.imagesMeta.find((m) => m.imageId === cropTarget)?.bounds
+        : undefined
+      return (
+        <ImageCropDialog
+          imageSrc={recropPageSrc ?? `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
+          initialRect={bounds ? pageBoundsToCropRect(bounds) : undefined}
+          onApply={handleCropApply}
+          onClose={() => { setCropTarget(null); setRecropPageSrc(null) }}
+        />
+      )
+    })()}
 
     {/* Replace from book dialog */}
     {replaceFromBookTarget && (
@@ -2432,6 +3221,27 @@ export function StoryboardSectionDetail({
       />
     )}
 
+    {/* Layout mirror dialog */}
+    {layoutMirrorOpen && (
+      <LayoutMirrorDialog
+        bookLabel={bookLabel}
+        targetPageId={pageId}
+        targetSectionIndex={sectionIndex}
+        onSubmit={handleLayoutMirrorSubmit}
+        onClose={() => setLayoutMirrorOpen(false)}
+      />
+    )}
+
+    {/* Generate activity dialog */}
+    {generateActivityOpen && (
+      <GenerateActivityDialog
+        anchorPageId={pageId}
+        anchorPageNumber={page.pageNumber}
+        onSubmit={handleGenerateActivitySubmit}
+        onClose={() => setGenerateActivityOpen(false)}
+      />
+    )}
+
     {/* Merge confirmation dialog */}
     <Dialog open={!!confirmMerge} onOpenChange={(open) => { if (!open) setConfirmMerge(null) }}>
       <DialogContent className="max-w-sm">
@@ -2441,6 +3251,12 @@ export function StoryboardSectionDetail({
             {t`Are you sure you want to ${confirmMerge?.label ?? ""}? This action cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
+        {confirmMerge?.warning && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <p>{confirmMerge.warning}</p>
+          </div>
+        )}
         <DialogFooter>
           <button
             type="button"

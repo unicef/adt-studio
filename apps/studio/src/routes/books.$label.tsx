@@ -13,13 +13,18 @@ import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { DebugPanelStateProvider, type DebugTabValue } from "@/components/debug/debug-panel-state"
 import { StageSidebar } from "@/components/pipeline/components/StageSidebar"
+import { PageErrorDecisionDialog } from "@/components/pipeline/components/PageErrorDecisionDialog"
 import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
 import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
+import { SettingsDirtyTabsProvider } from "@/hooks/use-settings-dirty-tabs"
 import { useBookRunStatus, BookRunProvider } from "@/hooks/use-book-run"
 import { useExportWatcherSetup, ExportWatcherProvider } from "@/hooks/use-export-watcher"
 import { usePlatform } from "@/hooks/use-platform"
 import { useWindowControls } from "@/hooks/use-window-controls"
+import { usePageTitle } from "@/hooks/use-page-title"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { MacOSTrafficLightSpacer } from "@/components/title-bar"
+import { BookApiKeyDialogProvider } from "@/components/settings/BookApiKeyDialogProvider"
 
 interface SectionNavContext {
   sectionIndex: number
@@ -42,9 +47,12 @@ function BookLayout() {
   const bookRun = useBookRunStatus(label)
 
   return (
-    <BookRunProvider value={bookRun}>
-      <BookLayoutInner label={label} isRunning={bookRun.isRunning} />
-    </BookRunProvider>
+    <BookApiKeyDialogProvider>
+      <BookRunProvider value={bookRun}>
+        <BookLayoutInner label={label} isRunning={bookRun.isRunning} />
+        <PageErrorDecisionDialog />
+      </BookRunProvider>
+    </BookApiKeyDialogProvider>
   )
 }
 
@@ -61,6 +69,9 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
   const showMacOSSpacer = hasWindowControls && platform === "macos"
 
   const activeStep = step ?? "book"
+  // Announce the stage on navigation — switching stages otherwise gives a
+  // screen-reader user no signal that the view changed.
+  usePageTitle(getStageLabelI18n(activeStep))
   const [sectionIndex, setSectionIndex] = useState(0)
   const skipNextResetRef = useRef(false)
   const prevPageIdRef = useRef(pageId)
@@ -137,6 +148,7 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
   return (
     <DebugPanelStateProvider value={debugPanelState}>
       <FloatingSaveProvider>
+        <SettingsDirtyTabsProvider>
         <UnsavedChangesGuard />
         <SectionNavCtx.Provider value={sectionNav}>
           <div className="flex min-h-0 flex-1 flex-col">
@@ -202,6 +214,7 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
             </Button>
           )}
         </SectionNavCtx.Provider>
+        </SettingsDirtyTabsProvider>
       </FloatingSaveProvider>
     </DebugPanelStateProvider>
   )

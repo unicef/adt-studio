@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import { useQuery } from "@tanstack/react-query"
+import { isTtsExcluded, type TtsExclusionConfig } from "@adt/types"
 import { api } from "@/api/client"
 import { useBook } from "@/hooks/use-books"
 import { useActiveConfig } from "@/hooks/use-debug"
@@ -57,18 +58,29 @@ export function useStageMissingCounts(label: string): { translate: number; speec
       translate += Math.max(total - filled.size, 0)
     }
 
+    // Entries excluded from read-aloud never need audio, so they don't count
+    // as missing for the speech stage (translations are still expected).
+    const speechExclusions = (merged?.speech ?? undefined) as TtsExclusionConfig | undefined
+    const speakableIds = new Set(
+      [...catalogIds].filter((id) => !isTtsExcluded(id, speechExclusions)),
+    )
+    const speakableTotal = speakableIds.size
+    if (tts?.live) {
+      return { translate, speech: 0 }
+    }
+
     let speech = 0
     for (const lang of outputLanguages) {
       const langData = tts?.languages?.[lang]
       if (!langData) {
-        speech += total
+        speech += speakableTotal
         continue
       }
       const filled = new Set<string>()
       for (const e of langData.entries) {
-        if (catalogIds.has(e.textId)) filled.add(e.textId)
+        if (speakableIds.has(e.textId)) filled.add(e.textId)
       }
-      speech += Math.max(total - filled.size, 0)
+      speech += Math.max(speakableTotal - filled.size, 0)
     }
 
     return { translate, speech }

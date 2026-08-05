@@ -9,6 +9,7 @@
   "dependencies": {
     "@adt/types": "workspace:*",
     "@resvg/resvg-wasm": "^2.6.2",
+    "jpeg-js": "^0.4.4",
     "mupdf": "^1.27.0",
     "pngjs": "^7.0.0"
   },

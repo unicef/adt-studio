@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
-import { createPortal } from "react-dom"
-import { useNavigate } from "@tanstack/react-router"
-import { Play, Eye, Wand2, Loader2, Check } from "lucide-react"
+import { useQueryClient } from "@tanstack/react-query"
+import { Eye, Wand2, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -28,9 +27,10 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { useStyleguides, useStyleguidePreview, useTemplates, useGenerateStyleguide } from "@/hooks/use-presets"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { api } from "@/api/client"
-import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { TemplateViewer } from "@/components/pipeline/components/TemplateViewer"
-import { useBookRun } from "@/hooks/use-book-run"
+import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
+import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { Trans } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -40,8 +40,14 @@ import {
   normalizeDefaultRenderStrategy,
 } from "@/lib/render-strategy"
 import { getSectionTypeLabel } from "@/lib/section-constants"
-import { hasSectioningData } from "./lib/storyboard-rerun-policy"
-import { REFLOWABLE_FONTS } from "@adt/types"
+import { FontSettings } from "./FontSettings"
+
+const PROMPT_TABS = [
+  "rendering-prompt",
+  "activity-prompts",
+  "image-generation",
+  "visual-review-prompt",
+]
 
 /** "two_column_story" → "Two Column Story" */
 function titleCase(slug: string): string {
@@ -133,16 +139,13 @@ function PageThumb({
   )
 }
 
-export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
+export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const queryClient = useQueryClient()
   const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun, stepState } = useBookRun()
-  const navigate = useNavigate()
-  const [showRerunDialog, setShowRerunDialog] = useState(false)
-  const [savingImageGenPrompt, setSavingImageGenPrompt] = useState(false)
 
   // Form state
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
@@ -157,16 +160,15 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const [renderingTemperature, setRenderingTemperature] = useState("")
   const [styleguide, setStyleguide] = useState("")
   const [applyBodyBackground, setApplyBodyBackground] = useState(true)
-  const [reflowableFont, setReflowableFont] = useState("auto")
-  const [renderingPromptDraft, setRenderingPromptDraft] = useState<string | null>(null)
+  const [renderingPromptDraft, setRenderingPromptDraft] = useState<PromptDraft | null>(null)
   const [renderingTemplateDraft, setRenderingTemplateDraft] = useState<string | null>(null)
   const [templateTabName, setTemplateTabName] = useState("")
   const [templateTabDraft, setTemplateTabDraft] = useState<string | null>(null)
   const [activityStrategyName, setActivityStrategyName] = useState("")
-  const [activityPromptDraft, setActivityPromptDraft] = useState<string | null>(null)
-  const [activityAnswerDraft, setActivityAnswerDraft] = useState<string | null>(null)
-  const [imageGenPromptDraft, setImageGenPromptDraft] = useState<string | null>(null)
-  const [imageEditPromptDraft, setImageEditPromptDraft] = useState<string | null>(null)
+  const [activityPromptDraft, setActivityPromptDraft] = useState<PromptDraft | null>(null)
+  const [activityAnswerDraft, setActivityAnswerDraft] = useState<PromptDraft | null>(null)
+  const [imageGenPromptDraft, setImageGenPromptDraft] = useState<PromptDraft | null>(null)
+  const [imageEditPromptDraft, setImageEditPromptDraft] = useState<PromptDraft | null>(null)
   const [imagePromptSubTab, setImagePromptSubTab] = useState<"generate" | "edit">("generate")
   const [visualReviewPrompt, setVisualReviewPrompt] = useState<"visual_review" | "visual_review_flexible">("visual_review")
   const [visualReviewMaxIterations, setVisualReviewMaxIterations] = useState("")
@@ -255,13 +257,14 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   }
 
   // Track which field groups the user has actually touched
+  const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker()
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
-  const markDirty = (field: string) => setDirty((prev) => ({ ...prev, [field]: true }))
+  const markDirty = (field: string) => {
+    setDirty((prev) => ({ ...prev, [field]: true }))
+    markTab(tab)
+  }
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
-
-  // Whether sectioning data already exists (sectioning has been run at least once)
-  const hasExistingSectioningData = hasSectioningData(stepState("page-sectioning"))
 
   // Load render strategy, styleguide, and rendering config from active (merged) config
   useEffect(() => {
@@ -286,8 +289,6 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     setStyleguide(typeof merged.styleguide === "string" ? merged.styleguide : "")
     // Body background
     setApplyBodyBackground(merged.apply_body_background !== false)
-    // Reflowable base font (book-wide default; "auto" follows detection)
-    setReflowableFont(typeof merged.reflowable_font === "string" ? merged.reflowable_font : "auto")
     // Rendering config comes from the default render strategy
     const defaultStrategy = normalizedDefaultRenderStrategy
       ? strategies[normalizedDefaultRenderStrategy]
@@ -346,10 +347,6 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     if (shouldWrite("apply_body_background")) {
       overrides.apply_body_background = applyBodyBackground
     }
-    if (shouldWrite("reflowable_font")) {
-      // "auto" is the default behavior — store undefined to keep config clean.
-      overrides.reflowable_font = reflowableFont === "auto" ? undefined : reflowableFont
-    }
     if (shouldWrite("visual_review_prompt")) {
       overrides.visual_review_prompt = visualReviewPrompt
     }
@@ -387,55 +384,57 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     return overrides
   }
 
-  const confirmSaveAndRerun = async () => {
+  const save = async () => {
     // Save any edited prompts/templates first
     const contentSaves: Promise<unknown>[] = []
-    if (renderingPromptDraft != null) contentSaves.push(api.updatePrompt(renderingPromptName, renderingPromptDraft, bookLabel))
+    if (renderingPromptDraft != null) {
+      contentSaves.push(savePromptDraft(queryClient, renderingPromptName, bookLabel, renderingPromptDraft))
+    }
     if (renderingTemplateDraft != null) contentSaves.push(api.updateTemplate(renderingTemplateName, renderingTemplateDraft, bookLabel))
     if (templateTabDraft != null && templateTabName) contentSaves.push(api.updateTemplate(templateTabName, templateTabDraft, bookLabel))
-    if (activityPromptDraft != null && selectedActivity?.prompt) contentSaves.push(api.updatePrompt(selectedActivity.prompt, activityPromptDraft, bookLabel))
-    if (activityAnswerDraft != null && selectedActivity?.answer_prompt) contentSaves.push(api.updatePrompt(selectedActivity.answer_prompt, activityAnswerDraft, bookLabel))
-    if (imageGenPromptDraft != null) contentSaves.push(api.updatePrompt("ai_image_generation", imageGenPromptDraft, bookLabel))
-    if (imageEditPromptDraft != null) contentSaves.push(api.updatePrompt("ai_image_edit", imageEditPromptDraft, bookLabel))
+    if (activityPromptDraft != null && selectedActivity?.prompt) {
+      contentSaves.push(savePromptDraft(queryClient, selectedActivity.prompt, bookLabel, activityPromptDraft))
+    }
+    if (activityAnswerDraft != null && selectedActivity?.answer_prompt) {
+      contentSaves.push(savePromptDraft(queryClient, selectedActivity.answer_prompt, bookLabel, activityAnswerDraft))
+    }
+    if (imageGenPromptDraft != null) {
+      contentSaves.push(savePromptDraft(queryClient, "ai_image_generation", bookLabel, imageGenPromptDraft))
+    }
+    if (imageEditPromptDraft != null) {
+      contentSaves.push(savePromptDraft(queryClient, "ai_image_edit", bookLabel, imageEditPromptDraft))
+    }
     if (contentSaves.length > 0) await Promise.all(contentSaves)
 
-    // Storyboard settings don't touch sectioning — preserve sectioning when it exists.
-    const renderOnly = hasExistingSectioningData
-
-    const overrides = buildOverrides()
-    updateConfig.mutate(
-      { label: bookLabel, config: overrides },
-      {
-        onSuccess: async () => {
-          setDirty({})
-          setRenderingPromptDraft(null)
-          setRenderingTemplateDraft(null)
-          setTemplateTabDraft(null)
-          setActivityPromptDraft(null)
-          setActivityAnswerDraft(null)
-          setImageGenPromptDraft(null)
-          setShowRerunDialog(false)
-          queueRun({ fromStage: "storyboard", toStage: "storyboard", apiKey, renderOnly })
-          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "storyboard" } })
-        },
-      }
-    )
+    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+    setDirty({})
+    setRenderingPromptDraft(null)
+    setRenderingTemplateDraft(null)
+    setTemplateTabDraft(null)
+    setActivityPromptDraft(null)
+    setActivityAnswerDraft(null)
+    setImageGenPromptDraft(null)
+    setImageEditPromptDraft(null)
+    resetMarkedTabs()
   }
 
-  // Image prompts are on-demand (not pipeline) — save without triggering a rerun
-  const saveImagePrompts = async () => {
-    setSavingImageGenPrompt(true)
-    try {
-      const saves: Promise<unknown>[] = []
-      if (imageGenPromptDraft != null) saves.push(api.updatePrompt("ai_image_generation", imageGenPromptDraft, bookLabel))
-      if (imageEditPromptDraft != null) saves.push(api.updatePrompt("ai_image_edit", imageEditPromptDraft, bookLabel))
-      if (saves.length > 0) await Promise.all(saves)
-      setImageGenPromptDraft(null)
-      setImageEditPromptDraft(null)
-    } finally {
-      setSavingImageGenPrompt(false)
-    }
-  }
+  const dirtyTabs = [
+    ...markedTabs,
+    ...(renderingPromptDraft != null ? ["rendering-prompt"] : []),
+    ...(renderingTemplateDraft != null || templateTabDraft != null ? ["rendering-template"] : []),
+    ...(activityPromptDraft != null || activityAnswerDraft != null ? ["activity-prompts"] : []),
+    ...(imageGenPromptDraft != null || imageEditPromptDraft != null ? ["image-generation"] : []),
+  ].filter((tabKey, i, all) => all.indexOf(tabKey) === i)
+
+  useStageSettingsBar({
+    stage: "storyboard",
+    bookLabel,
+    dirty: dirtyTabs.length > 0,
+    dirtyTabs,
+    saving: updateConfig.isPending,
+    save,
+    showSaveOnly: PROMPT_TABS.includes(tab),
+  })
 
   return (
     <div className={tab === "rendering-prompt" || tab === "rendering-template" || tab === "activity-prompts" || tab === "image-generation" || tab === "visual-review-prompt" ? "h-full" : "p-4 space-y-6"}>
@@ -509,57 +508,10 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
           <p className="text-xs text-muted-foreground mt-1.5">
             {<Trans>The rendering strategy used for sections without an explicit mapping.</Trans>}
           </p>
-
-          <div className="mt-6">
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              {<Trans>Default Font</Trans>}
-            </h3>
-            <Select
-              value={reflowableFont}
-              onValueChange={(v) => {
-                setReflowableFont(v)
-                markDirty("reflowable_font")
-              }}
-            >
-              <SelectTrigger className="w-72">
-                <SelectValue>
-                  {reflowableFont === "auto"
-                    ? <Trans>Automatic</Trans>
-                    : (REFLOWABLE_FONTS.find((f) => f.id === reflowableFont)?.family ?? reflowableFont)}
-                </SelectValue>
-              </SelectTrigger>
-              {/* Cap height + scroll: 15 two-line items otherwise run past the
-                  bottom of the settings panel/window. */}
-              <SelectContent align="start" className="max-h-72">
-                <SelectItem value="auto">
-                  <div className="flex flex-col items-start">
-                    <span>{<Trans>Automatic</Trans>}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {<Trans>Match the book's detected style</Trans>}
-                    </span>
-                  </div>
-                </SelectItem>
-                {REFLOWABLE_FONTS.map((f) => (
-                  <SelectItem key={f.id} value={f.id}>
-                    <div className="flex flex-col items-start">
-                      <span>{f.family}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {f.category === "sans" ? <Trans>Sans-serif</Trans>
-                          : f.category === "serif" ? <Trans>Serif</Trans>
-                          : f.category === "handwriting" ? <Trans>Handwriting</Trans>
-                          : <Trans>Monospace</Trans>}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              {<Trans>Base font for AI-rendered and template (reflowable) text. Fixed-layout pages keep their original fonts.</Trans>}
-            </p>
-          </div>
         </div>
       )}
+
+      {tab === "fonts" && <FontSettings bookLabel={bookLabel} />}
 
       {tab === "rendering-prompt" && (
         <div className="flex flex-col h-full">
@@ -681,11 +633,12 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
               bookLabel={bookLabel}
               title={t`Rendering Prompt`}
               description={t`The prompt template used to generate HTML for each section. This is a Liquid template processed with section context.`}
+              draft={renderingPromptDraft}
               model={renderingModel}
               onModelChange={(v) => { setRenderingModel(v); markDirty("rendering_model") }}
               maxRetries={renderingRetries}
               onMaxRetriesChange={(v) => { setRenderingRetries(v); markDirty("rendering_retries") }}
-              onContentChange={setRenderingPromptDraft}
+              onContentChange={(content, modelId) => setRenderingPromptDraft(toPromptDraft(content, modelId))}
             />
           </div>
         </div>
@@ -738,7 +691,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                 templateName={templateTabName}
                 bookLabel={bookLabel}
                 title={titleCase(templateTabName)}
-                description={t`Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun.`}
+                description={t`Edit the Liquid/HTML template below. Changes are saved when you click Save.`}
                 onContentChange={setTemplateTabDraft}
               />
             </div>
@@ -786,11 +739,12 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                   bookLabel={bookLabel}
                   title={t`Generation Prompt`}
                   description={t`Generates the interactive HTML for this activity type.`}
+                  draft={activityPromptDraft}
                   model={activityModel}
                   onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
                   maxRetries={activityRetries}
                   onMaxRetriesChange={(v) => { setActivityRetries(v); markDirty("activity_retries") }}
-                  onContentChange={setActivityPromptDraft}
+                  onContentChange={(content, modelId) => setActivityPromptDraft(toPromptDraft(content, modelId))}
                 />
               </div>
               {selectedActivity.answer_prompt && (
@@ -801,11 +755,12 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                     bookLabel={bookLabel}
                   title={t`Answer Prompt`}
                   description={t`Extracts the correct answer key from the generated activity HTML.`}
+                    draft={activityAnswerDraft}
                     model={activityModel}
                     onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
                     maxRetries={activityRetries}
                     onMaxRetriesChange={(v) => { setActivityRetries(v); markDirty("activity_retries") }}
-                    onContentChange={setActivityAnswerDraft}
+                    onContentChange={(content, modelId) => setActivityAnswerDraft(toPromptDraft(content, modelId))}
                   />
                 </div>
               )}
@@ -849,8 +804,9 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                 bookLabel={bookLabel}
                 title={t`Image Generation Prompt`}
                 description={t`Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals.`}
+                draft={imageGenPromptDraft}
                 hideModel
-                onContentChange={setImageGenPromptDraft}
+                onContentChange={(content, modelId) => setImageGenPromptDraft(toPromptDraft(content, modelId))}
               />
             ) : (
               <PromptViewer
@@ -859,8 +815,9 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                 bookLabel={bookLabel}
                 title={t`Image Edit Prompt`}
                 description={t`Wraps 'Edit this image' requests. The AI receives the original image alongside this prompt. Supports user_prompt and style variables.`}
+                draft={imageEditPromptDraft}
                 hideModel
-                onContentChange={setImageEditPromptDraft}
+                onContentChange={(content, modelId) => setImageEditPromptDraft(toPromptDraft(content, modelId))}
               />
             )}
           </div>
@@ -944,30 +901,6 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
             />
           </div>
         </div>
-      )}
-
-      {headerTarget && createPortal(
-        tab === "image-generation" ? (
-          <Button
-            size="sm"
-            className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-            onClick={saveImagePrompts}
-            disabled={savingImageGenPrompt || (imageGenPromptDraft == null && imageEditPromptDraft == null)}
-          >
-            {savingImageGenPrompt ? t`Saving...` : t`Save`}
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-            onClick={() => setShowRerunDialog(true)}
-            disabled={updateConfig.isPending || !hasApiKey}
-          >
-            <Play className="mr-1.5 h-3.5 w-3.5" />
-            {<Trans>Save & Rerun</Trans>}
-          </Button>
-        ),
-        headerTarget
       )}
 
       <Dialog open={styleguidePreviewOpen} onOpenChange={setStyleguidePreviewOpen}>
@@ -1067,26 +1000,6 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showRerunDialog} onOpenChange={setShowRerunDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{<Trans>Save & Rerun Storyboard</Trans>}</DialogTitle>
-            <DialogDescription>
-              {hasExistingSectioningData
-                ? <Trans>This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved.</Trans>
-                : <Trans>This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages.</Trans>}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRerunDialog(false)}>
-              {<Trans>Cancel</Trans>}
-            </Button>
-            <Button onClick={confirmSaveAndRerun} disabled={updateConfig.isPending}>
-              {updateConfig.isPending ? t`Saving...` : t`Confirm Rerun`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

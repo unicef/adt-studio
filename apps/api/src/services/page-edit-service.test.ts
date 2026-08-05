@@ -3,6 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
 import { createBookStorage } from "@adt/storage"
+import { DEFAULT_LLM_MODEL_ID } from "@adt/types"
 
 const llmMocks = vi.hoisted(() => ({
   generateObject: vi.fn(),
@@ -313,6 +314,124 @@ describe("page-edit-service", () => {
       expect(capturedHtml).toContain("img-dup")
       expect(capturedHtml).not.toContain("img-first")
       expect(result.html).toContain("img-dup")
+    })
+
+    it("synchronizes ordering metadata with an AI-edited HTML order", async () => {
+      const currentHtml = `
+        <section data-section-type="activity_ordering" data-correct-order="item-2,item-1,item-3">
+          <ol data-activity-order-list>
+            <li data-activity-item="item-1">One</li>
+            <li data-activity-item="item-2">Two</li>
+            <li data-activity-item="item-3">Three</li>
+          </ol>
+        </section>`
+      const editedHtml = currentHtml.replace(
+        "item-2,item-1,item-3",
+        "item-3,item-2,item-1",
+      )
+      llmMocks.generateObject.mockResolvedValue({
+        object: { reasoning: "Changed the sequence", content: editedHtml },
+      } as never)
+
+      const result = await aiEditSection({
+        label,
+        pageId: `${label}_p1`,
+        sectionIndex: 0,
+        instruction: "Reverse the correct order",
+        currentHtml,
+        booksDir: tmpDir,
+        promptsDir: tmpDir,
+        configPath: path.resolve(process.cwd(), "config.yaml"),
+        apiKey: "test-key",
+      })
+
+      expect(result.activityAnswers).toEqual({
+        "item-3": "1",
+        "item-2": "2",
+        "item-1": "3",
+      })
+    })
+
+    it.each([
+      {
+        name: "uses page_sectioning.model when configured",
+        defaultModelId: "openai:gpt-4.1",
+        pageSectioningModelId: "openai:gpt-4o",
+        expectedModelId: "openai:gpt-4o",
+      },
+      {
+        // Regression: `page_sectioning` present without a `model` key used to
+        // yield `modelId: undefined`, which blew up inside resolveModel.
+        name: "falls back to default_model when page_sectioning has no model",
+        defaultModelId: "openai:gpt-4.1",
+        pageSectioningModelId: undefined,
+        expectedModelId: "openai:gpt-4.1",
+      },
+      {
+        name: "falls back to DEFAULT_LLM_MODEL_ID when no model is configured",
+        defaultModelId: undefined,
+        pageSectioningModelId: undefined,
+        expectedModelId: DEFAULT_LLM_MODEL_ID,
+      },
+    ])("$name", async ({
+      defaultModelId,
+      pageSectioningModelId,
+      expectedModelId,
+    }) => {
+      const pageId = `${label}_p1`
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("web-rendering", pageId, {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: `<section data-id="first">hello</section>`,
+            },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+
+      const configPath = path.join(tmpDir, "config.yaml")
+      fs.writeFileSync(
+        configPath,
+        [
+          ...(defaultModelId ? [`default_model: "${defaultModelId}"`] : []),
+          "structure_types: {}",
+          "role_types: {}",
+          "page_sectioning:",
+          "  prompt: page_sectioning",
+          "  max_refinements: 0",
+          ...(pageSectioningModelId
+            ? [`  model: "${pageSectioningModelId}"`]
+            : []),
+        ].join("\n")
+      )
+
+      llmMocks.generateObject.mockImplementation(async (opts: unknown) => {
+        const context = (opts as { context: { current_html: string } }).context
+        return {
+          object: { reasoning: "ok", content: context.current_html },
+        } as never
+      })
+
+      await aiEditSection({
+        label,
+        pageId,
+        sectionIndex: 0,
+        instruction: "Keep layout and wording",
+        booksDir: tmpDir,
+        promptsDir: tmpDir,
+        configPath,
+        apiKey: "test-key",
+      })
+
+      expect(llmMocks.createLLMModel).toHaveBeenCalledWith(
+        expect.objectContaining({ modelId: expectedModelId })
+      )
     })
   })
 })

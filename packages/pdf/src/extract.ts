@@ -26,6 +26,7 @@ import {
 } from "./positioned-text.js";
 import {
   recordPageStream,
+  hashImagePixels,
   type StreamOp,
   type ImageStreamOp,
   type PathStreamOp,
@@ -36,6 +37,11 @@ import {
 } from "./page-stream-recorder.js";
 import type { DrawItem, PositionedTextOutput } from "@adt/types";
 import { classifyFontCategoryByName } from "@adt/types";
+import {
+  detectFlipFromCurrentTransformationMatrix,
+  applyFlipsToRasterImages,
+  type ImageFlipTransform,
+} from "./flip-utils.js";
 
 // ============================================================================
 // Types
@@ -49,6 +55,12 @@ export interface ExtractInput {
   endPage?: number;
   /** When true, merge pairs of pages as spreads (page 1 = cover, 2+3, 4+5, etc.) */
   spreadMode?: boolean;
+  /**
+   * Manual spread overrides for a single-page book: 1-indexed leading page
+   * numbers, each merged with the following page into a two-page spread.
+   * Ignored when `spreadMode` is true (automatic pairing wins).
+   */
+  spreadPairs?: number[];
   /** When true, include text shapes in vector grouping to produce raster crops of vectors with text overlays. Defaults to true. */
   vectorTextGrouping?: boolean;
   /**
@@ -123,6 +135,27 @@ export interface ExtractedImage {
    *     constituent shape bboxes (see `shapeGeomBoxes`).
    */
   streamSeqno?: number;
+  /**
+   * Pixel-content digest, set ONLY when this image shares its native
+   * dimensions with another image on the same page (a dimension collision).
+   * `stampRasterPlacementsFromOps` uses it to match a draw op to the exact
+   * XObject it references — dimension alone is ambiguous when a page can see
+   * several same-size images (e.g. pages sharing one resource dictionary that
+   * lists every full-page layer). Computed from the same `toPixmap()` samples
+   * as the recorder's `ImageStreamOp.contentDigest` so the two compare equal.
+   * Transient: not persisted to the images table.
+   *
+   * STALE AFTER FLIP: hashes the pre-flip pixels. Only read during the
+   * placement-matching pass, which runs before `applyFlipsToRasterImages` —
+   * do not reuse it downstream to reason about the image's current pixels.
+   */
+  pixelDigest?: string;
+  /**
+   * Flip transform derived from the EXACT draw op matched to this image by
+   * `stampRasterPlacementsFromOps`. Transient: used by `applyFlipsToRasterImages`
+   * to avoid re-matching stream ops in a second pass.
+   */
+  flipTransform?: ImageFlipTransform;
   /**
    * Geometry bboxes of this vector figure's constituent SVG shapes, in the
    * same coordinate space as recorder ops (page coords + spread xOffset).
@@ -236,7 +269,7 @@ export async function extractPdf(
   input: ExtractInput,
   onProgress?: (progress: ExtractProgress) => void
 ): Promise<ExtractResult> {
-  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, vectorTextGrouping = true, fixedLayout = false } = input;
+  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs, vectorTextGrouping = true, fixedLayout = false } = input;
   validatePageRange(startPage, endPage);
 
   // Open PDF (suppressing mupdf stderr spam)
@@ -252,32 +285,19 @@ export async function extractPdf(
 
   const pages: ExtractedPage[] = [];
 
-  if (spreadMode) {
-    // Build logical page groups: page 1 = cover (standalone),
-    // then pairs 2+3, 4+5, etc. Only pair pages that are both in range.
-    const logicalGroups = computeSpreadGroups(start, end);
-    const totalLogical = logicalGroups.length;
+  const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
+  const totalLogical = logicalGroups.length;
 
-    for (let g = 0; g < totalLogical; g++) {
-      const group = logicalGroups[g];
-      const page =
-        group.length === 2
-          ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
-          : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
-      pages.push(page);
+  for (let g = 0; g < totalLogical; g++) {
+    const group = logicalGroups[g];
+    const page =
+      group.length === 2
+        ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
+        : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
+    pages.push(page);
 
-      onProgress?.({ page: g + 1, totalPages: totalLogical });
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-  } else {
-    const rangeSize = end - start;
-    for (let i = start; i < end; i++) {
-      const page = await extractPage(doc, i, vectorTextGrouping, fixedLayout);
-      pages.push(page);
-
-      onProgress?.({ page: i - start + 1, totalPages: rangeSize });
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
+    onProgress?.({ page: g + 1, totalPages: totalLogical });
+    await new Promise((resolve) => setTimeout(resolve, 0));
   }
 
   return {
@@ -297,7 +317,7 @@ export function extractPdfStream(
   input: ExtractInput,
   onProgress?: (progress: ExtractProgress) => void
 ): ExtractStreamResult {
-  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, vectorTextGrouping = true, fixedLayout = false } = input;
+  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs, vectorTextGrouping = true, fixedLayout = false } = input;
   validatePageRange(startPage, endPage);
 
   const doc = openPdfFromBuffer(pdfBuffer);
@@ -309,32 +329,20 @@ export function extractPdfStream(
 
   async function* generatePages(): AsyncGenerator<ExtractedPage, void, unknown> {
     try {
-      if (spreadMode) {
-        const logicalGroups = computeSpreadGroups(start, end);
-        const totalLogical = logicalGroups.length;
+      const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
+      const totalLogical = logicalGroups.length;
 
-        for (let g = 0; g < totalLogical; g++) {
-          const group = logicalGroups[g];
-          const page =
-            group.length === 2
-              ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
-              : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
+      for (let g = 0; g < totalLogical; g++) {
+        const group = logicalGroups[g];
+        const page =
+          group.length === 2
+            ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
+            : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
 
-          onProgress?.({ page: g + 1, totalPages: totalLogical });
-          yield page;
-          // Yield to the macrotask queue so SSE progress events can flush
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
-      } else {
-        const rangeSize = end - start;
-        for (let i = start; i < end; i++) {
-          const page = await extractPage(doc, i, vectorTextGrouping, fixedLayout);
-
-          onProgress?.({ page: i - start + 1, totalPages: rangeSize });
-          yield page;
-          // Yield to the macrotask queue so SSE progress events can flush
-          await new Promise((resolve) => setTimeout(resolve, 0));
-        }
+        onProgress?.({ page: g + 1, totalPages: totalLogical });
+        yield page;
+        // Yield to the macrotask queue so SSE progress events can flush
+        await new Promise((resolve) => setTimeout(resolve, 0));
       }
     } finally {
       doc.destroy();
@@ -349,25 +357,80 @@ export function extractPdfStream(
 }
 
 /**
- * Compute spread page groups from a 0-indexed page range.
- * The first selected page is always standalone, then subsequent pages pair
- * sequentially: start, (start+1,start+2), (start+3,start+4), etc.
+ * Extract a specific set of page groups from a PDF — used to (re)build only the
+ * pages affected by a spread merge/split, without re-extracting the whole book.
+ * Each group is 1 or 2 zero-indexed page indices (a single page or a spread).
+ */
+export async function extractPages(input: {
+  pdfBuffer: Buffer;
+  groups: number[][];
+  vectorTextGrouping?: boolean;
+  fixedLayout?: boolean;
+}): Promise<ExtractedPage[]> {
+  const { pdfBuffer, groups, vectorTextGrouping = true, fixedLayout = false } = input;
+  const doc = openPdfFromBuffer(pdfBuffer);
+  try {
+    const pages: ExtractedPage[] = [];
+    for (const group of groups) {
+      const page =
+        group.length === 2
+          ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
+          : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
+      pages.push(page);
+    }
+    return pages;
+  } finally {
+    doc.destroy();
+  }
+}
+
+/**
+ * Compute logical page groups from a 0-indexed page range.
+ *
+ * - Spread base (`spreadMode`): the first selected page is standalone, then
+ *   pages pair sequentially — start, (start+1,start+2), (start+3,start+4), etc.
+ * - Single base: every page is its own group, except pages whose 1-indexed
+ *   number appears in `spreadPairs`, which merge with the following page.
+ *
  * Returns arrays of 0-indexed page indices (1 or 2 elements each).
  */
-function computeSpreadGroups(start: number, end: number): number[][] {
+export function computeGroups(
+  start: number,
+  end: number,
+  opts: { spreadMode?: boolean; spreadPairs?: number[] } = {},
+): number[][] {
+  const { spreadMode = false, spreadPairs } = opts;
   const groups: number[][] = [];
 
-  let i = start;
-  let first = true;
-  while (i < end) {
-    if (first) {
-      groups.push([i]);
-      i++;
-      first = false;
-      continue;
+  if (spreadMode) {
+    let i = start;
+    let first = true;
+    while (i < end) {
+      if (first) {
+        groups.push([i]);
+        i++;
+        first = false;
+        continue;
+      }
+
+      if (i + 1 < end) {
+        groups.push([i, i + 1]);
+        i += 2;
+      } else {
+        groups.push([i]);
+        i++;
+      }
     }
 
-    if (i + 1 < end) {
+    return groups;
+  }
+
+  // Single base: 1-indexed leads → 0-indexed; greedy so overlapping leads
+  // can't double-merge a page.
+  const mergeLeads = new Set((spreadPairs ?? []).map((p) => p - 1));
+  let i = start;
+  while (i < end) {
+    if (mergeLeads.has(i) && i + 1 < end) {
       groups.push([i, i + 1]);
       i += 2;
     } else {
@@ -768,51 +831,49 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, vectorTextGrou
     ? allRasterImages.filter(img => !coveredRasterHashes.has(img.hash))
     : allRasterImages;
 
-  // Positioned-text + stream-order extraction is consumed ONLY by fixed-layout
-  // rendering (the sole reader of positionedText and of the recorder-derived
-  // image bounds/seqno/clip/blend/opacity). For reflowable books we skip it
-  // entirely, which avoids a full extra device traversal of the page plus the
-  // structured-text walks parsePageParagraphs runs.
-  let positionedText: PositionedTextOutput;
+  // Positioned-text + stream-order extraction (page geometry) is now produced
+  // for EVERY book — it's strategy-independent data, and producing it always
+  // lets the user switch the render strategy to fixed-layout at the storyboard
+  // step without re-extracting the PDF. It's a pure-local mupdf pass (no LLM).
+  //
+  // Stream-order assignment: run the page through a recording device so every
+  // draw op gets a true PDF content-stream seqno. mupdf's StructuredText walker
+  // is a layout reconstruction (reading flow, not stream order) so it can't be
+  // used for z-order — but the device callbacks fire once per content-stream
+  // operator, in stream order, with fully-resolved CTMs.
+  const recorder = runRecorderInViewport(
+    page,
+    pageBounds,
+    0,
+    0,
+    hasDuplicateDimensions(rasterImages),
+  );
+  stampRasterPlacementsFromOps(rasterImages, recorder.ops);
+  applyFlipsToRasterImages(rasterImages);
+
+  // Reuse the StructuredText already built above — no extra pass. Build
+  // positioned text at fixed-layout quality (spacing cleanup on) so the data is
+  // ready regardless of when the user picks fixed-layout.
+  const paragraphData = parsePageParagraphs(page, stext, 2, true);
+  // Fold hand-lettered vector paint into the duplicate selectable text run.
+  const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, recorder.ops);
+  // Dropping the now-duplicate vector shapes CHANGES the image set, so keep it
+  // gated to fixed-layout — reflowable image output stays exactly as before.
+  // (A reflowable-extracted book later switched to fixed-layout may therefore
+  // show duplicate vector lettering until re-extracted; a narrow, cosmetic case.)
   if (fixedLayout) {
-    // Stream-order assignment: run the page through a recording device so
-    // every draw op gets a true PDF content-stream seqno. mupdf's
-    // StructuredText walker is a layout reconstruction (reading flow, not
-    // stream order) so we cannot use it for z-order — but the device
-    // callbacks fire once per content-stream operator, in stream order, with
-    // fully-resolved CTMs. This is the canonical mupdf z-order primitive.
-    const recorder = runRecorderInViewport(page, pageBounds, 0, 0);
-    stampRasterPlacementsFromOps(rasterImages, recorder.ops);
-
-    // Reuse the StructuredText already built above — no extra pass.
-    const paragraphData = parsePageParagraphs(page, stext, 2, fixedLayout);
-    // Fold hand-lettered vector paint into the duplicate selectable text
-    // run, then drop the now-duplicate vector shapes (re-rendering figures
-    // that only partially duplicate text). Figure seqnos are stamped after,
-    // so re-rendered survivors get their true content-stream order.
-    const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, recorder.ops);
     figureImages = await excludeConsumedFigureShapes(figureImages, restyledBoxes);
-    stampFigureSeqnosFromOps(figureImages, recorder.ops);
-
-    positionedText = buildPositionedTextOutput(
-      pageId,
-      paragraphData,
-      rasterImages,
-      figureImages,
-      recorder.ops,
-    );
-  } else {
-    // NOTE: skipping the recorder pass here also skips
-    // excludeConsumedFigureShapes, so vector-drawn lettering that duplicates a
-    // selectable-text run is NOT deduped for reflowable books and stays in
-    // `images`. Known trade-off: restoring the dedup needs the recorder this
-    // gate deliberately avoids. Narrow in practice (such content is usually
-    // fixed-layout), so left as-is for now.
-    positionedText = emptyPositionedText(
-      pageBounds[2] - pageBounds[0],
-      pageBounds[3] - pageBounds[1],
-    );
   }
+  // Figure seqnos stamped after dedup so re-rendered survivors get true order.
+  stampFigureSeqnosFromOps(figureImages, recorder.ops);
+
+  const positionedText: PositionedTextOutput = buildPositionedTextOutput(
+    pageId,
+    paragraphData,
+    rasterImages,
+    figureImages,
+    recorder.ops,
+  );
 
   return {
     pageId,
@@ -844,10 +905,11 @@ function runRecorderInViewport(
   pageBounds: number[],
   xShift: number,
   seqnoShift: number,
+  hashImages: boolean = false,
 ): { ops: StreamOp[] } {
   const pageOriginX = pageBounds[0];
   const pageOriginY = pageBounds[1];
-  const rawOps = recordPageStream(page);
+  const rawOps = recordPageStream(page, { hashImages });
   const dx = -pageOriginX + xShift;
   const dy = -pageOriginY;
   const shiftBBox = (b: StreamBBox): StreamBBox => ({
@@ -926,27 +988,6 @@ function bboxToImageBounds(b: StreamBBox): ImageBounds {
   return { x: b.x0, y: b.y0, width: b.x1 - b.x0, height: b.y1 - b.y0 };
 }
 
-/**
- * Minimal positioned-text output for reflowable books, which don't run the
- * positioned-text extraction pipeline. Carries the page's viewport dimensions
- * (cheap, from page bounds) so any consumer that falls back to them still
- * works, with no draw items. Dimensions match what `buildPositionedTextOutput`
- * would emit (page size in points; render size at `renderScale`).
- */
-function emptyPositionedText(
-  pageWidth: number,
-  pageHeight: number,
-  renderScale = 2,
-): PositionedTextOutput {
-  return {
-    drawItems: [],
-    pageWidth,
-    pageHeight,
-    renderWidth: Math.round(pageWidth * renderScale),
-    renderHeight: Math.round(pageHeight * renderScale),
-  };
-}
-
 /** Serialize PathCommand[] to an SVG `d` attribute string in absolute coords. */
 function pathCommandsToSvgD(cmds: PathCommand[]): string {
   const fmt = (n: number): string => {
@@ -1011,14 +1052,35 @@ function selectImageClipPath(op: ImageStreamOp): string | undefined {
 }
 
 /**
- * Match each `fillImage` / `fillImageMask` op to an extracted raster XObject
- * by native pixel dimensions, consuming candidates in stream order. The
- * matched raster gets its `streamSeqno` and its `bounds` (from the op's CTM)
- * stamped on it.
+ * True when two or more images share identical native dimensions. This is the
+ * condition under which dimension-only op→image matching is ambiguous, so it
+ * gates the extra pixel-hashing work (recorder `hashImages` + extraction
+ * `pixelDigest`). False — the common case — keeps the cheap dimension match.
+ */
+function hasDuplicateDimensions(images: ExtractedImage[]): boolean {
+  const seen = new Set<string>();
+  for (const img of images) {
+    const key = `${img.width}x${img.height}`;
+    if (seen.has(key)) return true;
+    seen.add(key);
+  }
+  return false;
+}
+
+/**
+ * Match each `fillImage` / `fillImageMask` op to an extracted raster XObject,
+ * stamping the matched raster's `streamSeqno`, `bounds`, and `flipTransform`
+ * (derived from the op's CTM).
  *
- * Multiple instances of the same image dimensions are paired in stream
- * order — first op with WxH matches first remaining ExtractedImage with
- * WxH. This is how mupdf placement order maps to XObject extraction order.
+ * Matching keys on native pixel dimensions. When a dimension bucket holds more
+ * than one image the match is ambiguous: a page that can see several same-size
+ * images (e.g. pages sharing one resource dictionary listing every full-page
+ * layer) would otherwise pair every op with the FIRST candidate, so every page
+ * renders the same image. To disambiguate, both the op (`contentDigest`) and
+ * the image (`pixelDigest`) carry a pixel-content hash; we pick the candidate
+ * whose digest matches. Single-candidate buckets — and any bucket without
+ * digests — fall back to stream-order pairing (first op with WxH ↔ first
+ * remaining image with WxH), the long-standing behaviour for unambiguous pages.
  */
 function stampRasterPlacementsFromOps(
   rasters: ExtractedImage[],
@@ -1034,10 +1096,30 @@ function stampRasterPlacementsFromOps(
   for (const op of ops) {
     if (op.kind !== "image" && op.kind !== "imageMask") continue;
     const candidates = byDim.get(`${op.nativeWidth}x${op.nativeHeight}`);
-    const matched = candidates?.shift();
+    if (!candidates || candidates.length === 0) continue;
+    let matched: ExtractedImage | undefined;
+    // Disambiguate same-dimension candidates by pixel content when available.
+    if (candidates.length > 1 && op.contentDigest) {
+      const idx = candidates.findIndex(
+        (c) => c.pixelDigest !== undefined && c.pixelDigest === op.contentDigest,
+      );
+      if (idx >= 0) matched = candidates.splice(idx, 1)[0];
+      else {
+        // This op has a digest but no candidate matches it — only reachable on
+        // a partial digest failure (one side hashed, the other couldn't) or
+        // when the op's image was filtered out (e.g. figure-covered). Consume a
+        // candidate that has NO digest of its own first, so we don't steal one
+        // that a later digest-bearing op still needs to match.
+        const undigested = candidates.findIndex((c) => c.pixelDigest === undefined);
+        if (undigested >= 0) matched = candidates.splice(undigested, 1)[0];
+      }
+    }
+    // Unambiguous bucket, or no digest match — pair in stream order.
+    if (!matched) matched = candidates.shift();
     if (!matched) continue;
     matched.streamSeqno = op.seqno;
     matched.bounds = bboxToImageBounds(op.bbox);
+    matched.flipTransform = detectFlipFromCurrentTransformationMatrix(op.currentTransformationMatrix);
     const clipD = selectImageClipPath(op);
     if (clipD) matched.clipPath = clipD;
     if (op.blendMode && op.blendMode !== "Normal") {
@@ -1559,64 +1641,57 @@ async function extractSpreadPage(
   // own PDF-point bounds, compose correctly on the rendered spread viewport.
   const rasterImages = [...leftRaster, ...rightRaster];
 
-  // Positioned-text + stream-order extraction is consumed ONLY by fixed-layout
-  // rendering. Skip it for reflowable books (see extractPage for rationale).
-  let positionedText: PositionedTextOutput;
-  let figureImages: ExtractedImage[];
+  // Positioned-text + stream-order extraction (page geometry) is now produced
+  // for EVERY book so fixed-layout can be chosen later without re-extracting
+  // (see extractPage for rationale). Pure-local mupdf pass.
+  //
+  // Run the recorder on both pages, in viewport coords; right-page x is shifted
+  // by left page width so positions address the stitched spread, and right-page
+  // seqnos shift past left so cross-page sort puts left ahead of right.
+  const leftRecorder = runRecorderInViewport(
+    leftPage,
+    leftBounds,
+    0,
+    0,
+    hasDuplicateDimensions(leftRaster),
+  );
+  const leftMaxSeqno = leftRecorder.ops.reduce(
+    (m, o) => Math.max(m, o.seqno),
+    -1,
+  );
+  const rightRecorder = runRecorderInViewport(
+    rightPage,
+    rightBounds,
+    leftPageWidthPt,
+    leftMaxSeqno + 1,
+    hasDuplicateDimensions(rightRaster),
+  );
+  const ops: StreamOp[] = [...leftRecorder.ops, ...rightRecorder.ops];
+  // Rasters: stamp per page so dim-tied images on different pages don't
+  // pair across the spread boundary.
+  stampRasterPlacementsFromOps(leftRaster, leftRecorder.ops);
+  applyFlipsToRasterImages(leftRaster);
+  stampRasterPlacementsFromOps(rightRaster, rightRecorder.ops);
+  applyFlipsToRasterImages(rightRaster);
+
+  // Reuse the per-page StructuredText already built above — no extra pass.
+  const paragraphData = parsePageParagraphsSpread(leftPage, rightPage, leftStext, rightStext, 2, true);
+  const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, ops);
+  // The destructive figure dedup stays gated to fixed-layout so reflowable
+  // image output is unchanged (see extractPage).
+  let figureImages: ExtractedImage[] = [...leftResult.images, ...rightResult.images];
   if (fixedLayout) {
-    // Run the recorder on both pages, in viewport coords; right-page x is
-    // shifted by left page width so positions address the stitched spread,
-    // and right-page seqnos shift past left so cross-page sort puts left
-    // ahead of right (matches PDF reading order).
-    const leftRecorder = runRecorderInViewport(leftPage, leftBounds, 0, 0);
-    const leftMaxSeqno = leftRecorder.ops.reduce(
-      (m, o) => Math.max(m, o.seqno),
-      -1,
-    );
-    const rightRecorder = runRecorderInViewport(
-      rightPage,
-      rightBounds,
-      leftPageWidthPt,
-      leftMaxSeqno + 1,
-    );
-    const ops: StreamOp[] = [...leftRecorder.ops, ...rightRecorder.ops];
-    // Rasters: stamp per page so dim-tied images on different pages don't
-    // pair across the spread boundary.
-    stampRasterPlacementsFromOps(leftRaster, leftRecorder.ops);
-    stampRasterPlacementsFromOps(rightRaster, rightRecorder.ops);
-
-    // Reuse the per-page StructuredText already built above — no extra pass.
-    const paragraphData = parsePageParagraphsSpread(leftPage, rightPage, leftStext, rightStext, 2, fixedLayout);
-    // Fold hand-lettered vector paint into the duplicate selectable text run
-    // and drop the now-duplicate vector shapes (per-figure xOffset/svgDefs
-    // is carried in the re-render context, so a single pass spans both
-    // halves). Figure seqnos are stamped after, over the unified op list:
-    // geometry identity is position-exact, so right-page shape boxes
-    // (xOffset-shifted) only coincide with right-page ops.
-    const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, ops);
-    figureImages = await excludeConsumedFigureShapes(
-      [...leftResult.images, ...rightResult.images],
-      restyledBoxes,
-    );
-    stampFigureSeqnosFromOps(figureImages, ops);
-
-    positionedText = buildPositionedTextOutput(
-      pageId,
-      paragraphData,
-      rasterImages,
-      figureImages,
-      ops,
-    );
-  } else {
-    // NOTE: see extractPage — skipping the recorder also skips
-    // excludeConsumedFigureShapes, so figures are not deduped against
-    // coincident selectable text for reflowable books. Known trade-off.
-    figureImages = [...leftResult.images, ...rightResult.images];
-    positionedText = emptyPositionedText(
-      leftBounds[2] - leftBounds[0] + (rightBounds[2] - rightBounds[0]),
-      Math.max(leftBounds[3] - leftBounds[1], rightBounds[3] - rightBounds[1]),
-    );
+    figureImages = await excludeConsumedFigureShapes(figureImages, restyledBoxes);
   }
+  stampFigureSeqnosFromOps(figureImages, ops);
+
+  const positionedText: PositionedTextOutput = buildPositionedTextOutput(
+    pageId,
+    paragraphData,
+    rasterImages,
+    figureImages,
+    ops,
+  );
 
   const images: ExtractedImage[] = [...rasterImages, ...figureImages];
 
@@ -1652,6 +1727,10 @@ function extractRasterImagesFromPdf(
   startIndex: number = 0
 ): ExtractedImage[] {
   const images: ExtractedImage[] = [];
+  // The mupdf stream object each image was decoded from, parallel to `images`.
+  // Kept so we can re-decode an image to a pixmap for content hashing without
+  // re-walking the dict — only done for dimension-colliding images (below).
+  const sources: PDFObject[] = [];
   const seen = new Set<number>(); // Track object numbers to avoid duplicates
   let imgIndex = startIndex;
 
@@ -1796,6 +1875,7 @@ function extractRasterImagesFromPdf(
           hash: hashBuffer(buf),
           renderMethod: "raster",
         });
+        sources.push(streamObj);
       } catch (err) {
         console.warn(
           `[extractRasterImagesFromPdf] Failed to extract image on ${pageId}:`,
@@ -1813,7 +1893,44 @@ function extractRasterImagesFromPdf(
   if (xobject.isNull() || !xobject.isDictionary()) return images;
 
   extractFromXObjectDict(xobject);
+  stampPixelDigestsOnCollisions(doc, images, sources);
   return images;
+}
+
+/**
+ * Set `pixelDigest` on each image that shares its native dimensions with at
+ * least one other image in the set. Draw-op→image matching keys on dimensions
+ * (see `stampRasterPlacementsFromOps`); when a page can see several same-size
+ * images, that match is ambiguous and needs pixel content to disambiguate.
+ *
+ * Unique-dimension images (the common case) get no digest and pay no decode
+ * cost. The digest hashes `toPixmap()` samples — the same basis the recorder
+ * uses in `hashImagePixels` — so an op's `contentDigest` compares equal to the
+ * matching image's `pixelDigest`.
+ */
+function stampPixelDigestsOnCollisions(
+  doc: PDFDocument,
+  images: ExtractedImage[],
+  sources: PDFObject[],
+): void {
+  const dimCounts = new Map<string, number>();
+  for (const img of images) {
+    const key = `${img.width}x${img.height}`;
+    dimCounts.set(key, (dimCounts.get(key) ?? 0) + 1);
+  }
+  for (let i = 0; i < images.length; i++) {
+    if ((dimCounts.get(`${images[i].width}x${images[i].height}`) ?? 0) < 2) continue;
+    try {
+      const image = doc.loadImage(sources[i]);
+      images[i].pixelDigest = hashImagePixels(image);
+      image.destroy();
+    } catch (err) {
+      console.warn(
+        `[extractRasterImagesFromPdf] Failed to digest ${images[i].imageId} on ${images[i].pageId}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
 }
 
 /**
@@ -3640,6 +3757,7 @@ export const _testing = {
   isPageLevelClip,
   parseStrokeInkExtent,
   computeGroupInkBbox,
+  stampRasterPlacementsFromOps,
   stampFigureSeqnosFromOps,
   restyleCoincidentVectorText,
 };

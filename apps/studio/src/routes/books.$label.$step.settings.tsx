@@ -1,8 +1,10 @@
 import { useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { X } from "lucide-react"
+import { SettingsRemountProvider } from "@/hooks/use-settings-remount"
 import { STAGES, isStageSlug } from "@/components/pipeline/stage-config"
 import { resolveSettingsStageSlug } from "@/components/pipeline/settings-routing"
+import { BookSettings } from "@/components/pipeline/stages/book/BookSettings"
 import { ExtractSettings } from "@/components/pipeline/stages/extract/ExtractSettings"
 import { ExtractLandingPage } from "@/components/pipeline/stages/extract/ExtractLandingPage"
 import { SectioningSettings } from "@/components/pipeline/stages/sectioning/SectioningSettings"
@@ -25,7 +27,7 @@ import { SpeechSettings } from "@/components/pipeline/stages/speech/SpeechSettin
 import { SpeechLandingPage } from "@/components/pipeline/stages/speech/SpeechLandingPage"
 import { ValidationSettings } from "@/components/pipeline/stages/ValidationSettings"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
-import { cn } from "@/lib/utils"
+import { StepHeaderBar } from "@/components/pipeline/components/StepHeaderBar"
 import { Trans } from "@lingui/react/macro"
 
 export const Route = createFileRoute("/books/$label/$step/settings")({
@@ -43,9 +45,9 @@ export function StepSettingsPage() {
   if (!stage) {
     return (
       <div className="flex flex-col h-full">
-        <div className="shrink-0 h-10 px-4 flex items-center gap-2 text-white bg-gray-700">
+        <StepHeaderBar color="bg-gray-700" className="gap-2">
           <span className="text-sm font-semibold"><Trans>Unknown stage</Trans></span>
-        </div>
+        </StepHeaderBar>
         <div className="p-4 max-w-2xl">
           <p className="text-sm text-muted-foreground">
             <Trans>Unknown step slug: {step}</Trans>
@@ -65,11 +67,12 @@ export function StepSettingsPage() {
   const stepLabel = stage.label
   const Icon = stage.icon
   const [headerTarget, setHeaderTarget] = useState<HTMLDivElement | null>(null)
+  const [discardNonce, setDiscardNonce] = useState(0)
 
   return (
     <div className="flex flex-col h-full">
       {/* Step header */}
-      <div className={cn("shrink-0 h-10 px-4 flex items-center gap-2 text-white", stage.color)}>
+      <StepHeaderBar color={stage.color} className="gap-2">
         <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20">
           <Icon className="w-3 h-3" />
         </div>
@@ -90,10 +93,11 @@ export function StepSettingsPage() {
         >
           <X className="w-4 h-4" />
         </Link>
-      </div>
+      </StepHeaderBar>
 
       {/* Settings content */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <SettingsRemountProvider value={() => setDiscardNonce((n) => n + 1)}>
+      <div key={discardNonce} className="flex-1 min-h-0 overflow-auto">
         {(() => {
           const settingsStage = resolveSettingsStageSlug(step)
 
@@ -123,6 +127,8 @@ export function StepSettingsPage() {
           }
 
           switch (settingsStage) {
+            case "book":
+              return <BookSettings bookLabel={label} tab={tab} />
             case "extract":
               return <ExtractSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
             case "sectioning":
@@ -156,6 +162,7 @@ export function StepSettingsPage() {
           }
         })()}
       </div>
+      </SettingsRemountProvider>
     </div>
   )
 }

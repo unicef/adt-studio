@@ -4,10 +4,9 @@ import { createHash } from "node:crypto"
 import { pathToFileURL } from "node:url"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel } from "@adt/types"
+import { isTtsExcluded, parseBookLabel } from "@adt/types"
 import {
   WebRenderingOutput,
-  PageSectioningOutput,
   type SpeechConfig,
   type TextCatalogOutput,
   type EasyReadOutput,
@@ -24,7 +23,11 @@ import {
   renderPageHtml,
   NAV_HTML,
   buildPreviewTailwindCss,
+  resolveTypographyCss,
+  resolveQuizPalette,
   buildGlossaryJson,
+  buildImageMap,
+  getGlossaryItemTextId,
   getBaseLanguage,
   normalizeLocale,
   renderQuizHtml,
@@ -39,6 +42,12 @@ import {
   convertLatexToMathml,
   isFixedLayoutBook,
   resolveReflowableFontChain,
+  getRenderSectioning,
+  readEditableActivities,
+  enabledEditableActivity,
+  renderEditableActivityHtml,
+  resolveEditableActivityImages,
+  DEFAULT_QUIZ_PALETTE,
 } from "@adt/pipeline"
 
 // ---------------------------------------------------------------------------
@@ -207,6 +216,17 @@ function buildTextsMap(
       for (const e of translated.entries) textsMap[e.id] = e.text
     }
   }
+
+  // The runtime reapplies this catalog when an activity opens. Convert here as
+  // well as during packaging; otherwise activity mode replaces rendered MathML
+  // with the raw LaTex source (for example, `\\frac{1}{2}`).
+  for (const [id, text] of Object.entries(textsMap)) {
+    const wrapped = convertLatexToMathml(`<span>${text}</span>`)
+    textsMap[id] = wrapped
+      .replace(/^<span>/, "")
+      .replace(/<\/span>$/, "")
+  }
+
   return textsMap
 }
 
@@ -224,6 +244,7 @@ function getWordTimestamps(
 
 function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
+  speechConfig?: SpeechConfig,
 ): Record<string, {
   timecodes: [null, {
     word_timestamps: Array<{ text: string; start: number; end: number }>
@@ -237,6 +258,7 @@ function buildRuntimeTimecodeMap(
 
   for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
     if (entry.words.length === 0) continue
+    if (isTtsExcluded(textId, speechConfig)) continue
     map[textId] = {
       timecodes: [
         null,
@@ -274,9 +296,7 @@ function buildSectionIdToPageIndex(storage: Storage): Map<string, number> {
     if (renderRow) {
       const parsed = WebRenderingOutput.safeParse(renderRow.data)
       if (parsed.success && parsed.data.sections.length > 0) {
-        const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        const structuringParsed = structuringRow ? PageSectioningOutput.safeParse(structuringRow.data) : null
-        const sectioning = structuringParsed?.success ? structuringParsed.data : undefined
+        const sectioning = getRenderSectioning(storage, page.pageId)
         const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
         for (const rs of sections) {
           const sectionMeta = sectioning?.sections?.[rs.sectionIndex]
@@ -318,11 +338,7 @@ function buildPagesManifest(storage: Storage): Array<{ section_id: string; href:
       const parsed = WebRenderingOutput.safeParse(renderRow.data)
       if (parsed.success && parsed.data.sections.length > 0) {
         // Get sectioning data for sectionIds and page numbers
-        const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        const structuringParsed = structuringRow
-          ? PageSectioningOutput.safeParse(structuringRow.data)
-          : null
-        const sectioning = structuringParsed?.success ? structuringParsed.data : undefined
+        const sectioning = getRenderSectioning(storage, page.pageId)
 
         // One entry per rendered section (stable by sectionIndex), skip pruned
         const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
@@ -408,9 +424,7 @@ function buildHeadingBasedToc(storage: Storage): Array<{ section_id: string; hre
     const parsed = WebRenderingOutput.safeParse(renderRow.data)
     if (!parsed.success || parsed.data.sections.length === 0) continue
 
-    const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-    const sectioningParsed = sectioningRow ? PageSectioningOutput.safeParse(sectioningRow.data) : null
-    const sectioning = sectioningParsed?.success ? sectioningParsed.data : undefined
+    const sectioning = getRenderSectioning(storage, page.pageId)
 
     const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
     for (const rs of sections) {
@@ -674,43 +688,79 @@ export function createAdtPreviewRoutes(
     return c.body(NAV_HTML)
   })
 
-  // /content/tailwind_output.css — rebuilt on every request (no cache, dev tool)
+  // /content/tailwind_output.css — generated from the current book fingerprint.
   // GET: generates CSS from DB content only.
   // POST: accepts { extraHtml } to include unsaved content (e.g., AI edits) in the scan.
+
+  const tailwindCssCache = new Map<string, string>()
+  const tailwindCssInFlight = new Map<string, Promise<string>>()
+  const TAILWIND_CACHE_CAP = 4
+
+  function rememberTailwindCss(key: string, css: string): void {
+    tailwindCssCache.delete(key)
+    tailwindCssCache.set(key, css)
+    if (tailwindCssCache.size > TAILWIND_CACHE_CAP) {
+      tailwindCssCache.delete(tailwindCssCache.keys().next().value as string)
+    }
+  }
 
   /** Collect all rendered HTML from the DB + optional extra HTML for Tailwind scanning. */
   async function generateTailwindCss(safeLabel: string, extraHtml?: string): Promise<string> {
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const pages = storage.getPages()
-      let allHtml = ""
-      for (const page of pages) {
-        const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        if (renderRow) {
-          const parsed = WebRenderingOutput.safeParse(renderRow.data)
-          if (parsed.success) {
-            for (const section of parsed.data.sections) {
-              allHtml += section.html + "\n"
+      const fingerprint = storage.getNodeVersionFingerprint()
+      const cacheKey = createHash("sha256")
+        .update(safeLabel)
+        .update("\0")
+        .update(JSON.stringify(fingerprint))
+        .update("\0")
+        .update(extraHtml ?? "")
+        .digest("hex")
+      const cached = tailwindCssCache.get(cacheKey)
+      if (cached != null) return cached
+
+      const pending = tailwindCssInFlight.get(cacheKey)
+      if (pending) return await pending
+
+      const build = (async () => {
+        const pages = storage.getPages()
+        let allHtml = ""
+        for (const page of pages) {
+          const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+          if (renderRow) {
+            const parsed = WebRenderingOutput.safeParse(renderRow.data)
+            if (parsed.success) {
+              for (const section of parsed.data.sections) {
+                allHtml += section.html + "\n"
+              }
             }
           }
         }
-      }
 
-      // Include quiz HTML so Tailwind scans quiz classes
-      const quizData = getQuizData(storage)
-      const catalog = await getTextCatalog(storage)
-      if (quizData?.quizzes) {
-        for (let i = 0; i < quizData.quizzes.length; i++) {
-          const quizId = `qz${pad3(i + 1)}`
-          allHtml += renderQuizHtml(quizData.quizzes[i], quizId, catalog) + "\n"
+        // Include quiz HTML so Tailwind scans quiz classes
+        const quizData = getQuizData(storage)
+        const catalog = await getTextCatalog(storage)
+        if (quizData?.quizzes) {
+          for (let i = 0; i < quizData.quizzes.length; i++) {
+            const quizId = `qz${pad3(i + 1)}`
+            allHtml += renderQuizHtml(quizData.quizzes[i], quizId, catalog) + "\n"
+          }
         }
+
+        // Include unsaved content (e.g., AI-edited section HTML) so new Tailwind classes
+        // are picked up before the edit is persisted to the DB.
+        if (extraHtml) allHtml += "\n" + extraHtml
+
+        const css = await buildPreviewTailwindCss(allHtml, webAssetsDir, resolveTypographyCss(storage))
+        rememberTailwindCss(cacheKey, css)
+        return css
+      })()
+      tailwindCssInFlight.set(cacheKey, build)
+      try {
+        return await build
+      } finally {
+        tailwindCssInFlight.delete(cacheKey)
       }
-
-      // Include unsaved content (e.g., AI-edited section HTML) so new Tailwind classes
-      // are picked up before the edit is persisted to the DB.
-      if (extraHtml) allHtml += "\n" + extraHtml
-
-      return await buildPreviewTailwindCss(allHtml, webAssetsDir)
     } finally {
       storage.close()
     }
@@ -750,14 +800,45 @@ export function createAdtPreviewRoutes(
   // /content/i18n/:lang/glossary.json — Glossary data
   app.get("/books/:label/adt-preview/content/i18n/:lang/glossary.json", async (c) => {
     const lang = c.req.param("lang")
-    const glossaryJson = await withStorage(c.req.param("label"), async (storage) => {
+    const glossaryJson = await withStorage(c.req.param("label"), async (storage, _safeLabel, bookDir) => {
       const language = getBookLanguage(storage)
       const sourceLanguage = getBaseLanguage(language)
       const catalog = await getTextCatalog(storage)
       const glossary = getGlossary(storage)
       const textsMap = buildTextsMap(storage, lang, sourceLanguage, catalog)
       const baseLang = getBaseLanguage(lang)
-      return buildGlossaryJson(glossary, catalog, textsMap, baseLang === sourceLanguage)
+
+      // Mirror packaging: term pictures resolve through the images proxy
+      // (`images/<filename>`), sign-language videos through the video route
+      // (`content/i18n/<lang>/video/sl_<glId>.<ext>`, resolved back to the
+      // stored file by sectionId).
+      const imageMap = buildImageMap(path.join(bookDir, "images"))
+      const imageHrefs = new Map<string, string>()
+      for (const item of glossary?.items ?? []) {
+        if (item.pruned || !item.imageId || imageHrefs.has(item.imageId)) continue
+        const filename = imageMap.get(item.imageId)
+        if (filename) imageHrefs.set(item.imageId, `images/${filename}`)
+      }
+      const glossaryTextIds = new Set(
+        (glossary?.items ?? [])
+          .map((item, i) => (item.pruned ? null : getGlossaryItemTextId(item, i)))
+          .filter((id): id is string => id !== null),
+      )
+      const videoHrefs = new Map<string, string>()
+      for (const video of storage.getSignLanguageVideos()) {
+        if (!video.sectionId || !glossaryTextIds.has(video.sectionId)) continue
+        const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
+        videoHrefs.set(video.sectionId, `content/i18n/${lang}/video/sl_${video.sectionId}${ext}`)
+      }
+
+      return buildGlossaryJson(
+        glossary,
+        catalog,
+        textsMap,
+        baseLang === sourceLanguage,
+        imageHrefs,
+        videoHrefs,
+      )
     })
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
@@ -767,7 +848,8 @@ export function createAdtPreviewRoutes(
   // /content/i18n/:lang/audios.json — Audio file mapping
   app.get("/books/:label/adt-preview/content/i18n/:lang/audios.json", (c) => {
     const lang = normalizeLocale(c.req.param("lang"))
-    const audioMap = withStorage(c.req.param("label"), (storage) => {
+    const audioMap = withStorage(c.req.param("label"), (storage, safeLabel) => {
+      const speechConfig = loadBookConfig(safeLabel, booksDir, configPath).speech
       const legacyLang = lang.replace("-", "_")
       const ttsRow =
         storage.getLatestNodeData("tts", lang) ??
@@ -775,7 +857,10 @@ export function createAdtPreviewRoutes(
       const ttsData = ttsRow?.data as TTSOutput | undefined
       const map: Record<string, string> = {}
       if (ttsData?.entries) {
-        for (const entry of ttsData.entries) map[entry.textId] = entry.fileName
+        for (const entry of ttsData.entries) {
+          if (isTtsExcluded(entry.textId, speechConfig)) continue
+          map[entry.textId] = entry.fileName
+        }
       }
       return map
     })
@@ -791,7 +876,7 @@ export function createAdtPreviewRoutes(
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const timecodes = bookConfig.speech?.word_highlighting === true
       ? withStorage(c.req.param("label"), (storage) =>
-          buildRuntimeTimecodeMap(getWordTimestamps(storage, lang))
+          buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), bookConfig.speech)
         )
       : {}
     setNoStoreHeaders(c)
@@ -934,7 +1019,11 @@ export function createAdtPreviewRoutes(
         const quiz = quizData.quizzes[quizIndex]
         const catalog = await getTextCatalog(storage)
 
-        const quizHtmlContent = renderQuizHtml(quiz, pageId, catalog)
+        const quizPalette = (config.quiz_generation?.match_book_style ?? true)
+          ? resolveQuizPalette(storage)
+          : null
+        const quizStyle = quizPalette ? { palette: quizPalette } : null
+        const quizHtmlContent = renderQuizHtml(quiz, pageId, catalog, quizStyle)
         // Determine page index from the manifest
       const manifest = buildPagesManifest(storage)
       const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)
@@ -980,12 +1069,9 @@ export function createAdtPreviewRoutes(
       }
 
       // Get sectioning to look up sectionId → sectionIndex mapping
-      const sectioningRow = storage.getLatestNodeData("page-sectioning", ownerPageId)
-      const sectioningParsed = sectioningRow
-        ? PageSectioningOutput.safeParse(sectioningRow.data)
-        : null
-      const resolvedIndex = sectioningParsed?.success
-        ? sectioningParsed.data.sections.findIndex((s) => s.sectionId === pageId)
+      const sectioning = getRenderSectioning(storage, ownerPageId)
+      const resolvedIndex = sectioning
+        ? sectioning.sections.findIndex((s) => s.sectionId === pageId)
         : -1
       const targetSectionIndex = resolvedIndex >= 0 ? resolvedIndex : fallbackSectionIndex
       const renderedSection = parsed.data.sections.find((s) => s.sectionIndex === targetSectionIndex)
@@ -999,28 +1085,54 @@ export function createAdtPreviewRoutes(
       const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)
       const previewBundleVersion = getPreviewContentVersion(storage, webAssetsDir)
 
-      const sectionMeta = sectioningParsed?.success
-        ? sectioningParsed.data.sections[targetSectionIndex]
+      const sectionMeta = sectioning
+        ? sectioning.sections[targetSectionIndex]
         : undefined
-      const preferredImageAltMap = buildPreferredImageAltMap(storage, ownerPageId, sectionMeta)
-      const decorativeImageIds = buildDecorativeImageIdSet(storage, ownerPageId)
-      const { html: previewSectionHtml } = rewriteImageUrls(
-        renderedSection.html,
-        label,
-        new Map<string, string>(),
-        preferredImageAltMap,
-        decorativeImageIds,
+
+      // Step-by-step override: an enabled editable activity replaces the
+      // stored LLM HTML with the stepper shell, matching packaged output.
+      const stepperActivity = enabledEditableActivity(
+        readEditableActivities(storage, ownerPageId),
+        targetSectionIndex,
+        renderedSection.sectionType,
       )
 
-      const previewHasMath = /(?:\\\(|\\\)|\\\[|\\\]|\$[^$]+\$|\\frac|\\sqrt|\\sum|\\int|\\text\{|\\hat\{|\\circ)/.test(previewSectionHtml)
+      const preferredImageAltMap = buildPreferredImageAltMap(storage, ownerPageId, sectionMeta)
+      const decorativeImageIds = buildDecorativeImageIdSet(storage, ownerPageId)
+      let previewSectionHtml: string
+      if (stepperActivity) {
+        const stepperPalette =
+          ((config.quiz_generation?.match_book_style ?? true)
+            ? resolveQuizPalette(storage)
+            : null) ?? DEFAULT_QUIZ_PALETTE
+        // Empty image map (preview serves stored srcs directly) but the same
+        // curated alt/decorative handling as packaged output.
+        const resolved = resolveEditableActivityImages(stepperActivity, new Map(), {
+          preferredAltMap: preferredImageAltMap,
+          decorativeImageIds,
+        })
+        previewSectionHtml = renderEditableActivityHtml(resolved.activity, {
+          palette: stepperPalette,
+        })
+      } else {
+        ;({ html: previewSectionHtml } = rewriteImageUrls(
+          renderedSection.html,
+          label,
+          new Map<string, string>(),
+          preferredImageAltMap,
+          decorativeImageIds,
+        ))
+      }
+
+      const previewHasMath = !stepperActivity && /(?:\\\(|\\\)|\\\[|\\\]|\$[^$]+\$|\\frac|\\sqrt|\\sum|\\int|\\text\{|\\hat\{|\\circ)/.test(previewSectionHtml)
 
       const html = renderPageHtml({
-        content: convertLatexToMathml(previewSectionHtml),
+        content: stepperActivity ? previewSectionHtml : convertLatexToMathml(previewSectionHtml),
         language,
         sectionId: pageId,
         pageTitle: title,
         pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,
-        activityAnswers: renderedSection.activityAnswers,
+        activityAnswers: stepperActivity ? undefined : renderedSection.activityAnswers,
         hasMath: previewHasMath,
         bundleVersion: previewBundleVersion,
         applyBodyBackground,

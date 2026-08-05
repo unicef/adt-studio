@@ -1,5 +1,12 @@
 import Color from "color";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+} from "react";
 import { Check, Search } from "lucide-react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@/lib/utils";
@@ -25,7 +32,7 @@ import {
   hexFromTailwindName,
   tailwindNameFromHex,
 } from "../tailwind-palette";
-import { useElementContext } from "../element-context";
+import { useOptionalElementContext } from "../element-context";
 
 interface ColorPickerProps {
   /** Active color — either a hex string (`#abc123`) or a Tailwind token (`violet-500`). */
@@ -34,6 +41,10 @@ interface ColorPickerProps {
   /** Optional custom popover trigger. Defaults to a small swatch button. */
   children?: ReactNode;
   align?: "start" | "center" | "end";
+  /** Hide the alpha slider and `transparent` affordances and always emit
+   *  6-digit hex — for consumers whose value can't carry transparency
+   *  (e.g. the activity theme accent). */
+  opaqueOnly?: boolean;
 }
 
 const TRANSPARENT_PATTERN =
@@ -59,9 +70,12 @@ export function ColorPicker({
   onChange,
   children,
   align = "end",
+  opaqueOnly = false,
 }: ColorPickerProps) {
   const hex = isHex(value) ? value : (hexFromTailwindName(value) ?? "#000000");
-  const { dataId } = useElementContext();
+  // Optional so the picker can be reused outside the style-editor sidebar
+  // (e.g. the step-by-step activity panel), where no element is selected.
+  const dataId = useOptionalElementContext()?.dataId ?? null;
   const [open, setOpen] = useState(false);
 
   // Close when the user picks a different element in the preview — clicks
@@ -81,7 +95,7 @@ export function ColorPicker({
         collisionPadding={12}
         className="w-68 p-0 rounded-xl overflow-hidden border border-border/60 shadow-xl"
       >
-        <ColorPickerBody value={hex} onChange={onChange} />
+        <ColorPickerBody value={hex} onChange={onChange} opaqueOnly={opaqueOnly} />
       </PopoverContent>
     </Popover>
   );
@@ -90,9 +104,11 @@ export function ColorPicker({
 function ColorPickerBody({
   value,
   onChange,
+  opaqueOnly,
 }: {
   value: string;
   onChange: (next: string) => void;
+  opaqueOnly: boolean;
 }) {
   const initialTab = tailwindNameFromHex(value) ? "variables" : "custom";
   const [tab, setTab] = useState<"custom" | "variables">(initialTab);
@@ -116,11 +132,11 @@ function ColorPickerBody({
         </div>
 
         <TabsContent value="custom" className="px-2.5 pb-2.5 mt-2.5">
-          <CustomPanel value={value} onChange={onChange} />
+          <CustomPanel value={value} onChange={onChange} opaqueOnly={opaqueOnly} />
         </TabsContent>
 
         <TabsContent value="variables" className="mt-2.5">
-          <VariablesPanel value={value} onChange={onChange} />
+          <VariablesPanel value={value} onChange={onChange} opaqueOnly={opaqueOnly} />
         </TabsContent>
       </Tabs>
     </div>
@@ -130,9 +146,11 @@ function ColorPickerBody({
 function CustomPanel({
   value,
   onChange,
+  opaqueOnly,
 }: {
   value: string;
   onChange: (next: string) => void;
+  opaqueOnly: boolean;
 }) {
   return (
     <PickerRoot
@@ -142,20 +160,20 @@ function CustomPanel({
         // Use 8-digit hex when alpha < 1, plain 6-digit otherwise. Lets the
         // alpha slider round-trip without losing transparency, and matches
         // the keyword `transparent` from the Variables tab.
-        const next = a < 1 ? c.hexa() : c.hex();
+        const next = !opaqueOnly && a < 1 ? c.hexa() : c.hex();
         onChange(next);
       }}
       className="gap-2"
     >
       <PickerSelection className="h-32 rounded-md" />
       <PickerHue />
-      <PickerAlpha />
+      {!opaqueOnly && <PickerAlpha />}
       <div className="flex gap-2">
         <PickerEyeDropper />
         <PickerOutput />
         <PickerFormat />
       </div>
-      <TransparentButton onClick={() => onChange("transparent")} />
+      {!opaqueOnly && <TransparentButton onClick={() => onChange("transparent")} />}
     </PickerRoot>
   );
 }
@@ -163,9 +181,11 @@ function CustomPanel({
 function VariablesPanel({
   value,
   onChange,
+  opaqueOnly,
 }: {
   value: string;
   onChange: (next: string) => void;
+  opaqueOnly: boolean;
 }) {
   const { t } = useLingui();
   const [query, setQuery] = useState("");
@@ -184,9 +204,12 @@ function VariablesPanel({
   }, [lowered]);
 
   const filteredKeywords = useMemo(() => {
-    if (!lowered) return KEYWORD_COLORS;
-    return KEYWORD_COLORS.filter((k) => k.name.toLowerCase().includes(lowered));
-  }, [lowered]);
+    const keywords = opaqueOnly
+      ? KEYWORD_COLORS.filter((k) => k.hex !== "transparent")
+      : KEYWORD_COLORS;
+    if (!lowered) return keywords;
+    return keywords.filter((k) => k.name.toLowerCase().includes(lowered));
+  }, [lowered, opaqueOnly]);
 
   const matchedName = tailwindNameFromHex(value);
 
@@ -334,24 +357,34 @@ function TransparentButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function SwatchButton({ color }: { color: string }) {
+// Must forward the ref and spread injected props: when no custom trigger is
+// passed, `<PopoverTrigger asChild>` renders this as the trigger and needs to
+// attach its ref + onClick here. Dropping them (the previous bug) left the
+// swatch inert, so the picker never opened (e.g. the activity editor's accent).
+const SwatchButton = forwardRef<
+  HTMLButtonElement,
+  { color: string } & ComponentPropsWithoutRef<"button">
+>(function SwatchButton({ color, style, ...props }, ref) {
   return (
     <button
+      ref={ref}
       type="button"
+      {...props}
       className="relative inline-block h-5 w-5 shrink-0 overflow-hidden rounded border border-border/60 cursor-pointer"
       aria-label={color}
-      style={
-        color === "transparent"
+      style={{
+        ...(color === "transparent"
           ? {
               backgroundImage: TRANSPARENT_PATTERN,
               backgroundSize: "6px 6px",
               backgroundPosition: "0 0, 3px 3px",
             }
-          : { backgroundColor: color }
-      }
+          : { backgroundColor: color }),
+        ...style,
+      }}
     />
   );
-}
+});
 
 function isHex(s: string): boolean {
   // 6-digit (#abcdef) or 8-digit (#abcdefab — RGBA) hex.

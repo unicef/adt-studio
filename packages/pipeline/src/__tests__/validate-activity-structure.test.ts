@@ -217,6 +217,161 @@ describe("validateActivityStructure — multi-select", () => {
 })
 
 // ---------------------------------------------------------------------------
+// Underline text
+// ---------------------------------------------------------------------------
+
+describe("validateActivityStructure — underline text", () => {
+  it("accepts a fully tokenized word-level underline-text section", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">Mimi</span>
+            <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1">ninacheza</span>
+            <span class="activity-underline-option" data-activity-item="item-3" data-question-group="question-group-1">mpira</span>.
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs).toEqual([])
+  })
+
+  it("flags a word-level group that leaves words unselectable", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">Mimi</span>
+            ninacheza mpira.
+          </span>
+        </p>
+      </section>
+    `)
+    expect(
+      errs.some((e) => e.includes("unselectable") && e.includes('"ninacheza"') && e.includes('"mpira"')),
+    ).toBe(true)
+  })
+
+  it("does not require tokenizing number markers or example labels", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">(i)
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">Wewe</span>
+            <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1">unaimba</span>
+            <span class="activity-underline-option" data-activity-item="item-3" data-question-group="question-group-1">vizuri</span>.
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs).toEqual([])
+  })
+
+  it("does not apply word-level tokenization to sentence-level groups", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">She reads books.</span>
+            <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1">She read books.</span>
+            Pick the correct sentence.
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs).toEqual([])
+  })
+
+  it("flags a word-level group whose segments do not share a wrapper below the section", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p><span data-id="text-1"><span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">She</span></span></p>
+        <p><span data-id="text-2"><span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1">reads</span></span></p>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("do not share a wrapper"))).toBe(true)
+  })
+
+  it("flags a word-level group whose wrapper also contains other groups", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">She</span>
+            <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-2">reads</span>
+            <span class="activity-underline-option" data-activity-item="item-3" data-question-group="question-group-1">books</span>
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("also contains segments of other"))).toBe(true)
+  })
+
+  it("flags a section with no selectable underline options", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p><span data-id="text-1">Mimi ninacheza mpira.</span></p>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("activity-underline-option"))).toBe(true)
+  })
+
+  it("flags a selectable segment missing data-activity-item", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-question-group="question-group-1">Mimi</span>
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("data-activity-item"))).toBe(true)
+  })
+
+  it("flags a selectable segment missing data-question-group", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1">Mimi</span>
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("data-question-group"))).toBe(true)
+  })
+
+  it("flags duplicate data-activity-item values", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">Mimi</span>
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">sisi</span>
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("appears 2 times"))).toBe(true)
+  })
+
+  it("flags an empty selectable segment as an unnamed control", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">Mimi</span>
+            <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1"></span>
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("has no text"))).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // True/false
 // ---------------------------------------------------------------------------
 
@@ -318,6 +473,7 @@ describe("validateActivityStructure — true/false", () => {
     `)
     expect(errs).toEqual([])
   })
+
 })
 
 // ---------------------------------------------------------------------------
@@ -417,5 +573,185 @@ describe("validateActivityStructure — non-activity sections", () => {
       </section>
     `)
     expect(errs).toEqual([])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Custom activities (activity_custom_*) — accessibility floor
+// ---------------------------------------------------------------------------
+
+const WELL_FORMED_CUSTOM = `
+  <section data-section-type="activity_custom_drag_drop" aria-labelledby="h1">
+    <h3 id="h1">Sort the items</h3>
+    <div data-activity-target="t1" role="group" tabindex="0" aria-label="Bucket one">
+      <div class="drop-zone"></div>
+    </div>
+    <div data-activity-item="i1" role="button" tabindex="0"><span>Item one</span></div>
+    <div data-activity-status role="status" aria-live="polite"></div>
+  </section>`
+
+describe("validateActivityStructure — custom activities", () => {
+  it("accepts a fully accessible custom activity", () => {
+    expect(check(WELL_FORMED_CUSTOM)).toEqual([])
+  })
+
+  it("flags a drop zone with no role (the real pg011 gap)", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_drag_drop" aria-labelledby="h1">
+        <h3 id="h1">Sort</h3>
+        <div data-activity-target="target-ai" tabindex="0" aria-label="AI drop box"></div>
+        <div data-activity-item="i1" role="button" tabindex="0">AI</div>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs.some((e) => e.includes("target-ai") && e.includes("no role"))).toBe(true)
+  })
+
+  it("flags a drop zone with no accessible label", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_jigsaw" aria-labelledby="h1">
+        <h3 id="h1">Puzzle</h3>
+        <div data-activity-target="slot-1" role="group" tabindex="0"></div>
+        <div data-activity-item="i1" role="button" tabindex="0">Tile</div>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs.some((e) => e.includes("slot-1") && e.includes("accessible label"))).toBe(true)
+  })
+
+  it("flags a non-focusable drop zone", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_jigsaw" aria-labelledby="h1">
+        <h3 id="h1">Puzzle</h3>
+        <div data-activity-target="slot-1" role="group" aria-label="Top left"></div>
+        <div data-activity-item="i1" role="button" tabindex="0">Tile</div>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs.some((e) => e.includes("slot-1") && e.includes("keyboard-focusable"))).toBe(true)
+  })
+
+  it("flags a card with no accessible name and a card that isn't keyboard-operable", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_jigsaw" aria-labelledby="h1">
+        <h3 id="h1">Puzzle</h3>
+        <div data-activity-target="slot-1" role="group" tabindex="0" aria-label="Top left"></div>
+        <div data-activity-item="i1"></div>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs.some((e) => e.includes("i1") && e.includes("no accessible name"))).toBe(true)
+    expect(errs.some((e) => e.includes("i1") && e.includes("operable by keyboard"))).toBe(true)
+  })
+
+  it("accepts a card that IS an image, named by its own alt", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_jigsaw" aria-labelledby="h1">
+        <h3 id="h1">Puzzle</h3>
+        <div data-activity-target="slot-1" role="group" tabindex="0" aria-label="Top left"></div>
+        <img data-activity-item="i1" alt="Puzzle tile A" role="button" tabindex="0">
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs.some((e) => e.includes("i1") && e.includes("no accessible name"))).toBe(false)
+  })
+
+  it("still flags an image card whose alt is empty", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_jigsaw" aria-labelledby="h1">
+        <h3 id="h1">Puzzle</h3>
+        <div data-activity-target="slot-1" role="group" tabindex="0" aria-label="Top left"></div>
+        <img data-activity-item="i1" alt="  " role="button" tabindex="0">
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs.some((e) => e.includes("i1") && e.includes("no accessible name"))).toBe(true)
+  })
+
+  it("accepts a native <button> card with no explicit role/tabindex", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_connect_dots" aria-labelledby="h1">
+        <h3 id="h1">Connect</h3>
+        <button data-activity-item="dot-1" aria-pressed="false">Dot 1</button>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs).toEqual([])
+  })
+
+  it("accepts a card named only by its image alt", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_jigsaw" aria-labelledby="h1">
+        <h3 id="h1">Puzzle</h3>
+        <div data-activity-target="slot-1" role="group" tabindex="0" aria-label="Top left"></div>
+        <div data-activity-item="i1" role="button" tabindex="0"><img alt="Puzzle tile A"></div>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs).toEqual([])
+  })
+
+  it("flags a section with no accessible name", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_drag_drop">
+        <div data-activity-target="t1" role="group" tabindex="0" aria-label="Bucket"></div>
+        <div data-activity-item="i1" role="button" tabindex="0">X</div>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs.some((e) => e.includes("<section> has no accessible name"))).toBe(true)
+  })
+
+  it("flags a custom activity with no live region", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_drag_drop" aria-labelledby="h1">
+        <h3 id="h1">Sort</h3>
+        <div data-activity-target="t1" role="group" tabindex="0" aria-label="Bucket"></div>
+        <div data-activity-item="i1" role="button" tabindex="0">X</div>
+      </section>`)
+    expect(errs.some((e) => e.includes("no live region"))).toBe(true)
+  })
+
+  it("flags an unlabelled crossword input but accepts an aria-labelled one", () => {
+    const bad = check(`
+      <section data-section-type="activity_custom_crossword" aria-labelledby="h1">
+        <h3 id="h1">Crossword</h3>
+        <input maxlength="1" placeholder="A" />
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(bad.some((e) => e.includes("no accessible label"))).toBe(true)
+
+    const good = check(`
+      <section data-section-type="activity_custom_crossword" aria-labelledby="h1">
+        <h3 id="h1">Crossword</h3>
+        <input maxlength="1" aria-label="A1 letter 1" />
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(good).toEqual([])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Ordered sequence
+// ---------------------------------------------------------------------------
+
+describe("validateActivityStructure — ordering", () => {
+  it("accepts a complete ordering permutation", () => {
+    expect(check(`
+      <section data-section-type="activity_ordering" data-correct-order="item-2,item-1">
+        <ol data-activity-order-list>
+          <li data-activity-item="item-1">One</li>
+          <li data-activity-item="item-2">Two</li>
+        </ol>
+      </section>
+    `)).toEqual([])
+  })
+
+  it("surfaces ordering-contract errors to rendering retries", () => {
+    const errors = check(`
+      <section data-section-type="activity_ordering" data-correct-order="item-99">
+        <ol data-activity-order-list>
+          <li data-activity-item="item-1">Only item</li>
+        </ol>
+      </section>
+    `)
+
+    expect(errors).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining("at least two"),
+        expect.stringContaining("every data-activity-item"),
+      ]),
+    )
   })
 })

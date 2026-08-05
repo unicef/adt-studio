@@ -1,13 +1,24 @@
 const { spawnSync } = require("node:child_process");
 const path = require("node:path");
 
+// TODO: replace to use enviroment variables
 const TRUSTED_SIGNING_KEYSTORE = "eus.codesigning.azure.net";
 // <TrustedSigningAccount>/<CertificateProfile> — see Azure Portal.
-const TRUSTED_SIGNING_ALIAS = "NEES/neespnld";
+const TRUSTED_SIGNING_ALIAS = "adtnees/adtnees";
 
 module.exports = async function (configuration) {
-  if (process.env.SKIP_NOTARIZE === "true") {
-    console.warn(`SKIP_NOTARIZE=true → skipping signature for ${configuration.path}`);
+  const skipTargets = new Set(
+    (process.env.SKIP_NOTARIZE || "")
+      .toUpperCase()
+      .split(/[\s,]+/)
+      .filter(Boolean),
+  );
+  if (
+    skipTargets.has("ALL") ||
+    skipTargets.has("TRUE") ||
+    skipTargets.has("WIN")
+  ) {
+    console.warn(`Windows signing skipped for ${configuration.path}`);
     return;
   }
 

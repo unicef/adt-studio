@@ -8,7 +8,11 @@ let region: HTMLElement | null = null
 let pendingAnnounce: ReturnType<typeof setTimeout> | null = null
 
 function ensureRegion(): HTMLElement {
-  if (region) return region
+  // A cached region can be detached when the surrounding DOM is replaced
+  // (page swap in the SPA shell); announcements to a detached node are
+  // silently lost, so re-resolve or re-create in that case.
+  if (region && region.isConnected) return region
+  region = null
   const existing = document.getElementById("sr-announcement")
   if (existing) {
     region = existing

@@ -134,4 +134,16 @@ describe("buildMetadataConfig", () => {
     expect(config.modelId).toBe("openai:gpt-5.4")
     expect(config.maxRetries).toBe(5)
   })
+
+  it("uses the configured global default model", () => {
+    const appConfig: AppConfig = {
+      role_types: { heading: "Heading" },
+      structure_types: { paragraph: "Paragraph" },
+      default_model: "anthropic:claude-sonnet-4-6",
+    }
+
+    expect(buildMetadataConfig(appConfig).modelId).toBe(
+      "anthropic:claude-sonnet-4-6",
+    )
+  })
 })

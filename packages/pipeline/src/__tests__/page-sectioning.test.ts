@@ -24,6 +24,7 @@ function makeCtx(overrides?: {
   roleKeys?: string[]
   sectionTypeKeys?: string[]
   availableImageIds?: string[]
+  mode?: "page" | "dynamic"
 }) {
   return {
     structureKeys: new Set(
@@ -40,6 +41,7 @@ function makeCtx(overrides?: {
       overrides?.sectionTypeKeys ?? ["text_only", "images_only"]
     ),
     availableImageIds: new Set(overrides?.availableImageIds ?? []),
+    mode: overrides?.mode,
   }
 }
 
@@ -124,6 +126,35 @@ describe("buildPageSectioningConfig", () => {
     expect(config.disabledSectionTypes).toEqual(["images_only"])
   })
 
+  it("hides all activity_* section types when generate_activities is false", () => {
+    const appConfig: AppConfig = {
+      role_types: { text: "Body" },
+      structure_types: { paragraph: "Paragraph" },
+      section_types: {
+        text_only: "Text only",
+        activity_multiple_choice: "MCQ",
+        activity_other: "Other activity",
+      },
+      generate_activities: false,
+    }
+
+    const config = buildPageSectioningConfig(appConfig)
+    // activity_* types (including activity_other, which has no render strategy)
+    // are excluded by the prefix rule — not a hand-maintained list.
+    expect(config.sectionTypes).toEqual([{ key: "text_only", description: "Text only" }])
+  })
+
+  it("keeps activity types when generate_activities is not false", () => {
+    const appConfig: AppConfig = {
+      role_types: { text: "Body" },
+      structure_types: { paragraph: "Paragraph" },
+      section_types: { text_only: "Text only", activity_multiple_choice: "MCQ" },
+    }
+
+    const config = buildPageSectioningConfig(appConfig)
+    expect(config.sectionTypes.map((t) => t.key)).toEqual(["text_only", "activity_multiple_choice"])
+  })
+
   it("carries through pruned_role_types and pruned_section_types", () => {
     const appConfig: AppConfig = {
       role_types: { page_number: "Page number", text: "Body" },
@@ -191,6 +222,36 @@ describe("buildPageSectioningConfig", () => {
 // ── runValidator ────────────────────────────────────────────────
 
 describe("runValidator", () => {
+  it("requires exactly one section in page mode", () => {
+    const result = runValidator(
+      {
+        reasoning: "Split the page",
+        sections: [
+          {
+            section_type: "text_only",
+            background_color: "#fff",
+            text_color: "#000",
+            page_number: 1,
+            nodes: [{ role: "text", text: "First" }],
+          },
+          {
+            section_type: "text_only",
+            background_color: "#fff",
+            text_color: "#000",
+            page_number: 1,
+            nodes: [{ role: "text", text: "Second" }],
+          },
+        ],
+      },
+      makeCtx({ mode: "page" }),
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      "Page mode requires exactly one section, but the response contains 2. Merge all page content into one section."
+    )
+  })
+
   it("accepts a simple section with a leaf-only node", () => {
     const result = runValidator(
       {
@@ -799,6 +860,63 @@ describe("sectionPage", () => {
     expect(output.sections[0].nodes[0].children?.[0].text).toBe("Hello")
   })
 
+  it("wires page mode into the initial generation validator", async () => {
+    const invalidTree = {
+      reasoning: "Split the page",
+      sections: [
+        {
+          section_type: "text_only",
+          background_color: "#fff",
+          text_color: "#000",
+          page_number: 1,
+          nodes: [{ role: "text", text: "First" }],
+        },
+        {
+          section_type: "text_only",
+          background_color: "#fff",
+          text_color: "#000",
+          page_number: 1,
+          nodes: [{ role: "text", text: "Second" }],
+        },
+      ],
+    }
+    const validTree = {
+      ...invalidTree,
+      reasoning: "Merged the page",
+      sections: invalidTree.sections.slice(0, 1),
+    }
+
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        if (opts.prompt === "page_sectioning") {
+          expect(opts.validate?.(invalidTree, opts.context ?? {})).toEqual({
+            valid: false,
+            errors: [
+              "Page mode requires exactly one section, but the response contains 2. Merge all page content into one section.",
+            ],
+          })
+          return { object: validTree as T }
+        }
+        return {
+          object: {
+            approved: true,
+            reasoning: "Looks good.",
+            nodes_and_sections: null,
+          } as T,
+        }
+      },
+    }
+
+    const output = await sectionPage(
+      makeInput(),
+      makeConfig({ mode: "page" }),
+      fakeLlm,
+    )
+
+    expect(output.reasoning).toBe("Merged the page")
+    expect(output.sections).toHaveLength(1)
+  })
+
   it("adopts reviewer's replacement tree when reviewer rejects then proposes valid replacement", async () => {
     const initialTree = {
       reasoning: "Initial draft",
@@ -1147,6 +1265,36 @@ describe("applyAutoRepairs", () => {
     }
     expect(para.children).toHaveLength(1)
     expect(para.children[0]).toEqual({ role: "image", image_id: "pg001_im001" })
+  })
+
+  it("canonicalizes the invented \"boxed_text\" structure to \"panel\" (at any depth)", () => {
+    const raw = {
+      reasoning: "",
+      sections: [
+        {
+          section_type: "text_only",
+          background_color: "#fff",
+          text_color: "#000",
+          page_number: 1,
+          nodes: [
+            { structure: "boxed_text", children: [{ role: "text", text: "Note." }] },
+            {
+              structure: "group",
+              children: [
+                { structure: "boxed_text", children: [{ role: "text", text: "Tip." }] },
+              ],
+            },
+          ],
+        },
+      ],
+    }
+    applyAutoRepairs(raw)
+    const nodes = raw.sections[0].nodes as Array<{
+      structure: string
+      children: Array<{ structure?: string }>
+    }>
+    expect(nodes[0].structure).toBe("panel")
+    expect(nodes[1].children[0].structure).toBe("panel")
   })
 })
 
