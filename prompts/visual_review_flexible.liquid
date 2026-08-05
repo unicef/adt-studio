@@ -13,7 +13,7 @@ The screenshots show a **single section**, which is typically only a SUBSET of t
 - **Locate the corresponding region** in the original page image that matches this section's content (by matching the text, images, and headings present in the rendered screenshot). Use that region as a reference for what content belongs here — NOT for what it should look like.
 - The rendered section will typically occupy the full viewport width, even if in the original it only takes up a column, a strip, or a small portion of the page. This is correct and expected — do NOT reject for this.
 - Other content visible in the original page image (other sections, headers, footers, page numbers, surrounding text, neighboring images) is NOT part of this section and MUST NOT appear in the rendering. Do NOT flag missing content that belongs to a different section.
-{% if user_instructions != "" %}
+{% if user_instructions != blank %}
 ## USER INSTRUCTIONS (HIGHEST PRIORITY)
 This section was re-rendered with explicit instructions from the user:
 

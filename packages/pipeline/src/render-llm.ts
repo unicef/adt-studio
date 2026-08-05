@@ -45,6 +45,9 @@ export async function renderSectionLlm(
   const isActivity = config.renderType === "activity"
   const taskType = isActivity ? "activity-rendering" : "web-rendering"
   const { section, context: renderContext } = input
+  // Trim once: a whitespace-only prompt must read as "no instructions" to both
+  // the prompt-selection branch below and the `user_instructions` template guard.
+  const userInstructions = (input.userPrompt ?? "").trim()
 
   // Page images for content merged in from other pages — the prompt shows
   // them after the hosting page's image so the LLM doesn't force-match all
@@ -69,7 +72,7 @@ export async function renderSectionLlm(
     typography: (input.typography ?? DEFAULT_TYPOGRAPHY).styles,
     viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
-    user_instructions: input.userPrompt ?? "",
+    user_instructions: userInstructions,
   }
 
   const result = await llmModel.generateObject<{
@@ -97,8 +100,7 @@ export async function renderSectionLlm(
   // Optional: visual refinement loop — screenshot the HTML and ask an LLM to review
   if (visualRefinement && config.visualRefinement?.enabled) {
     const vr = config.visualRefinement
-    const hasUserPrompt = (input.userPrompt ?? "").trim().length > 0
-    const reviewPromptName = hasUserPrompt ? USER_DIRECTED_REVIEW_PROMPT : vr.promptName
+    const reviewPromptName = userInstructions ? USER_DIRECTED_REVIEW_PROMPT : vr.promptName
     const imagesForScreenshot = new Map<string, { base64: string }>()
     for (const img of renderContext.image_refs) {
       if (img.image_base64) {
@@ -131,7 +133,7 @@ export async function renderSectionLlm(
         nodes: renderContext.nodes,
         leaf_texts: renderContext.leaf_texts,
         has_merged_content: sourcePages.length > 0,
-        user_instructions: input.userPrompt ?? "",
+        user_instructions: userInstructions,
       },
       originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",
       firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",
