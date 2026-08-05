@@ -2004,7 +2004,17 @@ export function createPageRoutes(
         rewriteRenderingSectionIds(shifted, newSections)
         updatedRendering = { sections: shifted }
       }
-      const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
+      // Cloning rebuilds the rendering to match: indexes shift, the source's HTML
+      // is copied for the clone, and container and section ids are rewritten. No
+      // LLM is involved and nothing is left behind, so the storyboard stays
+      // current — only the stages derived from it need a re-run.
+      const sectioningVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        updatedSectioning,
+        { renderingInSync: updatedRendering !== null }
+      )
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
@@ -2593,7 +2603,17 @@ export function createPageRoutes(
         updatedRendering = { sections: shifted }
       }
 
-      const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
+      // Deleting rebuilds the rendering to match: the section's HTML entry is
+      // dropped, later indexes shift down, and section ids are rewritten. The
+      // surviving sections keep the HTML they already had, so nothing needs
+      // re-rendering and the storyboard stays current.
+      const sectioningVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        updatedSectioning,
+        { renderingInSync: updatedRendering !== null }
+      )
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }

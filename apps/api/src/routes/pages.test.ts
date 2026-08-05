@@ -536,6 +536,64 @@ describe("Page routes", () => {
     })
   })
 
+  describe("section ops that rebuild the rendering themselves", () => {
+    // Delete and clone rewrite `web-rendering` in the same request — dropping or
+    // copying the HTML entry, shifting indexes, rewriting section ids. Nothing is
+    // left for the LLM, so invalidating the stage would only cost the user a
+    // full-book re-render for an edit that is already complete. Split and
+    // cross-page merge are the ops that genuinely drop HTML; they still mark it.
+    const seedCompletedChain = () => {
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepCompleted("web-rendering")
+        seed.markStepCompleted("toc-generation")
+      } finally {
+        seed.close()
+      }
+    }
+
+    const stepsAfter = () => {
+      const after = createBookStorage(label, tmpDir)
+      try {
+        return after.getStepRuns().map((r) => r.step)
+      } finally {
+        after.close()
+      }
+    }
+
+    it("keeps the storyboard complete when a section is deleted", async () => {
+      seedCompletedChain()
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0`,
+        { method: "DELETE" }
+      )
+      expect(res.status).toBe(200)
+
+      const steps = stepsAfter()
+      expect(steps).toContain("web-rendering")
+      // Downstream still has to catch up with the removed content.
+      expect(steps).not.toContain("toc-generation")
+    })
+
+    it("keeps the storyboard complete when a section is cloned", async () => {
+      seedCompletedChain()
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+
+      const steps = stepsAfter()
+      expect(steps).toContain("web-rendering")
+      expect(steps).not.toContain("toc-generation")
+    })
+
+    // Split's own staleness is covered by "marks the storyboard chain stale,
+    // since both halves lose their HTML" in the split suite below.
+  })
+
   describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/clone", () => {
     it("assigns fresh ids to cloned containers but preserves leaf ids", async () => {
       const sourceContainerId = `${label}_p1_n0001`
