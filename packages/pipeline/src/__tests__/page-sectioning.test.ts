@@ -10,11 +10,20 @@ import {
   buildPageSectioningConfig,
   finalizePageSectioning,
   flattenTreeToText,
+  isWatermarkText,
   runValidator,
   sectionPage,
   type PageSectioningConfig,
   type PageSectioningInput,
 } from "../page-sectioning.js"
+
+describe("watermark detection", () => {
+  it("recognizes common online-reading watermark variants", () => {
+    expect(isWatermarkText("FOR ONLINE READING ONLY*")).toBe(true)
+    expect(isWatermarkText("Online reading only - 2")).toBe(true)
+    expect(isWatermarkText("ordinary book text")).toBe(false)
+  })
+})
 
 // ── Test helpers ────────────────────────────────────────────────
 

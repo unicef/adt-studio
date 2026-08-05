@@ -46,9 +46,13 @@ export interface PageSectioningInput {
 
 /** Watermark overlays are not book content and must not enter storyboard HTML. */
 export function isWatermarkText(value: string): boolean {
-  const text = value.replace(/\s+/g, " ").trim()
+  const text = value
+    .replace(/[\u2010-\u2015]/g, "-")
+    .replace(/[☆★*†‡]+/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
   if (!text) return false
-  return /^(?:for\s+online\s+reading\s+only|online\s+reading\s+only|sample\s+only|do\s+not\s+copy)$/i.test(text)
+  return /^(?:for\s+online\s+reading(?:\s+only)?|online\s+reading(?:\s+only)?|sample\s+only|do\s+not\s+copy)(?:\s*[-–—]?\s*\d+)?$/i.test(text)
 }
 
 // ── LLM-facing shape (snake_case matching the prompt + schema) ──
