@@ -2296,6 +2296,12 @@ msgstr "Confirmar mesclagem"
 msgid "Connect an AI provider"
 msgstr "Conecte um provedor de IA"
 
+msgid "Connection closed"
+msgstr "Conexão encerrada"
+
+msgid "Connection timeout"
+msgstr "Tempo limite de conexão"
+
 msgid "Consulting the style council..."
 msgstr "Consultando o conselho de estilo..."
 
@@ -4967,6 +4973,9 @@ msgstr "Valores mais baixos produzem estilização mais consistente entre as pá
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Certifique-se de enviar um arquivo .zip exportado do ADT Studio."
 
+msgid "Malformed model output"
+msgstr "Saída do modelo com formato incorreto"
+
 msgid "Manage all sections"
 msgstr "Gerenciar todas as seções"
 
@@ -5787,6 +5796,9 @@ msgstr "Nodes"
 
 msgid "noise"
 msgstr "ruído"
+
+msgid "Non-retryable error"
+msgstr "Erro sem possibilidade de nova tentativa"
 
 msgid "None"
 msgstr "Nenhum"
@@ -6875,6 +6887,9 @@ msgstr "Citação"
 msgid "Radius"
 msgstr "Raio"
 
+msgid "Rate limit"
+msgstr "Limite de solicitações"
+
 msgid "Re-enable type"
 msgstr "Reativar tipo"
 
@@ -7203,6 +7218,9 @@ msgstr "Erro da solicitação"
 
 msgid "Request settings"
 msgstr "Configurações da solicitação"
+
+msgid "Request timeout"
+msgstr "Tempo limite da solicitação"
 
 msgid "Require comment on failure"
 msgstr "Require comment on failure"
@@ -8000,6 +8018,9 @@ msgstr "serious"
 msgid "Serious"
 msgstr "Serious"
 
+msgid "Server error"
+msgstr "Erro do servidor"
+
 msgid "Session comments"
 msgstr "Session comments"
 
@@ -8184,8 +8205,8 @@ msgstr "Pular página e continuar"
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Pular segmentação para imagens cujo lado menor está abaixo deste limite."
 
-#~ msgid "Skip this page and continue the step, or stop the step entirely."
-#~ msgstr "Pule esta página e continue a etapa, ou pare a etapa por completo."
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Pule esta página e continue a etapa, ou pare a etapa por completo."
 
 msgid "Skipped"
 msgstr "Ignorado"
@@ -9508,6 +9529,9 @@ msgstr "Unknown"
 
 msgid "Unknown criterion"
 msgstr "Unknown criterion"
+
+msgid "Unknown error"
+msgstr "Erro desconhecido"
 
 msgid "Unknown stage"
 msgstr "Etapa desconhecida"

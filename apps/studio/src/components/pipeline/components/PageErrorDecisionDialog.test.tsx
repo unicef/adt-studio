@@ -16,6 +16,9 @@ let pendingDecisions: Array<{
 }> = []
 
 vi.mock("@lingui/react", () => ({
+  Trans: ({ children, id }: { children?: React.ReactNode; id?: string }) => (
+    <>{children ?? id}</>
+  ),
   useLingui: () => ({
     i18n: {
       _: (value: unknown) =>
@@ -66,18 +69,31 @@ describe("PageErrorDecisionDialog", () => {
     render(<PageErrorDecisionDialog />)
 
     fireEvent.click(screen.getByRole("checkbox"))
-    fireEvent.click(screen.getByRole("button", { name: "Retry this page" }))
+    const actionButtons = screen
+      .getAllByRole("button")
+      .filter((button) => button.hasAttribute("title"))
+    expect(actionButtons).toHaveLength(3)
+    fireEvent.click(actionButtons[0])
 
     expect(resolveDecisionMock).toHaveBeenCalledWith(
       "decision-1",
       "retry",
       undefined
     )
-    expect(screen.getByText(/connection closed/)).toBeTruthy()
-    expect(screen.getByText(/Attempts/)).toBeTruthy()
+    expect(screen.queryByText("connection-closed")).toBeNull()
   })
 
-  it("does not offer retry for a non-retryable failure", () => {
+  it("does not mention or offer retry for a non-retryable failure", () => {
+    render(<PageErrorDecisionDialog />)
+    const retryableDialog = screen.getByRole("dialog")
+    const retryableDescription = retryableDialog.querySelector("p")?.textContent
+    const retryableActions = screen
+      .getAllByRole("button")
+      .filter((button) => button.hasAttribute("title"))
+    const retryTitle = retryableActions[0]?.getAttribute("title")
+    expect(retryableActions).toHaveLength(3)
+    cleanup()
+
     pendingDecisions = [
       {
         decisionId: "decision-2",
@@ -92,8 +108,18 @@ describe("PageErrorDecisionDialog", () => {
 
     render(<PageErrorDecisionDialog />)
 
+    const nonRetryableDescription = screen
+      .getByRole("dialog")
+      .querySelector("p")?.textContent
+    const nonRetryableActions = screen
+      .getAllByRole("button")
+      .filter((button) => button.hasAttribute("title"))
+
+    expect(nonRetryableDescription).not.toBe(retryableDescription)
+    expect(nonRetryableActions).toHaveLength(2)
     expect(
-      screen.queryByRole("button", { name: "Retry this page" })
-    ).toBeNull()
+      nonRetryableActions.some((button) => button.getAttribute("title") === retryTitle)
+    ).toBe(false)
+    expect(screen.queryByText("non-retryable")).toBeNull()
   })
 })

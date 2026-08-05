@@ -2296,6 +2296,12 @@ msgstr "Confirm merge"
 msgid "Connect an AI provider"
 msgstr "Connect an AI provider"
 
+msgid "Connection closed"
+msgstr "Connection closed"
+
+msgid "Connection timeout"
+msgstr "Connection timeout"
+
 msgid "Consulting the style council..."
 msgstr "Consulting the style council..."
 
@@ -4967,6 +4973,9 @@ msgstr "Lower values produce more consistent styling across pages."
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Make sure you're uploading a .zip file exported from ADT Studio."
 
+msgid "Malformed model output"
+msgstr "Malformed model output"
+
 msgid "Manage all sections"
 msgstr "Manage all sections"
 
@@ -5787,6 +5796,9 @@ msgstr "Nodes"
 
 msgid "noise"
 msgstr "noise"
+
+msgid "Non-retryable error"
+msgstr "Non-retryable error"
 
 msgid "None"
 msgstr "None"
@@ -6875,6 +6887,9 @@ msgstr "Quote"
 msgid "Radius"
 msgstr "Radius"
 
+msgid "Rate limit"
+msgstr "Rate limit"
+
 msgid "Re-enable type"
 msgstr "Re-enable type"
 
@@ -7203,6 +7218,9 @@ msgstr "Request Error"
 
 msgid "Request settings"
 msgstr "Request settings"
+
+msgid "Request timeout"
+msgstr "Request timeout"
 
 msgid "Require comment on failure"
 msgstr "Require comment on failure"
@@ -8000,6 +8018,9 @@ msgstr "serious"
 msgid "Serious"
 msgstr "Serious"
 
+msgid "Server error"
+msgstr "Server error"
+
 msgid "Session comments"
 msgstr "Session comments"
 
@@ -8184,8 +8205,8 @@ msgstr "Skip page and continue"
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Skip segmentation for images whose shortest side is below this threshold."
 
-#~ msgid "Skip this page and continue the step, or stop the step entirely."
-#~ msgstr "Skip this page and continue the step, or stop the step entirely."
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Skip this page and continue the step, or stop the step entirely."
 
 msgid "Skipped"
 msgstr "Skipped"
@@ -9508,6 +9529,9 @@ msgstr "Unknown"
 
 msgid "Unknown criterion"
 msgstr "Unknown criterion"
+
+msgid "Unknown error"
+msgstr "Unknown error"
 
 msgid "Unknown stage"
 msgstr "Unknown stage"

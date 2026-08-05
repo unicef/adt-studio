@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { getLlmErrorClassLabel } from "@/lib/llm-error-class-i18n"
 import { useLlmLogs } from "@/hooks/use-debug"
 import { BASE_URL, type LlmLogEntry } from "@/api/client"
 import { ALL_STEP_NAMES } from "@adt/types"
@@ -126,7 +127,7 @@ export function ParamGrid({ title, data }: { title: string; data: Record<string,
 }
 
 function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
 
   return (
     <td colSpan={8} className="p-0">
@@ -171,7 +172,9 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
               <div className="text-muted-foreground mb-0.5">
                 <Trans>Error class</Trans>
               </div>
-              <div className="font-medium">{data.errorClass.replaceAll("-", " ")}</div>
+              <div className="font-medium">
+                {getLlmErrorClassLabel(i18n, data.errorClass)}
+              </div>
             </div>
           )}
           {data.retryable !== undefined && (

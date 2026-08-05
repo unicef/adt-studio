@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useBookRun } from "@/hooks/use-book-run"
+import { getLlmErrorClassLabel } from "@/lib/llm-error-class-i18n"
 import { getStepLabelI18n } from "../pipeline-i18n"
 
 /**
@@ -59,9 +60,15 @@ export function PageErrorDecisionDialog() {
             <Trans>A page failed in {stepLabel}</Trans>
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-snug text-muted-foreground">
-            <Trans>
-              Retry this page, skip it and continue, or stop the step entirely.
-            </Trans>
+            {current.canRetry ? (
+              <Trans>
+                Retry this page, skip it and continue, or stop the step entirely.
+              </Trans>
+            ) : (
+              <Trans>
+                Skip this page and continue the step, or stop the step entirely.
+              </Trans>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -76,7 +83,7 @@ export function PageErrorDecisionDialog() {
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
               {current.errorClass && (
                 <span>
-                  <Trans>Error class</Trans>: {current.errorClass.replaceAll("-", " ")}
+                  <Trans>Error class</Trans>: {getLlmErrorClassLabel(i18n, current.errorClass)}
                 </span>
               )}
               {current.attempts && (

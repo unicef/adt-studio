@@ -2297,6 +2297,12 @@ msgstr "Konfirmoni bashkimin"
 msgid "Connect an AI provider"
 msgstr "Lidheni një ofrues AI"
 
+msgid "Connection closed"
+msgstr "Lidhja u mbyll"
+
+msgid "Connection timeout"
+msgstr "Koha e lidhjes mbaroi"
+
 msgid "Consulting the style council..."
 msgstr "Po konsultohet këshilli i stilit..."
 
@@ -4968,6 +4974,9 @@ msgstr "Vlerat më të ulëta prodhojnë stil më konsistent nëpër faqe."
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studio."
 
+msgid "Malformed model output"
+msgstr "Dalje e modelit me format të pasaktë"
+
 msgid "Manage all sections"
 msgstr "Menaxho të gjitha seksionet"
 
@@ -5788,6 +5797,9 @@ msgstr "Nyje"
 
 msgid "noise"
 msgstr "zhurmë"
+
+msgid "Non-retryable error"
+msgstr "Gabim që nuk mund të riprovohet"
 
 msgid "None"
 msgstr "Asnjë"
@@ -6876,6 +6888,9 @@ msgstr "Citat"
 msgid "Radius"
 msgstr "Rrezja"
 
+msgid "Rate limit"
+msgstr "Kufiri i kërkesave"
+
 msgid "Re-enable type"
 msgstr "Ri-aktivizo tipin"
 
@@ -7204,6 +7219,9 @@ msgstr "Gabim i kërkesës"
 
 msgid "Request settings"
 msgstr "Cilësimet e kërkesës"
+
+msgid "Request timeout"
+msgstr "Koha e kërkesës mbaroi"
 
 msgid "Require comment on failure"
 msgstr "Kërko koment në rast dështimi"
@@ -8001,6 +8019,9 @@ msgstr "serioz"
 msgid "Serious"
 msgstr "Serioz"
 
+msgid "Server error"
+msgstr "Gabim i serverit"
+
 msgid "Session comments"
 msgstr "Komente sesioni"
 
@@ -8185,8 +8206,8 @@ msgstr "Kapërce faqen dhe vazhdo"
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Kalo segmentimin për imazhet çdofaqja më e shkurtër e të cilave është nën këtë prag."
 
-#~ msgid "Skip this page and continue the step, or stop the step entirely."
-#~ msgstr "Kapërce këtë faqe dhe vazhdo hapin, ose ndale hapin plotësisht."
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Kapërce këtë faqe dhe vazhdo hapin, ose ndale hapin plotësisht."
 
 msgid "Skipped"
 msgstr "Kaluar"
@@ -9509,6 +9530,9 @@ msgstr "I panjohur"
 
 msgid "Unknown criterion"
 msgstr "Kriter i panjohur"
+
+msgid "Unknown error"
+msgstr "Gabim i panjohur"
 
 msgid "Unknown stage"
 msgstr "Fazë e panjohur"
