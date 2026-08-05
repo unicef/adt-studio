@@ -1,6 +1,7 @@
 import { Trans } from "@lingui/react/macro"
 import { Check, RotateCcw, Folder, FileDown, Hourglass, Download } from "lucide-react"
 import { useAppVersion } from "@/hooks/use-app-version"
+import { useAppLogo } from "@/hooks/use-app-logo"
 import { useUpdateDialog } from "@/components/updates"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -9,6 +10,7 @@ import { CARD, HEADING, LEAD, SettingRow } from "./ui"
 
 export function AboutSection() {
   const version = useAppVersion()
+  const logoSrc = useAppLogo()
   const { openUpdateDialog, hasPendingUpdate } = useUpdateDialog()
 
   return (
@@ -23,7 +25,7 @@ export function AboutSection() {
         <div className="pointer-events-none absolute -top-[140px] right-[-90px] size-[340px] rounded-full bg-[radial-gradient(circle,rgba(43,127,255,.10),transparent_70%)]" />
         <div className="relative flex items-center gap-5">
           <div className="grid size-[74px] shrink-0 place-items-center rounded-[19px] bg-white shadow-[0_30px_60px_-20px_rgba(43,127,255,0.25),0_4px_14px_rgba(0,0,0,0.08)]">
-            <img src="/logo.png" className="size-14" alt="" />
+            <img src={logoSrc} className="size-14" alt="" />
           </div>
           <div>
             <div className="font-mono text-[22px] font-semibold tracking-[-0.02em]">

@@ -4,6 +4,7 @@ import { FileText, ArrowRight, FileArchive, ChevronRight } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { useAppLogo } from "@/hooks/use-app-logo"
 
 export interface AddBookDialogProps {
   open: boolean
@@ -12,6 +13,7 @@ export interface AddBookDialogProps {
 
 export function AddBookDialog({ open, onClose }: AddBookDialogProps) {
   const navigate = useNavigate()
+  const logoSrc = useAppLogo()
 
   const go = (to: "/books/new" | "/books/import") => {
     onClose()
@@ -49,7 +51,7 @@ export function AddBookDialog({ open, onClose }: AddBookDialogProps) {
               </span>
               <ArrowRight className="size-[17px] shrink-0 text-brand-600" />
               <span className="grid size-[52px] place-items-center rounded-2xl border bg-white shadow-sm">
-                <img src="/logo.png" className="size-9" alt="" />
+                <img src={logoSrc} className="size-9" alt="" />
               </span>
             </div>
             <div className="min-w-0 flex-1">
@@ -88,7 +90,7 @@ export function AddBookDialog({ open, onClose }: AddBookDialogProps) {
             className="flex cursor-pointer items-center gap-3.5 rounded-2xl border-[1.5px] bg-card px-5 py-3.5 text-left transition hover:border-brand-400 hover:shadow-[0_0_0_3px_var(--brand-50)]"
           >
             <span className="relative grid size-10 shrink-0 place-items-center rounded-[11px] border bg-white shadow-sm">
-              <img src="/logo.png" className="size-[27px]" alt="" />
+              <img src={logoSrc} className="size-[27px]" alt="" />
               <span className="absolute -bottom-1.5 -right-1.5 grid size-[18px] place-items-center rounded-md border bg-muted text-muted-foreground">
                 <FileArchive className="size-2.5" />
               </span>

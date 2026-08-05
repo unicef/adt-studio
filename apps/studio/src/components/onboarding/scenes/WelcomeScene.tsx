@@ -3,10 +3,12 @@ import { ArrowRight } from "lucide-react";
 import { Trans } from "@lingui/react/macro";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useAppLogo } from "@/hooks/use-app-logo";
 import type { OnboardingStepProps } from "../steps";
 
 export function WelcomeScene({ onNext }: OnboardingStepProps) {
   const [mounted, setMounted] = useState(false);
+  const logoSrc = useAppLogo();
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true));
@@ -17,7 +19,7 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
     <div className="relative flex h-full w-full flex-col items-center justify-center gap-8 p-8 text-center">
       <img
         aria-hidden
-        src="/logo.png"
+        src={logoSrc}
         alt=""
         width={104}
         height={104}

@@ -35,6 +35,7 @@ import { REDESIGN_PATHS, activeRedesignView } from "./nav"
 import type { RedesignView } from "./types"
 import { MacOSTrafficLightSpacer } from "../title-bar"
 import { useUpdateDialog } from "@/components/updates"
+import { useAppLogo } from "@/hooks/use-app-logo"
 
 const DOCS_URL = "https://unicef.github.io/adt-studio/docs/get-started/";
 const ISSUES_URL = "https://github.com/unicef/adt-studio/issues";
@@ -92,6 +93,7 @@ export function AppSidebar({
   const [wsOpen, setWsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const { showWhatsNew } = useUpdateDialog()
+  const logoSrc = useAppLogo()
 
   const items: { view: RedesignView; label: string; icon: LucideIcon; count?: number }[] = [
     { view: "home", label: t`Home`, icon: House },
@@ -106,7 +108,7 @@ export function AppSidebar({
 
         <MacOSTrafficLightSpacer />
 
-        <img src="/logo.png" alt="" className="size-8 rounded-[9px] shadow-[0_2px_7px_rgba(43,127,255,0.42)]" />
+        <img src={logoSrc} alt="" className="size-8 rounded-[9px] shadow-[0_2px_7px_rgba(43,127,255,0.42)]" />
         <div className="flex min-w-0 flex-1 flex-col gap-px leading-[1.1]">
           <b className="truncate text-[14.5px]">ADT Studio</b>
           <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
