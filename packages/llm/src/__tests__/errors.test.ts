@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { APICallError } from "ai"
+import { APICallError, NoObjectGeneratedError } from "ai"
 import { classifyLLMError } from "../errors.js"
 
 function apiError(
@@ -33,6 +33,61 @@ describe("classifyLLMError", () => {
       classifyLLMError(new Error("Cannot connect to API: other side closed")),
     ).toEqual({
       errorClass: "connection-closed",
+      retryable: true,
+    })
+  })
+
+  it("classifies malformed structured model output as retryable", () => {
+    const error = new NoObjectGeneratedError({
+      message: "No object generated: response did not match schema.",
+      cause: Object.assign(new Error("Type validation failed"), {
+        name: "AI_TypeValidationError",
+      }),
+      text: "{ definitely not valid json",
+      response: {
+        id: "response-1",
+        timestamp: new Date("2026-08-05T00:00:00.000Z"),
+        modelId: "test-model",
+      },
+      usage: { promptTokens: 1, completionTokens: 1 },
+      finishReason: "stop",
+    })
+
+    expect(classifyLLMError(error)).toEqual({
+      errorClass: "model-output",
+      retryable: true,
+    })
+  })
+
+  it.each(["AI_TypeValidationError", "AI_JSONParseError"])(
+    "classifies a raw %s as retryable model output",
+    (name) => {
+      expect(classifyLLMError(Object.assign(new Error("Invalid output"), { name }))).toEqual({
+        errorClass: "model-output",
+        retryable: true,
+      })
+    },
+  )
+
+  it("classifies EAI_AGAIN as a transient connection failure", () => {
+    const error = Object.assign(new Error("getaddrinfo EAI_AGAIN api.openai.com"), {
+      code: "EAI_AGAIN",
+    })
+
+    expect(classifyLLMError(error)).toEqual({
+      errorClass: "connect-timeout",
+      retryable: true,
+    })
+  })
+
+  it("classifies AbortSignal.timeout as a transient request timeout", async () => {
+    const signal = AbortSignal.timeout(1)
+    await new Promise<void>((resolve) => {
+      signal.addEventListener("abort", () => resolve(), { once: true })
+    })
+
+    expect(classifyLLMError(signal.reason)).toEqual({
+      errorClass: "request-timeout",
       retryable: true,
     })
   })
@@ -72,6 +127,24 @@ describe("classifyLLMError", () => {
       errorClass: "non-retryable",
       retryable: false,
       statusCode: 401,
+    })
+  })
+
+  it.each([
+    new Error("Invalid API key"),
+    Object.assign(new Error("Quota exhausted"), { code: "insufficient_quota" }),
+    apiError(undefined, { isRetryable: false }),
+  ])("classifies a known permanent failure as non-retryable", (error) => {
+    expect(classifyLLMError(error)).toEqual({
+      errorClass: "non-retryable",
+      retryable: false,
+    })
+  })
+
+  it("keeps an unclassified failure retryable", () => {
+    expect(classifyLLMError(new Error("Unexpected provider failure"))).toEqual({
+      errorClass: "unknown",
+      retryable: true,
     })
   })
 
