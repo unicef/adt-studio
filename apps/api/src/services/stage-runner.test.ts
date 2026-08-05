@@ -734,6 +734,94 @@ describe("createStageRunner image meaningfulness retry", () => {
       storage.close()
     }
   })
+
+  it("preserves a skipped failed page through sectioning and storyboard", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-meaningfulness-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    writeMeaningfulnessConfig(configPath)
+    seedMeaningfulnessBook(booksDir, "meaningfulness-skip")
+
+    filterPageImageMeaningfulnessMock.mockImplementation(
+      async (input: { pageId: string }, existing: unknown) => {
+        if (input.pageId === "pg002") {
+          throw new Error("Cannot connect to API: other side closed")
+        }
+        return existing
+      }
+    )
+
+    const decisions: Array<{
+      step: string
+      pageId: string
+      error: string
+      canRetry?: boolean
+      errorClass?: string
+      attempts?: number
+    }> = []
+    const runner = createStageRunner()
+    await runner.run(
+      "meaningfulness-skip",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "extract",
+        toStage: "extract",
+        pageErrorPolicy: "ask",
+        requestPageDecision: async (input) => {
+          decisions.push(input)
+          return "skip"
+        },
+      },
+      { emit: () => undefined }
+    )
+
+    const meaningfulnessPageIds = filterPageImageMeaningfulnessMock.mock.calls.map(
+      ([input]) => (input as { pageId: string }).pageId
+    )
+    expect(meaningfulnessPageIds).toEqual(["pg001", "pg002"])
+    expect(decisions).toEqual([
+      expect.objectContaining({
+        step: "image-meaningfulness",
+        pageId: "pg002",
+        canRetry: true,
+        errorClass: "connection-closed",
+        attempts: 1,
+      }),
+    ])
+
+    await runner.run(
+      "meaningfulness-skip",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "sectioning",
+        toStage: "storyboard",
+      },
+      { emit: () => undefined }
+    )
+
+    const storage = createBookStorage("meaningfulness-skip", booksDir)
+    try {
+      expect(storage.getPages().map((page) => page.pageId)).toEqual([
+        "pg001",
+        "pg002",
+      ])
+      for (const pageId of ["pg001", "pg002"]) {
+        expect(storage.getLatestNodeData("image-filtering", pageId)).not.toBeNull()
+        expect(storage.getLatestNodeData("page-sectioning", pageId)).not.toBeNull()
+        expect(storage.getLatestNodeData("web-rendering", pageId)).not.toBeNull()
+      }
+    } finally {
+      storage.close()
+    }
+  })
 })
 
 describe("createStageRunner easy read step", () => {
