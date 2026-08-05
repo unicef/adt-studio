@@ -97,6 +97,10 @@ Recreate this as real HTML, never as a screenshot or a single image. Every entry
 
 ## IMAGE RULE
 Only use `<img>` for an actual figure, diagram, illustration, photograph, or other visual asset represented by an image reference below. All prose, headings, exercises, tables, answer spaces, conversations, labels, and metadata must be recreated as semantic HTML. Never place a whole textbook page or an exercise screenshot in an `<img>` when its text is present in the content tree.
+
+## CONTENTS DETECTION (APPLIES EVEN WHEN SECTION TYPE IS GENERIC)
+If the page is a contents/table-of-contents page (including a continuation page or a page headed “Contents”, “Table of contents”, “Yaliyomo”, or equivalent), render every entry as a semantic full-width row: title on the left, a flexible dotted leader in the middle, and the printed page number in a separate right-aligned span. Never leave the page number in the title span or append it directly after the title. Use a grid/flex layout with the leader spanning the available space and preserve it on every continuation page.
+
 Signatures and official seals may remain images when they are genuine publication content. Watermark overlays and notices must not be reproduced.
 
 {% for image in images %}
