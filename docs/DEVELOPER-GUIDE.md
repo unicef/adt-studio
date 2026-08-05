@@ -283,6 +283,15 @@ render_strategies:
 Notes:
 - The visual-review model is currently fixed in code (`DEFAULT_VISUAL_REVIEW_MODEL_ID` in `packages/pipeline/src/visual-review.ts`).
 - Debug screenshots referenced from LLM logs are stored as files in `books/{label}/.debug-images/`.
+- **Review prompt resolution order**: top-level `visual_review_prompt` → the strategy's `visual_refinement.prompt` → a mode-dependent default (`visual_review_page` when `page_sectioning.mode: page`, `visual_review` otherwise).
+- The review prompt receives context flags that switch its behavior per section: `is_activity` (interactive-activity carve-out — controls are required and must not be removed or restyled to look like print), `is_partial_page` (the page was split, so the reviewer compares against the section's region of the page image, not the whole page), `has_merged_content` (continuation-page images follow the primary page image), and `allow_display_typography` (see below).
+- **Display typography**: section types in `DISPLAY_TYPOGRAPHY_SECTION_TYPES` (`packages/pipeline/src/typography.ts` — covers, `separator` chapter dividers, TOC, credits, foreword) may enlarge text beyond the fixed `adt-*` scale to match the original's display type. Removing `adt-*` classes is rejected on every page type by `typographyPreservationErrors`; only *adding* sizes is exempted on display pages.
+
+### Page sectioning modes (`page_sectioning.mode`)
+
+- `dynamic` (default) — a page is split into semantically coherent sections; mixed activity mechanics and new instruction blocks force splits (see `prompts/page_sectioning.liquid`).
+- `page` — the whole page is ONE section, with a single exception: when `generate_activities` is enabled and a page mixes two or more activity response mechanics, it splits into one section per mechanic (the runtime renders one answer-submission UI per section).
+- `generate_activities: false` strips every `activity_*` section type from the allowed vocabulary **and** gates all activity-classification and mechanic-split instructions out of the sectioning prompts. Exercise pages are then classified by visual shape (`text_only`, `boxed_text`, …), render as static replicas, and pages are never split by mechanics in either mode.
 
 ### LLM Prompt Templates (`prompts/*.liquid`)
 

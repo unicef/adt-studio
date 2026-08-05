@@ -201,7 +201,8 @@ introduce new required variables without a matching pipeline code change.
 | `styleguide_generation` | `page_images`, `book_fonts` |
 | `web_generation_html` | `label`, `page_image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `viewports`, `user_instructions` |
 | `web_generation_html_overlay` | `label`, `page_image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `viewports`, `user_instructions` |
-| `visual_review` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `viewports` |
+| `visual_review` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `viewports`, `has_merged_content`, `is_activity`, `allow_display_typography` |
+| `visual_review_page` | Same as `visual_review`, plus `is_partial_page`. Default review prompt when `page_sectioning.mode: page`. |
 | `visual_review_flexible` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `viewports` |
 | `html_edit` | `current_html`, `instruction`, `screenshots`, `previous_attempt_failure` |
 | `html_edit_verify` | `instruction`, `before_base64`, `after_base64` |
@@ -211,6 +212,9 @@ introduce new required variables without a matching pipeline code change.
 | `ai_image_generation` | `user_prompt`, `style`, `image_type` |
 | `ai_image_edit` | `user_prompt`, `style`, `image_type` |
 | `_render_node` | Include-only helper. Called with `nodes` and `depth`; internally iterates `node`, `node.node_id`, `node.role`, `node.text`, `node.structure`, and `node.children`. |
+| `_visual_review_activity` | Include-only helper shared by `visual_review` and `visual_review_page` (gated on `is_activity`): interactive-activity carve-out rules. |
+| `_visual_review_merged_content` | Include-only helper (gated on `has_merged_content`): explains continuation-page images for cross-page merges. |
+| `_visual_review_breakpoints` | Include-only helper: viewport widths and allowed Tailwind breakpoint prefixes (iterates `viewports`). |
 | `web_generation_html_old` | Legacy prompt using `styleguide`, `page_image_base64`, `section_type`, `images`, `images[].image_id`, `images[].image_base64`, `texts`, `texts[].text_id`, `texts[].text_type`, `texts[].text`. |
 | `visual_review_edit` | Legacy/alternate prompt using `instruction`, `viewports`, and visual review screenshot context. |
 
@@ -330,6 +334,7 @@ that step is not optimized for the model.
 | `web_generation_html` | Renders a section/content tree into responsive HTML. |
 | `web_generation_html_overlay` | Renders overlay-oriented HTML for strategies that preserve source-page positioning more closely. |
 | `visual_review` | Reviews rendered screenshots against source imagery and returns corrected HTML when needed. |
+| `visual_review_page` | Page-mode visual review: whole-page fidelity target, with region scoping for split pages and an interactive-activity carve-out. Default when `page_sectioning.mode: page`. |
 | `visual_review_flexible` | Alternative visual-review prompt with looser visual matching rules. |
 | `html_edit` | Applies a user edit instruction to existing generated HTML. |
 | `html_edit_verify` | Verifies a user HTML edit against screenshots and the edit instruction. |
@@ -391,6 +396,7 @@ font_assignment
 web_generation_html
 web_generation_html_overlay
 visual_review
+visual_review_page
 html_edit
 html_edit_verify
 ```
