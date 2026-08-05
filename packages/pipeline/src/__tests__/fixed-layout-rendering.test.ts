@@ -59,6 +59,39 @@ describe("sectionFixedLayoutPage", () => {
     })
   })
 
+  it("does not expose publisher watermark overlays as storyboard text", () => {
+    const result = sectionFixedLayoutPage({
+      pageId: "pg001",
+      pageNumber: 1,
+      viewport,
+      drawItems: [
+        {
+          kind: "paragraph",
+          textId: "pg001_watermark",
+          top: 40,
+          left: 20,
+          lineHeight: 18,
+          segments: [{ text: "FOR ONLINE READING ONLY" }],
+          text: "FOR ONLINE READING ONLY",
+        },
+        {
+          kind: "paragraph",
+          textId: "pg001_content",
+          top: 80,
+          left: 20,
+          lineHeight: 18,
+          segments: [{ text: "Real page content" }],
+          text: "Real page content",
+        },
+      ],
+      availableImageIds: new Set(),
+    })
+
+    expect(textLeaves(result.sections[0]).map((node) => node.text)).toEqual([
+      "Real page content",
+    ])
+  })
+
   it("emits text leaves with their nodeId (textId) and position", () => {
     const drawItems: DrawItem[] = [
       { kind: "image", imageId: "pg001_im001", bounds: { x: 0, y: 0, width: 400, height: 300 } },

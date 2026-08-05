@@ -28,6 +28,7 @@ import type {
   PositionedTextOutput,
 } from "@adt/types"
 import { escapeHtml } from "./html-escape.js"
+import { isWatermarkText } from "./page-sectioning.js"
 
 /**
  * Whether the book should render as a fixed-layout EPUB.
@@ -120,6 +121,20 @@ export function sectionFixedLayoutPage(
         ...(item.blendMode ? { blendMode: item.blendMode } : {}),
         ...(typeof item.opacity === "number" ? { opacity: item.opacity } : {}),
       }
+      continue
+    }
+
+    // PDF extraction can expose publisher overlays (for example
+    // "FOR ONLINE READING ONLY") as ordinary positioned paragraphs. They
+    // are not book content and must never become accessible storyboard
+    // content. Keep this guard in the fixed-layout path as well as the
+    // semantic sectioning path because fixed-layout pages bypass the LLM
+    // section tree entirely.
+    if (isWatermarkText(item.text)) {
+      lastLeaf = null
+      lastLeafPlacement = null
+      lastMergedId = undefined
+      lastItemText = null
       continue
     }
 
