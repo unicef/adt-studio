@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { APICallError, NoObjectGeneratedError } from "ai"
-import { classifyLLMError } from "../errors.js"
+import { classifyLLMError, LLMValidationError } from "../errors.js"
 
 function apiError(
   statusCode: number | undefined,
@@ -73,6 +73,15 @@ describe("classifyLLMError", () => {
       })
     },
   )
+
+  it("classifies exhausted custom validation as retryable model output", () => {
+    expect(
+      classifyLLMError(new LLMValidationError(2, ["Missing result for image ID im001"])),
+    ).toEqual({
+      errorClass: "model-output",
+      retryable: true,
+    })
+  })
 
   it("classifies EAI_AGAIN as a transient connection failure", () => {
     const error = Object.assign(new Error("getaddrinfo EAI_AGAIN api.openai.com"), {

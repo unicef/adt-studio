@@ -16,6 +16,13 @@ export interface LLMErrorClassification {
   statusCode?: number
 }
 
+export class LLMValidationError extends Error {
+  constructor(attempts: number, errors: string[]) {
+    super(`Failed after ${attempts} attempts. Errors:\n${errors.join("\n")}`)
+    this.name = "LLMValidationError"
+  }
+}
+
 const CONNECT_TIMEOUT_CODES = new Set([
   "EAI_AGAIN",
   "ETIMEDOUT",
@@ -103,7 +110,9 @@ export function classifyLLMError(error: unknown): LLMErrorClassification {
     const name = errorName(current)
 
     if (
+      current instanceof LLMValidationError ||
       NoObjectGeneratedError.isInstance(current) ||
+      name === "LLMValidationError" ||
       name === "AI_TypeValidationError" ||
       name === "AI_JSONParseError"
     ) {

@@ -14,6 +14,7 @@ export { createLLMModel, type CreateLLMModelOptions } from "./client.js"
 
 export {
   classifyLLMError,
+  LLMValidationError,
   type LLMErrorClass,
   type LLMErrorClassification,
 } from "./errors.js"

@@ -15,7 +15,7 @@ import type { RateLimiter } from "./rate-limiter.js"
 import { computeHash, readCache, writeCache, bustCache } from "./cache.js"
 import { sanitizeMessages, type LlmLogEntry } from "./log.js"
 import { createLogger, type LogLevel } from "./logger.js"
-import { classifyLLMError } from "./errors.js"
+import { classifyLLMError, LLMValidationError } from "./errors.js"
 
 export interface LLMProviderCredentials {
   openaiApiKey?: string
@@ -178,6 +178,9 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                 result,
                 check.errors
               )
+              if (attempt >= maxRetries) {
+                throw new LLMValidationError(maxRetries + 1, allErrors)
+              }
               log.info(
                 `[LLM] ${label} | validation failed (attempt ${attempt + 1}/${maxRetries + 1}) | retrying`
               )
@@ -204,6 +207,10 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                       : undefined,
                   validationErrors:
                     validationErrors.length > 0 ? validationErrors : undefined,
+                  error: check.errors.join("\n"),
+                  errorClass: "model-output",
+                  retryable: true,
+                  finalError: false,
                   messages: sanitizeMessages(
                     buildLogMessages(system, currentMessages, null)
                   ),
@@ -363,9 +370,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         }
       }
 
-      throw new Error(
-        `Failed after ${maxRetries + 1} attempts. Errors:\n${allErrors.join("\n")}`
-      )
+      throw new LLMValidationError(maxRetries + 1, allErrors)
     },
   }
 }

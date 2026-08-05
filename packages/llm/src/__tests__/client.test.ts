@@ -405,4 +405,58 @@ describe("createLLMModel validation retries", () => {
       },
     ])
   })
+
+  it("classifies and marks the final exhausted validation log", async () => {
+    const validationError = "Missing result for image ID im001"
+    openaiProviderMock.mockReturnValue({ provider: "openai" })
+    generateObjectMock.mockResolvedValue({
+      object: { images: [] },
+      usage: { promptTokens: 1, completionTokens: 1 },
+    })
+    const onLog = vi.fn()
+    const llm = createLLMModel({ modelId: "openai:gpt-4.1", onLog })
+
+    await expect(
+      llm.generateObject({
+        schema: z.object({ images: z.array(z.object({ image_id: z.string() })) }),
+        messages: [{ role: "user", content: "Evaluate im001" }],
+        maxRetries: 1,
+        validate: () => ({ valid: false, errors: [validationError] }),
+        log: {
+          taskType: "image-meaningfulness",
+          pageId: "pg002",
+          promptName: "image_meaningfulness",
+        },
+      }),
+    ).rejects.toMatchObject({
+      name: "LLMValidationError",
+      message: expect.stringContaining(validationError),
+    })
+
+    expect(generateObjectMock).toHaveBeenCalledTimes(2)
+    expect(onLog).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        success: false,
+        attempt: 0,
+        maxAttempts: 2,
+        error: validationError,
+        errorClass: "model-output",
+        retryable: true,
+        finalError: false,
+      }),
+    )
+    expect(onLog).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        success: false,
+        attempt: 1,
+        maxAttempts: 2,
+        validationErrors: [validationError, validationError],
+        errorClass: "model-output",
+        retryable: true,
+        finalError: true,
+      }),
+    )
+  })
 })
