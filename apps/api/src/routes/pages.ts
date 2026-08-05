@@ -21,12 +21,15 @@ import {
   splitNodesBefore,
   IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
   IMAGE_SET_CHANGE_CLEAR_STEPS,
+  PIPELINE,
+  getStageClearOrder,
   EDITABLE_ACTIVITY_NODE,
 } from "@adt/types"
 import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
+import { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import {
   detectSpreads,
@@ -436,6 +439,124 @@ function clearCaptionData(storage: Storage): void {
   storage.clearStepRuns([...IMAGE_SET_CHANGE_CLEAR_STEPS])
 }
 
+const RestorableNode = z.enum([
+  "toc-generation",
+  "glossary",
+  "quiz-generation",
+  "text-catalog-translation",
+  "easy-read",
+  "image-filtering",
+  "image-captioning",
+  "page-sectioning",
+  "web-rendering",
+])
+type RestorableNode = z.infer<typeof RestorableNode>
+
+/**
+ * Invalidate outputs derived from a restored entity. A pointer move is still a
+ * data mutation: keeping outputs generated from the abandoned version would
+ * leave the book in a mixed state. The policies follow each node's actual
+ * catalog, translation, speech, and packaging dependencies.
+ */
+function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): void {
+  switch (node) {
+    case "image-filtering":
+    case "page-sectioning":
+    case "web-rendering":
+      clearCaptionData(storage)
+      return
+
+    case "image-captioning":
+    case "glossary":
+    case "quiz-generation":
+      storage.clearNodesByType([
+        "text-catalog",
+        "text-catalog-translation",
+        "tts",
+        "tts-timestamps",
+        "accessibility-assessment",
+      ])
+      storage.clearStepRuns([
+        "text-catalog",
+        "catalog-translation",
+        "image-translation",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return
+
+    case "easy-read":
+      storage.clearNodesByType([
+        "text-catalog-translation",
+        "tts",
+        "tts-timestamps",
+        "accessibility-assessment",
+      ])
+      storage.clearStepRuns([
+        "catalog-translation",
+        "image-translation",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return
+
+    case "text-catalog-translation":
+      storage.clearNodesByType(["tts", "tts-timestamps", "accessibility-assessment"])
+      storage.clearStepRuns([
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return
+
+    case "toc-generation":
+      storage.clearNodesByType(["accessibility-assessment"])
+      storage.clearStepRuns(["package-web", "accessibility-assessment"])
+  }
+}
+
+/**
+ * Mark the storyboard and everything after it as needing a re-run, without
+ * deleting any node data.
+ *
+ * A sectioning edit invalidates the storyboard's rendered HTML, and every later
+ * output (text catalog, translations, audio, the packaged book) is re-derived
+ * from that HTML — so leaving those stages marked "done" would silently ship the
+ * old text. We clear only `step_runs`: the renderings and their version history
+ * survive (so manual storyboard edits elsewhere in the book are not destroyed)
+ * and are overwritten only when the user actually re-runs.
+ */
+function markStoryboardChainStale(storage: Storage): void {
+  const stages = new Set<string>(getStageClearOrder("storyboard"))
+  storage.clearStepRuns(
+    PIPELINE.filter((stage) => stages.has(stage.name)).flatMap((stage) =>
+      stage.steps.map((step) => step.name)
+    )
+  )
+}
+
+/**
+ * A running pipeline step can commit node data and mark itself complete after a
+ * manual Sectioning mutation. Refuse the mutation instead of letting that stale
+ * completion resurrect the downstream chain as "done".
+ */
+function assertNoActivePipelineRun(storage: Storage): void {
+  const runningSteps = storage
+    .getStepRuns()
+    .filter((run) => run.status === "running")
+    .map((run) => run.step)
+  if (runningSteps.length === 0) return
+
+  throw new HTTPException(409, {
+    message: `Cannot change sectioning while pipeline steps are running: ${runningSteps.join(", ")}. Wait for the run to finish or cancel it first.`,
+  })
+}
+
 /**
  * Save storyboard (web-rendering) node data and clear stale downstream data.
  * Use for all user-initiated storyboard saves (NOT pipeline stage runs).
@@ -446,8 +567,15 @@ function saveStoryboardNode(
   itemId: string,
   data: unknown
 ): number {
+  if (node === "page-sectioning") assertNoActivePipelineRun(storage)
   const version = storage.putNodeData(node, itemId, data)
   clearCaptionData(storage)
+  // A sectioning change invalidates the storyboard's rendered HTML — and the
+  // structural ops go further: a split drops both halves' HTML and a cross-page
+  // merge empties both pages, so those sections would silently vanish from the
+  // packaged book while the stage still read "done". A `web-rendering` save is
+  // itself the storyboard's output, so it must NOT mark storyboard stale.
+  if (node === "page-sectioning") markStoryboardChainStale(storage)
   return version
 }
 
@@ -605,7 +733,11 @@ export function createPageRoutes(
       const rendered = new Set<string>()
       const renderingByPage = new Map<string, { version: number; activityBySectionIndex: Map<number, boolean> }>()
       const renderRows = db.all(
-        "SELECT item_id, version, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        `SELECT nd.item_id AS item_id, nd.version AS version, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
         ["web-rendering"]
       ) as Array<{ item_id: string; version: number; data: string }>
       for (const row of renderRows) {
@@ -645,7 +777,11 @@ export function createPageRoutes(
       // Get image counts per page from image-filtering node data
       const imageCounts = new Map<string, number>()
       const imageRows = db.all(
-        "SELECT item_id, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        `SELECT nd.item_id AS item_id, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
         ["image-filtering"]
       ) as Array<{ item_id: string; data: string }>
       for (const row of imageRows) {
@@ -669,7 +805,11 @@ export function createPageRoutes(
       const sectioningVersions = new Map<string, number>()
       const structuredText = new Map<string, string>()
       const structuringRows = db.all(
-        "SELECT item_id, version, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        `SELECT nd.item_id AS item_id, nd.version AS version, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
         ["page-sectioning"]
       ) as Array<{ item_id: string; version: number; data: string }>
       for (const row of structuringRows) {
@@ -795,14 +935,12 @@ export function createPageRoutes(
 
       const page = pageRows[0]
 
-      // Get pipeline outputs (data + version)
+      // Get pipeline outputs (data + version). Reads the *current* version
+      // (node_current pointer), falling back to MAX(version) when unset — so
+      // rolling back to an older version is reflected here.
       const getNodeData = (node: string): { data: unknown; version: number } | null => {
-        const rows = db.all(
-          "SELECT data, version FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-          [node, pageId]
-        ) as Array<{ data: string; version: number }>
-        if (rows.length === 0) return null
-        return { data: JSON.parse(rows[0].data), version: rows[0].version }
+        const row = readCurrentNodeRow(db, node, pageId)
+        return row ? { data: JSON.parse(row.data), version: row.version } : null
       }
 
       const sectioningNode = getNodeData("page-sectioning")
@@ -1126,14 +1264,13 @@ export function createPageRoutes(
       const db = openBookDb(dbPath)
       let sectionHtml: string
       try {
-        const rows = db.all(
-          "SELECT data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-          ["web-rendering", pageId]
-        ) as Array<{ data: string }>
-        if (rows.length === 0) {
+        // Read the *current* rendering (pointer-aware) so screenshots/exports
+        // match a rolled-back version, not MAX.
+        const row = readCurrentNodeRow(db, "web-rendering", pageId)
+        if (!row) {
           throw new HTTPException(404, { message: `No rendering for page: ${pageId}` })
         }
-        const parsed = WebRenderingOutput.safeParse(JSON.parse(rows[0].data))
+        const parsed = WebRenderingOutput.safeParse(JSON.parse(row.data))
         if (!parsed.success) {
           throw new HTTPException(500, { message: `Rendering data malformed for ${pageId}` })
         }
@@ -1225,9 +1362,8 @@ export function createPageRoutes(
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
 
-      const version = storage.putNodeData("page-sectioning", pageId, parsed.data)
-      // Sectioning change cascades to everything downstream
-      clearCaptionData(storage)
+      // Sectioning change cascades to everything downstream.
+      const version = saveStoryboardNode(storage, "page-sectioning", pageId, parsed.data)
       return c.json({ version })
     } finally {
       storage.close()
@@ -1256,6 +1392,7 @@ export function createPageRoutes(
       }
 
       const version = storage.putNodeData("image-filtering", pageId, parsed.data)
+      clearCaptionData(storage)
       return c.json({ version })
     } finally {
       storage.close()
@@ -1285,6 +1422,51 @@ export function createPageRoutes(
 
       const version = saveStoryboardNode(storage, "web-rendering", pageId, parsed.data)
       return c.json({ version })
+    } finally {
+      storage.close()
+    }
+  })
+
+  // POST /books/:label/versions/:node/:itemId/restore — roll an entity back to
+  // an existing version by moving its current-version pointer (no new version
+  // is created). Supports the nodes exposed by the shared version picker
+  // (itemId = page id / "book" / language code).
+  app.post("/books/:label/versions/:node/:itemId/restore", async (c) => {
+    const { label, itemId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+
+    const parsedNode = RestorableNode.safeParse(c.req.param("node"))
+    if (!parsedNode.success) {
+      throw new HTTPException(400, { message: "Unsupported versioned node" })
+    }
+    const node = parsedNode.data
+
+    const parsed = z
+      .object({ version: z.number().int().positive() })
+      .safeParse(await c.req.json().catch(() => ({})))
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid restore request: ${parsed.error.message}`,
+      })
+    }
+    const { version } = parsed.data
+
+    // Don't materialize a book directory for a label that doesn't exist.
+    const dbPath = path.join(path.resolve(booksDir), safeLabel, `${safeLabel}.db`)
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const ok = storage.setCurrentNodeVersion(node, itemId, version)
+      if (!ok) {
+        throw new HTTPException(404, {
+          message: `Version ${version} not found for ${node}/${itemId}`,
+        })
+      }
+      clearRestoredNodeDependents(storage, node)
+      return c.json({ node, itemId, version })
     } finally {
       storage.close()
     }
@@ -1493,7 +1675,15 @@ export function createPageRoutes(
             if (renderingParsed?.success) {
               const updated = {
                 sections: renderingParsed.data.sections.map((s) =>
-                  s.sectionIndex === idx ? { ...s, html: result.html } : s
+                  s.sectionIndex === idx
+                    ? {
+                        ...s,
+                        html: result.html,
+                        ...(result.activityAnswers
+                          ? { activityAnswers: result.activityAnswers }
+                          : {}),
+                      }
+                    : s
                 ),
               }
               saveStoryboardNode(storage, "web-rendering", pageId, updated)

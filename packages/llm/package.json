@@ -8,6 +8,7 @@
     ".": "./dist/index.js"
   },
   "dependencies": {
+    "@adt/types": "workspace:*",
     "@ai-sdk/anthropic": "^1.2.12",
     "@ai-sdk/google": "^1.2.22",
     "@ai-sdk/openai": "^1.0.0",

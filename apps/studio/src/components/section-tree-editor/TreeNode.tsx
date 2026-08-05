@@ -169,6 +169,8 @@ export interface TreeNodeProps {
   onSplitGroup?: (nodeId: string) => void
   /** Split the section in two, this node starting the new section. */
   onSplitSection?: (nodeId: string) => void
+  /** Blocks the "split into new section" action (unsaved local edits). */
+  splitDisabled?: boolean
   /** Merge this container into its previous sibling container. */
   onMergeGroup?: (nodeId: string) => void
   /** True when the node's previous sibling is a container. */
@@ -318,6 +320,7 @@ function ContainerNode(props: TreeNodeProps) {
     onDrop,
     onSplitGroup,
     onSplitSection,
+    splitDisabled,
     onMergeGroup,
     prevSiblingIsContainer,
     firstInSection,
@@ -479,6 +482,7 @@ function ContainerNode(props: TreeNodeProps) {
                 label: t`Split into new section`,
                 onClick: () => onSplitSection!(node.nodeId),
                 hidden: !onSplitSection || firstInSection,
+                disabled: splitDisabled,
               },
               {
                 icon: Merge,
@@ -567,6 +571,7 @@ function ContainerNode(props: TreeNodeProps) {
                 onDrop={onDrop}
                 onSplitGroup={onSplitGroup}
                 onSplitSection={onSplitSection}
+                splitDisabled={splitDisabled}
                 onMergeGroup={onMergeGroup}
                 prevSiblingIsContainer={i > 0 && !children[i - 1].role}
                 firstInSection={firstInSection && i === 0}
@@ -604,6 +609,7 @@ function TextLeaf(props: TreeNodeProps) {
     onUnnest,
     onSplitGroup,
     onSplitSection,
+    splitDisabled,
     firstInSection,
     parentNodeId,
     indexInParent,
@@ -720,6 +726,7 @@ function TextLeaf(props: TreeNodeProps) {
               label: t`Split into new section`,
               onClick: () => onSplitSection!(node.nodeId),
               hidden: !onSplitSection || firstInSection,
+              disabled: splitDisabled,
             },
             {
               icon: Copy,
@@ -759,6 +766,7 @@ function ImageLeaf(props: TreeNodeProps) {
     onDuplicate,
     onSplitGroup,
     onSplitSection,
+    splitDisabled,
     firstInSection,
     parentNodeId,
     indexInParent,
@@ -829,6 +837,7 @@ function ImageLeaf(props: TreeNodeProps) {
               label: t`Split into new section`,
               onClick: () => onSplitSection!(node.nodeId),
               hidden: !onSplitSection || firstInSection,
+              disabled: splitDisabled,
             },
             {
               icon: Copy,

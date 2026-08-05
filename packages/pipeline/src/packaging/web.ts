@@ -92,6 +92,15 @@ export interface PackageAdtWebOptions {
   quizMatchBookStyle?: boolean
 }
 
+/** Pages with either a dedicated activity section or an inline word bank need
+ * the standalone activity runtime after the full reader bundle is stripped. */
+export function pageNeedsActivitiesBundle(html: string): boolean {
+  return (
+    html.includes('data-section-type="activity_') ||
+    (html.includes("data-word-bank-chip") && html.includes("data-word-bank-target"))
+  )
+}
+
 export interface PageEntry {
   section_id: string
   href: string

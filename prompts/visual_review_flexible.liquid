@@ -13,6 +13,14 @@ The screenshots show a **single section**, which is typically only a SUBSET of t
 - **Locate the corresponding region** in the original page image that matches this section's content (by matching the text, images, and headings present in the rendered screenshot). Use that region as a reference for what content belongs here — NOT for what it should look like.
 - The rendered section will typically occupy the full viewport width, even if in the original it only takes up a column, a strip, or a small portion of the page. This is correct and expected — do NOT reject for this.
 - Other content visible in the original page image (other sections, headers, footers, page numbers, surrounding text, neighboring images) is NOT part of this section and MUST NOT appear in the rendering. Do NOT flag missing content that belongs to a different section.
+{% if user_instructions != blank %}
+## USER INSTRUCTIONS (HIGHEST PRIORITY)
+This section was re-rendered with explicit instructions from the user:
+
+> {{ user_instructions }}
+
+Confirm the rendering HONORS these instructions, and treat every change made to satisfy them — colors, backgrounds, text styling, spacing, layout — as INTENTIONAL and correct, even when it deviates sharply from the original page. Do NOT flag, undo, or "restore toward the original" anything the user asked for. Reject ONLY when a genuine functional defect from the rejection list below is present AND is unrelated to the user's request (i.e. does not merely implement it). If the requested change was clearly applied and the result is functionally sound and readable, approve it.
+{% endif %}
 {% if has_merged_content %}
 ## MERGED CONTENT FROM ANOTHER PAGE
 This section combines content merged from MORE THAN ONE original page (for example an activity or passage that continues across a page break). Additional continuation page images are provided after the primary page image. When locating this section's content, check ALL of the provided page images — part of the rendering appears only in a continuation page image. Do NOT flag that content as extraneous, hallucinated, or missing from the original merely because it is absent from the primary page image, and do NOT remove it.

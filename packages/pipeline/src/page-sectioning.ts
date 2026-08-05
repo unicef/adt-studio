@@ -93,6 +93,7 @@ export async function sectionPage(
     roleKeys: new Set(config.roleTypes.map((t) => t.key)),
     sectionTypeKeys: new Set(config.sectionTypes.map((t) => t.key)),
     availableImageIds: new Set(input.availableImages.map((i) => i.imageId)),
+    mode: config.mode,
   }
 
   // Initial generation (with built-in validation retry).
@@ -339,6 +340,7 @@ interface ValidatorContext {
   roleKeys: Set<string>
   sectionTypeKeys: Set<string>
   availableImageIds: Set<string>
+  mode?: "page" | "dynamic"
 }
 
 /**
@@ -354,6 +356,12 @@ export function runValidator(
   const result = raw as LLMStructuringResult | null
   if (!result || !Array.isArray(result.sections)) {
     return { valid: false, errors: ["Response is missing a `sections` array."] }
+  }
+
+  if (ctx.mode === "page" && result.sections.length !== 1) {
+    errors.push(
+      `Page mode requires exactly one section, but the response contains ${result.sections.length}. Merge all page content into one section.`
+    )
   }
 
   const usedImageIds = new Set<string>()

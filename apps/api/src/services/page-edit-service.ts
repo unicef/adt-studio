@@ -3,7 +3,7 @@ import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
-import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS } from "@adt/pipeline"
+import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -43,6 +43,7 @@ export interface AiEditSectionOptions {
 export interface AiEditSectionResult {
   html: string
   reasoning: string
+  activityAnswers?: Record<string, string>
 }
 
 export async function reRenderPage(
@@ -276,6 +277,7 @@ export async function aiEditSection(
       }
       currentHtml = section.html
     }
+    const originalOrdering = inspectOrderingActivityHtml(currentHtml)
 
     // Load config to get model ID for editing. Same fallback chain every other
     // "thoughtful" LLM step uses — `page_sectioning` may exist without a `model`
@@ -353,6 +355,14 @@ export async function aiEditSection(
       const errors: string[] = []
       if (!cleanedHtml.includes("<section")) {
         errors.push("Result must contain a <section> element")
+      }
+      if (originalOrdering.isOrdering) {
+        const ordering = inspectOrderingActivityHtml(cleanedHtml)
+        if (!ordering.isOrdering) {
+          errors.push("AI editing must preserve the activity_ordering section type")
+        } else {
+          errors.push(...ordering.errors)
+        }
       }
       return { valid: errors.length === 0, errors, cleanedHtml }
     }
@@ -480,7 +490,12 @@ export async function aiEditSection(
       }
     }
 
-    return { html, reasoning }
+    const ordering = inspectOrderingActivityHtml(html)
+    return {
+      html,
+      reasoning,
+      ...(ordering.contract ? { activityAnswers: ordering.contract.answers } : {}),
+    }
   } finally {
     storage.close()
     if (previousKey !== undefined) {

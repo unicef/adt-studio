@@ -634,4 +634,48 @@ describe("debug_images", () => {
 
     storage.close()
   })
+
+  describe("node version pointer (rollback)", () => {
+    it("tracks latest as current by default, and rolls back without a new version", () => {
+      const { storage } = createTempStorage()
+      storage.putNodeData("web-rendering", "pg001", { v: 1 })
+      storage.putNodeData("web-rendering", "pg001", { v: 2 })
+      const v3 = storage.putNodeData("web-rendering", "pg001", { v: 3 })
+      expect(v3).toBe(3)
+      // Current == latest by default
+      expect(storage.getLatestNodeData("web-rendering", "pg001")?.data).toEqual({ v: 3 })
+      expect(storage.getCurrentNodeVersion("web-rendering", "pg001")).toBe(3)
+
+      // Roll back to v1 — no new version is created, current now reads v1
+      expect(storage.setCurrentNodeVersion("web-rendering", "pg001", 1)).toBe(true)
+      expect(storage.getCurrentNodeVersion("web-rendering", "pg001")).toBe(1)
+      expect(storage.getLatestNodeData("web-rendering", "pg001")?.data).toEqual({ v: 1 })
+
+      // A subsequent write appends v4 and becomes current
+      const v4 = storage.putNodeData("web-rendering", "pg001", { v: 4 })
+      expect(v4).toBe(4)
+      expect(storage.getLatestNodeData("web-rendering", "pg001")?.data).toEqual({ v: 4 })
+      storage.close()
+    })
+
+    it("rejects restoring a nonexistent version", () => {
+      const { storage } = createTempStorage()
+      storage.putNodeData("glossary", "book", { a: 1 })
+      expect(storage.setCurrentNodeVersion("glossary", "book", 99)).toBe(false)
+      expect(storage.getLatestNodeData("glossary", "book")?.data).toEqual({ a: 1 })
+      storage.close()
+    })
+
+    it("reports the current (pointer) version in the fingerprint", () => {
+      const { storage } = createTempStorage()
+      storage.putNodeData("page-sectioning", "pg001", { s: 1 })
+      storage.putNodeData("page-sectioning", "pg001", { s: 2 })
+      storage.setCurrentNodeVersion("page-sectioning", "pg001", 1)
+      const fp = storage
+        .getNodeVersionFingerprint()
+        .find((f) => f.node === "page-sectioning" && f.itemId === "pg001")
+      expect(fp?.version).toBe(1)
+      storage.close()
+    })
+  })
 })

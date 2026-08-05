@@ -20,18 +20,20 @@ import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SpeechPreview } from "./components/SpeechPreview"
 
-type ProviderKey = "openai" | "azure" | "gemini"
+type ProviderKey = "openai" | "azure" | "gemini" | "elevenlabs"
 
 const PROVIDER_LABELS: Record<ProviderKey, MessageDescriptor> = {
   openai: msg`OpenAI`,
   azure: msg`Azure`,
   gemini: msg`Gemini`,
+  elevenlabs: msg`ElevenLabs`,
 }
 
 const PROVIDER_HINTS: Record<ProviderKey, MessageDescriptor> = {
   openai: msg`Natural, expressive voices. Best general-purpose default.`,
   azure: msg`Wide multilingual coverage with neural voices for many locales.`,
   gemini: msg`Google's voices with strong intonation for narrative content.`,
+  elevenlabs: msg`High-fidelity, expressive voices with fine-grained cloning support.`,
 }
 
 // Voices & Accents card hidden for now while we evaluate the configure-voices
@@ -43,7 +45,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey, hasAzureKey, hasGeminiKey } = useApiKey()
+  const { apiKey, hasApiKey, hasAzureKey, hasGeminiKey, hasElevenLabsKey } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("speech")
   const translateStatus = useStageStatus("translate")
@@ -62,7 +64,8 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     if (
       speech.default_provider === "openai" ||
       speech.default_provider === "azure" ||
-      speech.default_provider === "gemini"
+      speech.default_provider === "gemini" ||
+      speech.default_provider === "elevenlabs"
     ) {
       setProvider(speech.default_provider)
     }
@@ -95,6 +98,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     openai: hasApiKey,
     azure: hasAzureKey,
     gemini: hasGeminiKey,
+    elevenlabs: hasElevenLabsKey,
   }
 
   const providerOptions = useMemo(
@@ -119,9 +123,15 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
           disabled: !hasGeminiKey,
           disabledHint,
         },
+        {
+          value: "elevenlabs" as const,
+          label: linguiI18n._(PROVIDER_LABELS.elevenlabs),
+          disabled: !hasElevenLabsKey,
+          disabledHint,
+        },
       ]
     },
-    [t, hasApiKey, hasAzureKey, hasGeminiKey],
+    [t, hasApiKey, hasAzureKey, hasGeminiKey, hasElevenLabsKey],
   )
 
   const selectedProviderKeyMissing = !providerKeyAvailable[provider]

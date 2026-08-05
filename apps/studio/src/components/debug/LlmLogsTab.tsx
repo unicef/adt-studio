@@ -2,6 +2,8 @@ import { useState, useEffect } from "react"
 import { RefreshCw, AlertTriangle } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
+import { msg } from "@lingui/core/macro"
+import type { I18n, MessageDescriptor } from "@lingui/core"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -42,6 +44,85 @@ function getStatus(entry: LlmLogEntry): RowStatus {
   if (entry.data.validationErrors && entry.data.validationErrors.length > 0) return "error"
   if (entry.data.cacheHit) return "cached"
   return "success"
+}
+
+/**
+ * Human-readable labels for the request-parameter keys a call may record.
+ * Keys not listed here fall back to the raw key, so a new param still shows up
+ * rather than being silently dropped.
+ *
+ * Declared as `msg` descriptors and resolved with `i18n._()` because this lives
+ * outside a component. The `t` macro from `useLingui()` only compiles where the
+ * transform can see it bound in scope — passing it into a plain helper leaves
+ * the tagged template untransformed, and the runtime `t` then receives a string
+ * array instead of a descriptor and returns nothing. That rendered every label
+ * blank while the values still showed.
+ */
+const PARAM_LABELS: Record<string, MessageDescriptor> = {
+  voice: msg`Voice`,
+  model: msg`Model`,
+  language: msg`Language`,
+  outputFormat: msg`Format`,
+  stability: msg`Stability`,
+  similarityBoost: msg`Similarity`,
+  style: msg`Style`,
+  useSpeakerBoost: msg`Speaker boost`,
+  speed: msg`Speed`,
+  applyTextNormalization: msg`Normalization`,
+  contextBefore: msg`Context before`,
+  contextAfter: msg`Context after`,
+  contextBeforeChars: msg`Context before (chars)`,
+  contextAfterChars: msg`Context after (chars)`,
+}
+
+const YES = msg`Yes`
+const NO = msg`No`
+
+/**
+ * Render one request parameter's value. Values arrive as `unknown` because the
+ * `params` record is free-form per call type, so this handles the scalar cases
+ * and falls back to JSON rather than rendering "[object Object]".
+ */
+function formatParamValue(value: unknown, i18n: I18n): string {
+  if (typeof value === "boolean") return i18n._(value ? YES : NO)
+  if (typeof value === "number") return value.toLocaleString()
+  if (typeof value === "string") return value
+  if (value === null || value === undefined) return "—"
+  return JSON.stringify(value)
+}
+
+/**
+ * Request parameters as a compact label/value grid.
+ *
+ * Reuses the header grid's cell markup rather than adding cells to the header
+ * itself — ~10 more cells there would swamp Prompt/Model/Duration/Cache. Keys
+ * render in insertion order (the order the producer chose), so related settings
+ * stay adjacent instead of being alphabetised apart.
+ */
+export function ParamGrid({ title, data }: { title: string; data: Record<string, unknown> }) {
+  const { i18n } = useLingui()
+  const entries = Object.entries(data)
+  if (entries.length === 0) return null
+
+  return (
+    <div>
+      <div className="font-medium text-muted-foreground mb-1">{title}</div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 bg-muted p-3 rounded">
+        {entries.map(([key, value]) => {
+          const label = PARAM_LABELS[key]
+          return (
+            <div key={key}>
+              <div className="text-muted-foreground mb-0.5">
+                {label ? i18n._(label) : key}
+              </div>
+              {/* Values are provider identifiers and numbers — never translated. */}
+              <div className="font-medium break-words">{formatParamValue(value, i18n)}</div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }) {
@@ -96,6 +177,10 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
             </>
           )}
         </div>
+
+        {/* What was actually sent to the provider. Only present for call types
+            that record it — currently ElevenLabs TTS. */}
+        {data.params && <ParamGrid title={t`Request settings`} data={data.params} />}
 
         {data.system && (
           <div>
