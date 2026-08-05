@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Search, House, BookMarked, Split, Settings, Plus, Upload, CornerDownLeft, BookOpen, type LucideIcon } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import type { BookSummary } from "@/api/client"
 import { toBookVM, type CoverSpec } from "./data"
@@ -40,7 +41,7 @@ export function CommandPalette({ open, onClose, books, locale, onOpenAdd }: Comm
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent
         aria-describedby={undefined}
-        className="top-[12%] block max-w-[600px] translate-y-0 gap-0 overflow-hidden p-0 [&>button]:hidden"
+        className="top-[12%] max-w-[600px] translate-y-0 gap-0 overflow-hidden p-0 [&>button]:hidden"
       >
         <DialogTitle className="sr-only">
           <Trans>Command palette</Trans>
@@ -72,6 +73,7 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
   const [query, setQuery] = useState("")
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const activeRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -109,10 +111,15 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
   }, [query, books, locale, onOpenAdd, navigate, t])
 
   const flat = useMemo(() => groups.flatMap((g) => g.items), [groups])
+  const activeId = flat[active]?.id
 
   useEffect(() => {
     if (active >= flat.length) setActive(flat.length > 0 ? flat.length - 1 : 0)
   }, [flat.length, active])
+
+  useEffect(() => {
+    activeRef.current?.scrollIntoView({ block: "nearest" })
+  }, [activeId])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -159,58 +166,61 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
         <Kbd keys={[t`Esc`]} />
       </div>
 
-      <div id={LISTBOX_ID} role="listbox" aria-label={t`Results`} className="max-h-[46vh] overflow-auto p-2">
-        {groups.map((g) => (
-          <div key={g.label} role="group" aria-label={g.label}>
-            <div className="px-3 pb-1.5 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
-              {g.label}
-            </div>
-            {g.items.map((it) => {
-              runningIndex += 1
-              const idx = runningIndex
-              const isActive = idx === active
-              const Icon = it.icon
-              return (
-                <div
-                  key={it.id}
-                  id={optionId(it.id)}
-                  role="option"
-                  aria-selected={isActive}
-                  onClick={() => {
-                    it.run()
-                    onClose()
-                  }}
-                  onMouseEnter={() => setActive(idx)}
-                  className={cn(
-                    "flex cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5",
-                    isActive && "bg-muted",
-                  )}
-                >
-                  {it.cover ? (
-                    <span className="block h-8 w-6 shrink-0 overflow-hidden rounded-sm shadow-sm">
-                      <BookCover title={it.title} author={it.author ?? ""} cover={it.cover} />
-                    </span>
-                  ) : (
-                    <span className="grid size-[30px] shrink-0 place-items-center rounded-[9px] bg-brand-50 text-brand-600">
-                      {Icon ? <Icon className="size-4" /> : <BookOpen className="size-4" />}
-                    </span>
-                  )}
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13.5px] font-medium text-foreground">{it.title}</div>
-                    {it.sub && <div className="truncate text-xs text-muted-foreground">{it.sub}</div>}
+      <ScrollArea viewportClassName="max-h-[46vh]">
+        <div id={LISTBOX_ID} role="listbox" aria-label={t`Results`} className="p-2">
+          {groups.map((g) => (
+            <div key={g.label} role="group" aria-label={g.label}>
+              <div className="px-3 pb-1.5 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+                {g.label}
+              </div>
+              {g.items.map((it) => {
+                runningIndex += 1
+                const idx = runningIndex
+                const isActive = idx === active
+                const Icon = it.icon
+                return (
+                  <div
+                    key={it.id}
+                    id={optionId(it.id)}
+                    ref={isActive ? activeRef : undefined}
+                    role="option"
+                    aria-selected={isActive}
+                    onClick={() => {
+                      it.run()
+                      onClose()
+                    }}
+                    onMouseEnter={() => setActive(idx)}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5",
+                      isActive && "bg-muted",
+                    )}
+                  >
+                    {it.cover ? (
+                      <span className="block h-8 w-6 shrink-0 overflow-hidden rounded-sm shadow-sm">
+                        <BookCover title={it.title} author={it.author ?? ""} cover={it.cover} />
+                      </span>
+                    ) : (
+                      <span className="grid size-[30px] shrink-0 place-items-center rounded-[9px] bg-brand-50 text-brand-600">
+                        {Icon ? <Icon className="size-4" /> : <BookOpen className="size-4" />}
+                      </span>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13.5px] font-medium text-foreground">{it.title}</div>
+                      {it.sub && <div className="truncate text-xs text-muted-foreground">{it.sub}</div>}
+                    </div>
+                    {isActive && <CornerDownLeft className="size-3.5 text-muted-foreground" />}
                   </div>
-                  {isActive && <CornerDownLeft className="size-3.5 text-muted-foreground" />}
-                </div>
-              )
-            })}
-          </div>
-        ))}
+                )
+              })}
+            </div>
+          ))}
+        </div>
         {flat.length === 0 && (
           <div className="px-5 py-9 text-center text-[13px] text-muted-foreground">
             <Trans>No results for “{query}”</Trans>
           </div>
         )}
-      </div>
+      </ScrollArea>
     </>
   )
 }

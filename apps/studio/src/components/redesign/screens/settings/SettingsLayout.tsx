@@ -3,6 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { TopBar } from "@/components/title-bar/TopBar"
 import { cn } from "@/lib/utils"
 import { SETTINGS_PATHS, SETTINGS_TABS, activeSettingsTab } from "./nav"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 export function SettingsLayout() {
   const { i18n } = useLingui()
@@ -16,12 +17,12 @@ export function SettingsLayout() {
 
       <TopBar className="absolute top-0 drag-region" />
 
-      <div
+      <ScrollArea
         className={cn(
           "flex min-h-0 flex-1 flex-col",
-          fullWidth ? "overflow-hidden" : "overflow-auto",
         )}
       >
+      <ScrollBar className="z-10" />
       <div className="shrink-0 px-[34px] text-[22px] font-bold tracking-[-0.02em]">
         <Trans>Settings</Trans>
       </div>
@@ -58,7 +59,7 @@ export function SettingsLayout() {
       >
         <Outlet />
       </div>
-      </div>
+      </ScrollArea>
     </div>
   )
 }
