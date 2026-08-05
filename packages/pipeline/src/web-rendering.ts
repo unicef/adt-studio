@@ -475,7 +475,11 @@ export function buildRenderStrategyResolver(
       maxRetries: cfg?.max_retries ?? DEFAULT_RENDER_CONFIG.max_retries,
       timeoutMs: (cfg?.timeout ?? DEFAULT_RENDER_CONFIG.timeout) * 1000,
       temperature: cfg?.temperature ?? DEFAULT_RENDER_CONFIG.temperature,
-      answerPromptName: isActivity && !sectionStrategy
+      // Open-ended responses are intentionally free-form and have no answer
+      // key. Do not synthesize a missing *_answers prompt for them: that used
+      // to abort Storyboard with `Prompt template not found` for unmapped
+      // activity types (which correctly fall back to open-ended).
+      answerPromptName: isActivity && !sectionStrategy && activityPromptName !== "activity_open_ended_answer"
         ? `${activityPromptName}_answers`
         : cfg?.answer_prompt ?? "",
       templateName: cfg?.template ?? "",

@@ -1362,7 +1362,7 @@ describe("buildRenderStrategyResolver — activity", () => {
     const config = resolve("activity_conversation")
     expect(config.renderType).toBe("activity")
     expect(config.promptName).toBe("activity_open_ended_answer")
-    expect(config.answerPromptName).toBe("activity_open_ended_answer_answers")
+    expect(config.answerPromptName).toBe("")
   })
 })
 
