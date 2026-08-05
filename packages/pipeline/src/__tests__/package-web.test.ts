@@ -2175,6 +2175,13 @@ describe("convertLatexString", () => {
     expect(result).not.toContain("\\aqu")
   })
 
+  it("repairs malformed multicolumn alignment commands", () => {
+    const result = convertLatexString("\\\\begin{array}{c}\\\\multicolumn3c{m}\\\\end{array}")
+    expect(result).toContain("<math")
+    expect(result).not.toContain("\\multicolumn3c")
+    expect(result).not.toContain("multicolumn3c")
+  })
+
   it("does not convert mixed prose with embedded math as a single expression", () => {
     const text = "the molecular structure space M = (X, V), where X ∈ ℝ^{N×3} denotes atomic coordinates"
     const result = convertLatexString(text)

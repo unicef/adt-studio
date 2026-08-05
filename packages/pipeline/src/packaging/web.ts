@@ -2117,6 +2117,12 @@ function normalizeLatexCommands(text: string): string {
     .replace(/\\aqu\s+ad/g, "\\quad ")
     .replace(/\\qqu\s+ad/g, "\\qquad ")
     .replace(/\\q\s+uad/g, "\\quad ")
+    // OCR/LLM output can drop the braces in table alignment commands. Keep
+    // these repairs narrow so literal prose containing "multicolumn" is not
+    // changed, while preventing the command from leaking into the page.
+    .replace(/\\multicolumn\s+(\d+)\s*\{\s*([^{}]+)\s*\}/g, "\\multicolumn{$1}{$2}")
+    .replace(/\\multicolumn\s*\{\s*(\d+)\s*\}\s*([a-zA-Z])/g, "\\multicolumn{$1}{$2}")
+    .replace(/\\multicolumn\s*(\d+)\s*([a-zA-Z])/g, "\\multicolumn{$1}{$2}")
 }
 
 /**
