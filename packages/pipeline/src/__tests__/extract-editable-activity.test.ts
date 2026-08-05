@@ -185,8 +185,9 @@ describe("supportsEditableActivity", () => {
     expect(supportsEditableActivity("activity_true_false")).toBe(true)
     expect(supportsEditableActivity("activity_open_ended_answer")).toBe(true)
     expect(supportsEditableActivity("activity_underline_text")).toBe(true)
-    expect(supportsEditableActivity("activity_sorting")).toBe(false)
-    expect(supportsEditableActivity("activity_fill_in_a_table")).toBe(false)
+    expect(supportsEditableActivity("activity_sorting")).toBe(true)
+    expect(supportsEditableActivity("activity_fill_in_a_table")).toBe(true)
+    expect(supportsEditableActivity("activity_conversation")).toBe(true)
   })
 })
 
@@ -706,13 +707,13 @@ describe("extractEditableActivity — fill in the blank", () => {
     expect(errors.some((e) => e.includes("math"))).toBe(true)
   })
 
-  it("rejects unsupported section types", () => {
+  it("keeps newly introduced activity types on the editable path", () => {
     const { activity, errors } = extractEditableActivity({
       html: FITB_PLAIN,
       sectionType: "activity_sorting",
     })
     expect(activity).toBeNull()
-    expect(errors[0]).toContain("doesn't support")
+    expect(errors[0]).toContain("No writable answer fields")
   })
 })
 

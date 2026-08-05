@@ -1301,6 +1301,25 @@ describe("buildRenderStrategyResolver — activity", () => {
     expect(config.promptName).toBe("activity_open_ended_answer")
     expect(config.answerPromptName).toBe("")
   })
+
+  it("routes an unmapped exercise type to an interactive activity prompt", () => {
+    const resolve = buildRenderStrategyResolver({
+      role_types: { heading: "Heading" },
+      structure_types: { paragraph: "Paragraph" },
+      default_render_strategy: "default",
+      render_strategies: {
+        default: {
+          render_type: "llm",
+          config: { prompt: "web_rendering" },
+        },
+      },
+    })
+
+    const config = resolve("activity_conversation")
+    expect(config.renderType).toBe("activity")
+    expect(config.promptName).toBe("activity_open_ended_answer")
+    expect(config.answerPromptName).toBe("activity_open_ended_answer_answers")
+  })
 })
 
 describe("collectReferencedImageIds", () => {

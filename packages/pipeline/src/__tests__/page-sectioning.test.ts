@@ -684,6 +684,27 @@ describe("finalizePageSectioning", () => {
     expect(output.sections[0].isPruned).toBe(false)
     expect(output.sections[1].isPruned).toBe(true)
   })
+
+  it("never automatically prunes learner activities", () => {
+    const output = finalizePageSectioning(
+      {
+        reasoning: "",
+        sections: [
+          {
+            section_type: "activity_conversation",
+            background_color: "#fff",
+            text_color: "#000",
+            page_number: 1,
+            nodes: [{ role: "text", text: "Complete the conversation." }],
+          },
+        ],
+      },
+      makeInput(),
+      makeConfig({ prunedSectionTypes: ["activity_conversation"] }),
+    )
+
+    expect(output.sections[0].isPruned).toBe(false)
+  })
 })
 
 // ── flattenTreeToText ───────────────────────────────────────────

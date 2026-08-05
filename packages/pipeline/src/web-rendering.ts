@@ -435,16 +435,47 @@ export function buildRenderStrategyResolver(
     const strategy = sectionStrategy ?? defaultStrategy
     const cfg = strategy?.config
 
+    // Every section whose semantic type starts with `activity_` is an
+    // interactive exercise, even when a book-specific config predates that
+    // activity type. Falling back to the ordinary LLM renderer here caused
+    // newly introduced exercises (tables, matching, conversations, picture
+    // prompts, etc.) to be emitted as static page artwork. Keep explicit
+    // strategies authoritative, but route unmapped activity types through the
+    // activity prompt contract so the model must create HTML controls.
+    const isActivity = sectionType.startsWith("activity_")
+    const activityPrompt = isActivity
+      ? `activity_${sectionType.slice("activity_".length)}`
+      : ""
+    const activityPromptName = isActivity
+      ? [
+          "activity_fill_in_the_blank",
+          "activity_fill_in_a_table",
+          "activity_matching",
+          "activity_multi_select",
+          "activity_multiple_choice",
+          "activity_open_ended_answer",
+          "activity_sorting",
+          "activity_true_false",
+          "activity_underline_text",
+        ].includes(activityPrompt)
+        ? activityPrompt
+        : "activity_open_ended_answer"
+      : ""
+
     const vr = cfg?.visual_refinement
 
     const base: RenderConfig = {
-      renderType: strategy?.render_type ?? "llm",
-      promptName: cfg?.prompt ?? DEFAULT_RENDER_CONFIG.prompt,
+      renderType: isActivity && !sectionStrategy ? "activity" : strategy?.render_type ?? "llm",
+      promptName: isActivity && !sectionStrategy
+        ? activityPromptName
+        : cfg?.prompt ?? DEFAULT_RENDER_CONFIG.prompt,
       modelId: cfg?.model ?? appConfig.default_model ?? DEFAULT_RENDER_CONFIG.model,
       maxRetries: cfg?.max_retries ?? DEFAULT_RENDER_CONFIG.max_retries,
       timeoutMs: (cfg?.timeout ?? DEFAULT_RENDER_CONFIG.timeout) * 1000,
       temperature: cfg?.temperature ?? DEFAULT_RENDER_CONFIG.temperature,
-      answerPromptName: cfg?.answer_prompt ?? "",
+      answerPromptName: isActivity && !sectionStrategy
+        ? `${activityPromptName}_answers`
+        : cfg?.answer_prompt ?? "",
       templateName: cfg?.template ?? "",
       ...(vr?.enabled && {
         visualRefinement: {

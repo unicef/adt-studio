@@ -536,13 +536,20 @@ export function finalizePageSectioning(
     const nodes = section.nodes.map((node) =>
       toContentNode(node, input.pageId, counter, prunedRoles)
     )
+    // Activity sections are learner-facing content. Never apply the generic
+    // decorative/metadata prune list to them: doing so silently removed whole
+    // exercises before storyboard rendering and made “restore” appear to
+    // restart the stage. Explicit learner edits can still prune individual
+    // nodes later in the editor, but automatic sectioning must retain the
+    // complete activity page.
+    const isActivity = section.section_type.startsWith("activity_")
     return {
       sectionId,
       sectionType: section.section_type,
       backgroundColor: section.background_color,
       textColor: section.text_color,
       pageNumber: section.page_number,
-      isPruned: prunedSectionTypes.has(section.section_type),
+      isPruned: !isActivity && prunedSectionTypes.has(section.section_type),
       nodes,
     }
   })

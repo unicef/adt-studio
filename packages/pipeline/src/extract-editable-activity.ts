@@ -1069,7 +1069,12 @@ const KIND_BY_SECTION_TYPE: Record<string, EditableActivity["kind"]> = {
 }
 
 export function supportsEditableActivity(sectionType: string): boolean {
-  return sectionType in KIND_BY_SECTION_TYPE
+  // Sectioning is intentionally extensible: books routinely introduce
+  // mechanics such as conversations, picture prompts, matching grids, and
+  // worksheet variants. Treat every semantic activity section as editable;
+  // unknown mechanics use the safe open-ended field model instead of falling
+  // back to a static image. Known types retain their specialized extractor.
+  return sectionType in KIND_BY_SECTION_TYPE || sectionType.startsWith("activity_")
 }
 
 export function extractEditableActivity(opts: {
@@ -1081,7 +1086,7 @@ export function extractEditableActivity(opts: {
   const errors: string[] = []
   const warnings: string[] = []
 
-  const kind = KIND_BY_SECTION_TYPE[opts.sectionType]
+  const kind = KIND_BY_SECTION_TYPE[opts.sectionType] ?? "open-ended"
   if (!kind) {
     return {
       activity: null,
