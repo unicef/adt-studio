@@ -1445,6 +1445,12 @@ export const api = {
       `/books/${label}/debug/versions/${node}/${itemId}${includeData ? "?includeData=true" : ""}`
     ),
 
+  restoreVersion: (label: string, node: string, itemId: string, version: number) =>
+    request<{ node: string; itemId: string; version: number }>(
+      `/books/${label}/versions/${node}/${itemId}/restore`,
+      { method: "POST", body: JSON.stringify({ version }) }
+    ),
+
   getBookConfig: (label: string) =>
     request<BookConfigResponse>(`/books/${label}/config`),
 
@@ -2040,6 +2046,24 @@ export const api = {
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
+  },
+
+  exportPnld: async (label: string): Promise<Blob | null> => {
+    if (!isDesktop()) {
+      triggerDirectDownload(`${BASE_URL}/books/${label}/export-pnld`)
+      return null
+    }
+    const res = await fetch(`${BASE_URL}/books/${label}/export-pnld`, {
+      method: "GET",
+      headers: { Accept: "application/zip" },
+      mode: "cors",
+      signal: AbortSignal.timeout(1_800_000),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error(body.error ?? `PNLD export failed: ${res.status}`)
+    }
+    return new Blob([await res.arrayBuffer()], { type: "application/zip" })
   },
 }
 
