@@ -226,6 +226,28 @@ describe("renderSectionLlm visual review routing", () => {
     expect(calls[0].context.user_instructions).toBe("Use a yellow background and red text.")
   })
 
+  it("preserves a custom reviewer when instructions are provided", async () => {
+    const { model, calls } = makeReviewModel()
+    const customConfig: RenderConfig = {
+      ...config,
+      visualRefinement: {
+        ...config.visualRefinement!,
+        promptName: "custom_visual_review",
+      },
+    }
+
+    await renderSectionLlm(
+      makeInput("Use a yellow background and red text."),
+      customConfig,
+      renderModel,
+      makeDeps(model),
+    )
+
+    expect(calls).toHaveLength(1)
+    expect(calls[0].promptName).toBe("custom_visual_review")
+    expect(calls[0].context.user_instructions).toBe("Use a yellow background and red text.")
+  })
+
   it("keeps the configured reviewer when there is no user prompt", async () => {
     const { model, calls } = makeReviewModel()
     await renderSectionLlm(makeInput(), config, renderModel, makeDeps(model))

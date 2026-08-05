@@ -14,6 +14,7 @@ import {
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
 import { inspectOrderingActivityHtml } from "./ordering-contract.js"
 
+const BUILT_IN_STRICT_REVIEW_PROMPT = "visual_review"
 const USER_DIRECTED_REVIEW_PROMPT = "visual_review_flexible"
 
 /** Dependencies for the optional visual refinement loop. */
@@ -100,7 +101,10 @@ export async function renderSectionLlm(
   // Optional: visual refinement loop — screenshot the HTML and ask an LLM to review
   if (visualRefinement && config.visualRefinement?.enabled) {
     const vr = config.visualRefinement
-    const reviewPromptName = userInstructions ? USER_DIRECTED_REVIEW_PROMPT : vr.promptName
+    const reviewPromptName =
+      userInstructions && vr.promptName === BUILT_IN_STRICT_REVIEW_PROMPT
+        ? USER_DIRECTED_REVIEW_PROMPT
+        : vr.promptName
     const imagesForScreenshot = new Map<string, { base64: string }>()
     for (const img of renderContext.image_refs) {
       if (img.image_base64) {
