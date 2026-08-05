@@ -1,8 +1,9 @@
 import { Trans } from "@lingui/react/macro"
-import { Check, RotateCcw, Folder, FileDown } from "lucide-react"
+import { Check, RotateCcw, Folder, FileDown, Hourglass } from "lucide-react"
 import { useAppVersion } from "@/hooks/use-app-version"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import { CARD, HEADING, LEAD, SettingRow } from "./ui"
 
 export function AboutSection() {
@@ -45,19 +46,27 @@ export function AboutSection() {
           </Button>
         </div>
       </div>
-      <div className={CARD}>
-        <SettingRow title={<Trans>Books folder</Trans>} subtitle={<Trans>Where book projects live on this machine.</Trans>}>
-          <Button variant="outline" size="sm">
-            <Folder className="size-3.5" />
-            <Trans>~/ADT/Books</Trans>
-          </Button>
-        </SettingRow>
-        <SettingRow title={<Trans>Diagnostics</Trans>} subtitle={<Trans>Logs help us debug pipeline failures.</Trans>}>
-          <Button variant="outline" size="sm">
-            <FileDown className="size-3.5" />
-            <Trans>Export logs</Trans>
-          </Button>
-        </SettingRow>
+      <div className={cn(CARD, "relative overflow-hidden")}>
+        <div aria-disabled className="pointer-events-none select-none opacity-50">
+          <SettingRow title={<Trans>Books folder</Trans>} subtitle={<Trans>Where book projects live on this machine.</Trans>}>
+            <Button variant="outline" size="sm" disabled>
+              <Folder className="size-3.5" />
+              <Trans>~/ADT/Books</Trans>
+            </Button>
+          </SettingRow>
+          <SettingRow title={<Trans>Diagnostics</Trans>} subtitle={<Trans>Logs help us debug pipeline failures.</Trans>}>
+            <Button variant="outline" size="sm" disabled>
+              <FileDown className="size-3.5" />
+              <Trans>Export logs</Trans>
+            </Button>
+          </SettingRow>
+        </div>
+        <div className="absolute inset-0 z-10 grid place-items-center bg-background/35">
+          <Badge variant="outline" className="gap-1.5 bg-card px-3 py-1.5 text-[11.5px] font-semibold shadow-sm">
+            <Hourglass className="size-3.5 text-muted-foreground" />
+            <Trans>Coming soon</Trans>
+          </Badge>
+        </div>
       </div>
     </>
   )
