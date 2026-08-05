@@ -1256,11 +1256,30 @@ async function runSectioningStep(
         try {
           const imageClassRow = storage.getLatestNodeData("image-filtering", page.pageId)
           const imageClassification = (imageClassRow?.data as ImageClassificationOutput) ?? { images: [] }
+          const pageImages = storage.getPageImages(page.pageId)
           const unprunedImageIds = imageClassRow
-            ? imageClassification.images.filter((img) => !img.isPruned).map((img) => img.imageId)
-            : storage.getPageImages(page.pageId).map((img) => img.imageId)
-          const availableImages = unprunedImageIds
-            .map((imageId) => storage.getPageImages(page.pageId).find((img) => img.imageId === imageId))
+            ? imageClassification.images
+                .filter((img) => {
+                  if (!img.isPruned) return true
+                  // Publication marks are meaningful content. Keep direct
+                  // signature/seal assets available to credits-page
+                  // finalization even when image filtering classified them as
+                  // decorative or too small for ordinary pages.
+                  const source = pageImages.find((candidate) => candidate.imageId === img.imageId)
+                  return !!source &&
+                    (source.renderMethod === "raster" || source.renderMethod === "vector") &&
+                    /signature|seal|approval|stamp|sahihi|im001/i.test(source.imageId)
+                })
+                .map((img) => img.imageId)
+            : pageImages.map((img) => img.imageId)
+          const publicationMarks = pageImages
+            .filter((img) =>
+              (img.renderMethod === "raster" || img.renderMethod === "vector") &&
+              /signature|seal|approval|stamp|sahihi|im001/i.test(img.imageId),
+            )
+            .map((img) => img.imageId)
+          const availableImages = [...new Set([...unprunedImageIds, ...publicationMarks])]
+            .map((imageId) => pageImages.find((img) => img.imageId === imageId))
             // page-crop assets are extracted text/layout fragments (often the
             // same exercise or table that sectioning has already represented
             // semantically). Supplying them to the LLM creates duplicate
