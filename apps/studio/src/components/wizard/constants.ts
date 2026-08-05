@@ -333,7 +333,11 @@ export const PRESETS: PresetConfig[] = [
       // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
       // suffixed variants never match, so header/footer would leak in unpruned.
       pruned_role_types: ["header", "footer", "page_number"],
-      pruned_section_types: ["back_cover", "credits", "inside_cover"],
+      // Every imported PDF page is valid Storyboard input, including covers,
+      // acknowledgements, prefaces, and credits. Users can still explicitly
+      // prune a section later, but the wizard must never hide source pages by
+      // default.
+      pruned_section_types: [],
       image_filters: { min_stddev: 2 },
     },
   },
@@ -409,20 +413,7 @@ export const PRESETS: PresetConfig[] = [
       // suffixed variants never match, so header/footer would leak into the
       // two-column-story layout unpruned.
       pruned_role_types: ["header", "footer", "page_number"],
-      pruned_section_types: [
-        "back_cover",
-        "credits",
-        "inside_cover",
-        "activity_multiple_choice",
-        "activity_multi_select",
-        "activity_underline_text",
-        "activity_true_false",
-        "activity_fill_in_the_blank",
-        "activity_fill_in_a_table",
-        "activity_matching",
-        "activity_sorting",
-        "activity_open_ended_answer",
-      ],
+      pruned_section_types: [],
       image_filters: { min_stddev: 2 },
       quiz_generation: { pages_per_quiz: 3 },
     },
@@ -498,20 +489,7 @@ export const PRESETS: PresetConfig[] = [
       // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
       // suffixed variants never match, so header/footer would leak in unpruned.
       pruned_role_types: ["header", "footer", "page_number"],
-      pruned_section_types: [
-        "back_cover",
-        "credits",
-        "inside_cover",
-        "activity_multiple_choice",
-        "activity_multi_select",
-        "activity_underline_text",
-        "activity_true_false",
-        "activity_fill_in_the_blank",
-        "activity_fill_in_a_table",
-        "activity_matching",
-        "activity_sorting",
-        "activity_open_ended_answer",
-      ],
+      pruned_section_types: [],
       image_filters: { min_stddev: 2 },
     },
   },
