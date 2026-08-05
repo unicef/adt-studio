@@ -454,7 +454,7 @@ export function StoryboardSectionDetail({
   const [merging, setMerging] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
-  const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string } | null>(null)
+  const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string; consequence?: string } | null>(null)
   const [pendingSectioning, setPendingSectioning] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRendering] = useState<RenderingData | null>(null)
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
@@ -1058,7 +1058,10 @@ export function StoryboardSectionDetail({
   const executeMergeSection = async (direction: "next" | "prev") => {
     setMerging(true)
     try {
-      const result = await api.mergeSection(bookLabel, pageId, sectionIndex, direction)
+      // The merge concatenates both sections' HTML into the kept entry, so no
+      // section is left without one and the stage stays complete; the re-render
+      // below replaces the naive join with properly combined markup.
+      const result = await api.mergeSection(bookLabel, pageId, sectionIndex, direction, true)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
@@ -1080,7 +1083,17 @@ export function StoryboardSectionDetail({
   const executeMergeCrossPage = async (direction: "next" | "prev") => {
     setMerging(true)
     try {
-      const result = await api.mergeSectionCrossPage(bookLabel, pageId, sectionIndex, direction)
+      // This empties both pages' renderings outright — every section on them
+      // loses its HTML, not just the merged one — so both pages have to be
+      // re-rendered whole before the stage is complete again. Two page renders
+      // is still the affected pages only, never the rest of the book.
+      const result = await api.mergeSectionCrossPage(
+        bookLabel,
+        pageId,
+        sectionIndex,
+        direction,
+        hasApiKey
+      )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.sourcePageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.targetPageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
@@ -1089,6 +1102,14 @@ export function StoryboardSectionDetail({
       invalidateStoryboardDependents(queryClient, bookLabel)
       // Navigate to the previous section or 0 since the current section was removed
       onNavigateSection?.(Math.max(0, sectionIndex - 1))
+
+      if (hasApiKey) {
+        for (const affectedPageId of [result.sourcePageId, result.targetPageId]) {
+          api.reRenderPage(bookLabel, affectedPageId, apiKey).catch((err) => {
+            setAiError(err instanceof Error ? err.message : t`Re-render failed`)
+          })
+        }
+      }
     } catch (err) {
       setAiError(err instanceof Error ? err.message : t`Merge failed`)
     } finally {
@@ -1128,6 +1149,7 @@ export function StoryboardSectionDetail({
       action: () => executeMergeSection(direction),
       label,
       warning: buildMergeWarning(neighbor?.sectionType),
+      consequence: t`The combined section will be re-rendered.`,
     })
   }
 
@@ -1140,6 +1162,11 @@ export function StoryboardSectionDetail({
       action: () => executeMergeCrossPage(direction),
       label,
       warning: buildMergeWarning(),
+      // Unlike a same-page merge this clears both pages' renderings entirely,
+      // so say which pages go and who puts them back.
+      consequence: hasApiKey
+        ? t`Both pages lose their rendering and will be re-rendered automatically.`
+        : t`Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running.`,
     })
   }
 
@@ -3285,6 +3312,7 @@ export function StoryboardSectionDetail({
           <DialogTitle>{t`Confirm merge`}</DialogTitle>
           <DialogDescription>
             {t`Are you sure you want to ${confirmMerge?.label ?? ""}? This action cannot be undone.`}
+            {confirmMerge?.consequence ? ` ${confirmMerge.consequence}` : null}
           </DialogDescription>
         </DialogHeader>
         {confirmMerge?.warning && (

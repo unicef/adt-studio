@@ -2240,6 +2240,9 @@ export function createPageRoutes(
       throw new HTTPException(400, { message: `Invalid direction: ${directionParam}. Must be "next" or "prev"` })
     }
     const direction = directionParam as "next" | "prev"
+    // The Storyboard editor re-renders the merged section straight after, so it
+    // opts out of marking the stage stale. Off by default for every other caller.
+    const renderingInSync = c.req.query("renderingInSync") === "1"
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
@@ -2350,7 +2353,16 @@ export function createPageRoutes(
         updatedRendering = { sections: shifted }
       }
 
-      const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
+      // Merging concatenates the two sections' HTML into the kept entry, so no
+      // section is left without one — the caller's re-render replaces the naive
+      // join with properly combined markup rather than filling a gap.
+      const sectioningVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        updatedSectioning,
+        { renderingInSync: renderingInSync && updatedRendering !== null }
+      )
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
@@ -2397,6 +2409,10 @@ export function createPageRoutes(
       })
     }
     const { direction } = parsedQuery.data
+    // Unlike a same-page merge, this empties both pages' renderings outright, so
+    // the caller must re-render both pages before the stage is whole again. Only
+    // a caller that will do that may opt out of marking the stage stale.
+    const renderingInSync = c.req.query("renderingInSync") === "1"
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
@@ -2483,14 +2499,20 @@ export function createPageRoutes(
       renumberSectionIds(newTgtSections, targetPageId)
 
       // Save updated sectionings
-      const srcVersion = saveStoryboardNode(storage, "page-sectioning", pageId, {
-        ...srcSectioning,
-        sections: newSrcSections,
-      })
-      const tgtVersion = saveStoryboardNode(storage, "page-sectioning", targetPageId, {
-        ...tgtSectioning,
-        sections: newTgtSections,
-      })
+      const srcVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        { ...srcSectioning, sections: newSrcSections },
+        { renderingInSync }
+      )
+      const tgtVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        targetPageId,
+        { ...tgtSectioning, sections: newTgtSections },
+        { renderingInSync }
+      )
 
       // Clear rendering for both pages (merged content invalidates existing renders)
       let srcRenderVersion: number | null = null

@@ -1746,6 +1746,12 @@ msgstr "Kufij"
 msgid "Both"
 msgstr "Të dyja"
 
+msgid "Both pages lose their rendering and will be re-rendered automatically."
+msgstr "Të dyja faqet humbin renderimin e tyre dhe do të ri-renderizohen automatikisht."
+
+msgid "Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
+msgstr "Të dyja faqet humbin renderimin e tyre. Pa një çelës API ato nuk mund të ri-renderizohen, prandaj Storyboard-i do të duhet të ekzekutohet përsëri."
+
 msgid "Boxed Text"
 msgstr "Tekst i inkuadruar"
 
@@ -8772,6 +8778,9 @@ msgstr "Titulli dhe të dhënat e librit vijnë me pjesën që përmban faqen 1 
 
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Prompt-et e integruara janë optimizuar për {DEFAULT_MODEL}. E ndryshuat LLM-në e parazgjedhur në <0>{savedModel}</0>, ndaj rekomandojmë të gjeneroni skedarë të rinj prompt-esh globale të përshtatur për të. Mund të vazhdoni edhe me prompt-et ekzistuese."
+
+msgid "The combined section will be re-rendered."
+msgstr "Seksioni i kombinuar do të ri-renderizohet."
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "Bashkësia e organizmave të gjallë në një vend dhe mënyra si ndërveprojnë me njëri-tjetrin dhe mjedisin e tyre."

@@ -1180,26 +1180,32 @@ export const api = {
       body: JSON.stringify(at),
     }),
 
+  /** `renderingInSync` is for callers that re-render the affected sections
+   *  themselves; it keeps the Storyboard stage from being marked stale. */
   mergeSection: (
     label: string,
     pageId: string,
     sectionIndex: number,
-    direction: "next" | "prev" = "next"
+    direction: "next" | "prev" = "next",
+    renderingInSync = false
   ) =>
     request<{
       mergedSectionIndex: number
       sectioningVersion: number
       renderingVersion: number | null
     }>(
-      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge?direction=${direction}`,
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge?direction=${direction}${renderingInSync ? "&renderingInSync=1" : ""}`,
       { method: "POST" }
     ),
 
+  /** Empties both pages' renderings, so `renderingInSync` is only honest when
+   *  the caller re-renders both pages afterwards. */
   mergeSectionCrossPage: (
     label: string,
     pageId: string,
     sectionIndex: number,
-    direction: "next" | "prev"
+    direction: "next" | "prev",
+    renderingInSync = false
   ) =>
     request<{
       sourcePageId: string
@@ -1210,7 +1216,7 @@ export const api = {
       sourceRenderingVersion: number | null
       targetRenderingVersion: number | null
     }>(
-      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge-cross-page?direction=${direction}`,
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge-cross-page?direction=${direction}${renderingInSync ? "&renderingInSync=1" : ""}`,
       { method: "POST" }
     ),
 

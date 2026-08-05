@@ -1747,6 +1747,12 @@ msgstr "Bordures"
 msgid "Both"
 msgstr "Les deux"
 
+msgid "Both pages lose their rendering and will be re-rendered automatically."
+msgstr "Les deux pages perdent leur rendu et seront re-rendues automatiquement."
+
+msgid "Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
+msgstr "Les deux pages perdent leur rendu. Sans clé API, elles ne peuvent pas être re-rendues : il faudra donc relancer le Scénarimage."
+
 msgid "Boxed Text"
 msgstr "Boxed Texte"
 
@@ -8773,6 +8779,9 @@ msgstr "Le titre et les métadonnées du livre arrivent avec la partie qui conti
 
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Les prompts intégrés sont optimisés pour {DEFAULT_MODEL}. Vous avez remplacé le LLM par défaut par <0>{savedModel}</0> ; nous vous recommandons donc de générer de nouveaux fichiers de prompts globaux adaptés à ce modèle. Vous pouvez aussi continuer avec les prompts existants."
+
+msgid "The combined section will be re-rendered."
+msgstr "La section combinée sera re-rendue."
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "La communauté des organismes vivants dans un lieu et la façon dont ils interagissent entre eux et avec leur environnement."
