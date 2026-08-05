@@ -16,6 +16,7 @@ import { toBookVM, type BookVM } from "../data"
 import { REDESIGN_PATHS } from "../nav"
 import { useRedesignBooks } from "../use-redesign-books"
 import { useRedesignShell } from "../RedesignShellContext"
+import { TopBar } from "@/components/title-bar/TopBar"
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -68,9 +69,13 @@ export function HomeScreen() {
   const dateLabel = dateFormat.format(new Date())
 
   return (
-    <div className="relative h-full bg-background px-[34px] pb-6 pt-3.5">
+    <div className="flex flex-col relative h-full bg-background pt-8">
+
+      <TopBar className="absolute top-0 drag-region" />
+
       <div className="pointer-events-none absolute -top-[120px] right-[-80px] size-[440px] animate-hero-drift rounded-full bg-[radial-gradient(circle,rgba(43,127,255,.12),transparent_70%)]" />
-      <div className="relative">
+      <div className="relative px-8 pb-6">
+
         {feature ? (
           <>
             <Eyebrow>{dateLabel}</Eyebrow>

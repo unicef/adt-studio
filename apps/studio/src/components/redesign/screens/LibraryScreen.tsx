@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { SegmentedControl } from "@/components/ui/segmented-control"
+import { TopBar } from "@/components/title-bar/TopBar"
 import { cn } from "@/lib/utils"
 import { toBookVM } from "../data"
 import { Pager } from "../ui/Pager"
@@ -90,7 +91,11 @@ export function LibraryScreen() {
 
   if (books.length === 0) {
     return (
-      <div className="flex h-full flex-col overflow-hidden bg-background px-[30px] pb-10 pt-6">
+      <div className="relative flex h-full flex-col bg-background pt-8">
+
+        <TopBar className="absolute top-0 drag-region" />
+
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-[30px] pb-10">
         <div className="shrink-0">
           <div className="mb-1.5 text-2xl font-bold leading-none tracking-[-0.02em]">
             <Trans>Library</Trans>
@@ -98,12 +103,17 @@ export function LibraryScreen() {
           <div className="text-[13px] text-muted-foreground">{countText}</div>
         </div>
         <LibraryEmptyState onOpenAdd={openAdd} />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="h-full overflow-auto bg-background px-[30px] pb-10 pt-6">
+    <div className="relative flex h-full flex-col bg-background pt-8">
+
+      <TopBar className="absolute top-0 drag-region" />
+
+      <div className="min-h-0 flex-1 overflow-auto px-[30px] pb-10">
       <div className="mb-4">
         <div className="mb-1.5 text-2xl font-bold leading-none tracking-[-0.02em]">
           <Trans>Library</Trans>
@@ -300,6 +310,7 @@ export function LibraryScreen() {
       />
 
       <BookDetailDialog book={detail} onOpenChange={(o) => !o && setDetailLabel(null)} onEdit={openBook} />
+      </div>
     </div>
   )
 }

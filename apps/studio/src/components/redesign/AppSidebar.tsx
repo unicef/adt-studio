@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils"
 import { Kbd } from "./ui/Kbd"
 import { REDESIGN_PATHS, activeRedesignView } from "./nav"
 import type { RedesignView } from "./types"
+import { MacOSTrafficLightSpacer } from "../title-bar"
 
 const DOCS_LABEL: Record<RedesignView, MessageDescriptor> = {
   home: msg`Home guide`,
@@ -97,6 +98,9 @@ export function AppSidebar({
   return (
     <div className="flex w-64 shrink-0 flex-col overflow-auto border-r bg-sidebar px-3 pb-3 pt-4">
       <div style={DRAG_REGION} className="flex items-center gap-2.5 px-1.5 pb-4">
+
+        <MacOSTrafficLightSpacer />
+
         <img src="/logo.png" alt="" className="size-8 rounded-[9px] shadow-[0_2px_7px_rgba(43,127,255,0.42)]" />
         <div className="flex min-w-0 flex-1 flex-col gap-px leading-[1.1]">
           <b className="truncate text-[14.5px]">ADT Studio</b>

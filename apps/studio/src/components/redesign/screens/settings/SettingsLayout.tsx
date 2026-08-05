@@ -1,5 +1,6 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { TopBar } from "@/components/title-bar/TopBar"
 import { cn } from "@/lib/utils"
 import { SETTINGS_PATHS, SETTINGS_TABS, activeSettingsTab } from "./nav"
 
@@ -11,13 +12,17 @@ export function SettingsLayout() {
   const fullWidth = activeTab.fullWidth === true
 
   return (
-    <div
-      className={cn(
-        "flex h-full flex-col bg-background",
-        fullWidth ? "overflow-hidden" : "overflow-auto",
-      )}
-    >
-      <div className="shrink-0 px-[34px] pt-6 text-[22px] font-bold tracking-[-0.02em]">
+    <div className="relative flex h-full flex-col bg-background pt-8">
+
+      <TopBar className="absolute top-0 drag-region" />
+
+      <div
+        className={cn(
+          "flex min-h-0 flex-1 flex-col",
+          fullWidth ? "overflow-hidden" : "overflow-auto",
+        )}
+      >
+      <div className="shrink-0 px-[34px] text-[22px] font-bold tracking-[-0.02em]">
         <Trans>Settings</Trans>
       </div>
       <div className="sticky top-0 z-[2] mt-3.5 shrink-0 border-b bg-background px-[34px]">
@@ -52,6 +57,7 @@ export function SettingsLayout() {
         )}
       >
         <Outlet />
+      </div>
       </div>
     </div>
   )
