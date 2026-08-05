@@ -134,7 +134,18 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
           i === sectionIndex ? { ...s, isPruned: !s.isPruned } : s
         ),
       }
-      return api.updateSectioning(bookLabel, pageId, updated)
+      // Pruning only filters the section out at read time; its HTML stays in
+      // web-rendering, so the toggle leaves the storyboard current. The one
+      // exception is unpruning a section that was pruned when the storyboard
+      // ran — it was skipped then and has no HTML to restore.
+      const wasPruned = page.sectioningTree.sections[sectionIndex]?.isPruned ?? false
+      const hasHtml = (page.rendering?.sections ?? []).some(
+        (s) => s.sectionIndex === sectionIndex && !!s.html
+      )
+      return api.saveStoryboard(bookLabel, pageId, {
+        sectioning: updated,
+        renderingInSync: !wasPruned || hasHtml,
+      })
     },
     onSuccess: (_data, vars) => invalidatePages(vars.pageId),
   })

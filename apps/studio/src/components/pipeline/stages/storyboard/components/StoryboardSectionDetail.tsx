@@ -1454,7 +1454,17 @@ export function StoryboardSectionDetail({
     if (storyboardRunning) return
     const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
     if (!base) return
-    if (base.sections[sectionIndex]?.isPruned) needsRerenderRef.current = true
+    // Pruning a section is a read-time filter — packaging and the text catalog
+    // skip it (`packaging/web.ts`, `text-catalog.ts`) but its HTML stays in
+    // web-rendering. So unpruning restores it as-is and needs no LLM. The one
+    // exception is a section that was already pruned when the storyboard ran:
+    // `web-rendering.ts` skips pruned sections, so it has no HTML to restore.
+    const unpruning = base.sections[sectionIndex]?.isPruned ?? false
+    const renderedHtml = getRenderedSectionByIndex(
+      pendingRendering ?? page.rendering,
+      sectionIndex
+    )?.html
+    if (unpruning && !renderedHtml) needsRerenderRef.current = true
     const updated: SectioningData = {
       ...base,
       sections: base.sections.map((s, si) => {

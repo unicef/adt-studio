@@ -93,10 +93,17 @@ export function StageSidebar({
   )
 
   const currentState = stageState(activeStep)
+  // A stale Storyboard still has its renderings — staleness is a step_runs flag,
+  // not a delete. Closing the pages panel on stage status alone took the page
+  // list away from a user whose pages were all still there, and with it the way
+  // to reach the per-section re-render. Matches the gate in StoryboardIndex.
+  const storyboardHasRenderings =
+    activeStep === "storyboard" && (sidebarPages ?? []).some((p) => p.hasRendering)
   const stageHasContent =
     currentState === "done" ||
     currentState === "running" ||
-    currentState === "error"
+    currentState === "error" ||
+    storyboardHasRenderings
   // Quizzes never open a side panel — selection lives in the content header.
   const effectivePagesOpen =
     hasStagePages(activeStep) && stageHasContent && activeStep !== "quizzes"
