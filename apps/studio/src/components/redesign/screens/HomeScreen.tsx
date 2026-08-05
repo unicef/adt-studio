@@ -17,6 +17,7 @@ import { REDESIGN_PATHS } from "../nav"
 import { useRedesignBooks } from "../use-redesign-books"
 import { useRedesignShell } from "../RedesignShellContext"
 import { TopBar } from "@/components/title-bar/TopBar"
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -29,8 +30,8 @@ const sectionLabel = "text-[11.5px] font-medium uppercase tracking-[0.08em] text
 
 function RecentBookCard({ book, onOpen }: { book: BookVM; onOpen: () => void }) {
   return (
-    <button type="button" onClick={onOpen} className="flex w-[150px] shrink-0 flex-col gap-2.5 text-left">
-      <div className="h-[200px] w-[150px] overflow-hidden rounded-[9px] shadow-md">
+    <button type="button" onClick={onOpen} className="flex w-[170px] shrink-0 flex-col gap-2.5 text-left">
+      <div className="h-[220px] w-[170px] overflow-hidden rounded-[9px] shadow-md">
         <BookCover title={book.displayTitle} author={book.authors} cover={book.cover} />
       </div>
       <div>
@@ -38,7 +39,7 @@ function RecentBookCard({ book, onOpen }: { book: BookVM; onOpen: () => void }) 
         <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
           {book.authors} · {book.pagesText}
         </div>
-        {book.hasStages && <StageDiscs discs={book.discs} size={18} max={5} className="mt-2" />}
+        {book.hasStages && <StageDiscs discs={book.discs} size={22} max={5} className="mt-2" />}
       </div>
     </button>
   )
@@ -111,8 +112,8 @@ export function HomeScreen() {
                     <div className={`mb-[7px] ${sectionLabel}`}>
                       <Trans>Last edited {feature.modified}</Trans>
                     </div>
-                    <h3 className="text-xl font-bold leading-[1.15] tracking-[-0.02em]">{feature.displayTitle}</h3>
-                    <div className="mt-1.5 text-[13px] text-muted-foreground">
+                    <h3 className="text-2xl font-bold leading-[1.15] tracking-[-0.02em]">{feature.displayTitle}</h3>
+                    <div className="mt-1.5 text-sm text-muted-foreground">
                       {feature.authors} · {feature.pagesText}
                     </div>
                   </div>
@@ -185,23 +186,27 @@ export function HomeScreen() {
                 <Trans>View all →</Trans>
               </Link>
             </div>
-            <div className="flex gap-[18px] overflow-x-auto pb-1">
-              <button
-                type="button"
-                onClick={openAdd}
-                className="flex w-[150px] shrink-0 flex-col gap-2.5 text-left"
-              >
-                <span className="grid h-[200px] w-[150px] place-items-center rounded-[9px] border-2 border-dashed text-muted-foreground transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600">
-                  <Plus className="size-5" />
-                </span>
-                <span className="text-[12.5px] font-medium text-muted-foreground">
-                  <Trans>Add new book</Trans>
-                </span>
-              </button>
-              {recents.map((b) => (
-                <RecentBookCard key={b.label} book={b} onOpen={() => openBook(b.label)} />
-              ))}
-            </div>
+            <ScrollArea type="hover">
+              <div className="flex w-max gap-[16px] pb-3">
+                <button
+                  type="button"
+                  onClick={openAdd}
+                  className="flex w-[170px] shrink-0 flex-col gap-2.5 text-left"
+                >
+                  <span className="grid h-[220px] w-[170px] place-items-center rounded-[9px] border-2 border-dashed text-muted-foreground transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600">
+                    <Plus className="size-5" />
+                  </span>
+                  <span className="text-[12.5px] font-medium text-muted-foreground">
+                    <Trans>Add new book</Trans>
+                  </span>
+                </button>
+
+                {recents.map((b) => (
+                  <RecentBookCard key={b.label} book={b} onOpen={() => openBook(b.label)} />
+                ))}
+              </div>
+              <ScrollBar orientation="horizontal" />
+            </ScrollArea>
           </>
         )}
       </div>
