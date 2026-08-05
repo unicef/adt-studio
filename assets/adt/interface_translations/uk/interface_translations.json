@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Інструменти адміністратора будуть додані в наступному оновленні.",
     "main-menu-label": "Головне меню",
     "cover-label": "Обкладинка",
-    "print-page-label": "Друк сторінки"
+    "print-page-label": "Друк сторінки",
+    "stepper-progress-n-of-m": "Крок ${n} із ${m}",
+    "stepper-word-bank": "Слова на вибір",
+    "stepper-open-ended-saved": "Молодець — твою відповідь збережено.",
+    "stepper-open-ended-rephrase": "Будьмо ввічливими — спробуй сформулювати відповідь інакше.",
+    "open-ended-answer-label": "Твоя відповідь"
 }

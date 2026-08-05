@@ -26,10 +26,12 @@ import {
   PreviewView,
   ValidationView,
   ExportLandingPage,
+  PublishLandingPage,
 } from "../stages";
 import { cn } from "@/lib/utils";
 import { Trans } from "@lingui/react/macro";
 import { StepHeaderBar } from "./StepHeaderBar";
+import { BookFontSelector } from "./BookFontSelector";
 
 // Context for views to inject content into the step header
 interface StepHeaderControls {
@@ -77,6 +79,7 @@ const VIEW_MAP: Record<string, ViewEntry> = {
   validation: { component: ValidationView, fullHeight: true },
   preview: { component: PreviewView, fullHeight: true },
   export: { component: ExportLandingPage, fullHeight: true },
+  publish: { component: PublishLandingPage, fullHeight: true },
 };
 
 export function StepViewRouter({
@@ -146,12 +149,13 @@ export function StepViewRouter({
           )}
           <div ref={setHeaderSlotEl} className="contents" />
           {headerExtra}
+          <BookFontSelector bookLabel={bookLabel} />
           {(SETTINGS_STAGE_SLUGS as readonly string[]).includes(step) && (
             <Link
               to="/books/$label/$step/settings"
               params={{ label: bookLabel, step }}
               search={{ tab: "general" }}
-              className="ml-auto text-white/60 hover:text-white transition-colors"
+              className="text-white/60 hover:text-white transition-colors"
             >
               <Settings className="w-3.5 h-3.5" />
             </Link>

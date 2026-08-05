@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "व्यवस्थापक उपकरण आगामी अपडेट में जोड़े जाएंगे।",
     "main-menu-label": "मुख्य मेनू",
     "cover-label": "आवरण",
-    "print-page-label": "पृष्ठ प्रिंट करें"
+    "print-page-label": "पृष्ठ प्रिंट करें",
+    "stepper-progress-n-of-m": "${m} में से चरण ${n}",
+    "stepper-word-bank": "चुनने के लिए शब्द",
+    "stepper-open-ended-saved": "शाबाश — आपका उत्तर सहेज लिया गया है।",
+    "stepper-open-ended-rephrase": "आइए विनम्र रहें — अपने उत्तर को दूसरे शब्दों में लिखने का प्रयास करें।",
+    "open-ended-answer-label": "आपका उत्तर"
 }

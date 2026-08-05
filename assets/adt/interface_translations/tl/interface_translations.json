@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Idaragdag ang mga tool ng admin sa susunod na pag-update.",
     "main-menu-label": "Pangunahing Menu",
     "cover-label": "Pabalat",
-    "print-page-label": "I-print ang Pahina"
+    "print-page-label": "I-print ang Pahina",
+    "stepper-progress-n-of-m": "Hakbang ${n} ng ${m}",
+    "stepper-word-bank": "Mga salitang mapagpipilian",
+    "stepper-open-ended-saved": "Magaling — na-save na ang iyong sagot.",
+    "stepper-open-ended-rephrase": "Maging mabait tayo — subukang isulat muli ang iyong sagot.",
+    "open-ended-answer-label": "Ang iyong sagot"
 }

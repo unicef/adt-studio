@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "ადმინისტრატორის ხელსაწყოები დაემატება შემდეგ განახლებაში.",
     "main-menu-label": "მთავარი მენიუ",
     "cover-label": "ყდა",
-    "print-page-label": "გვერდის ბეჭდვა"
+    "print-page-label": "გვერდის ბეჭდვა",
+    "stepper-progress-n-of-m": "ნაბიჯი ${n} / ${m}",
+    "stepper-word-bank": "ასარჩევი სიტყვები",
+    "stepper-open-ended-saved": "ყოჩაღ — შენი პასუხი შენახულია.",
+    "stepper-open-ended-rephrase": "ვიყოთ თავაზიანები — სცადე პასუხის სხვაგვარად ჩამოყალიბება.",
+    "open-ended-answer-label": "შენი პასუხი"
 }

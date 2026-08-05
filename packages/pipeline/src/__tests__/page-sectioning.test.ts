@@ -772,6 +772,67 @@ describe("flattenTreeToText", () => {
 // ── sectionPage ─────────────────────────────────────────────────
 
 describe("sectionPage", () => {
+  it("rejects a multi-section response in page mode and retries with one section", async () => {
+    let calls = 0
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        calls++
+        const multiSection = {
+          reasoning: "Split the page",
+          sections: [
+            {
+              section_type: "text_only",
+              background_color: "#fff",
+              text_color: "#000",
+              page_number: 1,
+              nodes: [{ role: "text", text: "First" }],
+            },
+            {
+              section_type: "text_only",
+              background_color: "#fff",
+              text_color: "#000",
+              page_number: 1,
+              nodes: [{ role: "text", text: "Second" }],
+            },
+          ],
+        }
+        const singleSection = {
+          reasoning: "Kept the source page together",
+          sections: [
+            {
+              section_type: "text_only",
+              background_color: "#fff",
+              text_color: "#000",
+              page_number: 1,
+              nodes: [
+                { role: "text", text: "First" },
+                { role: "text", text: "Second" },
+              ],
+            },
+          ],
+        }
+        const candidate = calls === 1 ? multiSection : singleSection
+        const validation = opts.validate?.(candidate, opts.context ?? {})
+        if (validation && !validation.valid) {
+          expect(validation.errors).toContain(
+            "Page mode requires exactly one section, but the response contains 2. Merge all page content into one section."
+          )
+          return { object: singleSection as T }
+        }
+        return { object: candidate as T }
+      },
+    }
+
+    const output = await sectionPage(
+      makeInput(),
+      makeConfig({ mode: "page", maxRetries: 1 }),
+      fakeLlm,
+    )
+
+    expect(output.sections).toHaveLength(1)
+    expect(output.sections[0].nodes).toHaveLength(2)
+  })
+
   it("throws when structureTypes is empty", async () => {
     const fakeLlm = makeFakeLlm(() => ({ reasoning: "", sections: [] }))
     await expect(

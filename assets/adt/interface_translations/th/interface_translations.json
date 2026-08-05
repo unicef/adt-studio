@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "เครื่องมือสำหรับผู้ดูแลระบบจะถูกเพิ่มในการอัปเดตครั้งต่อไป",
     "main-menu-label": "เมนูหลัก",
     "cover-label": "ปก",
-    "print-page-label": "พิมพ์หน้า"
+    "print-page-label": "พิมพ์หน้า",
+    "stepper-progress-n-of-m": "ขั้นตอนที่ ${n} จาก ${m}",
+    "stepper-word-bank": "คำให้เลือก",
+    "stepper-open-ended-saved": "เก่งมาก — บันทึกคำตอบของคุณแล้ว",
+    "stepper-open-ended-rephrase": "มาใช้คำสุภาพกันเถอะ — ลองเขียนคำตอบใหม่อีกครั้ง",
+    "open-ended-answer-label": "คำตอบของคุณ"
 }

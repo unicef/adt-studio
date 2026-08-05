@@ -12,6 +12,7 @@ export const TaskKind = z.enum([
   "translation-evaluation",
   "book-summary",
   "font-assignment",
+  "publish-github",
 ])
 export type TaskKind = z.infer<typeof TaskKind>
 

@@ -236,6 +236,37 @@ describe("ADT preview routes", () => {
     expect(html).toContain('<math')
   })
 
+  it("serves texts.json catalog entries with LaTeX converted to MathML", async () => {
+    // The runtime reapplies texts.json to every [data-id] element on boot and
+    // whenever activity mode re-runs translations. If the catalog holds raw
+    // LaTeX, that swap replaces the already-rendered MathML in the section
+    // HTML with LaTeX source.
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("web-rendering", `${label}_p1`, {
+        sections: [
+          {
+            sectionIndex: 0,
+            sectionType: "activity_multiple_choice",
+            reasoning: "ok",
+            html: `<section data-section-id="${label}_p1_sec001"><div data-id="pg001_tx001">\\dfrac{2}{5} + \\dfrac{3}{9}</div><p data-id="pg001_tx002">Just plain prose.</p></section>`,
+          },
+        ],
+      })
+    } finally {
+      storage.close()
+    }
+
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+    const res = await app.request(`/books/${label}/adt-preview/content/i18n/en/texts.json`)
+
+    expect(res.status).toBe(200)
+    const texts = await res.json() as Record<string, string>
+    expect(texts.pg001_tx001).toContain("<math")
+    expect(texts.pg001_tx001).not.toContain("\\dfrac")
+    expect(texts.pg001_tx002).toBe("Just plain prose.")
+  })
+
   it("includes quiz pages anchored to pages without rendered sections in pages.json", async () => {
     const storage = createBookStorage(label, tmpDir)
     try {

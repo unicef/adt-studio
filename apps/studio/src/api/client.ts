@@ -7,6 +7,8 @@ import type {
   BookMetadata,
   BookSummary,
   BookTypography,
+  ActivityOutline,
+  EditableActivity,
   FontAssignmentOutput,
   ExtractionWarning,
   ReviewerPageValidationRecord,
@@ -15,6 +17,11 @@ import type {
   ReviewerValidationSection,
   ReviewerValidationSession,
   TranslationEvaluationResult,
+  GitHubConnectionType,
+  GitHubFileChangeType,
+  GitHubFileDiffType,
+  GitHubPublishRequestType,
+  GitHubPublishStateType,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 
@@ -850,6 +857,68 @@ export const api = {
 
   getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
 
+  getEditableActivities: (label: string, pageId: string) =>
+    request<{
+      activities: Record<string, EditableActivity>
+      version: number
+      /** Book-derived accent used when an activity has no override. */
+      paletteAccent: string
+    }>(`/books/${label}/pages/${pageId}/editable-activities`),
+
+  updateEditableActivities: (
+    label: string,
+    pageId: string,
+    activities: Record<string, EditableActivity>,
+  ) =>
+    request<{ version: number }>(`/books/${label}/pages/${pageId}/editable-activities`, {
+      method: "PUT",
+      body: JSON.stringify({ activities }),
+    }),
+
+  getActivityStructure: (label: string, pageId: string, sectionIndex: number) =>
+    request<{
+      activity: EditableActivity | null
+      outline: ActivityOutline | null
+      errors: string[]
+      renderingVersion?: number
+    }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/activity-structure`),
+
+  convertEditableActivity: (label: string, pageId: string, sectionIndex: number) =>
+    request<{ activity: EditableActivity; warnings: string[]; version: number }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/convert`,
+      { method: "POST" },
+    ),
+
+  setEditableActivityPresentation: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    enabled: boolean,
+  ) =>
+    request<{ version: number; enabled: boolean }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/presentation`,
+      { method: "POST", body: JSON.stringify({ enabled }) },
+    ),
+
+  generateEditableActivityFeedback: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    apiKey: string,
+    providerCredentials?: StageRunProviderCredentials,
+    // The unsaved draft, so feedback reflects what the user is editing —
+    // the server falls back to the last saved entity when omitted.
+    activity?: EditableActivity,
+  ) =>
+    request<{ feedback: Record<string, { correct?: string; incorrect?: string }> }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/generate-feedback`,
+      {
+        method: "POST",
+        headers: buildApiHeaders(apiKey, providerCredentials),
+        body: JSON.stringify(activity ? { activity } : {}),
+      },
+    ),
+
   getTypography: (label: string) =>
     request<{ data: BookTypography; version: number; isDefault: boolean; detected: BookTypography }>(
       `/books/${label}/typography`
@@ -1590,25 +1659,32 @@ export const api = {
   deleteTTS: (label: string) =>
     request<{ ok: boolean }>(`/books/${label}/tts`, { method: "DELETE" }),
 
-  generateGeminiTTSForItem: (
+  generateTTSForItem: (
     label: string,
     textId: string,
+    text: string,
     language: string,
     credentials: {
-      geminiApiKey: string
+      geminiApiKey?: string
       openaiApiKey?: string
       azure?: AzureCredentials
-    }
+    },
+    options?: { forceRegenerate?: boolean },
   ) =>
     request<GenerateSingleTTSResponse>(`/books/${label}/tts/generate-one`, {
       method: "POST",
       headers: {
-        "X-Gemini-API-Key": credentials.geminiApiKey,
+        ...(credentials.geminiApiKey ? { "X-Gemini-API-Key": credentials.geminiApiKey } : {}),
         ...(credentials.openaiApiKey ? { "X-OpenAI-Key": credentials.openaiApiKey } : {}),
         ...(credentials.azure?.key ? { "X-Azure-Speech-Key": credentials.azure.key } : {}),
         ...(credentials.azure?.region ? { "X-Azure-Speech-Region": credentials.azure.region } : {}),
       },
-      body: JSON.stringify({ textId, language }),
+      body: JSON.stringify({
+        textId,
+        text,
+        language,
+        forceRegenerate: options?.forceRegenerate ?? false,
+      }),
     }),
 
   uploadTTSForItem: (
@@ -1788,6 +1864,83 @@ export const api = {
       }
     )
   },
+
+  connectGitHub: (token: string) =>
+    request<GitHubConnectionType>("/github/connection", {
+      headers: { "X-GitHub-Token": token },
+    }),
+
+  getGitHubPublishStatus: (label: string) =>
+    request<GitHubPublishStateType | null>(
+      `/books/${label}/github-publishing/status`,
+    ),
+
+  getGitHubDeployments: (label: string) =>
+    request<GitHubPublishStateType[]>(
+      `/books/${label}/github-publishing/deployments`,
+    ),
+
+  getGitHubDeploymentFileDiff: (label: string, deploymentId: string, filePath: string) =>
+    request<GitHubFileDiffType>(
+      `/books/${label}/github-publishing/deployments/${encodeURIComponent(deploymentId)}/diff?path=${encodeURIComponent(filePath)}`,
+    ),
+
+  getGitHubPublishChanges: (label: string) =>
+    request<{ changes: GitHubFileChangeType[]; packaged: boolean }>(
+      `/books/${label}/github-publishing/changes`,
+    ),
+
+  getGitHubFileDiff: (label: string, filePath: string) =>
+    request<GitHubFileDiffType>(
+      `/books/${label}/github-publishing/diff?path=${encodeURIComponent(filePath)}`,
+    ),
+
+  getGitHubSpeechSuggestions: (label: string) =>
+    request<{
+      source: "working-tree" | "latest-deployment" | "none"
+      items: Array<{ textId: string; files: string[] }>
+    }>(`/books/${label}/github-publishing/speech-suggestions`),
+
+  publishBookToGitHub: (
+    label: string,
+    token: string,
+    options: GitHubPublishRequestType,
+  ) =>
+    request<GitHubPublishStateType>(
+      `/books/${label}/github-publishing/publish`,
+      {
+        method: "POST",
+        headers: { "X-GitHub-Token": token },
+        body: JSON.stringify(options),
+      },
+    ),
+
+  getGitHubRemoteStatus: (label: string, token: string) =>
+    request<{
+      configured: boolean
+      behind: boolean
+      conflict: boolean
+      localChangeCount: number
+      remoteCommitSha: string | null
+      localCommitSha?: string | null
+    }>(`/books/${label}/github-publishing/remote-status`, {
+      headers: { "X-GitHub-Token": token },
+    }),
+
+  openGitHubBookEditor: (label: string, editor: "vscode" | "cursor" | "system") =>
+    request<{ ok: boolean }>(`/books/${label}/github-publishing/open-editor`, {
+      method: "POST",
+      body: JSON.stringify({ editor }),
+    }),
+
+  pullBookFromGitHub: (label: string, token: string) =>
+    request<{ commitSha: string; files: number; backupPath: string | null }>(
+      `/books/${label}/github-publishing/pull`,
+      {
+        method: "POST",
+        headers: { "X-GitHub-Token": token },
+      },
+    ),
 
   exportProject: async (label: string): Promise<Blob | null> => {
     if (!isDesktop()) {

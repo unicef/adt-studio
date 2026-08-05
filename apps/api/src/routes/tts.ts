@@ -43,7 +43,9 @@ import { getLiveSpeechRun } from "../services/speech-progress.js"
 const GenerateSingleTTSBody = z
   .object({
     textId: z.string().min(1),
+    text: z.string().min(1).max(100_000).optional(),
     language: z.string().min(1),
+    forceRegenerate: z.boolean().optional().default(false),
   })
   .strict()
 
@@ -698,12 +700,6 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
     const azureSpeechKey = c.req.header("X-Azure-Speech-Key")?.trim()
     const azureSpeechRegion = c.req.header("X-Azure-Speech-Region")?.trim()
-    if (!geminiApiKey) {
-      throw new HTTPException(400, {
-        message: "Gemini API key required. Set X-Gemini-API-Key header.",
-      })
-    }
-
     const normalizedLanguage = normalizeLocale(parsed.data.language)
     const storage = createBookStorage(safeLabel, booksDir)
 
@@ -728,10 +724,19 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         defaultProvider: config.speech?.default_provider ?? "openai",
       }
       const provider = resolveProviderForLanguage(normalizedLanguage, routing)
-      if (provider !== "gemini") {
+      if (provider === "gemini" && !geminiApiKey) {
         throw new HTTPException(400, {
-          message:
-            "Single-item audio generation is only available when Gemini is selected for that language.",
+          message: "Gemini API key required. Set X-Gemini-API-Key header.",
+        })
+      }
+      if (provider === "openai" && !openaiApiKey) {
+        throw new HTTPException(400, {
+          message: "OpenAI API key required. Set X-OpenAI-Key header.",
+        })
+      }
+      if (provider === "azure" && (!azureSpeechKey || !azureSpeechRegion)) {
+        throw new HTTPException(400, {
+          message: "Azure Speech key and region are required.",
         })
       }
 
@@ -748,6 +753,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           message: `Text entry not found for ${parsed.data.textId} (${normalizedLanguage})`,
         })
       }
+      // The Studio may be displaying an unsaved or newer entity version than
+      // the persisted catalog snapshot read above. Explicit single-item
+      // regeneration must synthesize exactly what the user sees, while the
+      // catalog lookup still verifies that the requested entity ID exists.
+      const requestedText = parsed.data.text ?? textEntry.text
 
       const configDir = getConfigDir(configPath)
       const voiceMaps = loadVoicesConfig(configDir)
@@ -786,7 +796,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       }) =>
         generateSpeechFile({
           textId: textEntry.id,
-          text: textEntry.text,
+          text: requestedText,
           language: normalizedLanguage,
           model: options.targetModel,
           voice: options.targetVoice,
@@ -803,7 +813,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           cacheDir,
           ttsSynthesizer:
             options.targetProvider === "gemini"
-              ? createGeminiTTSSynthesizer({ apiKey: geminiApiKey })
+              ? createGeminiTTSSynthesizer({ apiKey: geminiApiKey! })
               : options.targetProvider === "azure"
                 ? createAzureTTSSynthesizer({
                     subscriptionKey: azureSpeechKey!,
@@ -813,6 +823,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           provider: options.targetProvider,
           geminiTemperature: config.speech?.temperature,
           geminiSeed: config.speech?.seed,
+          forceRegenerate: parsed.data.forceRegenerate,
         })
 
       try {
@@ -967,7 +978,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 if (currentStatus === "error") {
                   storage.recordStepError(
                     "tts",
-                    `${completion.remainingItems} Gemini audio item(s) still need generation.`
+                    `${completion.remainingItems} audio item(s) still need generation.`
                   )
                 }
               }
@@ -1003,7 +1014,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         })
         storage.recordStepError(
           "tts",
-          `Gemini audio generation failed for ${textEntry.id}: ${fallbackFailureMessage}`
+          `Audio generation failed for ${textEntry.id}: ${fallbackFailureMessage}`
         )
 
         const status = /\(429\)|quota|rate limit/i.test(fallbackFailureMessage) ? 429 : 502

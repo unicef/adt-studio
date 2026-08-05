@@ -11,7 +11,7 @@
   },
   "src/components/pipeline/stage-config.ts": {
     "lingui/no-unlocalized-strings": {
-      "count": 29
+      "count": 31
     }
   },
   "src/components/pipeline/stages/PreviewValidationCard.tsx": {
@@ -22,11 +22,6 @@
   "src/components/pipeline/stages/PreviewView.tsx": {
     "lingui/no-unlocalized-strings": {
       "count": 3
-    }
-  },
-  "src/components/pipeline/stages/storyboard/components/BookPreviewFrame.tsx": {
-    "lingui/no-unlocalized-strings": {
-      "count": 1
     }
   },
   "src/components/pipeline/stages/storyboard/components/SectioningOverview.tsx": {

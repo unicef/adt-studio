@@ -4,6 +4,7 @@ import type {
   WizardPageGrouping,
   WizardSectioningMode,
 } from "./constants"
+import type { ReflowableFontSetting } from "@adt/types"
 
 export const { fieldContext, formContext, useFieldContext, useFormContext } =
   createFormHookContexts()
@@ -23,6 +24,7 @@ export const defaultWizardValues = {
   endPage: "",
   outputLanguages: [] as string[],
   renderStrategy: "" as RenderStrategyId | "",
+  reflowableFont: "auto" as ReflowableFontSetting,
   pageGrouping: "" as WizardPageGrouping,
   sectioningMode: "" as WizardSectioningMode,
   activitiesGenerator: false,
@@ -51,4 +53,3 @@ export type WizardFormValues = typeof defaultWizardValues
 export function useWizardForm() {
   return useTypedAppFormContext({ defaultValues: defaultWizardValues })
 }
-

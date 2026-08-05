@@ -4,6 +4,7 @@ import {
   STAGE_DESCRIPTIONS,
   getBookOverviewStages,
   getPipelineStages,
+  getWelcomeStages,
   isBookOverviewStage,
   isPipelineStage,
   isStageCompleted,
@@ -28,7 +29,7 @@ describe("stage-config", () => {
     ])
   })
 
-  it("returns book overview stages including validation before preview and export", () => {
+  it("returns book overview stages including publish after export", () => {
     const overviewSlugs = getBookOverviewStages().map((stage) => stage.slug)
     expect(overviewSlugs).toEqual([
       "extract",
@@ -45,6 +46,24 @@ describe("stage-config", () => {
       "validation",
       "preview",
       "export",
+      "publish",
+    ])
+  })
+
+  it("documents publish as the final stage on the start screen", () => {
+    expect(getWelcomeStages().map((stage) => stage.slug)).toEqual([
+      "extract",
+      "sectioning",
+      "storyboard",
+      "captions",
+      "quizzes",
+      "glossary",
+      "toc",
+      "easy-read",
+      "translate",
+      "speech",
+      "preview",
+      "publish",
     ])
   })
 

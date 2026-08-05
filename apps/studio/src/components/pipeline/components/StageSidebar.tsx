@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { Link, useMatchRoute, useSearch } from "@tanstack/react-router"
+import { Link, useMatchRoute, useNavigate, useSearch } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import {
   AlertCircle,
@@ -38,6 +38,7 @@ import {
 import type { TaskInfoResponse } from "@/api/client"
 import { getStageLabelI18n, getStepLabelI18n, getStageStatusLabelI18n } from "../pipeline-i18n"
 import { ALL_STEP_NAMES, STAGE_ORDER } from "@adt/types"
+import { useHasUnsavedChanges } from "./floating-save"
 
 const STAGE_GROUP_LABELS: Record<StageGroup, MessageDescriptor> = {
   convert: msg`Core Pipeline`,
@@ -55,6 +56,7 @@ const TASK_KIND_LABELS: Record<string, MessageDescriptor> = {
   "transcribe-timestamps": msg`Timestamps`,
   "book-summary": msg`Book Summary`,
   "font-assignment": msg`Font Analysis`,
+  "publish-github": msg`Publishing to GitHub`,
 }
 
 
@@ -123,6 +125,9 @@ export function StageSidebar({
   const signLanguageCompleted = signLanguageData?.videos?.some((v) => v.sectionId !== null) ?? false
   const previewCompleted = packageStatus?.hasAdt ?? false
   const exportCompleted = tasks.some((t) => t.kind === "prepare-export" && t.status === "completed")
+  const publishRunning = tasks.some(
+    (t) => t.kind === "publish-github" && (t.status === "running" || t.status === "queued"),
+  )
 
   const completionOverrides: Record<string, boolean> = {
     "sign-language": signLanguageCompleted,
@@ -167,7 +172,9 @@ export function StageSidebar({
 
     const isActive = step.slug === activeStep
     const Icon = step.icon
-    const state = completionOverrides[step.slug] ? "done" : stageState(step.slug)
+    const state = step.slug === "publish" && publishRunning
+      ? "running"
+      : completionOverrides[step.slug] ? "done" : stageState(step.slug)
     const stageCompleted = state === "done"
     const showOverviewTab = state === "done" || state === "running" || state === "queued"
     const settingsTabs = getSettingsTabs(step.slug, i18n, showOverviewTab)
@@ -627,18 +634,46 @@ function StoryboardSidebarBridge({
   onSelectSection?: (index: number) => void
   stageRunning?: boolean
 }) {
+  const { i18n } = useLingui()
+  const navigate = useNavigate()
   const { skipNextResetRef } = useSectionNav()
+  const hasUnsavedChanges = useHasUnsavedChanges()
   const handleSelectSection = useCallback(
     (pageId: string, idx: number) => {
+      if (pageId === selectedPageId && idx === sectionIndex) return
+      if (
+        hasUnsavedChanges &&
+        !window.confirm(i18n._(msg`If you leave now, your unsaved changes will be lost.`))
+      ) {
+        return
+      }
       if (pageId !== selectedPageId) {
         skipNextResetRef.current = true
         onSelectSection?.(idx)
-        onSelectPage?.(pageId)
+        if (hasUnsavedChanges) {
+          void navigate({
+            to: "/books/$label/$step/$pageId",
+            params: { label: bookLabel, step: "storyboard", pageId },
+            ignoreBlocker: true,
+          })
+        } else {
+          onSelectPage?.(pageId)
+        }
       } else {
         onSelectSection?.(idx)
       }
     },
-    [selectedPageId, onSelectPage, onSelectSection, skipNextResetRef],
+    [
+      bookLabel,
+      hasUnsavedChanges,
+      i18n,
+      navigate,
+      onSelectPage,
+      onSelectSection,
+      sectionIndex,
+      selectedPageId,
+      skipNextResetRef,
+    ],
   )
   return (
     <StoryboardIndex

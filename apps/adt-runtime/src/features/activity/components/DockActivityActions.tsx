@@ -46,8 +46,8 @@ export function DockActivityActions() {
                 // Bumped from text-sm (button default) to text-base for legibility.
                 "px-6 py-3 text-base font-semibold text-white",
                 submitState === "next"
-                  ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-500 dark:hover:bg-emerald-400"
-                  : "bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-400",
+                  ? "bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-700 dark:hover:bg-emerald-800"
+                  : "bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800",
               )}
             >
               {submitLabel}

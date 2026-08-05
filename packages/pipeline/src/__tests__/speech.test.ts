@@ -4,6 +4,8 @@ import path from "node:path"
 import os from "node:os"
 import {
   stripEmojis,
+  prepareTextForSpeech,
+  prepareInstructionsForSpeech,
   isSpeakableText,
   resolveVoice,
   resolveInstructions,
@@ -41,6 +43,94 @@ describe("stripEmojis", () => {
 
   it("handles unicode text with emojis", () => {
     expect(stripEmojis("Hola 🌍 mundo")).toBe("Hola  mundo")
+  })
+})
+
+describe("prepareTextForSpeech", () => {
+  it("expands Tanzanian Swahili numbers and character ranges", () => {
+    expect(prepareTextForSpeech("Soma a-z na 25%.", "sw-TZ")).toBe(
+      "Soma a hadi z na asilimia ishirini na tano.",
+    )
+  })
+
+  it("speaks compact numeric ranges and spaced arithmetic unambiguously", () => {
+    expect(prepareTextForSpeech("Abakasi 1-6; 25 – 2 = 23", "sw-TZ")).toBe(
+      "Abakasi moja hadi sita; ishirini na tano toa mbili ni sawa na ishirini na tatu",
+    )
+  })
+
+  it("expands decimals digit by digit after the separator", () => {
+    expect(prepareTextForSpeech("1.05", "sw")).toBe("moja nukta sifuri tano")
+  })
+
+  it("speaks Roman numerals as their values in Kiswahili", () => {
+    expect(prepareTextForSpeech("Sura ya IV, XII na (xxi).", "sw-TZ")).toBe(
+      "Sura ya n-ne, kumi na mbili na (ishirini na moja).",
+    )
+  })
+
+  it("speaks Roman-numeral ranges semantically", () => {
+    expect(prepareTextForSpeech("Sura IV–VI", "sw-TZ")).toBe(
+      "Sura n-ne hadi sita",
+    )
+  })
+
+  it("does not mistake lowercase alphabetic labels for Roman numerals", () => {
+    expect(prepareTextForSpeech("Vipengele (c), (d), (i) na (l)", "sw-TZ")).toBe(
+      "Vipengele kipengele c, kipengele d, kipengele i na kipengele l",
+    )
+  })
+
+  it("gives isolated section letters Kiswahili context", () => {
+    expect(prepareTextForSpeech("(a) 4, (b) 14", "sw-TZ")).toBe(
+      "kipengele a n-ne, kipengele b kumi na n-ne",
+    )
+  })
+
+  it("speaks structural numbers as ordinal positions", () => {
+    expect(
+      prepareTextForSpeech(
+        "Mfano wa 1, Zoezi la 2, Swali la 3(a), Sura ya 4 na mwezi wa 12",
+        "sw-TZ",
+      ),
+    ).toBe(
+      "Mfano wa kwanza, Zoezi la pili, Swali la tatu kipengele a, Sura ya n-ne na mwezi wa kumi na mbili",
+    )
+  })
+
+  it("keeps quantities after non-structural connectors cardinal", () => {
+    expect(
+      prepareTextForSpeech("Thamani ya 8 na jumla ya 2", "sw-TZ"),
+    ).toBe("Thamani ya nane na jumla ya mbili")
+  })
+
+  it("leaves malformed Roman numerals unchanged", () => {
+    expect(prepareTextForSpeech("IIII na IC", "sw-TZ")).toBe("IIII na IC")
+  })
+
+  it("leaves other languages unchanged", () => {
+    expect(prepareTextForSpeech("a-z and 25", "en")).toBe("a-z and 25")
+  })
+
+  it("adds targeted phonetic guidance only to affected Swahili text", () => {
+    const prepared = prepareInstructionsForSpeech(
+      "Speak naturally.",
+      "kipengele a n-ne",
+      "sw-TZ",
+    )
+    expect(prepared).toContain("[ˈn̩.nɛ]")
+    expect(prepared).toContain("native Kiswahili vowel sounds")
+    expect(prepareInstructionsForSpeech("Speak naturally.", "moja", "sw-TZ")).toBe(
+      "Speak naturally.",
+    )
+  })
+
+  it("marks syllabic nasals in ordinary Swahili source words", () => {
+    const prepared = prepareTextForSpeech("Mmoja ana nne, wengine wanne.", "sw-TZ")
+    expect(prepared).toBe("M-moja ana n-ne, wengine wanne.")
+    const instructions = prepareInstructionsForSpeech("Speak naturally.", prepared, "sw-TZ")
+    expect(instructions).toContain("[m̩.ˈmɔ.dʒa]")
+    expect(instructions).toContain("[ˈn̩.nɛ]")
   })
 })
 
@@ -460,6 +550,43 @@ describe("generateSpeechFile", () => {
 
     expect(result!.cached).toBe(true)
     expect(mockSynthesize).toHaveBeenCalledTimes(1) // Not called again
+  })
+
+  it("synthesizes fresh audio when explicit regeneration bypasses the cache", async () => {
+    await generateSpeechFile({
+      textId: "p001_t001",
+      text: "Hello world",
+      language: "en",
+      model: "gpt-4o-mini-tts",
+      voice: "alloy",
+      instructions: "Speak cheerfully.",
+      format: "mp3",
+      bookDir,
+      cacheDir,
+      ttsSynthesizer: mockSynthesizer,
+    })
+
+    mockSynthesize.mockResolvedValueOnce(
+      new Uint8Array(Buffer.from("fresh-audio-data"))
+    )
+    const result = await generateSpeechFile({
+      textId: "p001_t001",
+      text: "Hello world",
+      language: "en",
+      model: "gpt-4o-mini-tts",
+      voice: "alloy",
+      instructions: "Speak cheerfully.",
+      format: "mp3",
+      bookDir,
+      cacheDir,
+      ttsSynthesizer: mockSynthesizer,
+      forceRegenerate: true,
+    })
+
+    expect(result?.cached).toBe(false)
+    expect(mockSynthesize).toHaveBeenCalledTimes(2)
+    expect(fs.readFileSync(path.join(bookDir, "audio", "en", "p001_t001.mp3"), "utf8"))
+      .toBe("fresh-audio-data")
   })
 
   it("only acquires the optional rate limiter when a real synth call is needed", async () => {

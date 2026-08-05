@@ -50,6 +50,7 @@ export function ActivityDock() {
         shouldHide && "opacity-0 pointer-events-none",
         shouldHide && (isTop ? "-translate-y-[150%]" : "translate-y-[150%]"),
       )}
+      role="group"
       aria-label={t("dock-label") || "Activity controls"}
     >
       <DockActivityActions />

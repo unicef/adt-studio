@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "管理者ツールは今後のアップデートで追加されます。",
     "main-menu-label": "メインメニュー",
     "cover-label": "表紙",
-    "print-page-label": "ページを印刷"
+    "print-page-label": "ページを印刷",
+    "stepper-progress-n-of-m": "ステップ ${n} / ${m}",
+    "stepper-word-bank": "選べることば",
+    "stepper-open-ended-saved": "よくできました — こたえをほぞんしました。",
+    "stepper-open-ended-rephrase": "やさしいことばをつかいましょう — こたえを書きなおしてみてください。",
+    "open-ended-answer-label": "あなたのこたえ"
 }

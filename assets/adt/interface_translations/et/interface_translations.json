@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Administraatori tööriistad lisatakse järgmises uuenduses.",
     "main-menu-label": "Peamenüü",
     "cover-label": "Kaas",
-    "print-page-label": "Prindi leht"
+    "print-page-label": "Prindi leht",
+    "stepper-progress-n-of-m": "Samm ${n}/${m}",
+    "stepper-word-bank": "Sõnad, mille hulgast valida",
+    "stepper-open-ended-saved": "Tubli — sinu vastus on salvestatud.",
+    "stepper-open-ended-rephrase": "Oleme sõbralikud — proovi oma vastus teisiti sõnastada.",
+    "open-ended-answer-label": "Sinu vastus"
 }

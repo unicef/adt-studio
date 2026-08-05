@@ -37,7 +37,14 @@ import {
   resolveFontsCacheDir,
 } from "../fonts-bundle.js"
 import { resolveTypographyCss } from "../typography.js"
-import { resolveQuizPalette, type QuizPalette } from "../quiz-palette.js"
+import { resolveQuizPalette, DEFAULT_QUIZ_PALETTE, type QuizPalette } from "../quiz-palette.js"
+import {
+  readEditableActivities,
+  enabledEditableActivity,
+  resolveEditableActivityImages,
+  renderEditableActivityHtml,
+  maskStepperPayloads,
+} from "../render-editable-activity.js"
 import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
@@ -266,6 +273,9 @@ export async function packageAdtWeb(
   // the book has a detectable accent color; otherwise keep the clean white default.
   const quizPalette = (quizMatchBookStyle ?? true) ? resolveQuizPalette(storage) : null
   const quizStyle = quizPalette ? { palette: quizPalette } : null
+  // Step-by-step activities always need a palette (their UI is deterministic,
+  // not LLM-styled) — fall back to the neutral default when the book has none.
+  const stepperBasePalette = quizPalette ?? DEFAULT_QUIZ_PALETTE
 
   const step = "package-web" as const
   progress.emit({ type: "step-start", step })
@@ -347,6 +357,7 @@ export async function packageAdtWeb(
     const decorativeImageIds = buildDecorativeImageIdSet(storage, page.pageId)
 
     const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+    const editableActivities = readEditableActivities(storage, page.pageId)
     if (renderRow) {
       const parsed = WebRenderingOutputSchema.safeParse(renderRow.data)
       if (parsed.success) {
@@ -363,15 +374,36 @@ export async function packageAdtWeb(
             hasActivitySections = true
           }
 
+          // Step-by-step override: an enabled editable activity replaces the
+          // stored LLM HTML with the stepper shell (structured JSON + palette).
+          const stepperActivity = enabledEditableActivity(
+            editableActivities,
+            rs.sectionIndex,
+            rs.sectionType,
+          )
+
           // Rewrite image URLs and copy referenced images
           const preferredImageAltMap = buildPreferredImageAltMap(storage, page.pageId, sectionMeta)
-          let { html: rewrittenHtml, referencedImages } = rewriteImageUrls(
-            rs.html,
-            label,
-            imageMap,
-            preferredImageAltMap,
-            decorativeImageIds,
-          )
+          let rewrittenHtml: string
+          let referencedImages: string[]
+          if (stepperActivity) {
+            const resolved = resolveEditableActivityImages(stepperActivity, imageMap, {
+              preferredAltMap: preferredImageAltMap,
+              decorativeImageIds,
+            })
+            rewrittenHtml = renderEditableActivityHtml(resolved.activity, {
+              palette: stepperBasePalette,
+            })
+            referencedImages = resolved.referencedImages
+          } else {
+            ;({ html: rewrittenHtml, referencedImages } = rewriteImageUrls(
+              rs.html,
+              label,
+              imageMap,
+              preferredImageAltMap,
+              decorativeImageIds,
+            ))
+          }
 
           for (const imageId of referencedImages) {
             if (!copiedImages.has(imageId)) {
@@ -386,8 +418,8 @@ export async function packageAdtWeb(
             }
           }
 
-          // Convert LaTeX math to MathML
-          const sectionHasMath = containsMathContent(rewrittenHtml)
+          // Convert LaTeX math to MathML (stepper shells are JSON — leave untouched)
+          const sectionHasMath = !stepperActivity && containsMathContent(rewrittenHtml)
           if (sectionHasMath) {
             hasMath = true
             rewrittenHtml = convertLatexToMathml(rewrittenHtml)
@@ -416,7 +448,8 @@ export async function packageAdtWeb(
             pageTitle: title,
             pageHeading: headingText?.text ?? title,
             pageIndex: pageList.length + 1,
-            activityAnswers: rs.activityAnswers,
+            // Stepper answers travel inside the embedded JSON payload.
+            activityAnswers: stepperActivity ? undefined : rs.activityAnswers,
             hasMath: sectionHasMath,
             bundleVersion,
             applyBodyBackground,
@@ -1161,7 +1194,6 @@ function injectOpacityClass(html: string): string {
   )
 }
 
-
 export function stripContentEditable(html: string): string {
   return html.replace(
     /\s+contenteditable(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi,
@@ -1200,7 +1232,12 @@ export function renderPageHtml(opts: RenderPageOptions): string {
       ? `\n    <script type="text/javascript">\n        window.correctAnswers = JSON.parse('${escapeInlineScriptJson(JSON.stringify(opts.activityAnswers))}');\n    </script>`
       : ""
 
-  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(opts.content))
+  // Stepper JSON payloads are masked for the whole assembly below — the
+  // regex passes over the page HTML (contenteditable strip, background-color
+  // scan, heading probes) must not match inside the embedded activity JSON.
+  const { masked: maskedContent, restore: restoreStepperPayloads } =
+    maskStepperPayloads(opts.content)
+  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(maskedContent))
 
   // Custom activities (`activity_custom_*`) ship an inline <script> that calls
   // window.adtRegisterCustomActivity(section, {validate, reset}) during parse —
@@ -1300,7 +1337,7 @@ ${fallbackHeadingHtml}${contentBlock}
   // 96 is the first-paint dock-band fallback; 0 in embed mode (dock hidden).
   const flFit = opts.fixedViewport ? fixedLayoutWebFit(opts.embed ? 0 : 96) : null
 
-  return `<!DOCTYPE html>
+  return restoreStepperPayloads(`<!DOCTYPE html>
 <html lang="${escapeAttr(opts.language)}">
 
 <head>
@@ -1327,7 +1364,7 @@ ${opts.embed
 </body>
 
 </html>
-`
+`)
 }
 
 // ---------------------------------------------------------------------------
@@ -1603,7 +1640,6 @@ export function buildImageMap(imagesDir: string): Map<string, string> {
   return map
 }
 
-
 function loadImageCaptionMap(storage: Storage, pageId: string): Map<string, string> {
   const row = storage.getLatestNodeData("image-captioning", pageId)
   if (!row) return new Map<string, string>()
@@ -1715,7 +1751,6 @@ export function buildPreferredImageAltMap(
   }
   return section ? applyDuplicateImageAltPolicy(section, preferredImageAltMap) : preferredImageAltMap
 }
-
 
 /** Rewrite image URLs from /api/books/{label}/images/{id} to images/{filename} */
 export function rewriteImageUrls(
@@ -1920,7 +1955,12 @@ const MATH_INDICATORS = [
  * identifiers like `variable_name` — the base letter must not be preceded by
  * another letter, and the subscript char must not be followed by another letter.
  */
-const UNDELIMITED_LATEX_RE = /\\(?:text|mbox|hat|frac|sqrt|vec|bar|overline|underline|mathbf|mathrm|mathit|mathcal|mathbb|mathfrak|mathscr|circ|times|div|pm|mp|leq|geq|neq|approx|equiv|sim|in|notin|subset|supset|cup|cap|leftarrow|rightarrow|Leftarrow|Rightarrow|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|phi|psi|infty|partial|nabla|sum|prod|int|lim|log|ln|sin|cos|tan|sec|csc|cot|left|right|cdot|ldots|cdots|quad|qquad|binom|tag)\b|[_^]\{|(?<![A-Za-z])[A-Za-z][_^][A-Za-z0-9](?![A-Za-z])/
+// NOTE: longer alternatives must precede their prefixes (dfrac/tfrac before frac),
+// otherwise `\dfrac` never matches — the alternation is anchored right after the
+// backslash, so `frac` cannot match the `d`. `begin`/`end` are needed for bare
+// `\begin{array}` blocks (columnar sums, long division), which MATH_INDICATORS
+// recognises for gating but this pass must also match to actually convert them.
+const UNDELIMITED_LATEX_RE = /\\(?:begin|end|dfrac|tfrac|text|mbox|hat|frac|sqrt|vec|bar|overline|underline|mathbf|mathrm|mathit|mathcal|mathbb|mathfrak|mathscr|circ|times|div|pm|mp|leq|geq|neq|approx|equiv|sim|in|notin|subset|supset|cup|cap|leftarrow|rightarrow|Leftarrow|Rightarrow|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|phi|psi|infty|partial|nabla|sum|prod|int|lim|log|ln|sin|cos|tan|sec|csc|cot|left|right|cdot|ldots|cdots|quad|qquad|binom|tag)\b|[_^]\{|(?<![A-Za-z])[A-Za-z][_^][A-Za-z0-9](?![A-Za-z])/
 
 export function containsMathContent(html: string): boolean {
   // Scan markup only: a `$` or `\(` inside an inline grading script is JS, not
@@ -2096,6 +2136,13 @@ function convertDelimitedLatex(text: string): string {
  * Replace LaTeX math in HTML content with MathML rendered by Temml.
  * Handles delimited math ($, $$, \(, \[) and undelimited LaTeX in text nodes.
  *
+ * Both passes only touch text-node content (between > and <), never tag
+ * attributes. Generated activity HTML sometimes echoes the expression into an
+ * attribute (e.g. `<input aria-label="c. $5(2x)$" class="…">`); converting it
+ * there injects MathML whose own quoted attributes (`fence="true"`) terminate
+ * the attribute value early and split the tag open — the input disappears and
+ * its attribute tail renders as page text.
+ *
  * `<script>`/`<style>` bodies are left untouched — custom-activity sections
  * (`activity_custom_*`) ship an inline grading script, and JS routinely
  * contains `$` (template literals) and `\(`…`\)` (regex literals) that this
@@ -2109,8 +2156,11 @@ export function convertLatexToMathml(html: string): string {
 function convertLatexInFragment(html: string): string {
   html = decodeDollarEntities(html)
 
-  // First pass: convert delimited math anywhere in the string
-  html = convertDelimitedLatex(html)
+  // First pass: convert delimited math in text nodes
+  html = html.replace(/(>)([^<]+)(<)/g, (_match, open: string, text: string, close: string) => {
+    const converted = convertDelimitedLatex(text)
+    return converted !== text ? `${open}${converted}${close}` : _match
+  })
 
   // Second pass: convert undelimited LaTeX in text nodes (content between > and <).
   // For pure math nodes, render the entire text as a single expression.

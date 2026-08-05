@@ -75,28 +75,56 @@ const adapter = {
 
 const jsonStorage = createJSONStorage<unknown>(() => adapter)
 
+/**
+ * Structural mirror of jotai's `SyncStorage<Value>` — that type is declared in
+ * `jotai/vanilla/utils/atomWithStorage` but not re-exported from `jotai/utils`
+ * (only the functions are), and deep-importing an internal path is brittle.
+ * Matching the shape is enough: overload resolution is structural.
+ */
+interface SyncJsonStorage<Value> {
+  getItem: (key: string, initialValue: Value) => Value
+  setItem: (key: string, newValue: Value) => void
+  removeItem: (key: string) => void
+}
+
+/**
+ * The JSON storage only ever JSON.parse/stringify's, so it is value-type
+ * agnostic at runtime — but its static type pins one `Value`. Re-type it per
+ * atom so `atomWithStorage` resolves its **sync** overload.
+ *
+ * This matters beyond tidiness: passing a storage TypeScript can't match to the
+ * sync shape (the previous `as never`) selects the ASYNC overload, whose atoms
+ * are `WritableAtom<T | Promise<T>, [SetStateActionWithReset<T | Promise<T>>],
+ * Promise<void>>`. Those reject a plain `store.set(atom, value)` and forced
+ * `as never` casts on callers. The adapter is synchronous and `getOnInit: true`
+ * reads at creation, so the sync shape is also the honest one.
+ */
+function syncStorageFor<T>(): SyncJsonStorage<T> {
+  return jsonStorage as unknown as SyncJsonStorage<T>
+}
+
 // `getOnInit: true` makes atomWithStorage read the persisted value
 // synchronously at atom creation, so consumers see a plain T (not T | Promise<T>).
 const STORAGE_OPTS = { getOnInit: true } as const
 
 /** Boolean toggle that survives page navigation. */
 export function persistedBoolAtom(key: string, defaultValue: boolean) {
-  return atomWithStorage<boolean>(key, defaultValue, jsonStorage as never, STORAGE_OPTS)
+  return atomWithStorage<boolean>(key, defaultValue, syncStorageFor<boolean>(), STORAGE_OPTS)
 }
 
 /** Number value that survives page navigation. */
 export function persistedNumberAtom(key: string, defaultValue: number) {
-  return atomWithStorage<number>(key, defaultValue, jsonStorage as never, STORAGE_OPTS)
+  return atomWithStorage<number>(key, defaultValue, syncStorageFor<number>(), STORAGE_OPTS)
 }
 
 /** String value that survives page navigation. */
 export function persistedStringAtom(key: string, defaultValue: string) {
-  return atomWithStorage<string>(key, defaultValue, jsonStorage as never, STORAGE_OPTS)
+  return atomWithStorage<string>(key, defaultValue, syncStorageFor<string>(), STORAGE_OPTS)
 }
 
 /** Object (JSON-serializable) value that survives page navigation. */
 export function persistedJsonAtom<T>(key: string, defaultValue: T) {
-  return atomWithStorage<T>(key, defaultValue, jsonStorage as never, STORAGE_OPTS)
+  return atomWithStorage<T>(key, defaultValue, syncStorageFor<T>(), STORAGE_OPTS)
 }
 
 /** In-memory atom — resets every page load. */
