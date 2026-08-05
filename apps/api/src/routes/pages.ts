@@ -588,9 +588,10 @@ function saveStoryboardNode(
   // packaged book while the stage still read "done". A `web-rendering` save is
   // itself the storyboard's output, so it must NOT mark storyboard stale.
   //
-  // `renderingInSync` is the Storyboard editor saving sectioning and rendering
-  // together: the HTML it sends already carries the edit, so the storyboard is
-  // current and only its dependents are behind.
+  // `renderingInSync` is the Storyboard editor saving a per-section edit whose
+  // HTML it has already mirrored, or has queued a targeted re-render for. The
+  // storyboard is current (or seconds from it) and only its dependents are
+  // behind, so resetting the stage would take the editor away for nothing.
   if (node === "page-sectioning") {
     markStoryboardChainStale(storage, { includeStoryboard: !renderingInSync })
   }
@@ -1453,12 +1454,15 @@ export function createPageRoutes(
   // landed, leaving the HTML and the tree disagreeing with no way back. Writing
   // both here means the guard runs once, up front, and the pair moves together.
   //
-  // `renderingInSync` says the stored HTML reflects this sectioning once the
-  // request completes — either because the editor mirrored the edit into the
-  // rendering it is sending (inline text, prune, delete) or because the change
-  // needed no HTML at all. It is false when the change only shows up after an
-  // LLM re-render (section type, unprune, reorder, role change); only then is
-  // the storyboard stage itself marked stale.
+  // `renderingInSync` says the stored HTML reflects this sectioning, or will
+  // shortly: the caller either mirrored the edit into the rendering it is
+  // sending, needed no HTML change at all, or has queued a re-render of the one
+  // section it touched. Storyboard editing is incremental by design, so a
+  // per-section edit must not reset the stage for the whole book. It is false
+  // only when the HTML cannot be brought back in sync — no API key, or a custom
+  // activity a re-render would flatten — and false is also the default, so the
+  // Sectioning stage and the structural ops that drop HTML without re-rendering
+  // (split, cross-page merge) keep marking the chain stale.
   app.put("/books/:label/pages/:pageId/storyboard", async (c) => {
     const { label, pageId } = c.req.param()
     const safeLabel = parseBookLabel(label)

@@ -1133,12 +1133,12 @@ export const api = {
    * One Storyboard editor save: sectioning and rendering land in a single
    * request so a failure can't leave the tree and the HTML disagreeing.
    *
-   * `renderingInSync` means the stored HTML reflects this sectioning once the
-   * save completes — true when the editor mirrored the edit into the rendering
-   * it is sending, or when the change needed no HTML at all; false when the
-   * change only shows up after an LLM re-render. When true the Storyboard stage
-   * stays complete and only its dependents are marked for re-run. Requires
-   * `sectioning`, which is the only write it describes.
+   * `renderingInSync` means the stored HTML reflects this sectioning, or will
+   * shortly — the caller mirrored the edit into the rendering it is sending,
+   * needed no HTML change, or has queued a re-render of the section it touched.
+   * When true the Storyboard stage stays complete and only its dependents are
+   * marked for re-run; pass false only when the HTML cannot be brought back in
+   * sync. Requires `sectioning`, which is the only write it describes.
    */
   saveStoryboard: (
     label: string,

@@ -486,14 +486,6 @@ export function StoryboardSectionDetail({
   // Tracks whether pending sectioning changes require LLM re-render on save.
   // Pure prune/delete can be resolved locally; unprune/type change/reorder need LLM.
   const needsRerenderRef = useRef(false)
-  // Of those, the ones where the saved HTML actively contradicts the sectioning —
-  // a type change or a reorder leaves the old content on screen until the LLM
-  // catches up, so the Storyboard stage must report itself stale. Unpruning is
-  // not in this set: the content is merely *absent* from the HTML, and the
-  // re-render queued on save puts it back. Marking the whole stage stale for
-  // that would fail the common path, since sections are usually pruned when the
-  // storyboard runs and unpruned one at a time afterwards.
-  const renderingContradictsRef = useRef(false)
 
   // Inline editing state
   const [selectedElement, setSelectedElement] = useState<{
@@ -809,7 +801,6 @@ export function StoryboardSectionDetail({
     setActivityPreviewMode(true)
     setEditActivityPanelOpen(false)
     needsRerenderRef.current = false
-    renderingContradictsRef.current = false
   }, [pageId, sectionIndex])
 
   // Reset scroll position when page or section changes
@@ -868,17 +859,17 @@ export function StoryboardSectionDetail({
     setSaving(true)
     setPanelOpen(false)
     const shouldRerender = needsRerenderRef.current
-    // Sections are normally pruned when the storyboard runs, so unpruning one is
-    // the ordinary way to bring content in — it must render that section and
-    // leave the rest of the stage alone. We can only promise that when a
-    // re-render will actually run; without a key (or on a custom activity, which
-    // re-render would flatten) the section stays empty and the stage has to say
-    // so. `renderingContradicts` covers the other direction: HTML that is wrong
-    // rather than missing, which is stale no matter what we queue.
+    // Editing here is meant to be incremental: change a section's type, text or
+    // pruning, re-render that one section, carry on. Every such edit either
+    // arrives already mirrored into the HTML or queues a render of the section
+    // it touched, so the storyboard is current (or seconds away from it) and
+    // resetting the whole stage would only take the editor away for a book that
+    // is fine. The stage is marked stale only when we cannot bring the HTML back
+    // in sync at all: no API key, or a custom activity whose inline grading
+    // script a re-render would flatten.
     const isCustomActivity = section?.sectionType?.startsWith("activity_custom") ?? false
     const willRerender = shouldRerender && hasApiKey && !isCustomActivity
-    const renderingInSync =
-      !renderingContradictsRef.current && (!shouldRerender || willRerender)
+    const renderingInSync = !shouldRerender || willRerender
     try {
       const minDelay = new Promise((r) => setTimeout(r, 400))
 
@@ -910,7 +901,6 @@ export function StoryboardSectionDetail({
       setPendingRendering(null)
       setPendingCategories(new Set())
       needsRerenderRef.current = false
-      renderingContradictsRef.current = false
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)
@@ -956,7 +946,6 @@ export function StoryboardSectionDetail({
     pendingHtmlRef.current = null
     setHasUnflushedEdits(false)
     needsRerenderRef.current = false
-    renderingContradictsRef.current = false
     previewFrameRef.current?.resetContent()
   }
 
@@ -1358,8 +1347,6 @@ export function StoryboardSectionDetail({
       // so the activity is regenerated from the new text on save.
       if (!el || hasActivityInteractiveDescendant(el)) {
         needsRerenderRef.current = true
-        // The HTML still shows the old text until the re-render lands.
-        renderingContradictsRef.current = true
         return false
       }
       el.textContent = newText
@@ -1510,8 +1497,6 @@ export function StoryboardSectionDetail({
   // Change section type
   const changeSectionType = (newType: string) => {
     needsRerenderRef.current = true
-    // The rendered HTML is still laid out as the old type until re-rendered.
-    renderingContradictsRef.current = true
     const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
     if (!base) return
     const updated: SectioningData = {
@@ -1533,8 +1518,6 @@ export function StoryboardSectionDetail({
       if (nextNodes === section.nodes) return
       setPendingSectioning(withSectionNodes(base, sectionIndex, nextNodes))
       needsRerenderRef.current = true
-      // The leaf keeps its old role's markup until re-rendered.
-      renderingContradictsRef.current = true
     },
     [pendingSectioning, page.sectioningTree, sectionIndex, section]
   )
@@ -1584,7 +1567,6 @@ export function StoryboardSectionDetail({
   // Reorder / regroup: the HTML keeps the old order until re-rendered.
   const handleStructuralChange = useCallback(() => {
     needsRerenderRef.current = true
-    renderingContradictsRef.current = true
   }, [])
 
   // Handle inline text edit from BookPreviewFrame

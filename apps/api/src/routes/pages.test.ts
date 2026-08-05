@@ -461,10 +461,10 @@ describe("Page routes", () => {
       }
     })
 
-    it("keeps the stage complete when unpruning a section that will be re-rendered", async () => {
-      // Sections are normally pruned when the storyboard runs, so unpruning is
-      // the ordinary way content is brought in. The editor renders just that
-      // section, so the rest of the stage must survive untouched.
+    it("keeps the stage complete for a per-section edit that queues a re-render", async () => {
+      // Storyboard editing is incremental: change a section's type or pruning,
+      // re-render that one section, carry on. The rest of the stage must survive
+      // untouched or the editor is taken away for a book that is fine.
       seedCompletedChain()
 
       const res = await save({
