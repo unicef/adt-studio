@@ -88,6 +88,14 @@ Page image for context:
 Section ID: {{ section_id }}
 Section type: {{ section_type }}
 
+{% if section_type == "table_of_contents" %}
+## TABLE OF CONTENTS — REQUIRED LAYOUT
+Recreate this as real HTML, never as a screenshot or a single image. Every entry must be a full-width flex row with the section/subsection title on the left, a flexible dotted leader in the middle, and the page number aligned to the far right. Keep the page number separate from the title visually even when the source text leaf contains them concatenated (for example `Desimali75` must display as `Desimali ........ 75`). Use an accessible screen-reader label containing the complete original text, and mark any duplicated visual fragments `aria-hidden="true"`. Apply this rule to every continuation of the contents, not only the first group. Preserve heading hierarchy and indentation for chapters and activities.
+{% endif %}
+
+## IMAGE RULE
+Only use `<img>` for an actual figure, diagram, illustration, photograph, or other visual asset represented by an image reference below. All prose, headings, exercises, tables, answer spaces, conversations, labels, and metadata must be recreated as semantic HTML. Never place a whole textbook page or an exercise screenshot in an `<img>` when its text is present in the content tree.
+
 {% for image in images %}
 Image ID: {{ image.image_id }}
 {% image image.image_base64 %}
