@@ -50,16 +50,20 @@ const env = {
 }
 
 const children = [
-  spawn("pnpm", ["tsc", "--build", "--watch", "--preserveWatchOutput"], {
-    stdio: "inherit",
-    shell: process.platform === "win32",
-    env,
-  }),
-  spawn("pnpm", ["--filter", "@adt/runtime", "build:watch"], {
-    stdio: "inherit",
-    shell: process.platform === "win32",
-    env,
-  }),
+  ...(process.argv.includes("--lite")
+    ? []
+    : [
+        spawn("pnpm", ["tsc", "--build", "--watch", "--preserveWatchOutput"], {
+          stdio: "inherit",
+          shell: process.platform === "win32",
+          env,
+        }),
+        spawn("pnpm", ["--filter", "@adt/runtime", "build:watch"], {
+          stdio: "inherit",
+          shell: process.platform === "win32",
+          env,
+        }),
+      ]),
   spawn("pnpm", ["--filter", "@adt/api", "dev"], {
     stdio: "inherit",
     shell: process.platform === "win32",

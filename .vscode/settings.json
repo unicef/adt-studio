@@ -1,0 +1,34 @@
+{
+  // Book assets are runtime data, not source files. Excluding them from the
+  // editor prevents VS Code's watcher, search index, and language services
+  // from retaining large PDFs, SQLite databases, generated HTML, and audio.
+  "files.watcherExclude": {
+    "**/books/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.output/**": true,
+    "**/.cache/**": true,
+    "**/coverage/**": true,
+    "**/apps/adt-runtime/sample/**": true
+  },
+  "search.exclude": {
+    "**/books/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.output/**": true,
+    "**/.cache/**": true,
+    "**/coverage/**": true,
+    "**/apps/adt-runtime/sample/**": true
+  },
+  "files.exclude": {
+    "**/books/**": true,
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.output/**": true,
+    "**/.cache/**": true,
+    "**/coverage/**": true,
+    "**/apps/adt-runtime/sample/**": true
+  },
+  "typescript.tsserver.maxTsServerMemory": 3072,
+  "typescript.disableAutomaticTypeAcquisition": true
+}
