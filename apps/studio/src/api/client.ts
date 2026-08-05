@@ -1165,20 +1165,23 @@ export const api = {
       method: "POST",
     }),
 
+  /** Both halves lose their HTML, so `renderingInSync` is only honest when the
+   *  caller re-renders both afterwards. */
   splitSection: (
     label: string,
     pageId: string,
     sectionIndex: number,
-    at: { beforeNodeIndex: number } | { beforeNodeId: string }
+    at: { beforeNodeIndex: number } | { beforeNodeId: string },
+    renderingInSync = false
   ) =>
     request<{
       splitSectionIndex: number
       sectioningVersion: number
       renderingVersion: number | null
-    }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/split`, {
-      method: "POST",
-      body: JSON.stringify(at),
-    }),
+    }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/split${renderingInSync ? "?renderingInSync=1" : ""}`,
+      { method: "POST", body: JSON.stringify(at) }
+    ),
 
   /** `renderingInSync` is for callers that re-render the affected sections
    *  themselves; it keeps the Storyboard stage from being marked stale. */

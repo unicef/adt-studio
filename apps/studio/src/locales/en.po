@@ -8748,6 +8748,12 @@ msgstr "Text Types"
 msgid "Textbooks & Activities"
 msgstr "Textbooks & Activities"
 
+msgid "The affected pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
+msgstr "The affected pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
+
+msgid "The affected pages will be re-rendered automatically."
+msgstr "The affected pages will be re-rendered automatically."
+
 msgid "The AI is having a think..."
 msgstr "The AI is having a think..."
 

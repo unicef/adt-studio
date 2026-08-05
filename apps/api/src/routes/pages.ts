@@ -2064,6 +2064,9 @@ export function createPageRoutes(
       })
     }
     const { beforeNodeIndex, beforeNodeId } = parsedBody.data
+    // Both halves lose their HTML, so only a caller that re-renders both of them
+    // may opt out of marking the stage stale. Off by default.
+    const renderingInSync = c.req.query("renderingInSync") === "1"
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
@@ -2199,7 +2202,16 @@ export function createPageRoutes(
         updatedRendering = { sections: shifted }
       }
 
-      const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
+      // Neither half keeps its HTML — the split section's entry is dropped and
+      // the new one never had one — so the caller must render both before the
+      // stage is whole again.
+      const sectioningVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        updatedSectioning,
+        { renderingInSync }
+      )
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
