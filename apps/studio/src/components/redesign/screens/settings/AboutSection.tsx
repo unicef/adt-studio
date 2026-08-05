@@ -1,6 +1,7 @@
 import { Trans } from "@lingui/react/macro"
-import { Check, RotateCcw, Folder, FileDown, Hourglass } from "lucide-react"
+import { Check, RotateCcw, Folder, FileDown, Hourglass, Download } from "lucide-react"
 import { useAppVersion } from "@/hooks/use-app-version"
+import { useUpdateDialog } from "@/components/updates"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -8,6 +9,7 @@ import { CARD, HEADING, LEAD, SettingRow } from "./ui"
 
 export function AboutSection() {
   const version = useAppVersion()
+  const { openUpdateDialog, hasPendingUpdate } = useUpdateDialog()
 
   return (
     <>
@@ -34,13 +36,20 @@ export function AboutSection() {
               <Badge variant="outline" className="px-2 font-mono text-[10.5px]">
                 v{version ?? "—"}
               </Badge>
-              <Badge variant="success" className="gap-1 px-2 text-[10.5px]">
-                <Check className="size-3" />
-                <Trans>Up to date</Trans>
-              </Badge>
+              {hasPendingUpdate ? (
+                <Badge variant="info" className="gap-1 px-2 text-[10.5px]">
+                  <Download className="size-3" />
+                  <Trans>Update available</Trans>
+                </Badge>
+              ) : (
+                <Badge variant="success" className="gap-1 px-2 text-[10.5px]">
+                  <Check className="size-3" />
+                  <Trans>Up to date</Trans>
+                </Badge>
+              )}
             </div>
           </div>
-          <Button variant="outline" size="sm" className="ml-auto shrink-0">
+          <Button variant="outline" size="sm" className="ml-auto shrink-0" onClick={openUpdateDialog}>
             <RotateCcw className="size-3.5" />
             <Trans>Check for updates</Trans>
           </Button>

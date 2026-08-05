@@ -34,6 +34,7 @@ import { Kbd } from "./ui/Kbd"
 import { REDESIGN_PATHS, activeRedesignView } from "./nav"
 import type { RedesignView } from "./types"
 import { MacOSTrafficLightSpacer } from "../title-bar"
+import { useUpdateDialog } from "@/components/updates"
 
 const DOCS_URL = "https://unicef.github.io/adt-studio/docs/get-started/";
 const ISSUES_URL = "https://github.com/unicef/adt-studio/issues";
@@ -90,6 +91,7 @@ export function AppSidebar({
   const activeView = activeRedesignView(pathname)
   const [wsOpen, setWsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
+  const { showWhatsNew } = useUpdateDialog()
 
   const items: { view: RedesignView; label: string; icon: LucideIcon; count?: number }[] = [
     { view: "home", label: t`Home`, icon: House },
@@ -263,7 +265,13 @@ export function AppSidebar({
             >
               <Trans>Keyboard shortcuts</Trans>
             </MenuRow>
-            <MenuRow icon={Sparkles} onClick={() => setHelpOpen(false)}>
+            <MenuRow
+              icon={Sparkles}
+              onClick={() => {
+                setHelpOpen(false);
+                showWhatsNew();
+              }}
+            >
               <Trans>What&apos;s new</Trans>
             </MenuRow>
             <MenuRow
@@ -290,7 +298,7 @@ export function AppSidebar({
               icon={Info}
               onClick={() => {
                 setHelpOpen(false)
-                navigate({ to: REDESIGN_PATHS.settings })
+                navigate({ to: "/redesign/settings/about",  })
               }}
             >
               <Trans>About ADT Studio</Trans>
