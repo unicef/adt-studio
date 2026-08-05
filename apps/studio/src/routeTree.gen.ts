@@ -26,6 +26,7 @@ import { Route as BooksLabelIndexRouteImport } from "./routes/books.$label.index
 import { Route as RedesignSettingsThemeRouteImport } from "./routes/redesign.settings.theme"
 import { Route as RedesignSettingsProvidersRouteImport } from "./routes/redesign.settings.providers"
 import { Route as RedesignSettingsNotificationsRouteImport } from "./routes/redesign.settings.notifications"
+import { Route as RedesignSettingsModelsRouteImport } from "./routes/redesign.settings.models"
 import { Route as RedesignSettingsLanguageRouteImport } from "./routes/redesign.settings.language"
 import { Route as RedesignSettingsAboutRouteImport } from "./routes/redesign.settings.about"
 import { Route as BooksLabelDebugRouteImport } from "./routes/books.$label.debug"
@@ -121,6 +122,11 @@ const RedesignSettingsNotificationsRoute =
     path: "/notifications",
     getParentRoute: () => RedesignSettingsRoute,
   } as any)
+const RedesignSettingsModelsRoute = RedesignSettingsModelsRouteImport.update({
+  id: "/models",
+  path: "/models",
+  getParentRoute: () => RedesignSettingsRoute,
+} as any)
 const RedesignSettingsLanguageRoute =
   RedesignSettingsLanguageRouteImport.update({
     id: "/language",
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/redesign/settings/about": typeof RedesignSettingsAboutRoute
   "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
+  "/redesign/settings/models": typeof RedesignSettingsModelsRoute
   "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
   "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
   "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
@@ -197,6 +204,7 @@ export interface FileRoutesByTo {
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/redesign/settings/about": typeof RedesignSettingsAboutRoute
   "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
+  "/redesign/settings/models": typeof RedesignSettingsModelsRoute
   "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
   "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
   "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
@@ -224,6 +232,7 @@ export interface FileRoutesById {
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/redesign/settings/about": typeof RedesignSettingsAboutRoute
   "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
+  "/redesign/settings/models": typeof RedesignSettingsModelsRoute
   "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
   "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
   "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
@@ -252,6 +261,7 @@ export interface FileRouteTypes {
     | "/books/$label/debug"
     | "/redesign/settings/about"
     | "/redesign/settings/language"
+    | "/redesign/settings/models"
     | "/redesign/settings/notifications"
     | "/redesign/settings/providers"
     | "/redesign/settings/theme"
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
     | "/books/$label/debug"
     | "/redesign/settings/about"
     | "/redesign/settings/language"
+    | "/redesign/settings/models"
     | "/redesign/settings/notifications"
     | "/redesign/settings/providers"
     | "/redesign/settings/theme"
@@ -300,6 +311,7 @@ export interface FileRouteTypes {
     | "/books/$label/debug"
     | "/redesign/settings/about"
     | "/redesign/settings/language"
+    | "/redesign/settings/models"
     | "/redesign/settings/notifications"
     | "/redesign/settings/providers"
     | "/redesign/settings/theme"
@@ -442,6 +454,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof RedesignSettingsNotificationsRouteImport
       parentRoute: typeof RedesignSettingsRoute
     }
+    "/redesign/settings/models": {
+      id: "/redesign/settings/models"
+      path: "/models"
+      fullPath: "/redesign/settings/models"
+      preLoaderRoute: typeof RedesignSettingsModelsRouteImport
+      parentRoute: typeof RedesignSettingsRoute
+    }
     "/redesign/settings/language": {
       id: "/redesign/settings/language"
       path: "/language"
@@ -497,6 +516,7 @@ declare module "@tanstack/react-router" {
 interface RedesignSettingsRouteChildren {
   RedesignSettingsAboutRoute: typeof RedesignSettingsAboutRoute
   RedesignSettingsLanguageRoute: typeof RedesignSettingsLanguageRoute
+  RedesignSettingsModelsRoute: typeof RedesignSettingsModelsRoute
   RedesignSettingsNotificationsRoute: typeof RedesignSettingsNotificationsRoute
   RedesignSettingsProvidersRoute: typeof RedesignSettingsProvidersRoute
   RedesignSettingsThemeRoute: typeof RedesignSettingsThemeRoute
@@ -506,6 +526,7 @@ interface RedesignSettingsRouteChildren {
 const RedesignSettingsRouteChildren: RedesignSettingsRouteChildren = {
   RedesignSettingsAboutRoute: RedesignSettingsAboutRoute,
   RedesignSettingsLanguageRoute: RedesignSettingsLanguageRoute,
+  RedesignSettingsModelsRoute: RedesignSettingsModelsRoute,
   RedesignSettingsNotificationsRoute: RedesignSettingsNotificationsRoute,
   RedesignSettingsProvidersRoute: RedesignSettingsProvidersRoute,
   RedesignSettingsThemeRoute: RedesignSettingsThemeRoute,

@@ -1,4 +1,4 @@
-import { Languages, Palette, Bell, Sparkles, Info, type LucideIcon } from "lucide-react"
+import { Languages, Palette, Bell, Sparkles, Brain, Info, type LucideIcon } from "lucide-react"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 
@@ -7,6 +7,7 @@ export const SETTINGS_PATHS = {
   theme: "/redesign/settings/theme",
   notifications: "/redesign/settings/notifications",
   providers: "/redesign/settings/providers",
+  models: "/redesign/settings/models",
   about: "/redesign/settings/about",
 } as const
 
@@ -17,6 +18,7 @@ export const SETTINGS_TABS: { key: SettingsSection; label: MessageDescriptor; ic
   { key: "theme", label: msg`Theme`, icon: Palette },
   { key: "notifications", label: msg`Notifications`, icon: Bell },
   { key: "providers", label: msg`AI providers`, icon: Sparkles },
+  { key: "models", label: msg`Models`, icon: Brain },
   { key: "about", label: msg`About`, icon: Info },
 ]
 
