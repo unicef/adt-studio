@@ -37,6 +37,13 @@ export interface PageSectioningInput {
   availableImages: Array<{ imageId: string; imageBase64: string }>
 }
 
+/** Watermark overlays are not book content and must not enter storyboard HTML. */
+export function isWatermarkText(value: string): boolean {
+  const text = value.replace(/\s+/g, " ").trim()
+  if (!text) return false
+  return /^(?:for\s+online\s+reading\s+only|online\s+reading\s+only|sample\s+only|do\s+not\s+copy)$/i.test(text)
+}
+
 // ── LLM-facing shape (snake_case matching the prompt + schema) ──
 
 interface LLMNode {
@@ -536,7 +543,6 @@ export function finalizePageSectioning(
   config: PageSectioningConfig
 ): PageSectioningOutput {
   const prunedRoles = new Set(config.prunedRoleTypes)
-  const prunedSectionTypes = new Set(config.prunedSectionTypes)
   const counter = { n: 0 }
 
   const sections: PageSectioningSection[] = raw.sections.map((section, sIdx) => {
@@ -550,14 +556,15 @@ export function finalizePageSectioning(
     // restart the stage. Explicit learner edits can still prune individual
     // nodes later in the editor, but automatic sectioning must retain the
     // complete activity page.
-    const isActivity = section.section_type.startsWith("activity_")
     return {
       sectionId,
       sectionType: section.section_type,
       backgroundColor: section.background_color,
       textColor: section.text_color,
       pageNumber: section.page_number,
-      isPruned: !isActivity && prunedSectionTypes.has(section.section_type),
+      // Source pages are always valid. Pruning is an explicit editor action,
+      // never an automatic sectioning decision.
+      isPruned: false,
       nodes,
     }
   })
@@ -608,11 +615,12 @@ function toContentNode(
 
   counter.n += 1
   const nodeId = `${pageId}_n${String(counter.n).padStart(4, "0")}`
+  const text = typeof node.text === "string" ? node.text : ""
   return {
     nodeId,
-    isPruned: prunedRoles.has(role),
+    isPruned: prunedRoles.has(role) || isWatermarkText(text),
     role,
-    text: typeof node.text === "string" ? node.text : "",
+    text,
   }
 }
 

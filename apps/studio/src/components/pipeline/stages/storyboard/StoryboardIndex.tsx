@@ -14,7 +14,10 @@ export function StoryboardIndex({
 }) {
   const status = useStageStatus("storyboard")
 
-  if (status.isCompleted || status.isRunning) {
+  // A page route is an explicit deep link. Keep the page viewer mounted even
+  // while the stage is idle, failed, or awaiting a rerun; otherwise the route
+  // unexpectedly falls back to the landing card.
+  if (selectedPageId || status.isCompleted || status.isRunning || status.hasError) {
     return (
       <StoryboardView
         bookLabel={bookLabel}

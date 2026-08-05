@@ -657,7 +657,7 @@ describe("finalizePageSectioning", () => {
     expect(leaves[1].isPruned).toBe(true)
   })
 
-  it("marks section isPruned when sectionType is in prunedSectionTypes", () => {
+  it("retains front-matter sections even when listed in prune config", () => {
     const output = finalizePageSectioning(
       {
         reasoning: "",
@@ -682,7 +682,7 @@ describe("finalizePageSectioning", () => {
       makeConfig({ prunedSectionTypes: ["credits"] })
     )
     expect(output.sections[0].isPruned).toBe(false)
-    expect(output.sections[1].isPruned).toBe(true)
+    expect(output.sections[1].isPruned).toBe(false)
   })
 
   it("never automatically prunes learner activities", () => {
@@ -762,7 +762,7 @@ describe("flattenTreeToText", () => {
     expect(flattenTreeToText(output)).toBe("Keep")
   })
 
-  it("skips pruned sections entirely", () => {
+  it("retains all source sections in flattened text", () => {
     const output = finalizePageSectioning(
       {
         reasoning: "",
@@ -786,7 +786,7 @@ describe("flattenTreeToText", () => {
       makeInput(),
       makeConfig({ prunedSectionTypes: ["credits"] })
     )
-    expect(flattenTreeToText(output)).toBe("Body")
+    expect(flattenTreeToText(output)).toBe("Body Credits copy")
   })
 })
 

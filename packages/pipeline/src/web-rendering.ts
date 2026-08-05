@@ -456,6 +456,7 @@ export function buildRenderStrategyResolver(
           "activity_multi_select",
           "activity_multiple_choice",
           "activity_open_ended_answer",
+          "activity_ordering",
           "activity_sorting",
           "activity_true_false",
           "activity_underline_text",
