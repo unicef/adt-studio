@@ -47,6 +47,29 @@ describe("insetClassMap", () => {
     const value = { t: 5, r: -13, b: 0, l: 0 }
     expect(insetClassMap.fromClasses(insetClassMap.toClasses(value))).toEqual(value)
   })
+
+  it("only matches px-representable insets, leaving other utilities untouched", () => {
+    // Tailwind v4 ring/shadow utilities that share the `inset-` prefix
+    expect(insetClassMap.matches("inset-ring-2")).toBe(false)
+    expect(insetClassMap.matches("inset-shadow-sm")).toBe(false)
+    expect(insetClassMap.matches("-inset-ring-2")).toBe(false)
+    // fraction / keyword insets the px control can't represent (centering idiom)
+    expect(insetClassMap.matches("top-1/2")).toBe(false)
+    expect(insetClassMap.matches("left-1/2")).toBe(false)
+    expect(insetClassMap.matches("inset-auto")).toBe(false)
+    expect(insetClassMap.matches("top-full")).toBe(false)
+    // px-representable insets are matched
+    expect(insetClassMap.matches("inset-4")).toBe(true)
+    expect(insetClassMap.matches("top-[13px]")).toBe(true)
+    expect(insetClassMap.matches("-left-2")).toBe(true)
+    // an unrepresentable utility alongside a px offset must survive untouched
+    expect(insetClassMap.fromClasses(["inset-ring-2", "top-1/2", "top-4"])).toEqual({
+      t: 16,
+      r: 0,
+      b: 0,
+      l: 0,
+    })
+  })
 })
 
 describe("rotateClassMap", () => {
@@ -85,6 +108,14 @@ describe("translate maps", () => {
 
   it("ignores the other axis", () => {
     expect(translateXClassMap.fromClasses(["translate-y-4"])).toBeNull()
+  })
+
+  it("leaves fraction / keyword translates untouched", () => {
+    expect(translateXClassMap.matches("-translate-x-1/2")).toBe(false)
+    expect(translateXClassMap.matches("translate-x-full")).toBe(false)
+    expect(translateYClassMap.matches("-translate-y-1/2")).toBe(false)
+    expect(translateXClassMap.matches("translate-x-4")).toBe(true)
+    expect(translateXClassMap.matches("-translate-x-[13px]")).toBe(true)
   })
 })
 

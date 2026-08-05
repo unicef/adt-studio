@@ -109,7 +109,10 @@ export function PositionSection() {
       <StyleLabel label={<Trans>Scale</Trans>} override={scale.override}>
         <NumericInput
           value={scale.value}
-          onCommit={scale.setValue}
+          // Clearing the field commits 0; treat 0 (and negatives) as "no
+          // scaling" (100%) rather than `scale-0`, which would make the
+          // element vanish.
+          onCommit={(n) => scale.setValue(n <= 0 ? 100 : n)}
           inputMode="numeric"
           suffix="%"
         />

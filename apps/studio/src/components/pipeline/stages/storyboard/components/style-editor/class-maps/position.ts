@@ -69,13 +69,24 @@ export const positionClassMap: ClassMap<string> = {
 
 const INSET_RE = /^(-?)(inset-x|inset-y|inset|top|right|bottom|left)-(.+)$/
 
+// Only match inset utilities this px control can actually represent (spacing
+// tokens and arbitrary px/rem). Utilities we can't model — Tailwind v4's
+// `inset-ring-*`/`inset-shadow-*`, and fraction/keyword insets like `top-1/2`
+// or `left-auto` used by the centered-absolute idiom — are left untouched so
+// editing a px offset never silently strips them.
+function insetToken(cls: string): string | null {
+  const m = cls.match(INSET_RE)
+  if (!m || tokenToPx(m[3]) === null) return null
+  return m[3]
+}
+
 function insetClass(name: string, px: number): string {
   const sign = px < 0 ? "-" : ""
   return `${sign}${name}-${pxToToken(Math.abs(px))}`
 }
 
 export const insetClassMap: ClassMap<BoxValue> = {
-  matches: (cls) => INSET_RE.test(cls),
+  matches: (cls) => insetToken(cls) !== null,
 
   fromClasses(classes) {
     let result: BoxValue | null = null
@@ -186,7 +197,12 @@ export const rotateClassMap: ClassMap<number> = {
 function makeTranslateClassMap(axis: "x" | "y"): ClassMap<number> {
   const re = new RegExp(`^(-?)translate-${axis}-(.+)$`)
   return {
-    matches: (cls) => re.test(cls),
+    // Only match px-representable translates; leave `translate-x-full`,
+    // `translate-x-1/2` (centering idiom), etc. untouched on edit.
+    matches: (cls) => {
+      const m = cls.match(re)
+      return m !== null && tokenToPx(m[2]) !== null
+    },
     fromClasses(classes) {
       let last: number | null = null
       for (const cls of classes) {
