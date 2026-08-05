@@ -94,6 +94,138 @@ describe("page-mode visual review prompt", () => {
     expect(prompt).toContain("Never synthesize, redraw, trace, approximate, or imitate a signature")
     expect(prompt).toContain("leave the mark absent")
   })
+
+  it("frames non-activity sections as one complete page with an approval bar", async () => {
+    const messages = await promptEngine.renderPrompt("visual_review_page", {
+      is_activity: false,
+      has_merged_content: false,
+      viewports: [{ label: "Desktop", width: 1280, tailwind_prefix: "" }],
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("one complete source page")
+    expect(prompt).toContain("WHEN TO APPROVE")
+    expect(prompt).toContain("Approval does NOT require pixel identity")
+    expect(prompt).not.toContain("INTERACTIVE ACTIVITY")
+  })
+
+  it("protects the fixed type scale and sr-only text", async () => {
+    const messages = await promptEngine.renderPrompt("visual_review_page", {})
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("Keep EVERY `adt-*` class")
+    expect(prompt).toContain("`sr-only`")
+    expect(prompt).toContain("must contain only literal text")
+  })
+})
+
+describe("visual review activity awareness", () => {
+  const viewports = [
+    { label: "Desktop", width: 1280, tailwind_prefix: "" },
+    { label: "Mobile", width: 375, tailwind_prefix: "max-sm" },
+  ]
+
+  for (const promptName of ["visual_review", "visual_review_page"]) {
+    it(`${promptName} carves out interactive activities`, async () => {
+      const messages = await promptEngine.renderPrompt(promptName, {
+        nodes,
+        has_merged_content: false,
+        is_activity: true,
+        section_type: "activity_multiple_choice",
+        viewports,
+      })
+      const prompt = messages.map(messageText).join("\n")
+
+      expect(prompt).toContain("THIS SECTION IS AN INTERACTIVE ACTIVITY")
+      expect(prompt).toContain("NEVER remove, hide, or disable an interactive element")
+      expect(prompt).toContain("data-activity-item")
+      expect(prompt).toContain("Do NOT compare the controls element-for-element against the print page")
+    })
+
+    it(`${promptName} omits the activity carve-out for regular sections`, async () => {
+      const messages = await promptEngine.renderPrompt(promptName, {
+        nodes,
+        has_merged_content: false,
+        is_activity: false,
+        section_type: "text_only",
+        viewports,
+      })
+      const prompt = messages.map(messageText).join("\n")
+
+      expect(prompt).not.toContain("THIS SECTION IS AN INTERACTIVE ACTIVITY")
+    })
+
+    it(`${promptName} explains merged continuation pages`, async () => {
+      const messages = await promptEngine.renderPrompt(promptName, {
+        nodes,
+        has_merged_content: true,
+        is_activity: false,
+        viewports,
+      })
+      const prompt = messages.map(messageText).join("\n")
+
+      expect(prompt).toContain("MERGED CONTENT FROM ANOTHER PAGE")
+      expect(prompt).toContain("do NOT remove it")
+    })
+
+    it(`${promptName} restricts responsive prefixes to the screenshot viewports`, async () => {
+      const messages = await promptEngine.renderPrompt(promptName, {
+        nodes,
+        has_merged_content: false,
+        is_activity: false,
+        viewports,
+      })
+      const prompt = messages.map(messageText).join("\n")
+
+      expect(prompt).toContain("use ONLY the breakpoint prefixes listed above")
+      expect(prompt).toContain("**Mobile**: 375px → `max-sm` prefix")
+    })
+  }
+})
+
+describe("page-mode sectioning split", () => {
+  function sectioningContext(mode: string): Record<string, unknown> {
+    return {
+      mode,
+      structure_types: [],
+      role_types: [],
+      section_types: [],
+      page: { pageNumber: 1, text: "", imageBase64: "page-image" },
+      images: [],
+    }
+  }
+
+  it("allows splitting page-mode pages by activity mechanic", async () => {
+    const messages = await promptEngine.renderPrompt(
+      "page_sectioning",
+      sectioningContext("page"),
+    )
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("EXCEPTION — MIXED ACTIVITY MECHANICS")
+    expect(prompt).toContain("one section per mechanic")
+    expect(prompt).toContain("NEVER roll mixed mechanics up under `activity_other`")
+    expect(prompt).not.toContain("Do NOT split the page under any circumstance")
+  })
+
+  it("keeps the refinement check consistent with the page-mode exception", async () => {
+    const messages = await promptEngine.renderPrompt("page_sectioning_refinement", {
+      mode: "page",
+      max_refinements: 1,
+      structure_types: [],
+      role_types: [],
+      section_types: [],
+      page: { pageNumber: 1, text: "", imageBase64: "page-image" },
+      images: [],
+      candidate: { reasoning: "", sections_json: "[]" },
+      prior_notes: [],
+      iteration: 1,
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("one section per mechanic")
+    expect(prompt).toContain("Any other split is an error")
+  })
 })
 
 describe("image meaningfulness prompt", () => {

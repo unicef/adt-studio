@@ -1,0 +1,6 @@
+## VIEWPORT SIZES & TAILWIND BREAKPOINTS (DESKTOP-FIRST)
+Screenshots are taken at these exact viewport widths, which correspond to Tailwind CSS breakpoints:
+{% for vp in viewports %}- **{{ vp.label }}**: {{ vp.width }}px{% if vp.tailwind_prefix != "" %} → `{{ vp.tailwind_prefix }}` prefix{% else %} → default (no prefix — base/desktop styles){% endif %}
+{% endfor %}
+When suggesting CSS changes, use ONLY the breakpoint prefixes listed above. Do not use `sm:`, `md:`, `lg:`, `xl:`, `2xl:`, or any prefixes not listed.
+The base (no-prefix) classes are the DESKTOP design — overlay and side-by-side layouts should be preserved at desktop and tablet, do NOT reject those screenshots for using overlays. At mobile (`max-sm:`), favor a single-column stacked layout (images and text flowing vertically).

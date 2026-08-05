@@ -24,8 +24,10 @@ The screenshots show a **single section**, which is typically only a SUBSET of t
 - Other content visible in the original page image (other sections, headers, footers, page numbers, surrounding text, neighboring images) is NOT part of this section and MUST NOT appear in the rendering. Do NOT flag missing content that belongs to a different section.
 - Match layout, hierarchy, alignment, and styling against the corresponding region only. For example, if the section is a two-column block within a larger page, compare its column structure to that block — not to the page as a whole.
 {% if has_merged_content %}
-## MERGED CONTENT FROM ANOTHER PAGE
-This section combines content merged from MORE THAN ONE original page (for example an activity or passage that continues across a page break). Additional continuation page images are provided after the primary page image. When locating this section's content, check ALL of the provided page images — part of the rendering appears only in a continuation page image. Do NOT flag that content as extraneous, hallucinated, or missing from the original merely because it is absent from the primary page image, and do NOT remove it.
+{% include "_visual_review_merged_content" %}
+{% endif %}
+{% if is_activity %}
+{% include "_visual_review_activity" %}
 {% endif %}
 ## WHAT MAKES A GOOD RENDERING
 - Text is readable at all viewport sizes with appropriate sizing
@@ -59,12 +61,7 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - Subtle styling improvements that enhance the appearance
 - Text that is not included on purpose (page numbers, other metadata)
 
-## VIEWPORT SIZES & TAILWIND BREAKPOINTS (DESKTOP-FIRST)
-Screenshots are taken at these exact viewport widths, which correspond to Tailwind CSS breakpoints:
-{% for vp in viewports %}- **{{ vp.label }}**: {{ vp.width }}px{% if vp.tailwind_prefix != "" %} → `{{ vp.tailwind_prefix }}` prefix{% else %} → default (no prefix — base/desktop styles){% endif %}
-{% endfor %}
-When suggesting CSS changes, use ONLY the breakpoint prefixes listed above. Do not use `sm:`, `md:`, `lg:`, `xl:`, `2xl:`, or any prefixes not listed.
-The base (no-prefix) classes are the DESKTOP design — overlay and side-by-side layouts should be preserved at desktop and tablet, do NOT reject those screenshots for using overlays. At mobile (`max-sm:`), favor a single-column stacked layout (images and text flowing vertically).
+{% include "_visual_review_breakpoints" %}
 
 ## RULES
 - Preserve ALL data-id attributes exactly as they are

@@ -140,7 +140,18 @@ Sections PARTITION the top-level tree. They do NOT restructure it.
 - Do NOT wrap unrelated siblings in a synthetic container just to carve a section boundary.
 
 {% if mode == "page" %}
-The entire page is always ONE section. Emit exactly one section containing all top-level nodes in reading order. Do NOT split the page under any circumstance, regardless of activity types, instruction blocks, headings, or visual breaks.
+The entire page is ONE section, with a single exception for mixed activity mechanics.
+
+DEFAULT: emit exactly one section containing all top-level nodes in reading order. Do NOT split for instruction blocks, headings, topics, whitespace, or visual breaks.
+
+EXCEPTION — MIXED ACTIVITY MECHANICS: the runtime renders only ONE answer-submission UI per section, so when the page contains TWO OR MORE different response mechanics for the learner, you MUST split the page into one section per mechanic. Decide by what the learner DOES at each writable spot, not by how the page "feels":
+- Picking one option from a list → activity_multiple_choice (or activity_true_false / activity_sorting / activity_matching depending on shape)
+- Picking every option matching a criterion ("select all that apply") → activity_multi_select
+- Writing a discrete short value (word, number, name, date, missing letter, copied value) → activity_fill_in_the_blank
+- Writing sentences/paragraphs in the learner's own words → activity_open_ended_answer
+- Filling cells in a grid → activity_fill_in_a_table
+
+When you split, the sections must be consecutive, cover the whole page in reading order, and each carry its own known activity type. Attach shared headings, passages, and instructions to the section they visually belong with — a shared instruction at the top, a single narrative thread, or a single visual frame NEVER prevents the split. NEVER roll mixed mechanics up under `activity_other` to avoid splitting — `activity_other` is reserved for pages whose SINGLE mechanic is genuinely unique (free drawing, crafts, physical movement). A page with a single mechanic — or no activities — is always exactly ONE section, regardless of how many questions, items, or instruction blocks it contains.
 {% else %}
 DEFAULT: the entire page is ONE section. Keep it as one section unless the split condition below applies.
 
