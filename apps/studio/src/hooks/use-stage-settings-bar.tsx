@@ -36,7 +36,9 @@ export function useStageSettingsBar({
     id: `settings:${stage}`,
     dirty,
     saving,
-    onSave: showSaveOnly ? save : undefined,
+    // Persist settings independently from regeneration. Re-running a stage is
+    // an explicit action; saving must never restart a potentially long run.
+    onSave: save,
     onSaveAndRerun: async () => {
       await save()
       queueRun({ fromStage: stage, toStage: stage, apiKey })
