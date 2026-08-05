@@ -36,9 +36,14 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   // regenerates (the page's stale rendering is cleared optimistically on re-run,
   // see queueRun). Only show the run card when idle or no data exists yet.
   const hasPageData = (pages ?? []).some((p) => p.sectionCount > 0)
+  // When idle, existing renderings outrank a stale stage status: a sectioning
+  // edit marks storyboard for re-run without touching the HTML, and pushing the
+  // run card in front of intact renderings would hide the very sections the user
+  // came back to re-render. Matches the gate in StoryboardIndex.
+  const hasRenderingData = (pages ?? []).some((p) => p.hasRendering)
   const showRunCard = storyboardRunning || storyboardState === "error"
     ? !hasPageData
-    : !storyboardDone
+    : !storyboardDone && !hasRenderingData
 
   const handleRunStoryboard = useCallback(() => {
     if (!hasApiKey || !sectioningReady || storyboardRunning) return
