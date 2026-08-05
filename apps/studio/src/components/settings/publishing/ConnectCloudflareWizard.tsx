@@ -12,13 +12,21 @@ import { CredentialsStep } from "./CredentialsStep"
 import { CreateTokenStep } from "./CreateTokenStep"
 import { DoneStep } from "./DoneStep"
 import { IntroStep } from "./IntroStep"
+import { WelcomeStep } from "./WelcomeStep"
 import { ProvisionStep } from "./ProvisionStep"
 import { WIZARD_STEP_HEADING_ID } from "./WizardStepShell"
 import { openExternalUrl } from "./open-external"
 
 const MANUAL_STEPS = ["intro", "token", "credentials", "provision"] as const
 
-type WizardStep = "intro" | "token" | "credentials" | "account" | "provision" | "done"
+type WizardStep =
+  | "welcome"
+  | "intro"
+  | "token"
+  | "credentials"
+  | "account"
+  | "provision"
+  | "done"
 
 interface ConnectCloudflareWizardProps {
   storedToken: string
@@ -46,7 +54,7 @@ export function ConnectCloudflareWizard({
   const [tokenDraft, setTokenDraft] = useState(storedToken)
   const [accountIdDraft, setAccountIdDraft] = useState(storedAccountId)
   const [verifyResult, setVerifyResult] = useState<CloudflareVerifyResponse | null>(null)
-  const [step, setStep] = useState<WizardStep>("intro")
+  const [step, setStep] = useState<WizardStep>("welcome")
   const [path, setPath] = useState<"oauth" | "manual">("oauth")
   const [direction, setDirection] = useState<"forward" | "back">("forward")
   const verify = useVerifyCloudflareToken()
@@ -131,6 +139,8 @@ export function ConnectCloudflareWizard({
         direction === "forward" ? "animate-step-enter-forward" : "animate-step-enter-back",
       )}
     >
+      {step === "welcome" && <WelcomeStep onStart={() => goTo("intro", "forward")} />}
+
       {step === "intro" && (
         <IntroStep
           stepNumber={stepNumber}
@@ -139,6 +149,10 @@ export function ConnectCloudflareWizard({
           oauthErrorCode={oauth.errorCode}
           oauthErrorMessage={oauth.errorMessage}
           authUrl={oauth.authUrl}
+          onBack={() => {
+            oauth.reset()
+            goTo("welcome", "back")
+          }}
           onConnectWithCloudflare={() => {
             openedAuthUrlRef.current = null
             oauth.start()
@@ -221,7 +235,7 @@ export function ConnectCloudflareWizard({
             oauth.reset()
             setPath("oauth")
             onDisconnected()
-            goTo("intro", "back")
+            goTo("welcome", "back")
           }}
         />
       )}
