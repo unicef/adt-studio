@@ -16,6 +16,7 @@ export interface LLMErrorClassification {
 }
 
 const CONNECT_TIMEOUT_CODES = new Set([
+  "EAI_AGAIN",
   "ETIMEDOUT",
   "ESOCKETTIMEDOUT",
   "UND_ERR_CONNECT_TIMEOUT",
