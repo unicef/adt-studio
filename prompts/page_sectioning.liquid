@@ -105,6 +105,7 @@ Use these to disambiguate activity types:
    - `table_cell` may be empty (no children) to preserve column alignment for a visually blank cell.
 3. Images. A listed image may appear at most once across the whole page, in the reading position it visually belongs to. Never duplicate an `image_id`, never invent one, never reference an ID that was not listed.
    Watermark notices such as “FOR ONLINE READING ONLY”, “SAMPLE ONLY”, or “DO NOT COPY” are overlays, not book content. Never create text leaves for them.
+   Only use `role: "image"` for a genuine figure, diagram, chart, photograph, illustration, signature, or official seal. Never use an extracted crop containing ordinary page prose, headings, exercises, tables, captions, or metadata as an image; represent that content with semantic text, table, and activity nodes instead. The full-page render is visual context only and must never be placed in the tree.
    - A standalone image (no caption, label, or overlay) is a bare leaf: `{ "role": "image", "image_id": "<id>" }` placed directly in reading order.
    - An image with associated content is wrapped in an `image_group`. The `image_group`'s FIRST child is a `role: "image"` leaf, followed by the caption / label / overlay leaves. Associated content includes:
      - a caption beneath or beside the image,
