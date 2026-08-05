@@ -357,6 +357,127 @@ describe("Page routes", () => {
     })
   })
 
+  describe("PUT /api/books/:label/pages/:pageId/storyboard", () => {
+    const seedCompletedChain = () => {
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepCompleted("web-rendering")
+        seed.markStepCompleted("quiz-generation")
+        seed.markStepCompleted("toc-generation")
+      } finally {
+        seed.close()
+      }
+    }
+
+    const save = (body: unknown) =>
+      app.request(`/api/books/${label}/pages/${label}_p1/storyboard`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+
+    it("keeps the storyboard complete when the rendering is saved in sync", async () => {
+      // The Storyboard editor mirrors text/prune/delete edits into the HTML it
+      // sends, so the rendering is not stale and the stage must stay done —
+      // otherwise every save ejects the user from the editor.
+      seedCompletedChain()
+
+      const res = await save({
+        sectioning: { reasoning: "r", sections: [] },
+        rendering: { sections: [] },
+        renderingInSync: true,
+      })
+      expect(res.status).toBe(200)
+      // Both fixtures are at v1, so one save advances each exactly once.
+      expect(await res.json()).toEqual({ sectioningVersion: 2, renderingVersion: 2 })
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        const steps = after.getStepRuns().map((r) => r.step)
+        expect(steps).toContain("web-rendering")
+        // Everything derived from the HTML still has to be re-run.
+        expect(steps).not.toContain("quiz-generation")
+        expect(steps).not.toContain("toc-generation")
+      } finally {
+        after.close()
+      }
+    })
+
+    it("marks the storyboard stale when the change needs an LLM re-render", async () => {
+      seedCompletedChain()
+
+      const res = await save({
+        sectioning: { reasoning: "r", sections: [] },
+        rendering: { sections: [] },
+        renderingInSync: false,
+      })
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        expect(after.getStepRuns().map((r) => r.step)).not.toContain("web-rendering")
+      } finally {
+        after.close()
+      }
+    })
+
+    it("defaults to marking the storyboard stale", async () => {
+      seedCompletedChain()
+
+      const res = await save({ sectioning: { reasoning: "r", sections: [] } })
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        expect(after.getStepRuns().map((r) => r.step)).not.toContain("web-rendering")
+      } finally {
+        after.close()
+      }
+    })
+
+    it("writes neither node when a pipeline step is running", async () => {
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepStarted("quiz-generation")
+      } finally {
+        seed.close()
+      }
+
+      const res = await save({
+        sectioning: { reasoning: "r", sections: [] },
+        rendering: { sections: [] },
+        renderingInSync: true,
+      })
+      expect(res.status).toBe(409)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        // The guard runs before either write, so neither node advanced past
+        // the seeded version — the rejected save is a true no-op.
+        expect(after.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
+        expect(after.getLatestNodeData("page-sectioning", `${label}_p1`)?.version).toBe(1)
+      } finally {
+        after.close()
+      }
+    })
+
+    it("rejects an empty save and a rendering-only in-sync claim", async () => {
+      expect((await save({})).status).toBe(400)
+      expect(
+        (await save({ rendering: { sections: [] }, renderingInSync: true })).status
+      ).toBe(400)
+    })
+
+    it("returns 404 for nonexistent page", async () => {
+      const res = await app.request(`/api/books/${label}/pages/fake-page/storyboard`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rendering: { sections: [] } }),
+      })
+      expect(res.status).toBe(404)
+    })
+  })
+
   describe("PUT /api/books/:label/pages/:pageId/image-filtering", () => {
     it("saves image classification and returns version", async () => {
       const data = {

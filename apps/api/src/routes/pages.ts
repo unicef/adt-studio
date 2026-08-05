@@ -23,6 +23,7 @@ import {
   IMAGE_SET_CHANGE_CLEAR_STEPS,
   PIPELINE,
   getStageClearOrder,
+  getStageDependents,
   EDITABLE_ACTIVITY_NODE,
 } from "@adt/types"
 import type { ContentNodeData, ExtractionWarning } from "@adt/types"
@@ -521,8 +522,7 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
 }
 
 /**
- * Mark the storyboard and everything after it as needing a re-run, without
- * deleting any node data.
+ * Mark the storyboard chain as needing a re-run, without deleting any node data.
  *
  * A sectioning edit invalidates the storyboard's rendered HTML, and every later
  * output (text catalog, translations, audio, the packaged book) is re-derived
@@ -530,9 +530,20 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
  * old text. We clear only `step_runs`: the renderings and their version history
  * survive (so manual storyboard edits elsewhere in the book are not destroyed)
  * and are overwritten only when the user actually re-runs.
+ *
+ * `includeStoryboard: false` keeps the storyboard's own step run, for the case
+ * where the caller wrote a matching `web-rendering` in the same save: the HTML
+ * on disk already reflects the new sectioning, so only the stages *derived* from
+ * it are behind. Marking storyboard stale there would be a lie that also costs
+ * the user their editor — the Storyboard view is gated on the stage status.
  */
-function markStoryboardChainStale(storage: Storage): void {
-  const stages = new Set<string>(getStageClearOrder("storyboard"))
+function markStoryboardChainStale(
+  storage: Storage,
+  { includeStoryboard = true }: { includeStoryboard?: boolean } = {}
+): void {
+  const stages = new Set<string>(
+    includeStoryboard ? getStageClearOrder("storyboard") : getStageDependents("storyboard")
+  )
   storage.clearStepRuns(
     PIPELINE.filter((stage) => stages.has(stage.name)).flatMap((stage) =>
       stage.steps.map((step) => step.name)
@@ -565,7 +576,8 @@ function saveStoryboardNode(
   storage: Storage,
   node: "page-sectioning" | "web-rendering",
   itemId: string,
-  data: unknown
+  data: unknown,
+  { renderingInSync = false }: { renderingInSync?: boolean } = {}
 ): number {
   if (node === "page-sectioning") assertNoActivePipelineRun(storage)
   const version = storage.putNodeData(node, itemId, data)
@@ -575,7 +587,13 @@ function saveStoryboardNode(
   // merge empties both pages, so those sections would silently vanish from the
   // packaged book while the stage still read "done". A `web-rendering` save is
   // itself the storyboard's output, so it must NOT mark storyboard stale.
-  if (node === "page-sectioning") markStoryboardChainStale(storage)
+  //
+  // `renderingInSync` is the Storyboard editor saving sectioning and rendering
+  // together: the HTML it sends already carries the edit, so the storyboard is
+  // current and only its dependents are behind.
+  if (node === "page-sectioning") {
+    markStoryboardChainStale(storage, { includeStoryboard: !renderingInSync })
+  }
   return version
 }
 
@@ -1422,6 +1440,77 @@ export function createPageRoutes(
 
       const version = saveStoryboardNode(storage, "web-rendering", pageId, parsed.data)
       return c.json({ version })
+    } finally {
+      storage.close()
+    }
+  })
+
+  // PUT /books/:label/pages/:pageId/storyboard — one Storyboard editor save.
+  //
+  // Sectioning and rendering are two nodes but one user action, and splitting
+  // them across two requests is what made the editor fragile: the second PUT can
+  // fail (or be rejected by the pipeline-run guard) after the first has already
+  // landed, leaving the HTML and the tree disagreeing with no way back. Writing
+  // both here means the guard runs once, up front, and the pair moves together.
+  //
+  // `renderingInSync` says the stored HTML reflects this sectioning once the
+  // request completes — either because the editor mirrored the edit into the
+  // rendering it is sending (inline text, prune, delete) or because the change
+  // needed no HTML at all. It is false when the change only shows up after an
+  // LLM re-render (section type, unprune, reorder, role change); only then is
+  // the storyboard stage itself marked stale.
+  app.put("/books/:label/pages/:pageId/storyboard", async (c) => {
+    const { label, pageId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+
+    const body = await c.req.json()
+    const parsed = z
+      .object({
+        sectioning: PageSectioningOutput.optional(),
+        rendering: WebRenderingOutput.optional(),
+        renderingInSync: z.boolean().default(false),
+      })
+      .safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid storyboard save: ${parsed.error.message}`,
+      })
+    }
+    const { sectioning, rendering, renderingInSync } = parsed.data
+    if (!sectioning && !rendering) {
+      throw new HTTPException(400, {
+        message: "Storyboard save must include sectioning, rendering, or both",
+      })
+    }
+    // The flag only describes a sectioning write; on its own it would silently
+    // do nothing, which is worth a 400 rather than a puzzling no-op.
+    if (renderingInSync && !sectioning) {
+      throw new HTTPException(400, {
+        message: "renderingInSync requires sectioning",
+      })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const pages = storage.getPages()
+      const page = pages.find((p) => p.pageId === pageId)
+      if (!page) {
+        throw new HTTPException(404, { message: `Page not found: ${pageId}` })
+      }
+
+      // Guard before either write, so a rejected save changes nothing at all.
+      if (sectioning) assertNoActivePipelineRun(storage)
+
+      // Rendering first: if the pair is in sync, the HTML is the thing every
+      // downstream stage reads, so it should never be the write left undone.
+      const renderingVersion = rendering
+        ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
+        : null
+      const sectioningVersion = sectioning
+        ? saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
+        : null
+
+      return c.json({ sectioningVersion, renderingVersion })
     } finally {
       storage.close()
     }

@@ -83,6 +83,7 @@ export {
   IMAGE_SET_CHANGE_CLEAR_STEPS,
   IMAGE_SET_CHANGE_CLEAR_STAGES,
   getStageClearOrder,
+  getStageDependents,
   getStageClearNodes,
   getStageRerunClearNodes,
   getCacheResourcesForNode,

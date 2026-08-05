@@ -185,6 +185,13 @@ export function getStageClearOrder(stage: StageName): StageName[] {
   return [stage, ...collectTransitiveDependents(stage)]
 }
 
+/** Every stage that consumes `stage`'s output, transitively — `stage` excluded.
+ *  Use when a stage's own output is known to be current but the outputs derived
+ *  from it are not. */
+export function getStageDependents(stage: StageName): StageName[] {
+  return collectTransitiveDependents(stage)
+}
+
 /** All node types that should be cleared when starting from `stage`. */
 export function getStageClearNodes(stage: StageName): PipelineNodeName[] {
   const seen = new Set<PipelineNodeName>()

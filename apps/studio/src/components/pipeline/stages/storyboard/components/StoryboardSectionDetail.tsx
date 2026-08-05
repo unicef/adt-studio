@@ -873,16 +873,22 @@ export function StoryboardSectionDetail({
         }
       }
 
-      await api.updateSectioning(bookLabel, pageId, pendingSectioning)
-
       // Save rendering if dirty (from delete/prune removing HTML elements).
       // Use renderingFromPrune if we just stripped pruned elements above,
       // since React state won't have updated yet within this async call.
       const flushed = flushPendingHtml()
       const renderingToSave = renderingFromPrune ?? flushed ?? pendingRendering
-      if (renderingToSave) {
-        await api.updateRendering(bookLabel, pageId, stripTransientIds(renderingToSave))
-      }
+
+      // Both nodes in one request so a failure can't split them apart.
+      // `shouldRerender` marks the changes (type, unprune, reorder, role) that
+      // need the LLM before the HTML catches up; everything else either arrives
+      // mirrored in `renderingToSave` or needs no HTML change, so the storyboard
+      // is not stale and the stage should stay complete.
+      await api.saveStoryboard(bookLabel, pageId, {
+        sectioning: pendingSectioning,
+        rendering: renderingToSave ? stripTransientIds(renderingToSave) : undefined,
+        renderingInSync: !shouldRerender,
+      })
 
       setPendingSectioning(null)
       setPendingRendering(null)
@@ -934,23 +940,23 @@ export function StoryboardSectionDetail({
     try {
       const minDelay = new Promise((r) => setTimeout(r, 400))
 
-      await api.updateRendering(bookLabel, pageId, stripTransientIds(renderingToSave))
-
       // Back-propagate text changes into sectioning. `renderingToSave` already
       // includes the flushed inspector edit; the closure `pendingRendering`
       // is stale until React re-renders.
       const editedHtml = getRenderedSectionByIndex(renderingToSave, sectionIndex)?.html
       const sBase = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
-      if (editedHtml && sBase) {
-        const updatedSectioning = backPropagateTextChanges(
-          sBase,
-          sectionIndex,
-          editedHtml
-        )
-        if (updatedSectioning !== sBase) {
-          await api.updateSectioning(bookLabel, pageId, updatedSectioning)
-        }
-      }
+      const updatedSectioning =
+        editedHtml && sBase ? backPropagateTextChanges(sBase, sectionIndex, editedHtml) : null
+
+      // The sectioning we send is derived from the HTML we send, so the pair is
+      // in sync by construction — this save leaves the Storyboard current and
+      // only marks the stages downstream of it for re-run.
+      await api.saveStoryboard(bookLabel, pageId, {
+        rendering: stripTransientIds(renderingToSave),
+        ...(updatedSectioning && updatedSectioning !== sBase
+          ? { sectioning: updatedSectioning, renderingInSync: true }
+          : {}),
+      })
 
       setPendingRendering(null)
       setPendingSectioning(null)
