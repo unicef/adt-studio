@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react"
-import { ArrowLeft, ArrowRight, LayoutGrid, Table2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, LayoutGrid, Loader2, RotateCcw, Table2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
@@ -391,17 +391,30 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   }
 
   return (
-    <StoryboardSectionDetail
-      bookLabel={bookLabel}
-      pageId={selectedPageId!}
-      sectionIndex={sectionIndex}
-      page={page}
-      navigationExtra={navigationExtra}
-      navigationArrows={navigationArrows}
-      onGeneratingChange={handleGeneratingChange}
-      onNavigateSection={navigateToSection}
-      hasPrevPage={!!prevPageId}
-      hasNextPage={!!nextPageId}
-    />
+    <div className="flex min-h-0 flex-col">
+      <div className="flex shrink-0 items-center justify-end border-b border-neutral-200 px-4 py-2">
+        <button
+          type="button"
+          onClick={handleRunStoryboard}
+          disabled={!hasApiKey || !sectioningReady || storyboardRunning}
+          className="inline-flex items-center gap-2 rounded-md bg-violet-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {storyboardRunning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+          <Trans>Re-run Storyboard</Trans>
+        </button>
+      </div>
+      <StoryboardSectionDetail
+        bookLabel={bookLabel}
+        pageId={selectedPageId!}
+        sectionIndex={sectionIndex}
+        page={page}
+        navigationExtra={navigationExtra}
+        navigationArrows={navigationArrows}
+        onGeneratingChange={handleGeneratingChange}
+        onNavigateSection={navigateToSection}
+        hasPrevPage={!!prevPageId}
+        hasNextPage={!!nextPageId}
+      />
+    </div>
   )
 }
