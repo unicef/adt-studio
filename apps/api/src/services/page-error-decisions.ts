@@ -20,17 +20,22 @@ export interface RequestDecisionInput {
   attempts?: number
 }
 
+export type ResolveDecisionResult =
+  | "resolved"
+  | "not-found"
+  | "retry-not-allowed"
+
 export interface PageErrorDecisions {
   /** Ask the user how to handle a failed page. Resolves to the chosen action.
    *  Falls back to "stop" on timeout or when no UI is reachable. */
   requestDecision(input: RequestDecisionInput): Promise<PageErrorAction>
-  /** Resolve a pending decision (from the UI). Returns false if the id is
-   *  unknown (already resolved by timeout/cancel — the caller returns 409). */
+  /** Resolve a pending decision (from the UI), distinguishing stale decisions
+   *  from an ineligible retry so the route can return an accurate response. */
   resolveDecision(
     decisionId: string,
     action: PageErrorAction,
     applyToAll?: boolean
-  ): boolean
+  ): ResolveDecisionResult
   /** Pending decisions for a label — consumed by the polled step-status. */
   getPendingDecisions(label: string): PendingDecision[]
   /** Resolve every pending decision for a label and drop its apply-to-all
@@ -134,10 +139,10 @@ export function createPageErrorDecisions(
       decisionId: string,
       action: PageErrorAction,
       applyToAll?: boolean
-    ): boolean {
+    ): ResolveDecisionResult {
       const entry = pending.get(decisionId)
-      if (!entry) return false
-      if (action === "retry" && !entry.canRetry) return false
+      if (!entry) return "not-found"
+      if (action === "retry" && !entry.canRetry) return "retry-not-allowed"
       if (applyToAll && action !== "retry") {
         bulkPolicy.set(entry.label, action)
         // Apply the bulk decision to every other pending decision for this label.
@@ -148,7 +153,7 @@ export function createPageErrorDecisions(
         }
       }
       finish(entry, action)
-      return true
+      return "resolved"
     },
 
     getPendingDecisions(label: string): PendingDecision[] {

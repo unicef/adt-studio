@@ -22,7 +22,7 @@ describe("page-error decisions broker", () => {
     const p = broker.requestDecision({ label: LABEL, step: "web-rendering", pageId: "pg001", error: "x" })
     const pending = broker.getPendingDecisions(LABEL)
     expect(pending).toHaveLength(1)
-    expect(broker.resolveDecision(pending[0].decisionId, "skip")).toBe(true)
+    expect(broker.resolveDecision(pending[0].decisionId, "skip")).toBe("resolved")
     await expect(p).resolves.toBe("skip")
     expect(broker.getPendingDecisions(LABEL)).toHaveLength(0)
   })
@@ -61,7 +61,7 @@ describe("page-error decisions broker", () => {
         attempts: 3,
       }),
     )
-    expect(broker.resolveDecision(pending[0].decisionId, "retry")).toBe(true)
+    expect(broker.resolveDecision(pending[0].decisionId, "retry")).toBe("resolved")
     await expect(p).resolves.toBe("retry")
   })
 
@@ -80,8 +80,11 @@ describe("page-error decisions broker", () => {
     })
     const pending = broker.getPendingDecisions(LABEL)
 
-    expect(broker.resolveDecision(pending[0].decisionId, "retry")).toBe(false)
-    expect(broker.resolveDecision(pending[0].decisionId, "stop")).toBe(true)
+    expect(broker.resolveDecision(pending[0].decisionId, "retry")).toBe(
+      "retry-not-allowed"
+    )
+    expect(broker.getPendingDecisions(LABEL)).toHaveLength(1)
+    expect(broker.resolveDecision(pending[0].decisionId, "stop")).toBe("resolved")
     await expect(p).resolves.toBe("stop")
   })
 
@@ -100,10 +103,10 @@ describe("page-error decisions broker", () => {
     expect(broker.getPendingDecisions(LABEL)).toHaveLength(0)
   })
 
-  it("resolveDecision on an unknown id returns false", () => {
+  it("resolveDecision identifies an unknown id", () => {
     const { bus } = withListener()
     const broker = createPageErrorDecisions(bus)
-    expect(broker.resolveDecision("nope", "stop")).toBe(false)
+    expect(broker.resolveDecision("nope", "stop")).toBe("not-found")
   })
 
   it("clearForRun resolves pending as stop and drops the bulk policy", async () => {

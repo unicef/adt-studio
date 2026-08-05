@@ -171,4 +171,58 @@ describe("page retry decision route", () => {
       decisions.clearForRun(label)
     }
   })
+
+  it("rejects an ineligible retry without consuming the pending decision", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-decision-route-"))
+    const label = "non-retryable-route"
+    const eventBus = createBookEventBus()
+    const unsubscribe = eventBus.addListener(label, () => undefined)
+    const decisions = createPageErrorDecisions(eventBus)
+    const decisionPromise = decisions.requestDecision({
+      label,
+      step: "image-meaningfulness",
+      pageId: "pg024",
+      error: "Invalid API key",
+      canRetry: false,
+      errorClass: "non-retryable",
+      attempts: 1,
+    })
+    const pending = decisions.getPendingDecisions(label)
+    const stageService = createStageService(
+      { run: async () => undefined },
+      eventBus,
+      decisions,
+    )
+    const app = createStageRoutes(
+      stageService,
+      eventBus,
+      decisions,
+      tmpDir,
+      "",
+      "",
+    )
+
+    try {
+      const response = await app.request(`/books/${label}/stages/decision`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          decisionId: pending[0].decisionId,
+          action: "retry",
+        }),
+      })
+
+      expect(response.status).toBe(400)
+      expect(await response.text()).toBe("Retry is not allowed for this decision")
+      expect(decisions.getPendingDecisions(label)).toEqual(pending)
+
+      expect(decisions.resolveDecision(pending[0].decisionId, "stop")).toBe(
+        "resolved",
+      )
+      await expect(decisionPromise).resolves.toBe("stop")
+    } finally {
+      decisions.clearForRun(label)
+      unsubscribe()
+    }
+  })
 })
