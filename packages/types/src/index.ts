@@ -331,6 +331,7 @@ export {
 } from "./reviewer-validation-config.js"
 
 export {
+  AUTO_FIT_SCRIPT_SRC,
   PositionedParagraph,
   PositionedTextOutput,
   ImageBounds,
