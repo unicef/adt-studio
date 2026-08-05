@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest"
 import { z } from "zod"
 import { createLLMModel } from "../client.js"
 
-type FailureMode = "malformed-output" | "unauthorized"
+type FailureMode = "malformed-output" | "unauthorized" | "insufficient-quota"
 
 const servers = new Set<http.Server>()
 
@@ -27,14 +27,19 @@ async function createFaultServer(mode: FailureMode): Promise<{
   const server = http.createServer((_request, response) => {
     requests += 1
 
-    if (mode === "unauthorized") {
-      response.writeHead(401, { "content-type": "application/json" })
+    if (mode === "unauthorized" || mode === "insufficient-quota") {
+      const insufficientQuota = mode === "insufficient-quota"
+      response.writeHead(insufficientQuota ? 429 : 401, {
+        "content-type": "application/json",
+      })
       response.end(
         JSON.stringify({
           error: {
-            message: "Invalid API key",
-            type: "invalid_request_error",
-            code: "invalid_api_key",
+            message: insufficientQuota
+              ? "You exceeded your current quota, please check your plan and billing details."
+              : "Invalid API key",
+            type: insufficientQuota ? "insufficient_quota" : "invalid_request_error",
+            code: insufficientQuota ? "insufficient_quota" : "invalid_api_key",
           },
         }),
       )
@@ -113,6 +118,15 @@ describe("createLLMModel retry integration", () => {
 
     await expect(createTestModel(fault.baseUrl).generateObject(request)).rejects.toMatchObject({
       statusCode: 401,
+    })
+    expect(fault.requestCount()).toBe(1)
+  })
+
+  it("fast-fails a permanent insufficient-quota 429 through the real SDK", async () => {
+    const fault = await createFaultServer("insufficient-quota")
+
+    await expect(createTestModel(fault.baseUrl).generateObject(request)).rejects.toMatchObject({
+      statusCode: 429,
     })
     expect(fault.requestCount()).toBe(1)
   })

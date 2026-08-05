@@ -4,7 +4,11 @@ import { classifyLLMError } from "../errors.js"
 
 function apiError(
   statusCode: number | undefined,
-  options: { cause?: unknown; isRetryable?: boolean } = {},
+  options: {
+    cause?: unknown
+    isRetryable?: boolean
+    responseBody?: string
+  } = {},
 ): APICallError {
   return new APICallError({
     message: statusCode ? `Request failed (${statusCode})` : "Request failed",
@@ -13,6 +17,7 @@ function apiError(
     statusCode,
     cause: options.cause,
     isRetryable: options.isRetryable,
+    responseBody: options.responseBody,
   })
 }
 
@@ -127,6 +132,22 @@ describe("classifyLLMError", () => {
       errorClass: "non-retryable",
       retryable: false,
       statusCode: 401,
+    })
+  })
+
+  it("classifies an insufficient-quota 429 payload as non-retryable", () => {
+    const responseBody = JSON.stringify({
+      error: {
+        message: "You exceeded your current quota, please check your plan and billing details.",
+        type: "insufficient_quota",
+        code: "insufficient_quota",
+      },
+    })
+
+    expect(classifyLLMError(apiError(429, { responseBody }))).toEqual({
+      errorClass: "non-retryable",
+      retryable: false,
+      statusCode: 429,
     })
   })
 

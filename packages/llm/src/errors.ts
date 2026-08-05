@@ -36,6 +36,7 @@ const CONNECTION_CLOSED_CODES = new Set([
 ])
 
 const PERMANENT_ERROR_CODES = new Set([
+  "BILLING_HARD_LIMIT_REACHED",
   "INSUFFICIENT_QUOTA",
   "INVALID_API_KEY",
   "MODEL_NOT_FOUND",
@@ -47,11 +48,15 @@ const PERMANENT_ERROR_MESSAGE =
 interface ErrorLike {
   cause?: unknown
   code?: unknown
+  type?: unknown
+  error?: unknown
   message?: unknown
   name?: unknown
   statusCode?: unknown
   status?: unknown
   response?: unknown
+  responseBody?: unknown
+  data?: unknown
   isRetryable?: unknown
 }
 
@@ -187,7 +192,42 @@ function errorMessage(value: unknown): string {
 
 function isKnownPermanentError(value: unknown): boolean {
   return (
-    PERMANENT_ERROR_CODES.has(errorCode(value)) ||
+    providerErrorCodes(value).some((code) => PERMANENT_ERROR_CODES.has(code)) ||
     PERMANENT_ERROR_MESSAGE.test(errorMessage(value))
   )
+}
+
+function providerErrorCodes(value: unknown): string[] {
+  if (!isErrorLike(value)) return []
+
+  const codes = new Set<string>()
+  addProviderErrorCodes(codes, value)
+  addProviderErrorCodes(codes, parseProviderPayload(value.responseBody))
+  addProviderErrorCodes(codes, value.data)
+  if (isErrorLike(value.response)) {
+    addProviderErrorCodes(codes, value.response)
+    addProviderErrorCodes(codes, value.response.data)
+  }
+  return [...codes]
+}
+
+function parseProviderPayload(value: unknown): unknown {
+  if (typeof value !== "string") return value
+  try {
+    return JSON.parse(value) as unknown
+  } catch {
+    return undefined
+  }
+}
+
+function addProviderErrorCodes(codes: Set<string>, value: unknown): void {
+  if (!isErrorLike(value)) return
+  for (const candidate of [value.code, value.type]) {
+    if (typeof candidate === "string") codes.add(candidate.toUpperCase())
+  }
+  if (isErrorLike(value.error)) {
+    for (const candidate of [value.error.code, value.error.type]) {
+      if (typeof candidate === "string") codes.add(candidate.toUpperCase())
+    }
+  }
 }
