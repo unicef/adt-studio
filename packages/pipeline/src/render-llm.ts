@@ -149,12 +149,12 @@ export async function renderSectionLlm(
         // Deterministic guard: reject any revision that strips the fixed type
         // scale (the reviewer tends to shrink the intentionally-large text by
         // removing adt-* classes). Rejected revisions keep the prior good HTML.
-        // Display pages (covers, dividers, front matter) are exempt so the
-        // reviewer can match the original's display type.
-        if (!allowDisplayTypography) {
-          const typoErrors = typographyPreservationErrors(generatedHtml, cleanedHtml)
-          if (typoErrors.length > 0) return { valid: false, errors: typoErrors }
-        }
+        // Display pages (covers, dividers, front matter) may add sizes to
+        // match the original's display type, but must keep the adt-* classes.
+        const typoErrors = typographyPreservationErrors(generatedHtml, cleanedHtml, {
+          allowAddedSizes: allowDisplayTypography,
+        })
+        if (typoErrors.length > 0) return { valid: false, errors: typoErrors }
         return { valid: true, errors: [], cleanedHtml }
       },
     })

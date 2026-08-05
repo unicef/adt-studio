@@ -173,6 +173,11 @@ export async function reRenderPage(
         bookFonts: buildBookFontsPromptContext(storage),
         typography,
         userPrompt: prompt,
+        // The in-memory pruning above hides the sibling sections from
+        // renderPage, so pass the page's real section count for review scoping.
+        ...(sectionIndex !== undefined && {
+          pageSectionCount: sectioning.sections.filter((s) => !s.isPruned).length,
+        }),
       },
       resolveRenderConfig,
       resolveRenderModel,

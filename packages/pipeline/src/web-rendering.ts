@@ -129,6 +129,13 @@ export interface RenderPageInput {
   typography?: BookTypography
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
+  /**
+   * Override for the page's true renderable-section count. Callers that
+   * re-render a single section by pruning the others in-memory must pass the
+   * page's real count, or the review loop would treat the section as a whole
+   * page.
+   */
+  pageSectionCount?: number
 }
 
 export interface RenderExecutionOptions {
@@ -331,7 +338,7 @@ export async function renderPage(
     if (context.leaf_texts.length === 0 && context.image_refs.length === 0) return null
     return context
   })
-  const pageSectionCount = renderable.filter(Boolean).length
+  const pageSectionCount = input.pageSectionCount ?? renderable.filter(Boolean).length
 
   for (let i = 0; i < input.sectioning.sections.length; i++) {
     throwIfAborted(options.signal)

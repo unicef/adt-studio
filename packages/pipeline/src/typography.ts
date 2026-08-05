@@ -153,7 +153,17 @@ export const DISPLAY_TYPOGRAPHY_SECTION_TYPES: ReadonlySet<string> = new Set([
  * accessible type back down by stripping these classes — rejecting such
  * revisions keeps the deterministic type scale regardless of the model.
  */
-export function typographyPreservationErrors(original: string, candidate: string): string[] {
+export function typographyPreservationErrors(
+  original: string,
+  candidate: string,
+  options?: {
+    /** Display pages (covers, dividers, front matter) may ADD `text-*` size
+     *  utilities / inline `font-size` to match the original's display type.
+     *  Removing `adt-*` classes stays forbidden — they also carry font-family
+     *  and line-height, and removal is the shrink path this guard exists for. */
+    allowAddedSizes?: boolean
+  },
+): string[] {
   const errors: string[] = []
   // Only guard sections that actually use the type scale. If the original has
   // no `adt-*` classes (e.g. template-rendered sections), there's nothing to
@@ -170,6 +180,7 @@ export function typographyPreservationErrors(original: string, candidate: string
       )
     }
   }
+  if (options?.allowAddedSizes) return errors
   const fsBefore = (original.match(/font-size\s*:/gi) ?? []).length
   const fsAfter = (candidate.match(/font-size\s*:/gi) ?? []).length
   if (fsAfter > fsBefore) {

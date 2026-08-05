@@ -111,6 +111,20 @@ describe("typographyPreservationErrors", () => {
     expect(errors.some((e) => e.includes("font-size"))).toBe(true)
   })
 
+  it("allows added sizes on display pages but still requires the adt-* classes", () => {
+    const enlarged = original.replace(
+      '<h1 class="adt-h1">T</h1>',
+      '<h1 class="adt-h1 text-8xl" style="font-size: 96px">T</h1>',
+    )
+    expect(typographyPreservationErrors(original, enlarged, { allowAddedSizes: true })).toEqual([])
+
+    // Dropping the class remains an error even with the display exemption.
+    const stripped = original.replace('<h1 class="adt-h1">T</h1>', '<h1 class="text-8xl">T</h1>')
+    const errors = typographyPreservationErrors(original, stripped, { allowAddedSizes: true })
+    expect(errors.length).toBe(1)
+    expect(errors[0]).toContain("adt-h1")
+  })
+
   it("does not fire when the original had no typography classes", () => {
     expect(typographyPreservationErrors("<p>plain</p>", "<p class='text-sm'>plain</p>")).toEqual([])
   })
