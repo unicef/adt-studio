@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest"
+import { createHash } from "node:crypto"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -315,10 +316,14 @@ describe("createBookStorage", () => {
 
     const db = openBookDb(paths.dbPath)
     const rows = db.all(
-      "SELECT width, height FROM images WHERE image_id = ?",
+      "SELECT hash, width, height FROM images WHERE image_id = ?",
       ["pg001_im001_tr_es"]
-    ) as Array<{ width: number; height: number }>
-    expect(rows).toEqual([{ width: 200, height: 150 }])
+    ) as Array<{ hash: string; width: number; height: number }>
+    const expectedHash = createHash("sha256")
+      .update(Buffer.from("second"))
+      .digest("hex")
+      .slice(0, 16)
+    expect(rows).toEqual([{ hash: expectedHash, width: 200, height: 150 }])
     db.close()
     storage.close()
   })

@@ -874,11 +874,13 @@ export function createBookRoutes(
       // Extract reruns intentionally reuse stable image IDs while replacing
       // their bytes. Require revalidation so Chromium cannot show a previous
       // extraction for up to 24 hours under the same URL.
-      const etag = `"${rows[0].hash}"`
       c.header("Cache-Control", "private, no-cache")
-      c.header("ETag", etag)
-      if (c.req.header("If-None-Match") === etag) {
-        return c.body(null, 304)
+      if (rows[0].hash) {
+        const etag = `"${rows[0].hash}"`
+        c.header("ETag", etag)
+        if (c.req.header("If-None-Match") === etag) {
+          return c.body(null, 304)
+        }
       }
 
       const imageBuffer = fs.readFileSync(imagePath)
