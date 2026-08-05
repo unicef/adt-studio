@@ -30,14 +30,14 @@ export function SegmentedControl<T extends string = string>({
   return (
     <div
       className={cn(
-        "relative flex h-11 items-center rounded-lg bg-[#f5f5f5] p-1",
+        "relative flex h-11 items-center rounded-lg bg-background p-1",
         className,
       )}
       role="radiogroup"
     >
       {showIndicator ? (
         <div
-          className="absolute top-1 bottom-1 rounded-lg bg-white shadow-sm transition-all duration-200"
+          className="absolute top-1 bottom-1 rounded-lg bg-accent shadow-sm transition-all duration-200"
           style={{
             width: `calc((100% - 8px) / ${options.length})`,
             left: `calc(4px + ${activeIndex} * (100% - 8px) / ${options.length})`,

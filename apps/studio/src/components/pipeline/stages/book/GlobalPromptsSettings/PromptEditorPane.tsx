@@ -4,8 +4,9 @@ import {
   configurePromptEditor,
   PROMPT_EDITOR_LANGUAGE,
   PROMPT_EDITOR_OPTIONS,
-  PROMPT_EDITOR_THEME,
+  promptEditorTheme,
 } from "@/components/pipeline/components/PromptViewer/promptEditor"
+import { useIsDarkMode } from "@/hooks/use-dark-mode"
 import { PromptEditorSkeleton } from "./PromptSettingsSkeletons"
 
 type PromptEditorPaneProps = {
@@ -21,6 +22,8 @@ export function PromptEditorPane({
   displayContent,
   onChange,
 }: PromptEditorPaneProps) {
+  const isDark = useIsDarkMode()
+
   if (isLoading) return <PromptEditorSkeleton />
 
   if (content == null) {
@@ -36,7 +39,7 @@ export function PromptEditorPane({
       <Editor
         value={displayContent}
         language={PROMPT_EDITOR_LANGUAGE}
-        theme={PROMPT_EDITOR_THEME}
+        theme={promptEditorTheme(isDark)}
         beforeMount={configurePromptEditor}
         height="100%"
         width="100%"

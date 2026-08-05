@@ -65,7 +65,7 @@ export function PromptsSection() {
         </div>
       </div>
 
-      <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-2xl border bg-card shadow-sm">
+      <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl border bg-card">
         <ResizablePanelGroup
           orientation="horizontal"
           defaultLayout={{ promptTree: 24, promptEditor: 76 }}
