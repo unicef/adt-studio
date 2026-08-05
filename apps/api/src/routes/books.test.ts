@@ -1500,8 +1500,22 @@ describe("GET /books/:label/images/:imageId", () => {
 
     expect(res.status).toBe(200)
     expect(res.headers.get("Content-Type")).toBe("image/png")
+    expect(res.headers.get("Cache-Control")).toBe("private, no-cache")
+    expect(res.headers.get("ETag")).toBe('"abc123"')
     const buf = await res.arrayBuffer()
     expect(Buffer.from(buf).toString()).toBe("fake-png-data")
+  })
+
+  it("returns 304 when the extracted image hash is unchanged", async () => {
+    createBookWithImage("img-book-etag")
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/img-book-etag/images/img-book-etag_p1_page", {
+      headers: { "If-None-Match": '"abc123"' },
+    })
+
+    expect(res.status).toBe(304)
+    expect(res.headers.get("Cache-Control")).toBe("private, no-cache")
+    expect(res.headers.get("ETag")).toBe('"abc123"')
   })
 
   it("returns 404 for nonexistent image", async () => {
