@@ -1346,6 +1346,7 @@ export function createPageRoutes(
     const { label, pageId } = c.req.param()
     const safeLabel = parseBookLabel(label)
 
+    const preserveStage = c.req.query("preserveStage") === "true"
     const body = await c.req.json()
     const parsed = PageSectioningOutput.safeParse(body)
     if (!parsed.success) {
@@ -1363,7 +1364,12 @@ export function createPageRoutes(
       }
 
       // Sectioning change cascades to everything downstream.
-      const version = saveStoryboardNode(storage, "page-sectioning", pageId, parsed.data)
+      const version = preserveStage
+        ? (() => {
+            assertNoActivePipelineRun(storage)
+            return storage.putNodeData("page-sectioning", pageId, parsed.data)
+          })()
+        : saveStoryboardNode(storage, "page-sectioning", pageId, parsed.data)
       return c.json({ version })
     } finally {
       storage.close()

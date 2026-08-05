@@ -482,6 +482,7 @@ export function StoryboardSectionDetail({
   // Tracks whether pending sectioning changes require LLM re-render on save.
   // Pure prune/delete can be resolved locally; unprune/type change/reorder need LLM.
   const needsRerenderRef = useRef(false)
+  const restoreRequestedRef = useRef(false)
 
   // Inline editing state
   const [selectedElement, setSelectedElement] = useState<{
@@ -797,6 +798,7 @@ export function StoryboardSectionDetail({
     setActivityPreviewMode(true)
     setEditActivityPanelOpen(false)
     needsRerenderRef.current = false
+    restoreRequestedRef.current = false
   }, [pageId, sectionIndex])
 
   // Reset scroll position when page or section changes
@@ -859,7 +861,9 @@ export function StoryboardSectionDetail({
         }
       }
 
-      await api.updateSectioning(bookLabel, pageId, pendingSectioning)
+      await api.updateSectioning(bookLabel, pageId, pendingSectioning, {
+        preserveStage: restoreRequestedRef.current,
+      })
 
       // Save rendering if dirty (from delete/prune removing HTML elements).
       // Use renderingFromPrune if we just stripped pruned elements above,
@@ -874,6 +878,7 @@ export function StoryboardSectionDetail({
       setPendingRendering(null)
       setPendingCategories(new Set())
       needsRerenderRef.current = false
+      restoreRequestedRef.current = false
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)
@@ -1409,7 +1414,10 @@ export function StoryboardSectionDetail({
       if (nextNodes === section.nodes) return
       setPendingSectioning(withSectionNodes(base, sectionIndex, nextNodes))
       // Unpruning restores the element to the render — LLM re-render required.
-      if (wasPruned) needsRerenderRef.current = true
+      if (wasPruned) {
+        needsRerenderRef.current = true
+        restoreRequestedRef.current = true
+      }
     },
     [pendingSectioning, page.sectioningTree, sectionIndex, section]
   )
@@ -1419,7 +1427,10 @@ export function StoryboardSectionDetail({
     if (storyboardRunning) return
     const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
     if (!base) return
-    if (base.sections[sectionIndex]?.isPruned) needsRerenderRef.current = true
+    if (base.sections[sectionIndex]?.isPruned) {
+      needsRerenderRef.current = true
+      restoreRequestedRef.current = true
+    }
     const updated: SectioningData = {
       ...base,
       sections: base.sections.map((s, si) => {

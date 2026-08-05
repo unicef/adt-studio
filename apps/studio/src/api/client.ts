@@ -1105,8 +1105,8 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  updateSectioning: (label: string, pageId: string, data: unknown) =>
-    request<{ version: number }>(`/books/${label}/pages/${pageId}/sectioning`, {
+  updateSectioning: (label: string, pageId: string, data: unknown, options?: { preserveStage?: boolean }) =>
+    request<{ version: number }>(`/books/${label}/pages/${pageId}/sectioning${options?.preserveStage ? "?preserveStage=true" : ""}`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),

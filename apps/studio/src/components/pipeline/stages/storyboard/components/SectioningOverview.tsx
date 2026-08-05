@@ -850,7 +850,9 @@ function SectionDetail({
       const updated = updateSectionNodes(pageData.sectioningTree, sectionIndex, (nodes) =>
         toggleNodePruned(nodes, dataId)
       )
-      await api.updateSectioning(bookLabel, pageId, updated)
+      // Prune toggles are local page edits. Keep the completed Storyboard stage
+      // intact; a restore must not enqueue the entire book again.
+      await api.updateSectioning(bookLabel, pageId, updated, { preserveStage: true })
     }
     onInvalidatePages(pageId)
   }, [bookLabel, pageId, sectionIndex, queryClient, onInvalidatePages])
