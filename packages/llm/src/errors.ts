@@ -7,6 +7,7 @@ export type LLMErrorClass =
   | "model-output"
   | "rate-limit"
   | "server-error"
+  | "unknown"
   | "non-retryable"
 
 export interface LLMErrorClassification {
@@ -34,6 +35,15 @@ const CONNECTION_CLOSED_CODES = new Set([
   "UND_ERR_SOCKET",
 ])
 
+const PERMANENT_ERROR_CODES = new Set([
+  "INSUFFICIENT_QUOTA",
+  "INVALID_API_KEY",
+  "MODEL_NOT_FOUND",
+])
+
+const PERMANENT_ERROR_MESSAGE =
+  /\b(?:invalid|incorrect|missing) api key\b|\bapi key (?:is )?(?:missing|required)\b|\bauthentication (?:failed|error)\b|\bunauthorized\b|\bforbidden\b|\binsufficient[_ ]quota\b|\bunsupported (?:provider|model)\b|\bmodel (?:is )?not found\b/i
+
 interface ErrorLike {
   cause?: unknown
   code?: unknown
@@ -55,6 +65,13 @@ export function classifyLLMError(error: unknown): LLMErrorClassification {
 
   for (const current of chain) {
     const status = statusCode(current)
+    if (isKnownPermanentError(current)) {
+      return {
+        errorClass: "non-retryable",
+        retryable: false,
+        ...(status != null ? { statusCode: status } : {}),
+      }
+    }
     if (status === 408) {
       return { errorClass: "request-timeout", retryable: true, statusCode: status }
     }
@@ -113,7 +130,15 @@ export function classifyLLMError(error: unknown): LLMErrorClassification {
     }
   }
 
-  return { errorClass: "non-retryable", retryable: false }
+  for (const current of chain) {
+    if (APICallError.isInstance(current) && current.isRetryable === false) {
+      return { errorClass: "non-retryable", retryable: false }
+    }
+  }
+
+  // Preserve the retry contract that existed before classification was added.
+  // Unknown failures may be transient; only known-permanent cases fast-fail.
+  return { errorClass: "unknown", retryable: true }
 }
 
 function errorChain(error: unknown): unknown[] {
@@ -158,4 +183,11 @@ function errorMessage(value: unknown): string {
   if (typeof value === "string") return value
   if (!isErrorLike(value)) return ""
   return typeof value.message === "string" ? value.message : ""
+}
+
+function isKnownPermanentError(value: unknown): boolean {
+  return (
+    PERMANENT_ERROR_CODES.has(errorCode(value)) ||
+    PERMANENT_ERROR_MESSAGE.test(errorMessage(value))
+  )
 }

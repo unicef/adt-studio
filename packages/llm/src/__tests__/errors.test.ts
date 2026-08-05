@@ -95,8 +95,8 @@ describe("classifyLLMError", () => {
     error.cause = error
 
     expect(classifyLLMError(error)).toEqual({
-      errorClass: "non-retryable",
-      retryable: false,
+      errorClass: "unknown",
+      retryable: true,
     })
   })
 })
