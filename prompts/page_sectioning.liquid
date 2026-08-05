@@ -34,7 +34,7 @@ Do NOT set both `structure` and `role` on the same node. Do NOT nest containers 
 {% for t in section_types %}- `{{ t.key }}`: {{ t.description }}
 {% endfor %}
 
-## Activity classification rules
+{% if generate_activities %}## Activity classification rules
 
 Use these to disambiguate activity types:
 - WRITABLE-PAGE PRECEDENCE: If the page contains ANY response lines, blank lines, underlines, dotted lines, or empty boxes/cells where the learner is expected to WRITE (a word, a phrase, a sentence, or a longer answer), the section MUST be classified as an activity type — never as text_only, boxed_text, text_and_single_image, text_and_images, or other. This holds regardless of how much surrounding prose, instructions, or imagery the page contains. Choose the activity sub-type using the rules below.
@@ -95,7 +95,10 @@ Use these to disambiguate activity types:
 - If the expected answer is DETERMINABLE (one correct value derivable from the prompt or page — unscrambling, counting, missing letters, labelling, copying from a passage, solving) → activity_fill_in_the_blank. This is the right pick whenever the writing area has a correct answer, regardless of whether the blank is inline in a sentence or a full-width line beside the prompt.
 - If a table grid has empty cells to complete → activity_fill_in_a_table
 - activity_other is a last resort — only use it when the learning mechanic itself is truly unique (e.g., free drawing, crafts, physical movement) and no other activity type applies. Do NOT use `activity_other` to bundle multiple different known mechanics on one page into a single section — if the page contains both choice options AND a writing area (or any two different known mechanics), split into separate sections with their known types instead.
+{% else %}## Activities are disabled for this book
 
+There are NO activity section types available. Never emit a `section_type` starting with `activity_` — it will fail validation. Classify exercise and worksheet pages by their visual shape instead (`text_only`, `boxed_text`, `text_and_single_image`, `text_and_images`, or the closest available type), keep their instructions, questions, blanks, and options as ordinary text/list/table content in the tree, and do NOT split pages by response mechanics.
+{% endif %}
 ## Tree construction rules
 
 1. Every node is a container (has `structure`) or a leaf (has `role` and `text`, or `role: "image"` with `image_id`) — never both, never neither.
@@ -140,6 +143,7 @@ Sections PARTITION the top-level tree. They do NOT restructure it.
 - Do NOT wrap unrelated siblings in a synthetic container just to carve a section boundary.
 
 {% if mode == "page" %}
+{% if generate_activities %}
 The entire page is ONE section, with a single exception for mixed activity mechanics.
 
 DEFAULT: emit exactly one section containing all top-level nodes in reading order. Do NOT split for instruction blocks, headings, topics, whitespace, or visual breaks.
@@ -153,8 +157,11 @@ EXCEPTION — MIXED ACTIVITY MECHANICS: the runtime renders only ONE answer-subm
 
 When you split, the sections must be consecutive, cover the whole page in reading order, and each carry its own known activity type. Attach shared headings, passages, and instructions to the section they visually belong with — a shared instruction at the top, a single narrative thread, or a single visual frame NEVER prevents the split. NEVER roll mixed mechanics up under `activity_other` to avoid splitting — `activity_other` is reserved for pages whose SINGLE mechanic is genuinely unique (free drawing, crafts, physical movement). A page with a single mechanic — or no activities — is always exactly ONE section, regardless of how many questions, items, or instruction blocks it contains.
 {% else %}
+The entire page is always ONE section. Emit exactly one section containing all top-level nodes in reading order. Activities are disabled for this book, so there is NO split exception: instruction blocks, exercises, headings, and visual breaks never justify a split.
+{% endif %}
+{% else %}
 DEFAULT: the entire page is ONE section. Keep it as one section unless the split condition below applies.
-
+{% if generate_activities %}
 SPLIT the page into multiple sections when either of these applies:
 
 1. MIXED MECHANICS — the page contains TWO OR MORE different response mechanics for the learner. Each mechanic gets its own section, even when an overarching instruction or narrative theme appears to unify them. The runtime renders only ONE answer-submission UI per section, so mixed mechanics in a single section cannot work — they MUST split.
@@ -184,8 +191,11 @@ A page shows 4 reading passages, each paired with a list of 3 summary options to
 - The final write-a-sentence prompt and its writing line → activity_open_ended_answer (a second section).
 
 The correct partition is TWO sections. Labeling the whole page `activity_other` is WRONG. Keeping both mechanics inside one `structure: "activity"` container under one section is WRONG.
+{% else %}
+Activities are disabled for this book, so there are no split conditions: every page is exactly ONE section covering all top-level nodes in reading order.
 {% endif %}
-
+{% endif %}
+{% if generate_activities %}
 ## Activity classification
 
 - Classify by the COGNITIVE TASK, not the physical action (circling, coloring, underlining, drawing lines).
@@ -199,7 +209,7 @@ The correct partition is TWO sections. Labeling the whole page `activity_other` 
 - Sentences with blanks → `activity_fill_in_the_blank`.
 - Grid table with empty cells → `activity_fill_in_a_table`.
 - `activity_other` is a last resort — only when the learning mechanic itself is genuinely unique (e.g. free drawing, crafts, physical movement). Never use `activity_other` to keep mixed mechanics in one section instead of splitting.
-
+{% endif %}
 ## Common mistakes — do NOT do these
 
 1. Don't put `image_id` on a container. `image_id` belongs ONLY on a `role: "image"` leaf.

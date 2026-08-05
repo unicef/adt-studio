@@ -235,9 +235,13 @@ describe("visual review activity awareness", () => {
 })
 
 describe("page-mode sectioning split", () => {
-  function sectioningContext(mode: string): Record<string, unknown> {
+  function sectioningContext(
+    mode: string,
+    generateActivities = true,
+  ): Record<string, unknown> {
     return {
       mode,
+      generate_activities: generateActivities,
       structure_types: [],
       role_types: [],
       section_types: [],
@@ -261,13 +265,8 @@ describe("page-mode sectioning split", () => {
 
   it("keeps the refinement check consistent with the page-mode exception", async () => {
     const messages = await promptEngine.renderPrompt("page_sectioning_refinement", {
-      mode: "page",
+      ...sectioningContext("page"),
       max_refinements: 1,
-      structure_types: [],
-      role_types: [],
-      section_types: [],
-      page: { pageNumber: 1, text: "", imageBase64: "page-image" },
-      images: [],
       candidate: { reasoning: "", sections_json: "[]" },
       prior_notes: [],
       iteration: 1,
@@ -276,6 +275,49 @@ describe("page-mode sectioning split", () => {
 
     expect(prompt).toContain("one section per mechanic")
     expect(prompt).toContain("Any other split is an error")
+  })
+
+  for (const mode of ["page", "dynamic"]) {
+    it(`never asks for activity types in ${mode} mode when activities are disabled`, async () => {
+      const messages = await promptEngine.renderPrompt(
+        "page_sectioning",
+        sectioningContext(mode, false),
+      )
+      const prompt = messages.map(messageText).join("\n")
+
+      expect(prompt).toContain("Activities are disabled for this book")
+      expect(prompt).toContain("Never emit a `section_type` starting with `activity_`")
+      expect(prompt).not.toContain("MUST be classified as an activity type")
+      expect(prompt).not.toContain("EXCEPTION — MIXED ACTIVITY MECHANICS")
+      expect(prompt).not.toContain("SPLIT the page into multiple sections")
+      expect(prompt).not.toContain("→ activity_multiple_choice")
+    })
+
+    it(`refinement never expects activity sections in ${mode} mode when activities are disabled`, async () => {
+      const messages = await promptEngine.renderPrompt("page_sectioning_refinement", {
+        ...sectioningContext(mode, false),
+        max_refinements: 1,
+        candidate: { reasoning: "", sections_json: "[]" },
+        prior_notes: [],
+        iteration: 1,
+      })
+      const prompt = messages.map(messageText).join("\n")
+
+      expect(prompt).toContain("Activities are disabled for this book")
+      expect(prompt).not.toContain("one section per mechanic")
+    })
+  }
+
+  it("keeps activity classification available when activities are enabled", async () => {
+    const messages = await promptEngine.renderPrompt(
+      "page_sectioning",
+      sectioningContext("dynamic"),
+    )
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("MIXED MECHANICS")
+    expect(prompt).toContain("Activity classification rules")
+    expect(prompt).not.toContain("Activities are disabled for this book")
   })
 })
 
