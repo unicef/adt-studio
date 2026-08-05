@@ -577,6 +577,29 @@ describe("runValidator", () => {
 // ── finalizePageSectioning ──────────────────────────────────────
 
 describe("finalizePageSectioning", () => {
+  it("keeps a page number on an otherwise blank front-matter page", () => {
+    const output = finalizePageSectioning(
+      {
+        reasoning: "blank front matter",
+        sections: [{
+          section_type: "text_only",
+          background_color: "#fff",
+          text_color: "#000",
+          page_number: 6,
+          nodes: [{ role: "page_number", text: "vi" }],
+        }],
+      },
+      makeInput(),
+      makeConfig({ prunedRoleTypes: ["page_number"] }),
+    )
+
+    expect(output.sections[0].nodes[0]).toMatchObject({
+      role: "page_number",
+      text: "vi",
+      isPruned: false,
+    })
+  })
+
   it("preserves an omitted small signature asset on credits pages", () => {
     const output = finalizePageSectioning(
       {

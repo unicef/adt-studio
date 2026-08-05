@@ -561,6 +561,14 @@ export function finalizePageSectioning(
     const nodes = section.nodes.map((node) =>
       toContentNode(node, input.pageId, counter, prunedRoles)
     )
+    // A page can legitimately contain no body text (blank front matter) and
+    // still carry a visible Roman numeral. Do not let the generic metadata
+    // prune list turn that valid source page into an empty storyboard panel.
+    if (!hasVisibleContent(nodes)) {
+      for (const node of nodes) {
+        if (node.role === "page_number") node.isPruned = false
+      }
+    }
     // Credits/acknowledgements pages commonly contain a small handwritten
     // signature that the model may omit because it has no OCR text. Preserve
     // direct extracted publication marks in reading order; never do this for
@@ -609,6 +617,15 @@ function collectImageIds(nodes: ContentNodeData[], out: Set<string>): void {
     if (node.role === "image") out.add(node.nodeId)
     if (node.children) collectImageIds(node.children, out)
   }
+}
+
+function hasVisibleContent(nodes: ContentNodeData[]): boolean {
+  return nodes.some((node) => {
+    if (node.isPruned) return false
+    if (node.role === "image") return true
+    if (typeof node.text === "string" && node.text.trim().length > 0) return true
+    return node.children ? hasVisibleContent(node.children) : false
+  })
 }
 
 function toContentNode(
