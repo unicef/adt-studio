@@ -106,6 +106,7 @@ Use these to disambiguate activity types:
 3. Images. A listed image may appear at most once across the whole page, in the reading position it visually belongs to. Never duplicate an `image_id`, never invent one, never reference an ID that was not listed.
    Watermark notices such as “FOR ONLINE READING ONLY”, “SAMPLE ONLY”, or “DO NOT COPY” are overlays, not book content. Never create text leaves for them.
    Only use `role: "image"` for a genuine figure, diagram, chart, photograph, illustration, signature, or official seal. Never use an extracted crop containing ordinary page prose, headings, exercises, tables, captions, or metadata as an image; represent that content with semantic text, table, and activity nodes instead. The full-page render is visual context only and must never be placed in the tree.
+   Treat an image as a genuine visual only when the crop's primary purpose is visual (a depicted object, scene, diagram, chart, or official mark). If readable prose, a heading, question, table, answer line, or exercise occupies most of the crop, do not reference it as an image even when the crop has a decorative border or colored background. Keep that content in semantic leaves and recreate its styling in HTML.
    - A standalone image (no caption, label, or overlay) is a bare leaf: `{ "role": "image", "image_id": "<id>" }` placed directly in reading order.
    - An image with associated content is wrapped in an `image_group`. The `image_group`'s FIRST child is a `role: "image"` leaf, followed by the caption / label / overlay leaves. Associated content includes:
      - a caption beneath or beside the image,
@@ -145,6 +146,7 @@ Sections PARTITION the top-level tree. They do NOT restructure it.
 
 {% if mode == "page" %}
 The entire page is always ONE section. Emit exactly one section containing all top-level nodes in reading order. Do NOT split the page under any circumstance, regardless of activity types, instruction blocks, headings, or visual breaks.
+Heading hierarchy must remain semantic and consistent: keep the page or chapter title as the highest heading on that page, use lower-level headings for sections and subsections, and never promote a minor label above its parent heading. Preserve the hierarchy visible in the source rather than choosing levels from font size alone.
 {% else %}
 DEFAULT: the entire page is ONE section. Keep it as one section unless the split condition below applies.
 

@@ -74,6 +74,7 @@ This book uses a fixed, accessible type scale. Font SIZE is applied automaticall
 {% endfor %}
 Rules:
 - Put the right class directly on each text element: main chapter/display title → `adt-h1`; section headings → `adt-h2`; minor or callout/sidebar headings → `adt-h3`; paragraphs, running text, list items → `adt-body`; captions and image labels → `adt-caption`.
+- Use the same semantic heading hierarchy on every page: one page/chapter title may be `h1`/`adt-h1`; section headings are `h2`/`adt-h2`; subsection, callout, and activity headings are `h3`/`adt-h3`. Never promote a minor label to `h1`, and never choose a heading level from font size alone. If the source page continues a section from an earlier page, keep its existing lower level rather than starting a new `h1`.
 - Do NOT set any font-size utility (`text-sm` … `text-6xl`, `text-[..]`) or inline `font-size` — sizing comes only from the `adt-*` class, scales fluidly between mobile and desktop, and cannot be overridden. Handle responsiveness with LAYOUT (stack columns with `max-lg:flex-col`, adjust spacing), not font size.
 - Keep using Tailwind for everything else (font weight, color, spacing, alignment).
 {% endif %}
