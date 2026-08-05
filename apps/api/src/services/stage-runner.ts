@@ -1271,6 +1271,8 @@ async function runSectioningStep(
               imageId: img.imageId,
               imageBase64: storage.getImageBase64(img.imageId),
               renderMethod: img.renderMethod,
+              width: img.width,
+              height: img.height,
             }))
 
           const structuringResult = await sectionPage(

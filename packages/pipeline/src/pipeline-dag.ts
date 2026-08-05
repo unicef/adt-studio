@@ -495,6 +495,8 @@ export async function runFullPipeline(
             imageId: img.imageId,
             imageBase64: storage.getImageBase64(img.imageId),
             renderMethod: img.renderMethod,
+            width: img.width,
+            height: img.height,
           }))
         const imageBase64 = storage.getPageImageBase64(page.pageId)
         const result = await sectionPage(

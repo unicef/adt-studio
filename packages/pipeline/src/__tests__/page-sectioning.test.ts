@@ -568,6 +568,38 @@ describe("runValidator", () => {
 // ── finalizePageSectioning ──────────────────────────────────────
 
 describe("finalizePageSectioning", () => {
+  it("preserves an omitted small signature asset on credits pages", () => {
+    const output = finalizePageSectioning(
+      {
+        reasoning: "",
+        sections: [{
+          section_type: "credits",
+          background_color: "#fff",
+          text_color: "#000",
+          page_number: 4,
+          nodes: [{ role: "text", text: "Shukurani" }],
+        }],
+      },
+      {
+        ...makeInput(),
+        availableImages: [{
+          imageId: "pg001_im001",
+          imageBase64: "data:image/jpeg;base64,x",
+          renderMethod: "raster",
+          width: 253,
+          height: 81,
+        }],
+      },
+      makeConfig(),
+    )
+
+    expect(output.sections[0].nodes.at(-1)).toMatchObject({
+      nodeId: "pg001_im001",
+      role: "image",
+      isPruned: false,
+    })
+  })
+
   it("assigns sequential nodeId per page in DFS order", () => {
     const input = makeInput()
     const config = makeConfig()

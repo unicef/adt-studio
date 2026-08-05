@@ -39,6 +39,8 @@ export interface PageSectioningInput {
     imageBase64: string
     /** Extraction provenance; page-crop assets are text/layout fragments, not figures. */
     renderMethod?: "raster" | "vector" | "page-crop" | null
+    width?: number
+    height?: number
   }>
 }
 
@@ -555,6 +557,24 @@ export function finalizePageSectioning(
     const nodes = section.nodes.map((node) =>
       toContentNode(node, input.pageId, counter, prunedRoles)
     )
+    // Credits/acknowledgements pages commonly contain a small handwritten
+    // signature that the model may omit because it has no OCR text. Preserve
+    // direct extracted publication marks in reading order; never do this for
+    // page crops or ordinary content pages.
+    if (/credits|acknowledg|shukurani/i.test(section.section_type)) {
+      const used = new Set<string>()
+      collectImageIds(nodes, used)
+      for (const image of input.availableImages) {
+        const shortSide = Math.min(image.width ?? 0, image.height ?? 0)
+        const isSmallDirectAsset =
+          (image.renderMethod === "raster" || image.renderMethod === "vector") &&
+          shortSide > 0 && shortSide < 450
+        const looksLikeMark = /signature|seal|approval|stamp|sahihi|im001/i.test(image.imageId)
+        if (isSmallDirectAsset && looksLikeMark && !used.has(image.imageId)) {
+          nodes.push({ nodeId: image.imageId, isPruned: false, role: "image" })
+        }
+      }
+    }
     // Activity sections are learner-facing content. Never apply the generic
     // decorative/metadata prune list to them: doing so silently removed whole
     // exercises before storyboard rendering and made “restore” appear to
@@ -577,6 +597,13 @@ export function finalizePageSectioning(
   return {
     reasoning: raw.reasoning,
     sections,
+  }
+}
+
+function collectImageIds(nodes: ContentNodeData[], out: Set<string>): void {
+  for (const node of nodes) {
+    if (node.role === "image") out.add(node.nodeId)
+    if (node.children) collectImageIds(node.children, out)
   }
 }
 
