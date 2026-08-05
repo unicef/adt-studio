@@ -485,10 +485,17 @@ export async function runFullPipeline(
         const unprunedImageIds = imageClassification.images
           .filter((img) => !img.isPruned)
           .map((img) => img.imageId)
-        const availableImages = unprunedImageIds.map((imageId) => ({
-          imageId,
-          imageBase64: storage.getImageBase64(imageId),
-        }))
+        const availableImages = unprunedImageIds
+          .map((imageId) => storage.getPageImages(page.pageId).find((img) => img.imageId === imageId))
+          // Page crops are text/layout fragments, not figures. Passing them
+          // to sectioning causes the same exercise/table to be emitted once
+          // as HTML and again as an image. Keep only direct visual assets.
+          .filter((img): img is NonNullable<typeof img> => !!img && img.renderMethod !== "page-crop")
+          .map((img) => ({
+            imageId: img.imageId,
+            imageBase64: storage.getImageBase64(img.imageId),
+            renderMethod: img.renderMethod,
+          }))
         const imageBase64 = storage.getPageImageBase64(page.pageId)
         const result = await sectionPage(
           {

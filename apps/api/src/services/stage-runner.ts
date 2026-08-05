@@ -1259,10 +1259,19 @@ async function runSectioningStep(
           const unprunedImageIds = imageClassRow
             ? imageClassification.images.filter((img) => !img.isPruned).map((img) => img.imageId)
             : storage.getPageImages(page.pageId).map((img) => img.imageId)
-          const availableImages = unprunedImageIds.map((imageId) => ({
-            imageId,
-            imageBase64: storage.getImageBase64(imageId),
-          }))
+          const availableImages = unprunedImageIds
+            .map((imageId) => storage.getPageImages(page.pageId).find((img) => img.imageId === imageId))
+            // page-crop assets are extracted text/layout fragments (often the
+            // same exercise or table that sectioning has already represented
+            // semantically). Supplying them to the LLM creates duplicate
+            // images above/below the accessible HTML. Only direct raster/vector
+            // assets can be figures, diagrams, signatures, or stamps.
+            .filter((img): img is NonNullable<typeof img> => !!img && img.renderMethod !== "page-crop")
+            .map((img) => ({
+              imageId: img.imageId,
+              imageBase64: storage.getImageBase64(img.imageId),
+              renderMethod: img.renderMethod,
+            }))
 
           const structuringResult = await sectionPage(
             {

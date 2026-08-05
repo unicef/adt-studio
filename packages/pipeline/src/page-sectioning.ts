@@ -33,8 +33,13 @@ export interface PageSectioningInput {
   pageNumber: number
   text: string
   imageBase64: string
-  /** All images available to place in the tree. Callers filter pruned images out. */
-  availableImages: Array<{ imageId: string; imageBase64: string }>
+  /** Images available to place in the tree. Text/page crops are excluded by callers. */
+  availableImages: Array<{
+    imageId: string
+    imageBase64: string
+    /** Extraction provenance; page-crop assets are text/layout fragments, not figures. */
+    renderMethod?: "raster" | "vector" | "page-crop" | null
+  }>
 }
 
 /** Watermark overlays are not book content and must not enter storyboard HTML. */
