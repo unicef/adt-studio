@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest"
-import { AppConfig, RenderStrategyConfig } from "../config.js"
+import {
+  AppConfig,
+  DEFAULT_ELEVENLABS_VOICE_ID,
+  ELEVENLABS_SHIPPED_VOICE_NAMES,
+  RenderStrategyConfig,
+} from "../config.js"
 import { resolveTranslationEvaluationConfig } from "../translation-evaluation.js"
 
 describe("RenderStrategyConfig", () => {
@@ -132,4 +137,10 @@ describe("AppConfig", () => {
     expect(resolved).not.toHaveProperty("batch_size")
   })
 
+})
+
+describe("ELEVENLABS_SHIPPED_VOICE_NAMES", () => {
+  it("names the default voice", () => {
+    expect(ELEVENLABS_SHIPPED_VOICE_NAMES[DEFAULT_ELEVENLABS_VOICE_ID]).toBe("Rachel")
+  })
 })

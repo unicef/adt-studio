@@ -9,7 +9,10 @@
 // (e.g. during a release run where the tag is created later in the pipeline).
 // Formatting, indentation, and line endings are preserved.
 //
-// Usage: node scripts/update-issue-template-versions.mjs [<tag>]
+// Pass --require-full-history in release automation to fail closed instead of
+// replacing the dropdown from an incomplete shallow-clone tag set.
+//
+// Usage: node scripts/update-issue-template-versions.mjs [<tag>] [--require-full-history]
 
 import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
@@ -20,7 +23,19 @@ import {
   parseReleaseTag,
 } from "./release-version.mjs";
 
-const extraTag = process.argv[2] ?? null;
+const args = process.argv.slice(2);
+const requireFullHistory = args.includes("--require-full-history");
+const positionalArgs = args.filter((arg) => arg !== "--require-full-history");
+
+if (positionalArgs.length > 1) {
+  console.error(
+    "Usage: node scripts/update-issue-template-versions.mjs " +
+      "[<tag>] [--require-full-history]",
+  );
+  process.exit(1);
+}
+
+const extraTag = positionalArgs[0] ?? null;
 
 const KEEP_OFFICIAL = 3;
 const KEEP_BETA = 3;
@@ -72,6 +87,18 @@ console.log(
     topOfficial.length ? topOfficial.join(", ") : "(none)"
   }`,
 );
+if (
+  requireFullHistory &&
+  (topBeta.length < KEEP_BETA || topOfficial.length < KEEP_OFFICIAL)
+) {
+  console.error(
+    "Refusing to update issue templates from an incomplete tag set: " +
+      `found ${topBeta.length}/${KEEP_BETA} beta and ` +
+      `${topOfficial.length}/${KEEP_OFFICIAL} official versions. ` +
+      "Fetch all tags before retrying.",
+  );
+  process.exit(1);
+}
 if (gitTags.length <= 1) {
   console.warn(
     "::warning::Only " +

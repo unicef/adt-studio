@@ -41,6 +41,7 @@ import { initializeFillInTheBlankActivity } from "@/features/activity/runtime/ac
 import { initializeOpenEndedActivity } from "@/features/activity/runtime/activity-open-ended"
 import { initializeTrueFalseActivity } from "@/features/activity/runtime/activity-true-false"
 import { initializeSortingActivity } from "@/features/activity/runtime/activity-sorting"
+import { initializeOrderingActivity } from "@/features/activity/runtime/activity-ordering"
 import { initializeMatchingActivity } from "@/features/activity/runtime/activity-matching"
 import { initializeStepperActivity } from "@/features/activity/runtime/activity-stepper"
 import { initializeCustomActivity } from "@/features/activity/runtime/activity-custom"
@@ -125,6 +126,7 @@ async function bootActivities(): Promise<void> {
   initializeOpenEndedActivity()
   initializeTrueFalseActivity()
   initializeSortingActivity()
+  initializeOrderingActivity()
   initializeMatchingActivity()
   // Custom (`activity_custom_*`) sections register their grader through
   // window.adtRegisterCustomActivity. injectActivitiesBundle ships this bundle

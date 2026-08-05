@@ -315,9 +315,22 @@ export const GEMINI_TTS_MODELS: ModelGroup[] = [
   },
 ]
 
+/** TTS models for speech generation — ElevenLabs provider */
+export const ELEVENLABS_TTS_MODELS: ModelGroup[] = [
+  {
+    provider: "elevenlabs",
+    models: [
+      "eleven_multilingual_v2",
+      "eleven_turbo_v2_5",
+      "eleven_flash_v2_5",
+    ],
+  },
+]
+
 /** All TTS models across providers — mirrors the speech screen's provider options */
 export const ALL_TTS_MODEL_GROUPS: ModelGroup[] = [
   ...OPENAI_TTS_MODELS,
   ...AZURE_TTS_MODELS,
   ...GEMINI_TTS_MODELS,
+  ...ELEVENLABS_TTS_MODELS,
 ]

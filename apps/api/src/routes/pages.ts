@@ -1675,7 +1675,15 @@ export function createPageRoutes(
             if (renderingParsed?.success) {
               const updated = {
                 sections: renderingParsed.data.sections.map((s) =>
-                  s.sectionIndex === idx ? { ...s, html: result.html } : s
+                  s.sectionIndex === idx
+                    ? {
+                        ...s,
+                        html: result.html,
+                        ...(result.activityAnswers
+                          ? { activityAnswers: result.activityAnswers }
+                          : {}),
+                      }
+                    : s
                 ),
               }
               saveStoryboardNode(storage, "web-rendering", pageId, updated)

@@ -89,6 +89,10 @@ msgstr "{0, plural, one {# page} other {# pages}}"
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — type country or Enter for base"
 
+#. placeholder {0}: String(defaultValue ?? min)
+msgid "{0} (default)"
+msgstr "{0} (default)"
+
 #. placeholder {0}: tab.label
 msgid "{0} (unsaved changes)"
 msgstr "{0} (unsaved changes)"
@@ -821,6 +825,9 @@ msgstr "Activity: Multiple Choice"
 msgid "Activity: Open-Ended Answer"
 msgstr "Activity: Open-Ended Answer"
 
+msgid "Activity: Ordering"
+msgstr "Activity: Ordering"
+
 msgid "Activity: Other"
 msgstr "Activity: Other"
 
@@ -899,6 +906,9 @@ msgstr "Add an API key in Book settings to run translation."
 
 msgid "Add an API key to re-run"
 msgstr "Add an API key to re-run"
+
+msgid "Add an ElevenLabs API key in Settings to pick voices by name."
+msgstr "Add an ElevenLabs API key in Settings to pick voices by name."
 
 msgid "Add at least one output language to run translation."
 msgstr "Add at least one output language to run translation."
@@ -1257,8 +1267,14 @@ msgstr "Among the Stars"
 msgid "Amount"
 msgstr "Amount"
 
+msgid "Amplifies the speaker's style. ElevenLabs recommends leaving this at 0 — raising it can cause inconsistent speed, mispronunciation, and extra sounds."
+msgstr "Amplifies the speaker's style. ElevenLabs recommends leaving this at 0 — raising it can cause inconsistent speed, mispronunciation, and extra sounds."
+
 msgid "An activity that does not fit the standard categories."
 msgstr "An activity that does not fit the standard categories."
+
+msgid "An activity where learners arrange items into the correct order."
+msgstr "An activity where learners arrange items into the correct order."
 
 msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
 msgstr "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
@@ -1365,6 +1381,12 @@ msgstr "Appears on pages {0}"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Application Programming Interface — a set of rules that allows programs to communicate."
+
+msgid "Applies to every language routed to ElevenLabs."
+msgstr "Applies to every language routed to ElevenLabs."
+
+msgid "Applies to every language routed to Gemini."
+msgstr "Applies to every language routed to Gemini."
 
 msgid "Apply"
 msgstr "Apply"
@@ -1722,6 +1744,9 @@ msgstr "Book summary regeneration queued"
 
 msgid "Book title"
 msgstr "Book title"
+
+msgid "Boosts similarity to the original speaker, at some cost in latency."
+msgstr "Boosts similarity to the original speaker, at some cost in latency."
 
 msgid "Borders"
 msgstr "Borders"
@@ -2295,6 +2320,18 @@ msgstr "Contents"
 msgid "Context"
 msgstr "Context"
 
+msgid "Context after"
+msgstr "Context after"
+
+msgid "Context after (chars)"
+msgstr "Context after (chars)"
+
+msgid "Context before"
+msgstr "Context before"
+
+msgid "Context before (chars)"
+msgstr "Context before (chars)"
+
 msgid "Context included"
 msgstr "Context included"
 
@@ -2327,6 +2364,12 @@ msgstr "Control which axe checks run during packaging for this document. Changes
 
 msgid "Controls how page content is grouped during the sectioning step."
 msgstr "Controls how page content is grouped during the sectioning step."
+
+msgid "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded."
+msgstr "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded."
+
+#~ msgid "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded. Only affects languages routed to ElevenLabs."
+#~ msgstr "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded. Only affects languages routed to ElevenLabs."
 
 msgid "Conversion failed"
 msgstr "Conversion failed"
@@ -2641,6 +2684,9 @@ msgstr "Default Provider"
 msgid "Default Render Strategy"
 msgstr "Default Render Strategy"
 
+msgid "Default voice"
+msgstr "Default voice"
+
 msgid "Default Voice"
 msgstr "Default Voice"
 
@@ -2687,6 +2733,9 @@ msgstr "Defaulted to N/A until this reviewer session has a language selected."
 
 msgid "Defaults"
 msgstr "Defaults"
+
+msgid "Defaults follow ElevenLabs' own narration recommendation. Lowering stability or raising style makes delivery more expressive, but also makes ElevenLabs more likely to add sounds that aren't in the text — such as filled pauses like \"ehm\". Changing any of these regenerates ElevenLabs audio on the next run."
+msgstr "Defaults follow ElevenLabs' own narration recommendation. Lowering stability or raising style makes delivery more expressive, but also makes ElevenLabs more likely to add sounds that aren't in the text — such as filled pauses like \"ehm\". Changing any of these regenerates ElevenLabs audio on the next run."
 
 msgid "Define chat messages"
 msgstr "Define chat messages"
@@ -3005,6 +3054,9 @@ msgstr "Dynamic Mode"
 msgid "Dynamic Overlay"
 msgstr "Dynamic Overlay"
 
+msgid "e.g. 21m00Tcm4TlvDq8ikWAM"
+msgstr "e.g. 21m00Tcm4TlvDq8ikWAM"
+
 msgid "e.g. alloy"
 msgstr "e.g. alloy"
 
@@ -3191,6 +3243,27 @@ msgstr "Element style editor"
 
 msgid "Elements"
 msgstr "Elements"
+
+msgid "ElevenLabs"
+msgstr "ElevenLabs"
+
+msgid "ElevenLabs API key"
+msgstr "ElevenLabs API key"
+
+msgid "ElevenLabs API Key"
+msgstr "ElevenLabs API Key"
+
+msgid "ElevenLabs cannot produce the \"{normalizedFormat}\" format, so every ElevenLabs entry will fail. Use mp3, opus, wav, or pcm — the Format field above applies to all providers."
+msgstr "ElevenLabs cannot produce the \"{normalizedFormat}\" format, so every ElevenLabs entry will fail. Use mp3, opus, wav, or pcm — the Format field above applies to all providers."
+
+msgid "ElevenLabs settings"
+msgstr "ElevenLabs settings"
+
+msgid "ElevenLabs Voice"
+msgstr "ElevenLabs Voice"
+
+#~ msgid "ElevenLabs voice continuity"
+#~ msgstr "ElevenLabs voice continuity"
 
 msgid "emoji"
 msgstr "emoji"
@@ -3768,6 +3841,12 @@ msgstr "Gemini API key is required to generate audio."
 msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
 msgstr "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
 
+#~ msgid "Gemini page batching"
+#~ msgstr "Gemini page batching"
+
+msgid "Gemini settings"
+msgstr "Gemini settings"
+
 msgid "Gemini Voice"
 msgstr "Gemini Voice"
 
@@ -4061,6 +4140,12 @@ msgstr "Hide error details"
 msgid "High"
 msgstr "High"
 
+msgid "High-fidelity, expressive voices with fine-grained cloning support."
+msgstr "High-fidelity, expressive voices with fine-grained cloning support."
+
+msgid "Higher keeps tone consistent across sentences. Lower widens emotional range at the cost of hallucinated sounds."
+msgstr "Higher keeps tone consistent across sentences. Lower widens emotional range at the cost of hallucinated sounds."
+
 msgid "Higher values filter out simple or blank images."
 msgstr "Higher values filter out simple or blank images."
 
@@ -4108,6 +4193,9 @@ msgstr "How captions work"
 
 msgid "How closely should the visual review match the original page? The reviewer rejects renderings that don't pass — stricter settings cause more rejections and rerenders."
 msgstr "How closely should the visual review match the original page? The reviewer rejects renderings that don't pass — stricter settings cause more rejections and rerenders."
+
+msgid "How closely to match the original voice recording. Lower it if you hear audio artifacts."
+msgstr "How closely to match the original voice recording. Lower it if you hear audio artifacts."
 
 msgid "How Easy Read works"
 msgstr "How Easy Read works"
@@ -4611,6 +4699,9 @@ msgstr "Leave empty to use the book language."
 
 msgid "Leave setup"
 msgstr "Leave setup"
+
+msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
+msgstr "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
 
 msgid "Leave without finishing?"
 msgstr "Leave without finishing?"
@@ -5409,6 +5500,9 @@ msgstr "No disabled rules"
 msgid "No Easy Read for this page"
 msgstr "No Easy Read for this page"
 
+msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
+msgstr "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
+
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "No embedded text layer — text was recovered from the page image"
 
@@ -5685,6 +5779,9 @@ msgstr "No visible translations to review."
 msgid "No voice mappings configured."
 msgstr "No voice mappings configured."
 
+msgid "No voices found"
+msgstr "No voices found"
+
 msgid "Nodes"
 msgstr "Nodes"
 
@@ -5693,6 +5790,9 @@ msgstr "noise"
 
 msgid "None"
 msgstr "None"
+
+msgid "Normalization"
+msgstr "Normalization"
 
 msgid "Not compatible with Fixed Layout"
 msgstr "Not compatible with Fixed Layout"
@@ -7101,6 +7201,9 @@ msgstr "Replace this audio file"
 msgid "Request Error"
 msgstr "Request Error"
 
+msgid "Request settings"
+msgstr "Request settings"
+
 msgid "Require comment on failure"
 msgstr "Require comment on failure"
 
@@ -7618,6 +7721,9 @@ msgstr "Search terms or definitions…"
 #~ msgid "Search versions…"
 #~ msgstr "Search versions…"
 
+msgid "Search voices"
+msgstr "Search voices"
+
 msgid "Search..."
 msgstr "Search..."
 
@@ -7863,6 +7969,12 @@ msgstr "Selecting \"None\" lets the LLM choose its own styling for each page."
 msgid "Self-contained ADT web app"
 msgstr "Self-contained ADT web app"
 
+msgid "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run."
+msgstr "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run."
+
+#~ msgid "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Only affects languages routed to ElevenLabs. Changing this regenerates ElevenLabs audio on the next run."
+#~ msgstr "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Only affects languages routed to ElevenLabs. Changing this regenerates ElevenLabs audio on the next run."
+
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Send this project archive back to the coordinator to merge into the source book."
 
@@ -8021,6 +8133,9 @@ msgstr "Sign language video overlays for each page"
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 
+msgid "Similarity"
+msgstr "Similarity"
+
 msgid "Simplified Easy Read text variants."
 msgstr "Simplified Easy Read text variants."
 
@@ -8145,6 +8260,9 @@ msgstr "Spacing"
 msgid "Spanish"
 msgstr "Spanish"
 
+msgid "Speaker boost"
+msgstr "Speaker boost"
+
 msgid "Specialized workflows"
 msgstr "Specialized workflows"
 
@@ -8171,6 +8289,9 @@ msgstr "Speech Prompts"
 
 msgid "Speech Settings"
 msgstr "Speech Settings"
+
+msgid "Speed"
+msgstr "Speed"
 
 msgid "Split"
 msgstr "Split"
@@ -8238,6 +8359,9 @@ msgstr "Spreads only"
 
 msgid "Sprinkling some digital fairy dust..."
 msgstr "Sprinkling some digital fairy dust..."
+
+msgid "Stability"
+msgstr "Stability"
 
 msgid "Stable"
 msgstr "Stable"
@@ -8379,6 +8503,9 @@ msgstr "Style"
 msgid "Style editing coming soon"
 msgstr "Style editing coming soon"
 
+msgid "Style exaggeration"
+msgstr "Style exaggeration"
+
 msgid "Style guidance"
 msgstr "Style guidance"
 
@@ -8463,8 +8590,11 @@ msgstr "Switching presentation failed"
 msgid "Symbiosis"
 msgstr "Symbiosis"
 
-msgid "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only; Chinese and Thai remain per-entry."
-msgstr "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only; Chinese and Thai remain per-entry."
+msgid "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Chinese and Thai remain per-entry."
+msgstr "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Chinese and Thai remain per-entry."
+
+#~ msgid "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only; Chinese and Thai remain per-entry."
+#~ msgstr "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only; Chinese and Thai remain per-entry."
 
 msgid "Synthesizes narration audio for each page."
 msgstr "Synthesizes narration audio for each page."
@@ -8609,6 +8739,9 @@ msgstr "Text color"
 msgid "Text color: {0}"
 msgstr "Text color: {0}"
 
+msgid "Text Normalization"
+msgstr "Text Normalization"
+
 msgid "Text Only"
 msgstr "Text Only"
 
@@ -8681,8 +8814,11 @@ msgstr "The credits page."
 msgid "The data sent within the body of a request or response message."
 msgstr "The data sent within the body of a request or response message."
 
-msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it."
-msgstr "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it."
+msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
+msgstr "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
+
+#~ msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it."
+#~ msgstr "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it."
 
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
@@ -9025,6 +9161,9 @@ msgstr "This text is only perceptible to assistive technologies."
 msgid "This version is empty."
 msgstr "This version is empty."
 
+msgid "This voice ID is not in your ElevenLabs account."
+msgstr "This voice ID is not in your ElevenLabs account."
+
 #~ msgid "This week"
 #~ msgstr "This week"
 
@@ -9243,6 +9382,9 @@ msgstr "Turn any PDF into a fully accessible book — audio, translations, struc
 
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
+
+msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
+msgstr "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
 
 msgid "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
 msgstr "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
@@ -9487,6 +9629,9 @@ msgstr "Upload ZIP or drag and drop"
 msgid "Uploading..."
 msgstr "Uploading..."
 
+msgid "Use adjacent text as context"
+msgstr "Use adjacent text as context"
+
 msgid "Use an LLM to crop away stray text, artifacts, and excessive whitespace from image edges."
 msgstr "Use an LLM to crop away stray text, artifacts, and excessive whitespace from image edges."
 
@@ -9560,11 +9705,17 @@ msgstr "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemi
 #~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
 #~ msgstr "Used for OpenAI text-to-speech in these pipeline tasks:"
 
-msgid "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
-msgstr "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
+#~ msgid "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
+#~ msgstr "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
+
+msgid "Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:"
+msgstr "Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:"
 
 #~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
 #~ msgstr "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
+
+msgid "Used for the ElevenLabs TTS provider."
+msgstr "Used for the ElevenLabs TTS provider."
 
 msgid "Used for this quiz"
 msgstr "Used for this quiz"
@@ -9690,6 +9841,9 @@ msgstr "Voice"
 
 msgid "Voice Mappings"
 msgstr "Voice Mappings"
+
+msgid "Voice tuning (advanced)"
+msgstr "Voice tuning (advanced)"
 
 msgid "Voices"
 msgstr "Voices"

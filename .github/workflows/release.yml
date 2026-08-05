@@ -420,3 +420,20 @@ jobs:
             dist/* \
             docker-compose.yml \
             scripts/windows-setup-and-run.bat
+
+      - name: Sync issue template versions to default branch
+        if: github.ref_name == 'main'
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          DEFAULT_BRANCH: develop
+        run: |
+          git fetch --force --tags origin "$DEFAULT_BRANCH"
+          git checkout -f -B "$DEFAULT_BRANCH" "origin/$DEFAULT_BRANCH"
+          node scripts/update-issue-template-versions.mjs "$TAG" --require-full-history
+          git add .github/ISSUE_TEMPLATE/*.yml
+          if git diff --staged --quiet; then
+            echo "Default branch issue templates already up to date; nothing to sync."
+          else
+            git commit -m "chore(release): sync issue template versions for $TAG [skip ci]"
+            git push origin "HEAD:$DEFAULT_BRANCH"
+          fi

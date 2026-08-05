@@ -15,5 +15,5 @@ export const ALL_SECTION_TYPES = [
   "text_only", "text_and_single_image", "text_and_images", "images_only",
   "activity_matching", "activity_fill_in_a_table", "activity_multiple_choice",
   "activity_multi_select", "activity_underline_text", "activity_true_false", "activity_open_ended_answer",
-  "activity_fill_in_the_blank", "activity_sorting", "other",
+  "activity_fill_in_the_blank", "activity_sorting", "activity_ordering", "other",
 ]

@@ -65,6 +65,7 @@ import {
 } from "./BookPreviewFrame"
 import { SectionEditPanel } from "./SectionEditPanel"
 import { writeCustomAnswerToHtml } from "../lib/activity-answer-labels"
+import { updateOrderingAnswer } from "../lib/ordering-answers"
 import { detectChangedStoryboardViewports } from "../lib/storyboard-viewport-changes"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
@@ -1348,19 +1349,34 @@ export function StoryboardSectionDetail({
   // grading script) read the correct answer straight from the section HTML —
   // `data-correct-items` on a drop target, or `data-answer` on a per-slot input
   // — so for custom sections we also write each edit back into the HTML, or the
-  // change would be cosmetic and never affect grading. Templated activities
-  // grade off `window.correctAnswers` (built from `activityAnswers`), so the
-  // derived update alone is enough for them.
+  // change would be cosmetic and never affect grading. Ordering activities
+  // also carry an inspectable HTML order, so rank edits atomically swap the
+  // displaced item and update both representations.
   const updateAnswers = useCallback(
     (patch: Record<string, string | boolean>) => {
       const rBase = pendingRendering ?? page.rendering
       if (!rBase) return
       const isCustom = section?.sectionType.startsWith("activity_custom") ?? false
+      const isOrdering = section?.sectionType === "activity_ordering"
+      const currentSection = rBase.sections.find((s) => s.sectionIndex === sectionIndex)
+      let orderingUpdate: ReturnType<typeof updateOrderingAnswer> = null
+      if (isOrdering) {
+        const entries = Object.entries(patch)
+        if (entries.length !== 1 || !currentSection) return
+        const [itemId, value] = entries[0]
+        orderingUpdate = updateOrderingAnswer(
+          currentSection.html,
+          currentSection.activityAnswers ?? {},
+          itemId,
+          value,
+        )
+        if (!orderingUpdate) return
+      }
       const updated = {
         ...rBase,
         sections: rBase.sections.map((s) => {
           if (s.sectionIndex !== sectionIndex) return s
-          let html = s.html
+          let html = orderingUpdate?.html ?? s.html
           if (isCustom && html) {
             for (const [itemKey, value] of Object.entries(patch)) {
               html = writeCustomAnswerToHtml(html, itemKey, String(value))
@@ -1369,7 +1385,7 @@ export function StoryboardSectionDetail({
           return {
             ...s,
             html,
-            activityAnswers: { ...s.activityAnswers, ...patch },
+            activityAnswers: orderingUpdate?.answers ?? { ...s.activityAnswers, ...patch },
           }
         }),
       }

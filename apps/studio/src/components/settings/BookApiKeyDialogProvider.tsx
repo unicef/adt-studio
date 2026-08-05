@@ -32,6 +32,8 @@ export function BookApiKeyDialogProvider({ children }: { children: ReactNode }) 
     azureRegion,
     setAzureRegion,
     setGeminiKey,
+    elevenLabsKey,
+    setElevenLabsKey,
   } = useApiKey()
 
   const openApiKeyDialog = useCallback(() => setOpen(true), [])
@@ -67,6 +69,8 @@ export function BookApiKeyDialogProvider({ children }: { children: ReactNode }) 
         onSaveAzureKey={setAzureKey}
         azureRegion={azureRegion}
         onSaveAzureRegion={setAzureRegion}
+        elevenLabsKey={elevenLabsKey}
+        onSaveElevenLabsKey={setElevenLabsKey}
       />
     </BookApiKeyDialogContext>
   )

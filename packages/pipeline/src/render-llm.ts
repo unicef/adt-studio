@@ -12,6 +12,10 @@ import {
   tableOfContentsLayoutErrors,
 } from "./toc-layout.js"
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
+import { inspectOrderingActivityHtml } from "./ordering-contract.js"
+
+const BUILT_IN_STRICT_REVIEW_PROMPT = "visual_review"
+const USER_DIRECTED_REVIEW_PROMPT = "visual_review_flexible"
 
 /** Dependencies for the optional visual refinement loop. */
 export interface VisualRefinementDeps {
@@ -29,7 +33,8 @@ export interface VisualRefinementDeps {
  *
  * For activity sections (config.renderType === "activity"):
  * - Validation allows activity_gen_* prefixed data-ids
- * - If config.answerPromptName is set, a second LLM call generates correct answers
+ * - Ordering answers are derived deterministically from validated HTML
+ * - Other activities use a second LLM call when config.answerPromptName is set
  */
 export async function renderSectionLlm(
   input: RenderSectionInput,
@@ -41,6 +46,9 @@ export async function renderSectionLlm(
   const isActivity = config.renderType === "activity"
   const taskType = isActivity ? "activity-rendering" : "web-rendering"
   const { section, context: renderContext } = input
+  // Trim once: a whitespace-only prompt must read as "no instructions" to both
+  // the prompt-selection branch below and the `user_instructions` template guard.
+  const userInstructions = (input.userPrompt ?? "").trim()
 
   // Page images for content merged in from other pages — the prompt shows
   // them after the hosting page's image so the LLM doesn't force-match all
@@ -65,7 +73,7 @@ export async function renderSectionLlm(
     typography: (input.typography ?? DEFAULT_TYPOGRAPHY).styles,
     viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
-    user_instructions: input.userPrompt ?? "",
+    user_instructions: userInstructions,
   }
 
   const result = await llmModel.generateObject<{
@@ -93,6 +101,10 @@ export async function renderSectionLlm(
   // Optional: visual refinement loop — screenshot the HTML and ask an LLM to review
   if (visualRefinement && config.visualRefinement?.enabled) {
     const vr = config.visualRefinement
+    const reviewPromptName =
+      userInstructions && vr.promptName === BUILT_IN_STRICT_REVIEW_PROMPT
+        ? USER_DIRECTED_REVIEW_PROMPT
+        : vr.promptName
     const imagesForScreenshot = new Map<string, { base64: string }>()
     for (const img of renderContext.image_refs) {
       if (img.image_base64) {
@@ -112,7 +124,7 @@ export async function renderSectionLlm(
         storeScreenshot: visualRefinement.storeScreenshot,
         typographyCss: buildTypographyCss(input.typography ?? DEFAULT_TYPOGRAPHY),
       },
-      promptName: vr.promptName,
+      promptName: reviewPromptName,
       maxIterations: vr.maxIterations,
       timeoutMs: vr.timeoutMs,
       temperature: vr.temperature,
@@ -125,6 +137,7 @@ export async function renderSectionLlm(
         nodes: renderContext.nodes,
         leaf_texts: renderContext.leaf_texts,
         has_merged_content: sourcePages.length > 0,
+        user_instructions: userInstructions,
       },
       originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",
       firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",
@@ -158,11 +171,22 @@ export async function renderSectionLlm(
     generatedHtml = repairTableOfContentsLayout(generatedHtml, renderContext.leaf_texts)
   }
 
-  // Optional: generate activity answers via a second LLM call
+  // Ordering has one inspectable source of truth in the validated HTML. Derive
+  // its rank map deterministically so initial render, rerender, Studio editing,
+  // preview, and export cannot disagree because of a second LLM response.
   let activityReasoning: string | undefined
   let activityAnswers: Record<string, string | boolean | number> | undefined
 
-  if (isActivity && config.answerPromptName) {
+  if (section.sectionType === "activity_ordering") {
+    const inspection = inspectOrderingActivityHtml(generatedHtml)
+    if (!inspection.contract) {
+      throw new Error(
+        `Validated activity_ordering HTML has no usable ordering contract: ${inspection.errors.join(" ")}`,
+      )
+    }
+    activityReasoning = "Derived deterministically from the validated correct item order."
+    activityAnswers = inspection.contract.answers
+  } else if (isActivity && config.answerPromptName) {
     const answersResult = await llmModel.generateObject<{
       reasoning: string
       answers: Array<{ id: string; value: string | boolean | number }>
@@ -294,7 +318,12 @@ function collectLeafDataIdOrder(nodes: RenderNode[]): string[] {
 // (single dots are normal punctuation).
 const TEXTBOOK_BLANK_RE = /_+|\.{3,}/g
 const PLACEHOLDER_MARKER_RE = /\[placeholder:[^\]]+\]/g
-const OPTIONAL_TEXT_ROLES = new Set(["footer", "header", "page_number"])
+const OPTIONAL_TEXT_ROLES = new Set([
+  "footer",
+  "header",
+  "page_number",
+  "watermark",
+])
 
 /** True if the leaf's text is nothing but textbook blank placeholders
  * (`___`, `...`, `[placeholder:...]`) and inert separators (whitespace,
