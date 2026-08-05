@@ -350,8 +350,10 @@ that step is not optimized for the model.
 | `activity_fill_in_a_table_answers` | Extracts or generates answer data for table-completion activities. |
 | `activity_matching` | Renders matching activity sections as HTML. |
 | `activity_matching_answers` | Extracts or generates answer data for matching activities. |
-| `activity_sorting` | Renders sorting/ordering activity sections as HTML. |
-| `activity_sorting_answers` | Extracts or generates answer data for sorting/ordering activities. |
+| `activity_sorting` | Renders category-sorting activity sections as HTML. |
+| `activity_sorting_answers` | Extracts or generates answer data for category-sorting activities. |
+| `activity_ordering` | Renders ordered-sequence activity sections as HTML. |
+| `activity_ordering_answers` | Extracts or generates answer ranks for ordered-sequence activities. |
 | `activity_open_ended_answer` | Generates answer/support data for open-ended activities. |
 
 ### AI Image Tools

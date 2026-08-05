@@ -24,9 +24,9 @@ describe("storyboard canvas editing", () => {
 
     const handle = document.querySelector<HTMLElement>('[data-adt-drag-handle="true"]')!
     expect(handle).not.toBeNull()
-    handle.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, clientX: 10, clientY: 20 }))
-    document.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, clientX: 42, clientY: 68 }))
-    document.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, clientX: 42, clientY: 68 }))
+    handle.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, clientX: 10, clientY: 20 }))
+    document.dispatchEvent(new MouseEvent("mousemove", { bubbles: true, clientX: 42, clientY: 68 }))
+    document.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, clientX: 42, clientY: 68 }))
 
     expect(one.style.translate).toBe("32px 48px")
     expect(two.style.translate).toBe("32px 48px")
@@ -51,38 +51,5 @@ describe("storyboard canvas editing", () => {
       { type: "elements-changed", dataId: "two" },
       "*",
     )
-  })
-
-  it("keeps positions separate by device and supports undo", async () => {
-    document.body.innerHTML = '<div id="content"><div data-id="one">Card</div></div>'
-    document.body.dataset.editable = "true"
-    document.body.dataset.deviceView = "desktop"
-    vi.spyOn(window, "postMessage").mockImplementation(() => undefined)
-    installInteractiveEditor()
-
-    const one = document.querySelector<HTMLElement>('[data-id="one"]')!
-    one.dispatchEvent(new MouseEvent("click", { bubbles: true }))
-    const handle = document.querySelector<HTMLElement>('[data-adt-drag-handle]')!
-    handle.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true, clientX: 0, clientY: 0 }))
-    document.dispatchEvent(new MouseEvent("pointermove", { bubbles: true, clientX: 20, clientY: 10 }))
-    document.dispatchEvent(new MouseEvent("pointerup", { bubbles: true, clientX: 20, clientY: 10 }))
-    expect(one.getAttribute("data-adt-x-desktop")).toBe("20")
-
-    document.body.dataset.deviceView = "mobile"
-    await Promise.resolve()
-    expect(one.style.translate).toBe("0px 0px")
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "z", metaKey: true, bubbles: true }))
-    expect(document.querySelector<HTMLElement>('[data-id="one"]')!.getAttribute("data-adt-x-desktop")).toBeNull()
-  })
-
-  it("does not delete a component while its text is being edited", () => {
-    document.body.innerHTML = '<div id="content"><p data-id="text">Editable</p></div>'
-    document.body.dataset.editable = "true"
-    vi.spyOn(window, "postMessage").mockImplementation(() => undefined)
-    installInteractiveEditor()
-    const text = document.querySelector<HTMLElement>('[data-id="text"]')!
-    text.dispatchEvent(new MouseEvent("mousedown", { bubbles: true }))
-    text.dispatchEvent(new KeyboardEvent("keydown", { key: "Backspace", bubbles: true }))
-    expect(document.querySelector('[data-id="text"]')).not.toBeNull()
   })
 })

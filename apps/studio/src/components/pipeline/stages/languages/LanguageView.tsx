@@ -428,7 +428,6 @@ export function LanguageView({
   // audio yet (toggled from the "N missing" pill in the header).
   const [showMissingOnly, setShowMissingOnly] = useState(false);
   const [speechListTab, setSpeechListTab] = useState<"all" | "suggested">("all");
-  const [audioSelectionMode, setAudioSelectionMode] = useState(false);
   const [selectedAudioIds, setSelectedAudioIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -1084,8 +1083,7 @@ export function LanguageView({
         .filter(
           (entry) =>
             !isAnswerEntry(entry.id) &&
-            !getEntryTtsExclusion(entry.id, ttsExclusionConfig).excluded &&
-            (isSourceLang || translatedMap.has(entry.id)),
+            !getEntryTtsExclusion(entry.id, ttsExclusionConfig).excluded,
         )
         .map((entry) => entry.id)
     : [];
@@ -1225,41 +1223,20 @@ export function LanguageView({
       if (!hasCurrentProviderKey) {
         throw new Error(i18n._(msg`The selected speech provider requires an API key.`));
       }
-      const succeeded: string[] = [];
-      const failed: Array<{ textId: string; error: string }> = [];
       for (const item of variables.items) {
-        try {
-          await api.generateTTSForItem(bookLabel, item.textId, item.text, variables.language, {
-            geminiApiKey: geminiKey || undefined,
-            openaiApiKey: apiKey || undefined,
-            azure: azureKey && azureRegion ? { key: azureKey, region: azureRegion } : undefined,
-          }, { forceRegenerate: true });
-          succeeded.push(item.textId);
-        } catch (error) {
-          failed.push({ textId: item.textId, error: error instanceof Error ? error.message : String(error) });
-        }
+        await api.generateTTSForItem(bookLabel, item.textId, item.text, variables.language, {
+          geminiApiKey: geminiKey || undefined,
+          openaiApiKey: apiKey || undefined,
+          azure: azureKey && azureRegion ? { key: azureKey, region: azureRegion } : undefined,
+        }, { forceRegenerate: true });
       }
-      return { succeeded, failed };
     },
-    onSuccess: async ({ succeeded, failed }) => {
-      const failedIds = new Set(failed.map((item) => item.textId));
-      setSelectedAudioIds(failedIds);
-      setGenerateErrorById((previous) => {
-        const next = { ...previous };
-        for (const textId of succeeded) delete next[textId];
-        for (const item of failed) next[item.textId] = item.error;
-        return next;
-      });
+    onSuccess: async () => {
+      setSelectedAudioIds(new Set());
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "tts"] }),
         queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "step-status"] }),
       ]);
-    },
-    onError: (error) => {
-      const message = error instanceof Error ? error.message : String(error);
-      setGenerateErrorById((previous) => Object.fromEntries(
-        [...selectedAudioIds].map((textId) => [textId, previous[textId] ?? message]),
-      ));
     },
   });
 
@@ -1472,61 +1449,15 @@ export function LanguageView({
             bookLabel={bookLabel}
             pendingLabel={pendingLabel}
             pendingLabelKey={pendingLabelKey}
-            onRestored={() => {
-              setPendingEntries(null);
+            onPreview={(d) => {
+              const data = d as { entries?: TextCatalogEntry[] };
+              setPendingEntries(data?.entries ?? []);
               setAppliedSuggestionEntryIds(new Set());
             }}
             onSave={() => saveRef.current()}
             onDiscard={() => {
               setPendingEntries(null);
               setAppliedSuggestionEntryIds(new Set());
-            }}
-            diff={{
-              items: (d) => (d as { entries?: TextCatalogEntry[] } | null)?.entries ?? [],
-              keyOf: (it) => (it as TextCatalogEntry).id,
-              diffText: (it) => (it as TextCatalogEntry).text ?? "",
-              searchText: (it) => {
-                const e = it as TextCatalogEntry;
-                return `${e.id} ${sourceEntriesById.get(e.id) ?? ""} ${e.text ?? ""}`;
-              },
-              searchPlaceholder: t`Search original or translation…`,
-              renderItem: (it, ctx) => {
-                const e = it as TextCatalogEntry;
-                const cat = getEntryCategory(e.id);
-                const catLabel =
-                  cat === "captions"
-                    ? t`Caption`
-                    : cat === "answers"
-                      ? t`Answer`
-                      : cat === "glossary"
-                        ? t`Glossary`
-                        : cat === "easy-read"
-                          ? t`Easy Read`
-                          : t`Text`;
-                const pageMatch = /^pg0*(\d+)/.exec(e.id);
-                const pageRef = pageMatch ? t`p${pageMatch[1]}` : null;
-                // Original (source-language) text for this entry — shown as
-                // context so a translation change can be judged against it.
-                const source = sourceEntriesById.get(e.id);
-                return (
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">
-                      <span className="rounded bg-muted px-1 py-0.5 font-semibold" title={e.id}>
-                        {catLabel}
-                      </span>
-                      {pageRef ? <span className="tabular-nums">{pageRef}</span> : null}
-                    </span>
-                    {source && source !== e.text ? (
-                      <span className="line-clamp-2 text-[11px] text-muted-foreground">{source}</span>
-                    ) : null}
-                    {ctx?.diff ? (
-                      <span className="text-foreground">{ctx.diff}</span>
-                    ) : e.text ? (
-                      <span className="text-foreground">{e.text}</span>
-                    ) : null}
-                  </span>
-                );
-              },
             }}
           />
         )}
@@ -1829,11 +1760,7 @@ export function LanguageView({
                   </span>
                 </button>
               </div>
-              {!audioSelectionMode ? (
-                <Button type="button" size="sm" variant="outline" onClick={() => setAudioSelectionMode(true)}>
-                  {t`Select audio`}
-                </Button>
-              ) : <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-rose-950">
+              <label className="inline-flex cursor-pointer items-center gap-2 text-xs font-medium text-rose-950">
                 <input
                   type="checkbox"
                   checked={allVisibleAudioSelected}
@@ -1857,8 +1784,8 @@ export function LanguageView({
                 {allVisibleAudioSelected
                   ? t`Clear visible selection`
                   : t`Select visible audio`}
-              </label>}
-              {audioSelectionMode ? <div className="flex items-center gap-2">
+              </label>
+              <div className="flex items-center gap-2">
                 <span className="text-xs text-rose-800">
                   {t`${selectedAudioIds.size} selected`}
                 </span>
@@ -1873,11 +1800,7 @@ export function LanguageView({
                         if (!entry) return [];
                         const text = isSourceLang
                           ? entry.text
-                          : translatedMap.get(textId);
-                        // Never synthesize source-language fallback text with
-                        // a target-language voice. Missing translations remain
-                        // visibly unavailable until translation is complete.
-                        if (!text) return [];
+                          : (translatedMap.get(textId) ?? entry.text);
                         return [{ textId, text }];
                       }),
                       language: audioLang,
@@ -1904,8 +1827,7 @@ export function LanguageView({
                   )}
                   {t`Regenerate selected`}
                 </Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => { setSelectedAudioIds(new Set()); setAudioSelectionMode(false); }}>{t`Done selecting`}</Button>
-              </div> : null}
+              </div>
             </div>
           )}
 
@@ -2415,7 +2337,7 @@ export function LanguageView({
                           )}
                         >
                           <div className="flex items-start gap-3">
-                            {isSpeechStage && audioSelectionMode && !isAnswer && !exclusion.excluded && (
+                            {isSpeechStage && !isAnswer && !exclusion.excluded && (
                               <input
                                 type="checkbox"
                                 checked={selectedAudioIds.has(entry.id)}
@@ -2537,7 +2459,7 @@ export function LanguageView({
                             isAnswer ? "bg-amber-50/60" : "bg-card",
                           )}
                         >
-                          {isSpeechStage && audioSelectionMode && !isAnswer && !exclusion.excluded && (
+                          {isSpeechStage && !isAnswer && !exclusion.excluded && (
                             <label className="mb-2 inline-flex items-center gap-2 text-[10px] font-medium text-muted-foreground">
                               <input
                                 type="checkbox"
@@ -2710,8 +2632,8 @@ export function LanguageView({
                                     audioLang={audioLang}
                                     bookLabel={bookLabel}
                                     textId={entry.id}
-                                    text={translated ?? ""}
-                                    canGenerate={translated !== undefined}
+                                    text={translated ?? entry.text}
+                                    canGenerate={true}
                                     hasGeminiKey={hasCurrentProviderKey}
                                     onGenerate={handleGenerateAudio}
                                     isGenerating={

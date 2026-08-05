@@ -21,7 +21,6 @@ export const INTERACTIVE_SCRIPT = `<script>
   var resizeState = null;
   var marqueeState = null;
   var suppressNextClick = false;
-  var undoStack = [];
   var ACTIVITY_INTERACTIVE_SELECTOR = [
     '.activity-option',
     '.activity-underline-option',
@@ -266,72 +265,11 @@ export const INTERACTIVE_SCRIPT = `<script>
     }, '*');
   }
 
-  function deviceKey() {
-    var value = document.body.dataset.deviceView || 'desktop';
-    return value === 'mobile' || value === 'tablet' ? value : 'desktop';
-  }
-
-  function pushUndoSnapshot() {
-    var wrapper = document.getElementById('content');
-    var source = wrapper || document.body;
-    var clone = source.cloneNode(true);
-    clone.querySelectorAll('[data-adt-canvas-handle], [data-adt-marquee]').forEach(function(el) { el.remove(); });
-    clone.querySelectorAll('[data-adt-selected], [data-adt-editing], [data-adt-dragging]').forEach(function(el) {
-      el.removeAttribute('data-adt-selected');
-      el.removeAttribute('data-adt-editing');
-      el.removeAttribute('data-adt-dragging');
-      el.removeAttribute('contenteditable');
-    });
-    undoStack.push(clone.innerHTML);
-    if (undoStack.length > 50) undoStack.shift();
-  }
-
-  function undoCanvasChange() {
-    var snapshot = undoStack.pop();
-    if (snapshot == null) return;
-    var wrapper = document.getElementById('content');
-    (wrapper || document.body).innerHTML = snapshot;
-    clearSelection();
-    parent.postMessage({ type: 'elements-changed' }, '*');
-    parent.postMessage({ type: 'deselect' }, '*');
-  }
-
-  window.__adtPushUndo = pushUndoSnapshot;
-
   function currentTranslate(el) {
-    var key = deviceKey();
-    var storedX = parseFloat(el.getAttribute('data-adt-x-' + key));
-    var storedY = parseFloat(el.getAttribute('data-adt-y-' + key));
-    if (Number.isFinite(storedX) || Number.isFinite(storedY)) {
-      return { x: Number.isFinite(storedX) ? storedX : 0, y: Number.isFinite(storedY) ? storedY : 0 };
-    }
-    var hasScopedPosition = Array.prototype.some.call(el.attributes, function(attr) {
-      return attr.name.indexOf('data-adt-x-') === 0 || attr.name.indexOf('data-adt-y-') === 0;
-    });
-    if (hasScopedPosition) return { x: 0, y: 0 };
     var raw = (el.style.translate || '').trim().split(/\\s+/);
     var x = parseFloat(raw[0]) || 0;
     var y = parseFloat(raw[1]) || 0;
     return { x: x, y: y };
-  }
-
-  function setTranslate(el, x, y) {
-    var key = deviceKey();
-    var roundedX = Math.round(x);
-    var roundedY = Math.round(y);
-    el.setAttribute('data-adt-x-' + key, String(roundedX));
-    el.setAttribute('data-adt-y-' + key, String(roundedY));
-    el.style.translate = roundedX + 'px ' + roundedY + 'px';
-  }
-
-  function applyDeviceTransforms() {
-    document.querySelectorAll('[data-id]').forEach(function(el) {
-      var position = currentTranslate(el);
-      setTranslate(el, position.x, position.y);
-      var angle = parseFloat(el.getAttribute('data-adt-angle-' + deviceKey()));
-      if (Number.isFinite(angle)) el.style.rotate = Math.round(angle) + 'deg';
-    });
-    positionCanvasHandles();
   }
 
   function beginDrag(e) {
@@ -340,7 +278,6 @@ export const INTERACTIVE_SCRIPT = `<script>
     if (dragState) return;
     e.preventDefault();
     e.stopPropagation();
-    pushUndoSnapshot();
     if (editing) finishEditing();
     var items = selectedElements().map(function(el) {
       var start = currentTranslate(el);
@@ -362,7 +299,7 @@ export const INTERACTIVE_SCRIPT = `<script>
     var dx = e.clientX - dragState.startX;
     var dy = e.clientY - dragState.startY;
     dragState.items.forEach(function(item) {
-      setTranslate(item.el, item.baseX + dx, item.baseY + dy);
+      item.el.style.translate = Math.round(item.baseX + dx) + 'px ' + Math.round(item.baseY + dy) + 'px';
     });
     positionCanvasHandles();
   }
@@ -378,15 +315,7 @@ export const INTERACTIVE_SCRIPT = `<script>
   }
 
   function currentRotate(el) {
-    var stored = parseFloat(el.getAttribute('data-adt-angle-' + deviceKey()));
-    if (Number.isFinite(stored)) return stored;
     return parseFloat((el.style.rotate || '').replace('deg', '')) || 0;
-  }
-
-  function setRotate(el, degrees) {
-    var normalized = Math.round(((degrees % 360) + 360) % 360);
-    el.setAttribute('data-adt-angle-' + deviceKey(), String(normalized));
-    el.style.rotate = normalized + 'deg';
   }
 
   function pointerAngle(e, rect) {
@@ -398,7 +327,6 @@ export const INTERACTIVE_SCRIPT = `<script>
     if (!handle || !isEditable() || !selected || rotateState) return;
     e.preventDefault();
     e.stopPropagation();
-    pushUndoSnapshot();
     var bounds = selectionBounds();
     rotateState = {
       startAngle: pointerAngle(e, bounds),
@@ -413,10 +341,8 @@ export const INTERACTIVE_SCRIPT = `<script>
     if (!rotateState) return;
     e.preventDefault();
     var delta = pointerAngle(e, rotateState.bounds) - rotateState.startAngle;
-    if (delta > 180) delta -= 360;
-    if (delta < -180) delta += 360;
     rotateState.items.forEach(function(item) {
-      setRotate(item.el, item.base + delta);
+      item.el.style.rotate = Math.round(item.base + delta) + 'deg';
     });
     positionCanvasHandles();
   }
@@ -435,7 +361,6 @@ export const INTERACTIVE_SCRIPT = `<script>
     if (!handle || !isEditable() || !selected || selected.tagName !== 'IMG' || resizeState) return;
     e.preventDefault();
     e.stopPropagation();
-    pushUndoSnapshot();
     var rect = selected.getBoundingClientRect();
     resizeState = {
       el: selected,
@@ -460,7 +385,7 @@ export const INTERACTIVE_SCRIPT = `<script>
     var y = state.translate.y;
     if (state.corner.indexOf('w') >= 0) x += state.width - width;
     if (state.corner.indexOf('n') >= 0) y += state.height - height;
-    setTranslate(state.el, x, y);
+    state.el.style.translate = Math.round(x) + 'px ' + Math.round(y) + 'px';
     positionCanvasHandles();
   }
 
@@ -497,9 +422,15 @@ export const INTERACTIVE_SCRIPT = `<script>
   document.addEventListener('pointerup', endDrag, true);
   document.addEventListener('pointerup', endRotate, true);
   document.addEventListener('pointerup', endResize, true);
-  document.addEventListener('pointercancel', endDrag, true);
-  document.addEventListener('pointercancel', endRotate, true);
-  document.addEventListener('pointercancel', endResize, true);
+  document.addEventListener('mousedown', beginDrag, true);
+  document.addEventListener('mousedown', beginRotate, true);
+  document.addEventListener('mousedown', beginResize, true);
+  document.addEventListener('mousemove', moveDrag, true);
+  document.addEventListener('mousemove', moveRotate, true);
+  document.addEventListener('mousemove', moveResize, true);
+  document.addEventListener('mouseup', endDrag, true);
+  document.addEventListener('mouseup', endRotate, true);
+  document.addEventListener('mouseup', endResize, true);
 
   function marqueeRect(state, e) {
     var left = Math.min(state.startX, e.clientX);
@@ -568,7 +499,6 @@ export const INTERACTIVE_SCRIPT = `<script>
   function startEditing(el) {
     if (editing === el) return;
     if (el.tagName === 'IMG') return;
-    pushUndoSnapshot();
     editing = el;
     // Save the current MathML display before swapping to LaTeX
     savedDisplayHtml = el.innerHTML;
@@ -635,9 +565,6 @@ export const INTERACTIVE_SCRIPT = `<script>
     if (editing) finishEditing();
     clearSelection();
   }).observe(document.body, { attributes: true, attributeFilter: ['data-link-mode'] });
-
-  new MutationObserver(applyDeviceTransforms)
-    .observe(document.body, { attributes: true, attributeFilter: ['data-device-view'] });
 
   new MutationObserver(invalidateAnswerControls)
     .observe(document.body, { childList: true, subtree: true });
@@ -774,15 +701,8 @@ export const INTERACTIVE_SCRIPT = `<script>
       }
       return;
     }
-    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !editing) {
-      e.preventDefault();
-      undoCanvasChange();
-      return;
-    }
     var dragHandle = e.target && e.target.closest && e.target.closest('[data-adt-drag-handle]');
-    var targetIsFormField = e.target && e.target.closest && e.target.closest('input, textarea, select');
-    var targetIsOtherCanvasHandle = e.target && e.target.closest && e.target.closest('[data-adt-rotate-handle], [data-adt-resize-handle]');
-    if ((dragHandle || (!targetIsFormField && !targetIsOtherCanvasHandle && selected)) && selected && (
+    if (dragHandle && selected && (
       e.key === 'ArrowLeft' || e.key === 'ArrowRight' ||
       e.key === 'ArrowUp' || e.key === 'ArrowDown'
     )) {
@@ -795,7 +715,7 @@ export const INTERACTIVE_SCRIPT = `<script>
         if (e.key === 'ArrowRight') current.x += distance;
         if (e.key === 'ArrowUp') current.y -= distance;
         if (e.key === 'ArrowDown') current.y += distance;
-        setTranslate(el, current.x, current.y);
+        el.style.translate = Math.round(current.x) + 'px ' + Math.round(current.y) + 'px';
       });
       positionCanvasHandles();
       parent.postMessage({
@@ -811,7 +731,7 @@ export const INTERACTIVE_SCRIPT = `<script>
       var degrees = e.shiftKey ? 15 : 1;
       if (e.key === 'ArrowLeft') degrees = -degrees;
       selectedElements().forEach(function(el) {
-        setRotate(el, currentRotate(el) + degrees);
+        el.style.rotate = Math.round(currentRotate(el) + degrees) + 'deg';
       });
       positionCanvasHandles();
       parent.postMessage({ type: 'element-moved', dataId: selected.getAttribute('data-id') }, '*');
@@ -852,7 +772,6 @@ export const INTERACTIVE_SCRIPT = `<script>
     }
     if ((e.key === 'Delete' || e.key === 'Backspace') && selected) {
       e.preventDefault();
-      pushUndoSnapshot();
       var dataId = selected.getAttribute('data-id');
       selectedElements().forEach(function(el) { el.remove(); });
       clearSelection();

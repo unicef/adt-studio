@@ -13,7 +13,6 @@ import {
   LayoutGrid,
   Loader2,
   MessageSquare,
-  MousePointer2,
   Palette,
   PanelRightClose,
   PanelRightOpen,
@@ -28,7 +27,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
 import type { PageDetail } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
-import { ReadyOnMount } from "@/components/pipeline/components/LazyThumb"
 import type {
   ContentNodeData,
   PageSectioningOutput,
@@ -66,7 +64,6 @@ import {
 } from "./BookPreviewFrame"
 import { SectionEditPanel } from "./SectionEditPanel"
 import { writeCustomAnswerToHtml } from "../lib/activity-answer-labels"
-import { detectChangedStoryboardViewports } from "../lib/storyboard-viewport-changes"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
@@ -96,7 +93,6 @@ import { AiEditHistoryDrawer } from "./AiEditHistoryDrawer"
 import { LayoutMirrorDialog } from "./LayoutMirrorDialog"
 import { GenerateActivityDialog } from "./GenerateActivityDialog"
 import { Input } from "@/components/ui/input"
-import { BookDesignPanel, CanvasTransformPanel } from "./CanvasEditingPanels"
 import { useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { i18n } from "@lingui/core"
@@ -225,7 +221,6 @@ function getRenderedSectionByIndex(
 ) {
   return rendering?.sections.find((s) => s.sectionIndex === sectionIndex)
 }
-
 
 /**
  * Pull the sectionIndex the generate-activity agent actually wrote to out of a
@@ -502,9 +497,6 @@ export function StoryboardSectionDetail({
     ComputedTypographyStyles | null
   >(null)
   const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
-  const [canvasEditing, setCanvasEditing] = useState(false)
-  const [bookDesignOpen, setBookDesignOpen] = useState(false)
-  const [canvasTransform, setCanvasTransform] = useState({ x: 0, y: 0, angle: 0 })
   const [previewVisibleWidth, setPreviewVisibleWidth] = useState(0)
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
@@ -526,12 +518,6 @@ export function StoryboardSectionDetail({
       previewFrameRef.current?.getComputedTypographyStyles(selectedElement.dataId) ?? null,
     )
   }, [selectedElement, selectedElementClasses])
-
-  useEffect(() => {
-    if (!selectedElement) return
-    const value = previewFrameRef.current?.getCanvasTransform(selectedElement.dataId)
-    if (value) setCanvasTransform(value)
-  }, [selectedElement, deviceView])
 
   // Track current pageId so async callbacks can detect stale closures
 
@@ -824,16 +810,6 @@ export function StoryboardSectionDetail({
 
   // Current section data
   const section = sectioningData?.sections[sectionIndex]
-
-  // Keep the viewed section in range — e.g. after rolling back to a version
-  // with fewer sections, clamp to the last one instead of showing a blank pane.
-  useEffect(() => {
-    const count = sectioningData?.sections.length ?? 0
-    if (count > 0 && sectionIndex >= count) {
-      onNavigateSection?.(count - 1)
-    }
-  }, [sectioningData, sectionIndex, onNavigateSection])
-
   const renderingData = pendingRendering ?? page.rendering
   const renderedSection = getRenderedSectionByIndex(renderingData, sectionIndex)
   // Fixed-layout pages style every element via inline CSS (the `<p>`'s own
@@ -1569,24 +1545,6 @@ export function StoryboardSectionDetail({
       if (id) handleElementMoved(id)
     },
     [handleElementMoved, t],
-  )
-
-  const updateCanvasTransform = useCallback(
-    (next: { x: number; y: number; angle: number }) => {
-      if (!selectedElement || !page.rendering) return
-      const fullHtml = previewFrameRef.current?.setCanvasTransform(selectedElement.dataId, next)
-      if (!fullHtml) return
-      setCanvasTransform(next)
-      const base = pendingRendering ?? page.rendering
-      setPendingRendering({
-        ...base,
-        sections: base.sections.map((item) =>
-          item.sectionIndex === sectionIndex ? { ...item, html: fullHtml } : item,
-        ),
-      })
-      markPending("style")
-    },
-    [selectedElement, page.rendering, pendingRendering, sectionIndex, markPending],
   )
 
   // Handle element selection from BookPreviewFrame
@@ -2408,24 +2366,6 @@ export function StoryboardSectionDetail({
     })
   }
 
-  const getChangedPreviewViewports = useCallback(
-    (currentData: unknown, selectedData: unknown) => {
-      const currentSection = getRenderedSectionByIndex(
-        currentData as RenderingData,
-        sectionIndex
-      )
-      const selectedSection = getRenderedSectionByIndex(
-        selectedData as RenderingData,
-        sectionIndex
-      )
-      return detectChangedStoryboardViewports(
-        currentSection?.html ?? "",
-        selectedSection?.html ?? ""
-      )
-    },
-    [sectionIndex]
-  )
-
   // Header controls rendered via portal into the purple step header
   const headerControls = (
     <>
@@ -2453,46 +2393,10 @@ export function StoryboardSectionDetail({
         saving={saving}
         dirty={renderingDirty}
         bookLabel={bookLabel}
-        onRestored={discardAll}
+        onPreview={(data) => setPendingRendering(data as RenderingData)}
         onSave={saveRendering}
         onDiscard={discardAll}
         renderSaveBar={false}
-        previewViewport={deviceView}
-        getChangedPreviewViewports={getChangedPreviewViewports}
-        renderPreview={(data, onReady, opts) => {
-          const sec = getRenderedSectionByIndex(data as RenderingData, sectionIndex)
-          if (!sec) {
-            return (
-              <ReadyOnMount onReady={onReady}>
-                <div className="flex h-full items-center justify-center p-2 text-center text-[11px] text-muted-foreground">
-                  {t`This section doesn't exist in this version.`}
-                </div>
-              </ReadyOnMount>
-            )
-          }
-          const previewViewport = opts?.viewport ?? (opts?.lite ? "desktop" : deviceView)
-          return (
-            <BookPreviewFrame
-              html={sec.html}
-              bookLabel={bookLabel}
-              editable={false}
-              dragHandleLabel={t`Drag to move`}
-              rotateHandleLabel={t`Rotate`}
-              resizeHandleLabel={t`Resize image`}
-              renderWidth={DEVICE_WIDTHS[previewViewport]}
-              deviceView={previewViewport}
-              maxVisibleHeight={opts?.maxHeight}
-              thumbnail={Boolean(opts?.lite)}
-              // Skip the per-version Tailwind recompile for the tiny list chips
-              // (base CSS is enough at chip size); keep it for the full-size
-              // hover preview and compare panes where missing classes show.
-              autoRefreshCss={!opts?.lite}
-              applyBodyBackground
-              bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
-              onReady={onReady}
-            />
-          )
-        }}
       />
       <ViewportToggle
         value={deviceView}
@@ -2543,37 +2447,6 @@ export function StoryboardSectionDetail({
         </button>
       )}
       {renderedSection?.html && !hasActiveTask && !storyboardRunning && (
-        <button
-          type="button"
-          onClick={() => {
-            setCanvasEditing((current) => !current)
-            setSelectedElement(null)
-          }}
-          className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] transition-colors ${
-            canvasEditing ? "bg-white text-violet-700" : "bg-white/10 hover:bg-white/20"
-          }`}
-          title={t`Toggle canvas editing mode`}
-          aria-pressed={canvasEditing}
-        >
-          <MousePointer2 className="h-3.5 w-3.5" />
-          {canvasEditing ? t`Finish layout` : t`Edit layout`}
-        </button>
-      )}
-      {renderedSection?.html && (
-        <button
-          type="button"
-          onClick={() => setBookDesignOpen((current) => !current)}
-          className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] transition-colors ${
-            bookDesignOpen ? "bg-white/30" : "bg-white/10 hover:bg-white/20"
-          }`}
-          title={t`Book design`}
-          aria-expanded={bookDesignOpen}
-        >
-          <Palette className="h-3.5 w-3.5" />
-          {t`Book design`}
-        </button>
-      )}
-      {renderedSection?.html && canvasEditing && !hasActiveTask && !storyboardRunning && (
         <div className="flex items-center gap-0.5 rounded bg-white/10 p-0.5">
           <button
             type="button"
@@ -2857,7 +2730,7 @@ export function StoryboardSectionDetail({
                   html={renderedSection.html}
                   bookLabel={bookLabel}
                   className="w-full rounded borde"
-                  editable={canvasEditing && !hasActiveTask && !storyboardRunning}
+                  editable={!hasActiveTask && !storyboardRunning}
                   prunedDataIds={prunedDataIds}
                   changedElements={changedElements}
                   onSelectElement={handleSelectElement}
@@ -3169,7 +3042,13 @@ export function StoryboardSectionDetail({
             saving={saving}
             dirty={dirty}
             bookLabel={bookLabel}
-            onRestored={discardAll}
+            onPreview={(data) => {
+              const s = data as SectioningData
+              setPendingSectioning(s)
+              if (s.sections && sectionIndex >= s.sections.length) {
+                onNavigateSection?.(Math.max(0, s.sections.length - 1))
+              }
+            }}
             onSave={saveSectioning}
             onDiscard={discardAll}
             renderSaveBar={false}
@@ -3193,21 +3072,9 @@ export function StoryboardSectionDetail({
       )}
     </div>
 
-    {bookDesignOpen && (
-      <BookDesignPanel bookLabel={bookLabel} onClose={() => setBookDesignOpen(false)} />
-    )}
-
-    {canvasEditing && selectedElement && (
-      <CanvasTransformPanel
-        deviceView={deviceView}
-        value={canvasTransform}
-        onChange={updateCanvasTransform}
-      />
-    )}
-
     {/* Inline element style editor — opens automatically on selection */}
     <StyleEditorPanel
-      open={canvasEditing && !!selectedElement}
+      open={!!selectedElement}
       onClose={() => setSelectedElement(null)}
       selectedDataId={selectedElement?.dataId ?? null}
       selectedTagName={selectedElement?.tagName ?? null}

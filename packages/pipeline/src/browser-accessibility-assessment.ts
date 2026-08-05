@@ -155,7 +155,12 @@ async function _createPlaywrightAccessibilityAuditor(): Promise<AccessibilityAud
             throw new Error("axe was not initialized in the page context")
           }
 
-          return await axe.run(document, {
+          // Audit the authored book content, not the reader chrome injected
+          // around it (navigation, dock, page counter, and transient overlays).
+          // Runtime chrome is validated independently by its own test suite and
+          // otherwise creates repeated manual-review findings on every page.
+          const auditContext = document.getElementById("content") ?? document
+          return await axe.run(auditContext, {
             runOnly: {
               type: "rule",
               values: ruleIdValues,

@@ -90,6 +90,50 @@ describe("buildRenderStrategyResolver", () => {
     expect(config.templateName).toBe("")
   })
 
+  it("uses full-page visual review by default in page sectioning mode", () => {
+    const appConfig: AppConfig = {
+      role_types: { heading: "Heading" },
+      structure_types: { paragraph: "Paragraph" },
+      page_sectioning: { mode: "page" },
+      default_render_strategy: "llm",
+      render_strategies: {
+        llm: {
+          render_type: "llm",
+          config: { visual_refinement: { enabled: true } },
+        },
+      },
+    }
+
+    const config = buildRenderStrategyResolver(appConfig)("text_only")
+
+    expect(config.visualRefinement?.promptName).toBe("visual_review_page")
+  })
+
+  it("keeps explicit visual review prompt overrides in page mode", () => {
+    const appConfig: AppConfig = {
+      role_types: { heading: "Heading" },
+      structure_types: { paragraph: "Paragraph" },
+      page_sectioning: { mode: "page" },
+      visual_review_prompt: "custom_visual_review",
+      default_render_strategy: "llm",
+      render_strategies: {
+        llm: {
+          render_type: "llm",
+          config: {
+            visual_refinement: {
+              enabled: true,
+              prompt: "strategy_visual_review",
+            },
+          },
+        },
+      },
+    }
+
+    const config = buildRenderStrategyResolver(appConfig)("text_only")
+
+    expect(config.visualRefinement?.promptName).toBe("custom_visual_review")
+  })
+
   it("uses the configured global default model when a strategy has no override", () => {
     const appConfig: AppConfig = {
       role_types: { heading: "Heading" },

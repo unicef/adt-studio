@@ -1445,14 +1445,6 @@ export const api = {
       `/books/${label}/debug/versions/${node}/${itemId}${includeData ? "?includeData=true" : ""}`
     ),
 
-  /** Roll an entity back to an existing version (moves the current-version
-   *  pointer; does not create a new version). */
-  restoreVersion: (label: string, node: string, itemId: string, version: number) =>
-    request<{ node: string; itemId: string; version: number }>(
-      `/books/${label}/versions/${node}/${itemId}/restore`,
-      { method: "POST", body: JSON.stringify({ version }) }
-    ),
-
   getBookConfig: (label: string) =>
     request<BookConfigResponse>(`/books/${label}/config`),
 
@@ -1664,15 +1656,6 @@ export const api = {
   getTTS: (label: string) =>
     request<TTSResponse>(`/books/${label}/tts`),
 
-  // Added by the Publish feature. Keeping the typed client call here lets the
-  // Speech UI consume the changed-entity suggestions once that independent PR
-  // is present, without importing Publish implementation details.
-  getGitHubSpeechSuggestions: (label: string) =>
-    request<{
-      source: "working-tree" | "latest-deployment" | "none"
-      items: Array<{ textId: string; files: string[] }>
-    }>(`/books/${label}/github-publishing/speech-suggestions`),
-
   deleteTTS: (label: string) =>
     request<{ ok: boolean }>(`/books/${label}/tts`, { method: "DELETE" }),
 
@@ -1696,7 +1679,12 @@ export const api = {
         ...(credentials.azure?.key ? { "X-Azure-Speech-Key": credentials.azure.key } : {}),
         ...(credentials.azure?.region ? { "X-Azure-Speech-Region": credentials.azure.region } : {}),
       },
-      body: JSON.stringify({ textId, text, language, forceRegenerate: options?.forceRegenerate ?? false }),
+      body: JSON.stringify({
+        textId,
+        text,
+        language,
+        forceRegenerate: options?.forceRegenerate ?? false,
+      }),
     }),
 
   uploadTTSForItem: (
@@ -1877,17 +1865,82 @@ export const api = {
     )
   },
 
-  connectGitHub: (token: string) => request<GitHubConnectionType>("/github/connection", { headers: { "X-GitHub-Token": token } }),
-  getGitHubPublishStatus: (label: string) => request<GitHubPublishStateType | null>(`/books/${label}/github-publishing/status`),
-  getGitHubDeployments: (label: string) => request<GitHubPublishStateType[]>(`/books/${label}/github-publishing/deployments`),
-  getGitHubDeploymentFileDiff: (label: string, deploymentId: string, filePath: string) => request<GitHubFileDiffType>(`/books/${label}/github-publishing/deployments/${encodeURIComponent(deploymentId)}/diff?path=${encodeURIComponent(filePath)}`),
-  getGitHubPublishChanges: (label: string) => request<{ changes: GitHubFileChangeType[]; packaged: boolean; sourceChanged: boolean }>(`/books/${label}/github-publishing/changes`),
-  materializeGitHubPublishChanges: (label: string) => request<{ changes: GitHubFileChangeType[] }>(`/books/${label}/github-publishing/materialize`, { method: "POST" }),
-  getGitHubFileDiff: (label: string, filePath: string) => request<GitHubFileDiffType>(`/books/${label}/github-publishing/diff?path=${encodeURIComponent(filePath)}`),
-  publishBookToGitHub: (label: string, token: string, options: GitHubPublishRequestType) => request<GitHubPublishStateType>(`/books/${label}/github-publishing/publish`, { method: "POST", headers: { "X-GitHub-Token": token }, body: JSON.stringify(options) }),
-  getGitHubRemoteStatus: (label: string, token: string) => request<{ configured: boolean; behind: boolean; conflict: boolean; localChangeCount: number; remoteCommitSha: string | null; localCommitSha?: string | null }>(`/books/${label}/github-publishing/remote-status`, { headers: { "X-GitHub-Token": token } }),
-  openGitHubBookEditor: (label: string, editor: "vscode" | "cursor" | "system") => request<{ ok: boolean }>(`/books/${label}/github-publishing/open-editor`, { method: "POST", body: JSON.stringify({ editor }) }),
-  pullBookFromGitHub: (label: string, token: string) => request<{ commitSha: string; files: number; backupPath: string | null }>(`/books/${label}/github-publishing/pull`, { method: "POST", headers: { "X-GitHub-Token": token } }),
+  connectGitHub: (token: string) =>
+    request<GitHubConnectionType>("/github/connection", {
+      headers: { "X-GitHub-Token": token },
+    }),
+
+  getGitHubPublishStatus: (label: string) =>
+    request<GitHubPublishStateType | null>(
+      `/books/${label}/github-publishing/status`,
+    ),
+
+  getGitHubDeployments: (label: string) =>
+    request<GitHubPublishStateType[]>(
+      `/books/${label}/github-publishing/deployments`,
+    ),
+
+  getGitHubDeploymentFileDiff: (label: string, deploymentId: string, filePath: string) =>
+    request<GitHubFileDiffType>(
+      `/books/${label}/github-publishing/deployments/${encodeURIComponent(deploymentId)}/diff?path=${encodeURIComponent(filePath)}`,
+    ),
+
+  getGitHubPublishChanges: (label: string) =>
+    request<{ changes: GitHubFileChangeType[]; packaged: boolean }>(
+      `/books/${label}/github-publishing/changes`,
+    ),
+
+  getGitHubFileDiff: (label: string, filePath: string) =>
+    request<GitHubFileDiffType>(
+      `/books/${label}/github-publishing/diff?path=${encodeURIComponent(filePath)}`,
+    ),
+
+  getGitHubSpeechSuggestions: (label: string) =>
+    request<{
+      source: "working-tree" | "latest-deployment" | "none"
+      items: Array<{ textId: string; files: string[] }>
+    }>(`/books/${label}/github-publishing/speech-suggestions`),
+
+  publishBookToGitHub: (
+    label: string,
+    token: string,
+    options: GitHubPublishRequestType,
+  ) =>
+    request<GitHubPublishStateType>(
+      `/books/${label}/github-publishing/publish`,
+      {
+        method: "POST",
+        headers: { "X-GitHub-Token": token },
+        body: JSON.stringify(options),
+      },
+    ),
+
+  getGitHubRemoteStatus: (label: string, token: string) =>
+    request<{
+      configured: boolean
+      behind: boolean
+      conflict: boolean
+      localChangeCount: number
+      remoteCommitSha: string | null
+      localCommitSha?: string | null
+    }>(`/books/${label}/github-publishing/remote-status`, {
+      headers: { "X-GitHub-Token": token },
+    }),
+
+  openGitHubBookEditor: (label: string, editor: "vscode" | "cursor" | "system") =>
+    request<{ ok: boolean }>(`/books/${label}/github-publishing/open-editor`, {
+      method: "POST",
+      body: JSON.stringify({ editor }),
+    }),
+
+  pullBookFromGitHub: (label: string, token: string) =>
+    request<{ commitSha: string; files: number; backupPath: string | null }>(
+      `/books/${label}/github-publishing/pull`,
+      {
+        method: "POST",
+        headers: { "X-GitHub-Token": token },
+      },
+    ),
 
   exportProject: async (label: string): Promise<Blob | null> => {
     if (!isDesktop()) {
@@ -1984,26 +2037,6 @@ export const api = {
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
       throw new Error(body.error ?? `ADT export failed: ${res.status}`)
-    }
-    const buf = await res.arrayBuffer()
-    return new Blob([buf], { type: "application/zip" })
-  },
-
-  exportPnld: async (label: string): Promise<Blob | null> => {
-    if (!isDesktop()) {
-      triggerDirectDownload(`${BASE_URL}/books/${label}/export-pnld`)
-      return null
-    }
-    const url = `${BASE_URL}/books/${label}/export-pnld`
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { Accept: "application/zip" },
-      mode: "cors",
-      signal: AbortSignal.timeout(1_800_000),
-    })
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({ error: res.statusText }))
-      throw new Error(body.error ?? `PNLD export failed: ${res.status}`)
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })

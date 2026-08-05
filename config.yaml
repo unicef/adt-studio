@@ -140,6 +140,9 @@ section_types:
     Group multiple items into categories.
     There are more items than categories, and each category contains
     multiple items (many-to-one classification).
+  activity_ordering: >
+    Arrange all provided items into one correct sequence, such as chronological,
+    numerical, shortest-to-longest, or procedural order.
   activity_other: >
     An interactive activity or exercise that does not fit any of the specific
     activity types above. Use this ONLY when the underlying learning mechanic
@@ -269,6 +272,15 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
+  activity_ordering:
+    render_type: activity
+    config:
+      prompt: activity_ordering
+      answer_prompt: activity_ordering_answers
+      max_retries: 5
+      timeout: 180
+      visual_refinement:
+        enabled: true
   activity_open_ended_answer:
     render_type: activity
     config:
@@ -287,6 +299,7 @@ section_render_strategies:
   activity_fill_in_a_table: activity_fill_in_a_table
   activity_matching: activity_matching
   activity_sorting: activity_sorting
+  activity_ordering: activity_ordering
   activity_open_ended_answer: activity_open_ended_answer
 
 quiz_generation:

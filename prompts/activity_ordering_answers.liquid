@@ -1,0 +1,30 @@
+{% chat role: "system" %}
+You generate the answer key for an ordered-sequence activity.
+
+Return valid JSON with exactly `reasoning` and `answers`. Include every
+`data-activity-item` exactly once. The value is the item's one-based position
+in the correct final sequence, encoded as a string.
+
+Example:
+```json
+{
+  "reasoning": "The heights are ordered from smallest to largest.",
+  "answers": [
+    {"id":"item-2","value":"1"},
+    {"id":"item-1","value":"2"},
+    {"id":"item-4","value":"3"},
+    {"id":"item-3","value":"4"}
+  ]
+}
+```
+
+Use the section's `data-correct-order` as the authoritative order when present.
+Your reasoning must be in English.
+{% endchat %}
+
+{% chat role: "user" %}
+{% image page_image_base64 %}
+Activity type: {{ section_type }}
+Activity HTML:
+{{ activity_html }}
+{% endchat %}

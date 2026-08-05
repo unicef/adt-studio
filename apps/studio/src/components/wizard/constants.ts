@@ -307,6 +307,17 @@ export const PRESETS: PresetConfig[] = [
             visual_refinement: { enabled: true, max_iterations: 3 },
           },
         },
+        activity_ordering: {
+          render_type: "activity",
+          config: {
+            prompt: "activity_ordering",
+            answer_prompt: "activity_ordering_answers",
+            max_retries: 5,
+            timeout: 180,
+            temperature: 0.3,
+            visual_refinement: { enabled: true, max_iterations: 3 },
+          },
+        },
         activity_open_ended_answer: {
           render_type: "activity",
           config: {
@@ -327,16 +338,13 @@ export const PRESETS: PresetConfig[] = [
         activity_fill_in_a_table: "activity_fill_in_a_table",
         activity_matching: "activity_matching",
         activity_sorting: "activity_sorting",
+        activity_ordering: "activity_ordering",
         activity_open_ended_answer: "activity_open_ended_answer",
       },
       // Role keys must match the actual `role_types` the sectioning LLM assigns
       // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
       // suffixed variants never match, so header/footer would leak in unpruned.
       pruned_role_types: ["header", "footer", "page_number"],
-      // Every imported PDF page is valid Storyboard input, including covers,
-      // acknowledgements, prefaces, and credits. Users can still explicitly
-      // prune a section later, but the wizard must never hide source pages by
-      // default.
       pruned_section_types: [],
       image_filters: { min_stddev: 2 },
     },

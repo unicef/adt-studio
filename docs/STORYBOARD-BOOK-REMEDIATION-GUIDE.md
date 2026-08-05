@@ -13,12 +13,6 @@ The goal is not merely to pass automated checks. The digital book should preserv
 5. Rebuild the ADT package after changes so Preview, Export, and Validation use the latest rendering.
 6. Compare the source page, Storyboard page, and packaged page. A file-level edit alone is not sufficient evidence.
 
-The import wizard therefore starts with an empty `pruned_section_types` list.
-Front matter (acknowledgements, preface, contents, approvals, and credits) is
-content, not disposable metadata. A reviewer may still explicitly exclude a
-section after import, but an automatic classifier, an LLM timeout, or a missing
-image must never remove a source page from the Storyboard page set.
-
 ## Recurring problems and their general fixes
 
 ### Page preservation and section boundaries
@@ -201,3 +195,4 @@ The following existing issues and pull requests cover the general code changes d
 | Heading hierarchy and font consistency | [#673](https://github.com/unicef/adt-studio/issues/673) | [#674](https://github.com/unicef/adt-studio/pull/674) |
 | Validation fix routing | [#618](https://github.com/unicef/adt-studio/issues/618) | — |
 | Embedded accessibility QA | [#678](https://github.com/unicef/adt-studio/issues/678) | — |
+

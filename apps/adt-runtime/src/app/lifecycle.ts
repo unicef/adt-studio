@@ -67,6 +67,7 @@ import { initializeFillInTheBlankActivity } from "@/features/activity/runtime/ac
 import { initializeOpenEndedActivity } from "@/features/activity/runtime/activity-open-ended"
 import { initializeTrueFalseActivity } from "@/features/activity/runtime/activity-true-false"
 import { initializeSortingActivity } from "@/features/activity/runtime/activity-sorting"
+import { initializeOrderingActivity } from "@/features/activity/runtime/activity-ordering"
 import { initializeMatchingActivity } from "@/features/activity/runtime/activity-matching"
 import { initializeStepperActivity } from "@/features/activity/runtime/activity-stepper"
 import { initializeCustomActivity } from "@/features/activity/runtime/activity-custom"
@@ -81,6 +82,11 @@ function readCurrentSectionId(): string | null {
 function readIsActivityPage(): boolean {
   if (typeof document === "undefined") return false
   return !!document.querySelector('section[data-section-type^="activity_"]')
+}
+
+function readIsEmbedMode(): boolean {
+  if (typeof window === "undefined") return false
+  return new URLSearchParams(window.location.search).get("embed") === "1"
 }
 
 function readCurrentPageNumber(): number | null {
@@ -188,6 +194,7 @@ export async function bootRuntime(): Promise<void> {
     const isActivity = readIsActivityPage()
     store.set(isActivityPageAtom, isActivity)
     store.set(activityModeAtom, isActivity)
+    store.set(embedModeAtom, readIsEmbedMode())
 
     applyDOMTranslations()
 
@@ -204,6 +211,7 @@ export async function bootRuntime(): Promise<void> {
     initializeOpenEndedActivity()
     initializeTrueFalseActivity()
     initializeSortingActivity()
+    initializeOrderingActivity()
     initializeMatchingActivity()
     initializeCustomActivity()
   } finally {
