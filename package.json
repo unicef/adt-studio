@@ -15,6 +15,7 @@
     "build": "pnpm tsc --build && pnpm --filter @adt/runtime build",
     "dev": "node scripts/dev.mjs",
     "dev:lite": "node scripts/dev.mjs --lite",
+    "predev:lite": "pnpm build",
     "dev:api": "pnpm --filter @adt/api dev",
     "dev:studio": "pnpm --filter @adt/studio dev",
     "dev:desktop": "pnpm --parallel --filter @adt/desktop --filter @adt/studio dev --mode desktop",
