@@ -961,6 +961,24 @@ describe("validateSectionHtml", () => {
     expect(result.sectionHtml).not.toContain("The sun is a type of star.")
   })
 
+  it("accepts browser-hydrated blank inputs as their original markers", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">Choose <input type="text" data-activity-item="item-1" />.</p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "Choose [[blank:item-1]]."]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
   it("preserves blank markers when expected text has underscore placeholders", () => {
     const html = `
       <section>

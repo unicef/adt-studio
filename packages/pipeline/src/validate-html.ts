@@ -435,8 +435,17 @@ function walkNode(
       !imageIds.has(dataId) &&
       tagName !== "img"
     ) {
-      const actualText = normalizeText(DomUtils.getText(node))
       const expectedText = normalizeText(options.expectedTexts.get(dataId)!)
+      // Browser-side FITB hydration replaces [[blank:item-N]] markers with
+      // inputs. htmlparser2 quite correctly reports no text for an input, but
+      // validation must still treat that input as the original blank marker;
+      // otherwise a perfectly valid answer field is reported as an empty text
+      // mismatch (and the page is retried repeatedly).
+      const hydratedBlankCount = countHydratedBlankInputs(node)
+      const hydratedMarkers = BLANK_MARKER_TEST_RE.test(expectedText) && hydratedBlankCount > 0
+        ? Array.from({ length: hydratedBlankCount }, (_, index) => `[[blank:item-${index + 1}]]`).join("")
+        : ""
+      const actualText = normalizeText(`${DomUtils.getText(node)}${hydratedMarkers}`)
 
       // Check if the element contains [[blank:item-N]] markers (fill-in-the-blank
       // inline blanks). When present, strip them before comparing similarity so we
@@ -461,6 +470,7 @@ function walkNode(
         const strippedActual = normalizeText(actualText.replace(BLANK_MARKER_RE, ""))
         const strippedExpected = normalizeText(
           expectedText
+            .replace(BLANK_MARKER_RE, "")
             .replace(PLACEHOLDER_MARKER_RE, "")
             .replace(TEXTBOOK_BLANK_RE, "")
             .replace(/_/g, "")
@@ -519,6 +529,14 @@ function walkNode(
   ) {
     replaceChildrenWithText(node, replacementText)
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function countHydratedBlankInputs(node: any): number {
+  let count = 0
+  if (node?.name === "input" && node.attribs?.["data-activity-item"]) count += 1
+  for (const child of node?.children ?? []) count += countHydratedBlankInputs(child)
+  return count
 }
 
 /** Collect all data-id attribute values from a DOM tree. */
