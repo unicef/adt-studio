@@ -5854,6 +5854,9 @@ msgstr "of"
 msgid "Off"
 msgstr "Desligado"
 
+msgid "Offset"
+msgstr "Deslocamento"
+
 #~ msgid "Older"
 #~ msgstr "Mais antiga"
 
@@ -7399,6 +7402,15 @@ msgstr "O aumento das temperaturas dos oceanos causa o branqueamento dos corais 
 msgid "Role"
 msgstr "Função"
 
+msgid "Rotate"
+msgstr "Girar"
+
+msgid "Rotate 90° clockwise"
+msgstr "Girar 90° no sentido horário"
+
+msgid "Rotate 90° counter-clockwise"
+msgstr "Girar 90° no sentido anti-horário"
+
 msgid "Row"
 msgstr "Linha"
 
@@ -7603,6 +7615,9 @@ msgstr "Salvando..."
 
 msgid "Saving…"
 msgstr "Salvando…"
+
+msgid "Scale"
+msgstr "Escala"
 
 msgid "Scene 04"
 msgstr "Cena 04"
@@ -9247,6 +9262,10 @@ msgstr "Track reviewer progress and review findings captured from Preview."
 
 msgid "Translate"
 msgstr "Traduzir"
+
+msgctxt "CSS transform"
+msgid "Translate"
+msgstr "Transladar"
 
 msgid "Translate text in images"
 msgstr "Traduzir texto em imagens"

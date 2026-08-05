@@ -5855,6 +5855,9 @@ msgstr "nga"
 msgid "Off"
 msgstr "Joaktiv"
 
+msgid "Offset"
+msgstr "Zhvendosje"
+
 #~ msgid "Older"
 #~ msgstr "Më i vjetër"
 
@@ -7400,6 +7403,15 @@ msgstr "Rritja e temperaturave të oqeanit shkakton zbardhjen e koraleve - kur k
 msgid "Role"
 msgstr "Rol"
 
+msgid "Rotate"
+msgstr "Rrotullo"
+
+msgid "Rotate 90° clockwise"
+msgstr "Rrotullo 90° në kahun orar"
+
+msgid "Rotate 90° counter-clockwise"
+msgstr "Rrotullo 90° në kahun kundërorar"
+
 msgid "Row"
 msgstr "Rresht"
 
@@ -7604,6 +7616,9 @@ msgstr "Duke ruajtur..."
 
 msgid "Saving…"
 msgstr "Po ruhet…"
+
+msgid "Scale"
+msgstr "Shkallë"
 
 msgid "Scene 04"
 msgstr "Skena 04"
@@ -9248,6 +9263,10 @@ msgstr "Gjurmo progresin e rishikuesit dhe gjetjet e rishikimit të kaptura nga 
 
 msgid "Translate"
 msgstr "Përkthe"
+
+msgctxt "CSS transform"
+msgid "Translate"
+msgstr "Translim"
 
 msgid "Translate text in images"
 msgstr "Përkthe tekstin në imazhe"

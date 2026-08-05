@@ -5854,6 +5854,9 @@ msgstr "of"
 msgid "Off"
 msgstr "Apagado"
 
+msgid "Offset"
+msgstr "Desplazamiento"
+
 #~ msgid "Older"
 #~ msgstr "Anterior"
 
@@ -7399,6 +7402,15 @@ msgstr "El aumento de las temperaturas oceánicas causa el blanqueamiento de cor
 msgid "Role"
 msgstr "Rol"
 
+msgid "Rotate"
+msgstr "Rotar"
+
+msgid "Rotate 90° clockwise"
+msgstr "Rotar 90° en sentido horario"
+
+msgid "Rotate 90° counter-clockwise"
+msgstr "Rotar 90° en sentido antihorario"
+
 msgid "Row"
 msgstr "Fila"
 
@@ -7603,6 +7615,9 @@ msgstr "Guardando..."
 
 msgid "Saving…"
 msgstr "Guardando…"
+
+msgid "Scale"
+msgstr "Escala"
 
 msgid "Scene 04"
 msgstr "Escena 04"
@@ -9247,6 +9262,10 @@ msgstr "Track reviewer progress and review findings captured from Preview."
 
 msgid "Translate"
 msgstr "Traducir"
+
+msgctxt "CSS transform"
+msgid "Translate"
+msgstr "Trasladar"
 
 msgid "Translate text in images"
 msgstr "Traducir texto en imágenes"

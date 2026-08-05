@@ -47,12 +47,14 @@ export type SectionKey =
   | "spacing"
   | "sizing"
   | "layout"
+  | "position"
   | "borders"
   | "imageFit"
 
 export const ALL_SECTION_KEYS: ReadonlyArray<SectionKey> = [
   "layout",
   "sizing",
+  "position",
   "spacing",
   "typography",
   "appearance",
@@ -60,9 +62,18 @@ export const ALL_SECTION_KEYS: ReadonlyArray<SectionKey> = [
   "imageFit",
 ]
 
+// `position` (offset + rotate + transform) applies to every element type —
+// text, images and containers alike — so it's included in each set.
 const VISIBLE_SECTIONS: Record<ElementType, ReadonlySet<SectionKey>> = {
-  text: new Set(["typography", "appearance", "spacing", "sizing"]),
-  image: new Set(["imageFit", "sizing", "spacing", "borders", "appearance"]),
+  text: new Set(["typography", "appearance", "spacing", "sizing", "position"]),
+  image: new Set([
+    "imageFit",
+    "sizing",
+    "spacing",
+    "borders",
+    "appearance",
+    "position",
+  ]),
   container: new Set([
     "layout",
     "spacing",
@@ -70,6 +81,7 @@ const VISIBLE_SECTIONS: Record<ElementType, ReadonlySet<SectionKey>> = {
     "appearance",
     "borders",
     "typography",
+    "position",
   ]),
   interactive: new Set([
     "typography",
@@ -78,9 +90,24 @@ const VISIBLE_SECTIONS: Record<ElementType, ReadonlySet<SectionKey>> = {
     "sizing",
     "layout",
     "borders",
+    "position",
   ]),
-  list: new Set(["typography", "spacing", "layout", "sizing", "appearance"]),
-  media: new Set(["imageFit", "sizing", "spacing", "borders", "appearance"]),
+  list: new Set([
+    "typography",
+    "spacing",
+    "layout",
+    "sizing",
+    "appearance",
+    "position",
+  ]),
+  media: new Set([
+    "imageFit",
+    "sizing",
+    "spacing",
+    "borders",
+    "appearance",
+    "position",
+  ]),
 }
 
 export function isSectionVisible(

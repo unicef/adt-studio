@@ -5854,6 +5854,9 @@ msgstr "of"
 msgid "Off"
 msgstr "Off"
 
+msgid "Offset"
+msgstr "Offset"
+
 #~ msgid "Older"
 #~ msgstr "Older"
 
@@ -7399,6 +7402,15 @@ msgstr "Rising ocean temperatures cause coral bleaching - when stressed corals e
 msgid "Role"
 msgstr "Role"
 
+msgid "Rotate"
+msgstr "Rotate"
+
+msgid "Rotate 90° clockwise"
+msgstr "Rotate 90° clockwise"
+
+msgid "Rotate 90° counter-clockwise"
+msgstr "Rotate 90° counter-clockwise"
+
 msgid "Row"
 msgstr "Row"
 
@@ -7603,6 +7615,9 @@ msgstr "Saving..."
 
 msgid "Saving…"
 msgstr "Saving…"
+
+msgid "Scale"
+msgstr "Scale"
 
 msgid "Scene 04"
 msgstr "Scene 04"
@@ -9245,6 +9260,10 @@ msgstr "Total Tokens"
 msgid "Track reviewer progress and review findings captured from Preview."
 msgstr "Track reviewer progress and review findings captured from Preview."
 
+msgid "Translate"
+msgstr "Translate"
+
+msgctxt "CSS transform"
 msgid "Translate"
 msgstr "Translate"
 

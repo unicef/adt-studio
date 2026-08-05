@@ -5856,6 +5856,9 @@ msgstr "sur"
 msgid "Off"
 msgstr "Désactivé"
 
+msgid "Offset"
+msgstr "Décalage"
+
 #~ msgid "Older"
 #~ msgstr "Plus ancienne"
 
@@ -7401,6 +7404,15 @@ msgstr "La hausse des températures océaniques provoque le blanchissement des c
 msgid "Role"
 msgstr "Rôle"
 
+msgid "Rotate"
+msgstr "Pivoter"
+
+msgid "Rotate 90° clockwise"
+msgstr "Pivoter de 90° dans le sens horaire"
+
+msgid "Rotate 90° counter-clockwise"
+msgstr "Pivoter de 90° dans le sens antihoraire"
+
 msgid "Row"
 msgstr "Ligne"
 
@@ -7605,6 +7617,9 @@ msgstr "Enregistrement..."
 
 msgid "Saving…"
 msgstr "Enregistrement…"
+
+msgid "Scale"
+msgstr "Échelle"
 
 msgid "Scene 04"
 msgstr "Scène 04"
@@ -9249,6 +9264,10 @@ msgstr "Suivez la progression du réviseur et les résultats de révision captur
 
 msgid "Translate"
 msgstr "Traduire"
+
+msgctxt "CSS transform"
+msgid "Translate"
+msgstr "Translation"
 
 msgid "Translate text in images"
 msgstr "Traduire le texte dans les images"
