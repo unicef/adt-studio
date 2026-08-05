@@ -12,8 +12,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { PageSectioningOutput, PageSectioningSection } from "@adt/types"
 import { api, type PageDetail } from "@/api/client"
-import { usePageImage, usePages } from "@/hooks/use-pages"
-import { useApiKey } from "@/hooks/use-api-key"
+import { usePageImage } from "@/hooks/use-pages"
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
 import { SectionActionsDropdown } from "@/components/pipeline/stages/storyboard/components/SectionActionsDropdown"
@@ -55,45 +54,6 @@ export function SectioningPageDetail({
   const queryClient = useQueryClient()
   const { headerSlotEl } = useStepHeader()
   const { data: imageData } = usePageImage(bookLabel, pageId)
-  const { apiKey, hasApiKey } = useApiKey()
-  const { data: allPages } = usePages(bookLabel)
-
-  // A structural edit here damages the HTML the Storyboard already produced, so
-  // it should repair it the same way the Storyboard editor does rather than
-  // leaving the stage greyed out with nothing running. Only pages that have
-  // been rendered are worth re-rendering — on a book whose storyboard has never
-  // run there is nothing to repair, and rendering here would invent output the
-  // user never asked for.
-  const hasRendering = useCallback(
-    (id: string) => (allPages ?? []).some((p) => p.pageId === id && p.hasRendering),
-    [allPages]
-  )
-  const rerenderPage = useCallback(
-    (id: string, sectionIndex?: number) => {
-      if (!hasApiKey || !hasRendering(id)) return
-      api.reRenderPage(bookLabel, id, apiKey, sectionIndex).catch(() => {})
-    },
-    [bookLabel, apiKey, hasApiKey, hasRendering]
-  )
-  /** Whether `rerenderPage` will actually run for a page — drives both the
-   *  storyboard's staleness flag and what the confirmation promises. */
-  const willRerender = (id: string) => hasApiKey && hasRendering(id)
-  /** The page a cross-page merge would move content to. Needed before the call,
-   *  to know whether both pages can be put back. */
-  const neighborPageId = (direction: "next" | "prev"): string | null => {
-    const list = allPages ?? []
-    const index = list.findIndex((p) => p.pageId === pageId)
-    if (index < 0) return null
-    return (direction === "next" ? list[index + 1] : list[index - 1])?.pageId ?? null
-  }
-  /** Sentence for the confirmation: does this op put the Storyboard back itself?
-   *  Nothing to say when the page was never rendered — there is no damage. */
-  const storyboardRepairMessage = (): string | undefined => {
-    if (!hasRendering(pageId)) return undefined
-    return hasApiKey
-      ? t`The affected pages will be re-rendered automatically.`
-      : t`The affected pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running.`
-  }
 
   const configQuery = useQuery({
     queryKey: ["books", bookLabel, "config", "active"],
@@ -140,9 +100,6 @@ export function SectioningPageDetail({
     title: string
     /** Op-specific sentence; the cascade notice is appended when relevant. */
     description?: string
-    /** What happens to the Storyboard's HTML — whether this op repairs the
-     *  pages it damages, or leaves them for the user to re-run. */
-    consequence?: string
     confirmLabel: string
     icon: ComponentType<{ className?: string }>
     colorClass: string
@@ -370,30 +327,18 @@ export function SectioningPageDetail({
 
   const handleMergeSection = (sectionIndex: number, direction: "next" | "prev") =>
     runStructural(async () => {
-      const result = await api.mergeSection(
-        bookLabel,
-        pageId,
-        sectionIndex,
-        direction,
-        willRerender(pageId)
-      )
-      rerenderPage(pageId, result.mergedSectionIndex)
+      await api.mergeSection(bookLabel, pageId, sectionIndex, direction)
       return null
     })
 
   const handleMergeCrossPage = (sectionIndex: number, direction: "next" | "prev") =>
     runStructural(async () => {
-      // This empties both pages' renderings, so both are re-rendered whole. The
-      // stage only stays complete if both can actually be put back.
       const result = await api.mergeSectionCrossPage(
         bookLabel,
         pageId,
         sectionIndex,
-        direction,
-        willRerender(pageId) && willRerender(neighborPageId(direction) ?? "")
+        direction
       )
-      rerenderPage(result.sourcePageId)
-      rerenderPage(result.targetPageId)
       return result.targetPageId
     })
 
@@ -415,7 +360,6 @@ export function SectioningPageDetail({
     requestStructuralOp({
       title: t`Confirm merge`,
       description: t`Are you sure you want to ${label}? This action cannot be undone.`,
-      consequence: storyboardRepairMessage(),
       confirmLabel: t`Continue`,
       icon: Merge,
       colorClass: "bg-sky-600 hover:bg-sky-700",
@@ -430,23 +374,12 @@ export function SectioningPageDetail({
     requestStructuralOp({
       title: t`Split section`,
       description: t`Are you sure you want to ${label}? This action cannot be undone.`,
-      consequence: storyboardRepairMessage(),
       confirmLabel: t`Split`,
       icon: Scissors,
       colorClass: "bg-sky-600 hover:bg-sky-700",
       run: () =>
         void runStructural(async () => {
-          const result = await api.splitSection(
-            bookLabel,
-            pageId,
-            sectionIndex,
-            at,
-            willRerender(pageId)
-          )
-          // Both halves need HTML: the original's entry was dropped and the new
-          // one never had one.
-          rerenderPage(pageId, sectionIndex)
-          rerenderPage(pageId, result.splitSectionIndex)
+          await api.splitSection(bookLabel, pageId, sectionIndex, at)
           return null
         }),
     })
@@ -699,7 +632,6 @@ export function SectioningPageDetail({
         description={
           <>
             {pendingOp.description}
-            {pendingOp.consequence ? ` ${pendingOp.consequence}` : null}
             {downstreamAffected.length > 0 && (
               <>
                 {pendingOp.description ? " " : null}

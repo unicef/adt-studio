@@ -55,13 +55,7 @@ vi.mock("@/lib/section-constants", () => ({
   getSectionTypeDescription: () => "",
 }))
 
-vi.mock("@/hooks/use-pages", () => ({
-  usePageImage: () => ({ data: undefined }),
-  // No rendered pages, so the structural ops have no storyboard HTML to repair
-  // and queue no re-renders — these tests are about the confirmation flow.
-  usePages: () => ({ data: [] }),
-}))
-vi.mock("@/hooks/use-api-key", () => ({ useApiKey: () => ({ apiKey: "", hasApiKey: false }) }))
+vi.mock("@/hooks/use-pages", () => ({ usePageImage: () => ({ data: undefined }) }))
 vi.mock("@/hooks/use-page-mutations", () => ({ invalidateStoryboardDependents: vi.fn() }))
 vi.mock("../../components/StepViewRouter", () => ({
   useStepHeader: () => ({ headerSlotEl: null }),

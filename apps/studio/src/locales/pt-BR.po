@@ -6908,6 +6908,9 @@ msgstr "Reexecutar {stageLabel}?"
 msgid "Re-run speech"
 msgstr "Reexecutar áudio"
 
+msgid "Re-run Storyboard"
+msgstr "Executar Storyboard novamente"
+
 msgid "Re-run these book-level stages on the assembled book:"
 msgstr "Execute novamente estas etapas de nível de livro no livro montado:"
 
@@ -7775,6 +7778,9 @@ msgstr "Tipos de seção"
 
 msgid "Sectioning"
 msgstr "Seccionamento"
+
+msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
+msgstr "O seccionamento mudou desde que estas páginas foram renderizadas. Execute o Storyboard novamente para regenerá-las."
 
 msgid "Sectioning mode"
 msgstr "Modo de seção"
@@ -8747,12 +8753,6 @@ msgstr "Tipos de texto"
 
 msgid "Textbooks & Activities"
 msgstr "Livros Didáticos & Atividades"
-
-msgid "The affected pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
-msgstr "As páginas afetadas perdem sua renderização. Sem uma chave de API elas não podem ser rerenderizadas, então será necessário executar o Storyboard novamente."
-
-msgid "The affected pages will be re-rendered automatically."
-msgstr "As páginas afetadas serão rerenderizadas automaticamente."
 
 msgid "The AI is having a think..."
 msgstr "A IA está pensando..."

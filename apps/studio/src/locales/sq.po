@@ -6909,6 +6909,9 @@ msgstr "Ri-ekzekuto {stageLabel}?"
 msgid "Re-run speech"
 msgstr "Ri-ekzekuto fjalimin"
 
+msgid "Re-run Storyboard"
+msgstr "Ekzekuto përsëri Storyboard-in"
+
 msgid "Re-run these book-level stages on the assembled book:"
 msgstr "Riekzekuto këto faza në nivel libri në librin e bashkuar:"
 
@@ -7776,6 +7779,9 @@ msgstr "Llojet e Seksionit"
 
 msgid "Sectioning"
 msgstr "Seksionim"
+
+msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
+msgstr "Seksionimi ka ndryshuar që kur u renderizuan këto faqe. Ekzekuto përsëri Storyboard-in për t'i rigjeneruar ato."
 
 msgid "Sectioning mode"
 msgstr "Modaliteti i seksionimit"
@@ -8748,12 +8754,6 @@ msgstr "Llojet e Tekstit"
 
 msgid "Textbooks & Activities"
 msgstr "Tekste Shkollore dhe Aktivitete"
-
-msgid "The affected pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
-msgstr "Faqet e prekura humbin renderimin e tyre. Pa një çelës API ato nuk mund të ri-renderizohen, prandaj Storyboard-i do të duhet të ekzekutohet përsëri."
-
-msgid "The affected pages will be re-rendered automatically."
-msgstr "Faqet e prekura do të ri-renderizohen automatikisht."
 
 msgid "The AI is having a think..."
 msgstr "AI po mendon..."
