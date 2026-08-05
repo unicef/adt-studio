@@ -20,8 +20,8 @@ export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
         <Trans>Turn any educational PDF into an accessible, interactive learning bundle — extracted, captioned, and quiz-ready.</Trans>
       </div>
 
-      <div className="mt-[18px] flex gap-6 rounded-2xl border bg-card p-[22px] shadow-sm">
-        <div aria-hidden className="flex w-[196px] shrink-0 items-center justify-center gap-2.5 self-stretch rounded-2xl bg-brand-50">
+      <div className="mt-[18px] flex gap-6 rounded-2xl border bg-card p-6 shadow-sm">
+        <div aria-hidden className="flex w-fit p-4 shrink-0 items-center justify-center gap-2.5 self-stretch rounded-2xl">
           <span className="grid size-11 place-items-center rounded-xl bg-stage-speech/10 text-stage-speech">
             <FileText className="size-[21px]" />
           </span>

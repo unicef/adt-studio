@@ -10,20 +10,18 @@ export interface LibraryEmptyStateProps {
   onOpenAdd: () => void
 }
 
-/** Library first-run state (design 2a): stacked ghost covers behind a real cover + CTAs. */
 export function LibraryEmptyState({ onOpenAdd }: LibraryEmptyStateProps) {
   const navigate = useNavigate()
   const { t } = useLingui()
   return (
     <div className="relative flex flex-1 items-center justify-center">
       <EmptyState
-        bloom
         className="w-full max-w-[420px]"
         illustration={
-          <div className="relative mx-auto mb-1.5 h-[150px] w-[150px]">
+          <div className="relative mx-auto mb-1.5 w-56 h-60">
             <GhostCover className="absolute left-3.5 top-[18px] -rotate-[9deg] opacity-50" />
             <GhostCover className="absolute right-3.5 top-3.5 rotate-[8deg] opacity-50" />
-            <div className="absolute left-1/2 top-2 h-32 w-24 -translate-x-1/2 overflow-hidden rounded-[9px] shadow-[0_30px_60px_-20px_rgba(43,127,255,0.25),0_4px_14px_rgba(0,0,0,0.08)]">
+            <div className="absolute left-1/2 top-2 h-56 w-42 -translate-x-1/2 overflow-hidden rounded-[9px] shadow-[0_30px_60px_-20px_rgba(43,127,255,0.25),0_4px_14px_rgba(0,0,0,0.08)]">
               <BookCover
                 title={t`Your book`}
                 author=""

@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router"
-import { TriangleAlert, HardDrive, FolderUp, ArrowRight } from "lucide-react"
+import { TriangleAlert, HardDrive, FolderUp, ArrowRight, Trash2 } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -14,15 +14,16 @@ export interface BookDetailDialogProps {
   book: BookVM | null
   onOpenChange: (open: boolean) => void
   onEdit: (label: string) => void
+  onDelete: (label: string) => void
 }
 
-export function BookDetailDialog({ book, onOpenChange, onEdit }: BookDetailDialogProps) {
+export function BookDetailDialog({ book, onOpenChange, onEdit, onDelete }: BookDetailDialogProps) {
   const navigate = useNavigate()
   const goStep = (step: "preview" | "export") =>
     book && navigate({ to: "/books/$label/$step", params: { label: book.label, step } })
   return (
     <Dialog open={book != null} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[620px] gap-0 overflow-hidden p-0">
+      <DialogContent className="max-w-[720px] gap-0 overflow-hidden p-0">
         {book && (
           <div className="flex max-h-[92vh] min-h-[470px]">
             <div
@@ -59,7 +60,7 @@ export function BookDetailDialog({ book, onOpenChange, onEdit }: BookDetailDialo
                 {book.hasStages && <StagePill discs={book.discs} />}
               </div>
 
-              <div className="mt-4 flex items-center gap-2.5 rounded-xl border bg-muted px-3 py-2.5">
+              <div className="mt-4 flex flex-col items-start gap-2.5 rounded-xl border bg-muted px-3 py-2.5">
                 <Badge variant="secondary" className={PILL}>
                   <HardDrive className="size-3" />
                   <Trans>Local only</Trans>
@@ -67,7 +68,7 @@ export function BookDetailDialog({ book, onOpenChange, onEdit }: BookDetailDialo
                 <span className="text-xs text-muted-foreground">
                   <Trans>Stored on this computer — share it by exporting a .zip</Trans>
                 </span>
-                <Button variant="outline" size="sm" className="ml-auto shrink-0" onClick={() => goStep("export")}>
+                <Button variant="outline" size="sm" className="shrink-0" onClick={() => goStep("export")}>
                   <FolderUp className="size-3.5" />
                   <Trans>Export .zip</Trans>
                 </Button>
@@ -80,6 +81,15 @@ export function BookDetailDialog({ book, onOpenChange, onEdit }: BookDetailDialo
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => goStep("preview")}>
                   <Trans>Preview</Trans>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onDelete(book.label)}
+                  className="ml-auto text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 className="size-3.5" />
+                  <Trans>Delete</Trans>
                 </Button>
               </div>
             </div>

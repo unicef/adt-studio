@@ -26,7 +26,7 @@ export function BookCover({ title, author, cover }: BookCoverProps) {
         background: cover.bg,
         color: cover.fg,
       }}
-      className="w-full h-full relative overflow-hidden border font-sans"
+      className="w-full h-full relative overflow-hidden border font-sans rounded-lg"
     >
       {imageSrc ? (
         <img

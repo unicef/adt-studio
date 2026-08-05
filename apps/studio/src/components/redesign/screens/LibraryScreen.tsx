@@ -309,7 +309,14 @@ export function LibraryScreen() {
         className="mt-5"
       />
 
-      <BookDetailDialog book={detail} onOpenChange={(o) => !o && setDetailLabel(null)} onEdit={openBook} />
+      <BookDetailDialog
+        book={detail}
+        onOpenChange={(o) => !o && setDetailLabel(null)}
+        onEdit={openBook}
+        onDelete={(label) => {
+          requestDelete(label)
+        }}
+      />
       </div>
     </div>
   )
