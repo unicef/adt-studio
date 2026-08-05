@@ -2169,6 +2169,12 @@ describe("convertLatexString", () => {
     expect(result).not.toContain("\\hat{")
   })
 
+  it("repairs split quad commands used for unit-column spacing", () => {
+    const result = convertLatexString("3\\aqu ad964\\aqu ad300")
+    expect(result).toContain("<math")
+    expect(result).not.toContain("\\aqu")
+  })
+
   it("does not convert mixed prose with embedded math as a single expression", () => {
     const text = "the molecular structure space M = (X, V), where X ∈ ℝ^{N×3} denotes atomic coordinates"
     const result = convertLatexString(text)

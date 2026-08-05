@@ -2089,7 +2089,7 @@ function decodeHtmlEntities(s: string): string {
  * avoid rendering the entire paragraph as a math expression.
  */
 export function convertLatexString(text: string): string {
-  text = decodeDollarEntities(text)
+  text = normalizeLatexCommands(decodeDollarEntities(text))
 
   let converted = convertDelimitedLatex(text)
 
@@ -2104,6 +2104,19 @@ export function convertLatexString(text: string): string {
   }
 
   return converted
+}
+
+/**
+ * OCR/LLM output occasionally inserts a space inside alignment commands
+ * (for example `\\aqu ad` or `\\qqu ad`). Temml then treats the text as
+ * literal content, which destroys the spacing between unit columns. Repair
+ * only these unambiguous command spellings before parsing LaTeX.
+ */
+function normalizeLatexCommands(text: string): string {
+  return text
+    .replace(/\\aqu\s+ad/g, "\\quad ")
+    .replace(/\\qqu\s+ad/g, "\\qquad ")
+    .replace(/\\q\s+uad/g, "\\quad ")
 }
 
 /**
