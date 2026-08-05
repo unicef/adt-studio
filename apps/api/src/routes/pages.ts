@@ -1671,6 +1671,34 @@ export function createPageRoutes(
       storage.close()
     }
 
+    // An unprune keeps the storyboard marked complete on the promise that this
+    // re-render will supply the section's HTML. When it dies that HTML never
+    // arrives, so take the mark back here — the browser may be long gone by then,
+    // and a stage claiming output it does not have is what #642 set out to fix.
+    const runReRender = async () => {
+      try {
+        return await reRenderPage({
+          label: safeLabel,
+          pageId,
+          sectionIndex,
+          prompt,
+          booksDir,
+          promptsDir,
+          webAssetsDir,
+          configPath,
+          apiKey,
+        })
+      } catch (err) {
+        const storage = createBookStorage(safeLabel, booksDir)
+        try {
+          markStoryboardChainStale(storage)
+        } finally {
+          storage.close()
+        }
+        throw err
+      }
+    }
+
     // Submit as task if TaskService is available
     if (taskService) {
       const desc = sectionIndex !== undefined
@@ -1680,38 +1708,14 @@ export function createPageRoutes(
         safeLabel,
         "re-render",
         desc,
-        async () => {
-          return await reRenderPage({
-            label: safeLabel,
-            pageId,
-            sectionIndex,
-            prompt,
-            booksDir,
-            promptsDir,
-            webAssetsDir,
-            configPath,
-            apiKey,
-          })
-        },
+        runReRender,
         { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
       )
       return c.json({ taskId, status: "submitted" })
     }
 
     // Fallback: run synchronously
-    const result = await reRenderPage({
-      label: safeLabel,
-      pageId,
-      sectionIndex,
-      prompt,
-      booksDir,
-      promptsDir,
-      webAssetsDir,
-      configPath,
-      apiKey,
-    })
-
-    return c.json(result)
+    return c.json(await runReRender())
   })
 
   // POST /books/:label/pages/:pageId/sections/:sectionIndex/ai-edit — AI-edit a section's HTML

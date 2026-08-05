@@ -461,6 +461,28 @@ describe("Page routes", () => {
       }
     })
 
+    it("keeps the stage complete when unpruning a section that will be re-rendered", async () => {
+      // Sections are normally pruned when the storyboard runs, so unpruning is
+      // the ordinary way content is brought in. The editor renders just that
+      // section, so the rest of the stage must survive untouched.
+      seedCompletedChain()
+
+      const res = await save({
+        sectioning: { reasoning: "r", sections: [] },
+        renderingInSync: true,
+      })
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        const steps = after.getStepRuns().map((r) => r.step)
+        expect(steps).toContain("web-rendering")
+        expect(steps).not.toContain("quiz-generation")
+      } finally {
+        after.close()
+      }
+    })
+
     it("rejects an empty save and a rendering-only in-sync claim", async () => {
       expect((await save({})).status).toBe(400)
       expect(
