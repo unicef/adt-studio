@@ -17,6 +17,11 @@ import type {
   ReviewerValidationSection,
   ReviewerValidationSession,
   TranslationEvaluationResult,
+  GitHubConnectionType,
+  GitHubFileChangeType,
+  GitHubFileDiffType,
+  GitHubPublishRequestType,
+  GitHubPublishStateType,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 
@@ -1871,6 +1876,18 @@ export const api = {
       }
     )
   },
+
+  connectGitHub: (token: string) => request<GitHubConnectionType>("/github/connection", { headers: { "X-GitHub-Token": token } }),
+  getGitHubPublishStatus: (label: string) => request<GitHubPublishStateType | null>(`/books/${label}/github-publishing/status`),
+  getGitHubDeployments: (label: string) => request<GitHubPublishStateType[]>(`/books/${label}/github-publishing/deployments`),
+  getGitHubDeploymentFileDiff: (label: string, deploymentId: string, filePath: string) => request<GitHubFileDiffType>(`/books/${label}/github-publishing/deployments/${encodeURIComponent(deploymentId)}/diff?path=${encodeURIComponent(filePath)}`),
+  getGitHubPublishChanges: (label: string) => request<{ changes: GitHubFileChangeType[]; packaged: boolean; sourceChanged: boolean }>(`/books/${label}/github-publishing/changes`),
+  materializeGitHubPublishChanges: (label: string) => request<{ changes: GitHubFileChangeType[] }>(`/books/${label}/github-publishing/materialize`, { method: "POST" }),
+  getGitHubFileDiff: (label: string, filePath: string) => request<GitHubFileDiffType>(`/books/${label}/github-publishing/diff?path=${encodeURIComponent(filePath)}`),
+  publishBookToGitHub: (label: string, token: string, options: GitHubPublishRequestType) => request<GitHubPublishStateType>(`/books/${label}/github-publishing/publish`, { method: "POST", headers: { "X-GitHub-Token": token }, body: JSON.stringify(options) }),
+  getGitHubRemoteStatus: (label: string, token: string) => request<{ configured: boolean; behind: boolean; conflict: boolean; localChangeCount: number; remoteCommitSha: string | null; localCommitSha?: string | null }>(`/books/${label}/github-publishing/remote-status`, { headers: { "X-GitHub-Token": token } }),
+  openGitHubBookEditor: (label: string, editor: "vscode" | "cursor" | "system") => request<{ ok: boolean }>(`/books/${label}/github-publishing/open-editor`, { method: "POST", body: JSON.stringify({ editor }) }),
+  pullBookFromGitHub: (label: string, token: string) => request<{ commitSha: string; files: number; backupPath: string | null }>(`/books/${label}/github-publishing/pull`, { method: "POST", headers: { "X-GitHub-Token": token } }),
 
   exportProject: async (label: string): Promise<Blob | null> => {
     if (!isDesktop()) {
