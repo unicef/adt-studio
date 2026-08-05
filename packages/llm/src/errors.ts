@@ -1,9 +1,10 @@
-import { APICallError } from "ai"
+import { APICallError, NoObjectGeneratedError } from "ai"
 
 export type LLMErrorClass =
   | "connect-timeout"
   | "request-timeout"
   | "connection-closed"
+  | "model-output"
   | "rate-limit"
   | "server-error"
   | "non-retryable"
@@ -77,6 +78,14 @@ export function classifyLLMError(error: unknown): LLMErrorClassification {
     const code = errorCode(current)
     const message = errorMessage(current)
     const name = errorName(current)
+
+    if (
+      NoObjectGeneratedError.isInstance(current) ||
+      name === "AI_TypeValidationError" ||
+      name === "AI_JSONParseError"
+    ) {
+      return { errorClass: "model-output", retryable: true }
+    }
 
     if (
       CONNECT_TIMEOUT_CODES.has(code) ||
