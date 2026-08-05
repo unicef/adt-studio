@@ -35,6 +35,9 @@ import { REDESIGN_PATHS, activeRedesignView } from "./nav"
 import type { RedesignView } from "./types"
 import { MacOSTrafficLightSpacer } from "../title-bar"
 
+const DOCS_URL = "https://unicef.github.io/adt-studio/docs/get-started/";
+const ISSUES_URL = "https://github.com/unicef/adt-studio/issues";
+
 const DOCS_LABEL: Record<RedesignView, MessageDescriptor> = {
   home: msg`Home guide`,
   library: msg`Library guide`,
@@ -240,7 +243,14 @@ export function AppSidebar({
               <ArrowUpRight className="size-3.5 text-brand-600" />
             </button>
             <div className="mx-1.5 my-1.5 h-px bg-border" />
-            <MenuRow icon={Library} trailing={<ArrowUpRight className="size-3.5 text-muted-foreground" />} onClick={() => setHelpOpen(false)}>
+            <MenuRow
+              icon={Library}
+              trailing={<ArrowUpRight className="size-3.5 text-muted-foreground" />}
+              onClick={() => {
+                setHelpOpen(false);
+                window.open(DOCS_URL, "_blank", "noopener,noreferrer");
+              }}
+            >
               <Trans>Browse documentation</Trans>
             </MenuRow>
             <MenuRow
@@ -266,7 +276,14 @@ export function AppSidebar({
               <Trans>Restart onboarding tour</Trans>
             </MenuRow>
             <div className="mx-1.5 my-1.5 h-px bg-border" />
-            <MenuRow icon={Bug} trailing={<ArrowUpRight className="size-3.5 text-muted-foreground" />} onClick={() => setHelpOpen(false)}>
+            <MenuRow
+              icon={Bug}
+              trailing={<ArrowUpRight className="size-3.5 text-muted-foreground" />}
+              onClick={() => {
+                setHelpOpen(false);
+                window.open(ISSUES_URL, "_blank", "noopener,noreferrer");
+              }}
+            >
               <Trans>Report an issue</Trans>
             </MenuRow>
             <MenuRow
