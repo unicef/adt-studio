@@ -1,19 +1,26 @@
 import { Link, Outlet, useLocation } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
-import { SETTINGS_PATHS, SETTINGS_TABS, activeSettingsSection } from "./nav"
+import { SETTINGS_PATHS, SETTINGS_TABS, activeSettingsTab } from "./nav"
 
 export function SettingsLayout() {
   const { i18n } = useLingui()
   const { pathname } = useLocation()
-  const active = activeSettingsSection(pathname)
+  const activeTab = activeSettingsTab(pathname)
+  const active = activeTab.key
+  const fullWidth = activeTab.fullWidth === true
 
   return (
-    <div className="h-full overflow-auto bg-background">
-      <div className="px-[34px] pt-6 text-[22px] font-bold tracking-[-0.02em]">
+    <div
+      className={cn(
+        "flex h-full flex-col bg-background",
+        fullWidth ? "overflow-hidden" : "overflow-auto",
+      )}
+    >
+      <div className="shrink-0 px-[34px] pt-6 text-[22px] font-bold tracking-[-0.02em]">
         <Trans>Settings</Trans>
       </div>
-      <div className="sticky top-0 z-[2] mt-3.5 border-b bg-background px-[34px]">
+      <div className="sticky top-0 z-[2] mt-3.5 shrink-0 border-b bg-background px-[34px]">
         <nav className="flex justify-start gap-6">
           {SETTINGS_TABS.map((tab) => {
             const Icon = tab.icon
@@ -36,7 +43,14 @@ export function SettingsLayout() {
           })}
         </nav>
       </div>
-      <div className="max-w-[820px] px-[34px] pb-10 pt-[26px]">
+      <div
+        className={cn(
+          "px-[34px]",
+          fullWidth
+            ? "flex min-h-0 flex-1 flex-col pb-6 pt-[22px]"
+            : "max-w-[820px] pb-10 pt-[26px]",
+        )}
+      >
         <Outlet />
       </div>
     </div>

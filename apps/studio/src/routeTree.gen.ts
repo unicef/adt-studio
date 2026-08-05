@@ -25,6 +25,7 @@ import { Route as RedesignSettingsIndexRouteImport } from "./routes/redesign.set
 import { Route as BooksLabelIndexRouteImport } from "./routes/books.$label.index"
 import { Route as RedesignSettingsThemeRouteImport } from "./routes/redesign.settings.theme"
 import { Route as RedesignSettingsProvidersRouteImport } from "./routes/redesign.settings.providers"
+import { Route as RedesignSettingsPromptsRouteImport } from "./routes/redesign.settings.prompts"
 import { Route as RedesignSettingsNotificationsRouteImport } from "./routes/redesign.settings.notifications"
 import { Route as RedesignSettingsModelsRouteImport } from "./routes/redesign.settings.models"
 import { Route as RedesignSettingsLanguageRouteImport } from "./routes/redesign.settings.language"
@@ -116,6 +117,11 @@ const RedesignSettingsProvidersRoute =
     path: "/providers",
     getParentRoute: () => RedesignSettingsRoute,
   } as any)
+const RedesignSettingsPromptsRoute = RedesignSettingsPromptsRouteImport.update({
+  id: "/prompts",
+  path: "/prompts",
+  getParentRoute: () => RedesignSettingsRoute,
+} as any)
 const RedesignSettingsNotificationsRoute =
   RedesignSettingsNotificationsRouteImport.update({
     id: "/notifications",
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
   "/redesign/settings/models": typeof RedesignSettingsModelsRoute
   "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
+  "/redesign/settings/prompts": typeof RedesignSettingsPromptsRoute
   "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
   "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -206,6 +213,7 @@ export interface FileRoutesByTo {
   "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
   "/redesign/settings/models": typeof RedesignSettingsModelsRoute
   "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
+  "/redesign/settings/prompts": typeof RedesignSettingsPromptsRoute
   "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
   "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
   "/books/$label": typeof BooksLabelIndexRoute
@@ -234,6 +242,7 @@ export interface FileRoutesById {
   "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
   "/redesign/settings/models": typeof RedesignSettingsModelsRoute
   "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
+  "/redesign/settings/prompts": typeof RedesignSettingsPromptsRoute
   "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
   "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | "/redesign/settings/language"
     | "/redesign/settings/models"
     | "/redesign/settings/notifications"
+    | "/redesign/settings/prompts"
     | "/redesign/settings/providers"
     | "/redesign/settings/theme"
     | "/books/$label/"
@@ -286,6 +296,7 @@ export interface FileRouteTypes {
     | "/redesign/settings/language"
     | "/redesign/settings/models"
     | "/redesign/settings/notifications"
+    | "/redesign/settings/prompts"
     | "/redesign/settings/providers"
     | "/redesign/settings/theme"
     | "/books/$label"
@@ -313,6 +324,7 @@ export interface FileRouteTypes {
     | "/redesign/settings/language"
     | "/redesign/settings/models"
     | "/redesign/settings/notifications"
+    | "/redesign/settings/prompts"
     | "/redesign/settings/providers"
     | "/redesign/settings/theme"
     | "/books/$label/"
@@ -447,6 +459,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof RedesignSettingsProvidersRouteImport
       parentRoute: typeof RedesignSettingsRoute
     }
+    "/redesign/settings/prompts": {
+      id: "/redesign/settings/prompts"
+      path: "/prompts"
+      fullPath: "/redesign/settings/prompts"
+      preLoaderRoute: typeof RedesignSettingsPromptsRouteImport
+      parentRoute: typeof RedesignSettingsRoute
+    }
     "/redesign/settings/notifications": {
       id: "/redesign/settings/notifications"
       path: "/notifications"
@@ -518,6 +537,7 @@ interface RedesignSettingsRouteChildren {
   RedesignSettingsLanguageRoute: typeof RedesignSettingsLanguageRoute
   RedesignSettingsModelsRoute: typeof RedesignSettingsModelsRoute
   RedesignSettingsNotificationsRoute: typeof RedesignSettingsNotificationsRoute
+  RedesignSettingsPromptsRoute: typeof RedesignSettingsPromptsRoute
   RedesignSettingsProvidersRoute: typeof RedesignSettingsProvidersRoute
   RedesignSettingsThemeRoute: typeof RedesignSettingsThemeRoute
   RedesignSettingsIndexRoute: typeof RedesignSettingsIndexRoute
@@ -528,6 +548,7 @@ const RedesignSettingsRouteChildren: RedesignSettingsRouteChildren = {
   RedesignSettingsLanguageRoute: RedesignSettingsLanguageRoute,
   RedesignSettingsModelsRoute: RedesignSettingsModelsRoute,
   RedesignSettingsNotificationsRoute: RedesignSettingsNotificationsRoute,
+  RedesignSettingsPromptsRoute: RedesignSettingsPromptsRoute,
   RedesignSettingsProvidersRoute: RedesignSettingsProvidersRoute,
   RedesignSettingsThemeRoute: RedesignSettingsThemeRoute,
   RedesignSettingsIndexRoute: RedesignSettingsIndexRoute,
