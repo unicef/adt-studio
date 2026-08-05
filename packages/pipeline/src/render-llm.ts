@@ -6,7 +6,11 @@ import { validateSectionHtml, isEnumerationMarker } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
 import type { RenderConfig, RenderExecutionOptions, RenderNode, RenderSectionInput } from "./web-rendering.js"
 import { runVisualReviewLoop } from "./visual-review.js"
-import { buildTypographyCss, typographyPreservationErrors } from "./typography.js"
+import {
+  buildTypographyCss,
+  typographyPreservationErrors,
+  DISPLAY_TYPOGRAPHY_SECTION_TYPES,
+} from "./typography.js"
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
 
 /** Dependencies for the optional visual refinement loop. */
@@ -89,6 +93,10 @@ export async function renderSectionLlm(
   // Optional: visual refinement loop — screenshot the HTML and ask an LLM to review
   if (visualRefinement && config.visualRefinement?.enabled) {
     const vr = config.visualRefinement
+    // Covers, chapter dividers, and other front matter are display pages:
+    // the reviewer may enlarge type to match the original, so the fixed-scale
+    // guard is skipped for them.
+    const allowDisplayTypography = DISPLAY_TYPOGRAPHY_SECTION_TYPES.has(section.sectionType)
     const imagesForScreenshot = new Map<string, { base64: string }>()
     for (const img of renderContext.image_refs) {
       if (img.image_base64) {
@@ -122,6 +130,8 @@ export async function renderSectionLlm(
         leaf_texts: renderContext.leaf_texts,
         has_merged_content: sourcePages.length > 0,
         is_activity: isActivity,
+        is_partial_page: (input.pageSectionCount ?? 1) > 1,
+        allow_display_typography: allowDisplayTypography,
       },
       originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",
       firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",
@@ -139,8 +149,12 @@ export async function renderSectionLlm(
         // Deterministic guard: reject any revision that strips the fixed type
         // scale (the reviewer tends to shrink the intentionally-large text by
         // removing adt-* classes). Rejected revisions keep the prior good HTML.
-        const typoErrors = typographyPreservationErrors(generatedHtml, cleanedHtml)
-        if (typoErrors.length > 0) return { valid: false, errors: typoErrors }
+        // Display pages (covers, dividers, front matter) are exempt so the
+        // reviewer can match the original's display type.
+        if (!allowDisplayTypography) {
+          const typoErrors = typographyPreservationErrors(generatedHtml, cleanedHtml)
+          if (typoErrors.length > 0) return { valid: false, errors: typoErrors }
+        }
         return { valid: true, errors: [], cleanedHtml }
       },
     })

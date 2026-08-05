@@ -128,6 +128,24 @@ function countClass(html: string, cls: string): number {
 }
 
 /**
+ * Section types whose typography is display-driven rather than reading-driven:
+ * covers, chapter dividers, and other front matter. On these pages matching
+ * the original's large display type matters more than the shared deterministic
+ * scale, so the visual reviewer may enlarge text beyond the `adt-*` defaults
+ * and `typographyPreservationErrors` is skipped. Body/content pages (including
+ * chapter titles that appear inside regular pages) stay on the fixed scale.
+ */
+export const DISPLAY_TYPOGRAPHY_SECTION_TYPES: ReadonlySet<string> = new Set([
+  "front_cover",
+  "back_cover",
+  "inside_cover",
+  "separator",
+  "table_of_contents",
+  "credits",
+  "foreword",
+])
+
+/**
  * Deterministic guard for the visual-review loop: returns validation errors
  * when a revised section drops `adt-*` typography classes present in the
  * original, or introduces inline `font-size`. An empty array means typography

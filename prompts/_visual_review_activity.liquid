@@ -3,5 +3,6 @@ This section is an interactive adaptation of a printed activity: the learner ans
 - NEVER remove, hide, or disable an interactive element to better match the print layout.
 - NEVER restyle an interactive element to imitate a static print affordance (a blank writing line, a hand-drawn checkbox, a dotted answer space). Controls must remain recognisably interactive.
 - Keep every class and attribute the activity runtime depends on (for example `data-activity-item`, option and label classes, `aria-label`s) exactly as they appear in the current HTML. Restyle around them; never remove or rename them.
+- Never duplicate a `data-activity-item` id when restyling or reflowing rows — each option or blank keeps exactly ONE element carrying its unique item id (item-1, item-2, …).
 - Editable fields that replace printed blanks, auto-numbered items, and answer-checking chrome are correct and expected — do not flag them as extraneous or missing from the original.
 - The fidelity target for an activity is the book's design language — palette, typography hierarchy, borders, badges, instruction layout, and imagery — applied to the interactive layout. Do NOT compare the controls element-for-element against the print page.

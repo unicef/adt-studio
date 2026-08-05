@@ -117,6 +117,56 @@ describe("page-mode visual review prompt", () => {
     expect(prompt).toContain("`sr-only`")
     expect(prompt).toContain("must contain only literal text")
   })
+
+  it("uses region framing for non-activity sections on split pages", async () => {
+    const messages = await promptEngine.renderPrompt("visual_review_page", {
+      is_activity: false,
+      is_partial_page: true,
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("covers only part of the page")
+    expect(prompt).toContain("compare against that region only")
+    expect(prompt).not.toContain("one complete source page")
+    expect(prompt).not.toContain("THIS SECTION IS AN INTERACTIVE ACTIVITY")
+  })
+})
+
+describe("visual review text and typography rules", () => {
+  for (const promptName of ["visual_review", "visual_review_page"]) {
+    it(`${promptName} forbids adding text and excuses pruned furniture`, async () => {
+      const messages = await promptEngine.renderPrompt(promptName, { nodes })
+      const prompt = messages.map(messageText).join("\n")
+
+      expect(prompt).toContain("You cannot add visible text anywhere")
+      expect(prompt).toContain("never withhold approval because it is missing")
+      expect(prompt).toContain("pruned")
+      expect(prompt).toContain("Its absence is never a defect")
+    })
+
+    it(`${promptName} allows enlarging display type on front-matter sections`, async () => {
+      const messages = await promptEngine.renderPrompt(promptName, {
+        nodes,
+        allow_display_typography: true,
+      })
+      const prompt = messages.map(messageText).join("\n")
+
+      expect(prompt).toContain("MAY increase text sizes")
+      expect(prompt).toContain("Never make any text smaller than its `adt-*` default")
+      expect(prompt).not.toContain("Do NOT change font")
+    })
+
+    it(`${promptName} pins the type scale on regular sections`, async () => {
+      const messages = await promptEngine.renderPrompt(promptName, {
+        nodes,
+        allow_display_typography: false,
+      })
+      const prompt = messages.map(messageText).join("\n")
+
+      expect(prompt).toContain("Do NOT change font")
+      expect(prompt).not.toContain("MAY increase text sizes")
+    })
+  }
 })
 
 describe("visual review activity awareness", () => {
@@ -139,6 +189,7 @@ describe("visual review activity awareness", () => {
       expect(prompt).toContain("THIS SECTION IS AN INTERACTIVE ACTIVITY")
       expect(prompt).toContain("NEVER remove, hide, or disable an interactive element")
       expect(prompt).toContain("data-activity-item")
+      expect(prompt).toContain("Never duplicate a `data-activity-item` id")
       expect(prompt).toContain("Do NOT compare the controls element-for-element against the print page")
     })
 

@@ -104,6 +104,12 @@ export interface RenderSectionInput {
   typography?: BookTypography
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
+  /**
+   * How many renderable sections the hosting page has. When > 1 the section
+   * covers only part of its page, so the visual reviewer must compare against
+   * the matching page region instead of the whole page image.
+   */
+  pageSectionCount?: number
 }
 
 export interface RenderPageInput {
@@ -317,18 +323,24 @@ export async function renderPage(
 ): Promise<WebRenderingOutput> {
   const sections: SectionRendering[] = []
 
+  // Count renderable sections up front so each section knows whether it
+  // covers the whole page or only part of it (drives review framing).
+  const renderable = input.sectioning.sections.map((section) => {
+    if (section.isPruned) return null
+    const context = buildRenderContext(section, input.images, input.label)
+    if (context.leaf_texts.length === 0 && context.image_refs.length === 0) return null
+    return context
+  })
+  const pageSectionCount = renderable.filter(Boolean).length
+
   for (let i = 0; i < input.sectioning.sections.length; i++) {
     throwIfAborted(options.signal)
 
     const section = input.sectioning.sections[i]
+    const context = renderable[i]
 
-    // Skip pruned sections
-    if (section.isPruned) continue
-
-    const context = buildRenderContext(section, input.images, input.label)
-
-    // Skip sections with no renderable content
-    if (context.leaf_texts.length === 0 && context.image_refs.length === 0) continue
+    // Skip pruned sections and sections with no renderable content
+    if (!context) continue
 
     const config = resolveConfig(section.sectionType)
 
@@ -350,6 +362,7 @@ export async function renderPage(
       bookFonts: input.bookFonts,
       typography: input.typography,
       userPrompt: input.userPrompt,
+      pageSectionCount,
     }
 
     let rendering: SectionRendering
