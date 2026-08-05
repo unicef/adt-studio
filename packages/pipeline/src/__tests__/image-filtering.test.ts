@@ -49,6 +49,19 @@ describe("classifyPageImages", () => {
     })
   })
 
+  it("keeps small direct assets so signatures and approval marks can be identified", () => {
+    const images: ImageData[] = [
+      { imageId: "pg001_im_signature", width: 36, height: 18, renderMethod: "raster" },
+      { imageId: "pg001_im_seal", width: 28, height: 28, renderMethod: "vector" },
+    ]
+    const result = classifyPageImages("pg001", images, defaultConfig)
+
+    expect(result.images).toEqual([
+      { imageId: "pg001_im_signature", isPruned: false },
+      { imageId: "pg001_im_seal", isPruned: false },
+    ])
+  })
+
   it("prunes images with longest side above max_side", () => {
     const images = [makeImage("pg001_im001", 6000, 3000)]
     const result = classifyPageImages("pg001", images, defaultConfig)

@@ -28,6 +28,19 @@ export function classifyPageImages(
       const shortSide = Math.min(img.width, img.height)
       const longSide = Math.max(img.width, img.height)
 
+      // Direct raster/vector assets can be publication marks (signatures,
+      // seals, approval stamps) and are often intentionally small. Size and
+      // pixel-complexity thresholds are useful for noisy page-crop artifacts,
+      // but must not discard these authentic assets before sectioning has a
+      // chance to identify them. The semantic/image-meaningfulness stages
+      // still decide whether such an asset belongs in the page tree.
+      const preservePublicationAsset =
+        img.renderMethod === "raster" || img.renderMethod === "vector"
+
+      if (preservePublicationAsset) {
+        return { imageId: img.imageId, isPruned: false }
+      }
+
       if (min_side !== undefined && shortSide < min_side) {
         return {
           imageId: img.imageId,
