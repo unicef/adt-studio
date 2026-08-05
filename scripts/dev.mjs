@@ -49,6 +49,14 @@ const env = {
   ...extraEnv,
 }
 
+// Keep the TypeScript watcher and Vite renderer bounded during development.
+// The API receives its own slightly larger limit below because it runs the
+// pipeline and can legitimately need more heap for PDF/HTML work.
+const studioEnv = {
+  ...env,
+  NODE_OPTIONS: process.env.NODE_OPTIONS ?? "--max-old-space-size=1536",
+}
+
 // Keep a runaway API/pipeline task from exhausting the host while developing.
 // Production builds are unaffected; users can override this explicitly.
 const apiEnv = {
@@ -63,12 +71,12 @@ const children = [
         spawn("pnpm", ["tsc", "--build", "--watch", "--preserveWatchOutput"], {
           stdio: "inherit",
           shell: process.platform === "win32",
-          env,
+          env: studioEnv,
         }),
         spawn("pnpm", ["--filter", "@adt/runtime", "build:watch"], {
           stdio: "inherit",
           shell: process.platform === "win32",
-          env,
+          env: studioEnv,
         }),
       ]),
   spawn("pnpm", ["--filter", "@adt/api", "dev"], {
@@ -79,7 +87,7 @@ const children = [
   spawn("pnpm", ["--filter", "@adt/studio", "dev"], {
     stdio: "inherit",
     shell: process.platform === "win32",
-    env,
+    env: studioEnv,
   }),
 ]
 

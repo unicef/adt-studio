@@ -29,6 +29,7 @@
     "**/coverage/**": true,
     "**/apps/adt-runtime/sample/**": true
   },
-  "typescript.tsserver.maxTsServerMemory": 3072,
+  "typescript.tsserver.maxTsServerMemory": 1536,
+  "typescript.tsserver.experimental.enableProjectDiagnostics": false,
   "typescript.disableAutomaticTypeAcquisition": true
 }
