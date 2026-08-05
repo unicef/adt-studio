@@ -5,7 +5,8 @@ import { Search, House, BookMarked, Split, Settings, Plus, Upload, CornerDownLef
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import type { BookSummary } from "@/api/client"
-import { toBookVM } from "./data"
+import { toBookVM, type CoverSpec } from "./data"
+import { BookCover } from "./BookCover"
 import { Kbd } from "./ui/Kbd"
 import { REDESIGN_PATHS } from "./nav"
 
@@ -17,7 +18,8 @@ interface PaletteItem {
   title: string
   sub?: string
   icon?: LucideIcon
-  coverBg?: string
+  cover?: CoverSpec
+  author?: string
   run: () => void
 }
 interface PaletteGroup {
@@ -93,7 +95,8 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
         id: `book-${b.label}`,
         title: vm.displayTitle,
         sub: `${vm.authors} · ${vm.pagesText}`,
-        coverBg: vm.cover.bg,
+        cover: vm.cover,
+        author: vm.authors,
         run: () => navigate({ to: "/books/$label/$step", params: { label: b.label, step: "book" } }),
       }
     })
@@ -183,8 +186,10 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
                     isActive && "bg-muted",
                   )}
                 >
-                  {it.coverBg ? (
-                    <span className="h-8 w-6 shrink-0 rounded-sm shadow-sm" style={{ background: it.coverBg }} />
+                  {it.cover ? (
+                    <span className="block h-8 w-6 shrink-0 overflow-hidden rounded-sm shadow-sm">
+                      <BookCover title={it.title} author={it.author ?? ""} cover={it.cover} />
+                    </span>
                   ) : (
                     <span className="grid size-[30px] shrink-0 place-items-center rounded-[9px] bg-brand-50 text-brand-600">
                       {Icon ? <Icon className="size-4" /> : <BookOpen className="size-4" />}
