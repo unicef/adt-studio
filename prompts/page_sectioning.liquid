@@ -140,6 +140,7 @@ Use these to disambiguate activity types:
 9. Poetry / verse: `preformatted` per stanza; each line is a `role: "text"` leaf.
 10. Fill-in-the-blank placeholders: when a word appears as a placeholder (dotted, underlined, inside blanks, or styled like `..word..` / `___word___`), wrap the placeholder as `[placeholder:word]` within the leaf's text. Only do this when the word is visually styled as a fill-in blank.
 11. Page numbers, running headers, and running footers become leaves with role `page_number` / `header` / `footer` — typically in their own tiny section or appended to an existing section based on location.
+12. Watermark overlays — decorative, status, or usage-restriction text stamped across the page (e.g. "DRAFT", "SAMPLE", "SPECIMEN", "CONFIDENTIAL", "FOR ONLINE READING ONLY", a copyright/ownership stamp, or a repeated diagonal label) — become a single leaf with role `watermark`. They are typically faint / semi-transparent, tinted, and rotated diagonally, and often repeat identically on every page. A watermark commonly runs across or behind the real content: do NOT merge its words into the headings, paragraphs, table cells, or table-of-contents entries it overlaps, and do NOT treat it as a `caption`/`label` — pull it out as its own separate `watermark` leaf carrying the full phrase. It is not part of the reading content.
 
 ## Section partition rules
 

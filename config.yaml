@@ -67,6 +67,13 @@ role_types:
   footer: A running footer.
   quote: A quoted passage.
   book_metadata: Publisher, copyright, ISBN, edition, or author metadata.
+  watermark: >
+    Decorative, status, or usage-restriction overlay text stamped across the
+    page — e.g. "DRAFT", "SAMPLE", "SPECIMEN", "CONFIDENTIAL", "FOR ONLINE
+    READING ONLY", a copyright/ownership stamp, or a repeated diagonal label.
+    Often faint/semi-transparent, tinted, and rotated diagonally, and may run
+    across or behind the real content (repeating identically on every page).
+    Not part of the reading content.
 
 section_types:
   front_cover: >
@@ -315,6 +322,7 @@ pruned_role_types:
   - header
   - footer
   - page_number
+  - watermark
 
 pruned_section_types:
   - back_cover

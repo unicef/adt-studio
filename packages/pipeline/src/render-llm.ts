@@ -307,7 +307,12 @@ function collectLeafDataIdOrder(nodes: RenderNode[]): string[] {
 // (single dots are normal punctuation).
 const TEXTBOOK_BLANK_RE = /_+|\.{3,}/g
 const PLACEHOLDER_MARKER_RE = /\[placeholder:[^\]]+\]/g
-const OPTIONAL_TEXT_ROLES = new Set(["footer", "header", "page_number"])
+const OPTIONAL_TEXT_ROLES = new Set([
+  "footer",
+  "header",
+  "page_number",
+  "watermark",
+])
 
 /** True if the leaf's text is nothing but textbook blank placeholders
  * (`___`, `...`, `[placeholder:...]`) and inert separators (whitespace,
