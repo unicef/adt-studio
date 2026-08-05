@@ -3463,8 +3463,10 @@ async function runMeaningfulnessPass(
           height: img.height,
         }))
 
+      if (unprunedImages.length === 0) return
+
       let attempts = 0
-      while (unprunedImages.length > 0) {
+      for (;;) {
         try {
           const updated = await filterPageImageMeaningfulness(
             {
@@ -3478,7 +3480,7 @@ async function runMeaningfulnessPass(
           )
           results.set(page.pageId, updated)
           storage.putNodeData("image-filtering", page.pageId, updated)
-          break
+          return
         } catch (err) {
           const classification = classifyLLMError(err)
           attempts += classification.retryable ? config.maxRetries + 1 : 1
@@ -3495,7 +3497,7 @@ async function runMeaningfulnessPass(
               attempts,
             },
           )
-          if (action !== "retry") break
+          if (action !== "retry") return
         }
       }
     } catch (err) {
