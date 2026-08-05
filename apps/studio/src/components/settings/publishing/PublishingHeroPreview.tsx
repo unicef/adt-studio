@@ -133,7 +133,7 @@ export function PublishingHeroPreview() {
   const reviewerCursorOpacity = showThread ? (isSeized ? 0.35 : 1) : 0
 
   return (
-    <div className="relative w-full max-w-4xl mh:max-w-2xl">
+    <div className="relative w-full max-w-[min(56rem,calc((100dvh-32rem)*1.5))] mh:max-w-2xl">
       <div aria-live="off" className="sr-only">
         <p>
           <Trans>

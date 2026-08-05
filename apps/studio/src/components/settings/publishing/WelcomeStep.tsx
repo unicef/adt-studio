@@ -9,7 +9,7 @@ interface WelcomeStepProps {
 
 export function WelcomeStep({ onStart }: WelcomeStepProps) {
   return (
-    <div className="flex flex-col items-center gap-6 px-2 py-4 text-center mh:gap-3 mh:py-1.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300">
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 px-2 py-4 text-center mh:gap-3 mh:py-1.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300">
       <div className="flex flex-col items-center gap-3 mh:gap-2">
         <p className="flex items-center gap-1.5 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-indigo-700">
           <Sparkles className="size-3" aria-hidden="true" />

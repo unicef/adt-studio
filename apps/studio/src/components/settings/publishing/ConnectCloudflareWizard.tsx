@@ -11,17 +11,19 @@ import { AccountPickerStep } from "./AccountPickerStep"
 import { CredentialsStep } from "./CredentialsStep"
 import { CreateTokenStep } from "./CreateTokenStep"
 import { DoneStep } from "./DoneStep"
+import { ConnectStep } from "./ConnectStep"
 import { IntroStep } from "./IntroStep"
 import { WelcomeStep } from "./WelcomeStep"
 import { ProvisionStep } from "./ProvisionStep"
 import { WIZARD_STEP_HEADING_ID } from "./WizardStepShell"
 import { openExternalUrl } from "./open-external"
 
-const MANUAL_STEPS = ["intro", "token", "credentials", "provision"] as const
+const MANUAL_STEPS = ["token", "credentials", "provision"] as const
 
 type WizardStep =
   | "welcome"
   | "intro"
+  | "connect"
   | "token"
   | "credentials"
   | "account"
@@ -56,6 +58,7 @@ export function ConnectCloudflareWizard({
   const [verifyResult, setVerifyResult] = useState<CloudflareVerifyResponse | null>(null)
   const [step, setStep] = useState<WizardStep>("welcome")
   const [path, setPath] = useState<"oauth" | "manual">("oauth")
+  const [withComments, setWithComments] = useState(true)
   const [direction, setDirection] = useState<"forward" | "back">("forward")
   const verify = useVerifyCloudflareToken()
   const hasMountedRef = useRef(false)
@@ -126,8 +129,8 @@ export function ConnectCloudflareWizard({
     path === "manual"
       ? [...MANUAL_STEPS]
       : oauth.accounts.length > 1
-        ? ["intro", "account", "provision"]
-        : ["intro", "provision"]
+        ? ["account", "provision"]
+        : ["provision"]
   const stepCount = steps.length
   const stepNumber = Math.max(steps.indexOf(step) + 1, 1)
 
@@ -135,7 +138,7 @@ export function ConnectCloudflareWizard({
     <div
       key={step}
       className={cn(
-        "rounded-xl border bg-card p-5 motion-reduce:animate-none",
+        "flex h-[max(430px,calc(100dvh-13.5rem))] flex-col overflow-y-auto rounded-xl border bg-card p-5 mh:h-auto motion-reduce:animate-none",
         direction === "forward" ? "animate-step-enter-forward" : "animate-step-enter-back",
       )}
     >
@@ -143,15 +146,24 @@ export function ConnectCloudflareWizard({
 
       {step === "intro" && (
         <IntroStep
-          stepNumber={stepNumber}
-          stepCount={stepCount}
+          onBack={() => goTo("welcome", "back")}
+          onContinue={({ storage }) => {
+            setWithComments(storage === "cloudflare")
+            goTo("connect", "forward")
+          }}
+        />
+      )}
+
+      {step === "connect" && (
+        <ConnectStep
+          withComments={withComments}
           oauthPhase={oauth.phase}
           oauthErrorCode={oauth.errorCode}
           oauthErrorMessage={oauth.errorMessage}
           authUrl={oauth.authUrl}
           onBack={() => {
             oauth.reset()
-            goTo("welcome", "back")
+            goTo("intro", "back")
           }}
           onConnectWithCloudflare={() => {
             openedAuthUrlRef.current = null
@@ -178,7 +190,7 @@ export function ConnectCloudflareWizard({
           stepCount={stepCount}
           onBack={() => {
             setPath("oauth")
-            goTo("intro", "back")
+            goTo("connect", "back")
           }}
           onContinue={() => goTo("credentials", "forward")}
         />
@@ -214,7 +226,7 @@ export function ConnectCloudflareWizard({
           stepNumber={stepNumber}
           stepCount={stepCount}
           credentials={provisionCredentials}
-          onBack={() => goTo(path === "oauth" ? "intro" : "credentials", "back")}
+          onBack={() => goTo(path === "oauth" ? "connect" : "credentials", "back")}
           onProvisioned={() => {
             onProvisioned()
             goTo("done", "forward")
