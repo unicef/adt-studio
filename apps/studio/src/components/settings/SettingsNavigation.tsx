@@ -1,11 +1,19 @@
-import { Bot, FileText, KeyRound } from "lucide-react"
-import { Link } from "@tanstack/react-router"
-import { Trans, useLingui } from "@lingui/react/macro"
-import { cn } from "@/lib/utils"
-import type { SettingsSection } from "./settingsSections"
+import { Bot, FileText, KeyRound } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useUiVersion } from "@/hooks/use-ui-version";
+import { cn } from "@/lib/utils";
+import type { SettingsSection } from "./settingsSections";
 
-export function SettingsNavigation({ activeSection }: { activeSection: SettingsSection }) {
-  const { t } = useLingui()
+export function SettingsNavigation({
+  activeSection,
+}: {
+  activeSection: SettingsSection;
+}) {
+  const { t } = useLingui();
+  const navigate = useNavigate();
+  const [uiVersion, setUiVersion] = useUiVersion();
   const items = [
     {
       section: "default-model" as const,
@@ -28,13 +36,34 @@ export function SettingsNavigation({ activeSection }: { activeSection: SettingsS
       shortLabel: <Trans>Prompts</Trans>,
       description: <Trans>Shared prompt versions</Trans>,
     },
-  ]
+  ];
 
   return (
     <aside className="shrink-0 border-b bg-muted/20 md:w-64 md:border-b-0 md:border-r">
-      <nav aria-label={t`Settings navigation`} className="grid grid-cols-3 gap-1 p-2 md:flex md:flex-col md:px-3">
+      <div className="border-t p-3 md:mx-3 md:px-0">
+        <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+          <Trans>Interface</Trans>
+        </div>
+        <SegmentedControl
+          options={[
+            { value: "new", label: t`New` },
+            { value: "old", label: t`Classic` },
+          ]}
+          value={uiVersion}
+          onValueChange={(version) => {
+            setUiVersion(version);
+            if (version === "new") {
+              void navigate({ to: "/redesign/settings" });
+            }
+          }}
+        />
+      </div>
+      <nav
+        aria-label={t`Settings navigation`}
+        className="grid grid-cols-3 gap-1 p-2 md:flex md:flex-col md:px-3"
+      >
         {items.map(({ section, icon: Icon, label, shortLabel }) => {
-          const isActive = activeSection === section
+          const isActive = activeSection === section;
           return (
             <Link
               key={section}
@@ -50,13 +79,17 @@ export function SettingsNavigation({ activeSection }: { activeSection: SettingsS
             >
               <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
               <span className="min-w-0">
-                <span className="block truncate text-xs font-medium sm:text-sm md:hidden">{shortLabel}</span>
-                <span className="hidden truncate text-sm font-medium md:block">{label}</span>
+                <span className="block truncate text-xs font-medium sm:text-sm md:hidden">
+                  {shortLabel}
+                </span>
+                <span className="hidden truncate text-sm font-medium md:block">
+                  {label}
+                </span>
               </span>
             </Link>
-          )
+          );
         })}
       </nav>
     </aside>
-  )
+  );
 }

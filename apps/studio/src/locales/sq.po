@@ -2196,6 +2196,9 @@ msgstr "Zgjidhni cilat artikuj validimi për faqe duhet të kontrollojnë rishik
 msgid "Ciências da Natureza - Ensino Fundamental"
 msgstr "Ciências da Natureza - Ensino Fundamental"
 
+msgid "Classic"
+msgstr "Klasike"
+
 msgid "Classic Storybook"
 msgstr "Libër Klasik Tregimesh"
 
@@ -4604,6 +4607,9 @@ msgstr "Faqe interaktive: konvertim me AI nga PDF origjinal."
 
 msgid "Interactive step-by-step activity."
 msgstr "Aktivitet interaktiv hap pas hapi."
+
+msgid "Interface"
+msgstr "Ndërfaqja"
 
 msgid "Intro"
 msgstr "Hyrje"
@@ -8684,6 +8690,9 @@ msgstr "Diell"
 
 msgid "SW"
 msgstr "JP"
+
+msgid "Switch between the new and the classic ADT Studio interface."
+msgstr "Kaloni midis ndërfaqes së re dhe asaj klasike të ADT Studio."
 
 msgid "Switching presentation failed"
 msgstr "Ndryshimi i prezantimit dështoi"

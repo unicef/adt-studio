@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { hasCompletedOnboarding } from "@/hooks/use-onboarding"
+import { getUiVersion } from "@/hooks/use-ui-version"
 import {
   Plus,
   ArrowRight,
@@ -137,8 +138,12 @@ function useFlipList<T>(
 
 export const Route = createFileRoute("/")({
   beforeLoad: () => {
-    if (typeof window !== "undefined" && !hasCompletedOnboarding()) {
+    if (typeof window === "undefined") return
+    if (!hasCompletedOnboarding()) {
       throw redirect({ to: "/onboarding" })
+    }
+    if (getUiVersion() === "new") {
+      throw redirect({ to: "/redesign", replace: true })
     }
   },
   component: HomePage,

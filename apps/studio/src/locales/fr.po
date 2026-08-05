@@ -2197,6 +2197,9 @@ msgstr "Choisissez quels éléments de validation par page les réviseurs doiven
 msgid "Ciências da Natureza - Ensino Fundamental"
 msgstr "Ciências da Natureza - Ensino Fundamental"
 
+msgid "Classic"
+msgstr "Classique"
+
 msgid "Classic Storybook"
 msgstr "Classic Storybook"
 
@@ -4605,6 +4608,9 @@ msgstr "Page interactive : conversion par IA du PDF original."
 
 msgid "Interactive step-by-step activity."
 msgstr "Activité interactive pas à pas."
+
+msgid "Interface"
+msgstr "Interface"
 
 msgid "Intro"
 msgstr "Intro"
@@ -8685,6 +8691,9 @@ msgstr "Sun"
 
 msgid "SW"
 msgstr "SW"
+
+msgid "Switch between the new and the classic ADT Studio interface."
+msgstr "Basculez entre la nouvelle interface d'ADT Studio et la version classique."
 
 msgid "Switching presentation failed"
 msgstr "Échec du changement de présentation"
