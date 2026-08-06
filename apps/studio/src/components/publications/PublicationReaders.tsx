@@ -64,7 +64,7 @@ export function PublicationReaders({ token, override }: PublicationReadersProps)
   const outdated = apiErrorCode(query.error) === "worker_outdated"
 
   return (
-    <div className="flex flex-col gap-1 border-t pt-3">
+    <div className="flex flex-col gap-1">
       <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
         <Trans>Readers who joined</Trans>
       </span>

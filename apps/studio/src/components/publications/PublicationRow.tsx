@@ -101,6 +101,9 @@ export function PublicationRow({
   const [copied, setCopied] = useState(false)
   const [copyFailed, setCopyFailed] = useState(false)
   const [readersOpen, setReadersOpen] = useState(false)
+  /** Sticky: the panel stays mounted after the first open so closing can animate, and so a
+   *  second look does not re-request a roster the cache already holds. */
+  const [readersEverOpened, setReadersEverOpened] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(
@@ -114,6 +117,12 @@ export function PublicationRow({
   const state = publicationStateAt(publication)
   const unknown = t`—`
   const titleId = `publication-title-${publication.token}`
+  const readersId = `publication-readers-${publication.token}`
+
+  function toggleReaders() {
+    setReadersOpen(!readersOpen)
+    if (!readersOpen) setReadersEverOpened(true)
+  }
 
   async function copyLink() {
     if (!url) return
@@ -255,11 +264,6 @@ export function PublicationRow({
             ) : null}
           </span>
 
-          {readersOpen ? (
-            <div className="duration-200 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1">
-              <PublicationReaders token={publication.token} override={readers} />
-            </div>
-          ) : null}
         </div>
         </div>
 
@@ -296,14 +300,15 @@ export function PublicationRow({
             variant="ghost"
             size="sm"
             aria-expanded={readersOpen}
-            onClick={() => setReadersOpen((open) => !open)}
+            aria-controls={readersId}
+            onClick={toggleReaders}
             className="h-8 justify-start gap-2 text-xs text-muted-foreground"
           >
             <Users className="size-3.5" aria-hidden="true" />
             <Trans>Readers</Trans>
             <ChevronDown
               className={cn(
-                "ml-auto size-3.5 transition-transform duration-200 motion-reduce:transition-none",
+                "ml-auto size-3.5 transition-transform duration-300 ease-out motion-reduce:transition-none",
                 readersOpen && "rotate-180",
               )}
               aria-hidden="true"
@@ -333,6 +338,29 @@ export function PublicationRow({
           </Button>
         </div>
       </article>
+
+      {/* A drawer under the whole card rather than a block inside the text column: it spans the
+          divider, and `grid-rows` from 0fr to 1fr is the one height transition that works
+          without measuring. `transition-discrete` holds `visibility` until the collapse has
+          finished, so closing fades out instead of blinking away — and once closed the panel is
+          out of the tab order. Mounted from the first open onwards, never before: that is what
+          keeps a shelf of forty books from fetching forty rosters. */}
+      {readersEverOpened && (
+        <div
+          id={readersId}
+          aria-hidden={!readersOpen}
+          className={cn(
+            "grid overflow-hidden transition-all duration-300 ease-out transition-discrete motion-reduce:transition-none",
+            readersOpen ? "grid-rows-[1fr] opacity-100" : "invisible grid-rows-[0fr] opacity-0",
+          )}
+        >
+          <div className="min-h-0">
+            <div className="border-t px-4 py-3 mh:px-3">
+              <PublicationReaders token={publication.token} override={readers} />
+            </div>
+          </div>
+        </div>
+      )}
     </li>
   )
 }

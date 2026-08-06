@@ -631,6 +631,21 @@ describe("PublicationsDashboard — readers", () => {
     })
     expect(getPublicationReaders).toHaveBeenCalledWith("TokenRavenTokenRavenTokenRaven12")
     expect(document.body.textContent).toContain("Only people who typed a name are listed")
+
+    /** Closing collapses rather than unmounts, so the drawer can animate shut — but the
+     *  collapsed panel has to be hidden from assistive tech, and re-opening must not re-ask. */
+    const toggle = screen.getByRole("button", { name: /readers/i })
+    fireEvent.click(toggle)
+    await waitFor(() => {
+      expect(
+        document
+          .getElementById("publication-readers-TokenRavenTokenRavenTokenRaven12")
+          ?.getAttribute("aria-hidden"),
+      ).toBe("true")
+    })
+
+    fireEvent.click(toggle)
+    expect(getPublicationReaders).toHaveBeenCalledTimes(1)
   })
 
   it("points at the update instead of claiming the publication is gone", async () => {
