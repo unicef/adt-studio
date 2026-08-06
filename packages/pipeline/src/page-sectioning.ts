@@ -10,6 +10,11 @@ import {
   buildPageSectioningRefinementLLMSchema,
 } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
+import {
+  DEFAULT_MAX_SECTIONS_PER_PAGE,
+  DEFAULT_SECTION_CHAR_BUDGET,
+  splitOversizedReadingSections,
+} from "./section-length-split.js"
 
 // ── Types ───────────────────────────────────────────────────────
 
@@ -26,6 +31,14 @@ export interface PageSectioningConfig {
   maxRetries: number
   maxRefinements: number
   mode: "page" | "dynamic"
+  /**
+   * Characters of body text a reading section may hold before it is split so it
+   * fits the viewport. 0 disables length splitting. Ignored in `page` mode,
+   * where the page is always one section.
+   */
+  sectionCharBudget: number
+  /** Upper bound on sections per page, counting the model's own splits. */
+  maxSectionsPerPage: number
 }
 
 export interface PageSectioningInput {
@@ -123,6 +136,20 @@ export async function sectionPage(
       }
     }
     if (review.reasoning) priorNotes.push(review.reasoning)
+  }
+
+  // Viewport-fit splitting. The model decides *where* a reading page is best
+  // cut; this decides *whether* it still has to be cut at all, on measured text
+  // rather than the model's estimate of its own length. `page` mode is exempt —
+  // there the whole page is one section by definition.
+  if (config.mode === "dynamic") {
+    candidate = {
+      ...candidate,
+      sections: splitOversizedReadingSections(candidate.sections, {
+        charBudget: config.sectionCharBudget,
+        maxSectionsPerPage: config.maxSectionsPerPage,
+      }),
+    }
   }
 
   return finalizePageSectioning(candidate, input, config)
@@ -734,5 +761,9 @@ export function buildPageSectioningConfig(
       appConfig.page_sectioning?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     maxRefinements: appConfig.page_sectioning?.max_refinements ?? 0,
     mode: appConfig.page_sectioning?.mode ?? "dynamic",
+    sectionCharBudget:
+      appConfig.page_sectioning?.section_char_budget ?? DEFAULT_SECTION_CHAR_BUDGET,
+    maxSectionsPerPage:
+      appConfig.page_sectioning?.max_sections_per_page ?? DEFAULT_MAX_SECTIONS_PER_PAGE,
   }
 }

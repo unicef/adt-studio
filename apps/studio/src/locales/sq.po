@@ -4579,14 +4579,32 @@ msgstr "KB"
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mbaji të pandryshuara skemat e daljes dhe ID-të kur redakton promptet."
 
-msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
-msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të ndryshme aktivitetesh në të njëjtën faqe."
+#~ msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
+#~ msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të ndryshme aktivitetesh në të njëjtën faqe."
 
-msgid "Keeps pages whole unless mixed activity types require splitting."
-msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërkojnë ndarje."
+#~ msgid "Keep pages whole by default, but split when distinct activity types share a page, or when a long reading passage crosses into a new scene or topic."
+#~ msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur lloje të ndryshme aktivitetesh ndajnë të njëjtën faqe, ose kur një pasazh i gjatë leximi kalon në një skenë ose temë të re."
 
-msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
-msgstr "Mban faqen si një seksion si parazgjedhje, por ndan me inteligjencë kur zbulon aktivitete të shumta të dallueshme - si një kombinim pyetjesh me zgjedhje të shumëfishta, të hapura dhe ushtrime renditjeje në të njëjtën faqe. Më i miri për tekstet shkollore me ushtrime të ndryshme."
+msgid "Keep pages whole by default, but split when distinct activity types share a page, or when a reading passage is too long to fit on one screen."
+msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur lloje të ndryshme aktivitetesh ndajnë të njëjtën faqe, ose kur një pasazh leximi është shumë i gjatë për të hyrë në një ekran."
+
+#~ msgid "Keeps pages whole unless mixed activity types require splitting."
+#~ msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërkojnë ndarje."
+
+#~ msgid "Keeps pages whole unless mixed activity types, or a long passage changing scene or topic, require splitting."
+#~ msgstr "I mban faqet të plota, përveç rasteve kur lloje të përziera aktivitetesh, ose një pasazh i gjatë që ndryshon skenë a temë, kërkojnë ndarje."
+
+msgid "Keeps pages whole unless mixed activity types, or a passage too long for one screen, require splitting."
+msgstr "I mban faqet të plota, përveç rasteve kur lloje të përziera aktivitetesh, ose një pasazh shumë i gjatë për një ekran, kërkojnë ndarje."
+
+#~ msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page - or when a long reading passage moves into a new scene or topic. Best for textbooks with varied exercises and text-heavy books."
+#~ msgstr "Mban faqen si një seksion si parazgjedhje, por ndan me inteligjencë kur zbulon aktivitete të shumta të dallueshme - si një kombinim pyetjesh me zgjedhje të shumëfishta, të hapura dhe ushtrime renditjeje në të njëjtën faqe - ose kur një pasazh i gjatë leximi kalon në një skenë ose temë të re. Më i miri për tekstet shkollore me ushtrime të ndryshme dhe librat me shumë tekst."
+
+msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page - or when a reading passage is longer than one screen. Long passages are divided between paragraphs, never inside one. Best for textbooks with varied exercises and text-heavy books."
+msgstr "Mban faqen si një seksion si parazgjedhje, por ndan me inteligjencë kur zbulon aktivitete të shumta të dallueshme - si një kombinim pyetjesh me zgjedhje të shumëfishta, të hapura dhe ushtrime renditjeje në të njëjtën faqe - ose kur një pasazh leximi është më i gjatë se një ekran. Pasazhet e gjata ndahen midis paragrafëve, kurrë brenda një paragrafi. Më i miri për tekstet shkollore me ushtrime të ndryshme dhe librat me shumë tekst."
+
+#~ msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
+#~ msgstr "Mban faqen si një seksion si parazgjedhje, por ndan me inteligjencë kur zbulon aktivitete të shumta të dallueshme - si një kombinim pyetjesh me zgjedhje të shumëfishta, të hapura dhe ushtrime renditjeje në të njëjtën faqe. Më i miri për tekstet shkollore me ushtrime të ndryshme."
 
 msgid "Kept"
 msgstr "Mbajtur"

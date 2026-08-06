@@ -153,9 +153,9 @@ Sections PARTITION the top-level tree. They do NOT restructure it.
 {% if mode == "page" %}
 The entire page is always ONE section. Emit exactly one section containing all top-level nodes in reading order. Do NOT split the page under any circumstance, regardless of activity types, instruction blocks, headings, or visual breaks.
 {% else %}
-DEFAULT: the entire page is ONE section. Keep it as one section unless the split condition below applies.
+DEFAULT: the entire page is ONE section. Keep it as one section unless one of the split conditions below applies.
 
-SPLIT the page into multiple sections when either of these applies:
+SPLIT the page into multiple sections when any of these applies:
 
 1. MIXED MECHANICS — the page contains TWO OR MORE different response mechanics for the learner. Each mechanic gets its own section, even when an overarching instruction or narrative theme appears to unify them. The runtime renders only ONE answer-submission UI per section, so mixed mechanics in a single section cannot work — they MUST split.
    Decide by what the learner DOES at each writable spot, not by how the page "feels":
@@ -169,12 +169,37 @@ SPLIT the page into multiple sections when either of these applies:
 
 2. NEW INSTRUCTION BLOCK — the page contains TWO OR MORE activities and a fresh set of activity instructions (a new instructional prompt like "Agora responda…", "Now complete the following…", "Match the items below…") precedes one of them. A new instruction block is a strong signal that a new activity begins there, and it should start a new section — even if the activity type is the same as the previous one.
 
+3. READING PAGE THAT CROSSES A BOUNDARY — the page is predominantly continuous reading content (narrative prose, an expository passage, a story) and the text crosses a GENUINE SEMANTIC BOUNDARY.
+
+   Length floor — a weak precondition, NOT the deciding test. The page carries THREE OR MORE body paragraphs of prose. A normal full page of a novel or of a textbook chapter MEETS this floor. Do not judge length by character count, and do not reject a page as "not long enough" because it looks like an ordinary page of a book — ordinary full pages qualify. Only genuinely sparse pages fall below the floor: a title page, an epigraph, a caption, a page holding one or two short paragraphs.
+
+   THE DECIDING TEST IS THE BOUNDARY. On a page that meets the floor, split where the text crosses any of these:
+   - a new scene or setting;
+   - a jump in time;
+   - a shift to a different subject or topic;
+   - a subheading that introduces new subject matter, with body text both above and below it. A real mid-page subheading is the single strongest boundary signal — when you see one on a page that meets the floor, SPLIT there.
+
+   Once you have named a boundary on a page that meets the floor, SPLIT. Do NOT veto a boundary you have already identified on the grounds that the page is not long enough — the floor is satisfied and length has no further say.
+
+   These are NOT boundaries. A page whose only "shifts" are of this kind stays as ONE section, however long it is:
+   - alternating dialogue turns inside a single conversation;
+   - narration giving way to dialogue, or back, within the same scene;
+   - an ordinary paragraph break;
+   - a decorative or running title, or the page's own chapter title at the very top with nothing above it.
+
+   Split at the top-level node that OPENS the new scene or topic — the boundary cuts between existing top-level nodes and never inside a container or paragraph.
+   Cap: this rule may produce AT MOST 3 sections on a page. If you find more candidate boundaries than that, keep only the strongest ones.
+   Every resulting part must be substantial. Never strand a lone heading, caption, page number, or single sentence as its own section — attach those to the adjacent part they belong with.
+   Use the reading section types (`text_only`, `text_and_single_image`, `text_and_images`) for these sections, chosen per section by what that section actually contains.
+
 In any split, attach surrounding non-activity content (headings, passages, instructions) to whichever section it visually belongs with — a new instruction block goes with the activity it introduces.
+
+On every reading page that meets the length floor, your `reasoning` MUST state explicitly either (a) the boundary you found — what changes at it and which top-level node opens the new part — or (b) which continuity holds across the whole page (one scene, one conversation, one argument) that makes it a single section. "Not long enough" is NOT an acceptable reason to keep such a page whole.
 
 Do NOT split in any of these cases:
 - A page with a SINGLE MECHANIC, regardless of how many questions/items it contains. ("Single activity" alone is NOT the test — the test is single mechanic. 6 multi-choice items sharing one instruction → ONE section. 4 fill-in-the-blank sentences sharing one prompt → ONE section.)
-- A page with no activities — always one section.
-- Separation by visual whitespace, headings, or topic alone — not a reason to split.
+- A page with no activities, unless rule 3 above applies. Sparse reading pages — one or two short paragraphs — are always one section.
+- Visual whitespace or an ordinary paragraph break ON ITS OWN — neither is a reason to split.
 
 `activity_other` IS NOT A BUNDLING ESCAPE HATCH for mixed mechanics. If a page contains two or more different known mechanics, you MUST split into multiple sections, each with its own known activity type — NEVER roll the whole page up under `activity_other` to avoid splitting. `activity_other` is reserved for pages where the SINGLE mechanic itself is genuinely unique (free drawing, crafts, physical movement) and no known type fits.
 
@@ -185,6 +210,22 @@ A page shows 4 reading passages, each paired with a list of 3 summary options to
 - The final write-a-sentence prompt and its writing line → activity_open_ended_answer (a second section).
 
 The correct partition is TWO sections. Labeling the whole page `activity_other` is WRONG. Keeping both mechanics inside one `structure: "activity"` container under one section is WRONG.
+
+### Worked example: a story page that changes scene
+
+A page of a novel holds seven paragraphs of prose and no activities. The first four are a conversation between two characters in a kitchen. The fifth opens "A la mañana siguiente, en la estación…" and the remaining three follow the same character to a train station the next day.
+
+The page meets the floor (seven body paragraphs — an ordinary full page of a novel) and crosses a boundary (a jump in both time and place at paragraph five). The correct partition is TWO `text_only` sections: paragraphs 1–4, and paragraphs 5–7 plus the page number. Emitting one section for the whole page is WRONG. Splitting at every paragraph is WRONG — the boundary is the scene change, not the paragraph break.
+
+### Worked example: a reading page with a mid-page subheading
+
+A page holds two body paragraphs, then a centered subheading "DE LA HISTORIA AL MITO", then two more body paragraphs. No activities.
+
+Four body paragraphs meets the floor, and a subheading with body text above and below it that introduces new subject matter is the strongest boundary there is. The correct partition is TWO `text_only` sections: the two opening paragraphs, and the subheading plus the two paragraphs it introduces. Keeping this page whole because it "is not long enough" is WRONG — an ordinary full page of a book clears the floor, and a subheading you have already recognized as introducing a new subtopic is a boundary you must act on.
+
+### Counter-example: a long page with no boundary
+
+Seven paragraphs of one continuous conversation in the kitchen, narration alternating with dialogue throughout, never leaving the scene → ONE section. Length is not a boundary, and dialogue turns are not a boundary.
 {% endif %}
 
 ## Activity classification

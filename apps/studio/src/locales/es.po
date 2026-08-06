@@ -4578,14 +4578,32 @@ msgstr "KB"
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mantén los esquemas de salida y los ID sin cambios al editar prompts."
 
-msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
-msgstr "Mantén las páginas completas por defecto, pero divídelas cuando se detecten tipos de actividad distintos en la misma página."
+#~ msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
+#~ msgstr "Mantén las páginas completas por defecto, pero divídelas cuando se detecten tipos de actividad distintos en la misma página."
 
-msgid "Keeps pages whole unless mixed activity types require splitting."
-msgstr "Mantiene las páginas completas a menos que tipos mixtos de actividad requieran división."
+#~ msgid "Keep pages whole by default, but split when distinct activity types share a page, or when a long reading passage crosses into a new scene or topic."
+#~ msgstr "Mantén las páginas completas por defecto, pero divídelas cuando tipos de actividad distintos compartan una página, o cuando un pasaje de lectura largo pase a una nueva escena o tema."
 
-msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
-msgstr "Mantiene la página como una sección por defecto, pero divide inteligentemente cuando detecta múltiples actividades distintas - como una mezcla de ejercicios de opción múltiple, abiertos y de clasificación en la misma página. Mejor para libros de texto con ejercicios variados."
+msgid "Keep pages whole by default, but split when distinct activity types share a page, or when a reading passage is too long to fit on one screen."
+msgstr "Mantén las páginas completas por defecto, pero divídelas cuando tipos de actividad distintos compartan una página, o cuando un pasaje de lectura sea demasiado largo para caber en una pantalla."
+
+#~ msgid "Keeps pages whole unless mixed activity types require splitting."
+#~ msgstr "Mantiene las páginas completas a menos que tipos mixtos de actividad requieran división."
+
+#~ msgid "Keeps pages whole unless mixed activity types, or a long passage changing scene or topic, require splitting."
+#~ msgstr "Mantiene las páginas completas a menos que tipos mixtos de actividad, o un pasaje largo que cambia de escena o tema, requieran división."
+
+msgid "Keeps pages whole unless mixed activity types, or a passage too long for one screen, require splitting."
+msgstr "Mantiene las páginas completas a menos que tipos mixtos de actividad, o un pasaje demasiado largo para una pantalla, requieran división."
+
+#~ msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page - or when a long reading passage moves into a new scene or topic. Best for textbooks with varied exercises and text-heavy books."
+#~ msgstr "Mantiene la página como una sección por defecto, pero divide inteligentemente cuando detecta múltiples actividades distintas - como una mezcla de ejercicios de opción múltiple, abiertos y de clasificación en la misma página - o cuando un pasaje de lectura largo pasa a una nueva escena o tema. Mejor para libros de texto con ejercicios variados y libros con mucho texto."
+
+msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page - or when a reading passage is longer than one screen. Long passages are divided between paragraphs, never inside one. Best for textbooks with varied exercises and text-heavy books."
+msgstr "Mantiene la página como una sección por defecto, pero divide inteligentemente cuando detecta múltiples actividades distintas - como una mezcla de ejercicios de opción múltiple, abiertos y de clasificación en la misma página - o cuando un pasaje de lectura es más largo que una pantalla. Los pasajes largos se dividen entre párrafos, nunca dentro de uno. Mejor para libros de texto con ejercicios variados y libros con mucho texto."
+
+#~ msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
+#~ msgstr "Mantiene la página como una sección por defecto, pero divide inteligentemente cuando detecta múltiples actividades distintas - como una mezcla de ejercicios de opción múltiple, abiertos y de clasificación en la misma página. Mejor para libros de texto con ejercicios variados."
 
 msgid "Kept"
 msgstr "Conservado"

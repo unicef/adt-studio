@@ -122,6 +122,14 @@ export type EasyReadConfig = z.infer<typeof EasyReadConfig>
 export const PageSectioningConfig = StepConfig.extend({
   max_refinements: z.number().int().min(0).optional(),
   mode: z.enum(["page", "dynamic"]).catch("dynamic").optional(),
+  /**
+   * Characters of body text a reading section may hold before it is split so it
+   * fits a 1280x800 viewport without vertical scrolling. 0 disables length
+   * splitting. Only applies in `dynamic` mode.
+   */
+  section_char_budget: z.number().int().min(0).optional(),
+  /** Upper bound on sections per page, counting the model's own activity splits. */
+  max_sections_per_page: z.number().int().min(1).optional(),
 })
 export type PageSectioningConfig = z.infer<typeof PageSectioningConfig>
 
