@@ -25,6 +25,8 @@ export interface FakePublishedVersion {
   page_manifest: PublicationPageEntry[]
   created_at: string
   files: string[]
+  /** What the real worker counts while unpacking: the bytes this version occupies in R2. */
+  snapshot_bytes: number
 }
 
 export interface FakePublishWorkerState {
@@ -38,6 +40,9 @@ export interface FakePublishWorkerState {
   bearerTokens: string[]
   /** Tokens the Studio asked a realtime ticket for. */
   roomTickets: string[]
+  /** Tokens whose size a test wants reported as unknown — a version written before
+   *  migration 0004. Add to it to exercise the "at least" storage total. */
+  unmeasuredTokens: Set<string>
   calls: Array<{ method: string; path: string; search: string }>
 }
 
@@ -48,6 +53,9 @@ export interface FakePublishWorkerOptions {
   unreachable?: boolean
   failCreateStatus?: number
   failCreateBody?: { error: string; message?: string }
+  /** Simulates a worker that cannot answer §4.18 — a pre-0.7.0 deployment answers `404`. */
+  failListStatus?: number
+  failListBody?: { error: string; message?: string }
 }
 
 export interface FakePublishWorker {
@@ -83,6 +91,7 @@ export function createFakePublishWorker(
     authorNames: [],
     bearerTokens: [],
     roomTickets: [],
+    unmeasuredTokens: new Set(),
     calls: [],
   }
 
@@ -123,6 +132,44 @@ export function createFakePublishWorker(
       return json({ ok: true, version: "0.2.0" })
     }
 
+    /** §4.18. The aggregates are recomputed the way the worker's SQL does: replies count as
+     *  messages, deleted rows count as nothing, and `unresolved_count` counts open *roots*. */
+    if (url.pathname === "/api/publications" && method === "GET") {
+      if (options.failListStatus) {
+        return json(options.failListBody ?? { error: "not_found" }, options.failListStatus)
+      }
+
+      const publications = [...state.publications.values()]
+        .sort(
+          (a, b) =>
+            b.created_at.localeCompare(a.created_at) || a.token.localeCompare(b.token),
+        )
+        .map((publication) => {
+          const versions = state.versions.get(publication.token) ?? []
+          const own = state.comments.filter(
+            (comment) => comment.token === publication.token && comment.deleted_at === null,
+          )
+          const measured = state.unmeasuredTokens.has(publication.token)
+            ? null
+            : versions.reduce((total, version) => total + version.snapshot_bytes, 0)
+          return {
+            publication,
+            url: shareUrl(publication.token),
+            has_access_code: state.accessCodes.has(publication.token),
+            version_count: versions.length,
+            comment_count: own.length,
+            unresolved_count: own.filter(
+              (comment) => comment.parent_id === null && comment.resolved_at === null,
+            ).length,
+            snapshot_bytes: versions.length === 0 ? null : measured,
+            last_published_at:
+              versions.map((version) => version.created_at).sort().at(-1) ?? null,
+          }
+        })
+
+      return json({ publications })
+    }
+
     if (url.pathname === "/api/publications" && method === "POST") {
       if (options.failCreateStatus) {
         return json(options.failCreateBody ?? { error: "internal_error" }, options.failCreateStatus)
@@ -135,8 +182,8 @@ export function createFakePublishWorker(
       if (!metadata.success) {
         return json({ error: "invalid_request", message: metadata.error.message }, 400)
       }
-      const files = await snapshotFiles(form.get("snapshot"))
-      if (files === null) {
+      const unpacked = await snapshotFiles(form.get("snapshot"))
+      if (unpacked === null) {
         return json({ error: "invalid_request", message: "missing snapshot" }, 400)
       }
       if (state.publications.has(metadata.data.token)) {
@@ -156,7 +203,8 @@ export function createFakePublishWorker(
         version: 1,
         page_manifest: metadata.data.page_manifest,
         created_at: createdAt,
-        files,
+        files: unpacked.files,
+        snapshot_bytes: unpacked.totalBytes,
       }
       state.publications.set(publication.token, publication)
       state.versions.set(publication.token, [version])
@@ -188,8 +236,8 @@ export function createFakePublishWorker(
       if (!metadata.success) {
         return json({ error: "invalid_request", message: metadata.error.message }, 400)
       }
-      const files = await snapshotFiles(form.get("snapshot"))
-      if (files === null) {
+      const unpacked = await snapshotFiles(form.get("snapshot"))
+      if (unpacked === null) {
         return json({ error: "invalid_request", message: "missing snapshot" }, 400)
       }
 
@@ -198,7 +246,8 @@ export function createFakePublishWorker(
         version: nextVersion,
         page_manifest: metadata.data.page_manifest,
         created_at: createdAt,
-        files,
+        files: unpacked.files,
+        snapshot_bytes: unpacked.totalBytes,
       }
       state.versions.set(token, [...(state.versions.get(token) ?? []), version])
       const updated: Publication = { ...publication, current_version: nextVersion }
@@ -427,8 +476,17 @@ function toWireVersion(version: FakePublishedVersion) {
   }
 }
 
-async function snapshotFiles(value: unknown): Promise<string[] | null> {
+interface UnpackedSnapshot {
+  files: string[]
+  totalBytes: number
+}
+
+async function snapshotFiles(value: unknown): Promise<UnpackedSnapshot | null> {
   if (!(value instanceof File)) return null
   const bytes = new Uint8Array(await value.arrayBuffer())
-  return Object.keys(unzipSync(bytes)).sort()
+  const unpacked = unzipSync(bytes)
+  return {
+    files: Object.keys(unpacked).sort(),
+    totalBytes: Object.values(unpacked).reduce((total, file) => total + file.byteLength, 0),
+  }
 }

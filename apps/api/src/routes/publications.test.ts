@@ -8,6 +8,8 @@ import {
   PUBLISH_AUTHOR_NAME_HEADER,
   type BookPublicationStatus,
   type PublicationRoomTicketResponse,
+  type PublicationSummary,
+  type PublicationsOverview,
   type PublishCommentListResponse,
   type PublishCommentResponse,
   type PublishProgressEvent,
@@ -1163,5 +1165,248 @@ describe("GET /books/:label/publication/preview/*", () => {
     )
     expect(res.status).toBe(502)
     await expect(res.json()).resolves.toMatchObject({ code: "worker_unreachable" })
+  })
+})
+
+describe("GET /publications — the account's whole shelf", () => {
+  async function shelf(app: Hono): Promise<PublicationsOverview> {
+    const res = await app.request("/api/publications")
+    expect(res.status).toBe(200)
+    return (await res.json()) as PublicationsOverview
+  }
+
+  function rowFor(overview: PublicationsOverview, label: string): PublicationSummary {
+    const found = overview.publications.find((summary) => summary.book_label === label)
+    expect(found).toBeDefined()
+    return found as PublicationSummary
+  }
+
+  it("answers 412 with no Cloudflare connection", async () => {
+    const res = await routes().request("/api/publications")
+    expect(res.status).toBe(412)
+    await expect(res.json()).resolves.toMatchObject({ code: "publish_not_connected" })
+  })
+
+  it("answers an empty shelf with zeroed totals for a connected account", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    expect(await shelf(routes({ fetchFn: worker.fetchFn }))).toEqual({
+      worker_reachable: true,
+      publications: [],
+      totals: {
+        published_count: 0,
+        active_count: 0,
+        total_snapshot_bytes: 0,
+        snapshot_bytes_complete: true,
+        total_unresolved: 0,
+      },
+    })
+  })
+
+  it("lists every publication in the account with its share link and version count", async () => {
+    createBook("owl")
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    await drain(app, "/api/books/owl/publication", publishRequest())
+    await drain(app, `/api/books/${LABEL}/publication/versions`, publishRequest())
+
+    const overview = await shelf(app)
+    expect(overview.worker_reachable).toBe(true)
+    expect(overview.publications).toHaveLength(2)
+
+    const raven = rowFor(overview, LABEL)
+    expect(raven.version_count).toBe(2)
+    expect(raven.current_version).toBe(2)
+    expect(raven.book_exists).toBe(true)
+    expect(raven.source).toBe("worker")
+    expect(raven.url).toBe(worker.shareUrl(raven.token))
+    expect(raven.last_published_at).not.toBeNull()
+    expect(rowFor(overview, "owl").version_count).toBe(1)
+    expect(overview.totals.published_count).toBe(2)
+    expect(overview.totals.active_count).toBe(2)
+  })
+
+  it("counts a stopped link as published but not active", async () => {
+    createBook("owl")
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    await drain(app, "/api/books/owl/publication", publishRequest())
+    expect(
+      (await app.request("/api/books/owl/publication/revoke", { method: "POST" })).status,
+    ).toBe(200)
+
+    const overview = await shelf(app)
+    expect(rowFor(overview, "owl").revoked_at).not.toBeNull()
+    expect(overview.totals.published_count).toBe(2)
+    expect(overview.totals.active_count).toBe(1)
+  })
+
+  it("counts an expired link as published but not active", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(
+      app,
+      `/api/books/${LABEL}/publication`,
+      publishRequest({ expires_at: "2020-01-01T00:00:00.000Z" }),
+    )
+
+    const overview = await shelf(app)
+    expect(rowFor(overview, LABEL).expires_at).toBe("2020-01-01T00:00:00.000Z")
+    expect(overview.totals.published_count).toBe(1)
+    expect(overview.totals.active_count).toBe(0)
+  })
+
+  it("reports the book's current title, not the one frozen at publish time", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    const db = openBookDb(path.join(tmpDir, LABEL, `${LABEL}.db`))
+    db.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)", [
+      "metadata",
+      "book",
+      2,
+      JSON.stringify({
+        title: "Raven and the Sun, second edition",
+        authors: ["Author"],
+        publisher: null,
+        language_code: "en",
+        cover_page_number: 1,
+        reasoning: "renamed",
+      }),
+    ])
+    db.close()
+
+    expect(rowFor(await shelf(app), LABEL).title).toBe("Raven and the Sun, second edition")
+  })
+
+  it("still lists a publication whose book directory is gone, and says so", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    fs.rmSync(path.join(tmpDir, LABEL), { recursive: true, force: true })
+
+    const overview = await shelf(app)
+    expect(overview.publications).toHaveLength(1)
+    const orphan = rowFor(overview, LABEL)
+    expect(orphan.book_exists).toBe(false)
+    /** The worker's frozen title is all that is left to name it with. */
+    expect(orphan.title).toBe("Raven and the Sun")
+    expect(orphan.url).not.toBeNull()
+  })
+
+  it("sums the measured snapshot sizes and flags a total that is only a floor", async () => {
+    createBook("owl")
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    await drain(app, "/api/books/owl/publication", publishRequest())
+
+    const complete = await shelf(app)
+    expect(complete.totals.snapshot_bytes_complete).toBe(true)
+    expect(complete.totals.total_snapshot_bytes).toBeGreaterThan(0)
+    expect(rowFor(complete, LABEL).snapshot_bytes).toBeGreaterThan(0)
+
+    worker.state.unmeasuredTokens.add(rowFor(complete, "owl").token)
+
+    const partial = await shelf(app)
+    expect(rowFor(partial, "owl").snapshot_bytes).toBeNull()
+    expect(partial.totals.snapshot_bytes_complete).toBe(false)
+    expect(partial.totals.total_snapshot_bytes).toBe(
+      rowFor(complete, LABEL).snapshot_bytes as number,
+    )
+  })
+
+  it("carries the worker's comment counts into the row and the totals", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    const posted = await app.request(`/api/books/${LABEL}/publication/comments`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ page_section_id: "pg001_sec001", body: "the cover feels crowded" }),
+    })
+    expect(posted.status).toBe(200)
+
+    const overview = await shelf(app)
+    expect(rowFor(overview, LABEL).comment_count).toBe(1)
+    expect(rowFor(overview, LABEL).unresolved_count).toBe(1)
+    expect(overview.totals.total_unresolved).toBe(1)
+  })
+
+  it("degrades to the local records when the worker cannot be reached", async () => {
+    createBook("owl")
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    await drain(app, "/api/books/owl/publication", publishRequest())
+
+    const offline = createFakePublishWorker({ unreachable: true })
+    const overview = await shelf(routes({ fetchFn: offline.fetchFn }))
+
+    expect(overview.worker_reachable).toBe(false)
+    expect(overview.publications).toHaveLength(2)
+    const raven = rowFor(overview, LABEL)
+    expect(raven.source).toBe("local")
+    expect(raven.book_exists).toBe(true)
+    expect(raven.url).toBe(readPublicationRecord(LABEL, tmpDir)?.base_url)
+    /** Counts the worker owns are never guessed at from here. */
+    expect(raven.comment_count).toBe(0)
+    expect(raven.unresolved_count).toBe(0)
+    expect(raven.snapshot_bytes).toBeNull()
+    expect(overview.totals.snapshot_bytes_complete).toBe(false)
+    expect(overview.totals.total_snapshot_bytes).toBe(0)
+    expect(overview.totals.published_count).toBe(2)
+    expect(overview.totals.active_count).toBe(2)
+  })
+
+  it("degrades the same way for a worker too old to have the list route", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    await drain(
+      routes({ fetchFn: worker.fetchFn }),
+      `/api/books/${LABEL}/publication`,
+      publishRequest(),
+    )
+
+    const stale = createFakePublishWorker({
+      baseUrl: worker.baseUrl,
+      failListStatus: 404,
+      failListBody: { error: "not_found" },
+    })
+    const overview = await shelf(routes({ fetchFn: stale.fetchFn }))
+    expect(overview.worker_reachable).toBe(false)
+    expect(overview.publications).toHaveLength(1)
+    expect(rowFor(overview, LABEL).source).toBe("local")
+  })
+
+  it("omits books that were never published", async () => {
+    createBook("owl")
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    expect((await shelf(app)).publications.map((row) => row.book_label)).toEqual([LABEL])
+
+    const offline = createFakePublishWorker({ unreachable: true })
+    expect(
+      (await shelf(routes({ fetchFn: offline.fetchFn }))).publications.map(
+        (row) => row.book_label,
+      ),
+    ).toEqual([LABEL])
   })
 })

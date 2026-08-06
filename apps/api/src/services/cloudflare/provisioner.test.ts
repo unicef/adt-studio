@@ -300,6 +300,7 @@ describe("provisionCloudflare — idempotent re-run", () => {
     "0001_init.sql",
     "0002_session_pin.sql",
     "0003_publication_access.sql",
+    "0004_version_snapshot_bytes.sql",
   ]
 
   it("ships exactly the migrations the contract documents", () => {
@@ -320,11 +321,15 @@ describe("provisionCloudflare — idempotent re-run", () => {
     })
 
     expect(error).toBeNull()
-    expect(fake.state.executedSql).toEqual([migrations[1]?.sql, migrations[2]?.sql])
+    expect(fake.state.executedSql).toEqual([
+      migrations[1]?.sql,
+      migrations[2]?.sql,
+      migrations[3]?.sql,
+    ])
     expect(fake.state.executedSql[0]).toContain("ALTER TABLE sessions ADD COLUMN pin")
     expect(fake.state.migrationRows.map((row) => row.name)).toEqual(MIGRATION_NAMES)
     expect(finishedStep(events, "apply-migrations")?.message).toBe(
-      "Applied 0002_session_pin.sql, 0003_publication_access.sql",
+      "Applied 0002_session_pin.sql, 0003_publication_access.sql, 0004_version_snapshot_bytes.sql",
     )
   })
 
@@ -348,11 +353,40 @@ describe("provisionCloudflare — idempotent re-run", () => {
     })
 
     expect(error).toBeNull()
-    expect(fake.state.executedSql).toEqual([migrations[2]?.sql])
+    expect(fake.state.executedSql).toEqual([migrations[2]?.sql, migrations[3]?.sql])
     expect(fake.state.executedSql[0]).toContain("ALTER TABLE publications ADD COLUMN access_code")
     expect(fake.state.migrationRows.map((row) => row.name)).toEqual(MIGRATION_NAMES)
     expect(finishedStep(events, "apply-migrations")?.message).toBe(
-      "Applied 0003_publication_access.sql",
+      "Applied 0003_publication_access.sql, 0004_version_snapshot_bytes.sql",
+    )
+  })
+
+  /** An M3.5 deployment (0001-0003) is what every user who published before the dashboard is on.
+   *  Re-provisioning is what gives their versions a measured size, and it must be the only
+   *  statement that runs — earlier sizes stay NULL, which the dashboard reports as unknown. */
+  it("applies the snapshot-size migration to a deployment that has 0001 to 0003", async () => {
+    const migrations = shippedMigrations()
+
+    const { fake, events, error } = await run({
+      artifact: artifact(migrations),
+      fake: {
+        databases: [{ uuid: "db-uuid-1", name: CLOUDFLARE_D1_DATABASE_NAME }],
+        buckets: [CLOUDFLARE_R2_BUCKET_NAME],
+        scripts: [CLOUDFLARE_WORKER_NAME],
+        migrationRows: [
+          { name: "0001_init.sql", applied_at: NOW.toISOString() },
+          { name: "0002_session_pin.sql", applied_at: NOW.toISOString() },
+          { name: "0003_publication_access.sql", applied_at: NOW.toISOString() },
+        ],
+      },
+    })
+
+    expect(error).toBeNull()
+    expect(fake.state.executedSql).toEqual([migrations[3]?.sql])
+    expect(fake.state.executedSql[0]).toContain("ALTER TABLE versions ADD COLUMN snapshot_bytes")
+    expect(fake.state.migrationRows.map((row) => row.name)).toEqual(MIGRATION_NAMES)
+    expect(finishedStep(events, "apply-migrations")?.message).toBe(
+      "Applied 0004_version_snapshot_bytes.sql",
     )
   })
 

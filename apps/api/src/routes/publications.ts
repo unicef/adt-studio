@@ -6,6 +6,7 @@ import { HTTPException } from "hono/http-exception"
 import { streamSSE } from "hono/streaming"
 import type { ContentfulStatusCode } from "hono/utils/http-status"
 import {
+  BookLabel,
   BookPublishRequest,
   PUBLISH_AUTHOR_NAME_HEADER,
   PublicationUpdateRequest,
@@ -14,10 +15,14 @@ import {
   PublishCommentResolveRequest,
   PublishCommentUpdateRequest,
   parseBookLabel,
+  publicationStateAt,
   type BookPublicationRecord,
   type BookPublicationStatus,
+  type PublicationListEntry,
   type PublicationPageEntry,
   type PublicationResponse,
+  type PublicationSummary,
+  type PublicationsOverview,
   type PublishErrorCodeStudio,
   type PublishProgressEvent,
 } from "@adt/types"
@@ -40,7 +45,7 @@ import {
   isPublishWorkerError,
   type PublishWorkerClient,
 } from "../services/publish-worker-client.js"
-import type { prepareExport } from "../services/export-service.js"
+import { readBookTitle, type prepareExport } from "../services/export-service.js"
 
 export interface PublishRoutesDeps {
   booksDir: string
@@ -114,6 +119,145 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       return null
     }
   }
+
+  const resolvedBooksDir = (): string => path.resolve(deps.booksDir)
+
+  const bookExists = (label: string): boolean =>
+    BookLabel.safeParse(label).success &&
+    fs.existsSync(path.join(resolvedBooksDir(), label)) &&
+    fs.statSync(path.join(resolvedBooksDir(), label)).isDirectory()
+
+  /** The book's *current* name, not the one frozen into the publication at publish time — the
+   *  author renames a book and expects the dashboard to follow. Falls back to whatever the
+   *  worker stored when the book is gone or its title is unreadable. */
+  const localTitle = (label: string, fallback: string): string => {
+    if (!bookExists(label)) return fallback
+    try {
+      const title = readBookTitle(label, resolvedBooksDir()).trim()
+      return title.length === 0 ? fallback : title
+    } catch {
+      return fallback
+    }
+  }
+
+  const summaryFromWorker = (entry: PublicationListEntry): PublicationSummary => {
+    const label = entry.publication.book_label
+    return {
+      token: entry.publication.token,
+      title: localTitle(label, entry.publication.title),
+      book_label: label,
+      book_exists: bookExists(label),
+      url: entry.url,
+      current_version: entry.publication.current_version,
+      version_count: entry.version_count,
+      created_at: entry.publication.created_at,
+      last_published_at: entry.last_published_at,
+      expires_at: entry.publication.expires_at,
+      revoked_at: entry.publication.revoked_at,
+      has_access_code: entry.has_access_code,
+      comment_count: entry.comment_count,
+      unresolved_count: entry.unresolved_count,
+      snapshot_bytes: entry.snapshot_bytes,
+      source: "worker",
+    }
+  }
+
+  /** The degraded list: every book on this machine that remembers a publication. It cannot see
+   *  a publication whose book directory is gone — that row only exists in the account — which is
+   *  exactly why the screen says the list is incomplete while the worker is unreachable. */
+  const summariesFromDisk = (): PublicationSummary[] => {
+    const dir = resolvedBooksDir()
+    if (!fs.existsSync(dir)) return []
+
+    const summaries: PublicationSummary[] = []
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      if (!BookLabel.safeParse(entry.name).success) continue
+
+      let record: BookPublicationRecord | null = null
+      try {
+        record = readPublicationRecord(entry.name, dir)
+      } catch {
+        record = null
+      }
+      if (!record) continue
+
+      const versions = [...record.versions].sort((a, b) => a.version - b.version)
+      const newest = versions.at(-1) ?? null
+      summaries.push({
+        token: record.token,
+        title: localTitle(entry.name, entry.name),
+        book_label: entry.name,
+        book_exists: true,
+        url: record.base_url,
+        current_version: newest?.version ?? 1,
+        version_count: versions.length,
+        created_at: record.created_at,
+        last_published_at: newest?.published_at ?? null,
+        expires_at: record.expires_at,
+        revoked_at: record.revoked_at,
+        has_access_code: record.has_access_code,
+        comment_count: 0,
+        unresolved_count: 0,
+        snapshot_bytes: null,
+        source: "local",
+      })
+    }
+
+    return summaries.sort(
+      (a, b) => b.created_at.localeCompare(a.created_at) || a.token.localeCompare(b.token),
+    )
+  }
+
+  const overviewOf = (publications: PublicationSummary[], reachable: boolean): PublicationsOverview => {
+    const at = (deps.now ?? (() => new Date()))()
+    const measured = publications.filter(
+      (summary): summary is PublicationSummary & { snapshot_bytes: number } =>
+        summary.snapshot_bytes !== null,
+    )
+    return {
+      worker_reachable: reachable,
+      publications,
+      totals: {
+        published_count: publications.length,
+        active_count: publications.filter(
+          (summary) => publicationStateAt(summary, at) === "active",
+        ).length,
+        total_snapshot_bytes: measured.reduce((total, summary) => total + summary.snapshot_bytes, 0),
+        snapshot_bytes_complete: measured.length === publications.length,
+        total_unresolved: publications.reduce((total, summary) => total + summary.unresolved_count, 0),
+      },
+    }
+  }
+
+  /** GET /publications — the account's whole shelf, for the Publications dashboard.
+   *
+   *  Unlike `GET /books/:label/publication`, a missing connection is a `412` and not a `200`
+   *  with a flag: the per-book panel still has a local record to render without a connection,
+   *  whereas this screen's entire content lives in the account. A worker that cannot be
+   *  reached — or one too old to have §4.18 — degrades to what this machine remembers,
+   *  flagged `worker_reachable: false`, rather than to an error page. */
+  app.get("/publications", async (c) => {
+    const connection = store.read()
+    if (!connection) {
+      return failure(
+        c,
+        412,
+        "publish_not_connected",
+        "Connect a Cloudflare account to see your published books",
+      )
+    }
+
+    let entries: PublicationListEntry[]
+    try {
+      entries = (await clientFor(connection).listPublications()).publications
+    } catch (error) {
+      if (!isPublishWorkerError(error)) throw error
+      return c.json(overviewOf(summariesFromDisk(), false))
+    }
+
+    return c.json(overviewOf(entries.map(summaryFromWorker), true))
+  })
 
   // GET /books/:label/publication — the local record merged with the worker's live state
   app.get("/books/:label/publication", async (c) => {

@@ -2,6 +2,7 @@ import {
   PUBLISH_AUTHOR_NAME_HEADER,
   PublicationCreateResponse,
   PublicationDetail,
+  PublicationList,
   PublicationResponse,
   PublicationRoomTicketResponse,
   PublicationVersionCreateResponse,
@@ -65,6 +66,9 @@ export interface PublishWorkerClient {
     update: PublicationUpdateRequest,
   ): Promise<PublicationResponse>
   getPublication(token: string): Promise<PublicationDetail>
+  /** Every publication in the connected account (§4.18) — what the Publications dashboard lists.
+   *  One request for the whole screen; the worker does the aggregating. */
+  listPublications(): Promise<PublicationList>
   listComments(
     token: string,
     query: PublishCommentListQuery,
@@ -254,6 +258,14 @@ export function createPublishWorkerClient({
         },
         PublicationResponse,
       )) as PublicationResponse
+    },
+
+    async listPublications() {
+      return (await request(
+        "/api/publications",
+        { method: "GET" },
+        PublicationList,
+      )) as PublicationList
     },
 
     async getPublication(token) {
