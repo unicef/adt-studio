@@ -9,6 +9,8 @@ import {
   useBookPublishRun,
 } from "@/hooks/use-book-publication"
 import { useBook } from "@/hooks/use-books"
+import { useElapsed } from "@/components/settings/publishing/provision-elapsed"
+import { PublishingActions } from "./PublishingActions"
 import { PublishingControls } from "./PublishingControls"
 import { PublishingFreshness } from "./PublishingFreshness"
 import { PublishingInvitation } from "./PublishingInvitation"
@@ -17,6 +19,7 @@ import { PublishingHero } from "./PublishingHero"
 import { PublishingSection } from "./PublishingSection"
 import { PublishingStepper, type PublishPhase } from "./PublishingStepper"
 import { PublishingSummary } from "./PublishingSummary"
+import { PublishingUpdateTakeover } from "./PublishingUpdateTakeover"
 import { PublishingVersions } from "./PublishingVersions"
 
 /**
@@ -54,6 +57,8 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
   const token = record?.token ?? null
   const currentVersion = status.data?.publication?.current_version ?? null
   const newest = [...(record?.versions ?? [])].sort((a, b) => b.version - a.version)[0] ?? null
+  const updating = run.status === "running" || run.status === "error"
+  const elapsedMs = useElapsed(run.status === "running" ? "running" : run.status === "done" ? "done" : "idle")
 
   const phase: PublishPhase = !connected
     ? "connect"
@@ -96,10 +101,19 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
           hasAccessCode={status.data?.has_access_code ?? false}
         />
 
-        {/* `min-h-0` on every ancestor of a scroll box, or the box grows instead of scrolling and
-            takes the page with it. */}
+        {updating ? (
+          <PublishingUpdateTakeover
+            title={book.data?.title ?? bookLabel}
+            fromVersion={currentVersion}
+            run={run}
+            elapsedMs={elapsedMs}
+          />
+        ) : (
+        /* `min-h-0` on every ancestor of a scroll box, or the box grows instead of scrolling and
+           takes the page with it. */
         <div className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)] mh:gap-4">
-          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
+          <div className="flex min-h-0 flex-col gap-4">
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-1">
             <PublishingHero
               bookLabel={bookLabel}
               title={book.data?.title ?? bookLabel}
@@ -126,6 +140,12 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
               bookLabel={bookLabel}
               record={record}
               hasAccessCode={status.data?.has_access_code ?? false}
+              isUpdating={run.status === "running"}
+            />
+            </div>
+
+            <PublishingActions
+              bookLabel={bookLabel}
               isUpdating={run.status === "running"}
               onUpdate={run.update}
             />
@@ -176,6 +196,7 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
             </PublishingSection>
           </div>
         </div>
+        )}
       </div>
     </div>
   )

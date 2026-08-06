@@ -5,7 +5,6 @@ import type { BookPublicationRecord } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { AccessCodeChip } from "@/components/publications/PublicationStatusChip"
 import { ExpiryChoice } from "@/components/pipeline/stages/export/publish/ExpiryChoice"
-import { RevokeDialog } from "@/components/pipeline/stages/export/publish/RevokeDialog"
 import {
   generateAccessCode,
 } from "@/components/pipeline/stages/export/publish/access-code"
@@ -15,7 +14,6 @@ import {
   isoToExpiryChoice,
 } from "@/components/pipeline/stages/export/publish/expiry-options"
 import {
-  useRevokePublication,
   useSetPublicationAccessCode,
   useSetPublicationExpiry,
 } from "@/hooks/use-book-publication"
@@ -25,31 +23,29 @@ interface PublishingControlsProps {
   record: BookPublicationRecord | null
   hasAccessCode: boolean
   isUpdating: boolean
-  onUpdate: () => void
 }
 
 /**
- * The three knobs, one line each, plus the two actions.
+ * The two knobs, one line each.
  *
  * The verbose version of this — a box per knob, each with a paragraph explaining what the button
- * would do — was 300 pixels tall and pushed the roster off the screen. The consequences have not
- * been dropped: rotating a code and stopping sharing both confirm, and the warning belongs in the
- * confirmation, at the moment of the decision, rather than sitting on screen forever.
+ * would do — was 300 pixels tall and pushed the roster off the screen. The consequence that
+ * matters has not been dropped: rotating a code confirms inline, and the warning belongs at the
+ * moment of the decision rather than sitting on screen forever.
+ *
+ * The actions live in `PublishingActions`, outside this column's scroller — see there for why.
  */
 export function PublishingControls({
   bookLabel,
   record,
   hasAccessCode,
   isUpdating,
-  onUpdate,
 }: PublishingControlsProps) {
   const { i18n, t } = useLingui()
   const [editingExpiry, setEditingExpiry] = useState(false)
-  const [revokeOpen, setRevokeOpen] = useState(false)
   const [confirmRotate, setConfirmRotate] = useState(false)
   const expiry = useSetPublicationExpiry(bookLabel)
   const accessCode = useSetPublicationAccessCode(bookLabel)
-  const revoke = useRevokePublication(bookLabel)
 
   const busy = isUpdating || expiry.isPending || accessCode.isPending
   const expiresAt = record?.expires_at ?? null
@@ -187,48 +183,6 @@ export function PublishingControls({
         </div>
       </div>
 
-      {/* Anchored to the bottom of the column: the two actions are the things an author comes
-          here to press, and a primary button that drifts up and down with the length of the
-          panel above it has to be looked for every time. */}
-      <div className="mt-auto flex flex-wrap items-center gap-3 border-t pt-4">
-        <Button data-testid="publish-update-button" disabled={busy} onClick={onUpdate}>
-          {isUpdating ? (
-            <Loader2 className="animate-spin motion-reduce:animate-none" aria-hidden="true" />
-          ) : (
-            <RefreshCw aria-hidden="true" />
-          )}
-          <Trans>Update site</Trans>
-        </Button>
-        <span className="text-xs text-muted-foreground">
-          <Trans>Sends your latest edits to the same link.</Trans>
-        </span>
-        <Button
-          data-testid="publish-revoke-button"
-          variant="ghost"
-          className="ml-auto text-destructive hover:text-destructive"
-          disabled={busy}
-          onClick={() => setRevokeOpen(true)}
-        >
-          <Trans>Stop sharing</Trans>
-        </Button>
-      </div>
-
-      {accessCode.error || expiry.error ? (
-        <p role="alert" className="text-xs leading-5 text-destructive">
-          <Trans>That change didn't go through, so nothing changed. Try again in a moment.</Trans>
-        </p>
-      ) : null}
-
-      <RevokeDialog
-        open={revokeOpen}
-        onOpenChange={(next) => {
-          setRevokeOpen(next)
-          if (!next) revoke.reset()
-        }}
-        onConfirm={() => revoke.mutate(undefined, { onSuccess: () => setRevokeOpen(false) })}
-        isPending={revoke.isPending}
-        errorMessage={revoke.error?.message ?? null}
-      />
     </div>
   )
 }
