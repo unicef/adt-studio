@@ -279,7 +279,9 @@ describe("PublishPanel — states", () => {
     expect(resumeBookPublication).not.toHaveBeenCalled()
   })
 
-  it("makes the link the hero of the published state, with its version history", async () => {
+  /** Version history moved out to the Publishing dashboard, which owns the whole page and can
+   *  give the list a column of its own; this card is now the link and its settings. */
+  it("makes the link the hero of the published state", async () => {
     getBookPublication.mockResolvedValue(publishedStatus())
 
     renderPanel()
@@ -287,8 +289,7 @@ describe("PublishPanel — states", () => {
     await waitFor(() => expect(screen.getByTestId("publish-share-link")).toBeTruthy())
     expect(screen.getByTestId("publish-share-link").textContent).toContain(SHARE_URL)
     expect(screen.getByTestId("publish-expiry-summary").textContent).toContain("no end date")
-    expect(screen.getByTestId("publish-version-2").textContent).toContain("26 pages")
-    expect(screen.getByTestId("publish-version-1").textContent).toContain("24 pages")
+    expect(screen.queryByTestId("publish-version-2")).toBeNull()
     expect(screen.getByTestId("publish-update-button")).toBeTruthy()
     expect(screen.getByTestId("publish-revoke-button")).toBeTruthy()
   })

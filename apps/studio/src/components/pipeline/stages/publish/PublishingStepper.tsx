@@ -13,9 +13,9 @@ const ORDER: readonly PublishPhase[] = ["connect", "configure", "running", "live
  * on screen through the run — the loader replaces the *body*, not the map — so the author can
  * see where the machine has got to without reading the step list.
  *
- * The live state marks every bead done rather than hiding the stepper, because a publication is
- * not finished forever: an author who stops sharing lands back at step three, and a map that
- * disappeared when it succeeded would have to be re-learned.
+ * Once the link is live the page swaps to a dashboard and drops the stepper: a map of a journey
+ * already finished is just noise above the thing it led to. It comes back, with the beads it had
+ * before, if sharing is ever stopped — `live` is still handled here for that reason.
  */
 export function PublishingStepper({ phase }: { phase: PublishPhase }) {
   const current = ORDER.indexOf(phase)

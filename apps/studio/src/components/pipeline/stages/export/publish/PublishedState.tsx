@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { AccessCodeCard } from "./AccessCodeCard"
 import { ExpiryChoice } from "./ExpiryChoice"
-import { PublicationVersionList } from "./PublicationVersionList"
 import { RevokeDialog } from "./RevokeDialog"
 import { ShareLink } from "./ShareLink"
 import {
@@ -189,7 +188,6 @@ export function PublishedState({
         )}
       </div>
 
-      <PublicationVersionList versions={versions} currentVersion={currentVersion} />
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3">
         <Button data-testid="publish-update-button" disabled={busy} onClick={onUpdate}>

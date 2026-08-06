@@ -1,19 +1,17 @@
-import { useState } from "react"
-import { Trans, useLingui } from "@lingui/react/macro"
-import { cn } from "@/lib/utils"
-import { SegmentedControl } from "@/components/ui/segmented-control"
+import { Trans } from "@lingui/react/macro"
+import { History, Link2, Loader2, Users } from "lucide-react"
 import { PublishPanel } from "@/components/pipeline/stages/export/publish/PublishPanel"
+import { PublishedState } from "@/components/pipeline/stages/export/publish/PublishedState"
+import { PublicationReaders } from "@/components/publications/PublicationReaders"
 import {
   publicationLifecycle,
   useBookPublication,
   useBookPublishRun,
 } from "@/hooks/use-book-publication"
+import { PublishingSection } from "./PublishingSection"
 import { PublishingStepper, type PublishPhase } from "./PublishingStepper"
 import { PublishingSummary } from "./PublishingSummary"
-import { PublishingVersionsTab } from "./PublishingVersionsTab"
-import { PublishingReadersTab } from "./PublishingReadersTab"
-
-type Tab = "overview" | "versions" | "readers"
+import { PublishingVersions } from "./PublishingVersions"
 
 /**
  * Publishing, as its own place in the book rather than a card at the top of Export.
@@ -23,17 +21,21 @@ type Tab = "overview" | "versions" | "readers"
  * *before* Export in the rail. You publish early and often to gather feedback; you export at the
  * end, once.
  *
- * The page reads as one journey with two halves. Before the link exists it is a stepper —
- * connect, decide, publish — ending in the same calm loader the Cloudflare setup uses, because
- * both are the same kind of wait. Once it exists it becomes a dashboard: the numbers worth
- * knowing, then the controls, then the history and the readers behind tabs.
+ * One page, no tabs, and two shapes.
+ *
+ * **Before a link exists** it is a narrow single column: a stepper, then the one card that asks
+ * for a decision. Narrow is right here — there is exactly one thing to do, and a wide empty page
+ * would hide it.
+ *
+ * **Once the link exists** the page becomes an operations dashboard and widens into two columns:
+ * state and numbers across the top, the link and its settings in the main column, history and
+ * the roster in a sidebar. Nothing is behind a tab, because tabs on a page this size only hide
+ * two short lists and make the author hunt for them.
  *
  * The Cloudflare connection itself deliberately stays in Settings: it belongs to the Studio, not
  * to this book, and offering it here would imply you connect an account per book.
  */
 export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
-  const { t } = useLingui()
-  const [tab, setTab] = useState<Tab>("overview")
   const status = useBookPublication(bookLabel)
   const run = useBookPublishRun(bookLabel)
 
@@ -42,6 +44,8 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
   const url = status.data?.url ?? run.result?.url ?? null
   const live = lifecycle === "active" && !!url
   const record = status.data?.record ?? null
+  const token = record?.token ?? null
+  const currentVersion = status.data?.publication?.current_version ?? null
 
   const phase: PublishPhase = !connected
     ? "connect"
@@ -51,62 +55,101 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
         ? "live"
         : "configure"
 
-  const tabs: Array<{ value: Tab; label: string }> = [
-    { value: "overview", label: t`Overview` },
-    { value: "versions", label: t`Published versions` },
-    { value: "readers", label: t`Readers` },
-  ]
-
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-8 pb-10 pt-8">
-        <div className="flex flex-col gap-2">
+      <div
+        className={
+          live
+            ? "mx-auto flex w-full max-w-6xl flex-col gap-7 px-8 pb-12 pt-8"
+            : "mx-auto flex w-full max-w-3xl flex-col gap-7 px-8 pb-12 pt-8"
+        }
+      >
+        <header className="flex shrink-0 flex-col gap-1.5">
           <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
             <Trans>Publishing</Trans>
           </h1>
-          <p className="text-[14px] leading-relaxed text-[#737373]">
+          <p className="max-w-2xl text-[14px] leading-relaxed text-[#737373]">
             <Trans>
               Put this book online for readers and reviewers. The copy lives in your own
               Cloudflare account, behind a link only the people you send it to can open.
             </Trans>
           </p>
-        </div>
+        </header>
 
-        {status.isPending ? null : <PublishingStepper phase={phase} />}
-
-        {/* The tiles are the dashboard's headline and belong above the controls; before there is
-            a link there is nothing to count, so they simply are not there. */}
-        {live ? (
-          <div className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-500">
-            <PublishingSummary
-              bookLabel={bookLabel}
-              record={record}
-              currentVersion={status.data?.publication?.current_version ?? null}
-              hasAccessCode={status.data?.has_access_code ?? false}
+        {status.isPending ? (
+          <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
+            <Loader2
+              className="size-4 animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
             />
+            <Trans>Checking whether this book is shared…</Trans>
           </div>
-        ) : null}
+        ) : !live ? (
+          <>
+            <PublishingStepper phase={phase} />
+            <PublishPanel bookLabel={bookLabel} />
+          </>
+        ) : (
+          <>
+            {/* Numbers before controls: the first question on arrival is "what state is this
+                in", and four tiles answer it without reading a word of anything below. */}
+            <div className="shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-500">
+              <PublishingSummary
+                bookLabel={bookLabel}
+                record={record}
+                currentVersion={currentVersion}
+                hasAccessCode={status.data?.has_access_code ?? false}
+              />
+            </div>
 
-        {live ? (
-          <SegmentedControl<Tab>
-            className="h-9 w-full max-w-md"
-            value={tab}
-            onValueChange={setTab}
-            options={tabs}
-          />
-        ) : null}
+            <div className="grid shrink-0 items-start gap-7 lg:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+              <PublishingSection icon={Link2} title={<Trans>The link and its settings</Trans>}>
+                {/* `PublishedState` directly rather than through `PublishPanel`: the panel's
+                    header pitches sharing to somebody who has not shared yet, which on a page
+                    already titled Publishing would be the third heading in a row saying the same
+                    thing. Its own boxes are the cards here — wrapping them in one more would be
+                    a box in a box. */}
+                <PublishedState
+                  bookLabel={bookLabel}
+                  url={url as string}
+                  record={record}
+                  publication={status.data?.publication ?? null}
+                  workerReachable={status.data?.worker_reachable ?? true}
+                  hasAccessCode={status.data?.has_access_code ?? false}
+                  isUpdating={run.status === "running"}
+                  recentRun={run.status === "done" ? run.kind : null}
+                  onUpdate={run.update}
+                />
+              </PublishingSection>
 
-        <div
-          key={live ? tab : "flow"}
-          className={cn(
-            "flex flex-col gap-5",
-            "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300",
-          )}
-        >
-          {!live || tab === "overview" ? <PublishPanel bookLabel={bookLabel} /> : null}
-          {live && tab === "versions" ? <PublishingVersionsTab bookLabel={bookLabel} /> : null}
-          {live && tab === "readers" ? <PublishingReadersTab bookLabel={bookLabel} /> : null}
-        </div>
+              <div className="flex flex-col gap-7">
+                <PublishingSection
+                  icon={History}
+                  title={<Trans>Version history</Trans>}
+                  aside={
+                    record?.versions.length ? (
+                      <Trans>{record.versions.length} total</Trans>
+                    ) : null
+                  }
+                >
+                  <PublishingVersions record={record} currentVersion={currentVersion} />
+                </PublishingSection>
+
+                <PublishingSection icon={Users} title={<Trans>Readers</Trans>}>
+                  <div className="rounded-xl border bg-card px-4 py-3">
+                    {token === null ? (
+                      <p className="py-2 text-xs text-muted-foreground">
+                        <Trans>Nobody can join until this book is published.</Trans>
+                      </p>
+                    ) : (
+                      <PublicationReaders token={token} hideHeading />
+                    )}
+                  </div>
+                </PublishingSection>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   )

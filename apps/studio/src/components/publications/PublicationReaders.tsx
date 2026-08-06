@@ -53,6 +53,9 @@ interface PublicationReadersProps {
    *  that from turning one screen into one request per book. Sticky once true, so closing the
    *  drawer neither cancels an answer nor throws one away. */
   enabled?: boolean
+  /** The Publishing dashboard puts this in a section already headed "Readers"; repeating it
+   *  inside the card would be the same word twice, eight pixels apart. */
+  hideHeading?: boolean
 }
 
 /**
@@ -67,6 +70,7 @@ export function PublicationReaders({
   token,
   override,
   enabled = true,
+  hideHeading = false,
 }: PublicationReadersProps) {
   const query = usePublicationReaders(token, enabled && override === undefined)
   const readers = override ?? query.data?.readers
@@ -74,9 +78,11 @@ export function PublicationReaders({
 
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-        <Trans>Readers who joined</Trans>
-      </span>
+      {hideHeading ? null : (
+        <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+          <Trans>Readers who joined</Trans>
+        </span>
+      )}
 
       {readers === undefined && query.isPending ? (
         /** Reserved height, not decoration: the drawer opens while this is still the content, so
