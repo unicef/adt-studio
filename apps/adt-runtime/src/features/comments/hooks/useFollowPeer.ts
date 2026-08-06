@@ -1,27 +1,20 @@
 import { useAtomValue, useSetAtom } from "jotai"
 import { useEffect, useRef } from "react"
 import { currentSectionIdAtom, pagesAtom } from "@/features/navigation/state/nav.atoms"
-import {
-  findFollowed,
-  followBrokenByReader,
-  followOutcome,
-} from "@/features/comments/lib/follow"
-import {
-  followSentToAtom,
-  followedNameAtom,
-} from "@/features/comments/state/follow.atoms"
+import { findFollowed, followOutcome } from "@/features/comments/lib/follow"
+import { followedNameAtom } from "@/features/comments/state/follow.atoms"
 import { otherPeersAtom } from "@/features/comments/state/presence.atoms"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
 
 /**
- * Keeps this reader on the page the followed peer is reading.
+ * Keeps this reader on the page the followed peer is reading, until they say stop.
  *
- * Two rules do all the work. A peer who is missing from the roster is given a grace period
- * before the follow is dropped, because a page turn *is* a disappearance in this runtime. And a
- * document that comes back on a page the follow did not ask for means the reader navigated
- * themselves, which ends the follow — Figma's rule, and the one that stops a follow feeling
- * like a hijack.
+ * The only automatic ending is a peer who has been gone longer than a page turn takes — a page
+ * turn *is* a disappearance in this runtime, so the grace period is what stops the follow
+ * ending every time it does its job. Navigating by hand does not end it: the reader gets pulled
+ * back on the next presence frame, which is what "following" means and what the banner and the
+ * ring are on screen to make obvious.
  */
 export function useFollowPeer(enabled: boolean): void {
   const { t } = useCommentsText()
@@ -29,9 +22,7 @@ export function useFollowPeer(enabled: boolean): void {
   const pages = useAtomValue(pagesAtom)
   const sectionId = useAtomValue(currentSectionIdAtom)
   const name = useAtomValue(followedNameAtom)
-  const sentTo = useAtomValue(followSentToAtom)
   const setName = useSetAtom(followedNameAtom)
-  const setSentTo = useSetAtom(followSentToAtom)
 
   /** Set the moment the followed peer leaves the roster, cleared when they come back. */
   const missingSinceRef = useRef<number | null>(null)
@@ -41,19 +32,11 @@ export function useFollowPeer(enabled: boolean): void {
 
   const stop = (announce?: string): void => {
     setName(null)
-    setSentTo(null)
     missingSinceRef.current = null
-    /** The banner is the only sign a follow was running; when it goes on its own, something has
+    /** The banner is the only sign a follow was running; when it ends on its own, something has
      *  to say so, or the reader is left wondering why the pages stopped turning. */
     if (announce !== undefined) announceToScreenReader(announce)
   }
-
-  useEffect(() => {
-    if (!enabled || name === null) return
-    if (followBrokenByReader({ name, sentTo, currentSectionId: sectionId ?? null })) stop()
-    // Runs on the document the reader landed on, so only what identifies that landing matters.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled, name, sectionId, sentTo])
 
   useEffect(() => {
     if (!enabled || name === null || navigatedRef.current) return
@@ -81,7 +64,6 @@ export function useFollowPeer(enabled: boolean): void {
     if (outcome.kind !== "navigate") return
 
     navigatedRef.current = true
-    setSentTo(outcome.sectionId)
     window.location.href = outcome.href
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, name, pages, peers, sectionId])

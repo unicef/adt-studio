@@ -1,5 +1,9 @@
 import { atom } from "jotai"
-import { ephemeralAtom, persistedBoolAtom } from "@/shared/state/persist"
+import {
+  ephemeralAtom,
+  persistedBoolAtom,
+  persistedStringAtom,
+} from "@/shared/state/persist"
 import type { CommentAnchor } from "@/features/comments/lib/anchor"
 import type { CommenterSession, PublishComment } from "@/features/comments/lib/contract"
 import { rootComments } from "@/features/comments/lib/contract"
@@ -20,6 +24,16 @@ export const commentModeAtom = persistedBoolAtom("commentMode", false)
 export const commentsHiddenAtom = persistedBoolAtom("commentsHidden", false)
 
 export const commentsAtom = ephemeralAtom<PublishComment[]>([])
+
+/** Every comment in the book, for the sidebar's whole-book tab. Fetched only when that tab is
+ *  opened — a reader who never asks for it never pays for it. */
+export const bookCommentsAtom = ephemeralAtom<PublishComment[]>([])
+
+export type CommentScope = "page" | "book"
+
+/** Which tab the sidebar is on. Survives a page turn, like the other sidebar preferences: a
+ *  reviewer working through the whole book chose this once, not once per page. */
+export const commentScopeAtom = persistedStringAtom("commentsScope", "page")
 
 export const commentsSessionAtom = ephemeralAtom<CommenterSession | null>(null)
 

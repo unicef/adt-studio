@@ -1,17 +1,25 @@
-import { useAtom, useAtomValue } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { Check, X } from "lucide-react"
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { Switch } from "@/shared/ui/switch"
 import { cn } from "@/shared/lib/utils"
 import { readableTextColor } from "@/features/comments/lib/color"
+import { hrefForSection, pageLabelForSection } from "@/features/comments/lib/follow"
 import { relativeTime } from "@/features/comments/lib/relative-time"
 import { snippet } from "@/features/comments/lib/summary"
-import { repliesOf, type PublishComment } from "@/features/comments/lib/contract"
+import { repliesOf, rootComments, type PublishComment } from "@/features/comments/lib/contract"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
+import { PresencePeerList } from "@/features/comments/components/PresencePeerList"
 import {
+  bookCommentsAtom,
+  commentScopeAtom,
   pageResolvedCountAtom,
   showResolvedAtom,
+  type CommentScope,
 } from "@/features/comments/state/comments.atoms"
+import { pendingThreadIdAtom } from "@/features/comments/state/follow.atoms"
+import { otherPeersAtom } from "@/features/comments/state/presence.atoms"
+import { currentSectionIdAtom, pagesAtom, tocAtom } from "@/features/navigation/state/nav.atoms"
 
 export interface CommentsSidebarProps {
   open: boolean
@@ -25,16 +33,15 @@ export interface CommentsSidebarProps {
 }
 
 /**
- * The page's threads as a list — and the keyboard path to every one of them.
+ * The book's threads as a list — and the keyboard path to every one of them.
  *
- * Deliberately *not* a modal sheet: the whole point of this panel is to act on
- * the page behind it (jump to a pin, drag one, watch a thread open where the
- * comment actually is), and a dialog's scrim and focus trap would take exactly
- * that away. It stays mounted and `inert` while closed so it can animate in and
- * out without leaving a focus stop or a screen-reader stop behind.
+ * Deliberately *not* a modal sheet: the whole point of this panel is to act on the page behind
+ * it (jump to a pin, drag one, watch a thread open where the comment actually is), and a
+ * dialog's scrim and focus trap would take exactly that away. It stays mounted and `inert` while
+ * closed so it can animate in and out without leaving a focus stop behind.
  *
- * It is also the home for page-level threads, which the overlay can only stack
- * in a corner.
+ * It is also the home for page-level threads, which the overlay can only stack in a corner, and
+ * for the roster: who is reading belongs beside the feedback, not only in a floating chip.
  */
 export function CommentsSidebar({
   open,
@@ -47,15 +54,31 @@ export function CommentsSidebar({
 }: CommentsSidebarProps) {
   const { t } = useCommentsText()
   const [showResolved, setShowResolved] = useAtom(showResolvedAtom)
+  const [scope, setScope] = useAtom(commentScopeAtom)
   const resolvedCount = useAtomValue(pageResolvedCountAtom)
+  const bookComments = useAtomValue(bookCommentsAtom)
+  const peers = useAtomValue(otherPeersAtom)
+  const pages = useAtomValue(pagesAtom)
+  const toc = useAtomValue(tocAtom)
+  const currentSectionId = useAtomValue(currentSectionIdAtom)
+  const setPendingThread = useSetAtom(pendingThreadIdAtom)
   const listRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
+  const whole = (scope as CommentScope) === "book"
+  const bookRoots = useMemo(() => rootComments(bookComments), [bookComments])
+  const shown = whole ? bookRoots : roots
+  const threadSource = whole ? bookComments : comments
+
+  const labels = {
+    unknown: t("comments-presence-unknown-page-label"),
+    page: (number: number) => t("comments-presence-page-label", { number: String(number) }),
+  }
+
   /**
-   * Opening the panel moves focus into it — the first thread if there is one,
-   * otherwise the close button. Without this a keyboard reviewer would have to
-   * tab back through the whole dock to reach a list they just asked for; the
-   * overlay hands focus back to the trigger on close.
+   * Opening the panel moves focus into it — the first thread if there is one, otherwise the
+   * close button. Without this a keyboard reviewer would have to tab back through the whole
+   * dock to reach a list they just asked for.
    */
   const wasOpen = useRef(false)
   useEffect(() => {
@@ -78,6 +101,23 @@ export function CommentsSidebar({
     node?.addEventListener("keydown", onKeyDown)
     return () => node?.removeEventListener("keydown", onKeyDown)
   }, [onClose, open])
+
+  /**
+   * A comment on another page is a navigation, not a scroll: every page here is its own
+   * document. The thread id is handed to the next document through session storage so it opens
+   * on arrival — otherwise the reader lands on the right page with no idea which comment they
+   * asked for.
+   */
+  function openComment(comment: PublishComment): void {
+    if (comment.page_section_id === currentSectionId) {
+      onSelect(comment)
+      return
+    }
+    const href = hrefForSection(comment.page_section_id, pages)
+    if (href === null) return
+    setPendingThread(comment.id)
+    window.location.href = href
+  }
 
   return (
     <aside
@@ -114,6 +154,38 @@ export function CommentsSidebar({
           </button>
         </div>
 
+        <div role="tablist" className="flex gap-1 rounded-lg bg-muted/60 p-0.5">
+          {(
+            [
+              { value: "page", label: t("comments-scope-page-label"), count: roots.length },
+              { value: "book", label: t("comments-scope-book-label"), count: bookRoots.length },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.value}
+              type="button"
+              role="tab"
+              aria-selected={scope === tab.value}
+              onClick={() => setScope(tab.value)}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium",
+                "transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "motion-reduce:transition-none",
+                scope === tab.value
+                  ? "bg-popover text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {tab.label}
+              {tab.count > 0 ? (
+                <span className="rounded-full bg-muted px-1.5 text-[0.6rem] font-bold leading-4">
+                  {tab.count}
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <Switch
             checked={showResolved as boolean}
@@ -130,23 +202,35 @@ export function CommentsSidebar({
         </label>
       </header>
 
+      {peers.length > 0 ? (
+        <section className="border-b border-border py-1.5">
+          <h3 className="px-3.5 pb-1 text-[0.65rem] font-semibold uppercase tracking-wide text-muted-foreground">
+            {t("comments-reading-now-label")}
+          </h3>
+          <div className="max-h-40 overflow-y-auto">
+            <PresencePeerList />
+          </div>
+        </section>
+      ) : null}
+
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        {roots.length === 0 ? (
+        {shown.length === 0 ? (
           <p className="px-1.5 py-6 text-center text-xs text-muted-foreground">
-            {t("comments-empty-label")}
+            {whole ? t("comments-book-empty-label") : t("comments-empty-label")}
           </p>
         ) : (
           <ul className="flex flex-col gap-1">
-            {roots.map((comment, index) => {
-              const replies = repliesOf(comments, comment.id)
+            {shown.map((comment, index) => {
+              const replies = repliesOf(threadSource, comment.id)
               const resolved = comment.resolved_at !== null
               const selected = openThreadId === comment.id
+              const elsewhere = comment.page_section_id !== currentSectionId
               return (
                 <li key={comment.id}>
                   <button
                     type="button"
                     aria-current={selected || undefined}
-                    onClick={() => onSelect(comment)}
+                    onClick={() => openComment(comment)}
                     className={cn(
                       "group/item flex w-full gap-2 rounded-lg p-2 text-left",
                       "transition-colors duration-150 hover:bg-muted focus:outline-none",
@@ -176,12 +260,20 @@ export function CommentsSidebar({
                         <span className="text-[0.65rem] text-muted-foreground">
                           {relativeTime(comment.created_at, t)}
                         </span>
-                        {anchoredIds.has(comment.id) ? null : (
+                        {!elsewhere && !anchoredIds.has(comment.id) ? (
                           <span className="rounded bg-muted px-1 py-px text-[0.6rem] font-medium text-muted-foreground">
                             {t("comments-page-level-label")}
                           </span>
-                        )}
+                        ) : null}
                       </span>
+
+                      {/* Which page a thread is on only needs saying when it is not this one —
+                          on the page tab every row would carry the same label. */}
+                      {elsewhere ? (
+                        <span className="mt-0.5 block truncate text-[0.65rem] font-medium text-muted-foreground">
+                          {pageLabelForSection(comment.page_section_id, pages, toc, labels)}
+                        </span>
+                      ) : null}
 
                       <span className="mt-0.5 line-clamp-2 block text-xs leading-snug text-foreground/85">
                         {snippet(comment.body)}

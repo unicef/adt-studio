@@ -87,7 +87,6 @@ export const COMMENT_STRINGS = {
   "comments-following-label": "Following",
   "comments-follow-stop-label": "Stop following",
   "comments-following-banner-label": "Following ${name}",
-  "comments-following-hint-label": "Turn a page yourself to stop",
   "comments-following-lost-label": "${name} left, so following stopped",
   "comments-hidden-show-label": "Show comments",
   "comments-hidden-setting-label": "Comments and cursors",
@@ -96,6 +95,10 @@ export const COMMENT_STRINGS = {
   "comments-device-full-label": "Desktop",
   "comments-device-tablet-label": "Tablet",
   "comments-device-phone-label": "Phone",
+  "comments-scope-page-label": "This page",
+  "comments-scope-book-label": "Whole book",
+  "comments-book-empty-label": "No comments anywhere in this book yet",
+  "comments-reading-now-label": "Reading now",
 } as const
 
 export type CommentStringKey = keyof typeof COMMENT_STRINGS

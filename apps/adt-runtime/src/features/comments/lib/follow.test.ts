@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest"
 import {
   FOLLOW_GRACE_MS,
   findFollowed,
-  followBrokenByReader,
   followOutcome,
   isFollowable,
   pageLabelFor,
@@ -84,40 +83,20 @@ describe("where a follow sends the reader", () => {
     ).toBe("stay")
   })
 
+  /** Wandering off is not a way to end a follow: the reader gets pulled back, which is what
+   *  following means. Only the Stop button ends it. */
+  it("pulls the reader back when they wander off on their own", () => {
+    expect(
+      followOutcome({ ...base, followed: peer(), currentSectionId: "pg003_sec001" }),
+    ).toEqual({ kind: "navigate", href: "page-2.html", sectionId: "pg002_sec001" })
+  })
+
   it("waits out a page turn before giving up on a peer who vanished", () => {
     const gone = { ...base, followed: null, missingSinceMs: base.now - 1_000 }
     expect(followOutcome(gone).kind).toBe("stay")
 
     const long = { ...base, followed: null, missingSinceMs: base.now - FOLLOW_GRACE_MS - 1 }
     expect(followOutcome(long).kind).toBe("lost")
-  })
-})
-
-describe("the reader taking the wheel back", () => {
-  it("ends the follow when the document that loads is not the one it asked for", () => {
-    expect(
-      followBrokenByReader({
-        name: "Ana",
-        sentTo: "pg002_sec001",
-        currentSectionId: "pg007_sec001",
-      }),
-    ).toBe(true)
-  })
-
-  it("keeps following when the reader landed where the follow sent them", () => {
-    expect(
-      followBrokenByReader({
-        name: "Ana",
-        sentTo: "pg002_sec001",
-        currentSectionId: "pg002_sec001",
-      }),
-    ).toBe(false)
-  })
-
-  it("never fires before the follow has sent anybody anywhere", () => {
-    expect(
-      followBrokenByReader({ name: "Ana", sentTo: null, currentSectionId: "pg005_sec001" }),
-    ).toBe(false)
   })
 })
 

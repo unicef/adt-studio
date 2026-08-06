@@ -67,36 +67,19 @@ export function followOutcome(input: {
   return { kind: "navigate", href: page.href, sectionId: target }
 }
 
-/**
- * Whether the reader has taken the wheel back.
- *
- * Every navigation in this runtime is a `location.href` assignment scattered across page nav,
- * the TOC and the activities, so hooking "the user navigated" at every call site would be a
- * standing invitation to miss one. Instead the follow records where it *sent* the reader; if
- * the document that comes back is a different page, the reader went somewhere themselves and
- * the follow is over. Landing on the page the follow was aiming at anyway is indistinguishable
- * from being taken there, and harmless.
- */
-export function followBrokenByReader(input: {
-  name: string | null
-  sentTo: string | null
-  currentSectionId: string | null
-}): boolean {
-  if (input.name === null) return false
-  if (input.sentTo === null) return false
-  if (input.currentSectionId === null) return false
-  return input.sentTo !== input.currentSectionId
+export interface PageLabels {
+  unknown: string
+  page: (n: number) => string
 }
 
-/** Where a peer is, in words. Prefers the TOC's own title, falls back to the page number, and
+/** Where a page is, in words. Prefers the TOC's own title, falls back to the page number, and
  *  says plainly when it knows neither — a made-up "page 1" would be worse than an admission. */
-export function pageLabelFor(
-  peer: RoomPeer,
+export function pageLabelForSection(
+  sectionId: string | null,
   pages: readonly PageEntry[],
   toc: readonly TocEntry[],
-  labels: { unknown: string; page: (n: number) => string },
+  labels: PageLabels,
 ): string {
-  const sectionId = peer.page_section_id
   if (sectionId === null) return labels.unknown
 
   const heading = toc.find((entry) => entry.section_id === sectionId)
@@ -106,4 +89,22 @@ export function pageLabelFor(
   const index = pages.findIndex((entry) => entry.section_id === sectionId)
   const number = page?.page_number ?? (index === -1 ? null : index + 1)
   return number === null ? labels.unknown : labels.page(number)
+}
+
+export function pageLabelFor(
+  peer: RoomPeer,
+  pages: readonly PageEntry[],
+  toc: readonly TocEntry[],
+  labels: PageLabels,
+): string {
+  return pageLabelForSection(peer.page_section_id, pages, toc, labels)
+}
+
+/** The page a comment was written on, for the whole-book list. `null` when this snapshot has no
+ *  entry for it — a comment from a version whose pages have since been renumbered. */
+export function hrefForSection(
+  sectionId: string,
+  pages: readonly PageEntry[],
+): string | null {
+  return pages.find((entry) => entry.section_id === sectionId)?.href ?? null
 }

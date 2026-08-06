@@ -83,6 +83,9 @@ export interface ListOptions {
 
 export interface CommentsApi {
   list: (pageSectionId: string, options?: ListOptions) => Promise<ListResponse>
+  /** Every comment in the publication, for the sidebar's whole-book tab. The worker's filter is
+   *  optional, so this costs no new route and no worker version. */
+  listAll: (options?: ListOptions) => Promise<ListResponse>
   createSession: (name: string, pin?: string) => Promise<CommenterSession>
   /** Dormant since M3.5: the reader UI no longer offers PINs, but the worker route is still
    *  live and still tested, so the client half stays rather than being re-derived later. */
@@ -108,6 +111,15 @@ export function createCommentsApi(apiBase: string): CommentsApi {
       const query = new URLSearchParams({ page_section_id: pageSectionId })
       if (options.includeResolved) query.set("include_resolved", "true")
       return request<ListResponse>(`${apiBase}comments?${query.toString()}`, { method: "GET" })
+    },
+
+    async listAll(options = {}) {
+      const query = new URLSearchParams()
+      if (options.includeResolved) query.set("include_resolved", "true")
+      const search = query.toString()
+      return request<ListResponse>(`${apiBase}comments${search ? `?${search}` : ""}`, {
+        method: "GET",
+      })
     },
 
     async createSession(name, pin) {

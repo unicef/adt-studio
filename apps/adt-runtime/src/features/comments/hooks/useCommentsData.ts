@@ -4,7 +4,9 @@ import { currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
 import { CommentsApiError } from "@/features/comments/lib/api"
 import type { CommentsRuntimeContext } from "@/features/comments/hooks/useCommentsContext"
 import {
+  bookCommentsAtom,
   commentModeAtom,
+  commentScopeAtom,
   commentsAtom,
   commentsSessionAtom,
   commentsStatusAtom,
@@ -31,6 +33,8 @@ export function useCommentsData(context: CommentsRuntimeContext | null): {
   const setSession = useSetAtom(commentsSessionAtom)
   const setStatus = useSetAtom(commentsStatusAtom)
   const setCommentMode = useSetAtom(commentModeAtom)
+  const scope = useAtomValue(commentScopeAtom) as string
+  const setBookComments = useSetAtom(bookCommentsAtom)
 
   const refresh = useCallback(async () => {
     if (!context || !sectionId) return
@@ -55,6 +59,25 @@ export function useCommentsData(context: CommentsRuntimeContext | null): {
   useEffect(() => {
     void refresh()
   }, [refresh])
+
+  /** The whole book is a second, larger request, so it is made only for the tab that shows it —
+   *  and re-made when "show resolved" changes, for the same reason the per-page list is. */
+  useEffect(() => {
+    if (!context || scope !== "book") return
+    let cancelled = false
+    void (async () => {
+      try {
+        const { comments } = await context.api.listAll({ includeResolved: showResolved })
+        if (!cancelled) setBookComments(comments)
+      } catch {
+        /* The per-page list is the one the page needs; a failed book-wide read leaves that tab
+           empty rather than taking the page down with it. */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [context, scope, showResolved, setBookComments])
 
   return { refresh }
 }

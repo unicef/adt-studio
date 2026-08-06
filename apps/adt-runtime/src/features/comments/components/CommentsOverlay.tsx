@@ -27,6 +27,7 @@ import { CommentPin } from "@/features/comments/components/CommentPin"
 import { CommentPreview } from "@/features/comments/components/CommentPreview"
 import { CommentThread } from "@/features/comments/components/CommentThread"
 import { CommentsSidebar } from "@/features/comments/components/CommentsSidebar"
+import { pendingThreadIdAtom } from "@/features/comments/state/follow.atoms"
 import { PointPopover } from "@/features/comments/components/PointPopover"
 
 const DRAFT_COLOR = "#0091ff"
@@ -63,6 +64,7 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
   const [openThreadId, setOpenThreadId] = useAtom(openThreadIdAtom)
   const [commentMode, setCommentMode] = useAtom(commentModeAtom)
   const [sidebarOpen, setSidebarOpen] = useAtom(sidebarOpenAtom)
+  const [pendingThreadId, setPendingThreadId] = useAtom(pendingThreadIdAtom)
   const drag = useAtomValue(pinDragAtom)
   const [settlingId, setSettling] = useAtom(settlingPinIdAtom)
   const [flashedId, setFlashed] = useAtom(flashedPinIdAtom)
@@ -288,6 +290,20 @@ export function CommentsOverlay({ context, refresh }: CommentsOverlayProps) {
     },
     [clearPreview, rememberOrigin, setDraft, setFlashed, setOpenThreadId],
   )
+
+  /**
+   * A thread the reader picked from the whole-book list on another page. The navigation has
+   * happened; this is the arrival. It waits for this page's comments so the id can be matched to
+   * a real thread, and clears the handoff either way — a stale id must never re-open on a later
+   * page turn.
+   */
+  useEffect(() => {
+    if (pendingThreadId === null) return
+    if (comments.length === 0) return
+    const target = comments.find((comment) => comment.id === pendingThreadId)
+    setPendingThreadId(null)
+    if (target) selectFromSidebar(target)
+  }, [comments, pendingThreadId, selectFromSidebar, setPendingThreadId])
 
   const openRoot = openThreadId
     ? (roots.find((comment) => comment.id === openThreadId) ?? null)

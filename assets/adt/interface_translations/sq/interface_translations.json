@@ -214,5 +214,9 @@
     "comments-device-preview-label": "Shiko si",
     "comments-device-full-label": "Kompjuter",
     "comments-device-tablet-label": "Tablet",
-    "comments-device-phone-label": "Telefon"
+    "comments-device-phone-label": "Telefon",
+    "comments-scope-page-label": "Kjo faqe",
+    "comments-scope-book-label": "I gjithë libri",
+    "comments-book-empty-label": "Ende nuk ka komente në këtë libër",
+    "comments-reading-now-label": "Po lexojnë tani"
 }

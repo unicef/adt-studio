@@ -282,5 +282,9 @@
     "comments-device-preview-label": "Preview as",
     "comments-device-full-label": "Desktop",
     "comments-device-tablet-label": "Tablet",
-    "comments-device-phone-label": "Phone"
+    "comments-device-phone-label": "Phone",
+    "comments-scope-page-label": "This page",
+    "comments-scope-book-label": "Whole book",
+    "comments-book-empty-label": "No comments anywhere in this book yet",
+    "comments-reading-now-label": "Reading now"
 }

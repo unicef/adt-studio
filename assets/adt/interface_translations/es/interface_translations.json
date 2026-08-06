@@ -277,5 +277,9 @@
     "comments-device-preview-label": "Ver como",
     "comments-device-full-label": "Escritorio",
     "comments-device-tablet-label": "Tableta",
-    "comments-device-phone-label": "Móvil"
+    "comments-device-phone-label": "Móvil",
+    "comments-scope-page-label": "Esta página",
+    "comments-scope-book-label": "Todo el libro",
+    "comments-book-empty-label": "Aún no hay comentarios en este libro",
+    "comments-reading-now-label": "Leyendo ahora"
 }

@@ -257,5 +257,9 @@
     "comments-device-preview-label": "Aperçu en",
     "comments-device-full-label": "Ordinateur",
     "comments-device-tablet-label": "Tablette",
-    "comments-device-phone-label": "Téléphone"
+    "comments-device-phone-label": "Téléphone",
+    "comments-scope-page-label": "Cette page",
+    "comments-scope-book-label": "Tout le livre",
+    "comments-book-empty-label": "Aucun commentaire dans ce livre pour l'instant",
+    "comments-reading-now-label": "En train de lire"
 }

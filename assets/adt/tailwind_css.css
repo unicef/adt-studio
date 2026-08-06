@@ -209,27 +209,63 @@ span[data-word-index].bg-yellow-300 span {
 }
 
 /*
- * Device preview. A reviewer on a laptop narrows the content column to a phone
- * or tablet width to check a layout they have no device for. The attribute is
- * written by `DevicePreviewFrame` and is absent unless the preview is on, so a
- * book that nobody previews pays nothing for this rule.
+ * Device preview. A reviewer on a laptop checks a layout on a phone or tablet
+ * they do not own, in the same frame the Studio's preview and storyboard draw.
+ * The wrapper is built by `DevicePreviewFrame` and is absent unless the preview
+ * is on, so a book nobody previews pays nothing for these rules.
  *
- * The frame is drawn on `#content` alone: the dock, the comment pins and the
- * cursors are chrome around the book, not part of the page being checked, and
- * shrinking them too would answer a question nobody asked.
+ * The frame surrounds `#content` alone: the dock, the pins and the cursors are
+ * chrome around the book, not part of the page being checked.
  */
-body[data-device-preview] #content {
-  max-width: var(--device-preview-width);
-  margin-inline: auto;
-  border-inline: 1px solid var(--border, rgba(0, 0, 0, 0.1));
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
-  transition: max-width 250ms ease;
+.adt-device-frame {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem 3rem;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  body[data-device-preview] #content {
-    transition: none;
+.adt-device-frame > .adt-device-screen {
+  position: relative;
+  width: var(--device-preview-width);
+  max-width: 100%;
+  background: var(--background, #fff);
+  overflow: hidden;
+}
+
+.adt-device-frame[data-device="phone"] > .adt-device-screen {
+  border: 12px solid #010101;
+  border-radius: 44px;
+  box-shadow:
+    inset 0 0 0 2px #342c3f,
+    0 24px 60px rgba(0, 0, 0, 0.28);
+  padding-top: 1.75rem;
+}
+
+/* The dynamic island, drawn on the screen wrapper so the book's own content
+   keeps every pseudo-element it might be using. */
+.adt-device-frame[data-device="phone"] > .adt-device-screen::before {
+  content: "";
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92px;
+  height: 24px;
+  border-radius: 999px;
+  background: #010101;
+  z-index: 5;
+}
+
+.adt-device-frame[data-device="tablet"] > .adt-device-screen {
+  border: 14px solid #010101;
+  border-radius: 28px;
+  box-shadow:
+    inset 0 0 0 2px #342c3f,
+    0 24px 60px rgba(0, 0, 0, 0.24);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .adt-device-frame > .adt-device-screen {
+    transition: width 250ms ease;
   }
 }
 

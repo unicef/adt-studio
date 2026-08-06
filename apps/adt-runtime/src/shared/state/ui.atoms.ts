@@ -36,9 +36,11 @@ export const themeAtom = persistedStringAtom("theme", "dark")
  */
 export type DevicePreview = "full" | "tablet" | "phone"
 
+/** The Studio's own `DEVICE_WIDTHS`, restated: a reviewer checking a layout in the published
+ *  book and an author checking it in the storyboard must be looking at the same width. */
 export const DEVICE_PREVIEW_WIDTHS: Record<Exclude<DevicePreview, "full">, number> = {
-  tablet: 834,
-  phone: 390,
+  tablet: 768,
+  phone: 375,
 }
 
 export const devicePreviewAtom = persistedStringAtom("devicePreview", "full")
