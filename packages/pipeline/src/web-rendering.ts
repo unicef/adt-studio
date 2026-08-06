@@ -5,6 +5,7 @@ import {
   type PageSectioningSection,
   type SectionRendering,
   type BookTypography,
+  type LayoutType,
   type WebRenderingOutput,
   DEFAULT_LLM_MAX_RETRIES,
   DEFAULT_LLM_MODEL_ID,
@@ -92,6 +93,8 @@ export interface RenderSectionInput {
   sectionIndex: number
   section: PageSectioningSection
   context: RenderContext
+  /** Rendering policy selected by the book preset. Omitted for legacy/direct callers. */
+  layoutType?: LayoutType
   /**
    * Page images for content merged into this section from other pages
    * (section.sourcePageIds) — shown to the LLM alongside the hosting page's
@@ -112,6 +115,8 @@ export interface RenderPageInput {
   pageImageBase64: string
   sectioning: PageSectioningOutput
   images: Map<string, { base64: string; width?: number; height?: number }>
+  /** Rendering policy selected by the book preset. Omitted for legacy/direct callers. */
+  layoutType?: LayoutType
   /**
    * Page images keyed by pageId for every page referenced by any section's
    * `sourcePageIds`. Sections pick their own subset at render time.
@@ -345,6 +350,7 @@ export async function renderPage(
       sectionIndex: i,
       section,
       context,
+      layoutType: input.layoutType,
       ...(sourcePages.length > 0 && { sourcePages }),
       styleguide: input.styleguide,
       bookFonts: input.bookFonts,

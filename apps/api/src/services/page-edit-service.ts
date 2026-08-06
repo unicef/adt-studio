@@ -169,6 +169,7 @@ export async function reRenderPage(
         pageImageBase64,
         sectioning: structuringForRender,
         images: renderImages,
+        layoutType: config.layout_type,
         sourcePageImages,
         styleguide: styleguideContent,
         bookFonts: buildBookFontsPromptContext(storage),

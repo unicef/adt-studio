@@ -54,7 +54,7 @@ The content tree is the current saved user state. Its depth-first order is the R
 - A wide element that must sit BELOW everything (a full-width image or diagram) should clear the float with `clear-both`.
 - Use a real multi-column split (flex/grid) ONLY when both columns hold comparable, self-contained content (e.g. a paired image + its explanation) — never for a short sidebar beside long running text.
 - Size content images (photos, diagrams, illustrations) to the layout, matching how prominently they appear in the original page image. A standalone image should fill the content column (`w-full h-auto`); images paired in a row each fill their share of the row. Do NOT render content images as small thumbnails — prefer filling the available width even if it means modestly upscaling a low-resolution source. Keep an image small ONLY if it is a genuinely small inline icon or decoration in the original.
-- Text baked into an image: if an image already contains legible text (a labeled diagram, a poster, a text graphic) and that same text is also provided as an associated text leaf, do NOT show the words twice. Render the image on its own, and emit the associated text leaf as VISUALLY HIDDEN with `sr-only` (it stays available to read-aloud and screen readers but is not drawn on screen). Never overlay or caption a transcription on top of text that is already legible inside the image. Only overlay/caption text on an image when the words are NOT already present in the image.
+{% if layout_type == "textbook" %}- Text baked into a retained text-bearing figure: follow the textbook image-triage policy. Show an essential figure or safe figure crop once, emit exact duplicate transcription leaves with `sr-only`, and keep every activity instruction, question, table, choice, and learner control visible as semantic HTML.{% else %}- Text baked into an image: if an image already contains legible text and that exact text is also supplied as an associated leaf, keep the semantic transcription available with `sr-only` instead of drawing a visible duplicate.{% endif %}
 ## RESPONSIVE DESIGN (DESKTOP-FIRST)
 Your HTML will be tested at these viewport widths. Use ONLY these Tailwind responsive prefixes:
 {% for vp in viewports %}- **{{ vp.label }}** ({{ vp.width }}px){% if vp.tailwind_prefix != "" %}: `{{ vp.tailwind_prefix }}` prefix{% else %}: default (no prefix — base/desktop styles){% endif %}
@@ -101,7 +101,7 @@ Section ID: {{ section_id }}
 Section type: {{ section_type }}
 
 {% for image in images %}
-Image ID: {{ image.image_id }}
+Image ID: {{ image.image_id }}{% if image.width %} ({{ image.width }}×{{ image.height }}px){% endif %}
 {% image image.image_base64 %}
 {% endfor %}
 

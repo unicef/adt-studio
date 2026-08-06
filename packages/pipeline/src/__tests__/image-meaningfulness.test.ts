@@ -72,6 +72,34 @@ describe("buildMeaningfulnessConfig", () => {
     expect(config!.maxRetries).toBe(13)
   })
 
+  it("uses the storybook-specific prompt without changing explicit overrides", () => {
+    const storybookConfig: AppConfig = {
+      role_types: { section_text: "Main body text" },
+      structure_types: { paragraph: "Paragraph" },
+      layout_type: "storybook",
+      image_meaningfulness: { model: "openai:gpt-4.1" },
+    }
+    expect(buildMeaningfulnessConfig(storybookConfig)!.promptName).toBe(
+      "image_meaningfulness_storybook",
+    )
+
+    storybookConfig.image_meaningfulness = {
+      model: "openai:gpt-4.1",
+      prompt: "image_meaningfulness",
+    }
+    expect(buildMeaningfulnessConfig(storybookConfig)!.promptName).toBe(
+      "image_meaningfulness_storybook",
+    )
+
+    storybookConfig.image_meaningfulness = {
+      model: "openai:gpt-4.1",
+      prompt: "custom_storybook_filter",
+    }
+    expect(buildMeaningfulnessConfig(storybookConfig)!.promptName).toBe(
+      "custom_storybook_filter",
+    )
+  })
+
   it("returns null when image_filters.meaningfulness is false", () => {
     const appConfig: AppConfig = {
       role_types: { section_text: "Main body text" },
