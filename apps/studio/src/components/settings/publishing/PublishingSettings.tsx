@@ -4,6 +4,7 @@ import { AlertTriangle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCloudflareConnection } from "@/hooks/use-cloudflare-connection"
 import { useCloudflareCredentials } from "@/hooks/use-cloudflare-credentials"
+import { PublicationsDashboard } from "@/components/publications/PublicationsDashboard"
 import { ConnectCloudflareWizard } from "./ConnectCloudflareWizard"
 import { ConnectedCard } from "./ConnectedCard"
 
@@ -72,14 +73,27 @@ export function PublishingSettings() {
       )}
 
       {showConnectedCard && connection.data && (
-        <ConnectedCard
-          connection={connection.data}
-          credentials={credentials}
-          onDisconnected={() => {
-            clearCredentials()
-            setJustProvisioned(false)
-          }}
-        />
+        <>
+          <ConnectedCard
+            connection={connection.data}
+            credentials={credentials}
+            onDisconnected={() => {
+              clearCredentials()
+              setJustProvisioned(false)
+            }}
+          />
+          <section className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-base font-semibold tracking-tight text-foreground">
+                <Trans>Published books</Trans>
+              </h2>
+              <p className="text-sm leading-6 text-muted-foreground">
+                <Trans>Every book you have shared from this Cloudflare account.</Trans>
+              </p>
+            </div>
+            <PublicationsDashboard embedded />
+          </section>
+        </>
       )}
 
       {!isChecking && !showConnectedCard && (

@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowRight, CheckCircle2, Cloud, Copy, RefreshCw } from "lucide-react"
-import { Link } from "@tanstack/react-router"
+import { CheckCircle2, Cloud, Copy, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import type { CloudflareConnectionStatus, CloudflareCredentials } from "@/api/client"
@@ -182,17 +181,8 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
             </div>
 
             <div className="flex flex-wrap items-center gap-2 border-t px-5 py-3">
-              <Button asChild className="group">
-                <Link to="/publications">
-                  <Trans>Published books</Trans>
-                  <ArrowRight
-                    className="size-4 transition-transform duration-200 motion-safe:group-hover:translate-x-0.5 motion-reduce:transition-none"
-                    aria-hidden="true"
-                  />
-                </Link>
-              </Button>
               {connection.upgrade_available && (
-                <Button variant="outline" onClick={() => upgrade.start()}>
+                <Button onClick={() => upgrade.start()}>
                   <RefreshCw aria-hidden="true" />
                   <Trans>Install the update</Trans>
                 </Button>

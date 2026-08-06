@@ -545,12 +545,6 @@ function HomePage() {
           </h1>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
-              <Link to="/publications" className="gap-1.5 text-muted-foreground">
-                <Share2 className="h-3.5 w-3.5" />
-                <Trans>Published books</Trans>
-              </Link>
-            </Button>
-            <Button variant="ghost" size="sm" asChild>
               <Link to="/books/import" className="gap-1.5 text-muted-foreground">
                 <Upload className="h-3.5 w-3.5" />
                 <Trans>Import project</Trans>

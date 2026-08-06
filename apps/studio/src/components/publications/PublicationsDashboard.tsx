@@ -3,6 +3,7 @@ import { AlertTriangle, CloudOff, Globe, Link2, Loader2, RefreshCw } from "lucid
 import { Trans, useLingui } from "@lingui/react/macro"
 import { publicationStateAt, type PublicationSummary } from "@adt/types"
 import { apiErrorCode } from "@/api/client"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { StageEmptyState } from "@/components/pipeline/components/StageEmptyState"
@@ -24,7 +25,13 @@ function applyFilter(publications: PublicationSummary[], filter: Filter): Public
   )
 }
 
-export function PublicationsDashboard() {
+interface PublicationsDashboardProps {
+  /** Inside Settings the page already owns the scroll and padding, so the shelf drops
+   *  its own page chrome and renders as a section. */
+  embedded?: boolean
+}
+
+export function PublicationsDashboard({ embedded = false }: PublicationsDashboardProps) {
   const { t } = useLingui()
   const overview = usePublications()
   const stop = useStopSharing()
@@ -109,11 +116,14 @@ export function PublicationsDashboard() {
   const busyLabel = stop.isPending ? stop.variables : resume.isPending ? resume.variables : null
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className={cn("flex flex-col", embedded ? "gap-3" : "min-h-0 flex-1")}>
       {data.worker_reachable ? null : (
         <div
           data-testid="publications-worker-unreachable"
-          className="flex items-center gap-2 border-b border-red-200 bg-red-50 px-4 py-2 text-xs text-red-900 duration-200 animate-in fade-in slide-in-from-top-1 motion-reduce:animate-none"
+          className={cn(
+            "flex items-center gap-2 border-red-200 bg-red-50 px-4 py-2 text-xs text-red-900 duration-200 animate-in fade-in slide-in-from-top-1 motion-reduce:animate-none",
+            embedded ? "rounded-lg border" : "border-b",
+          )}
         >
           <CloudOff className="size-3.5 shrink-0" aria-hidden="true" />
           <p className="flex-1">
@@ -136,7 +146,12 @@ export function PublicationsDashboard() {
         </div>
       )}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-6 mh:gap-3 mh:p-4">
+      <div
+        className={cn(
+          "flex flex-col gap-4 mh:gap-3",
+          embedded ? "p-0" : "min-h-0 flex-1 overflow-auto p-6 mh:p-4",
+        )}
+      >
         {nothingPublished ? null : (
           <PublicationsSummary totals={data.totals} countsKnown={countsKnown} />
         )}
