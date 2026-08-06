@@ -67,6 +67,7 @@ import {
   StoryboardFeedbackOverlay,
   useSectionFeedbackCount,
 } from "./feedback/StoryboardFeedbackOverlay"
+import { StoryboardCommentsSidebar } from "./feedback/StoryboardCommentsSidebar"
 import { sectionIdFor } from "./feedback/storyboard-pins"
 import { SectionEditPanel } from "./SectionEditPanel"
 import { writeCustomAnswerToHtml } from "../lib/activity-answer-labels"
@@ -509,6 +510,11 @@ export function StoryboardSectionDetail({
    *  back per pin, exactly as the Feedback view does. */
   const previewContainerRef = useRef<HTMLDivElement>(null)
   const [feedbackShown, setFeedbackShown] = useState(false)
+  /** One selection shared by the pins and the sidebar: two states could disagree about which
+   *  comment is open, and the author would see a highlighted row with no highlighted pin. */
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
+  const [missingPinIds, setMissingPinIds] = useState<readonly string[]>([])
+  const missingPins = useMemo(() => new Set(missingPinIds), [missingPinIds])
   const feedbackCount = useSectionFeedbackCount(bookLabel, sectionIdFor(pageId, sectionIndex))
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -817,6 +823,12 @@ export function StoryboardSectionDetail({
 
   // Effective data
   const sectioningData = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
+  /** Every section of this page, so the sidebar can group threads the way the author sees them.
+   *  Sectioning is the reliable source — rendering skips pruned sections. */
+  const pageSectionIds = useMemo(
+    () => (sectioningData?.sections ?? []).map((_section, index) => sectionIdFor(pageId, index)),
+    [sectioningData, pageId],
+  )
   const dirty = pendingSectioning != null
 
   // Current section data
@@ -2738,6 +2750,9 @@ export function StoryboardSectionDetail({
                   containerRef={previewContainerRef}
                   enabled={feedbackShown}
                   showResolved={false}
+                  selectedThreadId={selectedThreadId}
+                  onSelectThread={setSelectedThreadId}
+                  onMissingPinsChange={setMissingPinIds}
                 />
               </div>
             )}
@@ -3060,6 +3075,17 @@ export function StoryboardSectionDetail({
         <div className="absolute inset-0 z-50 cursor-row-resize" />
       )}
     </div>
+
+    <StoryboardCommentsSidebar
+      bookLabel={bookLabel}
+      sectionIds={pageSectionIds}
+      activeSectionId={sectionIdFor(pageId, sectionIndex)}
+      open={feedbackShown}
+      onClose={() => setFeedbackShown(false)}
+      selectedThreadId={selectedThreadId}
+      onSelectThread={setSelectedThreadId}
+      missingPins={missingPins}
+    />
 
     {/* Inline element style editor — opens automatically on selection */}
     <StyleEditorPanel

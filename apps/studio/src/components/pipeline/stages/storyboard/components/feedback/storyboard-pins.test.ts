@@ -46,6 +46,24 @@ const IFRAME = { left: 100, top: 60, width: 800, height: 600 } as DOMRect
 const CONTAINER = { left: 80, top: 50, width: 900, height: 700 } as DOMRect
 
 describe("placePins", () => {
+  /** The preview is CSS-scaled to fit its column, so an unscaled offset drifts further from its
+   *  element the further down the page it is — and eventually falls outside the frame. */
+  it("scales anchor offsets by the preview's own zoom", () => {
+    const doc = previewDoc()
+    Object.defineProperty(doc.documentElement, "clientWidth", { value: 1600, configurable: true })
+    const threads = buildThreads([comment()])
+    const { placed } = placePins(threads, {
+      doc,
+      /** Half the layout width: the preview is drawn at 50%. */
+      iframeRect: { ...IFRAME, width: 800 } as DOMRect,
+      containerRect: CONTAINER,
+      liveVersion: 3,
+    })
+    /** 20 + (20 + 100) × 0.5 = 80; 10 + (40 + 25) × 0.5 = 42.5. */
+    expect(placed[0]?.x).toBeCloseTo(80)
+    expect(placed[0]?.y).toBeCloseTo(42.5)
+  })
+
   it("puts a pin where its anchor resolves, in the container's coordinates", () => {
     const threads = buildThreads([comment()])
     const { placed, unplaced } = placePins(threads, {

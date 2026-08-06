@@ -66,6 +66,18 @@ export function placePins(
   const root = contentRoot(options.doc)
   const { iframeRect, containerRect } = options
 
+  /**
+   * The storyboard preview is CSS-scaled to fit its column — the iframe lays out at a device
+   * width and is then transformed down. `getBoundingClientRect` reports the *scaled* box while an
+   * anchor resolves in the iframe's own unscaled coordinates, so a pin has to be scaled by the
+   * same factor or it drifts further from its element the further down the page it is. It was
+   * doing exactly that, which also pushed the lower pins outside the frame and made them look
+   * unplaceable.
+   */
+  const layoutWidth = options.doc?.documentElement.clientWidth ?? 0
+  const scale =
+    iframeRect !== null && layoutWidth > 0 ? iframeRect.width / layoutWidth : 1
+
   threads.forEach((thread, index) => {
     const number = index + 1
     const stale = options.liveVersion !== null && thread.version < options.liveVersion
@@ -88,12 +100,17 @@ export function placePins(
 
     /** The anchor resolves in the iframe's own coordinates; the overlay is drawn in the
      *  container's, so the iframe's offset inside it has to be added back. */
-    const x = iframeRect.left - containerRect.left + point.x
-    const y = iframeRect.top - containerRect.top + point.y
+    const x = iframeRect.left - containerRect.left + point.x * scale
+    const y = iframeRect.top - containerRect.top + point.y * scale
 
     /** A pin outside the visible frame is not drawn on top of the page around it — the preview
      *  scales and clips, and a dot floating in the margin points at nothing. */
-    if (point.x < 0 || point.y < 0 || point.x > iframeRect.width || point.y > iframeRect.height) {
+    if (
+      point.x < 0 ||
+      point.y < 0 ||
+      point.x * scale > iframeRect.width ||
+      point.y * scale > iframeRect.height
+    ) {
       unplaced.push({ thread, number, stale, reason: "unresolvable" })
       return
     }

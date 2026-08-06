@@ -24,6 +24,12 @@ interface StoryboardFeedbackOverlayProps {
    *  they ask for them. */
   enabled: boolean
   showResolved: boolean
+  /** Selection is lifted so a pin and its row in the sidebar are one thing, not two that can
+   *  disagree about which comment is open. */
+  selectedThreadId: string | null
+  onSelectThread: (threadId: string | null) => void
+  /** Reported upward so the sidebar can mark rows whose pin could not be drawn. */
+  onMissingPinsChange?: (ids: string[]) => void
 }
 
 /**
@@ -43,12 +49,14 @@ export function StoryboardFeedbackOverlay({
   containerRef,
   enabled,
   showResolved,
+  selectedThreadId,
+  onSelectThread,
+  onMissingPinsChange,
 }: StoryboardFeedbackOverlayProps) {
   const { t } = useLingui()
   const status = useBookPublication(bookLabel)
   const published = status.data?.record !== null && status.data?.record !== undefined
   const comments = usePublicationComments(bookLabel, enabled && published)
-  const [openThreadId, setOpenThreadId] = useState<string | null>(null)
   const [tick, setTick] = useState(0)
 
   const threads = useMemo(() => {
@@ -77,14 +85,18 @@ export function StoryboardFeedbackOverlay({
     })
   }, [threads, tick, status.data, frameRef, containerRef])
 
+  /** Synced through an effect rather than reported from the render that computed it: the parent
+   *  cannot be told to re-render while this one is still rendering. Keyed on the joined ids so a
+   *  re-measure that changes nothing does not loop. */
+  const missingKey = unplaced.map((pin) => pin.thread.root.id).join(",")
   useEffect(() => {
-    setOpenThreadId(null)
-  }, [sectionId])
+    onMissingPinsChange?.(missingKey === "" ? [] : missingKey.split(","))
+  }, [missingKey, onMissingPinsChange])
 
   if (!enabled || !published) return null
 
   const open =
-    [...placed, ...unplaced].find((pin) => pin.thread.root.id === openThreadId) ?? null
+    [...placed, ...unplaced].find((pin) => pin.thread.root.id === selectedThreadId) ?? null
 
   return (
     <>
@@ -98,9 +110,7 @@ export function StoryboardFeedbackOverlay({
             data-testid={`storyboard-pin-${pin.thread.root.id}`}
             aria-label={t`Comment ${pin.number} by ${pin.thread.root.author_name}`}
             onClick={() =>
-              setOpenThreadId((current) =>
-                current === pin.thread.root.id ? null : pin.thread.root.id,
-              )
+              onSelectThread(selectedThreadId === pin.thread.root.id ? null : pin.thread.root.id)
             }
             style={{
               left: `${pin.x}px`,
@@ -112,7 +122,7 @@ export function StoryboardFeedbackOverlay({
               "rounded-full rounded-bl-none text-[11px] font-bold text-white shadow-md ring-2 ring-white",
               "transition-transform duration-150 hover:scale-110 focus:outline-none",
               "focus-visible:ring-4 focus-visible:ring-indigo-300 motion-reduce:transition-none",
-              openThreadId === pin.thread.root.id && "scale-110 ring-4 ring-indigo-300",
+              selectedThreadId === pin.thread.root.id && "scale-110 ring-4 ring-indigo-300",
               pin.thread.resolved && "opacity-60 saturate-50",
             )}
           >
@@ -131,9 +141,7 @@ export function StoryboardFeedbackOverlay({
               type="button"
               data-testid={`storyboard-unplaced-${pin.thread.root.id}`}
               onClick={() =>
-                setOpenThreadId((current) =>
-                  current === pin.thread.root.id ? null : pin.thread.root.id,
-                )
+                onSelectThread(selectedThreadId === pin.thread.root.id ? null : pin.thread.root.id)
               }
               className="flex items-center gap-2 rounded-lg border bg-card/95 px-2 py-1.5 text-left shadow-sm backdrop-blur-sm transition-colors hover:bg-muted"
             >
@@ -160,7 +168,7 @@ export function StoryboardFeedbackOverlay({
         <StoryboardThreadPopover
           bookLabel={bookLabel}
           pin={open}
-          onClose={() => setOpenThreadId(null)}
+          onClose={() => onSelectThread(null)}
         />
       ) : null}
     </>
