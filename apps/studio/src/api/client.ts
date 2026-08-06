@@ -37,7 +37,7 @@ export function resolveBaseUrl(
 ): string {
   if (isElectron() && typeof window.api?.apiPort === "number") {
     const apiPort = window.api.apiPort
-    return `http://localhost:${apiPort}/api`
+    return `http://127.0.0.1:${apiPort}/api`
   }
 
   return "/api"
