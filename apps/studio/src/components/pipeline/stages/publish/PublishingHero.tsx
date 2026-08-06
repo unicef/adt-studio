@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { BookOpen, Check, CloudOff, Copy, ExternalLink } from "lucide-react"
+import { BookOpen, Check, CloudOff, Copy } from "lucide-react"
 import { getBookCoverUrl } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { ExternalLinkButton } from "@/components/settings/publishing/ExternalLinkButton"
@@ -127,8 +127,9 @@ export function PublishingHero({
               )}
               {copied ? <Trans>Link copied</Trans> : <Trans>Copy link</Trans>}
             </Button>
+            {/* No icon of its own: `ExternalLinkButton` draws the arrow itself, and passing one
+                in put two on the button. */}
             <ExternalLinkButton href={url} variant="outline" size="sm" className="h-8 text-xs">
-              <ExternalLink aria-hidden="true" />
               <Trans>Open</Trans>
             </ExternalLinkButton>
           </span>

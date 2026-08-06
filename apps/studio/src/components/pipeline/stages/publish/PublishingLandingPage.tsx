@@ -12,6 +12,7 @@ import { useBook } from "@/hooks/use-books"
 import { useElapsed } from "@/components/settings/publishing/provision-elapsed"
 import { PublishingActions } from "./PublishingActions"
 import { PublishingControls } from "./PublishingControls"
+import { PublishingEngineNotice } from "./PublishingEngineNotice"
 import { PublishingFreshness } from "./PublishingFreshness"
 import { PublishingInvitation } from "./PublishingInvitation"
 import { PublishingRecentFeedback } from "./PublishingRecentFeedback"
@@ -83,6 +84,7 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
         <div className="mx-auto flex w-full max-w-3xl flex-col gap-7 px-8 pb-12 pt-8">
           <Header />
           <PublishingStepper phase={phase} />
+          <PublishingEngineNotice />
           <PublishPanel bookLabel={bookLabel} />
         </div>
       </div>
@@ -126,6 +128,8 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
               contentRevision={status.data?.content_revision ?? null}
               liveVersion={newest}
             />
+
+            <PublishingEngineNotice />
 
             <PublishingInvitation
               title={book.data?.title ?? bookLabel}
