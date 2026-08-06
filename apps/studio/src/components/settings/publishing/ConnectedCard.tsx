@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { CheckCircle2, Cloud, Copy, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,6 +11,25 @@ import { ExternalLinkButton } from "./ExternalLinkButton"
 import { ProvisionCalm } from "./ProvisionCalm"
 import { ProvisionErrorNotice } from "./ProvisionErrorNotice"
 import { useElapsed } from "./provision-elapsed"
+
+/** The card swaps between a short summary and a much taller loader; animating the
+ *  measured height keeps that from snapping the page around. */
+function useMeasuredHeight<T extends HTMLElement>() {
+  const ref = useRef<T>(null)
+  const [height, setHeight] = useState<number | null>(null)
+
+  useLayoutEffect(() => {
+    const element = ref.current
+    if (!element) return
+    setHeight(element.offsetHeight)
+    if (typeof ResizeObserver === "undefined") return
+    const observer = new ResizeObserver(() => setHeight(element.offsetHeight))
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  return { ref, height }
+}
 
 interface ConnectedCardProps {
   connection: CloudflareConnectionStatus
@@ -27,6 +46,7 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
 
   const workerUrl = connection.worker_url
   const isUpdating = upgrade.status === "running" || upgrade.status === "error"
+  const body = useMeasuredHeight<HTMLDivElement>()
 
   async function copyUrl() {
     if (!workerUrl) return
@@ -57,9 +77,16 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="overflow-hidden rounded-xl border bg-card motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-300">
+      <div
+        className="overflow-hidden rounded-xl border bg-card transition-[height] duration-500 ease-out motion-reduce:transition-none motion-safe:animate-in motion-safe:fade-in-0"
+        style={body.height === null ? undefined : { height: body.height }}
+      >
+        <div ref={body.ref}>
         {isUpdating ? (
-          <div className="flex flex-col gap-4 px-5 py-6">
+          <div
+            key="updating"
+            className="flex flex-col gap-4 px-5 py-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-2 motion-safe:duration-500"
+          >
             <div className="flex flex-col gap-0.5 text-center">
               <span className="text-base font-semibold tracking-tight text-foreground">
                 <Trans>Updating the publishing service</Trans>
@@ -92,7 +119,10 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
             )}
           </div>
         ) : (
-          <>
+          <div
+            key="connected"
+            className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-500"
+          >
             <div className="flex flex-wrap items-start gap-3 px-5 py-4">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-sm ring-1 ring-zinc-200">
                 <Cloud className="size-5" style={{ color: "#f6821f" }} aria-hidden="true" />
@@ -195,8 +225,9 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
                 <Trans>Disconnect</Trans>
               </Button>
             </div>
-          </>
+          </div>
         )}
+        </div>
       </div>
 
       <DisconnectDialog
