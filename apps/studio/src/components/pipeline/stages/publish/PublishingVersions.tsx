@@ -4,16 +4,20 @@ import { formatPublishDateTime } from "@/components/pipeline/stages/export/publi
 import { cn } from "@/lib/utils"
 
 /**
- * Every version this book has been published as, newest first.
+ * Every version this book has been published as, newest first, as a timeline.
  *
- * The list comes from the book's own record rather than the worker: it is written as each upload
- * finishes, so it is complete even when the publishing service cannot be reached — and a version
- * history that disappeared with the network would be worse than none.
+ * A rail with a dot per version rather than rows in a table: the shape of the thing is a history,
+ * and a line down the left says so without a heading. The live one is filled and ringed; the rest
+ * are hollow, which is the difference the author is scanning for.
  *
- * Capped in height rather than paginated. A book published forty times is unusual, and scrolling
- * a short list inside the page beats a control that has to be learned.
+ * The list comes from the book's own record rather than the worker — it is written as each upload
+ * finishes, so it survives the publishing service being unreachable, and a history that vanished
+ * with the network would be worse than none.
  */
-export function PublishingVersions({ record, currentVersion }: {
+export function PublishingVersions({
+  record,
+  currentVersion,
+}: {
   record: BookPublicationRecord | null
   currentVersion: number | null
 }) {
@@ -29,35 +33,51 @@ export function PublishingVersions({ record, currentVersion }: {
   }
 
   return (
-    <ul className="flex max-h-64 list-none flex-col overflow-y-auto rounded-xl border bg-card p-0">
+    <ol className="flex min-h-0 flex-1 list-none flex-col overflow-y-auto p-0 pr-1">
       {versions.map((entry, index) => {
         const isCurrent = entry.version === currentVersion
+        const isLast = index === versions.length - 1
         return (
           <li
             key={entry.version}
             data-testid={`publication-version-${entry.version}`}
-            className={cn(
-              "flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5",
-              index > 0 && "border-t",
-            )}
+            className="flex gap-3"
           >
-            <span className="w-10 shrink-0 text-sm font-semibold tabular-nums text-foreground">
-              {`v${entry.version}`}
+            {/* The rail: a dot for this version and the line down to the next one. It stops at
+                the last entry so the history does not appear to continue past its own start. */}
+            <span className="flex w-3 shrink-0 flex-col items-center pt-1.5" aria-hidden="true">
+              <span
+                className={cn(
+                  "size-2.5 shrink-0 rounded-full",
+                  isCurrent
+                    ? "bg-emerald-500 ring-4 ring-emerald-100"
+                    : "border-2 border-border bg-card",
+                )}
+              />
+              {isLast ? null : <span className="w-px flex-1 bg-border" />}
             </span>
-            <span className="text-xs text-muted-foreground">
-              {formatPublishDateTime(entry.published_at, i18n.locale)}
-            </span>
-            {isCurrent ? (
-              <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                <Trans>Live now</Trans>
+
+            <span className={cn("flex min-w-0 flex-1 flex-col gap-0.5", isLast ? "pb-0" : "pb-3")}>
+              <span className="flex items-center gap-2">
+                <span className="text-sm font-semibold tabular-nums text-foreground">
+                  {`v${entry.version}`}
+                </span>
+                {isCurrent ? (
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-px text-[10px] font-medium text-emerald-700">
+                    <Trans>Live</Trans>
+                  </span>
+                ) : null}
+                <span className="ml-auto shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                  <Trans>{entry.page_count} pages</Trans>
+                </span>
               </span>
-            ) : null}
-            <span className="ml-auto shrink-0 text-xs tabular-nums text-muted-foreground">
-              <Trans>{entry.page_count} pages</Trans>
+              <span className="text-[11px] tabular-nums text-muted-foreground">
+                {formatPublishDateTime(entry.published_at, i18n.locale)}
+              </span>
             </span>
           </li>
         )
       })}
-    </ul>
+    </ol>
   )
 }

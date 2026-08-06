@@ -1,30 +1,64 @@
 import type { ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { History, KeyRound, MessagesSquare, Users } from "lucide-react"
+import { History, KeyRound, MessagesSquare, Unlock, Users, type LucideIcon } from "lucide-react"
 import type { BookPublicationRecord } from "@/api/client"
 import { usePublicationReaders } from "@/hooks/use-publications"
 import { useFeedbackBadge } from "@/components/pipeline/stages/feedback/use-feedback-badge"
 import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
+import { cn } from "@/lib/utils"
+
+/** One colour per tile, so the four are told apart at a glance rather than read. The tint is
+ *  carried by the icon chip only: four coloured cards would compete with the page. */
+const TONE = {
+  indigo: "bg-indigo-50 text-indigo-600 ring-indigo-100",
+  violet: "bg-violet-50 text-violet-600 ring-violet-100",
+  amber: "bg-amber-50 text-amber-600 ring-amber-100",
+  emerald: "bg-emerald-50 text-emerald-600 ring-emerald-100",
+} as const
 
 function Tile({
-  icon,
+  icon: Icon,
+  tone,
   label,
   value,
   hint,
+  loading = false,
 }: {
-  icon: ReactNode
+  icon: LucideIcon
+  tone: keyof typeof TONE
   label: ReactNode
   value: ReactNode
   hint?: ReactNode
+  loading?: boolean
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-xl border bg-card p-4">
-      <span className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-        {icon}
-        {label}
+    <div className="flex items-center gap-3 rounded-xl border bg-card px-3.5 py-3">
+      <span
+        className={cn(
+          "flex size-9 shrink-0 items-center justify-center rounded-lg ring-1",
+          TONE[tone],
+        )}
+      >
+        <Icon className="size-4" aria-hidden="true" />
       </span>
-      <span className="text-2xl font-semibold leading-tight tabular-nums">{value}</span>
-      {hint ? <span className="text-xs leading-5 text-muted-foreground">{hint}</span> : null}
+      <span className="flex min-w-0 flex-col">
+        <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </span>
+        {loading ? (
+          <span
+            aria-hidden="true"
+            className="my-1 h-4 w-10 animate-pulse rounded bg-muted motion-reduce:animate-none"
+          />
+        ) : (
+          <span className="truncate text-lg font-semibold leading-tight tabular-nums text-foreground">
+            {value}
+          </span>
+        )}
+        {hint ? (
+          <span className="truncate text-[11px] leading-4 text-muted-foreground">{hint}</span>
+        ) : null}
+      </span>
     </div>
   )
 }
@@ -37,11 +71,12 @@ interface PublishingSummaryProps {
 }
 
 /**
- * The four numbers worth knowing at a glance once a book is live.
+ * The four numbers worth knowing at a glance.
  *
- * Deliberately not a chart: the useful facts here are small integers and a date, and a reader
- * count is not a trend. Each tile is also the answer to a question the author would otherwise
- * open a tab to ask.
+ * Deliberately not charts: these are small integers and a date, and a reader count is not a
+ * trend. Each tile is the answer to a question the author would otherwise go looking for, so
+ * each one reserves its height and shows a pulse while its number is still in flight — a tile
+ * that shows a dash and then a 7 reads as a number that changed.
  */
 export function PublishingSummary({
   bookLabel,
@@ -56,38 +91,45 @@ export function PublishingSummary({
 
   const versions = record?.versions ?? []
   const newest = [...versions].sort((a, b) => b.version - a.version)[0] ?? null
-  const unknown = "—"
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid shrink-0 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       <Tile
-        icon={<History className="size-3.5" aria-hidden="true" />}
+        icon={History}
+        tone="indigo"
         label={<Trans>Live version</Trans>}
-        value={currentVersion === null ? unknown : `v${currentVersion}`}
+        value={currentVersion === null ? "—" : `v${currentVersion}`}
         hint={
           newest ? (
-            <Trans>Published {formatPublishDate(newest.published_at, i18n.locale)}</Trans>
-          ) : undefined
+            <Trans>of {versions.length} published</Trans>
+          ) : (
+            <Trans>Nothing published yet</Trans>
+          )
         }
       />
       <Tile
-        icon={<Users className="size-3.5" aria-hidden="true" />}
+        icon={Users}
+        tone="violet"
         label={<Trans>Readers joined</Trans>}
-        value={readers.data ? readers.data.readers.length : unknown}
-        hint={<Trans>People who gave a name</Trans>}
+        value={readers.data?.readers.length ?? 0}
+        loading={token !== null && readers.isPending}
+        hint={<Trans>Gave a name</Trans>}
       />
       <Tile
-        icon={<MessagesSquare className="size-3.5" aria-hidden="true" />}
+        icon={MessagesSquare}
+        tone="amber"
         label={<Trans>Open feedback</Trans>}
-        value={feedback.loaded ? feedback.unresolvedCount : unknown}
-        hint={<Trans>Threads still waiting on you</Trans>}
+        value={feedback.unresolvedCount}
+        loading={!feedback.loaded}
+        hint={<Trans>Waiting on you</Trans>}
       />
       <Tile
-        icon={<KeyRound className="size-3.5" aria-hidden="true" />}
+        icon={hasAccessCode ? KeyRound : Unlock}
+        tone="emerald"
         label={<Trans>Access</Trans>}
         value={
           hasAccessCode ? (
-            <span className="font-mono text-xl tracking-wider">
+            <span className="font-mono tracking-wider">
               {record?.access_code ?? <Trans>Code</Trans>}
             </span>
           ) : (
@@ -95,10 +137,10 @@ export function PublishingSummary({
           )
         }
         hint={
-          hasAccessCode ? (
-            <Trans>Readers type this to get in</Trans>
+          record?.expires_at ? (
+            <Trans>Ends {formatPublishDate(record.expires_at, i18n.locale)}</Trans>
           ) : (
-            <Trans>Anyone with the link can open it</Trans>
+            <Trans>No end date</Trans>
           )
         }
       />
