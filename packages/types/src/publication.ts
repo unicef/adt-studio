@@ -302,6 +302,20 @@ export const BookPublicationVersionRecord = z.object({
   version: z.number().int().min(1),
   published_at: z.string().datetime(),
   page_count: z.number().int().min(0),
+  /**
+   * The book's content revision at the moment this version was published — the highest
+   * `node_data` version across every node except the publication record itself.
+   *
+   * It exists to answer one question the author has every time they open Publishing: *is what my
+   * reviewers see still current?* Comparing file timestamps cannot answer it, because publishing
+   * writes the publication record into the same database and so always looks like a fresh edit.
+   * Comparing revisions can: the number only moves when a pipeline step or a manual edit writes
+   * a new node version.
+   *
+   * `null` for versions published before this was recorded — which must read as "unknown", never
+   * as "no changes".
+   */
+  content_revision: z.number().int().min(0).nullable().default(null),
 })
 export type BookPublicationVersionRecord = z.infer<typeof BookPublicationVersionRecord>
 
@@ -333,6 +347,9 @@ export const BookPublicationStatus = z.object({
   worker_reachable: z.boolean(),
   /** The worker's answer when it is reachable, the local record's otherwise. */
   has_access_code: z.boolean().default(false),
+  /** The book's content revision *now*, to compare against the live version's. `null` when the
+   *  book is gone from this machine, which is the one case where nothing can be said. */
+  content_revision: z.number().int().min(0).nullable().default(null),
 })
 export type BookPublicationStatus = z.infer<typeof BookPublicationStatus>
 

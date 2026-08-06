@@ -93,6 +93,8 @@ export interface Storage {
   clearTranslatedImages(filter?: { sourceImageIds?: string[]; languageCodes?: string[] }): void
 
   putNodeData(node: string, itemId: string, data: unknown): number
+  /** Highest node_data version across every node but the excluded one. */
+  maxNodeVersionExcluding(excluded: string): number | null
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null
 
   /** Mark a pipeline step as started (running). */

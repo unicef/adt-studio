@@ -1,5 +1,5 @@
 import { Trans } from "@lingui/react/macro"
-import { History, Loader2, Users } from "lucide-react"
+import { History, Loader2, MessagesSquare, Users } from "lucide-react"
 import { PublishPanel } from "@/components/pipeline/stages/export/publish/PublishPanel"
 import { PublicationReaders } from "@/components/publications/PublicationReaders"
 import { ScrollBox } from "@/components/publishing/ScrollBox"
@@ -10,6 +10,8 @@ import {
 } from "@/hooks/use-book-publication"
 import { useBook } from "@/hooks/use-books"
 import { PublishingControls } from "./PublishingControls"
+import { PublishingFreshness } from "./PublishingFreshness"
+import { PublishingRecentFeedback } from "./PublishingRecentFeedback"
 import { PublishingHero } from "./PublishingHero"
 import { PublishingSection } from "./PublishingSection"
 import { PublishingStepper, type PublishPhase } from "./PublishingStepper"
@@ -105,6 +107,11 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
               lastPublishedAt={newest?.published_at ?? null}
               workerReachable={status.data?.worker_reachable ?? true}
             />
+            <PublishingFreshness
+              contentRevision={status.data?.content_revision ?? null}
+              liveVersion={newest}
+            />
+
             <PublishingControls
               bookLabel={bookLabel}
               record={record}
@@ -114,7 +121,17 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
             />
           </div>
 
-          <div className="grid min-h-0 grid-rows-2 gap-5 mh:gap-4">
+          <div className="grid min-h-0 grid-rows-[1.2fr_1.15fr_1fr] gap-4 mh:gap-3">
+            <PublishingSection
+              icon={MessagesSquare}
+              title={<Trans>Waiting on you</Trans>}
+              className="min-h-0"
+            >
+              <ScrollBox>
+                <PublishingRecentFeedback bookLabel={bookLabel} />
+              </ScrollBox>
+            </PublishingSection>
+
             <PublishingSection
               icon={Users}
               title={<Trans>Readers</Trans>}

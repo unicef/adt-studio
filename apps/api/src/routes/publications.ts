@@ -36,6 +36,7 @@ import {
 } from "../services/cloudflare/connection-store.js"
 import {
   publishBook,
+  readContentRevision,
   readPublicationRecord,
   republishBook,
   savePublicationRecord,
@@ -343,6 +344,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         url: record?.base_url ?? null,
         worker_reachable: false,
         has_access_code: record?.has_access_code ?? false,
+        content_revision: readContentRevision(label, deps.booksDir),
       }
       return c.json(status)
     }
@@ -356,6 +358,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         url: detail.url,
         worker_reachable: true,
         has_access_code: detail.has_access_code,
+        content_revision: readContentRevision(label, deps.booksDir),
       }
       return c.json(status)
     } catch (error) {
@@ -367,6 +370,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
           url: record.base_url,
           worker_reachable: true,
           has_access_code: record.has_access_code,
+          content_revision: readContentRevision(label, deps.booksDir),
         }
         return c.json(status)
       }
@@ -377,6 +381,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         url: record.base_url,
         worker_reachable: false,
         has_access_code: record.has_access_code,
+        content_revision: readContentRevision(label, deps.booksDir),
       }
       return c.json(status)
     }

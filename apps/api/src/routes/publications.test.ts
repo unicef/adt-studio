@@ -171,6 +171,8 @@ describe("GET /books/:label/publication", () => {
       url: null,
       worker_reachable: false,
       has_access_code: false,
+      /** Present even with nothing published: it describes the book, not the publication. */
+      content_revision: 1,
     })
   })
 
@@ -322,7 +324,12 @@ describe("POST /books/:label/publication", () => {
     expect(record?.token).toBe(secondComplete.publication.token)
     expect(record?.revoked_at).toBeNull()
     expect(record?.versions).toEqual([
-      { version: 1, published_at: "2026-08-03T12:00:00.000Z", page_count: 2 },
+      {
+        version: 1,
+        published_at: "2026-08-03T12:00:00.000Z",
+        page_count: 2,
+        content_revision: expect.any(Number),
+      },
     ])
 
     expect(worker.state.publications.get(firstToken)?.revoked_at).not.toBeNull()

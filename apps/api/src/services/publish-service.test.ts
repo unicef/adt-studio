@@ -581,9 +581,21 @@ describe("republishBook", () => {
 
     expect(result.publication.current_version).toBe(2)
     expect(result.url).toBe(worker.shareUrl(TOKEN))
+    /** `content_revision` is the book's own node_data high-water mark, so it is asserted as a
+     *  number rather than pinned to a fixture that every new stage output would change. */
     expect(readPublicationRecord(LABEL, tmpDir)?.versions).toEqual([
-      { version: 1, published_at: "2026-08-03T12:00:00.000Z", page_count: 2 },
-      { version: 2, published_at: "2026-08-03T12:00:00.000Z", page_count: 1 },
+      {
+        version: 1,
+        published_at: "2026-08-03T12:00:00.000Z",
+        page_count: 2,
+        content_revision: expect.any(Number),
+      },
+      {
+        version: 2,
+        published_at: "2026-08-03T12:00:00.000Z",
+        page_count: 1,
+        content_revision: expect.any(Number),
+      },
     ])
     expect(worker.state.versions.get(TOKEN)?.at(-1)?.page_manifest).toEqual(updatedManifest)
   })

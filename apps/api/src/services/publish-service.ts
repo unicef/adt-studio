@@ -86,6 +86,27 @@ export function readPublicationRecord(
   }
 }
 
+/**
+ * The book's content revision: the highest `node_data` version across every node except the
+ * publication record itself.
+ *
+ * The exclusion is the whole point. The publication record lives in the same table, so counting
+ * it would make every publish look like a fresh edit and the "you have unpublished changes"
+ * notice would never turn off.
+ */
+export function readContentRevision(label: string, booksDir: string): number | null {
+  const { safeLabel } = requireBook(label, booksDir)
+  const storage = createBookStorage(safeLabel, path.resolve(booksDir))
+  try {
+    return storage.maxNodeVersionExcluding(BOOK_PUBLICATION_NODE)
+  } catch {
+    /** A book whose database cannot be read says "unknown" rather than "unchanged". */
+    return null
+  } finally {
+    storage.close()
+  }
+}
+
 export function savePublicationRecord(
   label: string,
   booksDir: string,
@@ -384,6 +405,9 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
   const emit = options.emit
   const now = options.now ?? (() => new Date())
   const built = await buildSnapshot(options, emit)
+  /** Read after the build, not after the upload: it has to describe the content that went into
+   *  the snapshot, and a big book can be uploading for minutes while the author keeps editing. */
+  const contentRevision = readContentRevision(options.label, options.booksDir)
   const token = (options.generateToken ?? mintPublicationToken)()
   const client = clientFor(options)
 
@@ -419,6 +443,7 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
         version: created.version.version,
         published_at: created.version.created_at,
         page_count: built.pageManifest.length,
+        content_revision: contentRevision,
       },
     ],
     access_code: options.accessCode ?? null,
@@ -446,6 +471,7 @@ export async function republishBook(
 ): Promise<PublishBookResult> {
   const emit = options.emit
   const built = await buildSnapshot(options, emit)
+  const contentRevision = readContentRevision(options.label, options.booksDir)
   const client = clientFor(options)
 
   await emit(stepEvent("upload", "running"))
@@ -470,6 +496,7 @@ export async function republishBook(
         version: created.version.version,
         published_at: created.version.created_at,
         page_count: built.pageManifest.length,
+        content_revision: contentRevision,
       },
     ].sort((a, b) => a.version - b.version),
   }
