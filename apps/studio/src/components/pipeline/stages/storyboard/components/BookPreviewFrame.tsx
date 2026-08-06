@@ -95,6 +95,10 @@ export interface BookPreviewFrameHandle {
    *  in the iframe yet or a value can't be parsed. */
   getComputedTypographyStyles: (dataId: string) => ComputedTypographyStyles
   getAnchorViewportRect: (anchor: ActivityAnchor) => DOMRect | null
+  /** The iframe's own document, for callers that resolve positions inside it — the published
+   *  book's comment anchors are `#content`-rooted selectors and land here unchanged, because
+   *  this preview renders the same structure the export does. */
+  getDocument: () => Document | null
 }
 
 export interface BookPreviewFrameProps {
@@ -187,6 +191,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
 
   useImperativeHandle(ref, () => ({
     getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
+    getDocument: () => iframeRef.current?.contentDocument ?? null,
     refreshCss: async (extraHtml: string) => {
       const id = ++refreshIdRef.current
       const doc = iframeRef.current?.contentDocument

@@ -21,6 +21,7 @@ import {
   RotateCcw,
   Sparkles,
   Type,
+  MessagesSquare,
   X,
 } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -62,13 +63,18 @@ import {
   type BookPreviewFrameHandle,
   type ComputedTypographyStyles,
 } from "./BookPreviewFrame"
+import {
+  StoryboardFeedbackOverlay,
+  useSectionFeedbackCount,
+} from "./feedback/StoryboardFeedbackOverlay"
+import { sectionIdFor } from "./feedback/storyboard-pins"
 import { SectionEditPanel } from "./SectionEditPanel"
 import { writeCustomAnswerToHtml } from "../lib/activity-answer-labels"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
 import { sameAnchor, type ActivityAnchor } from "./activity-link"
-import { scrollBehavior } from "@/lib/utils"
+import { cn, scrollBehavior } from "@/lib/utils"
 import { StepperActivityPreview } from "./StepperActivityPreview"
 import {
   useActivityStructure,
@@ -499,6 +505,11 @@ export function StoryboardSectionDetail({
   const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
   const [previewVisibleWidth, setPreviewVisibleWidth] = useState(0)
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
+  /** The pin overlay is drawn in this box's coordinates; the iframe's offset inside it is added
+   *  back per pin, exactly as the Feedback view does. */
+  const previewContainerRef = useRef<HTMLDivElement>(null)
+  const [feedbackShown, setFeedbackShown] = useState(false)
+  const feedbackCount = useSectionFeedbackCount(bookLabel, sectionIdFor(pageId, sectionIndex))
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // Clear cached classes when element is deselected
@@ -2378,6 +2389,30 @@ export function StoryboardSectionDetail({
         onChange={setDeviceView}
         currentWidth={previewVisibleWidth}
       />
+      {/* Reviewer pins, off until asked for: an author styling a page should not have somebody
+          else's dots in the way. The count is shown whether they are on or off, because the point
+          of it is to say there is something here to look at. */}
+      <button
+        type="button"
+        data-testid="storyboard-feedback-toggle"
+        aria-pressed={feedbackShown}
+        onClick={() => setFeedbackShown((shown) => !shown)}
+        title={t`Show reviewer comments on this section`}
+        className={cn(
+          "flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors cursor-pointer",
+          feedbackShown
+            ? "border-indigo-300 bg-indigo-50 text-indigo-700"
+            : "text-muted-foreground hover:bg-accent hover:text-foreground",
+        )}
+      >
+        <MessagesSquare className="h-3.5 w-3.5" />
+        {t`Comments`}
+        {feedbackCount > 0 ? (
+          <span className="rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold leading-4 text-white tabular-nums">
+            {feedbackCount > 99 ? "99+" : feedbackCount}
+          </span>
+        ) : null}
+      </button>
       {renderedSection?.html && hasApiKey ? (
         <div className="relative flex-1 min-w-[100px]">
           <Sparkles className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
@@ -2672,6 +2707,7 @@ export function StoryboardSectionDetail({
                 />
               </>
             ) : (
+              <div ref={previewContainerRef} className="relative w-full">
               <BookPreviewFrame
                   ref={previewFrameRef}
                   html={renderedSection.html}
@@ -2694,6 +2730,16 @@ export function StoryboardSectionDetail({
                   onVisibleWidthChange={setPreviewVisibleWidth}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
+
+                <StoryboardFeedbackOverlay
+                  bookLabel={bookLabel}
+                  sectionId={sectionIdFor(pageId, sectionIndex)}
+                  frameRef={previewFrameRef}
+                  containerRef={previewContainerRef}
+                  enabled={feedbackShown}
+                  showResolved={false}
+                />
+              </div>
             )}
           </>
         ) : storyboardRunning && !section?.isPruned ? (
