@@ -263,17 +263,17 @@ describe("PublicationsDashboard — populated", () => {
     expect(document.body.textContent).toContain("at least")
   })
 
-  it("links each row to that book's Feedback view, badged with its open count", async () => {
+  it("links each row to that book's comments in the Storyboard, badged with its open count", async () => {
     renderDashboard()
     await waitFor(() => {
       expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
     })
 
-    const feedback = screen.getByRole("link", { name: /feedback/i })
+    const feedback = screen.getByRole("link", { name: /comments/i })
     expect(feedback.getAttribute("data-to")).toBe("/books/$label/$step")
     expect(JSON.parse(feedback.getAttribute("data-params") as string)).toEqual({
       label: "raven",
-      step: "feedback",
+      step: "storyboard",
     })
     expect(feedback.textContent).toContain("3")
 
@@ -400,9 +400,9 @@ describe("PublicationsDashboard — a book that is no longer on this computer", 
 
     /** The link itself is still live and still openable — only the local actions are gone. */
     expect(screen.getByRole("link", { name: /open/i })).toBeTruthy()
-    expect(screen.queryByRole("link", { name: /feedback/i })).toBeNull()
+    expect(screen.queryByRole("link", { name: /comments/i })).toBeNull()
     expect(
-      within(row).getByRole("button", { name: /^feedback/i }).hasAttribute("disabled"),
+      within(row).getByRole("button", { name: /^comments/i }).hasAttribute("disabled"),
     ).toBe(true)
     expect(screen.getByRole("button", { name: /stop sharing/i }).hasAttribute("disabled")).toBe(
       true,

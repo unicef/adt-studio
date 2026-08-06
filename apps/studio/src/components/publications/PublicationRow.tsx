@@ -48,7 +48,7 @@ function StepAction({
   enabled: boolean
   variant: "outline" | "ghost"
   label: string
-  step: "feedback" | "export"
+  step: "storyboard" | "export"
   disabledHint: string
   children: ReactNode
 }) {
@@ -272,11 +272,11 @@ export function PublicationRow({
             enabled={publication.book_exists}
             variant="outline"
             label={publication.book_label}
-            step="feedback"
+            step="storyboard"
             disabledHint={t`This book is not on this computer`}
           >
             <MessagesSquare className="size-3.5" aria-hidden="true" />
-            <Trans>Feedback</Trans>
+            <Trans>Comments</Trans>
             {countsKnown && publication.unresolved_count > 0 ? (
               <span className="ml-auto rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold leading-4 text-white tabular-nums">
                 {publication.unresolved_count > 99 ? t`99+` : publication.unresolved_count}

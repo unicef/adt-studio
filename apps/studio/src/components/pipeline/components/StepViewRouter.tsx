@@ -27,7 +27,6 @@ import {
   ValidationView,
   PublishingLandingPage,
   ExportLandingPage,
-  FeedbackView,
 } from "../stages";
 import { cn } from "@/lib/utils";
 import { Trans } from "@lingui/react/macro";
@@ -80,7 +79,6 @@ const VIEW_MAP: Record<string, ViewEntry> = {
   preview: { component: PreviewView, fullHeight: true },
   publish: { component: PublishingLandingPage, fullHeight: true },
   export: { component: ExportLandingPage, fullHeight: true },
-  feedback: { component: FeedbackView, fullHeight: true },
 };
 
 export function StepViewRouter({

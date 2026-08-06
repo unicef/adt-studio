@@ -3,7 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { History, KeyRound, MessagesSquare, Unlock, Users, type LucideIcon } from "lucide-react"
 import type { BookPublicationRecord } from "@/api/client"
 import { usePublicationReaders } from "@/hooks/use-publications"
-import { useFeedbackBadge } from "@/components/pipeline/stages/feedback/use-feedback-badge"
+import { useFeedbackBadge } from "@/components/publication-feedback/use-feedback-badge"
 import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
 import { cn } from "@/lib/utils"
 

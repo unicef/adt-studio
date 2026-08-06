@@ -3,7 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Check, CornerDownRight, Loader2, PencilLine, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { RelativeTime } from "@/components/pipeline/stages/feedback/RelativeTime"
+import { RelativeTime } from "@/components/publication-feedback/RelativeTime"
 import {
   useAuthorIdentity,
   useReplyToThread,

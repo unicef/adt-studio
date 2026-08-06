@@ -37,7 +37,6 @@ export const STAGES = [
   { slug: "preview", label: "Preview", runningLabel: "Building Preview", icon: Eye, color: "bg-gray-600", hex: "#4b5563", textColor: "text-gray-600", bgLight: "bg-gray-50", borderColor: "border-gray-200", borderDark: "border-gray-600", group: "packaging" },
   { slug: "publish", label: "Publishing", runningLabel: "Publishing", icon: Globe, color: "bg-indigo-600", hex: "#4f46e5", textColor: "text-indigo-600", bgLight: "bg-indigo-50", borderColor: "border-indigo-200", borderDark: "border-indigo-600", group: "packaging" },
   { slug: "export", label: "Export", runningLabel: "Exporting", icon: FileDown, color: "bg-indigo-700", hex: "#4338ca", textColor: "text-indigo-700", bgLight: "bg-indigo-50", borderColor: "border-indigo-200", borderDark: "border-indigo-700", group: "packaging" },
-  { slug: "feedback", label: "Feedback", runningLabel: "Loading Feedback", icon: MessagesSquare, color: "bg-indigo-500", hex: "#6366f1", textColor: "text-indigo-500", bgLight: "bg-indigo-50", borderColor: "border-indigo-200", borderDark: "border-indigo-500", group: "packaging" },
 ] as const satisfies ReadonlyArray<{
   slug: string
   label: string
@@ -56,7 +55,7 @@ export type StageSlug = (typeof STAGES)[number]["slug"]
 export type NonBookStageSlug = Exclude<StageSlug, "book">
 export type PipelineStageSlug = Exclude<
   StageSlug,
-  "book" | "sign-language" | "validation" | "publish" | "export" | "feedback"
+  "book" | "sign-language" | "validation" | "publish" | "export"
 >
 export type StageDefinition = (typeof STAGES)[number]
 export type NonBookStageDefinition = Extract<StageDefinition, { slug: NonBookStageSlug }>
@@ -78,7 +77,6 @@ export const STAGE_DESCRIPTIONS: Record<NonBookStageSlug, string> = {
   preview: "Package and preview the final ADT web application.",
   publish: "Put the book online for readers and reviewers, and manage the link, code and versions.",
   export: "Export packaged ADTs and related artifacts for delivery.",
-  feedback: "Read, reply to and resolve the comments reviewers left on the published book.",
 }
 
 /** Stages that have a per-page navigation panel. */
@@ -110,8 +108,7 @@ export function isPipelineStage(stage: StageDefinition): stage is PipelineStageD
     stage.slug !== "sign-language" &&
     stage.slug !== "validation" &&
     stage.slug !== "publish" &&
-    stage.slug !== "export" &&
-    stage.slug !== "feedback"
+    stage.slug !== "export"
   )
 }
 

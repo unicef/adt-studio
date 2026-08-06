@@ -24,4 +24,3 @@ export { SignLanguageLandingPage } from "./sign-language/SignLanguageLandingPage
 export { ValidationView } from "./ValidationView"
 export { PublishingLandingPage } from "./publish/PublishingLandingPage"
 export { ExportLandingPage } from "./export/ExportLandingPage"
-export { FeedbackView } from "./feedback/FeedbackView"

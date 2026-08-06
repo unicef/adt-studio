@@ -2,8 +2,8 @@ import type { CommentAnchor } from "@/api/client"
 import {
   contentRoot,
   resolveAnchorPoint,
-} from "@/components/pipeline/stages/feedback/lib/anchor-resolution"
-import type { FeedbackThread } from "@/components/pipeline/stages/feedback/lib/threads"
+} from "@/components/publication-feedback/lib/anchor-resolution"
+import type { FeedbackThread } from "@/components/publication-feedback/lib/threads"
 
 /**
  * Placing published comments on the storyboard's own preview.

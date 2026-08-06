@@ -46,7 +46,6 @@ describe("stage-config", () => {
       "preview",
       "publish",
       "export",
-      "feedback",
     ])
   })
 
@@ -58,10 +57,9 @@ describe("stage-config", () => {
     expect(getPipelineStages().map((stage) => stage.slug)).not.toContain("publish")
   })
 
-  it("puts Feedback after Export and keeps it out of the runnable pipeline", () => {
-    const slugs = STAGES.map((stage) => stage.slug)
-    expect(slugs.indexOf("feedback")).toBe(slugs.indexOf("export") + 1)
-    expect(getPipelineStages().map((stage) => stage.slug)).not.toContain("feedback")
+  /** Reviewer comments moved into the Storyboard, so there is no Feedback stage to order. */
+  it("has no Feedback stage", () => {
+    expect(STAGES.map((stage) => stage.slug)).not.toContain("feedback")
   })
 
   it("includes validation as a non-pipeline stage", () => {

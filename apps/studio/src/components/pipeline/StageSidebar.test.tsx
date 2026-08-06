@@ -129,7 +129,7 @@ vi.mock("@/hooks/use-quizzes", () => ({
 }))
 
 const feedbackBadgeMock = vi.fn(() => ({ published: false, unresolvedCount: 0, loaded: false }))
-vi.mock("@/components/pipeline/stages/feedback/use-feedback-badge", () => ({
+vi.mock("@/components/publication-feedback/use-feedback-badge", () => ({
   useFeedbackBadge: () => feedbackBadgeMock(),
 }))
 
@@ -235,19 +235,20 @@ describe("StageSidebar", () => {
   })
 })
 
-describe("StageSidebar — Feedback badge", () => {
+/** The badge moved to the Storyboard with the comments themselves; the Feedback stage is gone. */
+describe("StageSidebar — comments badge on the Storyboard", () => {
   it("shows no badge on a book that was never published", async () => {
     const { StageSidebar } = await import("./components/StageSidebar")
-    render(<StageSidebar bookLabel="demo-book" activeStep="feedback" />)
+    render(<StageSidebar bookLabel="demo-book" activeStep="storyboard" />)
 
-    expect(screen.getByTitle("Feedback")).toBeTruthy()
+    expect(screen.getByTitle("Storyboard")).toBeTruthy()
     expect(screen.queryByTitle(/waiting for you/)).toBeNull()
   })
 
   it("counts the open threads waiting for the author", async () => {
     feedbackBadgeMock.mockReturnValue({ published: true, unresolvedCount: 3, loaded: true })
     const { StageSidebar } = await import("./components/StageSidebar")
-    render(<StageSidebar bookLabel="demo-book" activeStep="feedback" />)
+    render(<StageSidebar bookLabel="demo-book" activeStep="storyboard" />)
 
     const badge = screen.getByTitle("3 comments waiting for you")
     expect(badge.textContent).toBe("3")
@@ -256,7 +257,7 @@ describe("StageSidebar — Feedback badge", () => {
   it("names a single waiting comment in the singular", async () => {
     feedbackBadgeMock.mockReturnValue({ published: true, unresolvedCount: 1, loaded: true })
     const { StageSidebar } = await import("./components/StageSidebar")
-    render(<StageSidebar bookLabel="demo-book" activeStep="feedback" />)
+    render(<StageSidebar bookLabel="demo-book" activeStep="storyboard" />)
 
     expect(screen.getByTitle("1 comment waiting for you")).toBeTruthy()
   })
@@ -264,7 +265,7 @@ describe("StageSidebar — Feedback badge", () => {
   it("caps a very long queue rather than breaking the rail", async () => {
     feedbackBadgeMock.mockReturnValue({ published: true, unresolvedCount: 128, loaded: true })
     const { StageSidebar } = await import("./components/StageSidebar")
-    render(<StageSidebar bookLabel="demo-book" activeStep="feedback" />)
+    render(<StageSidebar bookLabel="demo-book" activeStep="storyboard" />)
 
     expect(screen.getByTitle("128 comments waiting for you").textContent).toBe("99+")
   })

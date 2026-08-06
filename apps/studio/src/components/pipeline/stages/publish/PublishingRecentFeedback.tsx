@@ -5,8 +5,8 @@ import { ArrowRight, CheckCircle2, Loader2, MessagesSquare } from "lucide-react"
 import {
   buildThreads,
   filterThreads,
-} from "@/components/pipeline/stages/feedback/lib/threads"
-import { RelativeTime } from "@/components/pipeline/stages/feedback/RelativeTime"
+} from "@/components/publication-feedback/lib/threads"
+import { RelativeTime } from "@/components/publication-feedback/RelativeTime"
 import {
   usePublicationComments,
   usePublicationPages,
@@ -21,8 +21,8 @@ const SHOWN = 3
  * The newest threads still waiting on the author, on the page they were left on.
  *
  * The tile above says there are eight; this says what two of them are, which is the difference
- * between a status page and somewhere work starts. Rows link into the Feedback stage rather than
- * trying to answer here: replying needs the page beside it, and this column has no room for one.
+ * between a status page and somewhere work starts. Rows open the Storyboard rather than trying to
+ * answer here: replying wants the page beside it, and that is exactly what the storyboard has.
  */
 export function PublishingRecentFeedback({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
@@ -75,7 +75,7 @@ export function PublishingRecentFeedback({ bookLabel }: { bookLabel: string }) {
         <Link
           key={thread.root.id}
           to="/books/$label/$step"
-          params={{ label: bookLabel, step: "feedback" }}
+          params={{ label: bookLabel, step: "storyboard" }}
           className="group flex items-start gap-2.5 px-4 py-2.5 transition-colors hover:bg-muted/50"
         >
           <span
@@ -122,14 +122,14 @@ export function PublishingRecentFeedback({ bookLabel }: { bookLabel: string }) {
       {threads.length > SHOWN ? (
         <Link
           to="/books/$label/$step"
-          params={{ label: bookLabel, step: "feedback" }}
+          params={{ label: bookLabel, step: "storyboard" }}
           className={cn(
             "flex items-center gap-2 px-4 py-2.5 text-xs font-medium text-indigo-700",
             "transition-colors hover:bg-indigo-50/60",
           )}
         >
           <MessagesSquare className="size-3.5" aria-hidden="true" />
-          <Trans>{threads.length - SHOWN} more waiting in Feedback</Trans>
+          <Trans>{threads.length - SHOWN} more waiting in the Storyboard</Trans>
           <ArrowRight className="size-3.5" aria-hidden="true" />
         </Link>
       ) : null}

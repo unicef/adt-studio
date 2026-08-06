@@ -25,7 +25,7 @@ import { useDirtyTabsForStage } from "@/hooks/use-settings-dirty-tabs"
 import { getSettingsTabs } from "../settings-tabs"
 import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
-import { useFeedbackBadge } from "../stages/feedback/use-feedback-badge"
+import { useFeedbackBadge } from "../../publication-feedback/use-feedback-badge"
 import { StepProgressRing } from "./StepProgressRing"
 import { StoryboardIndex } from "./StoryboardIndex"
 import { useSectionNav } from "@/routes/books.$label"
@@ -82,6 +82,9 @@ export function StageSidebar({
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
+  /** Reviewer comments live in the Storyboard now, so its badge is what says work is waiting —
+   *  the Feedback stage that used to carry it is gone. It is a count, not a completion state:
+   *  the storyboard's own "done" is about rendering, and an open comment must not un-tick it. */
   const feedback = useFeedbackBadge(bookLabel)
   const { tasks } = useBookTasks(bookLabel)
   const stageMissing = useStageMissingCounts(bookLabel)
@@ -131,16 +134,11 @@ export function StageSidebar({
   const signLanguageCompleted = signLanguageData?.videos?.some((v) => v.sectionId !== null) ?? false
   const previewCompleted = packageStatus?.hasAdt ?? false
   const exportCompleted = tasks.some((t) => t.kind === "prepare-export" && t.status === "completed")
-  /** Feedback is "done" only once the worker has actually said there is nothing open — a
-   *  published book with an unanswered comment list is not a drained inbox. */
-  const feedbackCompleted = feedback.published && feedback.loaded && feedback.unresolvedCount === 0
-
   const completionOverrides: Record<string, boolean> = {
     "sign-language": signLanguageCompleted,
     validation: validationCompleted,
     preview: previewCompleted,
     export: exportCompleted,
-    feedback: feedbackCompleted,
   }
 
   const stageItems: ReactNode[] = []
@@ -259,7 +257,7 @@ export function StageSidebar({
                 >
                   <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
                 </span>
-              ) : step.slug === "feedback" && feedback.unresolvedCount > 0 ? (
+              ) : step.slug === "storyboard" && feedback.unresolvedCount > 0 ? (
               <span
                 role="img"
                 aria-label={unresolvedFeedbackLabel(feedback.unresolvedCount)}

@@ -4,13 +4,13 @@ import { CheckCircle2, CloudOff, Loader2, MessagesSquare, X } from "lucide-react
 import { PUBLISH_AUTHOR_DEFAULT_NAME } from "@adt/types"
 import { cn } from "@/lib/utils"
 import { SegmentedControl } from "@/components/ui/segmented-control"
-import { ThreadRow } from "@/components/pipeline/stages/feedback/ThreadRow"
+import { ThreadRow } from "@/components/publication-feedback/ThreadRow"
 import {
   buildThreads,
   filterThreads,
   type FeedbackThread,
   type ResolutionFilter,
-} from "@/components/pipeline/stages/feedback/lib/threads"
+} from "@/components/publication-feedback/lib/threads"
 import {
   useAuthorIdentity,
   useDeleteOwnComment,

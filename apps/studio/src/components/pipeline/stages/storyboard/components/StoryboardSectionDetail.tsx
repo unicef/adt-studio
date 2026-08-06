@@ -2401,26 +2401,32 @@ export function StoryboardSectionDetail({
         onChange={setDeviceView}
         currentWidth={previewVisibleWidth}
       />
-      {/* Reviewer pins, off until asked for: an author styling a page should not have somebody
-          else's dots in the way. The count is shown whether they are on or off, because the point
-          of it is to say there is something here to look at. */}
+      {/* Reviewer pins and the comments panel, as one toggle in the toolbar's own idiom —
+          white-on-violet like the viewport switch beside it, rather than the indigo pill it was,
+          which belonged to a page this bar is not on. Off until asked for: an author styling a
+          page should not have somebody else's dots in the way. */}
       <button
         type="button"
         data-testid="storyboard-feedback-toggle"
         aria-pressed={feedbackShown}
         onClick={() => setFeedbackShown((shown) => !shown)}
-        title={t`Show reviewer comments on this section`}
+        title={t`Show reviewer comments on this page`}
         className={cn(
-          "flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium transition-colors cursor-pointer",
+          "inline-flex h-6 shrink-0 cursor-pointer items-center gap-1 rounded px-1.5 text-[10px] transition-colors",
           feedbackShown
-            ? "border-indigo-300 bg-indigo-50 text-indigo-700"
-            : "text-muted-foreground hover:bg-accent hover:text-foreground",
+            ? "bg-white text-neutral-900"
+            : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white",
         )}
       >
         <MessagesSquare className="h-3.5 w-3.5" />
-        {t`Comments`}
+        <span>{t`Comments`}</span>
         {feedbackCount > 0 ? (
-          <span className="rounded-full bg-indigo-600 px-1.5 text-[10px] font-bold leading-4 text-white tabular-nums">
+          <span
+            className={cn(
+              "ml-0.5 rounded-full px-1 text-[9px] font-bold leading-4 tabular-nums",
+              feedbackShown ? "bg-neutral-900 text-white" : "bg-white text-neutral-900",
+            )}
+          >
             {feedbackCount > 99 ? "99+" : feedbackCount}
           </span>
         ) : null}

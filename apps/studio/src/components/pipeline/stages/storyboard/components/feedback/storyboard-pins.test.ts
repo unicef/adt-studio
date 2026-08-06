@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest"
 import type { PublishComment } from "@/api/client"
-import { buildThreads } from "@/components/pipeline/stages/feedback/lib/threads"
+import { buildThreads } from "@/components/publication-feedback/lib/threads"
 import { placePins, sectionIdFor } from "./storyboard-pins"
 
 function comment(overrides: Partial<PublishComment> = {}): PublishComment {
