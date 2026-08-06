@@ -1,8 +1,9 @@
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { BookOpen, CheckCircle2, CloudOff } from "lucide-react"
+import { BookOpen, Check, CloudOff, Copy, ExternalLink } from "lucide-react"
 import { getBookCoverUrl } from "@/api/client"
-import { ShareLink } from "@/components/pipeline/stages/export/publish/ShareLink"
+import { Button } from "@/components/ui/button"
+import { ExternalLinkButton } from "@/components/settings/publishing/ExternalLinkButton"
 import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
 
 interface PublishingHeroProps {
@@ -24,6 +25,10 @@ interface PublishingHeroProps {
  * The live dot pulses only while the service is answering — a badge that pulses whatever the
  * state would be decoration, and the one thing this row must never do is look healthy when it
  * is not.
+ *
+ * The address itself is not printed here. It used to be, in a box of its own, until the
+ * invitation block below started showing the whole message it goes into — and a 70-character URL
+ * on screen twice is worse than a pair of buttons that do something with it.
  */
 export function PublishingHero({
   bookLabel,
@@ -35,6 +40,26 @@ export function PublishingHero({
 }: PublishingHeroProps) {
   const { i18n, t } = useLingui()
   const [coverFailed, setCoverFailed] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(
+    () => () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    },
+    [],
+  )
+
+  async function copyLink() {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+    } catch {
+      setCopied(false)
+    }
+    timerRef.current = setTimeout(() => setCopied(false), 2500)
+  }
 
   return (
     <div className="flex shrink-0 flex-col gap-4 rounded-2xl border bg-gradient-to-br from-indigo-50/80 via-card to-card p-5">
@@ -85,14 +110,30 @@ export function PublishingHero({
             {title}
           </h2>
 
-          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <CheckCircle2 className="size-3.5 shrink-0 text-emerald-600" aria-hidden="true" />
-            <Trans>Anyone with the link below can read this copy.</Trans>
-          </p>
+          <span className="mt-1 flex flex-wrap items-center gap-2">
+            <Button
+              data-testid="publish-share-copy"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => void copyLink()}
+            >
+              {copied ? (
+                <Check
+                  className="motion-safe:animate-in motion-safe:zoom-in-50 motion-safe:duration-200"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Copy aria-hidden="true" />
+              )}
+              {copied ? <Trans>Link copied</Trans> : <Trans>Copy link</Trans>}
+            </Button>
+            <ExternalLinkButton href={url} variant="outline" size="sm" className="h-8 text-xs">
+              <ExternalLink aria-hidden="true" />
+              <Trans>Open</Trans>
+            </ExternalLinkButton>
+          </span>
         </div>
       </div>
-
-      <ShareLink url={url} highlight />
     </div>
   )
 }

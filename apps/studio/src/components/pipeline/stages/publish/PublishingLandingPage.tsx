@@ -11,6 +11,7 @@ import {
 import { useBook } from "@/hooks/use-books"
 import { PublishingControls } from "./PublishingControls"
 import { PublishingFreshness } from "./PublishingFreshness"
+import { PublishingInvitation } from "./PublishingInvitation"
 import { PublishingRecentFeedback } from "./PublishingRecentFeedback"
 import { PublishingHero } from "./PublishingHero"
 import { PublishingSection } from "./PublishingSection"
@@ -110,6 +111,15 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
             <PublishingFreshness
               contentRevision={status.data?.content_revision ?? null}
               liveVersion={newest}
+            />
+
+            <PublishingInvitation
+              title={book.data?.title ?? bookLabel}
+              url={url as string}
+              accessCode={
+                status.data?.has_access_code === true ? (record?.access_code ?? null) : null
+              }
+              expiresAt={record?.expires_at ?? null}
             />
 
             <PublishingControls
