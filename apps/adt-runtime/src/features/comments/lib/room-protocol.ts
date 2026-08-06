@@ -13,13 +13,14 @@
 import type {
   PublishComment,
   RoomCommentEvent,
+  RoomDevice,
   RoomPeer,
   RoomPeerCursorFrame,
   RoomPresenceFrame,
   RoomServerFrame,
 } from "@adt/types"
 
-export type { RoomPeer, RoomPeerCursorFrame, RoomPresenceFrame, RoomServerFrame }
+export type { RoomDevice, RoomPeer, RoomPeerCursorFrame, RoomPresenceFrame, RoomServerFrame }
 
 export const ROOM_MAX_PEERS = 64
 
@@ -50,6 +51,16 @@ function isPercent(value: unknown): value is number {
 
 function isText(value: unknown): value is string {
   return typeof value === "string" && value.length > 0
+}
+
+const DEVICES: readonly string[] = ["full", "tablet", "phone"]
+
+/** A worker that predates the device field sends peers without one. Defaulting rather than
+ *  rejecting keeps those readers in the roster — they are simply reading at full width, which
+ *  is what everyone who has never touched the preview is doing. */
+export function deviceOf(peer: RoomPeer): RoomDevice {
+  const value = (peer as { device?: unknown }).device
+  return typeof value === "string" && DEVICES.includes(value) ? (value as RoomDevice) : "full"
 }
 
 function isPeer(value: unknown): value is RoomPeer {

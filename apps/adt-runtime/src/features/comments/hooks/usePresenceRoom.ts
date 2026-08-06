@@ -1,6 +1,7 @@
 import { useAtomValue, useSetAtom, useStore } from "jotai"
 import { useEffect, useRef } from "react"
 import { currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
+import { devicePreviewAtom, type DevicePreview } from "@/shared/state/ui.atoms"
 import { anchorFromPoint } from "@/features/comments/lib/anchor"
 import {
   applyCommentFrame,
@@ -56,6 +57,7 @@ function roomUrl(apiBase: string): string | null {
 export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
   const store = useStore()
   const sectionId = useAtomValue(currentSectionIdAtom)
+  const device = useAtomValue(devicePreviewAtom) as DevicePreview
   const setStatus = useSetAtom(roomStatusAtom)
   const setPeers = useSetAtom(roomPeersAtom)
   const setSelfId = useSetAtom(selfPeerIdAtom)
@@ -66,6 +68,8 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
   const socketRef = useRef<RoomSocket | null>(null)
   const sectionRef = useRef<string | null>(sectionId ?? null)
   sectionRef.current = sectionId ?? null
+  const deviceRef = useRef<DevicePreview>(device)
+  deviceRef.current = device
 
   useEffect(() => {
     if (!context) return
@@ -76,7 +80,7 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
       resolveUrl: async () => url,
       onStatus: (status) => setStatus(status),
       onOpen: () => {
-        socket.send({ t: "hello", section_id: sectionRef.current })
+        socket.send({ t: "hello", section_id: sectionRef.current, device: deviceRef.current })
       },
       onFrame: (frame) => {
         if (frame.t === "presence") {
@@ -121,6 +125,12 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
   useEffect(() => {
     socketRef.current?.send({ t: "page", section_id: sectionId ?? null })
   }, [sectionId])
+
+  /** The width this reader is at, so anybody following them can match it. Its own frame: a
+   *  reader can resize without turning a page for an hour. */
+  useEffect(() => {
+    socketRef.current?.send({ t: "device", device })
+  }, [device])
 
   useEffect(() => {
     if (!context) return

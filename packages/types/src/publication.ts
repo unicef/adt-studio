@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { CommenterDisplayName } from "./commenter-name.js"
 
-export const PUBLISH_WORKER_VERSION = "0.8.0"
+export const PUBLISH_WORKER_VERSION = "0.9.0"
 
 /** R2's free allowance. Used only to give the dashboard's storage total a sense of scale —
  *  never to claim a usage number we did not measure ourselves. */

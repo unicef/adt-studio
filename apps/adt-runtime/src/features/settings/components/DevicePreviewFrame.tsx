@@ -1,10 +1,7 @@
 import { useAtomValue } from "jotai"
 import { useEffect } from "react"
-import {
-  DEVICE_PREVIEW_WIDTHS,
-  devicePreviewAtom,
-  type DevicePreview,
-} from "@/shared/state/ui.atoms"
+import { effectiveDeviceAtom } from "@/features/comments/state/follow.atoms"
+import { DEVICE_PREVIEW_WIDTHS, type DevicePreview } from "@/shared/state/ui.atoms"
 
 const FRAME_CLASS = "adt-device-frame"
 const SCREEN_CLASS = "adt-device-screen"
@@ -15,6 +12,9 @@ const SCREEN_CLASS = "adt-device-screen"
  * The widths are the Studio's own (`DEVICE_WIDTHS`: 375 phone, 768 tablet) so a reviewer
  * checking a layout here and an author checking it there are looking at the same thing.
  *
+ * The width comes from `effectiveDeviceAtom`, so a reader following somebody else is shown the
+ * width *they* are reading at rather than their own.
+ *
  * `#content` is wrapped rather than merely narrowed because a bezel needs an element of its own,
  * and every page is a separate document — the wrapper is rebuilt on each load, which is also
  * what makes tearing it down on exit safe. The book's own DOM is otherwise untouched: `#content`
@@ -22,7 +22,7 @@ const SCREEN_CLASS = "adt-device-screen"
  * other feature that queries it are unaffected.
  */
 export function DevicePreviewFrame() {
-  const preview = useAtomValue(devicePreviewAtom) as DevicePreview
+  const preview = useAtomValue(effectiveDeviceAtom) as DevicePreview
 
   useEffect(() => {
     const content = document.getElementById("content")

@@ -17,7 +17,7 @@ import {
   showResolvedAtom,
   type CommentScope,
 } from "@/features/comments/state/comments.atoms"
-import { pendingThreadIdAtom } from "@/features/comments/state/follow.atoms"
+import { followedNameAtom, pendingThreadIdAtom } from "@/features/comments/state/follow.atoms"
 import { otherPeersAtom } from "@/features/comments/state/presence.atoms"
 import { currentSectionIdAtom, pagesAtom, tocAtom } from "@/features/navigation/state/nav.atoms"
 
@@ -62,6 +62,7 @@ export function CommentsSidebar({
   const toc = useAtomValue(tocAtom)
   const currentSectionId = useAtomValue(currentSectionIdAtom)
   const setPendingThread = useSetAtom(pendingThreadIdAtom)
+  const stopFollowing = useSetAtom(followedNameAtom)
   const listRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 
@@ -109,6 +110,9 @@ export function CommentsSidebar({
    * asked for.
    */
   function openComment(comment: PublishComment): void {
+    /** Going to a comment is going somewhere of your own choosing, so it ends a follow — being
+     *  yanked back to somebody else's page mid-read would make the list unusable. */
+    stopFollowing(null)
     if (comment.page_section_id === currentSectionId) {
       onSelect(comment)
       return

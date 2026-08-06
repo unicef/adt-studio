@@ -169,15 +169,24 @@ export class PublicationRoom {
       return
     }
 
+    /** A width change on its own: the page is untouched, so only the attachment moves. */
+    if (frame.t === "device") {
+      if (peer.device === frame.device) return
+      ws.serializeAttachment({ ...peer, device: frame.device })
+      this.broadcastPresence()
+      return
+    }
+
     const section = frame.t === "hello" ? (frame.section_id ?? null) : frame.section_id
-    if (peer.page_section_id === section) {
-      /** `hello` still answers with a roster even when the page did not change: it is the
-       *  frame a reconnecting client uses to re-learn who is here. */
+    const device = frame.t === "hello" ? (frame.device ?? peer.device) : peer.device
+    if (peer.page_section_id === section && peer.device === device) {
+      /** `hello` still answers with a roster even when nothing changed: it is the frame a
+       *  reconnecting client uses to re-learn who is here. */
       if (frame.t === "hello") this.broadcastPresence()
       return
     }
 
-    ws.serializeAttachment({ ...peer, page_section_id: section })
+    ws.serializeAttachment({ ...peer, page_section_id: section, device })
     this.broadcastPresence()
   }
 

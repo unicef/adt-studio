@@ -42,6 +42,15 @@ export const PUBLISH_ANONYMOUS_COLOR = "#a1a1aa"
 
 /** Room membership is per *socket*, not per session: two tabs are two cursors, which is what
  *  the roster is counting. The id is minted per connection and is never a credential. */
+/** The width a peer is reading at. `full` is a real window; the other two mean they are using
+ *  the device preview. Travels with presence so a follower can match it — following somebody
+ *  checking a phone layout while seeing a desktop one shows you the wrong problem.
+ *
+ *  `.catch("full")` rather than a bare enum: a peer on a newer snapshot may report a width this
+ *  worker has never heard of, and the roster must survive that rather than drop them. */
+export const RoomDevice = z.enum(["full", "tablet", "phone"]).catch("full")
+export type RoomDevice = z.infer<typeof RoomDevice>
+
 export const RoomPeer = z.object({
   id: z.string().min(1),
   name: z.string().min(1).max(COMMENTER_NAME_MAX_LENGTH),
@@ -49,6 +58,8 @@ export const RoomPeer = z.object({
   is_author: z.boolean(),
   /** The page this peer is reading, or `null` before their first `hello`. */
   page_section_id: z.string().min(1).nullable(),
+  /** `default` so a peer stored by an older worker still parses out of its attachment. */
+  device: RoomDevice.default("full"),
 })
 export type RoomPeer = z.infer<typeof RoomPeer>
 
@@ -60,6 +71,7 @@ export type RoomPeer = z.infer<typeof RoomPeer>
 export const RoomHelloFrame = z.object({
   t: z.literal("hello"),
   section_id: z.string().min(1).nullable().optional(),
+  device: RoomDevice.optional(),
 })
 export type RoomHelloFrame = z.infer<typeof RoomHelloFrame>
 
@@ -78,10 +90,20 @@ export const RoomPageFrame = z.object({
 })
 export type RoomPageFrame = z.infer<typeof RoomPageFrame>
 
+/** Sent when a reader switches the device preview, so anybody following them follows the width
+ *  as well as the page. Its own frame rather than a field on `page`, because the two change
+ *  independently — a reader can resize without turning a page for an hour. */
+export const RoomDeviceFrame = z.object({
+  t: z.literal("device"),
+  device: RoomDevice,
+})
+export type RoomDeviceFrame = z.infer<typeof RoomDeviceFrame>
+
 export const RoomClientFrame = z.discriminatedUnion("t", [
   RoomHelloFrame,
   RoomCursorMoveFrame,
   RoomPageFrame,
+  RoomDeviceFrame,
 ])
 export type RoomClientFrame = z.infer<typeof RoomClientFrame>
 

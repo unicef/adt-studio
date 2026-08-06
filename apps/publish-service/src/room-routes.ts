@@ -65,6 +65,9 @@ async function peerFor(
       color: session?.color ?? PUBLISH_AUTHOR_COLOR,
       is_author: true,
       page_section_id: null,
+      /** Overwritten by the client's first `hello`; a peer who never reports one is reading at
+       *  full width, which is what everybody who has not touched the preview is doing. */
+      device: "full",
     }
   }
 
@@ -75,6 +78,7 @@ async function peerFor(
     color: commenter?.color ?? PUBLISH_ANONYMOUS_COLOR,
     is_author: false,
     page_section_id: null,
+    device: "full",
   }
 }
 

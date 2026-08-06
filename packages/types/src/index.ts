@@ -474,6 +474,8 @@ export {
   RoomHelloFrame,
   RoomCursorMoveFrame,
   RoomPageFrame,
+  RoomDevice,
+  RoomDeviceFrame,
   RoomClientFrame,
   RoomPresenceFrame,
   RoomPeerCursorFrame,
