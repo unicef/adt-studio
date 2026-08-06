@@ -8,7 +8,8 @@ import {
   useBookPublication,
   useBookPublishRun,
 } from "@/hooks/use-book-publication"
-import { PublishChecklist } from "./PublishChecklist"
+import { PublishCalm } from "@/components/pipeline/stages/publish/PublishCalm"
+import { useElapsed } from "@/components/settings/publishing/provision-elapsed"
 import { PublishErrorNotice } from "./PublishErrorNotice"
 import { PublishStartState } from "./PublishStartState"
 import { PublishedState } from "./PublishedState"
@@ -27,6 +28,8 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
   const isRunning = run.status === "running"
   const recentRun = run.status === "done" ? run.kind : null
   const isLive = lifecycle === "active" && !!url
+  /** The same clock the provisioning loader runs on, so both read "0:12" the same way. */
+  const elapsedMs = useElapsed(run.status === "running" ? "running" : run.status === "done" ? "done" : "idle")
 
   return (
     // `shrink-0` is load-bearing, not tidiness. This sits in the shell's scrolling flex column,
@@ -203,11 +206,12 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
 
             {(run.status === "running" || run.status === "error") && (
               <div className="border-t border-border pt-5">
-                <PublishChecklist
+                <PublishCalm
                   status={run.status}
-                  kind={run.kind}
                   stepStates={run.stepStates}
                   activeStep={run.activeStep}
+                  elapsedMs={elapsedMs}
+                  kind={run.kind === "update" ? "update" : "first"}
                 />
                 {run.status === "error" && run.failure && (
                   <div className="mt-4">

@@ -342,7 +342,8 @@ describe("PublishPanel — publishing", () => {
     })
     expect(screen.getByTestId("publish-step-1").getAttribute("data-state")).toBe("running")
     expect(screen.getByTestId("publish-step-4").getAttribute("data-state")).toBe("pending")
-    expect(screen.getByTestId("publish-checklist").textContent).toContain("Step 1 of 4")
+    /** The calm loader counts settled steps, so the first running step reads as "0 of 4". */
+    expect(screen.getByTestId("publish-checklist").textContent).toContain("0 of 4")
 
     act(() => {
       emit?.({ type: "step", id: "export", number: 1, label: "Export", status: "done" })
