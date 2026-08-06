@@ -88,10 +88,10 @@ export interface BookRunContextValue {
   /** Request cancellation of the active run. Queued runs are preserved and
    *  start after it unwinds (a queue with no active run is cleared instead). */
   cancelRun(): void
-  /** Page failures awaiting a skip/stop decision (interactive mode). */
+  /** Page failures awaiting a retry/skip/stop decision (interactive mode). */
   pendingDecisions: PendingDecision[]
   /** Resolve the head pending decision. */
-  resolveDecision(decisionId: string, action: "skip" | "stop", applyToAll?: boolean): void
+  resolveDecision(decisionId: string, action: "retry" | "skip" | "stop", applyToAll?: boolean): void
 }
 
 const BookRunContext = createContext<BookRunContextValue | null>(null)
@@ -817,7 +817,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   }, [label, queryClient])
 
   const resolveDecision = useCallback(
-    (decisionId: string, action: "skip" | "stop", applyToAll?: boolean) => {
+    (decisionId: string, action: "retry" | "skip" | "stop", applyToAll?: boolean) => {
       // Optimistically drop it from the local queue; the server call (409 ==
       // already resolved) is treated as success.
       setPendingDecisions((prev) => prev.filter((p) => p.decisionId !== decisionId))

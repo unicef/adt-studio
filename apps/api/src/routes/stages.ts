@@ -167,8 +167,13 @@ export function createStageRoutes(
       })
     }
     const { decisionId, action, applyToAll } = parsed.data
-    const ok = decisions.resolveDecision(decisionId, action, applyToAll)
-    if (!ok) {
+    const result = decisions.resolveDecision(decisionId, action, applyToAll)
+    if (result === "retry-not-allowed") {
+      throw new HTTPException(400, {
+        message: "Retry is not allowed for this decision",
+      })
+    }
+    if (result === "not-found") {
       // Already resolved (timeout/cancel) or unknown — the frontend drops the
       // stale dialog silently on 409.
       throw new HTTPException(409, { message: "Decision already resolved" })
@@ -376,6 +381,9 @@ export function createStageRoutes(
                     step: event.step,
                     pageId: event.pageId,
                     error: event.error,
+                    canRetry: event.canRetry,
+                    errorClass: event.errorClass,
+                    attempts: event.attempts,
                   }),
                 })
               } else if (event.type === "task") {

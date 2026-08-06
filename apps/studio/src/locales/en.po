@@ -1403,14 +1403,17 @@ msgstr "Apply page background colors"
 msgid "Apply Segmentation"
 msgstr "Apply Segmentation"
 
+msgid "Apply skip or stop to all errors in this run"
+msgstr "Apply skip or stop to all errors in this run"
+
 #~ msgid "Apply spreads"
 #~ msgstr "Apply spreads"
 
 msgid "Apply suggestion"
 msgstr "Apply suggestion"
 
-msgid "Apply to all errors in this run"
-msgstr "Apply to all errors in this run"
+#~ msgid "Apply to all errors in this run"
+#~ msgstr "Apply to all errors in this run"
 
 #~ msgid "Applying…"
 #~ msgstr "Applying…"
@@ -1481,6 +1484,12 @@ msgstr "Attach font files or pick Google Fonts for this book. The AI assigns whe
 
 msgid "Attached fonts"
 msgstr "Attached fonts"
+
+msgid "Attempt"
+msgstr "Attempt"
+
+msgid "Attempts"
+msgstr "Attempts"
 
 msgid "Audience or reading level"
 msgstr "Audience or reading level"
@@ -2292,6 +2301,12 @@ msgstr "Confirm merge"
 
 msgid "Connect an AI provider"
 msgstr "Connect an AI provider"
+
+msgid "Connection closed"
+msgstr "Connection closed"
+
+msgid "Connection timeout"
+msgstr "Connection timeout"
 
 msgid "Consulting the style council..."
 msgstr "Consulting the style council..."
@@ -3368,6 +3383,9 @@ msgstr "EPUB Export"
 
 msgid "Error"
 msgstr "Error"
+
+msgid "Error class"
+msgstr "Error class"
 
 msgid "Error output"
 msgstr "Error output"
@@ -4961,6 +4979,9 @@ msgstr "Lower values produce more consistent styling across pages."
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Make sure you're uploading a .zip file exported from ADT Studio."
 
+msgid "Malformed model output"
+msgstr "Malformed model output"
+
 msgid "Manage all sections"
 msgstr "Manage all sections"
 
@@ -5781,6 +5802,9 @@ msgstr "Nodes"
 
 msgid "noise"
 msgstr "noise"
+
+msgid "Non-retryable error"
+msgstr "Non-retryable error"
 
 msgid "None"
 msgstr "None"
@@ -6872,6 +6896,9 @@ msgstr "Quote"
 msgid "Radius"
 msgstr "Radius"
 
+msgid "Rate limit"
+msgstr "Rate limit"
+
 msgid "Re-enable type"
 msgstr "Re-enable type"
 
@@ -7198,8 +7225,14 @@ msgstr "Replace quizzes"
 msgid "Replace this audio file"
 msgstr "Replace this audio file"
 
+msgid "Request Error"
+msgstr "Request Error"
+
 msgid "Request settings"
 msgstr "Request settings"
+
+msgid "Request timeout"
+msgstr "Request timeout"
 
 msgid "Require comment on failure"
 msgstr "Require comment on failure"
@@ -7289,8 +7322,20 @@ msgstr "Retry"
 msgid "Retry {stageLabel}"
 msgstr "Retry {stageLabel}"
 
+msgid "Retry delay"
+msgstr "Retry delay"
+
 msgid "Retry Export"
 msgstr "Retry Export"
+
+msgid "Retry this page"
+msgstr "Retry this page"
+
+msgid "Retry this page, skip it and continue, or stop the step entirely."
+msgstr "Retry this page, skip it and continue, or stop the step entirely."
+
+msgid "Retryable"
+msgstr "Retryable"
 
 msgid "Return to coordinator"
 msgstr "Return to coordinator"
@@ -7999,6 +8044,9 @@ msgstr "serious"
 
 msgid "Serious"
 msgstr "Serious"
+
+msgid "Server error"
+msgstr "Server error"
 
 msgid "Session comments"
 msgstr "Session comments"
@@ -9518,6 +9566,9 @@ msgstr "Unknown"
 
 msgid "Unknown criterion"
 msgstr "Unknown criterion"
+
+msgid "Unknown error"
+msgstr "Unknown error"
 
 msgid "Unknown stage"
 msgstr "Unknown stage"

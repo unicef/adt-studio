@@ -15,6 +15,7 @@ import type { RateLimiter } from "./rate-limiter.js"
 import { computeHash, readCache, writeCache, bustCache } from "./cache.js"
 import { sanitizeMessages, type LlmLogEntry } from "./log.js"
 import { createLogger, type LogLevel } from "./logger.js"
+import { classifyLLMError, LLMValidationError } from "./errors.js"
 
 export interface LLMProviderCredentials {
   openaiApiKey?: string
@@ -99,6 +100,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
       let currentMessages = messages
       let allErrors: string[] = []
+      let validationErrors: string[] = []
       let lastCacheHit = false
       let totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
 
@@ -169,12 +171,16 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             const check = opts.validate(result, context)
             if (!check.valid) {
               allErrors.push(...check.errors)
+              validationErrors.push(...check.errors)
               if (cacheDir) bustCache(cacheDir, hash)
               currentMessages = appendValidationFeedback(
                 currentMessages,
                 result,
                 check.errors
               )
+              if (attempt >= maxRetries) {
+                throw new LLMValidationError(maxRetries + 1, allErrors)
+              }
               log.info(
                 `[LLM] ${label} | validation failed (attempt ${attempt + 1}/${maxRetries + 1}) | retrying`
               )
@@ -193,12 +199,18 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                   success: false,
                   errorCount: allErrors.length,
                   attempt,
+                  maxAttempts: maxRetries + 1,
                   durationMs: Date.now() - t0,
                   usage:
                     totalUsage.inputTokens > 0 || totalUsage.outputTokens > 0
                       ? totalUsage
                       : undefined,
-                  validationErrors: allErrors.length > 0 ? allErrors : undefined,
+                  validationErrors:
+                    validationErrors.length > 0 ? validationErrors : undefined,
+                  error: check.errors.join("\n"),
+                  errorClass: "model-output",
+                  retryable: true,
+                  finalError: false,
                   messages: sanitizeMessages(
                     buildLogMessages(system, currentMessages, null)
                   ),
@@ -237,12 +249,14 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               success: true,
               errorCount: allErrors.length,
               attempt,
+              maxAttempts: maxRetries + 1,
               durationMs: Date.now() - t0,
               usage:
                 totalUsage.inputTokens > 0 || totalUsage.outputTokens > 0
                   ? totalUsage
                   : undefined,
-              validationErrors: allErrors.length > 0 ? allErrors : undefined,
+              validationErrors:
+                validationErrors.length > 0 ? validationErrors : undefined,
               messages: sanitizeMessages(
                 buildLogMessages(system, currentMessages, result)
               ),
@@ -256,6 +270,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           }
         } catch (err) {
           const errMsg = formatError(err)
+          const classification = classifyLLMError(err)
           allErrors.push(errMsg)
           if (cacheDir) bustCache(cacheDir, hash)
 
@@ -268,7 +283,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             throw err
           }
 
-          if (attempt < maxRetries) {
+          if (classification.retryable && attempt < maxRetries) {
             const delayMs = backoffDelay(attempt)
             log.error(
               `[LLM] ${label} | error (attempt ${attempt + 1}/${maxRetries + 1}) | ${errMsg} | retrying in ${delayMs}ms`
@@ -288,12 +303,19 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                 success: false,
                 errorCount: allErrors.length,
                 attempt,
+                maxAttempts: maxRetries + 1,
                 durationMs: Date.now() - t0,
                 usage:
                   totalUsage.inputTokens > 0 || totalUsage.outputTokens > 0
                     ? totalUsage
                     : undefined,
-                validationErrors: allErrors,
+                validationErrors:
+                  validationErrors.length > 0 ? validationErrors : undefined,
+                error: errMsg,
+                errorClass: classification.errorClass,
+                retryable: true,
+                retryDelayMs: delayMs,
+                finalError: false,
                 messages: sanitizeMessages(
                   buildLogMessages(system, currentMessages, null)
                 ),
@@ -309,7 +331,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           }
 
           log.error(
-            `[LLM] ${label} | error (attempt ${attempt + 1}/${maxRetries + 1}) | ${errMsg}`
+            `[LLM] ${label} | ${classification.retryable ? "error" : "non-retryable error"} (attempt ${attempt + 1}/${maxRetries + 1}) | ${errMsg}`
           )
 
           if (opts.log && onLog) {
@@ -327,12 +349,18 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               success: false,
               errorCount: allErrors.length,
               attempt,
+              maxAttempts: maxRetries + 1,
               durationMs: Date.now() - t0,
               usage:
                 totalUsage.inputTokens > 0 || totalUsage.outputTokens > 0
                   ? totalUsage
                   : undefined,
-              validationErrors: allErrors,
+              validationErrors:
+                validationErrors.length > 0 ? validationErrors : undefined,
+              error: errMsg,
+              errorClass: classification.errorClass,
+              retryable: classification.retryable,
+              finalError: true,
               messages: sanitizeMessages(
                 buildLogMessages(system, currentMessages, null)
               ),
@@ -342,9 +370,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         }
       }
 
-      throw new Error(
-        `Failed after ${maxRetries + 1} attempts. Errors:\n${allErrors.join("\n")}`
-      )
+      throw new LLMValidationError(maxRetries + 1, allErrors)
     },
   }
 }

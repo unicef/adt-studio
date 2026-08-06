@@ -3,12 +3,13 @@ import { z } from "zod"
 /** How a run reacts when a page fails inside a per-page step.
  *  - "stop" (default): accumulate failures and fail the step at the end
  *    (the historical behavior — safe for headless/CLI clients).
- *  - "ask": pause and ask the user to skip the page or stop the step. */
+ *  - "ask": pause and ask the user to retry an eligible failure, skip the
+ *    page, or stop the step. */
 export const PageErrorPolicy = z.enum(["ask", "stop"])
 export type PageErrorPolicy = z.infer<typeof PageErrorPolicy>
 
 /** What to do with a single failed page once the user (or a fallback) decides. */
-export const PageErrorAction = z.enum(["skip", "stop"])
+export const PageErrorAction = z.enum(["retry", "skip", "stop"])
 export type PageErrorAction = z.infer<typeof PageErrorAction>
 
 /** A page failure awaiting the user's decision. Surfaced both via the ephemeral
@@ -18,6 +19,9 @@ export const PendingDecision = z.object({
   step: z.string(),
   pageId: z.string(),
   error: z.string(),
+  canRetry: z.boolean().optional(),
+  errorClass: z.string().optional(),
+  attempts: z.number().int().positive().optional(),
 })
 export type PendingDecision = z.infer<typeof PendingDecision>
 
@@ -29,4 +33,8 @@ export const DecisionBody = z
     applyToAll: z.boolean().optional(),
   })
   .strict()
+  .refine((decision) => decision.action !== "retry" || !decision.applyToAll, {
+    message: "Retry cannot be applied to all page errors",
+    path: ["applyToAll"],
+  })
 export type DecisionBody = z.infer<typeof DecisionBody>

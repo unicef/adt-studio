@@ -39,6 +39,14 @@ vi.mock("@lingui/react/macro", () => ({
   }),
 }))
 
+vi.mock("@lingui/react", () => ({
+  Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useLingui: () => ({
+    t: join,
+    i18n: { _: (d: { message?: string; id?: string }) => d?.message ?? d?.id ?? "" },
+  }),
+}))
+
 const { ParamGrid } = await import("./LlmLogsTab")
 
 function renderGrid(data: Record<string, unknown>) {

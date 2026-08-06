@@ -1404,14 +1404,17 @@ msgstr "Apliko ngjyrat e sfondit të faqes"
 msgid "Apply Segmentation"
 msgstr "Apliko segmentimin"
 
+msgid "Apply skip or stop to all errors in this run"
+msgstr "Zbato “Kapërce” ose “Ndalo” për të gjitha gabimet në këtë ekzekutim"
+
 #~ msgid "Apply spreads"
 #~ msgstr "Apliko faqet e përbashkëta"
 
 msgid "Apply suggestion"
 msgstr "Zbato sugjerimin"
 
-msgid "Apply to all errors in this run"
-msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
+#~ msgid "Apply to all errors in this run"
+#~ msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
 
 #~ msgid "Applying…"
 #~ msgstr "Duke aplikuar…"
@@ -1482,6 +1485,12 @@ msgstr "Bashkëngjitni skedarë fontesh ose zgjidhni Google Fonts për këtë li
 
 msgid "Attached fonts"
 msgstr "Fontet e bashkëngjitura"
+
+msgid "Attempt"
+msgstr "Përpjekja"
+
+msgid "Attempts"
+msgstr "Përpjekjet"
 
 msgid "Audience or reading level"
 msgstr "Audienca ose niveli i leximit"
@@ -2293,6 +2302,12 @@ msgstr "Konfirmoni bashkimin"
 
 msgid "Connect an AI provider"
 msgstr "Lidheni një ofrues AI"
+
+msgid "Connection closed"
+msgstr "Lidhja u mbyll"
+
+msgid "Connection timeout"
+msgstr "Koha e lidhjes mbaroi"
 
 msgid "Consulting the style council..."
 msgstr "Po konsultohet këshilli i stilit..."
@@ -3369,6 +3384,9 @@ msgstr "Eksport EPUB"
 
 msgid "Error"
 msgstr "Gabim"
+
+msgid "Error class"
+msgstr "Klasa e gabimit"
 
 msgid "Error output"
 msgstr "Rezultat i gabimit"
@@ -4962,6 +4980,9 @@ msgstr "Vlerat më të ulëta prodhojnë stil më konsistent nëpër faqe."
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studio."
 
+msgid "Malformed model output"
+msgstr "Dalje e modelit me format të pasaktë"
+
 msgid "Manage all sections"
 msgstr "Menaxho të gjitha seksionet"
 
@@ -5782,6 +5803,9 @@ msgstr "Nyje"
 
 msgid "noise"
 msgstr "zhurmë"
+
+msgid "Non-retryable error"
+msgstr "Gabim që nuk mund të riprovohet"
 
 msgid "None"
 msgstr "Asnjë"
@@ -6873,6 +6897,9 @@ msgstr "Citat"
 msgid "Radius"
 msgstr "Rrezja"
 
+msgid "Rate limit"
+msgstr "Kufiri i kërkesave"
+
 msgid "Re-enable type"
 msgstr "Ri-aktivizo tipin"
 
@@ -7199,8 +7226,14 @@ msgstr "Zëvendëso kuizet"
 msgid "Replace this audio file"
 msgstr "Zëvendëso këtë skedar audio"
 
+msgid "Request Error"
+msgstr "Gabim i kërkesës"
+
 msgid "Request settings"
 msgstr "Cilësimet e kërkesës"
+
+msgid "Request timeout"
+msgstr "Koha e kërkesës mbaroi"
 
 msgid "Require comment on failure"
 msgstr "Kërko koment në rast dështimi"
@@ -7290,8 +7323,20 @@ msgstr "Riprovo"
 msgid "Retry {stageLabel}"
 msgstr "Riprovo {stageLabel}"
 
+msgid "Retry delay"
+msgstr "Vonesa para riprovimit"
+
 msgid "Retry Export"
 msgstr "Riprovo Eksportimin"
+
+msgid "Retry this page"
+msgstr "Riprovo këtë faqe"
+
+msgid "Retry this page, skip it and continue, or stop the step entirely."
+msgstr "Riprovo këtë faqe, kapërceje dhe vazhdo, ose ndaloje plotësisht hapin."
+
+msgid "Retryable"
+msgstr "Mund të riprovohet"
 
 msgid "Return to coordinator"
 msgstr "Kthejeni te koordinatori"
@@ -8000,6 +8045,9 @@ msgstr "serioz"
 
 msgid "Serious"
 msgstr "Serioz"
+
+msgid "Server error"
+msgstr "Gabim i serverit"
 
 msgid "Session comments"
 msgstr "Komente sesioni"
@@ -9519,6 +9567,9 @@ msgstr "I panjohur"
 
 msgid "Unknown criterion"
 msgstr "Kriter i panjohur"
+
+msgid "Unknown error"
+msgstr "Gabim i panjohur"
 
 msgid "Unknown stage"
 msgstr "Fazë e panjohur"

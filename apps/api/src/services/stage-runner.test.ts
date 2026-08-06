@@ -16,6 +16,10 @@ const {
   captionPageImagesMock,
   generateSpeechFileMock,
   easyReadGenerateObjectMock,
+  extractMetadataMock,
+  extractPDFMock,
+  filterPageImageMeaningfulnessMock,
+  generateBookSummaryMock,
   renderPageMock,
   sectionPageMock,
   transcribeWithWhisperMock,
@@ -28,6 +32,10 @@ const {
       return { captions: [] }
     }),
     easyReadGenerateObjectMock: vi.fn(),
+    extractMetadataMock: vi.fn(),
+    extractPDFMock: vi.fn(),
+    filterPageImageMeaningfulnessMock: vi.fn(),
+    generateBookSummaryMock: vi.fn(),
     generateSpeechFileMock: vi.fn(),
     renderPageMock: vi.fn(async () => ({ sections: [] })),
     sectionPageMock: vi.fn(async () => ({ reasoning: "", sections: [] })),
@@ -42,6 +50,10 @@ vi.mock("@adt/pipeline", async () => {
   return {
     ...actual,
     captionPageImages: captionPageImagesMock,
+    extractMetadata: extractMetadataMock,
+    extractPDF: extractPDFMock,
+    filterPageImageMeaningfulness: filterPageImageMeaningfulnessMock,
+    generateBookSummary: generateBookSummaryMock,
     generateSpeechFile: generateSpeechFileMock,
     renderPage: renderPageMock,
     sectionPage: sectionPageMock,
@@ -60,6 +72,13 @@ vi.mock("@adt/llm", async () => {
 })
 
 beforeEach(() => {
+  extractPDFMock.mockReset().mockResolvedValue(undefined)
+  extractMetadataMock.mockReset().mockResolvedValue({ language_code: "en" })
+  generateBookSummaryMock.mockReset().mockResolvedValue({ summary: "Summary" })
+  filterPageImageMeaningfulnessMock.mockReset()
+  filterPageImageMeaningfulnessMock.mockImplementation(
+    async (_input: unknown, existing: unknown) => existing
+  )
   easyReadGenerateObjectMock.mockReset()
   easyReadGenerateObjectMock.mockImplementation(async (options: {
     context?: { texts?: Array<{ text: string }> }
@@ -84,6 +103,58 @@ structure_types:
   paragraph: Paragraph
 `
   )
+}
+
+function writeMeaningfulnessConfig(configPath: string): void {
+  fs.writeFileSync(
+    configPath,
+    `default_model: openai:gpt-4.1
+role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+image_filters:
+  meaningfulness: true
+  segmentation: false
+  cropping: false
+image_meaningfulness:
+  model: openai:gpt-4.1
+  max_retries: 0
+`
+  )
+}
+
+function seedMeaningfulnessBook(booksDir: string, label: string): void {
+  const storage = createBookStorage(label, booksDir)
+  try {
+    for (const [index, pageId] of ["pg001", "pg002"].entries()) {
+      storage.putExtractedPage({
+        pageId,
+        pageNumber: index + 1,
+        text: `Page ${index + 1} text`,
+        pageImage: {
+          imageId: `${pageId}_page`,
+          buffer: Buffer.from(`fake-page-image-${pageId}`),
+          format: "png",
+          hash: `hash-page-${pageId}`,
+          width: 800,
+          height: 600,
+        },
+        images: [
+          {
+            imageId: `${pageId}_im001`,
+            buffer: Buffer.from(`fake-image-${pageId}`),
+            format: "png",
+            hash: `hash-image-${pageId}`,
+            width: 400,
+            height: 300,
+          },
+        ],
+      })
+    }
+  } finally {
+    storage.close()
+  }
 }
 
 function seedCaptionBook(
@@ -562,6 +633,194 @@ describe("createStageRunner storyboard render-only", () => {
           event.type === "step-complete" && event.step === "page-sectioning"
       )
     ).toBe(false)
+  })
+})
+
+describe("createStageRunner image meaningfulness retry", () => {
+  let tmpDir = ""
+
+  afterEach(() => {
+    if (tmpDir) {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+      tmpDir = ""
+    }
+  })
+
+  it("retries only the failed page and preserves both page IDs downstream", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-meaningfulness-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    writeMeaningfulnessConfig(configPath)
+    seedMeaningfulnessBook(booksDir, "meaningfulness-retry")
+
+    let pg002Attempts = 0
+    filterPageImageMeaningfulnessMock.mockImplementation(
+      async (input: { pageId: string }, existing: unknown) => {
+        if (input.pageId === "pg002" && pg002Attempts++ === 0) {
+          throw new Error("Cannot connect to API: other side closed")
+        }
+        return existing
+      }
+    )
+
+    const decisions: Array<{
+      step: string
+      pageId: string
+      error: string
+      canRetry?: boolean
+      errorClass?: string
+      attempts?: number
+    }> = []
+    const runner = createStageRunner()
+    await runner.run(
+      "meaningfulness-retry",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "extract",
+        toStage: "extract",
+        pageErrorPolicy: "ask",
+        requestPageDecision: async (input) => {
+          decisions.push(input)
+          return "retry"
+        },
+      },
+      { emit: () => undefined }
+    )
+
+    const meaningfulnessPageIds = filterPageImageMeaningfulnessMock.mock.calls.map(
+      ([input]) => (input as { pageId: string }).pageId
+    )
+    expect(meaningfulnessPageIds).toEqual(["pg001", "pg002", "pg002"])
+    expect(decisions).toEqual([
+      expect.objectContaining({
+        step: "image-meaningfulness",
+        pageId: "pg002",
+        canRetry: true,
+        errorClass: "connection-closed",
+        attempts: 1,
+      }),
+    ])
+
+    await runner.run(
+      "meaningfulness-retry",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "sectioning",
+        toStage: "storyboard",
+      },
+      { emit: () => undefined }
+    )
+
+    const storage = createBookStorage("meaningfulness-retry", booksDir)
+    try {
+      expect(storage.getPages().map((page) => page.pageId)).toEqual([
+        "pg001",
+        "pg002",
+      ])
+      for (const pageId of ["pg001", "pg002"]) {
+        expect(storage.getLatestNodeData("image-filtering", pageId)).not.toBeNull()
+        expect(storage.getLatestNodeData("page-sectioning", pageId)).not.toBeNull()
+        expect(storage.getLatestNodeData("web-rendering", pageId)).not.toBeNull()
+      }
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("preserves a skipped failed page through sectioning and storyboard", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-meaningfulness-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    writeMeaningfulnessConfig(configPath)
+    seedMeaningfulnessBook(booksDir, "meaningfulness-skip")
+
+    filterPageImageMeaningfulnessMock.mockImplementation(
+      async (input: { pageId: string }, existing: unknown) => {
+        if (input.pageId === "pg002") {
+          throw new Error("Cannot connect to API: other side closed")
+        }
+        return existing
+      }
+    )
+
+    const decisions: Array<{
+      step: string
+      pageId: string
+      error: string
+      canRetry?: boolean
+      errorClass?: string
+      attempts?: number
+    }> = []
+    const runner = createStageRunner()
+    await runner.run(
+      "meaningfulness-skip",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "extract",
+        toStage: "extract",
+        pageErrorPolicy: "ask",
+        requestPageDecision: async (input) => {
+          decisions.push(input)
+          return "skip"
+        },
+      },
+      { emit: () => undefined }
+    )
+
+    const meaningfulnessPageIds = filterPageImageMeaningfulnessMock.mock.calls.map(
+      ([input]) => (input as { pageId: string }).pageId
+    )
+    expect(meaningfulnessPageIds).toEqual(["pg001", "pg002"])
+    expect(decisions).toEqual([
+      expect.objectContaining({
+        step: "image-meaningfulness",
+        pageId: "pg002",
+        canRetry: true,
+        errorClass: "connection-closed",
+        attempts: 1,
+      }),
+    ])
+
+    await runner.run(
+      "meaningfulness-skip",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "sectioning",
+        toStage: "storyboard",
+      },
+      { emit: () => undefined }
+    )
+
+    const storage = createBookStorage("meaningfulness-skip", booksDir)
+    try {
+      expect(storage.getPages().map((page) => page.pageId)).toEqual([
+        "pg001",
+        "pg002",
+      ])
+      for (const pageId of ["pg001", "pg002"]) {
+        expect(storage.getLatestNodeData("image-filtering", pageId)).not.toBeNull()
+        expect(storage.getLatestNodeData("page-sectioning", pageId)).not.toBeNull()
+        expect(storage.getLatestNodeData("web-rendering", pageId)).not.toBeNull()
+      }
+    } finally {
+      storage.close()
+    }
   })
 })
 

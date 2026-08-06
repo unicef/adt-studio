@@ -1403,14 +1403,17 @@ msgstr "Aplicar cores de fundo da página"
 msgid "Apply Segmentation"
 msgstr "Apply Segmentation"
 
+msgid "Apply skip or stop to all errors in this run"
+msgstr "Aplicar “Ignorar” ou “Parar” a todos os erros desta execução"
+
 #~ msgid "Apply spreads"
 #~ msgstr "Aplicar spreads"
 
 msgid "Apply suggestion"
 msgstr "Aplicar sugestão"
 
-msgid "Apply to all errors in this run"
-msgstr "Aplicar a todos os erros desta execução"
+#~ msgid "Apply to all errors in this run"
+#~ msgstr "Aplicar a todos os erros desta execução"
 
 #~ msgid "Applying…"
 #~ msgstr "Aplicando…"
@@ -1481,6 +1484,12 @@ msgstr "Anexe arquivos de fonte ou escolha Google Fonts para este livro. A IA de
 
 msgid "Attached fonts"
 msgstr "Fontes anexadas"
+
+msgid "Attempt"
+msgstr "Tentativa"
+
+msgid "Attempts"
+msgstr "Tentativas"
 
 msgid "Audience or reading level"
 msgstr "Público ou nível de leitura"
@@ -2292,6 +2301,12 @@ msgstr "Confirmar mesclagem"
 
 msgid "Connect an AI provider"
 msgstr "Conecte um provedor de IA"
+
+msgid "Connection closed"
+msgstr "Conexão encerrada"
+
+msgid "Connection timeout"
+msgstr "Tempo limite de conexão"
 
 msgid "Consulting the style council..."
 msgstr "Consultando o conselho de estilo..."
@@ -3368,6 +3383,9 @@ msgstr "Exportar EPUB"
 
 msgid "Error"
 msgstr "Erro"
+
+msgid "Error class"
+msgstr "Classe do erro"
 
 msgid "Error output"
 msgstr "Saída de erro"
@@ -4961,6 +4979,9 @@ msgstr "Valores mais baixos produzem estilização mais consistente entre as pá
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Certifique-se de enviar um arquivo .zip exportado do ADT Studio."
 
+msgid "Malformed model output"
+msgstr "Saída do modelo com formato incorreto"
+
 msgid "Manage all sections"
 msgstr "Gerenciar todas as seções"
 
@@ -5781,6 +5802,9 @@ msgstr "Nodes"
 
 msgid "noise"
 msgstr "ruído"
+
+msgid "Non-retryable error"
+msgstr "Erro sem possibilidade de nova tentativa"
 
 msgid "None"
 msgstr "Nenhum"
@@ -6872,6 +6896,9 @@ msgstr "Citação"
 msgid "Radius"
 msgstr "Raio"
 
+msgid "Rate limit"
+msgstr "Limite de solicitações"
+
 msgid "Re-enable type"
 msgstr "Reativar tipo"
 
@@ -7198,8 +7225,14 @@ msgstr "Substituir questionários"
 msgid "Replace this audio file"
 msgstr "Substituir este arquivo de áudio"
 
+msgid "Request Error"
+msgstr "Erro da solicitação"
+
 msgid "Request settings"
 msgstr "Configurações da solicitação"
+
+msgid "Request timeout"
+msgstr "Tempo limite da solicitação"
 
 msgid "Require comment on failure"
 msgstr "Require comment on failure"
@@ -7289,8 +7322,20 @@ msgstr "Tentar novamente"
 msgid "Retry {stageLabel}"
 msgstr "Tentar {stageLabel} novamente"
 
+msgid "Retry delay"
+msgstr "Intervalo antes da nova tentativa"
+
 msgid "Retry Export"
 msgstr "Tentar exportar novamente"
+
+msgid "Retry this page"
+msgstr "Tentar esta página novamente"
+
+msgid "Retry this page, skip it and continue, or stop the step entirely."
+msgstr "Tente esta página novamente, ignore-a e continue ou interrompa completamente a etapa."
+
+msgid "Retryable"
+msgstr "Permite nova tentativa"
 
 msgid "Return to coordinator"
 msgstr "Devolver ao coordenador"
@@ -7999,6 +8044,9 @@ msgstr "serious"
 
 msgid "Serious"
 msgstr "Serious"
+
+msgid "Server error"
+msgstr "Erro do servidor"
 
 msgid "Session comments"
 msgstr "Session comments"
@@ -9518,6 +9566,9 @@ msgstr "Unknown"
 
 msgid "Unknown criterion"
 msgstr "Unknown criterion"
+
+msgid "Unknown error"
+msgstr "Erro desconhecido"
 
 msgid "Unknown stage"
 msgstr "Etapa desconhecida"

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { SkipForward, CircleStop } from "lucide-react"
+import { CircleStop, RotateCcw, SkipForward } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
 import { msg } from "@lingui/core/macro"
@@ -13,13 +13,14 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { useBookRun } from "@/hooks/use-book-run"
+import { getLlmErrorClassLabel } from "@/lib/llm-error-class-i18n"
 import { getStepLabelI18n } from "../pipeline-i18n"
 
 /**
  * Interactive prompt shown when a page fails inside a per-page step and the run
- * is waiting for the user to decide: skip that page and keep going, or stop the
- * whole step. Decisions queue — one is shown at a time. Mounted at the book
- * layout so it appears on any screen of the book.
+ * is waiting for the user to decide: retry a transient failure, skip that page,
+ * or stop the whole step. Decisions queue — one is shown at a time. Mounted at
+ * the book layout so it appears on any screen of the book.
  */
 export function PageErrorDecisionDialog() {
   const { i18n } = useLingui()
@@ -36,8 +37,12 @@ export function PageErrorDecisionDialog() {
 
   const stepLabel = getStepLabelI18n(current.step)
 
-  const resolve = (action: "skip" | "stop") => {
-    resolveDecision(current.decisionId, action, applyToAll)
+  const resolve = (action: "retry" | "skip" | "stop") => {
+    resolveDecision(
+      current.decisionId,
+      action,
+      action === "retry" ? undefined : applyToAll
+    )
   }
 
   return (
@@ -49,15 +54,21 @@ export function PageErrorDecisionDialog() {
         if (!open) return
       }}
     >
-      <DialogContent className="gap-5 p-6 sm:max-w-md [&>button]:hidden">
+      <DialogContent className="gap-5 p-6 sm:max-w-lg [&>button]:hidden">
         <DialogHeader className="text-left">
           <DialogTitle className="text-[16px] font-semibold leading-tight tracking-tight">
             <Trans>A page failed in {stepLabel}</Trans>
           </DialogTitle>
           <DialogDescription className="text-[13px] leading-snug text-muted-foreground">
-            <Trans>
-              Skip this page and continue the step, or stop the step entirely.
-            </Trans>
+            {current.canRetry ? (
+              <Trans>
+                Retry this page, skip it and continue, or stop the step entirely.
+              </Trans>
+            ) : (
+              <Trans>
+                Skip this page and continue the step, or stop the step entirely.
+              </Trans>
+            )}
           </DialogDescription>
         </DialogHeader>
 
@@ -68,6 +79,20 @@ export function PageErrorDecisionDialog() {
           <p className="max-h-32 overflow-y-auto whitespace-pre-wrap break-words text-xs text-foreground/80">
             {current.error}
           </p>
+          {(current.errorClass || current.attempts) && (
+            <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted-foreground">
+              {current.errorClass && (
+                <span>
+                  <Trans>Error class</Trans>: {getLlmErrorClassLabel(i18n, current.errorClass)}
+                </span>
+              )}
+              {current.attempts && (
+                <span>
+                  <Trans>Attempts</Trans>: {current.attempts}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         <label className="flex items-center gap-2 text-[13px] text-muted-foreground">
@@ -77,10 +102,20 @@ export function PageErrorDecisionDialog() {
             onChange={(e) => setApplyToAll(e.target.checked)}
             className="h-4 w-4 rounded border-input accent-current"
           />
-          <Trans>Apply to all errors in this run</Trans>
+          <Trans>Apply skip or stop to all errors in this run</Trans>
         </label>
 
-        <DialogFooter className="-mt-1 gap-2">
+        <DialogFooter className="-mt-1 min-w-0 flex-col gap-2 sm:grid sm:grid-cols-2 sm:space-x-0">
+          {current.canRetry && (
+            <Button
+              onClick={() => resolve("retry")}
+              className="h-10 px-4 font-medium sm:col-span-2"
+              title={i18n._(msg`Retry this page`)}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              <Trans>Retry this page</Trans>
+            </Button>
+          )}
           <Button
             variant="ghost"
             onClick={() => resolve("skip")}
