@@ -53,7 +53,7 @@ export function SettingsNavigation({
           onValueChange={(version) => {
             setUiVersion(version);
             if (version === "new") {
-              void navigate({ to: "/redesign/settings" });
+              void navigate({ to: "/redesign/settings/theme" });
             }
           }}
         />
