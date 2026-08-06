@@ -2,6 +2,7 @@ import { Trans } from "@lingui/react/macro"
 import { History, Loader2, Users } from "lucide-react"
 import { PublishPanel } from "@/components/pipeline/stages/export/publish/PublishPanel"
 import { PublicationReaders } from "@/components/publications/PublicationReaders"
+import { ScrollBox } from "@/components/publishing/ScrollBox"
 import {
   publicationLifecycle,
   useBookPublication,
@@ -120,9 +121,18 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
               className="min-h-0"
               aside={<Trans>who gave a name</Trans>}
             >
-              <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border bg-card px-4 py-3">
-                {token === null ? null : <PublicationReaders token={token} hideHeading />}
-              </div>
+              <ScrollBox
+                footer={
+                  <Trans>
+                    Only people who typed a name are listed — somebody can read the book without
+                    appearing here.
+                  </Trans>
+                }
+              >
+                {token === null ? null : (
+                  <PublicationReaders token={token} hideHeading showFootnote={false} />
+                )}
+              </ScrollBox>
             </PublishingSection>
 
             <PublishingSection
@@ -133,9 +143,9 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
                 record?.versions.length ? <Trans>{record.versions.length} total</Trans> : null
               }
             >
-              <div className="flex min-h-0 flex-1 flex-col rounded-xl border bg-card px-4 py-3">
+              <ScrollBox>
                 <PublishingVersions record={record} currentVersion={currentVersion} />
-              </div>
+              </ScrollBox>
             </PublishingSection>
           </div>
         </div>

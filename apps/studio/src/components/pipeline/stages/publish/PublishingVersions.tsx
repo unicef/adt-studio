@@ -33,7 +33,7 @@ export function PublishingVersions({
   }
 
   return (
-    <ol className="flex min-h-0 flex-1 list-none flex-col overflow-y-auto p-0 pr-1">
+    <ol className="flex list-none flex-col p-0">
       {versions.map((entry, index) => {
         const isCurrent = entry.version === currentVersion
         const isLast = index === versions.length - 1

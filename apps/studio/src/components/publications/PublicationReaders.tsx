@@ -56,6 +56,8 @@ interface PublicationReadersProps {
   /** The Publishing dashboard puts this in a section already headed "Readers"; repeating it
    *  inside the card would be the same word twice, eight pixels apart. */
   hideHeading?: boolean
+  /** `false` where the card pins the caveat below the scroller instead — see `ScrollBox`. */
+  showFootnote?: boolean
 }
 
 /**
@@ -71,6 +73,7 @@ export function PublicationReaders({
   override,
   enabled = true,
   hideHeading = false,
+  showFootnote = true,
 }: PublicationReadersProps) {
   const query = usePublicationReaders(token, enabled && override === undefined)
   const readers = override ?? query.data?.readers
@@ -130,12 +133,14 @@ export function PublicationReaders({
               <ReaderLine key={reader.id} reader={reader} />
             ))}
           </ul>
-          <p className="pt-1 text-[11px] leading-4 text-muted-foreground">
-            <Trans>
-              Only people who typed a name are listed — somebody can read the book without
-              appearing here.
-            </Trans>
-          </p>
+          {showFootnote ? (
+            <p className="pt-1 text-[11px] leading-4 text-muted-foreground">
+              <Trans>
+                Only people who typed a name are listed — somebody can read the book without
+                appearing here.
+              </Trans>
+            </p>
+          ) : null}
         </>
       )}
     </div>
