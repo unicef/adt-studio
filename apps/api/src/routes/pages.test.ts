@@ -2093,6 +2093,76 @@ describe("Page routes", () => {
       expectAllDownstreamCleared(tmpDir, label)
     })
 
+    it("restores Core TTS text while preserving uploaded recordings", async () => {
+      const coreEntry = (id: string, speechText: string) => ({
+        id,
+        displayText: id,
+        speechText,
+        changed: true,
+        transformations: ["language-normalization"],
+        status: "ready",
+        generation: {
+          mode: "generated",
+          generatedAt: "2026-08-05T00:00:00.000Z",
+          enabledTransformations: ["language-normalization"],
+          sourceTextHash: "source",
+          contextHash: "context",
+        },
+      })
+      const storage = createBookStorage(label, tmpDir)
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [coreEntry("pg001_t001", "version one"), coreEntry("pg001_t002", "manual one")],
+        generatedAt: "2026-08-05T00:00:00.000Z",
+      })
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [coreEntry("pg001_t001", "version two"), coreEntry("pg001_t002", "manual two")],
+        generatedAt: "2026-08-05T01:00:00.000Z",
+      })
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "generated.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+            provider: "openai",
+          },
+          {
+            textId: "pg001_t002",
+            language: "en",
+            fileName: "uploaded.mp3",
+            voice: "uploaded",
+            model: "uploaded",
+            cached: false,
+            provider: "manual",
+          },
+        ],
+        generatedAt: "2026-08-05T01:00:00.000Z",
+      })
+      storage.close()
+
+      const response = await app.request(
+        `/api/books/${label}/versions/core-tts-catalog/en/restore`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ version: 1 }),
+        },
+      )
+      expect(response.status).toBe(200)
+
+      const check = createBookStorage(label, tmpDir)
+      expect(check.getCurrentNodeVersion("core-tts-catalog", "en")).toBe(1)
+      expect(
+        (check.getLatestNodeData("tts", "en")?.data as { entries: Array<{ textId: string }> }).entries,
+      ).toEqual([expect.objectContaining({ textId: "pg001_t002" })])
+      check.close()
+    })
+
     it("rejects nodes that are not exposed by the version picker", async () => {
       const res = await app.request(
         `/api/books/${label}/versions/metadata/book/restore`,

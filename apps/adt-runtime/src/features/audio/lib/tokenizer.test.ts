@@ -8,6 +8,7 @@ import {
   normalizeGlossaryText,
   shouldUseBlockPlaybackHighlight,
 } from "./tokenizer"
+import { speechTextRequiresBlockHighlight } from "./word-highlight"
 
 describe("tts tokenizer", () => {
   it("preserves punctuation and spacing in the render plan", () => {
@@ -57,6 +58,12 @@ describe("tts tokenizer", () => {
     expect(shouldUseBlockPlaybackHighlight({ tagName: "TEXTAREA" }, true, true)).toBe(true)
     expect(shouldUseBlockPlaybackHighlight({ tagName: "P" }, true, false)).toBe(true)
     expect(shouldUseBlockPlaybackHighlight({ tagName: "P" }, false, true)).toBe(true)
+  })
+
+  it("uses block highlighting when prepared speech differs from display text", () => {
+    expect(speechTextRequiresBlockHighlight("$\\frac{1}{2}$", "one half")).toBe(true)
+    expect(speechTextRequiresBlockHighlight("Hello", "Hello")).toBe(false)
+    expect(speechTextRequiresBlockHighlight("Hello", undefined)).toBe(false)
   })
 
   it("prefers the current DOM text for display so punctuation stays visible", () => {

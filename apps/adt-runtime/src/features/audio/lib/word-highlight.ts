@@ -30,6 +30,14 @@ const WORD_HIGHLIGHT_CLASS = "bg-yellow-300"
 const BLOCK_HIGHLIGHT_CLASS = "tts-active-block"
 const FIT_ATTR = "data-adt-fit"
 
+/** Prepared wording cannot be aligned safely to different visible words yet. */
+export function speechTextRequiresBlockHighlight(
+  displayText: string | undefined,
+  speechText: string | undefined,
+): boolean {
+  return speechText !== undefined && speechText !== displayText
+}
+
 /**
  * Re-run the fixed-layout auto-fit pass (`assets/adt/auto-fit.js`, exposed as
  * `window.__adtRunAutoFit`) after we rebuild a paragraph's innerHTML for word

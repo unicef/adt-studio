@@ -23,6 +23,7 @@ import { useStepConfig } from "@/hooks/use-step-config"
 import { getBaseLanguage, normalizeLocale } from "@/lib/languages"
 import { resolveLocaleMapping, resolveSpeechProviderForLanguage } from "@/lib/speech-routing"
 import { SpeechPromptsEditor } from "./components/SpeechPromptsEditor"
+import { CoreTtsProfilesEditor } from "./components/CoreTtsProfilesEditor"
 import { VoiceMappingsEditor } from "./components/VoiceMappingsEditor"
 import { SelectImagesDialog } from "./components/SelectImagesDialog"
 import { WordHighlightPreview } from "./components/WordHighlightPreview"
@@ -1199,6 +1200,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
 
       {tab === "speech-prompts" && (
         <SpeechPromptsEditor bookLabel={bookLabel} />
+      )}
+      {tab === "core-tts-profiles" && (
+        <CoreTtsProfilesEditor bookLabel={bookLabel} />
       )}
 
       {tab === "voices" && (

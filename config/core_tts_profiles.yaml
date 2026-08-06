@@ -1,0 +1,8 @@
+default: >-
+  Normalize ambiguous written forms such as numbers, dates, abbreviations,
+  symbols, ranges, and list labels into concise natural speech in the entry's
+  language. Preserve ordinary prose unchanged.
+sw: >-
+  Use natural Tanzanian Kiswahili wording for ambiguous numbers, decimals,
+  percentages, mathematical operators, ranges, Roman numerals, and structural
+  ordinals. Preserve the intended distinction between positions and quantities.

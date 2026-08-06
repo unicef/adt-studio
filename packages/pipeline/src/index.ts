@@ -168,6 +168,19 @@ export {
 } from "./quiz-generation.js"
 export { buildTextCatalog } from "./text-catalog.js"
 export {
+  buildCoreTtsPreparationConfig,
+  loadCoreTtsProfiles,
+  resolveCoreTtsProfile,
+  prepareCoreTtsCatalog,
+  getCoreTtsCatalog,
+  getReadyCoreTtsEntries,
+  buildCoreTtsSourceContext,
+  invalidateCoreTtsForDisplayEntries,
+  type CoreTtsProfiles,
+  type ResolvedCoreTtsProfile,
+  type CoreTtsPreparationConfig,
+} from "./core-tts.js"
+export {
   buildEasyReadConfig,
   buildEasyReadSourceBlocks,
   buildPageEasyReadBlocks,

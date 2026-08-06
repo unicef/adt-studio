@@ -238,6 +238,24 @@ function seedEasyReadBook(booksDir: string, label: string): void {
   }
 }
 
+function readyCoreTtsEntry(id: string, text: string) {
+  return {
+    id,
+    displayText: text,
+    speechText: text,
+    changed: false,
+    transformations: [],
+    status: "ready",
+    generation: {
+      mode: "unchanged",
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      enabledTransformations: [],
+      sourceTextHash: "source",
+      contextHash: "context",
+    },
+  }
+}
+
 function seedTextAndSpeechBook(booksDir: string, label: string): void {
   const storage = createBookStorage(label, booksDir)
   try {
@@ -270,6 +288,11 @@ function seedTextAndSpeechBook(booksDir: string, label: string): void {
     storage.putNodeData("text-catalog", "book", {
       entries: [{ id: "pg001_t001", text: "Hello world" }],
       generatedAt: "2026-01-01T00:00:00.000Z",
+    })
+    storage.putNodeData("core-tts-catalog", "en", {
+      language: "en",
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      entries: [readyCoreTtsEntry("pg001_t001", "Hello world")],
     })
   } finally {
     storage.close()
@@ -1196,6 +1219,14 @@ speech:
         entries: [
           { id: "pg001_t001", text: "Hello world" },
           { id: "pg001_t002", text: "Second entry" },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      seedStorage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [
+          readyCoreTtsEntry("pg001_t001", "Hello world"),
+          readyCoreTtsEntry("pg001_t002", "Second entry"),
         ],
         generatedAt: "2026-01-01T00:00:00.000Z",
       })
