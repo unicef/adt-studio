@@ -341,26 +341,32 @@ export function PublicationRow({
 
       {/* A drawer under the whole card rather than a block inside the text column: it spans the
           divider, and `grid-rows` from 0fr to 1fr is the one height transition that works
-          without measuring. `transition-discrete` holds `visibility` until the collapse has
-          finished, so closing fades out instead of blinking away — and once closed the panel is
-          out of the tab order. Mounted from the first open onwards, never before: that is what
-          keeps a shelf of forty books from fetching forty rosters. */}
-      {readersEverOpened && (
-        <div
-          id={readersId}
-          aria-hidden={!readersOpen}
-          className={cn(
-            "grid overflow-hidden transition-all duration-300 ease-out transition-discrete motion-reduce:transition-none",
-            readersOpen ? "grid-rows-[1fr] opacity-100" : "invisible grid-rows-[0fr] opacity-0",
-          )}
-        >
-          <div className="min-h-0">
-            <div className="border-t px-4 py-3 mh:px-3">
-              <PublicationReaders token={publication.token} override={readers} />
-            </div>
+          without measuring.
+          The drawer is always in the DOM, collapsed — mounting it *and* opening it in the same
+          commit gives the browser no start value to interpolate from, which is why a
+          mount-on-open version animated shut but never open. `transition-discrete` holds
+          `visibility` until the collapse finishes, so closing fades instead of blinking, and a
+          shut drawer stays out of the tab order.
+          Cost of always rendering it is nothing: `enabled` is what gates the request, so a shelf
+          of forty books still fetches no rosters until one is asked for. */}
+      <div
+        id={readersId}
+        aria-hidden={!readersOpen}
+        className={cn(
+          "grid overflow-hidden transition-all duration-300 ease-out transition-discrete motion-reduce:transition-none",
+          readersOpen ? "grid-rows-[1fr] opacity-100" : "invisible grid-rows-[0fr] opacity-0",
+        )}
+      >
+        <div className="min-h-0">
+          <div className="border-t px-4 py-3 mh:px-3">
+            <PublicationReaders
+              token={publication.token}
+              override={readers}
+              enabled={readersEverOpened}
+            />
           </div>
         </div>
-      )}
+      </div>
     </li>
   )
 }

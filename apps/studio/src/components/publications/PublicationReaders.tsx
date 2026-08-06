@@ -48,6 +48,11 @@ interface PublicationReadersProps {
   token: string
   /** Supplied instead of fetching — the demo shelf's only hook into this panel. */
   override?: readonly PublicationReader[]
+  /** `false` while the drawer holding this panel has never been opened. The panel renders
+   *  collapsed inside every row so the drawer has something to animate, and this is what stops
+   *  that from turning one screen into one request per book. Sticky once true, so closing the
+   *  drawer neither cancels an answer nor throws one away. */
+  enabled?: boolean
 }
 
 /**
@@ -58,8 +63,12 @@ interface PublicationReadersProps {
  * so a reader who opened an un-coded link and never wrote is not on this list and never was.
  * Saying otherwise would be inventing an audience.
  */
-export function PublicationReaders({ token, override }: PublicationReadersProps) {
-  const query = usePublicationReaders(token, override === undefined)
+export function PublicationReaders({
+  token,
+  override,
+  enabled = true,
+}: PublicationReadersProps) {
+  const query = usePublicationReaders(token, enabled && override === undefined)
   const readers = override ?? query.data?.readers
   const outdated = apiErrorCode(query.error) === "worker_outdated"
 
@@ -70,7 +79,9 @@ export function PublicationReaders({ token, override }: PublicationReadersProps)
       </span>
 
       {readers === undefined && query.isPending ? (
-        <span className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+        /** Reserved height, not decoration: the drawer opens while this is still the content, so
+         *  a one-line spinner would make the roster's arrival a second, unanimated jump. */
+        <span className="flex min-h-14 items-center gap-2 py-2 text-xs text-muted-foreground">
           <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           <Trans>Looking up who has joined…</Trans>
         </span>
