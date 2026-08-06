@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { CheckCircle2, Copy, Loader2, RefreshCw } from "lucide-react"
+import { ArrowRight, CheckCircle2, Copy, Loader2, RefreshCw } from "lucide-react"
+import { Link } from "@tanstack/react-router"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
@@ -138,6 +139,15 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
         </DetailRow>
 
         <div className="flex flex-wrap items-center gap-2 border-t px-4 py-3">
+          <Button asChild variant="outline" className="group">
+            <Link to="/publications">
+              <Trans>Published books</Trans>
+              <ArrowRight
+                className="size-4 transition-transform duration-200 motion-safe:group-hover:translate-x-0.5 motion-reduce:transition-none"
+                aria-hidden="true"
+              />
+            </Link>
+          </Button>
           {connection.upgrade_available && upgrade.status !== "running" && (
             <Button onClick={() => upgrade.start()}>
               <RefreshCw aria-hidden="true" />
