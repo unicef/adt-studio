@@ -77,8 +77,11 @@ export const claudeAgentProvider: ProviderModule<ClaudeAgentCredentials> = {
   manifest: claudeAgentManifest,
   credentialSchema,
 
+  /** Never the ambient ANTHROPIC_API_KEY — that key belongs to the direct
+   *  `anthropic` provider, and adopting it here would bill it without opt-in.
+   *  Without the dedicated variable the CLI login is the sanctioned fallback. */
   resolveServerCredentials: () => ({
-    apiKey: process.env.CLAUDE_AGENT_API_KEY ?? process.env.ANTHROPIC_API_KEY,
+    apiKey: process.env.CLAUDE_AGENT_API_KEY,
   }),
 
   cacheFingerprint: () => ({

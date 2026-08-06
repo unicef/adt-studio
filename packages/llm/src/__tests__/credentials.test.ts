@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   describeCredentialPresence,
   extractCredentialsFromHeaders,
@@ -102,6 +102,50 @@ describe("mergeWithServerCredentials", () => {
     expect(
       mergeWithServerCredentials(registry.get("openai"), { apiKey: "  " }),
     ).toEqual({ apiKey: "sk-from-env" })
+  })
+})
+
+describe("CLI provider billing boundary", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it("never adopts an ambient ANTHROPIC_API_KEY for claude-agent", () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-ambient")
+    vi.stubEnv("CLAUDE_AGENT_API_KEY", "")
+
+    expect(mergeWithServerCredentials(registry.get("claude-agent"), undefined)).toEqual({})
+    expect(providerFieldStatus(registry.get("claude-agent"))).toEqual([
+      { key: "apiKey", configuredOnServer: false },
+    ])
+  })
+
+  it("bills claude-agent only to its dedicated CLAUDE_AGENT_API_KEY", () => {
+    vi.stubEnv("ANTHROPIC_API_KEY", "sk-ant-ambient")
+    vi.stubEnv("CLAUDE_AGENT_API_KEY", "sk-ant-dedicated")
+
+    expect(mergeWithServerCredentials(registry.get("claude-agent"), undefined)).toEqual({
+      apiKey: "sk-ant-dedicated",
+    })
+  })
+
+  it("never adopts an ambient OPENAI_API_KEY for codex", () => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-ambient")
+    vi.stubEnv("CODEX_API_KEY", "")
+
+    expect(mergeWithServerCredentials(registry.get("codex"), undefined)).toEqual({})
+    expect(providerFieldStatus(registry.get("codex"))).toEqual([
+      { key: "apiKey", configuredOnServer: false },
+    ])
+  })
+
+  it("bills codex only to its dedicated CODEX_API_KEY", () => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-ambient")
+    vi.stubEnv("CODEX_API_KEY", "sk-dedicated")
+
+    expect(mergeWithServerCredentials(registry.get("codex"), undefined)).toEqual({
+      apiKey: "sk-dedicated",
+    })
   })
 })
 

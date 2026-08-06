@@ -74,8 +74,11 @@ export const codexProvider: ProviderModule<CodexCredentials> = {
   manifest: codexManifest,
   credentialSchema,
 
+  /** Never the ambient OPENAI_API_KEY — that key belongs to the direct
+   *  `openai` provider, and adopting it here would bill it without opt-in.
+   *  Without the dedicated variable the CLI login is the sanctioned fallback. */
   resolveServerCredentials: () => ({
-    apiKey: process.env.CODEX_API_KEY ?? process.env.OPENAI_API_KEY,
+    apiKey: process.env.CODEX_API_KEY,
   }),
 
   cacheFingerprint: () => ({
