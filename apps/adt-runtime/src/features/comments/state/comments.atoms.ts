@@ -8,6 +8,17 @@ import { rootComments } from "@/features/comments/lib/contract"
  *  reviewer working through a book stays in the mode they chose. */
 export const commentModeAtom = persistedBoolAtom("commentMode", false)
 
+/**
+ * "Just the book": one switch that takes the pins, the other readers' cursors and the presence
+ * chip off screen at once. A reader who wants to read should not have to negotiate three
+ * checkboxes, and a reviewer proof-reading a page needs the same thing for a minute.
+ *
+ * Local only, and deliberately so — hiding stops *you* seeing *them*, never the reverse. The
+ * room connection stays up, so you are still in everyone else's roster and can still be
+ * followed. An invisible reader would make presence a lie.
+ */
+export const commentsHiddenAtom = persistedBoolAtom("commentsHidden", false)
+
 export const commentsAtom = ephemeralAtom<PublishComment[]>([])
 
 export const commentsSessionAtom = ephemeralAtom<CommenterSession | null>(null)

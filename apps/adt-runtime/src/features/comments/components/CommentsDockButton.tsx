@@ -1,11 +1,12 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { MessageSquare } from "lucide-react"
+import { MessageSquare, MessageSquareOff } from "lucide-react"
 import { DockIconButton } from "@/features/dock/components/DockIconButton"
 import { useCommentsContext } from "@/features/comments/hooks/useCommentsContext"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
 import {
   commentDraftAtom,
   commentModeAtom,
+  commentsHiddenAtom,
   commentsWritableAtom,
   pageCommentCountAtom,
 } from "@/features/comments/state/comments.atoms"
@@ -23,8 +24,24 @@ export function CommentsDockButton() {
   const writable = useAtomValue(commentsWritableAtom)
   const count = useAtomValue(pageCommentCountAtom)
   const setDraft = useSetAtom(commentDraftAtom)
+  const [hidden, setHidden] = useAtom(commentsHiddenAtom)
 
   if (!context) return null
+
+  /** With everything hidden there is no pin, no cursor and no roster left on screen, so this
+   *  button is the entire way back. It says what it does rather than staying a comment tool
+   *  that mysteriously does nothing. */
+  if (hidden as boolean) {
+    return (
+      <DockIconButton
+        ariaLabel={t("comments-hidden-show-label")}
+        tooltip={t("comments-hidden-show-label")}
+        onClick={() => setHidden(false)}
+      >
+        <MessageSquareOff />
+      </DockIconButton>
+    )
+  }
 
   const active = writable && (mode as boolean)
   const label = writable
