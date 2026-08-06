@@ -11,7 +11,7 @@
   },
   "src/components/pipeline/stage-config.ts": {
     "lingui/no-unlocalized-strings": {
-      "count": 31
+      "count": 33
     }
   },
   "src/components/pipeline/stages/PreviewValidationCard.tsx": {

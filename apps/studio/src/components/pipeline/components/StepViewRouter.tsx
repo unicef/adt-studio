@@ -25,6 +25,7 @@ import {
   SignLanguageLandingPage,
   PreviewView,
   ValidationView,
+  PublishingLandingPage,
   ExportLandingPage,
   FeedbackView,
 } from "../stages";
@@ -77,6 +78,7 @@ const VIEW_MAP: Record<string, ViewEntry> = {
   "sign-language": { component: SignLanguageLandingPage, fullHeight: true },
   validation: { component: ValidationView, fullHeight: true },
   preview: { component: PreviewView, fullHeight: true },
+  publish: { component: PublishingLandingPage, fullHeight: true },
   export: { component: ExportLandingPage, fullHeight: true },
   feedback: { component: FeedbackView, fullHeight: true },
 };

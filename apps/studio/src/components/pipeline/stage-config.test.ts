@@ -44,9 +44,18 @@ describe("stage-config", () => {
       "speech",
       "validation",
       "preview",
+      "publish",
       "export",
       "feedback",
     ])
+  })
+
+  /** Publishing sits *before* Export on purpose: a publication is not an artifact you produce
+   *  once at the end, it is a live address you keep while the book is still being worked on. */
+  it("puts Publishing before Export and keeps it out of the runnable pipeline", () => {
+    const slugs = STAGES.map((stage) => stage.slug)
+    expect(slugs.indexOf("publish")).toBe(slugs.indexOf("export") - 1)
+    expect(getPipelineStages().map((stage) => stage.slug)).not.toContain("publish")
   })
 
   it("puts Feedback after Export and keeps it out of the runnable pipeline", () => {

@@ -21,7 +21,7 @@ import {
   type ExportFormat,
 } from "./export-formats"
 import { ExportDialog } from "./ExportDialog"
-import { PublishPanel } from "./publish/PublishPanel"
+import { ExportPublishingNote } from "./ExportPublishingNote"
 import { FormatPicker } from "./components/FormatPicker"
 import { ExportPreview } from "./components/ExportPreview"
 import { useCapturedPreviewSettings } from "@/hooks/use-preview-settings-listener"
@@ -151,7 +151,7 @@ function ExportLandingBody({
         </div>
       )}
 
-      {!isPart && <PublishPanel bookLabel={bookLabel} />}
+      {!isPart && <ExportPublishingNote bookLabel={bookLabel} />}
 
       <div className="flex flex-col gap-1 pt-2">
         <h2 className="text-base font-semibold tracking-tight text-foreground">
