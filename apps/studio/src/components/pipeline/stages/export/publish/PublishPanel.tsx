@@ -12,10 +12,19 @@ import { PublishCalm } from "@/components/pipeline/stages/publish/PublishCalm"
 import { useElapsed } from "@/components/settings/publishing/provision-elapsed"
 import { PublishErrorNotice } from "./PublishErrorNotice"
 import { PublishStartState } from "./PublishStartState"
-import { PublishedState } from "./PublishedState"
 import { PublishingSettingsLink } from "./PublishingSettingsLink"
 import { RevokedNotice } from "./RevokedNotice"
 
+/**
+ * Everything before a link exists: no Cloudflare account, nothing published yet, a link the
+ * author stopped, one that expired, and the run itself.
+ *
+ * It deliberately says nothing about a *live* publication. That belongs to the Publishing
+ * dashboard, which owns the whole page and can give the link, its settings and its history a
+ * column each — this card could only ever stack them. The page renders this panel only while
+ * there is no live link, so the live branch that used to be here was unreachable code with a
+ * second implementation of the same controls behind it.
+ */
 export function PublishPanel({ bookLabel }: { bookLabel: string }) {
   const status = useBookPublication(bookLabel)
   const run = useBookPublishRun(bookLabel)
@@ -26,7 +35,6 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
   const lifecycle = publicationLifecycle(status.data)
   const url = status.data?.url ?? run.result?.url ?? null
   const isRunning = run.status === "running"
-  const recentRun = run.status === "done" ? run.kind : null
   const isLive = lifecycle === "active" && !!url
   /** The same clock the provisioning loader runs on, so both read "0:12" the same way. */
   const elapsedMs = useElapsed(run.status === "running" ? "running" : run.status === "done" ? "done" : "idle")
@@ -178,20 +186,6 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
                   </Trans>
                 </p>
               </div>
-            )}
-
-            {lifecycle === "active" && url && (
-              <PublishedState
-                bookLabel={bookLabel}
-                url={url}
-                record={status.data?.record ?? null}
-                publication={status.data?.publication ?? null}
-                workerReachable={status.data?.worker_reachable ?? true}
-                hasAccessCode={status.data?.has_access_code ?? false}
-                isUpdating={isRunning}
-                recentRun={recentRun}
-                onUpdate={run.update}
-              />
             )}
 
             {lifecycle !== "active" && (

@@ -279,21 +279,6 @@ describe("PublishPanel — states", () => {
     expect(resumeBookPublication).not.toHaveBeenCalled()
   })
 
-  /** Version history moved out to the Publishing dashboard, which owns the whole page and can
-   *  give the list a column of its own; this card is now the link and its settings. */
-  it("makes the link the hero of the published state", async () => {
-    getBookPublication.mockResolvedValue(publishedStatus())
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-share-link")).toBeTruthy())
-    expect(screen.getByTestId("publish-share-link").textContent).toContain(SHARE_URL)
-    expect(screen.getByTestId("publish-expiry-summary").textContent).toContain("no end date")
-    expect(screen.queryByTestId("publish-version-2")).toBeNull()
-    expect(screen.getByTestId("publish-update-button")).toBeTruthy()
-    expect(screen.getByTestId("publish-revoke-button")).toBeTruthy()
-  })
-
   it("mentions a waiting publishing-service update without nagging", async () => {
     getBookPublication.mockResolvedValue(publishedStatus())
     getCloudflareConnection.mockResolvedValue({
@@ -317,7 +302,7 @@ describe("PublishPanel — states", () => {
 })
 
 describe("PublishPanel — publishing", () => {
-  it("streams the four steps and lands on the share link", async () => {
+  it("streams the four steps", async () => {
     getBookPublication.mockResolvedValue(neverPublished())
 
     let emit: ((event: PublishProgressEvent) => void) | null = null
@@ -369,9 +354,12 @@ describe("PublishPanel — publishing", () => {
       finishStream?.()
     })
 
-    await waitFor(() => expect(screen.getByTestId("publish-share-link")).toBeTruthy())
-    expect(screen.getByTestId("publish-share-link").textContent).toContain(SHARE_URL)
-    expect(screen.getByTestId("publish-recent-run").textContent).toContain("Your book is online")
+    /** The panel's job ends when the run does. The link and everything that can be done to it
+     *  belong to the Publishing dashboard, which the page swaps in the moment one exists — so
+     *  what this panel does on success is hand over: no loader, no link, nothing to press. */
+    await waitFor(() => expect(screen.queryByTestId("publish-checklist")).toBeNull())
+    expect(screen.queryByTestId("publish-share-link")).toBeNull()
+    expect(screen.queryByTestId("publish-start-button")).toBeNull()
   })
 
   it("passes the chosen end date to the publish route", async () => {
@@ -530,63 +518,9 @@ describe("PublishPanel — publishing", () => {
     expect(screen.getByRole("link", { name: /open publishing settings/i })).toBeTruthy()
   })
 
-  it("re-exports under the same link when the author updates the site", async () => {
-    getBookPublication.mockResolvedValue(publishedStatus())
-    publishBookVersion.mockImplementation(() => new Promise<void>(() => {}))
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-update-button")).toBeTruthy())
-    fireEvent.click(screen.getByTestId("publish-update-button"))
-
-    expect(publishBookVersion).toHaveBeenCalledTimes(1)
-    expect(publishBookVersion.mock.calls[0][0]).toBe("meu-livro")
-    expect(screen.getByTestId("publish-checklist")).toBeTruthy()
-    expect(screen.getByTestId("publish-share-link").textContent).toContain(SHARE_URL)
-  })
 })
 
 describe("PublishPanel — link management", () => {
-  it("copies the link and says so", async () => {
-    getBookPublication.mockResolvedValue(publishedStatus())
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-share-link")).toBeTruthy())
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /copy the share link/i }))
-    })
-
-    expect(writeText).toHaveBeenCalledWith(SHARE_URL)
-    await waitFor(() =>
-      expect(screen.getByTestId("publish-share-link").textContent).toContain("Link copied"),
-    )
-  })
-
-  it("asks for confirmation before the link stops working, then revokes", async () => {
-    getBookPublication.mockResolvedValue(publishedStatus())
-    revokeBookPublication.mockResolvedValue({ publication: revokedStatus().publication })
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-revoke-button")).toBeTruthy())
-    fireEvent.click(screen.getByTestId("publish-revoke-button"))
-
-    await waitFor(() => expect(screen.getByTestId("revoke-dialog")).toBeTruthy())
-    const dialog = screen.getByTestId("revoke-dialog")
-    expect(dialog.textContent).toContain("stops working straight away")
-    expect(dialog.textContent).toContain("everyone who has it")
-    expect(revokeBookPublication).not.toHaveBeenCalled()
-
-    getBookPublication.mockResolvedValue(revokedStatus())
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /^stop sharing$/i }))
-    })
-
-    expect(revokeBookPublication).toHaveBeenCalledWith("meu-livro")
-    await waitFor(() => expect(screen.getByTestId("publication-revoked")).toBeTruthy())
-  })
-
   it("resumes sharing on the same link and lands back on the published state", async () => {
     getBookPublication.mockResolvedValue(revokedStatus())
     resumeBookPublication.mockResolvedValue({ publication: publishedStatus().publication })
@@ -600,9 +534,9 @@ describe("PublishPanel — link management", () => {
     })
 
     expect(resumeBookPublication).toHaveBeenCalledWith("meu-livro")
-    await waitFor(() => expect(screen.getByTestId("publish-share-link")).toBeTruthy())
-    expect(screen.getByTestId("publish-share-link").textContent).toContain(SHARE_URL)
-    expect(screen.queryByTestId("publication-revoked")).toBeNull()
+    /** Resuming makes the link live again, and a live link is the dashboard's to show — so what
+     *  this panel does is stop saying the sharing is stopped. */
+    await waitFor(() => expect(screen.queryByTestId("publication-revoked")).toBeNull())
   })
 
   it("keeps the link off and says so when resuming fails", async () => {
@@ -625,150 +559,4 @@ describe("PublishPanel — link management", () => {
     expect(screen.getByTestId("publication-revoked")).toBeTruthy()
   })
 
-  it("shows the code beside the link, with what to share and what a change costs", async () => {
-    getBookPublication.mockResolvedValue(gatedStatus())
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-access-code")).toBeTruthy())
-    const card = screen.getByTestId("publish-access-code")
-    expect(screen.getByTestId("publish-access-code-value").textContent).toBe("K7M4QP")
-    expect(card.textContent).toContain("Share the link and this code")
-    expect(card.textContent).toContain("locks out everybody who typed the old one")
-    expect(card.textContent).toContain("reading right now")
-    expect(card.textContent).toContain("Removing the code opens the book to anyone with the link")
-    expect(screen.queryByTestId("publish-access-open")).toBeNull()
-  })
-
-  it("copies the access code", async () => {
-    getBookPublication.mockResolvedValue(gatedStatus())
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-access-code-copy")).toBeTruthy())
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("publish-access-code-copy"))
-    })
-
-    expect(writeText).toHaveBeenCalledWith("K7M4QP")
-    await waitFor(() =>
-      expect(screen.getByTestId("publish-access-code").textContent).toContain("Copied"),
-    )
-  })
-
-  it("rotates the code to a fresh one from the safe alphabet", async () => {
-    getBookPublication.mockResolvedValue(gatedStatus())
-    setBookPublicationAccessCode.mockResolvedValue({
-      publication: publishedStatus().publication,
-      has_access_code: true,
-    })
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-access-rotate-button")).toBeTruthy())
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("publish-access-rotate-button"))
-    })
-
-    expect(setBookPublicationAccessCode).toHaveBeenCalledTimes(1)
-    expect(setBookPublicationAccessCode.mock.calls[0][0]).toBe("meu-livro")
-    const rotated = setBookPublicationAccessCode.mock.calls[0][1] as string
-    expect(rotated).toMatch(/^[A-HJ-NP-Z2-9]{6}$/)
-    expect(rotated).not.toBe("K7M4QP")
-  })
-
-  it("removes the code with a null update", async () => {
-    getBookPublication.mockResolvedValue(gatedStatus())
-    setBookPublicationAccessCode.mockResolvedValue({
-      publication: publishedStatus().publication,
-      has_access_code: false,
-    })
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-access-remove-button")).toBeTruthy())
-    getBookPublication.mockResolvedValue(publishedStatus())
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("publish-access-remove-button"))
-    })
-
-    expect(setBookPublicationAccessCode).toHaveBeenCalledWith("meu-livro", null)
-    await waitFor(() => expect(screen.getByTestId("publish-access-open")).toBeTruthy())
-  })
-
-  it("offers to close an open link, and says what that does", async () => {
-    getBookPublication.mockResolvedValue(publishedStatus())
-    setBookPublicationAccessCode.mockResolvedValue({
-      publication: publishedStatus().publication,
-      has_access_code: true,
-    })
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-access-open")).toBeTruthy())
-    const open = screen.getByTestId("publish-access-open")
-    expect(open.textContent).toContain("Anyone with the link can open this book")
-    expect(open.textContent).toContain("closes the book to everyone who has only the link")
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("publish-access-add-button"))
-    })
-    expect(setBookPublicationAccessCode.mock.calls[0][1] as string).toMatch(
-      /^[A-HJ-NP-Z2-9]{6}$/,
-    )
-  })
-
-  it("stays honest when the code was set on another computer", async () => {
-    getBookPublication.mockResolvedValue(gatedStatus(null))
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-access-code-unknown")).toBeTruthy())
-    expect(screen.getByTestId("publish-access-code-unknown").textContent).toContain(
-      "doesn't have a copy of it",
-    )
-    expect(screen.queryByTestId("publish-access-code-value")).toBeNull()
-    expect(screen.getByTestId("publish-access-rotate-button")).toBeTruthy()
-  })
-
-  it("keeps the code and the link intact when the change fails", async () => {
-    getBookPublication.mockResolvedValue(gatedStatus())
-    setBookPublicationAccessCode.mockRejectedValue(
-      new MockApiError("The publish worker answered 502", 502, "worker_unreachable"),
-    )
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-access-rotate-button")).toBeTruthy())
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("publish-access-rotate-button"))
-    })
-
-    await waitFor(() => expect(screen.getByTestId("publish-access-error")).toBeTruthy())
-    expect(screen.getByTestId("publish-access-error").textContent).toContain("nothing changed")
-    expect(screen.getByTestId("publish-access-code-value").textContent).toBe("K7M4QP")
-  })
-
-  it("changes the end date through the expiry route", async () => {
-    getBookPublication.mockResolvedValue(publishedStatus())
-    setBookPublicationExpiry.mockResolvedValue({ publication: publishedStatus().publication })
-
-    renderPanel()
-
-    await waitFor(() => expect(screen.getByTestId("publish-expiry-summary")).toBeTruthy())
-    fireEvent.click(screen.getByRole("button", { name: /add an end date/i }))
-
-    await waitFor(() => expect(screen.getByTestId("publish-expiry-choice")).toBeTruthy())
-    fireEvent.click(screen.getByRole("radio", { name: /30 days/i }))
-    await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /save end date/i }))
-    })
-
-    expect(setBookPublicationExpiry).toHaveBeenCalledTimes(1)
-    expect(setBookPublicationExpiry.mock.calls[0][0]).toBe("meu-livro")
-    const expiresAt = setBookPublicationExpiry.mock.calls[0][1] as string
-    const days = (Date.parse(expiresAt) - Date.now()) / (24 * 60 * 60 * 1000)
-    expect(days).toBeGreaterThan(29.9)
-    expect(days).toBeLessThan(30.1)
-  })
 })

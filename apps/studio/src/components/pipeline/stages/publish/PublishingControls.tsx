@@ -183,6 +183,13 @@ export function PublishingControls({
         </div>
       </div>
 
+      {/* Lost with the action row when it moved out; a failed knob has to say so, or the author
+          is left thinking a code they can no longer use is the one their readers have. */}
+      {accessCode.error || expiry.error ? (
+        <p role="alert" className="text-xs leading-5 text-destructive">
+          <Trans>That change didn't go through, so nothing changed. Try again in a moment.</Trans>
+        </p>
+      ) : null}
     </div>
   )
 }
