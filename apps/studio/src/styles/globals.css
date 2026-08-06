@@ -47,6 +47,7 @@
   --color-stage-translate: #db2777;    --color-stage-translate-50: #fdf2f8;
   --color-stage-speech: #e11d48;       --color-stage-speech-50: #fff1f2;
   --color-stage-sign: #0891b2;         --color-stage-sign-50: #ecfeff;
+  --color-stage-easy-read: #c026d3;    --color-stage-easy-read-50: #fdf4ff;
   --color-stage-validation: #059669;   --color-stage-validation-50: #ecfdf5;
   --color-stage-export: #4338ca;       --color-stage-export-50: #eef2ff;
   --color-secondary: var(--secondary);
@@ -96,6 +97,9 @@
   --animate-onboarding-fade-up: onboarding-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-onboarding-fade-in: onboarding-fade-in 0.8s ease-out both;
   --animate-hero-drift: hero-drift 14s ease-in-out infinite;
+  --animate-eq: eq 1s ease-in-out infinite;
+  --animate-float-y: float-y 6s ease-in-out infinite;
+  --animate-flow-dot: flow-dot 3.4s ease-in-out infinite;
   --animate-onboarding-drift-a: onboarding-drift-a 22s ease-in-out infinite;
   --animate-onboarding-drift-b: onboarding-drift-b 28s ease-in-out infinite;
   --animate-onboarding-icon-float: onboarding-icon-float 5s ease-in-out infinite;
@@ -254,6 +258,20 @@
 @keyframes hero-drift {
   0%, 100% { transform: translate(0, 0); }
   50% { transform: translate(20px, -14px); }
+}
+@keyframes eq {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes flow-dot {
+  0% { left: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
 }
 @keyframes onboarding-drift-a {
   0%,
