@@ -11,6 +11,7 @@ import { PublishingSettingsLink } from "@/components/pipeline/stages/export/publ
 import { usePublications, useResumeSharing, useStopSharing } from "@/hooks/use-publications"
 import { PublicationRow } from "./PublicationRow"
 import { PublicationsSummary } from "./PublicationsSummary"
+import { usePublicationsDemo } from "./publications-demo"
 
 type Filter = "all" | "live" | "stopped"
 
@@ -32,6 +33,33 @@ interface PublicationsDashboardProps {
 }
 
 export function PublicationsDashboard({ embedded = false }: PublicationsDashboardProps) {
+  const demo = usePublicationsDemo()
+
+  return (
+    <>
+      {import.meta.env.DEV && (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="h-6 self-start px-2 font-mono text-[11px] text-muted-foreground"
+          onClick={demo.toggle}
+        >
+          {demo.active ? "demo books: on" : "demo books: off"}
+        </Button>
+      )}
+      <PublicationsShelf embedded={embedded} demo={demo} />
+    </>
+  )
+}
+
+function PublicationsShelf({
+  embedded,
+  demo,
+}: {
+  embedded: boolean
+  demo: ReturnType<typeof usePublicationsDemo>
+}) {
   const { t } = useLingui()
   const overview = usePublications()
   const stop = useStopSharing()
@@ -39,13 +67,13 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
   const [filter, setFilter] = useState<Filter>("all")
 
   const notConnected = apiErrorCode(overview.error) === "publish_not_connected"
-  const data = overview.data
+  const data = demo.active ? demo.overview : overview.data
   const publications = useMemo(
     () => applyFilter(data?.publications ?? [], filter),
     [data, filter],
   )
 
-  if (overview.isPending) {
+  if (!demo.active && overview.isPending) {
     return (
       <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
         <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
@@ -54,7 +82,7 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
     )
   }
 
-  if (notConnected) {
+  if (!demo.active && notConnected) {
     return (
       <div data-testid="publications-not-connected" className="flex flex-1 flex-col">
         <StageEmptyState
@@ -78,7 +106,7 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
     )
   }
 
-  if (overview.isError || !data) {
+  if (!data || (!demo.active && overview.isError)) {
     return (
       <div
         data-testid="publications-load-error"
@@ -222,8 +250,10 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
                     publication={publication}
                     countsKnown={countsKnown}
                     busy={busyLabel === publication.book_label}
-                    onStop={() => stop.mutate(publication.book_label)}
-                    onResume={() => resume.mutate(publication.book_label)}
+                    onStop={() => (demo.active ? undefined : stop.mutate(publication.book_label))}
+                    onResume={() =>
+                      demo.active ? undefined : resume.mutate(publication.book_label)
+                    }
                   />
                 ))}
               </ul>
