@@ -42,6 +42,7 @@ import { useElevenLabsVoices } from "@/hooks/use-elevenlabs-voices"
 import { ImageLightbox } from "./components/ImageLightbox";
 import { WordHighlightPreview } from "./components/WordHighlightPreview";
 import { CoreTtsBadges, CoreTtsSpeechEditor } from "./components/CoreTtsSpeechEditor";
+import { SpeechHighlightedText } from "./components/SpeechHighlightedText";
 import { usePendingChanges } from "../../components/change-summary";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
@@ -2302,12 +2303,10 @@ export function LanguageView({
                                   )}
                                 {muteToggle}
                               </span>
-                              <HighlightedText
+                              <SpeechHighlightedText
                                 text={entry.text}
                                 timestamps={
-                                  isSpeechStage && !speechEntry?.changed
-                                    ? timestampMap[entry.id]
-                                    : undefined
+                                  isSpeechStage ? timestampMap[entry.id] : undefined
                                 }
                                 currentTime={
                                   playingEntryId === entry.id ? playbackTime : 0
@@ -2503,13 +2502,9 @@ export function LanguageView({
                                   </span>
                                   {isSpeechStage ? (
                                     <>
-                                      <HighlightedText
+                                      <SpeechHighlightedText
                                         text={translated || ""}
-                                        timestamps={
-                                          speechEntry?.changed
-                                            ? undefined
-                                            : timestampMap[entry.id]
-                                        }
+                                        timestamps={timestampMap[entry.id]}
                                         currentTime={
                                           playingEntryId === entry.id
                                             ? playbackTime
@@ -2884,46 +2879,6 @@ function WaveformPlayer({
         {duration > 0 ? formatTime(playing ? progress : duration) : ""}
       </span>
     </div>
-  );
-}
-
-/** Render the entry text with word-by-word highlighting synced to audio playback. */
-function HighlightedText({
-  text,
-  timestamps,
-  currentTime,
-  isPlaying,
-}: {
-  text: string;
-  timestamps?: WordTimestampEntry;
-  currentTime: number;
-  isPlaying: boolean;
-}) {
-  if (!timestamps || !isPlaying) {
-    return <p className="text-sm leading-relaxed mt-0.5">{text}</p>;
-  }
-  return (
-    <p className="text-sm leading-relaxed mt-0.5">
-      {timestamps.words.map((w, i) => {
-        const active = currentTime >= w.start && currentTime < w.end;
-        const past = currentTime >= w.end;
-        return (
-          <span
-            key={i}
-            className={cn(
-              "rounded-sm px-0.5 transition-all duration-100 inline",
-              active
-                ? "bg-pink-500 text-white"
-                : past
-                  ? "text-foreground"
-                  : "text-muted-foreground/50",
-            )}
-          >
-            {w.word}{" "}
-          </span>
-        );
-      })}
-    </p>
   );
 }
 

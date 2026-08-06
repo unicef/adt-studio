@@ -23,22 +23,22 @@ import {
   clearBlockHighlight,
   clearWordHighlight,
   elementSupportsWordHighlight,
-  findWordIndexAtTime,
+  findDisplayWordIndicesAtTime,
+  mapWordTimestampsToDisplayWords,
   resolveWordTimestamps,
   setBlockHighlight,
-  setWordHighlight,
-  speechTextRequiresBlockHighlight,
+  setWordHighlights,
+  type DisplayWordTimestamp,
   unwrapWordsForElement,
   wrapWordsForElement,
 } from "@/features/audio/lib/word-highlight"
-import type { WordTimestamp } from "@/features/audio/state/audio.atoms"
 
 interface PlayableItem {
   el: HTMLElement
   id: string
   filename: string
   useBlockWhenMissingTimecodes?: boolean
-  forceBlockHighlight?: boolean
+  speechText?: string
 }
 
 const EASY_READ_AUDIO_EXCLUDED_SELECTOR =
@@ -59,10 +59,7 @@ function resolvePlayableAudio(
           id,
           filename: sourceFilename,
           useBlockWhenMissingTimecodes: false,
-          forceBlockHighlight: speechTextRequiresBlockHighlight(
-            translations[id],
-            speechTexts[id],
-          ),
+          speechText: speechTexts[id],
         }
       : null
   }
@@ -76,10 +73,7 @@ function resolvePlayableAudio(
       id: easyReadId,
       filename: easyReadFilename,
       useBlockWhenMissingTimecodes: true,
-      forceBlockHighlight: speechTextRequiresBlockHighlight(
-        translations[easyReadId],
-        speechTexts[easyReadId],
-      ),
+      speechText: speechTexts[easyReadId],
     }
   }
 
@@ -88,10 +82,7 @@ function resolvePlayableAudio(
         id,
         filename: sourceFilename,
         useBlockWhenMissingTimecodes: false,
-        forceBlockHighlight: speechTextRequiresBlockHighlight(
-          translations[id],
-          speechTexts[id],
-        ),
+        speechText: speechTexts[id],
       }
     : null
 }
@@ -127,7 +118,7 @@ function gatherPlayableItems(
 interface ActiveHighlight {
   el: HTMLElement
   mode: "word" | "block"
-  timestamps: WordTimestamp[]
+  timestamps: DisplayWordTimestamp[]
 }
 
 export interface UseAudioPlayer {
@@ -199,26 +190,33 @@ export function useAudioPlayer(): UseAudioPlayer {
   const setupHighlight = useCallback(
     (item: PlayableItem, audio: HTMLAudioElement) => {
       teardownActive()
-      const text = item.el.textContent ?? ""
+      const displayText = item.el.textContent ?? ""
+      const speechText = item.speechText ?? displayText
       const precise = timecodeMap[item.id]
-      const useWord =
+      const canUseWord =
         wordHighlightModeRef.current &&
-        !item.forceBlockHighlight &&
         elementSupportsWordHighlight(item.el) &&
         !(item.useBlockWhenMissingTimecodes && !precise)
-      if (useWord) {
-        wrapWordsForElement(item.el, text)
-        const timestamps = resolveWordTimestamps(
+      if (canUseWord) {
+        const rawTimestamps = resolveWordTimestamps(
           item.id,
-          text,
+          speechText,
           audio.duration,
           precise,
         )
-        activeRef.current = { el: item.el, mode: "word", timestamps }
-      } else {
-        setBlockHighlight(item.el)
-        activeRef.current = { el: item.el, mode: "block", timestamps: [] }
+        const timestamps = mapWordTimestampsToDisplayWords(
+          displayText,
+          speechText,
+          rawTimestamps,
+        )
+        if (timestamps) {
+          wrapWordsForElement(item.el, displayText)
+          activeRef.current = { el: item.el, mode: "word", timestamps }
+          return
+        }
       }
+      setBlockHighlight(item.el)
+      activeRef.current = { el: item.el, mode: "block", timestamps: [] }
     },
     [teardownActive, timecodeMap],
   )
@@ -268,21 +266,30 @@ export function useAudioPlayer(): UseAudioPlayer {
           activeRef.current.mode === "word" &&
           !timecodeMap[item.id]
         ) {
-          const text = item.el.textContent ?? ""
-          activeRef.current.timestamps = resolveWordTimestamps(
-            item.id,
-            text,
-            audio.duration,
-            undefined,
+          const displayText = item.el.textContent ?? ""
+          const speechText = item.speechText ?? displayText
+          const timestamps = mapWordTimestampsToDisplayWords(
+            displayText,
+            speechText,
+            resolveWordTimestamps(
+              item.id,
+              speechText,
+              audio.duration,
+              undefined,
+            ),
           )
+          if (timestamps) activeRef.current.timestamps = timestamps
         }
       }
 
       audio.ontimeupdate = () => {
         const active = activeRef.current
         if (!active || active.mode !== "word") return
-        const idx = findWordIndexAtTime(active.timestamps, audio.currentTime)
-        setWordHighlight(active.el, idx)
+        const indices = findDisplayWordIndicesAtTime(
+          active.timestamps,
+          audio.currentTime,
+        )
+        setWordHighlights(active.el, indices)
       }
 
       audio.onended = () => {

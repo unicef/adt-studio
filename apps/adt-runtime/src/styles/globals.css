@@ -180,7 +180,9 @@ section[data-section-type="activity_open_ended_answer"] textarea {
  * stays fixed while the highlight moves across it.
  */
 span[data-word-index].bg-yellow-300,
-span[data-word-index].bg-yellow-300 span {
+span[data-word-index].bg-yellow-300 span,
+span[data-word-indices].bg-yellow-300,
+span[data-word-indices].bg-yellow-300 * {
   background-color: #fde047 !important;
   color: #000 !important;
   border-radius: 3px;
