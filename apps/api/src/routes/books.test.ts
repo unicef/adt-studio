@@ -314,8 +314,8 @@ describe("PUT /books/:label/config", () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toEqual({
       config: {
-        default_model: "anthropic:claude-sonnet-4-6",
-        default_image_generation_model: "openai:dall-e-3",
+        default_model: "anthropic:Claude-Sonnet-4-6",
+        default_image_generation_model: "openai:DALL-E-3",
         default_speech_generation_model: "tts-1-hd",
       },
     })

@@ -24,18 +24,12 @@ import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { checkModelModalitySupport } from "@/api/provider-credentials"
 import { useProviderCredentials } from "@/hooks/use-provider-credentials"
 import { useDiscoveredModelIds } from "@/hooks/use-discovered-models"
+import { normalizeQualifiedModelInput } from "@/lib/model-id"
 import { mergePromptModelGroups } from "@/components/pipeline/stages/book/GlobalPromptsSettings/promptSettings"
 
 const LLM_MODEL_KEY = "default_model"
 const IMAGE_MODEL_KEY = "default_image_generation_model"
 const SPEECH_MODEL_KEY = "default_speech_generation_model"
-
-function normalizeProviderModel(value: string): string {
-  const normalized = value.trim().toLowerCase()
-  return normalized && !normalized.includes(":")
-    ? `openai:${normalized}`
-    : normalized
-}
 
 function normalizeSpeechModel(value: string): string {
   return value.trim().replace(/^openai:/i, "").toLowerCase()
@@ -78,8 +72,8 @@ export function BookModelSettings({ bookLabel }: { bookLabel: string }) {
     setSpeechModel(savedSpeechModel)
   }, [bookConfigQuery.data, savedImageModel, savedLlmModel, savedSpeechModel])
 
-  const normalizedLlmModel = normalizeProviderModel(llmModel)
-  const normalizedImageModel = normalizeProviderModel(imageModel)
+  const normalizedLlmModel = normalizeQualifiedModelInput(llmModel)
+  const normalizedImageModel = normalizeQualifiedModelInput(imageModel)
   const normalizedSpeechModel = normalizeSpeechModel(speechModel)
   const isDirty =
     normalizedLlmModel !== savedLlmModel ||

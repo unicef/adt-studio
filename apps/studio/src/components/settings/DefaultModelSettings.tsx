@@ -22,6 +22,7 @@ import {
   normalizePromptModelInput,
 } from "@/components/pipeline/stages/book/GlobalPromptsSettings/promptSettings"
 import { promptModelForSelectedModel } from "@/components/pipeline/components/PromptViewer/promptModel"
+import { normalizeQualifiedModelInput } from "@/lib/model-id"
 import { checkModelModalitySupport } from "@/api/provider-credentials"
 import { useProviderCredentials } from "@/hooks/use-provider-credentials"
 import { useDiscoveredModelIds } from "@/hooks/use-discovered-models"
@@ -29,13 +30,6 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { getStepLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
-
-function normalizeDefaultModelInput(value: string): string {
-  const normalized = normalizePromptModelInput(value)
-  return normalized && !normalized.includes(":")
-    ? `openai:${normalized}`
-    : normalized
-}
 
 function normalizeSpeechModelInput(value: string): string {
   return value.trim().replace(/^openai:/i, "").toLowerCase()
@@ -115,7 +109,7 @@ export function DefaultModelSettings() {
 
   const mutation = useMutation({
     mutationFn: () => {
-      const model = normalizeDefaultModelInput(draft)
+      const model = normalizeQualifiedModelInput(draft)
       if (!model) throw new Error(t`Enter a model id.`)
       return api.updateDefaultModel(model)
     },
@@ -140,7 +134,7 @@ export function DefaultModelSettings() {
 
   const specializedMutation = useMutation({
     mutationFn: () => {
-      const imageGeneration = normalizeDefaultModelInput(imageDraft)
+      const imageGeneration = normalizeQualifiedModelInput(imageDraft)
       const speechGeneration = normalizeSpeechModelInput(speechDraft)
       if (!imageGeneration || !speechGeneration) {
         throw new Error(t`Enter a model id for each task.`)
@@ -177,13 +171,13 @@ export function DefaultModelSettings() {
   )
   const showPromptWarning = savedModelRequiresPrompts && !hasPromptsForSavedModel
 
-  const normalizedDraft = normalizeDefaultModelInput(draft)
+  const normalizedDraft = normalizeQualifiedModelInput(draft)
   const isDirty = normalizedDraft.length > 0 && normalizedDraft !== savedModel
   const savedSpecializedDefaults = specializedDefaultsQuery.data ?? {
     imageGeneration: DEFAULT_IMAGE_GENERATION_MODEL_ID,
     speechGeneration: DEFAULT_OPENAI_TTS_MODEL_ID,
   }
-  const normalizedImageDraft = normalizeDefaultModelInput(imageDraft)
+  const normalizedImageDraft = normalizeQualifiedModelInput(imageDraft)
   const normalizedSpeechDraft = normalizeSpeechModelInput(speechDraft)
   const specializedIsDirty =
     normalizedImageDraft !== savedSpecializedDefaults.imageGeneration ||
