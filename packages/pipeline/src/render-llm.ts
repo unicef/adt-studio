@@ -4,8 +4,8 @@ import type { LLMModel, ValidationResult } from "@adt/llm"
 import { autoRepairUnderlineActivityHtml } from "./activity-underline-repair.js"
 import { validateSectionHtml, isEnumerationMarker } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
-import type { RenderConfig, RenderExecutionOptions, RenderNode, RenderSectionInput } from "./web-rendering.js"
-import { runVisualReviewLoop } from "./visual-review.js"
+import type { ImageRef, RenderConfig, RenderExecutionOptions, RenderNode, RenderSectionInput } from "./web-rendering.js"
+import { anchoredOverlayGeometryErrors, runVisualReviewLoop } from "./visual-review.js"
 import { buildTypographyCss, typographyPreservationErrors } from "./typography.js"
 import {
   repairTableOfContentsLayout,
@@ -14,9 +14,15 @@ import {
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
 import { validateTypographyHierarchy } from "./validate-typography-hierarchy.js"
 import { inspectOrderingActivityHtml } from "./ordering-contract.js"
+import { applyTextbookGeometryPlan, planTextbookGeometry, textbookGeometryPlanErrors } from "./textbook-geometry.js"
 
 const BUILT_IN_STRICT_REVIEW_PROMPT = "visual_review"
 const USER_DIRECTED_REVIEW_PROMPT = "visual_review_flexible"
+const BUILT_IN_GENERATION_PROMPT = "web_generation_html"
+const BUILT_IN_OVERLAY_GENERATION_PROMPT = "web_generation_html_overlay"
+const STORYBOOK_GENERATION_PROMPT = "web_generation_storybook_html"
+const TEXTBOOK_OVERLAY_GENERATION_PROMPT = "web_generation_textbook_html_overlay"
+const STORYBOOK_REVIEW_PROMPT = "visual_review_storybook"
 
 /** Dependencies for the optional visual refinement loop. */
 export interface VisualRefinementDeps {
@@ -47,6 +53,8 @@ export async function renderSectionLlm(
   const isActivity = config.renderType === "activity"
   const taskType = isActivity ? "activity-rendering" : "web-rendering"
   const { section, context: renderContext } = input
+  const isTextbookLayout = input.layoutType === "textbook"
+  const isStorybookLayout = input.layoutType === "storybook"
   // Trim once: a whitespace-only prompt must read as "no instructions" to both
   // the prompt-selection branch below and the `user_instructions` template guard.
   const userInstructions = (input.userPrompt ?? "").trim()
@@ -58,6 +66,27 @@ export async function renderSectionLlm(
     page_id: sp.pageId,
     image_base64: sp.imageBase64,
   }))
+
+  const textbookGeometryPlan = isTextbookLayout && renderContext.image_refs.length > 0
+    ? await planTextbookGeometry({
+        pageId: input.pageId,
+        pageImageBase64: input.pageImageBase64,
+        sectionType: section.sectionType,
+        nodes: renderContext.nodes,
+        images: renderContext.image_refs,
+        signal: options.signal,
+      }, llmModel)
+    : undefined
+
+  const generationPromptName =
+    isStorybookLayout && !isActivity && (
+      config.promptName === BUILT_IN_GENERATION_PROMPT ||
+      config.promptName === BUILT_IN_OVERLAY_GENERATION_PROMPT
+    )
+      ? STORYBOOK_GENERATION_PROMPT
+      : isTextbookLayout && !isActivity && config.promptName === BUILT_IN_OVERLAY_GENERATION_PROMPT
+        ? TEXTBOOK_OVERLAY_GENERATION_PROMPT
+        : config.promptName
 
   const promptContext = {
     label: input.label,
@@ -77,6 +106,8 @@ export async function renderSectionLlm(
     _allowNonHeadingFontSizes:
       isActivity || config.promptName === "web_generation_html_overlay",
     user_instructions: userInstructions,
+    layout_type: input.layoutType,
+    textbook_geometry_plan: textbookGeometryPlan,
   }
 
   const result = await llmModel.generateObject<{
@@ -84,7 +115,7 @@ export async function renderSectionLlm(
     content: string
   }>({
     schema: webRenderingLLMSchema,
-    prompt: config.promptName,
+    prompt: generationPromptName,
     context: promptContext,
     validate: validateWebRendering,
     maxRetries: config.maxRetries,
@@ -95,23 +126,54 @@ export async function renderSectionLlm(
     log: {
       taskType,
       pageId: input.pageId,
-      promptName: config.promptName,
+      promptName: generationPromptName,
     },
   })
 
   let generatedHtml = result.object.content
+  if (textbookGeometryPlan) {
+    generatedHtml = applyTextbookGeometryPlan(
+      generatedHtml,
+      textbookGeometryPlan,
+      renderContext.image_refs,
+    )
+    const adaptedCheck = validateWebRendering(
+      { reasoning: result.object.reasoning, content: generatedHtml },
+      promptContext,
+    )
+    if (!adaptedCheck.valid) {
+      throw new Error(`AI textbook geometry adaptation failed validation: ${adaptedCheck.errors.join(" ")}`)
+    }
+    const adaptedCleaned = adaptedCheck.cleaned as { reasoning: string; content: string } | undefined
+    generatedHtml = adaptedCleaned?.content ?? generatedHtml
+    const adaptedGeometryErrors = [
+      ...anchoredOverlayGeometryErrors(generatedHtml),
+      ...textbookGeometryPlanErrors(generatedHtml, textbookGeometryPlan, renderContext.image_refs),
+    ]
+    if (adaptedGeometryErrors.length > 0) {
+      throw new Error(`AI textbook geometry contract failed: ${adaptedGeometryErrors.join(" ")}`)
+    }
+  }
 
   // Optional: visual refinement loop — screenshot the HTML and ask an LLM to review
   if (visualRefinement && config.visualRefinement?.enabled) {
     const vr = config.visualRefinement
-    const reviewPromptName =
-      userInstructions && vr.promptName === BUILT_IN_STRICT_REVIEW_PROMPT
+    const reviewPromptName = isStorybookLayout && (
+      vr.promptName === BUILT_IN_STRICT_REVIEW_PROMPT ||
+      vr.promptName === USER_DIRECTED_REVIEW_PROMPT
+    )
+      ? STORYBOOK_REVIEW_PROMPT
+      : userInstructions && vr.promptName === BUILT_IN_STRICT_REVIEW_PROMPT
         ? USER_DIRECTED_REVIEW_PROMPT
         : vr.promptName
-    const imagesForScreenshot = new Map<string, { base64: string }>()
+    const imagesForScreenshot = new Map<string, { base64: string; width?: number; height?: number }>()
     for (const img of renderContext.image_refs) {
       if (img.image_base64) {
-        imagesForScreenshot.set(img.image_id, { base64: img.image_base64 })
+        imagesForScreenshot.set(img.image_id, {
+          base64: img.image_base64,
+          ...(img.width != null && { width: img.width }),
+          ...(img.height != null && { height: img.height }),
+        })
       }
     }
 
@@ -146,6 +208,7 @@ export async function renderSectionLlm(
       firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",
       nextIterationScreenshotsText: "Here are the updated screenshots after your revision:\n",
       trailingContextText: `Section type: ${section.sectionType}`,
+      textbookGeometryPlan,
       signal: options.signal,
       validateHtml: (candidateHtml) => {
         const check = validateWebRendering(
@@ -160,6 +223,15 @@ export async function renderSectionLlm(
         // removing adt-* classes). Rejected revisions keep the prior good HTML.
         const typoErrors = typographyPreservationErrors(generatedHtml, cleanedHtml)
         if (typoErrors.length > 0) return { valid: false, errors: typoErrors }
+        const geometryErrors = textbookGeometryPlan
+          ? textbookGeometryPlanErrors(
+              cleanedHtml,
+              textbookGeometryPlan,
+              renderContext.image_refs,
+              { allowTighterCrops: true },
+            )
+          : []
+        if (geometryErrors.length > 0) return { valid: false, errors: geometryErrors }
         return { valid: true, errors: [], cleanedHtml }
       },
     })

@@ -1,0 +1,64 @@
+## TEXTBOOK IMAGE TRIAGE (MANDATORY BEFORE WRITING HTML)
+
+{% if textbook_geometry_plan and textbook_geometry_plan.images.size > 0 %}
+## FOCUSED TEXTBOOK GEOMETRY PLAN (AUTHORITATIVE)
+
+A separate, cached vision pass inspected the candidate images at native resolution. Follow this plan exactly; do not re-estimate or ignore its rectangles. HTML validation will decode your CSS back to native pixels and reject mismatches.
+{% for plan in textbook_geometry_plan.images %}
+- `{{ plan.image_id }}` — role `{{ plan.role }}`, keep visible: {{ plan.keep_visible }}{% if plan.crop %}; crop `(x={{ plan.crop.x }}, y={{ plan.crop.y }}, width={{ plan.crop.width }}, height={{ plan.crop.height }})`{% else %}; no crop{% endif %}; baked text IDs: {% if plan.baked_text_ids.size > 0 %}{{ plan.baked_text_ids | join: ", " }}{% else %}none{% endif %}; writable regions: {{ plan.writable_regions.size }}
+{% for region in plan.writable_regions %}  - `{{ region.purpose }}`: `(x={{ region.x }}, y={{ region.y }}, width={{ region.width }}, height={{ region.height }})`
+{% endfor %}
+{% endfor %}
+
+- When `keep visible` is false, omit that `<img>` and rebuild any supplied text semantically.
+- When a crop is present, calculate the exact crop wrapper and image percentages from that rectangle.
+- Every listed baked text ID must remain exactly once with `sr-only`; do not draw a second semantic copy beside the figure.
+- Emit exactly one image-anchored native control for every listed writable region, in listed order. With no crop, derive its percentages from the full native image. With a crop, derive percentages in the crop canvas: `left=(region.x-crop.x)/crop.width`, `top=(region.y-crop.y)/crop.height`, `width=region.width/crop.width`, `height=region.height/crop.height`.
+- Preserve content-tree DOM order with this canonical shape: open the one `relative` exact-aspect wrapper; emit its `<img data-id="…">` FIRST and the associated native controls (which have no `data-id`); close the wrapper; then emit ALL supplied transcription leaves in their exact tree order immediately after it. Give only the IDs listed as baked text `sr-only`; keep every other leaf visibly styled outside the crop canvas. Never put a semantic text leaf inside an `overflow-hidden` figure wrapper, because complete option markers such as `a)`, `b)`, or `c)` would be clipped at desktop or mobile.
+{% endif %}
+
+Provided images are CANDIDATE assets, not mandatory output. The original page image is a visual reference and is never itself renderable. In your English reasoning, classify every provided image that affects the layout as one of these roles before deciding whether to emit it:
+
+- **clean figure** — a photograph, illustration, diagram, icon, or other self-contained visual with little or no duplicated running text;
+- **text-bearing figure** — a genuinely visual object such as a labelled diagram, poster, card, map, or bill whose printed labels are part of the object;
+- **worksheet/form composite** — a crop containing instructions, questions, answer lines, tables, a glossary, or several page regions flattened together;
+- **page replica** — all or nearly all of the printed page, including content outside this section.
+
+Apply these rules in this priority order:
+
+**Decide whether each visual is essential before choosing omission.** An unpruned image is essential when any of these are true:
+- it has a supplied caption/credit or the section type is `text_and_single_image` and the source shows a prominent content figure;
+- nearby text points to it with language such as “observe”, “see this figure”, “as shown”, “nestas figuras”, or equivalent;
+- a learner must read values, labels, relationships, or visual evidence from it to answer an activity;
+- removing it would turn a photographic/diagrammatic explanation into labels or prose with no visual referent.
+
+When one of these conditions holds, “the semantic text still makes sense” is NOT a valid reason to omit the figure. If the supplied asset is a page replica with one contiguous recoverable figure, rule 2 requires a safe crop.
+
+1. NEVER render a page replica **as a whole page** inside a reflowable section: not as a background, hero, card, thumbnail, or ordinary figure. It repeats printed text and may expose adjacent sections.
+2. A page replica MUST be used once as a tightly cropped source when the content tree references that image and one contiguous region contains an essential photograph, diagram, or evidence figure that is unavailable as a clean asset. This exception is for recovering the figure, never for reproducing the printed layout.
+   - Crop to the visual object itself. No heading, body paragraph, page number, neighboring section, question, answer line, or glossary outside the target figure may remain visible.
+   - Use a conservative no-glyph safety margin at every edge that borders semantic text. Stop inside the target visual's own edge rather than including surrounding whitespace. Not even a clipped fragment of the next caption, instruction, heading, or paragraph may be visible in the crop.
+   - Treat a preceding instruction and a following question/paragraph as surrounding page content even when they describe the figure. They must stay visible as semantic HTML and must be excluded from the crop. Do not crop the entire printed block merely because it is contiguous.
+   - Use a `relative overflow-hidden` wrapper marked `data-textbook-crop="true"` whose `aspect-[W/H]` matches the target crop. Put the image `absolute`, `max-w-none`, and `h-auto` inside it; derive its percentage width and negative `left`/`top` offsets from the supplied native image dimensions and the target crop bounds.
+   - The crop geometry must be invariant at desktop, tablet, and mobile. Do NOT use `object-fit`, `object-position`, a fixed pixel-height viewport, or breakpoint-specific crop coordinates; those can expose adjacent page content.
+   - Example shape only (calculate the real values from this image): `<div data-textbook-crop="true" class="relative overflow-hidden aspect-[CROP_W/CROP_H]"><img data-id="IMAGE_ID" class="absolute max-w-none h-auto w-[PAGE_W/CROP_W*100%] left-[-CROP_X/CROP_W*100%] top-[-CROP_Y/CROP_H*100%]" ...></div>`.
+   - If the page contains several disjoint visuals, crop only the single primary figure represented by that image node; never duplicate one image `data-id` to make several crops. If a safe crop genuinely cannot be guaranteed, omit the image and state which neighboring printed region makes a contiguous crop impossible. Do not omit merely because rebuilding text is easier.
+   - In your reasoning, record the chosen crop rectangle as approximate native-image `(x, y, width, height)` pixels and confirm that the emitted aspect ratio, image width, and offsets are derived from that same rectangle.
+   - Before emitting HTML, perform a four-edge crop audit against the supplied pixels: name what lies immediately above, right, below, and left of the proposed rectangle and confirm that no surrounding glyph crosses an edge. Then compare all readable text remaining inside the crop with the visible semantic leaves outside it. Refine the rectangle until no sentence is visibly duplicated.
+3. NEVER use a worksheet/form composite as the visible learner-facing activity. Rebuild its instructions, questions, table, and response areas as semantic HTML with native controls. A tightly cropped evidence figure inside that composite may be retained only under rule 2, with every printed prompt/control region excluded.
+4. Render a clean figure exactly once and size it according to the corresponding region of the source page. Do not render every supplied image merely to satisfy the asset list.
+5. A text-bearing figure may be shown when the visual object itself is essential. If a provided text leaf transcribes words already legible inside that figure, keep the leaf exactly once with `sr-only`; never draw the same words again as a caption or overlay.
+   - Apply this to page-source crops too. Text that is intrinsic to the retained object, such as a connected glossary callout or labels printed on a bill, stays in the figure and its exact semantic transcription becomes `sr-only`. Surrounding instructions and paragraphs are not intrinsic: crop them out and keep their semantic leaves visible.
+6. For an activity, visible instructions, questions, choices, tables, and learner responses must always be semantic HTML. However, an individual evidence/option figure may remain visible when the learner needs its photograph, diagram, card, bill, poster, or printed values to answer.
+   - Treat text leaves inside the same `image_group` after a retained image as baked-text transcription candidates. Compare each leaf against the pixels. When its words or option marker are already legible in the figure, preserve that leaf exactly once with `sr-only` instead of drawing it again. This explicitly includes baked-in `a)`, `b)`, `c)` labels, card titles, form labels, prices, units, and captions printed inside the figure.
+   - If the retained figure contains a printed blank, line, cell, or box where the learner writes, put the native `<input>`/`textarea` over that exact writable area. Use one `relative` wrapper whose aspect ratio is the image's exact native ratio, render the image `block w-full h-auto`, and position every control `absolute z-10` with percentage coordinates relative to that wrapper. Keep the same coordinate system at every breakpoint.
+   - For every overlaid control, record the printed writable area's approximate native-image `(x, y, width, height)` rectangle in the reasoning and derive `left`, `top`, `width`, and `height` percentages from it. The control must cover the original line/box rather than creating a second white field nearby. Visually spot-check those coordinates against both desktop and mobile scaling before finishing.
+   - Count every visually separate printed writable region before writing HTML. One long identifier line plus two separate date boxes requires three controls, not one combined field. State the count per image in the reasoning and emit exactly that many uniquely identified controls.
+   - Never put `min-h-*`, `min-w-*`, `max-h-*`, `max-w-*`, or breakpoint-specific coordinate/dimension classes on a percentage-positioned image overlay. They override the native rectangle when the image scales and create a detached duplicate field. General non-image form controls still follow the normal 44px target rule; exact figure overlays preserve their printed geometry.
+   - Never duplicate the printed writable affordance with a second field below or beside the image. Do not detach a card date, battery percentage, price, diagram label, or form response from the visual object it completes.
+   - Keep native controls visible, accessible, and correctly anchored. Never hide an instruction, question, choice, table, or response control.
+7. If an image is omitted, remove its visual frame too. Do not leave a blank image-sized panel, skeleton, empty `aspect-*` box, comment-only wrapper, or decorative placeholder. Do not invent a replacement illustration, pictogram, diagram, labelled card grid, or CSS drawing; present the remaining semantic content honestly.
+
+For semantic number banks, word banks, and choice banks, preserve legibility at mobile width. Do not force more than four tokens into one unwrappable mobile row. Use a smaller `max-sm:grid-cols-*` count or wrapping flex layout, and avoid `whitespace-nowrap` when the available mobile cell cannot contain the token.
+
+Image omission is valid when no safe essential figure can be recovered. Text leaves remain mandatory; image candidates do not. Never invent a replacement image.

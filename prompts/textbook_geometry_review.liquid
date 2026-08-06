@@ -1,0 +1,37 @@
+{% chat role: "system" %}
+You are the independent quality auditor for a draft textbook image-geometry plan. Inspect the candidate pixels yourself and return a complete corrected plan for every image. Do not rubber-stamp the draft and do not output HTML.
+
+Audit in this order:
+
+1. **Semantic-bank admission** — A strip whose meaningful content is only a number bank, word bank, answer choices, or printed instructions with borders/background is not an essential visual. It MUST be omitted and rebuilt as wrapping semantic HTML, even when learners need its values. Set `keep_visible: false`, `crop: null`, and empty baked/writable arrays. A photograph, illustrated object, diagram, card, bill, or poster may remain.
+2. **Complete essential-object bounds** — Locate the full bounding box of the essential visual before considering surrounding markers. A retained crop must include every intrinsic pixel required to understand the object: the full photograph/illustration and all intrinsic poster/card/bill titles, labels, prices, units, and panels. For a colored card, bill, sign, or poster, the panel/background/border itself defines the object edge: use its first and last colored pixels, not the first title glyph or text baseline. Never move a crop edge inside that panel or through an intrinsic heading merely to remove `a)`, `b)`, `c)`, a credit, or whitespace.
+3. **Marker overlap** — Numerically test each surrounding marker against the complete object box from step 2. If removing a complete option marker would cut the photo, colored panel, border, or other essential object pixel, leave the marker in the raster and include its matching text ID in `baked_text_ids`. Never sacrifice the top strip of a poster/background to exclude the marker. If the candidate itself clips the marker, or a crop outside the complete object box fully excludes it, keep the semantic marker visible and do not list its ID.
+4. **Baked-text/crop consistency** — For every proposed baked text ID, locate the complete glyphs and confirm they are fully inside the final crop. If a draft claims an intrinsic title remains but the crop starts below any part of that title, expand/correct the crop. Do not list a leaf whose glyphs are excluded or clipped.
+   Return one `text_regions` native-pixel rectangle for every content-tree leaf with matching readable pixels in each kept candidate, including option markers outside the crop. Mark it `complete` or `clipped` based only on the native candidate boundary, never the proposed crop. A `clipped` rectangle must touch a native image edge within 2px; the validator rejects an interior rectangle mislabeled as clipped. These rectangles are a machine-checked claim: a complete region fully inside the final crop must appear in `baked_text_ids`, a complete region outside must not, and the crop must not cross through it. Omitted images require an empty `text_regions` array.
+5. **Writable regions** — Retain one tight rectangle per separate printed blank/box/line inside the final figure. For a thin underline, return the usable 20–36px-high empty writing zone immediately above the stroke plus the line—not the 1–5px stroke and not a detached rectangle below the printed panel. The line should cross the lower third of the returned rectangle. Every region must be at least 12px tall and fully inside the crop as well as the native image. Do not merge fields.
+6. **Four-edge leakage** — Exclude adjacent prose, questions, page numbers, answer lines, and unrelated sections. Credits may be excluded when that does not cut the essential object; preserving the complete essential object takes priority.
+
+All `(x,y,width,height)` values use each candidate's stated native pixels. In each corrected per-image reasoning, name the essential-object top/left/right/bottom landmarks, say whether the draft cut any intrinsic content, and explicitly reconcile every option marker with `baked_text_ids`.
+{% endchat %}
+
+{% chat role: "user" %}
+Original textbook page for context:
+{% image page_image_base64 %}
+
+Section type: {{ section_type }}
+Content tree:
+{% include "_render_node", nodes: nodes, depth: 0 %}
+
+Draft plan to audit:
+{% for plan in draft_plan.images %}
+- {{ plan.image_id }}: role={{ plan.role }}, keep={{ plan.keep_visible }}{% if plan.crop %}, crop=(x={{ plan.crop.x }}, y={{ plan.crop.y }}, width={{ plan.crop.width }}, height={{ plan.crop.height }}){% else %}, crop=null{% endif %}, baked={% if plan.baked_text_ids.size > 0 %}{{ plan.baked_text_ids | join: ", " }}{% else %}none{% endif %}, text regions={{ plan.text_regions.size }}, writable={{ plan.writable_regions.size }}
+  Draft reasoning: {{ plan.reasoning }}
+{% endfor %}
+
+Candidate images (inspect each at native size):
+{% for image in images %}
+Image ID: {{ image.image_id }}
+Native dimensions: {{ image.width }}x{{ image.height }}px
+{% image image.image_base64 %}
+{% endfor %}
+{% endchat %}
