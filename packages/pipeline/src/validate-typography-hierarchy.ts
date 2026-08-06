@@ -170,3 +170,56 @@ export function validateTypographyHierarchy(
 
   return [...new Set(errors)]
 }
+
+/**
+ * Preserve the semantic level of headings that survive an HTML edit.
+ *
+ * Heading data IDs may live on the heading itself or on descendants when a
+ * heading is split into styled spans. IDs intentionally removed by the edit
+ * are omitted from validation so the existing AI-edit deletion policy remains
+ * unchanged.
+ */
+export function validateRetainedHeadingHierarchy(
+  originalHtml: string,
+  editedHtml: string,
+): string[] {
+  const originalRoot = parseDocument(originalHtml) as unknown as HtmlNode
+  const editedRoot = parseDocument(editedHtml) as unknown as HtmlNode
+  const retainedHeadings: LeafText[] = []
+  const seenIds = new Set<string>()
+
+  walk(originalRoot, (node) => {
+    const level = /^h([1-6])$/.exec(node.name ?? "")?.[1]
+    if (!level) return
+
+    walk(node, (descendant) => {
+      const textId = descendant.attribs?.["data-id"]
+      if (
+        !textId ||
+        seenIds.has(textId) ||
+        closestHeading(descendant) !== node ||
+        !findByDataId(editedRoot, textId)
+      ) {
+        return
+      }
+      seenIds.add(textId)
+      retainedHeadings.push({
+        text_id: textId,
+        text_type: "heading",
+        heading_level: Number(level),
+      })
+    })
+  })
+
+  if (retainedHeadings.length === 0) return []
+
+  const errors = validateTypographyHierarchy(editedHtml, retainedHeadings, {
+    allowNonHeadingFontSizes: true,
+  })
+  if (errors.length === 0) return []
+
+  return [
+    ...errors,
+    "AI editing must preserve each retained heading's semantic tag and matching adt-h* class. Change heading rank in Sectioning instead.",
+  ]
+}

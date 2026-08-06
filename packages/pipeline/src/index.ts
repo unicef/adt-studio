@@ -175,6 +175,7 @@ export {
   type GenerateTocOptions,
 } from "./toc-generation.js"
 export { validateSectionHtml } from "./validate-html.js"
+export { validateRetainedHeadingHierarchy } from "./validate-typography-hierarchy.js"
 export {
   generateQuiz,
   generateAllQuizzes,

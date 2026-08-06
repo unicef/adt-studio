@@ -354,6 +354,67 @@ describe("page-edit-service", () => {
 
     it.each([
       {
+        name: "generic markup",
+        invalidHtml: `<section><div class="text-4xl" data-id="section-title">Section title</div></section>`,
+      },
+      {
+        name: "a changed level",
+        invalidHtml: `<section><h3 class="adt-h2" data-id="section-title">Section title</h3></section>`,
+      },
+      {
+        name: "a local font-size override",
+        invalidHtml: `<section><h2 class="adt-h2 text-4xl" data-id="section-title">Section title</h2></section>`,
+      },
+    ])("rejects $name and accepts a hierarchy-preserving AI edit", async ({ invalidHtml }) => {
+      const currentHtml = `<section><h2 class="adt-h2" data-id="section-title">Section title</h2></section>`
+      const validHtml = `<section class="bg-blue-50"><h2 class="adt-h2 text-blue-700 mt-4" data-id="section-title">Section title</h2></section>`
+      let rejectionErrors: string[] = []
+
+      llmMocks.generateObject.mockImplementation(async (opts: unknown) => {
+        const editOptions = opts as {
+          validate?: (result: unknown, context: Record<string, unknown>) => {
+            valid: boolean
+            errors: string[]
+          }
+          maxRetries?: number
+        }
+        expect(editOptions.maxRetries).toBe(3)
+        const rejected = editOptions.validate?.(
+          { reasoning: "Changed the background", content: invalidHtml },
+          {},
+        )
+        expect(rejected?.valid).toBe(false)
+        rejectionErrors = rejected?.errors ?? []
+
+        const accepted = editOptions.validate?.(
+          { reasoning: "Changed the background", content: validHtml },
+          {},
+        )
+        expect(accepted?.valid).toBe(true)
+        return {
+          object: { reasoning: "Changed the background", content: validHtml },
+        } as never
+      })
+
+      const result = await aiEditSection({
+        label,
+        pageId: `${label}_p1`,
+        sectionIndex: 0,
+        instruction: "Change the background color and add spacing",
+        currentHtml,
+        booksDir: tmpDir,
+        promptsDir: tmpDir,
+        configPath: path.resolve(process.cwd(), "config.yaml"),
+        apiKey: "test-key",
+      })
+
+      expect(rejectionErrors).toContainEqual(expect.stringContaining("Sectioning"))
+      expect(result.html).toBe(validHtml)
+      expect(result.html).toContain('<h2 class="adt-h2 text-blue-700 mt-4"')
+    })
+
+    it.each([
+      {
         name: "uses page_sectioning.model when configured",
         defaultModelId: "openai:gpt-4.1",
         pageSectioningModelId: "openai:gpt-4o",
