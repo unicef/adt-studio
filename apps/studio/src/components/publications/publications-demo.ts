@@ -191,6 +191,13 @@ const DEMO_BOOKS: DemoBook[] = [
   },
 ]
 
+const DEMO_CODES: Record<string, string> = {
+  "matematica-fundamental": "M4T9KP",
+  "historia-do-brasil": "TURMA6B",
+  "artes-visuais": "ARTE24",
+  "pilot-accessibility-review": "PILOT7",
+}
+
 function toSummary(book: DemoBook): PublicationSummary {
   return {
     token: token(book.label),
@@ -210,6 +217,7 @@ function toSummary(book: DemoBook): PublicationSummary {
           : null,
     revoked_at: book.revokedDaysAgo !== undefined ? daysAgo(book.revokedDaysAgo) : null,
     has_access_code: book.code === true,
+    access_code: book.code === true ? DEMO_CODES[book.label] ?? "TURMA3B" : null,
     comment_count: book.comments,
     unresolved_count: book.unresolved,
     snapshot_bytes: book.bytes,

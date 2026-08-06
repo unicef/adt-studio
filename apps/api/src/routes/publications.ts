@@ -141,6 +141,18 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   }
 
+  /** The plaintext code, which only this machine has. Read per row rather than merged from one
+   *  pass over `books/` because the shelf is tens of rows and each record is a small JSON file
+   *  the route already knows how to read. */
+  const localAccessCode = (label: string): string | null => {
+    if (!bookExists(label)) return null
+    try {
+      return readPublicationRecord(label, resolvedBooksDir())?.access_code ?? null
+    } catch {
+      return null
+    }
+  }
+
   const summaryFromWorker = (entry: PublicationListEntry): PublicationSummary => {
     const label = entry.publication.book_label
     return {
@@ -156,6 +168,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       expires_at: entry.publication.expires_at,
       revoked_at: entry.publication.revoked_at,
       has_access_code: entry.has_access_code,
+      access_code: entry.has_access_code ? localAccessCode(label) : null,
       comment_count: entry.comment_count,
       unresolved_count: entry.unresolved_count,
       snapshot_bytes: entry.snapshot_bytes,
@@ -198,6 +211,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         expires_at: record.expires_at,
         revoked_at: record.revoked_at,
         has_access_code: record.has_access_code,
+        access_code: record.access_code,
         comment_count: 0,
         unresolved_count: 0,
         snapshot_bytes: null,

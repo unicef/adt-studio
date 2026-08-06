@@ -349,6 +349,11 @@ export const PublicationSummary = z.object({
   expires_at: z.string().datetime().nullable(),
   revoked_at: z.string().datetime().nullable(),
   has_access_code: z.boolean(),
+  /** The code **in plaintext**, read back from the book's own record on this machine — the same
+   *  one the Publish panel shows. `null` when the publication has no code, or when the book has
+   *  left this computer: the worker keeps only a PBKDF2 hash and can never answer "what was the
+   *  code", so a lost book means a lost code. Never leaves the Studio's own localhost origin. */
+  access_code: z.string().nullable().default(null),
   comment_count: z.number().int().min(0),
   unresolved_count: z.number().int().min(0),
   snapshot_bytes: z.number().int().min(0).nullable(),

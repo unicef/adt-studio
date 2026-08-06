@@ -156,7 +156,9 @@ export function PublicationRow({
               {publication.title}
             </h3>
             <PublicationStatusChip state={state} />
-            {publication.has_access_code ? <AccessCodeChip /> : null}
+            {publication.has_access_code ? (
+              <AccessCodeChip code={publication.access_code} />
+            ) : null}
             {publication.book_exists ? null : (
               <span className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-800">
                 <FolderX className="size-3" aria-hidden="true" />

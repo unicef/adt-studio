@@ -1229,6 +1229,41 @@ describe("GET /publications — the account's whole shelf", () => {
     expect(overview.totals.active_count).toBe(2)
   })
 
+  /** The shelf is where the author goes to read a code out to a class, and only this machine
+   *  can answer it — the worker keeps a PBKDF2 hash. A book that has left the computer takes
+   *  its code with it, which the row has to represent as "unknown", never as "no code". */
+  it("carries the plaintext access code for a local book and nothing for a lost one", async () => {
+    createBook("owl")
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest({ access_code: "TURMA3B" }))
+    await drain(app, "/api/books/owl/publication", publishRequest({ access_code: "OWL777" }))
+
+    const before = await shelf(app)
+    expect(rowFor(before, LABEL).access_code).toBe("TURMA3B")
+    expect(rowFor(before, "owl").access_code).toBe("OWL777")
+
+    fs.rmSync(path.join(tmpDir, "owl"), { recursive: true, force: true })
+
+    const after = await shelf(app)
+    const orphan = rowFor(after, "owl")
+    expect(orphan.has_access_code).toBe(true)
+    expect(orphan.access_code).toBeNull()
+  })
+
+  it("leaves the code null for a link anyone can open", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    const row = rowFor(await shelf(app), LABEL)
+    expect(row.has_access_code).toBe(false)
+    expect(row.access_code).toBeNull()
+  })
+
   it("counts a stopped link as published but not active", async () => {
     createBook("owl")
     const worker = createFakePublishWorker()

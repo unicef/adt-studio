@@ -101,6 +101,7 @@ function summary(overrides: Partial<PublicationSummary> = {}): PublicationSummar
     expires_at: null,
     revoked_at: null,
     has_access_code: true,
+    access_code: "TURMA3B",
     comment_count: 5,
     unresolved_count: 3,
     snapshot_bytes: 8 * 1024 * 1024,
@@ -224,7 +225,9 @@ describe("PublicationsDashboard — populated", () => {
     const raven = screen.getByTestId("publication-row-raven")
     expect(raven.getAttribute("data-state")).toBe("active")
     expect(raven.textContent).toContain("Live")
-    expect(raven.textContent).toContain("Code required")
+    /** The code itself, not just the fact of one: this screen is read out to a class. */
+    expect(raven.textContent).toContain("TURMA3B")
+    expect(screen.getByRole("button", { name: /access code TURMA3B/i })).toBeTruthy()
     expect(raven.textContent).toContain("8 MB")
     expect(raven.textContent).toContain("No end date")
     expect(raven.textContent).toContain("now serving v2")
