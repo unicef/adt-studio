@@ -29,7 +29,6 @@ import { usePublications, useResumeSharing, useStopSharing } from "@/hooks/use-p
 import { PublicationRow } from "./PublicationRow"
 import { PublicationsSkeleton } from "./PublicationsSkeleton"
 import { PublicationsSummary } from "./PublicationsSummary"
-import { readersForDemoToken, usePublicationsDemo } from "./publications-demo"
 
 type Filter = "all" | "live" | "stopped"
 
@@ -100,33 +99,6 @@ interface PublicationsDashboardProps {
 }
 
 export function PublicationsDashboard({ embedded = false }: PublicationsDashboardProps) {
-  const demo = usePublicationsDemo()
-
-  return (
-    <>
-      {import.meta.env.DEV && (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-6 self-start px-2 font-mono text-[11px] text-muted-foreground"
-          onClick={demo.toggle}
-        >
-          {demo.active ? "demo books: on" : "demo books: off"}
-        </Button>
-      )}
-      <PublicationsShelf embedded={embedded} demo={demo} />
-    </>
-  )
-}
-
-function PublicationsShelf({
-  embedded,
-  demo,
-}: {
-  embedded: boolean
-  demo: ReturnType<typeof usePublicationsDemo>
-}) {
   const { t } = useLingui()
   const overview = usePublications()
   const stop = useStopSharing()
@@ -134,17 +106,17 @@ function PublicationsShelf({
   const [query, setQuery] = useState<Query>(EMPTY_QUERY)
 
   const notConnected = apiErrorCode(overview.error) === "publish_not_connected"
-  const data = demo.active ? demo.overview : overview.data
+  const data = overview.data
   const publications = useMemo(
     () => applyQuery(data?.publications ?? [], query),
     [data, query],
   )
 
-  if (!demo.active && overview.isPending) {
+  if (overview.isPending) {
     return <PublicationsSkeleton />
   }
 
-  if (!demo.active && notConnected) {
+  if (notConnected) {
     return (
       <div data-testid="publications-not-connected" className="flex flex-1 flex-col">
         <StageEmptyState
@@ -168,7 +140,7 @@ function PublicationsShelf({
     )
   }
 
-  if (!data || (!demo.active && overview.isError)) {
+  if (overview.isError || !data) {
     return (
       <div
         data-testid="publications-load-error"
@@ -367,11 +339,8 @@ function PublicationsShelf({
                     publication={publication}
                     countsKnown={countsKnown}
                     busy={busyLabel === publication.book_label}
-                    readers={demo.active ? readersForDemoToken(publication.token) : undefined}
-                    onStop={() => (demo.active ? undefined : stop.mutate(publication.book_label))}
-                    onResume={() =>
-                      demo.active ? undefined : resume.mutate(publication.book_label)
-                    }
+                    onStop={() => stop.mutate(publication.book_label)}
+                    onResume={() => resume.mutate(publication.book_label)}
                   />
                 ))}
               </ul>

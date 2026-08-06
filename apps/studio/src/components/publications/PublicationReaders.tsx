@@ -46,8 +46,6 @@ function ReaderLine({ reader }: { reader: PublicationReader }) {
 
 interface PublicationReadersProps {
   token: string
-  /** Supplied instead of fetching — the demo shelf's only hook into this panel. */
-  override?: readonly PublicationReader[]
   /** `false` while the drawer holding this panel has never been opened. The panel renders
    *  collapsed inside every row so the drawer has something to animate, and this is what stops
    *  that from turning one screen into one request per book. Sticky once true, so closing the
@@ -70,13 +68,12 @@ interface PublicationReadersProps {
  */
 export function PublicationReaders({
   token,
-  override,
   enabled = true,
   hideHeading = false,
   showFootnote = true,
 }: PublicationReadersProps) {
-  const query = usePublicationReaders(token, enabled && override === undefined)
-  const readers = override ?? query.data?.readers
+  const query = usePublicationReaders(token, enabled)
+  const readers = query.data?.readers
   const outdated = apiErrorCode(query.error) === "worker_outdated"
 
   return (

@@ -13,11 +13,7 @@ import {
   Users,
 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import {
-  publicationStateAt,
-  type PublicationReader,
-  type PublicationSummary,
-} from "@adt/types"
+import { publicationStateAt, type PublicationSummary } from "@adt/types"
 import { Button } from "@/components/ui/button"
 import { ExternalLinkButton } from "@/components/settings/publishing/ExternalLinkButton"
 import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
@@ -82,8 +78,6 @@ export interface PublicationRowProps {
   /** Position in the list, used only to stagger the entrance. Capped, so a long shelf does not
    *  make the last row wait. */
   index: number
-  /** Handed straight to the readers panel instead of fetching. Only the demo shelf sets it. */
-  readers?: readonly PublicationReader[]
   onStop: () => void
   onResume: () => void
 }
@@ -93,7 +87,6 @@ export function PublicationRow({
   countsKnown,
   busy,
   index,
-  readers,
   onStop,
   onResume,
 }: PublicationRowProps) {
@@ -359,11 +352,7 @@ export function PublicationRow({
       >
         <div className="min-h-0">
           <div className="border-t px-4 py-3 mh:px-3">
-            <PublicationReaders
-              token={publication.token}
-              override={readers}
-              enabled={readersEverOpened}
-            />
+            <PublicationReaders token={publication.token} enabled={readersEverOpened} />
           </div>
         </div>
       </div>
