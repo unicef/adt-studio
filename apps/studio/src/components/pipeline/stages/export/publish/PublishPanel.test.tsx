@@ -198,6 +198,26 @@ afterEach(() => {
 })
 
 describe("PublishPanel — states", () => {
+  /**
+   * The panel once rendered every word of itself into a card two pixels tall.
+   *
+   * It lives in the export shell's scrolling flex column, and `overflow-hidden` — which the
+   * rounded corners need — sets a flex item's automatic minimum size to zero. So the moment the
+   * page overflowed, the column was free to squeeze this card down to its borders: content
+   * present, `scrollHeight` over a thousand pixels, height 2px, invisible.
+   *
+   * jsdom computes no layout, so this asserts the class that prevents it rather than the height.
+   * A weak test for a bug that cost an evening is still worth having.
+   */
+  it("refuses to be squeezed flat by the scrolling column it sits in", async () => {
+    getBookPublication.mockResolvedValue(notConnected())
+
+    renderPanel()
+
+    await waitFor(() => expect(screen.getByTestId("publish-panel")).toBeTruthy())
+    expect(screen.getByTestId("publish-panel").className).toContain("shrink-0")
+  })
+
   it("sends the author to Settings when Cloudflare isn't connected", async () => {
     getBookPublication.mockResolvedValue(notConnected())
 

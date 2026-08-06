@@ -29,7 +29,14 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
   const isLive = lifecycle === "active" && !!url
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-indigo-200/80 bg-white shadow-sm">
+    // `shrink-0` is load-bearing, not tidiness. This sits in the shell's scrolling flex column,
+    // and `overflow-hidden` (needed for the rounded corners) sets a flex item's automatic
+    // minimum size to zero — so once the page overflows, the column is free to squeeze this
+    // whole card down to its two borders. It did exactly that, and the panel vanished.
+    <section
+      data-testid="publish-panel"
+      className="shrink-0 overflow-hidden rounded-2xl border border-indigo-200/80 bg-white shadow-sm"
+    >
       <div className="flex flex-col gap-4 border-b border-indigo-100 bg-indigo-50/60 px-5 py-5 sm:flex-row sm:items-start sm:justify-between sm:px-6">
         <div className="flex min-w-0 items-start gap-3.5">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-indigo-700 text-white shadow-sm">
