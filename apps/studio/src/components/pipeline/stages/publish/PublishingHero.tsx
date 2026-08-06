@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { BookOpen, Check, CloudOff, Copy } from "lucide-react"
 import { getBookCoverUrl } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { ExternalLinkButton } from "@/components/settings/publishing/ExternalLinkButton"
 import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
+import { useCopyLink } from "@/hooks/use-copy-link"
 
 interface PublishingHeroProps {
   bookLabel: string
@@ -40,26 +41,7 @@ export function PublishingHero({
 }: PublishingHeroProps) {
   const { i18n, t } = useLingui()
   const [coverFailed, setCoverFailed] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(
-    () => () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    },
-    [],
-  )
-
-  async function copyLink() {
-    if (timerRef.current) clearTimeout(timerRef.current)
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopied(true)
-    } catch {
-      setCopied(false)
-    }
-    timerRef.current = setTimeout(() => setCopied(false), 2500)
-  }
+  const { copied, copy } = useCopyLink(url)
 
   return (
     <div className="flex shrink-0 flex-col gap-4 rounded-2xl border bg-gradient-to-br from-indigo-50/80 via-card to-card p-5">
@@ -115,7 +97,7 @@ export function PublishingHero({
               data-testid="publish-share-copy"
               size="sm"
               className="h-8 text-xs"
-              onClick={() => void copyLink()}
+              onClick={() => void copy()}
             >
               {copied ? (
                 <Check

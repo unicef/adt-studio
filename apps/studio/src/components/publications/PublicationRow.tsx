@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import {
   Check,
@@ -17,13 +17,12 @@ import { publicationStateAt, type PublicationSummary } from "@adt/types"
 import { Button } from "@/components/ui/button"
 import { ExternalLinkButton } from "@/components/settings/publishing/ExternalLinkButton"
 import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
+import { useCopyLink } from "@/hooks/use-copy-link"
 import { cn } from "@/lib/utils"
 import { AccessCodeChip, PublicationStatusChip } from "./PublicationStatusChip"
 import { PublicationCover } from "./PublicationCover"
 import { PublicationReaders } from "./PublicationReaders"
 import { formatStorage } from "./format"
-
-const COPY_FEEDBACK_MS = 2500
 
 /**
  * A row action that opens one of this book's own stages.
@@ -91,47 +90,22 @@ export function PublicationRow({
   onResume,
 }: PublicationRowProps) {
   const { t, i18n } = useLingui()
-  const [copied, setCopied] = useState(false)
-  const [copyFailed, setCopyFailed] = useState(false)
   const [readersOpen, setReadersOpen] = useState(false)
   /** Sticky: the panel stays mounted after the first open so closing can animate, and so a
    *  second look does not re-request a roster the cache already holds. */
   const [readersEverOpened, setReadersEverOpened] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(
-    () => () => {
-      if (timerRef.current) clearTimeout(timerRef.current)
-    },
-    [],
-  )
 
   const url = publication.url
+  const { copied, failed: copyFailed, copy } = useCopyLink(url ?? "")
   const state = publicationStateAt(publication)
   const unknown = t`—`
+
   const titleId = `publication-title-${publication.token}`
   const readersId = `publication-readers-${publication.token}`
 
   function toggleReaders() {
     setReadersOpen(!readersOpen)
     if (!readersOpen) setReadersEverOpened(true)
-  }
-
-  async function copyLink() {
-    if (!url) return
-    if (timerRef.current) clearTimeout(timerRef.current)
-    try {
-      await navigator.clipboard.writeText(url)
-      setCopyFailed(false)
-      setCopied(true)
-    } catch {
-      setCopied(false)
-      setCopyFailed(true)
-    }
-    timerRef.current = setTimeout(() => {
-      setCopied(false)
-      setCopyFailed(false)
-    }, COPY_FEEDBACK_MS)
   }
 
   return (
@@ -179,7 +153,7 @@ export function PublicationRow({
                 variant="ghost"
                 size="icon"
                 className="size-7 shrink-0"
-                onClick={() => void copyLink()}
+                onClick={() => void copy()}
                 aria-label={t`Copy the link to ${publication.title}`}
                 title={t`Copy link`}
               >

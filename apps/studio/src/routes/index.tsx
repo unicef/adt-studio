@@ -34,7 +34,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { DeleteBookDialog } from "@/components/books/DeleteBookDialog"
+import { BookPublishedStrip } from "@/components/books/BookPublishedStrip"
 import { useBooks, useDeleteBook } from "@/hooks/use-books"
+import { usePublicationsByBook } from "@/hooks/use-publications"
 import {
   getPipelineStages,
   type PipelineStageDefinition,
@@ -43,6 +45,7 @@ import {
   getStageLabelI18n,
   getStageDescriptionI18n,
 } from "@/components/pipeline/pipeline-i18n"
+import type { PublicationSummary } from "@adt/types"
 import type { BookSummary } from "@/api/client"
 import { getBookCoverUrl } from "@/api/client"
 import { cn } from "@/lib/utils"
@@ -198,10 +201,17 @@ function BookRow({
   book,
   onDelete,
   pipelineStages,
+  publication,
+  countsKnown,
 }: {
   book: BookSummary
   onDelete: (label: string) => void
   pipelineStages: readonly PipelineStageDefinition[]
+  /** The book's share link, when it has one. `undefined` covers three different situations that
+   *  all mean the same thing to a card — never published, no Cloudflare account connected, and
+   *  the shelf request still in flight — so the band simply isn't drawn. */
+  publication?: PublicationSummary
+  countsKnown: boolean
 }) {
   const { t, i18n } = useLingui()
   const hasMetadata = book.title || book.authors.length > 0
@@ -419,6 +429,10 @@ function BookRow({
           </Button>
         </div>
       </div>
+
+      {publication && (
+        <BookPublishedStrip publication={publication} countsKnown={countsKnown} />
+      )}
     </div>
   )
 }
@@ -427,6 +441,7 @@ function HomePage() {
   const { t } = useLingui()
   usePageTitle(t`Your Books`)
   const { data: books, isLoading, error } = useBooks()
+  const { byLabel: publications, countsKnown } = usePublicationsByBook()
   const deleteMutation = useDeleteBook()
   const [deleteLabel, setDeleteLabel] = useState<string | null>(null)
   const [sortKey, setSortKey] = useState<BookSortKey>(() => readStoredSort())
@@ -610,6 +625,8 @@ function HomePage() {
                 book={book}
                 onDelete={setDeleteLabel}
                 pipelineStages={PIPELINE_STEPS}
+                publication={publications.get(book.label)}
+                countsKnown={countsKnown}
               />
             </div>
           ))}
