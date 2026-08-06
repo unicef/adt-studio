@@ -144,6 +144,12 @@ describe("text catalog routes", () => {
       }],
       generatedAt: "2026-08-05T00:00:00.000Z",
     })
+    seeded.putNodeData("accessibility-assessment", "book", { summary: {} })
+    seeded.markStepCompleted("core-tts-catalog")
+    seeded.markStepCompleted("tts")
+    seeded.markStepCompleted("word-timestamps")
+    seeded.markStepCompleted("package-web")
+    seeded.markStepCompleted("accessibility-assessment")
     seeded.close()
     const app = createTextCatalogRoutes(tmpDir)
 
@@ -170,6 +176,16 @@ describe("text catalog routes", () => {
           status: "failed",
         }],
       })
+      expect(storage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
+      for (const step of [
+        "core-tts-catalog",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ]) {
+        expect(storage.getStepRuns().find((run) => run.step === step)).toBeUndefined()
+      }
     } finally {
       storage.close()
     }
@@ -222,6 +238,11 @@ describe("text catalog routes", () => {
         },
         generatedAt: "2026-08-05T00:00:00.000Z",
       })
+      seeded.putNodeData("accessibility-assessment", "book", { summary: {} })
+      seeded.markStepCompleted("tts")
+      seeded.markStepCompleted("word-timestamps")
+      seeded.markStepCompleted("package-web")
+      seeded.markStepCompleted("accessibility-assessment")
     } finally {
       seeded.close()
     }
@@ -249,6 +270,15 @@ describe("text catalog routes", () => {
       expect(
         (storage.getLatestNodeData("tts-timestamps", "en")?.data as { entries: Record<string, unknown> }).entries,
       ).toEqual({})
+      expect(storage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
+      for (const step of [
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ]) {
+        expect(storage.getStepRuns().find((run) => run.step === step)).toBeUndefined()
+      }
       expect(storage.setCurrentNodeVersion("core-tts-catalog", "en", 1)).toBe(true)
     } finally {
       storage.close()

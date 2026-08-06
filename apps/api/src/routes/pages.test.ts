@@ -1831,6 +1831,11 @@ describe("Page routes", () => {
       s.putNodeData("text-catalog-translation", `${bookLabel}_p1`, {
         locale: "es", entries: [{ id: "t1", text: "Hola" }],
       })
+      s.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
       s.putNodeData("easy-read", "book", {
         blocks: [{
           pageId: `${bookLabel}_p1`,
@@ -1865,6 +1870,7 @@ describe("Page routes", () => {
       s.markStepCompleted("text-catalog")
       s.markStepCompleted("easy-read")
       s.markStepCompleted("catalog-translation")
+      s.markStepCompleted("core-tts-catalog")
       s.markStepCompleted("image-translation")
       s.markStepCompleted("tts")
       s.markStepCompleted("word-timestamps")
@@ -1883,6 +1889,7 @@ describe("Page routes", () => {
       expect(s.getLatestNodeData("image-captioning", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
+      expect(s.getLatestNodeData("core-tts-catalog", "en")).toBeNull()
       expect(s.getLatestNodeData("easy-read", "book")).toBeNull()
       expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
@@ -1894,6 +1901,7 @@ describe("Page routes", () => {
         "text-catalog",
         "easy-read",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -1918,6 +1926,7 @@ describe("Page routes", () => {
       // text-catalog, translations, tts should be gone
       expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
+      expect(s.getLatestNodeData("core-tts-catalog", "en")).toBeNull()
       expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
       expect(s.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
@@ -1928,6 +1937,7 @@ describe("Page routes", () => {
       for (const step of [
         "text-catalog",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",

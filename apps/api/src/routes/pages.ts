@@ -484,6 +484,7 @@ function clearRestoredNodeDependents(
       storage.clearNodesByType([
         "text-catalog",
         "text-catalog-translation",
+        "core-tts-catalog",
         "tts",
         "tts-timestamps",
         "accessibility-assessment",
@@ -491,6 +492,7 @@ function clearRestoredNodeDependents(
       storage.clearStepRuns([
         "text-catalog",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -502,12 +504,14 @@ function clearRestoredNodeDependents(
     case "easy-read":
       storage.clearNodesByType([
         "text-catalog-translation",
+        "core-tts-catalog",
         "tts",
         "tts-timestamps",
         "accessibility-assessment",
       ])
       storage.clearStepRuns([
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -1679,6 +1683,7 @@ export function createPageRoutes(
       storage.clearNodesByType([
         "text-catalog",
         "text-catalog-translation",
+        "core-tts-catalog",
         "tts",
         "tts-timestamps",
         "accessibility-assessment",
@@ -1686,6 +1691,7 @@ export function createPageRoutes(
       storage.clearStepRuns([
         "text-catalog",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",

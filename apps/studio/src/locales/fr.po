@@ -3311,6 +3311,9 @@ msgstr "Activez ou désactivez les révisions par liste de contrôle pour ce liv
 msgid "Enable reviewer validation"
 msgstr "Activer la validation du réviseur"
 
+msgid "Enable text normalization"
+msgstr "Activer la normalisation du texte"
+
 msgid "Enable translation review"
 msgstr "Activer la révision des traductions"
 
@@ -6645,6 +6648,9 @@ msgstr "Privilégiez les termes centraux au sujet du livre. Évitez le vocabulai
 msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
 msgstr "La préparation recherche d’abord la locale exacte, puis sa langue de base et enfin cette valeur par défaut. Les consignes sont incluses dans l’appel au LLM mis en cache et consultable."
 
+msgid "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+msgstr "Préparer les nombres, les dates, les abréviations et les autres textes ambigus pour une diction naturelle dans chaque langue."
+
 msgid "Prepared speech text"
 msgstr "Texte préparé pour la synthèse vocale"
 
@@ -8785,6 +8791,9 @@ msgstr "Couleur du texte"
 #. placeholder {0}: section.textColor
 msgid "Text color: {0}"
 msgstr "Texte couleur: {0}"
+
+msgid "Text normalization"
+msgstr "Normalisation du texte"
 
 msgid "Text Normalization"
 msgstr "Normalisation du texte"

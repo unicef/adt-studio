@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest"
 import { fileURLToPath } from "node:url"
 import type { LLMModel } from "@adt/llm"
 import {
+  buildCoreTtsPreparationConfig,
+  getCoreTtsPreparationLocales,
   loadCoreTtsProfiles,
   prepareCoreTtsCatalog,
   resolveCoreTtsProfile,
@@ -49,6 +51,25 @@ describe("resolveCoreTtsProfile", () => {
     expect(guidance).toContain("structural labels")
     expect(guidance).toContain("Roman-numeral ranges")
     expect(guidance).toContain('minus sign as "toa"')
+  })
+})
+
+describe("Core TTS configuration", () => {
+  it("honors an explicit language-normalization opt-out", () => {
+    expect(
+      buildCoreTtsPreparationConfig({
+        core_tts: { language_normalization: false },
+      }).languageNormalization,
+    ).toBe(false)
+  })
+
+  it("prepares same-base regional outputs from source display text", () => {
+    expect(
+      getCoreTtsPreparationLocales(["en", "en_GB", "fr", "en-GB"], "en"),
+    ).toEqual([
+      { language: "en-GB", usesSourceDisplayText: true },
+      { language: "fr", usesSourceDisplayText: false },
+    ])
   })
 })
 

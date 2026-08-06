@@ -3309,6 +3309,9 @@ msgstr "Enable or disable reviewer-authored checklist reviews for this book. Aut
 msgid "Enable reviewer validation"
 msgstr "Enable reviewer validation"
 
+msgid "Enable text normalization"
+msgstr "Activar la normalización del texto"
+
 msgid "Enable translation review"
 msgstr "Activar revisión de traducciones"
 
@@ -6643,6 +6646,9 @@ msgstr "Prefiere términos centrales al tema del libro. Omite vocabulario genér
 msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
 msgstr "La preparación resuelve primero la configuración regional exacta, después el idioma base y, por último, este valor predeterminado. La orientación se incluye en la llamada al LLM almacenada en caché e inspeccionable."
 
+msgid "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+msgstr "Preparar números, fechas, abreviaturas y otros textos ambiguos para una locución natural en cada idioma."
+
 msgid "Prepared speech text"
 msgstr "Texto preparado para voz"
 
@@ -8783,6 +8789,9 @@ msgstr "Color del texto"
 #. placeholder {0}: section.textColor
 msgid "Text color: {0}"
 msgstr "Color del texto: {0}"
+
+msgid "Text normalization"
+msgstr "Normalización del texto"
 
 msgid "Text Normalization"
 msgstr "Normalización de texto"

@@ -54,6 +54,7 @@ import {
   buildCoreTtsPreparationConfig,
   loadCoreTtsProfiles,
   resolveCoreTtsProfile,
+  getCoreTtsPreparationLocales,
   prepareCoreTtsCatalog,
   getCoreTtsCatalog,
   buildCoreTtsSourceContext,
@@ -2432,13 +2433,21 @@ async function runTranslateStep(
     )
 
     let preparedLanguages = 1
-    for (const lang of targetLanguages) {
-      const legacyLang = lang.replace("-", "_")
-      const translatedRow =
-        storage.getLatestNodeData("text-catalog-translation", lang) ??
-        storage.getLatestNodeData("text-catalog-translation", legacyLang)
-      if (!translatedRow) continue
-      const targetDisplayEntries = (translatedRow.data as TextCatalogOutput).entries
+    const preparationLocales = getCoreTtsPreparationLocales(
+      outputLanguages,
+      language,
+    )
+    for (const locale of preparationLocales) {
+      const lang = locale.language
+      let targetDisplayEntries = sourceDisplayEntries
+      if (!locale.usesSourceDisplayText) {
+        const legacyLang = lang.replace("-", "_")
+        const translatedRow =
+          storage.getLatestNodeData("text-catalog-translation", lang) ??
+          storage.getLatestNodeData("text-catalog-translation", legacyLang)
+        if (!translatedRow) continue
+        targetDisplayEntries = (translatedRow.data as TextCatalogOutput).entries
+      }
       const targetCoreTts = await prepareCoreTtsCatalog({
         entries: targetDisplayEntries,
         language: lang,

@@ -24,6 +24,11 @@ export interface ResolvedCoreTtsProfile {
   guidance: string
 }
 
+export interface CoreTtsPreparationLocale {
+  language: string
+  usesSourceDisplayText: boolean
+}
+
 export interface CoreTtsPreparationConfig {
   modelId: string
   promptName: string
@@ -91,6 +96,28 @@ export function resolveCoreTtsProfile(
     return baseProfile
   }
   return { key: "default", guidance: profiles.default ?? "" }
+}
+
+/**
+ * Every exact output locale needs its own provider-text catalog because voice
+ * routing and normalization profiles can differ between regional variants.
+ * Same-base variants reuse source display text instead of requiring a
+ * translation catalog.
+ */
+export function getCoreTtsPreparationLocales(
+  outputLanguages: string[],
+  sourceLanguage: string,
+): CoreTtsPreparationLocale[] {
+  const source = normalizeLocale(sourceLanguage)
+  const sourceBase = getBaseLanguage(source)
+  return Array.from(
+    new Set(outputLanguages.map((language) => normalizeLocale(language))),
+  )
+    .filter((language) => language !== source)
+    .map((language) => ({
+      language,
+      usesSourceDisplayText: getBaseLanguage(language) === sourceBase,
+    }))
 }
 
 const preparedBatchSchema = z.object({
@@ -419,4 +446,67 @@ export function invalidateCoreTtsForDisplayEntries(options: {
   })
   options.storage.putNodeData("core-tts-catalog", language, output)
   return output
+}
+
+/**
+ * Withhold selected provider-text entries in every language while preserving
+ * unaffected entries and version history. Used by partial upstream edits whose
+ * translated replacements do not exist until the Translate stage is rerun.
+ */
+export function invalidateCoreTtsEntriesById(options: {
+  storage: Storage
+  textIds: ReadonlySet<string>
+  reason?: string
+  now?: string
+}): number {
+  if (options.textIds.size === 0) return 0
+
+  const now = options.now ?? new Date().toISOString()
+  const reason = options.reason ?? "Display text changed; rerun Core TTS preparation."
+  let updatedCatalogs = 0
+
+  for (const { node, itemId } of options.storage.getNodeVersionFingerprint()) {
+    if (node !== "core-tts-catalog") continue
+    const row = options.storage.getLatestNodeData(node, itemId)
+    const parsed = CoreTtsCatalogOutputSchema.safeParse(row?.data)
+    if (!parsed.success) continue
+
+    let changed = false
+    const entries = parsed.data.entries.map((entry): CoreTtsCatalogEntry => {
+      if (!options.textIds.has(entry.id)) return entry
+      changed = true
+      return {
+        ...entry,
+        speechText: null,
+        changed: false,
+        status: "failed",
+        failureReason: reason,
+        generation: {
+          ...entry.generation,
+          mode: "unchanged",
+          generatedAt: now,
+          contextHash: hash({
+            previousContextHash: entry.generation.contextHash,
+            stale: true,
+            reason,
+          }),
+          cached: false,
+        },
+      }
+    })
+    if (!changed) continue
+
+    options.storage.putNodeData(
+      "core-tts-catalog",
+      itemId,
+      CoreTtsCatalogOutputSchema.parse({
+        ...parsed.data,
+        entries,
+        generatedAt: now,
+      }),
+    )
+    updatedCatalogs++
+  }
+
+  return updatedCatalogs
 }

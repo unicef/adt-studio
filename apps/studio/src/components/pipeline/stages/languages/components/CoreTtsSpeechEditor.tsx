@@ -74,6 +74,12 @@ export function CoreTtsSpeechEditor({
         queryClient.invalidateQueries({
           queryKey: ["books", bookLabel, "tts"],
         }),
+        queryClient.invalidateQueries({
+          queryKey: ["books", bookLabel, "tts-timestamps"],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["books", bookLabel, "step-status"],
+        }),
       ])
       setEditing(false)
     } catch (err) {

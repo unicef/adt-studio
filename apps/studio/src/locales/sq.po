@@ -3310,6 +3310,9 @@ msgstr "Aktivizo ose çaktivizo rishikimet e listës së kontrollit të bëra ng
 msgid "Enable reviewer validation"
 msgstr "Aktivizo validimin e rishikuesit"
 
+msgid "Enable text normalization"
+msgstr "Aktivizo normalizimin e tekstit"
+
 msgid "Enable translation review"
 msgstr "Aktivizo rishikimin e përkthimit"
 
@@ -6644,6 +6647,9 @@ msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjen
 msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
 msgstr "Përgatitja zgjedh fillimisht lokalin e saktë, pastaj gjuhën bazë dhe në fund këtë parazgjedhje. Udhëzimi përfshihet në thirrjen LLM të ruajtur në memorie dhe të inspektueshme."
 
+msgid "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+msgstr "Përgatit numrat, datat, shkurtesat dhe tekste të tjera të paqarta për shqiptim natyral në secilën gjuhë."
+
 msgid "Prepared speech text"
 msgstr "Teksti i përgatitur për të folur"
 
@@ -8784,6 +8790,9 @@ msgstr "Ngjyra e tekstit"
 #. placeholder {0}: section.textColor
 msgid "Text color: {0}"
 msgstr "Ngjyra e tekstit: {0}"
+
+msgid "Text normalization"
+msgstr "Normalizimi i tekstit"
 
 msgid "Text Normalization"
 msgstr "Normalizimi i tekstit"

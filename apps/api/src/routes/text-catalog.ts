@@ -184,6 +184,14 @@ export function createTextCatalogRoutes(booksDir: string): Hono {
         language: normalizedLanguage,
         entries: data.entries,
       })
+      storage.clearNodesByType(["accessibility-assessment"])
+      storage.clearStepRuns([
+        "core-tts-catalog",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
       return c.json({ version })
     } finally {
       storage.close()
@@ -259,12 +267,18 @@ export function createTextCatalogRoutes(booksDir: string): Hono {
       const ttsItemId = normalizedTtsRow ? normalizedLanguage : legacyLanguage
       if (ttsRow) {
         const tts = ttsRow.data as TTSOutput
-        const existingAudio = tts.entries.find((entry) => entry.textId === entryId)
-        if (existingAudio && existingAudio.provider !== "manual") {
+        const entries = tts.entries.filter(
+          (entry) => entry.textId !== entryId || entry.provider === "manual",
+        )
+        const failed = tts.failed?.filter((entry) => entry.textId !== entryId)
+        if (
+          entries.length !== tts.entries.length ||
+          failed?.length !== tts.failed?.length
+        ) {
           storage.putNodeData("tts", ttsItemId, {
             ...tts,
-            entries: tts.entries.filter((entry) => entry.textId !== entryId),
-            failed: tts.failed?.filter((entry) => entry.textId !== entryId),
+            entries,
+            failed,
             generatedAt: now,
           } satisfies TTSOutput)
         }
@@ -290,6 +304,13 @@ export function createTextCatalogRoutes(booksDir: string): Hono {
           generatedAt: now,
         } satisfies WordTimestampOutput)
       }
+      storage.clearNodesByType(["accessibility-assessment"])
+      storage.clearStepRuns([
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
       return c.json({ version, entry: nextEntry })
     } finally {
       storage.close()

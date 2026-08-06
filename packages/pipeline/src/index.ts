@@ -171,13 +171,16 @@ export {
   buildCoreTtsPreparationConfig,
   loadCoreTtsProfiles,
   resolveCoreTtsProfile,
+  getCoreTtsPreparationLocales,
   prepareCoreTtsCatalog,
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
   buildCoreTtsSourceContext,
   invalidateCoreTtsForDisplayEntries,
+  invalidateCoreTtsEntriesById,
   type CoreTtsProfiles,
   type ResolvedCoreTtsProfile,
+  type CoreTtsPreparationLocale,
   type CoreTtsPreparationConfig,
 } from "./core-tts.js"
 export {

@@ -58,6 +58,7 @@ import {
   buildCoreTtsPreparationConfig,
   loadCoreTtsProfiles,
   resolveCoreTtsProfile,
+  getCoreTtsPreparationLocales,
   prepareCoreTtsCatalog,
   getCoreTtsCatalog,
   buildCoreTtsSourceContext,
@@ -913,16 +914,24 @@ export async function runFullPipeline(
         sourceCatalog,
       )
 
-      const targets = getTargetLanguages(outputLanguages, language)
+      const preparationLocales = getCoreTtsPreparationLocales(
+        outputLanguages,
+        language,
+      )
       let completed = 1
-      for (const lang of targets) {
-        const legacy = lang.replace("-", "_")
-        const row =
-          storage.getLatestNodeData("text-catalog-translation", lang) ??
-          storage.getLatestNodeData("text-catalog-translation", legacy)
-        if (!row) continue
+      for (const locale of preparationLocales) {
+        const lang = locale.language
+        let displayEntries = sourceDisplayEntries
+        if (!locale.usesSourceDisplayText) {
+          const legacy = lang.replace("-", "_")
+          const row =
+            storage.getLatestNodeData("text-catalog-translation", lang) ??
+            storage.getLatestNodeData("text-catalog-translation", legacy)
+          if (!row) continue
+          displayEntries = (row.data as TextCatalogOutput).entries
+        }
         const targetCatalog = await prepareCoreTtsCatalog({
-          entries: (row.data as TextCatalogOutput).entries,
+          entries: displayEntries,
           language: lang,
           config: preparationConfig,
           profile: resolveCoreTtsProfile(lang, profiles),

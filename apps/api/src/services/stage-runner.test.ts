@@ -886,6 +886,50 @@ output_languages:
       verify.close()
     }
   })
+
+  it("prepares a separate Core TTS catalog for a same-base regional output", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-regional-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+output_languages:
+  - en-GB
+`,
+    )
+    seedTextAndSpeechBook(booksDir, "regional-core-tts")
+
+    const runner = createStageRunner()
+    await runner.run(
+      "regional-core-tts",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "translate",
+      },
+      { emit: () => undefined },
+    )
+
+    const storage = createBookStorage("regional-core-tts", booksDir)
+    try {
+      expect(storage.getLatestNodeData("text-catalog-translation", "en-GB")).toBeNull()
+      expect(storage.getLatestNodeData("core-tts-catalog", "en-GB")?.data).toMatchObject({
+        language: "en-GB",
+        entries: [{ id: "pg001_t001", displayText: "Hello world" }],
+      })
+    } finally {
+      storage.close()
+    }
+  })
 })
 
 describe("createStageRunner speech Gemini partial failures", () => {
