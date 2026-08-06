@@ -8901,6 +8901,9 @@ msgstr "La revisión de traducción guardada está obsoleta. Vuelve a ejecutar R
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "La sección se editó después de la conversión: usa «Reconstruir desde la página» para actualizar los pasos."
 
+msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
+msgstr "Las secciones se combinarán localmente. Sin una clave de API, será necesario volver a ejecutar el Storyboard para regenerar la sección combinada."
+
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "El storyboard debe completarse antes de generar {stageName}. Ejecuta la etapa de Storyboard primero."
 

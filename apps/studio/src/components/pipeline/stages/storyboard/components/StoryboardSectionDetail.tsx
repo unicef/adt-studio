@@ -1059,9 +1059,15 @@ export function StoryboardSectionDetail({
     setMerging(true)
     try {
       // The merge concatenates both sections' HTML into the kept entry, so no
-      // section is left without one and the stage stays complete; the re-render
-      // below replaces the naive join with properly combined markup.
-      const result = await api.mergeSection(bookLabel, pageId, sectionIndex, direction, true)
+      // section is left without one. With a key the targeted re-render keeps
+      // the stage current; without one the server marks it for a full re-run.
+      const result = await api.mergeSection(
+        bookLabel,
+        pageId,
+        sectionIndex,
+        direction,
+        hasApiKey,
+      )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
@@ -1092,7 +1098,6 @@ export function StoryboardSectionDetail({
         pageId,
         sectionIndex,
         direction,
-        hasApiKey
       )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.sourcePageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.targetPageId] })
@@ -1104,10 +1109,14 @@ export function StoryboardSectionDetail({
       onNavigateSection?.(Math.max(0, sectionIndex - 1))
 
       if (hasApiKey) {
-        for (const affectedPageId of [result.sourcePageId, result.targetPageId]) {
-          api.reRenderPage(bookLabel, affectedPageId, apiKey).catch((err) => {
-            setAiError(err instanceof Error ? err.message : t`Re-render failed`)
-          })
+        try {
+          await api.reRenderPages(
+            bookLabel,
+            [result.sourcePageId, result.targetPageId],
+            apiKey,
+          )
+        } catch (err) {
+          setAiError(err instanceof Error ? err.message : t`Re-render failed`)
         }
       }
     } catch (err) {
@@ -1149,7 +1158,9 @@ export function StoryboardSectionDetail({
       action: () => executeMergeSection(direction),
       label,
       warning: buildMergeWarning(neighbor?.sectionType),
-      consequence: t`The combined section will be re-rendered.`,
+      consequence: hasApiKey
+        ? t`The combined section will be re-rendered.`
+        : t`The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section.`,
     })
   }
 

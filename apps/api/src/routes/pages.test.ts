@@ -3,9 +3,10 @@ import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
 import { Hono } from "hono"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, openBookDb } from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createPageRoutes } from "./pages.js"
+import type { TaskExecutor, TaskService } from "../services/task-service.js"
 
 describe("Page routes", () => {
   let tmpDir: string
@@ -454,6 +455,36 @@ describe("Page routes", () => {
       try {
         // The guard runs before either write, so neither node advanced past
         // the seeded version — the rejected save is a true no-op.
+        expect(after.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
+        expect(after.getLatestNodeData("page-sectioning", `${label}_p1`)?.version).toBe(1)
+      } finally {
+        after.close()
+      }
+    })
+
+    it("rolls back the rendering when the sectioning write fails", async () => {
+      // Force the second node write to fail after rendering has been inserted.
+      // The route must leave both version histories and pointers unchanged.
+      const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+      db.exec(`
+        CREATE TRIGGER reject_storyboard_sectioning
+        BEFORE INSERT ON node_data
+        WHEN NEW.node = 'page-sectioning'
+        BEGIN
+          SELECT RAISE(ABORT, 'forced sectioning failure');
+        END
+      `)
+      db.close()
+
+      const res = await save({
+        sectioning: { reasoning: "r", sections: [] },
+        rendering: { sections: [] },
+        renderingInSync: true,
+      })
+      expect(res.status).toBe(500)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
         expect(after.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
         expect(after.getLatestNodeData("page-sectioning", `${label}_p1`)?.version).toBe(1)
       } finally {
@@ -1422,6 +1453,89 @@ describe("Page routes", () => {
       } finally {
         verify.close()
       }
+    })
+
+    it("cannot claim the Storyboard is complete while both renderings are empty", async () => {
+      seedBothPages()
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.markStepCompleted("web-rendering")
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next&renderingInSync=1`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        expect(verify.getStepRuns().map((run) => run.step)).not.toContain("web-rendering")
+      } finally {
+        verify.close()
+      }
+    })
+  })
+
+  describe("POST /api/books/:label/pages/re-render", () => {
+    it("marks the Storyboard running before submitting one task for all pages", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p2`, {
+          reasoning: "sectioned",
+          sections: [],
+        })
+        storage.markStepCompleted("web-rendering")
+      } finally {
+        storage.close()
+      }
+
+      let submittedExecutor: TaskExecutor | undefined
+      const taskService: TaskService = {
+        submitTask(_label, kind, _description, executor) {
+          expect(kind).toBe("re-render")
+          submittedExecutor = executor
+          return { taskId: "task-batch" }
+        },
+        getActiveTasks: () => [],
+      }
+      const routes = createPageRoutes(tmpDir, tmpDir, tmpDir, undefined, taskService)
+      const taskApp = new Hono()
+      taskApp.onError(errorHandler)
+      taskApp.route("/api", routes)
+
+      const res = await taskApp.request(`/api/books/${label}/pages/re-render`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-OpenAI-Key": "sk-test",
+        },
+        body: JSON.stringify({ pageIds: [`${label}_p1`, `${label}_p2`] }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ taskId: "task-batch", status: "submitted" })
+      expect(submittedExecutor).toBeTypeOf("function")
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        expect(verify.getStepRuns()).toContainEqual(
+          expect.objectContaining({ step: "web-rendering", status: "running" })
+        )
+      } finally {
+        verify.close()
+      }
+    })
+
+    it("requires an API key", async () => {
+      const res = await app.request(`/api/books/${label}/pages/re-render`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageIds: [`${label}_p1`] }),
+      })
+      expect(res.status).toBe(400)
     })
   })
 

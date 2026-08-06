@@ -1198,14 +1198,13 @@ export const api = {
       { method: "POST" }
     ),
 
-  /** Empties both pages' renderings, so `renderingInSync` is only honest when
-   *  the caller re-renders both pages afterwards. */
+  /** Moves a section across a page boundary and empties both renderings. The
+   *  Storyboard is always marked stale until reRenderPages repairs both. */
   mergeSectionCrossPage: (
     label: string,
     pageId: string,
     sectionIndex: number,
-    direction: "next" | "prev",
-    renderingInSync = false
+    direction: "next" | "prev"
   ) =>
     request<{
       sourcePageId: string
@@ -1216,7 +1215,7 @@ export const api = {
       sourceRenderingVersion: number | null
       targetRenderingVersion: number | null
     }>(
-      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge-cross-page?direction=${direction}${renderingInSync ? "&renderingInSync=1" : ""}`,
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge-cross-page?direction=${direction}`,
       { method: "POST" }
     ),
 
@@ -1237,6 +1236,17 @@ export const api = {
         headers: { "X-OpenAI-Key": apiKey },
         ...(prompt ? { body: JSON.stringify({ prompt }) } : {}),
         signal: AbortSignal.timeout(30_000), // Just submitting a task now
+      }
+    ),
+
+  reRenderPages: (label: string, pageIds: string[], apiKey: string) =>
+    request<{ taskId?: string; status?: string; results?: unknown[] }>(
+      `/books/${label}/pages/re-render`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+        body: JSON.stringify({ pageIds }),
+        signal: AbortSignal.timeout(30_000),
       }
     ),
 

@@ -1505,14 +1505,16 @@ export function createPageRoutes(
       // Guard before either write, so a rejected save changes nothing at all.
       if (sectioning) assertNoActivePipelineRun(storage)
 
-      // Rendering first: if the pair is in sync, the HTML is the thing every
-      // downstream stage reads, so it should never be the write left undone.
-      const renderingVersion = rendering
-        ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
-        : null
-      const sectioningVersion = sectioning
-        ? saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
-        : null
+      // Rendering, sectioning, downstream invalidations, and step status are a
+      // single editor save. If any statement fails, none of them may survive.
+      const { renderingVersion, sectioningVersion } = storage.transaction(() => ({
+        renderingVersion: rendering
+          ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
+          : null,
+        sectioningVersion: sectioning
+          ? saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
+          : null,
+      }))
 
       return c.json({ sectioningVersion, renderingVersion })
     } finally {
@@ -1608,6 +1610,112 @@ export function createPageRoutes(
     } finally {
       storage.close()
     }
+  })
+
+  // POST /books/:label/pages/re-render — Re-render a set of pages as one task.
+  // This is used by cross-page edits: the Storyboard step stays running until
+  // every affected page succeeds, and any failure makes the whole stage stale.
+  app.post("/books/:label/pages/re-render", async (c) => {
+    const safeLabel = parseBookLabel(c.req.param("label"))
+    const apiKey = c.req.header("X-OpenAI-Key")
+    if (!apiKey) {
+      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
+    }
+
+    const parsed = z
+      .object({ pageIds: z.array(z.string().min(1)).min(1).max(100) })
+      .safeParse(await c.req.json().catch(() => null))
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid re-render request: ${parsed.error.message}`,
+      })
+    }
+    const pageIds = [...new Set(parsed.data.pageIds)]
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const existingPageIds = new Set(storage.getPages().map((page) => page.pageId))
+      for (const pageId of pageIds) {
+        if (!existingPageIds.has(pageId)) {
+          throw new HTTPException(404, { message: `Page not found: ${pageId}` })
+        }
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
+        if (!sectioningRow) {
+          throw new HTTPException(400, {
+            message: `Page must have page-sectioning data before re-rendering: ${pageId}`,
+          })
+        }
+        if (!PageSectioningOutput.safeParse(sectioningRow.data).success) {
+          throw new HTTPException(400, {
+            message: `Invalid page-sectioning data: ${pageId}`,
+          })
+        }
+      }
+
+      assertNoActivePipelineRun(storage)
+      storage.markStepStarted("web-rendering")
+    } finally {
+      storage.close()
+    }
+
+    const markBatchFailed = () => {
+      const failedStorage = createBookStorage(safeLabel, booksDir)
+      try {
+        markStoryboardChainStale(failedStorage)
+      } finally {
+        failedStorage.close()
+      }
+    }
+
+    const runReRenders = async () => {
+      try {
+        const results = []
+        // reRenderPage temporarily installs the key in process.env, so run the
+        // pages serially rather than letting concurrent calls race that state.
+        for (const pageId of pageIds) {
+          results.push(
+            await reRenderPage({
+              label: safeLabel,
+              pageId,
+              booksDir,
+              promptsDir,
+              webAssetsDir,
+              configPath,
+              apiKey,
+            })
+          )
+        }
+
+        const completedStorage = createBookStorage(safeLabel, booksDir)
+        try {
+          completedStorage.markStepCompleted("web-rendering")
+        } finally {
+          completedStorage.close()
+        }
+        return { results }
+      } catch (err) {
+        markBatchFailed()
+        throw err
+      }
+    }
+
+    if (taskService) {
+      try {
+        const { taskId } = taskService.submitTask(
+          safeLabel,
+          "re-render",
+          `Re-rendering ${pageIds.length} affected page(s)`,
+          runReRenders,
+          { pageId: pageIds[0], url: `/books/${safeLabel}/storyboard/${pageIds[0]}` }
+        )
+        return c.json({ taskId, status: "submitted" })
+      } catch (err) {
+        markBatchFailed()
+        throw err
+      }
+    }
+
+    return c.json(await runReRenders())
   })
 
   // POST /books/:label/pages/:pageId/re-render — Re-render page with current pipeline data
@@ -2409,11 +2517,6 @@ export function createPageRoutes(
       })
     }
     const { direction } = parsedQuery.data
-    // Unlike a same-page merge, this empties both pages' renderings outright, so
-    // the caller must re-render both pages before the stage is whole again. Only
-    // a caller that will do that may opt out of marking the stage stale.
-    const renderingInSync = c.req.query("renderingInSync") === "1"
-
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const pages = storage.getPages()
@@ -2503,15 +2606,13 @@ export function createPageRoutes(
         storage,
         "page-sectioning",
         pageId,
-        { ...srcSectioning, sections: newSrcSections },
-        { renderingInSync }
+        { ...srcSectioning, sections: newSrcSections }
       )
       const tgtVersion = saveStoryboardNode(
         storage,
         "page-sectioning",
         targetPageId,
-        { ...tgtSectioning, sections: newTgtSections },
-        { renderingInSync }
+        { ...tgtSectioning, sections: newTgtSections }
       )
 
       // Clear rendering for both pages (merged content invalidates existing renders)

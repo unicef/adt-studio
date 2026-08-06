@@ -8903,6 +8903,9 @@ msgstr "La révision de traduction enregistrée est obsolète. Relancez Réviser
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "La section a été modifiée après la conversion — utilisez « Reconstruire depuis la page » pour actualiser les étapes."
 
+msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
+msgstr "Les sections seront fusionnées localement. Sans clé API, le storyboard devra être réexécuté pour régénérer la section fusionnée."
+
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Le storyboard doit être complété avant de générer {stageName}. Exécutez d'abord l'étape du storyboard."
 

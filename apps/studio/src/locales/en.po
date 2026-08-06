@@ -8901,6 +8901,9 @@ msgstr "The saved translation review is stale. Run Review again for the visible 
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 
+msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
+msgstr "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
+
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 

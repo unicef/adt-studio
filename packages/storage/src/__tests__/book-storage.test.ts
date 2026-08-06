@@ -544,6 +544,31 @@ describe("putNodeData / getLatestNodeData", () => {
 
     storage.close()
   })
+
+  it("rolls back every write when a transaction fails", () => {
+    const { storage } = createTempStorage()
+    storage.putNodeData("web-rendering", "pg001", { version: "before" })
+    storage.markStepCompleted("web-rendering")
+
+    expect(() =>
+      storage.transaction(() => {
+        storage.putNodeData("web-rendering", "pg001", { version: "after" })
+        storage.putNodeData("page-sectioning", "pg001", { version: "after" })
+        storage.clearStepRuns(["web-rendering"])
+        throw new Error("abort save")
+      })
+    ).toThrow("abort save")
+
+    expect(storage.getLatestNodeData("web-rendering", "pg001")).toEqual({
+      version: 1,
+      data: { version: "before" },
+    })
+    expect(storage.getLatestNodeData("page-sectioning", "pg001")).toBeNull()
+    expect(storage.getStepRuns()).toContainEqual(
+      expect.objectContaining({ step: "web-rendering", status: "done" })
+    )
+    storage.close()
+  })
 })
 
 describe("appendLlmLog", () => {

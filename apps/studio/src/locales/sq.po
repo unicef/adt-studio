@@ -8902,6 +8902,9 @@ msgstr "Rishikimi i ruajtur i përkthimit është i vjetëruar. Ekzekutoni Rishi
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "Seksioni u ndryshua pas konvertimit — përdor «Rindërto nga faqja» për të rifreskuar hapat."
 
+msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
+msgstr "Seksionet do të kombinohen lokalisht. Pa një çelës API-je, Storyboard-i do të duhet të ekzekutohet përsëri për të rigjeneruar seksionin e kombinuar."
+
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Storyboard duhet të plotësohet para gjenerimit të {stageName}. Ekzekuto fazën Storyboard fillimisht."
 
