@@ -299,6 +299,20 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       return c.json(await clientFor(connection).listReaders(token.data))
     } catch (error) {
       if (!isPublishWorkerError(error)) throw error
+      /** A worker without this route answers Hono's own plain-text 404, which carries no
+       *  `not_found` code — that is the only signal separating "too old" from "never heard of
+       *  this publication", and confusing the two sends the author looking for a lost book. */
+      if (error.status === 404 && error.code !== "not_found") {
+        return c.json(
+          {
+            error:
+              "Your publishing service is older than this Studio. Install the update in " +
+              "Settings → Publishing to see who has joined.",
+            code: "worker_outdated",
+          },
+          409,
+        )
+      }
       if (error.status === 404) {
         return c.json(
           { error: "That publication is not in this account", code: "not_published" },

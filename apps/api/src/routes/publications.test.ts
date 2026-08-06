@@ -1264,6 +1264,60 @@ describe("GET /publications — the account's whole shelf", () => {
     expect(row.access_code).toBeNull()
   })
 
+  it("hands back the worker's reader list for one publication", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    const token = rowFor(await shelf(app), LABEL).token
+
+    worker.state.readers.set(token, [
+      {
+        id: "s1",
+        name: "Ana",
+        color: "#0091ff",
+        joined_at: "2026-08-02T10:00:00.000Z",
+        comment_count: 2,
+        last_comment_at: "2026-08-03T10:00:00.000Z",
+      },
+    ])
+
+    const res = await app.request(`/api/publications/${token}/readers`)
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toEqual({
+      readers: [
+        {
+          id: "s1",
+          name: "Ana",
+          color: "#0091ff",
+          joined_at: "2026-08-02T10:00:00.000Z",
+          comment_count: 2,
+          last_comment_at: "2026-08-03T10:00:00.000Z",
+        },
+      ],
+    })
+  })
+
+  /** A worker deployed before the route existed answers Hono's bare 404. Reporting that as
+   *  "not in this account" would send the author hunting for a book that is fine — the cure is
+   *  an update, and the code has to say so. */
+  it("tells an outdated worker apart from a publication that is really gone", async () => {
+    const worker = createFakePublishWorker({ missingRoutes: ["readers"] })
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+    const token = rowFor(await shelf(app), LABEL).token
+
+    const stale = await app.request(`/api/publications/${token}/readers`)
+    expect(stale.status).toBe(409)
+    await expect(stale.json()).resolves.toMatchObject({ code: "worker_outdated" })
+
+    const current = routes({ fetchFn: createFakePublishWorker().fetchFn })
+    const missing = await current.request("/api/publications/AbsentAbsentAbsentAbsent12/readers")
+    expect(missing.status).toBe(404)
+    await expect(missing.json()).resolves.toMatchObject({ code: "not_published" })
+  })
+
   it("counts a stopped link as published but not active", async () => {
     createBook("owl")
     const worker = createFakePublishWorker()

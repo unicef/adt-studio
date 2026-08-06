@@ -251,6 +251,10 @@ export const PublishErrorCodeStudio = z.enum([
   "package_failed",
   "upload_failed",
   "worker_unreachable",
+  /** The worker answered, but it is older than the Studio and has never heard of the route that
+   *  was asked for. Distinct from `worker_unreachable` (nothing answered) and from
+   *  `not_published` (it answered *our* 404), because the only cure is installing the update. */
+  "worker_outdated",
   "snapshot_too_large",
   "not_revoked",
 ])

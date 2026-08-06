@@ -1,6 +1,8 @@
-import { AlertTriangle, Loader2, UserRound } from "lucide-react"
+import { AlertTriangle, ArrowUpCircle, Loader2, UserRound } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { PublicationReader } from "@adt/types"
+import { apiErrorCode } from "@/api/client"
+import { PublishingSettingsLink } from "@/components/pipeline/stages/export/publish/PublishingSettingsLink"
 import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
 import { usePublicationReaders } from "@/hooks/use-publications"
 
@@ -59,6 +61,7 @@ interface PublicationReadersProps {
 export function PublicationReaders({ token, override }: PublicationReadersProps) {
   const query = usePublicationReaders(token, override === undefined)
   const readers = override ?? query.data?.readers
+  const outdated = apiErrorCode(query.error) === "worker_outdated"
 
   return (
     <div className="flex flex-col gap-1 border-t pt-3">
@@ -71,6 +74,23 @@ export function PublicationReaders({ token, override }: PublicationReadersProps)
           <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" />
           <Trans>Looking up who has joined…</Trans>
         </span>
+      ) : outdated ? (
+        <div
+          data-testid="publication-readers-outdated"
+          className="flex flex-col items-start gap-2 py-2"
+        >
+          <span className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+            <ArrowUpCircle className="mt-0.5 size-3.5 shrink-0 text-indigo-600" aria-hidden="true" />
+            <Trans>
+              Your publishing service is a version behind and doesn't keep this list yet.
+              Installing the update adds it — the names of anyone who joined before then are
+              already stored, so nothing has been lost.
+            </Trans>
+          </span>
+          <PublishingSettingsLink variant="outline" size="sm" className="h-7 text-xs">
+            <Trans>Install the update</Trans>
+          </PublishingSettingsLink>
+        </div>
       ) : readers === undefined ? (
         <span className="flex items-start gap-2 py-2 text-xs leading-5 text-amber-700">
           <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />

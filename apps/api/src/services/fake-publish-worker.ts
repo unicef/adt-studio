@@ -13,6 +13,7 @@ import {
   type CommenterSession,
   type Publication,
   type PublicationPageEntry,
+  type PublicationReader,
   type PublishComment,
 } from "@adt/types"
 import type { FetchLike } from "./cloudflare/client.js"
@@ -35,6 +36,9 @@ export interface FakePublishWorkerState {
    *  test can assert *which* code the Studio sent — the point here is the wire, not the KDF. */
   accessCodes: Map<string, string>
   versions: Map<string, FakePublishedVersion[]>
+  /** Seeded by tests: the real worker derives these from its `sessions` and `comments` tables,
+   *  which this double does not model. */
+  readers: Map<string, PublicationReader[]>
   comments: PublishComment[]
   authorNames: Array<string | undefined>
   bearerTokens: string[]
@@ -56,6 +60,9 @@ export interface FakePublishWorkerOptions {
   /** Simulates a worker that cannot answer §4.18 — a pre-0.7.0 deployment answers `404`. */
   failListStatus?: number
   failListBody?: { error: string; message?: string }
+  /** Simulates a worker deployed before a route existed: Hono's own plain-text 404, with none
+   *  of our JSON error envelope — the only thing that separates "too old" from "not found". */
+  missingRoutes?: string[]
 }
 
 export interface FakePublishWorker {
@@ -87,6 +94,7 @@ export function createFakePublishWorker(
     publications: new Map(),
     accessCodes: new Map(),
     versions: new Map(),
+    readers: new Map(),
     comments: [],
     authorNames: [],
     bearerTokens: [],
@@ -289,6 +297,16 @@ export function createFakePublishWorker(
         ws_url: `${baseUrl.replace(/^http/, "ws")}/p/${token}/room`,
         expires_at: createdAt,
       })
+    }
+
+    const readersMatch = /^\/api\/publications\/([^/]+)\/readers$/.exec(url.pathname)
+    if (readersMatch && method === "GET") {
+      if (options.missingRoutes?.includes("readers")) {
+        return new Response("404 Not Found", { status: 404 })
+      }
+      const token = readersMatch[1] as string
+      if (!state.publications.has(token)) return json({ error: "not_found" }, 404)
+      return json({ readers: state.readers.get(token) ?? [] })
     }
 
     const detailMatch = /^\/api\/publications\/([^/]+)$/.exec(url.pathname)

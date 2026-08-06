@@ -633,6 +633,24 @@ describe("PublicationsDashboard — readers", () => {
     expect(document.body.textContent).toContain("Only people who typed a name are listed")
   })
 
+  it("points at the update instead of claiming the publication is gone", async () => {
+    getPublications.mockResolvedValue(overview())
+    getPublicationReaders.mockRejectedValue(
+      new MockApiError("Your publishing service is older", 409, "worker_outdated"),
+    )
+    renderDashboard()
+    await waitFor(() => {
+      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /readers/i }))
+    await waitFor(() => {
+      expect(screen.getByTestId("publication-readers-outdated")).toBeTruthy()
+    })
+    expect(document.body.textContent).not.toContain("not in this account")
+    expect(screen.getByRole("link", { name: /install the update/i })).toBeTruthy()
+  })
+
   it("says nobody has given a name rather than showing an empty list", async () => {
     getPublications.mockResolvedValue(overview())
     getPublicationReaders.mockResolvedValue({ readers: [] })
