@@ -1,15 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type {
-  CloudflareConnectionStatus,
-  CloudflareCredentials,
-  CloudflareVerifyResponse,
-} from "@/api/client"
-import { useVerifyCloudflareToken } from "@/hooks/use-cloudflare-connection"
+import { useCallback, useEffect, useRef, useState } from "react"
+import type { CloudflareConnectionStatus } from "@/api/client"
 import { useCloudflareOAuth } from "@/hooks/use-cloudflare-oauth"
 import { cn } from "@/lib/utils"
 import { AccountPickerStep } from "./AccountPickerStep"
-import { CredentialsStep } from "./CredentialsStep"
-import { CreateTokenStep } from "./CreateTokenStep"
 import { DoneStep } from "./DoneStep"
 import { ConnectStep } from "./ConnectStep"
 import { IntroStep } from "./IntroStep"
@@ -18,24 +11,13 @@ import { ProvisionStep } from "./ProvisionStep"
 import { WIZARD_STEP_HEADING_ID } from "./WizardStepShell"
 import { openExternalUrl } from "./open-external"
 
-const MANUAL_STEPS = ["token", "credentials", "provision"] as const
+const WIZARD_STATE_KEY = "adt-studio-publishing-wizard"
 
-type WizardStep =
-  | "welcome"
-  | "intro"
-  | "connect"
-  | "token"
-  | "credentials"
-  | "account"
-  | "provision"
-  | "done"
+type WizardStep = "welcome" | "intro" | "connect" | "account" | "provision" | "done"
 
 interface ConnectCloudflareWizardProps {
-  storedToken: string
-  storedAccountId: string
   connection: CloudflareConnectionStatus | undefined
   isConnectionRefreshing: boolean
-  onVerified: (credentials: CloudflareCredentials) => void
   onOAuthConnected: () => void
   onProvisioned: () => void
   onRefreshConnection: () => void
@@ -43,30 +25,50 @@ interface ConnectCloudflareWizardProps {
 }
 
 export function ConnectCloudflareWizard({
-  storedToken,
-  storedAccountId,
   connection,
   isConnectionRefreshing,
-  onVerified,
   onOAuthConnected,
   onProvisioned,
   onRefreshConnection,
   onDisconnected,
 }: ConnectCloudflareWizardProps) {
-  const [tokenDraft, setTokenDraft] = useState(storedToken)
-  const [accountIdDraft, setAccountIdDraft] = useState(storedAccountId)
-  const [verifyResult, setVerifyResult] = useState<CloudflareVerifyResponse | null>(null)
-  const [step, setStep] = useState<WizardStep>("welcome")
-  const [path, setPath] = useState<"oauth" | "manual">("oauth")
-  const [withComments, setWithComments] = useState(true)
+  const [restored] = useState(() => {
+    try {
+      const raw = localStorage.getItem(WIZARD_STATE_KEY)
+      if (!raw) return null
+      return JSON.parse(raw) as { step?: string; withComments?: boolean }
+    } catch {
+      return null
+    }
+  })
+  const [step, setStep] = useState<WizardStep>(() => {
+    switch (restored?.step) {
+      case "intro":
+      case "connect":
+        return restored.step
+      case "account":
+      case "provision":
+        return "connect"
+      default:
+        return "welcome"
+    }
+  })
+  const [withComments, setWithComments] = useState(restored?.withComments ?? true)
   const [direction, setDirection] = useState<"forward" | "back">("forward")
-  const verify = useVerifyCloudflareToken()
   const hasMountedRef = useRef(false)
 
   const goTo = useCallback((next: WizardStep, nextDirection: "forward" | "back") => {
     setDirection(nextDirection)
     setStep(next)
   }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(WIZARD_STATE_KEY, JSON.stringify({ step, withComments }))
+    } catch {
+      /* private-mode storage failures must never break the wizard */
+    }
+  }, [step, withComments])
 
   const oauth = useCloudflareOAuth({
     onConnected: () => {
@@ -97,40 +99,7 @@ export function ConnectCloudflareWizard({
     openExternalUrl(oauth.authUrl)
   }, [oauth.authUrl, oauth.phase])
 
-  const draftCredentials = useMemo<CloudflareCredentials>(
-    () => ({ token: tokenDraft.trim(), accountId: accountIdDraft.trim() }),
-    [accountIdDraft, tokenDraft],
-  )
-
-  const provisionCredentials = useMemo<Partial<CloudflareCredentials>>(
-    () => (path === "oauth" ? {} : draftCredentials),
-    [draftCredentials, path],
-  )
-
-  function handleVerify() {
-    verify.mutate(draftCredentials, {
-      onSuccess: (result) => {
-        setVerifyResult(result)
-        if (result.ok) onVerified(draftCredentials)
-      },
-      onError: () => {
-        setVerifyResult(null)
-      },
-    })
-  }
-
-  function useApiTokenInstead() {
-    oauth.reset()
-    setPath("manual")
-    goTo("token", "forward")
-  }
-
-  const steps: WizardStep[] =
-    path === "manual"
-      ? [...MANUAL_STEPS]
-      : oauth.accounts.length > 1
-        ? ["account", "provision"]
-        : ["provision"]
+  const steps: WizardStep[] = oauth.accounts.length > 1 ? ["account", "provision"] : ["provision"]
   const stepCount = steps.length
   const stepNumber = Math.max(steps.indexOf(step) + 1, 1)
 
@@ -170,7 +139,6 @@ export function ConnectCloudflareWizard({
             oauth.start()
           }}
           onCancelOAuth={oauth.reset}
-          onUseApiToken={useApiTokenInstead}
         />
       )}
 
@@ -184,49 +152,12 @@ export function ConnectCloudflareWizard({
         />
       )}
 
-      {step === "token" && (
-        <CreateTokenStep
-          stepNumber={stepNumber}
-          stepCount={stepCount}
-          onBack={() => {
-            setPath("oauth")
-            goTo("connect", "back")
-          }}
-          onContinue={() => goTo("credentials", "forward")}
-        />
-      )}
-
-      {step === "credentials" && (
-        <CredentialsStep
-          stepNumber={stepNumber}
-          stepCount={stepCount}
-          token={tokenDraft}
-          accountId={accountIdDraft}
-          onTokenChange={(value) => {
-            setTokenDraft(value)
-            setVerifyResult(null)
-            verify.reset()
-          }}
-          onAccountIdChange={(value) => {
-            setAccountIdDraft(value)
-            setVerifyResult(null)
-            verify.reset()
-          }}
-          onVerify={handleVerify}
-          isVerifying={verify.isPending}
-          result={verifyResult}
-          errorMessage={verify.error?.message ?? null}
-          onBack={() => goTo("token", "back")}
-          onContinue={() => goTo("provision", "forward")}
-        />
-      )}
 
       {step === "provision" && (
         <ProvisionStep
           stepNumber={stepNumber}
           stepCount={stepCount}
-          credentials={provisionCredentials}
-          onBack={() => goTo(path === "oauth" ? "connect" : "credentials", "back")}
+          onBack={() => goTo("connect", "back")}
           onProvisioned={() => {
             onProvisioned()
             goTo("done", "forward")
@@ -237,15 +168,10 @@ export function ConnectCloudflareWizard({
       {step === "done" && (
         <DoneStep
           connection={connection}
-          credentials={provisionCredentials}
           isRefreshing={isConnectionRefreshing}
           onRefresh={onRefreshConnection}
           onDisconnected={() => {
-            setTokenDraft("")
-            setAccountIdDraft("")
-            setVerifyResult(null)
             oauth.reset()
-            setPath("oauth")
             onDisconnected()
             goTo("welcome", "back")
           }}

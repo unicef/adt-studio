@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Home, HelpCircle, Settings, Download } from "lucide-react";
+import { Home, HelpCircle, Settings, Download, Share2 } from "lucide-react";
 import { useLingui } from "@lingui/react/macro";
 import { Button } from "@/components/ui/button";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -101,6 +101,18 @@ export function StudioTopBar({
         >
           <Link to="/onboarding">
             <HelpCircle className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0 text-white/70 hover:text-white hover:bg-gray-600"
+          aria-label={t`Published books`}
+          title={t`Published books`}
+          asChild
+        >
+          <Link to="/publications">
+            <Share2 className="h-3.5 w-3.5" />
           </Link>
         </Button>
         <Button

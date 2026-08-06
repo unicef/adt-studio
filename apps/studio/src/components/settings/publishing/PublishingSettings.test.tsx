@@ -149,11 +149,14 @@ afterEach(() => {
 
 describe("PublishingSettings — connect wizard", () => {
   it("walks from the intro to a finished setup", async () => {
-    verifyCloudflare.mockResolvedValue({
-      ok: true,
-      account_name: "Escola Azul",
-      missing_scopes: [],
-      workers_dev_subdomain: "escola-azul",
+    startCloudflareOAuth.mockResolvedValue({
+      auth_url: "https://dash.cloudflare.com/oauth2/auth?client_id=test",
+      state: "state-walk",
+    })
+    getCloudflareOAuthStatus.mockResolvedValue({
+      status: "complete",
+      account_choice_required: false,
+      account_id: "acct-123",
     })
 
     let emit: ((event: ProvisionProgressEvent) => void) | null = null
@@ -183,27 +186,15 @@ describe("PublishingSettings — connect wizard", () => {
       "Connect your Cloudflare account",
     )
 
-    fireEvent.click(screen.getByRole("button", { name: /connect with an api token instead/i }))
+    fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
 
-    expect(screen.getByTestId("token-permission-workers-scripts")).toBeTruthy()
-    expect(screen.getByTestId("token-permission-d1")).toBeTruthy()
-    expect(screen.getByTestId("token-permission-r2")).toBeTruthy()
-    expect(screen.getByTestId("token-permission-account-settings")).toBeTruthy()
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 2 }).textContent).toContain(
+        "Set up publishing",
+      ),
+    )
+    expect(localStorage.getItem(AUTH_METHOD_KEY)).toBe("oauth")
 
-    fireEvent.click(screen.getByRole("button", { name: /i have my token/i }))
-
-    fireEvent.change(screen.getByLabelText("Cloudflare API token"), {
-      target: { value: "cf-token" },
-    })
-    fireEvent.change(screen.getByLabelText("Account ID"), { target: { value: "acct-123" } })
-    fireEvent.click(screen.getByRole("button", { name: /check my token/i }))
-
-    await waitFor(() => expect(screen.getByTestId("verify-success")).toBeTruthy())
-    expect(verifyCloudflare).toHaveBeenCalledWith({ token: "cf-token", accountId: "acct-123" })
-    expect(localStorage.getItem(TOKEN_KEY)).toBe("cf-token")
-    expect(localStorage.getItem(ACCOUNT_KEY)).toBe("acct-123")
-
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
     fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
 
     expect(provisionCloudflare).toHaveBeenCalledTimes(1)
@@ -234,24 +225,18 @@ describe("PublishingSettings — connect wizard", () => {
       finishStream?.()
     })
 
-    await waitFor(() =>
-      expect(document.body.textContent).toContain("Publishing is set up"),
-    )
-    await waitFor(() =>
-      expect(document.body.textContent).toContain(
-        "https://adt-publish.escola-azul.workers.dev",
-      ),
-    )
+    await waitFor(() => expect(document.body.textContent).toContain("Publishing is ready"))
   })
 
   it("maps a failed step to human guidance and resumes from it on retry", async () => {
-    localStorage.setItem(TOKEN_KEY, "cf-token")
-    localStorage.setItem(ACCOUNT_KEY, "acct-123")
-    verifyCloudflare.mockResolvedValue({
-      ok: true,
-      account_name: "Escola Azul",
-      missing_scopes: [],
-      workers_dev_subdomain: "escola-azul",
+    startCloudflareOAuth.mockResolvedValue({
+      auth_url: "https://dash.cloudflare.com/oauth2/auth?client_id=test",
+      state: "state-fail",
+    })
+    getCloudflareOAuthStatus.mockResolvedValue({
+      status: "complete",
+      account_choice_required: false,
+      account_id: "acct-123",
     })
 
     let emit: ((event: ProvisionProgressEvent) => void) | null = null
@@ -267,16 +252,10 @@ describe("PublishingSettings — connect wizard", () => {
     )
     fireEvent.click(screen.getByRole("button", { name: /get started/i }))
     fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
+    fireEvent.click(screen.getByRole("button", { name: /connect with cloudflare/i }))
     await waitFor(() =>
-      expect(
-        screen.getByRole("button", { name: /connect with an api token instead/i }),
-      ).toBeTruthy(),
+      expect(screen.getByRole("button", { name: /set up publishing/i })).toBeTruthy(),
     )
-    fireEvent.click(screen.getByRole("button", { name: /connect with an api token instead/i }))
-    fireEvent.click(screen.getByRole("button", { name: /i have my token/i }))
-    fireEvent.click(screen.getByRole("button", { name: /check my token/i }))
-    await waitFor(() => expect(screen.getByTestId("verify-success")).toBeTruthy())
-    fireEvent.click(screen.getByRole("button", { name: /^continue$/i }))
     fireEvent.click(screen.getByRole("button", { name: /set up publishing/i }))
 
     act(() => {
@@ -338,7 +317,7 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
 
     await waitFor(() => expect(screen.getByTestId("oauth-waiting")).toBeTruthy())
     expect(screen.getByTestId("oauth-waiting").textContent).toContain(
-      "Finish connecting in your browser",
+      "Waiting for your approval in the browser",
     )
     expect(window.open).toHaveBeenCalledWith(AUTH_URL, "_blank", "noopener,noreferrer")
     expect(getCloudflareOAuthStatus).toHaveBeenCalledWith("state-1")
@@ -407,7 +386,7 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
     expect(pickCloudflareOAuthAccount).toHaveBeenCalledWith("state-2", "acct-2")
   })
 
-  it("explains a denied consent and keeps the manual path reachable", async () => {
+  it("explains a denied consent", async () => {
     startCloudflareOAuth.mockResolvedValue({ auth_url: AUTH_URL, state: "state-3" })
     const status = deferredStatus()
 
@@ -430,16 +409,12 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
 
     await waitFor(() => expect(screen.getByTestId("oauth-error-oauth_denied")).toBeTruthy())
     expect(screen.getByTestId("oauth-error-oauth_denied").textContent).toContain(
-      "not given permission",
+      "Access was not granted",
     )
-
-    fireEvent.click(
-      screen.getAllByRole("button", { name: /connect with an api token instead/i })[0],
-    )
-    expect(screen.getByTestId("token-permission-d1")).toBeTruthy()
+    expect(screen.getByRole("button", { name: /try again/i })).toBeTruthy()
   })
 
-  it("names the busy callback port and offers the honest remote-instance way out", async () => {
+  it("names the busy callback port and explains the same-computer limit", async () => {
     startCloudflareOAuth.mockRejectedValue(
       new MockApiError("Port 8976 on this computer is already in use.", 409, "oauth_port_busy"),
     )
@@ -453,7 +428,7 @@ describe("PublishingSettings — connect with Cloudflare (OAuth)", () => {
     await waitFor(() => expect(screen.getByTestId("oauth-error-oauth_port_busy")).toBeTruthy())
     const notice = screen.getByTestId("oauth-error-oauth_port_busy")
     expect(notice.textContent).toContain("already signing in to Cloudflare")
-    expect(notice.textContent).toContain("different computer than your browser")
+    expect(notice.textContent).toContain("same computer")
     expect(notice.textContent).toContain("Port 8976")
   })
 

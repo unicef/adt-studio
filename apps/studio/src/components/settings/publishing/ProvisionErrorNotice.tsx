@@ -5,12 +5,12 @@ import type { ProvisionFailure } from "@/hooks/use-cloudflare-provision"
 import { ExternalLinkButton } from "./ExternalLinkButton"
 import { PermissionList } from "./PermissionList"
 import { matchMissingScopes } from "./token-permissions"
-import { CLOUDFLARE_API_TOKENS_URL, CLOUDFLARE_R2_URL, CLOUDFLARE_WORKERS_URL } from "./cloudflare-links"
+import { CLOUDFLARE_R2_URL, CLOUDFLARE_WORKERS_URL } from "./cloudflare-links"
 
 function title(failure: ProvisionFailure): ReactNode {
   switch (failure.code) {
     case "bad_token_scope":
-      return <Trans>Your token is missing some permissions</Trans>
+      return <Trans>Some permissions are missing</Trans>
     case "r2_not_enabled":
       return <Trans>Turn on R2 storage in Cloudflare first</Trans>
     case "account_not_found":
@@ -37,8 +37,9 @@ function body(failure: ProvisionFailure): ReactNode {
     case "bad_token_scope":
       return (
         <Trans>
-          Open your token in Cloudflare, add the rows below, save it, then try again. Nothing was
-          created in your account.
+          The Cloudflare sign-in did not grant everything publishing needs. Disconnect, connect
+          again, and allow every permission ADT Studio asks for. Nothing was created in your
+          account.
         </Trans>
       )
     case "r2_not_enabled":
@@ -109,13 +110,6 @@ function body(failure: ProvisionFailure): ReactNode {
 }
 
 function action(failure: ProvisionFailure): ReactNode {
-  if (failure.code === "bad_token_scope") {
-    return (
-      <ExternalLinkButton href={CLOUDFLARE_API_TOKENS_URL} className="self-start">
-        <Trans>Edit my token in Cloudflare</Trans>
-      </ExternalLinkButton>
-    )
-  }
   if (failure.code === "r2_not_enabled") {
     return (
       <ExternalLinkButton href={CLOUDFLARE_R2_URL} className="self-start">

@@ -8,16 +8,8 @@ import { ConnectCloudflareWizard } from "./ConnectCloudflareWizard"
 import { ConnectedCard } from "./ConnectedCard"
 
 export function PublishingSettings() {
-  const {
-    token,
-    accountId,
-    credentials,
-    hasCredentials,
-    hasConnectionHint,
-    setCredentials,
-    markOAuthConnected,
-    clearCredentials,
-  } = useCloudflareCredentials()
+  const { credentials, hasConnectionHint, markOAuthConnected, clearCredentials } =
+    useCloudflareCredentials()
   const connection = useCloudflareConnection(credentials)
   const [hadHintOnMount] = useState(hasConnectionHint)
   const [justProvisioned, setJustProvisioned] = useState(false)
@@ -49,17 +41,10 @@ export function PublishingSettings() {
             <Trans>We couldn't check your publishing setup</Trans>
           </span>
           <p className="text-sm leading-6 text-muted-foreground">
-            {hasCredentials ? (
-              <Trans>
-                Your saved token is still here. The Studio just couldn't confirm what is set up in
-                your Cloudflare account — try again in a moment.
-              </Trans>
-            ) : (
-              <Trans>
-                Your Cloudflare connection is still here. The Studio just couldn't confirm what is
-                set up in your account — try again in a moment.
-              </Trans>
-            )}
+            <Trans>
+              Your Cloudflare connection is still here. The Studio just couldn't confirm what is set
+              up in your account — try again in a moment.
+            </Trans>
           </p>
           {connection.error?.message && (
             <p className="text-xs leading-5 text-muted-foreground">{connection.error.message}</p>
@@ -99,11 +84,8 @@ export function PublishingSettings() {
 
       {!isChecking && !showConnectedCard && (
         <ConnectCloudflareWizard
-          storedToken={token}
-          storedAccountId={accountId}
           connection={connection.data}
           isConnectionRefreshing={connection.isFetching}
-          onVerified={setCredentials}
           onOAuthConnected={markOAuthConnected}
           onProvisioned={() => setJustProvisioned(true)}
           onRefreshConnection={() => void connection.refetch()}

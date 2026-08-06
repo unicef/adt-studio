@@ -46,6 +46,8 @@ import type {
   PublicationPageEntry,
   PublicationResponse,
   PublicationRoomTicketResponse,
+  PublicationSummary,
+  PublicationsOverview,
   PublishComment,
   PublishCommentListResponse,
   PublishCommentResponse,
@@ -909,6 +911,8 @@ export type {
   PublicationPageEntry,
   PublicationResponse,
   PublicationRoomTicketResponse,
+  PublicationSummary,
+  PublicationsOverview,
   PublishComment,
   PublishCommentListResponse,
   PublishCommentResponse,
@@ -2166,6 +2170,10 @@ export const api = {
 
   getBookPublication: (label: string) =>
     request<BookPublicationStatus>(`/books/${label}/publication`),
+
+  /** Every publication in the connected Cloudflare account, merged with what this machine
+   *  knows about each book. `412 publish_not_connected` when no account is connected. */
+  getPublications: () => request<PublicationsOverview>("/publications"),
 
   /** First publish: mints a token and uploads v1. Streams the four publish steps. */
   publishBook: (

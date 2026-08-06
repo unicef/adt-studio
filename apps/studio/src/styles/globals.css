@@ -81,6 +81,10 @@
   --animate-onboarding-shimmer: onboarding-shimmer 2.8s ease-in-out infinite;
   --animate-hero-stamp: hero-stamp 0.45s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-hero-caret-blink: hero-caret-blink 1s step-end infinite;
+  --animate-flow-dash: flow-dash 0.8s linear infinite;
+  --animate-flow-edge: flow-edge 0.6s linear infinite;
+  --animate-medallion-breathe: medallion-breathe 2.6s ease-in-out infinite;
+  --animate-medallion-halo: medallion-halo 2.6s ease-in-out infinite;
 }
 
 @keyframes accordion-down {
@@ -545,5 +549,42 @@
   .hero-cursor-approach {
     opacity: 0;
     transform: translate(38px, -28px);
+  }
+}
+
+@keyframes flow-dash {
+  from {
+    background-position-y: 0;
+  }
+  to {
+    background-position-y: 12px;
+  }
+}
+
+@keyframes flow-edge {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+@keyframes medallion-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes medallion-halo {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.12);
   }
 }
