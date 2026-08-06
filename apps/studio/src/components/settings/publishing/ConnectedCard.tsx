@@ -9,6 +9,7 @@ import { useDisconnectCloudflare } from "@/hooks/use-cloudflare-connection"
 import { DisconnectDialog } from "./DisconnectDialog"
 import { ExternalLinkButton } from "./ExternalLinkButton"
 import { ProvisionCalm } from "./ProvisionCalm"
+import { useProvisionDemo } from "./provision-demo"
 import { ProvisionErrorNotice } from "./ProvisionErrorNotice"
 import { useElapsed } from "./provision-elapsed"
 
@@ -42,10 +43,16 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
   const [disconnectOpen, setDisconnectOpen] = useState(false)
   const disconnect = useDisconnectCloudflare()
   const upgrade = useCloudflareProvision(credentials ?? {})
-  const elapsedMs = useElapsed(upgrade.status)
+  const demo = useProvisionDemo()
+
+  const runStatus = demo.active ? demo.status : upgrade.status
+  const runStepStates = demo.active ? demo.stepStates : upgrade.stepStates
+  const runActiveStep = demo.active ? demo.activeStep : upgrade.activeStep
+  const elapsedMs = useElapsed(runStatus)
 
   const workerUrl = connection.worker_url
-  const isUpdating = upgrade.status === "running" || upgrade.status === "error"
+  const isUpdating =
+    demo.active || upgrade.status === "running" || upgrade.status === "error"
   const body = useMeasuredHeight<HTMLDivElement>()
 
   async function copyUrl() {
@@ -100,13 +107,13 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
             </div>
 
             <ProvisionCalm
-              status={upgrade.status}
-              stepStates={upgrade.stepStates}
-              activeStep={upgrade.activeStep}
+              status={runStatus}
+              stepStates={runStepStates}
+              activeStep={runActiveStep}
               elapsedMs={elapsedMs}
             />
 
-            {upgrade.status === "error" && upgrade.failure && (
+            {!demo.active && upgrade.status === "error" && upgrade.failure && (
               <div className="flex flex-col gap-3">
                 <ProvisionErrorNotice failure={upgrade.failure} />
                 <Button
@@ -217,9 +224,18 @@ export function ConnectedCard({ connection, credentials, onDisconnected }: Conne
                   <Trans>Install the update</Trans>
                 </Button>
               )}
+              {import.meta.env.DEV && (
+                <Button
+                  variant="ghost"
+                  className="ml-auto font-mono text-[11px] text-muted-foreground"
+                  onClick={demo.play}
+                >
+                  simulate update
+                </Button>
+              )}
               <Button
                 variant="ghost"
-                className="ml-auto text-muted-foreground"
+                className={import.meta.env.DEV ? "text-muted-foreground" : "ml-auto text-muted-foreground"}
                 onClick={() => setDisconnectOpen(true)}
               >
                 <Trans>Disconnect</Trans>
