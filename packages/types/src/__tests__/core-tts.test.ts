@@ -34,6 +34,12 @@ describe("containsLatexSpeechCandidate", () => {
     "$\\frac{2}{5}$",
     "Area = $\\pi r^2$",
     "= 616\\ \\mathrm{mm}^2",
+    "$x$",
+    "$x+1$",
+    "$x = 1$",
+    "$1/2$",
+    "$x - 1$",
+    "The book costs $5; solve $x+1$.",
   ])("detects %s", (text) => {
     expect(containsLatexSpeechCandidate(text)).toBe(true)
   })

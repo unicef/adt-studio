@@ -20,10 +20,10 @@ export function SpeechHighlightedText({
   const segments = useMemo(() => buildDisplayWordSegments(text), [text])
   const timestampMappings = useMemo(
     () =>
-      timestamps
+      timestamps && isPlaying
         ? mapTimedWordsToDisplayWords(text, timestamps.words)
         : null,
-    [text, timestamps],
+    [isPlaying, text, timestamps],
   )
 
   if (!timestamps || !timestampMappings || !isPlaying) {

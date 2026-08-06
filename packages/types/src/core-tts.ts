@@ -62,11 +62,34 @@ export const CoreTtsConfig = z.object({
 export type CoreTtsConfig = z.infer<typeof CoreTtsConfig>
 
 const LATEX_COMMAND = /\\[a-zA-Z]+|[_^]\{/
-const MATH_DOLLAR = /(?<!\\)\$[^$\s][^$]*[\\^_{][^$]*\$/
+const UNESCAPED_DOLLAR = /(?<!\\)\$/g
+const MATH_OPERATOR =
+  /[=+*/<>]|[\p{L}\p{N})\]]\s*[-−]\s*[\p{L}\p{N}(\[]/u
 const PATH_LIKE = /(?:[A-Za-z]:\\)|(?:\\\\[A-Za-z])/
 const MARKER_ONLY = /(?<!\\)\$\s*[\^_]\s*\{?[\d\s,*†‡§¶a-z]{0,8}\}?\s*\$/gi
 const LATEX_REFERENCE =
   /(?:\b(?:latex|command)\b[^\n]*\\[a-zA-Z]+)|(?:\\[a-zA-Z]+[^\n]*\b(?:latex|command)\b)/i
+
+function containsDollarDelimitedMath(text: string): boolean {
+  const dollarIndices = Array.from(
+    text.matchAll(UNESCAPED_DOLLAR),
+    (match) => match.index ?? 0,
+  )
+
+  for (let index = 0; index < dollarIndices.length - 1; index++) {
+    const content = text
+      .slice(dollarIndices[index] + 1, dollarIndices[index + 1])
+      .trim()
+    if (!content) continue
+
+    // Compact expressions such as `$x$` and `$1/2$`, plus expressions with
+    // spaced operators, are math. Currency pairs enclose ordinary prose and
+    // therefore do not satisfy either condition.
+    if (!/\s/u.test(content) || MATH_OPERATOR.test(content)) return true
+  }
+
+  return false
+}
 
 /**
  * Conservative deterministic gate for LaTeX preparation. It retains the
@@ -79,5 +102,5 @@ export function containsLatexSpeechCandidate(
   if (!text) return false
   if (PATH_LIKE.test(text) || LATEX_REFERENCE.test(text)) return false
   const stripped = text.replace(MARKER_ONLY, " ")
-  return LATEX_COMMAND.test(stripped) || MATH_DOLLAR.test(stripped)
+  return LATEX_COMMAND.test(stripped) || containsDollarDelimitedMath(stripped)
 }

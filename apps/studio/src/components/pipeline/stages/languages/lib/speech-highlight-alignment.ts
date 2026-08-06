@@ -18,6 +18,21 @@ function wordsIn(text: string): AlignmentWord[] {
 }
 
 function exactAnchors(source: string[], target: string[]): Array<[number, number]> {
+  // Normalized speech usually differs in only a small region. Bound the LCS
+  // matrix for pathological paragraphs and use ordered greedy anchors beyond
+  // that point; unmatched regions still receive proportional mappings.
+  if (source.length * target.length > 250_000) {
+    const anchors: Array<[number, number]> = []
+    let sourceCursor = 0
+    for (let targetIndex = 0; targetIndex < target.length; targetIndex++) {
+      const sourceIndex = source.indexOf(target[targetIndex], sourceCursor)
+      if (sourceIndex < 0) continue
+      anchors.push([sourceIndex, targetIndex])
+      sourceCursor = sourceIndex + 1
+    }
+    return anchors
+  }
+
   const lengths = Array.from(
     { length: source.length + 1 },
     () => new Uint32Array(target.length + 1),

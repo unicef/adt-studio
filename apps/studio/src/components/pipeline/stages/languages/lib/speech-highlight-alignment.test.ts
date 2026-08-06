@@ -44,4 +44,16 @@ describe("speech highlight alignment", () => {
     expect(buildDisplayWordSegments(text).map((segment) => segment.text).join(""))
       .toBe(text)
   })
+
+  it("aligns long paragraphs without allocating an unbounded LCS matrix", () => {
+    const words = Array.from({ length: 501 }, (_, index) => `word${index}`)
+    const mapping = mapTimedWordsToDisplayWords(
+      words.join(" "),
+      words.map((word) => ({ word })),
+    )
+
+    expect(mapping).toHaveLength(words.length)
+    expect(mapping?.[0]).toEqual([0])
+    expect(mapping?.[words.length - 1]).toEqual([words.length - 1])
+  })
 })

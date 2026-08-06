@@ -94,6 +94,25 @@ describe("prepareCoreTtsCatalog", () => {
     })
   })
 
+  it("prepares simple dollar-delimited math without language normalization", async () => {
+    const llm = modelWith([{ id: "t1", speech_text: "x plus one", transformation_kinds: ["latex-to-speech"], failure_reason: null }])
+    const result = await prepareCoreTtsCatalog({
+      entries: [{ id: "t1", text: "$x+1$" }],
+      language: "en",
+      config: { ...config, languageNormalization: false },
+      profile: { key: "default", guidance: "" },
+      llmModel: llm,
+    })
+
+    expect(llm.generateObject).toHaveBeenCalledTimes(1)
+    expect(result.entries[0]).toMatchObject({
+      displayText: "$x+1$",
+      speechText: "x plus one",
+      transformations: ["latex-to-speech"],
+      status: "ready",
+    })
+  })
+
   it("withholds a detected raw-LaTeX conversion failure", async () => {
     const result = await prepareCoreTtsCatalog({
       entries: [{ id: "t1", text: "$\\frac{1}{2}$" }],
