@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { ExternalLinkButton } from "@/components/settings/publishing/ExternalLinkButton"
 import { PublicationStatusChip } from "@/components/publications/PublicationStatusChip"
 import { useCopyLink } from "@/hooks/use-copy-link"
-import { cn } from "@/lib/utils"
 
 interface BookPublishedStripProps {
   publication: PublicationSummary
@@ -37,10 +36,10 @@ export function BookPublishedStrip({ publication, countsKnown }: BookPublishedSt
     <div
       data-testid={`book-published-strip-${publication.book_label}`}
       data-state={state}
-      className={cn(
-        "flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-b-xl border-t px-5 py-2 transition-colors duration-200",
-        state === "active" ? "bg-emerald-50/60 dark:bg-emerald-950/20" : "bg-muted/40",
-      )}
+      /** Neutral on purpose. A tinted band competed with the badges above it and read as a
+       *  status message about the whole card, when the only thing carrying status here is the
+       *  chip — a stopped link on a green shelf was the tell. */
+      className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-b-xl border-t bg-muted/30 px-5 py-2"
     >
       <PublicationStatusChip state={state} />
 
