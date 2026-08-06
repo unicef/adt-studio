@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest"
+import { fileURLToPath } from "node:url"
 import type { LLMModel } from "@adt/llm"
 import {
+  loadCoreTtsProfiles,
   prepareCoreTtsCatalog,
   resolveCoreTtsProfile,
 } from "../core-tts.js"
@@ -31,6 +33,22 @@ describe("resolveCoreTtsProfile", () => {
     expect(resolveCoreTtsProfile("sw_TZ", profiles)).toEqual({ key: "sw-tz", guidance: "exact" })
     expect(resolveCoreTtsProfile("sw-KE", profiles)).toEqual({ key: "sw", guidance: "base" })
     expect(resolveCoreTtsProfile("fr", profiles)).toEqual({ key: "default", guidance: "default" })
+  })
+
+  it("retains the Tanzanian Kiswahili normalization and pronunciation cases", () => {
+    const configDir = fileURLToPath(new URL("../../../../config/", import.meta.url))
+    const guidance = loadCoreTtsProfiles(configDir)["sw-tz"]
+
+    expect(guidance).toContain('whole-word occurrence of "nne"')
+    expect(guidance).toContain('output "n-ne"')
+    expect(guidance).toContain("[ˈn̩.nɛ]")
+    expect(guidance).toContain('whole-word occurrence of "mmoja"')
+    expect(guidance).toContain('output "m-moja"')
+    expect(guidance).toContain("[m̩.ˈmɔ.dʒa]")
+    expect(guidance).toContain('"kipengele a"')
+    expect(guidance).toContain("structural labels")
+    expect(guidance).toContain("Roman-numeral ranges")
+    expect(guidance).toContain('minus sign as "toa"')
   })
 })
 
