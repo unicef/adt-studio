@@ -1,29 +1,96 @@
 import { useMemo, useState } from "react"
-import { AlertTriangle, CloudOff, Globe, Link2, Loader2, RefreshCw } from "lucide-react"
+import {
+  AlertTriangle,
+  CloudOff,
+  Globe,
+  Link2,
+  Loader2,
+  MessagesSquare,
+  RefreshCw,
+  Search,
+} from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { publicationStateAt, type PublicationSummary } from "@adt/types"
 import { apiErrorCode } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { StageEmptyState } from "@/components/pipeline/components/StageEmptyState"
 import { PublishingSettingsLink } from "@/components/pipeline/stages/export/publish/PublishingSettingsLink"
 import { usePublications, useResumeSharing, useStopSharing } from "@/hooks/use-publications"
 import { PublicationRow } from "./PublicationRow"
+import { PublicationsSkeleton } from "./PublicationsSkeleton"
 import { PublicationsSummary } from "./PublicationsSummary"
-import { usePublicationsDemo } from "./publications-demo"
+import { readersForDemoToken, usePublicationsDemo } from "./publications-demo"
 
 type Filter = "all" | "live" | "stopped"
 
-/** Newest first, always. The account has tens of publications, not thousands, so the whole
- *  shelf is one list with no pagination — and "the one I just published" is at the top. */
-function applyFilter(publications: PublicationSummary[], filter: Filter): PublicationSummary[] {
-  if (filter === "all") return publications
-  return publications.filter((publication) =>
-    filter === "live"
-      ? publicationStateAt(publication) === "active"
-      : publicationStateAt(publication) !== "active",
+type Sort = "recent" | "feedback" | "size" | "title"
+
+interface Query {
+  filter: Filter
+  sort: Sort
+  search: string
+  /** A separate switch rather than a fourth `Filter`, because "live" and "has something to
+   *  read" are independent questions and the author usually asks both at once. */
+  unresolvedOnly: boolean
+}
+
+const EMPTY_QUERY: Query = { filter: "all", sort: "recent", search: "", unresolvedOnly: false }
+
+function matchesSearch(publication: PublicationSummary, search: string): boolean {
+  const needle = search.trim().toLocaleLowerCase()
+  if (needle.length === 0) return true
+  return (
+    publication.title.toLocaleLowerCase().includes(needle) ||
+    publication.book_label.toLocaleLowerCase().includes(needle)
   )
+}
+
+/** The account has tens of publications, not thousands, so the whole shelf is one list with no
+ *  pagination: filtering and sorting run over the array the API already handed us. */
+function applyQuery(publications: PublicationSummary[], query: Query): PublicationSummary[] {
+  const kept = publications.filter((publication) => {
+    if (query.filter !== "all") {
+      const live = publicationStateAt(publication) === "active"
+      if (query.filter === "live" ? !live : live) return false
+    }
+    if (query.unresolvedOnly && publication.unresolved_count === 0) return false
+    return matchesSearch(publication, query.search)
+  })
+
+  const ordered = [...kept]
+  switch (query.sort) {
+    case "feedback":
+      ordered.sort(
+        (a, b) =>
+          b.unresolved_count - a.unresolved_count ||
+          b.comment_count - a.comment_count ||
+          a.title.localeCompare(b.title),
+      )
+      break
+    case "size":
+      ordered.sort((a, b) => (b.snapshot_bytes ?? -1) - (a.snapshot_bytes ?? -1))
+      break
+    case "title":
+      ordered.sort((a, b) => a.title.localeCompare(b.title))
+      break
+    default:
+      /** `last_published_at` is null only for a publication whose versions are gone; those sort
+       *  to the bottom rather than to 1970, where they would look freshly broken. */
+      ordered.sort((a, b) =>
+        (b.last_published_at ?? "").localeCompare(a.last_published_at ?? ""),
+      )
+  }
+  return ordered
 }
 
 interface PublicationsDashboardProps {
@@ -64,22 +131,17 @@ function PublicationsShelf({
   const overview = usePublications()
   const stop = useStopSharing()
   const resume = useResumeSharing()
-  const [filter, setFilter] = useState<Filter>("all")
+  const [query, setQuery] = useState<Query>(EMPTY_QUERY)
 
   const notConnected = apiErrorCode(overview.error) === "publish_not_connected"
   const data = demo.active ? demo.overview : overview.data
   const publications = useMemo(
-    () => applyFilter(data?.publications ?? [], filter),
-    [data, filter],
+    () => applyQuery(data?.publications ?? [], query),
+    [data, query],
   )
 
   if (!demo.active && overview.isPending) {
-    return (
-      <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-        <Trans>Looking up your published books…</Trans>
-      </div>
-    )
+    return <PublicationsSkeleton />
   }
 
   if (!demo.active && notConnected) {
@@ -200,20 +262,71 @@ function PublicationsShelf({
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <SegmentedControl<Filter>
-                className="h-9 w-full max-w-xs"
-                value={filter}
-                onValueChange={setFilter}
-                options={[
-                  { value: "all", label: t`All` },
-                  { value: "live", label: t`Live` },
-                  { value: "stopped", label: t`Not shared` },
-                ]}
-              />
-              <span className="text-xs text-muted-foreground tabular-nums">
-                <Trans>Showing {publications.length} of {data.publications.length}</Trans>
-              </span>
+            <div className="flex flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <SegmentedControl<Filter>
+                  className="h-9 w-full max-w-xs"
+                  value={query.filter}
+                  onValueChange={(filter) => setQuery((current) => ({ ...current, filter }))}
+                  options={[
+                    { value: "all", label: t`All` },
+                    { value: "live", label: t`Live` },
+                    { value: "stopped", label: t`Not shared` },
+                  ]}
+                />
+
+                <Input
+                  type="search"
+                  value={query.search}
+                  onChange={(event) =>
+                    setQuery((current) => ({ ...current, search: event.target.value }))
+                  }
+                  placeholder={t`Search by title`}
+                  aria-label={t`Search published books`}
+                  prependIcon={<Search className="size-4" aria-hidden="true" />}
+                  wrapperClassName="h-9 min-w-48 flex-1"
+                  className="h-9 text-sm"
+                />
+
+                <Select
+                  value={query.sort}
+                  onValueChange={(sort) =>
+                    setQuery((current) => ({ ...current, sort: sort as Sort }))
+                  }
+                >
+                  <SelectTrigger className="h-9 w-44 text-xs" aria-label={t`Sort published books`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recent">{t`Recently updated`}</SelectItem>
+                    <SelectItem value="feedback">{t`Most open feedback`}</SelectItem>
+                    <SelectItem value="size">{t`Largest first`}</SelectItem>
+                    <SelectItem value="title">{t`Title A–Z`}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <Button
+                  type="button"
+                  variant={query.unresolvedOnly ? "secondary" : "ghost"}
+                  size="sm"
+                  aria-pressed={query.unresolvedOnly}
+                  onClick={() =>
+                    setQuery((current) => ({
+                      ...current,
+                      unresolvedOnly: !current.unresolvedOnly,
+                    }))
+                  }
+                  className="h-7 gap-1.5 text-xs"
+                >
+                  <MessagesSquare className="size-3.5" aria-hidden="true" />
+                  <Trans>Only with open feedback</Trans>
+                </Button>
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  <Trans>Showing {publications.length} of {data.publications.length}</Trans>
+                </span>
+              </div>
             </div>
 
             {publications.length === 0 ? (
@@ -222,7 +335,11 @@ function PublicationsShelf({
                 className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed bg-muted/30 py-12 text-center text-xs text-muted-foreground"
               >
                 <p>
-                  {filter === "live" ? (
+                  {query.search.trim().length > 0 ? (
+                    <Trans>No published book matches “{query.search}”.</Trans>
+                  ) : query.unresolvedOnly ? (
+                    <Trans>Nothing is waiting for you — every thread is resolved.</Trans>
+                  ) : query.filter === "live" ? (
                     <Trans>None of your links is open to readers right now.</Trans>
                   ) : (
                     <Trans>Every one of your links is live.</Trans>
@@ -233,9 +350,9 @@ function PublicationsShelf({
                   variant="ghost"
                   size="sm"
                   className="h-7 text-xs"
-                  onClick={() => setFilter("all")}
+                  onClick={() => setQuery(EMPTY_QUERY)}
                 >
-                  <Trans>Show all</Trans>
+                  <Trans>Clear the filters</Trans>
                 </Button>
               </div>
             ) : (
@@ -250,6 +367,7 @@ function PublicationsShelf({
                     publication={publication}
                     countsKnown={countsKnown}
                     busy={busyLabel === publication.book_label}
+                    readers={demo.active ? readersForDemoToken(publication.token) : undefined}
                     onStop={() => (demo.active ? undefined : stop.mutate(publication.book_label))}
                     onResume={() =>
                       demo.active ? undefined : resume.mutate(publication.book_label)

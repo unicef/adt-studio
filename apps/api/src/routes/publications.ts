@@ -9,6 +9,7 @@ import {
   BookLabel,
   BookPublishRequest,
   PUBLISH_AUTHOR_NAME_HEADER,
+  PublicationToken,
   PublicationUpdateRequest,
   PublishCommentCreateRequest,
   PublishCommentListQuery,
@@ -257,6 +258,46 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
 
     return c.json(overviewOf(entries.map(summaryFromWorker), true))
+  })
+
+  /** GET /publications/:token/readers — who joined this publication.
+   *
+   *  Keyed by token rather than by book label on purpose: the dashboard lists publications
+   *  whose book directory is no longer on this machine, and their readers are exactly the ones
+   *  the author has lost every other way of seeing. */
+  app.get("/publications/:token/readers", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return c.json({ error: "That is not a publication token", code: "not_published" }, 404)
+    }
+
+    const connection = store.read()
+    if (!connection) {
+      return failure(
+        c,
+        412,
+        "publish_not_connected",
+        "Connect a Cloudflare account to see who has joined",
+      )
+    }
+
+    try {
+      return c.json(await clientFor(connection).listReaders(token.data))
+    } catch (error) {
+      if (!isPublishWorkerError(error)) throw error
+      if (error.status === 404) {
+        return c.json(
+          { error: "That publication is not in this account", code: "not_published" },
+          404,
+        )
+      }
+      return failure(
+        c,
+        502,
+        "worker_unreachable",
+        "Your publishing service didn't answer — try again in a moment",
+      )
+    }
   })
 
   // GET /books/:label/publication — the local record merged with the worker's live state

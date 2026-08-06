@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { CommenterDisplayName } from "./commenter-name.js"
 
-export const PUBLISH_WORKER_VERSION = "0.7.0"
+export const PUBLISH_WORKER_VERSION = "0.8.0"
 
 /** R2's free allowance. Used only to give the dashboard's storage total a sense of scale —
  *  never to claim a usage number we did not measure ourselves. */
@@ -165,6 +165,32 @@ export const PublicationList = z.object({
   publications: z.array(PublicationListEntry),
 })
 export type PublicationList = z.infer<typeof PublicationList>
+
+/**
+ * One reader of a publication.
+ *
+ * A row exists for every person the worker minted a session for — which happens at exactly two
+ * doors: the access-code gate, which asks for a name on the way in, and the comment composer,
+ * which asks before the first comment. It is therefore **not** a visit log: somebody who opens
+ * an un-coded link, reads and leaves is not here, because nothing about them was ever recorded.
+ * Every screen showing this list has to phrase it as "readers who joined", never as "everyone
+ * who opened the link".
+ */
+export const PublicationReader = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+  joined_at: z.string().datetime(),
+  comment_count: z.number().int().min(0),
+  /** `null` for a reader who gave a name and never wrote anything. */
+  last_comment_at: z.string().datetime().nullable(),
+})
+export type PublicationReader = z.infer<typeof PublicationReader>
+
+export const PublicationReaderList = z.object({
+  readers: z.array(PublicationReader),
+})
+export type PublicationReaderList = z.infer<typeof PublicationReaderList>
 
 export const PublishWorkerHealth = z.object({
   ok: z.literal(true),

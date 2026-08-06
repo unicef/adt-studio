@@ -45,6 +45,8 @@ import type {
   CommenterSession,
   PublicationPageEntry,
   PublicationResponse,
+  PublicationReader,
+  PublicationReaderList,
   PublicationRoomTicketResponse,
   PublicationSummary,
   PublicationsOverview,
@@ -910,6 +912,8 @@ export type {
   CommenterSession,
   PublicationPageEntry,
   PublicationResponse,
+  PublicationReader,
+  PublicationReaderList,
   PublicationRoomTicketResponse,
   PublicationSummary,
   PublicationsOverview,
@@ -2174,6 +2178,11 @@ export const api = {
   /** Every publication in the connected Cloudflare account, merged with what this machine
    *  knows about each book. `412 publish_not_connected` when no account is connected. */
   getPublications: () => request<PublicationsOverview>("/publications"),
+
+  /** Who has joined one publication. Keyed by token, not by book label, so it still answers for
+   *  a book that is no longer on this machine. */
+  getPublicationReaders: (token: string) =>
+    request<PublicationReaderList>(`/publications/${token}/readers`),
 
   /** First publish: mints a token and uploads v1. Streams the four publish steps. */
   publishBook: (

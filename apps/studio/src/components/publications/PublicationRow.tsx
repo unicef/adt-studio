@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import {
   Check,
+  ChevronDown,
   Copy,
   FolderX,
   Loader2,
@@ -9,14 +10,21 @@ import {
   MessagesSquare,
   Play,
   RefreshCw,
+  Users,
 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { publicationStateAt, type PublicationSummary } from "@adt/types"
+import {
+  publicationStateAt,
+  type PublicationReader,
+  type PublicationSummary,
+} from "@adt/types"
 import { Button } from "@/components/ui/button"
 import { ExternalLinkButton } from "@/components/settings/publishing/ExternalLinkButton"
 import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
 import { cn } from "@/lib/utils"
 import { AccessCodeChip, PublicationStatusChip } from "./PublicationStatusChip"
+import { PublicationCover } from "./PublicationCover"
+import { PublicationReaders } from "./PublicationReaders"
 import { formatStorage } from "./format"
 
 const COPY_FEEDBACK_MS = 2500
@@ -74,6 +82,8 @@ export interface PublicationRowProps {
   /** Position in the list, used only to stagger the entrance. Capped, so a long shelf does not
    *  make the last row wait. */
   index: number
+  /** Handed straight to the readers panel instead of fetching. Only the demo shelf sets it. */
+  readers?: readonly PublicationReader[]
   onStop: () => void
   onResume: () => void
 }
@@ -83,12 +93,14 @@ export function PublicationRow({
   countsKnown,
   busy,
   index,
+  readers,
   onStop,
   onResume,
 }: PublicationRowProps) {
   const { t, i18n } = useLingui()
   const [copied, setCopied] = useState(false)
   const [copyFailed, setCopyFailed] = useState(false)
+  const [readersOpen, setReadersOpen] = useState(false)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(
@@ -131,6 +143,13 @@ export function PublicationRow({
         aria-labelledby={titleId}
         className="flex flex-col gap-3 p-4 mh:gap-2 mh:p-3 lg:flex-row lg:items-start lg:gap-4"
       >
+        <div className="flex min-w-0 flex-1 gap-3">
+        <PublicationCover
+          label={publication.book_label}
+          title={publication.title}
+          bookExists={publication.book_exists}
+        />
+
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <h3 id={titleId} className="truncate text-sm font-semibold leading-6">
@@ -233,6 +252,13 @@ export function PublicationRow({
               </span>
             ) : null}
           </span>
+
+          {readersOpen ? (
+            <div className="duration-200 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1">
+              <PublicationReaders token={publication.token} override={readers} />
+            </div>
+          ) : null}
+        </div>
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-1.5 lg:w-44 lg:flex-col lg:items-stretch lg:border-l lg:pl-4">
@@ -262,6 +288,25 @@ export function PublicationRow({
             <RefreshCw className="size-3.5" aria-hidden="true" />
             <Trans>Update site</Trans>
           </StepAction>
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-expanded={readersOpen}
+            onClick={() => setReadersOpen((open) => !open)}
+            className="h-8 justify-start gap-2 text-xs text-muted-foreground"
+          >
+            <Users className="size-3.5" aria-hidden="true" />
+            <Trans>Readers</Trans>
+            <ChevronDown
+              className={cn(
+                "ml-auto size-3.5 transition-transform duration-200 motion-reduce:transition-none",
+                readersOpen && "rotate-180",
+              )}
+              aria-hidden="true"
+            />
+          </Button>
 
           <Button
             type="button"

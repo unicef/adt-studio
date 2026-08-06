@@ -12,6 +12,7 @@ import {
   type PublicationCreateResponse,
   type PublicationDetail,
   type PublicationList,
+  type PublicationReaderList,
   type PublicationResponse,
   type PublicationVersionCreateResponse,
   type PublishWorkerHealth,
@@ -388,6 +389,24 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       url: shareUrl(c, token.data),
       has_access_code: record.accessCode !== null,
     }
+    return c.json(body)
+  })
+
+  /** Who has been through this publication's door — see `PublicationReader` for why that is a
+   *  shorter list than "who opened the link". Behind `mgmtAuth` like everything under `/api`:
+   *  reviewers can see each other's names on the comments they wrote, never the roster. */
+  app.get("/api/publications/:token/readers", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+
+    const store = resolveStore(c.env)
+    if (!(await store.findByToken(token.data))) {
+      return errorResponse(c, "not_found", 404)
+    }
+
+    const body: PublicationReaderList = { readers: await store.listReaders(token.data) }
     return c.json(body)
   })
 

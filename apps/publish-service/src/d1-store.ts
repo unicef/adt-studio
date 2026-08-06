@@ -117,6 +117,36 @@ const PUBLICATION_LIST_SQL = `
   ) c ON c.token = p.token
   ORDER BY p.created_at DESC, p.token ASC`
 
+interface ReaderRow {
+  id: string
+  name: string
+  color: string
+  created_at: string
+  comment_count: number
+  last_comment_at: string | null
+}
+
+/**
+ * The author's reader list, one statement. Deleted comments are excluded so a reader whose only
+ * message was withdrawn still appears — they did join — with a count of zero, which is the
+ * truth about them rather than a row silently dropped.
+ *
+ * Newest first: the interesting reader is the one who just arrived.
+ */
+const READER_LIST_SQL = `
+  SELECT s.id, s.name, s.color, s.created_at,
+         COALESCE(c.comment_count, 0) AS comment_count,
+         c.last_comment_at AS last_comment_at
+  FROM sessions s
+  LEFT JOIN (
+    SELECT session_id,
+           COUNT(*) AS comment_count,
+           MAX(created_at) AS last_comment_at
+    FROM comments WHERE deleted_at IS NULL GROUP BY session_id
+  ) c ON c.session_id = s.id
+  WHERE s.token = ? AND s.is_author = 0
+  ORDER BY s.created_at DESC, s.id ASC`
+
 function toSession(row: SessionRow): StoredCommenterSession {
   return {
     id: row.id,
@@ -423,6 +453,18 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
         .bind(token)
         .all<SessionRow>()
       return (result.results ?? []).map(toSession)
+    },
+
+    async listReaders(token) {
+      const result = await db.prepare(READER_LIST_SQL).bind(token).all<ReaderRow>()
+      return (result.results ?? []).map((row) => ({
+        id: row.id,
+        name: row.name,
+        color: row.color,
+        joined_at: row.created_at,
+        comment_count: row.comment_count,
+        last_comment_at: row.last_comment_at,
+      }))
     },
 
     async renameSession(id, name) {

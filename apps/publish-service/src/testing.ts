@@ -90,6 +90,9 @@ export function createMemoryPublicationStore(): PublicationStore {
   const snapshotBytes = new Map<string, number | null>()
   const sessions = new Map<string, StoredCommenterSession>()
   const comments = new Map<string, PublishComment>()
+  /** `StoredCommenterSession` deliberately carries no timestamp — only the reader list wants
+   *  one — so the fake keeps it beside the map rather than widening the shared shape. */
+  const sessionCreatedAt = new Map<string, string>()
 
   const sumSnapshotBytes = (token: string): number | null => {
     const measured = (versions.get(token) ?? [])
@@ -240,6 +243,7 @@ export function createMemoryPublicationStore(): PublicationStore {
         pin: input.pin ?? null,
       }
       sessions.set(session.id, session)
+      sessionCreatedAt.set(session.id, input.createdAt)
       return publicSession(session)
     },
 
@@ -274,6 +278,28 @@ export function createMemoryPublicationStore(): PublicationStore {
       return [...sessions.values()]
         .filter((session) => session.token === token && !session.is_author)
         .map((session) => ({ ...session }))
+    },
+
+    async listReaders(token) {
+      const written = [...comments.values()].filter((comment) => comment.deleted_at === null)
+      return [...sessions.values()]
+        .filter((session) => session.token === token && !session.is_author)
+        .map((session) => {
+          const mine = written.filter((comment) => comment.session_id === session.id)
+          return {
+            id: session.id,
+            name: session.name,
+            color: session.color,
+            joined_at: sessionCreatedAt.get(session.id) ?? "1970-01-01T00:00:00.000Z",
+            comment_count: mine.length,
+            last_comment_at: mine.reduce<string | null>(
+              (latest, comment) =>
+                latest === null || comment.created_at > latest ? comment.created_at : latest,
+              null,
+            ),
+          }
+        })
+        .sort((a, b) => b.joined_at.localeCompare(a.joined_at) || a.id.localeCompare(b.id))
     },
 
     async renameSession(id, name) {

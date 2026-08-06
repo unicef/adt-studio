@@ -1,6 +1,11 @@
 /* eslint-disable lingui/no-unlocalized-strings -- invented book titles, dev-only fixtures */
 import { useMemo, useState } from "react"
-import type { PublicationSummary, PublicationsOverview, PublicationsTotals } from "@adt/types"
+import type {
+  PublicationReader,
+  PublicationSummary,
+  PublicationsOverview,
+  PublicationsTotals,
+} from "@adt/types"
 
 /**
  * A shelf full of invented books, so the list can be looked at at a realistic size without
@@ -233,6 +238,49 @@ function totalsOf(publications: PublicationSummary[]): PublicationsTotals {
       0,
     ),
   }
+}
+
+const DEMO_READER_NAMES = [
+  "Ana Beatriz",
+  "Mr. Okonkwo",
+  "Sofia",
+  "Turma 6B (tablet da sala)",
+  "Jean-Pierre",
+  "Arta",
+  "Coordenação pedagógica",
+  "Lucas M.",
+]
+
+const DEMO_READER_COLORS = [
+  "#e5484d",
+  "#f76808",
+  "#46a758",
+  "#0091ff",
+  "#8e4ec6",
+  "#12a594",
+  "#e93d82",
+  "#3e63dd",
+]
+
+/** A roster sized from the publication's own comment count, so a book with 214 comments shows a
+ *  crowd and a freshly published one shows nobody — including the empty state, which is the
+ *  case the panel's wording exists for. */
+export function readersForDemoToken(demoToken: string): readonly PublicationReader[] {
+  const book = DEMO_BOOKS.find((entry) => token(entry.label) === demoToken)
+  if (!book) return []
+  const count = book.comments === 0 ? 0 : Math.min(DEMO_READER_NAMES.length, 1 + book.comments / 12)
+
+  return Array.from({ length: Math.floor(count) }, (_, index) => {
+    const wrote = Math.max(0, Math.round(book.comments / Math.max(1, Math.floor(count))) - index)
+    return {
+      id: `${demoToken}-reader-${index}`,
+      name: DEMO_READER_NAMES[index] as string,
+      color: DEMO_READER_COLORS[index] as string,
+      joined_at: daysAgo(book.updatedDaysAgo + index * 2),
+      comment_count: wrote,
+      last_comment_at: wrote === 0 ? null : daysAgo(book.updatedDaysAgo + index),
+    }
+  })
 }
 
 export interface PublicationsDemo {

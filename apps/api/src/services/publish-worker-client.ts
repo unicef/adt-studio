@@ -3,6 +3,7 @@ import {
   PublicationCreateResponse,
   PublicationDetail,
   PublicationList,
+  PublicationReaderList,
   PublicationResponse,
   PublicationRoomTicketResponse,
   PublicationVersionCreateResponse,
@@ -69,6 +70,9 @@ export interface PublishWorkerClient {
   /** Every publication in the connected account (§4.18) — what the Publications dashboard lists.
    *  One request for the whole screen; the worker does the aggregating. */
   listPublications(): Promise<PublicationList>
+  /** The people the worker has a session for on this publication — those who typed a name at
+   *  the access gate or before their first comment. Not a visit log; see `PublicationReader`. */
+  listReaders(token: string): Promise<PublicationReaderList>
   listComments(
     token: string,
     query: PublishCommentListQuery,
@@ -266,6 +270,14 @@ export function createPublishWorkerClient({
         { method: "GET" },
         PublicationList,
       )) as PublicationList
+    },
+
+    async listReaders(token) {
+      return (await request(
+        `/api/publications/${token}/readers`,
+        { method: "GET" },
+        PublicationReaderList,
+      )) as PublicationReaderList
     },
 
     async getPublication(token) {

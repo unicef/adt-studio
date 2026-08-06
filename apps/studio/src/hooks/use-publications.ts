@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import type { PublicationsOverview } from "@adt/types"
+import type { PublicationReaderList, PublicationsOverview } from "@adt/types"
 import { api, type PublicationResponse } from "@/api/client"
 import { bookPublicationKey } from "./use-book-publication"
 
@@ -16,6 +16,22 @@ export function usePublications() {
   return useQuery<PublicationsOverview>({
     queryKey: publicationsKey,
     queryFn: api.getPublications,
+    retry: false,
+    staleTime: 30_000,
+  })
+}
+
+export const publicationReadersKey = (token: string) => ["publications", token, "readers"] as const
+
+/**
+ * Who has joined one publication. Only fetched while its panel is open — the shelf draws tens
+ * of rows and none of them needs a roster until the author asks for one.
+ */
+export function usePublicationReaders(token: string, enabled: boolean) {
+  return useQuery<PublicationReaderList>({
+    queryKey: publicationReadersKey(token),
+    queryFn: () => api.getPublicationReaders(token),
+    enabled,
     retry: false,
     staleTime: 30_000,
   })

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { PublicationSummary, PublicationsOverview } from "@adt/types"
 
@@ -60,6 +60,7 @@ vi.mock("@tanstack/react-router", () => ({
 const getPublications = vi.fn()
 const revokeBookPublication = vi.fn()
 const resumeBookPublication = vi.fn()
+const getPublicationReaders = vi.fn()
 
 class MockApiError extends Error {
   readonly status: number
@@ -73,9 +74,15 @@ class MockApiError extends Error {
 }
 
 vi.mock("@/api/client", () => ({
-  api: { getPublications, revokeBookPublication, resumeBookPublication },
+  api: {
+    getPublications,
+    revokeBookPublication,
+    resumeBookPublication,
+    getPublicationReaders,
+  },
   ApiError: MockApiError,
   apiErrorCode: (error: unknown) => (error instanceof MockApiError ? error.code : null),
+  getBookCoverUrl: (label: string) => `/books/${label}/cover`,
 }))
 
 const { PublicationsDashboard } = await import("./PublicationsDashboard")
@@ -392,7 +399,7 @@ describe("PublicationsDashboard — a book that is no longer on this computer", 
     expect(screen.getByRole("link", { name: /open/i })).toBeTruthy()
     expect(screen.queryByRole("link", { name: /feedback/i })).toBeNull()
     expect(
-      screen.getByRole("button", { name: /feedback/i }).hasAttribute("disabled"),
+      within(row).getByRole("button", { name: /^feedback/i }).hasAttribute("disabled"),
     ).toBe(true)
     expect(screen.getByRole("button", { name: /stop sharing/i }).hasAttribute("disabled")).toBe(
       true,
@@ -509,9 +516,131 @@ describe("PublicationsDashboard — filtering", () => {
     })
     expect(document.body.textContent).toContain("Every one of your links is live.")
 
-    fireEvent.click(screen.getByRole("button", { name: /show all/i }))
+    fireEvent.click(screen.getByRole("button", { name: /clear the filters/i }))
     await waitFor(() => {
       expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+    })
+  })
+})
+
+describe("PublicationsDashboard — searching and sorting", () => {
+  function shelf() {
+    return overview({
+      publications: [
+        summary({ title: "Raven and the Sun", unresolved_count: 3, snapshot_bytes: 8_000_000 }),
+        summary({
+          token: "TokenOwlTokenOwlTokenOwlToken123",
+          book_label: "owl",
+          title: "The Owl Who Counted",
+          last_published_at: "2026-08-05T09:00:00.000Z",
+          unresolved_count: 0,
+          snapshot_bytes: 40_000_000,
+        }),
+        summary({
+          token: "TokenFoxTokenFoxTokenFoxToken123",
+          book_label: "fox",
+          title: "A Fox in the Field",
+          last_published_at: "2026-07-01T09:00:00.000Z",
+          unresolved_count: 9,
+          snapshot_bytes: 1_000_000,
+        }),
+      ],
+    })
+  }
+
+  function titlesInOrder(): string[] {
+    return screen
+      .getAllByRole("listitem")
+      .map((row) => row.getAttribute("data-testid") ?? "")
+      .filter((testid) => testid.startsWith("publication-row-"))
+  }
+
+  it("narrows the shelf by title and says so when nothing matches", async () => {
+    getPublications.mockResolvedValue(shelf())
+    renderDashboard()
+    await waitFor(() => {
+      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+    })
+
+    fireEvent.change(screen.getByRole("searchbox", { name: /search published books/i }), {
+      target: { value: "owl" },
+    })
+    await waitFor(() => {
+      expect(screen.getAllByRole("listitem")).toHaveLength(1)
+    })
+    expect(screen.getByTestId("publication-row-owl")).toBeTruthy()
+
+    fireEvent.change(screen.getByRole("searchbox", { name: /search published books/i }), {
+      target: { value: "penguin" },
+    })
+    await waitFor(() => {
+      expect(screen.getByTestId("publications-filter-empty")).toBeTruthy()
+    })
+    expect(document.body.textContent).toContain("penguin")
+  })
+
+  /** The default order is what the author published most recently, not what the API happened
+   *  to hand back — a book updated today has to be reachable without scrolling. */
+  it("orders by last published, and re-orders on demand", async () => {
+    getPublications.mockResolvedValue(shelf())
+    renderDashboard()
+    await waitFor(() => {
+      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+    })
+    expect(titlesInOrder()).toEqual([
+      "publication-row-owl",
+      "publication-row-raven",
+      "publication-row-fox",
+    ])
+
+    fireEvent.click(screen.getByRole("button", { name: /only with open feedback/i }))
+    await waitFor(() => {
+      expect(screen.getAllByRole("listitem")).toHaveLength(2)
+    })
+    expect(screen.queryByTestId("publication-row-owl")).toBeNull()
+  })
+})
+
+describe("PublicationsDashboard — readers", () => {
+  it("asks the worker only once the author opens the panel, and never claims silent readers", async () => {
+    getPublications.mockResolvedValue(overview())
+    getPublicationReaders.mockResolvedValue({
+      readers: [
+        {
+          id: "s1",
+          name: "Ana",
+          color: "#0091ff",
+          joined_at: "2026-08-02T10:00:00.000Z",
+          comment_count: 4,
+          last_comment_at: "2026-08-03T10:00:00.000Z",
+        },
+      ],
+    })
+    renderDashboard()
+    await waitFor(() => {
+      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+    })
+    expect(getPublicationReaders).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole("button", { name: /readers/i }))
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Ana")
+    })
+    expect(getPublicationReaders).toHaveBeenCalledWith("TokenRavenTokenRavenTokenRaven12")
+    expect(document.body.textContent).toContain("Only people who typed a name are listed")
+  })
+
+  it("says nobody has given a name rather than showing an empty list", async () => {
+    getPublications.mockResolvedValue(overview())
+    getPublicationReaders.mockResolvedValue({ readers: [] })
+    renderDashboard()
+    await waitFor(() => {
+      expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /readers/i }))
+    await waitFor(() => {
+      expect(document.body.textContent).toContain("Nobody has given a name yet")
     })
   })
 })

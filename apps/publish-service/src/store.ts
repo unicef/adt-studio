@@ -3,6 +3,7 @@ import type {
   CommenterSession,
   Publication,
   PublicationPageEntry,
+  PublicationReader,
   PublicationVersion,
   PublishComment,
 } from "@adt/types"
@@ -128,6 +129,9 @@ export interface PublicationStore {
   /** Every commenter (`is_author = 0`) row of a publication, so name matching can run on the
    *  Unicode-aware key `nameKey()` builds instead of SQLite's ASCII-only `lower()`. */
   listCommenterSessions(token: string): Promise<StoredCommenterSession[]>
+  /** The same rows as `listCommenterSessions`, joined to what each one wrote, for the author's
+   *  reader list. Separate because it costs a join the name-matching path has no use for. */
+  listReaders(token: string): Promise<PublicationReader[]>
   renameSession(id: string, name: string): Promise<CommenterSession | null>
   setSessionPin(id: string, pin: string): Promise<CommenterSession | null>
   countCommenterSessions(token: string): Promise<number>
@@ -196,6 +200,9 @@ export const emptyPublicationStore: PublicationStore = {
     return null
   },
   async listCommenterSessions() {
+    return []
+  },
+  async listReaders() {
     return []
   },
   async renameSession() {

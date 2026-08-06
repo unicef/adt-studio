@@ -6,6 +6,8 @@ import {
   type CommenterSessionResponse,
   type PublicationList,
   type PublicationListEntry,
+  type PublicationReader,
+  type PublicationReaderList,
   type PublishComment,
   type PublishCommentResponse,
 } from "@adt/types"
@@ -324,5 +326,76 @@ describe("GET /api/publications", () => {
     expect(entryFor(list, noisy).unresolved_count).toBe(2)
     expect(entryFor(list, quiet).comment_count).toBe(0)
     expect(entryFor(list, quiet).unresolved_count).toBe(0)
+  })
+})
+
+/**
+ * The roster behind the dashboard's Readers panel. Real D1 again: the whole route is the join
+ * between `sessions` and `comments`, and the two facts worth proving — a reader with no
+ * surviving comment still appears, and a deleted comment stops being counted — are exactly the
+ * ones a fake store would decide by fiat.
+ */
+describe("GET /api/publications/:token/readers", () => {
+  async function readers(token: string): Promise<PublicationReader[]> {
+    const res = await app().request(
+      `${BASE}/api/publications/${token}/readers`,
+      { headers: { Authorization: `Bearer ${SECRET}` } },
+      env,
+    )
+    expect(res.status).toBe(200)
+    return ((await res.json()) as PublicationReaderList).readers
+  }
+
+  it("lists everyone who gave a name, with what each of them wrote", async () => {
+    const token = await publish()
+    const ana = await reviewer(token, "Ana")
+    const luis = await reviewer(token, "Luís")
+
+    await comment(token, ana, { page_section_id: "pg001_sec001", body: "the cover feels crowded" })
+    await comment(token, ana, { page_section_id: "pg001_sec001", body: "and the title is small" })
+    await comment(token, luis, { page_section_id: "pg001_sec001", body: "page two is lovely" })
+
+    const list = await readers(token)
+    expect(list.map((entry) => entry.name).sort()).toEqual(["Ana", "Luís"])
+
+    const anaEntry = list.find((entry) => entry.name === "Ana")
+    expect(anaEntry?.comment_count).toBe(2)
+    expect(anaEntry?.last_comment_at).not.toBeNull()
+    expect(anaEntry?.color).toMatch(/^#[0-9a-f]{6}$/i)
+  })
+
+  /** A reader who joined and never wrote is the whole reason the panel exists — they are the
+   *  only trace the worker keeps of somebody who just read. */
+  it("keeps a reader who never commented, and drops the count of a deleted comment", async () => {
+    const token = await publish()
+    const silent = await reviewer(token, "Quiet One")
+    void silent
+    const noisy = await reviewer(token, "Noisy One")
+    const written = await comment(token, noisy, {
+      page_section_id: "pg001_sec001",
+      body: "this one goes away",
+    })
+
+    await deleteComment(token, written.id)
+
+    const list = await readers(token)
+    expect(list.map((entry) => entry.name).sort()).toEqual(["Noisy One", "Quiet One"])
+    expect(list.every((entry) => entry.comment_count === 0)).toBe(true)
+    expect(list.every((entry) => entry.last_comment_at === null)).toBe(true)
+  })
+
+  it("answers 404 for a token this account never published", async () => {
+    const res = await app().request(
+      `${BASE}/api/publications/absentAbsentAbsentAbsent12/readers`,
+      { headers: { Authorization: `Bearer ${SECRET}` } },
+      env,
+    )
+    expect(res.status).toBe(404)
+  })
+
+  it("refuses without the management secret", async () => {
+    const token = await publish()
+    const res = await app().request(`${BASE}/api/publications/${token}/readers`, {}, env)
+    expect(res.status).toBe(401)
   })
 })

@@ -407,6 +407,8 @@ export {
   PublicationDetail,
   PublicationListEntry,
   PublicationList,
+  PublicationReader,
+  PublicationReaderList,
   PublicationSummary,
   PublicationsTotals,
   PublicationsOverview,
