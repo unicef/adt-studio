@@ -3478,6 +3478,9 @@ msgstr "Exporte o livro embalado e artefatos relacionados para entrega."
 msgid "Export to a reader"
 msgstr "Exportar para um leitor"
 
+msgid "Export Tools"
+msgstr "Ferramentas de exportação"
+
 msgid "Exported"
 msgstr "Exportado"
 
@@ -4420,6 +4423,9 @@ msgstr "Incluir na leitura em voz alta"
 
 msgid "Include in render"
 msgstr "Incluir na renderização"
+
+msgid "Include the tools/ and regen/ folders so read-aloud audio can be regenerated after export"
+msgstr "Inclua as pastas tools/ e regen/ para que o áudio de leitura em voz alta possa ser regenerado após a exportação"
 
 msgid "Includes:"
 msgstr "Inclui:"
@@ -9383,6 +9389,9 @@ msgstr "Tente o problema prático"
 
 msgid "Try this screen again"
 msgstr "Tente esta tela novamente"
+
+msgid "TTS regeneration tool"
+msgstr "Ferramenta de regeneração de TTS"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Ajuste como o texto é simplificado nas configurações do Prompt de Leitura Fácil. Após a execução, cada bloco fica editável aqui na etapa de Leitura Fácil."

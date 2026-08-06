@@ -49,6 +49,17 @@ import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
+import {
+  loadSpeechInstructions,
+  loadVoicesConfig,
+  resolveInstructions,
+  resolveProviderForLanguage,
+  resolveSpeechFormat,
+  resolveSpeechModel,
+  resolveVoice,
+} from "../speech.js"
+import { supportsPageBatchedSpeech } from "../speech-batch.js"
+import { emitRegenAssets, type RegenLanguageInput } from "../regen/regen-emit.js"
 import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getRenderSectioning } from "../render-sectioning.js"
@@ -66,9 +77,15 @@ export interface PackageAdtWebOptions {
   bundleVersion?: string
   applyBodyBackground?: boolean
   speechConfig?: SpeechConfig
+  /** Config dir (holds voices.yaml / speech_instructions.yaml). Used to resolve
+   *  the per-language speech settings shipped for standalone TTS regeneration.
+   *  When absent, regeneration assets fall back to empty instructions. */
+  configDir?: string
   features?: {
     glossary?: boolean
     readAloud?: boolean
+    /** Include the standalone TTS regeneration tool and manifest. Defaults to true. */
+    ttsRegeneration?: boolean
     quizzes?: boolean
     signLanguage?: boolean
   }
@@ -173,7 +190,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 4
+const PACKAGING_FORMAT_VERSION = 5
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -270,6 +287,7 @@ export async function packageAdtWeb(
     bundleVersion = "1",
     applyBodyBackground,
     speechConfig,
+    configDir,
     features,
     defaultSettings,
     lockedSettings,
@@ -621,6 +639,17 @@ export async function packageAdtWeb(
   )
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
 
+  // Per-language speech settings + entries collected for the standalone TTS
+  // regenerator shipped in the bundle (tools/regenerate-tts.mjs).
+  const speechInstructionsMap = configDir ? loadSpeechInstructions(configDir) : {}
+  const voiceMaps = configDir ? loadVoicesConfig(configDir) : {}
+  const providerConfigs = speechConfig?.providers ?? {}
+  const providerRouting = {
+    providers: providerConfigs,
+    defaultProvider: speechConfig?.default_provider ?? "openai",
+  }
+  const regenLanguages: RegenLanguageInput[] = []
+
   for (const lang of outputLanguages) {
     const localeDir = path.join(contentDir, "i18n", lang)
     fs.mkdirSync(localeDir, { recursive: true })
@@ -679,6 +708,67 @@ export async function packageAdtWeb(
             fs.copyFileSync(resolvedSrcFile, destFile)
             audioMap[entry.textId] = entry.fileName
           }
+        }
+      }
+
+      // Collect inputs for the standalone TTS regenerator. Only published,
+      // non-excluded entries; manual (uploaded) entries are recorded so the
+      // script skips them but can warn when their text was edited.
+      if (ttsData?.entries && ttsData.entries.length > 0) {
+        const published = ttsData.entries.filter(
+          (e) => audioMap[e.textId] !== undefined && !isTtsExcluded(e.textId, speechConfig),
+        )
+        if (published.length > 0) {
+          const generatable = published.filter((e) => e.provider !== "manual")
+          const manual = published.filter((e) => e.provider === "manual")
+          // ttsData can contain per-entry fallbacks (for example a Gemini item
+          // generated with OpenAI). Keep those actual settings in each entry,
+          // while the editable language config reflects the configured default.
+          const provider = resolveProviderForLanguage(lang, providerRouting)
+          const providerEntry = generatable.find((e) => (e.provider ?? "openai") === provider)
+          const model = providerConfigs[provider]?.model?.trim()
+            || providerEntry?.model
+            || resolveSpeechModel(provider, providerConfigs, speechConfig?.model)
+          const instructions = provider === "openai" || provider === "gemini"
+            ? resolveInstructions(lang, speechInstructionsMap)
+            : ""
+          regenLanguages.push({
+            lang,
+            provider,
+            model,
+            voice: resolveVoice(provider, lang, voiceMaps, speechConfig?.voice),
+            instructions,
+            format: resolveSpeechFormat(provider, speechConfig?.format),
+            wordHighlighting: highlightEnabled,
+            batchByPage:
+              provider === "gemini" &&
+              speechConfig?.batch_by_page === true &&
+              supportsPageBatchedSpeech(lang),
+            geminiTemperature: speechConfig?.temperature,
+            geminiSeed: speechConfig?.seed,
+            entries: generatable.map((e) => {
+              const entryProvider = e.provider ?? "openai"
+              return {
+                textId: e.textId,
+                fileName: e.fileName,
+                text: textsMap[e.textId] ?? "",
+                provider: entryProvider,
+                model: e.model,
+                voice: e.voice,
+                instructions:
+                  entryProvider === "openai" || entryProvider === "gemini"
+                    ? resolveInstructions(lang, speechInstructionsMap)
+                    : "",
+                format:
+                  path.extname(e.fileName).slice(1).toLowerCase()
+                  || resolveSpeechFormat(entryProvider, speechConfig?.format),
+              }
+            })
+              .filter((e) => e.text.trim().length > 0),
+            manualTextIds: manual.map((e) => e.textId),
+            manualTexts: Object.fromEntries(manual.map((e) => [e.textId, textsMap[e.textId] ?? ""])),
+            manualFiles: Object.fromEntries(manual.map((e) => [e.textId, e.fileName])),
+          })
         }
       }
     }
@@ -769,6 +859,25 @@ export async function packageAdtWeb(
       )
       writeJson(path.join(localeDir, "glossary.json"), glossaryJson)
     }
+  }
+
+  // ------------------------------------------------------------------
+  // Standalone TTS regeneration assets (regen/ + tools/regenerate-tts.mjs)
+  // ------------------------------------------------------------------
+  // Lets a user re-record edited text offline without ADT Studio. No-ops when
+  // nothing is regeneratable (no TTS, or all audio manually uploaded).
+  if (
+    features?.readAloud !== false &&
+    features?.ttsRegeneration !== false
+  ) {
+    emitRegenAssets({
+      adtDir,
+      languages: regenLanguages,
+      exclude: {
+        categories: speechConfig?.excluded_categories ?? [],
+        textIds: speechConfig?.excluded_text_ids ?? [],
+      },
+    })
   }
 
   // ------------------------------------------------------------------
@@ -2358,12 +2467,24 @@ async function renderAgentsMd(
 // SCORM + Offline support generators
 // ---------------------------------------------------------------------------
 
+/** Fences around the offline preloader's inlined payload, so post-packaging
+ *  tooling can swap the snapshot without regenerating the whole script. */
+export const OFFLINE_INLINE_BEGIN = "/*ADT_INLINE_BEGIN*/"
+export const OFFLINE_INLINE_END = "/*ADT_INLINE_END*/"
+
 /**
  * Generate `assets/offline-preloader.js` — inlines all JSON/HTML files that
  * the ADT bundle fetches at startup and monkey-patches `window.fetch` to
  * serve them from memory. This allows the ADT to work when opened via
- * `file://` (double-click). On HTTP/HTTPS the patch falls through to real
- * `fetch()`, so it's transparent.
+ * `file://` (double-click), where `fetch()` cannot read sibling files at all.
+ * The patch serves an inlined file whenever the URL matches, on every protocol;
+ * anything not inlined falls through to the real `fetch()`.
+ *
+ * Because this snapshot wins over the files on disk, anything that edits the
+ * bundle after packaging has to update the snapshot too. The inlined payload is
+ * fenced by {@link OFFLINE_INLINE_BEGIN}/{@link OFFLINE_INLINE_END} so it can be
+ * located and replaced without re-running packaging — `tools/regenerate-tts.mjs`
+ * does exactly that after it rewrites `texts.json`/`audios.json`/timecodes.
  */
 function generateOfflinePreloader(
   adtDir: string,
@@ -2430,7 +2551,7 @@ function generateOfflinePreloader(
 
   const js = `// offline-preloader.js — auto-generated, do not edit by hand
 (function () {
-  var INLINE = ${JSON.stringify(inline)};
+  var INLINE = ${OFFLINE_INLINE_BEGIN}${JSON.stringify(inline)}${OFFLINE_INLINE_END};
   var BASE_DIR = (function () {
     var href = location.href.split("?")[0].split("#")[0];
     return href.slice(0, href.lastIndexOf("/") + 1);
@@ -2742,11 +2863,20 @@ function pickDefaultLanguage(
 }
 
 /**
- * Files in the ADT `adt/` package that must not ship in a reader-ready export
- * (EPUB/WebPub): the SCORM package manifest and the repo's AGENTS.md. Pass as
- * the `skip` set when copying `adt/` into an export directory.
+ * Entries in the ADT `adt/` package that must not ship in a reader-ready export
+ * (EPUB/WebPub): the SCORM package manifest, the repo's AGENTS.md, and the
+ * standalone TTS regeneration tooling (`tools/`, `regen/`) — those only make
+ * sense in the standalone ADT folder, and inside an EPUB/WebPub they would just
+ * be dead weight listed in the OPF / `resources` manifest. Pass as the `skip`
+ * set when copying `adt/` into an export directory; `copyDirRecursive` applies
+ * it at the top level, which is where all of these live.
  */
-export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md"])
+export const NON_READER_FILES = new Set([
+  "imsmanifest.xml",
+  "AGENTS.md",
+  "tools",
+  "regen",
+])
 
 /**
  * File-extension → MIME type for the resources listed in an export manifest

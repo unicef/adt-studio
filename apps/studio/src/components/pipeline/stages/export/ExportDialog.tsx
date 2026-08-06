@@ -16,6 +16,7 @@ import {
   ChevronUp,
   Database,
   FolderArchive,
+  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -931,6 +932,35 @@ export function ExportDialog({
                     </div>
                   </div>
                 )}
+
+              {selectedFormat === "adt" && availableFeatures.readAloud && (
+                <div className="space-y-2">
+                  <h4 className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <Trans>Export Tools</Trans>
+                  </h4>
+                  <FeatureToggleRow
+                    icon={Wrench}
+                    label={<Trans>TTS regeneration tool</Trans>}
+                    description={
+                      <Trans>
+                        Include the tools/ and regen/ folders so read-aloud audio
+                        can be regenerated after export
+                      </Trans>
+                    }
+                    textColor="text-indigo-600"
+                    bgLight="bg-indigo-50"
+                    borderColor="border-indigo-200"
+                    checked={
+                      featureToggles.ttsRegeneration &&
+                      featureToggles.readAloud
+                    }
+                    onCheckedChange={(v) =>
+                      onFeatureToggleChange("ttsRegeneration", v)
+                    }
+                    disabled={isPreparing || !featureToggles.readAloud}
+                  />
+                </div>
+              )}
 
               {selectedFormat !== "project" && configLanguages.length > 1 && (
                 <LanguageOrderSection

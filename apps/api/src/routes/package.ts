@@ -267,6 +267,9 @@ async function runPackaging(
       bundleVersion,
       applyBodyBackground: config.apply_body_background,
       speechConfig: config.speech,
+      configDir: configPath
+        ? path.join(path.dirname(configPath), "config")
+        : path.resolve(process.cwd(), "config"),
       fixedLayout: isFixedLayoutBook(config),
       reflowableFont: config.reflowable_font,
       quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,

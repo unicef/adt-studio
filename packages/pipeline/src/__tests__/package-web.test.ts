@@ -16,6 +16,8 @@ import {
   convertLatexToMathml,
   convertLatexString,
   containsMathContent,
+  OFFLINE_INLINE_BEGIN,
+  OFFLINE_INLINE_END,
 } from "../packaging/web.js"
 import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
 import { deriveQuizPalette } from "../quiz-palette.js"
@@ -603,6 +605,25 @@ describe("packageAdtWeb", () => {
     const preloader = fs.readFileSync(preloaderPath, "utf-8")
     expect(preloader).toContain("window.fetch")
     expect(preloader).toContain("INLINE")
+    // The inlined payload is fenced so tools/regenerate-tts.mjs can refresh the
+    // snapshot after the bundle's content JSON is edited — without this the
+    // reader would keep serving the pre-edit text and audio mappings.
+    const inlineStart = preloader.indexOf(OFFLINE_INLINE_BEGIN)
+    const inlineEnd = preloader.indexOf(OFFLINE_INLINE_END)
+    expect(inlineStart).toBeGreaterThan(-1)
+    expect(inlineEnd).toBeGreaterThan(inlineStart)
+    const inlined = JSON.parse(
+      preloader.slice(inlineStart + OFFLINE_INLINE_BEGIN.length, inlineEnd),
+    ) as Record<string, unknown>
+    // Exact key spelling matters: the regenerator refreshes these by name, and
+    // a key it doesn't recognise would silently leave a stale snapshot behind.
+    expect(Object.keys(inlined)).toEqual(
+      expect.arrayContaining([
+        "./content/i18n/fr/texts.json",
+        "./content/i18n/fr/audios.json",
+        "./content/i18n/fr/timecode/timecode_output.json",
+      ]),
+    )
 
     // Local bundle generated (no export statement)
     const localBundlePath = path.join(bookDir, "adt", "assets", "base.bundle.local.js")
@@ -920,6 +941,115 @@ describe("packageAdtWeb", () => {
       "utf-8",
     )
     expect(preloader).toContain("timecode/timecode_output.json")
+  })
+
+  it("ships configured language defaults while preserving per-entry TTS fallbacks", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    fs.writeFileSync(path.join(audioDir, "pg001_fallback.wav"), "openai fallback")
+    fs.writeFileSync(path.join(audioDir, "pg001_gemini.wav"), "gemini audio")
+
+    const storage = createMockStorage(
+      [{ pageId: "pg001", pageNumber: 1, text: "Page one" }],
+      {
+        "web-rendering": {
+          pg001: {
+            sections: [{
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: '<p data-id="pg001_fallback">Fallback</p><p data-id="pg001_gemini">Gemini</p>',
+            }],
+          },
+        },
+        "page-sectioning": {
+          pg001: {
+            reasoning: "ok",
+            sections: [{
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            }],
+          },
+        },
+        "tts": {
+          en: {
+            entries: [
+              {
+                textId: "pg001_fallback", language: "en", fileName: "pg001_fallback.wav",
+                voice: "alloy", model: "gpt-4o-mini-tts", provider: "openai", cached: false,
+              },
+              {
+                textId: "pg001_gemini", language: "en", fileName: "pg001_gemini.wav",
+                voice: "Kore", model: "gemini-2.5-flash-preview-tts", provider: "gemini", cached: false,
+              },
+            ],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      },
+    )
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      speechConfig: {
+        default_provider: "gemini",
+        providers: {
+          gemini: { model: "gemini-2.5-flash-preview-tts", languages: ["en"] },
+        },
+      },
+    })
+
+    const config = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "tools", "tts.config.json"), "utf-8"),
+    ) as { languages: { en: { provider: string; model: string; voice: string } } }
+    expect(config.languages.en).toMatchObject({
+      provider: "gemini",
+      model: "gemini-2.5-flash-preview-tts",
+      voice: "Kore",
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "regen", "manifest.json"), "utf-8"),
+    ) as {
+      languages: {
+        en: {
+          defaults: { provider: string }
+          entrySettings: Record<string, { provider: string } | undefined>
+        }
+      }
+    }
+    // The OpenAI fallback clip differs from the language default, so its
+    // settings are recorded per entry; the Gemini clip matches `defaults` and
+    // is omitted rather than duplicating it.
+    expect(manifest.languages.en.defaults.provider).toBe("gemini")
+    expect(manifest.languages.en.entrySettings.pg001_fallback?.provider).toBe("openai")
+    expect(manifest.languages.en.entrySettings.pg001_gemini).toBeUndefined()
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      features: { ttsRegeneration: false },
+    })
+
+    expect(fs.existsSync(path.join(bookDir, "adt", "tools"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "adt", "regen"))).toBe(false)
   })
 
   it("drops read-aloud excluded entries from audios.json and timecodes", async () => {
@@ -2453,6 +2583,12 @@ describe("packageWebpub", () => {
     // packageAdtWeb emits imsmanifest.xml; add a stray AGENTS.md too.
     fs.writeFileSync(path.join(bookDir, "adt", "AGENTS.md"), "stray")
     expect(fs.existsSync(path.join(bookDir, "adt", "imsmanifest.xml"))).toBe(true)
+    // The standalone TTS regeneration tooling only makes sense in the ADT
+    // folder — it must not travel into a reader-ready export.
+    fs.mkdirSync(path.join(bookDir, "adt", "tools"), { recursive: true })
+    fs.mkdirSync(path.join(bookDir, "adt", "regen"), { recursive: true })
+    fs.writeFileSync(path.join(bookDir, "adt", "tools", "regenerate-tts.mjs"), "// tool")
+    fs.writeFileSync(path.join(bookDir, "adt", "regen", "manifest.json"), "{}")
 
     packageWebpub(storage, {
       bookDir,
@@ -2465,12 +2601,16 @@ describe("packageWebpub", () => {
 
     expect(fs.existsSync(path.join(bookDir, "webpub", "imsmanifest.xml"))).toBe(false)
     expect(fs.existsSync(path.join(bookDir, "webpub", "AGENTS.md"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "webpub", "tools"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "webpub", "regen"))).toBe(false)
     const manifest = JSON.parse(
       fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
     )
     const hrefs = manifest.resources.map((r: { href: string }) => r.href)
     expect(hrefs).not.toContain("imsmanifest.xml")
     expect(hrefs).not.toContain("AGENTS.md")
+    expect(hrefs).not.toContain("tools/regenerate-tts.mjs")
+    expect(hrefs).not.toContain("regen/manifest.json")
   })
 
   it("labels resources by MIME type and excludes reading-order docs", async () => {

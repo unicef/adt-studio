@@ -1100,6 +1100,7 @@ export async function runFullPipeline(
         webAssetsDir: options.webAssetsDir,
         applyBodyBackground: config.apply_body_background,
         speechConfig: config.speech,
+        configDir: options.configDir ?? path.resolve(process.cwd(), "config"),
         fixedLayout: isFixedLayoutBook(config),
         reflowableFont: config.reflowable_font,
         quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,

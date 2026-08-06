@@ -43,6 +43,7 @@ function readBookTitle(label: string, resolvedDir: string): string {
 export interface ExportFeatures {
   glossary?: boolean
   readAloud?: boolean
+  ttsRegeneration?: boolean
   quizzes?: boolean
   signLanguage?: boolean
   languages?: string[]
@@ -147,6 +148,9 @@ export async function prepareExport(
       webAssetsDir,
       applyBodyBackground: config.apply_body_background,
       speechConfig: config.speech,
+      configDir: configPath
+        ? path.join(path.dirname(configPath), "config")
+        : path.resolve(process.cwd(), "config"),
       features,
       defaultSettings: mergedDefaultSettings,
       lockedSettings: config.locked_settings,
