@@ -41,7 +41,7 @@ import { PROVIDER_LABELS } from "./lib/provider-labels"
 import { useElevenLabsVoices } from "@/hooks/use-elevenlabs-voices"
 import { ImageLightbox } from "./components/ImageLightbox";
 import { WordHighlightPreview } from "./components/WordHighlightPreview";
-import { CoreTtsSpeechEditor } from "./components/CoreTtsSpeechEditor";
+import { CoreTtsBadges, CoreTtsSpeechEditor } from "./components/CoreTtsSpeechEditor";
 import { usePendingChanges } from "../../components/change-summary";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
@@ -2264,7 +2264,7 @@ export function LanguageView({
                       {isSourceLang ? (
                         <div
                           className={cn(
-                            "px-3 py-2.5 rounded-md border",
+                            "group px-3 py-2.5 rounded-md border",
                             isAnswer ? "bg-amber-50/60" : "bg-card",
                           )}
                         >
@@ -2292,6 +2292,7 @@ export function LanguageView({
                                   <span className="ml-1.5 text-[9px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5">{t`Muted`}</span>
                                 )}
                                 {audioStatusBadges}
+                                <CoreTtsBadges entry={speechEntry} />
                                 {isSpeechStage &&
                                   audio &&
                                   !exclusion.excluded && (
@@ -2385,7 +2386,7 @@ export function LanguageView({
                       ) : (
                         <div
                           className={cn(
-                            "px-3 py-2.5 rounded-md border",
+                            "group px-3 py-2.5 rounded-md border",
                             isAnswer ? "bg-amber-50/60" : "bg-card",
                           )}
                         >
@@ -2414,6 +2415,7 @@ export function LanguageView({
                                     {exclusion.excluded && (
                                       <span className="ml-1.5 text-[9px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5">{t`Muted`}</span>
                                     )}
+                                    <CoreTtsBadges entry={sourceSpeechEntry} />
                                     {isSpeechStage &&
                                       baseAudio &&
                                       !exclusion.excluded && (
@@ -2490,6 +2492,7 @@ export function LanguageView({
                                   <span className="text-[10px] text-muted-foreground">
                                     &nbsp;
                                     {audioStatusBadges}
+                                    <CoreTtsBadges entry={speechEntry} />
                                     {isSpeechStage &&
                                       audio &&
                                       !exclusion.excluded && (

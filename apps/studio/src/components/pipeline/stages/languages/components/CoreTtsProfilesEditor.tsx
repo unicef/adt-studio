@@ -75,7 +75,7 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
   })
 
   if (isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">{t`Loading Core TTS profiles...`}</div>
+    return <div className="p-4 text-sm text-muted-foreground">{t`Loading TTS normalization...`}</div>
   }
 
   const update = (key: string, value: string) => {

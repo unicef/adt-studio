@@ -25,10 +25,10 @@ function modelWith(entries: unknown[]): LLMModel {
 }
 
 describe("resolveCoreTtsProfile", () => {
-  const profiles = { default: "default", sw: "base", "sw-TZ": "exact" }
+  const profiles = { default: "default", sw: "base", "sw-tz": "exact" }
 
   it("resolves exact locale, base locale, then default", () => {
-    expect(resolveCoreTtsProfile("sw_TZ", profiles)).toEqual({ key: "sw-TZ", guidance: "exact" })
+    expect(resolveCoreTtsProfile("sw_TZ", profiles)).toEqual({ key: "sw-tz", guidance: "exact" })
     expect(resolveCoreTtsProfile("sw-KE", profiles)).toEqual({ key: "sw", guidance: "base" })
     expect(resolveCoreTtsProfile("fr", profiles)).toEqual({ key: "default", guidance: "default" })
   })

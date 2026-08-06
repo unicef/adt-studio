@@ -2410,8 +2410,8 @@ msgstr "Coral reefs cover less than 1% of the ocean floor, yet they support roug
 msgid "Core Pipeline"
 msgstr "Core Pipeline"
 
-msgid "Core TTS Profiles"
-msgstr "Core TTS Profiles"
+#~ msgid "Core TTS Profiles"
+#~ msgstr "Core TTS Profiles"
 
 msgid "Correct answer"
 msgstr "Correct answer"
@@ -4850,8 +4850,8 @@ msgstr "Loading books..."
 msgid "Loading catalog..."
 msgstr "Loading catalog..."
 
-msgid "Loading Core TTS profiles..."
-msgstr "Loading Core TTS profiles..."
+#~ msgid "Loading Core TTS profiles..."
+#~ msgstr "Loading Core TTS profiles..."
 
 msgid "Loading Easy Read..."
 msgstr "Loading Easy Read..."
@@ -4930,6 +4930,9 @@ msgstr "Loading text catalog..."
 
 msgid "Loading text sizes…"
 msgstr "Loading text sizes…"
+
+msgid "Loading TTS normalization..."
+msgstr "Loading TTS normalization..."
 
 msgid "Loading validation..."
 msgstr "Loading validation..."
@@ -9425,6 +9428,9 @@ msgstr "Try the practice problem"
 
 msgid "Try this screen again"
 msgstr "Try this screen again"
+
+msgid "TTS Normalization"
+msgstr "TTS Normalization"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."

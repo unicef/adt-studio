@@ -2411,8 +2411,8 @@ msgstr "Rifet koraliere mbulojnë më pak se 1% të dyshemesë së oqeanit, por 
 msgid "Core Pipeline"
 msgstr "Zinxhiri Kryesor"
 
-msgid "Core TTS Profiles"
-msgstr "Profilet kryesore TTS"
+#~ msgid "Core TTS Profiles"
+#~ msgstr "Profilet kryesore TTS"
 
 msgid "Correct answer"
 msgstr "Përgjigje e saktë"
@@ -4851,8 +4851,8 @@ msgstr "Duke ngarkuar librat..."
 msgid "Loading catalog..."
 msgstr "Duke ngarkuar katalogun..."
 
-msgid "Loading Core TTS profiles..."
-msgstr "Po ngarkohen profilet kryesore TTS..."
+#~ msgid "Loading Core TTS profiles..."
+#~ msgstr "Po ngarkohen profilet kryesore TTS..."
 
 msgid "Loading Easy Read..."
 msgstr "Duke ngarkuar Leximin e Lehtë..."
@@ -4931,6 +4931,9 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 
 msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
+
+msgid "Loading TTS normalization..."
+msgstr "Po ngarkohet normalizimi TTS..."
 
 msgid "Loading validation..."
 msgstr "Duke ngarkuar vërtetimin..."
@@ -9426,6 +9429,9 @@ msgstr "Provo problemin praktik"
 
 msgid "Try this screen again"
 msgstr "Provo këtë ekran sërish"
+
+msgid "TTS Normalization"
+msgstr "Normalizimi TTS"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Rregullo se si thjeshtohet teksti në cilësimet e Udhëzimit Easy Read. Pas ekzekutimit, çdo bllok bëhet i redaktueshëm këtu në hapin Easy Read."

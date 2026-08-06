@@ -2410,8 +2410,8 @@ msgstr "Los arrecifes de coral cubren menos del 1% del fondo oceánico, pero sos
 msgid "Core Pipeline"
 msgstr "Tubería Principal"
 
-msgid "Core TTS Profiles"
-msgstr "Perfiles de TTS principal"
+#~ msgid "Core TTS Profiles"
+#~ msgstr "Perfiles de TTS principal"
 
 msgid "Correct answer"
 msgstr "Respuesta correcta"
@@ -4850,8 +4850,8 @@ msgstr "Cargando libros..."
 msgid "Loading catalog..."
 msgstr "Cargando catálogo..."
 
-msgid "Loading Core TTS profiles..."
-msgstr "Cargando perfiles de TTS principal..."
+#~ msgid "Loading Core TTS profiles..."
+#~ msgstr "Cargando perfiles de TTS principal..."
 
 msgid "Loading Easy Read..."
 msgstr "Cargando Lectura Fácil..."
@@ -4930,6 +4930,9 @@ msgstr "Cargando catálogo de textos..."
 
 msgid "Loading text sizes…"
 msgstr "Cargando tamaños de texto…"
+
+msgid "Loading TTS normalization..."
+msgstr "Cargando la normalización de TTS..."
 
 msgid "Loading validation..."
 msgstr "Cargando validación..."
@@ -9425,6 +9428,9 @@ msgstr "Prueba el problema de práctica"
 
 msgid "Try this screen again"
 msgstr "Intenta esta pantalla de nuevo"
+
+msgid "TTS Normalization"
+msgstr "Normalización de TTS"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Ajusta cómo se simplifica el texto en la configuración del Prompt de Lectura Fácil. Después de ejecutar, cada bloque se puede editar aquí en el paso de Lectura Fácil."
