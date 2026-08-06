@@ -227,16 +227,25 @@ export interface RunStagesOptions {
   pageErrorPolicy?: "ask" | "stop"
 }
 
-let providersResponsePromise: Promise<ProvidersResponse> | null = null
-
 export function getProviders(): Promise<ProvidersResponse> {
-  if (!providersResponsePromise) {
-    providersResponsePromise = request<ProvidersResponse>("/providers").catch((error) => {
-      providersResponsePromise = null
-      throw error
-    })
+  return request<ProvidersResponse>("/providers")
+}
+
+/** Manifests never change at runtime, so they are safe to cache for the whole
+ *  session — unlike `defaults`, which follow the mutable global config and
+ *  must be re-fetched through the `["providers"]` query. */
+let providerManifestsPromise: Promise<ProvidersResponse["providers"]> | null = null
+
+function getProviderManifests(): Promise<ProvidersResponse["providers"]> {
+  if (!providerManifestsPromise) {
+    providerManifestsPromise = getProviders()
+      .then((response) => response.providers)
+      .catch((error) => {
+        providerManifestsPromise = null
+        throw error
+      })
   }
-  return providersResponsePromise
+  return providerManifestsPromise
 }
 
 function toProviderCredentialValues(
@@ -270,13 +279,13 @@ async function buildApiHeaders(
   apiKey: string,
   providerCredentials?: StageRunProviderCredentials,
 ): Promise<Record<string, string>> {
-  const response = await getProviders()
+  const providers = await getProviderManifests()
   const stored = readProviderCredentialsFromStorage(
-    response.providers,
+    providers,
     browserCredentialStorage,
   )
   return buildProviderCredentialHeaders(
-    response.providers,
+    providers,
     toProviderCredentialValues(apiKey, providerCredentials, stored),
   )
 }

@@ -120,6 +120,7 @@ export function DefaultModelSettings() {
         queryClient.invalidateQueries({ queryKey: ["global-config"] }),
         queryClient.invalidateQueries({ queryKey: ["prompts"] }),
         queryClient.invalidateQueries({ queryKey: ["debug", "config"] }),
+        queryClient.invalidateQueries({ queryKey: ["providers"] }),
       ])
       toast.success(t`Default LLM updated.`)
     },
@@ -151,6 +152,7 @@ export function DefaultModelSettings() {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["global-config"] }),
         queryClient.invalidateQueries({ queryKey: ["debug", "config"] }),
+        queryClient.invalidateQueries({ queryKey: ["providers"] }),
       ])
       toast.success(t`Task-specific model defaults updated.`)
     },
