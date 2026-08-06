@@ -1,7 +1,11 @@
 import { z } from "zod"
 import { CommenterDisplayName } from "./commenter-name.js"
 
-export const PUBLISH_WORKER_VERSION = "0.6.0"
+export const PUBLISH_WORKER_VERSION = "0.7.0"
+
+/** R2's free allowance. Used only to give the dashboard's storage total a sense of scale —
+ *  never to claim a usage number we did not measure ourselves. */
+export const R2_FREE_TIER_BYTES = 10 * 1024 * 1024 * 1024
 
 export const PUBLICATION_SNAPSHOT_MAX_BYTES = 100 * 1024 * 1024
 
@@ -136,6 +140,31 @@ export const PublicationDetail = z.object({
   has_access_code: z.boolean().default(false),
 })
 export type PublicationDetail = z.infer<typeof PublicationDetail>
+
+/** One row of the account-wide list (§4.18). `snapshot_bytes` is the bytes this publication
+ *  actually occupies in R2 — the sum over every version's unpacked files, measured by the
+ *  worker as it wrote them — and is `null` for versions published before migration 0004.
+ *  `comment_count` is every surviving message, replies included; `unresolved_count` counts
+ *  open *threads* (undeleted roots with no `resolved_at`), which is exactly what the Feedback
+ *  stage's badge counts, so the two screens can never disagree. */
+export const PublicationListEntry = z.object({
+  publication: Publication,
+  url: z.string().url(),
+  has_access_code: z.boolean().default(false),
+  version_count: z.number().int().min(0),
+  comment_count: z.number().int().min(0),
+  unresolved_count: z.number().int().min(0),
+  snapshot_bytes: z.number().int().min(0).nullable(),
+  /** When the newest version was uploaded — "last updated" on the dashboard. `null` only for a
+   *  publication whose `versions` rows are somehow gone. */
+  last_published_at: z.string().datetime().nullable(),
+})
+export type PublicationListEntry = z.infer<typeof PublicationListEntry>
+
+export const PublicationList = z.object({
+  publications: z.array(PublicationListEntry),
+})
+export type PublicationList = z.infer<typeof PublicationList>
 
 export const PublishWorkerHealth = z.object({
   ok: z.literal(true),
@@ -276,6 +305,52 @@ export const BookPublicationStatus = z.object({
   has_access_code: z.boolean().default(false),
 })
 export type BookPublicationStatus = z.infer<typeof BookPublicationStatus>
+
+/** One dashboard row: the account's publication joined to what the Studio knows locally.
+ *  `book_exists` is the load-bearing merge result — a publication whose book directory is gone
+ *  is still live on the internet, and the screen has to say so instead of hiding it. */
+export const PublicationSummary = z.object({
+  token: PublicationToken,
+  /** The local book's title when it still exists, the worker's stored title otherwise. */
+  title: z.string().min(1),
+  book_label: z.string().min(1),
+  book_exists: z.boolean(),
+  url: z.string().url().nullable(),
+  current_version: z.number().int().min(1),
+  version_count: z.number().int().min(0),
+  created_at: z.string().datetime(),
+  last_published_at: z.string().datetime().nullable(),
+  expires_at: z.string().datetime().nullable(),
+  revoked_at: z.string().datetime().nullable(),
+  has_access_code: z.boolean(),
+  comment_count: z.number().int().min(0),
+  unresolved_count: z.number().int().min(0),
+  snapshot_bytes: z.number().int().min(0).nullable(),
+  /** `local` rows come from the book's own `node_data` record because the worker could not be
+   *  reached: their counts are unknown (`0` / `null`), not measured. */
+  source: z.enum(["worker", "local"]),
+})
+export type PublicationSummary = z.infer<typeof PublicationSummary>
+
+export const PublicationsTotals = z.object({
+  published_count: z.number().int().min(0),
+  active_count: z.number().int().min(0),
+  /** Sum of the per-publication R2 occupancy the worker measured. Not a Cloudflare analytics
+   *  read — the Studio holds no scope for one. */
+  total_snapshot_bytes: z.number().int().min(0),
+  /** `false` when at least one listed publication has no measured size (published before
+   *  migration 0004, or listed from the local record), so the UI can say "at least". */
+  snapshot_bytes_complete: z.boolean(),
+  total_unresolved: z.number().int().min(0),
+})
+export type PublicationsTotals = z.infer<typeof PublicationsTotals>
+
+export const PublicationsOverview = z.object({
+  worker_reachable: z.boolean(),
+  publications: z.array(PublicationSummary),
+  totals: PublicationsTotals,
+})
+export type PublicationsOverview = z.infer<typeof PublicationsOverview>
 
 export const BookPublishRequest = z.object({
   expires_at: z.string().datetime().nullable().optional(),

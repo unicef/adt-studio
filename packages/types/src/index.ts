@@ -381,6 +381,7 @@ export {
 
 export {
   PUBLISH_WORKER_VERSION,
+  R2_FREE_TIER_BYTES,
   PUBLICATION_SNAPSHOT_MAX_BYTES,
   PUBLICATION_TOKEN_LENGTH,
   PUBLICATION_ACCESS_COOKIE,
@@ -404,6 +405,11 @@ export {
   PublicationUpdateRequest,
   PublicationResponse,
   PublicationDetail,
+  PublicationListEntry,
+  PublicationList,
+  PublicationSummary,
+  PublicationsTotals,
+  PublicationsOverview,
   PublishWorkerHealth,
   PublishErrorCode,
   PublishErrorResponse,

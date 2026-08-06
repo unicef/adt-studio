@@ -13,6 +13,9 @@ export interface CreatePublicationInput {
   /** `pbkdf2-sha256$<iterations>$<salt>$<hash>`, or absent for a publication the link alone
    *  opens. The plaintext code never reaches the store. */
   accessCode?: string | null
+  /** Bytes written to R2 for this version, as counted while unpacking. Absent means "not
+   *  measured", which is what every version stored before migration 0004 reads as. */
+  snapshotBytes?: number | null
 }
 
 /** The publication as the worker itself needs it: the public record plus the access-code hash,
@@ -27,6 +30,22 @@ export interface AddVersionInput {
   version: number
   pageManifest: PublicationPageEntry[]
   createdAt: string
+  snapshotBytes?: number | null
+}
+
+/** One account-wide list row (§4.18): the publication plus the aggregates the dashboard needs,
+ *  all of them computed in the store so the route stays a single read. */
+export interface PublicationListRow {
+  publication: Publication
+  hasAccessCode: boolean
+  versionCount: number
+  /** Every surviving message, replies included. */
+  commentCount: number
+  /** Open threads: undeleted roots with no `resolved_at`. Matches the Feedback stage badge. */
+  unresolvedCount: number
+  /** Sum over the publication's versions, `null` when none of them was ever measured. */
+  snapshotBytes: number | null
+  lastPublishedAt: string | null
 }
 
 export interface AddVersionResult {
@@ -82,6 +101,9 @@ export interface PublicationStore {
   /** One read for the ladder *and* the access gate, so gating costs no extra round trip per
    *  asset request. */
   findRecord(token: string): Promise<StoredPublication | null>
+  /** Every publication in this account, newest first. One query: the dashboard is the only
+   *  caller and it draws tens of rows, so per-row follow-up reads are not acceptable. */
+  listPublications(): Promise<PublicationListRow[]>
   listVersions(token: string): Promise<PublicationVersion[]>
   findVersion(token: string, version: number): Promise<PublicationVersion | null>
   create(input: CreatePublicationInput): Promise<PublicationVersion>
@@ -129,6 +151,9 @@ export const emptyPublicationStore: PublicationStore = {
   },
   async findRecord() {
     return null
+  },
+  async listPublications() {
+    return []
   },
   async listVersions() {
     return []

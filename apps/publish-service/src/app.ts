@@ -11,6 +11,7 @@ import {
   type Publication,
   type PublicationCreateResponse,
   type PublicationDetail,
+  type PublicationList,
   type PublicationResponse,
   type PublicationVersionCreateResponse,
   type PublishWorkerHealth,
@@ -145,28 +146,34 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     has_access_code: ((await store.findRecord(publication.token))?.accessCode ?? null) !== null,
   })
 
+  /** The unpacked byte total is the publication's real R2 occupancy, and the unpacker already
+   *  counts it on the way past — so it is carried out of here and stored on the version rather
+   *  than discarded and later guessed at from the zip's compressed size. */
   const unpack = async (
     c: Context<AppEnv>,
     token: string,
     version: number,
     snapshot: File,
-  ): Promise<Response | null> => {
+  ): Promise<{ ok: true; totalBytes: number } | { ok: false; response: Response }> => {
     try {
-      await unpackSnapshotToR2({
+      const result = await unpackSnapshotToR2({
         bucket: c.env.SNAPSHOTS,
         prefix: `${token}/v${version}`,
         zip: snapshot.stream() as ReadableStream<Uint8Array>,
         ...(options.snapshotLimits === undefined ? {} : { limits: options.snapshotLimits }),
       })
-      return null
+      return { ok: true, totalBytes: result.totalBytes }
     } catch (error) {
       if (isSnapshotUnpackError(error)) {
-        return errorResponse(
-          c,
-          error.code,
-          error.code === "payload_too_large" ? 413 : 400,
-          error.message,
-        )
+        return {
+          ok: false,
+          response: errorResponse(
+            c,
+            error.code,
+            error.code === "payload_too_large" ? 413 : 400,
+            error.message,
+          ),
+        }
       }
       throw error
     }
@@ -180,6 +187,27 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
   })
 
   app.use("/api/*", mgmtAuth)
+
+  /** §4.18 — every publication in this account, newest first, with the aggregates the Studio's
+   *  Publications dashboard shows. One D1 statement for the whole list: the account owns tens of
+   *  publications, and a per-row follow-up read would turn one screen into tens of round trips. */
+  app.get("/api/publications", async (c) => {
+    const store = resolveStore(c.env)
+    const rows = await store.listPublications()
+    const body: PublicationList = {
+      publications: rows.map((row) => ({
+        publication: row.publication,
+        url: shareUrl(c, row.publication.token),
+        has_access_code: row.hasAccessCode,
+        version_count: row.versionCount,
+        comment_count: row.commentCount,
+        unresolved_count: row.unresolvedCount,
+        snapshot_bytes: row.snapshotBytes,
+        last_published_at: row.lastPublishedAt,
+      })),
+    }
+    return c.json(body)
+  })
 
   app.post("/api/publications", async (c) => {
     const upload = await readSnapshotUpload(c, PublicationCreateRequest, maxSnapshotBytes)
@@ -199,8 +227,8 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       )
     }
 
-    const failed = await unpack(c, token, 1, upload.snapshot)
-    if (failed) return failed
+    const unpacked = await unpack(c, token, 1, upload.snapshot)
+    if (!unpacked.ok) return unpacked.response
 
     const publication: Publication = {
       token,
@@ -217,6 +245,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       publication,
       pageManifest: page_manifest,
       accessCode,
+      snapshotBytes: unpacked.totalBytes,
     })
     const body: PublicationCreateResponse = {
       publication,
@@ -244,14 +273,15 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     }
 
     const version = existing.current_version + 1
-    const failed = await unpack(c, token.data, version, upload.snapshot)
-    if (failed) return failed
+    const unpacked = await unpack(c, token.data, version, upload.snapshot)
+    if (!unpacked.ok) return unpacked.response
 
     const result = await store.addVersion({
       token: token.data,
       version,
       pageManifest: upload.metadata.page_manifest,
       createdAt: timestamp(),
+      snapshotBytes: unpacked.totalBytes,
     })
     if (!result) {
       return errorResponse(

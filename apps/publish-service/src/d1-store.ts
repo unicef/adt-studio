@@ -36,6 +36,14 @@ interface VersionRow {
   created_at: string
 }
 
+interface PublicationListSqlRow extends PublicationRow {
+  version_count: number
+  snapshot_bytes: number | null
+  last_published_at: string | null
+  comment_count: number
+  unresolved_count: number
+}
+
 interface SessionRow {
   id: string
   token: string
@@ -69,6 +77,45 @@ const COMMENT_COLUMNS = `c.id, c.token, c.version, c.page_section_id, c.parent_i
          c.resolved_at, c.edited_at, c.deleted_at, c.created_at`
 
 const SESSION_COLUMNS = `id, token, name, color, is_author, pin`
+
+/**
+ * The whole dashboard in one statement.
+ *
+ * Both aggregates are pre-grouped subqueries rather than joins onto the base rows, because
+ * joining `versions` and `comments` to `publications` at the same time multiplies them and
+ * every count would be wrong by the other table's cardinality. `SUM(snapshot_bytes)` returns
+ * NULL only when no version of that publication was ever measured, which is precisely the
+ * "unknown, do not invent a number" case the dashboard reports as a floor.
+ *
+ * `unresolved_count` counts roots, not messages: resolution is thread-level (§4.13 is
+ * roots-only), so a reply under a resolved root is closed even though its own `resolved_at`
+ * is NULL. This is the same rule `unresolvedThreadCount` applies in the Studio, so the
+ * dashboard and the Feedback badge can never disagree.
+ */
+const PUBLICATION_LIST_SQL = `
+  SELECT p.token, p.title, p.book_label, p.current_version, p.created_at, p.expires_at,
+         p.revoked_at, p.access_code,
+         COALESCE(v.version_count, 0) AS version_count,
+         v.snapshot_bytes AS snapshot_bytes,
+         v.last_published_at AS last_published_at,
+         COALESCE(c.comment_count, 0) AS comment_count,
+         COALESCE(c.unresolved_count, 0) AS unresolved_count
+  FROM publications p
+  LEFT JOIN (
+    SELECT token,
+           COUNT(*) AS version_count,
+           SUM(snapshot_bytes) AS snapshot_bytes,
+           MAX(created_at) AS last_published_at
+    FROM versions GROUP BY token
+  ) v ON v.token = p.token
+  LEFT JOIN (
+    SELECT token,
+           COUNT(*) AS comment_count,
+           SUM(CASE WHEN parent_id IS NULL AND resolved_at IS NULL THEN 1 ELSE 0 END)
+             AS unresolved_count
+    FROM comments WHERE deleted_at IS NULL GROUP BY token
+  ) c ON c.token = p.token
+  ORDER BY p.created_at DESC, p.token ASC`
 
 function toSession(row: SessionRow): StoredCommenterSession {
   return {
@@ -171,6 +218,19 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
 
     findRecord: readRecord,
 
+    async listPublications() {
+      const result = await db.prepare(PUBLICATION_LIST_SQL).all<PublicationListSqlRow>()
+      return (result.results ?? []).map((row) => ({
+        publication: toPublication(row),
+        hasAccessCode: (row.access_code ?? null) !== null,
+        versionCount: row.version_count,
+        commentCount: row.comment_count,
+        unresolvedCount: row.unresolved_count,
+        snapshotBytes: row.snapshot_bytes ?? null,
+        lastPublishedAt: row.last_published_at ?? null,
+      }))
+    },
+
     async listVersions(token) {
       const result = await db
         .prepare(
@@ -193,7 +253,12 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       return row ? toVersion(row) : null
     },
 
-    async create({ publication, pageManifest, accessCode }: CreatePublicationInput) {
+    async create({
+      publication,
+      pageManifest,
+      accessCode,
+      snapshotBytes,
+    }: CreatePublicationInput) {
       const manifestJson = JSON.stringify(pageManifest)
       await db.batch([
         db
@@ -214,14 +279,15 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
           ),
         db
           .prepare(
-            `INSERT INTO versions (token, version, page_manifest, created_at)
-             VALUES (?, ?, ?, ?)`,
+            `INSERT INTO versions (token, version, page_manifest, created_at, snapshot_bytes)
+             VALUES (?, ?, ?, ?, ?)`,
           )
           .bind(
             publication.token,
             publication.current_version,
             manifestJson,
             publication.created_at,
+            snapshotBytes ?? null,
           ),
       ])
 
@@ -237,15 +303,16 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       version,
       pageManifest,
       createdAt,
+      snapshotBytes,
     }: AddVersionInput): Promise<AddVersionResult | null> {
       const manifestJson = JSON.stringify(pageManifest)
       const [, bump] = await db.batch([
         db
           .prepare(
-            `INSERT INTO versions (token, version, page_manifest, created_at)
-             VALUES (?, ?, ?, ?)`,
+            `INSERT INTO versions (token, version, page_manifest, created_at, snapshot_bytes)
+             VALUES (?, ?, ?, ?, ?)`,
           )
-          .bind(token, version, manifestJson, createdAt),
+          .bind(token, version, manifestJson, createdAt, snapshotBytes ?? null),
         db
           .prepare(
             `UPDATE publications SET current_version = ?

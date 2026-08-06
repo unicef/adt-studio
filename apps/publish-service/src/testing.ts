@@ -85,8 +85,18 @@ export function createMemoryPublicationStore(): PublicationStore {
   const publications = new Map<string, Publication>()
   const accessCodes = new Map<string, string>()
   const versions = new Map<string, PublicationVersion[]>()
+  /** `snapshot_bytes` lives beside the versions rather than on `PublicationVersion`, which is a
+   *  wire type and deliberately does not carry it. Keyed `<token>/v<N>`, mirroring R2. */
+  const snapshotBytes = new Map<string, number | null>()
   const sessions = new Map<string, StoredCommenterSession>()
   const comments = new Map<string, PublishComment>()
+
+  const sumSnapshotBytes = (token: string): number | null => {
+    const measured = (versions.get(token) ?? [])
+      .map((entry) => snapshotBytes.get(`${token}/v${entry.version}`) ?? null)
+      .filter((bytes): bytes is number => bytes !== null)
+    return measured.length === 0 ? null : measured.reduce((total, bytes) => total + bytes, 0)
+  }
 
   const publicSession = (session: StoredCommenterSession): CommenterSession => ({
     id: session.id,
@@ -121,11 +131,41 @@ export function createMemoryPublicationStore(): PublicationStore {
       return { publication: { ...record }, accessCode: accessCodes.get(token) ?? null }
     },
 
+    async listPublications() {
+      return [...publications.values()]
+        .sort(
+          (a, b) =>
+            b.created_at.localeCompare(a.created_at) || a.token.localeCompare(b.token),
+        )
+        .map((publication) => {
+          const own = [...comments.values()].filter(
+            (comment) => comment.token === publication.token && comment.deleted_at === null,
+          )
+          const entries = versions.get(publication.token) ?? []
+          return {
+            publication: { ...publication },
+            hasAccessCode: accessCodes.has(publication.token),
+            versionCount: entries.length,
+            commentCount: own.length,
+            unresolvedCount: own.filter(
+              (comment) => comment.parent_id === null && comment.resolved_at === null,
+            ).length,
+            snapshotBytes: sumSnapshotBytes(publication.token),
+            lastPublishedAt:
+              entries.length === 0
+                ? null
+                : entries
+                    .map((entry) => entry.created_at)
+                    .sort((a, b) => b.localeCompare(a))[0] ?? null,
+          }
+        })
+    },
+
     async listVersions(token) {
       return [...(versions.get(token) ?? [])].sort((a, b) => a.version - b.version)
     },
 
-    async create({ publication, pageManifest, accessCode }) {
+    async create({ publication, pageManifest, accessCode, snapshotBytes: bytes }) {
       publications.set(publication.token, { ...publication })
       if (accessCode) accessCodes.set(publication.token, accessCode)
       const version: PublicationVersion = {
@@ -134,10 +174,11 @@ export function createMemoryPublicationStore(): PublicationStore {
         created_at: publication.created_at,
       }
       versions.set(publication.token, [version])
+      snapshotBytes.set(`${publication.token}/v${version.version}`, bytes ?? null)
       return version
     },
 
-    async addVersion({ token, version, pageManifest, createdAt }) {
+    async addVersion({ token, version, pageManifest, createdAt, snapshotBytes: bytes }) {
       const record = publications.get(token)
       if (!record || record.current_version !== version - 1) return null
 
@@ -147,6 +188,7 @@ export function createMemoryPublicationStore(): PublicationStore {
         created_at: createdAt,
       }
       versions.set(token, [...(versions.get(token) ?? []), next])
+      snapshotBytes.set(`${token}/v${version}`, bytes ?? null)
       const updated: Publication = { ...record, current_version: version }
       publications.set(token, updated)
       return { publication: updated, version: next }
