@@ -3,6 +3,7 @@ import path from "node:path"
 import { createHash } from "node:crypto"
 import { z } from "zod"
 import { Hono } from "hono"
+import { bodyLimit } from "hono/body-limit"
 import { HTTPException } from "hono/http-exception"
 import {
   parseBookLabel,
@@ -36,6 +37,16 @@ import {
 } from "../services/export-service.js"
 import { importProject, previewImport } from "../services/import-service.js"
 import {
+  ADT_BUNDLE_READER_LIMITS,
+  AdtBundleNotDetectedError,
+  AdtBundleReadError,
+} from "../services/adt-bundle-reader.js"
+import { AdtBundleEditorError } from "../services/adt-bundle-editor.js"
+import {
+  AdtRecoverySessionError,
+  previewAdtRecoveryImport,
+} from "../services/adt-recovery-session.js"
+import {
   exportPart,
   importPart,
   previewImportPart,
@@ -46,6 +57,11 @@ import {
   computeSplitStatus,
 } from "../services/part-service.js"
 import type { TaskService } from "../services/task-service.js"
+import { ARCHIVE_SAFETY_LIMITS } from "../services/archive-safety.js"
+import {
+  AdtProjectImportError,
+  importAdtProject,
+} from "../services/adt-project-import.js"
 
 const BookConfigUpdateRequest = z.object({
   config: z
@@ -66,6 +82,7 @@ const MIME_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".png": "image/png",
+  ".gif": "image/gif",
   ".svg": "image/svg+xml",
   ".woff": "font/woff",
   ".woff2": "font/woff2",
@@ -74,6 +91,16 @@ const MIME_TYPES: Record<string, string> = {
   ".webp": "image/webp",
   ".dic": "application/octet-stream",
 }
+
+const adtRecoveryBodyLimit = bodyLimit({
+  maxSize: ADT_BUNDLE_READER_LIMITS.archiveBytes + 1024 * 1024,
+  onError: (c) => c.json({ error: "ADT bundle upload exceeds the size limit" }, 413),
+})
+
+const archiveImportBodyLimit = bodyLimit({
+  maxSize: ARCHIVE_SAFETY_LIMITS.compressedBytes + 1024 * 1024,
+  onError: (c) => c.json({ error: "Archive upload exceeds the size limit" }, 413),
+})
 
 export function createBookRoutes(
   booksDir: string,
@@ -188,7 +215,7 @@ export function createBookRoutes(
     }
   })
 
-  app.post("/books/preview-import", async (c) => {
+  app.post("/books/preview-import", archiveImportBodyLimit, async (c) => {
     const formData = await c.req.formData()
     const zip = formData.get("zip")
 
@@ -202,10 +229,20 @@ export function createBookRoutes(
     if (isPartArchive(zipBuffer)) {
       return c.json(previewImportPart(zipBuffer))
     }
-    return c.json(previewImport(zipBuffer))
+    try {
+      return c.json(previewAdtRecoveryImport(zipBuffer))
+    } catch (error) {
+      if (error instanceof AdtBundleNotDetectedError) {
+        return c.json(previewImport(zipBuffer))
+      }
+      if (error instanceof AdtBundleReadError || error instanceof AdtRecoverySessionError) {
+        throw new HTTPException(400, { message: error.message })
+      }
+      throw error
+    }
   })
 
-  app.post("/books/import", async (c) => {
+  app.post("/books/import", archiveImportBodyLimit, async (c) => {
     const formData = await c.req.formData()
     const zip = formData.get("zip")
 
@@ -218,6 +255,34 @@ export function createBookRoutes(
       ? importPart(zipBuffer, booksDir)
       : await importProject(zipBuffer, booksDir)
     return c.json(book, 201)
+  })
+
+  app.post("/books/import-adt", adtRecoveryBodyLimit, async (c) => {
+    const formData = await c.req.formData()
+    const zip = formData.get("zip")
+    if (!(zip instanceof File)) {
+      throw new HTTPException(400, { message: "zip file is required" })
+    }
+    const zipBuffer = Buffer.from(await zip.arrayBuffer())
+
+    try {
+      const book = importAdtProject(
+        zipBuffer,
+        booksDir,
+        { sourceFileName: zip.name },
+      )
+      return c.json(book, 201)
+    } catch (error) {
+      if (
+        error instanceof AdtProjectImportError
+        || error instanceof AdtBundleReadError
+        || error instanceof AdtBundleEditorError
+        || error instanceof AdtRecoverySessionError
+      ) {
+        throw new HTTPException(400, { message: error.message })
+      }
+      throw error
+    }
   })
 
   // GET /books/:label/part-info — Manifest info if this book is an imported part
@@ -810,8 +875,7 @@ export function createBookRoutes(
 
       const imageBuffer = fs.readFileSync(imagePath)
       const ext = path.extname(imagePath).toLowerCase()
-      const contentType =
-        ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png"
+      const contentType = MIME_TYPES[ext] ?? "application/octet-stream"
       c.header("Content-Type", contentType)
       c.header("Cache-Control", "public, max-age=86400")
       return c.body(imageBuffer)
@@ -874,8 +938,7 @@ export function createBookRoutes(
 
       const imageBuffer = fs.readFileSync(imagePath)
       const ext = path.extname(imagePath).toLowerCase()
-      const contentType =
-        ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png"
+      const contentType = MIME_TYPES[ext] ?? "application/octet-stream"
       const etag = `"${createHash("sha256").update(imageBuffer).digest("hex")}"`
       c.header("Content-Type", contentType)
       c.header("Cache-Control", "private, no-cache")

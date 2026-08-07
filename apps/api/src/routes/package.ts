@@ -16,6 +16,10 @@ import {
 } from "@adt/pipeline"
 import type { Storage } from "@adt/storage"
 import type { TaskService } from "../services/task-service.js"
+import {
+  getImportedAdtFeaturesNeedingRegeneration,
+  restoreImportedAdtPresentation,
+} from "../services/adt-recovery-session.js"
 
 const PACKAGE_VERSION_LENGTH = 16
 
@@ -144,6 +148,16 @@ export function createPackageRoutes(
       })
     }
 
+    const importedFeaturesPending = getImportedAdtFeaturesNeedingRegeneration(
+      safeLabel,
+      resolvedBooksDir,
+    )
+    if (importedFeaturesPending.length > 0) {
+      throw new HTTPException(409, {
+        message: `Regenerate these imported features before packaging: ${importedFeaturesPending.join(", ")}. Their exported runtime data cannot be edited safely as pipeline entities.`,
+      })
+    }
+
     let cacheState: PackagingCacheState
     const storage = createBookStorage(safeLabel, booksDir)
     try {
@@ -254,6 +268,7 @@ async function runPackaging(
     const preHash = computePackagingInputHash(hashOptions)
     const bundleVersion = packageVersionFromHash(preHash)
     if (fs.existsSync(hashPath) && fs.readFileSync(hashPath, "utf-8").trim() === preHash) {
+      restoreImportedAdtPresentation(safeLabel, booksDir)
       return { version: readBuildVersion(bookDir, preHash) }
     }
 
@@ -271,6 +286,7 @@ async function runPackaging(
       reflowableFont: config.reflowable_font,
       quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
     })
+    restoreImportedAdtPresentation(safeLabel, booksDir)
     fs.writeFileSync(versionPath, bundleVersion, "utf-8")
 
     const baseAccessibility = await runAccessibilityAssessment({

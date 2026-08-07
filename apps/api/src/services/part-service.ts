@@ -2,7 +2,6 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import yaml from "js-yaml"
-import { unzipSync } from "fflate"
 import { HTTPException } from "hono/http-exception"
 import type sqlite from "node-sqlite3-wasm"
 import {
@@ -26,6 +25,12 @@ import { loadBookConfig } from "@adt/pipeline"
 import { createZipStreamFromEntries } from "./zip-util.js"
 import { getBookConfig, readPartInfo, type BookSummary } from "./book-service.js"
 import type { ExportResult } from "./export-service.js"
+import {
+  ArchiveSafetyError,
+  inspectArchivePaths,
+  unzipArchiveSafely,
+} from "./archive-safety.js"
+import { ensureProjectIdentity } from "./project-identity.js"
 
 /**
  * The per-page processing stages. A merge carries the part's step status for
@@ -66,9 +71,13 @@ function throwInvalid(message: string): never {
 
 function unzipBuffer(zipBuffer: Buffer): Record<string, Uint8Array> {
   try {
-    return unzipSync(zipBuffer)
-  } catch {
-    throwInvalid("That file isn't a valid .zip archive.")
+    return unzipArchiveSafely(zipBuffer)
+  } catch (error) {
+    throwInvalid(
+      error instanceof ArchiveSafetyError
+        ? error.message
+        : "That file isn't a valid .zip archive.",
+    )
   }
 }
 
@@ -379,8 +388,17 @@ function parseManifest(entries: Record<string, Uint8Array>): PartManifest {
 
 /** A part archive carries part.json at the root; project archives carry a .db. */
 export function isPartArchive(zipBuffer: Buffer): boolean {
-  const entries = unzipBuffer(zipBuffer)
-  return "part.json" in entries && !findRootEntry(Object.keys(entries), ".db")
+  let paths: string[]
+  try {
+    paths = inspectArchivePaths(zipBuffer)
+  } catch (error) {
+    throwInvalid(
+      error instanceof ArchiveSafetyError
+        ? error.message
+        : "That file isn't a valid .zip archive.",
+    )
+  }
+  return paths.includes("part.json") && !findRootEntry(paths, ".db")
 }
 
 export function previewImportPart(zipBuffer: Buffer): PartImportPreview {
@@ -425,6 +443,7 @@ export function importPart(zipBuffer: Buffer, booksDir: string): BookSummary {
     // Remember this book is a part (used for the badge and re-export).
     fs.writeFileSync(path.join(bookDir, "part.json"), Buffer.from(entries["part.json"]))
 
+    const identity = ensureProjectIdentity(bookDir, { sourceKind: "pdf" })
     const nowIso = new Date().toISOString()
     return {
       label: targetLabel,
@@ -434,6 +453,10 @@ export function importPart(zipBuffer: Buffer, booksDir: string): BookSummary {
       languageCode: null,
       pageCount: 0,
       hasSourcePdf: true,
+      projectId: identity.projectId,
+      sourceKind: identity.sourceKind,
+      workingSource: identity.sourceKind,
+      sourceFingerprint: identity.sourceFingerprint,
       needsRebuild: false,
       rebuildReason: null,
       completedStages: [],

@@ -72,13 +72,7 @@ export function createStageRoutes(
   // POST /books/:label/stages/run — Start or queue a stage-scoped run
   app.post("/books/:label/stages/run", async (c) => {
     const { label } = c.req.param()
-    const apiKey = c.req.header("X-OpenAI-Key")
-
-    if (!apiKey) {
-      throw new HTTPException(400, {
-        message: "API key required. Set X-OpenAI-Key header.",
-      })
-    }
+    const apiKey = c.req.header("X-OpenAI-Key") ?? ""
 
     let body: unknown
     try {
@@ -96,6 +90,24 @@ export function createStageRoutes(
 
     const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
 
+    const safeLabel = parseBookLabel(label)
+    const usesImportedHtml = fs.existsSync(
+      path.join(path.resolve(booksDir), safeLabel, ".adt-import-current.json"),
+    )
+    if (usesImportedHtml) {
+      const fromIndex = STAGE_ORDER.indexOf(fromStage)
+      const toIndex = STAGE_ORDER.indexOf(toStage)
+      const sourceStages = new Set<StageName>(["extract", "sectioning", "storyboard"])
+      const includesSourceStage = STAGE_ORDER
+        .slice(fromIndex, toIndex + 1)
+        .some((stage) => sourceStages.has(stage))
+      if (includesSourceStage) {
+        throw new HTTPException(409, {
+          message: "Extract, Sectioning, and Storyboard regeneration are not available while imported HTML is the source. Open Storyboard to edit the imported HTML, or run an enhancement stage.",
+        })
+      }
+    }
+
     const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
     const googleApiKey = c.req.header("X-Google-API-Key") || undefined
     const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
@@ -103,6 +115,17 @@ export function createStageRoutes(
     const azureSpeechKey = c.req.header("X-Azure-Speech-Key") || undefined
     const azureSpeechRegion = c.req.header("X-Azure-Speech-Region") || undefined
     const geminiApiKey = c.req.header("X-Gemini-API-Key") || undefined
+    const speechOnly = fromStage === "speech" && toStage === "speech"
+    const hasSpeechProviderCredential = Boolean(
+      apiKey || (azureSpeechKey && azureSpeechRegion) || geminiApiKey,
+    )
+    if (!apiKey && !(speechOnly && hasSpeechProviderCredential)) {
+      throw new HTTPException(400, {
+        message: speechOnly
+          ? "An API key for the selected Speech provider is required."
+          : "API key required. Set X-OpenAI-Key header.",
+      })
+    }
 
     console.log(`[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} azureKey=${azureSpeechKey ? "set" : "NOT SET"} azureRegion=${azureSpeechRegion ?? "NOT SET"} geminiKey=${geminiApiKey ? "set" : "NOT SET"}`)
 

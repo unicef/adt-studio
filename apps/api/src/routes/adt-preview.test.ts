@@ -110,6 +110,18 @@ describe("ADT preview routes", () => {
     fs.rmSync(webAssetsDir, { recursive: true, force: true })
   })
 
+  it("returns no imported presentation assets for a regular project", async () => {
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir)
+    const response = await app.request(`/books/${label}/adt-preview/assets/imported-presentation.json`)
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      stylesheets: [],
+      scripts: [],
+      contentClasses: [],
+    })
+  })
+
   it("auto-builds base.bundle.min.js by invoking apps/adt-runtime/build.config.mjs when stale", async () => {
     // The preview route resolves `apps/adt-runtime/build.config.mjs` relative
     // to `<webAssetsDir>/../../`. To exercise the auto-build path we lay out
