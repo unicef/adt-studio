@@ -267,16 +267,16 @@ function reconcileStyleClusters(output: BookOutlineOutput): boolean {
     )
   }
 
-  // Allocate every final id so it maps to exactly one level; a collision with
-  // a differently-levelled id is disambiguated with a numeric suffix.
-  const idLevels = new Map<string, number>()
-  const claim = (baseId: string, level: number): string => {
+  // Reserve every primary id before allocating variants so an existing style
+  // is never renamed or merged with a derived id that happens to match it.
+  const claimedIds = new Set(primaryLevel.keys())
+  const claimVariant = (baseId: string): string => {
     let candidate = baseId
     let suffix = 2
-    while (idLevels.has(candidate) && idLevels.get(candidate) !== level) {
+    while (claimedIds.has(candidate)) {
       candidate = `${baseId}-${suffix++}`
     }
-    idLevels.set(candidate, level)
+    claimedIds.add(candidate)
     return candidate
   }
 
@@ -286,7 +286,7 @@ function reconcileStyleClusters(output: BookOutlineOutput): boolean {
   for (const { id, level } of usageOrder) {
     const baseDescription = declared.get(id)?.description ?? `Headings styled as ${id}`
     const isPrimary = level === primaryLevel.get(id)
-    const finalId = claim(isPrimary ? id : `${id}-level-${level}`, level)
+    const finalId = isPrimary ? id : claimVariant(`${id}-level-${level}`)
     finalIdByUsage.set(`${id}::${level}`, finalId)
     if (!rebuiltIds.has(finalId)) {
       rebuiltIds.add(finalId)
