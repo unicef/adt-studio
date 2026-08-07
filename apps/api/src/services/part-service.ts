@@ -28,27 +28,31 @@ import { getBookConfig, readPartInfo, type BookSummary } from "./book-service.js
 import type { ExportResult } from "./export-service.js"
 
 /**
- * The per-page processing stages. A merge carries the part's step status for
- * every step in these stages onto the assembled book. This deliberately
- * includes the Extract stage's non-page-level `metadata` and `book-summary`
- * steps: stage completion requires *every* step to be done/skipped, so clearing
- * `book-summary` would make the whole Extract stage read as "not run" and block
- * the downstream UI (e.g. the Sectioning page's "Extract hasn't run" gate).
+ * A merge carries only the statuses in the stage that owns `book-outline`, and
+ * excludes that one book-wide step. Metadata, summary, and per-page extraction
+ * remain authoritative; the part-local outline and every downstream stage do
+ * not. Their versioned node data is still copied for inspection, but completion
+ * is cleared until the assembled-book hierarchy rebuild runs.
  */
-const PER_PAGE_STAGE_NAMES = new Set<string>(["extract", "sectioning", "storyboard"])
-const PER_PAGE_STAGE_STEPS = new Set<string>(
-  PIPELINE.filter((s) => PER_PAGE_STAGE_NAMES.has(s.name)).flatMap((s) =>
-    s.steps.map((st) => st.name),
-  ),
+const BOOK_OUTLINE_STEP = "book-outline"
+const BOOK_OUTLINE_STAGE = PIPELINE.find((stage) =>
+  stage.steps.some((step) => step.name === BOOK_OUTLINE_STEP),
 )
-/** Steps of the downstream / book-level stages, cleared on merge so the UI
- *  flags them for re-running on the assembled book. */
-const DOWNSTREAM_STEPS = PIPELINE.filter((s) => !PER_PAGE_STAGE_NAMES.has(s.name)).flatMap((s) =>
-  s.steps.map((st) => st.name),
+if (!BOOK_OUTLINE_STAGE) throw new Error("PIPELINE must define the book-outline step")
+
+const MERGE_AUTHORITATIVE_STEPS = new Set<string>(
+  BOOK_OUTLINE_STAGE.steps
+    .map((step) => step.name)
+    .filter((step) => step !== BOOK_OUTLINE_STEP),
 )
-const DOWNSTREAM_STAGE_NAMES = PIPELINE.filter((s) => !PER_PAGE_STAGE_NAMES.has(s.name)).map(
-  (s) => s.name,
+const DOWNSTREAM_STAGES = PIPELINE.filter(
+  (stage) => stage.name !== BOOK_OUTLINE_STAGE.name,
 )
+const DOWNSTREAM_STEPS = [
+  ...DOWNSTREAM_STAGES.flatMap((stage) => stage.steps.map((step) => step.name)),
+  BOOK_OUTLINE_STEP,
+]
+const DOWNSTREAM_STAGE_NAMES = DOWNSTREAM_STAGES.map((stage) => stage.name)
 
 /** Config fields whose drift the semantics tier reports (per-page prompts +
  *  editing language). */
@@ -855,12 +859,11 @@ export function mergePart(
         )
       }
 
-      // Carry the part's status for every step in the per-page stages
-      // (extract/sectioning/storyboard, incl. metadata + book-summary) so the
-      // assembled book's early stages read as complete. Stage completion needs
-      // every step done/skipped, so we must NOT leave any of these unset.
+      // Carry only statuses whose output is authoritative after assembly.
+      // Outline-derived sectioning/rendering data remains inspectable in node
+      // history, but its completion is cleared below until a whole-book rebuild.
       for (const sr of partStepRuns) {
-        if (PER_PAGE_STAGE_STEPS.has(sr.step) && (sr.status === "done" || sr.status === "skipped")) {
+        if (MERGE_AUTHORITATIVE_STEPS.has(sr.step) && (sr.status === "done" || sr.status === "skipped")) {
           targetDb.run(
             `INSERT INTO step_runs (step, status) VALUES (?, ?)
              ON CONFLICT (step) DO UPDATE SET status = excluded.status`,

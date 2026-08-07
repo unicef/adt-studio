@@ -800,6 +800,7 @@ describe("GET /books/:label/step-status", () => {
     "extract",
     "metadata",
     "book-summary",
+    "book-outline",
     "image-filtering",
     "image-segmentation",
     "image-cropping",
@@ -1452,7 +1453,7 @@ describe("GET /books/:label/export-adt", () => {
 })
 
 describe("GET /books/:label/images/:imageId", () => {
-  function createBookWithImage(label: string): void {
+  function createBookWithImage(label: string, hash = "abc123"): void {
     const storage = createBookStorage(label, tmpDir)
     try {
       storage.putExtractedPage({
@@ -1463,7 +1464,7 @@ describe("GET /books/:label/images/:imageId", () => {
           imageId: `${label}_p1_page`,
           buffer: Buffer.from("fake-png-data"),
           format: "png" as const,
-          hash: "abc123",
+          hash,
           width: 800,
           height: 600,
         },
@@ -1500,8 +1501,36 @@ describe("GET /books/:label/images/:imageId", () => {
 
     expect(res.status).toBe(200)
     expect(res.headers.get("Content-Type")).toBe("image/png")
+    expect(res.headers.get("Cache-Control")).toBe("private, no-cache")
+    expect(res.headers.get("ETag")).toBe('"abc123"')
     const buf = await res.arrayBuffer()
     expect(Buffer.from(buf).toString()).toBe("fake-png-data")
+  })
+
+  it("returns 304 when the extracted image hash is unchanged", async () => {
+    createBookWithImage("img-book-etag")
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/img-book-etag/images/img-book-etag_p1_page", {
+      headers: { "If-None-Match": '"abc123"' },
+    })
+
+    expect(res.status).toBe(304)
+    expect(res.headers.get("Cache-Control")).toBe("private, no-cache")
+    expect(res.headers.get("ETag")).toBe('"abc123"')
+  })
+
+  it("does not return 304 for a legacy image with an empty hash", async () => {
+    createBookWithImage("img-book-empty-hash", "")
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request(
+      "/books/img-book-empty-hash/images/img-book-empty-hash_p1_page",
+      { headers: { "If-None-Match": '""' } }
+    )
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get("Cache-Control")).toBe("private, no-cache")
+    expect(res.headers.get("ETag")).toBeNull()
+    expect(Buffer.from(await res.arrayBuffer()).toString()).toBe("fake-png-data")
   })
 
   it("returns 404 for nonexistent image", async () => {

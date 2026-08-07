@@ -157,7 +157,7 @@ export function Step3() {
           previewFocus="figureExtraction"
           checked={figureExtraction}
           onCheckedChange={(checked) => form.setFieldValue("figureExtraction", checked)}
-          recommended={recommendations.figureExtraction === true}
+          recommended={recommendations.figureExtraction === true && selectedPresetId !== "textbook"}
           presetLabel={preset?.title}
           accent={accent}
         />
@@ -182,7 +182,7 @@ export function Step3() {
             previewFocus="segmentation"
             checked={imageSegmentation}
             onCheckedChange={(checked) => form.setFieldValue("imageSegmentation", checked)}
-            recommended={recommendations.imageSegmentation === true}
+            recommended={recommendations.imageSegmentation === true && selectedPresetId !== "textbook"}
             presetLabel={preset?.title}
             accent={accent}
           />

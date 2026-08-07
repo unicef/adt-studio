@@ -50,6 +50,28 @@ function createMockStorage(
   }
 }
 
+function readyCoreTtsCatalog(...ids: string[]) {
+  return {
+    language: "en",
+    entries: ids.map((id) => ({
+      id,
+      displayText: id,
+      speechText: id,
+      changed: false,
+      transformations: [],
+      status: "ready",
+      generation: {
+        mode: "unchanged",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        enabledTransformations: [],
+        sourceTextHash: "source",
+        contextHash: "context",
+      },
+    })),
+    generatedAt: "2026-01-01T00:00:00.000Z",
+  }
+}
+
 function createWebAssets(webAssetsDir: string): void {
   fs.mkdirSync(webAssetsDir, { recursive: true })
   // Pre-built runtime bundles. In production these come from
@@ -862,6 +884,33 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": {
+        en: {
+          language: "en",
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          entries: ["pg001_t001", "pg001_t002", "pg001_im001"].map((id) => ({
+            id,
+            displayText: id === "pg001_t001" ? "$x^2$" : id,
+            speechText:
+              id === "pg001_im001"
+                ? null
+                : id === "pg001_t001"
+                  ? "x squared"
+                  : id,
+            changed: id === "pg001_t001",
+            transformations: id === "pg001_t001" ? ["latex-to-speech"] : [],
+            status: id === "pg001_im001" ? "failed" : "ready",
+            failureReason: id === "pg001_im001" ? "Raw LaTeX remained" : undefined,
+            generation: {
+              mode: "unchanged",
+              generatedAt: "2026-01-01T00:00:00.000Z",
+              enabledTransformations: [],
+              sourceTextHash: "source",
+              contextHash: "context",
+            },
+          })),
+        },
+      },
       "tts-timestamps": {
         en: {
           entries: {
@@ -987,6 +1036,33 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": {
+        en: {
+          language: "en",
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          entries: ["pg001_t001", "pg001_t002", "pg001_im001"].map((id) => ({
+            id,
+            displayText: id === "pg001_t001" ? "$x^2$" : id,
+            speechText:
+              id === "pg001_im001"
+                ? null
+                : id === "pg001_t001"
+                  ? "x squared"
+                  : id,
+            changed: id === "pg001_t001",
+            transformations: id === "pg001_t001" ? ["latex-to-speech"] : [],
+            status: id === "pg001_im001" ? "failed" : "ready",
+            failureReason: id === "pg001_im001" ? "Raw LaTeX remained" : undefined,
+            generation: {
+              mode: "unchanged",
+              generatedAt: "2026-01-01T00:00:00.000Z",
+              enabledTransformations: [],
+              sourceTextHash: "source",
+              contextHash: "context",
+            },
+          })),
+        },
+      },
       "tts-timestamps": {
         en: {
           entries: {
@@ -1017,6 +1093,14 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "audios.json"), "utf-8"),
     ) as Record<string, string>
     expect(audios).toEqual({ pg001_t001: "pg001_t001.mp3" })
+
+    const speechTexts = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "speech_texts.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(speechTexts).toEqual({
+      pg001_t001: "x squared",
+      pg001_t002: "pg001_t002",
+    })
 
     const bundledAudioDir = path.join(bookDir, "adt", "content", "i18n", "en", "audio")
     expect(fs.existsSync(path.join(bundledAudioDir, "pg001_t001.mp3"))).toBe(true)
@@ -1182,6 +1266,7 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": { en: readyCoreTtsCatalog("pg001_t001") },
     })
 
     await packageAdtWeb(storage, {
@@ -1336,6 +1421,7 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": { en: readyCoreTtsCatalog("pg001_t001") },
       "tts-timestamps": {
         en: {
           entries: {

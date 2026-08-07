@@ -495,6 +495,11 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     es.addEventListener("task", (e) => {
       const d = JSON.parse(e.data) as { type: string; taskId: string; kind?: string; description?: string; pageId?: string; url?: string; error?: string; result?: unknown; message?: string; percent?: number }
       const tasksKey = bookTasksKey(label)
+      const taskBeforeEvent = queryClient
+        .getQueryData<{ tasks: TaskInfoResponse[] }>(tasksKey)
+        ?.tasks.find((task) => task.taskId === d.taskId)
+      const eventTaskKind = d.kind ?? taskBeforeEvent?.kind
+      const eventPageId = d.pageId ?? taskBeforeEvent?.pageId
 
       queryClient.setQueryData<{ tasks: TaskInfoResponse[] }>(tasksKey, (old) => {
         const tasks = [...(old?.tasks ?? [])]
@@ -516,8 +521,13 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           if (idx !== -1) {
             tasks[idx] = { ...tasks[idx], status: "completed", result: d.result, completedAt: Date.now() }
           }
-          // Invalidate related data — use cache entry if available, fall back to polling
-          const completedTask = idx !== -1 ? tasks[idx] : undefined
+          // Invalidate related data using the cache entry when available and
+          // the self-describing terminal event when task-start was missed.
+          const completedTask = idx !== -1
+            ? tasks[idx]
+            : eventTaskKind
+              ? { kind: eventTaskKind, pageId: eventPageId }
+              : undefined
           if (completedTask?.kind === "package-adt") {
             queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
             queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
@@ -582,6 +592,20 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
         return { tasks }
       })
+
+      if (d.type === "task-error") {
+        // The server may have changed step status before reporting the task
+        // error. Refresh it even if task-start was missed and polling had
+        // stopped because the cached pipeline previously looked complete.
+        queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+        if (eventTaskKind === "re-render") {
+          if (eventPageId) {
+            queryClient.invalidateQueries({ queryKey: ["books", label, "pages", eventPageId] })
+          }
+          queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+          invalidateStoryboardDependents(queryClient, label)
+        }
+      }
 
       if (d.type === "task-complete") {
         playCompletionSound()

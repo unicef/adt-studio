@@ -12,6 +12,7 @@ import {
   tableOfContentsLayoutErrors,
 } from "./toc-layout.js"
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
+import { validateTypographyHierarchy } from "./validate-typography-hierarchy.js"
 import { inspectOrderingActivityHtml } from "./ordering-contract.js"
 
 const BUILT_IN_STRICT_REVIEW_PROMPT = "visual_review"
@@ -73,6 +74,8 @@ export async function renderSectionLlm(
     typography: (input.typography ?? DEFAULT_TYPOGRAPHY).styles,
     viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
+    _allowNonHeadingFontSizes:
+      isActivity || config.promptName === "web_generation_html_overlay",
     user_instructions: userInstructions,
   }
 
@@ -231,11 +234,17 @@ function validateWebRendering(
 ): ValidationResult {
   const r = result as { reasoning: string; content: string }
   const label = context.label as string
-  const leaf_texts = context.leaf_texts as Array<{ text_id: string; text_type: string; text: string }>
+  const leaf_texts = context.leaf_texts as Array<{
+    text_id: string
+    text_type: string
+    text: string
+    heading_level?: number
+  }>
   const images = context.images as Array<{ image_id: string }>
   const nodes = context.nodes as RenderNode[]
   const group_ids = context.group_ids as string[]
   const isActivity = context._isActivity as boolean | undefined
+  const allowNonHeadingFontSizes = context._allowNonHeadingFontSizes as boolean | undefined
   const sectionId = context.section_id as string
   const sectionType = context.section_type as string
   const allowedTextIds = leaf_texts.map((t) => t.text_id)
@@ -269,7 +278,12 @@ function validateWebRendering(
     check.errors.push(...tableOfContentsLayoutErrors(candidateHtml, leaf_texts))
     check.valid = check.errors.length === 0
   }
-  if (check.valid && check.sectionHtml) {
+  const typographyErrors = validateTypographyHierarchy(
+    check.sectionHtml ?? candidateHtml,
+    leaf_texts,
+    { allowNonHeadingFontSizes },
+  )
+  if (check.valid && typographyErrors.length === 0 && check.sectionHtml) {
     return {
       valid: true,
       errors: [],
@@ -277,7 +291,7 @@ function validateWebRendering(
     }
   }
 
-  return { valid: check.valid, errors: check.errors }
+  return { valid: false, errors: [...check.errors, ...typographyErrors] }
 }
 
 /** Require one response per explicit question/blank. If the tree only contains

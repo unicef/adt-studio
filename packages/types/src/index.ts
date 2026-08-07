@@ -83,6 +83,7 @@ export {
   IMAGE_SET_CHANGE_CLEAR_STEPS,
   IMAGE_SET_CHANGE_CLEAR_STAGES,
   getStageClearOrder,
+  getStageDependents,
   getStageClearNodes,
   getStageRerunClearNodes,
   getCacheResourcesForNode,
@@ -217,6 +218,20 @@ export {
 export { BookMetadata } from "./metadata.js"
 
 export { BookSummaryOutput } from "./book-summary.js"
+export {
+  HeadingLevel,
+  HeadingKind,
+  HEADING_ROLE_LEVELS,
+  isHeadingRole,
+  headingLevelForRole,
+  BookOutlineStyleCluster,
+  BookOutlineEntry,
+  BookOutlineOutput,
+  BookOutlineProposalEntry,
+  BookOutlineProposalOutput,
+  BookOutlineAppliedHeading,
+  BookOutlineAuditResponse,
+} from "./book-outline.js"
 
 export { ExtractionWarning } from "./extraction-warning.js"
 
@@ -282,6 +297,17 @@ export {
   TextCatalogCategory,
   getTextCatalogCategory,
 } from "./text-catalog.js"
+
+export {
+  CoreTtsTransformationKind,
+  CoreTtsEntryStatus,
+  CoreTtsGenerationMode,
+  CoreTtsGenerationMetadata,
+  CoreTtsCatalogEntry,
+  CoreTtsCatalogOutput,
+  CoreTtsConfig,
+  containsLatexSpeechCandidate,
+} from "./core-tts.js"
 
 export {
   EasyReadEntry,

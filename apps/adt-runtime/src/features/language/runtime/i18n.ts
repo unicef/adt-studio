@@ -11,6 +11,7 @@ import { getDefaultStore } from "jotai"
 import { runtimeBase } from "@/shared/runtime/base-path.js"
 import {
   audioFilesAtom,
+  speechTextsAtom,
   imageFilesAtom,
   translationsAtom,
   videoFilesAtom,
@@ -208,6 +209,7 @@ async function loadInterfaceTranslations(
 
 interface ContentBundle {
   texts: Record<string, string>
+  speechTexts: Record<string, string>
   audios: Record<string, string>
   videos: Record<string, string>
   images: Record<string, string>
@@ -218,14 +220,16 @@ async function loadContentFiles(
   versionParam: string,
 ): Promise<ContentBundle> {
   const base = `${runtimeBase()}content/i18n/${lang}`
-  const [texts, audios, videos, images] = await Promise.all([
+  const [texts, speechTexts, audios, videos, images] = await Promise.all([
     safeJsonFetch<Record<string, string>>(`${base}/texts.json${versionParam}`, "texts.json"),
+    safeJsonFetch<Record<string, string>>(`${base}/speech_texts.json${versionParam}`, "speech_texts.json"),
     safeJsonFetch<Record<string, string>>(`${base}/audios.json${versionParam}`, "audios.json"),
     safeJsonFetch<Record<string, string>>(`${base}/videos.json${versionParam}`, "videos.json"),
     safeJsonFetch<Record<string, string>>(`${base}/images.json${versionParam}`, "images.json"),
   ])
   return {
     texts: texts ?? {},
+    speechTexts: speechTexts ?? {},
     audios: audios ?? {},
     videos: videos ?? {},
     images: images ?? {},
@@ -258,6 +262,7 @@ export async function loadTranslations(
   // shape); content keys override interface keys with the same id, just like
   // the original spread order.
   store.set(translationsAtom, { ...interfaceData, ...content.texts })
+  store.set(speechTextsAtom, content.speechTexts)
   store.set(audioFilesAtom, content.audios)
   store.set(videoFilesAtom, content.videos)
   // Replace (don't merge) imageFiles so switching to a language without an

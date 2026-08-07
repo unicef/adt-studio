@@ -153,6 +153,10 @@ msgstr "{0} accepted anyway"
 #~ msgid "{0} added"
 #~ msgstr "{0} added"
 
+#. placeholder {0}: String(view.assigned)
+msgid "{0} assigned"
+msgstr "{0} assigned"
+
 #. placeholder {0}: String(totalAudioFiles)
 msgid "{0} audio"
 msgstr "{0} audio"
@@ -212,6 +216,10 @@ msgstr "{0} img"
 #. placeholder {0}: reviewCounts.needsAttention
 msgid "{0} issue/issues"
 msgstr "{0} issue/issues"
+
+#. placeholder {0}: String(view.issues)
+msgid "{0} issues"
+msgstr "{0} issues"
 
 #. placeholder {0}: visibleFindingsUniverse.length
 msgid "{0} items"
@@ -1420,6 +1428,9 @@ msgstr "An open-ended answer activity."
 msgid "Analyze with AI"
 msgstr "Analyze with AI"
 
+msgid "Analyzes the complete book to identify a consistent heading hierarchy."
+msgstr "Analyzes the complete book to identify a consistent heading hierarchy."
+
 msgid "Analyzing part…"
 msgstr "Analyzing part…"
 
@@ -1610,6 +1621,12 @@ msgstr "Asset"
 
 msgid "Assign..."
 msgstr "Assign..."
+
+msgid "Assigned"
+msgstr "Assigned"
+
+msgid "Assignment evidence"
+msgstr "Assignment evidence"
 
 msgid "At the river's edge"
 msgstr "At the river's edge"
@@ -1847,6 +1864,12 @@ msgstr "Book data is outdated and must be rebuilt."
 msgid "Book Fonts"
 msgstr "Book Fonts"
 
+msgid "Book heading outline"
+msgstr "Book heading outline"
+
+msgid "Book hierarchy needs rebuilding"
+msgstr "Book hierarchy needs rebuilding"
+
 msgid "Book images"
 msgstr "Book images"
 
@@ -1867,6 +1890,12 @@ msgstr "Book model overrides updated."
 
 msgid "Book order"
 msgstr "Book order"
+
+msgid "Book outline"
+msgstr "Book outline"
+
+msgid "Book Outline"
+msgstr "Book Outline"
 
 msgid "Book package ready"
 msgstr "Book package ready"
@@ -1915,6 +1944,12 @@ msgstr "Borders"
 
 msgid "Both"
 msgstr "Both"
+
+msgid "Both pages lose their rendering and will be re-rendered automatically."
+msgstr "Both pages lose their rendering and will be re-rendered automatically."
+
+msgid "Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
+msgstr "Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
 
 msgid "Bottom center"
 msgstr "Bottom center"
@@ -2026,6 +2061,9 @@ msgstr "Cached response"
 
 msgid "Calculate word timestamps for all entries"
 msgstr "Calculate word timestamps for all entries"
+
+msgid "Callout"
+msgstr "Callout"
 
 msgid "Calls"
 msgstr "Calls"
@@ -2151,6 +2189,9 @@ msgstr "Changing the language resets downstream work."
 
 msgid "Changing the type regenerates the activity when you save."
 msgstr "Changing the type regenerates the activity when you save."
+
+msgid "Chapter"
+msgstr "Chapter"
 
 msgid "Chapter 1: Introduction"
 msgstr "Chapter 1: Introduction"
@@ -2452,6 +2493,9 @@ msgstr "Condensation"
 msgid "Conditionally include text"
 msgstr "Conditionally include text"
 
+msgid "confidence"
+msgstr "confidence"
+
 msgid "Config"
 msgstr "Config"
 
@@ -2614,6 +2658,9 @@ msgstr "Coral reefs cover less than 1% of the ocean floor, yet they support roug
 msgid "Core Pipeline"
 msgstr "Core Pipeline"
 
+#~ msgid "Core TTS Profiles"
+#~ msgstr "Core TTS Profiles"
+
 msgid "Correct answer"
 msgstr "Correct answer"
 
@@ -2622,6 +2669,9 @@ msgstr "Correct answer (alternatives separated by |)"
 
 msgid "Correct the metadata extracted from the document."
 msgstr "Correct the metadata extracted from the document."
+
+msgid "Could not load the book outline."
+msgstr "Could not load the book outline."
 
 msgid "Could not load the Google Fonts catalog. Check your connection and try again."
 msgstr "Could not load the Google Fonts catalog. Check your connection and try again."
@@ -2851,6 +2901,9 @@ msgstr "Default (inherit)"
 
 msgid "Default (no text detected yet)"
 msgstr "Default (no text detected yet)"
+
+msgid "Default guidance"
+msgstr "Default guidance"
 
 msgid "Default LLM"
 msgstr "Default LLM"
@@ -3307,6 +3360,9 @@ msgstr "e.g. Kore"
 msgid "e.g. multiple-choice question about photosynthesis with 4 options"
 msgstr "e.g. multiple-choice question about photosynthesis with 4 options"
 
+msgid "e.g. sw, pt-br"
+msgstr "e.g. sw, pt-br"
+
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "e.g., A cheerful leopard family in a green forest, children's book style..."
 
@@ -3404,6 +3460,9 @@ msgstr "Edit Prompt"
 
 msgid "Edit Prompts"
 msgstr "Edit Prompts"
+
+msgid "Edit speech text"
+msgstr "Edit speech text"
 
 msgid "Edit spreads"
 msgstr "Edit spreads"
@@ -3518,6 +3577,9 @@ msgstr "Enable or disable reviewer-authored checklist reviews for this book. Aut
 msgid "Enable reviewer validation"
 msgstr "Enable reviewer validation"
 
+msgid "Enable text normalization"
+msgstr "Enable text normalization"
+
 msgid "Enable translation review"
 msgstr "Enable translation review"
 
@@ -3565,6 +3627,9 @@ msgstr "Enter a valid page range within 1–{pageCount}."
 
 msgid "Enter a valid project name"
 msgstr "Enter a valid project name"
+
+msgid "Enter prepared speech text"
+msgstr "Enter prepared speech text"
 
 msgid "entries"
 msgstr "entries"
@@ -4379,6 +4444,15 @@ msgstr "heading"
 msgid "Heading"
 msgstr "Heading"
 
+msgid "Heading level 4"
+msgstr "Heading level 4"
+
+msgid "Heading level 5"
+msgstr "Heading level 5"
+
+msgid "Heading level 6"
+msgstr "Heading level 6"
+
 msgid "Headings"
 msgstr "Headings"
 
@@ -4834,6 +4908,9 @@ msgstr "Issue types to check"
 msgid "Issues"
 msgstr "Issues"
 
+msgid "Issues only"
+msgstr "Issues only"
+
 msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 msgstr "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 
@@ -4954,6 +5031,9 @@ msgstr "Language"
 msgid "language locale translation region"
 msgstr "language locale translation region"
 
+msgid "Language profiles"
+msgstr "Language profiles"
+
 msgid "Language-Specific Prompts"
 msgstr "Language-Specific Prompts"
 
@@ -4984,6 +5064,9 @@ msgstr "Last modified"
 
 #~ msgid "Last week"
 #~ msgstr "Last week"
+
+msgid "LaTeX converted"
+msgstr "LaTeX converted"
 
 msgid "Launch the app with"
 msgstr "Launch the app with"
@@ -5156,6 +5239,9 @@ msgstr "Loading beta versions…"
 msgid "Loading book config…"
 msgstr "Loading book config…"
 
+msgid "Loading book outline..."
+msgstr "Loading book outline..."
+
 msgid "Loading Book..."
 msgstr "Loading Book..."
 
@@ -5164,6 +5250,9 @@ msgstr "Loading books..."
 
 msgid "Loading catalog..."
 msgstr "Loading catalog..."
+
+#~ msgid "Loading Core TTS profiles..."
+#~ msgstr "Loading Core TTS profiles..."
 
 msgid "Loading Easy Read..."
 msgstr "Loading Easy Read..."
@@ -5246,6 +5335,9 @@ msgstr "Loading text catalog..."
 msgid "Loading text sizes…"
 msgstr "Loading text sizes…"
 
+msgid "Loading TTS normalization..."
+msgstr "Loading TTS normalization..."
+
 msgid "Loading validation..."
 msgstr "Loading validation..."
 
@@ -5323,6 +5415,9 @@ msgstr "Manual only"
 
 msgid "Manual review"
 msgstr "Manual review"
+
+msgid "Manually edited"
+msgstr "Manually edited"
 
 msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
 msgstr "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
@@ -5583,6 +5678,9 @@ msgstr "Mirroring layout..."
 msgid "Mirrors the original book's activity layout as closely as possible."
 msgstr "Mirrors the original book's activity layout as closely as possible."
 
+msgid "Mismatch"
+msgstr "Mismatch"
+
 msgid "Miss"
 msgstr "Miss"
 
@@ -5618,6 +5716,9 @@ msgstr "Model"
 
 msgid "Model overrides"
 msgstr "Model overrides"
+
+msgid "Model reasoning"
+msgstr "Model reasoning"
 
 #~ msgid "Model variant"
 #~ msgstr "Model variant"
@@ -5830,6 +5931,9 @@ msgstr "No beta versions found"
 #~ msgid "No beta versions match your search."
 #~ msgstr "No beta versions match your search."
 
+msgid "No book outline has been extracted yet."
+msgstr "No book outline has been extracted yet."
+
 msgid "No books match these filters"
 msgstr "No books match these filters"
 
@@ -5997,6 +6101,9 @@ msgstr "No open-source license detected. Make sure you have the right to embed a
 
 msgid "No other images in this book"
 msgstr "No other images in this book"
+
+msgid "No outline entries match the current filter."
+msgstr "No outline entries match the current filter."
 
 msgid "No page linked"
 msgstr "No page linked"
@@ -6181,6 +6288,9 @@ msgstr "None"
 msgid "Normalization"
 msgstr "Normalization"
 
+msgid "Normalized"
+msgstr "Normalized"
+
 msgid "Not compatible with Fixed Layout"
 msgstr "Not compatible with Fixed Layout"
 
@@ -6270,6 +6380,9 @@ msgstr "of"
 
 msgid "Off"
 msgstr "Off"
+
+msgid "Offset"
+msgstr "Offset"
 
 #~ msgid "Older"
 #~ msgstr "Older"
@@ -6542,6 +6655,9 @@ msgstr "Out for processing"
 msgid "Out of date"
 msgstr "Out of date"
 
+msgid "Outline ID:"
+msgstr "Outline ID:"
+
 msgid "Output languages"
 msgstr "Output languages"
 
@@ -6633,8 +6749,8 @@ msgid "Page"
 msgstr "Page"
 
 #. placeholder {0}: String(activePage.pageNumber)
+#. placeholder {0}: String(entry.pageNumber)
 #. placeholder {0}: String(group.pageNumber)
-#. placeholder {0}: String(item.pageNumber)
 msgid "Page {0}"
 msgstr "Page {0}"
 
@@ -6778,6 +6894,9 @@ msgstr "paragraph"
 
 msgid "Paragraph"
 msgstr "Paragraph"
+
+msgid "Parent:"
+msgstr "Parent:"
 
 msgid "Parsing pages"
 msgstr "Parsing pages"
@@ -7064,6 +7183,18 @@ msgstr "Prefer terms central to the book's subject matter. Skip generic vocabula
 
 msgid "Preferences"
 msgstr "Preferences"
+
+msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+
+#~ msgid "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+#~ msgstr "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+
+msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+msgstr "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+
+msgid "Prepared speech text"
+msgstr "Prepared speech text"
 
 msgid "Preparing speech..."
 msgstr "Preparing speech..."
@@ -7381,8 +7512,11 @@ msgstr "Re-run {stageLabel}?"
 msgid "Re-run speech"
 msgstr "Re-run speech"
 
-msgid "Re-run these book-level stages on the assembled book:"
-msgstr "Re-run these book-level stages on the assembled book:"
+msgid "Re-run Storyboard"
+msgstr "Re-run Storyboard"
+
+msgid "Re-run these stages on the assembled book:"
+msgstr "Re-run these stages on the assembled book:"
 
 msgid "Re-run translation"
 msgstr "Re-run translation"
@@ -7827,6 +7961,9 @@ msgstr "Review complete: {0} acceptable, {1} pending save."
 msgid "Review complete: all {0} reviewed translations are acceptable."
 msgstr "Review complete: all {0} reviewed translations are acceptable."
 
+msgid "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
+msgstr "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
+
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Review one session at a time to inspect page coverage and flagged findings."
 
@@ -7904,6 +8041,15 @@ msgstr "Rising ocean temperatures cause coral bleaching - when stressed corals e
 
 msgid "Role"
 msgstr "Role"
+
+msgid "Rotate"
+msgstr "Rotate"
+
+msgid "Rotate 90° clockwise"
+msgstr "Rotate 90° clockwise"
+
+msgid "Rotate 90° counter-clockwise"
+msgstr "Rotate 90° counter-clockwise"
 
 msgid "Row"
 msgstr "Row"
@@ -8005,6 +8151,9 @@ msgstr "RUNNING"
 #~ msgid "Running {stageLabel}"
 #~ msgstr "Running {stageLabel}"
 
+msgid "Running Sectioning will rebuild the book-wide outline from the merged pages, then apply it without re-running PDF extraction."
+msgstr "Running Sectioning will rebuild the book-wide outline from the merged pages, then apply it without re-running PDF extraction."
+
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Running Sectioning will run Extract first, then section the extracted pages."
 
@@ -8095,6 +8244,9 @@ msgstr "Save selection"
 msgid "Save settings"
 msgstr "Save settings"
 
+msgid "Save speech text"
+msgstr "Save speech text"
+
 msgid "Save text sizes"
 msgstr "Save text sizes"
 
@@ -8109,6 +8261,9 @@ msgstr "Saving..."
 
 msgid "Saving…"
 msgstr "Saving…"
+
+msgid "Scale"
+msgstr "Scale"
 
 msgid "Scene 04"
 msgstr "Scene 04"
@@ -8167,6 +8322,9 @@ msgstr "Search captions or image IDs…"
 msgid "Search colors"
 msgstr "Search colors"
 
+msgid "Search display or speech text…"
+msgstr "Search display or speech text…"
+
 msgid "Search entries…"
 msgstr "Search entries…"
 
@@ -8175,6 +8333,9 @@ msgstr "Search fonts"
 
 msgid "Search fonts..."
 msgstr "Search fonts..."
+
+msgid "Search headings, IDs, or style clusters..."
+msgstr "Search headings, IDs, or style clusters..."
 
 msgid "Search languages..."
 msgstr "Search languages..."
@@ -8290,6 +8451,9 @@ msgstr "Section Types"
 
 msgid "Sectioning"
 msgstr "Sectioning"
+
+msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
+msgstr "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 
 msgid "Sectioning mode"
 msgstr "Sectioning mode"
@@ -8748,6 +8912,9 @@ msgstr "Sort by"
 msgid "Source"
 msgstr "Source"
 
+msgid "Source candidates:"
+msgstr "Source candidates:"
+
 msgid "Source file"
 msgstr "Source file"
 
@@ -8991,6 +9158,9 @@ msgstr "Storyboard"
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 
+msgid "Storyboard nodes:"
+msgstr "Storyboard nodes:"
+
 msgid "Storyboard not ready"
 msgstr "Storyboard not ready"
 
@@ -9066,6 +9236,9 @@ msgstr "Style reference"
 msgid "Style reference image"
 msgstr "Style reference image"
 
+msgid "Style:"
+msgstr "Style:"
+
 msgid "Styleguide"
 msgstr "Styleguide"
 
@@ -9086,6 +9259,9 @@ msgstr "Submit"
 
 msgid "Submit to the FNDE PNLD Digital platform and validate with VALIDE."
 msgstr "Submit to the FNDE PNLD Digital platform and validate with VALIDE."
+
+msgid "Subsection"
+msgstr "Subsection"
 
 msgid "Success"
 msgstr "Success"
@@ -9290,6 +9466,9 @@ msgstr "Text color"
 msgid "Text color: {0}"
 msgstr "Text color: {0}"
 
+msgid "Text normalization"
+msgstr "Text normalization"
+
 msgid "Text Normalization"
 msgstr "Text Normalization"
 
@@ -9353,6 +9532,9 @@ msgstr "The book's title and metadata arrive with the part that contains page 1 
 
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
+
+msgid "The combined section will be re-rendered."
+msgstr "The combined section will be re-rendered."
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "The community of living organisms in a place and the way they interact with each other and their environment."
@@ -9470,6 +9652,9 @@ msgstr "The saved translation review is stale. Run Review again for the visible 
 
 msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 msgstr "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
+
+msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
+msgstr "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
@@ -9857,6 +10042,10 @@ msgstr "Track reviewer progress and review findings captured from Preview."
 msgid "Translate"
 msgstr "Translate"
 
+msgctxt "CSS transform"
+msgid "Translate"
+msgstr "Translate"
+
 msgid "Translate text in images"
 msgstr "Translate text in images"
 
@@ -9958,6 +10147,9 @@ msgstr "Try the practice problem"
 
 msgid "Try this screen again"
 msgstr "Try this screen again"
+
+msgid "TTS Normalization"
+msgstr "TTS Normalization"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
@@ -10361,6 +10553,7 @@ msgstr "Variations"
 msgid "Verified applied"
 msgstr "Verified applied"
 
+#. placeholder {0}: String(data.version)
 #. placeholder {0}: String(version)
 msgid "Version {0}"
 msgstr "Version {0}"

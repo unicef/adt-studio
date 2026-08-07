@@ -1,174 +1,221 @@
 /**
- * Image Flip Transform Utilities
+ * Image orientation utilities.
  *
- * Detects and applies current transformation matrix (CTM) based flip transformations
- * to raster images extracted from PDFs. Handles both JPEG and PNG formats.
+ * PDF image XObjects store raw pixels separately from the CTM used when the
+ * image is painted. Extracted assets therefore need the CTM's discrete
+ * orientation baked into their pixels so they match the rendered page.
  */
 
 import { createHash } from "crypto";
-import { PNG } from "pngjs";
 import jpeg from "jpeg-js";
+import { PNG } from "pngjs";
+import type { ExtractedImage, ImageFormat } from "./extract.js";
 import { decodePng } from "./png-utils.js";
-import type { ExtractedImage } from "./extract.js";
 
-/**
- * Hash a buffer to a 16-character hex string.
- * Avoids circular dependency by defining locally instead of importing from extract.
- */
 function hashBuffer(buf: Buffer): string {
   return createHash("sha256").update(buf).digest("hex").slice(0, 16);
 }
 
 /**
- * Detect if image needs horizontal/vertical flip based on current transformation matrix.
- * Negative X scale (a < 0) = horizontal flip; negative Y scale (d < 0) = vertical flip.
- * Scope: axis-aligned flips only. This intentionally ignores b/c (rotation/skew)
- * terms from the CTM; suitable for current storybook inputs, but not a full
- * affine-orientation solver for arbitrary rotations.
+ * The eight axis-aligned symmetries of a rectangle. Rotation names describe
+ * the pixel operation in the extractor's top-left/y-down image space.
  */
-export interface ImageFlipTransform {
-  flipHorizontal: boolean;
-  flipVertical: boolean;
+export type ImageOrientationTransform =
+  | "identity"
+  | "flip-horizontal"
+  | "flip-vertical"
+  | "rotate-180"
+  | "rotate-90-clockwise"
+  | "rotate-90-counterclockwise"
+  | "transpose"
+  | "anti-transpose";
+
+type AxisComponent = -1 | 0 | 1;
+type OrientationMatrix = readonly [
+  AxisComponent,
+  AxisComponent,
+  AxisComponent,
+  AxisComponent,
+];
+
+/** Matrix maps source pixel coordinates to oriented output coordinates. */
+const ORIENTATION_MATRICES: Record<ImageOrientationTransform, OrientationMatrix> = {
+  identity: [1, 0, 0, 1],
+  "flip-horizontal": [-1, 0, 0, 1],
+  "flip-vertical": [1, 0, 0, -1],
+  "rotate-180": [-1, 0, 0, -1],
+  "rotate-90-clockwise": [0, -1, 1, 0],
+  "rotate-90-counterclockwise": [0, 1, -1, 0],
+  transpose: [0, 1, 1, 0],
+  "anti-transpose": [0, -1, -1, 0],
+};
+
+const MATRIX_TO_ORIENTATION = new Map<string, ImageOrientationTransform>(
+  Object.entries(ORIENTATION_MATRICES).map(([orientation, matrix]) => [
+    matrix.join(","),
+    orientation as ImageOrientationTransform,
+  ]),
+);
+
+// InDesign and similar tools sometimes leave tiny floating-point residues in
+// otherwise exact quarter-turn matrices. Accept those, but do not silently
+// reinterpret a genuinely arbitrary rotation or skew as a flip.
+const AXIS_SNAP_TOLERANCE = 1e-4;
+
+function snapAxisComponent(value: number): AxisComponent | null {
+  if (Math.abs(value) <= AXIS_SNAP_TOLERANCE) return 0;
+  if (Math.abs(value - 1) <= AXIS_SNAP_TOLERANCE) return 1;
+  if (Math.abs(value + 1) <= AXIS_SNAP_TOLERANCE) return -1;
+  return null;
 }
 
-export function detectFlipFromCurrentTransformationMatrix(currentTransformationMatrix: number[]): ImageFlipTransform {
-  const [a, , , d] = currentTransformationMatrix; // [a, b, c, d, e, f]
+/**
+ * Detect the discrete orientation encoded in a PDF image CTM.
+ *
+ * The two CTM basis vectors are normalized independently so non-uniform scale
+ * does not affect orientation. Returns `null` for degenerate, skewed, or
+ * arbitrary-angle matrices; those require general affine resampling rather
+ * than a lossless right-angle pixel permutation.
+ */
+export function detectOrientationFromCurrentTransformationMatrix(
+  currentTransformationMatrix: number[],
+): ImageOrientationTransform | null {
+  const [a, b, c, d] = currentTransformationMatrix;
+  if (![a, b, c, d].every(Number.isFinite)) return null;
+
+  const xLength = Math.hypot(a, b);
+  const yLength = Math.hypot(c, d);
+  if (xLength === 0 || yLength === 0) return null;
+
+  const m00 = snapAxisComponent(a / xLength);
+  const m01 = snapAxisComponent(c / yLength);
+  const m10 = snapAxisComponent(b / xLength);
+  const m11 = snapAxisComponent(d / yLength);
+  if (m00 === null || m01 === null || m10 === null || m11 === null) return null;
+
+  const matrix: OrientationMatrix = [m00, m01, m10, m11];
+  return MATRIX_TO_ORIENTATION.get(matrix.join(",")) ?? null;
+}
+
+interface OrientedPixels {
+  data: Buffer;
+  width: number;
+  height: number;
+}
+
+function orientRgbaPixels(
+  data: Uint8Array,
+  width: number,
+  height: number,
+  orientation: ImageOrientationTransform,
+): OrientedPixels {
+  const [m00, m01, m10, m11] = ORIENTATION_MATRICES[orientation];
+  const swapsAxes = m00 === 0;
+  const outputWidth = swapsAxes ? height : width;
+  const outputHeight = swapsAxes ? width : height;
+  const oriented = Buffer.alloc(outputWidth * outputHeight * 4);
+
+  // Negative matrix terms produce negative raw coordinates. Translate the
+  // transformed pixel lattice back to a zero-based output rectangle.
+  const offsetX = (m00 < 0 ? width - 1 : 0) + (m01 < 0 ? height - 1 : 0);
+  const offsetY = (m10 < 0 ? width - 1 : 0) + (m11 < 0 ? height - 1 : 0);
+
+  for (let sourceY = 0; sourceY < height; sourceY++) {
+    for (let sourceX = 0; sourceX < width; sourceX++) {
+      const outputX = m00 * sourceX + m01 * sourceY + offsetX;
+      const outputY = m10 * sourceX + m11 * sourceY + offsetY;
+      const sourceIndex = (sourceY * width + sourceX) * 4;
+      const outputIndex = (outputY * outputWidth + outputX) * 4;
+      oriented.set(data.subarray(sourceIndex, sourceIndex + 4), outputIndex);
+    }
+  }
+
+  return { data: oriented, width: outputWidth, height: outputHeight };
+}
+
+function orientImageBuffer(
+  buffer: Buffer,
+  format: ImageFormat,
+  orientation: ImageOrientationTransform,
+): { buffer: Buffer; width: number; height: number } {
+  if (format === "jpeg") {
+    const decoded = jpeg.decode(buffer, { useTArray: true });
+    const oriented = orientRgbaPixels(
+      decoded.data,
+      decoded.width,
+      decoded.height,
+      orientation,
+    );
+    const encoded = jpeg.encode(
+      { data: oriented.data, width: oriented.width, height: oriented.height },
+      90,
+    );
+    return {
+      buffer: Buffer.from(encoded.data),
+      width: oriented.width,
+      height: oriented.height,
+    };
+  }
+
+  const decoded = decodePng(buffer);
+  const oriented = orientRgbaPixels(
+    decoded.data,
+    decoded.width,
+    decoded.height,
+    orientation,
+  );
+  const png = new PNG({ width: oriented.width, height: oriented.height });
+  png.data = oriented.data;
   return {
-    flipHorizontal: a < 0, // Negative X scale
-    flipVertical: d < 0,   // Negative Y scale
+    buffer: PNG.sync.write(png),
+    width: oriented.width,
+    height: oriented.height,
   };
 }
 
-/**
- * Flip an image buffer along one or both axes in a single decode/encode pass.
- * Handles both JPEG and PNG formats.
- *
- * Decoding once and applying both axes together (rather than chaining two
- * single-axis flips) matters most for JPEG: each decode+encode round-trip is
- * lossy (generational loss) and CPU-costly, so a 180° placement — both flags
- * set, the common case for upside-down scans — must not pay that cost twice.
- */
-function flipImageBuffer(
-  buffer: Buffer,
-  format: string,
-  { flipHorizontal, flipVertical }: ImageFlipTransform
-): Buffer {
-  if (!flipHorizontal && !flipVertical) return buffer;
+/** Thin compatibility helpers used by focused pixel tests. */
+export function flipImageBufferHorizontal(buffer: Buffer, format: ImageFormat): Buffer {
+  return orientImageBuffer(buffer, format, "flip-horizontal").buffer;
+}
 
-  if (format === "jpeg") {
-    const decoded = jpeg.decode(buffer, { useTArray: true });
-    const { width, height } = decoded;
-    const flipped = Buffer.alloc(decoded.data.length);
-
-    for (let y = 0; y < height; y++) {
-      const srcY = flipVertical ? height - 1 - y : y;
-      for (let x = 0; x < width; x++) {
-        const srcX = flipHorizontal ? width - 1 - x : x;
-        const srcIdx = (srcY * width + srcX) * 4;
-        const dstIdx = (y * width + x) * 4;
-        flipped[dstIdx] = decoded.data[srcIdx];
-        flipped[dstIdx + 1] = decoded.data[srcIdx + 1];
-        flipped[dstIdx + 2] = decoded.data[srcIdx + 2];
-        flipped[dstIdx + 3] = decoded.data[srcIdx + 3];
-      }
-    }
-
-    const encoded = jpeg.encode(
-      { data: flipped, width, height },
-      90 // Maintain quality
-    );
-    return Buffer.from(encoded.data);
-  }
-
-  if (format === "png") {
-    const { data, width, height } = decodePng(buffer);
-    const flipped = Buffer.alloc(data.length);
-
-    for (let y = 0; y < height; y++) {
-      const srcY = flipVertical ? height - 1 - y : y;
-      for (let x = 0; x < width; x++) {
-        const srcX = flipHorizontal ? width - 1 - x : x;
-        const srcIdx = (srcY * width + srcX) * 4;
-        const dstIdx = (y * width + x) * 4;
-        flipped[dstIdx] = data[srcIdx];
-        flipped[dstIdx + 1] = data[srcIdx + 1];
-        flipped[dstIdx + 2] = data[srcIdx + 2];
-        flipped[dstIdx + 3] = data[srcIdx + 3];
-      }
-    }
-
-    const png = new PNG({ width, height });
-    png.data = flipped;
-    return PNG.sync.write(png);
-  }
-
-  return buffer; // Unknown format
+export function flipImageBufferVertical(buffer: Buffer, format: ImageFormat): Buffer {
+  return orientImageBuffer(buffer, format, "flip-vertical").buffer;
 }
 
 /**
- * Flip image buffer horizontally (left-right mirror).
+ * Bake pre-stamped CTM orientations into extracted raster images in-place.
+ * Quarter turns also update the stored native dimensions.
  *
- * JPEG tradeoff: this path decodes to RGBA, flips pixels, then re-encodes at
- * quality 90. That is lossy for already-compressed JPEGs (generational loss),
- * even though geometric flip can be represented losslessly in JPEG.
- * Chosen intentionally for now to keep a pure JS/TS dependency-light path.
+ * JPEG transforms remain lossy because jpeg-js decodes to RGBA and re-encodes
+ * at quality 90. A single transform always uses exactly one decode/encode pass.
  */
-export function flipImageBufferHorizontal(buffer: Buffer, format: string): Buffer {
-  return flipImageBuffer(buffer, format, { flipHorizontal: true, flipVertical: false });
-}
-
-/**
- * Flip image buffer vertically (top-bottom mirror).
- *
- * JPEG tradeoff: this path decodes to RGBA, flips pixels, then re-encodes at
- * quality 90. That is lossy for already-compressed JPEGs (generational loss).
- */
-export function flipImageBufferVertical(buffer: Buffer, format: string): Buffer {
-  return flipImageBuffer(buffer, format, { flipHorizontal: false, flipVertical: true });
-}
-
-/**
- * Apply CTM-based flip transforms to raster images.
- * Updates image buffers and hashes in-place.
- *
- * Flip direction is pre-stamped per image by `stampRasterPlacementsFromOps`
- * during the consuming op->image match pass.
- */
-export function applyFlipsToRasterImages(
-  images: ExtractedImage[]
+export function applyOrientationTransformsToRasterImages(
+  images: ExtractedImage[],
 ): void {
-  if (images.length === 0) return;
-
   for (const image of images) {
-    const { flipHorizontal, flipVertical } = image.flipTransform ?? {
-      flipHorizontal: false,
-      flipVertical: false,
-    };
-    if (!flipHorizontal && !flipVertical) continue;
+    const orientation = image.orientationTransform;
+    if (!orientation || orientation === "identity") {
+      image.orientationTransform = undefined;
+      continue;
+    }
 
     try {
-      // Single decode/encode pass for both axes — avoids double generational
-      // loss + double CPU cost on 180° placements (both flags set).
-      const flippedBuf = flipImageBuffer(image.buffer, image.format, { flipHorizontal, flipVertical });
-
-      // Update the image with the flipped buffer and recalculate hash
-      image.buffer = flippedBuf;
-      image.hash = hashBuffer(flippedBuf);
-      // Clear the transform so a second call over the same array (not done
-      // today, but not guaranteed by any caller) is a no-op instead of
-      // silently double-flipping (H+H reverts to original; any other
-      // combination corrupts the image).
-      image.flipTransform = undefined;
+      const oriented = orientImageBuffer(image.buffer, image.format, orientation);
+      image.buffer = oriented.buffer;
+      image.width = oriented.width;
+      image.height = oriented.height;
+      image.hash = hashBuffer(oriented.buffer);
     } catch (err) {
-      // Leave the image unflipped rather than failing the whole page/book.
-      // jpeg-js is stricter than mupdf (no arithmetic coding, 12-bit, or
-      // truncated streams, plus its own maxMemoryUsageInMB guard) and, via
-      // the canRawExtract fast path, is the first thing to ever decode these
-      // raw DCTDecode bytes.
+      // Preserve the previous availability behavior: one unusual JPEG must not
+      // abort the whole page/book. The warning makes the degraded orientation
+      // discoverable in server logs.
       console.warn(
-        `[pdf] flip failed for ${image.imageId}, keeping original orientation:`,
-        err instanceof Error ? err.message : err
+        `[pdf] orientation transform failed for ${image.imageId}, keeping original pixels:`,
+        err instanceof Error ? err.message : err,
       );
+    } finally {
+      // Prevent an accidental second call from applying the transform twice.
+      image.orientationTransform = undefined;
     }
   }
 }

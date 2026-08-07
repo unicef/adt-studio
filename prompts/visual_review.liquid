@@ -84,7 +84,7 @@ The base (no-prefix) classes are the DESKTOP design — overlay and side-by-side
 - Preserve ALL text content exactly — do not change, add, or remove any words
 - Preserve ALL image tags and their data-id attributes
 - Only change layout and styling: Tailwind CSS classes, inline styles, spacing, positioning
-- Do NOT change font SIZE. Preserve EVERY `adt-*` class (`adt-h1`, `adt-h2`, `adt-h3`, `adt-body`, `adt-caption`) exactly as it appears in the input — never remove or rename them, and never add a `text-xs`…`text-9xl`, `text-[..]`, or inline `font-size` to a text element. The book's type scale is fixed and deterministic; changing it here breaks page-to-page consistency. If a heading/body looks "too big" vs the original, that is INTENTIONAL — leave it. Adjust only layout, positioning, spacing, and color.
+- Do NOT change font SIZE. Preserve EVERY `adt-*` class (`adt-h1` through `adt-h6`, `adt-body`, and `adt-caption`) exactly as it appears in the input — never remove or rename them, and never add a `text-xs`…`text-9xl`, `text-[..]`, or inline `font-size` to a text element. The book's type scale is fixed and deterministic; changing it here breaks page-to-page consistency. If a heading/body looks "too big" vs the original, that is INTENTIONAL — leave it. Adjust only layout, positioning, spacing, and color.
 - Keep the <section> wrapper and its role/data-section-type/data-section-id attributes
 - Do NOT add <script>, <iframe>, <object>, or <embed> tags
 - Do NOT add event handler attributes (onclick, onload, etc.)
