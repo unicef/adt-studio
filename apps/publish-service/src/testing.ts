@@ -213,6 +213,27 @@ export function createMemoryPublicationStore(): PublicationStore {
       return updated
     },
 
+    async deletePublication(token) {
+      const record = publications.get(token)
+      if (!record) return null
+      publications.delete(token)
+      accessCodes.delete(token)
+      versions.delete(token)
+      for (const [id, comment] of comments) {
+        if (comment.token === token) comments.delete(id)
+      }
+      for (const [id, session] of sessions) {
+        if (session.token === token) {
+          sessions.delete(id)
+          sessionCreatedAt.delete(id)
+        }
+      }
+      for (const key of [...snapshotBytes.keys()]) {
+        if (key.startsWith(`${token}/`)) snapshotBytes.delete(key)
+      }
+      return record
+    },
+
     async setExpiry(token, expiresAt) {
       const record = publications.get(token)
       if (!record) return null

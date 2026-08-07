@@ -34,6 +34,7 @@ import {
   snapshotPathFromUrl,
 } from "./serve.js"
 import {
+  deleteSnapshotObjects,
   isSnapshotUnpackError,
   normalizeSnapshotPath,
   unpackSnapshotToR2,
@@ -331,6 +332,31 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     }
 
     return c.json(await publicationBody(store, publication))
+  })
+
+  /** Erase the publication for good: the R2 objects, then the row and everything cascading
+   *  off it. R2 goes first on purpose — a failure there leaves the record intact and the
+   *  delete retryable, whereas the other order would strip the only pointer to the objects
+   *  and leave them billing the author's account with no way to find them again.
+   *
+   *  A token that is already gone answers `200`, not `404`: the caller asked for it to not
+   *  exist, and it does not. That keeps a retry after a dropped response from reading as a
+   *  failure. */
+  app.delete("/api/publications/:token", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+
+    const store = resolveStore(c.env)
+    const objectsDeleted = await deleteSnapshotObjects(c.env.SNAPSHOTS, token.data)
+    const publication = await store.deletePublication(token.data)
+
+    return c.json({
+      token: token.data,
+      deleted: publication !== null,
+      objects_deleted: objectsDeleted,
+    })
   })
 
   /** Expiry and the access code are independent knobs on one route: an absent key is left

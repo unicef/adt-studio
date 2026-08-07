@@ -10,6 +10,7 @@ import {
   MessagesSquare,
   Play,
   RefreshCw,
+  Trash2,
   Users,
 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -79,6 +80,10 @@ export interface PublicationRowProps {
   index: number
   onStop: () => void
   onResume: () => void
+  /** Erasing is the one action that stays available when the book is gone: that row is
+   *  unreachable every other way, and clearing it is usually the only thing left to want. */
+  onDelete: () => void
+  deleting: boolean
 }
 
 export function PublicationRow({
@@ -88,8 +93,11 @@ export function PublicationRow({
   index,
   onStop,
   onResume,
+  onDelete,
+  deleting,
 }: PublicationRowProps) {
   const { t, i18n } = useLingui()
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [readersOpen, setReadersOpen] = useState(false)
   /** Sticky: the panel stays mounted after the first open so closing can animate, and so a
    *  second look does not re-request a roster the cache already holds. */
@@ -303,6 +311,59 @@ export function PublicationRow({
             )}
             {state === "revoked" ? <Trans>Resume sharing</Trans> : <Trans>Stop sharing</Trans>}
           </Button>
+
+          {confirmingDelete ? (
+            <div
+              data-testid={`publication-delete-confirm-${publication.book_label}`}
+              className="flex flex-col gap-1.5 rounded-lg border border-red-200 bg-red-50 p-2 duration-200 motion-safe:animate-in motion-safe:fade-in-0"
+            >
+              <p className="text-[11px] leading-4 text-red-900">
+                <Trans>
+                  The link stops working and the site, every comment and every reader name are
+                  erased. This cannot be undone.
+                </Trans>
+              </p>
+              <div className="flex gap-1.5">
+                <Button
+                  type="button"
+                  variant="destructive"
+                  size="sm"
+                  className="h-7 flex-1 text-xs"
+                  disabled={deleting}
+                  onClick={onDelete}
+                >
+                  {deleting ? (
+                    <Loader2
+                      className="size-3.5 animate-spin motion-reduce:animate-none"
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  <Trans>Delete</Trans>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs"
+                  disabled={deleting}
+                  onClick={() => setConfirmingDelete(false)}
+                >
+                  <Trans>Cancel</Trans>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmingDelete(true)}
+              className="h-8 justify-start gap-2 text-xs text-muted-foreground hover:text-red-700"
+            >
+              <Trash2 className="size-3.5" aria-hidden="true" />
+              <Trans>Delete permanently</Trans>
+            </Button>
+          )}
         </div>
       </article>
 

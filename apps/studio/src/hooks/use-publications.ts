@@ -2,6 +2,7 @@ import { useMemo } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import {
   publicationStateAt,
+  type PublicationDeleteResult,
   type PublicationReaderList,
   type PublicationSummary,
   type PublicationsOverview,
@@ -92,6 +93,26 @@ function useSharingMutation(call: (label: string) => Promise<PublicationResponse
     onSuccess: (_response, label) => {
       void queryClient.invalidateQueries({ queryKey: publicationsKey })
       void queryClient.invalidateQueries({ queryKey: bookPublicationKey(label) })
+    },
+  })
+}
+
+/**
+ * Erase a publication for good.
+ *
+ * Keyed by token, unlike the sharing switches, because the row most in need of this is one
+ * whose book is no longer on this computer — there is no label to act on. Invalidates the
+ * book's own publication query too, by label, so a book that is still here stops describing
+ * itself as published the moment its row leaves the shelf.
+ */
+export function useDeletePublication() {
+  const queryClient = useQueryClient()
+  return useMutation<PublicationDeleteResult, Error, { token: string; label: string }>({
+    mutationFn: ({ token }) => api.deletePublication(token),
+    onSuccess: (_result, { token, label }) => {
+      void queryClient.invalidateQueries({ queryKey: publicationsKey })
+      void queryClient.invalidateQueries({ queryKey: bookPublicationKey(label) })
+      queryClient.removeQueries({ queryKey: publicationReadersKey(token) })
     },
   })
 }

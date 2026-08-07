@@ -80,10 +80,29 @@ export function readPublicationRecord(
     const row = storage.getLatestNodeData(BOOK_PUBLICATION_NODE, BOOK_PUBLICATION_ITEM_ID)
     if (!row) return null
     const parsed = BookPublicationRecordSchema.safeParse(row.data)
-    return parsed.success ? parsed.data : null
+    if (!parsed.success) return null
+    return parsed.data.deleted_at === null ? parsed.data : null
   } finally {
     storage.close()
   }
+}
+
+/**
+ * Marks the book as no longer published, without erasing the history of it.
+ *
+ * A tombstone rather than a delete: book data is versioned, never overwritten, so the previous
+ * record stays readable at its own version and this appends the fact that it ended. Silent when
+ * the book is gone from this computer, which is the common case for the row an author is
+ * clearing — the record died with the directory.
+ */
+export function clearPublicationRecord(
+  label: string,
+  booksDir: string,
+  deletedAt: string,
+): void {
+  const existing = readPublicationRecord(label, booksDir)
+  if (!existing) return
+  savePublicationRecord(label, booksDir, { ...existing, deleted_at: deletedAt })
 }
 
 /**
@@ -448,6 +467,7 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
     ],
     access_code: options.accessCode ?? null,
     has_access_code: created.has_access_code,
+    deleted_at: null,
   }
   savePublicationRecord(options.label, options.booksDir, record)
   await emit(stepEvent("register", "done"))

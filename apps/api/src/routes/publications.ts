@@ -10,6 +10,7 @@ import {
   BookPublishRequest,
   PUBLISH_AUTHOR_NAME_HEADER,
   PublicationToken,
+  type PublicationDeleteResult,
   PublicationUpdateRequest,
   PublishCommentCreateRequest,
   PublishCommentListQuery,
@@ -37,6 +38,7 @@ import {
 import {
   publishBook,
   readContentRevision,
+  clearPublicationRecord,
   readPublicationRecord,
   republishBook,
   savePublicationRecord,
@@ -175,6 +177,25 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       snapshot_bytes: entry.snapshot_bytes,
       source: "worker",
     }
+  }
+
+  /** Which book on this computer holds this token, if any. `null` is the ordinary answer for
+   *  the rows this exists to serve: the book was deleted, and only the account still remembers
+   *  the publication. */
+  const labelForToken = (token: string): string | null => {
+    const dir = resolvedBooksDir()
+    if (!fs.existsSync(dir)) return null
+
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      if (!BookLabel.safeParse(entry.name).success) continue
+      try {
+        if (readPublicationRecord(entry.name, dir)?.token === token) return entry.name
+      } catch {
+        continue
+      }
+    }
+    return null
   }
 
   /** The degraded list: every book on this machine that remembers a publication. It cannot see
@@ -327,6 +348,64 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
         "Your publishing service didn't answer — try again in a moment",
       )
     }
+  })
+
+  /** DELETE /publications/:token — erase a publication for good.
+   *
+   *  Token-keyed, like the readers route and unlike every other mutation here, because the
+   *  book may no longer be on this computer. That is not an edge case: a deleted book leaves
+   *  a row nobody can act on, since "stop sharing" is keyed by label and disabled without one,
+   *  so the shelf accumulates publications the author has no way to remove.
+   *
+   *  The local tombstone is written after the worker confirms, and only when the book still
+   *  exists. Doing it first would let a worker failure leave the Studio believing the book was
+   *  never published while the link kept serving. */
+  app.delete("/publications/:token", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return c.json({ error: "That is not a publication token", code: "not_published" }, 404)
+    }
+
+    const connection = store.read()
+    if (!connection) {
+      return failure(
+        c,
+        412,
+        "publish_not_connected",
+        "Connect a Cloudflare account to manage published books",
+      )
+    }
+
+    let result: PublicationDeleteResult
+    try {
+      result = await clientFor(connection).deletePublication(token.data)
+    } catch (error) {
+      if (!isPublishWorkerError(error)) throw error
+      if (error.status === 404 && error.code !== "not_found") {
+        return c.json(
+          {
+            error:
+              "Your publishing service is older than this Studio. Install the update in " +
+              "Settings → Publishing to delete a published book.",
+            code: "worker_outdated",
+          },
+          409,
+        )
+      }
+      return failure(
+        c,
+        502,
+        "worker_unreachable",
+        "Your publishing service didn't answer — nothing was deleted",
+      )
+    }
+
+    const label = labelForToken(token.data)
+    if (label) {
+      clearPublicationRecord(label, resolvedBooksDir(), (deps.now ?? (() => new Date()))().toISOString())
+    }
+
+    return c.json(result)
   })
 
   // GET /books/:label/publication — the local record merged with the worker's live state

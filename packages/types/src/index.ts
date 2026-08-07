@@ -409,6 +409,7 @@ export {
   PublicationList,
   PublicationReader,
   PublicationReaderList,
+  PublicationDeleteResult,
   PublicationSummary,
   PublicationsTotals,
   PublicationsOverview,

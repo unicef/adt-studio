@@ -61,6 +61,7 @@ const getPublications = vi.fn()
 const revokeBookPublication = vi.fn()
 const resumeBookPublication = vi.fn()
 const getPublicationReaders = vi.fn()
+const deletePublication = vi.fn()
 
 class MockApiError extends Error {
   readonly status: number
@@ -79,6 +80,7 @@ vi.mock("@/api/client", () => ({
     revokeBookPublication,
     resumeBookPublication,
     getPublicationReaders,
+    deletePublication,
   },
   ApiError: MockApiError,
   apiErrorCode: (error: unknown) => (error instanceof MockApiError ? error.code : null),
@@ -147,6 +149,7 @@ beforeEach(() => {
   getPublications.mockResolvedValue(overview())
   revokeBookPublication.mockResolvedValue({ publication: {}, has_access_code: false })
   resumeBookPublication.mockResolvedValue({ publication: {}, has_access_code: false })
+  deletePublication.mockResolvedValue({ token: "t", deleted: true, objects_deleted: 3 })
   writeText.mockResolvedValue(undefined)
   Object.defineProperty(navigator, "clipboard", {
     value: { writeText },
@@ -407,6 +410,51 @@ describe("PublicationsDashboard — a book that is no longer on this computer", 
     expect(screen.getByRole("button", { name: /stop sharing/i }).hasAttribute("disabled")).toBe(
       true,
     )
+  })
+
+  it("still lets the author erase it — the only way that row can ever leave the shelf", async () => {
+    getPublications.mockResolvedValue(
+      overview({ publications: [summary({ book_exists: false, title: "Deleted Locally" })] }),
+    )
+    renderDashboard()
+
+    const row = await screen.findByTestId("publication-row-raven")
+    const remove = within(row).getByRole("button", { name: /delete permanently/i })
+    expect(remove.hasAttribute("disabled")).toBe(false)
+
+    /** Erasing is irreversible and takes the feedback with it, so it asks first. */
+    fireEvent.click(remove)
+    expect(deletePublication).not.toHaveBeenCalled()
+    const confirm = within(row).getByTestId("publication-delete-confirm-raven")
+    expect(confirm.textContent).toContain("cannot be undone")
+
+    fireEvent.click(within(confirm).getByRole("button", { name: /^delete$/i }))
+    await waitFor(() => {
+      expect(deletePublication).toHaveBeenCalledWith("TokenRavenTokenRavenTokenRaven12")
+    })
+  })
+
+  it("keeps the row when erasing fails, and says why", async () => {
+    getPublications.mockResolvedValue(
+      overview({ publications: [summary({ book_exists: false })] }),
+    )
+    deletePublication.mockRejectedValue(new Error("Your publishing service didn't answer"))
+    renderDashboard()
+
+    const row = await screen.findByTestId("publication-row-raven")
+    fireEvent.click(within(row).getByRole("button", { name: /delete permanently/i }))
+    fireEvent.click(
+      within(screen.getByTestId("publication-delete-confirm-raven")).getByRole("button", {
+        name: /^delete$/i,
+      }),
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId("publications-action-error").textContent).toContain(
+        "didn't answer",
+      )
+    })
+    expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
   })
 })
 

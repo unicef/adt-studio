@@ -116,6 +116,11 @@ export interface PublicationStore {
   /** Clears `revoked_at`. Idempotent, and deliberately blind to `expires_at`: resuming a
    *  publication re-opens the link, it does not extend it. */
   reinstate(token: string): Promise<Publication | null>
+  /** Erases the publication and everything hanging off it — versions, sessions, comments.
+   *  Unlike `revoke`, there is nothing to resume afterwards: the token stops resolving and
+   *  the reviewers' names and threads go with it. Returns the row as it was, so the caller
+   *  can report what it removed, or `null` when the token was already gone. */
+  deletePublication(token: string): Promise<Publication | null>
   setExpiry(token: string, expiresAt: string | null): Promise<Publication | null>
   /** Sets, rotates or (with `null`) removes the packed hash. Every previously issued access
    *  cookie stops verifying, because the cookie's tag is keyed over the value replaced here. */
@@ -179,6 +184,9 @@ export const emptyPublicationStore: PublicationStore = {
     return null
   },
   async reinstate() {
+    return null
+  },
+  async deletePublication() {
     return null
   },
   async setExpiry() {

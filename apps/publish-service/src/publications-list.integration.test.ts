@@ -399,3 +399,77 @@ describe("GET /api/publications/:token/readers", () => {
     expect(res.status).toBe(401)
   })
 })
+
+describe("DELETE /api/publications/:token", () => {
+  async function del(token: string): Promise<Response> {
+    return app().request(
+      `${BASE}/api/publications/${token}`,
+      { method: "DELETE", headers: { Authorization: `Bearer ${SECRET}` } },
+      env,
+    )
+  }
+
+  it("removes the publication from the account and stops serving the link", async () => {
+    const token = await publish()
+    expect((await del(token)).status).toBe(200)
+
+    expect((await listPublications()).publications).toHaveLength(0)
+    const served = await app().request(`${BASE}/p/${token}`, {}, env)
+    expect(served.status).toBe(404)
+  })
+
+  it("erases every version's objects, not only the current one", async () => {
+    const token = await publish({ files: { "index.html": "<h1>v1</h1>" } })
+    await republish(token, { "index.html": "<h1>v2</h1>" })
+
+    const before = await env.SNAPSHOTS.list({ prefix: `${token}/` })
+    expect(before.objects.length).toBeGreaterThan(1)
+
+    const body = (await (await del(token)).json()) as { objects_deleted: number }
+    expect(body.objects_deleted).toBe(before.objects.length)
+    expect((await env.SNAPSHOTS.list({ prefix: `${token}/` })).objects).toHaveLength(0)
+  })
+
+  it("takes the comments and reader names with it", async () => {
+    const token = await publish()
+    const cookie = await reviewer(token, "Ana")
+    await comment(token, cookie, { page_section_id: "pg001_sec001", body: "here" })
+
+    await del(token)
+
+    const readers = await app().request(
+      `${BASE}/api/publications/${token}/readers`,
+      { headers: { Authorization: `Bearer ${SECRET}` } },
+      env,
+    )
+    expect(readers.status).toBe(404)
+  })
+
+  it("leaves other publications untouched", async () => {
+    const doomed = await publish({ bookLabel: "doomed" })
+    const kept = await publish({ bookLabel: "kept" })
+
+    await del(doomed)
+
+    const list = await listPublications()
+    expect(list.publications).toHaveLength(1)
+    expect(entryFor(list, kept).publication.token).toBe(kept)
+    expect((await env.SNAPSHOTS.list({ prefix: `${kept}/` })).objects.length).toBeGreaterThan(0)
+  })
+
+  it("answers 200 for a token that is already gone, so a retry is not an error", async () => {
+    const token = await publish()
+    expect((await del(token)).status).toBe(200)
+
+    const again = await del(token)
+    expect(again.status).toBe(200)
+    expect((await again.json()) as { deleted: boolean }).toMatchObject({ deleted: false })
+  })
+
+  it("refuses without the management secret", async () => {
+    const token = await publish()
+    const res = await app().request(`${BASE}/api/publications/${token}`, { method: "DELETE" }, env)
+    expect(res.status).toBe(401)
+    expect((await listPublications()).publications).toHaveLength(1)
+  })
+})

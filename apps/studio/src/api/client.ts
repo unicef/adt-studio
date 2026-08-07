@@ -47,6 +47,7 @@ import type {
   PublicationResponse,
   PublicationReader,
   PublicationReaderList,
+  PublicationDeleteResult,
   PublicationRoomTicketResponse,
   PublicationSummary,
   PublicationsOverview,
@@ -2183,6 +2184,12 @@ export const api = {
    *  a book that is no longer on this machine. */
   getPublicationReaders: (token: string) =>
     request<PublicationReaderList>(`/publications/${token}/readers`),
+
+  /** Erases a publication for good — snapshots, threads and reader names. Keyed by token, so
+   *  it reaches a row whose book has left this computer, which is the one the author cannot
+   *  remove any other way. */
+  deletePublication: (token: string) =>
+    request<PublicationDeleteResult>(`/publications/${token}`, { method: "DELETE" }),
 
   /** First publish: mints a token and uploads v1. Streams the four publish steps. */
   publishBook: (

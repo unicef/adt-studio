@@ -25,7 +25,12 @@ import {
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { StageEmptyState } from "@/components/pipeline/components/StageEmptyState"
 import { PublishingSettingsLink } from "@/components/pipeline/stages/export/publish/PublishingSettingsLink"
-import { usePublications, useResumeSharing, useStopSharing } from "@/hooks/use-publications"
+import {
+  useDeletePublication,
+  usePublications,
+  useResumeSharing,
+  useStopSharing,
+} from "@/hooks/use-publications"
 import { PublicationRow } from "./PublicationRow"
 import { PublicationsSkeleton } from "./PublicationsSkeleton"
 import { PublicationsSummary } from "./PublicationsSummary"
@@ -103,6 +108,7 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
   const overview = usePublications()
   const stop = useStopSharing()
   const resume = useResumeSharing()
+  const remove = useDeletePublication()
   const [query, setQuery] = useState<Query>(EMPTY_QUERY)
 
   const notConnected = apiErrorCode(overview.error) === "publish_not_connected"
@@ -339,21 +345,28 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
                     publication={publication}
                     countsKnown={countsKnown}
                     busy={busyLabel === publication.book_label}
+                    deleting={remove.isPending && remove.variables?.token === publication.token}
                     onStop={() => stop.mutate(publication.book_label)}
                     onResume={() => resume.mutate(publication.book_label)}
+                    onDelete={() =>
+                      remove.mutate({
+                        token: publication.token,
+                        label: publication.book_label,
+                      })
+                    }
                   />
                 ))}
               </ul>
             )}
 
-            {stop.isError || resume.isError ? (
+            {stop.isError || resume.isError || remove.isError ? (
               <p
                 data-testid="publications-action-error"
                 role="alert"
                 className="flex items-start gap-2 text-xs leading-5 text-amber-700"
               >
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                {(stop.error ?? resume.error)?.message}
+                {(stop.error ?? resume.error ?? remove.error)?.message}
               </p>
             ) : null}
           </>

@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { CommenterDisplayName } from "./commenter-name.js"
 
-export const PUBLISH_WORKER_VERSION = "0.9.0"
+export const PUBLISH_WORKER_VERSION = "0.10.0"
 
 /** R2's free allowance. Used only to give the dashboard's storage total a sense of scale —
  *  never to claim a usage number we did not measure ourselves. */
@@ -192,6 +192,15 @@ export const PublicationReaderList = z.object({
 })
 export type PublicationReaderList = z.infer<typeof PublicationReaderList>
 
+export const PublicationDeleteResult = z.object({
+  token: PublicationToken,
+  /** `false` when the token was already unknown to the account. The call still succeeded —
+   *  the caller asked for it to be gone, and it is — so this is information, not an error. */
+  deleted: z.boolean(),
+  objects_deleted: z.number().int().min(0),
+})
+export type PublicationDeleteResult = z.infer<typeof PublicationDeleteResult>
+
 export const PublishWorkerHealth = z.object({
   ok: z.literal(true),
   version: z.string().min(1),
@@ -336,6 +345,11 @@ export const BookPublicationRecord = z.object({
    *  the book's contents. `default(null)` so pre-M3.5 records still parse. */
   access_code: z.string().nullable().default(null),
   has_access_code: z.boolean().default(false),
+  /** Set when the author deleted the publication for good. The row is not removed, because
+   *  book data is versioned rather than overwritten — so this is the tombstone that says the
+   *  book has no publication any more. `readPublicationRecord` turns it back into `null`,
+   *  which is what every caller already handles. */
+  deleted_at: z.string().datetime().nullable().default(null),
 })
 export type BookPublicationRecord = z.infer<typeof BookPublicationRecord>
 

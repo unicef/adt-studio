@@ -196,3 +196,32 @@ export async function unpackSnapshotToR2({
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
+
+/** R2 accepts at most 1000 keys per delete call. */
+const DELETE_BATCH = 1000
+
+/**
+ * Removes every object a publication ever wrote — all versions, not just the current one.
+ *
+ * Paginates rather than assuming one listing covers the book: `list` truncates at 1000 keys
+ * and a picture-heavy book passes that in a single version. Stopping early would leave the
+ * remainder billed to the author's own bucket forever, with nothing left in D1 pointing at it.
+ */
+export async function deleteSnapshotObjects(
+  bucket: R2Bucket,
+  token: string,
+): Promise<number> {
+  let cursor: string | undefined
+  let deleted = 0
+
+  for (;;) {
+    const listed = await bucket.list({ prefix: `${token}/`, cursor, limit: DELETE_BATCH })
+    const keys = listed.objects.map((object) => object.key)
+    if (keys.length > 0) {
+      await bucket.delete(keys)
+      deleted += keys.length
+    }
+    if (!listed.truncated) return deleted
+    cursor = listed.cursor
+  }
+}

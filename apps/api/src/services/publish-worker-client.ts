@@ -4,6 +4,7 @@ import {
   PublicationDetail,
   PublicationList,
   PublicationReaderList,
+  PublicationDeleteResult,
   PublicationResponse,
   PublicationRoomTicketResponse,
   PublicationVersionCreateResponse,
@@ -73,6 +74,10 @@ export interface PublishWorkerClient {
   /** The people the worker has a session for on this publication — those who typed a name at
    *  the access gate or before their first comment. Not a visit log; see `PublicationReader`. */
   listReaders(token: string): Promise<PublicationReaderList>
+  /** Erases the publication, its snapshots and its feedback. Keyed by token rather than by
+   *  book label because the book it came from may be long gone from this computer — which is
+   *  exactly the row an author most wants to clear off the shelf. */
+  deletePublication(token: string): Promise<PublicationDeleteResult>
   listComments(
     token: string,
     query: PublishCommentListQuery,
@@ -286,6 +291,14 @@ export function createPublishWorkerClient({
         { method: "GET" },
         PublicationDetail,
       )) as PublicationDetail
+    },
+
+    async deletePublication(token) {
+      return (await request(
+        `/api/publications/${token}`,
+        { method: "DELETE" },
+        PublicationDeleteResult,
+      )) as PublicationDeleteResult
     },
 
     async listComments(token, query, authorName) {

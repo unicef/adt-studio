@@ -380,6 +380,22 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
       return readPublication(token)
     },
 
+    async deletePublication(token) {
+      const publication = await readPublication(token)
+      if (!publication) return null
+      /** The schema cascades from `publications`, but the children are deleted explicitly
+       *  anyway: D1 does not guarantee `PRAGMA foreign_keys` is on for every connection, and
+       *  a half-deleted publication would leave comments pointing at a token that no longer
+       *  resolves — invisible rows that still count against every total on the shelf. */
+      await db.batch([
+        db.prepare(`DELETE FROM comments WHERE token = ?`).bind(token),
+        db.prepare(`DELETE FROM sessions WHERE token = ?`).bind(token),
+        db.prepare(`DELETE FROM versions WHERE token = ?`).bind(token),
+        db.prepare(`DELETE FROM publications WHERE token = ?`).bind(token),
+      ])
+      return publication
+    },
+
     async setExpiry(token, expiresAt) {
       const result = await db
         .prepare(`UPDATE publications SET expires_at = ? WHERE token = ?`)
