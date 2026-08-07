@@ -2,13 +2,15 @@
 You are analyzing one deterministic page chunk from a larger book. Identify genuine outline headings and recurring publisher styles in this chunk. A later global pass will normalize levels and parents across all chunks.
 
 Rules:
-1. Return genuine navigational headings only. Exclude running headers, captions, page numbers, exercise options, and decorative cover metadata.
+1. Return genuine navigational headings only. Exclude running headers, captions, page numbers, exercise options, and decorative cover metadata. On table-of-contents pages, keep only the page's own heading (for example “Contents” or “Sumário”); exclude every TOC navigation row because it is a link/list item, not a document heading.
 2. Use levels 1 through 6 as your best provisional judgment. Font size is evidence, not hierarchy by itself.
-3. Group visually equivalent styles under stable descriptive `styleClusterId` values.
-4. Every entry must reference supplied candidate IDs from the same page and use their exact visible wording.
-5. Keep entries in page/reading order. Parent IDs may only reference earlier, shallower entries in this chunk; use null when the parent is outside the chunk or uncertain.
-6. Use stable sequential IDs within the chunk (`outline-001`, `outline-002`, ...).
-7. Confidence must reflect ambiguity. Do not invent headings to fill hierarchy gaps.
+   Treat the compact TOC hierarchy guide as the initial book-wide level map. Matching in-book headings should keep its suggested level unless the visible page provides unequivocal contrary structure. TOC rows remain evidence only and MUST NOT become outline entries.
+3. Group visually equivalent styles under stable descriptive `styleClusterId` values. Each style cluster has exactly one level, and every entry using it MUST use that same level. If the same visual treatment is used at different hierarchy depths, create distinct cluster IDs for those depths.
+4. Every entry must reference supplied candidate IDs from the same page. Adjacent candidates may be joined only when they visibly form one heading.
+5. Keep entries in page/reading order and assign the correct semantic `level`; the application derives each parent as the nearest earlier entry with a shallower level.
+6. Return only the compact semantic decisions in the schema. Do not repeat titles, page IDs, page numbers, outline IDs, or parent information; the application derives them exactly.
+7. Confidence must reflect ambiguity. Do not invent headings to fill hierarchy gaps. Keep `reasoning` within 600 characters.
+8. Before returning, mechanically verify every entry level equals its referenced style cluster level.
 {% endchat %}
 
 {% chat role: "user" %}
@@ -18,9 +20,17 @@ Body: {{ type_scale.bodyPx }}px; detected H1: {{ type_scale.h1Px }}px; H2: {{ ty
 Observed sizes (px → character count):{% for size in type_scale.observed %} {{ size.px }}→{{ size.chars }}{% unless forloop.last %},{% endunless %}{% endfor %}
 {% else %}No reliable PDF font-size histogram was available.{% endif %}
 
+## Compact table-of-contents hierarchy guide (evidence only)
+{% if toc_hierarchy.size > 0 %}
+{% for entry in toc_hierarchy %}
+- suggested level {{ entry.suggestedLevel }} | title={{ entry.title | json }} | TOC page {{ entry.tocPageNumber }} | confidence={{ entry.confidence }}
+{% endfor %}
+{% else %}No reliable TOC hierarchy was detected.{% endif %}
+
 ## Positioned-text candidates in reading order
+Compact columns: candidate_id | page_id | page_number | exact_text | px | size/body ratio | weight | centered(1/0) | top ratio | family | color | heading score.
 {% for candidate in candidates %}
-- {{ candidate.candidateId }} | {{ candidate.pageId }} / page {{ candidate.pageNumber }} | text={{ candidate.text | json }} | size={{ candidate.fontSizePx }} | bodyRatio={{ candidate.sizeToBodyRatio }} | weight={{ candidate.fontWeight }} | centered={{ candidate.centered }} | top={{ candidate.topRatio }} | left={{ candidate.leftRatio }} | width={{ candidate.widthRatio }} | family={{ candidate.fontFamily }} | color={{ candidate.color }} | localHint={{ candidate.headingLikelihood }}
+- {{ candidate.candidateId }}|{{ candidate.pageId }}|{{ candidate.pageNumber }}|{{ candidate.text | json }}|{{ candidate.fontSizePx }}|{{ candidate.sizeToBodyRatio }}|{{ candidate.fontWeight }}|{% if candidate.centered %}1{% else %}0{% endif %}|{{ candidate.topRatio }}|{{ candidate.fontFamily }}|{{ candidate.color }}|{{ candidate.headingLikelihood }}
 {% endfor %}
 
 ## Bounded page text

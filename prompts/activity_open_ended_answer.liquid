@@ -16,7 +16,7 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 ### Activity Components
 
 **1. Title**
-- Use: `text-5xl font-bold mb-4 text-amber-700`
+- When the title is a heading, use its semantic `<hN class="adt-hN">` mapping; add `font-bold mb-4 text-amber-700`
 - Must have data-id from provided text IDs
 
 **2. Instructions**
@@ -88,7 +88,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 <div class="flex justify-center items-start min-h-[calc(100dvh-100px)]">
   <div class="container mx-auto max-w-5xl bg-white rounded-lg px-24 max-lg:px-12 max-sm:px-6 pt-12 pb-12" id="content">
     <section data-section-type="activity_open_ended_answer" data-section-id="SECTION_ID_FROM_INPUT" class="max-w-6xl mx-auto">
-      <h1 class="text-5xl font-bold mb-4 text-amber-700" data-id="text-1">Activity Title</h1>
+      <!-- If the input has a heading-role title, render it here with its authoritative hN/adt-hN pair and add font-bold mb-4 text-amber-700. -->
 
       <p class="text-xl mb-8">
         <i class="fas fa-pen-to-square text-blue-700 mr-2"></i>

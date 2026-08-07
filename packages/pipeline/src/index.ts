@@ -79,11 +79,13 @@ export {
 export {
   buildBookOutlineEvidence,
   buildHeadingCandidates,
+  buildTocHierarchyEvidence,
   buildProofSheets,
   type BookOutlineEvidence,
   type BookOutlineEvidencePage,
   type HeadingCandidateEvidence,
   type BookOutlineProofSheet,
+  type TocHierarchyEntryEvidence,
 } from "./book-outline-evidence.js"
 export {
   renderPage,
@@ -175,6 +177,7 @@ export {
   type GenerateTocOptions,
 } from "./toc-generation.js"
 export { validateSectionHtml } from "./validate-html.js"
+export { validateRetainedHeadingHierarchy } from "./validate-typography-hierarchy.js"
 export {
   generateQuiz,
   generateAllQuizzes,

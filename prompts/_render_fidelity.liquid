@@ -26,6 +26,8 @@ Each text leaf in the content tree is shown as `role id=<data-id> "<text>"`. The
 
 ## BOOK-WIDE HEADING HIERARCHY
 
-- Heading roles and `heading_level` values are authoritative. Render `chapter_title` as `<h1 class="adt-h1">`, `section_heading` as `<h2 class="adt-h2">`, and `subheading` as `<h3 class="adt-h3">`.
-- Render a generic `heading` with a supplied level N as `<hN class="adt-hN">`, supporting levels 1 through 6. Put its supplied `data-id` on the heading or a descendant.
-- Never apply `text-*` or inline `font-size` overrides to a heading. Its book-wide `adt-h1` through `adt-h6` class owns its size. Local sizing remains available for non-heading activity controls and decorative UI text.
+- A leaf is a document heading only when its role is `chapter_title`, `section_heading`, `subheading`, or `heading`, or when it carries `heading_level`. Words such as “title” or “category heading” do not promote an instruction, label, or activity control into the document outline.
+- A supplied `heading_level=N` is authoritative. Without one, render `chapter_title` as `<h1 class="adt-h1">`, `section_heading` as `<h2 class="adt-h2">`, and `subheading` as `<h3 class="adt-h3">`.
+- Render a generic `heading` with level N as `<hN class="adt-hN">`, supporting levels 1 through 6. Put its supplied `data-id` on the heading or a descendant. Do not hardcode every activity title or visual heading as H2.
+- The semantic rank (`hN`) comes from the outline, and the matching `adt-hN` class supplies its book-wide size. Book fonts and the styleguide may add font family, weight, color, decoration, alignment, and spacing, but they must never choose a different rank or size.
+- Never apply `text-*` or inline `font`/`font-size` overrides to a heading or its descendants. Local sizing remains available for non-heading activity controls and decorative UI text where the surrounding prompt allows it.

@@ -10,15 +10,19 @@ The input contains:
 Rules:
 1. Return genuine outline headings only. Do not turn every bold label, caption, running header, exercise option, or page number into an outline entry.
    Exclude cover/title-page display text and book metadata unless it genuinely participates in the navigable outline.
+   On table-of-contents pages, keep only the page's own heading (for example “Contents” or “Sumário”). TOC navigation rows are links/list items that point elsewhere, NOT document headings; never include their chapter/section titles as outline entries.
 2. Support heading levels 1 through 6. Preserve the book's real depth; do not force everything into three levels.
 3. Font size is evidence, not hierarchy by itself. Use numbering, wording, position, repeated publisher styles, the original table of contents, and surrounding structure together.
+   Treat the compact TOC hierarchy guide as the initial book-wide level map. When an in-book heading matches a TOC title, preserve its suggested level unless the visible page provides unequivocal contrary structure. TOC rows remain evidence only and MUST NOT become outline entries.
 4. Assign visually equivalent recurring publisher styles to one `styleClusterId` and one consistent level throughout the book.
+   Every entry using a cluster MUST use that cluster's level; use separate cluster IDs when the same visual treatment serves different hierarchy depths.
 5. `kind` is independent from `level`. A callout or activity title may be level 2, 3, or 4 depending on its parent.
-6. Every entry must reference one or more supplied candidate IDs from the same page. Never invent page IDs, page numbers, or candidate IDs.
-7. Entries must be in reading/page order. Each `parentId` must reference an earlier, shallower entry. Use null only for true top-level entries.
-8. Use stable sequential IDs (`outline-001`, `outline-002`, ...).
-9. Use the exact visible heading wording for `title`, joining adjacent candidates only when they visibly form one heading (for example a chapter number plus chapter name).
-10. Confidence reflects the evidence: use lower confidence when hierarchy or candidate matching is genuinely ambiguous.
+6. Every entry must reference one or more supplied candidate IDs from the same page. Never invent candidate IDs. Adjacent candidates may be joined only when they visibly form one heading (for example a chapter number plus chapter name).
+7. Entries must be in reading/page order. Assign the correct semantic `level`; the application deterministically derives each parent as the nearest earlier entry with a shallower level.
+8. Return only the compact semantic decisions in the schema. Do not repeat titles, page IDs, page numbers, outline IDs, or parent information; the application derives them exactly from candidate IDs, levels, and array order.
+9. Confidence reflects the evidence: use lower confidence when hierarchy or candidate matching is genuinely ambiguous.
+10. Keep `reasoning` concise (600 characters maximum).
+11. Before returning, mechanically verify every entry level equals its referenced style cluster level.
 
 Think globally before assigning levels. A classification is not reliable merely because it looks plausible on one isolated page.
 {% endchat %}
@@ -30,9 +34,18 @@ Body: {{ type_scale.bodyPx }}px; detected H1: {{ type_scale.h1Px }}px; H2: {{ ty
 Observed sizes (px → character count):{% for size in type_scale.observed %} {{ size.px }}→{{ size.chars }}{% unless forloop.last %},{% endunless %}{% endfor %}
 {% else %}No reliable PDF font-size histogram was available.{% endif %}
 
+## Compact table-of-contents hierarchy guide (evidence only)
+These rows were recovered from TOC indentation. Match them to visible in-book headings, but never return the TOC rows themselves.
+{% if toc_hierarchy.size > 0 %}
+{% for entry in toc_hierarchy %}
+- suggested level {{ entry.suggestedLevel }} | title={{ entry.title | json }} | TOC page {{ entry.tocPageNumber }} | confidence={{ entry.confidence }}
+{% endfor %}
+{% else %}No reliable TOC hierarchy was detected.{% endif %}
+
 ## Positioned-text candidates in reading order
+Compact columns: candidate_id | page_id | page_number | exact_text | px | size/body ratio | weight | centered(1/0) | top ratio | family | color | heading score.
 {% for candidate in candidates %}
-- {{ candidate.candidateId }} | {{ candidate.pageId }} / page {{ candidate.pageNumber }} | text={{ candidate.text | json }} | size={{ candidate.fontSizePx }} | bodyRatio={{ candidate.sizeToBodyRatio }} | weight={{ candidate.fontWeight }} | centered={{ candidate.centered }} | top={{ candidate.topRatio }} | left={{ candidate.leftRatio }} | width={{ candidate.widthRatio }} | family={{ candidate.fontFamily }} | color={{ candidate.color }} | localHint={{ candidate.headingLikelihood }}
+- {{ candidate.candidateId }}|{{ candidate.pageId }}|{{ candidate.pageNumber }}|{{ candidate.text | json }}|{{ candidate.fontSizePx }}|{{ candidate.sizeToBodyRatio }}|{{ candidate.fontWeight }}|{% if candidate.centered %}1{% else %}0{% endif %}|{{ candidate.topRatio }}|{{ candidate.fontFamily }}|{{ candidate.color }}|{{ candidate.headingLikelihood }}
 {% endfor %}
 
 ## Bounded page text

@@ -56,7 +56,7 @@ Use a normal-flow layout. Do NOT create any `<img>` tags. Text groups flow verti
     <section data-section-type="..." data-section-id="..." class="space-y-6">
         <!-- Each text group as a normal-flow block -->
         <div class="space-y-2">
-            <h1 class="text-2xl font-bold text-gray-900" data-id="[HEADING_ID]">Heading</h1>
+            <!-- If the input has a heading-role leaf, render it here with the shared heading_level → hN/adt-hN rule. -->
         </div>
         <div class="space-y-3">
             <p class="text-lg leading-relaxed text-gray-800" data-id="[TEXT_ID_1]">First line</p>
@@ -129,7 +129,7 @@ Example — three groups forming one column:
 <!-- All three share left-[8%] and max-w-[55%] — only top varies -->
 <!-- All include bg-white/85 rounded-lg p-3 for readability -->
 <div class="absolute top-[10%] left-[8%] max-w-[55%] bg-white/85 rounded-lg p-3 z-10">
-    <h1 class="text-2xl font-bold text-gray-900" data-id="[HEADING_ID]">Title</h1>
+    <!-- Render the input heading-role leaf here with its authoritative hN/adt-hN pair. -->
 </div>
 <div class="absolute top-[18%] left-[8%] max-w-[55%] bg-white/85 rounded-lg p-3 z-10 space-y-2">
     <p class="text-base leading-relaxed text-gray-800" data-id="[ID_1]">First paragraph</p>
@@ -159,7 +159,7 @@ Preserve the original text alignment from the page image. Most body text and hea
 **Heading group:**
 ```html
 <div class="absolute top-[Y%] left-[X%] max-w-[W%] bg-white/85 rounded-lg p-3 z-10">
-    <h1 class="text-2xl font-bold text-gray-900" data-id="[ID]">Title</h1>
+    <!-- Render the input heading-role leaf here with its authoritative hN/adt-hN pair; add font-bold and text-gray-900 if appropriate. -->
 </div>
 ```
 
