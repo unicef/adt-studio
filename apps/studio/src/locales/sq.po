@@ -1509,8 +1509,8 @@ msgstr "Pamja"
 msgid "Appears on pages {0}"
 msgstr "Shfaqet në faqet {0}"
 
-#~ msgid "Application"
-#~ msgstr "Aplikacioni"
+msgid "Application"
+msgstr "Aplikacioni"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Ndërfaqe Programimi Aplikacioni — një grup rregullash që lejon programet të komunikojnë."
@@ -1584,6 +1584,9 @@ msgstr "Organizoni përmbajtjen e nxjerrë në një storyboard të strukturuar m
 
 msgid "Article"
 msgstr "Artikull"
+
+msgid "Artificial intelligence"
+msgstr "Inteligjenca artificiale"
 
 msgid "Aside"
 msgstr "Shënim anësor"
@@ -1705,6 +1708,9 @@ msgstr "Kthehu"
 msgid "Back Cover"
 msgstr "Kapaku i pasëm"
 
+#~ msgid "Back to app"
+#~ msgstr "Kthehu te aplikacioni"
+
 msgid "Back to beta versions"
 msgstr "Kthehu te versionet beta"
 
@@ -1716,6 +1722,9 @@ msgstr "Kthehu te aktiviteti klasik"
 
 #~ msgid "Back to Editor"
 #~ msgstr "Kthehu te redaktori"
+
+msgid "Back to home"
+msgstr "Kthehu te Kryefaqja"
 
 msgid "Back to preview"
 msgstr "Kthehu te pamja paraprake"
@@ -6077,6 +6086,9 @@ msgstr "Nuk ka ende seksione — ekzekutoni fazën storyboard për të gjeneruar
 msgid "No segmentation needed for this image"
 msgstr "Nuk nevojitet segmentim për këtë imazh"
 
+msgid "No settings match your search."
+msgstr "Asnjë cilësim nuk përputhet me kërkimin tuaj."
+
 msgid "No source image"
 msgstr "Nuk ka imazh burimor"
 
@@ -7029,6 +7041,9 @@ msgstr "Reshje"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjeneral dhe emra të përveçëm që nuk bartin kuptim përtej faqes."
+
+msgid "Preferences"
+msgstr "Preferencat"
 
 msgid "Preparing speech..."
 msgstr "Duke përgatitur audion..."
@@ -8155,6 +8170,12 @@ msgstr "Kërko pyetje, përgjigje ose shpjegime…"
 
 msgid "Search sections..."
 msgstr "Kërko seksione..."
+
+msgid "Search settings"
+msgstr "Kërko në cilësimet"
+
+msgid "Search settings…"
+msgstr "Kërko në cilësimet…"
 
 msgid "Search style guides..."
 msgstr "Kërko udhëzues stili..."

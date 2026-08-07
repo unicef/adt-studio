@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Outlet } from "@tanstack/react-router"
+import { Outlet, useLocation } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 import { Trans } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
@@ -14,6 +14,7 @@ import { AddBookDialog } from "./AddBookDialog"
 import { RedesignShellContext } from "./RedesignShellContext"
 import { useRedesignBooks } from "./use-redesign-books"
 import { Kbd } from "./ui/Kbd"
+import { REDESIGN_PATHS } from "./nav"
 
 const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
   { keys: ["⌘", "K"], label: msg`Open command palette` },
@@ -25,6 +26,8 @@ const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
 
 export function RedesignLayout() {
   const { t, i18n } = useLingui()
+  const { pathname } = useLocation()
+  const isSettings = pathname.startsWith(REDESIGN_PATHS.settings)
   usePageTitle(t`ADT Studio`)
   const { books, locale } = useRedesignBooks()
   const deleteMutation = useDeleteBook()
@@ -59,13 +62,15 @@ export function RedesignLayout() {
   return (
     <RedesignShellContext value={shell}>
       <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
-        <AppSidebar
-          libraryCount={books.length}
-          handoffsCount={handoffsCount}
-          onOpenPalette={() => setPaletteOpen(true)}
-          onOpenAdd={openAdd}
-          onOpenShortcuts={() => setShortcutsOpen(true)}
-        />
+        {!isSettings && (
+          <AppSidebar
+            libraryCount={books.length}
+            handoffsCount={handoffsCount}
+            onOpenPalette={() => setPaletteOpen(true)}
+            onOpenAdd={openAdd}
+            onOpenShortcuts={() => setShortcutsOpen(true)}
+          />
+        )}
 
         <div className="min-h-0 min-w-0 flex-1">
           <Outlet />

@@ -1510,8 +1510,8 @@ msgstr "Apparence"
 msgid "Appears on pages {0}"
 msgstr "Apparaît sur les pages {0}"
 
-#~ msgid "Application"
-#~ msgstr "Application"
+msgid "Application"
+msgstr "Application"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Interface de programmation d'applications — un ensemble de règles permettant aux programmes de communiquer."
@@ -1585,6 +1585,9 @@ msgstr "Organisez le contenu extrait en un scénarimage structuré avec des page
 
 msgid "Article"
 msgstr "Article"
+
+msgid "Artificial intelligence"
+msgstr "Intelligence artificielle"
 
 msgid "Aside"
 msgstr "Aparté"
@@ -1706,6 +1709,9 @@ msgstr "Retour"
 msgid "Back Cover"
 msgstr "Quatrième de couverture"
 
+#~ msgid "Back to app"
+#~ msgstr "Retour à l'application"
+
 msgid "Back to beta versions"
 msgstr "Retour aux versions bêta"
 
@@ -1717,6 +1723,9 @@ msgstr "Revenir à l'activité classique"
 
 #~ msgid "Back to Editor"
 #~ msgstr "Retour à l'éditeur"
+
+msgid "Back to home"
+msgstr "Retour à l'accueil"
 
 msgid "Back to preview"
 msgstr "Retour à l'aperçu"
@@ -6078,6 +6087,9 @@ msgstr "Aucune section pour l'instant — lancez l'étape storyboard pour géné
 msgid "No segmentation needed for this image"
 msgstr "Aucune segmentation nécessaire pour cette image"
 
+msgid "No settings match your search."
+msgstr "Aucun paramètre ne correspond à votre recherche."
+
 msgid "No source image"
 msgstr "Aucune image source"
 
@@ -7030,6 +7042,9 @@ msgstr "Précipitations"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Privilégiez les termes centraux au sujet du livre. Évitez le vocabulaire générique et les noms propres qui n'ont pas de signification au-delà de la page."
+
+msgid "Preferences"
+msgstr "Préférences"
 
 msgid "Preparing speech..."
 msgstr "Préparation de la synthèse vocale..."
@@ -8156,6 +8171,12 @@ msgstr "Rechercher des questions, des réponses ou des explications…"
 
 msgid "Search sections..."
 msgstr "Rechercher des sections..."
+
+msgid "Search settings"
+msgstr "Rechercher dans les paramètres"
+
+msgid "Search settings…"
+msgstr "Rechercher dans les paramètres…"
 
 msgid "Search style guides..."
 msgstr "Rechercher des guides de style..."

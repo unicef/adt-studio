@@ -30,15 +30,39 @@ export interface SettingsTab {
   fullWidth?: boolean
 }
 
-export const SETTINGS_TABS: SettingsTab[] = [
-  { key: "language", label: msg`Language`, icon: Languages },
-  { key: "theme", label: msg`Theme`, icon: Palette },
-  { key: "notifications", label: msg`Notifications`, icon: Bell },
-  { key: "providers", label: msg`AI providers`, icon: Sparkles },
-  { key: "models", label: msg`Models`, icon: Brain },
-  { key: "prompts", label: msg`Prompts`, icon: ScrollText, fullWidth: true },
-  { key: "about", label: msg`About`, icon: Info },
+export interface SettingsGroup {
+  key: string
+  label: MessageDescriptor
+  tabs: SettingsTab[]
+}
+
+export const SETTINGS_GROUPS: SettingsGroup[] = [
+  {
+    key: "preferences",
+    label: msg`Preferences`,
+    tabs: [
+      { key: "language", label: msg`Language`, icon: Languages },
+      { key: "theme", label: msg`Theme`, icon: Palette },
+      { key: "notifications", label: msg`Notifications`, icon: Bell },
+    ],
+  },
+  {
+    key: "ai",
+    label: msg`Artificial intelligence`,
+    tabs: [
+      { key: "providers", label: msg`AI providers`, icon: Sparkles },
+      { key: "models", label: msg`Models`, icon: Brain },
+      { key: "prompts", label: msg`Prompts`, icon: ScrollText, fullWidth: true },
+    ],
+  },
+  {
+    key: "application",
+    label: msg`Application`,
+    tabs: [{ key: "about", label: msg`About`, icon: Info }],
+  },
 ]
+
+export const SETTINGS_TABS: SettingsTab[] = SETTINGS_GROUPS.flatMap((group) => group.tabs)
 
 export function activeSettingsTab(pathname: string): SettingsTab {
   return (

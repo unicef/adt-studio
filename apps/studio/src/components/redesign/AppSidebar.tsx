@@ -28,14 +28,12 @@ import {
 import { Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
 import { Kbd } from "./ui/Kbd"
 import { REDESIGN_PATHS, activeRedesignView } from "./nav"
 import type { RedesignView } from "./types"
-import { MacOSTrafficLightSpacer } from "../title-bar"
 import { useUpdateDialog } from "@/components/updates"
-import { useAppLogo } from "@/hooks/use-app-logo"
+import { SidebarLogo } from "./SidebarLogo"
 
 const DOCS_URL = "https://unicef.github.io/adt-studio/docs/get-started/";
 const ISSUES_URL = "https://github.com/unicef/adt-studio/issues";
@@ -93,7 +91,6 @@ export function AppSidebar({
   const [wsOpen, setWsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const { showWhatsNew } = useUpdateDialog()
-  const logoSrc = useAppLogo()
 
   const items: { view: RedesignView; label: string; icon: LucideIcon; count?: number }[] = [
     { view: "home", label: t`Home`, icon: House },
@@ -104,18 +101,8 @@ export function AppSidebar({
 
   return (
     <div className="flex w-64 shrink-0 flex-col overflow-auto border-r bg-sidebar px-3 pb-3 pt-4">
-      <div style={DRAG_REGION} className="flex items-center gap-2.5 px-1.5 pb-4">
 
-        <MacOSTrafficLightSpacer />
-
-        <img src={logoSrc} alt="" className="size-8 rounded-[9px] shadow-[0_2px_7px_rgba(43,127,255,0.42)]" />
-        <div className="flex min-w-0 flex-1 flex-col gap-px leading-[1.1]">
-          <b className="truncate text-[14.5px]">ADT Studio</b>
-          <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-            <Trans>Accessible textbooks</Trans>
-          </span>
-        </div>
-      </div>
+      <SidebarLogo />
 
       <Button onClick={onOpenAdd} size="sm" className="mb-3 w-full">
         <Plus className="size-3.5" />

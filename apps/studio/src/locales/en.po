@@ -1508,8 +1508,8 @@ msgstr "Appearance"
 msgid "Appears on pages {0}"
 msgstr "Appears on pages {0}"
 
-#~ msgid "Application"
-#~ msgstr "Application"
+msgid "Application"
+msgstr "Application"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Application Programming Interface — a set of rules that allows programs to communicate."
@@ -1583,6 +1583,9 @@ msgstr "Arrange extracted content into a structured storyboard with pages, secti
 
 msgid "Article"
 msgstr "Article"
+
+msgid "Artificial intelligence"
+msgstr "Artificial intelligence"
 
 msgid "Aside"
 msgstr "Aside"
@@ -1704,6 +1707,9 @@ msgstr "Back"
 msgid "Back Cover"
 msgstr "Back Cover"
 
+#~ msgid "Back to app"
+#~ msgstr "Back to app"
+
 msgid "Back to beta versions"
 msgstr "Back to beta versions"
 
@@ -1715,6 +1721,9 @@ msgstr "Back to classic activity"
 
 #~ msgid "Back to Editor"
 #~ msgstr "Back to Editor"
+
+msgid "Back to home"
+msgstr "Back to home"
 
 msgid "Back to preview"
 msgstr "Back to preview"
@@ -6076,6 +6085,9 @@ msgstr "No sections yet — run the storyboard stage to generate pages."
 msgid "No segmentation needed for this image"
 msgstr "No segmentation needed for this image"
 
+msgid "No settings match your search."
+msgstr "No settings match your search."
+
 msgid "No source image"
 msgstr "No source image"
 
@@ -7028,6 +7040,9 @@ msgstr "Precipitation"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
+
+msgid "Preferences"
+msgstr "Preferences"
 
 msgid "Preparing speech..."
 msgstr "Preparing speech..."
@@ -8154,6 +8169,12 @@ msgstr "Search questions, answers, or explanations…"
 
 msgid "Search sections..."
 msgstr "Search sections..."
+
+msgid "Search settings"
+msgstr "Search settings"
+
+msgid "Search settings…"
+msgstr "Search settings…"
 
 msgid "Search style guides..."
 msgstr "Search style guides..."
