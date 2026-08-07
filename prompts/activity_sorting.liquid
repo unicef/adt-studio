@@ -55,7 +55,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 **Categories (drop zones):**
 - Class: `category` - REQUIRED
 - Attribute: `data-activity-category="category-name"` - REQUIRED
-- Visible heading: a `<label>` (or heading) holding the category name. Category names are usually NOT in the source text, so you GENERATE them — see "Generated category labels" below.
+- Visible category label: a `<p>` or `<span>` holding the category name. This is activity UI, not a document-outline heading, so do not use `<h1>`–`<h6>` or an `adt-hN` class. Category names are usually NOT in the source text, so you GENERATE them — see "Generated category labels" below.
 - Must contain: `<ul class="word-list"></ul>` - REQUIRED (empty initially)
 - Color-coded backgrounds: `bg-yellow-200`, `bg-blue-200`, `bg-green-200`, `bg-red-200`, `bg-purple-200`
 
@@ -92,13 +92,13 @@ Example sorting activity:
     <div class="grid gap-3 activity-text" role="listbox">
       <div class="category bg-yellow-200 border border-yellow-300 rounded p-2 min-h-[3rem]"
            data-activity-category="category1" tabindex="0" role="listbox">
-        <label class="font-semibold text-center" data-id="activity_gen_cat1">Category 1</label>
+        <p class="font-semibold text-center" data-id="activity_gen_cat1">Category 1</p>
         <ul class="word-list flex flex-wrap"></ul>
       </div>
 
       <div class="category bg-blue-200 border border-blue-300 rounded p-2 min-h-[3rem]"
            data-activity-category="category2" tabindex="0" role="listbox">
-        <label class="font-semibold text-center" data-id="activity_gen_cat2">Category 2</label>
+        <p class="font-semibold text-center" data-id="activity_gen_cat2">Category 2</p>
         <ul class="word-list flex flex-wrap"></ul>
       </div>
     </div>

@@ -15,10 +15,11 @@ Your PRIMARY job is to apply the user's edit instruction fully and accurately. T
 
 ## Preserve the book-wide heading hierarchy
 
-- An existing semantic heading that remains in the output must keep the same native `<h1>` through `<h6>` tag and its matching `adt-h1` through `adt-h6` class. This applies when its `data-id` is on the heading or on a descendant inside it.
+- An existing semantic heading that remains in the output must keep the same native `<h1>` through `<h6>` tag. If it already uses the matching `adt-h1` through `adt-h6` class, preserve that class too. This applies when its `data-id` is on the heading or on a descendant inside it.
 - Unrelated presentation and layout edits must never turn a heading into a `<div>`, `<span>`, `<p>`, or other generic element.
 - Restyling a heading means changing layout, spacing, weight, color, or decoration around its fixed tag and type-scale class. Do not replace or remove its `adt-hN` class.
 - Never add `text-xs` through `text-9xl`, arbitrary `text-[...]` font sizes, or inline `font`/`font-size` styles to a heading or its descendants.
+- Older HTML may contain headings without an `adt-hN` class. Do not migrate or otherwise rewrite that legacy typography during an unrelated edit; preserve its native heading tag and existing presentation classes.
 - Heading rank changes are not supported by AI editing. Preserve the current rank and explain that the user must make the hierarchy change in Sectioning. Intentional removal of the entire heading remains allowed when the instruction explicitly asks for it.
 
 ## Overlaying text on images (absolute positioning)

@@ -79,11 +79,13 @@ export {
 export {
   buildBookOutlineEvidence,
   buildHeadingCandidates,
+  buildTocHierarchyEvidence,
   buildProofSheets,
   type BookOutlineEvidence,
   type BookOutlineEvidencePage,
   type HeadingCandidateEvidence,
   type BookOutlineProofSheet,
+  type TocHierarchyEntryEvidence,
 } from "./book-outline-evidence.js"
 export {
   renderPage,

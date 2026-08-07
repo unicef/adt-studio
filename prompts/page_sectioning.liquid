@@ -42,6 +42,7 @@ Book ancestors that establish the current nesting context:
 
 - Represent every listed page entry as heading leaf content. Set `outline_entry_id`, `heading_level`, and `heading_style_cluster_id` exactly from the outline entry.
 - Levels 1, 2, and 3 use roles `chapter_title`, `section_heading`, and `subheading` respectively. Levels 4, 5, and 6 use the generic `heading` role plus their authoritative `heading_level`.
+- This role mapping is mechanical and overrides every later wording or visual-classification heuristic. For example, a table-of-contents entry whose text begins with “CAPÍTULO” still uses `section_heading` when its supplied outline level is 2; do not independently reclassify any listed entry.
 - If one outline title is split into adjacent visible leaves (for example chapter number + name), each heading leaf may reference the same outline entry, but preserve each leaf's exact visible text.
 - Do not attach outline metadata to captions, labels, body text, running headers, or decorative text.
 {% endif %}
@@ -62,6 +63,7 @@ Book ancestors that establish the current nesting context:
 - A table of contents may span multiple consecutive pages. Only its first page may show a heading such as "Table of Contents" or "Contents"; continuation pages often begin directly with the next chapter or unit.
 - Classify a page as `table_of_contents` when it predominantly contains repeated navigation-entry rows: a chapter/section/subsection title on the left, dot leaders or a wide alignment gap in the middle, and an Arabic or Roman page number at the right edge. This repeated row pattern is sufficient even when the TOC heading is absent.
 - Preserve every entry in reading order and preserve hierarchy containers/indentation visible in the page image. A continued TOC page remains one `table_of_contents` section; never downgrade it to `text_only`, `list`, or `other` merely because the heading is not repeated.
+- TOC navigation rows are list/link content, not semantic headings in the current document. Represent their titles and page numbers with ordinary `text` leaves inside the TOC list structure—never `chapter_title`, `section_heading`, `subheading`, or `heading`. Only the TOC page's own visible title (for example “Contents” or “Sumário”) may use a heading role.
 - Dot leaders between TOC titles and terminal page numbers are navigation formatting, NOT writable response lines. TOC continuation detection takes precedence over WRITABLE-PAGE PRECEDENCE below.
 
 ## Activity classification rules

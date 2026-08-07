@@ -1,5 +1,7 @@
+import path from "node:path"
 import { describe, expect, it } from "vitest"
 import type { AppConfig } from "@adt/types"
+import { createPromptEngine } from "@adt/llm"
 import type {
   GenerateObjectOptions,
   GenerateObjectResult,
@@ -221,6 +223,38 @@ describe("buildPageSectioningConfig", () => {
       page_sectioning: { mode: "page" },
     }
     expect(buildPageSectioningConfig(appConfig).mode).toBe("page")
+  })
+})
+
+describe("page sectioning prompt", () => {
+  it("makes outline-linked role assignment override wording and visual heuristics", async () => {
+    const promptEngine = createPromptEngine(path.join(process.cwd(), "prompts"))
+    const messages = await promptEngine.renderPrompt("page_sectioning", {
+      structure_types: [],
+      role_types: [],
+      section_types: [],
+      book_outline: {
+        entries: [{
+          outlineId: "outline-001",
+          title: "CAPÍTULO 1",
+          level: 2,
+          kind: "chapter",
+          styleClusterId: "toc-chapter",
+        }],
+        ancestors: [],
+      },
+      mode: "page",
+    })
+    const text = messages
+      .flatMap((message) => typeof message.content === "string"
+        ? [message.content]
+        : message.content.filter((part) => part.type === "text").map((part) => part.text))
+      .join("\n")
+
+    expect(text).toContain("role mapping is mechanical")
+    expect(text).toContain("still uses `section_heading`")
+    expect(text).toContain("TOC navigation rows are list/link content")
+    expect(text).toContain("never `chapter_title`")
   })
 })
 

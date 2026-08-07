@@ -110,10 +110,10 @@ describe("web rendering reading-order prompts", () => {
     })
     const prompt = messages.map(messageText).join("\n")
 
-    expect(prompt).toContain("Heading roles are authoritative")
-    expect(prompt).toContain('`chapter_title` → semantic `<h1 class="adt-h1">`')
-    expect(prompt).toContain('`section_heading` → `<h2 class="adt-h2">`')
-    expect(prompt).toContain('`subheading` → `<h3 class="adt-h3">`')
+    expect(prompt).toContain("A supplied `heading_level=N` is authoritative")
+    expect(prompt).toContain('`chapter_title` as `<h1 class="adt-h1">`')
+    expect(prompt).toContain('`section_heading` as `<h2 class="adt-h2">`')
+    expect(prompt).toContain('`subheading` as `<h3 class="adt-h3">`')
   })
 
   for (const promptName of HTML_RENDER_PROMPTS) {
@@ -126,9 +126,11 @@ describe("web rendering reading-order prompts", () => {
 
       expect(prompt).toContain("## BOOK-WIDE HEADING HIERARCHY")
       expect(prompt).toContain('chapter_title` as `<h1 class="adt-h1">')
-      expect(prompt).toContain("Never apply `text-*` or inline `font-size` overrides to a heading")
+      expect(prompt).toContain("Never apply `text-*` or inline `font`/`font-size` overrides to a heading")
 
-      for (const match of prompt.matchAll(/<h([1-6])\b[^>]*class="([^"]*)"/g)) {
+      const headingExamples = [...prompt.matchAll(/<h([1-6])\b[^>]*class="([^"]*)"/g)]
+      expect(headingExamples.map((match) => match[1])).toEqual(["1", "2", "3"])
+      for (const match of headingExamples) {
         const [, level, classNames] = match
         const classes = classNames.split(/\s+/)
         expect(classes, match[0]).toContain(`adt-h${level}`)
@@ -151,9 +153,42 @@ describe("web rendering reading-order prompts", () => {
     const prompt = messages.map(messageText).join("\n")
 
     expect(prompt).toContain("must keep the same native `<h1>` through `<h6>` tag")
-    expect(prompt).toContain("matching `adt-h1` through `adt-h6` class")
+    expect(prompt).toContain("already uses the matching `adt-h1` through `adt-h6` class")
+    expect(prompt).toContain("Do not migrate or otherwise rewrite that legacy typography")
     expect(prompt).toContain("must make the hierarchy change in Sectioning")
     expect(prompt).toContain("Intentional removal of the entire heading remains allowed")
+  })
+
+  it("keeps styleguide and visual-review prompts subordinate to outline typography", async () => {
+    const [styleguideMessages, reviewMessages, flexibleMessages] = await Promise.all([
+      promptEngine.renderPrompt("styleguide_generation", {
+        page_images: [],
+        book_fonts: [],
+        typography: [{ className: "adt-h4", label: "Heading level 4", mobilePx: 19, desktopPx: 28 }],
+      }),
+      promptEngine.renderPrompt("visual_review", {
+        nodes,
+        section_type: "text_only",
+        has_merged_content: false,
+        viewports: [{ label: "Desktop", width: 1280, tailwind_prefix: "" }],
+      }),
+      promptEngine.renderPrompt("visual_review_flexible", {
+        nodes,
+        section_type: "text_only",
+        has_merged_content: false,
+        user_instructions: "Change the background",
+        viewports: [{ label: "Desktop", width: 1280, tailwind_prefix: "" }],
+      }),
+    ])
+    const styleguidePrompt = styleguideMessages.map(messageText).join("\n")
+    const reviewPrompt = reviewMessages.map(messageText).join("\n")
+    const flexiblePrompt = flexibleMessages.map(messageText).join("\n")
+
+    expect(styleguidePrompt).toContain("do not assign every activity title to H2")
+    expect(styleguidePrompt).toContain("selected later from the authoritative outline")
+    expect(reviewPrompt).toContain("`adt-h1` through `adt-h6`")
+    expect(flexiblePrompt).toContain("existing semantic `adt-*` type-scale classes and heading ranks remain fixed")
+    expect(flexiblePrompt).toContain("Never add a `text-*` size utility")
   })
 
   it("requires right-aligned page numbers and dotted leaders for TOC pages", async () => {

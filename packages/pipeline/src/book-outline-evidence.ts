@@ -34,20 +34,37 @@ export interface BookOutlineProofSheet {
   imageBase64: string
 }
 
+/**
+ * Compact evidence-only hierarchy recovered from table-of-contents rows.
+ * These rows guide matching in-book headings but are never outline entries.
+ */
+export interface TocHierarchyEntryEvidence {
+  tocPageId: string
+  tocPageNumber: number
+  title: string
+  suggestedLevel: number
+  indentRatio: number | null
+  confidence: number
+}
+
 export interface BookOutlineEvidence {
   pages: Array<{ pageId: string; pageNumber: number; text: string }>
   candidates: HeadingCandidateEvidence[]
+  tocHierarchy: TocHierarchyEntryEvidence[]
   proofSheets: BookOutlineProofSheet[]
   typeScale: TypeScale | null
 }
 
 /** Keep each page's prompt contribution bounded without discarding both ends. */
 export const BOOK_OUTLINE_MAX_PAGE_TEXT_CHARS = 12_000
+/** Positioned candidates already carry the page's useful text and typography. */
+export const BOOK_OUTLINE_MAX_POSITIONED_PAGE_TEXT_CHARS = 600
+export const BOOK_OUTLINE_MAX_CANDIDATES_PER_PAGE = 16
 
-function boundedPageText(text: string): string {
-  if (text.length <= BOOK_OUTLINE_MAX_PAGE_TEXT_CHARS) return text
+function boundedPageText(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text
   const marker = "\n\n[... middle of page text omitted for outline input ...]\n\n"
-  const available = BOOK_OUTLINE_MAX_PAGE_TEXT_CHARS - marker.length
+  const available = maxChars - marker.length
   const leading = Math.ceil(available / 2)
   const trailing = Math.floor(available / 2)
   return `${text.slice(0, leading)}${marker}${text.slice(-trailing)}`
@@ -67,6 +84,19 @@ interface GroupedParagraph {
   order: number
 }
 
+interface RankedParagraph {
+  group: GroupedParagraph
+  text: string
+  likelihood: number
+}
+
+interface RawTocHierarchyEntry {
+  tocPageId: string
+  tocPageNumber: number
+  title: string
+  indentRatio: number | null
+}
+
 function parseCssNumber(value: string | undefined): number | null {
   if (!value) return null
   if (value.trim().toLowerCase() === "bold") return 700
@@ -78,11 +108,82 @@ function normalizedText(value: string): string {
   return value.replace(/\s+/g, " ").trim()
 }
 
+function rounded(value: number | null, digits: number): number | null {
+  if (value === null) return null
+  const factor = 10 ** digits
+  return Math.round(value * factor) / factor
+}
+
 function isMostlyUppercase(text: string): boolean {
   const letters = [...text].filter((char) => char.toLocaleLowerCase() !== char.toLocaleUpperCase())
   if (letters.length < 3) return false
   const uppercase = letters.filter((char) => char === char.toLocaleUpperCase()).length
   return uppercase / letters.length >= 0.8
+}
+
+function parseTocRow(text: string): string | null {
+  const match = text.match(/^(.*?)\s*\.{4,}\s*(?:(?:\d{1,4}|[ivxlcdm]{1,8})\s*)?$/i)
+  const title = match?.[1]?.replace(/\s+/g, " ").trim() ?? ""
+  return title.length > 0 ? title : null
+}
+
+function normalizedTocIndentBands(entries: RawTocHierarchyEntry[]): number[] {
+  const indents = [...new Set(
+    entries.flatMap((entry) => entry.indentRatio === null ? [] : [entry.indentRatio]),
+  )].sort((a, b) => a - b)
+  if (indents.length === 0) return []
+
+  // Treat a large horizontal jump as a new TOC column rather than a deeper
+  // hierarchy level, then compare indentation within each column.
+  const bandStarts: number[] = [indents[0]]
+  for (let index = 1; index < indents.length; index++) {
+    if (indents[index] - indents[index - 1] > 0.2) {
+      bandStarts.push(indents[index])
+    }
+  }
+  return entries.map((entry) => {
+    if (entry.indentRatio === null) return Number.NaN
+    const bandStart = [...bandStarts]
+      .reverse()
+      .find((start) => start <= entry.indentRatio!) ?? bandStarts[0]
+    return rounded(entry.indentRatio - bandStart, 3) ?? 0
+  })
+}
+
+function buildTocHierarchy(rawEntries: RawTocHierarchyEntry[]): TocHierarchyEntryEvidence[] {
+  const normalizedIndents = normalizedTocIndentBands(rawEntries)
+  const clusters: number[] = []
+  for (const indent of [...normalizedIndents].filter(Number.isFinite).sort((a, b) => a - b)) {
+    const current = clusters.at(-1)
+    if (current === undefined || indent - current > 0.025) {
+      clusters.push(indent)
+    }
+  }
+
+  return rawEntries.map((entry, index) => {
+    const indent = normalizedIndents[index]
+    const clusterIndex = Number.isFinite(indent)
+      ? clusters.reduce(
+          (best, candidate, candidateIndex) =>
+            Math.abs(candidate - indent) < Math.abs(clusters[best] - indent)
+              ? candidateIndex
+              : best,
+          0,
+        )
+      : 0
+    return {
+      ...entry,
+      suggestedLevel: Math.min(6, clusterIndex + 1),
+      // Multiple indentation bands make the relationship authoritative enough
+      // for deterministic matching. Flat/OCR-only TOCs remain prompt guidance.
+      confidence: clusters.length > 1 && Number.isFinite(indent) ? 0.98 : 0.45,
+    }
+  })
+}
+
+interface BuiltHeadingEvidence {
+  candidates: HeadingCandidateEvidence[]
+  tocHierarchy: TocHierarchyEntryEvidence[]
 }
 
 /**
@@ -92,12 +193,13 @@ function isMostlyUppercase(text: string): boolean {
  * decided are headings. OCR-only pages retain every line because no local
  * typography signal can safely rank one above another.
  */
-export function buildHeadingCandidates(
+function buildHeadingEvidence(
   pages: BookOutlineEvidencePage[],
   typeScale: TypeScale | null,
-  maxPerPage = 40,
-): HeadingCandidateEvidence[] {
+  maxPerPage = BOOK_OUTLINE_MAX_CANDIDATES_PER_PAGE,
+): BuiltHeadingEvidence {
   const output: HeadingCandidateEvidence[] = []
+  const rawTocHierarchy: RawTocHierarchyEntry[] = []
 
   for (const page of pages) {
     const positioned = page.positionedText
@@ -173,7 +275,7 @@ export function buildHeadingCandidates(
     }
 
     const bodyPx = typeScale?.bodyPx ?? null
-    const ranked = [...groups.values()].map((group) => {
+    const allRanked: RankedParagraph[] = [...groups.values()].map((group) => {
       const text = normalizedText(group.text.join(" "))
       const ratio = bodyPx && group.maxFontSize ? group.maxFontSize / bodyPx : null
       let likelihood = 0
@@ -185,6 +287,38 @@ export function buildHeadingCandidates(
       if (positioned && group.top / Math.max(1, positioned.pageHeight) <= 0.2) likelihood += 0.3
       if (text.length > 220) likelihood -= 1
       return { group, text, likelihood }
+    })
+
+    // A TOC's navigation rows are links/list items, not headings in the
+    // document's semantic outline. They also dominate candidate and output
+    // tokens on textbook front matter. Long dot leaders are a strong,
+    // language-independent signal; once a page has several, discard their
+    // separate terminal page-number blocks too. Keep the page's own heading
+    // (for example "Contents" / "Sumário").
+    const hasDotLeader = (text: string) => /\.{4,}/.test(text)
+    const likelyTableOfContents =
+      allRanked.filter(({ text }) => hasDotLeader(text)).length >= 3
+    if (likelyTableOfContents) {
+      for (const { group, text } of allRanked) {
+        const title = parseTocRow(text)
+        if (!title) continue
+        rawTocHierarchy.push({
+          tocPageId: page.pageId,
+          tocPageNumber: page.pageNumber,
+          title,
+          indentRatio: positioned
+            ? rounded(group.left / Math.max(1, positioned.pageWidth), 3)
+            : null,
+        })
+      }
+    }
+    const ranked = allRanked.filter(({ text }) => {
+      if (hasDotLeader(text)) return false
+      if (
+        likelyTableOfContents &&
+        /^(?:\d{1,4}|[ivxlcdm]{1,8})$/i.test(text.trim())
+      ) return false
+      return true
     })
 
     // Keep the strongest blocks when a page is unusually dense, then restore
@@ -202,25 +336,49 @@ export function buildHeadingCandidates(
         pageNumber: page.pageNumber,
         text,
         sourceTextIds: group.textIds,
-        fontSizePx: group.maxFontSize,
-        fontWeight: group.maxFontWeight,
+        fontSizePx: rounded(group.maxFontSize, 2),
+        fontWeight: rounded(group.maxFontWeight, 0),
         fontFamily: group.fontFamily,
         color: group.color,
-        topRatio: positioned ? group.top / Math.max(1, positioned.pageHeight) : null,
-        leftRatio: positioned ? group.left / Math.max(1, positioned.pageWidth) : null,
+        topRatio: positioned
+          ? rounded(group.top / Math.max(1, positioned.pageHeight), 3)
+          : null,
+        leftRatio: positioned
+          ? rounded(group.left / Math.max(1, positioned.pageWidth), 3)
+          : null,
         widthRatio:
           positioned && group.width !== null
-            ? group.width / Math.max(1, positioned.pageWidth)
+            ? rounded(group.width / Math.max(1, positioned.pageWidth), 3)
             : null,
         centered: group.centered,
         sizeToBodyRatio:
-          bodyPx && group.maxFontSize ? group.maxFontSize / bodyPx : null,
+          bodyPx && group.maxFontSize
+            ? rounded(group.maxFontSize / bodyPx, 3)
+            : null,
         headingLikelihood: Math.round(Math.max(0, likelihood) * 100) / 100,
       })
     })
   }
 
-  return output
+  return {
+    candidates: output,
+    tocHierarchy: buildTocHierarchy(rawTocHierarchy),
+  }
+}
+
+export function buildHeadingCandidates(
+  pages: BookOutlineEvidencePage[],
+  typeScale: TypeScale | null,
+  maxPerPage = BOOK_OUTLINE_MAX_CANDIDATES_PER_PAGE,
+): HeadingCandidateEvidence[] {
+  return buildHeadingEvidence(pages, typeScale, maxPerPage).candidates
+}
+
+export function buildTocHierarchyEvidence(
+  pages: BookOutlineEvidencePage[],
+  typeScale: TypeScale | null,
+): TocHierarchyEntryEvidence[] {
+  return buildHeadingEvidence(pages, typeScale).tocHierarchy
 }
 
 function resizeInto(
@@ -263,17 +421,18 @@ export function buildProofSheets(
   } = {},
 ): BookOutlineProofSheet[] {
   const columns = options.columns ?? 4
-  const rows = options.rows ?? 4
-  const cellWidth = options.cellWidth ?? 300
-  const cellHeight = options.cellHeight ?? 400
+  const rows = options.rows ?? 6
+  const cellWidth = options.cellWidth ?? 240
+  const cellHeight = options.cellHeight ?? 320
   const gap = options.gap ?? 8
   const perSheet = columns * rows
   const sheets: BookOutlineProofSheet[] = []
 
   for (let start = 0; start < pages.length; start += perSheet) {
     const chunk = pages.slice(start, start + perSheet)
+    const usedRows = Math.max(1, Math.ceil(chunk.length / columns))
     const width = columns * cellWidth + (columns + 1) * gap
-    const height = rows * cellHeight + (rows + 1) * gap
+    const height = usedRows * cellHeight + (usedRows + 1) * gap
     const sheet = new PNG({ width, height, fill: true })
     sheet.data.fill(255)
 
@@ -306,13 +465,20 @@ export function buildBookOutlineEvidence(
   pages: BookOutlineEvidencePage[],
   typeScale: TypeScale | null,
 ): BookOutlineEvidence {
+  const headingEvidence = buildHeadingEvidence(pages, typeScale)
   return {
-    pages: pages.map(({ pageId, pageNumber, text }) => ({
+    pages: pages.map(({ pageId, pageNumber, text, positionedText }) => ({
       pageId,
       pageNumber,
-      text: boundedPageText(text),
+      text: boundedPageText(
+        text,
+        positionedText
+          ? BOOK_OUTLINE_MAX_POSITIONED_PAGE_TEXT_CHARS
+          : BOOK_OUTLINE_MAX_PAGE_TEXT_CHARS,
+      ),
     })),
-    candidates: buildHeadingCandidates(pages, typeScale),
+    candidates: headingEvidence.candidates,
+    tocHierarchy: headingEvidence.tocHierarchy,
     proofSheets: buildProofSheets(pages),
     typeScale,
   }

@@ -227,6 +227,8 @@ export {
   BookOutlineStyleCluster,
   BookOutlineEntry,
   BookOutlineOutput,
+  BookOutlineProposalEntry,
+  BookOutlineProposalOutput,
   BookOutlineAppliedHeading,
   BookOutlineAuditResponse,
 } from "./book-outline.js"

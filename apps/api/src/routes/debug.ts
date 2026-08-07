@@ -106,7 +106,12 @@ export function createDebugRoutes(
           COALESCE(SUM(json_extract(data, '$.usage.inputTokens')), 0) as inputTokens,
           COALESCE(SUM(json_extract(data, '$.usage.outputTokens')), 0) as outputTokens,
           ROUND(AVG(json_extract(data, '$.durationMs')), 0) as avgDurationMs,
-          SUM(CASE WHEN json_array_length(json_extract(data, '$.validationErrors')) > 0 THEN 1 ELSE 0 END) as errorCount
+          SUM(CASE
+            WHEN json_extract(data, '$.success') = 0 THEN 1
+            WHEN json_extract(data, '$.success') IS NULL
+              AND json_array_length(json_extract(data, '$.validationErrors')) > 0 THEN 1
+            ELSE 0
+          END) as errorCount
         FROM llm_log
         GROUP BY step
         ORDER BY step

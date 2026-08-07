@@ -109,12 +109,17 @@ describe("validateRetainedHeadingHierarchy", () => {
     {
       name: "a generic element",
       edited: `<section><div class="text-4xl" data-id="section-title">Section title</div></section>`,
-      expected: "semantic <h1> through <h6>",
+      expected: "semantic <h2>",
     },
     {
       name: "a different tag/class pairing",
       edited: `<section><h3 class="adt-h2" data-id="section-title">Section title</h3></section>`,
-      expected: `<h2 class="adt-h2">`,
+      expected: "must remain <h2>",
+    },
+    {
+      name: "a removed type-scale class",
+      edited: `<section><h2 class="font-bold" data-id="section-title">Section title</h2></section>`,
+      expected: "adt-h2",
     },
     {
       name: "a font-size utility",
@@ -144,5 +149,49 @@ describe("validateRetainedHeadingHierarchy", () => {
       directHeading,
       `<section><h2 class="adt-h2" data-id="section-title">Section title</h2><button class="text-sm">Choice</button></section>`,
     )).toEqual([])
+  })
+
+  it("ignores font sizing outside the retained heading subtree", () => {
+    expect(validateRetainedHeadingHierarchy(
+      directHeading,
+      `<style>.activity-control { font-size: 0.875rem }</style><section class="text-sm"><h2 class="adt-h2" data-id="section-title">Section title</h2><button class="activity-control text-sm">Choice</button></section>`,
+    )).toEqual([])
+  })
+
+  it("keeps legacy headings editable without forcing a typography migration", () => {
+    const legacyHeading = `<section><h1 class="text-5xl font-bold" data-id="legacy-title">Legacy title</h1></section>`
+
+    expect(validateRetainedHeadingHierarchy(
+      legacyHeading,
+      `<section class="bg-blue-50"><h1 class="text-5xl font-bold" data-id="legacy-title">Legacy title</h1></section>`,
+    )).toEqual([])
+    expect(validateRetainedHeadingHierarchy(
+      legacyHeading,
+      `<section><h1 class="adt-h1 font-bold" data-id="legacy-title">Legacy title</h1></section>`,
+    )).toEqual([])
+  })
+
+  it("still preserves legacy semantic rank and rejects conflicting hierarchy classes", () => {
+    const legacyHeading = `<section><h1 class="text-5xl font-bold" data-id="legacy-title">Legacy title</h1></section>`
+
+    expect(validateRetainedHeadingHierarchy(
+      legacyHeading,
+      `<section><h2 class="text-5xl font-bold" data-id="legacy-title">Legacy title</h2></section>`,
+    )).toContainEqual(expect.stringContaining("must remain <h1>"))
+    expect(validateRetainedHeadingHierarchy(
+      legacyHeading,
+      `<section><h1 class="adt-h2 font-bold" data-id="legacy-title">Legacy title</h1></section>`,
+    )).toContainEqual(expect.stringContaining("different level"))
+  })
+
+  it("rejects size overrides on descendants of a current heading", () => {
+    expect(validateRetainedHeadingHierarchy(
+      directHeading,
+      `<section><h2 class="adt-h2" data-id="section-title"><span class="text-xl">Section title</span></h2></section>`,
+    )).toContainEqual(expect.stringContaining("font-size utility"))
+    expect(validateRetainedHeadingHierarchy(
+      directHeading,
+      `<section><h2 class="adt-h2" data-id="section-title"><style>.word { font-size: 2rem }</style>Section title</h2></section>`,
+    )).toContainEqual(expect.stringContaining("nested <style>"))
   })
 })

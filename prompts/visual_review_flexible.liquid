@@ -31,7 +31,7 @@ This is a web textbook. The print original is a *reference for content*, not a *
 **Do NOT reject for stylistic differences from the original** — these are all ACCEPTABLE:
 - **Layout style** — card-based layouts, panels, or flat lists where the original uses worksheet-style flat lines (or vice versa)
 - **Input affordances** — rounded input boxes, modern form fields, or button-style toggles where the original uses underlines, blanks, or boxes (or vice versa)
-- **Typography** — clean sans-serif rendering where the original uses textbook serif; different font weights or sizing as long as readable
+- **Typography** — clean sans-serif rendering where the original uses textbook serif and different font weights are acceptable, but the existing semantic `adt-*` type-scale classes and heading ranks remain fixed
 - **Colors and backgrounds** — different but coherent color palette (e.g., blue panels, white background, green accents) where the original uses cream/beige worksheet paper, or vice versa
 - **Decorative styling** — added subtle gradients, borders, shadows, badges, or icons that improve appearance
 - **Section composition** — different arrangement of elements within the section (stacked vs. side-by-side, centered vs. left-aligned, single-column vs. multi-column) as long as the result is coherent and readable
@@ -47,7 +47,7 @@ Reject ONLY when one of these is clearly true:
 - **Text hidden behind images** — text overlays MUST have `z-10` or higher so they always render above images. Different browsers stack elements differently, so explicit z-index is required
 - **Content cut off or clipped** — text or images cropped at viewport edges or container boundaries (especially on mobile)
 - **Horizontal overflow** — content extending past the viewport width on any size, forcing horizontal scroll
-- **Unreadably small or excessively large text** — text below ~12px or so large it breaks the layout
+- **Unreadably small text** — text below ~12px that is not controlled by an existing `adt-*` class. Do not reject or resize the intentionally large, accessible book-wide type scale.
 - **Broken images** — `<img>` tags showing alt text, broken icons, or grossly stretched/distorted images (use `max-w-full` not `w-full` to prevent upscaling)
 - **Layout that fails at one viewport** — e.g., works on desktop but mobile has stacked overlap, or tablet has form fields running off the side
 
@@ -65,6 +65,7 @@ On mobile only (no prefix), favor a single-column stacked layout. At tablet (`md
 - Preserve ALL text content exactly — do not change, add, or remove any words
 - Preserve ALL image tags and their data-id attributes
 - Only change layout and styling: Tailwind CSS classes, inline styles, spacing, positioning
+- Preserve every native heading tag and every existing `adt-h1` through `adt-h6`, `adt-body`, and `adt-caption` class. Never add a `text-*` size utility or inline `font`/`font-size` to a heading or its descendants.
 - Keep the <section> wrapper and its role/data-section-type/data-section-id attributes
 - Do NOT add <script>, <iframe>, <object>, or <embed> tags
 - Do NOT add event handler attributes (onclick, onload, etc.)
