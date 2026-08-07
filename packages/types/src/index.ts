@@ -98,6 +98,24 @@ export {
 
 export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
 
+export {
+  ADT_ROUND_TRIP_FORMAT_VERSION,
+  ADT_EDITING_CONTRACT_VERSION,
+  AdtBundleTocEntry,
+  AdtBundleToc,
+  AdtBundleGlossaryEntry,
+  AdtBundleGlossary,
+  AdtBundleTexts,
+  AdtRoundTripManifest,
+} from "./adt-round-trip.js"
+
+export {
+  PROJECT_IDENTITY_VERSION,
+  ProjectSourceKind,
+  ProjectIdentity,
+  AdtExportLineage,
+} from "./project-identity.js"
+
 export { ProgressEvent } from "./progress.js"
 
 export {
