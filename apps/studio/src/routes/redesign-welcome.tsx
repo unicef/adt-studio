@@ -5,19 +5,19 @@ import { Trans } from "@lingui/react/macro"
 import { AddBookDialog } from "@/components/redesign/AddBookDialog"
 import { WelcomeHero } from "@/components/redesign/screens/home/WelcomeHero"
 import { SecondRowSample } from "@/components/redesign/screens/home/welcome-variants/SecondRowSample"
-import { SecondRowDemo } from "@/components/redesign/screens/home/welcome-variants/SecondRowDemo"
-import { SecondRowChecklist } from "@/components/redesign/screens/home/welcome-variants/SecondRowChecklist"
-import { SecondRowCategories } from "@/components/redesign/screens/home/welcome-variants/SecondRowCategories"
-import { SecondRowGrouped } from "@/components/redesign/screens/home/welcome-variants/SecondRowGrouped"
+import { SecondRowSampleHero } from "@/components/redesign/screens/home/welcome-variants/SecondRowSampleHero"
+import { SecondRowSampleTransform } from "@/components/redesign/screens/home/welcome-variants/SecondRowSampleTransform"
+import { SecondRowSampleWalkthrough } from "@/components/redesign/screens/home/welcome-variants/SecondRowSampleWalkthrough"
+import { SecondRowSampleGallery } from "@/components/redesign/screens/home/welcome-variants/SecondRowSampleGallery"
 
 type Option = { id: string; name: ReactNode; desc: ReactNode; Comp: () => ReactNode }
 
 const OPTIONS: Option[] = [
-  { id: "A", name: <Trans>Sample book</Trans>, desc: <Trans>Activation-first — open a finished book to experience the output.</Trans>, Comp: SecondRowSample },
-  { id: "B", name: <Trans>Interactive demo</Trans>, desc: <Trans>Category tabs with a small live demo of what each produces.</Trans>, Comp: SecondRowDemo },
-  { id: "C", name: <Trans>Getting-started checklist</Trans>, desc: <Trans>Add → Generate → Preview → Export, step 1 live at first run.</Trans>, Comp: SecondRowChecklist },
-  { id: "D", name: <Trans>Category cards</Trans>, desc: <Trans>Four outcome buckets (Listen / See / Understand / Check).</Trans>, Comp: SecondRowCategories },
-  { id: "E", name: <Trans>Grouped by stage</Trans>, desc: <Trans>Convert / Enhance / Localize / Validate columns (most detail).</Trans>, Comp: SecondRowGrouped },
+  { id: "A", name: <Trans>Sample book (original)</Trans>, desc: <Trans>Split panel — animated preview beside an "open a sample" CTA.</Trans>, Comp: SecondRowSample },
+  { id: "A1", name: <Trans>Before → After</Trans>, desc: <Trans>Plain PDF transforms into the finished accessible edition.</Trans>, Comp: SecondRowSampleTransform },
+  { id: "A2", name: <Trans>Sample walkthrough</Trans>, desc: <Trans>One book, four facets (Listen / See / Understand / Check); auto-plays.</Trans>, Comp: SecondRowSampleWalkthrough },
+  { id: "A3", name: <Trans>Immersive hero</Trans>, desc: <Trans>Centred, spotlit preview with one prominent CTA.</Trans>, Comp: SecondRowSampleHero },
+  { id: "A4", name: <Trans>Sample gallery</Trans>, desc: <Trans>Pick from a few finished books by subject and grade.</Trans>, Comp: SecondRowSampleGallery },
 ]
 
 function WelcomeSecondRowPreview() {
