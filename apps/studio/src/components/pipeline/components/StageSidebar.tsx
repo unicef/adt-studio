@@ -4,6 +4,7 @@ import { Link, useMatchRoute, useNavigate, useSearch } from "@tanstack/react-rou
 import { Trans } from "@lingui/react/macro"
 import {
   AlertCircle,
+  Info,
   Loader2,
   RotateCcw,
   Settings,
@@ -23,7 +24,7 @@ import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
 import { useDirtyTabsForStage } from "@/hooks/use-settings-dirty-tabs"
 import { getSettingsTabs } from "../settings-tabs"
-import { usePackageAdtStatus } from "@/hooks/use-books"
+import { useBook, usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { StepProgressRing } from "./StepProgressRing"
 import { StoryboardIndex } from "./StoryboardIndex"
@@ -32,6 +33,7 @@ import { usePages, usePageImage } from "@/hooks/use-pages"
 import {
   STAGES,
   hasStagePages,
+  isImportedAdtStageAvailable,
   toCamelLabel,
   type StageGroup,
 } from "../stage-config"
@@ -81,6 +83,8 @@ export function StageSidebar({
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
+  const { data: book } = useBook(bookLabel)
+  const usesImportedHtml = book?.workingSource === "imported-adt"
   const { tasks } = useBookTasks(bookLabel)
   const stageMissing = useStageMissingCounts(bookLabel)
   const translateNeedsRerun = stageMissing.translate > 0
@@ -186,11 +190,14 @@ export function StageSidebar({
     const iconFilled = step.slug === "book" ? true : stageCompleted
 
     const stepLabel = step.slug === "book" ? toCamelLabel(bookLabel) : getStageLabelI18n(step.slug)
+    const stageNotNeeded = usesImportedHtml && !isImportedAdtStageAvailable(step.slug)
 
     // Expose stage status to screen readers — the visual ring/color carries it
     // for sighted users, but the link's accessible name must say it too.
     const statusKey = step.slug === "book" ? undefined : stageNeedsRerun ? "needs-update" : state
-    const stepAriaLabel = statusKey
+    const stepAriaLabel = stageNotNeeded
+      ? i18n._(msg`${stepLabel}: not needed for imported ADTs`)
+      : statusKey
       ? i18n._(msg`${stepLabel}: ${getStageStatusLabelI18n(statusKey)}`)
       : stepLabel
     const cancelStepLabel = i18n._(msg`Cancel ${stepLabel} step`)
@@ -221,7 +228,7 @@ export function StageSidebar({
               ? { label: bookLabel, step: step.slug, pageId: selectedPageId }
               : { label: bookLabel, step: step.slug }}
             className={cn("flex items-center gap-2.5 min-w-7", x.flex1)}
-            title={stepLabel}
+            title={stageNotNeeded ? i18n._(msg`Imported HTML already provides this stage's output`) : stepLabel}
             aria-label={stepAriaLabel}
             aria-current={isActive ? "page" : undefined}
           >
@@ -248,6 +255,13 @@ export function StageSidebar({
                 >
                   <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
                 </span>
+              ) : stageNotNeeded ? (
+                <span
+                  aria-hidden="true"
+                  className="absolute -right-1 -top-1 z-20 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-slate-200 text-slate-700 ring-2 ring-background"
+                >
+                  <Info className="h-2.5 w-2.5" />
+                </span>
               ) : step.slug === "extract" && hasNoTextLayer ? (
                 <span
                   role="img"
@@ -262,6 +276,14 @@ export function StageSidebar({
             <span className={cn("truncate hidden", x.showLabel)}>
               {stepLabel}
             </span>
+            {stageNotNeeded && (
+              <span className={cn(
+                "hidden shrink-0 rounded-full bg-slate-100 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-600",
+                x.showLabel,
+              )}>
+                <Trans>Not needed</Trans>
+              </span>
+            )}
           </Link>
 
           {state === "running" && (
@@ -291,7 +313,7 @@ export function StageSidebar({
             </button>
           )}
 
-          {step.slug === "book" ? (
+          {!stageNotNeeded && (step.slug === "book" ? (
             <Link
               to="/books/$label/$step/settings"
               params={{ label: bookLabel, step: step.slug }}
@@ -335,7 +357,7 @@ export function StageSidebar({
             >
               <RotateCcw className="w-3.5 h-3.5" />
             </button>
-          ) : null}
+          ) : null)}
         </div>
 
         {/* Settings sub-tabs */}

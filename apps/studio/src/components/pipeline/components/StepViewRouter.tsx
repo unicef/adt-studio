@@ -6,8 +6,8 @@ import {
   type ReactNode,
 } from "react";
 import { Link } from "@tanstack/react-router";
-import { Settings } from "lucide-react";
-import { STAGES, toCamelLabel } from "../stage-config";
+import { FileArchive, Settings } from "lucide-react";
+import { STAGES, isImportedAdtStageAvailable, toCamelLabel } from "../stage-config";
 import { getStageLabelI18n } from "../pipeline-i18n";
 import { SETTINGS_STAGE_SLUGS } from "../settings-routing";
 import {
@@ -30,6 +30,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Trans } from "@lingui/react/macro";
 import { StepHeaderBar } from "./StepHeaderBar";
+import { useBook } from "@/hooks/use-books";
 
 // Context for views to inject content into the step header
 interface StepHeaderControls {
@@ -52,6 +53,7 @@ interface ViewProps {
   stageSlug?: string;
   selectedPageId?: string;
   onSelectPage?: (pageId: string | null) => void;
+  embedded?: boolean;
 }
 
 interface ViewEntry {
@@ -84,14 +86,17 @@ export function StepViewRouter({
   bookLabel,
   selectedPageId,
   onSelectPage,
+  showSettings = true,
 }: {
   step: string;
   bookLabel: string;
   selectedPageId?: string;
   onSelectPage?: (pageId: string | null) => void;
+  showSettings?: boolean;
 }) {
   const entry = VIEW_MAP[step];
   const stepConfig = STAGES.find((s) => s.slug === step);
+  const { data: book } = useBook(bookLabel);
   const [headerExtra, setHeaderExtra] = useState<ReactNode>(null);
   const [labelClickHandler, setLabelClickHandler] = useState<{
     fn: () => void;
@@ -118,6 +123,8 @@ export function StepViewRouter({
 
   const View = entry.component;
   const Icon = stepConfig.icon;
+  const unavailableForImportedHtml = book?.workingSource === "imported-adt"
+    && !isImportedAdtStageAvailable(stepConfig.slug);
   const stepLabel =
     step === "book" ? toCamelLabel(bookLabel) : getStageLabelI18n(step);
 
@@ -146,7 +153,7 @@ export function StepViewRouter({
           )}
           <div ref={setHeaderSlotEl} className="contents" />
           {headerExtra}
-          {(SETTINGS_STAGE_SLUGS as readonly string[]).includes(step) && (
+          {!unavailableForImportedHtml && showSettings && (SETTINGS_STAGE_SLUGS as readonly string[]).includes(step) && (
             <Link
               to="/books/$label/$step/settings"
               params={{ label: bookLabel, step }}
@@ -159,13 +166,28 @@ export function StepViewRouter({
         </StepHeaderBar>
 
         {/* Step content */}
-        {entry.fullHeight ? (
+        {unavailableForImportedHtml ? (
+          <div className="flex flex-1 items-center justify-center overflow-auto p-8">
+            <div className="max-w-lg rounded-2xl border border-indigo-200 bg-indigo-50/50 px-6 py-7 text-center">
+              <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
+                <FileArchive className="h-5 w-5" />
+              </span>
+              <h3 className="mt-4 text-base font-semibold text-slate-900">
+                <Trans>This stage is not needed for an imported ADT</Trans>
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                <Trans>Imported HTML already provides this stage's output. Continue from Storyboard or choose any enhancement.</Trans>
+              </p>
+            </div>
+          </div>
+        ) : entry.fullHeight ? (
           <div className="flex flex-1 flex-col min-h-0 overflow-auto">
             <View
               bookLabel={bookLabel}
               stageSlug={step}
               selectedPageId={selectedPageId}
               onSelectPage={onSelectPage}
+              embedded={!showSettings}
             />
           </div>
         ) : (
@@ -175,6 +197,7 @@ export function StepViewRouter({
               stageSlug={step}
               selectedPageId={selectedPageId}
               onSelectPage={onSelectPage}
+              embedded={!showSettings}
             />
           </div>
         )}

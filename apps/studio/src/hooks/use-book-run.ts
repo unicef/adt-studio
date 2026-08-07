@@ -113,7 +113,10 @@ const stepStatusKey = (label: string) => ["books", label, "step-status"] as cons
 // Hook
 // ---------------------------------------------------------------------------
 
-export function useBookRunStatus(label: string): BookRunContextValue {
+export function useBookRunStatus(
+  label: string,
+  options: { showErrorDetailsAction?: boolean } = {},
+): BookRunContextValue {
   const queryClient = useQueryClient()
   const { anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
 
@@ -128,6 +131,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   // Held in a ref so the always-on SSE effect can navigate (from a toast action)
   // without listing navigate as a dependency and re-subscribing.
   const navigateRef = useRef(navigate)
+  const showErrorDetailsActionRef = useRef(options.showErrorDetailsAction !== false)
+  showErrorDetailsActionRef.current = options.showErrorDetailsAction !== false
   navigateRef.current = navigate
 
   // Primary source of truth: enriched step-status from the server
@@ -382,11 +387,13 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           if (count === 1) playErrorSound()
           toast.error(message, {
             id: `step-error:${pipelineStep}`,
-            action: {
-              label: i18n._(msg`View details`),
-              onClick: () =>
-                navigateRef.current({ to: "/books/$label/$step", params: { label, step: uiStage } }),
-            },
+            action: showErrorDetailsActionRef.current
+              ? {
+                  label: i18n._(msg`View details`),
+                  onClick: () =>
+                    navigateRef.current({ to: "/books/$label/$step", params: { label, step: uiStage } }),
+                }
+              : undefined,
           })
         }
         // Speech errors persist per-item failures into the TTS output —

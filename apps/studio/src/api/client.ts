@@ -157,12 +157,49 @@ export interface PartImportPreview {
   coverBase64: string | null
 }
 
-export type AnyImportPreview = ImportPreview | PartImportPreview
+export interface AdtBundleImportPreview {
+  isAdtBundle: true
+  legacyRecovery: boolean
+  label: string
+  title: string
+  coverBase64: string | null
+  sourceLanguage: string
+  outputLanguages: string[]
+  runtimeFeatures: Record<string, boolean>
+  pageCount: number
+  glossaryEntryCount: number
+  tocEntryCount: number
+  translationLanguageCount: number
+  contentChanged: boolean
+  compatibility: {
+    supported: boolean
+    issues: Array<{
+      code: "missing-content-root" | "multiple-content-roots" | "missing-section"
+        | "multiple-sections" | "missing-section-type" | "missing-data-id"
+        | "duplicate-data-id" | "image-missing-data-id" | "remote-asset"
+        | "unsafe-asset" | "missing-asset" | "missing-editing-contract"
+        | "unsupported-editing-contract"
+        | "nested-page" | "unsupported-stylesheet" | "unsupported-script"
+        | "unsupported-asset-location" | "unexpected-bundle-entry"
+        | "changed-page-structure"
+      pageHref: string
+      detail?: string
+    }>
+  }
+}
+
+export type AnyImportPreview = ImportPreview | PartImportPreview | AdtBundleImportPreview
 
 export function isPartImportPreview(
   preview: AnyImportPreview,
 ): preview is PartImportPreview {
   return (preview as PartImportPreview).isPart === true
+}
+
+export function isAdtBundleImportPreview(
+  preview: AnyImportPreview,
+): preview is AdtBundleImportPreview {
+  return (preview as AdtBundleImportPreview).isAdtBundle === true
 }
 
 export interface MergePreview {
@@ -1000,6 +1037,15 @@ export const api = {
     const formData = new FormData()
     formData.append("zip", zip)
     return request<BookSummary>("/books/import", {
+      method: "POST",
+      body: formData,
+    })
+  },
+
+  importAdtProject: (zip: File) => {
+    const formData = new FormData()
+    formData.append("zip", zip)
+    return request<BookSummary>("/books/import-adt", {
       method: "POST",
       body: formData,
     })

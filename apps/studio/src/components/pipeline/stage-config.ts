@@ -103,6 +103,13 @@ export function getBookOverviewStages(): NonBookStageDefinition[] {
   return STAGES.filter(isBookOverviewStage)
 }
 
+/** User-facing ADT capabilities that can be generated or edited after the
+ * core PDF-to-book conversion stages. This is the shared catalog used by the
+ * pipeline and recovered-output workspaces. */
+export function isImportedAdtStageAvailable(slug: StageSlug): boolean {
+  return slug !== "extract" && slug !== "sectioning"
+}
+
 export function getPipelineStages(): PipelineStageDefinition[] {
   return STAGES.filter(isPipelineStage)
 }

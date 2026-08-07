@@ -11,9 +11,16 @@ interface UseFileDropZoneOptions {
   onAccept: (file: File) => void
   /** How long to show the error state (ms). Default 2000 */
   errorDuration?: number
+  /** Disable accepting files while another operation owns the screen. */
+  enabled?: boolean
 }
 
-export function useFileDropZone({ accept, onAccept, errorDuration = 2000 }: UseFileDropZoneOptions) {
+export function useFileDropZone({
+  accept,
+  onAccept,
+  errorDuration = 2000,
+  enabled = true,
+}: UseFileDropZoneOptions) {
   const [overlay, setOverlay] = useState<OverlayState>("idle")
   const overlayRef = useRef<OverlayState>("idle")
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -25,7 +32,7 @@ export function useFileDropZone({ accept, onAccept, errorDuration = 2000 }: UseF
 
   const acceptDrop = useCallback(
     (f: File | undefined) => {
-      if (!f) return
+      if (!enabled || !f) return
       if (!accept(f)) {
         if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
         setOverlayState("error")
@@ -35,12 +42,12 @@ export function useFileDropZone({ accept, onAccept, errorDuration = 2000 }: UseF
       setOverlayState("idle")
       onAccept(f)
     },
-    [accept, onAccept, errorDuration],
+    [accept, onAccept, errorDuration, enabled],
   )
 
   useEffect(() => {
     function onDragEnter(e: DragEvent) {
-      if (e.dataTransfer?.types.includes("Files")) setOverlayState("dragging")
+      if (enabled && e.dataTransfer?.types.includes("Files")) setOverlayState("dragging")
     }
     function onDragLeave(e: DragEvent) {
       if (e.relatedTarget === null && overlayRef.current !== "error") setOverlayState("idle")
@@ -50,7 +57,7 @@ export function useFileDropZone({ accept, onAccept, errorDuration = 2000 }: UseF
     }
     function onDrop(e: DragEvent) {
       e.preventDefault()
-      acceptDrop(e.dataTransfer?.files[0])
+      if (enabled) acceptDrop(e.dataTransfer?.files[0])
     }
 
     window.addEventListener("dragenter", onDragEnter)
@@ -64,7 +71,7 @@ export function useFileDropZone({ accept, onAccept, errorDuration = 2000 }: UseF
       window.removeEventListener("drop", onDrop)
       if (errorTimerRef.current) clearTimeout(errorTimerRef.current)
     }
-  }, [acceptDrop])
+  }, [acceptDrop, enabled])
 
   return { overlay }
 }

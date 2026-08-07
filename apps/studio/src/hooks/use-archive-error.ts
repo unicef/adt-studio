@@ -20,6 +20,13 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
   if (!rawError) return null
   const e = rawError.toLowerCase()
 
+  if (e.includes("size limit") || e.includes("exceeds the size")) {
+    return {
+      title: t`This archive is too large`,
+      hint: t`Choose a smaller ADT bundle and try again.`,
+    }
+  }
+
   // Order matters: more specific phrases are checked before broader ones.
   if (e.includes("invalid zip file") || e.includes("valid .zip archive")) {
     return {
@@ -32,6 +39,48 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     return {
       title: t`This isn't a completed part`,
       hint: t`Export the finished part from its Export step, then upload that file.`,
+    }
+  }
+
+  if (e.includes("exact exported adt revision is already imported")) {
+    return {
+      title: t`This revision is already in the project`,
+      hint: t`Nothing was changed. Open the existing project, or choose Create a new project to keep a separate copy.`,
+    }
+  }
+
+  if (e.includes("different page structure")) {
+    return {
+      title: t`This publication can't be added as a revision`,
+      hint: t`Its page structure no longer matches the selected project. Choose Create a new project to import it separately.`,
+    }
+  }
+
+  if (e.includes("selected project does not match")) {
+    return {
+      title: t`This publication doesn't match the selected project`,
+      hint: t`Choose the recommended project, or create a new project instead.`,
+    }
+  }
+
+  if (e.includes("selected project no longer exists")) {
+    return {
+      title: t`The selected project is no longer available`,
+      hint: t`Choose another destination or create a new project.`,
+    }
+  }
+
+  if (e.includes("legacy adt export") || e.includes("recognized legacy adt studio export")) {
+    return {
+      title: t`This legacy ADT export is incomplete`,
+      hint: t`ADT Studio recognized the publication, but required book files are missing or inconsistent. Open the error details to see what must be repaired.`,
+    }
+  }
+
+  if (e.includes("already being edited") || e.includes("database is locked")) {
+    return {
+      title: t`This project is busy`,
+      hint: t`Wait for the current operation to finish, then try the import again.`,
     }
   }
 
@@ -77,6 +126,18 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     return {
       title: t`This archive can't be opened safely`,
       hint: t`It contains unexpected file paths. Use a .zip exported from ADT Studio.`,
+    }
+  }
+
+  if (
+    e.includes("adt bundle") ||
+    e.includes("manifest.json") ||
+    e.includes("invalid shape") ||
+    e.includes("offline cache")
+  ) {
+    return {
+      title: t`This isn't an editable ADT bundle`,
+      hint: t`Choose a Web Export ZIP created by a current version of ADT Studio.`,
     }
   }
 

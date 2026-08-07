@@ -14,6 +14,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { type StageName } from "@adt/types"
 import {
   getBookOverviewStages,
+  isImportedAdtStageAvailable,
   isPipelineStage,
   type NonBookStageDefinition,
   type StageGroup,
@@ -57,6 +58,8 @@ const RECOMMENDED_STAGES = new Set<string>(["captions"])
 
 export function BookView({ bookLabel }: ViewProps) {
   const { t } = useLingui()
+  const { data: book } = useBook(bookLabel)
+  const usesImportedHtml = book?.workingSource === "imported-adt"
   const overviewSteps = getBookOverviewStages()
   const {
     stageState,
@@ -129,6 +132,7 @@ export function BookView({ bookLabel }: ViewProps) {
       isCompleted,
       hasError,
       recommended: RECOMMENDED_STAGES.has(step.slug),
+      notNeeded: usesImportedHtml && !isImportedAdtStageAvailable(step.slug),
       stepState,
       stepProgress,
       stepError,
@@ -267,6 +271,7 @@ interface HomeStageCardProps {
   isCompleted: boolean
   hasError: boolean
   recommended: boolean
+  notNeeded: boolean
   stepState: (key: string) => string
   stepProgress: (key: string) => { page?: number; totalPages?: number } | undefined
   stepError: (key: string) => string | undefined
@@ -281,6 +286,7 @@ function HomeStageCard({
   isCompleted,
   hasError,
   recommended,
+  notNeeded,
   stepState,
   stepProgress,
   stepError,
@@ -320,8 +326,7 @@ function HomeStageCard({
         }
       }}
       className={cn(
-        "group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border bg-card text-left transition-all",
-        "hover:border-foreground/15 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border bg-card text-left transition-all hover:border-foreground/15 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         hasError
           ? "border-destructive/40"
           : isCompleted
@@ -359,6 +364,11 @@ function HomeStageCard({
               isQueued={isQueued}
               hasError={hasError}
             />
+            {notNeeded && (
+              <Badge className="border-transparent bg-slate-100 text-[10px] uppercase tracking-wider text-slate-600 hover:bg-slate-100">
+                <Trans>Not needed</Trans>
+              </Badge>
+            )}
             {recommended && (
               <Badge className="border-transparent bg-amber-100 text-[10px] uppercase tracking-wider text-amber-900 hover:bg-amber-100">
                 <Trans>Recommended</Trans>
@@ -369,6 +379,12 @@ function HomeStageCard({
           {description && (
             <p className="text-sm leading-relaxed text-muted-foreground">
               {description}
+            </p>
+          )}
+
+          {notNeeded && (
+            <p className="text-xs font-medium text-indigo-700">
+              <Trans>Imported HTML already provides this stage's output. Open it to learn more.</Trans>
             </p>
           )}
 
@@ -670,6 +686,7 @@ function BookOverviewCard({ bookLabel }: { bookLabel: string }) {
     ? `data:image/png;base64,${pageImage.imageBase64}`
     : null
   const canOpenPdf = book?.hasSourcePdf ?? false
+  const usesImportedHtml = book?.workingSource === "imported-adt"
   const pdfUrl = getSourcePdfUrl(bookLabel)
 
   const headerInner = (
@@ -690,13 +707,15 @@ function BookOverviewCard({ bookLabel }: { bookLabel: string }) {
       </div>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-          <Trans>Your book</Trans>
+          {usesImportedHtml ? <Trans>Imported ADT project</Trans> : <Trans>Your book</Trans>}
         </p>
         <h1 className="truncate text-xl font-bold leading-tight tracking-tight text-foreground">
           {title ?? pdfFilename}
         </h1>
         <p className="truncate text-xs text-muted-foreground tabular-nums">
-          {title ? (
+          {usesImportedHtml ? (
+            pageCount > 0 ? <Trans>HTML source · {pageCount} pages</Trans> : <Trans>HTML source</Trans>
+          ) : title ? (
             pageCount > 0 ? (
               <Trans>
                 {pdfFilename} · {pageCount} pages
@@ -741,13 +760,22 @@ function BookOverviewCard({ bookLabel }: { bookLabel: string }) {
           <Trans>How it works</Trans>
         </h2>
         <p className="text-sm leading-relaxed text-foreground/80">
-          <Trans>
-            Use the sidebar on the left to open any stage of the
-            pipeline. Each stage has its own page where you can review
-            its content, configure its settings, and start a run. The
-            cards below mirror that navigation — click a card to jump
-            straight to that stage's page.
-          </Trans>
+          {usesImportedHtml ? (
+            <Trans>
+              The imported HTML is the source of truth, so Extract and
+              Sectioning are not needed. Open Storyboard to review or edit the
+              book, then run any enhancement, localization, validation, or
+              export feature normally.
+            </Trans>
+          ) : (
+            <Trans>
+              Use the sidebar on the left to open any stage of the
+              pipeline. Each stage has its own page where you can review
+              its content, configure its settings, and start a run. The
+              cards below mirror that navigation — click a card to jump
+              straight to that stage's page.
+            </Trans>
+          )}
         </p>
         <p className="text-sm leading-relaxed text-muted-foreground">
           <Trans>
@@ -759,4 +787,3 @@ function BookOverviewCard({ bookLabel }: { bookLabel: string }) {
     </section>
   )
 }
-
