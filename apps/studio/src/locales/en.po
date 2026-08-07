@@ -6854,9 +6854,6 @@ msgstr "Provider \"{providerId}\" does not support text generation."
 msgid "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
 msgstr "Provider \"{providerId}\" is not registered. Add its API keys in Settings or choose another model."
 
-#~ msgid "Provider \"{providerId}\" is not registered. Add its credentials in Connections or choose another model."
-#~ msgstr "Provider \"{providerId}\" is not registered. Add its credentials in Connections or choose another model."
-
 msgid "Provider credentials"
 msgstr "Provider credentials"
 
