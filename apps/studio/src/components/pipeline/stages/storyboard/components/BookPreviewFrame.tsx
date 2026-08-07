@@ -23,6 +23,7 @@ import {
   weightToToken,
 } from "./iframe-computed-styles"
 import { INTERACTIVE_SCRIPT, INTERACTIVE_STYLES } from "./iframe-interactive"
+import { applyStoryboardImageCachePolicy } from "./storyboard-image-cache"
 import {
   anchorKey,
   anchorSelector,
@@ -571,12 +572,13 @@ ${autoFitScript}
     // structure consistent with what the shell expects.
     const scriptEls = Array.from(doc.body.querySelectorAll("script"))
     const normalizedHtml = promoteFirstHeadingToH1(newHtml)
+    const cacheSafeHtml = applyStoryboardImageCachePolicy(normalizedHtml)
     // Mirror the packaged page shell closely: a page-level <main> containing
     // either the existing #content wrapper or a generated one.
-    const hasOwnMain = /^\s*<main\b/.test(normalizedHtml)
-    const hasOwnWrapper = /^\s*<div\b[^>]*\bid="content"/.test(normalizedHtml)
-    const contentHtml = hasOwnWrapper ? normalizedHtml : `<div id="content">${normalizedHtml}</div>`
-    doc.body.innerHTML = hasOwnMain ? normalizedHtml : `<main class="w-full">${contentHtml}</main>`
+    const hasOwnMain = /^\s*<main\b/.test(cacheSafeHtml)
+    const hasOwnWrapper = /^\s*<div\b[^>]*\bid="content"/.test(cacheSafeHtml)
+    const contentHtml = hasOwnWrapper ? cacheSafeHtml : `<div id="content">${cacheSafeHtml}</div>`
+    doc.body.innerHTML = hasOwnMain ? cacheSafeHtml : `<main class="w-full">${contentHtml}</main>`
     for (const s of scriptEls) {
       doc.body.appendChild(s)
     }

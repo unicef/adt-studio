@@ -1504,6 +1504,34 @@ describe("GET /books/:label/images/:imageId", () => {
     expect(Buffer.from(buf).toString()).toBe("fake-png-data")
   })
 
+  it("revalidates image content with a strong ETag", async () => {
+    createBookWithImage("etag-book")
+    const app = createBookRoutes(tmpDir)
+    const first = await app.request("/books/etag-book/images/etag-book_p1_page")
+
+    expect(first.status).toBe(200)
+    expect(first.headers.get("Cache-Control")).toBe("private, no-cache")
+    const etag = first.headers.get("ETag")
+    expect(etag).toMatch(/^"[a-f0-9]{64}"$/)
+
+    const unchanged = await app.request("/books/etag-book/images/etag-book_p1_page", {
+      headers: { "If-None-Match": etag! },
+    })
+    expect(unchanged.status).toBe(304)
+    expect((await unchanged.arrayBuffer()).byteLength).toBe(0)
+
+    fs.writeFileSync(
+      path.join(tmpDir, "etag-book", "images", "etag-book_p1_page.png"),
+      "new-png-data",
+    )
+    const changed = await app.request("/books/etag-book/images/etag-book_p1_page", {
+      headers: { "If-None-Match": etag! },
+    })
+    expect(changed.status).toBe(200)
+    expect(changed.headers.get("ETag")).not.toBe(etag)
+    expect(Buffer.from(await changed.arrayBuffer()).toString()).toBe("new-png-data")
+  })
+
   it("returns 404 for nonexistent image", async () => {
     createBookWithImage("img-book2")
     const app = createBookRoutes(tmpDir)

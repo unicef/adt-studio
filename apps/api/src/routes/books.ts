@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
+import { createHash } from "node:crypto"
 import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
@@ -875,8 +876,18 @@ export function createBookRoutes(
       const ext = path.extname(imagePath).toLowerCase()
       const contentType =
         ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png"
+      const etag = `"${createHash("sha256").update(imageBuffer).digest("hex")}"`
       c.header("Content-Type", contentType)
-      c.header("Cache-Control", "public, max-age=86400")
+      c.header("Cache-Control", "private, no-cache")
+      c.header("ETag", etag)
+      const ifNoneMatch = c.req.header("If-None-Match")
+      const matchesCachedContent = ifNoneMatch
+        ?.split(",")
+        .some((candidate) => {
+          const tag = candidate.trim()
+          return tag === "*" || tag === etag || tag === `W/${etag}`
+        })
+      if (matchesCachedContent) return c.body(null, 304)
       return c.body(imageBuffer)
     } finally {
       db.close()
