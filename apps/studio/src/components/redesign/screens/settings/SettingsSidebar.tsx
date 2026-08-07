@@ -38,7 +38,15 @@ export function SettingsSidebar() {
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar">
-      <SidebarLogo className="p-4 px-4.5" />
+      <div className="p-3 drag-region">
+        <Link
+          to={REDESIGN_PATHS.home}
+          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+        >
+          <ArrowLeft className="size-[17px]" />
+          <Trans>Back to home</Trans>
+        </Link>
+      </div>
 
       <div style={NO_DRAG_REGION} className="flex flex-col gap-2 px-3 pb-3">
         <div className="relative">
@@ -93,15 +101,6 @@ export function SettingsSidebar() {
         </nav>
       </ScrollArea>
 
-      <div className="p-3">
-        <Link
-          to={REDESIGN_PATHS.home}
-          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-        >
-          <ArrowLeft className="size-[17px]" />
-          <Trans>Back to home</Trans>
-        </Link>
-      </div>
     </aside>
   );
 }
