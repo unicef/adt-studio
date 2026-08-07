@@ -1,4 +1,5 @@
 import {
+  createSafeImportedHtmlPreview,
   inspectImportedActivity,
   KNOWN_ACTIVITY_SECTION_TYPES,
 } from "@adt/pipeline"
@@ -30,6 +31,7 @@ export interface AdtImportedActivityReviewItem {
   signals: string[]
   validationErrors: string[]
   textPreview: string
+  previewHtml: string
 }
 
 export interface AdtImportedActivityReview {
@@ -59,7 +61,10 @@ function suggestedType(declaredType: string | null, detectedType: string | null)
 /** Reconcile the export-time inventory with the edited HTML. HTML markers are
  * inspected statically and heuristic signals never become activities without
  * an explicit user decision. */
-export function analyzeImportedActivities(bundle: ReadAdtBundle): AdtImportedActivityReview {
+export function analyzeImportedActivities(
+  bundle: ReadAdtBundle,
+  options: { includePreviews?: boolean } = {},
+): AdtImportedActivityReview {
   const declarations = bundle.manifest.editingContract?.activities
   const hasInventory = declarations !== undefined
   const declaredBySection = new Map(
@@ -100,6 +105,18 @@ export function analyzeImportedActivities(bundle: ReadAdtBundle): AdtImportedAct
       signals: inspection.signals,
       validationErrors: inspection.validationErrors,
       textPreview: inspection.textPreview,
+      previewHtml: options.includePreviews
+        ? createSafeImportedHtmlPreview(
+            bundle.pageHtml[page.href] ?? "",
+            page.section_id,
+            (assetPath) => {
+              const asset = bundle.previewImages?.[assetPath]
+              return asset
+                ? `data:${asset.mimeType};base64,${Buffer.from(asset.bytes).toString("base64")}`
+                : undefined
+            },
+          )
+        : "",
     })
   }
 
@@ -118,6 +135,7 @@ export function analyzeImportedActivities(bundle: ReadAdtBundle): AdtImportedAct
       signals: [],
       validationErrors: [],
       textPreview: "",
+      previewHtml: "",
     })
   }
 

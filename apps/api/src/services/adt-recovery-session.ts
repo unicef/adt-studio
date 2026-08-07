@@ -313,7 +313,7 @@ export function assessAdtImportCompatibility(
 export function previewAdtRecoveryImport(
   zipBuffer: Buffer,
 ): AdtRecoveryImportPreview {
-  const bundle = readAdtBundle(zipBuffer)
+  const bundle = readAdtBundle(zipBuffer, { includePreviewImages: true })
   if (bundle.pages.length === 0 || Object.keys(bundle.pageHtml).length === 0) {
     throw new AdtRecoverySessionError("The ADT bundle does not contain recoverable book pages")
   }
@@ -356,7 +356,7 @@ export function previewAdtRecoveryImport(
       || bundle.ignoredEdits.sourceTextsChanged
       || bundle.ignoredEdits.pageHtmlChanged.length > 0
       || bundle.ignoredEdits.pageHtmlMissing.length > 0,
-    activityReview: analyzeImportedActivities(bundle),
+    activityReview: analyzeImportedActivities(bundle, { includePreviews: true }),
     compatibility: assessAdtImportCompatibility(zipBuffer, bundle),
   }
 }

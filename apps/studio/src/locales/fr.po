@@ -270,7 +270,7 @@ msgstr "{0} termes"
 msgid "{0} texts"
 msgstr "{0} textes"
 
-#. placeholder {0}: activityReview.needsReviewCount
+#. placeholder {0}: reviewItems.length - classifiedActivityCount
 msgid "{0} to review"
 msgstr "{0} à vérifier"
 
@@ -327,6 +327,14 @@ msgstr "il y a {0} s"
 
 #~ msgid "{actionLabel} {label}"
 #~ msgstr "{actionLabel} {label}"
+
+#. placeholder {0}: reviewItems.length
+msgid "{classifiedActivityCount} of {0} pages classified"
+msgstr "{classifiedActivityCount} sur {0} pages classées"
+
+#. placeholder {0}: items.length
+msgid "{classifiedCount} of {0} classified"
+msgstr "{classifiedCount} sur {0} classées"
 
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} {confirmCount, plural, one {double page possible détectée} other {doubles pages possibles détectées}}"
@@ -818,6 +826,9 @@ msgstr "Activité 5.1"
 msgid "Activity answers"
 msgstr "Réponses des activités"
 
+msgid "Activity classification progress"
+msgstr "Progression de la classification des activités"
+
 msgid "Activity content"
 msgstr "Contenu de l'activité"
 
@@ -835,6 +846,9 @@ msgstr "Échec de la génération de l'activité"
 
 msgid "Activity Rendering"
 msgstr "Rendu d'activité"
+
+msgid "Activity review complete"
+msgstr "Révision des activités terminée"
 
 msgid "Activity saved"
 msgstr "Activité enregistrée"
@@ -2070,6 +2084,9 @@ msgstr "Titre de chapitre"
 msgid "Chart / Graph"
 msgstr "Graphique / Diagramme"
 
+msgid "Check each page and choose how ADT Studio should treat it after import."
+msgstr "Vérifiez chaque page et choisissez comment ADT Studio doit la traiter après l’importation."
+
 #~ msgid "Check for updates"
 #~ msgstr "Vérifier les mises à jour"
 
@@ -2196,9 +2213,15 @@ msgstr "Ciências da Natureza - Ensino Fundamental"
 msgid "Classic Storybook"
 msgstr "Classic Storybook"
 
+msgid "Classification"
+msgstr "Classification"
+
 #. placeholder {0}: item.href
 msgid "Classification for {0}"
 msgstr "Classification de {0}"
+
+msgid "Classify every page"
+msgstr "Classer toutes les pages"
 
 msgid "Classifying images…"
 msgstr "Classification des images…"
@@ -3321,6 +3344,9 @@ msgstr "Modifier Invite"
 msgid "Edit Prompts"
 msgstr "Modifier Invites"
 
+msgid "Edit review"
+msgstr "Modifier la révision"
+
 msgid "Edit spreads"
 msgstr "Modifier les fusions"
 
@@ -3824,6 +3850,9 @@ msgstr "Filtre les images décoratives ou non pertinentes sur chaque page."
 
 msgid "Final Page"
 msgstr "Page finale"
+
+msgid "Finish review"
+msgstr "Terminer la révision"
 
 msgid "First images from the deep-field telescope."
 msgstr "Premières images du télescope à champ profond."
@@ -5561,6 +5590,9 @@ msgstr "Nécessite une attention"
 msgid "Needs changes"
 msgstr "Modifications nécessaires"
 
+msgid "Needs classification"
+msgstr "À classer"
+
 msgid "Needs rebuild"
 msgstr "Reconstruction nécessaire"
 
@@ -6476,8 +6508,10 @@ msgstr "Page {0} — Section {1}"
 msgid "Page {0} captions"
 msgstr "Légendes de la page {0}"
 
+#. placeholder {0}: activeIndex + 1
 #. placeholder {0}: current.pageNumber
 #. placeholder {0}: zoom + 1
+#. placeholder {1}: items.length
 #. placeholder {1}: pages.length
 #. placeholder {1}: renderedPages.length
 msgid "Page {0} of {1}"
@@ -6607,6 +6641,9 @@ msgstr "Pages par quiz"
 
 msgid "Pages reviewed"
 msgstr "Pages révisées"
+
+msgid "Pages to review"
+msgstr "Pages à vérifier"
 
 msgid "Paper Collage"
 msgstr "Collage papier"
@@ -6907,9 +6944,9 @@ msgstr "Aperçu"
 msgid "Preview linked page"
 msgstr "Aperçu de la page liée"
 
-#. placeholder {0}: session.title
-#~ msgid "Preview of {0}"
-#~ msgstr "Aperçu de {0}"
+#. placeholder {0}: activeItem.href
+msgid "Preview of {0}"
+msgstr "Aperçu de {0}"
 
 msgid "Preview of the HTML/CSS patterns used for LLM-generated pages."
 msgstr "Aperçu des modèles HTML/CSS utilisés pour les pages générées par le LLM."
@@ -6925,6 +6962,9 @@ msgstr "Aperçu : Par mot"
 
 msgid "Preview: word-by-word"
 msgstr "Aperçu : mot à mot"
+
+msgid "Previous"
+msgstr "Précédent"
 
 msgid "Previous image"
 msgstr "Image précédente"
@@ -7606,6 +7646,12 @@ msgstr "Réviser"
 msgid "Review {unresolvedActivityCount} activities"
 msgstr "Vérifier {unresolvedActivityCount} activités"
 
+msgid "Review activities"
+msgstr "Vérifier les activités"
+
+msgid "Review activity pages"
+msgstr "Vérifier les pages d’activités"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Examinez et peaufinez chaque bloc simplifié côte à côte avec l'original avant l'emballage."
 
@@ -7661,6 +7707,9 @@ msgstr "Style de révision"
 
 #~ msgid "Review the archive details below and confirm the import."
 #~ msgstr "Vérifiez les détails de l’archive ci-dessous et confirmez l’importation."
+
+msgid "Review the highlighted pages before importing."
+msgstr "Vérifiez les pages signalées avant l’importation."
 
 #~ msgid "Review the project details below and confirm the import."
 #~ msgstr "Vérifiez les détails du projet ci-dessous et confirmez l'importation."
@@ -9517,6 +9566,9 @@ msgstr "Cette page n'a pas d'entrées de texte traduisibles"
 msgid "This page has not been reviewed yet"
 msgstr "Cette page n'a pas encore été révisée"
 
+msgid "This page is unavailable in the imported archive."
+msgstr "Cette page n’est pas disponible dans l’archive importée."
+
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "La couche de texte intégrée de cette page est vide, mais l'étape de Sectionnement a récupéré du texte à partir de l'image de la page — elle semble donc numérisée ou uniquement composée d'images. Le pipeline peut toujours fonctionner à partir du texte récupéré, mais pour de meilleurs résumés, métadonnées et traductions, essayez d'obtenir une version de ce PDF basée sur du texte (avec une vraie couche de texte) plutôt qu'une copie numérisée."
 
@@ -10435,6 +10487,9 @@ msgstr "Tout le livre"
 
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Vérifications du livre entier pour la sortie ADT empaquetée, plus les résultats du réviseur capturés depuis l'aperçu."
+
+msgid "Why this needs review"
+msgstr "Pourquoi cette page doit être vérifiée"
 
 msgid "Wide multilingual coverage with neural voices for many locales."
 msgstr "Large couverture multilingue avec des voix neuronales pour de nombreux lieux."

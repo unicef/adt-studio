@@ -1509,7 +1509,8 @@ describe("POST /books/preview-import", () => {
 
     const res = await app.request("/books/preview-import", { method: "POST", body: formData })
     expect(res.status).toBe(200)
-    expect(await res.json()).toMatchObject({
+    const body = await res.json()
+    expect(body).toMatchObject({
       activityReview: {
         needsReviewCount: 1,
         activityCount: 1,
@@ -1523,6 +1524,9 @@ describe("POST /books/preview-import", () => {
         })],
       },
     })
+    expect(body.activityReview.items[0].previewHtml).toContain(
+      "data:image/png;base64,iVBORw==",
+    )
   })
 
   it("reports unsupported exported HTML before import", async () => {

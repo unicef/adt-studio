@@ -193,6 +193,7 @@ export interface AdtBundleImportPreview {
       signals: string[]
       validationErrors: string[]
       textPreview: string
+      previewHtml: string
     }>
     needsReviewCount: number
     quizCount: number

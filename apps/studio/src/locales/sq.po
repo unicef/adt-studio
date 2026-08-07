@@ -269,7 +269,7 @@ msgstr "{0} terma"
 msgid "{0} texts"
 msgstr "{0} tekste"
 
-#. placeholder {0}: activityReview.needsReviewCount
+#. placeholder {0}: reviewItems.length - classifiedActivityCount
 msgid "{0} to review"
 msgstr "{0} për t’u shqyrtuar"
 
@@ -326,6 +326,14 @@ msgstr "{0}s më parë"
 
 #~ msgid "{actionLabel} {label}"
 #~ msgstr "{actionLabel} {label}"
+
+#. placeholder {0}: reviewItems.length
+msgid "{classifiedActivityCount} of {0} pages classified"
+msgstr "{classifiedActivityCount} nga {0} faqe të klasifikuara"
+
+#. placeholder {0}: items.length
+msgid "{classifiedCount} of {0} classified"
+msgstr "{classifiedCount} nga {0} të klasifikuara"
 
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} {confirmCount, plural, one {fletë e dyfishtë e mundshme e zbuluar} other {fletë të dyfishta të mundshme të zbuluara}}"
@@ -817,6 +825,9 @@ msgstr "Aktiviteti 5.1"
 msgid "Activity answers"
 msgstr "Përgjigjet e aktiviteteve"
 
+msgid "Activity classification progress"
+msgstr "Përparimi i klasifikimit të aktiviteteve"
+
 msgid "Activity content"
 msgstr "Përmbajtja e aktivitetit"
 
@@ -834,6 +845,9 @@ msgstr "Gjenerimi i aktivitetit dështoi"
 
 msgid "Activity Rendering"
 msgstr "Renderimi i Aktivitetit"
+
+msgid "Activity review complete"
+msgstr "Shqyrtimi i aktiviteteve përfundoi"
 
 msgid "Activity saved"
 msgstr "Aktiviteti u ruajt"
@@ -2069,6 +2083,9 @@ msgstr "Titulli i kapitullit"
 msgid "Chart / Graph"
 msgstr "Tabelë / Grafik"
 
+msgid "Check each page and choose how ADT Studio should treat it after import."
+msgstr "Kontrolloni çdo faqe dhe zgjidhni si duhet ta trajtojë ADT Studio pas importimit."
+
 #~ msgid "Check for updates"
 #~ msgstr "Kontrollo për përditësime"
 
@@ -2195,9 +2212,15 @@ msgstr "Ciências da Natureza - Ensino Fundamental"
 msgid "Classic Storybook"
 msgstr "Libër Klasik Tregimesh"
 
+msgid "Classification"
+msgstr "Klasifikimi"
+
 #. placeholder {0}: item.href
 msgid "Classification for {0}"
 msgstr "Klasifikimi për {0}"
+
+msgid "Classify every page"
+msgstr "Klasifikoni çdo faqe"
 
 msgid "Classifying images…"
 msgstr "Po klasifikohen imazhet…"
@@ -3320,6 +3343,9 @@ msgstr "Redakto Prompt-in"
 msgid "Edit Prompts"
 msgstr "Redakto Prompt-et"
 
+msgid "Edit review"
+msgstr "Ndrysho shqyrtimin"
+
 msgid "Edit spreads"
 msgstr "Redakto faqet e përbashkëta"
 
@@ -3823,6 +3849,9 @@ msgstr "Filtron imazhet dekorative ose pa përmbajtje nga çdo faqe."
 
 msgid "Final Page"
 msgstr "Faqja e fundit"
+
+msgid "Finish review"
+msgstr "Përfundo shqyrtimin"
 
 msgid "First images from the deep-field telescope."
 msgstr "Imazhet e para nga teleskopi i fushës së thellë."
@@ -5560,6 +5589,9 @@ msgstr "Kërkon vëmendje"
 msgid "Needs changes"
 msgstr "Kërkon ndryshime"
 
+msgid "Needs classification"
+msgstr "Ka nevojë për klasifikim"
+
 msgid "Needs rebuild"
 msgstr "Kërkon rindërtim"
 
@@ -6475,8 +6507,10 @@ msgstr "Faqja {0} — Seksioni {1}"
 msgid "Page {0} captions"
 msgstr "Titujt e faqes {0}"
 
+#. placeholder {0}: activeIndex + 1
 #. placeholder {0}: current.pageNumber
 #. placeholder {0}: zoom + 1
+#. placeholder {1}: items.length
 #. placeholder {1}: pages.length
 #. placeholder {1}: renderedPages.length
 msgid "Page {0} of {1}"
@@ -6606,6 +6640,9 @@ msgstr "Faqe për Kuiz"
 
 msgid "Pages reviewed"
 msgstr "Faqe të rishikuara"
+
+msgid "Pages to review"
+msgstr "Faqet për shqyrtim"
 
 msgid "Paper Collage"
 msgstr "Kolazh Letre"
@@ -6906,9 +6943,9 @@ msgstr "Pamje paraprake"
 msgid "Preview linked page"
 msgstr "Shiko faqen e lidhur"
 
-#. placeholder {0}: session.title
-#~ msgid "Preview of {0}"
-#~ msgstr "Pamje paraprake e {0}"
+#. placeholder {0}: activeItem.href
+msgid "Preview of {0}"
+msgstr "Pamje paraprake e {0}"
 
 msgid "Preview of the HTML/CSS patterns used for LLM-generated pages."
 msgstr "Pamje paraprake e modeleve HTML/CSS të përdorura për faqet e gjeneruara nga LLM."
@@ -6924,6 +6961,9 @@ msgstr "Pamje paraprake: Për-Fjalë"
 
 msgid "Preview: word-by-word"
 msgstr "Pamje paraprake: fjalë-pas-fjale"
+
+msgid "Previous"
+msgstr "E mëparshmja"
 
 msgid "Previous image"
 msgstr "Imazhi i mëparshëm"
@@ -7605,6 +7645,12 @@ msgstr "Rishiko"
 msgid "Review {unresolvedActivityCount} activities"
 msgstr "Shqyrto {unresolvedActivityCount} aktivitete"
 
+msgid "Review activities"
+msgstr "Shqyrto aktivitetet"
+
+msgid "Review activity pages"
+msgstr "Shqyrto faqet e aktiviteteve"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Rishikoni dhe rafinoni çdo bllok të thjeshtëzuar krahas origjinalit përpara paketimit."
 
@@ -7660,6 +7706,9 @@ msgstr "Stili i rishikimit"
 
 #~ msgid "Review the archive details below and confirm the import."
 #~ msgstr "Shqyrtoni detajet e arkivit më poshtë dhe konfirmoni importimin."
+
+msgid "Review the highlighted pages before importing."
+msgstr "Shqyrtoni faqet e theksuara para importimit."
 
 #~ msgid "Review the project details below and confirm the import."
 #~ msgstr "Rishikoni detajet e projektit më poshtë dhe konfirmoni importimin."
@@ -9516,6 +9565,9 @@ msgstr "Kjo faqe nuk ka hyrje teksti të përkthyeshme"
 msgid "This page has not been reviewed yet"
 msgstr "Kjo faqe nuk është rishikuar akoma"
 
+msgid "This page is unavailable in the imported archive."
+msgstr "Kjo faqe nuk është e disponueshme në arkivin e importuar."
+
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "Shtresa e tekstit të integruar e kësaj faqeje është bosh, por hapi i Seksionimit rikuperoi tekst nga imazhi i faqes — pra duket si një faqe e skanuar ose vetëm me imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."
 
@@ -10434,6 +10486,9 @@ msgstr "I gjithë libri"
 
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Kontrolle për të gjithë librin për dalje të paketuara ADT, plus gjetjet e rishikuesve të kaptura nga Parapamja."
+
+msgid "Why this needs review"
+msgstr "Pse nevojitet shqyrtimi"
 
 msgid "Wide multilingual coverage with neural voices for many locales."
 msgstr "Mbulim i gjerë shumëgjuhësh me zëra neural për shumë lokale."

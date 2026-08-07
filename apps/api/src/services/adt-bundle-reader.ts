@@ -61,6 +61,8 @@ export interface ReadAdtBundle {
   glossaries: Record<string, AdtBundleGlossaryData>
   texts: Record<string, AdtBundleTextsData>
   ignoredEdits: AdtBundleIgnoredEdits
+  /** Canonical raster assets included only for the pre-import visual review. */
+  previewImages?: Record<string, { bytes: Uint8Array; mimeType: string }>
 }
 
 const MANIFEST_PATH = /^(?:[^/]+\/)?manifest\.json$/
@@ -70,6 +72,7 @@ const PAGE_HTML_PATH = /^(?:[^/]+\/)?[^/]+\.html$/
 const RUNTIME_CONFIG_PATH = /^(?:[^/]+\/)?assets\/config\.json$/
 const PAGES_PATH = /^(?:[^/]+\/)?content\/pages\.json$/
 const COVER_PATH = /^(?:[^/]+\/)?cover\.(?:png|jpe?g|webp)$/i
+const PREVIEW_IMAGE_PATH = /^(?:[^/]+\/)?images\/[^/]+\.(?:gif|jpe?g|png|webp)$/i
 
 const RuntimeConfig = z.object({
   title: z.string().trim().min(1).optional(),
@@ -100,11 +103,12 @@ function isSafeArchivePath(name: string): boolean {
   return parts.length > 0 && parts.every((part) => part.length > 0 && part !== "." && part !== "..")
 }
 
-function selectedLimit(name: string): number | null {
+function selectedLimit(name: string, includePreviewImages: boolean): number | null {
   if (MANIFEST_PATH.test(name)) return ADT_BUNDLE_READER_LIMITS.manifestBytes
   if (TOC_PATH.test(name) || I18N_PATH.test(name)) return ADT_BUNDLE_READER_LIMITS.jsonBytes
   if (RUNTIME_CONFIG_PATH.test(name) || PAGES_PATH.test(name)) return ADT_BUNDLE_READER_LIMITS.jsonBytes
   if (COVER_PATH.test(name)) return 10 * 1024 * 1024
+  if (includePreviewImages && PREVIEW_IMAGE_PATH.test(name)) return 10 * 1024 * 1024
   if (PAGE_HTML_PATH.test(name)) return ADT_BUNDLE_READER_LIMITS.htmlBytes
   return null
 }
@@ -217,7 +221,10 @@ function createLegacyManifest(
   })
 }
 
-function extractSelected(zipBuffer: Buffer): Record<string, Uint8Array> {
+function extractSelected(
+  zipBuffer: Buffer,
+  includePreviewImages: boolean,
+): Record<string, Uint8Array> {
   if (zipBuffer.byteLength > ADT_BUNDLE_READER_LIMITS.archiveBytes) {
     throw new AdtBundleReadError("ADT bundle exceeds the compressed archive size limit")
   }
@@ -240,7 +247,7 @@ function extractSelected(zipBuffer: Buffer): Record<string, Uint8Array> {
         }
         seen.add(info.name)
 
-        const limit = selectedLimit(info.name)
+        const limit = selectedLimit(info.name, includePreviewImages)
         if (limit === null) return false
         if (!Number.isSafeInteger(info.originalSize) || info.originalSize < 0 || info.originalSize > limit) {
           throw new AdtBundleReadError(`ADT bundle file exceeds its size limit: ${info.name}`)
@@ -284,8 +291,19 @@ function coverMimeType(filePath: string): string {
   return "image/jpeg"
 }
 
-export function readAdtBundle(zipBuffer: Buffer): ReadAdtBundle {
-  const files = extractSelected(zipBuffer)
+function rasterImageMimeType(filePath: string): string {
+  const extension = filePath.toLowerCase().split(".").pop()
+  if (extension === "jpg" || extension === "jpeg") return "image/jpeg"
+  if (extension === "webp") return "image/webp"
+  if (extension === "gif") return "image/gif"
+  return "image/png"
+}
+
+export function readAdtBundle(
+  zipBuffer: Buffer,
+  options: { includePreviewImages?: boolean } = {},
+): ReadAdtBundle {
+  const files = extractSelected(zipBuffer, options.includePreviewImages === true)
   const manifestPaths = Object.keys(files).filter((path) => MANIFEST_PATH.test(path))
   if (manifestPaths.length > 1) {
     throw new AdtBundleReadError("ADT bundle contains multiple manifest.json files")
@@ -330,6 +348,21 @@ export function readAdtBundle(zipBuffer: Buffer): ReadAdtBundle {
   const coverPath = Object.keys(files)
     .filter((filePath) => filePath.startsWith(root) && COVER_PATH.test(filePath))
     .sort()[0]
+  const previewImages = Object.create(null) as Record<
+    string,
+    { bytes: Uint8Array; mimeType: string }
+  >
+  if (options.includePreviewImages) {
+    for (const [filePath, bytes] of Object.entries(files)) {
+      if (!filePath.startsWith(root)) continue
+      const relativePath = filePath.slice(root.length)
+      if (!/^images\/[^/]+\.(?:gif|jpe?g|png|webp)$/i.test(relativePath)) continue
+      previewImages[relativePath] = {
+        bytes,
+        mimeType: rasterImageMimeType(relativePath),
+      }
+    }
+  }
   const title = manifest.book.title
     ?? runtimeConfig?.title
     ?? titleFromHtml(files[`${root}index.html`])
@@ -384,5 +417,6 @@ export function readAdtBundle(zipBuffer: Buffer): ReadAdtBundle {
       pageHtmlChanged: pageHtmlChanged.sort(),
       pageHtmlMissing: pageHtmlMissing.sort(),
     },
+    ...(options.includePreviewImages ? { previewImages } : {}),
   }
 }

@@ -164,6 +164,7 @@ export {
   buildTextCatalog,
   extractTextCatalogEntriesFromHtml,
   projectImportedHtmlSection,
+  createSafeImportedHtmlPreview,
   extractImportedHtmlPresentationAssets,
   inspectImportedHtmlContract,
   ADT_EDITING_ALLOWED_ROOT_ENTRIES,

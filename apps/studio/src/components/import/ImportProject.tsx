@@ -22,6 +22,7 @@ import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Button } from "@/components/ui/button"
+import { ActivityClassificationDialog } from "@/components/import/ActivityClassificationDialog"
 import { FileDropOverlay, useFileDropZone } from "@/components/ui/file-drop-overlay"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { cn, formatBytes, isZipFile } from "@/lib/utils"
@@ -452,11 +453,11 @@ function PartPreviewCard({ preview }: { preview: PartImportPreview }) {
 function AdtBundlePreviewCard({
   preview,
   activityDecisions,
-  onActivityDecision,
+  onReviewActivities,
 }: {
   preview: AdtBundleImportPreview
   activityDecisions: Record<string, string | null>
-  onActivityDecision: (sectionId: string, type: string | null) => void
+  onReviewActivities: () => void
 }) {
   const { t, i18n } = useLingui()
   const activityReview = preview.activityReview ?? EMPTY_ACTIVITY_REVIEW
@@ -470,30 +471,10 @@ function AdtBundlePreviewCard({
     preview.runtimeFeatures.readAloud ? "speech" : null,
   ].filter((name): name is string => name !== null))
   const detectedFeatures = FEATURE_STAGES.filter((stage) => detectedFeatureNames.has(stage.name))
-  const activityTypeLabel = (type: string) => {
-    if (type === "activity_quiz") return t`Quiz`
-    if (type === "activity_multiple_choice") return t`Multiple choice`
-    if (type === "activity_multi_select") return t`Multiple selection`
-    if (type === "activity_true_false") return t`True or false`
-    if (type === "activity_fill_in_the_blank") return t`Fill in the blank`
-    if (type === "activity_fill_in_a_table") return t`Fill in a table`
-    if (type === "activity_open_ended_answer") return t`Open-ended answer`
-    if (type === "activity_underline_text") return t`Underline text`
-    if (type === "activity_matching") return t`Matching`
-    if (type === "activity_sorting") return t`Sorting`
-    if (type === "activity_other") return t`Other activity`
-    return t`Custom activity`
-  }
-  const activityReasonLabel = (
-    reason: AdtBundleImportPreview["activityReview"]["items"][number]["reasons"][number],
-  ) => {
-    if (reason === "missing-declaration") return t`This activity was added after export.`
-    if (reason === "missing-marker") return t`The exported activity marker is missing.`
-    if (reason === "type-mismatch") return t`The activity type changed after export.`
-    if (reason === "interactive-unmarked") return t`Interactive controls were found without an activity marker.`
-    if (reason === "invalid-structure") return t`The activity structure needs confirmation.`
-    return t`The declared activity page is missing.`
-  }
+  const reviewItems = activityReview.items.filter((item) => item.status === "needs-review")
+  const classifiedActivityCount = reviewItems.filter((item) => (
+    Object.prototype.hasOwnProperty.call(activityDecisions, item.sectionId)
+  )).length
   const compatibilityIssueLabel = (code: AdtBundleImportPreview["compatibility"]["issues"][number]["code"]) => {
     if (code === "missing-editing-contract") {
       return t`This archive is missing ADT Studio round-trip metadata. Re-export it as a Web ZIP from a current version of ADT Studio before editing it externally.`
@@ -639,69 +620,44 @@ function AdtBundlePreviewCard({
                   </p>
                 </div>
               </div>
-              {activityReview.needsReviewCount === 0 ? (
+              {activityReview.needsReviewCount === 0 || classifiedActivityCount === reviewItems.length ? (
                 <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-emerald-700">
                   <Check className="h-3 w-3" />
-                  <Trans>Validated</Trans>
+                  {activityReview.needsReviewCount === 0
+                    ? <Trans>Validated</Trans>
+                    : <Trans>Reviewed</Trans>}
                 </span>
               ) : (
                 <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
-                  <Trans>{activityReview.needsReviewCount} to review</Trans>
+                  <Trans>{reviewItems.length - classifiedActivityCount} to review</Trans>
                 </span>
               )}
             </div>
 
             {activityReview.needsReviewCount > 0 ? (
-              <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
-                {activityReview.items
-                  .filter((item) => item.status === "needs-review")
-                  .map((item) => {
-                    const options = [...new Set([
-                      item.suggestedType,
-                      ...activityReview.typeOptions,
-                    ])]
-                    const selected = Object.prototype.hasOwnProperty.call(
-                      activityDecisions,
-                      item.sectionId,
-                    )
-                      ? activityDecisions[item.sectionId] ?? JSON.stringify(null)
-                      : ""
-                    return (
-                      <div
-                        key={item.sectionId}
-                        className="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2.5"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-medium text-slate-800">{item.href}</p>
-                            {item.textPreview ? (
-                              <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-slate-600">
-                                {item.textPreview}
-                              </p>
-                            ) : null}
-                            <p className="mt-1 text-[11px] text-amber-800">
-                              {activityReasonLabel(item.reasons[0])}
-                            </p>
-                          </div>
-                          <select
-                            value={selected}
-                            onChange={(event) => onActivityDecision(
-                              item.sectionId,
-                              event.target.value === JSON.stringify(null) ? null : event.target.value,
-                            )}
-                            aria-label={t`Classification for ${item.href}`}
-                            className="h-8 max-w-48 shrink-0 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm outline-none transition-shadow focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
-                          >
-                            <option value="" disabled>{t`Choose classification`}</option>
-                            {options.map((type) => (
-                              <option key={type} value={type}>{activityTypeLabel(type)}</option>
-                            ))}
-                            <option value={JSON.stringify(null)}>{t`Not an activity`}</option>
-                          </select>
-                        </div>
-                      </div>
-                    )
-                  })}
+              <div className="mt-3 flex min-h-11 items-center justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2.5">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium text-amber-950">
+                    {classifiedActivityCount === reviewItems.length
+                      ? <Trans>Activity review complete</Trans>
+                      : <Trans>Review the highlighted pages before importing.</Trans>}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-amber-800">
+                    <Trans>{classifiedActivityCount} of {reviewItems.length} pages classified</Trans>
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={onReviewActivities}
+                  className="h-8 shrink-0 border-amber-300 bg-white text-xs text-amber-900 hover:bg-amber-100"
+                >
+                  <Puzzle className="h-3.5 w-3.5" />
+                  {classifiedActivityCount === reviewItems.length
+                    ? <Trans>Edit review</Trans>
+                    : <Trans>Review activities</Trans>}
+                </Button>
               </div>
             ) : null}
           </div>
@@ -761,6 +717,7 @@ export function ImportProject() {
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
   const [activityDecisions, setActivityDecisions] = useState<Record<string, string | null>>({})
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false)
 
   const friendlyPreviewError = useFriendlyArchiveError(previewError)
   const rawImportError = adtImportMutation.error?.message
@@ -790,6 +747,7 @@ export function ImportProject() {
     setPreviewError(null)
     setPreview(null)
     setActivityDecisions({})
+    setActivityDialogOpen(false)
     importMutation.reset()
     adtImportMutation.reset()
     try {
@@ -834,7 +792,10 @@ export function ImportProject() {
         item.status === "needs-review"
         && !Object.prototype.hasOwnProperty.call(activityDecisions, item.sectionId)
       ))
-      if (unresolved) return
+      if (unresolved) {
+        setActivityDialogOpen(true)
+        return
+      }
       const decisions = activityReview.items
         .filter((item) => item.status === "needs-review")
         .map((item) => ({
@@ -872,6 +833,7 @@ export function ImportProject() {
     setPreview(null)
     setPreviewError(null)
     setActivityDecisions({})
+    setActivityDialogOpen(false)
     importMutation.reset()
     adtImportMutation.reset()
   }, [importMutation, adtImportMutation, importPending])
@@ -882,6 +844,9 @@ export function ImportProject() {
         && !Object.prototype.hasOwnProperty.call(activityDecisions, item.sectionId)
       )).length
     : 0
+  const activityReview = preview && isAdtBundleImportPreview(preview)
+    ? preview.activityReview ?? EMPTY_ACTIVITY_REVIEW
+    : null
 
   const phase: ImportPhase = importPending || friendlyImportError
     ? "importing"
@@ -908,6 +873,19 @@ export function ImportProject() {
         className="hidden"
         onChange={handleFileChange}
       />
+
+      {activityReview && activityReview.needsReviewCount > 0 ? (
+        <ActivityClassificationDialog
+          open={activityDialogOpen}
+          onOpenChange={setActivityDialogOpen}
+          review={activityReview}
+          decisions={activityDecisions}
+          onDecision={(sectionId, type) => setActivityDecisions((current) => ({
+            ...current,
+            [sectionId]: type,
+          }))}
+        />
+      ) : null}
 
       <div className="flex min-h-0 flex-1 overflow-hidden bg-slate-50/40">
         <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col px-5 pb-0 pt-6 sm:px-8 lg:px-10">
@@ -966,10 +944,7 @@ export function ImportProject() {
                     <AdtBundlePreviewCard
                       preview={preview}
                       activityDecisions={activityDecisions}
-                      onActivityDecision={(sectionId, type) => setActivityDecisions((current) => ({
-                        ...current,
-                        [sectionId]: type,
-                      }))}
+                      onReviewActivities={() => setActivityDialogOpen(true)}
                     />
                   ) : (
                     <PreviewCard preview={preview} />
@@ -1047,7 +1022,6 @@ export function ImportProject() {
                   !preview ||
                   (!isPartImportPreview(preview) && !isAdtBundleImportPreview(preview) && !!preview.validationError) ||
                   (isAdtBundleImportPreview(preview) && !preview.compatibility.supported) ||
-                  unresolvedActivityCount > 0 ||
                   importPending
                 }
                 onClick={handleImport}

@@ -546,6 +546,67 @@ export function projectImportedHtmlSection(
   }
 }
 
+/** Build a non-executable visual reference for import review. The preview
+ * preserves semantic structure and controls while removing every URL-bearing
+ * or inline-style attribute so opening it cannot execute code or make network
+ * requests. */
+export function createSafeImportedHtmlPreview(
+  html: string,
+  expectedSectionId: string,
+  resolveImageSource?: (path: string) => string | undefined,
+): string {
+  const projectedSection = projectImportedHtmlSection(html, expectedSectionId).html
+  const previewDocument = parseDocument(projectedSection)
+  const resourceAttributes = [
+    "action",
+    "formaction",
+    "href",
+    "poster",
+    "src",
+    "srcset",
+    "style",
+    "xlink:href",
+  ]
+  const elements = DomUtils.findAll(
+    (element) => element.type === "tag",
+    previewDocument.children,
+  )
+  for (const element of elements) {
+    const rawImageSource = element.name === "img" ? element.attribs.src : undefined
+    resourceAttributes.forEach((attribute) => delete element.attribs[attribute])
+    if (rawImageSource) {
+      let normalizedSource = rawImageSource.split(/[?#]/, 1)[0].replace(/^\.\//, "")
+      try { normalizedSource = decodeURIComponent(normalizedSource) } catch { /* use literal path */ }
+      const embeddedSource = resolveImageSource?.(normalizedSource)
+      if (
+        embeddedSource
+        && /^data:image\/(?:gif|jpeg|png|webp);base64,[a-z0-9+/=]+$/i.test(embeddedSource)
+      ) {
+        element.attribs.src = embeddedSource
+      }
+    }
+  }
+  const section = DomUtils.getInnerHTML(previewDocument)
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: light; font-family: ui-sans-serif, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px; color: #1e293b; background: #f8fafc; }
+    section { min-height: calc(100vh - 64px); max-width: 780px; margin: 0 auto; padding: 32px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; box-shadow: 0 1px 2px rgb(15 23 42 / 0.05); }
+    img, video, svg { max-width: 100%; height: auto; }
+    button, input, select, textarea { font: inherit; }
+    button, input:not([type="radio"]):not([type="checkbox"]), select, textarea { min-height: 36px; border: 1px solid #cbd5e1; border-radius: 6px; padding: 7px 10px; background: #ffffff; }
+    label { display: inline-flex; align-items: center; gap: 8px; }
+  </style>
+</head>
+<body>${section}</body>
+</html>`
+}
+
 /**
  * Extract text catalog entries from a single page's rendered HTML sections.
  * Walks the DOM looking for elements with data-id attributes.

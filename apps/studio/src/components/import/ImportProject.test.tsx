@@ -3,6 +3,8 @@ import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 
+Element.prototype.scrollIntoView = vi.fn()
+
 const navigate = vi.fn()
 const previewImport = vi.fn()
 const importProject = vi.fn()
@@ -292,6 +294,7 @@ describe("ImportProject", () => {
           signals: ["interactive-control"],
           validationErrors: [],
           textPreview: "Drag each word into the matching group.",
+          previewHtml: "<html><body><section><p>Drag each word into the matching group.</p></section></body></html>",
         }],
         needsReviewCount: 1,
         quizCount: 0,
@@ -306,11 +309,15 @@ describe("ImportProject", () => {
     const file = new File(["zip"], "external.zip", { type: "application/zip" })
     fireEvent.change(input, { target: { files: [file] } })
 
-    const blocked = await screen.findByRole("button", { name: "Review 1 activities" })
-    expect(blocked).toHaveProperty("disabled", true)
-    fireEvent.change(screen.getByLabelText("Classification for index.html"), {
-      target: { value: "activity_custom_external" },
-    })
+    const review = await screen.findByRole("button", { name: "Review 1 activities" })
+    expect(review).toHaveProperty("disabled", false)
+    fireEvent.click(review)
+    expect(screen.getByRole("dialog")).toBeTruthy()
+    expect(screen.getByTitle("Preview of index.html").getAttribute("srcdoc"))
+      .toContain("Drag each word")
+    fireEvent.click(screen.getByLabelText("Classification for index.html"))
+    fireEvent.click(await screen.findByRole("option", { name: "Custom activity: external" }))
+    fireEvent.click(screen.getByRole("button", { name: "Finish review" }))
     const ready = screen.getByRole("button", { name: "Import as new project" })
     expect(ready).toHaveProperty("disabled", false)
     fireEvent.click(ready)

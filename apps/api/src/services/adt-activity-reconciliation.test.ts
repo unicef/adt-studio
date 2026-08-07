@@ -73,12 +73,20 @@ describe("ADT activity reconciliation", () => {
   })
 
   it("requires review for externally-added custom activities and unmarked controls", () => {
-    const custom = analyzeImportedActivities(bundle(page(
-      "activity_custom_crossword",
-      `<p data-id="text-1">Crossword</p><button aria-label="Check">Check</button>`,
-    ), { activities: [] }))
+    const custom = analyzeImportedActivities(
+      bundle(page(
+        "activity_custom_crossword",
+        `<p data-id="text-1">Crossword</p><button aria-label="Check">Check</button>
+         <img data-id="image-1" src="https://tracking.example/image.png" style="background:url(https://tracking.example/pixel)" />
+         <script>window.adtRegisterCustomActivity(document.currentScript.parentElement, {})</script>`,
+      ), { activities: [] }),
+      { includePreviews: true },
+    )
     expect(custom.items[0].reasons).toContain("missing-declaration")
     expect(custom.items[0]).toMatchObject({ kind: "custom", status: "needs-review" })
+    expect(custom.items[0].previewHtml).toContain("Crossword")
+    expect(custom.items[0].previewHtml).not.toContain("adtRegisterCustomActivity")
+    expect(custom.items[0].previewHtml).not.toContain("tracking.example")
 
     const candidate = analyzeImportedActivities(bundle(page(
       "content",
