@@ -122,7 +122,10 @@ describe("ImportProject", () => {
     fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
 
     expect(importProject).not.toHaveBeenCalled()
-    expect(importAdt).toHaveBeenCalledWith(file, expect.any(Object))
+    expect(importAdt).toHaveBeenCalledWith(
+      { zip: file, activityDecisions: [] },
+      expect.any(Object),
+    )
     expect(navigate).toHaveBeenCalledWith({
       to: "/books/$label/$step",
       params: { label: "hyena-and-raven", step: "book" },
@@ -185,7 +188,10 @@ describe("ImportProject", () => {
     fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
 
     expect(importProject).not.toHaveBeenCalled()
-    expect(importAdt).toHaveBeenCalledWith(second, expect.any(Object))
+    expect(importAdt).toHaveBeenCalledWith(
+      { zip: second, activityDecisions: [] },
+      expect.any(Object),
+    )
   })
 
   it("always creates a new project even when preview metadata identifies an origin", async () => {
@@ -203,6 +209,27 @@ describe("ImportProject", () => {
       tocEntryCount: 0,
       translationLanguageCount: 0,
       contentChanged: false,
+      activityReview: {
+        inventoryVersion: 2,
+        items: [{
+          sectionId: "qz001",
+          href: "qz001.html",
+          declaredType: "activity_quiz",
+          detectedType: "activity_quiz",
+          suggestedType: "activity_quiz",
+          kind: "quiz",
+          status: "confirmed",
+          supportsStudioEditing: true,
+          reasons: [],
+          signals: ["interactive-control"],
+          validationErrors: [],
+          textPreview: "Question",
+        }],
+        needsReviewCount: 0,
+        quizCount: 1,
+        activityCount: 0,
+        typeOptions: ["activity_quiz"],
+      },
       compatibility: { supported: true, issues: [] },
       match: {
         confidence: "verified",
@@ -229,7 +256,75 @@ describe("ImportProject", () => {
     expect(screen.getByText("Quizzes").closest("span")?.className).toContain("text-orange-600")
     fireEvent.click(screen.getByRole("button", { name: "Import as new project" }))
 
-    expect(importAdt).toHaveBeenCalledWith(file, expect.any(Object))
+    expect(importAdt).toHaveBeenCalledWith(
+      { zip: file, activityDecisions: [] },
+      expect.any(Object),
+    )
+  })
+
+  it("requires an explicit classification for an ambiguous external activity", async () => {
+    previewImport.mockResolvedValue({
+      isAdtBundle: true,
+      legacyRecovery: false,
+      label: "external-activity",
+      title: "External activity",
+      coverBase64: null,
+      sourceLanguage: "en",
+      outputLanguages: [],
+      runtimeFeatures: { activities: true },
+      pageCount: 1,
+      glossaryEntryCount: 0,
+      tocEntryCount: 0,
+      translationLanguageCount: 0,
+      contentChanged: true,
+      activityReview: {
+        inventoryVersion: 2,
+        items: [{
+          sectionId: "pg001_sec001",
+          href: "index.html",
+          declaredType: null,
+          detectedType: null,
+          suggestedType: "activity_custom_external",
+          kind: "candidate",
+          status: "needs-review",
+          supportsStudioEditing: false,
+          reasons: ["interactive-unmarked"],
+          signals: ["interactive-control"],
+          validationErrors: [],
+          textPreview: "Drag each word into the matching group.",
+        }],
+        needsReviewCount: 1,
+        quizCount: 0,
+        activityCount: 1,
+        typeOptions: ["activity_matching", "activity_custom_external"],
+      },
+      compatibility: { supported: true, issues: [] },
+    })
+
+    const view = render(<ImportProject />)
+    const input = view.container.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(["zip"], "external.zip", { type: "application/zip" })
+    fireEvent.change(input, { target: { files: [file] } })
+
+    const blocked = await screen.findByRole("button", { name: "Review 1 activities" })
+    expect(blocked).toHaveProperty("disabled", true)
+    fireEvent.change(screen.getByLabelText("Classification for index.html"), {
+      target: { value: "activity_custom_external" },
+    })
+    const ready = screen.getByRole("button", { name: "Import as new project" })
+    expect(ready).toHaveProperty("disabled", false)
+    fireEvent.click(ready)
+
+    expect(importAdt).toHaveBeenCalledWith(
+      {
+        zip: file,
+        activityDecisions: [{
+          sectionId: "pg001_sec001",
+          type: "activity_custom_external",
+        }],
+      },
+      expect.any(Object),
+    )
   })
 
   it("explains and blocks an exported ADT outside the supported HTML contract", async () => {

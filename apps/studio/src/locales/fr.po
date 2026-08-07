@@ -170,6 +170,11 @@ msgstr "{0} images sélectionnées"
 msgid "{0} img"
 msgstr "{0} img"
 
+#. placeholder {0}: activityReview.activityCount
+#. placeholder {1}: activityReview.quizCount
+msgid "{0} in-page activities and {1} quizzes detected."
+msgstr "{0} activités intégrées à la page et {1} quiz détectés."
+
 #. placeholder {0}: reviewCounts.needsAttention
 msgid "{0} issue/issues"
 msgstr "{0} problème(s)"
@@ -264,6 +269,10 @@ msgstr "{0} termes"
 #. placeholder {0}: String(visibleEntries.length)
 msgid "{0} texts"
 msgstr "{0} textes"
+
+#. placeholder {0}: activityReview.needsReviewCount
+msgid "{0} to review"
+msgstr "{0} à vérifier"
 
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
@@ -2139,6 +2148,9 @@ msgstr "Choisir un autre fichier"
 #~ msgid "Choose any available beta version to install."
 #~ msgstr "Choisissez n’importe quelle version bêta disponible à installer."
 
+msgid "Choose classification"
+msgstr "Choisir une classification"
+
 msgid "Choose features to include in this export"
 msgstr "Choisissez les fonctionnalités à inclure dans cette exportation"
 
@@ -2183,6 +2195,10 @@ msgstr "Ciências da Natureza - Ensino Fundamental"
 
 msgid "Classic Storybook"
 msgstr "Classic Storybook"
+
+#. placeholder {0}: item.href
+msgid "Classification for {0}"
+msgstr "Classification de {0}"
 
 msgid "Classifying images…"
 msgstr "Classification des images…"
@@ -2701,6 +2717,9 @@ msgstr "Version actuelle (v{currentVersion})"
 
 msgid "Custom"
 msgstr "Personnalisé"
+
+msgid "Custom activity"
+msgstr "Activité personnalisée"
 
 msgid "Custom Instructions"
 msgstr "Instructions personnalisées"
@@ -3767,6 +3786,9 @@ msgstr "Extraction de figures"
 msgid "File actions"
 msgstr "Actions du fichier"
 
+msgid "Fill in a table"
+msgstr "Compléter un tableau"
+
 msgid "Fill in the blank"
 msgstr "Compléter le texte"
 
@@ -4668,6 +4690,9 @@ msgstr "Interactif"
 msgid "Interactive assessment questions"
 msgstr "Questions d'évaluation interactives"
 
+msgid "Interactive controls were found without an activity marker."
+msgstr "Des contrôles interactifs ont été trouvés sans marqueur d’activité."
+
 msgid "Interactive page: AI conversion from the original PDF."
 msgstr "Page interactive : conversion par IA du PDF original."
 
@@ -5196,6 +5221,9 @@ msgstr "Correspondre à la source"
 msgid "Matches the original book design with some flexibility."
 msgstr "Correspond au design original du livre avec une certaine flexibilité."
 
+msgid "Matching"
+msgstr "Association"
+
 msgid "Max height"
 msgstr "Hauteur max"
 
@@ -5493,6 +5521,9 @@ msgstr "choix multiple"
 
 msgid "Multiple choice"
 msgstr "Choix multiple"
+
+msgid "Multiple selection"
+msgstr "Sélection multiple"
 
 msgid "Mute all from read-aloud"
 msgstr "Tout couper de la lecture à voix haute"
@@ -5982,6 +6013,9 @@ msgstr "bruit"
 msgid "None"
 msgstr "Aucun"
 
+msgid "Not an activity"
+msgstr "Pas une activité"
+
 #~ msgid "Not available for this import"
 #~ msgstr "Non disponible pour cette importation"
 
@@ -6201,6 +6235,9 @@ msgstr "Ouvrir la validation"
 msgid "Open-ended — learners write a free response; there is no fixed answer."
 msgstr "Réponse ouverte — les élèves rédigent une réponse libre ; il n’y a pas de réponse fixe."
 
+msgid "Open-ended answer"
+msgstr "Réponse ouverte"
+
 msgid "Open-ended question"
 msgstr "Question ouverte"
 
@@ -6309,6 +6346,9 @@ msgstr "osmose"
 
 msgid "Other"
 msgstr "Autre"
+
+msgid "Other activity"
+msgstr "Autre activité"
 
 #~ msgid "Other beta versions"
 #~ msgstr "Autres versions bêta"
@@ -7563,6 +7603,9 @@ msgstr "Réviser"
 #~ msgid "Review {selectedCount} selected"
 #~ msgstr "Revoir {selectedCount} sélectionnées"
 
+msgid "Review {unresolvedActivityCount} activities"
+msgstr "Vérifier {unresolvedActivityCount} activités"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Examinez et peaufinez chaque bloc simplifié côte à côte avec l'original avant l'emballage."
 
@@ -7631,8 +7674,8 @@ msgstr "Examinez les détails du PDF source ci-dessous et continuez à configure
 msgid "Review visible translations"
 msgstr "Réviser les traductions visibles"
 
-msgid "Review what ADT Studio detected before creating the project."
-msgstr "Vérifiez les éléments détectés par ADT Studio avant de créer le projet."
+#~ msgid "Review what ADT Studio detected before creating the project."
+#~ msgstr "Vérifiez les éléments détectés par ADT Studio avant de créer le projet."
 
 msgid "Review what restoring version {selected} would change, grouped by edited, added, and removed."
 msgstr "Examinez ce que la restauration de la version {selected} changerait, regroupé par éléments modifiés, ajoutés et supprimés."
@@ -8519,6 +8562,9 @@ msgstr "Trier les livres"
 msgid "Sort by"
 msgstr "Trier par"
 
+msgid "Sorting"
+msgstr "Tri"
+
 msgid "Source"
 msgstr "Source"
 
@@ -9046,6 +9092,12 @@ msgstr "Types de texte"
 msgid "Textbooks & Activities"
 msgstr "Manuels et activités"
 
+msgid "The activity structure needs confirmation."
+msgstr "La structure de l’activité doit être confirmée."
+
+msgid "The activity type changed after export."
+msgstr "Le type d’activité a changé après l’exportation."
+
 msgid "The AI is having a think..."
 msgstr "L'IA est en train de réfléchir..."
 
@@ -9103,6 +9155,9 @@ msgstr "La page de crédits."
 msgid "The data sent within the body of a request or response message."
 msgstr "Les données envoyées dans le corps d'un message de requête ou de réponse."
 
+msgid "The declared activity page is missing."
+msgstr "La page de l’activité déclarée est manquante."
+
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it."
 msgstr "L'instruction TTS par défaut appliquée à toutes les langues, sauf si elle est remplacée ci-dessous. OpenAI l'utilise comme instruction de voix et Gemini comme orientation d'accent intégrée à l'invite ; Azure l'ignore."
 
@@ -9114,6 +9169,9 @@ msgstr "Le HTML modifié devient la source de travail. Vérifiez les fonctionnal
 
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "La page entière est traitée comme une seule section — tout le texte et les images restent ensemble en une seule unité. Idéal pour les livres d'histoires, les ouvrages de référence et tout contenu où chaque page est autonome."
+
+msgid "The exported activity marker is missing."
+msgstr "Le marqueur de l’activité exportée est manquant."
 
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "Le fichier peut être endommagé ou incomplet. Essayez de le télécharger à nouveau depuis la source."
@@ -9309,6 +9367,9 @@ msgstr "Elles libèrent de l'oxygène directement dans l'air."
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Cette activité ne contient aucun texte ni aucune réponse adressable. Régénérez-la ou utilisez \"Modifier la mise en page\" pour modifier directement la page."
+
+msgid "This activity was added after export."
+msgstr "Cette activité a été ajoutée après l’exportation."
 
 msgid "This archive can't be opened safely"
 msgstr "Cette archive ne peut pas être ouverte en toute sécurité"
@@ -9723,6 +9784,9 @@ msgstr "S'efforce de correspondre au design original du livre."
 msgid "True / false"
 msgstr "Vrai / faux"
 
+msgid "True or false"
+msgstr "Vrai ou faux"
+
 msgid "Try a different search or filter"
 msgstr "Essayez une autre recherche ou un autre filtre"
 
@@ -9860,6 +9924,9 @@ msgstr "Inchangé"
 
 msgid "Underline"
 msgstr "Souligné"
+
+msgid "Underline text"
+msgstr "Souligner le texte"
 
 msgid "UNICEF"
 msgstr "UNICEF"

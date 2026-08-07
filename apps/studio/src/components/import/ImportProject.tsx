@@ -15,6 +15,7 @@ import {
   Scissors,
   FileArchive,
   Check,
+  Puzzle,
   type LucideIcon,
 } from "lucide-react"
 import { msg } from "@lingui/core/macro"
@@ -60,6 +61,15 @@ const FEATURE_STAGES: {
     borderColor: stage.borderColor,
   }
 })
+
+const EMPTY_ACTIVITY_REVIEW: AdtBundleImportPreview["activityReview"] = {
+  inventoryVersion: null,
+  items: [],
+  needsReviewCount: 0,
+  quizCount: 0,
+  activityCount: 0,
+  typeOptions: [],
+}
 
 function FeatureChip({
   icon: Icon,
@@ -441,12 +451,17 @@ function PartPreviewCard({ preview }: { preview: PartImportPreview }) {
 
 function AdtBundlePreviewCard({
   preview,
+  activityDecisions,
+  onActivityDecision,
 }: {
   preview: AdtBundleImportPreview
+  activityDecisions: Record<string, string | null>
+  onActivityDecision: (sectionId: string, type: string | null) => void
 }) {
   const { t, i18n } = useLingui()
+  const activityReview = preview.activityReview ?? EMPTY_ACTIVITY_REVIEW
   const detectedFeatureNames = new Set([
-    preview.runtimeFeatures.activities ? "quizzes" : null,
+    activityReview.quizCount > 0 ? "quizzes" : null,
     preview.glossaryEntryCount > 0 ? "glossary" : null,
     preview.tocEntryCount > 0 ? "toc" : null,
     preview.runtimeFeatures.easyRead ? "easy-read" : null,
@@ -455,6 +470,30 @@ function AdtBundlePreviewCard({
     preview.runtimeFeatures.readAloud ? "speech" : null,
   ].filter((name): name is string => name !== null))
   const detectedFeatures = FEATURE_STAGES.filter((stage) => detectedFeatureNames.has(stage.name))
+  const activityTypeLabel = (type: string) => {
+    if (type === "activity_quiz") return t`Quiz`
+    if (type === "activity_multiple_choice") return t`Multiple choice`
+    if (type === "activity_multi_select") return t`Multiple selection`
+    if (type === "activity_true_false") return t`True or false`
+    if (type === "activity_fill_in_the_blank") return t`Fill in the blank`
+    if (type === "activity_fill_in_a_table") return t`Fill in a table`
+    if (type === "activity_open_ended_answer") return t`Open-ended answer`
+    if (type === "activity_underline_text") return t`Underline text`
+    if (type === "activity_matching") return t`Matching`
+    if (type === "activity_sorting") return t`Sorting`
+    if (type === "activity_other") return t`Other activity`
+    return t`Custom activity`
+  }
+  const activityReasonLabel = (
+    reason: AdtBundleImportPreview["activityReview"]["items"][number]["reasons"][number],
+  ) => {
+    if (reason === "missing-declaration") return t`This activity was added after export.`
+    if (reason === "missing-marker") return t`The exported activity marker is missing.`
+    if (reason === "type-mismatch") return t`The activity type changed after export.`
+    if (reason === "interactive-unmarked") return t`Interactive controls were found without an activity marker.`
+    if (reason === "invalid-structure") return t`The activity structure needs confirmation.`
+    return t`The declared activity page is missing.`
+  }
   const compatibilityIssueLabel = (code: AdtBundleImportPreview["compatibility"]["issues"][number]["code"]) => {
     if (code === "missing-editing-contract") {
       return t`This archive is missing ADT Studio round-trip metadata. Re-export it as a Web ZIP from a current version of ADT Studio before editing it externally.`
@@ -584,6 +623,90 @@ function AdtBundlePreviewCard({
           </dl>
         </div>
 
+        {activityReview.items.length > 0 ? (
+          <div className="mx-5 mb-4 border-t border-slate-100 pt-3">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-2">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-violet-50 text-violet-700">
+                  <Puzzle className="h-3.5 w-3.5" />
+                </span>
+                <div>
+                  <p className="text-xs font-semibold text-slate-800"><Trans>Activities</Trans></p>
+                  <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">
+                    <Trans>
+                      {activityReview.activityCount} in-page activities and {activityReview.quizCount} quizzes detected.
+                    </Trans>
+                  </p>
+                </div>
+              </div>
+              {activityReview.needsReviewCount === 0 ? (
+                <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-emerald-700">
+                  <Check className="h-3 w-3" />
+                  <Trans>Validated</Trans>
+                </span>
+              ) : (
+                <span className="shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                  <Trans>{activityReview.needsReviewCount} to review</Trans>
+                </span>
+              )}
+            </div>
+
+            {activityReview.needsReviewCount > 0 ? (
+              <div className="mt-3 max-h-64 space-y-2 overflow-y-auto pr-1">
+                {activityReview.items
+                  .filter((item) => item.status === "needs-review")
+                  .map((item) => {
+                    const options = [...new Set([
+                      item.suggestedType,
+                      ...activityReview.typeOptions,
+                    ])]
+                    const selected = Object.prototype.hasOwnProperty.call(
+                      activityDecisions,
+                      item.sectionId,
+                    )
+                      ? activityDecisions[item.sectionId] ?? JSON.stringify(null)
+                      : ""
+                    return (
+                      <div
+                        key={item.sectionId}
+                        className="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-medium text-slate-800">{item.href}</p>
+                            {item.textPreview ? (
+                              <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-slate-600">
+                                {item.textPreview}
+                              </p>
+                            ) : null}
+                            <p className="mt-1 text-[11px] text-amber-800">
+                              {activityReasonLabel(item.reasons[0])}
+                            </p>
+                          </div>
+                          <select
+                            value={selected}
+                            onChange={(event) => onActivityDecision(
+                              item.sectionId,
+                              event.target.value === JSON.stringify(null) ? null : event.target.value,
+                            )}
+                            aria-label={t`Classification for ${item.href}`}
+                            className="h-8 max-w-48 shrink-0 rounded-md border border-slate-300 bg-white px-2 text-xs text-slate-800 shadow-sm outline-none transition-shadow focus:border-amber-600 focus:ring-2 focus:ring-amber-100"
+                          >
+                            <option value="" disabled>{t`Choose classification`}</option>
+                            {options.map((type) => (
+                              <option key={type} value={type}>{activityTypeLabel(type)}</option>
+                            ))}
+                            <option value={JSON.stringify(null)}>{t`Not an activity`}</option>
+                          </select>
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className="px-5 pb-4">
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
             <Trans>Detected features</Trans>
@@ -637,6 +760,7 @@ export function ImportProject() {
   const [preview, setPreview] = useState<AnyImportPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
+  const [activityDecisions, setActivityDecisions] = useState<Record<string, string | null>>({})
 
   const friendlyPreviewError = useFriendlyArchiveError(previewError)
   const rawImportError = adtImportMutation.error?.message
@@ -665,6 +789,7 @@ export function ImportProject() {
     setPreviewLoading(true)
     setPreviewError(null)
     setPreview(null)
+    setActivityDecisions({})
     importMutation.reset()
     adtImportMutation.reset()
     try {
@@ -704,7 +829,19 @@ export function ImportProject() {
     if (importPending || !zipFile || !preview) return
     if (isAdtBundleImportPreview(preview)) {
       if (!preview.compatibility.supported) return
-      adtImportMutation.mutate(zipFile, {
+      const activityReview = preview.activityReview ?? EMPTY_ACTIVITY_REVIEW
+      const unresolved = activityReview.items.some((item) => (
+        item.status === "needs-review"
+        && !Object.prototype.hasOwnProperty.call(activityDecisions, item.sectionId)
+      ))
+      if (unresolved) return
+      const decisions = activityReview.items
+        .filter((item) => item.status === "needs-review")
+        .map((item) => ({
+          sectionId: item.sectionId,
+          type: activityDecisions[item.sectionId] ?? null,
+        }))
+      adtImportMutation.mutate({ zip: zipFile, activityDecisions: decisions }, {
         onSuccess: (book) => navigate({
           to: "/books/$label/$step",
           params: { label: book.label, step: "book" },
@@ -715,7 +852,15 @@ export function ImportProject() {
     importMutation.mutate(zipFile, {
       onSuccess: () => navigate({ to: "/" }),
     })
-  }, [importPending, zipFile, preview, importMutation, adtImportMutation, navigate])
+  }, [
+    importPending,
+    zipFile,
+    preview,
+    activityDecisions,
+    importMutation,
+    adtImportMutation,
+    navigate,
+  ])
 
   const hasPreview = !!(zipFile && preview && !previewError)
   const activeError = friendlyImportError ?? friendlyPreviewError ?? friendlyPreviewValidationError
@@ -726,9 +871,17 @@ export function ImportProject() {
     setZipFile(null)
     setPreview(null)
     setPreviewError(null)
+    setActivityDecisions({})
     importMutation.reset()
     adtImportMutation.reset()
   }, [importMutation, adtImportMutation, importPending])
+
+  const unresolvedActivityCount = preview && isAdtBundleImportPreview(preview)
+    ? (preview.activityReview ?? EMPTY_ACTIVITY_REVIEW).items.filter((item) => (
+        item.status === "needs-review"
+        && !Object.prototype.hasOwnProperty.call(activityDecisions, item.sectionId)
+      )).length
+    : 0
 
   const phase: ImportPhase = importPending || friendlyImportError
     ? "importing"
@@ -810,7 +963,14 @@ export function ImportProject() {
                   {isPartImportPreview(preview) ? (
                     <PartPreviewCard preview={preview} />
                   ) : isAdtBundleImportPreview(preview) ? (
-                    <AdtBundlePreviewCard preview={preview} />
+                    <AdtBundlePreviewCard
+                      preview={preview}
+                      activityDecisions={activityDecisions}
+                      onActivityDecision={(sectionId, type) => setActivityDecisions((current) => ({
+                        ...current,
+                        [sectionId]: type,
+                      }))}
+                    />
                   ) : (
                     <PreviewCard preview={preview} />
                   )}
@@ -887,6 +1047,7 @@ export function ImportProject() {
                   !preview ||
                   (!isPartImportPreview(preview) && !isAdtBundleImportPreview(preview) && !!preview.validationError) ||
                   (isAdtBundleImportPreview(preview) && !preview.compatibility.supported) ||
+                  unresolvedActivityCount > 0 ||
                   importPending
                 }
                 onClick={handleImport}
@@ -901,7 +1062,9 @@ export function ImportProject() {
                   <>
                     <Upload className="h-4 w-4" />
                     {preview && isAdtBundleImportPreview(preview)
-                      ? <Trans>Import as new project</Trans>
+                      ? unresolvedActivityCount > 0
+                        ? <Trans>Review {unresolvedActivityCount} activities</Trans>
+                        : <Trans>Import as new project</Trans>
                       : <Trans>Import</Trans>}
                   </>
                 )}

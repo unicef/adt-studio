@@ -171,6 +171,34 @@ export interface AdtBundleImportPreview {
   tocEntryCount: number
   translationLanguageCount: number
   contentChanged: boolean
+  activityReview: {
+    inventoryVersion: number | null
+    items: Array<{
+      sectionId: string
+      href: string
+      declaredType: string | null
+      detectedType: string | null
+      suggestedType: string
+      kind: "quiz" | "known" | "custom" | "candidate"
+      status: "confirmed" | "needs-review"
+      supportsStudioEditing: boolean
+      reasons: Array<
+        | "missing-declaration"
+        | "missing-marker"
+        | "type-mismatch"
+        | "interactive-unmarked"
+        | "invalid-structure"
+        | "missing-page"
+      >
+      signals: string[]
+      validationErrors: string[]
+      textPreview: string
+    }>
+    needsReviewCount: number
+    quizCount: number
+    activityCount: number
+    typeOptions: string[]
+  }
   compatibility: {
     supported: boolean
     issues: Array<{
@@ -1042,9 +1070,13 @@ export const api = {
     })
   },
 
-  importAdtProject: (zip: File) => {
+  importAdtProject: (
+    zip: File,
+    activityDecisions: Array<{ sectionId: string; type: string | null }> = [],
+  ) => {
     const formData = new FormData()
     formData.append("zip", zip)
+    formData.append("activityDecisions", JSON.stringify(activityDecisions))
     return request<BookSummary>("/books/import-adt", {
       method: "POST",
       body: formData,

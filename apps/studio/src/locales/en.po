@@ -168,6 +168,11 @@ msgstr "{0} images selected"
 msgid "{0} img"
 msgstr "{0} img"
 
+#. placeholder {0}: activityReview.activityCount
+#. placeholder {1}: activityReview.quizCount
+msgid "{0} in-page activities and {1} quizzes detected."
+msgstr "{0} in-page activities and {1} quizzes detected."
+
 #. placeholder {0}: reviewCounts.needsAttention
 msgid "{0} issue/issues"
 msgstr "{0} issue/issues"
@@ -262,6 +267,10 @@ msgstr "{0} terms"
 #. placeholder {0}: String(visibleEntries.length)
 msgid "{0} texts"
 msgstr "{0} texts"
+
+#. placeholder {0}: activityReview.needsReviewCount
+msgid "{0} to review"
+msgstr "{0} to review"
 
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
@@ -2137,6 +2146,9 @@ msgstr "Choose another file"
 #~ msgid "Choose any available beta version to install."
 #~ msgstr "Choose any available beta version to install."
 
+msgid "Choose classification"
+msgstr "Choose classification"
+
 msgid "Choose features to include in this export"
 msgstr "Choose features to include in this export"
 
@@ -2181,6 +2193,10 @@ msgstr "Ciências da Natureza - Ensino Fundamental"
 
 msgid "Classic Storybook"
 msgstr "Classic Storybook"
+
+#. placeholder {0}: item.href
+msgid "Classification for {0}"
+msgstr "Classification for {0}"
 
 msgid "Classifying images…"
 msgstr "Classifying images…"
@@ -2699,6 +2715,9 @@ msgstr "Current version (v{currentVersion})"
 
 msgid "Custom"
 msgstr "Custom"
+
+msgid "Custom activity"
+msgstr "Custom activity"
 
 msgid "Custom Instructions"
 msgstr "Custom Instructions"
@@ -3765,6 +3784,9 @@ msgstr "Figure Extraction"
 msgid "File actions"
 msgstr "File actions"
 
+msgid "Fill in a table"
+msgstr "Fill in a table"
+
 msgid "Fill in the blank"
 msgstr "Fill in the blank"
 
@@ -4666,6 +4688,9 @@ msgstr "Interactive"
 msgid "Interactive assessment questions"
 msgstr "Interactive assessment questions"
 
+msgid "Interactive controls were found without an activity marker."
+msgstr "Interactive controls were found without an activity marker."
+
 msgid "Interactive page: AI conversion from the original PDF."
 msgstr "Interactive page: AI conversion from the original PDF."
 
@@ -5194,6 +5219,9 @@ msgstr "Match Source"
 msgid "Matches the original book design with some flexibility."
 msgstr "Matches the original book design with some flexibility."
 
+msgid "Matching"
+msgstr "Matching"
+
 msgid "Max height"
 msgstr "Max height"
 
@@ -5491,6 +5519,9 @@ msgstr "multiple choice"
 
 msgid "Multiple choice"
 msgstr "Multiple choice"
+
+msgid "Multiple selection"
+msgstr "Multiple selection"
 
 msgid "Mute all from read-aloud"
 msgstr "Mute all from read-aloud"
@@ -5980,6 +6011,9 @@ msgstr "noise"
 msgid "None"
 msgstr "None"
 
+msgid "Not an activity"
+msgstr "Not an activity"
+
 #~ msgid "Not available for this import"
 #~ msgstr "Not available for this import"
 
@@ -6199,6 +6233,9 @@ msgstr "Open Validation"
 msgid "Open-ended — learners write a free response; there is no fixed answer."
 msgstr "Open-ended — learners write a free response; there is no fixed answer."
 
+msgid "Open-ended answer"
+msgstr "Open-ended answer"
+
 msgid "Open-ended question"
 msgstr "Open-ended question"
 
@@ -6307,6 +6344,9 @@ msgstr "osmosis"
 
 msgid "Other"
 msgstr "Other"
+
+msgid "Other activity"
+msgstr "Other activity"
 
 #~ msgid "Other beta versions"
 #~ msgstr "Other beta versions"
@@ -7561,6 +7601,9 @@ msgstr "Review"
 #~ msgid "Review {selectedCount} selected"
 #~ msgstr "Review {selectedCount} selected"
 
+msgid "Review {unresolvedActivityCount} activities"
+msgstr "Review {unresolvedActivityCount} activities"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Review and refine each simplified block side-by-side with the original before packaging."
 
@@ -7629,8 +7672,8 @@ msgstr "Review the source PDF details below and continue to configure how your b
 msgid "Review visible translations"
 msgstr "Review visible translations"
 
-msgid "Review what ADT Studio detected before creating the project."
-msgstr "Review what ADT Studio detected before creating the project."
+#~ msgid "Review what ADT Studio detected before creating the project."
+#~ msgstr "Review what ADT Studio detected before creating the project."
 
 msgid "Review what restoring version {selected} would change, grouped by edited, added, and removed."
 msgstr "Review what restoring version {selected} would change, grouped by edited, added, and removed."
@@ -8517,6 +8560,9 @@ msgstr "Sort books"
 msgid "Sort by"
 msgstr "Sort by"
 
+msgid "Sorting"
+msgstr "Sorting"
+
 msgid "Source"
 msgstr "Source"
 
@@ -9044,6 +9090,12 @@ msgstr "Text Types"
 msgid "Textbooks & Activities"
 msgstr "Textbooks & Activities"
 
+msgid "The activity structure needs confirmation."
+msgstr "The activity structure needs confirmation."
+
+msgid "The activity type changed after export."
+msgstr "The activity type changed after export."
+
 msgid "The AI is having a think..."
 msgstr "The AI is having a think..."
 
@@ -9101,6 +9153,9 @@ msgstr "The credits page."
 msgid "The data sent within the body of a request or response message."
 msgstr "The data sent within the body of a request or response message."
 
+msgid "The declared activity page is missing."
+msgstr "The declared activity page is missing."
+
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it."
 msgstr "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it."
 
@@ -9112,6 +9167,9 @@ msgstr "The edited HTML becomes the working source. Review generated features su
 
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
+
+msgid "The exported activity marker is missing."
+msgstr "The exported activity marker is missing."
 
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "The file may be damaged or incomplete. Try downloading it again from the source."
@@ -9307,6 +9365,9 @@ msgstr "They release oxygen directly into the air."
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
+
+msgid "This activity was added after export."
+msgstr "This activity was added after export."
 
 msgid "This archive can't be opened safely"
 msgstr "This archive can't be opened safely"
@@ -9721,6 +9782,9 @@ msgstr "Tries hard to match the original book design."
 msgid "True / false"
 msgstr "True / false"
 
+msgid "True or false"
+msgstr "True or false"
+
 msgid "Try a different search or filter"
 msgstr "Try a different search or filter"
 
@@ -9858,6 +9922,9 @@ msgstr "Unchanged"
 
 msgid "Underline"
 msgstr "Underline"
+
+msgid "Underline text"
+msgstr "Underline text"
 
 msgid "UNICEF"
 msgstr "UNICEF"

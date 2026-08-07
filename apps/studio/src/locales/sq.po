@@ -169,6 +169,11 @@ msgstr "{0} imazhe të zgjedhura"
 msgid "{0} img"
 msgstr "{0} img"
 
+#. placeholder {0}: activityReview.activityCount
+#. placeholder {1}: activityReview.quizCount
+msgid "{0} in-page activities and {1} quizzes detected."
+msgstr "U zbuluan {0} aktivitete brenda faqes dhe {1} kuize."
+
 #. placeholder {0}: reviewCounts.needsAttention
 msgid "{0} issue/issues"
 msgstr "{0} çështje/çështje"
@@ -263,6 +268,10 @@ msgstr "{0} terma"
 #. placeholder {0}: String(visibleEntries.length)
 msgid "{0} texts"
 msgstr "{0} tekste"
+
+#. placeholder {0}: activityReview.needsReviewCount
+msgid "{0} to review"
+msgstr "{0} për t’u shqyrtuar"
 
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
@@ -2138,6 +2147,9 @@ msgstr "Zgjidhni skedar tjetër"
 #~ msgid "Choose any available beta version to install."
 #~ msgstr "Zgjidhni çdo version beta të disponueshëm për ta instaluar."
 
+msgid "Choose classification"
+msgstr "Zgjidh klasifikimin"
+
 msgid "Choose features to include in this export"
 msgstr "Zgjidhni funksionet për t'i përfshirë në këtë eksportim"
 
@@ -2182,6 +2194,10 @@ msgstr "Ciências da Natureza - Ensino Fundamental"
 
 msgid "Classic Storybook"
 msgstr "Libër Klasik Tregimesh"
+
+#. placeholder {0}: item.href
+msgid "Classification for {0}"
+msgstr "Klasifikimi për {0}"
 
 msgid "Classifying images…"
 msgstr "Po klasifikohen imazhet…"
@@ -2700,6 +2716,9 @@ msgstr "Versioni aktual (v{currentVersion})"
 
 msgid "Custom"
 msgstr "I personalizuar"
+
+msgid "Custom activity"
+msgstr "Aktivitet i personalizuar"
 
 msgid "Custom Instructions"
 msgstr "Udhëzime të personalizuara"
@@ -3766,6 +3785,9 @@ msgstr "Nxjerrja e figurave"
 msgid "File actions"
 msgstr "Veprimet e skedarit"
 
+msgid "Fill in a table"
+msgstr "Plotëso një tabelë"
+
 msgid "Fill in the blank"
 msgstr "Plotëso vendin bosh"
 
@@ -4667,6 +4689,9 @@ msgstr "Interaktiv"
 msgid "Interactive assessment questions"
 msgstr "Pyetje vlerësuese interaktive"
 
+msgid "Interactive controls were found without an activity marker."
+msgstr "U gjetën kontrolle ndërvepruese pa shenjues aktiviteti."
+
 msgid "Interactive page: AI conversion from the original PDF."
 msgstr "Faqe interaktive: konvertim me AI nga PDF origjinal."
 
@@ -5195,6 +5220,9 @@ msgstr "Përputhje me Burimin"
 msgid "Matches the original book design with some flexibility."
 msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
 
+msgid "Matching"
+msgstr "Përputhje"
+
 msgid "Max height"
 msgstr "Lartësia maksimale"
 
@@ -5492,6 +5520,9 @@ msgstr "me zgjedhje të shumëfishta"
 
 msgid "Multiple choice"
 msgstr "Zgjedhje e shumëfishtë"
+
+msgid "Multiple selection"
+msgstr "Përzgjedhje e shumëfishtë"
 
 msgid "Mute all from read-aloud"
 msgstr "Heshtni të gjitha nga leximi me zë"
@@ -5981,6 +6012,9 @@ msgstr "zhurmë"
 msgid "None"
 msgstr "Asnjë"
 
+msgid "Not an activity"
+msgstr "Nuk është aktivitet"
+
 #~ msgid "Not available for this import"
 #~ msgstr "Nuk disponohet për këtë import"
 
@@ -6200,6 +6234,9 @@ msgstr "Hapni Vërtetimin"
 msgid "Open-ended — learners write a free response; there is no fixed answer."
 msgstr "Përgjigje e hapur — nxënësit shkruajnë një përgjigje të lirë; nuk ka përgjigje të fiksuar."
 
+msgid "Open-ended answer"
+msgstr "Përgjigje e hapur"
+
 msgid "Open-ended question"
 msgstr "Pyetje me përgjigje të hapur"
 
@@ -6308,6 +6345,9 @@ msgstr "osmozë"
 
 msgid "Other"
 msgstr "Tjetër"
+
+msgid "Other activity"
+msgstr "Aktivitet tjetër"
 
 #~ msgid "Other beta versions"
 #~ msgstr "Versione të tjera beta"
@@ -7562,6 +7602,9 @@ msgstr "Rishiko"
 #~ msgid "Review {selectedCount} selected"
 #~ msgstr "Rishiko {selectedCount} të zgjedhura"
 
+msgid "Review {unresolvedActivityCount} activities"
+msgstr "Shqyrto {unresolvedActivityCount} aktivitete"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Rishikoni dhe rafinoni çdo bllok të thjeshtëzuar krahas origjinalit përpara paketimit."
 
@@ -7630,8 +7673,8 @@ msgstr "Rishikoni detajet e PDF-it burimor më poshtë dhe vazhdoni të konfigur
 msgid "Review visible translations"
 msgstr "Rishiko përkthimet e dukshme"
 
-msgid "Review what ADT Studio detected before creating the project."
-msgstr "Rishikoni çfarë zbuloi ADT Studio para se të krijoni projektin."
+#~ msgid "Review what ADT Studio detected before creating the project."
+#~ msgstr "Rishikoni çfarë zbuloi ADT Studio para se të krijoni projektin."
 
 msgid "Review what restoring version {selected} would change, grouped by edited, added, and removed."
 msgstr "Shqyrtoni çfarë do të ndryshonte rikthimi i versionit {selected}, i grupuar sipas të redaktuarave, të shtuarave dhe të hequrave."
@@ -8518,6 +8561,9 @@ msgstr "Rendit librat"
 msgid "Sort by"
 msgstr "Rendit sipas"
 
+msgid "Sorting"
+msgstr "Renditje"
+
 msgid "Source"
 msgstr "Burimi"
 
@@ -9045,6 +9091,12 @@ msgstr "Llojet e Tekstit"
 msgid "Textbooks & Activities"
 msgstr "Tekste Shkollore dhe Aktivitete"
 
+msgid "The activity structure needs confirmation."
+msgstr "Struktura e aktivitetit kërkon konfirmim."
+
+msgid "The activity type changed after export."
+msgstr "Lloji i aktivitetit ndryshoi pas eksportimit."
+
 msgid "The AI is having a think..."
 msgstr "AI po mendon..."
 
@@ -9102,6 +9154,9 @@ msgstr "Faqja e krediteve."
 msgid "The data sent within the body of a request or response message."
 msgstr "Të dhënat e dërguara brenda trupit të një mesazhi kërkese ose përgjigjeje."
 
+msgid "The declared activity page is missing."
+msgstr "Mungon faqja e aktivitetit të deklaruar."
+
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it."
 msgstr "Udhëzimi i parazgjedhur i TTS që zbatohet për çdo gjuhë, përveçse kur anashkalohet më poshtë. OpenAI e përdor si udhëzim zëri dhe Gemini si drejtim theksi brenda kërkesës; Azure e shpërfill."
 
@@ -9113,6 +9168,9 @@ msgstr "HTML-ja e redaktuar bëhet burimi i punës. Shqyrtoni veçoritë e gjene
 
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "I gjithë faqja trajtohet si një seksion i vetëm — i gjithë teksti dhe imazhet qëndrojnë bashkë si një njësi. Më e mirë për libra me tregime, libra referencë dhe çdo përmbajtje ku çdo faqe është e vetëmjaftueshme."
+
+msgid "The exported activity marker is missing."
+msgstr "Mungon shenjuesi i aktivitetit të eksportuar."
 
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "Skedari mund të jetë i dëmtuar ose i paplotë. Provo ta shkarkosh sërish nga burimi."
@@ -9308,6 +9366,9 @@ msgstr "Ato lëshojnë oksigjen drejtpërdrejt në ajër."
 
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Ky aktivitet nuk ka tekste apo përgjigje të adresueshme. Rigjeneroni atë ose përdorni \"Ndrysho paraqitjen\" për ta ndryshuar faqen drejtpërdrejt."
+
+msgid "This activity was added after export."
+msgstr "Ky aktivitet u shtua pas eksportimit."
 
 msgid "This archive can't be opened safely"
 msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"
@@ -9722,6 +9783,9 @@ msgstr "Përpiqet fort të përputhet me dizajnin origjinal të librit."
 msgid "True / false"
 msgstr "E vërtetë / e gabuar"
 
+msgid "True or false"
+msgstr "E vërtetë ose e gabuar"
+
 msgid "Try a different search or filter"
 msgstr "Provo një kërkim ose filtër tjetër"
 
@@ -9859,6 +9923,9 @@ msgstr "I pandryshuar"
 
 msgid "Underline"
 msgstr "Nënvizim"
+
+msgid "Underline text"
+msgstr "Nënvizo tekstin"
 
 msgid "UNICEF"
 msgstr "UNICEF"
