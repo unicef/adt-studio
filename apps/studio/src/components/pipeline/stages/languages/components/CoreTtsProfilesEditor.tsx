@@ -19,7 +19,7 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
   const navigate = useNavigate()
   const remount = useSettingsRemount()
   const { queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasStructuredTextProvider } = useApiKey()
   const { data, isLoading } = useQuery({
     queryKey: ["core-tts-profiles"],
     queryFn: () => api.getCoreTtsProfiles(),
@@ -71,7 +71,7 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
     },
     onSaveStay: saveAndRerun,
     onDiscard: remount,
-    rerunDisabledReason: hasApiKey ? undefined : t`Add an API key to re-run`,
+    rerunDisabledReason: hasStructuredTextProvider ? undefined : t`Add an API key to re-run`,
   })
 
   if (isLoading) {
