@@ -101,6 +101,10 @@ export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.
 export {
   ADT_ROUND_TRIP_FORMAT_VERSION,
   ADT_EDITING_CONTRACT_VERSION,
+  ADT_EDITING_CONTRACT_MIN_VERSION,
+  AdtActivitySectionType,
+  AdtActivityDeclaration,
+  AdtActivityImportDecision,
   AdtBundleTocEntry,
   AdtBundleToc,
   AdtBundleGlossaryEntry,

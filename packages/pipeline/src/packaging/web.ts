@@ -55,6 +55,7 @@ import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
 import { buildTextCatalog, inspectImportedHtmlContract } from "../text-catalog.js"
+import { inspectImportedActivity } from "../imported-activity.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getRenderSectioning } from "../render-sectioning.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
@@ -943,17 +944,28 @@ export async function packageAdtWeb(
   const sourceTextsPath = path.join(contentDir, "i18n", language, "texts.json")
   const pageHtmlFingerprints: Record<string, string> = {}
   const pageDataIds: Record<string, string[]> = {}
+  const activities: Array<{ sectionId: string; href: string; type: string }> = []
   for (const href of new Set(pageList.map((page) => page.href))) {
     const filePath = path.join(adtDir, href)
     if (fs.existsSync(filePath)) {
       pageHtmlFingerprints[href] = hashBuffer(fs.readFileSync(filePath))
       const page = pageList.find((entry) => entry.href === href)
       if (page) {
+        const html = fs.readFileSync(filePath, "utf8")
+        const allowSectionDataId = page.section_id.startsWith("qz")
         pageDataIds[href] = inspectImportedHtmlContract(
-          fs.readFileSync(filePath, "utf8"),
+          html,
           page.section_id,
-          { allowSectionDataId: page.section_id.startsWith("qz") },
+          { allowSectionDataId },
         ).dataIds
+        const activity = inspectImportedActivity(html, page.section_id, { allowSectionDataId })
+        if (activity.isActivity && activity.sectionType) {
+          activities.push({
+            sectionId: page.section_id,
+            href,
+            type: activity.sectionType,
+          })
+        }
       }
     }
   }
@@ -964,6 +976,7 @@ export async function packageAdtWeb(
       version: ADT_EDITING_CONTRACT_VERSION,
       pageOrder: pageList.map((page) => ({ sectionId: page.section_id, href: page.href })),
       pageDataIds,
+      activities,
     },
     book: { label, title },
     ...(lineage ? { lineage } : {}),
@@ -2464,7 +2477,7 @@ async function renderAgentsMd(
  * `file://` (double-click). On HTTP/HTTPS the patch falls through to real
  * `fetch()`, so it's transparent.
  */
-function generateOfflinePreloader(
+export function generateOfflinePreloader(
   adtDir: string,
   outputLanguages: string[],
 ): void {

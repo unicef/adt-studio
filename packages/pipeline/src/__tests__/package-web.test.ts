@@ -672,7 +672,7 @@ describe("packageAdtWeb", () => {
     ))
     expect(roundTripManifest).toMatchObject({
       formatVersion: 1,
-      editingContract: { version: 1 },
+      editingContract: { version: 2 },
       book: { label: "book", title: "Book Title" },
       languages: { source: "en", output: ["fr"] },
       baselines: {
@@ -685,7 +685,8 @@ describe("packageAdtWeb", () => {
     expect(roundTripManifest.frozen?.sourceTextsFingerprint).toMatch(/^[a-f0-9]{64}$/)
     expect(roundTripManifest.frozen?.pageHtmlFingerprints["index.html"]).toMatch(/^[a-f0-9]{64}$/)
     const agentsGuide = fs.readFileSync(path.join(bookDir, "adt", "AGENTS.md"), "utf-8")
-    expect(agentsGuide).toContain("editing contract version `1`")
+    expect(agentsGuide).toContain("editing contract version `2`")
+    expect(agentsGuide).toContain("activity_custom_<descriptive_slug>")
     expect(agentsGuide).toContain("Do not add custom stylesheet files")
     expect(fs.readFileSync(path.join(bookDir, "adt", "CLAUDE.md"), "utf-8")).toBe(agentsGuide)
   })
@@ -882,6 +883,11 @@ describe("packageAdtWeb", () => {
     ))
     expect(roundTripManifest.editingContract?.pageDataIds?.["index.html"])
       .toEqual(expect.arrayContaining(["qz001", "qz001_que", "qz001_o0", "qz001_o1"]))
+    expect(roundTripManifest.editingContract?.activities).toEqual([{
+      sectionId: "qz001",
+      href: "index.html",
+      type: "activity_quiz",
+    }])
 
     // SCORM adapter should include the quiz activity ID
     const scorm = fs.readFileSync(path.join(bookDir, "adt", "assets", "scorm.js"), "utf-8")

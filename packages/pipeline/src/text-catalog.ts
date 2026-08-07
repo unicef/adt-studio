@@ -112,6 +112,8 @@ export interface ImportedHtmlProjectionOptions {
   /** Normalize stable IDs from known pre-round-trip Studio exports. This is
    * intentionally opt-in so current projects keep the strict contract. */
   repairLegacyIds?: boolean
+  /** User-confirmed classification for an ambiguous imported section. */
+  sectionTypeOverride?: string
 }
 
 export interface ImportedHtmlPresentationAssets {
@@ -448,7 +450,9 @@ export function projectImportedHtmlSection(
 
   section.attribs["data-section-id"] = expectedSectionId
   removeExecutableImportedMarkup(section)
-  const sectionType = section.attribs["data-section-type"]?.trim() || "content"
+  const sectionType = options.sectionTypeOverride
+    ?? section.attribs["data-section-type"]?.trim()
+    ?? "content"
   section.attribs["data-section-type"] = sectionType
 
   if (options.repairLegacyIds) {

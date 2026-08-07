@@ -28,6 +28,29 @@ This bundle declares ADT Studio editing contract version `{{ editingContractVers
 
 If a requested change requires breaking one of these rules, tell the user that the result will no longer be re-importable into ADT Studio and ask before proceeding.
 
+### Activities
+
+Every activity must be represented by the page's canonical `<section>` element:
+
+```html
+<section
+  data-section-id="pg004_sec002"
+  data-section-type="activity_multiple_choice"
+>
+  ...
+</section>
+```
+
+- Preserve existing `data-section-type="activity_*"` values unless the learning mechanic itself changes.
+- A new custom activity must use `data-section-type="activity_custom_<descriptive_slug>"`, for example `activity_custom_crossword`.
+- Keep the existing `data-section-id`; it is the activity's stable identity.
+- Interactive controls must have accessible names and keyboard support. Feedback must be exposed through a status element with `role="status"` and `aria-live="polite"`.
+- Custom behavior must register through an inline call to `window.adtRegisterCustomActivity(section, { validate, reset })`. Do not add an external script file. ADT Studio preserves this documented registration script during export but never executes it inside the editor.
+- Do not disguise an activity as a normal content section. ADT Studio statically inspects these markers during re-import and asks the user to review unmarked interactive content.
+- Custom activities may be preserved during re-import, but ADT Studio can only regenerate activity types supported by its current pipeline.
+
+The `editingContract.activities` array in `manifest.json` records the activities present at export time. When adding or changing an activity outside ADT Studio, update the matching entry's `sectionId`, page `href`, and exact `type`. Never remove unrelated entries.
+
 ## Canonical structure
 
 ```text

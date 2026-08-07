@@ -158,4 +158,43 @@ describe("ADT round-trip archive schemas", () => {
       },
     }).success).toBe(false)
   })
+
+  it("accepts a v2 activity inventory and rejects duplicate section declarations", () => {
+    const manifest = {
+      formatVersion: 1,
+      editingContract: {
+        version: 2,
+        activities: [{
+          sectionId: "pg001_sec001",
+          href: "index.html",
+          type: "activity_multiple_choice",
+        }],
+      },
+      book: { label: "sample-book" },
+      languages: { source: "en", output: ["en"] },
+      baselines: {
+        glossary: null,
+        tocGeneration: null,
+        textCatalogTranslations: {},
+      },
+      textCatalog: { version: 1, idFingerprint: HASH },
+      translatableText: { idFingerprint: HASH },
+    }
+
+    expect(AdtRoundTripManifest.safeParse(manifest).success).toBe(true)
+    expect(AdtRoundTripManifest.safeParse({
+      ...manifest,
+      editingContract: {
+        version: 2,
+        activities: [
+          ...manifest.editingContract.activities,
+          {
+            sectionId: "pg001_sec001",
+            href: "other.html",
+            type: "activity_custom_crossword",
+          },
+        ],
+      },
+    }).success).toBe(false)
+  })
 })

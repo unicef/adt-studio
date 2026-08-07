@@ -3,7 +3,8 @@ import { BookLabel } from "./book.js"
 import { AdtExportLineage } from "./project-identity.js"
 
 export const ADT_ROUND_TRIP_FORMAT_VERSION = 1 as const
-export const ADT_EDITING_CONTRACT_VERSION = 1 as const
+export const ADT_EDITING_CONTRACT_VERSION = 2 as const
+export const ADT_EDITING_CONTRACT_MIN_VERSION = 1 as const
 
 const Sha256 = z.string().regex(/^[a-f0-9]{64}$/, "Expected a lowercase SHA-256 digest")
 const LocaleCode = z.string().trim().min(2).max(35).regex(
@@ -11,6 +12,28 @@ const LocaleCode = z.string().trim().min(2).max(35).regex(
   "Expected a locale code such as en, pt-BR, or sr-Latn",
 )
 const EntityVersion = z.number().int().positive()
+
+export const AdtActivitySectionType = z.string().regex(
+  /^activity_[a-z0-9]+(?:_[a-z0-9]+)*$/,
+  "Expected an activity section type such as activity_multiple_choice",
+)
+export type AdtActivitySectionType = z.infer<typeof AdtActivitySectionType>
+
+/** Stable activity declaration emitted by ADT Studio during packaging. */
+export const AdtActivityDeclaration = z.object({
+  sectionId: z.string().min(1),
+  href: z.string().min(1),
+  type: AdtActivitySectionType,
+}).strict()
+export type AdtActivityDeclaration = z.infer<typeof AdtActivityDeclaration>
+
+/** User classification supplied when imported HTML is ambiguous. A null type
+ * explicitly confirms that the section is not an activity. */
+export const AdtActivityImportDecision = z.object({
+  sectionId: z.string().min(1),
+  type: AdtActivitySectionType.nullable(),
+}).strict()
+export type AdtActivityImportDecision = z.infer<typeof AdtActivityImportDecision>
 
 /** Runtime projection written to `content/toc.json`. */
 export const AdtBundleTocEntry = z.object({
@@ -91,6 +114,8 @@ export const AdtRoundTripManifest = z.object({
       href: z.string().min(1),
     }).strict()).optional(),
     pageDataIds: z.record(z.string().min(1), z.array(z.string().min(1))).optional(),
+    /** Added in editing contract v2. Optional so v1 exports remain importable. */
+    activities: z.array(AdtActivityDeclaration).optional(),
   }).strict().optional(),
   book: z.object({
     label: BookLabel,
@@ -130,6 +155,19 @@ export const AdtRoundTripManifest = z.object({
       path: ["languages", "output"],
       message: "Output languages must be unique",
     })
+  }
+  const activities = manifest.editingContract?.activities ?? []
+  const sectionIds = new Set<string>()
+  for (let index = 0; index < activities.length; index++) {
+    const sectionId = activities[index].sectionId
+    if (sectionIds.has(sectionId)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["editingContract", "activities", index, "sectionId"],
+        message: `Duplicate activity section id: ${sectionId}`,
+      })
+    }
+    sectionIds.add(sectionId)
   }
 })
 export type AdtRoundTripManifest = z.infer<typeof AdtRoundTripManifest>

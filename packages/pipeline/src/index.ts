@@ -177,6 +177,13 @@ export {
   type ImportedHtmlContractOptions,
 } from "./text-catalog.js"
 export {
+  inspectImportedActivity,
+  restoreImportedCustomActivityScripts,
+  KNOWN_ACTIVITY_SECTION_TYPES,
+  type ImportedActivityInspection,
+  type ImportedActivitySignal,
+} from "./imported-activity.js"
+export {
   buildEasyReadConfig,
   buildEasyReadSourceBlocks,
   buildPageEasyReadBlocks,
@@ -297,6 +304,7 @@ export {
   computePackagingInputHash,
   getWordTimestamps,
   buildRuntimeTimecodeMap,
+  generateOfflinePreloader,
   type PackageAdtWebOptions,
   type ComputePackagingInputHashOptions,
   renderPageHtml,
