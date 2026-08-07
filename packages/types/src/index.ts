@@ -298,6 +298,17 @@ export {
 } from "./text-catalog.js"
 
 export {
+  CoreTtsTransformationKind,
+  CoreTtsEntryStatus,
+  CoreTtsGenerationMode,
+  CoreTtsGenerationMetadata,
+  CoreTtsCatalogEntry,
+  CoreTtsCatalogOutput,
+  CoreTtsConfig,
+  containsLatexSpeechCandidate,
+} from "./core-tts.js"
+
+export {
   EasyReadEntry,
   EasyReadSectionBlock,
   EasyReadOutput,

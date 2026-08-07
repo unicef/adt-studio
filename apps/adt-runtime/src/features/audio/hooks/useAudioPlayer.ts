@@ -15,6 +15,7 @@ import {
 import {
   audioFilesAtom,
   currentLanguageAtom,
+  speechTextsAtom,
   translationsAtom,
 } from "@/features/language/state/language.atoms"
 import { easyReadModeAtom } from "@/shared/state/ui.atoms"
@@ -22,20 +23,22 @@ import {
   clearBlockHighlight,
   clearWordHighlight,
   elementSupportsWordHighlight,
-  findWordIndexAtTime,
+  findDisplayWordIndicesAtTime,
+  mapWordTimestampsToDisplayWords,
   resolveWordTimestamps,
   setBlockHighlight,
-  setWordHighlight,
+  setWordHighlights,
+  type DisplayWordTimestamp,
   unwrapWordsForElement,
   wrapWordsForElement,
 } from "@/features/audio/lib/word-highlight"
-import type { WordTimestamp } from "@/features/audio/state/audio.atoms"
 
 interface PlayableItem {
   el: HTMLElement
   id: string
   filename: string
   useBlockWhenMissingTimecodes?: boolean
+  speechText?: string
 }
 
 const EASY_READ_AUDIO_EXCLUDED_SELECTOR =
@@ -46,12 +49,18 @@ function resolvePlayableAudio(
   id: string,
   audioFiles: Record<string, string>,
   translations: Record<string, string>,
+  speechTexts: Record<string, string>,
   easyReadMode: boolean,
 ): Omit<PlayableItem, "el"> | null {
   const sourceFilename = audioFiles[id]
   if (!easyReadMode) {
     return sourceFilename
-      ? { id, filename: sourceFilename, useBlockWhenMissingTimecodes: false }
+      ? {
+          id,
+          filename: sourceFilename,
+          useBlockWhenMissingTimecodes: false,
+          speechText: speechTexts[id],
+        }
       : null
   }
 
@@ -64,17 +73,24 @@ function resolvePlayableAudio(
       id: easyReadId,
       filename: easyReadFilename,
       useBlockWhenMissingTimecodes: true,
+      speechText: speechTexts[easyReadId],
     }
   }
 
   return sourceFilename
-    ? { id, filename: sourceFilename, useBlockWhenMissingTimecodes: false }
+    ? {
+        id,
+        filename: sourceFilename,
+        useBlockWhenMissingTimecodes: false,
+        speechText: speechTexts[id],
+      }
     : null
 }
 
 function gatherPlayableItems(
   audioFiles: Record<string, string>,
   translations: Record<string, string>,
+  speechTexts: Record<string, string>,
   easyReadMode: boolean,
 ): PlayableItem[] {
   if (typeof document === "undefined") return []
@@ -85,7 +101,14 @@ function gatherPlayableItems(
   for (const el of elements) {
     const id = el.getAttribute("data-id")
     if (!id) continue
-    const audio = resolvePlayableAudio(el, id, audioFiles, translations, easyReadMode)
+    const audio = resolvePlayableAudio(
+      el,
+      id,
+      audioFiles,
+      translations,
+      speechTexts,
+      easyReadMode,
+    )
     if (!audio) continue
     items.push({ el, ...audio })
   }
@@ -95,7 +118,7 @@ function gatherPlayableItems(
 interface ActiveHighlight {
   el: HTMLElement
   mode: "word" | "block"
-  timestamps: WordTimestamp[]
+  timestamps: DisplayWordTimestamp[]
 }
 
 export interface UseAudioPlayer {
@@ -121,6 +144,7 @@ export function useAudioPlayer(): UseAudioPlayer {
   const setActiveMedia = useSetAtom(activeMediaAtom)
   const audioFiles = useAtomValue(audioFilesAtom)
   const translations = useAtomValue(translationsAtom)
+  const speechTexts = useAtomValue(speechTextsAtom)
   const language = useAtomValue(currentLanguageAtom) as string
   const easyReadMode = useAtomValue(easyReadModeAtom) as boolean
   const speed = useAtomValue(audioSpeedAtom) as number
@@ -141,10 +165,15 @@ export function useAudioPlayer(): UseAudioPlayer {
   volumeRef.current = volume
 
   const items = useMemo(() => {
-    const all = gatherPlayableItems(audioFiles, translations, easyReadMode)
+    const all = gatherPlayableItems(
+      audioFiles,
+      translations,
+      speechTexts,
+      easyReadMode,
+    )
     if (describeImagesMode) return all
     return all.filter((item) => item.el.tagName.toLowerCase() !== "img")
-  }, [audioFiles, translations, easyReadMode, describeImagesMode])
+  }, [audioFiles, translations, speechTexts, easyReadMode, describeImagesMode])
 
   const teardownActive = useCallback(() => {
     const active = activeRef.current
@@ -161,25 +190,33 @@ export function useAudioPlayer(): UseAudioPlayer {
   const setupHighlight = useCallback(
     (item: PlayableItem, audio: HTMLAudioElement) => {
       teardownActive()
-      const text = item.el.textContent ?? ""
+      const displayText = item.el.textContent ?? ""
+      const speechText = item.speechText ?? displayText
       const precise = timecodeMap[item.id]
-      const useWord =
+      const canUseWord =
         wordHighlightModeRef.current &&
         elementSupportsWordHighlight(item.el) &&
         !(item.useBlockWhenMissingTimecodes && !precise)
-      if (useWord) {
-        wrapWordsForElement(item.el, text)
-        const timestamps = resolveWordTimestamps(
+      if (canUseWord) {
+        const rawTimestamps = resolveWordTimestamps(
           item.id,
-          text,
+          speechText,
           audio.duration,
           precise,
         )
-        activeRef.current = { el: item.el, mode: "word", timestamps }
-      } else {
-        setBlockHighlight(item.el)
-        activeRef.current = { el: item.el, mode: "block", timestamps: [] }
+        const timestamps = mapWordTimestampsToDisplayWords(
+          displayText,
+          speechText,
+          rawTimestamps,
+        )
+        if (timestamps) {
+          wrapWordsForElement(item.el, displayText)
+          activeRef.current = { el: item.el, mode: "word", timestamps }
+          return
+        }
       }
+      setBlockHighlight(item.el)
+      activeRef.current = { el: item.el, mode: "block", timestamps: [] }
     },
     [teardownActive, timecodeMap],
   )
@@ -229,21 +266,30 @@ export function useAudioPlayer(): UseAudioPlayer {
           activeRef.current.mode === "word" &&
           !timecodeMap[item.id]
         ) {
-          const text = item.el.textContent ?? ""
-          activeRef.current.timestamps = resolveWordTimestamps(
-            item.id,
-            text,
-            audio.duration,
-            undefined,
+          const displayText = item.el.textContent ?? ""
+          const speechText = item.speechText ?? displayText
+          const timestamps = mapWordTimestampsToDisplayWords(
+            displayText,
+            speechText,
+            resolveWordTimestamps(
+              item.id,
+              speechText,
+              audio.duration,
+              undefined,
+            ),
           )
+          if (timestamps) activeRef.current.timestamps = timestamps
         }
       }
 
       audio.ontimeupdate = () => {
         const active = activeRef.current
         if (!active || active.mode !== "word") return
-        const idx = findWordIndexAtTime(active.timestamps, audio.currentTime)
-        setWordHighlight(active.el, idx)
+        const indices = findDisplayWordIndicesAtTime(
+          active.timestamps,
+          audio.currentTime,
+        )
+        setWordHighlights(active.el, indices)
       }
 
       audio.onended = () => {

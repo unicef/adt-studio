@@ -74,6 +74,22 @@ describe("GET /speech-config/elevenlabs-voices", () => {
     expect(init?.headers).toMatchObject({ "xi-api-key": apiKey })
   })
 
+  it("round-trips editable Core TTS language profiles", async () => {
+    const app = createSpeechConfigRoutes(configPath)
+    const update = await app.request("/speech-config/core-tts-profiles", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ default: "General guidance", "pt-BR": "Brazilian guidance" }),
+    })
+    expect(update.status).toBe(200)
+
+    const read = await app.request("/speech-config/core-tts-profiles")
+    expect(await read.json()).toEqual({
+      default: "General guidance",
+      "pt-BR": "Brazilian guidance",
+    })
+  })
+
   it("follows pagination while has_more is set", async () => {
     fetchMock
       .mockResolvedValueOnce(

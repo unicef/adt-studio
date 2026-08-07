@@ -72,6 +72,7 @@ export const IMAGE_SET_CHANGE_CLEAR_NODE_TYPES = [
   "text-catalog",
   "easy-read",
   "text-catalog-translation",
+  "core-tts-catalog",
   "tts",
   "tts-timestamps",
   "accessibility-assessment",
@@ -83,6 +84,7 @@ export const IMAGE_SET_CHANGE_CLEAR_STEPS = [
   "text-catalog",
   "easy-read",
   "catalog-translation",
+  "core-tts-catalog",
   "image-translation",
   "tts",
   "word-timestamps",
@@ -131,6 +133,7 @@ const NODE_CACHE_RESOURCES: Record<PipelineNodeName, readonly PipelineCacheResou
   "text-catalog": ["text-catalog"],
   "easy-read": ["text-catalog"],
   "catalog-translation": ["text-catalog"],
+  "core-tts-catalog": ["text-catalog", "tts"],
   "image-translation": ["pages"],
   "tts": ["tts"],
   "word-timestamps": ["tts"],
@@ -230,6 +233,17 @@ export function getStageRerunClearNodes(
     if (index >= fromIndex && index <= toIndex) {
       for (const node of STAGE_OUTPUT_NODES[stage]) preservedNodes.add(node)
     }
+  }
+  const translateIndex = STAGE_ORDER.indexOf("translate")
+  if (translateIndex >= fromIndex && translateIndex <= toIndex) {
+    preservedNodes.add("core-tts-catalog")
+  }
+  const speechIndex = STAGE_ORDER.indexOf("speech")
+  if (speechIndex >= fromIndex && speechIndex <= toIndex) {
+    // The speech runner merges valid cached entries and manual recordings into
+    // the replacement version. Keep only the prior audio manifest available
+    // for that merge; timestamps are regenerated from the replacement output.
+    preservedNodes.add("tts")
   }
 
   if (preservedNodes.size === 0) return clearNodes

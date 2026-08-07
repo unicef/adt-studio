@@ -10,6 +10,13 @@ book_outline:
 default_image_generation_model: "openai:gpt-image-2"
 default_speech_generation_model: "gpt-4o-mini-tts"
 
+# Provider text is versioned separately from display translations. These two
+# transformations share one structured, cached LLM preparation call.
+core_tts:
+  prompt: core_tts_preparation
+  latex_to_speech: true
+  language_normalization: true
+
 structure_types:
   group: >
     Generic container used to bind sibling text leaves that form one visual

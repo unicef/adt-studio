@@ -10,6 +10,7 @@ import {
   buildEasyReadSourceBlocks,
   flattenEasyReadEntries,
   generateEasyRead,
+  invalidateCoreTtsEntriesById,
   loadBookConfig,
   normalizeLocale,
 } from "@adt/pipeline"
@@ -119,6 +120,7 @@ function clearEasyReadDependents(
   if (changedIds.size === 0) return
 
   pruneSpeechEntriesForTextIds(storage, changedIds)
+  invalidateCoreTtsEntriesById({ storage, textIds: changedIds })
 
   storage.clearNodesByType([
     "text-catalog-translation",
@@ -129,6 +131,7 @@ function clearEasyReadDependents(
   // change to the easy-read texts must invalidate speech + timestamps too.
   storage.clearStepRuns([
     "catalog-translation",
+    "core-tts-catalog",
     "image-translation",
     "package-web",
     "accessibility-assessment",

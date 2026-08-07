@@ -69,6 +69,25 @@ function seedBook(
       entries,
       generatedAt: new Date().toISOString(),
     })
+    storage.putNodeData("core-tts-catalog", "en", {
+      language: "en",
+      generatedAt: new Date().toISOString(),
+      entries: entries.map((entry) => ({
+        id: entry.id,
+        displayText: entry.text,
+        speechText: entry.text,
+        changed: false,
+        transformations: [],
+        status: "ready",
+        generation: {
+          mode: "unchanged",
+          generatedAt: new Date().toISOString(),
+          enabledTransformations: [],
+          sourceTextHash: "source",
+          contextHash: "context",
+        },
+      })),
+    })
   } finally {
     storage.close()
   }

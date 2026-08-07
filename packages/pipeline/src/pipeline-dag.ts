@@ -65,7 +65,17 @@ import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } fro
 import { buildTextCatalog } from "./text-catalog.js"
 import { buildEasyReadConfig, buildEasyReadSourceBlocks, createEmptyEasyReadOutput, generateEasyRead, flattenEasyReadEntries, isDeterministicEmptyEasyReadOutput } from "./easy-read.js"
 import { translateCatalogBatch, buildCatalogTranslationConfig, getTargetLanguages } from "./catalog-translation.js"
-import { getBaseLanguage, normalizeLocale } from "./language-context.js"
+import {
+  buildCoreTtsPreparationConfig,
+  loadCoreTtsProfiles,
+  resolveCoreTtsProfile,
+  getCoreTtsPreparationLocales,
+  prepareCoreTtsCatalog,
+  getCoreTtsCatalog,
+  buildCoreTtsSourceContext,
+  getReadyCoreTtsEntries,
+} from "./core-tts.js"
+import { normalizeLocale } from "./language-context.js"
 import {
   loadVoicesConfig,
   loadSpeechInstructions,
@@ -905,23 +915,79 @@ export async function runFullPipeline(
       }
     })
 
-    executors.set("tts", async (p) => {
+    executors.set("core-tts-catalog", async (p) => {
       const language = getLanguage(storage, config)
-      const easyReadConfig = buildEasyReadConfig(config, language)
       const outputLanguages = getOutputLanguages(config, language)
       const catalogRow = storage.getLatestNodeData("text-catalog", "book")
       if (!catalogRow) return
-      const sourceCatalog = catalogRow.data as TextCatalogOutput
+      const catalog = catalogRow.data as TextCatalogOutput
       const easyReadRow = storage.getLatestNodeData("easy-read", "book")
-      // Easy Read audio is generated for every language (source included)
-      // whenever Easy Read is enabled — target languages already carry the
-      // easy-read entries via text-catalog-translation, so gate the source
-      // side on `enabled` to match.
-      const easyReadEntries = easyReadConfig.enabled
-        ? flattenEasyReadEntries(easyReadRow?.data as EasyReadOutput | undefined)
-        : []
-      const sourceEntries = [...sourceCatalog.entries, ...easyReadEntries]
-      if (sourceEntries.length === 0) return
+      const easyReadEntries = flattenEasyReadEntries(
+        easyReadRow?.data as EasyReadOutput | undefined,
+      )
+      const sourceDisplayEntries = [...catalog.entries, ...easyReadEntries]
+      if (sourceDisplayEntries.length === 0) return
+
+      const preparationConfig = buildCoreTtsPreparationConfig(config)
+      const model = getModel(preparationConfig.modelId)
+      const profiles = loadCoreTtsProfiles(
+        options.configDir ?? path.resolve(process.cwd(), "config"),
+      )
+      const sourceCatalog = await prepareCoreTtsCatalog({
+        entries: sourceDisplayEntries,
+        language,
+        config: preparationConfig,
+        profile: resolveCoreTtsProfile(language, profiles),
+        llmModel: model,
+        previous: getCoreTtsCatalog(storage, language),
+      })
+      storage.putNodeData("core-tts-catalog", language, sourceCatalog)
+      const sourceContext = buildCoreTtsSourceContext(
+        sourceDisplayEntries,
+        sourceCatalog,
+      )
+
+      const preparationLocales = getCoreTtsPreparationLocales(
+        outputLanguages,
+        language,
+      )
+      let completed = 1
+      for (const locale of preparationLocales) {
+        const lang = locale.language
+        let displayEntries = sourceDisplayEntries
+        if (!locale.usesSourceDisplayText) {
+          const legacy = lang.replace("-", "_")
+          const row =
+            storage.getLatestNodeData("text-catalog-translation", lang) ??
+            storage.getLatestNodeData("text-catalog-translation", legacy)
+          if (!row) continue
+          displayEntries = (row.data as TextCatalogOutput).entries
+        }
+        const targetCatalog = await prepareCoreTtsCatalog({
+          entries: displayEntries,
+          language: lang,
+          config: preparationConfig,
+          profile: resolveCoreTtsProfile(lang, profiles),
+          llmModel: model,
+          previous: getCoreTtsCatalog(storage, lang),
+          sourceContext,
+        })
+        storage.putNodeData("core-tts-catalog", lang, targetCatalog)
+        completed++
+        p.emit({
+          type: "step-progress",
+          step: "core-tts-catalog",
+          message: `${completed}/${outputLanguages.length} languages`,
+          page: completed,
+          totalPages: outputLanguages.length,
+        })
+      }
+    })
+
+    executors.set("tts", async (p) => {
+      const language = getLanguage(storage, config)
+      const outputLanguages = getOutputLanguages(config, language)
+      if (!outputLanguages.some((lang) => getReadyCoreTtsEntries(storage, lang).length > 0)) return
 
       const configDir = options.configDir ?? path.resolve(process.cwd(), "config")
       const azureConfig = options.azureSpeechKey && options.azureSpeechRegion
@@ -976,24 +1042,44 @@ export async function runFullPipeline(
 
       interface TTSWorkItem { textId: string; text: string; language: string; previousText?: string; nextText?: string }
       const workItems: TTSWorkItem[] = []
+      const resultsByLang = new Map<string, SpeechFileEntry[]>()
+      for (const lang of outputLanguages) resultsByLang.set(lang, [])
       for (const lang of outputLanguages) {
-        const baseSource = getBaseLanguage(language)
-        const baseLang = getBaseLanguage(lang)
-        let entries: TextCatalogEntry[]
-        if (baseLang === baseSource) {
-          entries = sourceEntries
-        } else {
-          const legacyLang = lang.replace("-", "_")
-          const translatedRow =
-            storage.getLatestNodeData("text-catalog-translation", lang) ??
-            storage.getLatestNodeData("text-catalog-translation", legacyLang)
-          if (!translatedRow) throw new Error(`Missing translated catalog for output language: ${lang}`)
-          entries = (translatedRow.data as TextCatalogOutput).entries
-        }
+        const entries = getReadyCoreTtsEntries(storage, lang)
         const provider = resolveProviderForLanguage(lang, routing)
+        const legacyLang = lang.replace("-", "_")
+        const existingRow =
+          storage.getLatestNodeData("tts", lang) ??
+          storage.getLatestNodeData("tts", legacyLang)
+        const existingById = new Map(
+          ((existingRow?.data as TTSOutput | undefined)?.entries ?? []).map(
+            (entry) => [entry.textId, entry],
+          ),
+        )
         for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
           const entry = entries[entryIndex]
           if (isTtsExcluded(entry.id, config.speech)) continue
+          const existing = existingById.get(entry.id)
+          if (existing?.provider === "manual") {
+            const normalizedPath = path.join(
+              path.resolve(booksRoot),
+              label,
+              "audio",
+              lang,
+              existing.fileName,
+            )
+            const legacyPath = path.join(
+              path.resolve(booksRoot),
+              label,
+              "audio",
+              legacyLang,
+              existing.fileName,
+            )
+            if (fs.existsSync(normalizedPath) || fs.existsSync(legacyPath)) {
+              resultsByLang.get(lang)!.push(existing)
+              continue
+            }
+          }
           // ElevenLabs-only: adjacent-entry context, opt-in via
           // elevenlabs_use_context. Must resolve identically to stage-runner.ts
           // so the shared cache key (computeSpeechCacheKey) stays in sync.
@@ -1011,8 +1097,6 @@ export async function runFullPipeline(
 
       const totalItems = workItems.length
       let completedItems = 0
-      const resultsByLang = new Map<string, SpeechFileEntry[]>()
-      for (const lang of outputLanguages) resultsByLang.set(lang, [])
 
       const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(config.speech)
 
