@@ -20,6 +20,8 @@ import { ExternalLinkButton } from "@/components/settings/publishing/ExternalLin
 import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
 import { useCopyLink } from "@/hooks/use-copy-link"
 import { cn } from "@/lib/utils"
+import { PublishingSettingsLink } from "@/components/pipeline/stages/export/publish/PublishingSettingsLink"
+import { apiErrorCode } from "@/api/client"
 import { AccessCodeChip, PublicationStatusChip } from "./PublicationStatusChip"
 import { PublicationCover } from "./PublicationCover"
 import { PublicationReaders } from "./PublicationReaders"
@@ -84,6 +86,10 @@ export interface PublicationRowProps {
    *  unreachable every other way, and clearing it is usually the only thing left to want. */
   onDelete: () => void
   deleting: boolean
+  /** Why the last attempt on *this* row failed, if it did. A shelf can run to dozens of rows,
+   *  so a single alert under the list is scrolled out of sight by the time it appears — the
+   *  answer has to arrive where the button was pressed. */
+  deleteError?: Error | null
 }
 
 export function PublicationRow({
@@ -95,6 +101,7 @@ export function PublicationRow({
   onResume,
   onDelete,
   deleting,
+  deleteError = null,
 }: PublicationRowProps) {
   const { t, i18n } = useLingui()
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -111,6 +118,8 @@ export function PublicationRow({
   const titleId = `publication-title-${publication.token}`
   const readersId = `publication-readers-${publication.token}`
   const confirmId = `publication-delete-confirm-panel-${publication.token}`
+
+  const deleteErrorIsStaleWorker = apiErrorCode(deleteError) === "worker_outdated"
 
   function toggleReaders() {
     setReadersOpen(!readersOpen)
@@ -384,6 +393,30 @@ export function PublicationRow({
                     <Trans>Cancel</Trans>
                   </Button>
                 </div>
+
+                {deleteError ? (
+                  <div
+                    data-testid={`publication-delete-error-${publication.book_label}`}
+                    role="alert"
+                    className="flex flex-col items-start gap-1.5 border-t border-red-200 pt-1.5 duration-200 motion-safe:animate-in motion-safe:fade-in-0"
+                  >
+                    <span className="text-[11px] leading-4 text-red-900">
+                      {deleteErrorIsStaleWorker ? (
+                        <Trans>
+                          Your publishing service is older than this Studio and has no way to
+                          erase a book yet. Nothing was deleted. Installing the update adds it.
+                        </Trans>
+                      ) : (
+                        deleteError.message
+                      )}
+                    </span>
+                    {deleteErrorIsStaleWorker ? (
+                      <PublishingSettingsLink variant="outline" size="sm" className="h-6 text-xs">
+                        <Trans>Install the update</Trans>
+                      </PublishingSettingsLink>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>

@@ -453,12 +453,39 @@ describe("PublicationsDashboard — a book that is no longer on this computer", 
       }),
     )
 
+    /** In the row, not under the list: a shelf runs long enough that a single alert at the
+     *  bottom is below the fold by the time the answer arrives. */
     await waitFor(() => {
-      expect(screen.getByTestId("publications-action-error").textContent).toContain(
+      expect(screen.getByTestId("publication-delete-error-raven").textContent).toContain(
         "didn't answer",
       )
     })
     expect(screen.getByTestId("publication-row-raven")).toBeTruthy()
+    expect(screen.queryByTestId("publications-action-error")).toBeNull()
+  })
+
+  /** The failure the author is most likely to hit, and the only one with a cure they can act
+   *  on: the service in their own account predates the route, so the row offers the update. */
+  it("offers the update when the publishing service is too old to erase", async () => {
+    getPublications.mockResolvedValue(
+      overview({ publications: [summary({ book_exists: false })] }),
+    )
+    deletePublication.mockRejectedValue(
+      new MockApiError("Your publishing service is older than this Studio", 409, "worker_outdated"),
+    )
+    renderDashboard()
+
+    const row = await screen.findByTestId("publication-row-raven")
+    fireEvent.click(within(row).getByRole("button", { name: /delete permanently/i }))
+    fireEvent.click(
+      within(screen.getByTestId("publication-delete-confirm-raven")).getByRole("button", {
+        name: /^delete$/i,
+      }),
+    )
+
+    const failure = await screen.findByTestId("publication-delete-error-raven")
+    expect(failure.textContent).toContain("Nothing was deleted")
+    expect(within(failure).getByRole("link", { name: /install the update/i })).toBeTruthy()
   })
 })
 

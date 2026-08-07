@@ -354,19 +354,26 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
                         label: publication.book_label,
                       })
                     }
+                    deleteError={
+                      remove.isError && remove.variables?.token === publication.token
+                        ? remove.error
+                        : null
+                    }
                   />
                 ))}
               </ul>
             )}
 
-            {stop.isError || resume.isError || remove.isError ? (
+            {/* Deleting reports itself inside the row that failed — a shelf runs long enough
+                that an alert down here is below the fold by the time it appears. */}
+            {stop.isError || resume.isError ? (
               <p
                 data-testid="publications-action-error"
                 role="alert"
                 className="flex items-start gap-2 text-xs leading-5 text-amber-700"
               >
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-                {(stop.error ?? resume.error ?? remove.error)?.message}
+                {(stop.error ?? resume.error)?.message}
               </p>
             ) : null}
           </>
