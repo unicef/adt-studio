@@ -110,6 +110,7 @@ export function PublicationRow({
 
   const titleId = `publication-title-${publication.token}`
   const readersId = `publication-readers-${publication.token}`
+  const confirmId = `publication-delete-confirm-panel-${publication.token}`
 
   function toggleReaders() {
     setReadersOpen(!readersOpen)
@@ -312,58 +313,80 @@ export function PublicationRow({
             {state === "revoked" ? <Trans>Resume sharing</Trans> : <Trans>Stop sharing</Trans>}
           </Button>
 
-          {confirmingDelete ? (
-            <div
-              data-testid={`publication-delete-confirm-${publication.book_label}`}
-              className="flex flex-col gap-1.5 rounded-lg border border-red-200 bg-red-50 p-2 duration-200 motion-safe:animate-in motion-safe:fade-in-0"
-            >
-              <p className="text-[11px] leading-4 text-red-900">
-                <Trans>
-                  The link stops working and the site, every comment and every reader name are
-                  erased. This cannot be undone.
-                </Trans>
-              </p>
-              <div className="flex gap-1.5">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  size="sm"
-                  className="h-7 flex-1 text-xs"
-                  disabled={deleting}
-                  onClick={onDelete}
-                >
-                  {deleting ? (
-                    <Loader2
-                      className="size-3.5 animate-spin motion-reduce:animate-none"
-                      aria-hidden="true"
-                    />
-                  ) : null}
-                  <Trans>Delete</Trans>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs"
-                  disabled={deleting}
-                  onClick={() => setConfirmingDelete(false)}
-                >
-                  <Trans>Cancel</Trans>
-                </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-expanded={confirmingDelete}
+            aria-controls={confirmId}
+            disabled={deleting}
+            onClick={() => setConfirmingDelete(!confirmingDelete)}
+            className={cn(
+              "h-8 justify-start gap-2 text-xs transition-colors duration-200 motion-reduce:transition-none",
+              confirmingDelete ? "text-red-700" : "text-muted-foreground hover:text-red-700",
+            )}
+          >
+            <Trash2 className="size-3.5" aria-hidden="true" />
+            <Trans>Delete permanently</Trans>
+          </Button>
+
+          {/* Grown open rather than swapped in. Replacing the button with the warning made the
+              card jump its own height in one frame — the thing you are about to read arrives by
+              shoving the page, which is the worst moment for a destructive prompt to feel like a
+              misclick. Same collapse the readers drawer uses: `grid-rows` 0fr→1fr is the one
+              height transition that needs no measuring, and `transition-discrete` holds
+              `visibility` until it finishes, so a shut panel keeps its buttons out of the tab
+              order without blinking on the way down. */}
+          <div
+            id={confirmId}
+            aria-hidden={!confirmingDelete}
+            className={cn(
+              "grid overflow-hidden transition-all duration-300 ease-out transition-discrete motion-reduce:transition-none",
+              confirmingDelete ? "grid-rows-[1fr] opacity-100" : "invisible grid-rows-[0fr] opacity-0",
+            )}
+          >
+            <div className="min-h-0">
+              <div
+                data-testid={`publication-delete-confirm-${publication.book_label}`}
+                className="flex flex-col gap-1.5 rounded-lg border border-red-200 bg-red-50 p-2"
+              >
+                <p className="text-[11px] leading-4 text-red-900">
+                  <Trans>
+                    The link stops working and the site, every comment and every reader name are
+                    erased. This cannot be undone.
+                  </Trans>
+                </p>
+                <div className="flex gap-1.5">
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="h-7 flex-1 text-xs transition-transform duration-200 active:scale-[0.98] motion-reduce:transition-none"
+                    disabled={deleting}
+                    onClick={onDelete}
+                  >
+                    {deleting ? (
+                      <Loader2
+                        className="size-3.5 animate-spin motion-reduce:animate-none"
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                    <Trans>Delete</Trans>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    disabled={deleting}
+                    onClick={() => setConfirmingDelete(false)}
+                  >
+                    <Trans>Cancel</Trans>
+                  </Button>
+                </div>
               </div>
             </div>
-          ) : (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setConfirmingDelete(true)}
-              className="h-8 justify-start gap-2 text-xs text-muted-foreground hover:text-red-700"
-            >
-              <Trash2 className="size-3.5" aria-hidden="true" />
-              <Trans>Delete permanently</Trans>
-            </Button>
-          )}
+          </div>
         </div>
       </article>
 

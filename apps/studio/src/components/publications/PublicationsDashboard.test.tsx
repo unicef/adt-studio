@@ -422,9 +422,13 @@ describe("PublicationsDashboard — a book that is no longer on this computer", 
     const remove = within(row).getByRole("button", { name: /delete permanently/i })
     expect(remove.hasAttribute("disabled")).toBe(false)
 
-    /** Erasing is irreversible and takes the feedback with it, so it asks first. */
+    /** Erasing is irreversible and takes the feedback with it, so it asks first. The panel is
+     *  always mounted so it can animate open, which is why the state is read off the trigger
+     *  rather than off the panel's presence. */
+    expect(remove.getAttribute("aria-expanded")).toBe("false")
     fireEvent.click(remove)
     expect(deletePublication).not.toHaveBeenCalled()
+    expect(remove.getAttribute("aria-expanded")).toBe("true")
     const confirm = within(row).getByTestId("publication-delete-confirm-raven")
     expect(confirm.textContent).toContain("cannot be undone")
 

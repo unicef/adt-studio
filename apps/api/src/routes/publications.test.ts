@@ -1305,9 +1305,9 @@ describe("GET /publications — the account's whole shelf", () => {
     })
   })
 
-  /** A worker deployed before the route existed answers Hono's bare 404. Reporting that as
-   *  "not in this account" would send the author hunting for a book that is fine — the cure is
-   *  an update, and the code has to say so. */
+  /** A worker deployed before the route existed answers its own catch-all 404, which is
+   *  byte-identical to a genuine miss. Reporting that as "not in this account" would send the
+   *  author hunting for a book that is fine — the cure is an update, and the code has to say so. */
   it("tells an outdated worker apart from a publication that is really gone", async () => {
     const worker = createFakePublishWorker({ missingRoutes: ["readers"] })
     connect(worker.baseUrl)
@@ -1504,5 +1504,107 @@ describe("GET /publications — the account's whole shelf", () => {
         (row) => row.book_label,
       ),
     ).toEqual([LABEL])
+  })
+})
+
+describe("DELETE /api/publications/:token", () => {
+  async function shelf(app: Hono): Promise<PublicationsOverview> {
+    const res = await app.request("/api/publications")
+    expect(res.status).toBe(200)
+    return (await res.json()) as PublicationsOverview
+  }
+
+  async function publishedToken(app: Hono, label = LABEL): Promise<string> {
+    await drain(app, `/api/books/${label}/publication`, publishRequest())
+    const row = (await shelf(app)).publications.find((entry) => entry.book_label === label)
+    expect(row).toBeDefined()
+    return (row as PublicationSummary).token
+  }
+
+  it("erases the publication and clears it off the shelf", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    const token = await publishedToken(app)
+
+    const res = await app.request(`/api/publications/${token}`, { method: "DELETE" })
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toMatchObject({ deleted: true })
+
+    expect((await shelf(app)).publications).toEqual([])
+  })
+
+  /** The book stops describing itself as published, without the record being overwritten. */
+  it("leaves the book able to publish again", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    const token = await publishedToken(app)
+
+    await app.request(`/api/publications/${token}`, { method: "DELETE" })
+
+    const status = (await (
+      await app.request(`/api/books/${LABEL}/publication`)
+    ).json()) as { record: unknown; url: string | null }
+    expect(status.record).toBeNull()
+    expect(status.url).toBeNull()
+  })
+
+  /** The regression this route shipped with: an older worker answers the same 404 as a
+   *  genuine miss, and the Studio reported it as "service didn't answer" — a 502 that blamed
+   *  the network for a version gap. */
+  it("names an outdated worker instead of blaming the connection", async () => {
+    const worker = createFakePublishWorker({ missingRoutes: ["delete"] })
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+    const token = await publishedToken(app)
+
+    const res = await app.request(`/api/publications/${token}`, { method: "DELETE" })
+    expect(res.status).toBe(409)
+    await expect(res.json()).resolves.toMatchObject({ code: "worker_outdated" })
+
+    /** Nothing was removed, so the row is still there to try again on. */
+    expect((await shelf(app)).publications).toHaveLength(1)
+  })
+
+  /** Deleting is idempotent by design, so a token the account never had is not an error:
+   *  the caller asked for it to be gone and it is. `deleted: false` carries the nuance. */
+  it("treats a token the account never had as already gone", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+
+    const res = await app.request("/api/publications/AbsentAbsentAbsentAbsent12", {
+      method: "DELETE",
+    })
+    expect(res.status).toBe(200)
+    await expect(res.json()).resolves.toMatchObject({ deleted: false })
+  })
+
+  /** Which leaves exactly one way to see `not_published`: an old worker, whose catch-all 404
+   *  is the same for a route it lacks and a token it lacks — so the probe finds nothing and
+   *  the honest answer is that the publication is not here, not that the worker is stale. */
+  it("reports not_published when an old worker has no such publication either", async () => {
+    const worker = createFakePublishWorker({ missingRoutes: ["delete"] })
+    connect(worker.baseUrl)
+    const app = routes({ fetchFn: worker.fetchFn })
+
+    const res = await app.request("/api/publications/AbsentAbsentAbsentAbsent12", {
+      method: "DELETE",
+    })
+    expect(res.status).toBe(404)
+    await expect(res.json()).resolves.toMatchObject({ code: "not_published" })
+  })
+
+  it("says nothing was deleted when the service cannot be reached", async () => {
+    const reachable = createFakePublishWorker()
+    connect(reachable.baseUrl)
+    const app = routes({ fetchFn: reachable.fetchFn })
+    const token = await publishedToken(app)
+
+    const offline = routes({ fetchFn: createFakePublishWorker({ unreachable: true }).fetchFn })
+    const res = await offline.request(`/api/publications/${token}`, { method: "DELETE" })
+    expect(res.status).toBe(502)
+    await expect(res.json()).resolves.toMatchObject({ code: "worker_unreachable" })
   })
 })

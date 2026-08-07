@@ -179,6 +179,42 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     }
   }
 
+  /**
+   * Whether the account still holds this publication. Only ever asked to interpret a 404.
+   *
+   * The worker answers a request for a route it does not have with its own catch-all —
+   * `{"error":"not_found"}`, 404 — which is byte-identical to what it answers for a token that
+   * is not in the account. Status and code therefore cannot tell "your service is too old" from
+   * "that book is gone", and guessing wrong either sends the author hunting for a lost
+   * publication or tells them to reinstall over a genuine miss. Reading the publication back
+   * does distinguish them: if it is still there, the 404 was about the route.
+   *
+   * `null` when the question could not be answered at all, which is the unreachable case.
+   */
+  const publicationStillExists = async (
+    client: PublishWorkerClient,
+    token: string,
+  ): Promise<boolean | null> => {
+    try {
+      await client.getPublication(token)
+      return true
+    } catch (error) {
+      if (isPublishWorkerError(error) && error.status === 404) return false
+      return null
+    }
+  }
+
+  const outdatedWorker = (c: Context, action: string): Response =>
+    c.json(
+      {
+        error:
+          `Your publishing service is older than this Studio. Install the update in ` +
+          `Settings → Publishing to ${action}.`,
+        code: "worker_outdated",
+      },
+      409,
+    )
+
   /** Which book on this computer holds this token, if any. `null` is the ordinary answer for
    *  the rows this exists to serve: the book was deleted, and only the account still remembers
    *  the publication. */
@@ -317,29 +353,20 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       )
     }
 
+    const client = clientFor(connection)
     try {
-      return c.json(await clientFor(connection).listReaders(token.data))
+      return c.json(await client.listReaders(token.data))
     } catch (error) {
       if (!isPublishWorkerError(error)) throw error
-      /** A worker without this route answers Hono's own plain-text 404, which carries no
-       *  `not_found` code — that is the only signal separating "too old" from "never heard of
-       *  this publication", and confusing the two sends the author looking for a lost book. */
-      if (error.status === 404 && error.code !== "not_found") {
-        return c.json(
-          {
-            error:
-              "Your publishing service is older than this Studio. Install the update in " +
-              "Settings → Publishing to see who has joined.",
-            code: "worker_outdated",
-          },
-          409,
-        )
-      }
       if (error.status === 404) {
-        return c.json(
-          { error: "That publication is not in this account", code: "not_published" },
-          404,
-        )
+        const stillThere = await publicationStillExists(client, token.data)
+        if (stillThere === true) return outdatedWorker(c, "see who has joined")
+        if (stillThere === false) {
+          return c.json(
+            { error: "That publication is not in this account", code: "not_published" },
+            404,
+          )
+        }
       }
       return failure(
         c,
@@ -376,21 +403,21 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
       )
     }
 
+    const client = clientFor(connection)
     let result: PublicationDeleteResult
     try {
-      result = await clientFor(connection).deletePublication(token.data)
+      result = await client.deletePublication(token.data)
     } catch (error) {
       if (!isPublishWorkerError(error)) throw error
-      if (error.status === 404 && error.code !== "not_found") {
-        return c.json(
-          {
-            error:
-              "Your publishing service is older than this Studio. Install the update in " +
-              "Settings → Publishing to delete a published book.",
-            code: "worker_outdated",
-          },
-          409,
-        )
+      if (error.status === 404) {
+        const stillThere = await publicationStillExists(client, token.data)
+        if (stillThere === true) return outdatedWorker(c, "delete a published book")
+        if (stillThere === false) {
+          return c.json(
+            { error: "That publication is not in this account", code: "not_published" },
+            404,
+          )
+        }
       }
       return failure(
         c,

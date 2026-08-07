@@ -60,8 +60,9 @@ export interface FakePublishWorkerOptions {
   /** Simulates a worker that cannot answer §4.18 — a pre-0.7.0 deployment answers `404`. */
   failListStatus?: number
   failListBody?: { error: string; message?: string }
-  /** Simulates a worker deployed before a route existed: Hono's own plain-text 404, with none
-   *  of our JSON error envelope — the only thing that separates "too old" from "not found". */
+  /** Simulates a worker deployed before a route existed. Answers exactly what the real
+   *  worker's catch-all does, which is indistinguishable from a genuine miss — see
+   *  `missingRoute`. */
   missingRoutes?: string[]
 }
 
@@ -81,6 +82,18 @@ function json(body: unknown, status = 200): Response {
     status,
     headers: { "content-type": "application/json" },
   })
+}
+
+/**
+ * What a worker answers for a route it does not have.
+ *
+ * The real worker installs `app.notFound(() => errorResponse(c, "not_found", 404))`, so a route
+ * that predates a Studio feature is indistinguishable *by status and code* from a publication
+ * that was never in the account. This used to return bare text, which made the Studio's
+ * "is this worker too old?" check look correct when it was not.
+ */
+function missingRoute(): Response {
+  return json({ error: "not_found" }, 404)
 }
 
 export function createFakePublishWorker(
@@ -301,15 +314,25 @@ export function createFakePublishWorker(
 
     const readersMatch = /^\/api\/publications\/([^/]+)\/readers$/.exec(url.pathname)
     if (readersMatch && method === "GET") {
-      if (options.missingRoutes?.includes("readers")) {
-        return new Response("404 Not Found", { status: 404 })
-      }
+      if (options.missingRoutes?.includes("readers")) return missingRoute()
       const token = readersMatch[1] as string
       if (!state.publications.has(token)) return json({ error: "not_found" }, 404)
       return json({ readers: state.readers.get(token) ?? [] })
     }
 
     const detailMatch = /^\/api\/publications\/([^/]+)$/.exec(url.pathname)
+    if (detailMatch && method === "DELETE") {
+      if (options.missingRoutes?.includes("delete")) return missingRoute()
+      const token = detailMatch[1] as string
+      if (!state.publications.has(token)) {
+        return json({ token, deleted: false, objects_deleted: 0 })
+      }
+      state.publications.delete(token)
+      state.accessCodes.delete(token)
+      state.readers.delete(token)
+      return json({ token, deleted: true, objects_deleted: 2 })
+    }
+
     if (detailMatch && method === "PATCH") {
       const token = detailMatch[1] as string
       const publication = state.publications.get(token)
