@@ -85,8 +85,8 @@ This book uses a fixed, accessible type scale. Font SIZE is applied automaticall
 {% for s in typography %}- `{{ s.className }}` — {{ s.label }} ({{ s.mobilePx }}px mobile → {{ s.desktopPx }}px desktop)
 {% endfor %}
 Rules:
-- Heading roles are authoritative, as are provided `heading_level` values: `chapter_title` → semantic `<h1 class="adt-h1">`; `section_heading` → `<h2 class="adt-h2">`; `subheading` → `<h3 class="adt-h3">`. A generic `heading` with `heading_level=4`, for example, must use `<h4 class="adt-h4">`. Support levels 1 through 6. Put the provided `data-id` on that heading or a descendant inside it. Never mix a heading tag with a different-level `adt-h*` class.
-- For a legacy generic `heading` with no provided level, infer H1–H6 from the original page and surrounding hierarchy, then keep its semantic heading tag and matching `adt-h*` class aligned.
+- Follow the shared book-wide heading hierarchy above; it is the sole authority for heading tags and matching `adt-h*` classes.
+- For a legacy generic `heading` with no provided level, infer H1–H6 from the original page and surrounding hierarchy, then keep its semantic tag and matching `adt-h*` class aligned.
 - Paragraphs, running text, and list items use `adt-body`; captions and image labels use `adt-caption`.
 - Do NOT set any font-size utility (`text-sm` … `text-6xl`, `text-[..]`) or inline `font-size` — sizing comes only from the `adt-*` class, scales fluidly between mobile and desktop, and cannot be overridden. Handle responsiveness with LAYOUT (stack columns with `max-lg:flex-col`, adjust spacing), not font size.
 - Keep using Tailwind for everything else (font weight, color, spacing, alignment).

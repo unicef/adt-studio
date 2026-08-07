@@ -9,7 +9,7 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 - Nest the content container inside: `container mx-auto max-w-5xl bg-white rounded-lg px-24 max-lg:px-12 max-sm:px-6 pt-12 pb-12` with `id="content"`
 
 ### Common Styling
-- Primary heading (H1): `text-5xl font-bold mb-4 text-amber-700`
+- Headings: use the semantic `<hN class="adt-hN">` mapping from the shared hierarchy rules, then add `font-bold mb-4 text-amber-700` as appropriate
 - Instruction line: `text-xl mb-8` with icon `<i class="fas fa-pen-to-square text-blue-700 mr-2"></i>`
 - Images: When pixel dimensions are provided, compute each image's width as a percentage of the widest image and set `style="width:X%"`, plus `class="h-auto rounded-lg"`. Do NOT use `w-full` or fixed pixel widths.
 
@@ -55,7 +55,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 **Categories (drop zones):**
 - Class: `category` - REQUIRED
 - Attribute: `data-activity-category="category-name"` - REQUIRED
-- Visible heading: a `<label>` (or heading) holding the category name. Category names are usually NOT in the source text, so you GENERATE them — see "Generated category labels" below.
+- Visible category label: a `<p>` or `<span>` holding the category name. This is activity UI, not a document-outline heading, so do not use `<h1>`–`<h6>` or an `adt-hN` class. Category names are usually NOT in the source text, so you GENERATE them — see "Generated category labels" below.
 - Must contain: `<ul class="word-list"></ul>` - REQUIRED (empty initially)
 - Color-coded backgrounds: `bg-yellow-200`, `bg-blue-200`, `bg-green-200`, `bg-red-200`, `bg-purple-200`
 
@@ -92,13 +92,13 @@ Example sorting activity:
     <div class="grid gap-3 activity-text" role="listbox">
       <div class="category bg-yellow-200 border border-yellow-300 rounded p-2 min-h-[3rem]"
            data-activity-category="category1" tabindex="0" role="listbox">
-        <label class="font-semibold text-center" data-id="activity_gen_cat1">Category 1</label>
+        <p class="font-semibold text-center" data-id="activity_gen_cat1">Category 1</p>
         <ul class="word-list flex flex-wrap"></ul>
       </div>
 
       <div class="category bg-blue-200 border border-blue-300 rounded p-2 min-h-[3rem]"
            data-activity-category="category2" tabindex="0" role="listbox">
-        <label class="font-semibold text-center" data-id="activity_gen_cat2">Category 2</label>
+        <p class="font-semibold text-center" data-id="activity_gen_cat2">Category 2</p>
         <ul class="word-list flex flex-wrap"></ul>
       </div>
     </div>

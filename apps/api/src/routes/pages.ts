@@ -25,6 +25,10 @@ import {
   getStageClearOrder,
   getStageDependents,
   EDITABLE_ACTIVITY_NODE,
+  CoreTtsCatalogOutput,
+  TextCatalogOutput,
+  type TTSOutput,
+  type WordTimestampOutput,
 } from "@adt/types"
 import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
@@ -39,6 +43,7 @@ import {
   buildImageClassifyConfig,
   readEditableActivities,
   remapEditableActivities,
+  invalidateCoreTtsForDisplayEntries,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
@@ -451,6 +456,7 @@ const RestorableNode = z.enum([
   "glossary",
   "quiz-generation",
   "text-catalog-translation",
+  "core-tts-catalog",
   "easy-read",
   "image-filtering",
   "image-captioning",
@@ -465,7 +471,12 @@ type RestorableNode = z.infer<typeof RestorableNode>
  * leave the book in a mixed state. The policies follow each node's actual
  * catalog, translation, speech, and packaging dependencies.
  */
-function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): void {
+function clearRestoredNodeDependents(
+  storage: Storage,
+  node: RestorableNode,
+  itemId: string,
+  previousData?: unknown,
+): void {
   switch (node) {
     case "image-filtering":
     case "page-sectioning":
@@ -479,6 +490,7 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
       storage.clearNodesByType([
         "text-catalog",
         "text-catalog-translation",
+        "core-tts-catalog",
         "tts",
         "tts-timestamps",
         "accessibility-assessment",
@@ -486,6 +498,7 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
       storage.clearStepRuns([
         "text-catalog",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -497,12 +510,14 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
     case "easy-read":
       storage.clearNodesByType([
         "text-catalog-translation",
+        "core-tts-catalog",
         "tts",
         "tts-timestamps",
         "accessibility-assessment",
       ])
       storage.clearStepRuns([
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -511,8 +526,81 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
       ])
       return
 
-    case "text-catalog-translation":
-      storage.clearNodesByType(["tts", "tts-timestamps", "accessibility-assessment"])
+    case "text-catalog-translation": {
+      const restored = TextCatalogOutput.safeParse(
+        storage.getLatestNodeData("text-catalog-translation", itemId)?.data,
+      )
+      if (restored.success) {
+        invalidateCoreTtsForDisplayEntries({
+          storage,
+          language: itemId,
+          entries: restored.data.entries,
+        })
+      }
+      storage.clearNodesByType(["accessibility-assessment"])
+      storage.clearStepRuns([
+        "core-tts-catalog",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return
+    }
+
+    case "core-tts-catalog": {
+      const previous = CoreTtsCatalogOutput.safeParse(previousData)
+      const restored = CoreTtsCatalogOutput.safeParse(
+        storage.getLatestNodeData("core-tts-catalog", itemId)?.data,
+      )
+      const previousById = new Map(
+        (previous.success ? previous.data.entries : []).map((entry) => [entry.id, entry]),
+      )
+      const restoredById = new Map(
+        (restored.success ? restored.data.entries : []).map((entry) => [entry.id, entry]),
+      )
+      const changedIds = new Set(
+        [...new Set([...previousById.keys(), ...restoredById.keys()])].filter((id) => {
+          const before = previousById.get(id)
+          const after = restoredById.get(id)
+          return before?.speechText !== after?.speechText || before?.status !== after?.status
+        }),
+      )
+      const legacyItemId = itemId.replace("-", "_")
+      const normalizedTts = storage.getLatestNodeData("tts", itemId)
+      const ttsRow = normalizedTts ?? storage.getLatestNodeData("tts", legacyItemId)
+      if (ttsRow && changedIds.size > 0) {
+        const tts = ttsRow.data as TTSOutput
+        storage.putNodeData("tts", normalizedTts ? itemId : legacyItemId, {
+          ...tts,
+          entries: tts.entries.filter(
+            (entry) => entry.provider === "manual" || !changedIds.has(entry.textId),
+          ),
+          failed: tts.failed?.filter((entry) => !changedIds.has(entry.textId)),
+          generatedAt: new Date().toISOString(),
+        } satisfies TTSOutput)
+      }
+      const normalizedTimestamps = storage.getLatestNodeData("tts-timestamps", itemId)
+      const timestampRow =
+        normalizedTimestamps ??
+        storage.getLatestNodeData("tts-timestamps", legacyItemId)
+      if (timestampRow && changedIds.size > 0) {
+        const timestamps = timestampRow.data as WordTimestampOutput
+        const entries = Object.fromEntries(
+          Object.entries(timestamps.entries).filter(([id]) => !changedIds.has(id)),
+        )
+        storage.putNodeData(
+          "tts-timestamps",
+          normalizedTimestamps ? itemId : legacyItemId,
+          {
+            ...timestamps,
+            entries,
+            failed: timestamps.failed?.filter((entry) => !changedIds.has(entry.textId)),
+            generatedAt: new Date().toISOString(),
+          } satisfies WordTimestampOutput,
+        )
+      }
+      storage.clearNodesByType(["accessibility-assessment"])
       storage.clearStepRuns([
         "tts",
         "word-timestamps",
@@ -520,6 +608,7 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
         "accessibility-assessment",
       ])
       return
+    }
 
     case "toc-generation":
       storage.clearNodesByType(["accessibility-assessment"])
@@ -1560,13 +1649,14 @@ export function createPageRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      const previousData = storage.getLatestNodeData(node, itemId)?.data
       const ok = storage.setCurrentNodeVersion(node, itemId, version)
       if (!ok) {
         throw new HTTPException(404, {
           message: `Version ${version} not found for ${node}/${itemId}`,
         })
       }
-      clearRestoredNodeDependents(storage, node)
+      clearRestoredNodeDependents(storage, node, itemId, previousData)
       return c.json({ node, itemId, version })
     } finally {
       storage.close()
@@ -1599,6 +1689,7 @@ export function createPageRoutes(
       storage.clearNodesByType([
         "text-catalog",
         "text-catalog-translation",
+        "core-tts-catalog",
         "tts",
         "tts-timestamps",
         "accessibility-assessment",
@@ -1606,6 +1697,7 @@ export function createPageRoutes(
       storage.clearStepRuns([
         "text-catalog",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",

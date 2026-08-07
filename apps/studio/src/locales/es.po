@@ -2448,6 +2448,9 @@ msgstr "Los arrecifes de coral cubren menos del 1% del fondo oceánico, pero sos
 msgid "Core Pipeline"
 msgstr "Tubería Principal"
 
+#~ msgid "Core TTS Profiles"
+#~ msgstr "Perfiles de TTS principal"
+
 msgid "Correct answer"
 msgstr "Respuesta correcta"
 
@@ -2685,6 +2688,9 @@ msgstr "Predeterminado (heredar)"
 
 msgid "Default (no text detected yet)"
 msgstr "Predeterminada (aún no se detectó texto)"
+
+msgid "Default guidance"
+msgstr "Orientación predeterminada"
 
 #~ msgid "Default LLM"
 #~ msgstr "LLM predeterminado"
@@ -3131,6 +3137,9 @@ msgstr "p. ej. Kore"
 msgid "e.g. multiple-choice question about photosynthesis with 4 options"
 msgstr "p. ej. pregunta de opción múltiple sobre la fotosíntesis con 4 opciones"
 
+msgid "e.g. sw, pt-br"
+msgstr "p. ej., sw, pt-BR"
+
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "ej., Una familia de leopardos alegres en un bosque verde, estilo libro infantil..."
 
@@ -3224,6 +3233,9 @@ msgstr "Prompt de edición"
 
 msgid "Edit Prompts"
 msgstr "Editar prompts"
+
+msgid "Edit speech text"
+msgstr "Editar texto hablado"
 
 msgid "Edit spreads"
 msgstr "Editar dobles páginas"
@@ -3338,6 +3350,9 @@ msgstr "Enable or disable reviewer-authored checklist reviews for this book. Aut
 msgid "Enable reviewer validation"
 msgstr "Enable reviewer validation"
 
+msgid "Enable text normalization"
+msgstr "Activar la normalización del texto"
+
 msgid "Enable translation review"
 msgstr "Activar revisión de traducciones"
 
@@ -3385,6 +3400,9 @@ msgstr "Introduce un intervalo de páginas válido entre 1 y {pageCount}."
 
 msgid "Enter a valid project name"
 msgstr "Introduce un nombre de proyecto válido"
+
+msgid "Enter prepared speech text"
+msgstr "Introduzca el texto preparado para voz"
 
 msgid "entries"
 msgstr "entradas"
@@ -4681,6 +4699,9 @@ msgstr "etiquetada {printedLabel}"
 msgid "Language"
 msgstr "Idioma"
 
+msgid "Language profiles"
+msgstr "Perfiles de idioma"
+
 msgid "Language-Specific Prompts"
 msgstr "Prompts por idioma"
 
@@ -4707,6 +4728,9 @@ msgstr "Última modificación"
 
 #~ msgid "Last week"
 #~ msgstr "La semana pasada"
+
+msgid "LaTeX converted"
+msgstr "LaTeX convertido"
 
 msgid "Launch the app with"
 msgstr "Iniciar la aplicación con"
@@ -4885,6 +4909,9 @@ msgstr "Cargando libros..."
 msgid "Loading catalog..."
 msgstr "Cargando catálogo..."
 
+#~ msgid "Loading Core TTS profiles..."
+#~ msgstr "Cargando perfiles de TTS principal..."
+
 msgid "Loading Easy Read..."
 msgstr "Cargando Lectura Fácil..."
 
@@ -4963,6 +4990,9 @@ msgstr "Cargando catálogo de textos..."
 msgid "Loading text sizes…"
 msgstr "Cargando tamaños de texto…"
 
+msgid "Loading TTS normalization..."
+msgstr "Cargando la normalización de TTS..."
+
 msgid "Loading validation..."
 msgstr "Cargando validación..."
 
@@ -5028,6 +5058,9 @@ msgstr "Solo manual"
 
 msgid "Manual review"
 msgstr "Revisión manual"
+
+msgid "Manually edited"
+msgstr "Editado manualmente"
 
 msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
 msgstr "Muchos libros impresos están diseñados pensando en páginas enfrentadas - ilustraciones que abarcan dos páginas, o texto que fluye a través de una extensión. El modo de extensión fusiona cada par de páginas enfrentadas para que el contenido no se divida. La portada permanece independiente, luego las páginas se emparejan: 2+3, 4+5, etc."
@@ -5856,6 +5889,9 @@ msgstr "Ninguno"
 msgid "Normalization"
 msgstr "Normalización"
 
+msgid "Normalized"
+msgstr "Normalizado"
+
 msgid "Not compatible with Fixed Layout"
 msgstr "No compatible con Diseño Fijo"
 
@@ -6680,6 +6716,18 @@ msgstr "Precipitación"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Prefiere términos centrales al tema del libro. Omite vocabulario genérico y nombres propios que no tienen significado más allá de la página."
+
+msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "La preparación resuelve primero la configuración regional exacta, después el idioma base y, por último, este valor predeterminado. La orientación se incluye en la llamada al LLM almacenada en caché e inspeccionable."
+
+#~ msgid "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+#~ msgstr "Preparar números, fechas, abreviaturas y otros textos ambiguos para una locución natural en cada idioma."
+
+msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+msgstr "Preparar números, fechas y abreviaturas para una locución natural. Las matemáticas y LaTeX se tratan por separado."
+
+msgid "Prepared speech text"
+msgstr "Texto preparado para voz"
 
 msgid "Preparing speech..."
 msgstr "Preparando el audio..."
@@ -7690,6 +7738,9 @@ msgstr "Guardar selección"
 msgid "Save settings"
 msgstr "Save settings"
 
+msgid "Save speech text"
+msgstr "Guardar texto hablado"
+
 msgid "Save text sizes"
 msgstr "Guardar tamaños de texto"
 
@@ -7755,6 +7806,9 @@ msgstr "Buscar leyendas o IDs de imágenes…"
 
 msgid "Search colors"
 msgstr "Buscar colores"
+
+msgid "Search display or speech text…"
+msgstr "Buscar texto mostrado o hablado…"
 
 msgid "Search entries…"
 msgstr "Buscar entradas…"
@@ -8834,6 +8888,9 @@ msgstr "Color del texto"
 msgid "Text color: {0}"
 msgstr "Color del texto: {0}"
 
+msgid "Text normalization"
+msgstr "Normalización del texto"
+
 msgid "Text Normalization"
 msgstr "Normalización de texto"
 
@@ -9478,6 +9535,9 @@ msgstr "Prueba el problema de práctica"
 
 msgid "Try this screen again"
 msgstr "Intenta esta pantalla de nuevo"
+
+msgid "TTS Normalization"
+msgstr "Normalización de TTS"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Ajusta cómo se simplifica el texto en la configuración del Prompt de Lectura Fácil. Después de ejecutar, cada bloque se puede editar aquí en el paso de Lectura Fácil."

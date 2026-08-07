@@ -2448,6 +2448,9 @@ msgstr "Coral reefs cover less than 1% of the ocean floor, yet they support roug
 msgid "Core Pipeline"
 msgstr "Core Pipeline"
 
+#~ msgid "Core TTS Profiles"
+#~ msgstr "Core TTS Profiles"
+
 msgid "Correct answer"
 msgstr "Correct answer"
 
@@ -2685,6 +2688,9 @@ msgstr "Default (inherit)"
 
 msgid "Default (no text detected yet)"
 msgstr "Default (no text detected yet)"
+
+msgid "Default guidance"
+msgstr "Default guidance"
 
 #~ msgid "Default LLM"
 #~ msgstr "Default LLM"
@@ -3131,6 +3137,9 @@ msgstr "e.g. Kore"
 msgid "e.g. multiple-choice question about photosynthesis with 4 options"
 msgstr "e.g. multiple-choice question about photosynthesis with 4 options"
 
+msgid "e.g. sw, pt-br"
+msgstr "e.g. sw, pt-br"
+
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "e.g., A cheerful leopard family in a green forest, children's book style..."
 
@@ -3224,6 +3233,9 @@ msgstr "Edit Prompt"
 
 msgid "Edit Prompts"
 msgstr "Edit Prompts"
+
+msgid "Edit speech text"
+msgstr "Edit speech text"
 
 msgid "Edit spreads"
 msgstr "Edit spreads"
@@ -3338,6 +3350,9 @@ msgstr "Enable or disable reviewer-authored checklist reviews for this book. Aut
 msgid "Enable reviewer validation"
 msgstr "Enable reviewer validation"
 
+msgid "Enable text normalization"
+msgstr "Enable text normalization"
+
 msgid "Enable translation review"
 msgstr "Enable translation review"
 
@@ -3385,6 +3400,9 @@ msgstr "Enter a valid page range within 1–{pageCount}."
 
 msgid "Enter a valid project name"
 msgstr "Enter a valid project name"
+
+msgid "Enter prepared speech text"
+msgstr "Enter prepared speech text"
 
 msgid "entries"
 msgstr "entries"
@@ -4681,6 +4699,9 @@ msgstr "labeled {printedLabel}"
 msgid "Language"
 msgstr "Language"
 
+msgid "Language profiles"
+msgstr "Language profiles"
+
 msgid "Language-Specific Prompts"
 msgstr "Language-Specific Prompts"
 
@@ -4707,6 +4728,9 @@ msgstr "Last modified"
 
 #~ msgid "Last week"
 #~ msgstr "Last week"
+
+msgid "LaTeX converted"
+msgstr "LaTeX converted"
 
 msgid "Launch the app with"
 msgstr "Launch the app with"
@@ -4885,6 +4909,9 @@ msgstr "Loading books..."
 msgid "Loading catalog..."
 msgstr "Loading catalog..."
 
+#~ msgid "Loading Core TTS profiles..."
+#~ msgstr "Loading Core TTS profiles..."
+
 msgid "Loading Easy Read..."
 msgstr "Loading Easy Read..."
 
@@ -4963,6 +4990,9 @@ msgstr "Loading text catalog..."
 msgid "Loading text sizes…"
 msgstr "Loading text sizes…"
 
+msgid "Loading TTS normalization..."
+msgstr "Loading TTS normalization..."
+
 msgid "Loading validation..."
 msgstr "Loading validation..."
 
@@ -5028,6 +5058,9 @@ msgstr "Manual only"
 
 msgid "Manual review"
 msgstr "Manual review"
+
+msgid "Manually edited"
+msgstr "Manually edited"
 
 msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
 msgstr "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
@@ -5856,6 +5889,9 @@ msgstr "None"
 msgid "Normalization"
 msgstr "Normalization"
 
+msgid "Normalized"
+msgstr "Normalized"
+
 msgid "Not compatible with Fixed Layout"
 msgstr "Not compatible with Fixed Layout"
 
@@ -6680,6 +6716,18 @@ msgstr "Precipitation"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
+
+msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+
+#~ msgid "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+#~ msgstr "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+
+msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+msgstr "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+
+msgid "Prepared speech text"
+msgstr "Prepared speech text"
 
 msgid "Preparing speech..."
 msgstr "Preparing speech..."
@@ -7690,6 +7738,9 @@ msgstr "Save selection"
 msgid "Save settings"
 msgstr "Save settings"
 
+msgid "Save speech text"
+msgstr "Save speech text"
+
 msgid "Save text sizes"
 msgstr "Save text sizes"
 
@@ -7755,6 +7806,9 @@ msgstr "Search captions or image IDs…"
 
 msgid "Search colors"
 msgstr "Search colors"
+
+msgid "Search display or speech text…"
+msgstr "Search display or speech text…"
 
 msgid "Search entries…"
 msgstr "Search entries…"
@@ -8834,6 +8888,9 @@ msgstr "Text color"
 msgid "Text color: {0}"
 msgstr "Text color: {0}"
 
+msgid "Text normalization"
+msgstr "Text normalization"
+
 msgid "Text Normalization"
 msgstr "Text Normalization"
 
@@ -9478,6 +9535,9 @@ msgstr "Try the practice problem"
 
 msgid "Try this screen again"
 msgstr "Try this screen again"
+
+msgid "TTS Normalization"
+msgstr "TTS Normalization"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."

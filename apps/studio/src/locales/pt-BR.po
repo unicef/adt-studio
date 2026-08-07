@@ -2448,6 +2448,9 @@ msgstr "Os recifes de coral cobrem menos de 1% do fundo do oceano, mas sustentam
 msgid "Core Pipeline"
 msgstr "Pipeline Principal"
 
+#~ msgid "Core TTS Profiles"
+#~ msgstr "Perfis principais de TTS"
+
 msgid "Correct answer"
 msgstr "Resposta correta"
 
@@ -2685,6 +2688,9 @@ msgstr "Padrão (herdar)"
 
 msgid "Default (no text detected yet)"
 msgstr "Padrão (nenhum texto detectado ainda)"
+
+msgid "Default guidance"
+msgstr "Orientação padrão"
 
 #~ msgid "Default LLM"
 #~ msgstr "LLM padrão"
@@ -3131,6 +3137,9 @@ msgstr "ex.: Kore"
 msgid "e.g. multiple-choice question about photosynthesis with 4 options"
 msgstr "p. ex. pergunta de múltipla escolha sobre fotossíntese com 4 opções"
 
+msgid "e.g. sw, pt-br"
+msgstr "ex.: sw, pt-BR"
+
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "ex.: Uma família de leopardos felizes em uma floresta verde, estilo livro infantil..."
 
@@ -3224,6 +3233,9 @@ msgstr "Prompt de edição"
 
 msgid "Edit Prompts"
 msgstr "Editar prompts"
+
+msgid "Edit speech text"
+msgstr "Editar texto falado"
 
 msgid "Edit spreads"
 msgstr "Editar spreads"
@@ -3338,6 +3350,9 @@ msgstr "Enable or disable reviewer-authored checklist reviews for this book. Aut
 msgid "Enable reviewer validation"
 msgstr "Enable reviewer validation"
 
+msgid "Enable text normalization"
+msgstr "Ativar a normalização de texto"
+
 msgid "Enable translation review"
 msgstr "Ativar revisão de tradução"
 
@@ -3385,6 +3400,9 @@ msgstr "Insira um intervalo de páginas válido entre 1 e {pageCount}."
 
 msgid "Enter a valid project name"
 msgstr "Insira um nome de projeto válido"
+
+msgid "Enter prepared speech text"
+msgstr "Digite o texto preparado para fala"
 
 msgid "entries"
 msgstr "entradas"
@@ -4681,6 +4699,9 @@ msgstr "rotulada {printedLabel}"
 msgid "Language"
 msgstr "Idioma"
 
+msgid "Language profiles"
+msgstr "Perfis de idioma"
+
 msgid "Language-Specific Prompts"
 msgstr "Prompts por idioma"
 
@@ -4707,6 +4728,9 @@ msgstr "Última modificação"
 
 #~ msgid "Last week"
 #~ msgstr "Semana passada"
+
+msgid "LaTeX converted"
+msgstr "LaTeX convertido"
 
 msgid "Launch the app with"
 msgstr "Iniciar o aplicativo com"
@@ -4885,6 +4909,9 @@ msgstr "Carregando livros..."
 msgid "Loading catalog..."
 msgstr "Carregando catálogo..."
 
+#~ msgid "Loading Core TTS profiles..."
+#~ msgstr "Carregando perfis principais de TTS..."
+
 msgid "Loading Easy Read..."
 msgstr "Carregando Leitura Fácil..."
 
@@ -4963,6 +4990,9 @@ msgstr "Carregando catálogo de textos..."
 msgid "Loading text sizes…"
 msgstr "Carregando tamanhos de texto…"
 
+msgid "Loading TTS normalization..."
+msgstr "Carregando a normalização de TTS..."
+
 msgid "Loading validation..."
 msgstr "Carregando validação..."
 
@@ -5028,6 +5058,9 @@ msgstr "Somente manual"
 
 msgid "Manual review"
 msgstr "Revisão manual"
+
+msgid "Manually edited"
+msgstr "Editado manualmente"
 
 msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
 msgstr "Muitos livros impressos são pensados em duplas de páginas — ilustrações que atravessam a abertura ou texto que segue de uma página à outra. No modo de duplas, cada par de páginas opostas é tratado junto, para o conteúdo não ser cortado no meio. A capa fica sozinha; em seguida, as páginas são emparelhadas: 2+3, 4+5 etc."
@@ -5856,6 +5889,9 @@ msgstr "Nenhum"
 msgid "Normalization"
 msgstr "Normalização"
 
+msgid "Normalized"
+msgstr "Normalizado"
+
 msgid "Not compatible with Fixed Layout"
 msgstr "Não compatível com Layout Fixo"
 
@@ -6680,6 +6716,18 @@ msgstr "Precipitação"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Prefira termos centrais ao assunto do livro. Pule vocabulário genérico e nomes próprios que não carregam significado além da página."
+
+msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "A preparação resolve primeiro a localidade exata, depois o idioma base e, por fim, este padrão. A orientação é incluída na chamada ao LLM armazenada em cache e inspecionável."
+
+#~ msgid "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+#~ msgstr "Preparar números, datas, abreviações e outros textos ambíguos para uma fala natural em cada idioma."
+
+msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+msgstr "Preparar números, datas e abreviações para uma fala natural. A matemática e o LaTeX são tratados separadamente."
+
+msgid "Prepared speech text"
+msgstr "Texto preparado para fala"
 
 msgid "Preparing speech..."
 msgstr "Preparando o áudio..."
@@ -7690,6 +7738,9 @@ msgstr "Salvar seleção"
 msgid "Save settings"
 msgstr "Save settings"
 
+msgid "Save speech text"
+msgstr "Salvar texto falado"
+
 msgid "Save text sizes"
 msgstr "Salvar tamanhos de texto"
 
@@ -7755,6 +7806,9 @@ msgstr "Buscar legendas ou IDs de imagem…"
 
 msgid "Search colors"
 msgstr "Buscar cores"
+
+msgid "Search display or speech text…"
+msgstr "Buscar texto de exibição ou fala…"
 
 msgid "Search entries…"
 msgstr "Buscar entradas…"
@@ -8834,6 +8888,9 @@ msgstr "Cor do texto"
 msgid "Text color: {0}"
 msgstr "Cor do texto: {0}"
 
+msgid "Text normalization"
+msgstr "Normalização de texto"
+
 msgid "Text Normalization"
 msgstr "Normalização de texto"
 
@@ -9478,6 +9535,9 @@ msgstr "Tente o problema prático"
 
 msgid "Try this screen again"
 msgstr "Tente esta tela novamente"
+
+msgid "TTS Normalization"
+msgstr "Normalização de TTS"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Ajuste como o texto é simplificado nas configurações do Prompt de Leitura Fácil. Após a execução, cada bloco fica editável aqui na etapa de Leitura Fácil."

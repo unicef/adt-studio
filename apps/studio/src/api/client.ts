@@ -482,11 +482,27 @@ export interface TextCatalogEntry {
   text: string
 }
 
+export interface CoreTtsCatalogEntry {
+  id: string
+  displayText: string
+  speechText: string | null
+  changed: boolean
+  transformations: Array<"latex-to-speech" | "language-normalization">
+  status: "ready" | "failed"
+  failureReason?: string
+  generation: {
+    mode: "generated" | "manual" | "unchanged"
+    generatedAt: string
+    enabledTransformations: Array<"latex-to-speech" | "language-normalization">
+  }
+}
+
 export interface TextCatalogResponse {
   entries: TextCatalogEntry[]
   generatedAt: string
   version: number
   translations: Record<string, { entries: TextCatalogEntry[]; version: number }>
+  speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number }>
 }
 
 export interface TranslationEvaluationStatusResponse {
@@ -609,6 +625,8 @@ export interface LlmLogEntry {
     requestedPromptName?: string
     modelId: string
     cacheHit: boolean
+    /** Final status of this individual attempt. Older log entries may omit it. */
+    success?: boolean
     durationMs: number
     usage?: { inputTokens: number; outputTokens: number }
     validationErrors?: string[]
@@ -1679,6 +1697,20 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  updateCoreTtsEntry: (
+    label: string,
+    language: string,
+    entryId: string,
+    speechText: string,
+  ) =>
+    request<{ version: number; entry: CoreTtsCatalogEntry }>(
+      `/books/${label}/core-tts-catalog/${language}/${entryId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ speechText }),
+      },
+    ),
+
   getTranslationEvaluations: (label: string) =>
     request<TranslationEvaluationStatusesResponse>(`/books/${label}/evaluations/translations`),
 
@@ -1897,6 +1929,15 @@ export const api = {
 
   updateSpeechInstructions: (data: Record<string, string>) =>
     request<Record<string, string>>("/speech-config/instructions", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  getCoreTtsProfiles: () =>
+    request<Record<string, string>>("/speech-config/core-tts-profiles"),
+
+  updateCoreTtsProfiles: (data: Record<string, string>) =>
+    request<Record<string, string>>("/speech-config/core-tts-profiles", {
       method: "PUT",
       body: JSON.stringify(data),
     }),

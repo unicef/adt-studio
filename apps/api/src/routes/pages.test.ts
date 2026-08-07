@@ -1831,6 +1831,11 @@ describe("Page routes", () => {
       s.putNodeData("text-catalog-translation", `${bookLabel}_p1`, {
         locale: "es", entries: [{ id: "t1", text: "Hola" }],
       })
+      s.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
       s.putNodeData("easy-read", "book", {
         blocks: [{
           pageId: `${bookLabel}_p1`,
@@ -1865,6 +1870,7 @@ describe("Page routes", () => {
       s.markStepCompleted("text-catalog")
       s.markStepCompleted("easy-read")
       s.markStepCompleted("catalog-translation")
+      s.markStepCompleted("core-tts-catalog")
       s.markStepCompleted("image-translation")
       s.markStepCompleted("tts")
       s.markStepCompleted("word-timestamps")
@@ -1883,6 +1889,7 @@ describe("Page routes", () => {
       expect(s.getLatestNodeData("image-captioning", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
+      expect(s.getLatestNodeData("core-tts-catalog", "en")).toBeNull()
       expect(s.getLatestNodeData("easy-read", "book")).toBeNull()
       expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
@@ -1894,6 +1901,7 @@ describe("Page routes", () => {
         "text-catalog",
         "easy-read",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -1918,6 +1926,7 @@ describe("Page routes", () => {
       // text-catalog, translations, tts should be gone
       expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
+      expect(s.getLatestNodeData("core-tts-catalog", "en")).toBeNull()
       expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
       expect(s.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
@@ -1928,6 +1937,7 @@ describe("Page routes", () => {
       for (const step of [
         "text-catalog",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -2091,6 +2101,76 @@ describe("Page routes", () => {
       expect(check.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
       check.close()
       expectAllDownstreamCleared(tmpDir, label)
+    })
+
+    it("restores Core TTS text while preserving uploaded recordings", async () => {
+      const coreEntry = (id: string, speechText: string) => ({
+        id,
+        displayText: id,
+        speechText,
+        changed: true,
+        transformations: ["language-normalization"],
+        status: "ready",
+        generation: {
+          mode: "generated",
+          generatedAt: "2026-08-05T00:00:00.000Z",
+          enabledTransformations: ["language-normalization"],
+          sourceTextHash: "source",
+          contextHash: "context",
+        },
+      })
+      const storage = createBookStorage(label, tmpDir)
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [coreEntry("pg001_t001", "version one"), coreEntry("pg001_t002", "manual one")],
+        generatedAt: "2026-08-05T00:00:00.000Z",
+      })
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [coreEntry("pg001_t001", "version two"), coreEntry("pg001_t002", "manual two")],
+        generatedAt: "2026-08-05T01:00:00.000Z",
+      })
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "generated.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+            provider: "openai",
+          },
+          {
+            textId: "pg001_t002",
+            language: "en",
+            fileName: "uploaded.mp3",
+            voice: "uploaded",
+            model: "uploaded",
+            cached: false,
+            provider: "manual",
+          },
+        ],
+        generatedAt: "2026-08-05T01:00:00.000Z",
+      })
+      storage.close()
+
+      const response = await app.request(
+        `/api/books/${label}/versions/core-tts-catalog/en/restore`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ version: 1 }),
+        },
+      )
+      expect(response.status).toBe(200)
+
+      const check = createBookStorage(label, tmpDir)
+      expect(check.getCurrentNodeVersion("core-tts-catalog", "en")).toBe(1)
+      expect(
+        (check.getLatestNodeData("tts", "en")?.data as { entries: Array<{ textId: string }> }).entries,
+      ).toEqual([expect.objectContaining({ textId: "pg001_t002" })])
+      check.close()
     })
 
     it("rejects nodes that are not exposed by the version picker", async () => {

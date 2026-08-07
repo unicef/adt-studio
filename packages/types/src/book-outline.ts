@@ -67,6 +67,28 @@ export const BookOutlineOutput = z.object({
 })
 export type BookOutlineOutput = z.infer<typeof BookOutlineOutput>
 
+/**
+ * Compact LLM-only proposal. Exact titles, page references, sequential IDs,
+ * and parent IDs are derived from candidate IDs after generation so the model
+ * spends tokens only on semantic decisions.
+ */
+export const BookOutlineProposalEntry = z.object({
+  sourceCandidateIds: z.array(z.string().min(1)).min(1),
+  level: HeadingLevel,
+  kind: HeadingKind,
+  styleClusterId: z.string().min(1),
+  confidence: z.number().min(0).max(1),
+})
+export type BookOutlineProposalEntry = z.infer<typeof BookOutlineProposalEntry>
+
+export const BookOutlineProposalOutput = z.object({
+  /** Prompted to be concise; truncated deterministically after generation. */
+  reasoning: z.string(),
+  entries: z.array(BookOutlineProposalEntry),
+  styleClusters: z.array(BookOutlineStyleCluster),
+})
+export type BookOutlineProposalOutput = z.infer<typeof BookOutlineProposalOutput>
+
 /** A heading assignment currently present in a page-sectioning tree. */
 export const BookOutlineAppliedHeading = z.object({
   outlineEntryId: z.string(),

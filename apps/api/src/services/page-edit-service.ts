@@ -3,7 +3,7 @@ import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
-import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml } from "@adt/pipeline"
+import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, readTypography, buildTypographyCss, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, inspectOrderingActivityHtml, validateRetainedHeadingHierarchy } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema, DEFAULT_LLM_MODEL_ID } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -221,6 +221,7 @@ export async function reRenderPage(
       "text-catalog",
       "easy-read",
       "text-catalog-translation",
+      "core-tts-catalog",
       "tts",
       "tts-timestamps",
       "accessibility-assessment",
@@ -230,6 +231,7 @@ export async function reRenderPage(
       "text-catalog",
       "easy-read",
       "catalog-translation",
+      "core-tts-catalog",
       "image-translation",
       "tts",
       "word-timestamps",
@@ -361,6 +363,7 @@ export async function aiEditSection(
       if (!cleanedHtml.includes("<section")) {
         errors.push("Result must contain a <section> element")
       }
+      errors.push(...validateRetainedHeadingHierarchy(currentHtml, cleanedHtml))
       if (originalOrdering.isOrdering) {
         const ordering = inspectOrderingActivityHtml(cleanedHtml)
         if (!ordering.isOrdering) {

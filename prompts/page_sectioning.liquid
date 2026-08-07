@@ -42,6 +42,7 @@ Book ancestors that establish the current nesting context:
 
 - Represent every listed page entry as heading leaf content. Set `outline_entry_id`, `heading_level`, and `heading_style_cluster_id` exactly from the outline entry.
 - Levels 1, 2, and 3 use roles `chapter_title`, `section_heading`, and `subheading` respectively. Levels 4, 5, and 6 use the generic `heading` role plus their authoritative `heading_level`.
+- This role mapping is mechanical and overrides every later wording or visual-classification heuristic. For example, a table-of-contents entry whose text begins with “CAPÍTULO” still uses `section_heading` when its supplied outline level is 2; do not independently reclassify any listed entry.
 - If one outline title is split into adjacent visible leaves (for example chapter number + name), each heading leaf may reference the same outline entry, but preserve each leaf's exact visible text.
 - Do not attach outline metadata to captions, labels, body text, running headers, or decorative text.
 {% endif %}
@@ -62,6 +63,7 @@ Book ancestors that establish the current nesting context:
 - A table of contents may span multiple consecutive pages. Only its first page may show a heading such as "Table of Contents" or "Contents"; continuation pages often begin directly with the next chapter or unit.
 - Classify a page as `table_of_contents` when it predominantly contains repeated navigation-entry rows: a chapter/section/subsection title on the left, dot leaders or a wide alignment gap in the middle, and an Arabic or Roman page number at the right edge. This repeated row pattern is sufficient even when the TOC heading is absent.
 - Preserve every entry in reading order and preserve hierarchy containers/indentation visible in the page image. A continued TOC page remains one `table_of_contents` section; never downgrade it to `text_only`, `list`, or `other` merely because the heading is not repeated.
+- TOC navigation rows are list/link content, not semantic headings in the current document. Represent their titles and page numbers with ordinary `text` leaves inside the TOC list structure—never `chapter_title`, `section_heading`, `subheading`, or `heading`. Only the TOC page's own visible title (for example “Contents” or “Sumário”) may use a heading role.
 - Dot leaders between TOC titles and terminal page numbers are navigation formatting, NOT writable response lines. TOC continuation detection takes precedence over WRITABLE-PAGE PRECEDENCE below.
 
 ## Activity classification rules
@@ -79,6 +81,13 @@ Use these to disambiguate activity types:
   • All items must be arranged into ONE sequence → `activity_ordering`.
   • All items must be assigned to targets, total counts EQUAL → `activity_matching` (strict one-to-one).
   • The prompt asks for a truth-judgment ("Mark T or F", "Yes or no?", "Is this statement true?") → `activity_true_false`.
+- QUESTION-SET PRECEDENCE: A heading such as "Questions", "Exercises", "Comprehension", "Answer the following", or an equivalent in any language, followed by TWO OR MORE numbered/lettered interrogative prompts, IS an activity even when the printed page provides no answer lines, blanks, boxes, or options. The questions themselves establish that the learner must respond; do not require a separate instruction saying "write" or a visible response area. Classify the whole question set by the expected response:
+  • Questions asking for a word, short phrase, factual recall, comparison, definition, synonym, antonym, name, number, or other concise answer → `activity_fill_in_the_blank`. This applies even when the answer will be entered digitally and the source page leaves no printed blank.
+  • Questions asking the learner to explain, describe, justify, discuss, narrate, give an opinion, or otherwise compose sentences/paragraphs → `activity_open_ended_answer`.
+  • EXCEPTION — rhetorical or discussion-framing questions that expect NO recorded answer are NOT an activity; keep them as ordinary text. This covers a question the surrounding prose immediately answers itself, or one posed only to introduce a topic, spark curiosity, or open a class discussion (e.g. a heading like "Have you ever wondered why it rains?" followed by an explanation that answers it). Default to treating a question set as an activity when unsure — favor giving the learner a field to respond — and apply this exception ONLY when the questions clearly call for no written response.
+  • If concise-answer and free-composition questions are both present, split them into their respective activity sections when the mode permits splitting.
+  • A supporting picture does not turn the question set into `text_and_single_image` or `text_and_images`. Keep the relevant image inside the activity section.
+  Example: a picture of two elephants labelled A/B followed by a "Questions" heading and six numbered prompts such as "What is the name of the animals?", "What is the size of animal A compared to animal B?", and "What is the opposite of small?" is `activity_fill_in_the_blank`, not `text_and_single_image` and not `text_only`.
 - COMBINED-EVIDENCE FALLBACK: When neither `WRITABLE-PAGE PRECEDENCE` nor `SELECT-AMONG PRECEDENCE` fires on its own (e.g. the action-prompting instruction is in an unfamiliar script and you can't confidently match a trigger phrase), gather these activity signals from across the section:
   (a) An activity heading or banner — "Activity N", "Exercise N", "Actividad N", "Atividade N", "ක්‍රියාකාරකම N", or the equivalent in any language. A numbered or labeled exercise heading is a strong publisher-supplied signal. A banner or boxed label at the top of a content block containing a number counts as (a) regardless of whether you can fully read the script — the visual shape (banner + number) is the signal.
   (b) An action-prompting instruction — a sentence in instruction-position telling the learner to do something: write, mark, circle, underline, draw a line under/around/below, color, tick, choose, pick, compare, identify, decide, judge. If the script is unreadable and you cannot confidently identify the verb, do NOT count (b) — rely on (a) and (c) instead. Do not infer (b) from heading position alone.
@@ -123,7 +132,7 @@ Use these to disambiguate activity types:
   • activity_sorting — learner assigns ALL items to categories, and items OUTNUMBER categories (many-to-one)
   • activity_ordering — learner arranges ALL items into one ranked, chronological, numerical, or procedural sequence
   Hard constraint: if total items > total categories, it is activity_sorting, never activity_matching — regardless of what the instruction wording suggests.
-- If there are exactly two options (true/false, yes/no, correct/incorrect) → activity_true_false
+- If there are exactly two EXPLICIT TRUTH-JUDGMENT options (true/false, yes/no, correct/incorrect) → activity_true_false. Two ordinary answer choices or two compared images are not automatically true/false.
 - If the expected answer is FREE-FORM (legitimately varies between students — opinion, description, narrative, reflection, personal data, or teacher-dictated content) → activity_open_ended_answer
 - If the expected answer is DETERMINABLE (one correct value derivable from the prompt or page — unscrambling, counting, missing letters, labelling, copying from a passage, solving) → activity_fill_in_the_blank. This is the right pick whenever the writing area has a correct answer, regardless of whether the blank is inline in a sentence or a full-width line beside the prompt.
 - If a table grid has empty cells to complete → activity_fill_in_a_table
@@ -219,7 +228,10 @@ The correct partition is TWO sections. Labeling the whole page `activity_other` 
 - `activity_matching` — learner assigns ALL items to targets, total counts EQUAL (one-to-one).
 - `activity_sorting` — learner assigns ALL items to categories, items OUTNUMBER categories (many-to-one). Hard constraint: if total items > total categories, it is `activity_sorting`, never `activity_matching`.
 - `activity_ordering` — learner rearranges ALL items into one correct sequence; there are no category buckets.
-- Exactly two options (true/false, yes/no, correct/incorrect) → `activity_true_false`.
+- Exactly two explicit truth-judgment options (true/false, yes/no, correct/incorrect) → `activity_true_false`; two ordinary choices or compared images are not automatically true/false.
+- A "Questions"/"Exercises"/"Comprehension" heading followed by two or more numbered or lettered questions is always an activity, even with no printed response areas or explicit "write" instruction.
+- Concise-answer question sets (facts, names, comparisons, definitions, synonyms/antonyms, short phrases) → `activity_fill_in_the_blank`; sentence/paragraph composition → `activity_open_ended_answer`.
+- Supporting images remain inside the activity section and never justify downgrading it to `text_and_single_image`, `text_and_images`, or `text_only`.
 - No options, learner writes freely → `activity_open_ended_answer`.
 - Sentences with blanks → `activity_fill_in_the_blank`.
 - Grid table with empty cells → `activity_fill_in_a_table`.

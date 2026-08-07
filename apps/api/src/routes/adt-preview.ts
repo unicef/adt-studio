@@ -48,6 +48,8 @@ import {
   renderEditableActivityHtml,
   resolveEditableActivityImages,
   DEFAULT_QUIZ_PALETTE,
+  getCoreTtsCatalog,
+  getReadyCoreTtsEntries,
 } from "@adt/pipeline"
 
 // ---------------------------------------------------------------------------
@@ -245,6 +247,7 @@ function getWordTimestamps(
 function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
   speechConfig?: SpeechConfig,
+  readySpeechIds?: ReadonlySet<string>,
 ): Record<string, {
   timecodes: [null, {
     word_timestamps: Array<{ text: string; start: number; end: number }>
@@ -258,6 +261,7 @@ function buildRuntimeTimecodeMap(
 
   for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
     if (entry.words.length === 0) continue
+    if (readySpeechIds && !readySpeechIds.has(textId)) continue
     if (isTtsExcluded(textId, speechConfig)) continue
     map[textId] = {
       timecodes: [
@@ -464,7 +468,11 @@ function buildPreviewConfig(
   const ttsRow =
     storage.getLatestNodeData("tts", language) ??
     storage.getLatestNodeData("tts", legacyLanguage)
-  const hasTTS = ttsRow !== null
+  const readySpeechIds = new Set(
+    getReadyCoreTtsEntries(storage, language).map((entry) => entry.id),
+  )
+  const ttsData = ttsRow?.data as TTSOutput | undefined
+  const hasTTS = ttsData?.entries.some((entry) => readySpeechIds.has(entry.textId)) === true
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
 
   const quizRow = storage.getLatestNodeData("quiz-generation", "book")
@@ -797,6 +805,24 @@ export function createAdtPreviewRoutes(
     return c.body(JSON.stringify(textsMap))
   })
 
+  // /content/i18n/:lang/speech_texts.json — provider text kept separate from
+  // display translations. Failed conversions are intentionally absent.
+  app.get("/books/:label/adt-preview/content/i18n/:lang/speech_texts.json", (c) => {
+    const lang = normalizeLocale(c.req.param("lang"))
+    const speechTexts = withStorage(c.req.param("label"), (storage) => {
+      const map: Record<string, string> = {}
+      for (const entry of getCoreTtsCatalog(storage, lang)?.entries ?? []) {
+        if (entry.status === "ready" && entry.speechText !== null) {
+          map[entry.id] = entry.speechText
+        }
+      }
+      return map
+    })
+    setNoStoreHeaders(c)
+    c.header("Content-Type", "application/json")
+    return c.body(JSON.stringify(speechTexts))
+  })
+
   // /content/i18n/:lang/glossary.json — Glossary data
   app.get("/books/:label/adt-preview/content/i18n/:lang/glossary.json", async (c) => {
     const lang = c.req.param("lang")
@@ -855,9 +881,15 @@ export function createAdtPreviewRoutes(
         storage.getLatestNodeData("tts", lang) ??
         storage.getLatestNodeData("tts", legacyLang)
       const ttsData = ttsRow?.data as TTSOutput | undefined
+      const readySpeechIds = new Set(
+        (getCoreTtsCatalog(storage, lang)?.entries ?? [])
+          .filter((entry) => entry.status === "ready" && entry.speechText !== null)
+          .map((entry) => entry.id),
+      )
       const map: Record<string, string> = {}
       if (ttsData?.entries) {
         for (const entry of ttsData.entries) {
+          if (!readySpeechIds.has(entry.textId)) continue
           if (isTtsExcluded(entry.textId, speechConfig)) continue
           map[entry.textId] = entry.fileName
         }
@@ -875,9 +907,16 @@ export function createAdtPreviewRoutes(
     const safeLabel = parseBookLabel(c.req.param("label"))
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const timecodes = bookConfig.speech?.word_highlighting === true
-      ? withStorage(c.req.param("label"), (storage) =>
-          buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), bookConfig.speech)
-        )
+      ? withStorage(c.req.param("label"), (storage) => {
+          const readySpeechIds = new Set(
+            getReadyCoreTtsEntries(storage, lang).map((entry) => entry.id),
+          )
+          return buildRuntimeTimecodeMap(
+            getWordTimestamps(storage, lang),
+            bookConfig.speech,
+            readySpeechIds,
+          )
+        })
       : {}
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")

@@ -1,4 +1,5 @@
 import { parseDocument } from "htmlparser2"
+import { headingLevelForRole } from "@adt/types"
 
 interface HtmlNode {
   name?: string
@@ -13,12 +14,6 @@ interface LeafText {
   text_type: string
   heading_level?: number
 }
-
-const ROLE_HEADING_LEVEL = {
-  chapter_title: 1,
-  section_heading: 2,
-  subheading: 3,
-} as const
 
 const STANDARD_TEXT_SIZE_RE = /^text-(?:xs|sm|base|lg|xl|[2-9]xl)$/
 const ARBITRARY_TEXT_SIZE_RE = /^(?:length:|(?:calc|clamp|min|max|var)\(|-?(?:\d|\.\d)|.*(?:px|r?em|vw|vh|vmin|vmax|ch|ex|%).*|(?:xx?-small|small|medium|large|x-large|xx-large|xxx-large|smaller|larger)|.*font-?size.*)$/i
@@ -84,6 +79,38 @@ function hasClass(node: HtmlNode, className: string): boolean {
   return (node.attribs?.class?.split(/\s+/) ?? []).includes(className)
 }
 
+function headingSubtreeErrors(heading: HtmlNode, expectedLevel: number): string[] {
+  const expectedClass = `adt-h${expectedLevel}`
+  const errors: string[] = []
+  const scaleClasses = headingClasses(heading)
+
+  if (!hasClass(heading, expectedClass) || scaleClasses.length !== 1) {
+    errors.push(`Retained <h${expectedLevel}> must keep exactly one matching "${expectedClass}" class.`)
+  }
+
+  walk(heading, (node) => {
+    const classes = node.attribs?.class ?? ""
+    if (node !== heading && headingClasses(node).length > 0) {
+      errors.push("Book-wide adt-h* typography classes may only appear on the semantic heading element.")
+    }
+    if (classes.split(/\s+/).some(isFontSizeUtility)) {
+      errors.push(`Retained headings must not use a font-size utility: "${classes}".`)
+    }
+    if (/(?:^|;)\s*font(?:-size)?\s*:/i.test(node.attribs?.style ?? "")) {
+      errors.push("Retained headings must not use inline font/font-size; use the book-wide adt-h* class.")
+    }
+    if (node.name === "style" && /\bfont(?:-size)?\s*:/i.test(textContent(node))) {
+      errors.push("Retained headings must not define font/font-size rules in a nested <style> block.")
+    }
+  })
+
+  return [...new Set(errors)]
+}
+
+function hasStrictHeadingTypography(heading: HtmlNode, level: number): boolean {
+  return headingSubtreeErrors(heading, level).length === 0
+}
+
 export interface TypographyHierarchyOptions {
   /** Activity/overlay controls may size non-heading UI text independently. */
   allowNonHeadingFontSizes?: boolean
@@ -125,8 +152,7 @@ export function validateTypographyHierarchy(
   })
 
   for (const leaf of leafTexts) {
-    const roleLevel =
-      ROLE_HEADING_LEVEL[leaf.text_type as keyof typeof ROLE_HEADING_LEVEL]
+    const roleLevel = headingLevelForRole(leaf.text_type)
     const expectedLevel = leaf.heading_level ?? roleLevel
     const isLegacyHeading = leaf.text_type === "heading"
     if (!expectedLevel && !isLegacyHeading) continue
@@ -169,4 +195,75 @@ export function validateTypographyHierarchy(
   }
 
   return [...new Set(errors)]
+}
+
+/**
+ * Preserve the semantic level of headings that survive an HTML edit. Current
+ * adt-h* headings retain the full type-scale contract, while older headings
+ * keep their semantic tag without being migrated by an unrelated edit.
+ *
+ * Heading data IDs may live on the heading itself or on descendants when a
+ * heading is split into styled spans. IDs intentionally removed by the edit
+ * are omitted from validation so the existing AI-edit deletion policy remains
+ * unchanged.
+ */
+export function validateRetainedHeadingHierarchy(
+  originalHtml: string,
+  editedHtml: string,
+): string[] {
+  const originalRoot = parseDocument(originalHtml) as unknown as HtmlNode
+  const editedRoot = parseDocument(editedHtml) as unknown as HtmlNode
+  const errors: string[] = []
+  const seenIds = new Set<string>()
+
+  walk(originalRoot, (node) => {
+    const levelText = /^h([1-6])$/.exec(node.name ?? "")?.[1]
+    if (!levelText) return
+    const level = Number(levelText)
+    const originalIsStrict = hasStrictHeadingTypography(node, level)
+
+    walk(node, (descendant) => {
+      const textId = descendant.attribs?.["data-id"]
+      if (
+        !textId ||
+        seenIds.has(textId) ||
+        closestHeading(descendant) !== node ||
+        !findByDataId(editedRoot, textId)
+      ) {
+        return
+      }
+      seenIds.add(textId)
+      const editedHeading = closestHeading(findByDataId(editedRoot, textId))
+      if (!editedHeading) {
+        errors.push(`Heading "${textId}" must remain inside semantic <h${level}> markup.`)
+        return
+      }
+
+      if (editedHeading.name !== `h${level}`) {
+        errors.push(`Heading "${textId}" must remain <h${level}>; found <${editedHeading.name ?? "unknown"}>.`)
+        return
+      }
+
+      if (originalIsStrict) {
+        errors.push(...headingSubtreeErrors(editedHeading, level))
+        return
+      }
+
+      // Older renderings may predate the adt-h* type scale. Preserve their
+      // semantic tag without forcing an unrelated AI edit to migrate their
+      // typography. Adopting the correct class is fine; introducing a
+      // conflicting hierarchy class is not.
+      const scaleClasses = headingClasses(editedHeading)
+      if (scaleClasses.some((className) => className !== `adt-h${level}`)) {
+        errors.push(`Heading "${textId}" must not introduce an adt-h* class for a different level.`)
+      }
+    })
+  })
+
+  if (errors.length === 0) return []
+
+  return [
+    ...new Set(errors),
+    "AI editing must preserve each retained heading's semantic tag. Current adt-h* headings must also keep their matching book-wide class and size. Change heading rank in Sectioning or book-wide size in Fonts instead.",
+  ]
 }

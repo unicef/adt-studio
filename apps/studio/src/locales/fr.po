@@ -2450,6 +2450,9 @@ msgstr "Les récifs coralliens couvrent moins de 1 % du fond océanique, mais il
 msgid "Core Pipeline"
 msgstr "Pipeline principal"
 
+#~ msgid "Core TTS Profiles"
+#~ msgstr "Profils TTS principaux"
+
 msgid "Correct answer"
 msgstr "Bonne réponse"
 
@@ -2687,6 +2690,9 @@ msgstr "Par défaut (hériter)"
 
 msgid "Default (no text detected yet)"
 msgstr "Par défaut (aucun texte détecté pour l'instant)"
+
+msgid "Default guidance"
+msgstr "Consignes par défaut"
 
 #~ msgid "Default LLM"
 #~ msgstr "LLM par défaut"
@@ -3133,6 +3139,9 @@ msgstr "e.g. Kore"
 msgid "e.g. multiple-choice question about photosynthesis with 4 options"
 msgstr "ex. question à choix multiples sur la photosynthèse avec 4 options"
 
+msgid "e.g. sw, pt-br"
+msgstr "p. ex. sw, pt-BR"
+
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "ex., Une joyeuse famille de léopards dans une forêt verte, style livre pour enfants..."
 
@@ -3226,6 +3235,9 @@ msgstr "Modifier Invite"
 
 msgid "Edit Prompts"
 msgstr "Modifier Invites"
+
+msgid "Edit speech text"
+msgstr "Modifier le texte vocal"
 
 msgid "Edit spreads"
 msgstr "Modifier les fusions"
@@ -3340,6 +3352,9 @@ msgstr "Activez ou désactivez les révisions par liste de contrôle pour ce liv
 msgid "Enable reviewer validation"
 msgstr "Activer la validation du réviseur"
 
+msgid "Enable text normalization"
+msgstr "Activer la normalisation du texte"
+
 msgid "Enable translation review"
 msgstr "Activer la révision des traductions"
 
@@ -3387,6 +3402,9 @@ msgstr "Saisissez une plage de pages valide entre 1 et {pageCount}."
 
 msgid "Enter a valid project name"
 msgstr "Saisissez un nom de projet valide"
+
+msgid "Enter prepared speech text"
+msgstr "Saisissez le texte préparé pour la synthèse vocale"
 
 msgid "entries"
 msgstr "entrées"
@@ -4683,6 +4701,9 @@ msgstr "étiquetée {printedLabel}"
 msgid "Language"
 msgstr "Langue"
 
+msgid "Language profiles"
+msgstr "Profils linguistiques"
+
 msgid "Language-Specific Prompts"
 msgstr "Langue-Specific Invites"
 
@@ -4709,6 +4730,9 @@ msgstr "Dernière modification"
 
 #~ msgid "Last week"
 #~ msgstr "La semaine dernière"
+
+msgid "LaTeX converted"
+msgstr "LaTeX converti"
 
 msgid "Launch the app with"
 msgstr "Lancer l'application avec"
@@ -4887,6 +4911,9 @@ msgstr "Chargement des livres..."
 msgid "Loading catalog..."
 msgstr "Chargement du catalogue..."
 
+#~ msgid "Loading Core TTS profiles..."
+#~ msgstr "Chargement des profils TTS principaux..."
+
 msgid "Loading Easy Read..."
 msgstr "Chargement de Lecture Facile..."
 
@@ -4965,6 +4992,9 @@ msgstr "Chargement du catalogue de texte..."
 msgid "Loading text sizes…"
 msgstr "Chargement des tailles de texte…"
 
+msgid "Loading TTS normalization..."
+msgstr "Chargement de la normalisation TTS..."
+
 msgid "Loading validation..."
 msgstr "Chargement de la validation..."
 
@@ -5030,6 +5060,9 @@ msgstr "Manuel uniquement"
 
 msgid "Manual review"
 msgstr "Révision manuelle"
+
+msgid "Manually edited"
+msgstr "Modifié manuellement"
 
 msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
 msgstr "Beaucoup de livres imprimés sont conçus avec des pages en regard — des illustrations qui s'étendent sur deux pages, ou du texte qui coule sur une double page. Le mode double page fusionne chaque paire de pages en regard pour que le contenu ne soit pas séparé. La couverture reste seule, puis les pages sont appariées : 2+3, 4+5, etc."
@@ -5858,6 +5891,9 @@ msgstr "Aucun"
 msgid "Normalization"
 msgstr "Normalisation"
 
+msgid "Normalized"
+msgstr "Normalisé"
+
 msgid "Not compatible with Fixed Layout"
 msgstr "Incompatible avec la mise en page fixe"
 
@@ -6682,6 +6718,18 @@ msgstr "Précipitations"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Privilégiez les termes centraux au sujet du livre. Évitez le vocabulaire générique et les noms propres qui n'ont pas de signification au-delà de la page."
+
+msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "La préparation recherche d’abord la locale exacte, puis sa langue de base et enfin cette valeur par défaut. Les consignes sont incluses dans l’appel au LLM mis en cache et consultable."
+
+#~ msgid "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+#~ msgstr "Préparer les nombres, les dates, les abréviations et les autres textes ambigus pour une diction naturelle dans chaque langue."
+
+msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+msgstr "Préparer les nombres, les dates et les abréviations pour une diction naturelle. Les mathématiques et le LaTeX sont traités séparément."
+
+msgid "Prepared speech text"
+msgstr "Texte préparé pour la synthèse vocale"
 
 msgid "Preparing speech..."
 msgstr "Préparation de la synthèse vocale..."
@@ -7692,6 +7740,9 @@ msgstr "Enregistrer la sélection"
 msgid "Save settings"
 msgstr "Enregistrer les paramètres"
 
+msgid "Save speech text"
+msgstr "Enregistrer le texte vocal"
+
 msgid "Save text sizes"
 msgstr "Enregistrer les tailles de texte"
 
@@ -7757,6 +7808,9 @@ msgstr "Rechercher des légendes ou des ID d'image…"
 
 msgid "Search colors"
 msgstr "Rechercher des couleurs"
+
+msgid "Search display or speech text…"
+msgstr "Rechercher dans le texte affiché ou vocal…"
 
 msgid "Search entries…"
 msgstr "Rechercher des entrées…"
@@ -8836,6 +8890,9 @@ msgstr "Couleur du texte"
 msgid "Text color: {0}"
 msgstr "Texte couleur: {0}"
 
+msgid "Text normalization"
+msgstr "Normalisation du texte"
+
 msgid "Text Normalization"
 msgstr "Normalisation du texte"
 
@@ -9480,6 +9537,9 @@ msgstr "Essayez le problème pratique"
 
 msgid "Try this screen again"
 msgstr "Réessayer cet écran"
+
+msgid "TTS Normalization"
+msgstr "Normalisation TTS"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Ajustez la façon dont le texte est simplifié dans les paramètres de l'invite Lecture Facile. Après l'exécution, chaque bloc devient modifiable ici dans l'étape Lecture Facile."

@@ -73,6 +73,24 @@ async function fetchElevenLabsVoices(apiKey: string): Promise<ElevenLabsVoice[]>
 export function createSpeechConfigRoutes(configPath: string): Hono {
   const app = new Hono()
   const configDir = path.join(path.dirname(configPath), "config")
+  const StringMap = z.record(z.string(), z.string())
+
+  app.get("/speech-config/core-tts-profiles", (c) => {
+    const filePath = path.join(configDir, "core_tts_profiles.yaml")
+    if (!fs.existsSync(filePath)) return c.json({})
+    return c.json(
+      StringMap.parse(yaml.load(fs.readFileSync(filePath, "utf-8")) ?? {}),
+    )
+  })
+
+  app.put("/speech-config/core-tts-profiles", async (c) => {
+    const parsed = StringMap.safeParse(await c.req.json())
+    if (!parsed.success) return c.json({ error: parsed.error.message }, 400)
+    const filePath = path.join(configDir, "core_tts_profiles.yaml")
+    fs.mkdirSync(configDir, { recursive: true })
+    fs.writeFileSync(filePath, yaml.dump(parsed.data, { lineWidth: -1 }), "utf-8")
+    return c.json(parsed.data)
+  })
 
   // GET /speech-config/instructions — read speech_instructions.yaml
   app.get("/speech-config/instructions", (c) => {

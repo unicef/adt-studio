@@ -37,6 +37,8 @@ import {
   resolveVoice,
   generateSpeechFile,
   generateWordTimestamps,
+  getCoreTtsCatalog,
+  getReadyCoreTtsEntries,
   findAdjacentSpeechText,
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,
@@ -134,33 +136,16 @@ function getOutputLanguages(
 
 function getCatalogEntriesForLanguage(
   storage: ReturnType<typeof createBookStorage>,
-  sourceLanguage: string,
+  _sourceLanguage: string,
   language: string
 ): TextCatalogEntry[] {
   const normalizedLanguage = normalizeLocale(language)
-  const baseSource = getBaseLanguage(sourceLanguage)
-  const baseLanguage = getBaseLanguage(normalizedLanguage)
-
-  if (baseLanguage === baseSource) {
-    const catalogRow = storage.getLatestNodeData("text-catalog", "book")
-    if (!catalogRow) {
-      throw new HTTPException(404, { message: "Text catalog not found" })
-    }
-    return (catalogRow.data as TextCatalogOutput).entries
-  }
-
-  const legacyLanguage = normalizedLanguage.replace("-", "_")
-  const translatedRow =
-    storage.getLatestNodeData("text-catalog-translation", normalizedLanguage) ??
-    storage.getLatestNodeData("text-catalog-translation", legacyLanguage)
-
-  if (!translatedRow) {
+  if (!getCoreTtsCatalog(storage, normalizedLanguage)) {
     throw new HTTPException(404, {
-      message: `Translated text catalog not found for ${normalizedLanguage}`,
+      message: `Core TTS catalog not found for ${normalizedLanguage}`,
     })
   }
-
-  return (translatedRow.data as TextCatalogOutput).entries
+  return getReadyCoreTtsEntries(storage, normalizedLanguage)
 }
 
 function getLatestTtsEntries(
@@ -461,7 +446,16 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const resolvedBooksDir = path.resolve(booksDir)
     const mapEntries = (language: string, entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string }>) => {
       const audioDir = path.join(resolvedBooksDir, safeLabel, "audio", language)
-      return entries.map((e) => {
+      const storage = createBookStorage(safeLabel, booksDir)
+      let readyIds: Set<string>
+      try {
+        readyIds = new Set(
+          getReadyCoreTtsEntries(storage, language).map((entry) => entry.id),
+        )
+      } finally {
+        storage.close()
+      }
+      return entries.filter((entry) => readyIds.has(entry.textId)).map((e) => {
         let cacheKey: string | undefined
         try {
           cacheKey = fs.statSync(path.join(audioDir, e.fileName)).mtimeMs.toString(36)

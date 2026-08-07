@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
+import { CoreTtsConfig } from "./core-tts.js"
 import { ReviewerValidationConfig } from "./reviewer-validation-config.js"
 import { TranslationEvaluationConfig } from "./translation-evaluation.js"
 import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
@@ -316,6 +317,7 @@ export const AppConfig = z
     start_page: z.number().int().min(1).optional(),
     end_page: z.number().int().min(1).optional(),
     speech: SpeechConfig.optional(),
+    core_tts: CoreTtsConfig.optional(),
     styleguide: z.string().regex(/^[a-zA-Z0-9_-]+$/).optional(),
     default_settings: z
       .object({

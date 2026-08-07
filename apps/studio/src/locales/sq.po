@@ -2449,6 +2449,9 @@ msgstr "Rifet koraliere mbulojnë më pak se 1% të dyshemesë së oqeanit, por 
 msgid "Core Pipeline"
 msgstr "Zinxhiri Kryesor"
 
+#~ msgid "Core TTS Profiles"
+#~ msgstr "Profilet kryesore TTS"
+
 msgid "Correct answer"
 msgstr "Përgjigje e saktë"
 
@@ -2686,6 +2689,9 @@ msgstr "Parazgjedhje (trashëgo)"
 
 msgid "Default (no text detected yet)"
 msgstr "Parazgjedhje (ende nuk u zbulua tekst)"
+
+msgid "Default guidance"
+msgstr "Udhëzimi i parazgjedhur"
 
 #~ msgid "Default LLM"
 #~ msgstr "LLM-ja e parazgjedhur"
@@ -3132,6 +3138,9 @@ msgstr "p.sh. Kore"
 msgid "e.g. multiple-choice question about photosynthesis with 4 options"
 msgstr "p.sh. pyetje me zgjedhje të shumëfishtë për fotosintezën me 4 opsione"
 
+msgid "e.g. sw, pt-br"
+msgstr "p.sh. sw, pt-BR"
+
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "p.sh., Një familje leopardësh të gëzuar në një pyll të gjelbër, stil libri për fëmijë..."
 
@@ -3225,6 +3234,9 @@ msgstr "Redakto Prompt-in"
 
 msgid "Edit Prompts"
 msgstr "Redakto Prompt-et"
+
+msgid "Edit speech text"
+msgstr "Redakto tekstin e të folurit"
 
 msgid "Edit spreads"
 msgstr "Redakto faqet e përbashkëta"
@@ -3339,6 +3351,9 @@ msgstr "Aktivizo ose çaktivizo rishikimet e listës së kontrollit të bëra ng
 msgid "Enable reviewer validation"
 msgstr "Aktivizo validimin e rishikuesit"
 
+msgid "Enable text normalization"
+msgstr "Aktivizo normalizimin e tekstit"
+
 msgid "Enable translation review"
 msgstr "Aktivizo rishikimin e përkthimit"
 
@@ -3386,6 +3401,9 @@ msgstr "Vendosni një interval faqesh të vlefshëm nga 1 deri te {pageCount}."
 
 msgid "Enter a valid project name"
 msgstr "Shkruani një emër të vlefshëm projekti"
+
+msgid "Enter prepared speech text"
+msgstr "Shkruani tekstin e përgatitur për të folur"
 
 msgid "entries"
 msgstr "hyrje"
@@ -4682,6 +4700,9 @@ msgstr "etiketuar {printedLabel}"
 msgid "Language"
 msgstr "Gjuhë"
 
+msgid "Language profiles"
+msgstr "Profilet e gjuhëve"
+
 msgid "Language-Specific Prompts"
 msgstr "Nxitje specifike për gjuhën"
 
@@ -4708,6 +4729,9 @@ msgstr "Modifikuar së fundmi"
 
 #~ msgid "Last week"
 #~ msgstr "Java e kaluar"
+
+msgid "LaTeX converted"
+msgstr "LaTeX i konvertuar"
 
 msgid "Launch the app with"
 msgstr "Hap aplikacionin me"
@@ -4886,6 +4910,9 @@ msgstr "Duke ngarkuar librat..."
 msgid "Loading catalog..."
 msgstr "Duke ngarkuar katalogun..."
 
+#~ msgid "Loading Core TTS profiles..."
+#~ msgstr "Po ngarkohen profilet kryesore TTS..."
+
 msgid "Loading Easy Read..."
 msgstr "Duke ngarkuar Leximin e Lehtë..."
 
@@ -4964,6 +4991,9 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
 
+msgid "Loading TTS normalization..."
+msgstr "Po ngarkohet normalizimi TTS..."
+
 msgid "Loading validation..."
 msgstr "Duke ngarkuar vërtetimin..."
 
@@ -5029,6 +5059,9 @@ msgstr "Vetëm manual"
 
 msgid "Manual review"
 msgstr "Rishikim manual"
+
+msgid "Manually edited"
+msgstr "Redaktuar manualisht"
 
 msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
 msgstr "Shumë libra të shtypur janë projektuar me faqet ballë për ballë në mendje - ilustrime që shtrihen në dy faqe, ose tekst që rrjedh nëpër një hapje. Modaliteti i hapjes bashkon çdo çift faqesh ballë për ballë që përmbajtja të mos ndahet. Kapaku qëndron i pavarur, pastaj faqet çiftohen: 2+3, 4+5, etj."
@@ -5857,6 +5890,9 @@ msgstr "Asnjë"
 msgid "Normalization"
 msgstr "Normalizimi"
 
+msgid "Normalized"
+msgstr "Normalizuar"
+
 msgid "Not compatible with Fixed Layout"
 msgstr "I papajtueshëm me Paraqitjen e fiksuar"
 
@@ -6681,6 +6717,18 @@ msgstr "Reshje"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjeneral dhe emra të përveçëm që nuk bartin kuptim përtej faqes."
+
+msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "Përgatitja zgjedh fillimisht lokalin e saktë, pastaj gjuhën bazë dhe në fund këtë parazgjedhje. Udhëzimi përfshihet në thirrjen LLM të ruajtur në memorie dhe të inspektueshme."
+
+#~ msgid "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+#~ msgstr "Përgatit numrat, datat, shkurtesat dhe tekste të tjera të paqarta për shqiptim natyral në secilën gjuhë."
+
+msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+msgstr "Përgatit numrat, datat dhe shkurtesat për shqiptim natyral. Matematika dhe LaTeX-i trajtohen veçmas."
+
+msgid "Prepared speech text"
+msgstr "Teksti i përgatitur për të folur"
 
 msgid "Preparing speech..."
 msgstr "Duke përgatitur audion..."
@@ -7691,6 +7739,9 @@ msgstr "Ruaj zgjedhjen"
 msgid "Save settings"
 msgstr "Ruaj cilësimet"
 
+msgid "Save speech text"
+msgstr "Ruaj tekstin e të folurit"
+
 msgid "Save text sizes"
 msgstr "Ruaj madhësitë e tekstit"
 
@@ -7756,6 +7807,9 @@ msgstr "Kërko tituj ose ID imazhesh…"
 
 msgid "Search colors"
 msgstr "Kërko ngjyra"
+
+msgid "Search display or speech text…"
+msgstr "Kërko tekstin e shfaqur ose të folur…"
 
 msgid "Search entries…"
 msgstr "Kërko regjistrime…"
@@ -8835,6 +8889,9 @@ msgstr "Ngjyra e tekstit"
 msgid "Text color: {0}"
 msgstr "Ngjyra e tekstit: {0}"
 
+msgid "Text normalization"
+msgstr "Normalizimi i tekstit"
+
 msgid "Text Normalization"
 msgstr "Normalizimi i tekstit"
 
@@ -9479,6 +9536,9 @@ msgstr "Provo problemin praktik"
 
 msgid "Try this screen again"
 msgstr "Provo këtë ekran sërish"
+
+msgid "TTS Normalization"
+msgstr "Normalizimi TTS"
 
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Rregullo se si thjeshtohet teksti në cilësimet e Udhëzimit Easy Read. Pas ekzekutimit, çdo bllok bëhet i redaktueshëm këtu në hapin Easy Read."

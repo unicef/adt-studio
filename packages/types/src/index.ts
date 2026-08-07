@@ -227,6 +227,8 @@ export {
   BookOutlineStyleCluster,
   BookOutlineEntry,
   BookOutlineOutput,
+  BookOutlineProposalEntry,
+  BookOutlineProposalOutput,
   BookOutlineAppliedHeading,
   BookOutlineAuditResponse,
 } from "./book-outline.js"
@@ -295,6 +297,17 @@ export {
   TextCatalogCategory,
   getTextCatalogCategory,
 } from "./text-catalog.js"
+
+export {
+  CoreTtsTransformationKind,
+  CoreTtsEntryStatus,
+  CoreTtsGenerationMode,
+  CoreTtsGenerationMetadata,
+  CoreTtsCatalogEntry,
+  CoreTtsCatalogOutput,
+  CoreTtsConfig,
+  containsLatexSpeechCandidate,
+} from "./core-tts.js"
 
 export {
   EasyReadEntry,

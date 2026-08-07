@@ -9,7 +9,7 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 - Nest the content container inside: `container mx-auto max-w-5xl bg-white rounded-lg px-24 max-lg:px-12 max-sm:px-6 pt-12 pb-12` with `id="content"`
 
 ### Common Styling
-- Primary heading (H1): `text-5xl font-bold mb-4 text-amber-700`
+- Headings: use the semantic `<hN class="adt-hN">` mapping from the shared hierarchy rules, then add `font-bold mb-4 text-amber-700` as appropriate
 - Instruction line: `text-xl mb-8` with icon `<i class="fas fa-pen-to-square text-blue-700 mr-2"></i>`
 - Images: When pixel dimensions are provided, compute each image's width as a percentage of the widest image and set `style="width:X%"`, plus `class="h-auto rounded-lg"`. Do NOT use `w-full` or fixed pixel widths.
 
@@ -47,16 +47,14 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 - Multiple inputs per row: Use flex layouts with proper spacing
 
 **Title and instruction pattern:**
-- Title with background: `text-2xl font-bold mb-4 bg-green-200 -mr-4 p-4 pr-8 rounded-lg`
+- A title that is a heading must use its matching `adt-hN` class; add `font-bold mb-4 bg-green-200 -mr-4 p-4 pr-8 rounded-lg` for the background treatment
 - Instruction with icon: `<i class="fas fa-pen-to-square text-blue-700 mr-2"></i>` + instruction text
 
 Example fill in table activity:
 ```html
 <section data-section-type="activity_fill_in_a_table" data-section-id="SECTION_ID_FROM_INPUT" class="max-w-6xl mx-auto">
   <div class="flex items-center justify-center mb-4">
-    <h1 class="text-2xl font-bold mb-4 bg-green-200 -mr-4 p-4 pr-8 rounded-lg" data-id="text-10-0">
-      Form title here
-    </h1>
+    <!-- If the input has a heading-role title, render it here with its authoritative hN/adt-hN pair and add font-bold mb-4 bg-green-200 -mr-4 p-4 pr-8 rounded-lg. -->
     <img class="rounded-full" src="images/image.png" alt="" data-id="img-10-0">
   </div>
 
