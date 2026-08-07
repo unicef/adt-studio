@@ -91,7 +91,29 @@ const RuntimePages = z.array(z.object({
   ),
   href: z.string().min(1),
   page_number: z.number().int().positive().optional(),
-}).passthrough())
+}).passthrough()).superRefine((pages, ctx) => {
+  const sectionIds = new Set<string>()
+  const hrefs = new Set<string>()
+  for (let index = 0; index < pages.length; index++) {
+    const page = pages[index]
+    if (sectionIds.has(page.section_id)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [index, "section_id"],
+        message: `Duplicate page section id: ${page.section_id}`,
+      })
+    }
+    if (hrefs.has(page.href)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [index, "href"],
+        message: `Duplicate page href: ${page.href}`,
+      })
+    }
+    sectionIds.add(page.section_id)
+    hrefs.add(page.href)
+  }
+})
 
 function isSafeArchivePath(name: string): boolean {
   if (name.length === 0 || name.includes("\0") || name.includes("\\") || name.startsWith("/")) {

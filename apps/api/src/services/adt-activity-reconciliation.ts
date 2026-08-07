@@ -66,15 +66,20 @@ export function analyzeImportedActivities(
   options: { includePreviews?: boolean } = {},
 ): AdtImportedActivityReview {
   const declarations = bundle.manifest.editingContract?.activities
-  const hasInventory = declarations !== undefined
+  const nonActivityDeclarations = bundle.manifest.editingContract?.nonActivities
+  const hasInventory = declarations !== undefined || nonActivityDeclarations !== undefined
   const declaredBySection = new Map(
     (declarations ?? []).map((activity) => [activity.sectionId, activity]),
+  )
+  const nonActivityBySection = new Map(
+    (nonActivityDeclarations ?? []).map((entry) => [entry.sectionId, entry]),
   )
   const seen = new Set<string>()
   const items: AdtImportedActivityReviewItem[] = []
 
   for (const page of bundle.pages) {
     const declared = declaredBySection.get(page.section_id) ?? null
+    const declaredNonActivity = nonActivityBySection.get(page.section_id) ?? null
     if (declared) seen.add(declared.sectionId)
     const inspection = inspectImportedActivity(
       bundle.pageHtml[page.href] ?? "",
@@ -82,20 +87,29 @@ export function analyzeImportedActivities(
       { allowSectionDataId: /^(?:qz|quiz)[-_]?\d*/i.test(page.section_id) },
     )
     const detectedType = inspection.isActivity ? inspection.sectionType : null
-    if (!declared && !detectedType && inspection.signals.length === 0) continue
+    if (declaredNonActivity && !detectedType && declaredNonActivity.href === page.href) continue
+    if (!declared && !declaredNonActivity && !detectedType && inspection.signals.length === 0) continue
 
     const reasons: AdtActivityReviewReason[] = []
-    if (hasInventory && detectedType && !declared) reasons.push("missing-declaration")
+    if (hasInventory && detectedType && !declared && !declaredNonActivity) {
+      reasons.push("missing-declaration")
+    }
+    if (declaredNonActivity && (
+      detectedType
+      || declaredNonActivity.href !== page.href
+    )) reasons.push("type-mismatch")
     if (declared && !detectedType) reasons.push("missing-marker")
     if (declared && detectedType && declared.type !== detectedType) reasons.push("type-mismatch")
-    if (!detectedType && inspection.signals.length > 0) reasons.push("interactive-unmarked")
+    if (!declaredNonActivity && !detectedType && inspection.signals.length > 0) {
+      reasons.push("interactive-unmarked")
+    }
     if (inspection.validationErrors.length > 0) reasons.push("invalid-structure")
 
     const type = suggestedType(declared?.type ?? null, detectedType)
     items.push({
       sectionId: page.section_id,
       href: page.href,
-      declaredType: declared?.type ?? null,
+      declaredType: declaredNonActivity ? "content" : declared?.type ?? null,
       detectedType,
       suggestedType: type,
       kind: activityKind(type, Boolean(detectedType || declared)),

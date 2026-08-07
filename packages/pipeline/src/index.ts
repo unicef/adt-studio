@@ -181,6 +181,7 @@ export {
   inspectImportedActivity,
   restoreImportedCustomActivityScripts,
   KNOWN_ACTIVITY_SECTION_TYPES,
+  ACTIVITY_CLASSIFICATION_GUIDE,
   type ImportedActivityInspection,
   type ImportedActivitySignal,
 } from "./imported-activity.js"

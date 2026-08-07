@@ -3,19 +3,22 @@ import { DomUtils, parseDocument } from "htmlparser2"
 import { supportsEditableActivity } from "./extract-editable-activity.js"
 import { validateActivityStructure } from "./validate-activity-structure.js"
 
-export const KNOWN_ACTIVITY_SECTION_TYPES = [
-  "activity_quiz",
-  "activity_multiple_choice",
-  "activity_multi_select",
-  "activity_true_false",
-  "activity_fill_in_the_blank",
-  "activity_fill_in_a_table",
-  "activity_open_ended_answer",
-  "activity_underline_text",
-  "activity_matching",
-  "activity_sorting",
-  "activity_other",
+export const ACTIVITY_CLASSIFICATION_GUIDE = [
+  { type: "activity_quiz", description: "A generated comprehension quiz page." },
+  { type: "activity_multiple_choice", description: "Choose exactly one answer from several options." },
+  { type: "activity_multi_select", description: "Choose more than one correct answer." },
+  { type: "activity_true_false", description: "Decide whether a statement is true or false." },
+  { type: "activity_fill_in_the_blank", description: "Enter a missing word or short phrase." },
+  { type: "activity_fill_in_a_table", description: "Complete missing cells in a table." },
+  { type: "activity_open_ended_answer", description: "Write a free-form response." },
+  { type: "activity_underline_text", description: "Select or underline part of a text." },
+  { type: "activity_matching", description: "Pair related items from two groups." },
+  { type: "activity_sorting", description: "Arrange items into an order or categories." },
+  { type: "activity_other", description: "A supported Studio activity that fits none of the specific types." },
 ] as const
+
+export const KNOWN_ACTIVITY_SECTION_TYPES = ACTIVITY_CLASSIFICATION_GUIDE
+  .map(({ type }) => type)
 
 export type ImportedActivitySignal =
   | "interactive-control"

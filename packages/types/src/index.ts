@@ -104,6 +104,7 @@ export {
   ADT_EDITING_CONTRACT_MIN_VERSION,
   AdtActivitySectionType,
   AdtActivityDeclaration,
+  AdtNonActivityDeclaration,
   AdtActivityImportDecision,
   AdtBundleTocEntry,
   AdtBundleToc,

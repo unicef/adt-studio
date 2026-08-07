@@ -13,7 +13,11 @@ const HASH = "a".repeat(64)
 
 function bundle(
   html: string,
-  options: { version?: number; activities?: Array<{ sectionId: string; href: string; type: string }> } = {},
+  options: {
+    version?: number
+    activities?: Array<{ sectionId: string; href: string; type: string }>
+    nonActivities?: Array<{ sectionId: string; href: string }>
+  } = {},
 ): ReadAdtBundle {
   const editingContract: Record<string, unknown> = {
     version: options.version ?? 2,
@@ -21,6 +25,7 @@ function bundle(
     pageDataIds: { "index.html": ["text-1"] },
   }
   if (options.activities !== undefined) editingContract.activities = options.activities
+  if (options.nonActivities !== undefined) editingContract.nonActivities = options.nonActivities
   return {
     root: "",
     sourceFormat: "round-trip",
@@ -117,5 +122,42 @@ describe("ADT activity reconciliation", () => {
       sectionId: "pg001_sec001",
       type: null,
     }]).get("pg001_sec001")).toBe("content")
+  })
+
+  it("accepts explicit AI classifications for custom activities and interactive non-activities", () => {
+    const customHtml = page(
+      "activity_custom_crossword",
+      `<p data-id="text-1">Crossword</p><button aria-label="Check">Check</button>
+       <div data-activity-status role="status" aria-live="polite"></div>`,
+    ).replace(
+      `data-section-type="activity_custom_crossword"`,
+      `data-section-type="activity_custom_crossword" aria-label="Crossword"`,
+    )
+    const custom = analyzeImportedActivities(bundle(customHtml, {
+      activities: [{
+        sectionId: "pg001_sec001",
+        href: "index.html",
+        type: "activity_custom_crossword",
+      }],
+      nonActivities: [],
+    }))
+    expect(custom).toMatchObject({
+      needsReviewCount: 0,
+      activityCount: 1,
+      items: [expect.objectContaining({ status: "confirmed", kind: "custom" })],
+    })
+
+    const interactiveContent = analyzeImportedActivities(bundle(page(
+      "content",
+      `<p data-id="text-1">Search the page</p><input type="search" aria-label="Search" />`,
+    ), {
+      activities: [],
+      nonActivities: [{ sectionId: "pg001_sec001", href: "index.html" }],
+    }))
+    expect(interactiveContent).toMatchObject({
+      needsReviewCount: 0,
+      activityCount: 0,
+      items: [],
+    })
   })
 })

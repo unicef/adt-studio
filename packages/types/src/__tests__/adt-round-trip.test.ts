@@ -164,10 +164,18 @@ describe("ADT round-trip archive schemas", () => {
       formatVersion: 1,
       editingContract: {
         version: 2,
+        pageOrder: [
+          { sectionId: "pg001_sec001", href: "index.html" },
+          { sectionId: "pg002_sec001", href: "pg002_sec001.html" },
+        ],
         activities: [{
           sectionId: "pg001_sec001",
           href: "index.html",
           type: "activity_multiple_choice",
+        }],
+        nonActivities: [{
+          sectionId: "pg002_sec001",
+          href: "pg002_sec001.html",
         }],
       },
       book: { label: "sample-book" },
@@ -193,6 +201,28 @@ describe("ADT round-trip archive schemas", () => {
             href: "other.html",
             type: "activity_custom_crossword",
           },
+        ],
+      },
+    }).success).toBe(false)
+
+    expect(AdtRoundTripManifest.safeParse({
+      ...manifest,
+      editingContract: {
+        ...manifest.editingContract,
+        nonActivities: [{
+          sectionId: "pg001_sec001",
+          href: "index.html",
+        }],
+      },
+    }).success).toBe(false)
+
+    expect(AdtRoundTripManifest.safeParse({
+      ...manifest,
+      editingContract: {
+        ...manifest.editingContract,
+        pageOrder: [
+          ...manifest.editingContract.pageOrder,
+          { sectionId: "pg003_sec001", href: "index.html" },
         ],
       },
     }).success).toBe(false)

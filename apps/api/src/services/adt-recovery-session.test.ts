@@ -169,6 +169,67 @@ function makeCurrentBundleWithLegacyQuizMarkup(): Buffer {
   }))
 }
 
+function makeCurrentBundleWithExternallyAddedPage(): Buffer {
+  const sourceTexts = {
+    pg001_t001: "Original page",
+    pg002_t001: "Page added outside Studio",
+  }
+  const pageOneHtml = `<!doctype html><html><body><main id="content">
+    <section data-section-id="pg001_sec001" data-section-type="content">
+      <p data-id="pg001_t001">Original page</p>
+    </section>
+  </main></body></html>`
+  const pageTwoHtml = `<!doctype html><html><body><main id="content">
+    <section data-section-id="pg002_sec001" data-section-type="content">
+      <p data-id="pg002_t001">Page added outside Studio</p>
+    </section>
+  </main></body></html>`
+  return Buffer.from(zipSync({
+    "manifest.json": json({
+      formatVersion: 1,
+      editingContract: {
+        version: 2,
+        pageOrder: [
+          { sectionId: "pg001_sec001", href: "index.html" },
+          { sectionId: "pg002_sec001", href: "pg002_sec001.html" },
+        ],
+        pageDataIds: {
+          "index.html": ["pg001_t001"],
+          "pg002_sec001.html": ["pg002_t001"],
+        },
+        activities: [],
+        nonActivities: [],
+      },
+      book: { label: "expanded-book", title: "Expanded Book" },
+      languages: { source: "en", output: ["en"] },
+      baselines: { glossary: null, tocGeneration: null, textCatalogTranslations: {} },
+      textCatalog: { version: 1, idFingerprint: sha256(Object.keys(sourceTexts)) },
+      translatableText: { idFingerprint: sha256(Object.keys(sourceTexts)) },
+      frozen: {
+        sourceTextsFingerprint: sha256(sourceTexts),
+        // A new page deliberately has no frozen fingerprint: it did not exist
+        // in the Studio export that the external editor started from.
+        pageHtmlFingerprints: {
+          "index.html": createHash("sha256").update(pageOneHtml).digest("hex"),
+        },
+      },
+    }),
+    "assets/config.json": json({
+      title: "Expanded Book",
+      languages: { available: ["en"], default: "en" },
+      features: {},
+    }),
+    "content/pages.json": json([
+      { section_id: "pg001_sec001", href: "index.html", page_number: 1 },
+      { section_id: "pg002_sec001", href: "pg002_sec001.html", page_number: 2 },
+    ]),
+    "content/toc.json": json([]),
+    "content/i18n/en/texts.json": json(sourceTexts),
+    "index.html": strToU8(pageOneHtml),
+    "pg002_sec001.html": strToU8(pageTwoHtml),
+  }))
+}
+
 afterEach(() => {
   for (const root of temporaryRoots.splice(0)) fs.rmSync(root, { recursive: true, force: true })
 })
@@ -177,6 +238,25 @@ describe("ADT recovery workspace", () => {
   it("accepts quiz pages emitted before Studio added data-section-id", () => {
     expect(assessAdtImportCompatibility(makeCurrentBundleWithLegacyQuizMarkup()))
       .toEqual({ supported: true, issues: [] })
+  })
+
+  it("imports pages added outside Studio when every page index is updated", () => {
+    const bundle = makeCurrentBundleWithExternallyAddedPage()
+    expect(assessAdtImportCompatibility(bundle)).toEqual({ supported: true, issues: [] })
+
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-added-page-"))
+    temporaryRoots.push(booksDir)
+    const session = createAdtRecoverySession(bundle, booksDir, "expanded-book.zip")
+
+    expect(session).toMatchObject({
+      title: "Expanded Book",
+      pageCount: 2,
+      recoveredHtmlEntryCount: 2,
+    })
+    expect(createBookStorage(session.label, booksDir).getPages()).toMatchObject([
+      { pageId: "pg001", pageNumber: 1 },
+      { pageId: "pg002", pageNumber: 2 },
+    ])
   })
 
   it("rejects folders outside the canonical ADT bundle root", () => {

@@ -200,6 +200,20 @@ export function assessAdtImportCompatibility(
   )) {
     issues.push({ code: "changed-page-structure", pageHref: "content/pages.json" })
   }
+  const declaredDataIds = bundle.manifest.editingContract?.pageDataIds
+  if (bundle.manifest.editingContract?.version === ADT_EDITING_CONTRACT_VERSION && declaredOrder) {
+    const declaredHrefs = new Set(declaredOrder.map((page) => page.href))
+    for (const page of declaredOrder) {
+      if (!Object.prototype.hasOwnProperty.call(declaredDataIds ?? {}, page.href)) {
+        issues.push({ code: "changed-page-structure", pageHref: page.href })
+      }
+    }
+    for (const href of Object.keys(declaredDataIds ?? {})) {
+      if (!declaredHrefs.has(href)) {
+        issues.push({ code: "changed-page-structure", pageHref: href })
+      }
+    }
+  }
   for (const page of bundle.pages) {
     const generatedQuizPage = /^(?:qz|quiz)[-_]?\d*/i.test(page.section_id)
     if (path.posix.dirname(page.href) !== ".") {
@@ -242,7 +256,7 @@ export function assessAdtImportCompatibility(
           ...(issue.detail ? { detail: issue.detail } : {}),
         })))
     }
-    const declaredIds = bundle.manifest.editingContract?.pageDataIds?.[page.href]
+    const declaredIds = declaredDataIds?.[page.href]
     const legacyQuizContract = generatedQuizPage && declaredIds?.length === 0
     if (declaredIds && !legacyQuizContract && (
       declaredIds.length !== inspection.dataIds.length

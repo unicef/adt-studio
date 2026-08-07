@@ -27,6 +27,14 @@ export const AdtActivityDeclaration = z.object({
 }).strict()
 export type AdtActivityDeclaration = z.infer<typeof AdtActivityDeclaration>
 
+/** Explicit negative classification for interactive content that is not a
+ * learning activity. This prevents heuristic import review from asking again. */
+export const AdtNonActivityDeclaration = z.object({
+  sectionId: z.string().min(1),
+  href: z.string().min(1),
+}).strict()
+export type AdtNonActivityDeclaration = z.infer<typeof AdtNonActivityDeclaration>
+
 /** User classification supplied when imported HTML is ambiguous. A null type
  * explicitly confirms that the section is not an activity. */
 export const AdtActivityImportDecision = z.object({
@@ -116,6 +124,8 @@ export const AdtRoundTripManifest = z.object({
     pageDataIds: z.record(z.string().min(1), z.array(z.string().min(1))).optional(),
     /** Added in editing contract v2. Optional so v1 exports remain importable. */
     activities: z.array(AdtActivityDeclaration).optional(),
+    /** Deliberately interactive non-activities confirmed by a human or agent. */
+    nonActivities: z.array(AdtNonActivityDeclaration).optional(),
   }).strict().optional(),
   book: z.object({
     label: BookLabel,
@@ -156,18 +166,64 @@ export const AdtRoundTripManifest = z.object({
       message: "Output languages must be unique",
     })
   }
-  const activities = manifest.editingContract?.activities ?? []
-  const sectionIds = new Set<string>()
-  for (let index = 0; index < activities.length; index++) {
-    const sectionId = activities[index].sectionId
-    if (sectionIds.has(sectionId)) {
+  const contract = manifest.editingContract
+  const pageOrder = contract?.pageOrder ?? []
+  const pageBySection = new Map<string, string>()
+  const pageHrefs = new Set<string>()
+  for (let index = 0; index < pageOrder.length; index++) {
+    const page = pageOrder[index]
+    if (pageBySection.has(page.sectionId)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["editingContract", "activities", index, "sectionId"],
-        message: `Duplicate activity section id: ${sectionId}`,
+        path: ["editingContract", "pageOrder", index, "sectionId"],
+        message: `Duplicate page section id: ${page.sectionId}`,
       })
     }
-    sectionIds.add(sectionId)
+    if (pageHrefs.has(page.href)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["editingContract", "pageOrder", index, "href"],
+        message: `Duplicate page href: ${page.href}`,
+      })
+    }
+    pageBySection.set(page.sectionId, page.href)
+    pageHrefs.add(page.href)
+  }
+
+  const classifiedSections = new Map<string, "activity" | "non-activity">()
+  const classifications = [
+    ...(contract?.activities ?? []).map((entry, index) => ({
+      entry,
+      index,
+      key: "activities" as const,
+      classification: "activity" as const,
+    })),
+    ...(contract?.nonActivities ?? []).map((entry, index) => ({
+      entry,
+      index,
+      key: "nonActivities" as const,
+      classification: "non-activity" as const,
+    })),
+  ]
+  for (const { entry, index, key, classification } of classifications) {
+    const existing = classifiedSections.get(entry.sectionId)
+    if (existing) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["editingContract", key, index, "sectionId"],
+        message: existing === classification
+          ? `Duplicate ${classification} section id: ${entry.sectionId}`
+          : `Section cannot be both an activity and a non-activity: ${entry.sectionId}`,
+      })
+    }
+    classifiedSections.set(entry.sectionId, classification)
+    if (pageOrder.length > 0 && pageBySection.get(entry.sectionId) !== entry.href) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["editingContract", key, index, "href"],
+        message: `Classification does not match pageOrder: ${entry.sectionId}`,
+      })
+    }
   }
 })
 export type AdtRoundTripManifest = z.infer<typeof AdtRoundTripManifest>
