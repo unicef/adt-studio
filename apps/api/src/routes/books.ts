@@ -11,6 +11,7 @@ import {
   BookMetadata,
   LLMModelId,
   SpeechGenerationModelId,
+  AdtActivityImportDecision,
 } from "@adt/types"
 import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
@@ -62,6 +63,7 @@ import {
   AdtProjectImportError,
   importAdtProject,
 } from "../services/adt-project-import.js"
+import { AdtActivityReviewError } from "../services/adt-activity-reconciliation.js"
 
 const BookConfigUpdateRequest = z.object({
   config: z
@@ -264,12 +266,27 @@ export function createBookRoutes(
       throw new HTTPException(400, { message: "zip file is required" })
     }
     const zipBuffer = Buffer.from(await zip.arrayBuffer())
+    const rawActivityDecisions = formData.get("activityDecisions")
+    let activityDecisions: Array<{ sectionId: string; type: string | null }> = []
+    if (typeof rawActivityDecisions === "string") {
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(rawActivityDecisions)
+      } catch {
+        throw new HTTPException(400, { message: "activityDecisions must be valid JSON" })
+      }
+      const result = z.array(AdtActivityImportDecision).safeParse(parsed)
+      if (!result.success) {
+        throw new HTTPException(400, { message: "activityDecisions are invalid" })
+      }
+      activityDecisions = result.data
+    }
 
     try {
       const book = importAdtProject(
         zipBuffer,
         booksDir,
-        { sourceFileName: zip.name },
+        { sourceFileName: zip.name, activityDecisions },
       )
       return c.json(book, 201)
     } catch (error) {
@@ -278,6 +295,7 @@ export function createBookRoutes(
         || error instanceof AdtBundleReadError
         || error instanceof AdtBundleEditorError
         || error instanceof AdtRecoverySessionError
+        || error instanceof AdtActivityReviewError
       ) {
         throw new HTTPException(400, { message: error.message })
       }

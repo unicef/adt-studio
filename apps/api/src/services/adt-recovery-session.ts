@@ -11,12 +11,16 @@ import {
   extractTextCatalogEntriesFromHtml,
   inspectImportedHtmlContract,
   getWordTimestamps,
+  generateOfflinePreloader,
   normalizeLocale,
   projectImportedHtmlSection,
+  restoreImportedCustomActivityScripts,
 } from "@adt/pipeline"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import {
   ADT_EDITING_CONTRACT_VERSION,
+  ADT_EDITING_CONTRACT_MIN_VERSION,
+  type AdtActivityImportDecision,
   BookMetadata,
   AdtRoundTripManifest,
   EasyReadOutput,
@@ -43,6 +47,11 @@ import {
 } from "./adt-bundle-reader.js"
 import { ADT_RECOVERY_MARKER } from "./adt-recovery-marker.js"
 import { ensureProjectIdentity } from "./project-identity.js"
+import {
+  analyzeImportedActivities,
+  resolveImportedActivityDecisions,
+  type AdtImportedActivityReview,
+} from "./adt-activity-reconciliation.js"
 
 export { ADT_RECOVERY_MARKER } from "./adt-recovery-marker.js"
 
@@ -82,6 +91,7 @@ export interface AdtRecoveryImportPreview {
   tocEntryCount: number
   translationLanguageCount: number
   contentChanged: boolean
+  activityReview: AdtImportedActivityReview
   compatibility: AdtImportCompatibility
 }
 
@@ -168,7 +178,10 @@ export function assessAdtImportCompatibility(
     })
   } else if (
     bundle.manifest.editingContract
-    && bundle.manifest.editingContract.version !== ADT_EDITING_CONTRACT_VERSION
+    && (
+      bundle.manifest.editingContract.version < ADT_EDITING_CONTRACT_MIN_VERSION
+      || bundle.manifest.editingContract.version > ADT_EDITING_CONTRACT_VERSION
+    )
   ) {
     issues.push({
       code: "unsupported-editing-contract",
@@ -343,6 +356,7 @@ export function previewAdtRecoveryImport(
       || bundle.ignoredEdits.sourceTextsChanged
       || bundle.ignoredEdits.pageHtmlChanged.length > 0
       || bundle.ignoredEdits.pageHtmlMissing.length > 0,
+    activityReview: analyzeImportedActivities(bundle),
     compatibility: assessAdtImportCompatibility(zipBuffer, bundle),
   }
 }
@@ -531,6 +545,9 @@ function seedImportedStoryboard(
   toc: Array<{ section_id: string; title: string; chapter_id: string }>,
   legacyRecovery = false,
   sourceTexts: Record<string, string> = {},
+  activityOverrides: ReadonlyMap<string, string> = new Map(),
+  activityReview?: AdtImportedActivityReview,
+  activityDecisions: readonly AdtActivityImportDecision[] = [],
 ): void {
   const grouped = new Map<string, Array<{
     sectionId: string
@@ -548,7 +565,12 @@ function seedImportedStoryboard(
         pageHtml[page.href] ?? "",
         page.section_id,
         `/api/books/${encodeURIComponent(label)}/images`,
-        { repairLegacyIds: legacyRecovery },
+        {
+          repairLegacyIds: legacyRecovery,
+          ...(activityOverrides.has(page.section_id)
+            ? { sectionTypeOverride: activityOverrides.get(page.section_id) }
+            : {}),
+        },
       ),
     })
     grouped.set(pageId, entries)
@@ -612,6 +634,14 @@ function seedImportedStoryboard(
     storage.markStepCompleted("web-rendering", "Recovered from exported ADT HTML")
     if (importedImages > 0 && recoveredCaptions === importedImages) {
       storage.markStepCompleted("image-captioning", "Recovered from exported ADT HTML")
+    }
+    if (activityReview) {
+      storage.putNodeData("imported-activity-review", "book", {
+        version: 1,
+        reviewedAt: new Date().toISOString(),
+        items: activityReview.items,
+        decisions: activityDecisions,
+      })
     }
   } finally {
     storage.close()
@@ -1062,6 +1092,7 @@ export function createAdtRecoverySession(
   zipBuffer: Buffer,
   booksDir: string,
   sourceFileName?: string,
+  activityDecisions: readonly AdtActivityImportDecision[] = [],
 ): AdtRecoverySession {
   let bundle
   try {
@@ -1073,6 +1104,8 @@ export function createAdtRecoverySession(
   if (bundle.pages.length === 0 || Object.keys(bundle.pageHtml).length === 0) {
     throw new AdtRecoverySessionError("The ADT bundle does not contain recoverable book pages")
   }
+  const activityReview = analyzeImportedActivities(bundle)
+  const activityOverrides = resolveImportedActivityDecisions(activityReview, activityDecisions)
 
   const sourceLanguage = normalizeLocale(bundle.manifest.languages.source)
   const sourceTexts = bundle.texts[bundle.manifest.languages.source]
@@ -1146,6 +1179,9 @@ export function createAdtRecoverySession(
       bundle.toc,
       legacyRecovery,
       sourceTexts,
+      activityOverrides,
+      activityReview,
+      activityDecisions,
     )
     seedImportedFeatures(label, booksDir, bundle, createdAt)
     seedImportedImages(label, booksDir, bundle, files)
@@ -1581,7 +1617,7 @@ export function getImportedAdtFeaturesNeedingRegeneration(
       })
       if (!hasSpeech) pending.push("Speech")
     }
-    if (bundle.runtimeFeatures.activities) {
+    if (analyzeImportedActivities(bundle).quizCount > 0) {
       const quizRow = storage.getLatestNodeData("quiz-generation", "book")
       const hasQuizzes = Boolean(
         quizRow
@@ -1590,7 +1626,7 @@ export function getImportedAdtFeaturesNeedingRegeneration(
         && Array.isArray((quizRow.data as { quizzes?: unknown }).quizzes)
         && ((quizRow.data as { quizzes: unknown[] }).quizzes.length > 0),
       )
-      if (!hasQuizzes) pending.push("Activities")
+      if (!hasQuizzes) pending.push("Quizzes")
     }
     if (bundle.runtimeFeatures.easyRead) {
       const easyRead = EasyReadOutput.safeParse(
@@ -1645,7 +1681,7 @@ export function restoreImportedAdtPresentation(label: string, booksDir: string):
   if (!fs.existsSync(adtDir)) return false
 
   const presentation = getImportedAdtPresentationAssets(safeLabel, booksDir)
-  if (presentation.stylesheets.length === 0) return false
+  let changed = false
 
   for (const [archivePath, bytes] of Object.entries(files)) {
     if (!archivePath.startsWith(bundle.root)) continue
@@ -1655,6 +1691,7 @@ export function restoreImportedAdtPresentation(label: string, booksDir: string):
     if (!within(outputPath, adtDir) || fs.existsSync(outputPath)) continue
     fs.mkdirSync(path.dirname(outputPath), { recursive: true })
     fs.writeFileSync(outputPath, bytes)
+    changed = true
   }
 
   const stylesheetHtml = presentation.stylesheets
@@ -1662,17 +1699,34 @@ export function restoreImportedAdtPresentation(label: string, booksDir: string):
     .join("\n")
   const pagesPath = path.join(adtDir, "content", "pages.json")
   if (!fs.existsSync(pagesPath)) return false
-  const pages = JSON.parse(fs.readFileSync(pagesPath, "utf8")) as Array<{ href?: unknown }>
+  const pages = JSON.parse(fs.readFileSync(pagesPath, "utf8")) as Array<{
+    section_id?: unknown
+    href?: unknown
+  }>
   for (const page of pages) {
-    if (typeof page.href !== "string") continue
+    if (typeof page.href !== "string" || typeof page.section_id !== "string") continue
     const pagePath = path.resolve(adtDir, page.href)
     if (!within(pagePath, adtDir) || !fs.existsSync(pagePath)) continue
     let html = fs.readFileSync(pagePath, "utf8")
-    if (html.includes("data-adt-imported-presentation")) continue
-    if (stylesheetHtml) html = html.replace("</head>", `${stylesheetHtml}\n</head>`)
-    fs.writeFileSync(pagePath, html)
+    const before = html
+    if (stylesheetHtml && !html.includes("data-adt-imported-presentation")) {
+      html = html.replace("</head>", `${stylesheetHtml}\n</head>`)
+    }
+    const sourcePage = bundle.pages.find((candidate) => candidate.section_id === page.section_id)
+    if (sourcePage) {
+      html = restoreImportedCustomActivityScripts(
+        html,
+        bundle.pageHtml[sourcePage.href] ?? "",
+        page.section_id,
+      )
+    }
+    if (html !== before) {
+      fs.writeFileSync(pagePath, html)
+      changed = true
+    }
   }
-  return true
+  if (changed) generateOfflinePreloader(adtDir, bundle.manifest.languages.output)
+  return changed
 }
 
 /** Rebuild a regular imported-ADT project's preview from its immutable source

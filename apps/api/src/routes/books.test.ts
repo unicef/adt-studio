@@ -1377,6 +1377,9 @@ function createExportedAdtZip(options: {
   omitTranslation?: boolean
   omitEditingContract?: boolean
   omitManifest?: boolean
+  sectionType?: string
+  activityInventory?: Array<{ sectionId: string; href: string; type: string }>
+  extraSectionHtml?: string
 } = {}): Buffer {
   const encode = (value: unknown) => new TextEncoder().encode(JSON.stringify(value))
   const fingerprint = "0".repeat(64)
@@ -1390,6 +1393,9 @@ function createExportedAdtZip(options: {
         pageDataIds: {
           "index.html": ["pg001_im001", "pg001_n001"],
         },
+        ...(options.activityInventory !== undefined
+          ? { activities: options.activityInventory }
+          : {}),
       } } : {}),
       book: { label: "exported-book", title: "Exported Book" },
       ...(options.lineage ? {
@@ -1436,7 +1442,7 @@ function createExportedAdtZip(options: {
     "index.html": new TextEncoder().encode(
       options.unsupportedStructure
         ? `<!doctype html><article><p>Hello</p></article>`
-        : `<!doctype html><main><div id="content"><section data-section-id="${sectionId}" data-section-type="content"><img data-id="pg001_im001" src="images/pg001_im001.png" alt=""><p data-id="pg001_n001">Hello</p></section></div></main>`,
+        : `<!doctype html><main><div id="content"><section data-section-id="${sectionId}" data-section-type="${options.sectionType ?? "content"}"><img data-id="pg001_im001" src="images/pg001_im001.png" alt=""><p data-id="pg001_n001">Hello</p>${options.extraSectionHtml ?? ""}</section></div></main>`,
     ),
   }))
 }
@@ -1487,6 +1493,38 @@ describe("POST /books/preview-import", () => {
     })
   })
 
+  it("asks for review when an external activity is not in the export inventory", async () => {
+    const app = createBookRoutes(tmpDir)
+    const formData = new FormData()
+    formData.append(
+      "zip",
+      new Blob([createExportedAdtZip({
+        editingContractVersion: 2,
+        activityInventory: [],
+        sectionType: "activity_custom_crossword",
+        extraSectionHtml: '<button aria-label="Check crossword">Check</button>',
+      })], { type: "application/zip" }),
+      "external-activity.zip",
+    )
+
+    const res = await app.request("/books/preview-import", { method: "POST", body: formData })
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({
+      activityReview: {
+        needsReviewCount: 1,
+        activityCount: 1,
+        quizCount: 0,
+        items: [expect.objectContaining({
+          sectionId: "pg001_sec001",
+          detectedType: "activity_custom_crossword",
+          kind: "custom",
+          status: "needs-review",
+          reasons: expect.arrayContaining(["missing-declaration"]),
+        })],
+      },
+    })
+  })
+
   it("reports unsupported exported HTML before import", async () => {
     const app = createBookRoutes(tmpDir)
     const formData = new FormData()
@@ -1515,7 +1553,7 @@ describe("POST /books/preview-import", () => {
     const formData = new FormData()
     formData.append(
       "zip",
-      new Blob([createExportedAdtZip({ editingContractVersion: 2 })], { type: "application/zip" }),
+      new Blob([createExportedAdtZip({ editingContractVersion: 3 })], { type: "application/zip" }),
       "future-export.zip",
     )
 
@@ -1529,7 +1567,7 @@ describe("POST /books/preview-import", () => {
           expect.objectContaining({
             code: "unsupported-editing-contract",
             pageHref: "manifest.json",
-            detail: "2",
+            detail: "3",
           }),
         ]),
       },
@@ -1743,6 +1781,49 @@ describe("POST /books/import-adt", () => {
     })
     expect(secondBook.projectId).not.toBe(body.projectId)
     expect(getBook("exported-book", tmpDir).projectId).toBe(body.projectId)
+  })
+
+  it("requires and persists a decision for an ambiguous external activity", async () => {
+    const zip = createExportedAdtZip({
+      editingContractVersion: 2,
+      activityInventory: [],
+      sectionType: "content",
+      extraSectionHtml: '<input type="text" aria-label="Answer" />',
+    })
+    const app = createBookRoutes(tmpDir)
+    const unresolvedForm = new FormData()
+    unresolvedForm.append("zip", new Blob([zip], { type: "application/zip" }), "candidate.zip")
+    const unresolved = await app.request("/books/import-adt", {
+      method: "POST",
+      body: unresolvedForm,
+    })
+    expect(unresolved.status).toBe(400)
+    expect(await unresolved.text()).toContain("Review these activities before importing")
+
+    const resolvedForm = new FormData()
+    resolvedForm.append("zip", new Blob([zip], { type: "application/zip" }), "candidate.zip")
+    resolvedForm.append("activityDecisions", JSON.stringify([{
+      sectionId: "pg001_sec001",
+      type: "activity_fill_in_the_blank",
+    }]))
+    const resolved = await app.request("/books/import-adt", {
+      method: "POST",
+      body: resolvedForm,
+    })
+    expect(resolved.status).toBe(201)
+
+    const storage = createBookStorage("exported-book", tmpDir)
+    expect(storage.getLatestNodeData("web-rendering", "pg001")?.data).toMatchObject({
+      sections: [expect.objectContaining({
+        sectionType: "activity_fill_in_the_blank",
+        html: expect.stringContaining('data-section-type="activity_fill_in_the_blank"'),
+      })],
+    })
+    expect(storage.getLatestNodeData("imported-activity-review", "book")?.data).toMatchObject({
+      version: 1,
+      decisions: [{ sectionId: "pg001_sec001", type: "activity_fill_in_the_blank" }],
+    })
+    storage.close()
   })
 })
 

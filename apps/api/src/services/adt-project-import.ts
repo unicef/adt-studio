@@ -3,7 +3,11 @@ import fs from "node:fs"
 import path from "node:path"
 
 import { createBookStorage } from "@adt/storage"
-import { parseBookLabel, type BookSummary } from "@adt/types"
+import {
+  parseBookLabel,
+  type AdtActivityImportDecision,
+  type BookSummary,
+} from "@adt/types"
 
 import { readAdtBundle } from "./adt-bundle-reader.js"
 import {
@@ -157,7 +161,10 @@ function promoteTemporaryProject(
 export function importAdtProject(
   zipBuffer: Buffer,
   booksDir: string,
-  options: { sourceFileName?: string } = {},
+  options: {
+    sourceFileName?: string
+    activityDecisions?: readonly AdtActivityImportDecision[]
+  } = {},
 ): BookSummary {
   const resolvedBooksDir = path.resolve(booksDir)
   const bundle = readAdtBundle(zipBuffer)
@@ -173,6 +180,7 @@ export function importAdtProject(
     zipBuffer,
     resolvedBooksDir,
     options.sourceFileName,
+    options.activityDecisions,
   )
   try {
     return promoteTemporaryProject(
