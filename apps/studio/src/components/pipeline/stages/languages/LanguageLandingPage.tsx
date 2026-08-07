@@ -251,31 +251,6 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
       />
 
       <SettingsCard>
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <label
-              htmlFor="text-normalization"
-              className="text-sm font-semibold leading-5 text-foreground"
-            >
-              <Trans>Text normalization</Trans>
-            </label>
-            <p className="text-xs leading-relaxed text-[#737373]">
-              <Trans>
-                Prepare numbers, dates, abbreviations, and other ambiguous text
-                for natural speech in each language.
-              </Trans>
-            </p>
-          </div>
-          <Switch
-            id="text-normalization"
-            checked={textNormalizationEnabled}
-            onCheckedChange={handleTextNormalizationChange}
-            aria-label={t`Enable text normalization`}
-          />
-        </div>
-      </SettingsCard>
-
-      <SettingsCard>
         <SettingsField
           label={<Trans>Output Languages</Trans>}
           hint={
@@ -321,6 +296,31 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
             />
           </div>
         </SettingsField>
+      </SettingsCard>
+
+      <SettingsCard>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="text-normalization"
+              className="text-sm font-semibold leading-5 text-foreground"
+            >
+              <Trans>Text normalization</Trans>
+            </label>
+            <p className="text-xs leading-relaxed text-[#737373]">
+              <Trans>
+                Prepare numbers, dates, and abbreviations for natural speech.
+                Math and LaTeX are handled separately.
+              </Trans>
+            </p>
+          </div>
+          <Switch
+            id="text-normalization"
+            checked={textNormalizationEnabled}
+            onCheckedChange={handleTextNormalizationChange}
+            aria-label={t`Enable text normalization`}
+          />
+        </div>
       </SettingsCard>
 
       <SettingsCard>
