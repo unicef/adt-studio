@@ -261,6 +261,52 @@ Q
 }
 
 /**
+ * Create a PDF whose rectangular raster is stored landscape but painted with
+ * the same off-diagonal quarter-turn CTM used by InDesign in the real-world
+ * certificate regression fixture.
+ */
+export function createQuarterTurnRasterTestPdf(): Buffer {
+  const doc = new mupdf.PDFDocument();
+  const imgW = 20;
+  const imgH = 10;
+  const pixmap = new mupdf.Pixmap(mupdf.ColorSpace.DeviceRGB, [0, 0, imgW, imgH], false);
+  const samples = pixmap.getPixels();
+
+  for (let y = 0; y < imgH; y++) {
+    for (let x = 0; x < imgW; x++) {
+      const i = (y * imgW + x) * 3;
+      const left = x < imgW / 2;
+      const top = y < imgH / 2;
+      const rgb = top
+        ? (left ? [255, 0, 0] : [0, 255, 0])
+        : (left ? [0, 0, 255] : [255, 255, 0]);
+      samples[i] = rgb[0];
+      samples[i + 1] = rgb[1];
+      samples[i + 2] = rgb[2];
+    }
+  }
+
+  const image = new mupdf.Image(pixmap);
+  const imgObj = doc.addImage(image);
+  const xobjects = doc.newDictionary();
+  xobjects.put("Im1", imgObj);
+  const resourcesDict = doc.newDictionary();
+  resourcesDict.put("XObject", xobjects);
+  const resources = doc.addObject(resourcesDict);
+
+  const stream = `
+q
+0 -200 100 0 100 300 cm
+/Im1 Do
+Q
+`;
+  const buf = new mupdf.Buffer();
+  buf.writeLine(stream);
+  doc.insertPage(-1, doc.addPage([0, 0, 612, 792], 0, resources, buf));
+  return Buffer.from(doc.saveToBuffer("").asUint8Array());
+}
+
+/**
  * Create a 1-page PDF with a raster image, overlapping vector, AND nearby text label.
  * The text "Figure 1" is placed just below the image+vector figure.
  * Used to verify text label absorption expands the figure group bbox.

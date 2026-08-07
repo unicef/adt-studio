@@ -18,6 +18,7 @@ export function useApiKey() {
   const azureKey = value("azure", "apiKey")
   const azureRegion = value("azure", "region")
   const geminiKey = value("gemini", "apiKey")
+  const elevenLabsKey = value("elevenlabs", "apiKey")
 
   const setApiKey = useCallback((next: string) => set("openai", "apiKey", next), [set])
   const setAnthropicKey = useCallback((next: string) => set("anthropic", "apiKey", next), [set])
@@ -27,6 +28,10 @@ export function useApiKey() {
   const setAzureKey = useCallback((next: string) => set("azure", "apiKey", next), [set])
   const setAzureRegion = useCallback((next: string) => set("azure", "region", next), [set])
   const setGeminiKey = useCallback((next: string) => set("gemini", "apiKey", next), [set])
+  const setElevenLabsKey = useCallback(
+    (next: string) => set("elevenlabs", "apiKey", next),
+    [set],
+  )
   /* eslint-enable lingui/no-unlocalized-strings */
 
   const hasStructuredTextProvider = providerState.isAvailable("structured-text")
@@ -64,5 +69,8 @@ export function useApiKey() {
     geminiKey,
     setGeminiKey,
     hasGeminiKey: geminiKey.length > 0,
+    elevenLabsKey,
+    setElevenLabsKey,
+    hasElevenLabsKey: elevenLabsKey.length > 0,
   }
 }

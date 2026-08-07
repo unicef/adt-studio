@@ -1,20 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { PNG } from "pngjs";
 import { extractPdf } from "../extract.js";
-import { createMirroredRasterTestPdf } from "./create-test-pdf.js";
+import {
+  createMirroredRasterTestPdf,
+  createQuarterTurnRasterTestPdf,
+} from "./create-test-pdf.js";
 
 /**
- * End-to-end regression test for the raster flip pipeline.
+ * End-to-end regression test for the raster orientation pipeline.
  *
  * Unlike the unit tests in `flip-utils.test.ts` and
  * `extract-raster-placement.test.ts` (which feed hand-authored CTM arrays
  * directly to internal functions) and the `raven.pdf` snapshot test in
  * `extract-raven.test.ts` (whose fixture contains no mirrored images, making
- * the flip pass a no-op there), this test parses a real PDF content stream
- * containing a `cm` with a negative scale and asserts the *extracted pixel
- * data* has the mirror correctly baked in (matching what the PDF actually
- * renders). This is the scenario from #590 that no other test exercises
- * end-to-end.
+ * the orientation pass a no-op there), this test parses real PDF content
+ * streams and asserts the *extracted pixel data* has each discrete CTM
+ * orientation correctly baked in.
  */
 describe("extractPdf — mirrored raster image (end-to-end)", () => {
   it("bakes a horizontal mirror into the extracted pixels", async () => {
@@ -25,10 +26,9 @@ describe("extractPdf — mirrored raster image (end-to-end)", () => {
     expect(rasters).toHaveLength(1);
 
     const image = rasters[0];
-    // flipTransform is cleared once applied (see applyFlipsToRasterImages),
-    // so by the time extraction finishes it's undefined again — the pixel
+    // orientationTransform is cleared once extraction finishes — the pixel
     // buffer itself is the source of truth here.
-    expect(image.flipTransform).toBeUndefined();
+    expect(image.orientationTransform).toBeUndefined();
 
     // The embedded XObject bytes are left=red/right=blue, but the page's
     // negative-X `cm` mirrors it visually when rendered. The flip pass must
@@ -49,7 +49,7 @@ describe("extractPdf — mirrored raster image (end-to-end)", () => {
     expect(rasters).toHaveLength(1);
 
     const image = rasters[0];
-    expect(image.flipTransform).toBeUndefined();
+    expect(image.orientationTransform).toBeUndefined();
 
     // The embedded XObject bytes are top=red/bottom=blue, but the page's
     // negative-Y `cm` mirrors it visually when rendered. The flip pass must
@@ -59,6 +59,23 @@ describe("extractPdf — mirrored raster image (end-to-end)", () => {
     const bottomPixel = pixelAt(png, 0, png.height - 1);
     expect(topPixel).toEqual([0, 0, 255]);
     expect(bottomPixel).toEqual([255, 0, 0]);
+  });
+
+  it("bakes an off-diagonal 90-degree CTM into the extracted pixels", async () => {
+    const pdfBuffer = createQuarterTurnRasterTestPdf();
+    const result = await extractPdf({ pdfBuffer });
+
+    const rasters = result.pages[0].images.filter((i) => i.renderMethod === "raster");
+    expect(rasters).toHaveLength(1);
+
+    const image = rasters[0];
+    expect(image.width).toBe(10);
+    expect(image.height).toBe(20);
+
+    const png = PNG.sync.read(image.buffer);
+    expect(pixelAt(png, 0, 0)).toEqual([0, 0, 255]);
+    expect(pixelAt(png, png.width - 1, 0)).toEqual([255, 0, 0]);
+    expect(pixelAt(png, 0, png.height - 1)).toEqual([255, 255, 0]);
   });
 });
 

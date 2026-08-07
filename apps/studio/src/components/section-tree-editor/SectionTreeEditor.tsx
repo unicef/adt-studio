@@ -61,6 +61,12 @@ export interface SectionTreeEditorProps {
    */
   onSplitSection?: (nodeId: string) => void
   /**
+   * When set, splitting is blocked and this text explains why (shown as the
+   * tooltip on the split control). Used by the sectioning editor, where a split
+   * is a server-side op that can't run while there are unsaved local edits.
+   */
+  splitDisabledReason?: string
+  /**
    * Section-level merge entries for the footer "Merge" menu (e.g. merge
    * with the previous/next section or page). When provided, the menu is
    * shown with these entries plus the built-in group-merge action.
@@ -90,6 +96,7 @@ export function SectionTreeEditor({
   onStructuralChange,
   onSplitBefore,
   onSplitSection,
+  splitDisabledReason,
   sectionMergeItems,
 }: SectionTreeEditorProps) {
   const { t } = useLingui()
@@ -344,6 +351,7 @@ export function SectionTreeEditor({
             onDrop={handleDrop}
             onSplitGroup={handleSplitGroup}
             onSplitSection={onSplitSection}
+            splitDisabled={!!splitDisabledReason}
             onMergeGroup={handleMergeGroup}
             prevSiblingIsContainer={i > 0 && !section.nodes[i - 1].role}
             firstInSection={i === 0}
@@ -359,7 +367,8 @@ export function SectionTreeEditor({
           {onSplitBefore && i < section.nodes.length - 1 && (
             <SplitDivider
               onSplit={() => onSplitBefore(i + 1)}
-              disabled={disabled}
+              disabled={disabled || !!splitDisabledReason}
+              disabledReason={splitDisabledReason}
             />
           )}
         </div>
@@ -452,9 +461,11 @@ function FooterMenuButton({
 function SplitDivider({
   onSplit,
   disabled,
+  disabledReason,
 }: {
   onSplit: () => void
   disabled?: boolean
+  disabledReason?: string
 }) {
   const { t } = useLingui()
   return (
@@ -464,7 +475,7 @@ function SplitDivider({
         type="button"
         onClick={onSplit}
         disabled={disabled}
-        title={t`Split into two sections at this point`}
+        title={disabledReason ?? t`Split into two sections at this point`}
         className={cn(
           "flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-[10px] text-muted-foreground transition-colors",
           disabled

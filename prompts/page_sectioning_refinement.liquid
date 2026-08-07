@@ -28,6 +28,14 @@ Your corrected version must follow the same output shape and tree-construction r
 9. **Section partition** — every top-level node belongs to exactly one section; no overlap; no container is split across sections.{% if mode == "page" %} Under `page` mode there is exactly ONE section on the page: every top-level node belongs to that single page-level section. Any split is an error and must be merged back into one section.{% else %} Activities are in their own section; multiple multiple-choice/true-false questions are each in their own section.{% endif %}
 10. **Reading order** — top-level nodes within each section are in left-to-right, top-to-bottom reading order (respecting columns).
 11. **No sectioning-driven rewrites** — the candidate did NOT fabricate containers or reshape the tree purely to accommodate section boundaries. Section boundaries cut between existing top-level nodes; they do not reshape subtrees.
+{% if book_outline %}12. **Authoritative book outline** — every supplied page outline entry is represented by heading leaf content with the exact `outline_entry_id`, `heading_level`, and `heading_style_cluster_id`. Levels 1/2/3 use `chapter_title`/`section_heading`/`subheading`; levels 4–6 use generic `heading`. No non-heading content carries outline metadata.
+
+## BOOK OUTLINE FOR THIS PAGE
+{% for entry in book_outline.entries %}- `{{ entry.outlineId }}`: level {{ entry.level }}, kind {{ entry.kind }}, title "{{ entry.title }}", style cluster `{{ entry.styleClusterId }}`
+{% endfor %}
+Ancestors:
+{% for entry in book_outline.ancestors %}- `{{ entry.outlineId }}`: level {{ entry.level }}, "{{ entry.title }}"
+{% endfor %}{% endif %}
 
 ## STRUCTURE TYPES
 

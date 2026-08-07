@@ -24,6 +24,11 @@ function makeCtx(overrides?: {
   roleKeys?: string[]
   sectionTypeKeys?: string[]
   availableImageIds?: string[]
+  outlineEntries?: Map<
+    string,
+    { outlineId: string; level: number; styleClusterId: string; title: string }
+  >
+  mode?: "page" | "dynamic"
 }) {
   return {
     structureKeys: new Set(
@@ -40,6 +45,8 @@ function makeCtx(overrides?: {
       overrides?.sectionTypeKeys ?? ["text_only", "images_only"]
     ),
     availableImageIds: new Set(overrides?.availableImageIds ?? []),
+    outlineEntries: overrides?.outlineEntries,
+    mode: overrides?.mode,
   }
 }
 
@@ -220,6 +227,36 @@ describe("buildPageSectioningConfig", () => {
 // ── runValidator ────────────────────────────────────────────────
 
 describe("runValidator", () => {
+  it("requires exactly one section in page mode", () => {
+    const result = runValidator(
+      {
+        reasoning: "Split the page",
+        sections: [
+          {
+            section_type: "text_only",
+            background_color: "#fff",
+            text_color: "#000",
+            page_number: 1,
+            nodes: [{ role: "text", text: "First" }],
+          },
+          {
+            section_type: "text_only",
+            background_color: "#fff",
+            text_color: "#000",
+            page_number: 1,
+            nodes: [{ role: "text", text: "Second" }],
+          },
+        ],
+      },
+      makeCtx({ mode: "page" }),
+    )
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain(
+      "Page mode requires exactly one section, but the response contains 2. Merge all page content into one section."
+    )
+  })
+
   it("accepts a simple section with a leaf-only node", () => {
     const result = runValidator(
       {
@@ -563,6 +600,73 @@ describe("runValidator", () => {
     expect(result.valid).toBe(false)
     expect(result.errors.join("\n")).toMatch(/invalid value "bogus_role"/)
   })
+
+  it("enforces authoritative H1-H6 outline metadata", () => {
+    const outlineEntries = new Map([
+      [
+        "outline-004",
+        {
+          outlineId: "outline-004",
+          level: 4,
+          styleClusterId: "minor-heading",
+          title: "Try this",
+        },
+      ],
+    ])
+    const valid = runValidator(
+      {
+        reasoning: "",
+        sections: [
+          {
+            section_type: "text_only",
+            background_color: "#fff",
+            text_color: "#000",
+            page_number: 1,
+            nodes: [
+              {
+                role: "heading",
+                text: "Try this",
+                heading_level: 4,
+                outline_entry_id: "outline-004",
+                heading_style_cluster_id: "minor-heading",
+              },
+            ],
+          },
+        ],
+      },
+      makeCtx({ outlineEntries }),
+    )
+    expect(valid).toEqual({ valid: true, errors: [] })
+
+    const invalid = runValidator(
+      {
+        reasoning: "",
+        sections: [
+          {
+            section_type: "text_only",
+            background_color: "#fff",
+            text_color: "#000",
+            page_number: 1,
+            nodes: [
+              {
+                role: "subheading",
+                text: "Try this",
+                heading_level: 4,
+                outline_entry_id: "outline-004",
+                heading_style_cluster_id: "minor-heading",
+              },
+            ],
+          },
+        ],
+      },
+      makeCtx({
+        roleKeys: ["heading", "subheading", "text", "caption", "image"],
+        outlineEntries,
+      }),
+    )
+    expect(invalid.valid).toBe(false)
+    expect(invalid.errors.join(" ")).toContain('outline level 4 requires role "heading"')
+  })
 })
 
 // ── finalizePageSectioning ──────────────────────────────────────
@@ -826,6 +930,133 @@ describe("sectionPage", () => {
     expect(output.sections[0].nodes[0].structure).toBe("paragraph")
     expect(output.sections[0].nodes[0].children?.[0].nodeId).toBe("pg001_n0002")
     expect(output.sections[0].nodes[0].children?.[0].text).toBe("Hello")
+  })
+
+  it("passes book context to sectioning and persists authoritative heading metadata", async () => {
+    let capturedContext: Record<string, unknown> | undefined
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        capturedContext = opts.context
+        return {
+          object: {
+            reasoning: "Matched the chapter title.",
+            sections: [
+              {
+                section_type: "text_only",
+                background_color: "#fff",
+                text_color: "#000",
+                page_number: 1,
+                nodes: [
+                  {
+                    role: "chapter_title",
+                    text: "Chapter One",
+                    heading_level: 1,
+                    outline_entry_id: "outline-001",
+                    heading_style_cluster_id: "chapter-style",
+                  },
+                ],
+              },
+            ],
+          } as T,
+        }
+      },
+    }
+    const outline = {
+      entries: [
+        {
+          outlineId: "outline-001",
+          title: "Chapter One",
+          level: 1,
+          kind: "chapter" as const,
+          pageId: "pg001",
+          pageNumber: 1,
+          sourceCandidateIds: ["pg001_hc001"],
+          parentId: null,
+          styleClusterId: "chapter-style",
+          confidence: 0.98,
+        },
+      ],
+      ancestors: [],
+      styleClusters: [
+        { styleClusterId: "chapter-style", description: "Large title", level: 1 },
+      ],
+    }
+
+    const result = await sectionPage(
+      makeInput({ outline }),
+      makeConfig({
+        roleTypes: [
+          { key: "chapter_title", description: "Chapter title" },
+          { key: "text", description: "Body" },
+        ],
+      }),
+      fakeLlm,
+    )
+
+    expect(capturedContext?.book_outline).toEqual(outline)
+    expect(result.sections[0].nodes[0]).toMatchObject({
+      role: "chapter_title",
+      headingLevel: 1,
+      outlineEntryId: "outline-001",
+      headingStyleClusterId: "chapter-style",
+    })
+  })
+
+  it("wires page mode into the initial generation validator", async () => {
+    const invalidTree = {
+      reasoning: "Split the page",
+      sections: [
+        {
+          section_type: "text_only",
+          background_color: "#fff",
+          text_color: "#000",
+          page_number: 1,
+          nodes: [{ role: "text", text: "First" }],
+        },
+        {
+          section_type: "text_only",
+          background_color: "#fff",
+          text_color: "#000",
+          page_number: 1,
+          nodes: [{ role: "text", text: "Second" }],
+        },
+      ],
+    }
+    const validTree = {
+      ...invalidTree,
+      reasoning: "Merged the page",
+      sections: invalidTree.sections.slice(0, 1),
+    }
+
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        if (opts.prompt === "page_sectioning") {
+          expect(opts.validate?.(invalidTree, opts.context ?? {})).toEqual({
+            valid: false,
+            errors: [
+              "Page mode requires exactly one section, but the response contains 2. Merge all page content into one section.",
+            ],
+          })
+          return { object: validTree as T }
+        }
+        return {
+          object: {
+            approved: true,
+            reasoning: "Looks good.",
+            nodes_and_sections: null,
+          } as T,
+        }
+      },
+    }
+
+    const output = await sectionPage(
+      makeInput(),
+      makeConfig({ mode: "page" }),
+      fakeLlm,
+    )
+
+    expect(output.reasoning).toBe("Merged the page")
+    expect(output.sections).toHaveLength(1)
   })
 
   it("adopts reviewer's replacement tree when reviewer rejects then proposes valid replacement", async () => {

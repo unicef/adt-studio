@@ -20,18 +20,20 @@ import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SpeechPreview } from "./components/SpeechPreview"
 
-type ProviderKey = "openai" | "azure" | "gemini"
+type ProviderKey = "openai" | "azure" | "gemini" | "elevenlabs"
 
 const PROVIDER_LABELS: Record<ProviderKey, MessageDescriptor> = {
   openai: msg`OpenAI`,
   azure: msg`Azure`,
   gemini: msg`Gemini`,
+  elevenlabs: msg`ElevenLabs`,
 }
 
 const PROVIDER_HINTS: Record<ProviderKey, MessageDescriptor> = {
   openai: msg`Natural, expressive voices. Best general-purpose default.`,
   azure: msg`Wide multilingual coverage with neural voices for many locales.`,
   gemini: msg`Google's voices with strong intonation for narrative content.`,
+  elevenlabs: msg`High-fidelity, expressive voices with fine-grained cloning support.`,
 }
 
 // Voices & Accents card hidden for now while we evaluate the configure-voices
@@ -66,7 +68,8 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     if (
       speech.default_provider === "openai" ||
       speech.default_provider === "azure" ||
-      speech.default_provider === "gemini"
+      speech.default_provider === "gemini" ||
+      speech.default_provider === "elevenlabs"
     ) {
       setProvider(speech.default_provider)
     }
@@ -99,6 +102,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     openai: providerAvailable("openai"),
     azure: providerAvailable("azure"),
     gemini: providerAvailable("gemini"),
+    elevenlabs: providerAvailable("elevenlabs"),
   }
 
   const providerOptions = useMemo(
@@ -123,9 +127,21 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
           disabled: !providerKeyAvailable.gemini,
           disabledHint,
         },
+        {
+          value: "elevenlabs" as const,
+          label: linguiI18n._(PROVIDER_LABELS.elevenlabs),
+          disabled: !providerKeyAvailable.elevenlabs,
+          disabledHint,
+        },
       ]
     },
-    [t, providerKeyAvailable.openai, providerKeyAvailable.azure, providerKeyAvailable.gemini],
+    [
+      t,
+      providerKeyAvailable.openai,
+      providerKeyAvailable.azure,
+      providerKeyAvailable.gemini,
+      providerKeyAvailable.elevenlabs,
+    ],
   )
 
   const selectedProviderKeyMissing = !providerKeyAvailable[provider]

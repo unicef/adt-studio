@@ -7,7 +7,16 @@ import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js
 import type { RenderConfig, RenderExecutionOptions, RenderNode, RenderSectionInput } from "./web-rendering.js"
 import { runVisualReviewLoop } from "./visual-review.js"
 import { buildTypographyCss, typographyPreservationErrors } from "./typography.js"
+import {
+  repairTableOfContentsLayout,
+  tableOfContentsLayoutErrors,
+} from "./toc-layout.js"
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
+import { validateTypographyHierarchy } from "./validate-typography-hierarchy.js"
+import { inspectOrderingActivityHtml } from "./ordering-contract.js"
+
+const BUILT_IN_STRICT_REVIEW_PROMPT = "visual_review"
+const USER_DIRECTED_REVIEW_PROMPT = "visual_review_flexible"
 
 /** Dependencies for the optional visual refinement loop. */
 export interface VisualRefinementDeps {
@@ -25,7 +34,8 @@ export interface VisualRefinementDeps {
  *
  * For activity sections (config.renderType === "activity"):
  * - Validation allows activity_gen_* prefixed data-ids
- * - If config.answerPromptName is set, a second LLM call generates correct answers
+ * - Ordering answers are derived deterministically from validated HTML
+ * - Other activities use a second LLM call when config.answerPromptName is set
  */
 export async function renderSectionLlm(
   input: RenderSectionInput,
@@ -37,6 +47,9 @@ export async function renderSectionLlm(
   const isActivity = config.renderType === "activity"
   const taskType = isActivity ? "activity-rendering" : "web-rendering"
   const { section, context: renderContext } = input
+  // Trim once: a whitespace-only prompt must read as "no instructions" to both
+  // the prompt-selection branch below and the `user_instructions` template guard.
+  const userInstructions = (input.userPrompt ?? "").trim()
 
   // Page images for content merged in from other pages — the prompt shows
   // them after the hosting page's image so the LLM doesn't force-match all
@@ -61,7 +74,9 @@ export async function renderSectionLlm(
     typography: (input.typography ?? DEFAULT_TYPOGRAPHY).styles,
     viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
-    user_instructions: input.userPrompt ?? "",
+    _allowNonHeadingFontSizes:
+      isActivity || config.promptName === "web_generation_html_overlay",
+    user_instructions: userInstructions,
   }
 
   const result = await llmModel.generateObject<{
@@ -89,6 +104,10 @@ export async function renderSectionLlm(
   // Optional: visual refinement loop — screenshot the HTML and ask an LLM to review
   if (visualRefinement && config.visualRefinement?.enabled) {
     const vr = config.visualRefinement
+    const reviewPromptName =
+      userInstructions && vr.promptName === BUILT_IN_STRICT_REVIEW_PROMPT
+        ? USER_DIRECTED_REVIEW_PROMPT
+        : vr.promptName
     const imagesForScreenshot = new Map<string, { base64: string }>()
     for (const img of renderContext.image_refs) {
       if (img.image_base64) {
@@ -108,7 +127,7 @@ export async function renderSectionLlm(
         storeScreenshot: visualRefinement.storeScreenshot,
         typographyCss: buildTypographyCss(input.typography ?? DEFAULT_TYPOGRAPHY),
       },
-      promptName: vr.promptName,
+      promptName: reviewPromptName,
       maxIterations: vr.maxIterations,
       timeoutMs: vr.timeoutMs,
       temperature: vr.temperature,
@@ -121,6 +140,7 @@ export async function renderSectionLlm(
         nodes: renderContext.nodes,
         leaf_texts: renderContext.leaf_texts,
         has_merged_content: sourcePages.length > 0,
+        user_instructions: userInstructions,
       },
       originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",
       firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",
@@ -150,12 +170,26 @@ export async function renderSectionLlm(
   // underline-text sections can validate against repaired HTML while the saved
   // web-rendering node still contains the unrepaired LLM output.
   generatedHtml = autoRepairUnderlineActivityHtml(generatedHtml, section.sectionType)
+  if (section.sectionType === "table_of_contents") {
+    generatedHtml = repairTableOfContentsLayout(generatedHtml, renderContext.leaf_texts)
+  }
 
-  // Optional: generate activity answers via a second LLM call
+  // Ordering has one inspectable source of truth in the validated HTML. Derive
+  // its rank map deterministically so initial render, rerender, Studio editing,
+  // preview, and export cannot disagree because of a second LLM response.
   let activityReasoning: string | undefined
   let activityAnswers: Record<string, string | boolean | number> | undefined
 
-  if (isActivity && config.answerPromptName) {
+  if (section.sectionType === "activity_ordering") {
+    const inspection = inspectOrderingActivityHtml(generatedHtml)
+    if (!inspection.contract) {
+      throw new Error(
+        `Validated activity_ordering HTML has no usable ordering contract: ${inspection.errors.join(" ")}`,
+      )
+    }
+    activityReasoning = "Derived deterministically from the validated correct item order."
+    activityAnswers = inspection.contract.answers
+  } else if (isActivity && config.answerPromptName) {
     const answersResult = await llmModel.generateObject<{
       reasoning: string
       answers: Array<{ id: string; value: string | boolean | number }>
@@ -200,11 +234,17 @@ function validateWebRendering(
 ): ValidationResult {
   const r = result as { reasoning: string; content: string }
   const label = context.label as string
-  const leaf_texts = context.leaf_texts as Array<{ text_id: string; text_type: string; text: string }>
+  const leaf_texts = context.leaf_texts as Array<{
+    text_id: string
+    text_type: string
+    text: string
+    heading_level?: number
+  }>
   const images = context.images as Array<{ image_id: string }>
   const nodes = context.nodes as RenderNode[]
   const group_ids = context.group_ids as string[]
   const isActivity = context._isActivity as boolean | undefined
+  const allowNonHeadingFontSizes = context._allowNonHeadingFontSizes as boolean | undefined
   const sectionId = context.section_id as string
   const sectionType = context.section_type as string
   const allowedTextIds = leaf_texts.map((t) => t.text_id)
@@ -212,7 +252,11 @@ function validateWebRendering(
   const imageUrlPrefix = `/api/books/${label}/images`
   const expectedTexts = new Map(leaf_texts.map((t) => [t.text_id, t.text]))
   const optionalTextIds = collectOptionalTextIds(leaf_texts)
-  const candidateHtml = autoRepairUnderlineActivityHtml(r.content, sectionType)
+  let candidateHtml = autoRepairUnderlineActivityHtml(r.content, sectionType)
+  if (sectionType === "table_of_contents") {
+    candidateHtml = repairTableOfContentsLayout(candidateHtml, leaf_texts)
+  }
+  const minimumEditableElements = minimumLearnerResponseCount(nodes)
 
   const check = validateSectionHtml(
     candidateHtml,
@@ -227,9 +271,19 @@ function validateWebRendering(
       expectedSectionId: sectionId,
       optionalTextIds,
       expectedContentIdOrder: collectLeafDataIdOrder(nodes),
+      minimumEditableElements,
     }
   )
-  if (check.valid && check.sectionHtml) {
+  if (sectionType === "table_of_contents") {
+    check.errors.push(...tableOfContentsLayoutErrors(candidateHtml, leaf_texts))
+    check.valid = check.errors.length === 0
+  }
+  const typographyErrors = validateTypographyHierarchy(
+    check.sectionHtml ?? candidateHtml,
+    leaf_texts,
+    { allowNonHeadingFontSizes },
+  )
+  if (check.valid && typographyErrors.length === 0 && check.sectionHtml) {
     return {
       valid: true,
       errors: [],
@@ -237,7 +291,27 @@ function validateWebRendering(
     }
   }
 
-  return { valid: check.valid, errors: check.errors }
+  return { valid: false, errors: [...check.errors, ...typographyErrors] }
+}
+
+/** Require one response per explicit question/blank. If the tree only contains
+ * an activity instruction (common on mixed page-mode pages), require at least
+ * one control so a static screenshot cannot pass validation. Questions and
+ * blank leaves often describe the same response, so use the larger count
+ * instead of adding them together. */
+export function minimumLearnerResponseCount(nodes: RenderNode[]): number {
+  let questions = 0
+  let blanks = 0
+  let hasInstruction = false
+  function walk(node: RenderNode): void {
+    if (node.role === "activity_question") questions += 1
+    if (node.role === "activity_fill_in_the_blank") blanks += 1
+    if (node.role === "activity_instruction") hasInstruction = true
+    for (const child of node.children ?? []) walk(child)
+  }
+  for (const node of nodes) walk(node)
+  const explicit = Math.max(questions, blanks)
+  return explicit > 0 ? explicit : hasInstruction ? 1 : 0
 }
 
 function collectLeafDataIdOrder(nodes: RenderNode[]): string[] {
@@ -258,7 +332,12 @@ function collectLeafDataIdOrder(nodes: RenderNode[]): string[] {
 // (single dots are normal punctuation).
 const TEXTBOOK_BLANK_RE = /_+|\.{3,}/g
 const PLACEHOLDER_MARKER_RE = /\[placeholder:[^\]]+\]/g
-const OPTIONAL_TEXT_ROLES = new Set(["footer", "header", "page_number"])
+const OPTIONAL_TEXT_ROLES = new Set([
+  "footer",
+  "header",
+  "page_number",
+  "watermark",
+])
 
 /** True if the leaf's text is nothing but textbook blank placeholders
  * (`___`, `...`, `[placeholder:...]`) and inert separators (whitespace,

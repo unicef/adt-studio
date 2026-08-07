@@ -28,6 +28,7 @@ import { useStepHeader } from "../../components/StepViewRouter";
 import { StageContentGuard } from "../../components/StageContentGuard";
 import { StageEmptyState } from "../../components/StageEmptyState";
 import { VersionPicker } from "../../components/VersionPicker";
+import { InlineDiff } from "../../components/InlineDiff";
 import { usePendingChanges } from "../../components/change-summary";
 import {
   getRequestedPageId,
@@ -308,9 +309,117 @@ export function QuizzesView({
           bookLabel={bookLabel}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
-          onPreview={(d) => setPending(d as QuizData)}
+          onRestored={() => setPending(null)}
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
+          diff={{
+            unifiedList: true,
+            items: (d) => (d as QuizData | null)?.quizzes ?? [],
+            // quizIndex is positional (renumbered 0..n on add/delete), so it's
+            // not a stable cross-version identity — a single delete would shift
+            // every index and mis-report the whole set as changed. Key by the
+            // question text instead so add/delete read correctly (trade-off: an
+            // edited question reads as remove+add rather than a single edit).
+            keyOf: (q) => (q as QuizData["quizzes"][number]).question,
+            isEqual: (a, b) => {
+              const x = a as QuizData["quizzes"][number]
+              const y = b as QuizData["quizzes"][number]
+              return (
+                x.question === y.question &&
+                x.answerIndex === y.answerIndex &&
+                JSON.stringify(x.options) === JSON.stringify(y.options)
+              )
+            },
+            searchText: (q) => {
+              const x = q as QuizData["quizzes"][number]
+              return `${x.question} ${x.options
+                ?.flatMap((o) => [o.text, o.explanation])
+                .join(" ") ?? ""}`
+            },
+            searchPlaceholder: t`Search questions, answers, or explanations…`,
+            renderItem: (it, ctx) => {
+              const q = it as QuizData["quizzes"][number]
+              const prev = ctx?.before as QuizData["quizzes"][number] | undefined
+              const questionChanged = prev != null && prev.question !== q.question
+              const answerMoved = prev != null && prev.answerIndex !== q.answerIndex
+              const changeTag = (label: string, cls: string) => (
+                <span
+                  className={`ml-1 shrink-0 rounded px-1 py-px text-[8px] font-semibold uppercase tracking-wide ring-1 ${cls}`}
+                >
+                  {label}
+                </span>
+              )
+              return (
+                <span className="flex flex-col gap-1.5">
+                  <span className="flex flex-col">
+                    {questionChanged && prev ? (
+                      <span className="text-[11px] text-muted-foreground line-through decoration-rose-400/70">
+                        {prev.question}
+                      </span>
+                    ) : null}
+                    <span className="font-medium text-foreground">{q.question}</span>
+                  </span>
+                  <span className="flex flex-col gap-1">
+                    {q.options?.map((o, i) => {
+                      const correct = i === q.answerIndex
+                      const prevOpt = prev?.options?.[i]
+                      const textChanged = prevOpt != null && prevOpt.text !== o.text
+                      const explanationChanged =
+                        prevOpt != null && prevOpt.explanation !== o.explanation
+                      const becameCorrect = answerMoved && correct
+                      const wasCorrect = answerMoved && prev != null && i === prev.answerIndex
+                      return (
+                        <span
+                          key={i}
+                          className={`flex items-start gap-1.5 rounded px-1.5 py-1 text-[11px] ${
+                            correct
+                              ? "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200"
+                              : wasCorrect
+                                ? "text-muted-foreground ring-1 ring-amber-200"
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {correct ? (
+                            <CheckCircle2 className="mt-px h-3 w-3 shrink-0 text-emerald-600" aria-hidden />
+                          ) : (
+                            <span className="mt-0.5 h-3 w-3 shrink-0 rounded-full border border-muted-foreground/40" />
+                          )}
+                          <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                            <span className="font-medium text-foreground/90">
+                              {textChanged && prevOpt ? (
+                                <InlineDiff before={prevOpt.text} after={o.text} />
+                              ) : (
+                                o.text
+                              )}
+                            </span>
+                            {(o.explanation || prevOpt?.explanation) && (
+                              <span className="border-t border-border/60 pt-1.5 text-[10px] leading-relaxed text-muted-foreground">
+                                {explanationChanged && prevOpt ? (
+                                  <InlineDiff
+                                    before={prevOpt.explanation}
+                                    after={o.explanation}
+                                  />
+                                ) : (
+                                  o.explanation
+                                )}
+                              </span>
+                            )}
+                          </span>
+                          {becameCorrect
+                            ? changeTag(t`now correct`, "bg-emerald-100 text-emerald-700 ring-emerald-300")
+                            : wasCorrect
+                              ? changeTag(t`was correct`, "bg-amber-100 text-amber-700 ring-amber-300")
+                              : textChanged || explanationChanged
+                                ? changeTag(t`edited`, "bg-amber-100 text-amber-700 ring-amber-300")
+                                : null}
+                        </span>
+                      )
+                    })}
+                  </span>
+                </span>
+              )
+            },
+          }}
         />
       </div>,
     );

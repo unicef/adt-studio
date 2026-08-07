@@ -23,3 +23,9 @@ Each text leaf in the content tree is shown as `role id=<data-id> "<text>"`. The
 3. Emit EVERY provided `data-id` exactly once. Even when restructuring prose into an activity, do not drop a text leaf: if it does not fit the layout, still render it (for example as an intro line, heading, or caption) so its `data-id` is present.
 4. Some leaves ARE just a marker — their whole text is an enumeration marker or short label (`"1."`, `"10."`, `"(a)"`, `"(iv)"`, `"Mfano:"`). Give each its own `data-id` element too, rendered as the visible marker/label for its row, option, or matched item. NEVER drop such a leaf, and never replace it with your own auto-generated numbering — if a matching or numbered list already provides `"1."`, `"2."`, `"(a)"` leaves, those are the numbers you must show.
 5. Do NOT add visible text that was not provided as a leaf — no invented instructions, headings, labels, page numbers, or multi-character list markers (e.g. `"iv"`). Render only the provided leaves. If you add a purely decorative marker or separator of your own, wrap it in an `aria-hidden="true"` element so it is not treated as content.
+
+## BOOK-WIDE HEADING HIERARCHY
+
+- Heading roles and `heading_level` values are authoritative. Render `chapter_title` as `<h1 class="adt-h1">`, `section_heading` as `<h2 class="adt-h2">`, and `subheading` as `<h3 class="adt-h3">`.
+- Render a generic `heading` with a supplied level N as `<hN class="adt-hN">`, supporting levels 1 through 6. Put its supplied `data-id` on the heading or a descendant.
+- Never apply `text-*` or inline `font-size` overrides to a heading. Its book-wide `adt-h1` through `adt-h6` class owns its size. Local sizing remains available for non-heading activity controls and decorative UI text.

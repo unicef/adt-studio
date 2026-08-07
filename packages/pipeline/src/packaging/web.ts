@@ -22,7 +22,7 @@ import type {
   Quiz,
   ImageCaptioningOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 import {
   GOOGLE_FONTS,
   googleFontsReferencedIn,
@@ -90,6 +90,15 @@ export interface PackageAdtWebOptions {
   /** Style quizzes to match the book (typography + derived palette). Defaults
    *  to true. When false, quizzes use the generic cream/gray template. */
   quizMatchBookStyle?: boolean
+}
+
+/** Pages with either a dedicated activity section or an inline word bank need
+ * the standalone activity runtime after the full reader bundle is stripped. */
+export function pageNeedsActivitiesBundle(html: string): boolean {
+  return (
+    html.includes('data-section-type="activity_') ||
+    (html.includes("data-word-bank-chip") && html.includes("data-word-bank-target"))
+  )
 }
 
 export interface PageEntry {
@@ -2696,7 +2705,7 @@ function findHeadingText(
 ): { textId: string; text: string } | null {
   const walk = (node: ContentNodeData): { textId: string; text: string } | null => {
     if (node.isPruned) return null
-    if (node.role === "heading" && node.text) {
+    if (isHeadingRole(node.role) && node.text) {
       return { textId: node.nodeId, text: node.text }
     }
     if (node.children) {

@@ -235,9 +235,35 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
           saveDisabledReason={glossaryRunning ? t`Wait for glossary generation to finish` : undefined}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
-          onPreview={(d) => setPending(d as GlossaryData)}
+          onRestored={() => setPending(null)}
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
+          diff={{
+            items: (d) => (d as GlossaryData | null)?.items?.filter((i) => !i.pruned) ?? [],
+            keyOf: (it) => (it as GlossaryItem).id ?? (it as GlossaryItem).word,
+            diffText: (it) => (it as GlossaryItem).definition ?? "",
+            searchText: (it) => {
+              const item = it as GlossaryItem
+              return `${item.word} ${item.definition ?? ""}`
+            },
+            searchPlaceholder: t`Search terms or definitions…`,
+            renderItem: (it, ctx) => {
+              const item = it as GlossaryItem
+              return (
+                <span>
+                  <span className="font-semibold text-foreground">
+                    {item.emojis?.[0] ? `${item.emojis[0]} ` : ""}
+                    {item.word}
+                  </span>
+                  {ctx?.diff ? (
+                    <span className="text-muted-foreground"> — {ctx.diff}</span>
+                  ) : item.definition ? (
+                    <span className="text-muted-foreground"> — {item.definition}</span>
+                  ) : null}
+                </span>
+              )
+            },
+          }}
         />
       </div>
     )

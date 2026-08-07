@@ -381,7 +381,7 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
           </div>
           <p className="text-xs text-muted-foreground">
             <Trans>
-              Re-run these book-level stages on the assembled book:
+              Re-run these stages on the assembled book:
             </Trans>{" "}
             <span className="font-medium text-foreground">{result.staleSteps.join(", ")}</span>
           </p>

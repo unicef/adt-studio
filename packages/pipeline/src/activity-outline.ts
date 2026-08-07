@@ -21,6 +21,7 @@ import {
   ActivityOutlineOption,
   ActivityOutlineText,
   ContentNodeData,
+  isHeadingRole,
 } from "@adt/types"
 import {
   attr,
@@ -39,7 +40,11 @@ import {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Element = any
 
-const TITLE_ROLES = new Set(["heading", "header", "title"])
+const TITLE_ROLES = new Set(["header", "title"])
+
+function isTitleRole(role: string | undefined): boolean {
+  return isHeadingRole(role) || (role !== undefined && TITLE_ROLES.has(role))
+}
 
 /** nodeId → role for every unpruned leaf of the section tree, plus per-leaf
  *  title groups: a visual heading split across several leaves under one tree
@@ -52,7 +57,7 @@ function collectLeafInfo(nodes: ContentNodeData[] | undefined): {
   const titleGroups = new Map<string, string[]>()
   const walk = (ns: ContentNodeData[]) => {
     const siblingTitles = ns
-      .filter((n) => !n.isPruned && !n.children && TITLE_ROLES.has(n.role ?? ""))
+      .filter((n) => !n.isPruned && !n.children && isTitleRole(n.role))
       .map((n) => n.nodeId)
     for (const n of ns) {
       if (n.isPruned) continue
@@ -60,7 +65,7 @@ function collectLeafInfo(nodes: ContentNodeData[] | undefined): {
         walk(n.children)
       } else if (n.role) {
         roles.set(n.nodeId, n.role)
-        if (TITLE_ROLES.has(n.role)) titleGroups.set(n.nodeId, siblingTitles)
+        if (isTitleRole(n.role)) titleGroups.set(n.nodeId, siblingTitles)
       }
     }
   }
@@ -170,7 +175,7 @@ export function buildActivityOutline(opts: {
   // visual title: claim the whole group and join its rendered texts (dataId
   // only when a single leaf backs it, so edits stay unambiguous). Fall back
   // to the first real heading element, claiming every leaf under it.
-  const firstTitleEl = textEls.find((el) => TITLE_ROLES.has(roleOf(el) ?? ""))
+  const firstTitleEl = textEls.find((el) => isTitleRole(roleOf(el)))
   if (firstTitleEl) {
     const group = titleGroups.get(attr(firstTitleEl, "data-id") ?? "") ?? []
     const groupIds = new Set(group)

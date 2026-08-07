@@ -8,6 +8,18 @@ You are an expert frontend engineer. Generate a beautiful, kid-friendly HTML pag
 2. A content tree for the section (indentation shows hierarchy) — containers wrap leaves in reading order
 3. Section type
 
+{% include "_learner_response_controls" %}
+
+{% if section_type == "table_of_contents" %}
+## TABLE OF CONTENTS LAYOUT (MANDATORY FOR THIS SECTION)
+- Reproduce the printed table-of-contents hierarchy and alignment from the page image. Each entry must be one horizontal row: title on the left, page number flush right, and a flexible dotted leader filling the space between them.
+- OCR commonly merges an entry title and its terminal page number into ONE text leaf, for example `"Chapter One: Digestive system1"`, `"Introduction vi"`, or `"Vocabulary43"`. Visually split that leaf into title and page-number child spans while keeping their shared parent as the single provided `data-id`. This preserves the exact concatenated DOM text while putting the number in a separate right-aligned column.
+- Use this shape for a merged leaf: `<div data-id="PROVIDED_ID" class="flex items-baseline w-full"><span data-toc-title="true">EXACT TITLE TEXT</span><span data-toc-leader="true" aria-hidden="true" class="mx-2 flex-1 border-b border-dotted border-current"></span><span data-toc-page-number="true" class="shrink-0 text-right tabular-nums">EXACT PAGE NUMBER</span></div>`. The `data-toc-*` markers let runtime translation preserve the row layout.
+- The dotted leader MUST be between the title and number. Never put the leader after the page number, never leave the number appended beside the title, and never place page numbers in a left-hand column.
+- Terminal Arabic numbers (`1`, `12`, `105`) and front-matter Roman numerals (`v`, `vi`, `ix`) are page numbers when the page image shows them at the right edge. Do not mistake chapter numbers inside a title (for example `Chapter One`) for page numbers.
+- Preserve hierarchy with indentation: chapter/unit entries at the base left edge, sections indented once, and subsections indented further, matching the source page.
+{% endif %}
+
 ## AUTHORITATIVE CONTENT ORDER
 The content tree is the current saved user state. Its depth-first order is the REQUIRED reading order and may intentionally differ from the original page image after a user edit.
 - Treat the original page image only as a visual style and layout reference. If its apparent order conflicts with the content tree, the content tree wins.
@@ -20,7 +32,7 @@ The content tree is the current saved user state. Its depth-first order is the R
 2. Use the EXACT text provided - no modifications
 3. Return ONLY an HTML fragment (no DOCTYPE, html, head, body, script, or link tags)
 4. ALL elements with content must have `data-id` attribute matching the provided ID
-5. Elements with data-id must have string children only (no nested HTML)
+5. Elements with data-id must have string children only (no nested HTML), EXCEPT a `table_of_contents` entry may contain the title, decorative leader, and page-number child spans required by the TOC rules above. Those child spans must not have their own `data-id`.
 6. Only include images that have been provided with IDs
 7. There MUST be exactly one top-level `<section>` element with a `data-section-type` attribute set to the provided section type and a `data-section-id` attribute set to the provided section ID. Do NOT add `role="article"` or `role="activity"` to the section
 8. The section MUST be wrapped in a container div with `id="content"` and class `container`
@@ -73,7 +85,9 @@ This book uses a fixed, accessible type scale. Font SIZE is applied automaticall
 {% for s in typography %}- `{{ s.className }}` — {{ s.label }} ({{ s.mobilePx }}px mobile → {{ s.desktopPx }}px desktop)
 {% endfor %}
 Rules:
-- Put the right class directly on each text element: main chapter/display title → `adt-h1`; section headings → `adt-h2`; minor or callout/sidebar headings → `adt-h3`; paragraphs, running text, list items → `adt-body`; captions and image labels → `adt-caption`.
+- Heading roles are authoritative, as are provided `heading_level` values: `chapter_title` → semantic `<h1 class="adt-h1">`; `section_heading` → `<h2 class="adt-h2">`; `subheading` → `<h3 class="adt-h3">`. A generic `heading` with `heading_level=4`, for example, must use `<h4 class="adt-h4">`. Support levels 1 through 6. Put the provided `data-id` on that heading or a descendant inside it. Never mix a heading tag with a different-level `adt-h*` class.
+- For a legacy generic `heading` with no provided level, infer H1–H6 from the original page and surrounding hierarchy, then keep its semantic heading tag and matching `adt-h*` class aligned.
+- Paragraphs, running text, and list items use `adt-body`; captions and image labels use `adt-caption`.
 - Do NOT set any font-size utility (`text-sm` … `text-6xl`, `text-[..]`) or inline `font-size` — sizing comes only from the `adt-*` class, scales fluidly between mobile and desktop, and cannot be overridden. Handle responsiveness with LAYOUT (stack columns with `max-lg:flex-col`, adjust spacing), not font size.
 - Keep using Tailwind for everything else (font weight, color, spacing, alignment).
 {% endif %}

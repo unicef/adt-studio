@@ -67,6 +67,25 @@ export {
   type BookSummaryPageInput,
 } from "./book-summary.js"
 export {
+  generateBookOutline,
+  buildBookOutlineConfig,
+  readBookOutline,
+  outlineContextForPage,
+  BOOK_OUTLINE_NODE,
+  BOOK_OUTLINE_ITEM,
+  type BookOutlineConfig,
+  type PageOutlineContext,
+} from "./book-outline.js"
+export {
+  buildBookOutlineEvidence,
+  buildHeadingCandidates,
+  buildProofSheets,
+  type BookOutlineEvidence,
+  type BookOutlineEvidencePage,
+  type HeadingCandidateEvidence,
+  type BookOutlineProofSheet,
+} from "./book-outline-evidence.js"
+export {
   renderPage,
   buildRenderStrategyResolver,
   buildRenderContext,
@@ -83,6 +102,12 @@ export {
   type ImageRef,
 } from "./web-rendering.js"
 export { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
+export {
+  inspectOrderingActivityHtml,
+  inspectOrderingSection,
+  type OrderingContract,
+  type OrderingInspection,
+} from "./ordering-contract.js"
 export {
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
   runVisualReviewLoop,
@@ -189,6 +214,14 @@ export {
   loadVoicesConfig,
   loadSpeechInstructions,
   computeSpeechCacheKey,
+  findAdjacentSpeechText,
+  elevenLabsVoiceSettingsFromConfig,
+  buildElevenLabsTtsLogParams,
+  classifyElevenLabsTtsError,
+  elevenLabsTtsRetryDelayMs,
+  parseElevenLabsErrorStatus,
+  ELEVENLABS_TTS_MAX_CONCURRENCY,
+  ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
   generateSpeechFile,
   generatePageSpeechFiles,
   generateWordTimestamps,

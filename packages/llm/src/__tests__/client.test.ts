@@ -482,3 +482,53 @@ describe("createLLMModel cache v2", () => {
     expect(resultB.cached).toBe(false)
   })
 })
+
+describe("createLLMModel validation retries", () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("feeds validation errors back to the model before retrying", async () => {
+    const validationError =
+      "Page mode requires exactly one section, but the response contains 2."
+
+    const { registry, requests, generate } = makeRegistry({ id: "openai" })
+    generate
+      .mockResolvedValueOnce({
+        object: { sections: [{ id: 1 }, { id: 2 }] },
+        usage: { inputTokens: 1, outputTokens: 1 },
+      })
+      .mockResolvedValueOnce({
+        object: { sections: [{ id: 1 }] },
+        usage: { inputTokens: 1, outputTokens: 1 },
+      })
+
+    const llm = createLLMModel({ modelId: "openai:gpt-4.1", registry, logLevel: "silent" })
+    const result = await llm.generateObject<{ sections: Array<{ id: number }> }>({
+      schema: z.object({ sections: z.array(z.object({ id: z.number() })) }),
+      messages: [{ role: "user", content: "Section this page" }],
+      maxRetries: 1,
+      validate: (value) => {
+        const sections = (value as { sections?: unknown[] }).sections
+        return sections?.length === 1
+          ? { valid: true, errors: [] }
+          : { valid: false, errors: [validationError] }
+      },
+    })
+
+    expect(result.object.sections).toEqual([{ id: 1 }])
+    expect(generate).toHaveBeenCalledTimes(2)
+
+    expect(requests[1]?.messages).toEqual([
+      { role: "user", content: "Section this page" },
+      {
+        role: "assistant",
+        content: JSON.stringify({ sections: [{ id: 1 }, { id: 2 }] }, null, 2),
+      },
+      {
+        role: "user",
+        content: expect.stringContaining(validationError),
+      },
+    ])
+  })
+})

@@ -255,6 +255,7 @@ describe("built-in provider registry", () => {
       "custom",
       "ollama",
       "azure",
+      "elevenlabs",
       "gemini",
     ])
     expect(registry.ids).toHaveLength(BUILT_IN_PROVIDERS.length)
@@ -265,6 +266,7 @@ describe("built-in provider registry", () => {
     expect(registry.providersFor("tts").map((m) => m.manifest.id)).toEqual([
       "openai",
       "azure",
+      "elevenlabs",
       "gemini",
     ])
     expect(registry.providersFor("stt").map((m) => m.manifest.id)).toEqual(["openai"])

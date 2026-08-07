@@ -2,7 +2,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { AppConfig, ProgressEvent } from "@adt/types"
+import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
@@ -16,6 +16,7 @@ const {
   captionPageImagesMock,
   generateSpeechFileMock,
   easyReadGenerateObjectMock,
+  generateBookOutlineMock,
   renderPageMock,
   sectionPageMock,
   transcribeWithWhisperMock,
@@ -28,6 +29,7 @@ const {
       return { captions: [] }
     }),
     easyReadGenerateObjectMock: vi.fn(),
+    generateBookOutlineMock: vi.fn(),
     generateSpeechFileMock: vi.fn(),
     renderPageMock: vi.fn(async () => ({ sections: [] })),
     sectionPageMock: vi.fn(async () => ({ reasoning: "", sections: [] })),
@@ -42,6 +44,7 @@ vi.mock("@adt/pipeline", async () => {
   return {
     ...actual,
     captionPageImages: captionPageImagesMock,
+    generateBookOutline: generateBookOutlineMock,
     generateSpeechFile: generateSpeechFileMock,
     renderPage: renderPageMock,
     sectionPage: sectionPageMock,
@@ -61,6 +64,7 @@ vi.mock("@adt/llm", async () => {
 
 beforeEach(() => {
   easyReadGenerateObjectMock.mockReset()
+  generateBookOutlineMock.mockReset()
   easyReadGenerateObjectMock.mockImplementation(async (options: {
     context?: { texts?: Array<{ text: string }> }
     validate?: (raw: unknown, context: unknown) => { valid: boolean; errors: string[] }
@@ -74,6 +78,13 @@ beforeEach(() => {
     return { object, usage: { inputTokens: 1, outputTokens: 1 } }
   })
 })
+
+function pngBuffer(): Buffer {
+  return Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAQAAAAGCAYAAADkOT91AAAAH0lEQVR4AV3BwREAMAiAMMr+O1ufHsmbxSEhISEh8QGPSwQIxMxWxQAAAABJRU5ErkJggg==",
+    "base64",
+  )
+}
 
 function writeBaseConfig(configPath: string): void {
   fs.writeFileSync(
@@ -301,6 +312,182 @@ describe("buildStageRunnerImageClassifyConfig", () => {
     })
     expect(imageConfig.getImageBytes).toBeTypeOf("function")
     expect(imageConfig.getImageBytes?.("pg001_im001")).toEqual(expectedBytes)
+  })
+})
+
+describe("createStageRunner assembled-book hierarchy rebuild", () => {
+  let tmpDir = ""
+
+  afterEach(() => {
+    if (tmpDir) fs.rmSync(tmpDir, { recursive: true, force: true })
+    tmpDir = ""
+  })
+
+  it("rebuilds a stale outline from stored pages before page sectioning", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-outline-rebuild-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+section_types:
+  content: Content
+`,
+    )
+
+    const storage = createBookStorage("assembled", booksDir)
+    try {
+      storage.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "Chapter One",
+        pageImage: {
+          imageId: "pg001_page",
+          buffer: pngBuffer(),
+          format: "png",
+          hash: "page-hash",
+          width: 4,
+          height: 6,
+        },
+        images: [],
+      })
+      storage.putNodeData("book-outline", "book", {
+        reasoning: "Stale part-local outline.",
+        entries: [],
+        styleClusters: [],
+      })
+      for (const step of PIPELINE.find((stage) => stage.name === "extract")!.steps) {
+        if (step.name !== "book-outline") storage.markStepCompleted(step.name)
+      }
+      // Deliberately no completed book-outline step: merge invalidation uses
+      // the step lifecycle, even when an older version remains inspectable.
+    } finally {
+      storage.close()
+    }
+
+    const rebuilt = {
+      reasoning: "Authoritative assembled-book outline.",
+      styleClusters: [
+        { styleClusterId: "chapter-style", description: "Chapter", level: 1 },
+      ],
+      entries: [
+        {
+          outlineId: "outline-001",
+          title: "Chapter One",
+          level: 1,
+          kind: "chapter",
+          pageId: "pg001",
+          pageNumber: 1,
+          sourceCandidateIds: ["pg001_hc001"],
+          parentId: null,
+          styleClusterId: "chapter-style",
+          confidence: 0.95,
+        },
+      ],
+    }
+    generateBookOutlineMock.mockResolvedValue(rebuilt)
+    sectionPageMock.mockClear()
+
+    const events: ProgressEvent[] = []
+    await createStageRunner().run(
+      "assembled",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "sectioning",
+        toStage: "sectioning",
+      },
+      { emit: (event) => events.push(event) },
+    )
+
+    expect(generateBookOutlineMock).toHaveBeenCalledTimes(1)
+    expect(sectionPageMock).toHaveBeenCalledTimes(1)
+    expect(sectionPageMock.mock.calls[0][0]).toMatchObject({
+      outline: {
+        entries: rebuilt.entries,
+        styleClusters: rebuilt.styleClusters,
+      },
+    })
+    expect(events).toEqual(expect.arrayContaining([
+      expect.objectContaining({ type: "step-start", step: "book-outline" }),
+      expect.objectContaining({ type: "step-complete", step: "book-outline" }),
+      expect.objectContaining({ type: "step-complete", step: "page-sectioning" }),
+    ]))
+
+    const verified = createBookStorage("assembled", booksDir)
+    try {
+      expect(verified.getLatestNodeData("book-outline", "book")).toMatchObject({
+        version: 2,
+        data: rebuilt,
+      })
+      expect(verified.getStepRuns()).toEqual(expect.arrayContaining([
+        expect.objectContaining({ step: "book-outline", status: "done" }),
+        expect.objectContaining({ step: "page-sectioning", status: "done" }),
+      ]))
+    } finally {
+      verified.close()
+    }
+  })
+
+  it("does not let a partially extracted normal book bypass Extract prerequisites", async () => {
+    sectionPageMock.mockClear()
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-outline-prereqs-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+section_types:
+  content: Content
+`,
+    )
+    const storage = createBookStorage("partial", booksDir)
+    try {
+      storage.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "Partial extraction",
+        pageImage: {
+          imageId: "pg001_page",
+          buffer: pngBuffer(),
+          format: "png",
+          hash: "page-hash",
+          width: 4,
+          height: 6,
+        },
+        images: [],
+      })
+      storage.markStepCompleted("extract")
+    } finally {
+      storage.close()
+    }
+
+    await expect(createStageRunner().run(
+      "partial",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "sectioning",
+        toStage: "sectioning",
+      },
+      { emit: () => {} },
+    )).rejects.toThrow("Extract prerequisites complete")
+    expect(generateBookOutlineMock).not.toHaveBeenCalled()
+    expect(sectionPageMock).not.toHaveBeenCalled()
   })
 })
 

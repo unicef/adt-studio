@@ -14,13 +14,14 @@ import { useRegisterDirtyTabs } from "@/hooks/use-settings-dirty-tabs"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useLingui } from "@lingui/react/macro"
+import { ElevenLabsVoiceCombobox } from "./ElevenLabsVoiceCombobox"
 
 interface VoiceMappingsEditorProps {
   bookLabel: string
   headerTarget?: HTMLDivElement | null
 }
 
-const PROVIDER_ORDER = ["openai", "azure", "gemini"] as const
+const PROVIDER_ORDER = ["openai", "azure", "gemini", "elevenlabs"] as const
 
 type VoiceProviderKey = (typeof PROVIDER_ORDER)[number]
 
@@ -29,6 +30,7 @@ interface VoiceRow {
   openai: string
   azure: string
   gemini: string
+  elevenlabs: string
 }
 
 export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
@@ -59,10 +61,12 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
     const openai = data.openai ?? {}
     const azure = data.azure ?? {}
     const gemini = data.gemini ?? {}
+    const elevenlabs = data.elevenlabs ?? {}
     const allLangs = new Set([
       ...Object.keys(openai),
       ...Object.keys(azure),
       ...Object.keys(gemini),
+      ...Object.keys(elevenlabs),
     ])
     const built: VoiceRow[] = []
     for (const lang of allLangs) {
@@ -71,6 +75,7 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
         openai: openai[lang] ?? "",
         azure: azure[lang] ?? "",
         gemini: gemini[lang] ?? "",
+        elevenlabs: elevenlabs[lang] ?? "",
       })
     }
     // Sort with "default" first, then alphabetical
@@ -107,7 +112,7 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
   const addLanguage = () => {
     const key = newLangKey.trim().toLowerCase()
     if (!key || rows.some((r) => r.lang === key)) return
-    setRows((prev) => [...prev, { lang: key, openai: "", azure: "", gemini: "" }])
+    setRows((prev) => [...prev, { lang: key, openai: "", azure: "", gemini: "", elevenlabs: "" }])
     setNewLangKey("")
     setShowAddLang(false)
     setDirtyMappings(true)
@@ -263,9 +268,11 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
         </div>
       )}
 
-      {/* Table */}
-      <div className="rounded-md border overflow-hidden">
-        <table className="w-full text-xs">
+      {/* Table. Scrolls horizontally rather than compressing: with six columns
+          a narrow settings pane would otherwise squeeze the voice cells until
+          names like `en-US-JennyNeural` are unreadable. */}
+      <div className="rounded-md border overflow-x-auto">
+        <table className="w-full min-w-[860px] text-xs">
           <thead>
             <tr className="bg-muted/50 border-b">
               <th className="text-left font-medium px-3 py-2 w-28">{t`Language`}</th>
@@ -275,7 +282,9 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
                     ? t`OpenAI Voice`
                     : key === "azure"
                       ? t`Azure Voice`
-                      : t`Gemini Voice`}
+                      : key === "gemini"
+                        ? t`Gemini Voice`
+                        : t`ElevenLabs Voice`}
                 </th>
               ))}
               <th className="w-10 px-2 py-2" />
@@ -289,18 +298,28 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
                 </td>
                 {PROVIDER_ORDER.map((key) => (
                   <td key={key} className="px-3 py-1.5">
-                    <Input
-                      value={row[key]}
-                      onChange={(e) => updateRow(i, key, e.target.value)}
-                      className="h-7 text-xs"
-                      placeholder={
-                        key === "openai"
-                          ? t`e.g. alloy`
-                          : key === "azure"
-                            ? t`e.g. en-US-JennyNeural`
-                            : t`e.g. Kore`
-                      }
-                    />
+                    {/* ElevenLabs voices are opaque IDs, so they get a picker
+                        that resolves names. The other providers use readable
+                        names already (alloy, Kore, en-US-JennyNeural). */}
+                    {key === "elevenlabs" ? (
+                      <ElevenLabsVoiceCombobox
+                        value={row[key]}
+                        onChange={(voiceId) => updateRow(i, key, voiceId)}
+                      />
+                    ) : (
+                      <Input
+                        value={row[key]}
+                        onChange={(e) => updateRow(i, key, e.target.value)}
+                        className="h-7 text-xs"
+                        placeholder={
+                          key === "openai"
+                            ? t`e.g. alloy`
+                            : key === "azure"
+                              ? t`e.g. en-US-JennyNeural`
+                              : t`e.g. Kore`
+                        }
+                      />
+                    )}
                   </td>
                 ))}
                 <td className="px-2 py-1.5">

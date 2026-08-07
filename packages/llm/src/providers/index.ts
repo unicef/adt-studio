@@ -8,6 +8,7 @@ import { googleProvider } from "./google/index.js"
 import { customProvider } from "./custom/index.js"
 import { ollamaProvider } from "./ollama/index.js"
 import { azureProvider } from "./azure/index.js"
+import { elevenLabsProvider } from "./elevenlabs/index.js"
 import { geminiProvider } from "./gemini/index.js"
 
 export { openaiProvider, openaiManifest, OPENAI_PROVIDER_ID } from "./openai/index.js"
@@ -31,6 +32,11 @@ export {
   OLLAMA_DEFAULT_BASE_URL,
 } from "./ollama/index.js"
 export { azureProvider, azureManifest, AZURE_PROVIDER_ID } from "./azure/index.js"
+export {
+  elevenLabsProvider,
+  elevenLabsManifest,
+  ELEVENLABS_PROVIDER_ID,
+} from "./elevenlabs/index.js"
 export { geminiProvider, geminiManifest, GEMINI_PROVIDER_ID } from "./gemini/index.js"
 
 /** Registration order is the display order in the Studio credential UI. */
@@ -43,6 +49,7 @@ export const BUILT_IN_PROVIDERS: readonly AnyProviderModule[] = [
   customProvider as AnyProviderModule,
   ollamaProvider as AnyProviderModule,
   azureProvider as AnyProviderModule,
+  elevenLabsProvider as AnyProviderModule,
   geminiProvider as AnyProviderModule,
 ]
 

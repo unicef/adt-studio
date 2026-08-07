@@ -8,6 +8,7 @@ import {
   buildGlossaryJson,
   injectWebpubStyles,
   packageAdtWeb,
+  pageNeedsActivitiesBundle,
   renderPageHtml,
   resolveReflowableFontChain,
   renderQuizHtml,
@@ -2268,6 +2269,17 @@ describe("injectActivitiesBundle", () => {
     expect(plain).not.toContain("activities.bundle.local.js")
   })
 
+  it("injects the bundle into mixed-content pages with inline word-bank controls", () => {
+    const html = `<html><body><section data-section-type="text_and_images"><button data-word-bank-chip="I">I</button><input data-word-bank-target="true"></section></body></html>`
+    fs.writeFileSync(path.join(tmp, "word-bank.html"), html)
+
+    injectActivitiesBundle(tmp)
+
+    expect(fs.readFileSync(path.join(tmp, "word-bank.html"), "utf-8")).toContain(
+      "./assets/activities.bundle.local.js",
+    )
+  })
+
   it("does not double-inject", () => {
     const html = `<html><body><section data-section-type="activity_sorting"></section></body></html>`
     fs.writeFileSync(path.join(tmp, "a.html"), html)
@@ -2275,6 +2287,19 @@ describe("injectActivitiesBundle", () => {
     injectActivitiesBundle(tmp)
     const out = fs.readFileSync(path.join(tmp, "a.html"), "utf-8")
     expect(out.match(/activities\.bundle\.local\.js/g)).toHaveLength(1)
+  })
+})
+
+describe("pageNeedsActivitiesBundle", () => {
+  it("recognizes dedicated activities and complete inline word banks", () => {
+    expect(pageNeedsActivitiesBundle('<section data-section-type="activity_quiz">')).toBe(true)
+    expect(
+      pageNeedsActivitiesBundle('<button data-word-bank-chip="I"><input data-word-bank-target>'),
+    ).toBe(true)
+  })
+
+  it("does not activate for incomplete word-bank markup", () => {
+    expect(pageNeedsActivitiesBundle('<button data-word-bank-chip="I">')).toBe(false)
   })
 })
 

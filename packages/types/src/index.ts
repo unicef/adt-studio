@@ -83,6 +83,7 @@ export {
   IMAGE_SET_CHANGE_CLEAR_STEPS,
   IMAGE_SET_CHANGE_CLEAR_STAGES,
   getStageClearOrder,
+  getStageDependents,
   getStageClearNodes,
   getStageRerunClearNodes,
   getCacheResourcesForNode,
@@ -125,6 +126,10 @@ export {
   DEFAULT_IMAGE_GENERATION_MODEL_ID,
   DEFAULT_OPENAI_TTS_MODEL_ID,
   DEFAULT_BASE_PROMPT_MODEL_ID,
+  DEFAULT_ELEVENLABS_TTS_MODEL_ID,
+  DEFAULT_ELEVENLABS_VOICE_ID,
+  DEFAULT_ELEVENLABS_VOICE_SETTINGS,
+  ELEVENLABS_SHIPPED_VOICE_NAMES,
   LLMModelId,
   SpeechGenerationModelId,
   DefaultModelConfig,
@@ -214,6 +219,18 @@ export {
 export { BookMetadata } from "./metadata.js"
 
 export { BookSummaryOutput } from "./book-summary.js"
+export {
+  HeadingLevel,
+  HeadingKind,
+  HEADING_ROLE_LEVELS,
+  isHeadingRole,
+  headingLevelForRole,
+  BookOutlineStyleCluster,
+  BookOutlineEntry,
+  BookOutlineOutput,
+  BookOutlineAppliedHeading,
+  BookOutlineAuditResponse,
+} from "./book-outline.js"
 
 export { ExtractionWarning } from "./extraction-warning.js"
 
@@ -328,6 +345,7 @@ export {
 } from "./reviewer-validation-config.js"
 
 export {
+  AUTO_FIT_SCRIPT_SRC,
   PositionedParagraph,
   PositionedTextOutput,
   ImageBounds,

@@ -116,6 +116,7 @@ const NODE_CACHE_RESOURCES: Record<PipelineNodeName, readonly PipelineCacheResou
   "extract": ["books", "book", "pages"],
   "metadata": ["books", "book"],
   "book-summary": ["books", "book"],
+  "book-outline": ["book", "pages"],
   "image-filtering": ["pages"],
   "image-segmentation": ["pages"],
   "image-cropping": ["pages"],
@@ -183,6 +184,13 @@ function collectTransitiveDependents(stage: StageName): StageName[] {
 /** Stage execution order starting at `stage`, including all transitive dependents. */
 export function getStageClearOrder(stage: StageName): StageName[] {
   return [stage, ...collectTransitiveDependents(stage)]
+}
+
+/** Every stage that consumes `stage`'s output, transitively — `stage` excluded.
+ *  Use when a stage's own output is known to be current but the outputs derived
+ *  from it are not. */
+export function getStageDependents(stage: StageName): StageName[] {
+  return collectTransitiveDependents(stage)
 }
 
 /** All node types that should be cleared when starting from `stage`. */

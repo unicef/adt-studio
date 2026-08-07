@@ -13,6 +13,7 @@ import {
   ImageSegmentRegion,
   DEFAULT_IMAGE_GENERATION_MODEL_ID,
   DEFAULT_LLM_MAX_RETRIES,
+  DEFAULT_LLM_MODEL_ID,
   primaryFontFamily,
   reflowableFontChain,
   BookFontRegistry,
@@ -21,12 +22,16 @@ import {
   splitNodesBefore,
   IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
   IMAGE_SET_CHANGE_CLEAR_STEPS,
+  PIPELINE,
+  getStageClearOrder,
+  getStageDependents,
   EDITABLE_ACTIVITY_NODE,
 } from "@adt/types"
 import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
+import { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import {
   detectSpreads,
@@ -38,6 +43,12 @@ import {
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
+import {
+  getBookStyleguidesDir,
+  getGeneratedStyleguideName,
+  StyleguideWriteError,
+  writeStyleguideFiles,
+} from "../services/styleguide.js"
 import type { TaskService } from "../services/task-service.js"
 import {
   segmentPageImages,
@@ -56,7 +67,7 @@ import {
   isFixedLayoutBook,
   type ScreenshotRenderer,
 } from "@adt/pipeline"
-import { AiProviderError, createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
+import { AiProviderError, assertModelCredentials, createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
 import type { ResolvedCredentials } from "@adt/llm"
 import { readProviderCredentials } from "../middleware/provider-credentials.js"
 
@@ -438,6 +449,134 @@ function clearCaptionData(storage: Storage): void {
   storage.clearStepRuns([...IMAGE_SET_CHANGE_CLEAR_STEPS])
 }
 
+const RestorableNode = z.enum([
+  "toc-generation",
+  "glossary",
+  "quiz-generation",
+  "text-catalog-translation",
+  "easy-read",
+  "image-filtering",
+  "image-captioning",
+  "page-sectioning",
+  "web-rendering",
+])
+type RestorableNode = z.infer<typeof RestorableNode>
+
+/**
+ * Invalidate outputs derived from a restored entity. A pointer move is still a
+ * data mutation: keeping outputs generated from the abandoned version would
+ * leave the book in a mixed state. The policies follow each node's actual
+ * catalog, translation, speech, and packaging dependencies.
+ */
+function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): void {
+  switch (node) {
+    case "image-filtering":
+    case "page-sectioning":
+    case "web-rendering":
+      clearCaptionData(storage)
+      return
+
+    case "image-captioning":
+    case "glossary":
+    case "quiz-generation":
+      storage.clearNodesByType([
+        "text-catalog",
+        "text-catalog-translation",
+        "tts",
+        "tts-timestamps",
+        "accessibility-assessment",
+      ])
+      storage.clearStepRuns([
+        "text-catalog",
+        "catalog-translation",
+        "image-translation",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return
+
+    case "easy-read":
+      storage.clearNodesByType([
+        "text-catalog-translation",
+        "tts",
+        "tts-timestamps",
+        "accessibility-assessment",
+      ])
+      storage.clearStepRuns([
+        "catalog-translation",
+        "image-translation",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return
+
+    case "text-catalog-translation":
+      storage.clearNodesByType(["tts", "tts-timestamps", "accessibility-assessment"])
+      storage.clearStepRuns([
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return
+
+    case "toc-generation":
+      storage.clearNodesByType(["accessibility-assessment"])
+      storage.clearStepRuns(["package-web", "accessibility-assessment"])
+  }
+}
+
+/**
+ * Mark the storyboard chain as needing a re-run, without deleting any node data.
+ *
+ * A sectioning edit invalidates the storyboard's rendered HTML, and every later
+ * output (text catalog, translations, audio, the packaged book) is re-derived
+ * from that HTML — so leaving those stages marked "done" would silently ship the
+ * old text. We clear only `step_runs`: the renderings and their version history
+ * survive (so manual storyboard edits elsewhere in the book are not destroyed)
+ * and are overwritten only when the user actually re-runs.
+ *
+ * `includeStoryboard: false` keeps the storyboard's own step run, for the case
+ * where the caller wrote a matching `web-rendering` in the same save: the HTML
+ * on disk already reflects the new sectioning, so only the stages *derived* from
+ * it are behind. Marking storyboard stale there would be a lie that also costs
+ * the user their editor — the Storyboard view is gated on the stage status.
+ */
+function markStoryboardChainStale(
+  storage: Storage,
+  { includeStoryboard = true }: { includeStoryboard?: boolean } = {}
+): void {
+  const stages = new Set<string>(
+    includeStoryboard ? getStageClearOrder("storyboard") : getStageDependents("storyboard")
+  )
+  storage.clearStepRuns(
+    PIPELINE.filter((stage) => stages.has(stage.name)).flatMap((stage) =>
+      stage.steps.map((step) => step.name)
+    )
+  )
+}
+
+/**
+ * A running pipeline step can commit node data and mark itself complete after a
+ * manual Sectioning mutation. Refuse the mutation instead of letting that stale
+ * completion resurrect the downstream chain as "done".
+ */
+function assertNoActivePipelineRun(storage: Storage): void {
+  const runningSteps = storage
+    .getStepRuns()
+    .filter((run) => run.status === "running")
+    .map((run) => run.step)
+  if (runningSteps.length === 0) return
+
+  throw new HTTPException(409, {
+    message: `Cannot change sectioning while pipeline steps are running: ${runningSteps.join(", ")}. Wait for the run to finish or cancel it first.`,
+  })
+}
+
 /**
  * Save storyboard (web-rendering) node data and clear stale downstream data.
  * Use for all user-initiated storyboard saves (NOT pipeline stage runs).
@@ -446,10 +585,25 @@ function saveStoryboardNode(
   storage: Storage,
   node: "page-sectioning" | "web-rendering",
   itemId: string,
-  data: unknown
+  data: unknown,
+  { renderingInSync = false }: { renderingInSync?: boolean } = {}
 ): number {
+  if (node === "page-sectioning") assertNoActivePipelineRun(storage)
   const version = storage.putNodeData(node, itemId, data)
   clearCaptionData(storage)
+  // A sectioning change invalidates the storyboard's rendered HTML — and the
+  // structural ops go further: a split drops both halves' HTML and a cross-page
+  // merge empties both pages, so those sections would silently vanish from the
+  // packaged book while the stage still read "done". A `web-rendering` save is
+  // itself the storyboard's output, so it must NOT mark storyboard stale.
+  //
+  // `renderingInSync` is the Storyboard editor saving a per-section edit whose
+  // HTML it has already mirrored, or has queued a targeted re-render for. The
+  // storyboard is current (or seconds from it) and only its dependents are
+  // behind, so resetting the stage would take the editor away for nothing.
+  if (node === "page-sectioning") {
+    markStoryboardChainStale(storage, { includeStoryboard: !renderingInSync })
+  }
   return version
 }
 
@@ -607,7 +761,11 @@ export function createPageRoutes(
       const rendered = new Set<string>()
       const renderingByPage = new Map<string, { version: number; activityBySectionIndex: Map<number, boolean> }>()
       const renderRows = db.all(
-        "SELECT item_id, version, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        `SELECT nd.item_id AS item_id, nd.version AS version, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
         ["web-rendering"]
       ) as Array<{ item_id: string; version: number; data: string }>
       for (const row of renderRows) {
@@ -647,7 +805,11 @@ export function createPageRoutes(
       // Get image counts per page from image-filtering node data
       const imageCounts = new Map<string, number>()
       const imageRows = db.all(
-        "SELECT item_id, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        `SELECT nd.item_id AS item_id, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
         ["image-filtering"]
       ) as Array<{ item_id: string; data: string }>
       for (const row of imageRows) {
@@ -671,7 +833,11 @@ export function createPageRoutes(
       const sectioningVersions = new Map<string, number>()
       const structuredText = new Map<string, string>()
       const structuringRows = db.all(
-        "SELECT item_id, version, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        `SELECT nd.item_id AS item_id, nd.version AS version, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
         ["page-sectioning"]
       ) as Array<{ item_id: string; version: number; data: string }>
       for (const row of structuringRows) {
@@ -797,14 +963,12 @@ export function createPageRoutes(
 
       const page = pageRows[0]
 
-      // Get pipeline outputs (data + version)
+      // Get pipeline outputs (data + version). Reads the *current* version
+      // (node_current pointer), falling back to MAX(version) when unset — so
+      // rolling back to an older version is reflected here.
       const getNodeData = (node: string): { data: unknown; version: number } | null => {
-        const rows = db.all(
-          "SELECT data, version FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-          [node, pageId]
-        ) as Array<{ data: string; version: number }>
-        if (rows.length === 0) return null
-        return { data: JSON.parse(rows[0].data), version: rows[0].version }
+        const row = readCurrentNodeRow(db, node, pageId)
+        return row ? { data: JSON.parse(row.data), version: row.version } : null
       }
 
       const sectioningNode = getNodeData("page-sectioning")
@@ -1128,14 +1292,13 @@ export function createPageRoutes(
       const db = openBookDb(dbPath)
       let sectionHtml: string
       try {
-        const rows = db.all(
-          "SELECT data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-          ["web-rendering", pageId]
-        ) as Array<{ data: string }>
-        if (rows.length === 0) {
+        // Read the *current* rendering (pointer-aware) so screenshots/exports
+        // match a rolled-back version, not MAX.
+        const row = readCurrentNodeRow(db, "web-rendering", pageId)
+        if (!row) {
           throw new HTTPException(404, { message: `No rendering for page: ${pageId}` })
         }
-        const parsed = WebRenderingOutput.safeParse(JSON.parse(rows[0].data))
+        const parsed = WebRenderingOutput.safeParse(JSON.parse(row.data))
         if (!parsed.success) {
           throw new HTTPException(500, { message: `Rendering data malformed for ${pageId}` })
         }
@@ -1227,9 +1390,8 @@ export function createPageRoutes(
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
 
-      const version = storage.putNodeData("page-sectioning", pageId, parsed.data)
-      // Sectioning change cascades to everything downstream
-      clearCaptionData(storage)
+      // Sectioning change cascades to everything downstream.
+      const version = saveStoryboardNode(storage, "page-sectioning", pageId, parsed.data)
       return c.json({ version })
     } finally {
       storage.close()
@@ -1258,6 +1420,7 @@ export function createPageRoutes(
       }
 
       const version = storage.putNodeData("image-filtering", pageId, parsed.data)
+      clearCaptionData(storage)
       return c.json({ version })
     } finally {
       storage.close()
@@ -1287,6 +1450,127 @@ export function createPageRoutes(
 
       const version = saveStoryboardNode(storage, "web-rendering", pageId, parsed.data)
       return c.json({ version })
+    } finally {
+      storage.close()
+    }
+  })
+
+  // PUT /books/:label/pages/:pageId/storyboard — one Storyboard editor save.
+  //
+  // Sectioning and rendering are two nodes but one user action, and splitting
+  // them across two requests is what made the editor fragile: the second PUT can
+  // fail (or be rejected by the pipeline-run guard) after the first has already
+  // landed, leaving the HTML and the tree disagreeing with no way back. Writing
+  // both here means the guard runs once, up front, and the pair moves together.
+  //
+  // `renderingInSync` says the stored HTML reflects this sectioning, or will
+  // shortly: the caller either mirrored the edit into the rendering it is
+  // sending, needed no HTML change at all, or has queued a re-render of the one
+  // section it touched. Storyboard editing is incremental by design, so a
+  // per-section edit must not reset the stage for the whole book. It is false
+  // only when the HTML cannot be brought back in sync — no API key, or a custom
+  // activity a re-render would flatten — and false is also the default, so the
+  // Sectioning stage and the structural ops that drop HTML without re-rendering
+  // (split, cross-page merge) keep marking the chain stale.
+  app.put("/books/:label/pages/:pageId/storyboard", async (c) => {
+    const { label, pageId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+
+    const body = await c.req.json()
+    const parsed = z
+      .object({
+        sectioning: PageSectioningOutput.optional(),
+        rendering: WebRenderingOutput.optional(),
+        renderingInSync: z.boolean().default(false),
+      })
+      .safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid storyboard save: ${parsed.error.message}`,
+      })
+    }
+    const { sectioning, rendering, renderingInSync } = parsed.data
+    if (!sectioning && !rendering) {
+      throw new HTTPException(400, {
+        message: "Storyboard save must include sectioning, rendering, or both",
+      })
+    }
+    // The flag only describes a sectioning write; on its own it would silently
+    // do nothing, which is worth a 400 rather than a puzzling no-op.
+    if (renderingInSync && !sectioning) {
+      throw new HTTPException(400, {
+        message: "renderingInSync requires sectioning",
+      })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const pages = storage.getPages()
+      const page = pages.find((p) => p.pageId === pageId)
+      if (!page) {
+        throw new HTTPException(404, { message: `Page not found: ${pageId}` })
+      }
+
+      // Guard before either write, so a rejected save changes nothing at all.
+      if (sectioning) assertNoActivePipelineRun(storage)
+
+      // Rendering, sectioning, downstream invalidations, and step status are a
+      // single editor save. If any statement fails, none of them may survive.
+      const { renderingVersion, sectioningVersion } = storage.transaction(() => ({
+        renderingVersion: rendering
+          ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
+          : null,
+        sectioningVersion: sectioning
+          ? saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
+          : null,
+      }))
+
+      return c.json({ sectioningVersion, renderingVersion })
+    } finally {
+      storage.close()
+    }
+  })
+
+  // POST /books/:label/versions/:node/:itemId/restore — roll an entity back to
+  // an existing version by moving its current-version pointer (no new version
+  // is created). Supports the nodes exposed by the shared version picker
+  // (itemId = page id / "book" / language code).
+  app.post("/books/:label/versions/:node/:itemId/restore", async (c) => {
+    const { label, itemId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+
+    const parsedNode = RestorableNode.safeParse(c.req.param("node"))
+    if (!parsedNode.success) {
+      throw new HTTPException(400, { message: "Unsupported versioned node" })
+    }
+    const node = parsedNode.data
+
+    const parsed = z
+      .object({ version: z.number().int().positive() })
+      .safeParse(await c.req.json().catch(() => ({})))
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid restore request: ${parsed.error.message}`,
+      })
+    }
+    const { version } = parsed.data
+
+    // Don't materialize a book directory for a label that doesn't exist.
+    const dbPath = path.join(path.resolve(booksDir), safeLabel, `${safeLabel}.db`)
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const ok = storage.setCurrentNodeVersion(node, itemId, version)
+      if (!ok) {
+        throw new HTTPException(404, {
+          message: `Version ${version} not found for ${node}/${itemId}`,
+        })
+      }
+      clearRestoredNodeDependents(storage, node)
+      return c.json({ node, itemId, version })
     } finally {
       storage.close()
     }
@@ -1335,6 +1619,115 @@ export function createPageRoutes(
     } finally {
       storage.close()
     }
+  })
+
+  // POST /books/:label/pages/re-render — Re-render a set of pages as one task.
+  // This is used by cross-page edits: the Storyboard step stays running until
+  // every affected page succeeds, and any failure makes the whole stage stale.
+  app.post("/books/:label/pages/re-render", async (c) => {
+    const safeLabel = parseBookLabel(c.req.param("label"))
+    const credentials = readProviderCredentials(c)
+    // Fail before the batch starts: a partially re-rendered book is worse than
+    // a rejected request, and the model decides which credential is required.
+    assertModelCredentials(
+      "structured-text",
+      loadBookConfig(safeLabel, booksDir, configPath).default_model
+        ?? DEFAULT_LLM_MODEL_ID,
+      credentials,
+    )
+
+    const parsed = z
+      .object({ pageIds: z.array(z.string().min(1)).min(1).max(100) })
+      .safeParse(await c.req.json().catch(() => null))
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid re-render request: ${parsed.error.message}`,
+      })
+    }
+    const pageIds = [...new Set(parsed.data.pageIds)]
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const existingPageIds = new Set(storage.getPages().map((page) => page.pageId))
+      for (const pageId of pageIds) {
+        if (!existingPageIds.has(pageId)) {
+          throw new HTTPException(404, { message: `Page not found: ${pageId}` })
+        }
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
+        if (!sectioningRow) {
+          throw new HTTPException(400, {
+            message: `Page must have page-sectioning data before re-rendering: ${pageId}`,
+          })
+        }
+        if (!PageSectioningOutput.safeParse(sectioningRow.data).success) {
+          throw new HTTPException(400, {
+            message: `Invalid page-sectioning data: ${pageId}`,
+          })
+        }
+      }
+
+      assertNoActivePipelineRun(storage)
+      storage.markStepStarted("web-rendering")
+    } finally {
+      storage.close()
+    }
+
+    const markBatchFailed = () => {
+      const failedStorage = createBookStorage(safeLabel, booksDir)
+      try {
+        markStoryboardChainStale(failedStorage)
+      } finally {
+        failedStorage.close()
+      }
+    }
+
+    const runReRenders = async () => {
+      try {
+        const results = []
+        for (const pageId of pageIds) {
+          results.push(
+            await reRenderPage({
+              label: safeLabel,
+              pageId,
+              booksDir,
+              promptsDir,
+              webAssetsDir,
+              configPath,
+              credentials,
+            })
+          )
+        }
+
+        const completedStorage = createBookStorage(safeLabel, booksDir)
+        try {
+          completedStorage.markStepCompleted("web-rendering")
+        } finally {
+          completedStorage.close()
+        }
+        return { results }
+      } catch (err) {
+        markBatchFailed()
+        throw err
+      }
+    }
+
+    if (taskService) {
+      try {
+        const { taskId } = taskService.submitTask(
+          safeLabel,
+          "re-render",
+          `Re-rendering ${pageIds.length} affected page(s)`,
+          runReRenders,
+          { pageId: pageIds[0], url: `/books/${safeLabel}/storyboard/${pageIds[0]}` }
+        )
+        return c.json({ taskId, status: "submitted" })
+      } catch (err) {
+        markBatchFailed()
+        throw err
+      }
+    }
+
+    return c.json(await runReRenders())
   })
 
   // POST /books/:label/pages/:pageId/re-render — Re-render page with current pipeline data
@@ -1397,6 +1790,34 @@ export function createPageRoutes(
       storage.close()
     }
 
+    // An unprune keeps the storyboard marked complete on the promise that this
+    // re-render will supply the section's HTML. When it dies that HTML never
+    // arrives, so take the mark back here — the browser may be long gone by then,
+    // and a stage claiming output it does not have is what #642 set out to fix.
+    const runReRender = async () => {
+      try {
+        return await reRenderPage({
+          label: safeLabel,
+          pageId,
+          sectionIndex,
+          prompt,
+          booksDir,
+          promptsDir,
+          webAssetsDir,
+          configPath,
+          credentials,
+        })
+      } catch (err) {
+        const storage = createBookStorage(safeLabel, booksDir)
+        try {
+          markStoryboardChainStale(storage)
+        } finally {
+          storage.close()
+        }
+        throw err
+      }
+    }
+
     // Submit as task if TaskService is available
     if (taskService) {
       const desc = sectionIndex !== undefined
@@ -1406,38 +1827,14 @@ export function createPageRoutes(
         safeLabel,
         "re-render",
         desc,
-        async () => {
-          return await reRenderPage({
-            label: safeLabel,
-            pageId,
-            sectionIndex,
-            prompt,
-            booksDir,
-            promptsDir,
-            webAssetsDir,
-            configPath,
-            credentials,
-          })
-        },
+        runReRender,
         { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
       )
       return c.json({ taskId, status: "submitted" })
     }
 
     // Fallback: run synchronously
-    const result = await reRenderPage({
-      label: safeLabel,
-      pageId,
-      sectionIndex,
-      prompt,
-      booksDir,
-      promptsDir,
-      webAssetsDir,
-      configPath,
-      credentials,
-    })
-
-    return c.json(result)
+    return c.json(await runReRender())
   })
 
   // POST /books/:label/pages/:pageId/sections/:sectionIndex/ai-edit — AI-edit a section's HTML
@@ -1487,7 +1884,15 @@ export function createPageRoutes(
             if (renderingParsed?.success) {
               const updated = {
                 sections: renderingParsed.data.sections.map((s) =>
-                  s.sectionIndex === idx ? { ...s, html: result.html } : s
+                  s.sectionIndex === idx
+                    ? {
+                        ...s,
+                        html: result.html,
+                        ...(result.activityAnswers
+                          ? { activityAnswers: result.activityAnswers }
+                          : {}),
+                      }
+                    : s
                 ),
               }
               saveStoryboardNode(storage, "web-rendering", pageId, updated)
@@ -1711,7 +2116,17 @@ export function createPageRoutes(
         rewriteRenderingSectionIds(shifted, newSections)
         updatedRendering = { sections: shifted }
       }
-      const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
+      // Cloning rebuilds the rendering to match: indexes shift, the source's HTML
+      // is copied for the clone, and container and section ids are rewritten. No
+      // LLM is involved and nothing is left behind, so the storyboard stays
+      // current — only the stages derived from it need a re-run.
+      const sectioningVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        updatedSectioning,
+        { renderingInSync: updatedRendering !== null }
+      )
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
@@ -1937,6 +2352,9 @@ export function createPageRoutes(
       throw new HTTPException(400, { message: `Invalid direction: ${directionParam}. Must be "next" or "prev"` })
     }
     const direction = directionParam as "next" | "prev"
+    // The Storyboard editor re-renders the merged section straight after, so it
+    // opts out of marking the stage stale. Off by default for every other caller.
+    const renderingInSync = c.req.query("renderingInSync") === "1"
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
@@ -2047,7 +2465,16 @@ export function createPageRoutes(
         updatedRendering = { sections: shifted }
       }
 
-      const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
+      // Merging concatenates the two sections' HTML into the kept entry, so no
+      // section is left without one — the caller's re-render replaces the naive
+      // join with properly combined markup rather than filling a gap.
+      const sectioningVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        updatedSectioning,
+        { renderingInSync: renderingInSync && updatedRendering !== null }
+      )
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
@@ -2094,7 +2521,6 @@ export function createPageRoutes(
       })
     }
     const { direction } = parsedQuery.data
-
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const pages = storage.getPages()
@@ -2180,14 +2606,18 @@ export function createPageRoutes(
       renumberSectionIds(newTgtSections, targetPageId)
 
       // Save updated sectionings
-      const srcVersion = saveStoryboardNode(storage, "page-sectioning", pageId, {
-        ...srcSectioning,
-        sections: newSrcSections,
-      })
-      const tgtVersion = saveStoryboardNode(storage, "page-sectioning", targetPageId, {
-        ...tgtSectioning,
-        sections: newTgtSections,
-      })
+      const srcVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        { ...srcSectioning, sections: newSrcSections }
+      )
+      const tgtVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        targetPageId,
+        { ...tgtSectioning, sections: newTgtSections }
+      )
 
       // Clear rendering for both pages (merged content invalidates existing renders)
       let srcRenderVersion: number | null = null
@@ -2300,7 +2730,17 @@ export function createPageRoutes(
         updatedRendering = { sections: shifted }
       }
 
-      const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
+      // Deleting rebuilds the rendering to match: the section's HTML entry is
+      // dropped, later indexes shift down, and section ids are rewritten. The
+      // surviving sections keep the HTML they already had, so nothing needs
+      // re-rendering and the storyboard stays current.
+      const sectioningVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        updatedSectioning,
+        { renderingInSync: updatedRendering !== null }
+      )
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
@@ -2853,13 +3293,23 @@ export function createPageRoutes(
       llmModel
     )
 
-    // Save to assets/styleguides/{label}-generated.md
-    const projectRoot = configPath ? path.dirname(configPath) : path.resolve(booksDir, "..")
-    const styleguidesDir = path.join(projectRoot, "assets", "styleguides")
-    fs.mkdirSync(styleguidesDir, { recursive: true })
-    const sgName = `${safeLabel}-generated`
-    fs.writeFileSync(path.join(styleguidesDir, `${sgName}.md`), result.content, "utf-8")
-    fs.writeFileSync(path.join(styleguidesDir, `${sgName}-preview.html`), result.preview_html, "utf-8")
+    // Generated style guides are book data, so keep them inside the project
+    // directory where export/import and ordinary folder copies preserve them.
+    const styleguidesDir = getBookStyleguidesDir(resolvedBooksDir, safeLabel)
+    const sgName = getGeneratedStyleguideName(safeLabel)
+    try {
+      writeStyleguideFiles({
+        dir: styleguidesDir,
+        name: sgName,
+        content: result.content,
+        previewHtml: result.preview_html,
+      })
+    } catch (err) {
+      if (err instanceof StyleguideWriteError) {
+        throw new HTTPException(500, { message: err.message })
+      }
+      throw err
+    }
 
     return c.json({
       name: sgName,

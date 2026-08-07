@@ -36,6 +36,7 @@ describe("GET /providers", () => {
       "custom",
       "ollama",
       "azure",
+      "elevenlabs",
       "gemini",
     ])
   })
