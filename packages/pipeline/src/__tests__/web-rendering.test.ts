@@ -196,6 +196,61 @@ describe("renderPage", () => {
     content: '<div id="content" class="container"><section data-section-type="text_only" data-section-id="pg001_sec001"><p data-id="pg001_gp001_tx001">Hello</p></section></div>',
   }
 
+  it("passes authoritative text order to LLM output validation", async () => {
+    let validation: { valid: boolean; errors: string[] } | undefined
+    const outOfOrderResponse = {
+      reasoning: "restored the page-image order",
+      content:
+        '<div id="content" class="container"><section data-section-type="text_only" data-section-id="pg001_sec001"><h2 data-id="sense_heading">Sense</h2><h2 data-id="rescue_heading">Rescue</h2></section></div>',
+    }
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        validation = opts.validate?.(
+          outOfOrderResponse,
+          opts.context ?? {},
+        )
+        return {
+          object: outOfOrderResponse as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "user reordered Rescue before Sense",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "text_only",
+              nodes: [
+                leafNode("rescue_heading", "heading", "Rescue"),
+                leafNode("sense_heading", "heading", "Sense"),
+              ],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      defaultResolveConfig,
+      fakeLlm,
+    )
+
+    expect(validation?.valid).toBe(false)
+    expect(validation?.errors).toContainEqual(
+      expect.stringContaining(
+        'expected "rescue_heading" but found "sense_heading"',
+      ),
+    )
+  })
+
   it("passes the cancellation signal to LLM calls and stops between sections", async () => {
     const controller = new AbortController()
     const seenSignals: Array<AbortSignal | undefined> = []
@@ -930,6 +985,73 @@ describe("renderPage", () => {
     expect(result.sections).toHaveLength(1)
     expect(result.sections[0].activityReasoning).toBe("answer reasoning")
     expect(result.sections[0].activityAnswers).toEqual({ activity_gen_opt1: "A" })
+  })
+
+  it("derives ordering ranks deterministically without a second LLM call", async () => {
+    const llmCalls: string[] = []
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        llmCalls.push(opts.log?.taskType ?? "unknown")
+        return {
+          object: {
+            reasoning: "ordering reasoning",
+            content: `<div id="content"><section data-section-type="activity_ordering" data-section-id="pg001_sec001" data-correct-order="item-2,item-1,item-3">
+              <p data-id="pg001_gp001_tx001">Arrange the items.</p>
+              <ol data-activity-order-list>
+                <li data-activity-item="item-1"><span data-id="activity_gen_item1">One</span></li>
+                <li data-activity-item="item-2"><span data-id="activity_gen_item2">Two</span></li>
+                <li data-activity-item="item-3"><span data-id="activity_gen_item3">Three</span></li>
+              </ol>
+            </section></div>`,
+          } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "activity_ordering",
+              nodes: [
+                groupNode("pg001_gp001", "activity", [
+                  leafNode("pg001_gp001_tx001", "activity_question", "Arrange the items."),
+                ]),
+              ],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      () => ({
+        renderType: "activity",
+        promptName: "activity_ordering",
+        modelId: "openai:gpt-5.4",
+        maxRetries: 5,
+        timeoutMs: 180000,
+        answerPromptName: "must-not-be-called-for-ordering",
+        templateName: "",
+      }),
+      fakeLlm,
+    )
+
+    expect(llmCalls).toEqual(["activity-rendering"])
+    expect(result.sections[0].activityReasoning).toContain("Derived deterministically")
+    expect(result.sections[0].activityAnswers).toEqual({
+      "item-2": "1",
+      "item-1": "2",
+      "item-3": "3",
+    })
   })
 
   it("skips answer generation when answerPromptName is empty", async () => {

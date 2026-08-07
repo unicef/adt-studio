@@ -9,7 +9,7 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 - Nest the content container inside: `container mx-auto max-w-5xl bg-white rounded-lg px-24 max-lg:px-12 max-sm:px-6 pt-12 pb-12` with `id="content"`
 
 ### Common Styling
-- Primary heading (H1): `text-5xl font-bold mb-4 text-amber-700`
+- Headings: use the semantic `<hN class="adt-hN">` mapping from the shared hierarchy rules, then add `font-bold mb-4 text-amber-700` as appropriate
 - Instruction line: `text-xl mb-8` with icon `<i class="fas fa-pen-to-square text-blue-700 mr-2"></i>`
 - Images: When pixel dimensions are provided, compute each image's width as a percentage of the widest image and set `style="width:X%"`, plus `class="h-auto rounded-lg"`. Do NOT use `w-full` or fixed pixel widths.
 
@@ -64,7 +64,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 
 Example matching activity:
 ```html
-<section data-section-type="activity_matching" data-section-id="SECTION_ID_FROM_INPUT" class="max-w-6xl mx-auto" aria-labelledby="main-heading">
+<section data-section-type="activity_matching" data-section-id="SECTION_ID_FROM_INPUT" class="max-w-6xl mx-auto">
   <div class="flex flex-row max-sm:flex-col items-start gap-4 mb-6">
     <!-- Draggable items -->
     <div class="grow grid grid-cols-1 max-sm:grid-cols-2 gap-4 text-center">

@@ -28,6 +28,9 @@ msgstr "_page"
 msgid "-"
 msgstr "-"
 
+msgid "— none —"
+msgstr "— nenhum —"
+
 msgid ", "
 msgstr ", "
 
@@ -65,6 +68,9 @@ msgstr "(p.{0})"
 msgid "(template)"
 msgstr "(template)"
 
+msgid "(this section)"
+msgstr "(esta seção)"
+
 #. placeholder {0}: preview.addedPageNumbers.length
 #. placeholder {0}: result.addedPages
 msgid "{0, plural, one {# page added} other {# pages added}}"
@@ -82,6 +88,10 @@ msgstr "{0, plural, one {# página} other {# páginas}}"
 #. placeholder {0}: lockedLang.name
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — digite o país ou pressione Enter para o padrão"
+
+#. placeholder {0}: String(defaultValue ?? min)
+msgid "{0} (default)"
+msgstr "{0} (padrão)"
 
 #. placeholder {0}: tab.label
 msgid "{0} (unsaved changes)"
@@ -109,6 +119,10 @@ msgstr "{0} aceitas mesmo assim"
 
 #~ msgid "{0} added"
 #~ msgstr "{0} adicionadas"
+
+#. placeholder {0}: String(view.assigned)
+msgid "{0} assigned"
+msgstr "{0} atribuídos"
 
 #. placeholder {0}: String(totalAudioFiles)
 msgid "{0} audio"
@@ -165,6 +179,10 @@ msgstr "{0} img"
 #. placeholder {0}: reviewCounts.needsAttention
 msgid "{0} issue/issues"
 msgstr "{0} problema(s)"
+
+#. placeholder {0}: String(view.issues)
+msgid "{0} issues"
+msgstr "{0} problemas"
 
 #. placeholder {0}: visibleFindingsUniverse.length
 msgid "{0} items"
@@ -575,6 +593,9 @@ msgstr "Uma atividade de correspondência onde os alunos conectam itens relacion
 msgid "A multiple choice activity."
 msgstr "Uma atividade de múltipla escolha."
 
+msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
+msgstr "Uma nova seção de atividade será adicionada à página {anchorPageNumber} ({anchorPageId}). O agente pode ler outras páginas do livro para espelhar o layout delas."
+
 #~ msgid "A new version is available for download."
 #~ msgstr "Uma nova versão está disponível para download."
 
@@ -668,6 +689,9 @@ msgstr "Sobre o agrupamento de páginas"
 msgid "About section mode"
 msgstr "Sobre modo de seção"
 
+msgid "Accent color"
+msgstr "Cor de destaque"
+
 msgid "Accent Prompt"
 msgstr "Prompt de sotaque"
 
@@ -682,6 +706,9 @@ msgstr "Aceitável"
 
 msgid "Accepted anyway"
 msgstr "Aceito mesmo assim"
+
+msgid "Accepts any answer"
+msgstr "Aceita qualquer resposta"
 
 msgid "Accessibility"
 msgstr "Accessibility"
@@ -749,20 +776,41 @@ msgstr "Atividade 5.1"
 msgid "Activity answers"
 msgstr "Respostas de atividades"
 
+msgid "Activity content"
+msgstr "Conteúdo da atividade"
+
 msgid "Activity Converter"
 msgstr "Conversão de atividades"
+
+msgid "Activity created on this page"
+msgstr "Atividade criada nesta página"
 
 msgid "Activity Detection"
 msgstr "Detecção de Atividade"
 
+msgid "Activity generation failed"
+msgstr "Falha na geração da atividade"
+
 msgid "Activity Rendering"
 msgstr "Renderização de atividades"
+
+msgid "Activity saved"
+msgstr "Atividade salva"
 
 msgid "Activity section types are available for classification and rendering."
 msgstr "Os tipos de seção de atividade estão disponíveis para classificação e renderização."
 
 msgid "Activity section types are hidden from the classifier and skipped during rendering."
 msgstr "Os tipos de seção de atividade estão ocultos do classificador e ignorados durante a renderização."
+
+msgid "Activity style"
+msgstr "Estilo da atividade"
+
+msgid "Activity text"
+msgstr "Texto da atividade"
+
+msgid "Activity type"
+msgstr "Tipo de atividade"
 
 msgid "Activity Types"
 msgstr "Tipos de Atividade"
@@ -784,6 +832,9 @@ msgstr "Atividade: Múltipla escolha"
 
 msgid "Activity: Open-Ended Answer"
 msgstr "Atividade: Resposta aberta"
+
+msgid "Activity: Ordering"
+msgstr "Atividade: Ordenação"
 
 msgid "Activity: Other"
 msgstr "Atividade: Outra"
@@ -864,6 +915,9 @@ msgstr "Adicione uma chave de API nas configurações do Livro para executar tra
 msgid "Add an API key to re-run"
 msgstr "Adicione uma chave de API para reexecutar"
 
+msgid "Add an ElevenLabs API key in Settings to pick voices by name."
+msgstr "Adicione uma chave de API do ElevenLabs em Configurações para escolher vozes por nome."
+
 msgid "Add at least one output language to run translation."
 msgstr "Adicione pelo menos um idioma de saída para executar tradução."
 
@@ -924,11 +978,17 @@ msgstr "Adicione idiomas para traduzir o conteúdo do livro."
 msgid "Add new font"
 msgstr "Adicionar nova fonte"
 
+msgid "Add option"
+msgstr "Adicionar opção"
+
 #~ msgid "Add or create model prompt files"
 #~ msgstr "Adicionar ou criar arquivos de prompt do modelo"
 
 msgid "Add picture"
 msgstr "Adicionar imagem"
+
+msgid "Add question"
+msgstr "Adicionar pergunta"
 
 msgid "Add quiz"
 msgstr "Adicionar questionário"
@@ -948,6 +1008,9 @@ msgstr "Adicionar vídeo em língua de sinais"
 msgid "Add sizing field"
 msgstr "Adicionar campo de dimensionamento"
 
+msgid "Add step"
+msgstr "Adicionar etapa"
+
 msgid "Add term"
 msgstr "Adicionar termo"
 
@@ -966,6 +1029,9 @@ msgstr "Adicione a chave de API do provedor selecionado nas configurações do L
 msgid "Add this provider's API key in Book settings."
 msgstr "Adicione a chave de API deste provedor nas configurações do Livro."
 
+msgid "Add tile"
+msgstr "Adicionar peça"
+
 msgid "Add Translations"
 msgstr "Adicionar traduções"
 
@@ -980,6 +1046,9 @@ msgstr "Adicione seu primeiro livro"
 
 msgid "Add your first term"
 msgstr "Adicione seu primeiro termo"
+
+msgid "Add your OpenAI API key first"
+msgstr "Adicione primeiro sua chave de API da OpenAI"
 
 msgid "added"
 msgstr "adicionado"
@@ -996,6 +1065,9 @@ msgstr "Adicionar uma nova imagem redefine o trabalho das etapas posteriores"
 msgid "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Adicionar idiomas além do original não é compatível com Layout Fixo. Se você continuar, poderá obter resultados indesejados."
 
+msgid "Additional instruction (optional)"
+msgstr "Instrução adicional (opcional)"
+
 msgid "Additional Languages"
 msgstr "Idiomas adicionais"
 
@@ -1004,6 +1076,9 @@ msgstr "Terminologia adicional pode ser introduzida em seções posteriores. Tod
 
 msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
 msgstr "Adiciona páginas de glossário ao livro. Os termos levam à sua entrada e cada entrada leva de volta ao texto. Funciona em qualquer leitor."
+
+msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
+msgstr "Adiciona orientações do Desenho Universal para a Aprendizagem (linguagem clara, alternativa por teclado e clique para arrastar, correção com aria-live, sem retorno apenas por cor). Desative para comparar a saída sem essa orientação."
 
 msgid "ADT"
 msgstr "ADT"
@@ -1069,6 +1144,9 @@ msgstr "após pág. {0}"
 
 msgid "age 8"
 msgstr "8 anos"
+
+msgid "Agent task failed"
+msgstr "Falha na tarefa do agente"
 
 msgid "AI"
 msgstr "IA"
@@ -1149,6 +1227,9 @@ msgstr "Todas as categorias"
 msgid "All Categories"
 msgstr "All Categories"
 
+msgid "All changes saved"
+msgstr "Todas as alterações salvas"
+
 msgid "All issues and manual review items"
 msgstr "Todos os problemas e itens de revisão manual"
 
@@ -1194,8 +1275,14 @@ msgstr "Entre as Estrelas"
 msgid "Amount"
 msgstr "Quantidade"
 
+msgid "Amplifies the speaker's style. ElevenLabs recommends leaving this at 0 — raising it can cause inconsistent speed, mispronunciation, and extra sounds."
+msgstr "Amplifica o estilo do locutor. O ElevenLabs recomenda deixar em 0: aumentar pode causar velocidade inconsistente, pronúncia incorreta e sons extras."
+
 msgid "An activity that does not fit the standard categories."
 msgstr "Uma atividade que não se enquadra nas categorias padrão."
+
+msgid "An activity where learners arrange items into the correct order."
+msgstr "Uma atividade em que os estudantes organizam itens na ordem correta."
 
 msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
 msgstr "Uma atividade em que o aluno sublinha uma ou mais palavras, expressões ou frases diretamente no texto."
@@ -1208,6 +1295,9 @@ msgstr "Uma atividade de resposta aberta."
 
 msgid "Analyze with AI"
 msgstr "Analisar com IA"
+
+msgid "Analyzes the complete book to identify a consistent heading hierarchy."
+msgstr "Analisa o livro completo para identificar uma hierarquia de títulos consistente."
 
 msgid "Analyzing part…"
 msgstr "Analisando a parte…"
@@ -1223,6 +1313,12 @@ msgstr "e mais seções na página"
 
 msgid "Answer"
 msgstr "Resposta"
+
+msgid "Answer area"
+msgstr "Área de resposta"
+
+msgid "Answer key reference"
+msgstr "Referência do gabarito"
 
 msgid "Answer Prompt"
 msgstr "Prompt de resposta"
@@ -1297,11 +1393,20 @@ msgstr "Aparece nas páginas {0}"
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Interface de programação de aplicativos (API) — conjunto de regras que permite que programas se comuniquem."
 
+msgid "Applies to every language routed to ElevenLabs."
+msgstr "Aplica-se a todos os idiomas direcionados ao ElevenLabs."
+
+msgid "Applies to every language routed to Gemini."
+msgstr "Aplica-se a todos os idiomas direcionados ao Gemini."
+
 msgid "Apply"
 msgstr "Aplicar"
 
 msgid "Apply filters"
 msgstr "Aplicar filtros"
+
+msgid "Apply layout"
+msgstr "Aplicar layout"
 
 msgid "Apply page background colors"
 msgstr "Aplicar cores de fundo da página"
@@ -1375,6 +1480,12 @@ msgstr "Recurso"
 
 msgid "Assign..."
 msgstr "Atribuir..."
+
+msgid "Assigned"
+msgstr "Atribuído"
+
+msgid "Assignment evidence"
+msgstr "Evidências da atribuição"
 
 msgid "At the river's edge"
 msgstr "Na beira do rio"
@@ -1469,8 +1580,11 @@ msgstr "Voltar às versões beta"
 msgid "Back to books"
 msgstr "Voltar aos livros"
 
-msgid "Back to Editor"
-msgstr "Voltar ao editor"
+msgid "Back to classic activity"
+msgstr "Voltar à atividade clássica"
+
+#~ msgid "Back to Editor"
+#~ msgstr "Voltar ao editor"
 
 msgid "Back to preview"
 msgstr "Voltar para pré-visualização"
@@ -1487,6 +1601,9 @@ msgstr "Fundo"
 #. placeholder {0}: section.backgroundColor
 msgid "Background: {0}"
 msgstr "Fundo: {0}"
+
+msgid "Badge"
+msgstr "Distintivo"
 
 msgid "Balanced"
 msgstr "Equilibrado"
@@ -1527,6 +1644,9 @@ msgstr "Antes"
 msgid "Beneath Earth's crust, molten rock builds pressure over millennia until it finds a path to the surface."
 msgstr "Sob a crosta terrestre, rocha derretida acumula pressão ao longo de milênios até encontrar um caminho para a superfície."
 
+msgid "Bespoke, freeform interactive activity"
+msgstr "Atividade interativa personalizada e livre"
+
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Best for {0}"
 msgstr "Melhor para {0}"
@@ -1551,6 +1671,9 @@ msgstr "Versões beta"
 
 msgid "Bit Rate"
 msgstr "Taxa de bits"
+
+msgid "Blank reference"
+msgstr "Referência da lacuna"
 
 msgid "Blocked"
 msgstr "Bloqueado"
@@ -1582,6 +1705,12 @@ msgstr "Os dados do livro estão desatualizados e precisam ser reconstruídos."
 msgid "Book Fonts"
 msgstr "Fontes do Livro"
 
+msgid "Book heading outline"
+msgstr "Hierarquia de títulos do livro"
+
+msgid "Book hierarchy needs rebuilding"
+msgstr "A hierarquia do livro precisa ser reconstruída"
+
 msgid "Book images"
 msgstr "Imagens do livro"
 
@@ -1602,6 +1731,12 @@ msgstr "Substituições de modelos do livro atualizadas."
 
 msgid "Book order"
 msgstr "Ordem do livro"
+
+msgid "Book outline"
+msgstr "Estrutura do livro"
+
+msgid "Book Outline"
+msgstr "Estrutura do livro"
 
 msgid "Book package ready"
 msgstr "Pacote do livro pronto"
@@ -1630,11 +1765,20 @@ msgstr "Regeneração do resumo do livro na fila"
 msgid "Book title"
 msgstr "Título do livro"
 
+msgid "Boosts similarity to the original speaker, at some cost in latency."
+msgstr "Aumenta a semelhança com o locutor original, com algum custo em latência."
+
 msgid "Borders"
 msgstr "Bordas"
 
 msgid "Both"
 msgstr "Ambos"
+
+msgid "Both pages lose their rendering and will be re-rendered automatically."
+msgstr "Ambas as páginas perdem sua renderização e serão rerenderizadas automaticamente."
+
+msgid "Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running."
+msgstr "Ambas as páginas perdem sua renderização. Sem uma chave de API elas não podem ser rerenderizadas, então será necessário executar o Storyboard novamente."
 
 msgid "Boxed Text"
 msgstr "Texto em caixa"
@@ -1644,6 +1788,9 @@ msgstr "Branch"
 
 msgid "Branch out"
 msgstr "Ramificar"
+
+msgid "Brazilian PNLD digital work (.zip) with HTML5 content, content.opf and toc.ncx metadata, for submission to the FNDE VALIDE reader."
+msgstr "Obra digital PNLD brasileira (.zip) com conteúdo HTML5 e metadados content.opf e toc.ncx, para envio ao leitor VALIDE do FNDE."
 
 msgid "Breakpoint override"
 msgstr "Substituir ponto de interrupção"
@@ -1731,6 +1878,9 @@ msgstr "Resposta em cache"
 
 msgid "Calculate word timestamps for all entries"
 msgstr "Calcular marcações de tempo por palavra para todas as entradas"
+
+msgid "Callout"
+msgstr "Caixa de destaque"
 
 msgid "Calls"
 msgstr "Chamadas"
@@ -1845,11 +1995,20 @@ msgstr "Alterar a imagem deste termo"
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "As alterações são aplicadas na próxima vez que você executar o Storyboard e a Exportação."
 
+msgid "Changes detected"
+msgstr "Alterações detectadas"
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Alterar as fontes afeta como as páginas são renderizadas — execute novamente o Storyboard e a Exportação para aplicar as novas fontes."
 
 msgid "Changing the language resets downstream work."
 msgstr "Alterar o idioma redefine o trabalho posterior."
+
+msgid "Changing the type regenerates the activity when you save."
+msgstr "Mudar o tipo regenera a atividade ao salvar."
+
+msgid "Chapter"
+msgstr "Capítulo"
 
 msgid "Chapter 1: Introduction"
 msgstr "Capítulo 1: Introdução"
@@ -2085,6 +2244,12 @@ msgstr "Comments"
 msgid "Compare"
 msgstr "Comparar"
 
+msgid "Compare the current version with a chosen version at the same screen size."
+msgstr "Compare a versão atual com uma versão escolhida no mesmo tamanho de tela."
+
+msgid "Compare versions"
+msgstr "Comparar versões"
+
 #~ msgid "Compared with current content."
 #~ msgstr "Comparado com o conteúdo atual."
 
@@ -2126,6 +2291,9 @@ msgstr "Condensação"
 
 msgid "Conditionally include text"
 msgstr "Incluir texto condicionalmente"
+
+msgid "confidence"
+msgstr "confiança"
 
 msgid "Config"
 msgstr "Configuração"
@@ -2187,6 +2355,18 @@ msgstr "Conteúdo"
 msgid "Context"
 msgstr "Contexto"
 
+msgid "Context after"
+msgstr "Contexto posterior"
+
+msgid "Context after (chars)"
+msgstr "Contexto posterior (caracteres)"
+
+msgid "Context before"
+msgstr "Contexto anterior"
+
+msgid "Context before (chars)"
+msgstr "Contexto anterior (caracteres)"
+
 msgid "Context included"
 msgstr "Contexto incluído"
 
@@ -2220,6 +2400,15 @@ msgstr "Control which axe checks run during packaging for this document. Changes
 msgid "Controls how page content is grouped during the sectioning step."
 msgstr "Controla como o conteúdo da página é agrupado durante a etapa de secionamento."
 
+msgid "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded."
+msgstr "Controla se o ElevenLabs expande abreviações, números e símbolos em palavras faladas (ex.: \"N.º\" → \"Número\"). \"Auto\" deixa o ElevenLabs decidir a cada solicitação; \"Ativado\" sempre normaliza; \"Desativado\" lê o texto como está escrito, o que é mais seguro para códigos, IDs ou textos que não devem ser expandidos."
+
+#~ msgid "Controls whether ElevenLabs expands abbreviations, numbers, and symbols into spoken words (e.g. \"N.º\" → \"Número\"). \"Auto\" lets ElevenLabs decide per request; \"On\" always normalizes; \"Off\" reads the text as written, which is safer for codes, IDs, or text that shouldn't be expanded. Only affects languages routed to ElevenLabs."
+#~ msgstr "Controla se o ElevenLabs expande abreviações, números e símbolos em palavras faladas (ex.: \"N.º\" → \"Número\"). \"Auto\" deixa o ElevenLabs decidir a cada solicitação; \"Ativado\" sempre normaliza; \"Desativado\" lê o texto como está escrito, o que é mais seguro para códigos, IDs ou textos que não devem ser expandidos. Afeta apenas os idiomas roteados para o ElevenLabs."
+
+msgid "Conversion failed"
+msgstr "Falha na conversão"
+
 msgid "Conversion of light into chemical energy."
 msgstr "Conversão de luz em energia química."
 
@@ -2229,8 +2418,17 @@ msgstr "Converter um PDF"
 msgid "Convert any textbook into an accessible digital edition — audio, structured layouts, translations, and sign-language, built in from the very first page."
 msgstr "Converta qualquer livro em uma edição digital acessível — áudio, layouts estruturados, traduções e língua de sinais, integrados desde a primeira página."
 
+msgid "Convert to step-by-step"
+msgstr "Converter para passo a passo"
+
 msgid "Converted"
 msgstr "Convertido"
+
+msgid "Converted to a step-by-step activity"
+msgstr "Convertida em atividade passo a passo"
+
+msgid "Converting…"
+msgstr "Convertendo…"
 
 msgid "Copied"
 msgstr "Copiado"
@@ -2250,11 +2448,20 @@ msgstr "Os recifes de coral cobrem menos de 1% do fundo do oceano, mas sustentam
 msgid "Core Pipeline"
 msgstr "Pipeline Principal"
 
+#~ msgid "Core TTS Profiles"
+#~ msgstr "Perfis principais de TTS"
+
 msgid "Correct answer"
 msgstr "Resposta correta"
 
+msgid "Correct answer (alternatives separated by |)"
+msgstr "Resposta correta (alternativas separadas por |)"
+
 msgid "Correct the metadata extracted from the document."
 msgstr "Corrija os metadados extraídos do documento."
+
+msgid "Could not load the book outline."
+msgstr "Não foi possível carregar a estrutura do livro."
 
 msgid "Could not load the Google Fonts catalog. Check your connection and try again."
 msgstr "Não foi possível carregar o catálogo do Google Fonts. Verifique sua conexão e tente novamente."
@@ -2280,8 +2487,14 @@ msgstr "Não foi possível carregar a pré-visualização do PDF. As páginas ai
 msgid "Couldn't load the PDF preview. You can still mark spreads once the pages load."
 msgstr "Não foi possível carregar a pré-visualização do PDF. Você ainda pode marcar spreads quando as páginas carregarem."
 
+msgid "Couldn't load versions."
+msgstr "Não foi possível carregar as versões."
+
 msgid "Couldn't read this PDF"
 msgstr "Não foi possível ler este PDF"
+
+msgid "Couldn't restore v{version}. Please try again."
+msgstr "Não foi possível restaurar a v{version}. Tente novamente."
 
 msgid "Counting occurrences…"
 msgstr "Contando ocorrências…"
@@ -2401,8 +2614,14 @@ msgstr "Prompt de recorte"
 msgid "Crops each image to its visible bounding box."
 msgstr "Recorta cada imagem para sua caixa delimitadora visível."
 
+msgid "current"
+msgstr "atual"
+
 msgid "Current"
 msgstr "Atual"
+
+msgid "Current (v{currentVersion})"
+msgstr "Atual (v{currentVersion})"
 
 msgid "Current book font"
 msgstr "Fonte atual do livro"
@@ -2415,6 +2634,9 @@ msgstr "Current Preview Page"
 
 #~ msgid "Current version"
 #~ msgstr "Versão atual"
+
+msgid "Current version (v{currentVersion})"
+msgstr "Versão atual (v{currentVersion})"
 
 msgid "Custom"
 msgstr "Personalizado"
@@ -2467,6 +2689,9 @@ msgstr "Padrão (herdar)"
 msgid "Default (no text detected yet)"
 msgstr "Padrão (nenhum texto detectado ainda)"
 
+msgid "Default guidance"
+msgstr "Orientação padrão"
+
 #~ msgid "Default LLM"
 #~ msgstr "LLM padrão"
 
@@ -2502,6 +2727,9 @@ msgstr "Provedor padrão"
 
 msgid "Default Render Strategy"
 msgstr "Estratégia de renderização padrão"
+
+msgid "Default voice"
+msgstr "Voz padrão"
 
 msgid "Default Voice"
 msgstr "Voz padrão"
@@ -2550,6 +2778,9 @@ msgstr "Defaulted to N/A until this reviewer session has a language selected."
 msgid "Defaults"
 msgstr "Padrões"
 
+msgid "Defaults follow ElevenLabs' own narration recommendation. Lowering stability or raising style makes delivery more expressive, but also makes ElevenLabs more likely to add sounds that aren't in the text — such as filled pauses like \"ehm\". Changing any of these regenerates ElevenLabs audio on the next run."
+msgstr "Os padrões seguem a recomendação de narração do próprio ElevenLabs. Reduzir a estabilidade ou aumentar o estilo torna a locução mais expressiva, mas também aumenta a chance de o ElevenLabs adicionar sons que não estão no texto, como pausas preenchidas do tipo \"ehm\". Alterar qualquer um desses valores regenera o áudio do ElevenLabs na próxima execução."
+
 msgid "Define chat messages"
 msgstr "Definir mensagens de chat"
 
@@ -2588,6 +2819,9 @@ msgstr "Excluir arquivo"
 msgid "Delete folder"
 msgstr "Excluir pasta"
 
+msgid "Delete option"
+msgstr "Excluir opção"
+
 msgid "Delete prompt file?"
 msgstr "Excluir arquivo de prompt?"
 
@@ -2599,6 +2833,9 @@ msgstr "Excluir questionário"
 
 msgid "Delete section"
 msgstr "Excluir seção"
+
+msgid "Delete step"
+msgstr "Excluir etapa"
 
 msgid "Delete this quiz"
 msgstr "Excluir este questionário"
@@ -2623,6 +2860,9 @@ msgstr "Entregue"
 
 msgid "Dense text, tables, glossaries. Best for technical material and documentation."
 msgstr "Texto denso, tabelas, glossários. Melhor para material técnico e documentação."
+
+msgid "Describe the activity"
+msgstr "Descreva a atividade"
 
 msgid "Describe the image"
 msgstr "Descreva a imagem"
@@ -2834,8 +3074,17 @@ msgstr "Coloque o pacote em qualquer host estático para servir o livro como um 
 msgid "Drop ZIP here"
 msgstr "Solte o ZIP aqui"
 
+msgid "Dropdown"
+msgstr "Lista suspensa"
+
 msgid "Duplicate"
 msgstr "Duplicar"
+
+msgid "Duplicate section"
+msgstr "Duplicar seção"
+
+msgid "duplicate this section"
+msgstr "duplicar esta seção"
 
 msgid "Duration"
 msgstr "Duração"
@@ -2848,6 +3097,9 @@ msgstr "Modo Dinâmico"
 
 msgid "Dynamic Overlay"
 msgstr "Sobreposição Dinâmica"
+
+msgid "e.g. 21m00Tcm4TlvDq8ikWAM"
+msgstr "ex.: 21m00Tcm4TlvDq8ikWAM"
 
 msgid "e.g. alloy"
 msgstr "ex.: alloy"
@@ -2876,8 +3128,17 @@ msgstr "ex. http://localhost:11434/v1"
 msgid "e.g. keep a warm children's-book tone"
 msgstr "ex.: manter um tom acolhedor de livro infantil"
 
+msgid "e.g. keep the image on the right"
+msgstr "p. ex. manter a imagem à direita"
+
 msgid "e.g. Kore"
 msgstr "ex.: Kore"
+
+msgid "e.g. multiple-choice question about photosynthesis with 4 options"
+msgstr "p. ex. pergunta de múltipla escolha sobre fotossíntese com 4 opções"
+
+msgid "e.g. sw, pt-br"
+msgstr "ex.: sw, pt-BR"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "ex.: Uma família de leopardos felizes em uma floresta verde, estilo livro infantil..."
@@ -2946,6 +3207,9 @@ msgstr "Editar {0}"
 msgid "Edit & enrich"
 msgstr "Editar e aprimorar"
 
+msgid "Edit activity"
+msgstr "Editar atividade"
+
 msgid "Edit book details"
 msgstr "Editar detalhes do livro"
 
@@ -2961,11 +3225,17 @@ msgstr "Edite os prompts fallback usados por todos os livros. Salvar cria uma ve
 msgid "Edit in Quizzes"
 msgstr "Editar em Questionários"
 
+msgid "Edit layout"
+msgstr "Editar layout"
+
 msgid "Edit Prompt"
 msgstr "Prompt de edição"
 
 msgid "Edit Prompts"
 msgstr "Editar prompts"
+
+msgid "Edit speech text"
+msgstr "Editar texto falado"
 
 msgid "Edit spreads"
 msgstr "Editar spreads"
@@ -2988,6 +3258,9 @@ msgstr "Editável por bloco"
 msgid "edited"
 msgstr "editado"
 
+msgid "Edited"
+msgstr "Editado"
+
 #~ msgid "Edited globally"
 #~ msgstr "Editado globalmente"
 
@@ -3006,6 +3279,9 @@ msgstr "A edição está desabilitada enquanto o storyboard está em execução"
 msgid "Editing Language"
 msgstr "Idioma de edição"
 
+#~ msgid "Edits apply to the matching elements of the activity's layout. To change the layout itself, use \"Edit layout\" in the banner."
+#~ msgstr "As edições se aplicam aos elementos correspondentes do layout da atividade. Para mudar o layout em si, use \\\"Editar layout\\\" no banner."
+
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Edições vão para este prefixo de variante Tailwind"
 
@@ -3017,6 +3293,27 @@ msgstr "Editor de estilo de elemento"
 
 msgid "Elements"
 msgstr "Elementos"
+
+msgid "ElevenLabs"
+msgstr "ElevenLabs"
+
+msgid "ElevenLabs API key"
+msgstr "Chave de API do ElevenLabs"
+
+msgid "ElevenLabs API Key"
+msgstr "Chave de API do ElevenLabs"
+
+msgid "ElevenLabs cannot produce the \"{normalizedFormat}\" format, so every ElevenLabs entry will fail. Use mp3, opus, wav, or pcm — the Format field above applies to all providers."
+msgstr "O ElevenLabs não pode gerar o formato \"{normalizedFormat}\", portanto todas as entradas do ElevenLabs falharão. Use mp3, opus, wav ou pcm: o campo Formato acima se aplica a todos os provedores."
+
+msgid "ElevenLabs settings"
+msgstr "Configurações do ElevenLabs"
+
+msgid "ElevenLabs Voice"
+msgstr "Voz do ElevenLabs"
+
+#~ msgid "ElevenLabs voice continuity"
+#~ msgstr "Continuidade de voz do ElevenLabs"
 
 msgid "emoji"
 msgstr "emoji"
@@ -3052,6 +3349,9 @@ msgstr "Enable or disable reviewer-authored checklist reviews for this book. Aut
 
 msgid "Enable reviewer validation"
 msgstr "Enable reviewer validation"
+
+msgid "Enable text normalization"
+msgstr "Ativar a normalização de texto"
 
 msgid "Enable translation review"
 msgstr "Ativar revisão de tradução"
@@ -3100,6 +3400,9 @@ msgstr "Insira um intervalo de páginas válido entre 1 e {pageCount}."
 
 msgid "Enter a valid project name"
 msgstr "Insira um nome de projeto válido"
+
+msgid "Enter prepared speech text"
+msgstr "Digite o texto preparado para fala"
 
 msgid "entries"
 msgstr "entradas"
@@ -3363,6 +3666,15 @@ msgstr "Reverte para"
 msgid "Fast, consistent results with no AI cost"
 msgstr "Resultados rápidos e consistentes sem custo de IA"
 
+msgid "Feedback"
+msgstr "Feedback"
+
+msgid "Feedback generated — review it and save"
+msgstr "Feedback gerado — revise e salve"
+
+msgid "Feedback generation failed"
+msgstr "Falha ao gerar o feedback"
+
 msgid "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
 msgstr "Fig 3.1 — O ciclo da água: evaporação, condensação, precipitação."
 
@@ -3380,6 +3692,9 @@ msgstr "Arquivo aceito"
 
 msgid "File actions"
 msgstr "Ações do arquivo"
+
+msgid "Fill in the blank"
+msgstr "Preencher a lacuna"
 
 msgid "Filter by image ID or caption..."
 msgstr "Filtrar por ID da imagem ou legenda..."
@@ -3404,6 +3719,9 @@ msgstr "Filtrar questionários…"
 
 msgid "Filtered by:"
 msgstr "Filtered by:"
+
+msgid "Filtered out"
+msgstr "Descartado"
 
 msgid "Filters out decorative or non-content images on each page."
 msgstr "Filtra imagens decorativas ou sem conteúdo em cada página."
@@ -3461,6 +3779,9 @@ msgstr "Flexível"
 
 msgid "Fluency"
 msgstr "Fluência"
+
+msgid "FNDE-ready HTML5 package (.zip)"
+msgstr "Pacote HTML5 pronto para o FNDE (.zip)"
 
 msgid "Folder actions"
 msgstr "Ações da pasta"
@@ -3525,6 +3846,9 @@ msgstr "Francês"
 msgid "From attached fonts · Body text"
 msgstr "Das fontes anexadas · Texto do corpo"
 
+msgid "From book"
+msgstr "Do livro"
+
 msgid "From page"
 msgstr "Da página"
 
@@ -3570,6 +3894,12 @@ msgstr "É necessária uma chave de API do Gemini para gerar áudio."
 msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
 msgstr "O Gemini gera cada frase em sua própria requisição, então o tom pode variar entre as frases. Defina uma temperatura mais baixa (ex.: 0,4) para reduzir essa variação e uma semente fixa para tornar a leitura reproduzível; deixe ambos vazios para desativá-los e usar os valores padrão do Gemini. Afeta apenas os idiomas roteados para o Gemini — o OpenAI e o Azure ignoram esses valores. Alterar qualquer um deles regenera o áudio do Gemini na próxima execução."
 
+#~ msgid "Gemini page batching"
+#~ msgstr "Agrupamento de páginas do Gemini"
+
+msgid "Gemini settings"
+msgstr "Configurações do Gemini"
+
 msgid "Gemini Voice"
 msgstr "Voz do Gemini"
 
@@ -3585,11 +3915,29 @@ msgstr "Configurações gerais"
 msgid "Generate"
 msgstr "Gerar"
 
+msgid "Generate 3 true/false statements about the content of this page."
+msgstr "Gere 3 afirmações verdadeiro/falso sobre o conteúdo desta página."
+
+msgid "Generate a 4-option multiple-choice question testing comprehension of this page."
+msgstr "Gere uma pergunta de múltipla escolha com 4 opções que avalie a compreensão desta página."
+
+msgid "Generate a fill-in-the-blank activity with 3 sentences based on this page."
+msgstr "Gere uma atividade de preencher lacunas com 3 frases baseadas nesta página."
+
+msgid "Generate a new activity from a description"
+msgstr "Gerar uma nova atividade a partir de uma descrição"
+
 msgid "Generate a simplified, easier-to-read version of every text block in the book. Readers turn it on with the Easy Read toggle in the ADT; you can review and edit each simplified block before packaging."
 msgstr "Gere uma versão simplificada e mais fácil de ler de cada bloco de texto do livro. Os leitores a ativam com o botão de Leitura Fácil no ADT; você pode revisar e editar cada bloco simplificado antes de empacotar."
 
 msgid "Generate a single quiz from specific pages and place it at a chosen location."
 msgstr "Gere um único questionário a partir de páginas específicas e posicione-o em um local escolhido."
+
+msgid "Generate activity"
+msgstr "Gerar atividade"
+
+msgid "Generate an open-ended reflection question about this page."
+msgstr "Gere uma pergunta aberta de reflexão sobre esta página."
 
 msgid "Generate and customize the table of contents for the book navigation."
 msgstr "Gere e personalize o sumário para a navegação do livro."
@@ -3608,6 +3956,9 @@ msgstr "Gera questionários e atividades de compreensão com base no conteúdo d
 
 msgid "Generate descriptive captions for every image in the book. Pick a reading level so captions match your audience, and add custom instructions if you want to nudge the tone or focus."
 msgstr "Gere legendas descritivas para cada imagem do livro. Escolha um nível de leitura para que as legendas correspondam ao seu público e adicione instruções personalizadas se quiser ajustar o tom ou o foco."
+
+msgid "Generate feedback"
+msgstr "Gerar feedback"
 
 msgid "Generate from pages"
 msgstr "Gerar a partir das páginas"
@@ -3670,6 +4021,9 @@ msgstr "Gera o HTML interativo para este tipo de atividade."
 #. placeholder {1}: String(ttsProgress.totalPages)
 msgid "Generating {0}/{1}"
 msgstr "Gerando {0}/{1}"
+
+msgid "Generating activity..."
+msgstr "Gerando atividade..."
 
 msgid "Generating Easy Read..."
 msgstr "Gerando Leitura Fácil..."
@@ -3755,6 +4109,9 @@ msgstr "Ir para o livro"
 msgid "Go to home"
 msgstr "Ir para início"
 
+msgid "Go to latest"
+msgstr "Ir para a mais recente"
+
 msgid "Go to Storyboard"
 msgstr "Ir para Storyboard"
 
@@ -3806,6 +4163,15 @@ msgstr "título"
 msgid "Heading"
 msgstr "Título"
 
+msgid "Heading level 4"
+msgstr "Nível de título 4"
+
+msgid "Heading level 5"
+msgstr "Nível de título 5"
+
+msgid "Heading level 6"
+msgstr "Nível de título 6"
+
 msgid "Headings"
 msgstr "Títulos"
 
@@ -3836,6 +4202,12 @@ msgstr "Ocultar detalhes do erro"
 msgid "High"
 msgstr "Alto"
 
+msgid "High-fidelity, expressive voices with fine-grained cloning support."
+msgstr "Vozes expressivas de alta fidelidade com suporte a clonagem de voz detalhada."
+
+msgid "Higher keeps tone consistent across sentences. Lower widens emotional range at the cost of hallucinated sounds."
+msgstr "Um valor alto mantém o tom consistente entre frases. Um valor baixo amplia a faixa emocional ao custo de sons alucinados."
+
 msgid "Higher values filter out simple or blank images."
 msgstr "Valores mais altos filtram imagens simples ou em branco."
 
@@ -3857,6 +4229,9 @@ msgstr "Destaca palavras em sincronia com o áudio. Adiciona tempo considerável
 msgid "Hill"
 msgstr "Colina"
 
+msgid "Hint when wrong (don't reveal the answer)"
+msgstr "Dica quando errar (não revele a resposta)"
+
 msgid "História e Sociedade - Vol. 1"
 msgstr "História e Sociedade - Vol. 1"
 
@@ -3865,6 +4240,9 @@ msgstr "Hit"
 
 msgid "Home / Chapter 1"
 msgstr "Início / Capítulo 1"
+
+msgid "Hover a card to find it in the page and click to pin it — or click anything in the page to edit it here."
+msgstr "Passe o cursor sobre um cartão para localizá-lo na página e clique para fixá-lo — ou clique em qualquer elemento da página para editá-lo aqui."
 
 msgid "Hover a setting to see how LLM cropping, segmentation, or the size threshold changes extracted images."
 msgstr "Passe o mouse sobre uma configuração para ver como o corte, segmentação ou o limite de tamanho do LLM altera as imagens extraídas."
@@ -3877,6 +4255,9 @@ msgstr "Como funcionam as legendas"
 
 msgid "How closely should the visual review match the original page? The reviewer rejects renderings that don't pass — stricter settings cause more rejections and rerenders."
 msgstr "Quão próximo a revisão visual deve corresponder à página original? O revisor rejeita renderizações que não passam — configurações mais rigorosas causam mais rejeições e rerenderizações."
+
+msgid "How closely to match the original voice recording. Lower it if you hear audio artifacts."
+msgstr "O quanto deve corresponder à gravação de voz original. Reduza se você ouvir artefatos de áudio."
 
 msgid "How Easy Read works"
 msgstr "Como funciona a Leitura Fácil"
@@ -3904,6 +4285,9 @@ msgstr "Como adicionar questionários"
 
 msgid "HTML"
 msgstr "HTML"
+
+msgid "HTML5 + EPUB"
+msgstr "HTML5 + EPUB"
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "Entendo que a parte foi processada com prompts/modelos diferentes e quero mesclá-la mesmo assim."
@@ -4010,6 +4394,9 @@ msgstr "Prompt de segmentação de imagem"
 msgid "Image selection"
 msgstr "Seleção de imagem"
 
+msgid "Image size"
+msgstr "Tamanho da imagem"
+
 msgid "Image Translation"
 msgstr "Tradução de imagens"
 
@@ -4105,6 +4492,9 @@ msgstr "Incluir na renderização"
 msgid "Includes:"
 msgstr "Inclui:"
 
+msgid "Inclusive design"
+msgstr "Desenho inclusivo"
+
 msgid "Increase {label}"
 msgstr "Aumentar {label}"
 
@@ -4162,6 +4552,12 @@ msgstr "Instalando atualização…"
 msgid "Institution"
 msgstr "Institution"
 
+msgid "Instruction"
+msgstr "Instrução"
+
+msgid "Instructions"
+msgstr "Instruções"
+
 msgid "Interactive"
 msgstr "Interativo"
 
@@ -4170,6 +4566,9 @@ msgstr "Questões de avaliação interativas"
 
 msgid "Interactive page: AI conversion from the original PDF."
 msgstr "Página interativa: conversão por IA do PDF original."
+
+msgid "Interactive step-by-step activity."
+msgstr "Atividade interativa passo a passo."
 
 msgid "Intro"
 msgstr "Introdução"
@@ -4192,6 +4591,9 @@ msgstr "Tipos de problema a verificar"
 msgid "Issues"
 msgstr "Problemas"
 
+msgid "Issues only"
+msgstr "Somente problemas"
+
 msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
 msgstr "Ele contém caminhos de arquivo inesperados. Use um arquivo .zip exportado do ADT Studio."
 
@@ -4213,6 +4615,9 @@ msgstr "Item {0}"
 
 msgid "Item ID..."
 msgstr "ID do item..."
+
+msgid "Items"
+msgstr "Itens"
 
 msgid "Items marked as needing changes for this reviewer session."
 msgstr "Items marked as needing changes for this reviewer session."
@@ -4253,6 +4658,9 @@ msgstr "Mantém páginas inteiras, a menos que tipos mistos de atividade exijam 
 msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
 msgstr "Mantém a página como uma seção por padrão, mas divide inteligentemente quando detecta várias atividades distintas - como uma mistura de exercícios de múltipla escolha, abertos e de classificação na mesma página. Melhor para livros didáticos com exercícios variados."
 
+msgid "Kept"
+msgstr "Mantido"
+
 msgid "Key must start with \"sk-\""
 msgstr "A chave deve começar com \"sk-\""
 
@@ -4279,6 +4687,9 @@ msgstr "Variáveis conhecidas"
 msgid "L{0}"
 msgstr "N{0}"
 
+msgid "L{level}"
+msgstr "N{level}"
+
 msgid "Label"
 msgstr "Rótulo"
 
@@ -4287,6 +4698,9 @@ msgstr "rotulada {printedLabel}"
 
 msgid "Language"
 msgstr "Idioma"
+
+msgid "Language profiles"
+msgstr "Perfis de idioma"
 
 msgid "Language-Specific Prompts"
 msgstr "Prompts por idioma"
@@ -4315,6 +4729,9 @@ msgstr "Última modificação"
 #~ msgid "Last week"
 #~ msgstr "Semana passada"
 
+msgid "LaTeX converted"
+msgstr "LaTeX convertido"
+
 msgid "Launch the app with"
 msgstr "Iniciar o aplicativo com"
 
@@ -4326,6 +4743,12 @@ msgstr "Diagramando páginas duplas"
 
 msgid "Layout"
 msgstr "Layout"
+
+msgid "Layout mirror failed"
+msgstr "Falha ao espelhar o layout"
+
+msgid "Layout mirrored onto this section"
+msgstr "Layout espelhado nesta seção"
 
 msgid "Leading"
 msgstr "Entrelinha"
@@ -4348,6 +4771,9 @@ msgstr "Deixe vazio para usar o idioma do livro."
 msgid "Leave setup"
 msgstr "Sair da configuração"
 
+msgid "Leave unset to keep ElevenLabs' own pacing. Extreme values reduce quality."
+msgstr "Deixe sem definir para manter o ritmo do próprio ElevenLabs. Valores extremos reduzem a qualidade."
+
 msgid "Leave without finishing?"
 msgstr "Sair sem concluir?"
 
@@ -4362,6 +4788,9 @@ msgstr "Legenda"
 
 msgid "Lenient"
 msgstr "Flexível"
+
+msgid "Let the agent choose"
+msgstr "Deixe o agente escolher"
 
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Deixe o modelo escrever títulos de capítulos descritivos com base no conteúdo de cada seção. Melhor para livros de histórias ou quando os títulos estão ausentes."
@@ -4468,6 +4897,9 @@ msgstr "Carregando versões beta…"
 msgid "Loading book config…"
 msgstr "Carregando configuração do livro…"
 
+msgid "Loading book outline..."
+msgstr "Carregando a estrutura do livro..."
+
 msgid "Loading Book..."
 msgstr "Carregando livro..."
 
@@ -4476,6 +4908,9 @@ msgstr "Carregando livros..."
 
 msgid "Loading catalog..."
 msgstr "Carregando catálogo..."
+
+#~ msgid "Loading Core TTS profiles..."
+#~ msgstr "Carregando perfis principais de TTS..."
 
 msgid "Loading Easy Read..."
 msgstr "Carregando Leitura Fácil..."
@@ -4555,11 +4990,14 @@ msgstr "Carregando catálogo de textos..."
 msgid "Loading text sizes…"
 msgstr "Carregando tamanhos de texto…"
 
+msgid "Loading TTS normalization..."
+msgstr "Carregando a normalização de TTS..."
+
 msgid "Loading validation..."
 msgstr "Carregando validação..."
 
-#~ msgid "Loading versions…"
-#~ msgstr "Carregando versões…"
+msgid "Loading versions…"
+msgstr "Carregando versões…"
 
 msgid "Loading voice mappings..."
 msgstr "Carregando mapeamentos de voz..."
@@ -4584,6 +5022,9 @@ msgstr "Bloquear como quadrado"
 
 msgid "Logs"
 msgstr "Logs"
+
+msgid "Long answer"
+msgstr "Resposta longa"
 
 msgid "Looking for the latest version…"
 msgstr "Procurando a versão mais recente…"
@@ -4617,6 +5058,9 @@ msgstr "Somente manual"
 
 msgid "Manual review"
 msgstr "Revisão manual"
+
+msgid "Manually edited"
+msgstr "Editado manualmente"
 
 msgid "Many printed books are designed with facing pages in mind - illustrations that span two pages, or text that flows across a spread. Spread mode merges each pair of facing pages so content isn't split apart. The cover stays standalone, then pages are paired: 2+3, 4+5, etc."
 msgstr "Muitos livros impressos são pensados em duplas de páginas — ilustrações que atravessam a abertura ou texto que segue de uma página à outra. No modo de duplas, cada par de páginas opostas é tratado junto, para o conteúdo não ser cortado no meio. A capa fica sozinha; em seguida, as páginas são emparelhadas: 2+3, 4+5 etc."
@@ -4796,6 +5240,9 @@ msgstr "Mesclando páginas duplas…"
 msgid "Merging…"
 msgstr "Mesclando…"
 
+msgid "Message when correct (may include the answer)"
+msgstr "Mensagem quando acertar (pode incluir a resposta)"
+
 msgid "Messages"
 msgstr "Mensagens"
 
@@ -4853,8 +5300,20 @@ msgstr "minor"
 msgid "Minor"
 msgstr "Minor"
 
+msgid "Mirror layout"
+msgstr "Espelhar layout"
+
+msgid "Mirror layout from another section"
+msgstr "Espelhar layout de outra seção"
+
+msgid "Mirroring layout..."
+msgstr "Espelhando layout..."
+
 msgid "Mirrors the original book's activity layout as closely as possible."
 msgstr "Espelha o layout de atividades do livro original o mais próximo possível."
+
+msgid "Mismatch"
+msgstr "Incompatibilidade"
 
 msgid "Miss"
 msgstr "Miss"
@@ -4892,6 +5351,9 @@ msgstr "Modelo"
 msgid "Model overrides"
 msgstr "Substituições de modelos"
 
+msgid "Model reasoning"
+msgstr "Raciocínio do modelo"
+
 #~ msgid "Model variant"
 #~ msgstr "Variante de modelo"
 
@@ -4925,11 +5387,20 @@ msgstr "A maioria dos livros é lida uma página por vez. Se o seu tem uma ilust
 msgid "Most used"
 msgstr "Mais usado"
 
+msgid "Move down"
+msgstr "Mover para baixo"
+
+msgid "Move up"
+msgstr "Mover para cima"
+
 msgid "Multi-format publications"
 msgstr "Publicações multi-formato"
 
 msgid "multiple choice"
 msgstr "múltipla escolha"
+
+msgid "Multiple choice"
+msgstr "Múltipla escolha"
 
 msgid "Mute all from read-aloud"
 msgstr "Silenciar tudo na leitura em voz alta"
@@ -5024,6 +5495,9 @@ msgstr "Próximo slide"
 msgid "Next Step"
 msgstr "Próximo Passo"
 
+msgid "No"
+msgstr "Não"
+
 msgid "No acceptable review results for this view."
 msgstr "Nenhum resultado de revisão aceitável para esta visualização."
 
@@ -5035,6 +5509,9 @@ msgstr "No accessibility findings were reported for this page."
 
 msgid "No AI edits yet for this section."
 msgstr "Ainda não há edições com IA para esta seção."
+
+msgid "No answer set"
+msgstr "Sem resposta definida"
 
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
 msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
@@ -5064,8 +5541,14 @@ msgstr "Nenhuma versão beta encontrada"
 #~ msgid "No beta versions match your search."
 #~ msgstr "Nenhuma versão beta corresponde à sua busca."
 
+msgid "No book outline has been extracted yet."
+msgstr "Nenhuma estrutura do livro foi extraída ainda."
+
 msgid "No books match your search"
 msgstr "Nenhum livro corresponde à sua busca"
+
+msgid "No caption (decorative)"
+msgstr "Sem legenda (decorativa)"
 
 msgid "No captioned images yet. Run the image-captioning step first."
 msgstr "Ainda não há imagens com legenda. Execute primeiro a etapa de geração de legendas."
@@ -5078,6 +5561,9 @@ msgstr "Nenhuma legenda corresponde a esses filtros"
 
 msgid "No captions match your search"
 msgstr "Nenhuma legenda corresponde à sua pesquisa"
+
+msgid "no changes"
+msgstr "sem alterações"
 
 msgid "No changes flagged on this page"
 msgstr "No changes flagged on this page"
@@ -5094,8 +5580,8 @@ msgstr "Capa não disponível"
 msgid "No data"
 msgstr "Sem dados"
 
-#~ msgid "No differences from the current version."
-#~ msgstr "Sem diferenças em relação à versão atual."
+msgid "No differences from the current version."
+msgstr "Sem diferenças em relação à versão atual."
 
 msgid "No differences from the fallback prompt."
 msgstr "Sem diferenças em relação ao prompt fallback."
@@ -5105,6 +5591,9 @@ msgstr "No disabled rules"
 
 msgid "No Easy Read for this page"
 msgstr "Sem Leitura Fácil para esta página"
+
+msgid "No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for {lang} in the Voices tab."
+msgstr "Nenhuma voz do ElevenLabs está mapeada para este idioma, então ele usa a voz inglesa padrão e a narração terá sotaque inglês. Mapeie uma voz para {lang} na aba Vozes."
 
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "Sem camada de texto incorporada — o texto foi recuperado a partir da imagem da página"
@@ -5196,6 +5685,9 @@ msgstr "Ainda não há variáveis mapeadas para este prompt."
 msgid "No matches for \"{search}\""
 msgstr "Nenhum resultado para \"{0}\""
 
+msgid "No matches."
+msgstr "Nenhuma correspondência."
+
 msgid "No matching blocks"
 msgstr "Nenhum bloco correspondente"
 
@@ -5216,6 +5708,9 @@ msgstr "Nenhuma licença open-source detectada. Certifique-se de ter o direito d
 
 msgid "No other images in this book"
 msgstr "Nenhuma outra imagem neste livro"
+
+msgid "No outline entries match the current filter."
+msgstr "Nenhuma entrada da estrutura corresponde ao filtro atual."
 
 msgid "No page linked"
 msgstr "Nenhuma página vinculada"
@@ -5276,6 +5771,9 @@ msgstr "Sem conteúdo renderizado para esta seção"
 
 msgid "No rendered pages yet. Run Storyboard first."
 msgstr "Ainda não há páginas renderizadas. Execute o Storyboard primeiro."
+
+msgid "no rendering"
+msgstr "sem renderização"
 
 msgid "No review areas are currently flagged in this reviewer session."
 msgstr "No review areas are currently flagged in this reviewer session."
@@ -5376,6 +5874,9 @@ msgstr "Não há traduções visíveis para revisar."
 msgid "No voice mappings configured."
 msgstr "Nenhum mapeamento de voz configurado."
 
+msgid "No voices found"
+msgstr "Nenhuma voz encontrada"
+
 msgid "Nodes"
 msgstr "Nodes"
 
@@ -5384,6 +5885,12 @@ msgstr "ruído"
 
 msgid "None"
 msgstr "Nenhum"
+
+msgid "Normalization"
+msgstr "Normalização"
+
+msgid "Normalized"
+msgstr "Normalizado"
 
 msgid "Not compatible with Fixed Layout"
 msgstr "Não compatível com Layout Fixo"
@@ -5424,11 +5931,17 @@ msgstr "Nota"
 msgid "Nothing important is missing or added"
 msgstr "Nada importante está faltando ou foi adicionado"
 
+msgid "Nothing to edit yet"
+msgstr "Ainda não há nada para editar"
+
 msgid "Nothing to show"
 msgstr "Nada para mostrar"
 
 msgid "Now click the end page."
 msgstr "Agora clique na página final."
+
+msgid "now correct"
+msgstr "agora correta"
 
 msgid "Number of pages of content to include per quiz question."
 msgstr "Número de páginas de conteúdo a incluir por questão de quiz."
@@ -5451,6 +5964,9 @@ msgstr "of"
 msgid "Off"
 msgstr "Desligado"
 
+msgid "Offset"
+msgstr "Deslocamento"
+
 #~ msgid "Older"
 #~ msgstr "Mais antiga"
 
@@ -5459,6 +5975,9 @@ msgstr "Omissão ou adição"
 
 msgid "On"
 msgstr "Ligado"
+
+msgid "On v{currentVersion} · latest is v{latestVersion}"
+msgstr "Na v{currentVersion} · a mais recente é a v{latestVersion}"
 
 msgid "One Column"
 msgstr "Uma Coluna"
@@ -5568,6 +6087,12 @@ msgstr "Abra esta seção para ajustar o modelo, o prompt do avaliador, o compor
 msgid "Open Validation"
 msgstr "Open Validation"
 
+msgid "Open-ended — learners write a free response; there is no fixed answer."
+msgstr "Resposta aberta — os alunos escrevem uma resposta livre; não há resposta fixa."
+
+msgid "Open-ended question"
+msgstr "Pergunta aberta"
+
 msgid "Open-source license"
 msgstr "Licença open-source"
 
@@ -5588,6 +6113,12 @@ msgstr "Voz OpenAI"
 
 msgid "Operation failed"
 msgstr "A operação falhou"
+
+msgid "Option columns"
+msgstr "Colunas de opções"
+
+msgid "Option text"
+msgstr "Texto da opção"
 
 msgid "Optional"
 msgstr "Opcional"
@@ -5624,6 +6155,12 @@ msgstr "Opcional. Termos adicionados aqui são fixados no glossário para que se
 
 msgid "Optionally translate burned-in text inside images (signs, labels, callouts). Select the images to localize — leaving the list empty keeps images in the source language."
 msgstr "Opcionalmente, traduza texto embutido dentro de imagens (sinais, rótulos, legendas). Selecione as imagens para localizar — deixar a lista vazia mantém as imagens no idioma original."
+
+msgid "Options — checked options are the correct answers"
+msgstr "Opções — as opções marcadas são as respostas corretas"
+
+msgid "Options — the selected radio marks the correct answer"
+msgstr "Opções — o botão selecionado marca a resposta correta"
 
 msgid "options are deterministic;"
 msgstr "entrega resultados previsíveis;"
@@ -5662,14 +6199,23 @@ msgstr "Outro"
 msgid "Other images"
 msgstr "Outras imagens"
 
+msgid "Other items"
+msgstr "Outros itens"
+
 msgid "Other options"
 msgstr "Outras opções"
+
+msgid "Other text"
+msgstr "Outro texto"
 
 msgid "Out for processing"
 msgstr "Em processamento"
 
 msgid "Out of date"
 msgstr "Desatualizado"
+
+msgid "Outline ID:"
+msgstr "ID da estrutura:"
 
 msgid "Output languages"
 msgstr "Idiomas de saída"
@@ -5720,6 +6266,8 @@ msgid "p. 7"
 msgstr "p. 7"
 
 #. placeholder {0}: String(current.pageNumber)
+#. placeholder {0}: m[1]
+#. placeholder {0}: pageMatch[1]
 msgid "p{0}"
 msgstr "p{0}"
 
@@ -5728,6 +6276,9 @@ msgstr "Empacota e pré-visualiza a aplicação web ADT final."
 
 msgid "Package preview to generate results"
 msgstr "Package preview to generate results"
+
+msgid "Package structure"
+msgstr "Estrutura do pacote"
 
 msgid "Package the book for distribution. Pick a format, choose what content goes in, and we'll bundle everything into a downloadable archive."
 msgstr "Empacote o livro para distribuição. Escolha um formato, decida o que vai dentro e nós agruparemos tudo em um arquivo para download."
@@ -5757,8 +6308,8 @@ msgid "Page"
 msgstr "Página"
 
 #. placeholder {0}: String(activePage.pageNumber)
+#. placeholder {0}: String(entry.pageNumber)
 #. placeholder {0}: String(group.pageNumber)
-#. placeholder {0}: String(item.pageNumber)
 msgid "Page {0}"
 msgstr "Página {0}"
 
@@ -5903,6 +6454,9 @@ msgstr "parágrafo"
 msgid "Paragraph"
 msgstr "Parágrafo"
 
+msgid "Parent:"
+msgstr "Pai:"
+
 msgid "Parsing pages"
 msgstr "Analisando páginas"
 
@@ -6012,8 +6566,17 @@ msgstr "fotossintético, realizando fotossíntese"
 msgid "Pick a family to attach to the book. It is downloaded when extraction runs and embedded in the final bundle."
 msgstr "Escolha uma família para anexar ao livro. Ela é baixada quando a extração é executada e embutida no pacote final."
 
+msgid "Pick a page to see its sections."
+msgstr "Escolha uma página para ver suas seções."
+
 msgid "Pick a preset"
 msgstr "Escolha um preset"
+
+msgid "Pick a source section. Its layout will be applied to this section while keeping this section's content and data-ids."
+msgstr "Escolha uma seção de origem. O layout dela será aplicado a esta seção, mantendo o conteúdo e os data-ids desta seção."
+
+msgid "Pick another version above to compare it with the current one."
+msgstr "Escolha outra versão acima para compará-la com a atual."
 
 msgid "Pick from book"
 msgstr "Escolher do livro"
@@ -6047,6 +6610,9 @@ msgstr "Imagem de {word}"
 
 msgid "Pinned"
 msgstr "Fixado"
+
+msgid "Pinned to one element — press Esc to release it and go back to previewing on hover."
+msgstr "Fixado em um elemento: pressione Esc para soltá-lo e voltar à pré-visualização ao passar o cursor."
 
 msgid "Pipeline · extract"
 msgstr "Pipeline · extração"
@@ -6099,6 +6665,18 @@ msgstr "Reproduzir vídeo"
 msgid "Please wait for the current operation to finish"
 msgstr "Aguarde a conclusão da operação atual"
 
+msgid "PNLD Digital · FNDE"
+msgstr "PNLD Digital · FNDE"
+
+msgid "PNLD Digital Work"
+msgstr "Obra Digital PNLD"
+
+msgid "PNLD Export"
+msgstr "Exportar PNLD"
+
+msgid "PNLD Package"
+msgstr "Pacote PNLD"
+
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polindo parágrafos até a perfeição..."
 
@@ -6138,6 +6716,18 @@ msgstr "Precipitação"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Prefira termos centrais ao assunto do livro. Pule vocabulário genérico e nomes próprios que não carregam significado além da página."
+
+msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
+msgstr "A preparação resolve primeiro a localidade exata, depois o idioma base e, por fim, este padrão. A orientação é incluída na chamada ao LLM armazenada em cache e inspecionável."
+
+#~ msgid "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
+#~ msgstr "Preparar números, datas, abreviações e outros textos ambíguos para uma fala natural em cada idioma."
+
+msgid "Prepare numbers, dates, and abbreviations for natural speech. Math and LaTeX are handled separately."
+msgstr "Preparar números, datas e abreviações para uma fala natural. A matemática e o LaTeX são tratados separadamente."
+
+msgid "Prepared speech text"
+msgstr "Texto preparado para fala"
 
 msgid "Preparing speech..."
 msgstr "Preparando o áudio..."
@@ -6216,6 +6806,9 @@ msgstr "Nome do Projeto"
 
 msgid "Prompt"
 msgstr "Prompt"
+
+msgid "Prompt (optional)"
+msgstr "Enunciado (opcional)"
 
 msgid "Prompt file created from template."
 msgstr "Arquivo de prompt criado a partir do template."
@@ -6310,11 +6903,27 @@ msgstr "Parâmetro de consulta"
 msgid "question"
 msgstr "pergunta"
 
+msgid "Question"
+msgstr "Pergunta"
+
+#. placeholder {0}: si + 1
+msgid "Question {0}"
+msgstr "Pergunta {0}"
+
+msgid "Question prompt"
+msgstr "Enunciado da pergunta"
+
+msgid "Questions"
+msgstr "Perguntas"
+
 msgid "queued"
 msgstr "na fila"
 
 msgid "Queued"
 msgstr "Na fila"
+
+msgid "Quick fill"
+msgstr "Preenchimento rápido"
 
 msgid "Quit anyway"
 msgstr "Sair mesmo assim"
@@ -6400,6 +7009,9 @@ msgstr "Rerenderizar (suas edições serão preservadas)"
 msgid "Re-render failed"
 msgstr "Re-render failed"
 
+msgid "Re-render is disabled for custom activities — it would discard the interactive script. Use \"View HTML source\" or AI edit instead."
+msgstr "A regeneração está desativada para atividades personalizadas: ela descartaria o script interativo. Use \"Ver código-fonte HTML\" ou a edição por IA."
+
 msgid "Re-render section"
 msgstr "Rerenderizar seção"
 
@@ -6421,8 +7033,11 @@ msgstr "Reexecutar {stageLabel}?"
 msgid "Re-run speech"
 msgstr "Reexecutar áudio"
 
-msgid "Re-run these book-level stages on the assembled book:"
-msgstr "Execute novamente estas etapas de nível de livro no livro montado:"
+msgid "Re-run Storyboard"
+msgstr "Executar Storyboard novamente"
+
+msgid "Re-run these stages on the assembled book:"
+msgstr "Execute novamente estas etapas no livro montado:"
 
 msgid "Re-run translation"
 msgstr "Reexecutar tradução"
@@ -6487,6 +7102,24 @@ msgstr "Realista / Foto"
 msgid "Rearranging atoms of HTML..."
 msgstr "Reorganizando os átomos de HTML..."
 
+msgid "Rebuild failed"
+msgstr "Falha ao reconstruir"
+
+msgid "Rebuild from page"
+msgstr "Reconstruir a partir da página"
+
+msgid "Rebuild the steps from the page's current content"
+msgstr "Reconstruir as etapas a partir do conteúdo atual da página"
+
+msgid "Rebuild this step-by-step activity from the page? Any manual edits to the steps, answers, or feedback will be replaced."
+msgstr "Reconstruir esta atividade passo a passo a partir da página? Todas as edições manuais nas etapas, respostas ou feedback serão substituídas."
+
+msgid "Rebuilding…"
+msgstr "Reconstruindo…"
+
+msgid "Rebuilt from the page"
+msgstr "Reconstruído a partir da página"
+
 msgid "Recommended"
 msgstr "Recomendado"
 
@@ -6541,6 +7174,9 @@ msgstr "Regenerar Leitura Fácil"
 
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Regenera as imagens selecionadas para cada idioma de saída para que qualquer texto fixo nelas seja exibido no idioma de destino."
+
+msgid "Regenerate this activity with AI (requires a saved state and an API key)"
+msgstr "Regenerar esta atividade com IA (requer um estado salvo e uma chave de API)"
 
 msgid "Region"
 msgstr "Região"
@@ -6599,6 +7235,9 @@ msgstr "Remover fonte {0}"
 msgid "Remove from group"
 msgstr "Remover do grupo"
 
+msgid "Remove image"
+msgstr "Remover imagem"
+
 msgid "Remove manual glossary term"
 msgstr "Remover termo manual do glossário"
 
@@ -6633,6 +7272,9 @@ msgstr "Remover tipo"
 msgid "removed"
 msgstr "removido"
 
+msgid "Removed"
+msgstr "Removido"
+
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Renderize cada seção digitada em uma página HTML interativa. Escolha uma estratégia de layout que corresponda ao livro e deixe o storyboard cuidar do resto."
 
@@ -6663,6 +7305,9 @@ msgstr "Substituir do livro"
 msgid "Replace from Book"
 msgstr "Substituir do livro"
 
+msgid "Replace image"
+msgstr "Substituir imagem"
+
 msgid "Replace PDF"
 msgstr "Substituir PDF"
 
@@ -6674,6 +7319,9 @@ msgstr "Substituir questionários"
 
 msgid "Replace this audio file"
 msgstr "Substituir este arquivo de áudio"
+
+msgid "Request settings"
+msgstr "Configurações da solicitação"
 
 msgid "Require comment on failure"
 msgstr "Require comment on failure"
@@ -6711,8 +7359,14 @@ msgstr "Redefinir para herdado"
 msgid "Reset to inherited defaults"
 msgstr "Reset to inherited defaults"
 
+msgid "Reset to the book's accent"
+msgstr "Restaurar a cor de destaque do livro"
+
 msgid "Reset zoom"
 msgstr "Redefinir zoom"
+
+msgid "Resize panel"
+msgstr "Redimensionar o painel"
 
 msgid "Resolving source language..."
 msgstr "Resolvendo idioma de origem..."
@@ -6734,6 +7388,9 @@ msgstr "Restaurar este termo — ele será elegível novamente na próxima regen
 
 msgid "restored"
 msgstr "restaurado"
+
+msgid "Restored to v{version}"
+msgstr "Restaurado para a v{version}"
 
 msgid "Restricted license"
 msgstr "Licença restrita"
@@ -6798,6 +7455,9 @@ msgstr "Revisão concluída: {0} aceitáveis, {1} pendentes de salvamento."
 msgid "Review complete: all {0} reviewed translations are acceptable."
 msgstr "Revisão concluída: todas as {0} traduções revisadas são aceitáveis."
 
+msgid "Review each heading’s level, page, confidence, style cluster, and storyboard assignment."
+msgstr "Revise o nível, a página, a confiança, o grupo de estilos e a atribuição no storyboard de cada título."
+
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Review one session at a time to inspect page coverage and flagged findings."
 
@@ -6827,6 +7487,9 @@ msgstr "Revise os detalhes do PDF de origem abaixo e continue a configurar como 
 
 msgid "Review visible translations"
 msgstr "Revisar traduções visíveis"
+
+msgid "Review what restoring version {selected} would change, grouped by edited, added, and removed."
+msgstr "Revise o que restaurar a versão {selected} mudaria, agrupado por editados, adicionados e removidos."
 
 msgid "Reviewed"
 msgstr "Revisada"
@@ -6872,6 +7535,15 @@ msgstr "O aumento das temperaturas dos oceanos causa o branqueamento dos corais 
 
 msgid "Role"
 msgstr "Função"
+
+msgid "Rotate"
+msgstr "Girar"
+
+msgid "Rotate 90° clockwise"
+msgstr "Girar 90° no sentido horário"
+
+msgid "Rotate 90° counter-clockwise"
+msgstr "Girar 90° no sentido anti-horário"
 
 msgid "Row"
 msgstr "Linha"
@@ -6973,6 +7645,9 @@ msgstr "EM EXECUÇÃO"
 #~ msgid "Running {stageLabel}"
 #~ msgstr "Executando {stageLabel}"
 
+msgid "Running Sectioning will rebuild the book-wide outline from the merged pages, then apply it without re-running PDF extraction."
+msgstr "Ao executar o seccionamento, o esquema completo do livro será reconstruído a partir das páginas mescladas e aplicado sem executar novamente a extração do PDF."
+
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Executar Sectioning executará primeiro a Extração e depois dividirá em seções as páginas extraídas."
 
@@ -7021,6 +7696,12 @@ msgstr "Salvar e sair"
 msgid "Save & Re-run"
 msgstr "Salvar e reexecutar"
 
+msgid "Save activity"
+msgstr "Salvar atividade"
+
+msgid "Save activity (⌘S)"
+msgstr "Salvar atividade (⌘S)"
+
 msgid "Save changes"
 msgstr "Salvar alterações"
 
@@ -7042,20 +7723,23 @@ msgstr "Save checklist"
 msgid "Save failed"
 msgstr "Save failed"
 
-msgid "Save or discard your edits before splitting"
-msgstr "Salve ou descarte suas edições antes de dividir"
-
 msgid "Save or discard your edits first"
 msgstr "Salve ou descarte suas edições primeiro"
 
 msgid "Save page review"
 msgstr "Save page review"
 
+msgid "Save section changes?"
+msgstr "Salvar as alterações das seções?"
+
 msgid "Save selection"
 msgstr "Salvar seleção"
 
 msgid "Save settings"
 msgstr "Save settings"
+
+msgid "Save speech text"
+msgstr "Salvar texto falado"
 
 msgid "Save text sizes"
 msgstr "Salvar tamanhos de texto"
@@ -7071,6 +7755,9 @@ msgstr "Salvando..."
 
 msgid "Saving…"
 msgstr "Salvando…"
+
+msgid "Scale"
+msgstr "Escala"
 
 msgid "Scene 04"
 msgstr "Cena 04"
@@ -7120,6 +7807,9 @@ msgstr "Buscar legendas ou IDs de imagem…"
 msgid "Search colors"
 msgstr "Buscar cores"
 
+msgid "Search display or speech text…"
+msgstr "Buscar texto de exibição ou fala…"
+
 msgid "Search entries…"
 msgstr "Buscar entradas…"
 
@@ -7129,14 +7819,26 @@ msgstr "Buscar fontes"
 msgid "Search fonts..."
 msgstr "Buscar fontes..."
 
+msgid "Search headings, IDs, or style clusters..."
+msgstr "Pesquisar títulos, IDs ou grupos de estilos..."
+
 msgid "Search languages..."
 msgstr "Buscar idiomas..."
 
 msgid "Search original or Easy Read text…"
 msgstr "Pesquisar texto original ou de Leitura Fácil..."
 
+msgid "Search original or translation…"
+msgstr "Buscar original ou tradução…"
+
+#~ msgid "Search questions or answers…"
+#~ msgstr "Buscar perguntas ou respostas…"
+
 msgid "Search questions or options…"
 msgstr "Pesquisar perguntas ou opções…"
+
+msgid "Search questions, answers, or explanations…"
+msgstr "Pesquisar perguntas, respostas ou explicações…"
 
 msgid "Search sections..."
 msgstr "Buscar seções..."
@@ -7153,8 +7855,14 @@ msgstr "Buscar termos ou definições…"
 #~ msgid "Search versions…"
 #~ msgstr "Buscar versões…"
 
+msgid "Search voices"
+msgstr "Pesquisar vozes"
+
 msgid "Search..."
 msgstr "Buscar..."
+
+msgid "Search…"
+msgstr "Buscar…"
 
 msgid "section"
 msgstr "seção"
@@ -7223,6 +7931,9 @@ msgstr "Tipos de seção"
 msgid "Sectioning"
 msgstr "Seccionamento"
 
+msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
+msgstr "O seccionamento mudou desde que estas páginas foram renderizadas. Execute o Storyboard novamente para regenerá-las."
+
 msgid "Sectioning mode"
 msgstr "Modo de seção"
 
@@ -7252,6 +7963,9 @@ msgstr "Ver exemplos"
 
 msgid "See the book & pick pages"
 msgstr "Ver o livro e escolher páginas"
+
+#~ msgid "See the current version and a chosen version rendered side by side."
+#~ msgstr "Veja a versão atual e uma versão escolhida lado a lado."
 
 msgid "Seed"
 msgstr "Semente"
@@ -7340,6 +8054,9 @@ msgstr "Selecionar tipo de atividade..."
 msgid "Select all"
 msgstr "Selecionar tudo"
 
+msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
+msgstr "Selecione um item para editar seu texto: [[blank:…]] marca onde aparece uma lacuna, então mantenha-o para preservar a lacuna."
+
 msgid "Select images to translate"
 msgstr "Selecionar imagens para traduzir"
 
@@ -7389,8 +8106,21 @@ msgstr "Selecionar \\\"Nenhum\\\" permite que o LLM escolha seu próprio estilo 
 msgid "Self-contained ADT web app"
 msgstr "Aplicativo web ADT autônomo"
 
+msgid "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run."
+msgstr "Envia o texto da frase vizinha junto com cada solicitação para que o ElevenLabs possa manter a entonação entre os limites das frases. Alterar esta opção regenera o áudio do ElevenLabs na próxima execução."
+
+#~ msgid "Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Only affects languages routed to ElevenLabs. Changing this regenerates ElevenLabs audio on the next run."
+#~ msgstr "Envia o texto da frase vizinha junto com cada solicitação para que o ElevenLabs possa manter a entonação entre os limites das frases. Afeta apenas os idiomas roteados para o ElevenLabs. Alterar esta opção regenera o áudio do ElevenLabs na próxima execução."
+
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Envie este arquivo de projeto de volta ao coordenador para mesclá-lo no livro de origem."
+
+#. placeholder {0}: si + 1
+msgid "Sentence {0}"
+msgstr "Frase {0}"
+
+msgid "Sentence with blank markers"
+msgstr "Frase com marcadores de lacunas"
 
 msgid "Separator"
 msgstr "Separador"
@@ -7455,6 +8185,9 @@ msgstr "Versões compartilhadas de prompts"
 msgid "Ship"
 msgstr "Entregar"
 
+msgid "Short answer"
+msgstr "Resposta curta"
+
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Frases curtas e simples para jardim de infância até o 5º ano."
 
@@ -7501,6 +8234,9 @@ msgstr "Mostrar justificativa da revisão"
 msgid "Show reviewer validation"
 msgstr "Show reviewer validation"
 
+msgid "Show unchanged"
+msgstr "Mostrar inalterados"
+
 msgid "Show:"
 msgstr "Mostrar:"
 
@@ -7533,6 +8269,9 @@ msgstr "Sobreposições de vídeo em língua de sinais para cada página"
 
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Vídeos em língua de sinais oferecem acesso para leitores surdos e com deficiência auditiva que podem não ser fluentes em linguagem escrita."
+
+msgid "Similarity"
+msgstr "Semelhança"
 
 msgid "Simplified Easy Read text variants."
 msgstr "Variantes de texto simplificadas de Leitura Fácil."
@@ -7598,6 +8337,9 @@ msgstr "slide"
 msgid "Slide {0}"
 msgstr "Slide {0}"
 
+msgid "Small"
+msgstr "Pequeno"
+
 msgid "Smart Cropping"
 msgstr "Corte Inteligente"
 
@@ -7631,6 +8373,9 @@ msgstr "Ordenar por"
 msgid "Source"
 msgstr "Fonte"
 
+msgid "Source candidates:"
+msgstr "Candidatos de origem:"
+
 msgid "Source file"
 msgstr "Arquivo de origem"
 
@@ -7654,6 +8399,9 @@ msgstr "Espaçamento"
 
 msgid "Spanish"
 msgstr "Espanhol"
+
+msgid "Speaker boost"
+msgstr "Reforço do locutor"
 
 msgid "Specialized workflows"
 msgstr "Fluxos de trabalho especializados"
@@ -7681,6 +8429,9 @@ msgstr "Prompts de fala"
 
 msgid "Speech Settings"
 msgstr "Configurações de Fala"
+
+msgid "Speed"
+msgstr "Velocidade"
 
 msgid "Split"
 msgstr "Dividir"
@@ -7722,11 +8473,17 @@ msgstr "Dividir em duas seções neste ponto"
 msgid "Split preview"
 msgstr "Pré-visualização da divisão"
 
+msgid "Split section"
+msgstr "Dividir seção"
+
 msgid "Split segments"
 msgstr "Segmentos divididos"
 
 msgid "Split spread {left}–{right} back into single pages"
 msgstr "Dividir spread {left}–{right} de volta em páginas únicas"
+
+msgid "split this section"
+msgstr "dividir esta seção"
 
 msgid "Spread"
 msgstr "Dupla"
@@ -7743,6 +8500,9 @@ msgstr "Apenas spreads"
 msgid "Sprinkling some digital fairy dust..."
 msgstr "Salpicando um pouco de pó mágico digital..."
 
+msgid "Stability"
+msgstr "Estabilidade"
+
 msgid "Stable"
 msgstr "Estável"
 
@@ -7751,6 +8511,9 @@ msgstr "As etapas são reexecutáveis e cada resultado é versionado, então exp
 
 msgid "Standard"
 msgstr "Padrão"
+
+msgid "Standard built-in activity types"
+msgstr "Tipos de atividade padrão integrados"
 
 msgid "Standard e-book for readers & libraries"
 msgstr "E-book padrão para leitores e bibliotecas"
@@ -7797,6 +8560,10 @@ msgstr "Ficar"
 msgid "Step"
 msgstr "Etapa"
 
+#. placeholder {0}: si + 1
+msgid "Step {0}"
+msgstr "Etapa {0}"
+
 #. placeholder {0}: STEPS.length
 msgid "Step {step} of {0}"
 msgstr "Passo {step} de {0}"
@@ -7807,6 +8574,15 @@ msgstr "Step failed"
 msgid "Step run failed"
 msgstr "Step run failed"
 
+msgid "Step-by-step activity"
+msgstr "Atividade passo a passo"
+
+msgid "Step-by-step activity preview"
+msgstr "Pré-visualização da atividade passo a passo"
+
+msgid "Steps"
+msgstr "Etapas"
+
 msgid "Stop step"
 msgstr "Parar etapa"
 
@@ -7815,6 +8591,9 @@ msgstr "Storyboard"
 
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "O storyboard já foi executado. As alterações feitas aqui não terão efeito até que o storyboard seja executado novamente."
+
+msgid "Storyboard nodes:"
+msgstr "Nós do storyboard:"
 
 msgid "Storyboard not ready"
 msgstr "Storyboard não está pronto"
@@ -7867,6 +8646,9 @@ msgstr "Estilo"
 msgid "Style editing coming soon"
 msgstr "Edição de estilo em breve"
 
+msgid "Style exaggeration"
+msgstr "Exageração do estilo"
+
 msgid "Style guidance"
 msgstr "Orientação de estilo"
 
@@ -7885,6 +8667,9 @@ msgstr "Referência de estilo"
 msgid "Style reference image"
 msgstr "Imagem de referência de estilo"
 
+msgid "Style:"
+msgstr "Estilo:"
+
 msgid "Styleguide"
 msgstr "Guia de estilo"
 
@@ -7902,6 +8687,12 @@ msgstr "Subtítulo"
 
 msgid "Submit"
 msgstr "Enviar"
+
+msgid "Submit to the FNDE PNLD Digital platform and validate with VALIDE."
+msgstr "Envie para a plataforma PNLD Digital do FNDE e valide com o VALIDE."
+
+msgid "Subsection"
+msgstr "Subseção"
 
 msgid "Success"
 msgstr "Sucesso"
@@ -7942,11 +8733,17 @@ msgstr "Sol"
 msgid "SW"
 msgstr "SW"
 
+msgid "Switching presentation failed"
+msgstr "Falha ao mudar a apresentação"
+
 msgid "Symbiosis"
 msgstr "Simbiose"
 
-msgid "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only; Chinese and Thai remain per-entry."
-msgstr "Sintetiza o texto de cada página em uma única requisição do Gemini para que o tom flua naturalmente entre as frases e depois divide o áudio de volta em clipes por frase. Precisa de uma chave da OpenAI (usada para alinhar a divisão). Apenas para idiomas roteados para o Gemini; chinês e tailandês permanecem por entrada."
+msgid "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Chinese and Thai remain per-entry."
+msgstr "Sintetiza o texto de cada página em uma única solicitação ao Gemini para que o tom flua naturalmente entre as frases e depois divide o áudio em clipes por frase. Requer uma chave da OpenAI (usada para alinhar a divisão). Chinês e tailandês continuam sendo processados por entrada."
+
+#~ msgid "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only; Chinese and Thai remain per-entry."
+#~ msgstr "Sintetiza o texto de cada página em uma única requisição do Gemini para que o tom flua naturalmente entre as frases e depois divide o áudio de volta em clipes por frase. Precisa de uma chave da OpenAI (usada para alinhar a divisão). Apenas para idiomas roteados para o Gemini; chinês e tailandês permanecem por entrada."
 
 msgid "Synthesizes narration audio for each page."
 msgstr "Sintetiza áudio de narração para cada página."
@@ -7971,6 +8768,9 @@ msgstr "Classes Tailwind"
 
 msgid "Takes liberties and produces something similar."
 msgstr "Toma liberdades e produz algo semelhante."
+
+msgid "Tap the words that should be underlined"
+msgstr "Toque nas palavras que devem ser sublinhadas"
 
 msgid "Target"
 msgstr "Destino"
@@ -8042,6 +8842,9 @@ msgstr "Renderização por template"
 msgid "Template-based"
 msgstr "Baseado em templates"
 
+msgid "Templated"
+msgstr "Com modelo"
+
 msgid "term"
 msgstr "termo"
 
@@ -8084,6 +8887,12 @@ msgstr "Cor do texto"
 #. placeholder {0}: section.textColor
 msgid "Text color: {0}"
 msgstr "Cor do texto: {0}"
+
+msgid "Text normalization"
+msgstr "Normalização de texto"
+
+msgid "Text Normalization"
+msgstr "Normalização de texto"
 
 msgid "Text Only"
 msgstr "Só texto"
@@ -8142,6 +8951,9 @@ msgstr "O título e os metadados do livro chegam com a parte que contém a pági
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Os prompts integrados são otimizados para {DEFAULT_MODEL}. Você alterou o LLM padrão para <0>{savedModel}</0>, então recomendamos gerar novos arquivos de prompts globais ajustados para ele. Você também pode continuar com os prompts existentes."
 
+msgid "The combined section will be re-rendered."
+msgstr "A seção combinada será rerenderizada."
+
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "A comunidade de organismos vivos em um lugar e a forma como interagem entre si e com o ambiente."
 
@@ -8157,8 +8969,11 @@ msgstr "A página de créditos."
 msgid "The data sent within the body of a request or response message."
 msgstr "Os dados enviados no corpo de uma mensagem de requisição ou resposta."
 
-msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it."
-msgstr "A instrução de TTS padrão aplicada a todos os idiomas, a menos que seja substituída abaixo. A OpenAI a usa como instrução de voz e o Gemini como direcionamento de sotaque no prompt; o Azure a ignora."
+msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
+msgstr "A instrução de TTS padrão aplicada a todos os idiomas, a menos que seja substituída abaixo. A OpenAI a usa como instrução de voz e o Gemini como direcionamento de sotaque no prompt; Azure e ElevenLabs a ignoram."
+
+#~ msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it."
+#~ msgstr "A instrução de TTS padrão aplicada a todos os idiomas, a menos que seja substituída abaixo. A OpenAI a usa como instrução de voz e o Gemini como direcionamento de sotaque no prompt; o Azure a ignora."
 
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "A página inteira é tratada como uma única seção - todo o texto e imagens permanecem juntos como uma unidade. Melhor para livros de histórias, livros de referência e qualquer conteúdo onde cada página é autossuficiente."
@@ -8247,6 +9062,15 @@ msgstr "O rio encontra o mar"
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "A revisão de tradução salva está desatualizada. Execute Revisar novamente para as traduções visíveis."
 
+#~ msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
+#~ msgstr "A seção foi editada após a conversão — volte para a versão clássica e converta novamente para atualizar as etapas."
+
+msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
+msgstr "A seção foi editada após a conversão — use «Reconstruir a partir da página» para atualizar as etapas."
+
+msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
+msgstr "As seções serão combinadas localmente. Sem uma chave de API, será necessário executar novamente o Storyboard para regenerar a seção combinada."
+
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "O storyboard deve ser concluído antes de gerar {stageName}. Execute a etapa do Storyboard primeiro."
 
@@ -8309,6 +9133,9 @@ msgstr "Produzem flores para atrair polinizadores."
 
 msgid "They release oxygen directly into the air."
 msgstr "Liberam oxigênio diretamente no ar."
+
+msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
+msgstr "Esta atividade não tem textos nem respostas endereçáveis. Gere-a novamente ou use \"Editar layout\" para alterar a página diretamente."
 
 msgid "This archive can't be opened safely"
 msgstr "Este arquivo não pode ser aberto com segurança"
@@ -8375,6 +9202,9 @@ msgstr "Este é o Pip! Ele tem um rabo que balança."
 msgid "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
 msgstr "Este é o Pip! Ele é um cachorro caramelo feliz com um rabo muito agitado. Pip adora a grama verde, o sol amarelo brilhante e fazer novos amigos em seu jardim."
 
+msgid "This is the active version — pick another above to compare and restore it. Everything it contains:"
+msgstr "Esta é a versão ativa — escolha outra acima para compará-la e restaurá-la. Tudo o que ela contém:"
+
 msgid "This isn't a completed part"
 msgstr "Isto não é uma parte concluída"
 
@@ -8383,6 +9213,12 @@ msgstr "Este não é um projeto válido do ADT Studio"
 
 msgid "This isn't a valid part file"
 msgstr "Este não é um arquivo de parte válido"
+
+msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
+msgstr "Isto combina uma atividade personalizada. A seção combinada é regenerada, o que descartará o script de correção interativo da atividade personalizada. Para mantê-lo, edite com \"Ver código-fonte HTML\" em vez de combinar."
+
+msgid "This merges an activity. The combined section is re-rendered, so the activity's layout and answer key may change."
+msgstr "Isto combina uma atividade. A seção combinada é regenerada, portanto o layout e o gabarito da atividade podem mudar."
 
 msgid "This model already has prompt files for every base prompt."
 msgstr "Este modelo já tem arquivos de prompt para todos os prompts base."
@@ -8395,6 +9231,9 @@ msgstr "Este modelo está usando o prompt base porque {expectedModelPromptName} 
 
 msgid "This model-specific prompt file does not exist yet. Saving while this model is selected creates a global prompt version for that model."
 msgstr "Este arquivo de prompt específico do modelo ainda não existe. Salvar enquanto este modelo estiver selecionado cria uma versão global do prompt para esse modelo."
+
+msgid "This option has no answer key entry"
+msgstr "Esta opção não tem entrada no gabarito"
 
 msgid "This page has no captioned images"
 msgstr "Esta página não tem imagens legendadas"
@@ -8462,6 +9301,9 @@ msgstr "Isso restaura a fonte padrão em todas as páginas e limpa os ajustes de
 msgid "This screen couldn’t load"
 msgstr "Esta tela não pôde ser carregada"
 
+msgid "This section doesn't exist in this version."
+msgstr "Esta seção não existe nesta versão."
+
 msgid "This section has no storyboard rendering yet"
 msgstr "Esta seção ainda não tem renderização de storyboard"
 
@@ -8473,6 +9315,12 @@ msgstr "This session is using an older reviewer checklist snapshot. Newer checkl
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Este texto é perceptível apenas para tecnologias assistivas."
+
+msgid "This version is empty."
+msgstr "Esta versão está vazia."
+
+msgid "This voice ID is not in your ElevenLabs account."
+msgstr "Este ID de voz não está na sua conta do ElevenLabs."
 
 #~ msgid "This week"
 #~ msgstr "Esta semana"
@@ -8537,6 +9385,9 @@ msgstr "Títulos retirados literalmente dos títulos das seções classificadas.
 msgid "To page"
 msgstr "Até a página"
 
+msgid "To replace an image, use \"Edit layout\" and click the image."
+msgstr "Para substituir uma imagem, use \\\"Editar layout\\\" e clique na imagem."
+
 msgid "to stream API logs here."
 msgstr "para transmitir logs de API aqui."
 
@@ -8581,6 +9432,10 @@ msgstr "Track reviewer progress and review findings captured from Preview."
 
 msgid "Translate"
 msgstr "Traduzir"
+
+msgctxt "CSS transform"
+msgid "Translate"
+msgstr "Transladar"
 
 msgid "Translate text in images"
 msgstr "Traduzir texto em imagens"
@@ -8657,6 +9512,9 @@ msgstr "Trata cada página como uma única seção."
 msgid "Tries hard to match the original book design."
 msgstr "Esforça-se para corresponder ao design original do livro."
 
+msgid "True / false"
+msgstr "Verdadeiro / falso"
+
 msgid "Try a different search or filter"
 msgstr "Tente uma pesquisa ou filtro diferente"
 
@@ -8678,6 +9536,9 @@ msgstr "Tente o problema prático"
 msgid "Try this screen again"
 msgstr "Tente esta tela novamente"
 
+msgid "TTS Normalization"
+msgstr "Normalização de TTS"
+
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Ajuste como o texto é simplificado nas configurações do Prompt de Leitura Fácil. Após a execução, cada bloco fica editável aqui na etapa de Leitura Fácil."
 
@@ -8686,6 +9547,9 @@ msgstr "Transforme qualquer PDF em um livro totalmente acessível — áudio, tr
 
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
+
+msgid "Turning normalization on with {elevenLabsModel} requires an ElevenLabs Enterprise plan. Use \"Off\", or switch to eleven_multilingual_v2 — it normalizes numbers better anyway."
+msgstr "Ativar a normalização com {elevenLabsModel} exige um plano Enterprise do ElevenLabs. Use \"Desativada\" ou mude para eleven_multilingual_v2, que aliás normaliza números melhor."
 
 msgid "Two authentication methods are supported: Bearer tokens passed in the Authorization header, and API keys passed as a query parameter. Bearer tokens are preferred for server-to-server requests due to their short expiry window."
 msgstr "Dois métodos de autenticação são suportados: tokens Bearer passados no cabeçalho de autorização e chaves de API passadas como um parâmetro de consulta. Tokens Bearer são preferidos para solicitações de servidor para servidor devido à sua curta janela de expiração."
@@ -8788,6 +9652,9 @@ msgstr "Unavailable"
 
 msgid "Uncategorized"
 msgstr "Uncategorized"
+
+msgid "Unchanged"
+msgstr "Inalterado"
 
 msgid "Underline"
 msgstr "Sublinhado"
@@ -8927,6 +9794,9 @@ msgstr "Envie um ZIP ou arraste e solte"
 msgid "Uploading..."
 msgstr "Enviando..."
 
+msgid "Use adjacent text as context"
+msgstr "Usar texto adjacente como contexto"
+
 msgid "Use an LLM to crop away stray text, artifacts, and excessive whitespace from image edges."
 msgstr "Usa um LLM para recortar texto perdido, artefatos e espaço em branco excessivo nas bordas das imagens."
 
@@ -8976,6 +9846,9 @@ msgstr "Use este formato para fazer backup do projeto ou movê-lo para outra má
 msgid "Use this picture"
 msgstr "Usar esta imagem"
 
+msgid "Use version {selected}"
+msgstr "Usar a versão {selected}"
+
 msgid "Use video"
 msgstr "Usar vídeo"
 
@@ -8997,11 +9870,17 @@ msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) quant
 #~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
 #~ msgstr "Usado para conversão de texto em fala da OpenAI nestas tarefas do pipeline:"
 
-msgid "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
-msgstr "Usado para conversão de texto em fala da OpenAI, Azure e Gemini nestas tarefas do pipeline:"
+#~ msgid "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
+#~ msgstr "Usado para conversão de texto em fala da OpenAI, Azure e Gemini nestas tarefas do pipeline:"
+
+msgid "Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:"
+msgstr "Usado para texto em fala da OpenAI, Azure, Gemini e ElevenLabs nestas tarefas do pipeline:"
 
 #~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
 #~ msgstr "Usado para geração de texto e análise visual quando uma etapa não especifica um LLM. Etapas individuais ainda podem substituí-lo."
+
+msgid "Used for the ElevenLabs TTS provider."
+msgstr "Usado para o provedor de TTS ElevenLabs."
 
 msgid "Used for this quiz"
 msgstr "Usada neste questionário"
@@ -9012,8 +9891,14 @@ msgstr "Usada neste questionário"
 msgid "Using fallback"
 msgstr "Usando fallback"
 
+msgid "v{hovered} preview"
+msgstr "Prévia da v{hovered}"
+
 msgid "Validated"
 msgstr "Validada"
+
+msgid "Validates in VALIDE Desktop — the official PNLD reader"
+msgstr "Validado no VALIDE Desktop — o leitor oficial do PNLD"
 
 msgid "Validation"
 msgstr "Validation"
@@ -9034,6 +9919,7 @@ msgstr "Variações"
 msgid "Verified applied"
 msgstr "Aplicação verificada"
 
+#. placeholder {0}: String(data.version)
 #. placeholder {0}: String(version)
 msgid "Version {0}"
 msgstr "Versão {0}"
@@ -9041,11 +9927,14 @@ msgstr "Versão {0}"
 msgid "Version {current}"
 msgstr "Versão {current}"
 
+msgid "Version {selected}"
+msgstr "Versão {selected}"
+
 #~ msgid "Version {targetVersion}"
 #~ msgstr "Versão {targetVersion}"
 
-#~ msgid "Version history"
-#~ msgstr "Histórico de versões"
+msgid "Version history"
+msgstr "Histórico de versões"
 
 msgid "Versioned"
 msgstr "Versionado"
@@ -9061,6 +9950,9 @@ msgstr "vídeos"
 
 msgid "Videos"
 msgstr "Vídeos"
+
+msgid "View"
+msgstr "Ver"
 
 #~ msgid "View all changes"
 #~ msgstr "Ver todas as alterações"
@@ -9116,6 +10008,9 @@ msgstr "Voz"
 msgid "Voice Mappings"
 msgstr "Mapeamentos de voz"
 
+msgid "Voice tuning (advanced)"
+msgstr "Ajuste de voz (avançado)"
+
 msgid "Voices"
 msgstr "Vozes"
 
@@ -9145,6 +10040,9 @@ msgstr "Tempo decorrido"
 
 msgid "Warning: Image Captions are required for accessibility"
 msgstr "Aviso: As Legendas de Imagens são necessárias para acessibilidade"
+
+msgid "was correct"
+msgstr "era correta"
 
 msgid "Water is always moving. It travels from the oceans into the sky, falls as rain or snow, flows through rivers, and eventually returns to the sea. This continuous journey is called the water cycle."
 msgstr "A água está sempre em movimento. Ela viaja dos oceanos para o céu, cai como chuva ou neve, flui através dos rios e eventualmente retorna ao mar. Esta jornada contínua é chamada de ciclo da água."
@@ -9282,6 +10180,12 @@ msgstr "Palavra"
 msgid "Word and definition are required."
 msgstr "Palavra e definição são obrigatórias."
 
+msgid "Word bank"
+msgstr "Banco de palavras"
+
+msgid "Word bank — words to choose from, separated by commas (shown on every step)"
+msgstr "Banco de palavras — palavras para escolher, separadas por vírgulas (exibido em cada etapa)"
+
 msgid "Word Highlighting"
 msgstr "Destaque de palavras"
 
@@ -9302,6 +10206,16 @@ msgstr "Envolve solicitações de 'Editar esta imagem'. A IA recebe a imagem ori
 
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Envolve solicitações de 'Gerar nova'. Suporta variáveis user_prompt, style e image_type. Usa sintaxe Liquid para condicionais."
+
+msgid "Write correct/incorrect feedback for every step with AI"
+msgstr "Escreva com IA o feedback de acerto/erro para cada etapa"
+
+#. placeholder {0}: `[[blank:item-${n}]]`
+msgid "Write your sentence with a {0} marker."
+msgstr "Escreva sua frase com um marcador {0}."
+
+msgid "Yes"
+msgstr "Sim"
 
 #~ msgid "Yesterday"
 #~ msgstr "Ontem"

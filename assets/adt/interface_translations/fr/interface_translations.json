@@ -126,7 +126,6 @@
     "dock-label": "Commandes du lecteur",
     "dock-align-spread": "Réparti",
     "dock-layout-preview": "Position de la barre d'outils",
-    "exit-activity-mode": "Quitter le mode activité",
     "settings-section-reading": "Lecture",
     "settings-section-toolbar": "Barre d'outils",
     "settings-section-toolbar-hint": "Cliquez sur l'aperçu pour choisir l'emplacement de la barre.",
@@ -170,5 +169,10 @@
     "underline-question-label": "Question ${n}",
     "underline-all-correct": "Toutes les réponses sont correctes !",
     "underline-progress-summary": "${correct} correctes, ${wrong} incorrectes, ${missing} restantes à trouver.",
-    "activity-progress-remaining": "restantes"
+    "activity-progress-remaining": "restantes",
+    "stepper-progress-n-of-m": "Étape ${n} sur ${m}",
+    "stepper-word-bank": "Mots au choix",
+    "stepper-open-ended-saved": "Bravo — ta réponse est enregistrée.",
+    "stepper-open-ended-rephrase": "Restons gentils — essaie de reformuler ta réponse.",
+    "open-ended-answer-label": "Ta réponse"
 }

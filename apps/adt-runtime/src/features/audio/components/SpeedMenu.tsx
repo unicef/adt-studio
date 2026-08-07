@@ -46,7 +46,7 @@ export function SpeedMenu() {
         <span className="flex-1 text-start">{activeLabel}</span>
         <ChevronDown className="size-4 opacity-60" aria-hidden="true" />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" sideOffset={8} className="min-w-[8rem]">
+      <DropdownMenuContent align="end" sideOffset={8} positionMethod="fixed" className="min-w-[8rem]">
         <DropdownMenuRadioGroup
           value={String(speed)}
           onValueChange={(v) => setSpeed(parseFloat(v))}

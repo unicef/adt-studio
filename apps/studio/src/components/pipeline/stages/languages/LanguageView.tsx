@@ -3,9 +3,9 @@ import { createPortal } from "react-dom"
 import { Link } from "@tanstack/react-router"
 import { AudioLines, Check, ChevronDown, ChevronRight, ChevronUp, CircleStop, Languages, Loader2, Play, Pause, Plus, RotateCcw, Save, Settings, Trash2, TriangleAlert, Type, Upload, Volume2, VolumeX, WandSparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { DEFAULT_OPENAI_TTS_MODEL_ID } from "@adt/types"
+import { DEFAULT_OPENAI_TTS_MODEL_ID, DEFAULT_ELEVENLABS_TTS_MODEL_ID, DEFAULT_ELEVENLABS_VOICE_ID } from "@adt/types"
 import { api, getAudioUrl, BASE_URL } from "@/api/client"
-import type { TextCatalogEntry, TranslationEvaluationStatusResponse, WordTimestamp, WordTimestampEntry } from "@/api/client"
+import type { CoreTtsCatalogEntry, TextCatalogEntry, TranslationEvaluationStatusResponse, WordTimestamp, WordTimestampEntry } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
@@ -37,8 +37,12 @@ import {
   isImageEntry,
 } from "./lib/catalog-entries";
 import { displayLang } from "./lib/display-lang";
+import { PROVIDER_LABELS } from "./lib/provider-labels"
+import { useElevenLabsVoices } from "@/hooks/use-elevenlabs-voices"
 import { ImageLightbox } from "./components/ImageLightbox";
 import { WordHighlightPreview } from "./components/WordHighlightPreview";
+import { CoreTtsBadges, CoreTtsSpeechEditor } from "./components/CoreTtsSpeechEditor";
+import { SpeechHighlightedText } from "./components/SpeechHighlightedText";
 import { usePendingChanges } from "../../components/change-summary";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
@@ -252,8 +256,8 @@ function TranslationReviewInline({
 // config/voices.yaml) so we never show an OpenAI voice/model for a Gemini/Azure provider.
 // Values are voice/model identifiers, not user-facing copy — display only.
 // eslint-disable-next-line lingui/no-unlocalized-strings -- voice identifiers
-const DEFAULT_TTS_VOICE: Record<string, string> = { openai: "alloy", azure: "en-US-JennyNeural", gemini: "Kore" }
-const DEFAULT_TTS_MODEL: Record<string, string> = { openai: DEFAULT_OPENAI_TTS_MODEL_ID, azure: "azure-tts", gemini: "gemini-2.5-pro-preview-tts" }
+const DEFAULT_TTS_VOICE: Record<string, string> = { openai: "alloy", azure: "en-US-JennyNeural", gemini: "Kore", elevenlabs: DEFAULT_ELEVENLABS_VOICE_ID }
+const DEFAULT_TTS_MODEL: Record<string, string> = { openai: DEFAULT_OPENAI_TTS_MODEL_ID, azure: "azure-tts", gemini: "gemini-2.5-pro-preview-tts", elevenlabs: DEFAULT_ELEVENLABS_TTS_MODEL_ID }
 
 export function LanguageView({
   bookLabel,
@@ -289,11 +293,14 @@ export function LanguageView({
     azureKey,
     azureRegion,
     geminiKey,
+    elevenLabsKey,
     anthropicKey,
     googleKey,
     customBaseUrl,
     customApiKey,
   } = useApiKey();
+  // Resolve opaque ElevenLabs voice IDs to names for the speech summary chip.
+  const { describeVoice: describeElevenLabsVoice } = useElevenLabsVoices();
   const translateState = stageState("translate");
   const speechState = stageState("speech");
   const activeState = isSpeechStage ? speechState : translateState;
@@ -679,6 +686,39 @@ export function LanguageView({
     () => new Map(effectiveEntries.map((entry) => [entry.id, entry.text])),
     [effectiveEntries],
   );
+
+  const speechCatalogFor = useCallback(
+    (language: string | null | undefined) => {
+      if (!language) return undefined;
+      const normalized = normalizeLocale(language);
+      return (
+        catalog?.speechTexts?.[normalized] ??
+        catalog?.speechTexts?.[normalized.replace("-", "_")]
+      );
+    },
+    [catalog?.speechTexts],
+  );
+  const selectedSpeechMap = useMemo(
+    () =>
+      new Map(
+        (speechCatalogFor(audioLang)?.entries ?? []).map((entry) => [
+          entry.id,
+          entry,
+        ]),
+      ),
+    [audioLang, speechCatalogFor],
+  );
+  const sourceSpeechMap = useMemo(
+    () =>
+      new Map(
+        (speechCatalogFor(editingLanguage)?.entries ?? []).map((entry) => [
+          entry.id,
+          entry,
+        ]),
+      ),
+    [editingLanguage, speechCatalogFor],
+  );
+  const speechCatalogVersion = speechCatalogFor(audioLang)?.version ?? null;
 
   const {
     label: pendingLabel,
@@ -1120,6 +1160,7 @@ export function LanguageView({
             azureKey && azureRegion
               ? { key: azureKey, region: azureRegion }
               : undefined,
+          elevenLabsApiKey: elevenLabsKey || undefined,
         },
       );
     },
@@ -1370,9 +1411,8 @@ export function LanguageView({
             bookLabel={bookLabel}
             pendingLabel={pendingLabel}
             pendingLabelKey={pendingLabelKey}
-            onPreview={(d) => {
-              const data = d as { entries?: TextCatalogEntry[] };
-              setPendingEntries(data?.entries ?? []);
+            onRestored={() => {
+              setPendingEntries(null);
               setAppliedSuggestionEntryIds(new Set());
             }}
             onSave={() => saveRef.current()}
@@ -1380,8 +1420,94 @@ export function LanguageView({
               setPendingEntries(null);
               setAppliedSuggestionEntryIds(new Set());
             }}
+            diff={{
+              items: (d) => (d as { entries?: TextCatalogEntry[] } | null)?.entries ?? [],
+              keyOf: (it) => (it as TextCatalogEntry).id,
+              diffText: (it) => (it as TextCatalogEntry).text ?? "",
+              searchText: (it) => {
+                const e = it as TextCatalogEntry;
+                return `${e.id} ${sourceEntriesById.get(e.id) ?? ""} ${e.text ?? ""}`;
+              },
+              searchPlaceholder: t`Search original or translation…`,
+              renderItem: (it, ctx) => {
+                const e = it as TextCatalogEntry;
+                const cat = getEntryCategory(e.id);
+                const catLabel =
+                  cat === "captions"
+                    ? t`Caption`
+                    : cat === "answers"
+                      ? t`Answer`
+                      : cat === "glossary"
+                        ? t`Glossary`
+                        : cat === "easy-read"
+                          ? t`Easy Read`
+                          : t`Text`;
+                const pageMatch = /^pg0*(\d+)/.exec(e.id);
+                const pageRef = pageMatch ? t`p${pageMatch[1]}` : null;
+                // Original (source-language) text for this entry — shown as
+                // context so a translation change can be judged against it.
+                const source = sourceEntriesById.get(e.id);
+                return (
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">
+                      <span className="rounded bg-muted px-1 py-0.5 font-semibold" title={e.id}>
+                        {catLabel}
+                      </span>
+                      {pageRef ? <span className="tabular-nums">{pageRef}</span> : null}
+                    </span>
+                    {source && source !== e.text ? (
+                      <span className="line-clamp-2 text-[11px] text-muted-foreground">{source}</span>
+                    ) : null}
+                    {ctx?.diff ? (
+                      <span className="text-foreground">{ctx.diff}</span>
+                    ) : e.text ? (
+                      <span className="text-foreground">{e.text}</span>
+                    ) : null}
+                  </span>
+                );
+              },
+            }}
           />
         )}
+      {audioLang && speechCatalogVersion != null && (
+        <VersionPicker
+          step="core-tts-catalog"
+          itemId={normalizeLocale(audioLang)}
+          currentVersion={speechCatalogVersion}
+          saving={false}
+          dirty={false}
+          bookLabel={bookLabel}
+          onRestored={() => undefined}
+          onDiscard={() => undefined}
+          diff={{
+            items: (data) =>
+              (data as { entries?: CoreTtsCatalogEntry[] } | null)?.entries ?? [],
+            keyOf: (item) => (item as CoreTtsCatalogEntry).id,
+            diffText: (item) => {
+              const speech = item as CoreTtsCatalogEntry;
+              return speech.speechText ?? speech.failureReason ?? "";
+            },
+            searchText: (item) => {
+              const speech = item as CoreTtsCatalogEntry;
+              return `${speech.id} ${speech.displayText} ${speech.speechText ?? ""}`;
+            },
+            searchPlaceholder: t`Search display or speech text…`,
+            renderItem: (item, context) => {
+              const speech = item as CoreTtsCatalogEntry;
+              return (
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="line-clamp-1 text-[11px] text-muted-foreground">
+                    {speech.displayText}
+                  </span>
+                  <span className={speech.status === "failed" ? "text-red-700" : "text-foreground"}>
+                    {context?.diff ?? speech.speechText ?? speech.failureReason}
+                  </span>
+                </span>
+              );
+            },
+          }}
+        />
+      )}
       {translationEvaluationEnabled &&
         selectedLang &&
         !isSourceLang &&
@@ -1573,9 +1699,13 @@ export function LanguageView({
                 <div>
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{t`Voice`}</p>
                   <p className="text-sm mt-0.5">
-                    <span className="capitalize">{speechSummary.provider}</span>
+                    <span>{PROVIDER_LABELS[speechSummary.provider] ?? speechSummary.provider}</span>
                     {" · "}
-                    {speechSummary.voice}
+                    {/* ElevenLabs voices are opaque IDs — resolve to a name
+                        when the account's voice list is available. */}
+                    {speechSummary.provider === "elevenlabs"
+                      ? describeElevenLabsVoice(speechSummary.voice)
+                      : speechSummary.voice}
                     {" · "}
                     <span className="text-muted-foreground">
                       {speechSummary.model}
@@ -2039,6 +2169,8 @@ export function LanguageView({
                 const translated = translatedMap.get(entry.id);
                 const audio = audioMap.get(entry.id);
                 const baseAudio = baseAudioMap.get(entry.id);
+                const speechEntry = selectedSpeechMap.get(entry.id);
+                const sourceSpeechEntry = sourceSpeechMap.get(entry.id);
                 const isImg = isImageEntry(entry.id);
                 const isAnswer = isAnswerEntry(entry.id);
                 const evaluationItem = evaluationItemsByEntryId.get(entry.id);
@@ -2133,7 +2265,7 @@ export function LanguageView({
                       {isSourceLang ? (
                         <div
                           className={cn(
-                            "px-3 py-2.5 rounded-md border",
+                            "group px-3 py-2.5 rounded-md border",
                             isAnswer ? "bg-amber-50/60" : "bg-card",
                           )}
                         >
@@ -2161,6 +2293,7 @@ export function LanguageView({
                                   <span className="ml-1.5 text-[9px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5">{t`Muted`}</span>
                                 )}
                                 {audioStatusBadges}
+                                <CoreTtsBadges entry={speechEntry} />
                                 {isSpeechStage &&
                                   audio &&
                                   !exclusion.excluded && (
@@ -2170,18 +2303,24 @@ export function LanguageView({
                                   )}
                                 {muteToggle}
                               </span>
-                              <HighlightedText
+                              <SpeechHighlightedText
                                 text={entry.text}
                                 timestamps={
-                                  isSpeechStage
-                                    ? timestampMap[entry.id]
-                                    : undefined
+                                  isSpeechStage ? timestampMap[entry.id] : undefined
                                 }
                                 currentTime={
                                   playingEntryId === entry.id ? playbackTime : 0
                                 }
                                 isPlaying={playingEntryId === entry.id}
                               />
+                              {audioLang ? (
+                                <CoreTtsSpeechEditor
+                                  bookLabel={bookLabel}
+                                  language={audioLang}
+                                  displayText={entry.text}
+                                  entry={speechEntry}
+                                />
+                              ) : null}
                             </div>
                           </div>
                           {isSpeechStage &&
@@ -2246,7 +2385,7 @@ export function LanguageView({
                       ) : (
                         <div
                           className={cn(
-                            "px-3 py-2.5 rounded-md border",
+                            "group px-3 py-2.5 rounded-md border",
                             isAnswer ? "bg-amber-50/60" : "bg-card",
                           )}
                         >
@@ -2275,6 +2414,7 @@ export function LanguageView({
                                     {exclusion.excluded && (
                                       <span className="ml-1.5 text-[9px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5">{t`Muted`}</span>
                                     )}
+                                    <CoreTtsBadges entry={sourceSpeechEntry} />
                                     {isSpeechStage &&
                                       baseAudio &&
                                       !exclusion.excluded && (
@@ -2287,6 +2427,14 @@ export function LanguageView({
                                   <p className="text-sm leading-relaxed mt-0.5">
                                     {entry.text}
                                   </p>
+                                  {editingLanguage ? (
+                                    <CoreTtsSpeechEditor
+                                      bookLabel={bookLabel}
+                                      language={editingLanguage}
+                                      displayText={entry.text}
+                                      entry={sourceSpeechEntry}
+                                    />
+                                  ) : null}
                                 </div>
                               </div>
                               {isSpeechStage &&
@@ -2343,6 +2491,7 @@ export function LanguageView({
                                   <span className="text-[10px] text-muted-foreground">
                                     &nbsp;
                                     {audioStatusBadges}
+                                    <CoreTtsBadges entry={speechEntry} />
                                     {isSpeechStage &&
                                       audio &&
                                       !exclusion.excluded && (
@@ -2352,16 +2501,26 @@ export function LanguageView({
                                       )}
                                   </span>
                                   {isSpeechStage ? (
-                                    <HighlightedText
-                                      text={translated || ""}
-                                      timestamps={timestampMap[entry.id]}
-                                      currentTime={
-                                        playingEntryId === entry.id
-                                          ? playbackTime
-                                          : 0
-                                      }
-                                      isPlaying={playingEntryId === entry.id}
-                                    />
+                                    <>
+                                      <SpeechHighlightedText
+                                        text={translated || ""}
+                                        timestamps={timestampMap[entry.id]}
+                                        currentTime={
+                                          playingEntryId === entry.id
+                                            ? playbackTime
+                                            : 0
+                                        }
+                                        isPlaying={playingEntryId === entry.id}
+                                      />
+                                      {audioLang ? (
+                                        <CoreTtsSpeechEditor
+                                          bookLabel={bookLabel}
+                                          language={audioLang}
+                                          displayText={translated || ""}
+                                          entry={speechEntry}
+                                        />
+                                      ) : null}
+                                    </>
                                   ) : (
                                     <>
                                     <textarea
@@ -2378,6 +2537,14 @@ export function LanguageView({
                                       }
                                       rows={1}
                                     />
+                                      {audioLang ? (
+                                        <CoreTtsSpeechEditor
+                                          bookLabel={bookLabel}
+                                          language={audioLang}
+                                          displayText={translated || ""}
+                                          entry={speechEntry}
+                                        />
+                                      ) : null}
                                       {evaluationItem ? (
                                         <TranslationReviewInline
                                           item={evaluationItem}
@@ -2712,46 +2879,6 @@ function WaveformPlayer({
         {duration > 0 ? formatTime(playing ? progress : duration) : ""}
       </span>
     </div>
-  );
-}
-
-/** Render the entry text with word-by-word highlighting synced to audio playback. */
-function HighlightedText({
-  text,
-  timestamps,
-  currentTime,
-  isPlaying,
-}: {
-  text: string;
-  timestamps?: WordTimestampEntry;
-  currentTime: number;
-  isPlaying: boolean;
-}) {
-  if (!timestamps || !isPlaying) {
-    return <p className="text-sm leading-relaxed mt-0.5">{text}</p>;
-  }
-  return (
-    <p className="text-sm leading-relaxed mt-0.5">
-      {timestamps.words.map((w, i) => {
-        const active = currentTime >= w.start && currentTime < w.end;
-        const past = currentTime >= w.end;
-        return (
-          <span
-            key={i}
-            className={cn(
-              "rounded-sm px-0.5 transition-all duration-100 inline",
-              active
-                ? "bg-pink-500 text-white"
-                : past
-                  ? "text-foreground"
-                  : "text-muted-foreground/50",
-            )}
-          >
-            {w.word}{" "}
-          </span>
-        );
-      })}
-    </p>
   );
 }
 

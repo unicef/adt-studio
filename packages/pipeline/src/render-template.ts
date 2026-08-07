@@ -1,6 +1,7 @@
 import { Liquid } from "liquidjs"
 import type { SectionRendering } from "@adt/types"
 import { validateSectionHtml } from "./validate-html.js"
+import { validateTypographyHierarchy } from "./validate-typography-hierarchy.js"
 import type {
   RenderConfig,
   RenderNode,
@@ -124,9 +125,16 @@ export async function renderSectionTemplate(
       expectedSectionId: section.sectionId,
     }
   )
-  if (!check.valid) {
+  const typographyErrors = validateTypographyHierarchy(
+    check.sectionHtml ?? html,
+    renderContext.leaf_texts,
+  )
+  if (!check.valid || typographyErrors.length > 0) {
     throw new Error(
-      `Template "${config.templateName}" produced invalid HTML: ${check.errors.join("; ")}`
+      `Template "${config.templateName}" produced invalid HTML: ${[
+        ...check.errors,
+        ...typographyErrors,
+      ].join("; ")}`
     )
   }
 

@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Administratoriaus įrankiai bus pridėti būsimame atnaujinime.",
     "main-menu-label": "Pagrindinis meniu",
     "cover-label": "Viršelis",
-    "print-page-label": "Spausdinti puslapį"
+    "print-page-label": "Spausdinti puslapį",
+    "stepper-progress-n-of-m": "Žingsnis ${n} iš ${m}",
+    "stepper-word-bank": "Žodžiai pasirinkimui",
+    "stepper-open-ended-saved": "Šaunu — tavo atsakymas išsaugotas.",
+    "stepper-open-ended-rephrase": "Būkime mandagūs — pabandyk perfrazuoti savo atsakymą.",
+    "open-ended-answer-label": "Tavo atsakymas"
 }

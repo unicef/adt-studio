@@ -21,6 +21,12 @@ export type ContentNodeData = {
   // Leaf arm
   role?: string
   text?: string
+  /** Authoritative semantic heading depth (1..6), when this leaf is a heading. */
+  headingLevel?: number
+  /** Book-outline entry this heading was matched to during sectioning. */
+  outlineEntryId?: string
+  /** Repeated publisher-style cluster learned at book level. */
+  headingStyleClusterId?: string
 }
 
 export const ContentNodeData: z.ZodType<ContentNodeData> = z.lazy(() =>
@@ -31,6 +37,9 @@ export const ContentNodeData: z.ZodType<ContentNodeData> = z.lazy(() =>
     children: z.array(ContentNodeData).optional(),
     role: z.string().optional(),
     text: z.string().optional(),
+    headingLevel: z.number().int().min(1).max(6).optional(),
+    outlineEntryId: z.string().optional(),
+    headingStyleClusterId: z.string().optional(),
   })
 )
 
@@ -198,6 +207,9 @@ type LLMContentNodeShape = {
   role?: string | null
   text?: string | null
   image_id?: string | null
+  heading_level?: number | null
+  outline_entry_id?: string | null
+  heading_style_cluster_id?: string | null
   children?: LLMContentNodeShape[] | null
 }
 
@@ -207,6 +219,9 @@ const LLMContentNodeShape: z.ZodType<LLMContentNodeShape> = z.lazy(() =>
     role: z.string().nullish(),
     text: z.string().nullish(),
     image_id: z.string().nullish(),
+    heading_level: z.number().int().min(1).max(6).nullish(),
+    outline_entry_id: z.string().nullish(),
+    heading_style_cluster_id: z.string().nullish(),
     children: z.array(LLMContentNodeShape).nullish(),
   })
 )

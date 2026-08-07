@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Les eines d'administració s'inclouran en una actualització posterior.",
     "main-menu-label": "Menú principal",
     "cover-label": "Coberta",
-    "print-page-label": "Imprimeix la pàgina"
+    "print-page-label": "Imprimeix la pàgina",
+    "stepper-progress-n-of-m": "Pas ${n} de ${m}",
+    "stepper-word-bank": "Paraules per triar",
+    "stepper-open-ended-saved": "Molt bé — la teva resposta s'ha desat.",
+    "stepper-open-ended-rephrase": "Siguem amables — prova de reformular la teva resposta.",
+    "open-ended-answer-label": "La teva resposta"
 }

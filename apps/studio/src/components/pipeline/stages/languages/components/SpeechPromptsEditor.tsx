@@ -113,7 +113,7 @@ export function SpeechPromptsEditor({ bookLabel }: SpeechPromptsEditorProps) {
           {t`Default Prompt`}
         </Label>
         <p className="text-xs text-muted-foreground">
-          {t`The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it.`}
+          {t`The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it.`}
         </p>
         <textarea
           value={defaultEntry}

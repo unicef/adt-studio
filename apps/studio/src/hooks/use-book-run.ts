@@ -115,7 +115,7 @@ const stepStatusKey = (label: string) => ["books", label, "step-status"] as cons
 
 export function useBookRunStatus(label: string): BookRunContextValue {
   const queryClient = useQueryClient()
-  const { anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
+  const { anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey, elevenLabsKey } = useApiKey()
 
   // Screen-reader announcements for long-running jobs. Held in a ref so the
   // always-on SSE effect (keyed on [label, queryClient]) can announce without
@@ -495,6 +495,11 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     es.addEventListener("task", (e) => {
       const d = JSON.parse(e.data) as { type: string; taskId: string; kind?: string; description?: string; pageId?: string; url?: string; error?: string; result?: unknown; message?: string; percent?: number }
       const tasksKey = bookTasksKey(label)
+      const taskBeforeEvent = queryClient
+        .getQueryData<{ tasks: TaskInfoResponse[] }>(tasksKey)
+        ?.tasks.find((task) => task.taskId === d.taskId)
+      const eventTaskKind = d.kind ?? taskBeforeEvent?.kind
+      const eventPageId = d.pageId ?? taskBeforeEvent?.pageId
 
       queryClient.setQueryData<{ tasks: TaskInfoResponse[] }>(tasksKey, (old) => {
         const tasks = [...(old?.tasks ?? [])]
@@ -516,8 +521,13 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           if (idx !== -1) {
             tasks[idx] = { ...tasks[idx], status: "completed", result: d.result, completedAt: Date.now() }
           }
-          // Invalidate related data — use cache entry if available, fall back to polling
-          const completedTask = idx !== -1 ? tasks[idx] : undefined
+          // Invalidate related data using the cache entry when available and
+          // the self-describing terminal event when task-start was missed.
+          const completedTask = idx !== -1
+            ? tasks[idx]
+            : eventTaskKind
+              ? { kind: eventTaskKind, pageId: eventPageId }
+              : undefined
           if (completedTask?.kind === "package-adt") {
             queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
             queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
@@ -525,14 +535,37 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             queryClient.invalidateQueries({ queryKey: ["debug", "versions", label, "accessibility-assessment", "book"] })
             queryClient.invalidateQueries({ queryKey: ["book-config", label] })
           }
-          if ((completedTask?.kind === "image-generate" || completedTask?.kind === "re-render" || completedTask?.kind === "ai-edit") && completedTask.pageId) {
+          if (
+            (completedTask?.kind === "image-generate" ||
+              completedTask?.kind === "re-render" ||
+              completedTask?.kind === "ai-edit" ||
+              completedTask?.kind === "layout-mirror" ||
+              completedTask?.kind === "generate-activity") &&
+            completedTask.pageId
+          ) {
             queryClient.invalidateQueries({ queryKey: ["books", label, "pages", completedTask.pageId] })
             queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
             if (completedTask.kind === "ai-edit") {
               queryClient.invalidateQueries({ queryKey: ["books", label, "pages", completedTask.pageId, "ai-edit-history"] })
             }
+            // generate-activity changes a page's section count, so the pages
+            // list (which drives the storyboard sidebar) needs to refetch.
+            // refetchQueries (not invalidate) makes the update deterministic —
+            // it doesn't depend on the sidebar's query being marked stale or
+            // active when the SSE event fires. `exact` is required: without it
+            // this prefix-matches every cached ["books", label, "pages", pageId]
+            // detail query and refetches them all, active or not.
+            if (completedTask.kind === "generate-activity") {
+              void queryClient.refetchQueries({ queryKey: ["books", label, "pages"], exact: true })
+            }
           }
-          if (completedTask?.kind === "re-render" || completedTask?.kind === "ai-edit" || completedTask?.kind === "image-generate") {
+          if (
+            completedTask?.kind === "re-render" ||
+            completedTask?.kind === "ai-edit" ||
+            completedTask?.kind === "image-generate" ||
+            completedTask?.kind === "layout-mirror" ||
+            completedTask?.kind === "generate-activity"
+          ) {
             invalidateStoryboardDependents(queryClient, label)
           }
           if (completedTask?.kind === "transcribe-timestamps") {
@@ -559,6 +592,20 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
         return { tasks }
       })
+
+      if (d.type === "task-error") {
+        // The server may have changed step status before reporting the task
+        // error. Refresh it even if task-start was missed and polling had
+        // stopped because the cached pipeline previously looked complete.
+        queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+        if (eventTaskKind === "re-render") {
+          if (eventPageId) {
+            queryClient.invalidateQueries({ queryKey: ["books", label, "pages", eventPageId] })
+          }
+          queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+          invalidateStoryboardDependents(queryClient, label)
+        }
+      }
 
       if (d.type === "task-complete") {
         playCompletionSound()
@@ -594,6 +641,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         customApiKey: customApiKey || undefined,
         azure: { key: azureKey, region: azureRegion },
         geminiApiKey: geminiKey || undefined,
+        elevenLabsApiKey: elevenLabsKey || undefined,
         ...options.providerCredentials,
       }
 
@@ -711,7 +759,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
       })
     },
-    [label, navigate, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey]
+    [label, navigate, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey, elevenLabsKey]
   )
 
   // ------------------------------------------------------------------

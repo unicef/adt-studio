@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Alat pentadbir akan ditambah dalam kemas kini akan datang.",
     "main-menu-label": "Menu Utama",
     "cover-label": "Muka depan",
-    "print-page-label": "Cetak Halaman"
+    "print-page-label": "Cetak Halaman",
+    "stepper-progress-n-of-m": "Langkah ${n} daripada ${m}",
+    "stepper-word-bank": "Perkataan untuk dipilih",
+    "stepper-open-ended-saved": "Syabas — jawapan anda telah disimpan.",
+    "stepper-open-ended-rephrase": "Mari berbudi bahasa — cuba tulis semula jawapan anda.",
+    "open-ended-answer-label": "Jawapan anda"
 }

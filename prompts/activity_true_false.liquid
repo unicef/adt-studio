@@ -9,7 +9,7 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 - Nest the content container inside: `container mx-auto max-w-5xl bg-white rounded-lg px-24 max-lg:px-12 max-sm:px-6 pt-12 pb-12` with `id="content"`
 
 ### Common Styling
-- Primary heading (H1): `text-5xl font-bold mb-4 text-amber-700`
+- Headings: use the semantic `<hN class="adt-hN">` mapping from the shared hierarchy rules, then add `font-bold mb-4 text-amber-700` as appropriate
 - Instruction line: `text-xl mb-8` with icon `<i class="fas fa-pen-to-square text-blue-700 mr-2"></i>`
 - Images: When pixel dimensions are provided, compute each image's width as a percentage of the widest image and set `style="width:X%"`, plus `class="h-auto rounded-lg"`. Do NOT use `w-full` or fixed pixel widths.
 
@@ -60,7 +60,7 @@ Example true/false activity:
 ```html
 <section class="space-y-4 w-3/4 max-lg:w-full mx-auto" data-section-type="activity_true_false" data-section-id="SECTION_ID_FROM_INPUT">
   <!-- Title and image -->
-  <h1 class="font-bold text-4xl text-center mb-4" data-id="text-19-0">Activity Title</h1>
+  <!-- If the input has a heading-role title, render it here with its authoritative hN/adt-hN pair and add font-bold text-center mb-4. -->
   <img class="h-auto max-w-64 mx-auto block mb-4 rounded-lg" style="width:75%" data-id="img-19-0" src="images/image.jpg" alt="Description">
 
   <!-- Instructions -->

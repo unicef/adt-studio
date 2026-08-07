@@ -21,6 +21,15 @@ export type TTSRateLimitConfig = z.infer<typeof TTSRateLimitConfig>
 export const TTSProviderConfig = z.object({
   model: z.string().optional(),
   languages: z.array(z.string()).optional(),
+  /**
+   * Adaptive RPM limiter config — currently only read for the `gemini`
+   * provider (see `resolveGeminiTtsRateLimit`/`stage-runner.ts`). It parses
+   * fine under `providers.elevenlabs`/`providers.azure`/`providers.openai`
+   * too but is silently ignored there: ElevenLabs is throttled by a fixed
+   * internal concurrency cap instead (its plans limit concurrent
+   * connections, not requests/minute), and Azure/OpenAI have no adaptive
+   * limiter at all.
+   */
   rate_limit: TTSRateLimitConfig.optional(),
 })
 export type TTSProviderConfig = z.infer<typeof TTSProviderConfig>
@@ -47,6 +56,38 @@ export const SpeechConfig = z.object({
    */
   temperature: z.number().min(0).max(2).optional(),
   seed: z.number().int().optional(),
+  /**
+   * ElevenLabs-only TTS tuning. Ignored by OpenAI/Azure/Gemini (their APIs
+   * have no equivalent parameters). `elevenlabs_use_context` sends the
+   * adjacent catalog entry's text as ElevenLabs' `previous_text`/`next_text`
+   * so tone flows across entry boundaries instead of each entry sounding like
+   * an isolated, stateless request. `elevenlabs_apply_text_normalization`
+   * controls whether ElevenLabs expands things like numbers/dates/
+   * abbreviations before synthesis ("auto" lets ElevenLabs decide, "on"
+   * forces it — slower but safer for odd formatting, "off" disables it —
+   * required for some languages/models). When unset, neither is sent and
+   * ElevenLabs uses its own defaults.
+   */
+  elevenlabs_use_context: z.boolean().optional(),
+  elevenlabs_apply_text_normalization: z.enum(["auto", "on", "off"]).optional(),
+  /**
+   * ElevenLabs `voice_settings` overrides. ElevenLabs applies the *voice's own
+   * stored dashboard settings* whenever `voice_settings` is omitted from the
+   * request, which for community/cloned voices can mean a low `stability` or a
+   * non-zero `style` — and ElevenLabs documents that those cause "inconsistent
+   * speed, mispronunciation and the addition of extra sounds", i.e. filler
+   * sounds like "ehm" that aren't in the source text. So we always send a
+   * resolved `voice_settings` block (see `DEFAULT_ELEVENLABS_VOICE_SETTINGS`)
+   * and these fields override individual values.
+   *
+   * `elevenlabs_speed` has no default: it is only sent when explicitly set, so
+   * an unset value leaves ElevenLabs' own pacing untouched.
+   */
+  elevenlabs_stability: z.number().min(0).max(1).optional(),
+  elevenlabs_similarity_boost: z.number().min(0).max(1).optional(),
+  elevenlabs_style: z.number().min(0).max(1).optional(),
+  elevenlabs_use_speaker_boost: z.boolean().optional(),
+  elevenlabs_speed: z.number().min(0.7).max(1.2).optional(),
   /**
    * Experimental (Gemini only): synthesize a whole page's text in ONE request
    * so tone stays consistent across sentences, then slice the page audio back

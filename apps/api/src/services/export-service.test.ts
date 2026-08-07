@@ -4,7 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import { unzipSync } from "fflate"
-import { prepareExport, exportProject, exportAdt, exportWebpub, exportEpub } from "./export-service.js"
+import { prepareExport, exportProject, exportAdt, exportWebpub, exportEpub, exportPnld } from "./export-service.js"
 
 let tmpDir: string
 let webAssetsDir: string
@@ -201,6 +201,12 @@ describe("exportProject", () => {
     addImageFile("full-book", "img-a")
     addImageFile("full-book", "img-b")
     addConfigYaml("full-book")
+    const styleguidesDir = path.join(tmpDir, "full-book", "styleguides")
+    fs.mkdirSync(styleguidesDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(styleguidesDir, "full-book-generated.md"),
+      "# Generated style guide",
+    )
 
     const result = await exportProject("full-book", tmpDir)
     const zipBuffer = await streamToBuffer(result.stream)
@@ -212,6 +218,7 @@ describe("exportProject", () => {
     expect(paths).toContain("config.yaml")
     expect(paths).toContain("images/img-a.png")
     expect(paths).toContain("images/img-b.png")
+    expect(paths).toContain("styleguides/full-book-generated.md")
   })
 })
 
@@ -462,6 +469,80 @@ describe("exportEpub", () => {
 
     expect(opf).not.toContain("rendition:layout")
     expect(opf).not.toContain("pre-paginated")
+  })
+})
+
+describe("exportPnld", () => {
+  it("produces a PNLD ZIP with the mandated root structure", async () => {
+    createBookWithMetadata("pnld-test", "PNLD Book")
+    addPagesAndRenderings("pnld-test", 2)
+
+    await prepareExport("pnld-test", "pnld", tmpDir, webAssetsDir)
+    const result = await exportPnld("pnld-test", tmpDir)
+    expect(result.filename).toBe("PNLD Book.zip")
+    expect(result.safeFilename).toBe("pnld-test-pnld.zip")
+
+    const buf = await streamToBuffer(result.stream)
+    const files = unzipSync(buf)
+    // Root structural files (no OCF mimetype / META-INF).
+    expect(files["content.opf"]).toBeDefined()
+    expect(files["toc.ncx"]).toBeDefined()
+    expect(files["index.html"]).toBeDefined()
+    expect(files["mimetype"]).toBeUndefined()
+    // Content pages live under content/, nothing at the root.
+    const rootHtml = Object.keys(files).filter(
+      (f) => f.endsWith(".html") && !f.includes("/"),
+    )
+    expect(rootHtml).toEqual(["index.html"])
+    const contentPages = Object.keys(files).filter(
+      (f) => f.startsWith("content/") && f.endsWith(".html"),
+    )
+    expect(contentPages.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it("places assets under resources/ and rewrites references", async () => {
+    createBookWithMetadata("pnld-res", "Resources Book")
+    addPagesAndRenderings("pnld-res", 2)
+
+    await prepareExport("pnld-res", "pnld", tmpDir, webAssetsDir)
+    const result = await exportPnld("pnld-res", tmpDir)
+    const files = unzipSync(await streamToBuffer(result.stream))
+
+    const hasResources = Object.keys(files).some((f) => f.startsWith("resources/"))
+    expect(hasResources).toBe(true)
+
+    const page = Object.keys(files).find((f) => f.startsWith("content/") && f.endsWith(".html"))!
+    const html = new TextDecoder().decode(files[page])
+    // Content-relative asset references point back up into resources/.
+    expect(html).toContain("../resources/styles/")
+    expect(html).toContain(`<meta name="robots" content="noindex, nofollow"`)
+    // No external references (self-contained requirement).
+    expect(html).not.toContain("fonts.googleapis.com")
+  })
+
+  it("writes an OPF with required metadata and accessibility features", async () => {
+    createBookWithMetadata("pnld-opf", "OPF PNLD")
+    addPagesAndRenderings("pnld-opf", 2)
+
+    await prepareExport("pnld-opf", "pnld", tmpDir, webAssetsDir)
+    const result = await exportPnld("pnld-opf", tmpDir)
+    const files = unzipSync(await streamToBuffer(result.stream))
+    const opf = new TextDecoder().decode(files["content.opf"])
+
+    expect(opf).toContain('version="3.0"')
+    expect(opf).toContain("<dc:title>OPF PNLD</dc:title>")
+    expect(opf).toContain("<dc:publisher>")
+    expect(opf).toContain('<meta property="schema:accessibilityFeature">structuralNavigation</meta>')
+    expect(opf).toContain('<meta property="schema:accessibilityAPI">ARIA</meta>')
+    expect(opf).toContain('<item id="nav" href="index.html"')
+    expect(opf).toContain("itemref idref=")
+
+    const index = new TextDecoder().decode(files["index.html"])
+    expect(index).toContain('<nav role="doc-toc" id="toc"')
+  })
+
+  it("throws for non-existent book", async () => {
+    await expect(exportPnld("ghost", tmpDir)).rejects.toThrow("not found")
   })
 })
 

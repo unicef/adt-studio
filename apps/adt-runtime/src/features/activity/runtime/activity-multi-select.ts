@@ -32,15 +32,8 @@ function tr(key: string, fallback: string): string {
   return dict[key] || fallback
 }
 
-declare global {
-  interface Window {
-    /**
-     * Map of item id → correctness. For multi-select, `true` means the item
-     * SHOULD be selected. Injected by `packages/pipeline/src/package-web.ts:renderPageHtml`.
-     */
-    correctAnswers?: Record<string, unknown>
-  }
-}
+// `window.correctAnswers` is declared once in ./activity-globals.d.ts.
+// For multi-select, `true` means the item SHOULD be selected.
 
 function readCorrectAnswers(section: HTMLElement): Record<string, boolean> {
   const attr = section.getAttribute("data-correct-answers")

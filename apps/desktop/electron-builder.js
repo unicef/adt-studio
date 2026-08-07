@@ -90,6 +90,7 @@ const config = {
       publisherName: [
         "Núcleo de Excelência em Tecnologias Sociais - NEES",
         "UNICEF",
+        "Elias Constantopedos"
       ],
       sign: "./scripts/sign-windows.js",
     },

@@ -217,6 +217,13 @@ export const DEFAULT_QUIZ_PALETTE: QuizPalette = buildPalette(
   DEFAULT_ACCENT,
 )
 
+/** Re-derive the palette from a user-chosen accent, keeping the book's
+ *  surface/ink anchors (used by editable-activity theme overrides). */
+export function paletteWithAccent(base: QuizPalette, accent: string): QuizPalette {
+  const hex = normHex(accent)
+  return hex ? buildPalette(base.surface, base.ink, hex) : base
+}
+
 /** Derive a quiz palette from a book's section background/text colors. */
 export function deriveQuizPalette(
   sections: Array<{ backgroundColor?: string; textColor?: string }>,

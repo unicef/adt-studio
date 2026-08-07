@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Cov cuab yeej tswj yuav ntxiv rau hauv kev hloov tom ntej.",
     "main-menu-label": "Lub ntsiab zaub mov",
     "cover-label": "Daim npog",
-    "print-page-label": "Luam tawm nplooj ntawv"
+    "print-page-label": "Luam tawm nplooj ntawv",
+    "stepper-progress-n-of-m": "Kauj ruam ${n} ntawm ${m}",
+    "stepper-word-bank": "Cov lus xaiv",
+    "stepper-open-ended-saved": "Zoo heev — koj cov lus teb tau khaws cia lawm.",
+    "stepper-open-ended-rephrase": "Peb sib hwm — sim sau koj cov lus teb dua tshiab.",
+    "open-ended-answer-label": "Koj cov lus teb"
 }

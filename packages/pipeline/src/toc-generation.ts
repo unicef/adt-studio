@@ -9,15 +9,14 @@ import {
   tocLLMSchema,
   WebRenderingOutput,
   DEFAULT_LLM_MAX_RETRIES,
+  isHeadingRole,
+  headingLevelForRole,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
 import { buildLanguageContext } from "./language-context.js"
 import { stripHtml } from "./glossary.js"
 import { getRenderSectioning, getSemanticSectioning } from "./render-sectioning.js"
-
-/** Role values (leaves) whose text acts as a section heading for TOC. */
-const HEADING_ROLE_TYPES = new Set(["heading"])
 
 export interface TocGenerationConfig {
   promptName: string
@@ -49,6 +48,7 @@ interface HeadingInfo {
   title: string
   textId: string
   roleType: string
+  headingLevel: number | null
   pageNumber: number | null
 }
 
@@ -58,7 +58,7 @@ function findFirstHeading(section: PageSectioningSection): ContentNodeData | nul
   while (stack.length > 0) {
     const node = stack.shift()!
     if (node.isPruned) continue
-    if (node.role && HEADING_ROLE_TYPES.has(node.role)) return node
+    if (isHeadingRole(node.role)) return node
     if (node.children) stack.unshift(...node.children)
   }
   return null
@@ -135,6 +135,7 @@ function collectHeadingsAndToc(
         title: heading.text ?? "",
         textId: heading.nodeId,
         roleType: heading.role ?? "heading",
+        headingLevel: heading.headingLevel ?? headingLevelForRole(heading.role),
         pageNumber: section.pageNumber,
       })
     }
@@ -178,6 +179,7 @@ export async function generateToc(
         sectionId: h.sectionId,
         title: h.title,
         textType: h.roleType,
+        ...(h.headingLevel !== null && { headingLevel: h.headingLevel }),
       })),
       // Dynamic mode ignores the original TOC even when one is present —
       // the model rewrites titles from heading text instead of mirroring
@@ -209,7 +211,7 @@ export async function generateToc(
       sectionId: e.sectionId,
       href: `${e.sectionId}.html`,
       chapterId: heading.textId,
-      level: Math.max(1, Math.min(3, e.level)),
+      level: heading.headingLevel ?? Math.max(1, Math.min(6, e.level)),
     }
   })
 

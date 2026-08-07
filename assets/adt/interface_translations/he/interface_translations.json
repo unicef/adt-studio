@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "כלי הניהול יתווספו בעדכון עתידי.",
     "main-menu-label": "תפריט ראשי",
     "cover-label": "כריכה",
-    "print-page-label": "הדפס דף"
+    "print-page-label": "הדפס דף",
+    "stepper-progress-n-of-m": "שלב ${n} מתוך ${m}",
+    "stepper-word-bank": "מילים לבחירה",
+    "stepper-open-ended-saved": "כל הכבוד — התשובה שלך נשמרה.",
+    "stepper-open-ended-rephrase": "בואו נשמור על נעימות — נסו לנסח את התשובה מחדש.",
+    "open-ended-answer-label": "התשובה שלך"
 }

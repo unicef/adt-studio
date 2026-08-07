@@ -16,6 +16,8 @@ import { ephemeralAtom, persistedStringAtom } from "@/shared/state/persist"
 export const currentLanguageAtom = persistedStringAtom("currentLanguage", "en")
 
 export const translationsAtom = ephemeralAtom<Record<string, string>>({})
+/** Prepared provider wording; kept separate so display text never changes. */
+export const speechTextsAtom = ephemeralAtom<Record<string, string>>({})
 export const audioFilesAtom = ephemeralAtom<Record<string, string>>({})
 export const videoFilesAtom = ephemeralAtom<Record<string, string>>({})
 export const imageFilesAtom = ephemeralAtom<Record<string, string>>({})

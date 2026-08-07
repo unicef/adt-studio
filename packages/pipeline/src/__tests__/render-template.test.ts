@@ -350,7 +350,28 @@ describe("two_column_render.liquid", () => {
 
     expect(result.html).toContain("<section")
     expect(result.html).not.toContain('role="article"')
-    expect(result.html).toContain('<h2 data-id="pg001_gp001_tx001">Lesson heading</h2>')
+    expect(result.html).toContain('<h2 class="adt-h2" data-id="pg001_gp001_tx001">Lesson heading</h2>')
+  })
+
+  it("renders authoritative level-four headings semantically", async () => {
+    const engine = createTemplateEngine(templatesDir)
+    const input = makeInput({
+      nodes: [
+        {
+          nodeId: "pg001_tx001",
+          isPruned: false,
+          role: "heading",
+          text: "A deeper heading",
+          headingLevel: 4,
+        },
+      ],
+    })
+    const config = { ...templateConfig, templateName: "two_column_render" }
+    const result = await renderSectionTemplate(input, config, engine)
+
+    expect(result.html).toContain(
+      '<h4 class="adt-h4" data-id="pg001_tx001">A deeper heading</h4>',
+    )
   })
 
   it("routes a non-image_group container holding an image leaf into the image column", async () => {
@@ -436,7 +457,7 @@ describe("two_column_story.liquid", () => {
 
     expect(result.html).toContain("<section")
     expect(result.html).not.toContain('role="article"')
-    expect(result.html).toContain('<h2 data-id="pg001_gp001_tx001">Story heading</h2>')
+    expect(result.html).toContain('<h2 class="adt-h2" data-id="pg001_gp001_tx001">Story heading</h2>')
   })
 
   it("splits images and text when both are present", async () => {
@@ -455,5 +476,43 @@ describe("two_column_story.liquid", () => {
 
     expect(result.html).toContain('data-id="pg001_gp001_tx001"')
     expect(result.html).toContain('data-id="pg001_im001"')
+  })
+})
+
+describe("buildRenderContext image availability", () => {
+  function section(nodes: ContentNodeData[]): PageSectioningSection {
+    return {
+      sectionId: "pg008_sec001",
+      sectionType: "images_only",
+      nodes,
+      backgroundColor: "#ffffff",
+      textColor: "#000000",
+      pageNumber: 8,
+      isPruned: false,
+    }
+  }
+
+  it("drops image nodes whose bytes aren't available", () => {
+    // Mirrors the stale-sectioning bug: the tree references `..._seg003_v1`
+    // but image-filtering superseded it with the crop `..._seg003_v1_crop1`,
+    // so only the crop has bytes in the images map. The orphaned node must be
+    // dropped, not emitted as a base64-less ref (which crashes the prompt).
+    const ctx = buildRenderContext(
+      section([
+        imageNode("pg008_n1", "pg008_im001_seg001_v1"),
+        imageNode("pg008_n2", "pg008_im001_seg003_v1"), // orphaned — no bytes
+      ]),
+      new Map([
+        ["pg008_im001_seg001_v1", { base64: "aaa" }],
+        ["pg008_im001_seg003_v1_crop1", { base64: "bbb" }],
+      ]),
+      "book",
+    )
+
+    expect(ctx.image_refs.map((r) => r.image_id)).toEqual([
+      "pg008_im001_seg001_v1",
+    ])
+    // Every emitted ref carries real bytes — never an undefined payload.
+    expect(ctx.image_refs.every((r) => Boolean(r.image_base64))).toBe(true)
   })
 })

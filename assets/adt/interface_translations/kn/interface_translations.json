@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "ನಿರ್ವಾಹಕ ಪರಿಕರಗಳನ್ನು ಮುಂದಿನ ನವೀಕರಣದಲ್ಲಿ ಸೇರಿಸಲಾಗುತ್ತದೆ.",
     "main-menu-label": "ಮುಖ್ಯ ಮೆನು",
     "cover-label": "ಮುಖಪುಟ",
-    "print-page-label": "ಪುಟ ಮುದ್ರಿಸಿ"
+    "print-page-label": "ಪುಟ ಮುದ್ರಿಸಿ",
+    "stepper-progress-n-of-m": "ಹಂತ ${n} / ${m}",
+    "stepper-word-bank": "ಆಯ್ಕೆ ಮಾಡಲು ಪದಗಳು",
+    "stepper-open-ended-saved": "ಭಲೇ — ನಿಮ್ಮ ಉತ್ತರವನ್ನು ಉಳಿಸಲಾಗಿದೆ.",
+    "stepper-open-ended-rephrase": "ದಯೆಯಿಂದ ಇರೋಣ — ನಿಮ್ಮ ಉತ್ತರವನ್ನು ಬೇರೆ ರೀತಿ ಬರೆಯಲು ಪ್ರಯತ್ನಿಸಿ.",
+    "open-ended-answer-label": "ನಿಮ್ಮ ಉತ್ತರ"
 }

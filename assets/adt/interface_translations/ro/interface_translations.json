@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Instrumentele de administrare vor fi adăugate într-o actualizare ulterioară.",
     "main-menu-label": "Meniu principal",
     "cover-label": "Copertă",
-    "print-page-label": "Imprimă pagina"
+    "print-page-label": "Imprimă pagina",
+    "stepper-progress-n-of-m": "Pasul ${n} din ${m}",
+    "stepper-word-bank": "Cuvinte din care să alegi",
+    "stepper-open-ended-saved": "Bravo — răspunsul tău a fost salvat.",
+    "stepper-open-ended-rephrase": "Să fim amabili — încearcă să îți reformulezi răspunsul.",
+    "open-ended-answer-label": "Răspunsul tău"
 }

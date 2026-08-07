@@ -17,6 +17,7 @@ import { createPromptRoutes } from "./routes/prompts.js"
 import { createTextCatalogRoutes } from "./routes/text-catalog.js"
 import { createEasyReadRoutes } from "./routes/easy-read.js"
 import { createBookSummaryRoutes } from "./routes/book-summary.js"
+import { createBookOutlineRoutes } from "./routes/book-outline.js"
 import { createFontRoutes } from "./routes/fonts.js"
 import { createTypographyRoutes } from "./routes/typography.js"
 import { createTTSRoutes } from "./routes/tts.js"
@@ -33,6 +34,8 @@ import { createSpeechConfigRoutes } from "./routes/speech-config.js"
 import { createReviewerValidationRoutes } from "./routes/reviewer-validation.js"
 import { createTocRoutes } from "./routes/toc.js"
 import { createSignLanguageVideoRoutes } from "./routes/sign-language-videos.js"
+import { createEditableActivitiesRoutes } from "./routes/editable-activities.js"
+import { createAgentRoutes } from "./routes/agents.js"
 import { createTranslationEvaluationRoutes } from "./routes/translation-evaluations.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
@@ -104,19 +107,22 @@ app.route("/api", createPromptRoutes(promptsDir, booksDir))
 app.route("/api", createTextCatalogRoutes(booksDir))
 app.route("/api", createEasyReadRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createBookSummaryRoutes(booksDir, promptsDir, configPath, taskService))
+app.route("/api", createBookOutlineRoutes(booksDir))
 app.route("/api", createFontRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTypographyRoutes(booksDir))
+app.route("/api", createEditableActivitiesRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createTTSRoutes(booksDir, configPath, taskService))
 app.route(
   "/api",
   createStageRoutes(stageService, eventBus, pageErrorDecisions, booksDir, promptsDir, webAssetsDir, configPath)
 )
 app.route("/api", createTaskRoutes(taskService))
-app.route("/api", createPresetRoutes(configPath))
+app.route("/api", createPresetRoutes(configPath, booksDir))
 app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath))
 app.route("/api", createSpeechConfigRoutes(configPath))
 app.route("/api", createReviewerValidationRoutes(booksDir, configFolderPath, configPath))
 app.route("/api", createSignLanguageVideoRoutes(booksDir))
+app.route("/api", createAgentRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTranslationEvaluationRoutes(booksDir, configPath, taskService))
 
 export default app

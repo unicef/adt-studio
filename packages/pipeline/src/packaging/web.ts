@@ -22,7 +22,7 @@ import type {
   Quiz,
   ImageCaptioningOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 import {
   GOOGLE_FONTS,
   googleFontsReferencedIn,
@@ -37,13 +37,21 @@ import {
   resolveFontsCacheDir,
 } from "../fonts-bundle.js"
 import { resolveTypographyCss } from "../typography.js"
-import { resolveQuizPalette, type QuizPalette } from "../quiz-palette.js"
+import { resolveQuizPalette, DEFAULT_QUIZ_PALETTE, type QuizPalette } from "../quiz-palette.js"
+import {
+  readEditableActivities,
+  enabledEditableActivity,
+  resolveEditableActivityImages,
+  renderEditableActivityHtml,
+  maskStepperPayloads,
+} from "../render-editable-activity.js"
 import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
 import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
+import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
 import { getRenderSectioning } from "../render-sectioning.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
 import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
@@ -83,6 +91,15 @@ export interface PackageAdtWebOptions {
   /** Style quizzes to match the book (typography + derived palette). Defaults
    *  to true. When false, quizzes use the generic cream/gray template. */
   quizMatchBookStyle?: boolean
+}
+
+/** Pages with either a dedicated activity section or an inline word bank need
+ * the standalone activity runtime after the full reader bundle is stripped. */
+export function pageNeedsActivitiesBundle(html: string): boolean {
+  return (
+    html.includes('data-section-type="activity_') ||
+    (html.includes("data-word-bank-chip") && html.includes("data-word-bank-target"))
+  )
 }
 
 export interface PageEntry {
@@ -131,11 +148,13 @@ export function getWordTimestamps(
 function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
   speechConfig?: SpeechConfig,
+  readySpeechIds?: ReadonlySet<string>,
 ): Record<string, RuntimeTimecodeEntry> {
   const map: Record<string, RuntimeTimecodeEntry> = {}
 
   for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
     if (entry.words.length === 0) continue
+    if (readySpeechIds && !readySpeechIds.has(textId)) continue
     if (isTtsExcluded(textId, speechConfig)) continue
     map[textId] = {
       timecodes: [
@@ -200,16 +219,23 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   // 3. Book config (affects rendering, accessibility, etc.)
   hash.update(JSON.stringify(options.config))
 
-  // 4. Web assets directory fingerprint (file names + sizes + mtimes)
+  // 4. Sign-language metadata. Assigning or reassigning a video only updates
+  // SQLite, so the videos directory fingerprint below does not detect it.
+  const signLanguageVideos = options.storage.getSignLanguageVideos()
+    .map(({ videoId, sectionId, mimeType }) => ({ videoId, sectionId, mimeType }))
+    .sort((a, b) => a.videoId.localeCompare(b.videoId))
+  hash.update(JSON.stringify(signLanguageVideos))
+
+  // 5. Web assets directory fingerprint (file names + sizes + mtimes)
   const assetEntries = collectDirectoryFingerprint(options.webAssetsDir).sort((a, b) => a[0].localeCompare(b[0]))
   hash.update(JSON.stringify(assetEntries))
 
-  // 5. Images directory fingerprint
+  // 6. Images directory fingerprint
   const imagesDir = path.join(options.bookDir, "images")
   const imageEntries = collectDirectoryFingerprint(imagesDir).sort((a, b) => a[0].localeCompare(b[0]))
   hash.update(JSON.stringify(imageEntries))
 
-  // 6. Videos directory fingerprint
+  // 7. Videos directory fingerprint
   const videosDir = path.join(options.bookDir, "videos")
   const videoEntries = collectDirectoryFingerprint(videosDir).sort((a, b) => a[0].localeCompare(b[0]))
   hash.update(JSON.stringify(videoEntries))
@@ -266,6 +292,9 @@ export async function packageAdtWeb(
   // the book has a detectable accent color; otherwise keep the clean white default.
   const quizPalette = (quizMatchBookStyle ?? true) ? resolveQuizPalette(storage) : null
   const quizStyle = quizPalette ? { palette: quizPalette } : null
+  // Step-by-step activities always need a palette (their UI is deterministic,
+  // not LLM-styled) — fall back to the neutral default when the book has none.
+  const stepperBasePalette = quizPalette ?? DEFAULT_QUIZ_PALETTE
 
   const step = "package-web" as const
   progress.emit({ type: "step-start", step })
@@ -347,6 +376,7 @@ export async function packageAdtWeb(
     const decorativeImageIds = buildDecorativeImageIdSet(storage, page.pageId)
 
     const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+    const editableActivities = readEditableActivities(storage, page.pageId)
     if (renderRow) {
       const parsed = WebRenderingOutputSchema.safeParse(renderRow.data)
       if (parsed.success) {
@@ -363,15 +393,36 @@ export async function packageAdtWeb(
             hasActivitySections = true
           }
 
+          // Step-by-step override: an enabled editable activity replaces the
+          // stored LLM HTML with the stepper shell (structured JSON + palette).
+          const stepperActivity = enabledEditableActivity(
+            editableActivities,
+            rs.sectionIndex,
+            rs.sectionType,
+          )
+
           // Rewrite image URLs and copy referenced images
           const preferredImageAltMap = buildPreferredImageAltMap(storage, page.pageId, sectionMeta)
-          let { html: rewrittenHtml, referencedImages } = rewriteImageUrls(
-            rs.html,
-            label,
-            imageMap,
-            preferredImageAltMap,
-            decorativeImageIds,
-          )
+          let rewrittenHtml: string
+          let referencedImages: string[]
+          if (stepperActivity) {
+            const resolved = resolveEditableActivityImages(stepperActivity, imageMap, {
+              preferredAltMap: preferredImageAltMap,
+              decorativeImageIds,
+            })
+            rewrittenHtml = renderEditableActivityHtml(resolved.activity, {
+              palette: stepperBasePalette,
+            })
+            referencedImages = resolved.referencedImages
+          } else {
+            ;({ html: rewrittenHtml, referencedImages } = rewriteImageUrls(
+              rs.html,
+              label,
+              imageMap,
+              preferredImageAltMap,
+              decorativeImageIds,
+            ))
+          }
 
           for (const imageId of referencedImages) {
             if (!copiedImages.has(imageId)) {
@@ -386,8 +437,8 @@ export async function packageAdtWeb(
             }
           }
 
-          // Convert LaTeX math to MathML
-          const sectionHasMath = containsMathContent(rewrittenHtml)
+          // Convert LaTeX math to MathML (stepper shells are JSON — leave untouched)
+          const sectionHasMath = !stepperActivity && containsMathContent(rewrittenHtml)
           if (sectionHasMath) {
             hasMath = true
             rewrittenHtml = convertLatexToMathml(rewrittenHtml)
@@ -416,7 +467,8 @@ export async function packageAdtWeb(
             pageTitle: title,
             pageHeading: headingText?.text ?? title,
             pageIndex: pageList.length + 1,
-            activityAnswers: rs.activityAnswers,
+            // Stepper answers travel inside the embedded JSON payload.
+            activityAnswers: stepperActivity ? undefined : rs.activityAnswers,
             hasMath: sectionHasMath,
             bundleVersion,
             applyBodyBackground,
@@ -561,15 +613,15 @@ export async function packageAdtWeb(
     })
   }
 
-  const hasTTS = (features?.readAloud !== false) && outputLanguages.some(
-    (lang) => {
-      const legacyLang = lang.replace("-", "_")
-      return (
-        storage.getLatestNodeData("tts", lang) !== null ||
-        storage.getLatestNodeData("tts", legacyLang) !== null
-      )
-    },
-  )
+  const hasTTS = (features?.readAloud !== false) && outputLanguages.some((lang) => {
+    const readyIds = new Set(getReadyCoreTtsEntries(storage, lang).map((entry) => entry.id))
+    const legacyLang = lang.replace("-", "_")
+    const row =
+      storage.getLatestNodeData("tts", lang) ??
+      storage.getLatestNodeData("tts", legacyLang)
+    const data = row?.data as TTSOutput | undefined
+    return data?.entries.some((entry) => readyIds.has(entry.textId)) === true
+  })
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
 
   for (const lang of outputLanguages) {
@@ -604,6 +656,18 @@ export async function packageAdtWeb(
     }
     writeJson(path.join(localeDir, "texts.json"), textsMap)
 
+    // speech_texts.json is intentionally separate from display content. Failed
+    // conversions are omitted, which also withholds their audio below.
+    const coreTtsCatalog = getCoreTtsCatalog(storage, lang)
+    const speechTextsMap: Record<string, string> = {}
+    for (const entry of coreTtsCatalog?.entries ?? []) {
+      if (entry.status === "ready" && entry.speechText !== null) {
+        speechTextsMap[entry.id] = entry.speechText
+      }
+    }
+    const readySpeechIds = new Set(Object.keys(speechTextsMap))
+    writeJson(path.join(localeDir, "speech_texts.json"), speechTextsMap)
+
     // audios.json + copy audio files
     const audioMap: Record<string, string> = {}
 
@@ -619,6 +683,7 @@ export async function packageAdtWeb(
 
       if (ttsData?.entries) {
         for (const entry of ttsData.entries) {
+          if (!readySpeechIds.has(entry.textId)) continue
           // Exclusions apply at packaging time too, so muting an element
           // takes effect without regenerating speech.
           if (isTtsExcluded(entry.textId, speechConfig)) continue
@@ -641,7 +706,7 @@ export async function packageAdtWeb(
     writeJson(
       path.join(timecodeDir, "timecode_output.json"),
       highlightEnabled
-        ? buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), speechConfig)
+        ? buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), speechConfig, readySpeechIds)
         : {},
     )
 
@@ -1161,7 +1226,6 @@ function injectOpacityClass(html: string): string {
   )
 }
 
-
 export function stripContentEditable(html: string): string {
   return html.replace(
     /\s+contenteditable(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi,
@@ -1200,7 +1264,22 @@ export function renderPageHtml(opts: RenderPageOptions): string {
       ? `\n    <script type="text/javascript">\n        window.correctAnswers = JSON.parse('${escapeInlineScriptJson(JSON.stringify(opts.activityAnswers))}');\n    </script>`
       : ""
 
-  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(opts.content))
+  // Stepper JSON payloads are masked for the whole assembly below — the
+  // regex passes over the page HTML (contenteditable strip, background-color
+  // scan, heading probes) must not match inside the embedded activity JSON.
+  const { masked: maskedContent, restore: restoreStepperPayloads } =
+    maskStepperPayloads(opts.content)
+  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(maskedContent))
+
+  // Custom activities (`activity_custom_*`) ship an inline <script> that calls
+  // window.adtRegisterCustomActivity(section, {validate, reset}) during parse —
+  // BEFORE base.bundle (end of <body>) can define it. Inject a tiny buffering
+  // stub into <head> so that call lands in a queue the runtime drains on boot
+  // (see apps/adt-runtime/src/features/activity/runtime/activity-custom.ts).
+  // Without this the call throws and the activity's Submit button never enables.
+  const customActivityStub = /data-section-type="activity_custom/.test(normalizedContent)
+    ? `\n    <script>(function(){if(window.adtRegisterCustomActivity)return;var q=(window.__adtPendingCustomActivities=window.__adtPendingCustomActivities||[]);window.adtRegisterCustomActivity=function(section,handlers){q.push({section:section,handlers:handlers})}})();</script>`
+    : ""
 
   // INVARIANT: every page MUST render all TTS-scannable content inside
   // <div id="content">. The reader's gatherAudioElements scans #content for
@@ -1290,7 +1369,7 @@ ${fallbackHeadingHtml}${contentBlock}
   // 96 is the first-paint dock-band fallback; 0 in embed mode (dock hidden).
   const flFit = opts.fixedViewport ? fixedLayoutWebFit(opts.embed ? 0 : 96) : null
 
-  return `<!DOCTYPE html>
+  return restoreStepperPayloads(`<!DOCTYPE html>
 <html lang="${escapeAttr(opts.language)}">
 
 <head>
@@ -1301,7 +1380,7 @@ ${fallbackHeadingHtml}${contentBlock}
     <meta name="page-section-id" content="${opts.pageIndex}" />
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
-    <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}
+    <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}${customActivityStub}
 ${mathScript}${embedStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
 
 <body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:100%;height:100%"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
@@ -1317,7 +1396,7 @@ ${opts.embed
 </body>
 
 </html>
-`
+`)
 }
 
 // ---------------------------------------------------------------------------
@@ -1593,7 +1672,6 @@ export function buildImageMap(imagesDir: string): Map<string, string> {
   return map
 }
 
-
 function loadImageCaptionMap(storage: Storage, pageId: string): Map<string, string> {
   const row = storage.getLatestNodeData("image-captioning", pageId)
   if (!row) return new Map<string, string>()
@@ -1705,7 +1783,6 @@ export function buildPreferredImageAltMap(
   }
   return section ? applyDuplicateImageAltPolicy(section, preferredImageAltMap) : preferredImageAltMap
 }
-
 
 /** Rewrite image URLs from /api/books/{label}/images/{id} to images/{filename} */
 export function rewriteImageUrls(
@@ -1858,6 +1935,39 @@ export function buildGlossaryJson(
 // Math detection
 // ---------------------------------------------------------------------------
 
+/**
+ * `<script>`/`<style>` blocks, whose contents are raw text rather than markup.
+ * The LaTeX passes must not touch these — see `convertLatexToMathml`.
+ *
+ * Built fresh per call rather than shared: these are `/g` regexes driven by
+ * `lastIndex`, so a single shared instance would corrupt an outer scan if a
+ * callback ever reached one of these helpers again.
+ */
+function rawTextBlockRe(): RegExp {
+  return /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi
+}
+
+/**
+ * Apply `fn` to every part of `html` that is NOT inside a `<script>`/`<style>`
+ * block, leaving those blocks byte-identical.
+ */
+function mapOutsideRawText(html: string, fn: (part: string) => string): string {
+  const re = rawTextBlockRe()
+  let out = ""
+  let last = 0
+  let match: RegExpExecArray | null
+  while ((match = re.exec(html)) !== null) {
+    out += fn(html.slice(last, match.index)) + match[0]
+    last = match.index + match[0].length
+  }
+  return out + fn(html.slice(last))
+}
+
+/** Remove `<script>`/`<style>` blocks so their contents can't be scanned. */
+function stripRawTextBlocks(html: string): string {
+  return html.replace(rawTextBlockRe(), "")
+}
+
 const MATH_INDICATORS = [
   "$",
   "\\(",
@@ -1877,11 +1987,20 @@ const MATH_INDICATORS = [
  * identifiers like `variable_name` — the base letter must not be preceded by
  * another letter, and the subscript char must not be followed by another letter.
  */
-const UNDELIMITED_LATEX_RE = /\\(?:text|mbox|hat|frac|sqrt|vec|bar|overline|underline|mathbf|mathrm|mathit|mathcal|mathbb|mathfrak|mathscr|circ|times|div|pm|mp|leq|geq|neq|approx|equiv|sim|in|notin|subset|supset|cup|cap|leftarrow|rightarrow|Leftarrow|Rightarrow|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|phi|psi|infty|partial|nabla|sum|prod|int|lim|log|ln|sin|cos|tan|sec|csc|cot|left|right|cdot|ldots|cdots|quad|qquad|binom|tag)\b|[_^]\{|(?<![A-Za-z])[A-Za-z][_^][A-Za-z0-9](?![A-Za-z])/
+// NOTE: longer alternatives must precede their prefixes (dfrac/tfrac before frac),
+// otherwise `\dfrac` never matches — the alternation is anchored right after the
+// backslash, so `frac` cannot match the `d`. `begin`/`end` are needed for bare
+// `\begin{array}` blocks (columnar sums, long division), which MATH_INDICATORS
+// recognises for gating but this pass must also match to actually convert them.
+const UNDELIMITED_LATEX_RE = /\\(?:begin|end|dfrac|tfrac|text|mbox|hat|frac|sqrt|vec|bar|overline|underline|mathbf|mathrm|mathit|mathcal|mathbb|mathfrak|mathscr|circ|times|div|pm|mp|leq|geq|neq|approx|equiv|sim|in|notin|subset|supset|cup|cap|leftarrow|rightarrow|Leftarrow|Rightarrow|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|phi|psi|infty|partial|nabla|sum|prod|int|lim|log|ln|sin|cos|tan|sec|csc|cot|left|right|cdot|ldots|cdots|quad|qquad|binom|tag)\b|[_^]\{|(?<![A-Za-z])[A-Za-z][_^][A-Za-z0-9](?![A-Za-z])/
 
-function containsMathContent(html: string): boolean {
-  if (MATH_INDICATORS.some((indicator) => html.includes(indicator))) return true
-  return UNDELIMITED_LATEX_RE.test(html)
+export function containsMathContent(html: string): boolean {
+  // Scan markup only: a `$` or `\(` inside an inline grading script is JS, not
+  // math, and would otherwise flag the whole section as math (loading the
+  // MathML stylesheet on a page that has none).
+  const scannable = stripRawTextBlocks(html)
+  if (MATH_INDICATORS.some((indicator) => scannable.includes(indicator))) return true
+  return UNDELIMITED_LATEX_RE.test(scannable)
 }
 
 /**
@@ -2048,12 +2167,32 @@ function convertDelimitedLatex(text: string): string {
 /**
  * Replace LaTeX math in HTML content with MathML rendered by Temml.
  * Handles delimited math ($, $$, \(, \[) and undelimited LaTeX in text nodes.
+ *
+ * Both passes only touch text-node content (between > and <), never tag
+ * attributes. Generated activity HTML sometimes echoes the expression into an
+ * attribute (e.g. `<input aria-label="c. $5(2x)$" class="…">`); converting it
+ * there injects MathML whose own quoted attributes (`fence="true"`) terminate
+ * the attribute value early and split the tag open — the input disappears and
+ * its attribute tail renders as page text.
+ *
+ * `<script>`/`<style>` bodies are left untouched — custom-activity sections
+ * (`activity_custom_*`) ship an inline grading script, and JS routinely
+ * contains `$` (template literals) and `\(`…`\)` (regex literals) that this
+ * pass would otherwise rewrite into MathML, breaking the script at package
+ * time while the studio preview still looked fine.
  */
 export function convertLatexToMathml(html: string): string {
+  return mapOutsideRawText(html, convertLatexInFragment)
+}
+
+function convertLatexInFragment(html: string): string {
   html = decodeDollarEntities(html)
 
-  // First pass: convert delimited math anywhere in the string
-  html = convertDelimitedLatex(html)
+  // First pass: convert delimited math in text nodes
+  html = html.replace(/(>)([^<]+)(<)/g, (_match, open: string, text: string, close: string) => {
+    const converted = convertDelimitedLatex(text)
+    return converted !== text ? `${open}${converted}${close}` : _match
+  })
 
   // Second pass: convert undelimited LaTeX in text nodes (content between > and <).
   // For pure math nodes, render the entire text as a single expression.
@@ -2293,6 +2432,7 @@ function generateOfflinePreloader(
 
     for (const file of [
       "texts.json",
+      "speech_texts.json",
       "audios.json",
       "videos.json",
       "images.json",
@@ -2582,7 +2722,7 @@ function findHeadingText(
 ): { textId: string; text: string } | null {
   const walk = (node: ContentNodeData): { textId: string; text: string } | null => {
     if (node.isPruned) return null
-    if (node.role === "heading" && node.text) {
+    if (isHeadingRole(node.role) && node.text) {
       return { textId: node.nodeId, text: node.text }
     }
     if (node.children) {
@@ -2643,6 +2783,7 @@ export const EXPORT_MIME_TYPES: Record<string, string> = {
   ".svg": "image/svg+xml",
   ".webp": "image/webp",
   ".mp3": "audio/mpeg",
+  ".flac": "audio/flac",
   ".mp4": "video/mp4",
   ".webm": "video/webm",
   ".ogg": "audio/ogg",

@@ -41,7 +41,11 @@ import { initializeFillInTheBlankActivity } from "@/features/activity/runtime/ac
 import { initializeOpenEndedActivity } from "@/features/activity/runtime/activity-open-ended"
 import { initializeTrueFalseActivity } from "@/features/activity/runtime/activity-true-false"
 import { initializeSortingActivity } from "@/features/activity/runtime/activity-sorting"
+import { initializeOrderingActivity } from "@/features/activity/runtime/activity-ordering"
 import { initializeMatchingActivity } from "@/features/activity/runtime/activity-matching"
+import { initializeStepperActivity } from "@/features/activity/runtime/activity-stepper"
+import { initializeCustomActivity } from "@/features/activity/runtime/activity-custom"
+import { initializeWordBankActivity } from "@/features/activity/runtime/activity-word-bank"
 
 const store = getDefaultStore()
 
@@ -111,6 +115,10 @@ async function bootActivities(): Promise<void> {
   store.set(isActivityPageAtom, isActivity)
   store.set(activityModeAtom, isActivity)
 
+  // Stepper first — sections it owns carry data-activity-variant="stepper"
+  // and are excluded from the classic initializers' selectors (it renders its
+  // own in-card controls and stands the shared dock down).
+  initializeStepperActivity()
   initializeQuizActivity()
   initializeMultiSelectActivity()
   initializeUnderlineTextActivity()
@@ -118,7 +126,14 @@ async function bootActivities(): Promise<void> {
   initializeOpenEndedActivity()
   initializeTrueFalseActivity()
   initializeSortingActivity()
+  initializeOrderingActivity()
   initializeMatchingActivity()
+  // Custom (`activity_custom_*`) sections register their grader through
+  // window.adtRegisterCustomActivity. injectActivitiesBundle ships this bundle
+  // to those pages too, so it must drain the buffer here as well — otherwise
+  // Submit renders but stays disabled in EPUB/WebPub exports.
+  initializeCustomActivity()
+  initializeWordBankActivity()
 }
 
 function ensureContainer(id: string): HTMLElement {

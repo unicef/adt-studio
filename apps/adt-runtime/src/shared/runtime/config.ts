@@ -5,6 +5,7 @@
  * compatibility with anything that still reads it (third-party SCORM/EPUB
  * hosts), but the source of truth is `appConfigAtom`.
  */
+import { runtimeBase } from "./base-path.js"
 import type { AppConfig } from "@/shared/state/config.atoms"
 
 declare global {
@@ -20,7 +21,7 @@ const DEFAULT_CONFIG: AppConfig = {
 
 export async function loadAppConfig(versionParam = ""): Promise<AppConfig> {
   try {
-    const url = `./assets/config.json${versionParam ? `?v=${versionParam}` : ""}`
+    const url = `${runtimeBase()}assets/config.json${versionParam ? `?v=${versionParam}` : ""}`
     const res = await fetch(url)
     if (!res.ok) return DEFAULT_CONFIG
     const config = (await res.json()) as AppConfig

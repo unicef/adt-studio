@@ -50,3 +50,11 @@ export function useVersionHistory(
     enabled: (options?.enabled ?? true) && !!label && !!node && !!itemId,
   })
 }
+
+export function useBookOutlineAudit(label: string) {
+  return useQuery({
+    queryKey: ["books", label, "book-outline"],
+    queryFn: () => api.getBookOutline(label),
+    enabled: !!label,
+  })
+}

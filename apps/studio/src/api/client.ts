@@ -6,7 +6,10 @@ import type {
   BookFontRole,
   BookMetadata,
   BookSummary,
+  BookOutlineAuditResponse,
   BookTypography,
+  ActivityOutline,
+  EditableActivity,
   FontAssignmentOutput,
   ExtractionWarning,
   ReviewerPageValidationRecord,
@@ -194,6 +197,16 @@ export interface AzureCredentials {
   region: string
 }
 
+/** An ElevenLabs voice as surfaced by `GET /speech-config/elevenlabs-voices`
+ *  (a trimmed projection of ElevenLabs' own `/v2/voices` payload). */
+export interface ElevenLabsVoice {
+  voice_id: string
+  name?: string
+  category?: string
+  labels?: Record<string, string>
+  verified_languages?: Array<{ language?: string; accent?: string }>
+}
+
 export interface StageRunProviderCredentials {
   anthropicApiKey?: string
   googleApiKey?: string
@@ -201,6 +214,7 @@ export interface StageRunProviderCredentials {
   customApiKey?: string
   azure?: AzureCredentials
   geminiApiKey?: string
+  elevenLabsApiKey?: string
 }
 
 export interface RunStagesOptions {
@@ -238,6 +252,9 @@ function buildApiHeaders(
   }
   if (providerCredentials?.geminiApiKey) {
     headers["X-Gemini-API-Key"] = providerCredentials.geminiApiKey
+  }
+  if (providerCredentials?.elevenLabsApiKey) {
+    headers["X-ElevenLabs-API-Key"] = providerCredentials.elevenLabsApiKey
   }
   return headers
 }
@@ -465,11 +482,27 @@ export interface TextCatalogEntry {
   text: string
 }
 
+export interface CoreTtsCatalogEntry {
+  id: string
+  displayText: string
+  speechText: string | null
+  changed: boolean
+  transformations: Array<"latex-to-speech" | "language-normalization">
+  status: "ready" | "failed"
+  failureReason?: string
+  generation: {
+    mode: "generated" | "manual" | "unchanged"
+    generatedAt: string
+    enabledTransformations: Array<"latex-to-speech" | "language-normalization">
+  }
+}
+
 export interface TextCatalogResponse {
   entries: TextCatalogEntry[]
   generatedAt: string
   version: number
   translations: Record<string, { entries: TextCatalogEntry[]; version: number }>
+  speechTexts: Record<string, { entries: CoreTtsCatalogEntry[]; version: number }>
 }
 
 export interface TranslationEvaluationStatusResponse {
@@ -592,9 +625,14 @@ export interface LlmLogEntry {
     requestedPromptName?: string
     modelId: string
     cacheHit: boolean
+    /** Final status of this individual attempt. Older log entries may omit it. */
+    success?: boolean
     durationMs: number
     usage?: { inputTokens: number; outputTokens: number }
     validationErrors?: string[]
+    /** Resolved provider request parameters, when the call recorded them.
+     *  Free-form: keys and value types vary by call type. */
+    params?: Record<string, unknown>
     system?: string
     messages: Array<{
       role: string
@@ -850,6 +888,68 @@ export const api = {
 
   getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
 
+  getEditableActivities: (label: string, pageId: string) =>
+    request<{
+      activities: Record<string, EditableActivity>
+      version: number
+      /** Book-derived accent used when an activity has no override. */
+      paletteAccent: string
+    }>(`/books/${label}/pages/${pageId}/editable-activities`),
+
+  updateEditableActivities: (
+    label: string,
+    pageId: string,
+    activities: Record<string, EditableActivity>,
+  ) =>
+    request<{ version: number }>(`/books/${label}/pages/${pageId}/editable-activities`, {
+      method: "PUT",
+      body: JSON.stringify({ activities }),
+    }),
+
+  getActivityStructure: (label: string, pageId: string, sectionIndex: number) =>
+    request<{
+      activity: EditableActivity | null
+      outline: ActivityOutline | null
+      errors: string[]
+      renderingVersion?: number
+    }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/activity-structure`),
+
+  convertEditableActivity: (label: string, pageId: string, sectionIndex: number) =>
+    request<{ activity: EditableActivity; warnings: string[]; version: number }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/convert`,
+      { method: "POST" },
+    ),
+
+  setEditableActivityPresentation: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    enabled: boolean,
+  ) =>
+    request<{ version: number; enabled: boolean }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/presentation`,
+      { method: "POST", body: JSON.stringify({ enabled }) },
+    ),
+
+  generateEditableActivityFeedback: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    apiKey: string,
+    providerCredentials?: StageRunProviderCredentials,
+    // The unsaved draft, so feedback reflects what the user is editing —
+    // the server falls back to the last saved entity when omitted.
+    activity?: EditableActivity,
+  ) =>
+    request<{ feedback: Record<string, { correct?: string; incorrect?: string }> }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/generate-feedback`,
+      {
+        method: "POST",
+        headers: buildApiHeaders(apiKey, providerCredentials),
+        body: JSON.stringify(activity ? { activity } : {}),
+      },
+    ),
+
   getTypography: (label: string) =>
     request<{ data: BookTypography; version: number; isDefault: boolean; detected: BookTypography }>(
       `/books/${label}/typography`
@@ -1048,6 +1148,27 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  /**
+   * One Storyboard editor save: sectioning and rendering land in a single
+   * request so a failure can't leave the tree and the HTML disagreeing.
+   *
+   * `renderingInSync` means the stored HTML reflects this sectioning, or will
+   * shortly — the caller mirrored the edit into the rendering it is sending,
+   * needed no HTML change, or has queued a re-render of the section it touched.
+   * When true the Storyboard stage stays complete and only its dependents are
+   * marked for re-run; pass false only when the HTML cannot be brought back in
+   * sync. Requires `sectioning`, which is the only write it describes.
+   */
+  saveStoryboard: (
+    label: string,
+    pageId: string,
+    data: { sectioning?: unknown; rendering?: unknown; renderingInSync?: boolean }
+  ) =>
+    request<{ sectioningVersion: number | null; renderingVersion: number | null }>(
+      `/books/${label}/pages/${pageId}/storyboard`,
+      { method: "PUT", body: JSON.stringify(data) }
+    ),
+
   updateImageCaptioning: (label: string, pageId: string, data: unknown) =>
     request<{ version: number }>(`/books/${label}/pages/${pageId}/image-captioning`, {
       method: "PUT",
@@ -1078,21 +1199,26 @@ export const api = {
       body: JSON.stringify(at),
     }),
 
+  /** `renderingInSync` is for callers that re-render the affected sections
+   *  themselves; it keeps the Storyboard stage from being marked stale. */
   mergeSection: (
     label: string,
     pageId: string,
     sectionIndex: number,
-    direction: "next" | "prev" = "next"
+    direction: "next" | "prev" = "next",
+    renderingInSync = false
   ) =>
     request<{
       mergedSectionIndex: number
       sectioningVersion: number
       renderingVersion: number | null
     }>(
-      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge?direction=${direction}`,
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge?direction=${direction}${renderingInSync ? "&renderingInSync=1" : ""}`,
       { method: "POST" }
     ),
 
+  /** Moves a section across a page boundary and empties both renderings. The
+   *  Storyboard is always marked stale until reRenderPages repairs both. */
   mergeSectionCrossPage: (
     label: string,
     pageId: string,
@@ -1132,6 +1258,17 @@ export const api = {
       }
     ),
 
+  reRenderPages: (label: string, pageIds: string[], apiKey: string) =>
+    request<{ taskId?: string; status?: string; results?: unknown[] }>(
+      `/books/${label}/pages/re-render`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+        body: JSON.stringify({ pageIds }),
+        signal: AbortSignal.timeout(30_000),
+      }
+    ),
+
   aiEditSection: (
     label: string,
     pageId: string,
@@ -1140,7 +1277,13 @@ export const api = {
     apiKey: string,
     currentHtml?: string,
   ) =>
-    request<{ taskId?: string; status?: string; html?: string; reasoning?: string }>(
+    request<{
+      taskId?: string
+      status?: string
+      html?: string
+      reasoning?: string
+      activityAnswers?: Record<string, string>
+    }>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit`,
       {
         method: "POST",
@@ -1153,6 +1296,47 @@ export const api = {
   aiEditHistory: (label: string, pageId: string, sectionIndex: number) =>
     request<{ history: AiEditHistoryTurn[] }>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit-history`,
+    ),
+
+  agentLayoutMirror: (
+    label: string,
+    source: { pageId: string; sectionIndex: number },
+    targets: Array<{ pageId: string; sectionIndex: number }>,
+    apiKey: string,
+    instruction?: string,
+    providerCredentials?: StageRunProviderCredentials,
+  ) =>
+    request<{ taskId?: string; status?: string; results?: Array<{ pageId: string; sectionIndex: number; ok: boolean; version?: number; reasoning?: string; error?: string }> }>(
+      `/books/${label}/agents/layout-mirror`,
+      {
+        method: "POST",
+        headers: buildApiHeaders(apiKey, providerCredentials),
+        body: JSON.stringify({ source, targets, instruction }),
+        signal: AbortSignal.timeout(30_000),
+      },
+    ),
+
+  agentGenerateActivity: (
+    label: string,
+    anchorPageId: string,
+    description: string,
+    apiKey: string,
+    options?: { inclusiveDesign?: boolean; mode?: "auto" | "templated" | "custom" },
+    providerCredentials?: StageRunProviderCredentials,
+  ) =>
+    request<{ taskId?: string; status?: string; text?: string; touchedPageIds?: string[]; toolCalls?: Array<{ name: string; args: unknown; result: unknown; error?: string }>; stepCount?: number; finishReason?: string }>(
+      `/books/${label}/agents/generate-activity`,
+      {
+        method: "POST",
+        headers: buildApiHeaders(apiKey, providerCredentials),
+        body: JSON.stringify({
+          anchorPageId,
+          description,
+          inclusiveDesign: options?.inclusiveDesign ?? true,
+          mode: options?.mode ?? "auto",
+        }),
+        signal: AbortSignal.timeout(30_000),
+      },
     ),
 
   listBookImages: (label: string) =>
@@ -1335,6 +1519,17 @@ export const api = {
       `/books/${label}/debug/versions/${node}/${itemId}${includeData ? "?includeData=true" : ""}`
     ),
 
+  getBookOutline: (label: string) =>
+    request<BookOutlineAuditResponse | null>(`/books/${label}/book-outline`),
+
+  /** Roll an entity back to an existing version (moves the current-version
+   *  pointer; does not create a new version). */
+  restoreVersion: (label: string, node: string, itemId: string, version: number) =>
+    request<{ node: string; itemId: string; version: number }>(
+      `/books/${label}/versions/${node}/${itemId}/restore`,
+      { method: "POST", body: JSON.stringify({ version }) }
+    ),
+
   getBookConfig: (label: string) =>
     request<BookConfigResponse>(`/books/${label}/config`),
 
@@ -1502,6 +1697,20 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  updateCoreTtsEntry: (
+    label: string,
+    language: string,
+    entryId: string,
+    speechText: string,
+  ) =>
+    request<{ version: number; entry: CoreTtsCatalogEntry }>(
+      `/books/${label}/core-tts-catalog/${language}/${entryId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ speechText }),
+      },
+    ),
+
   getTranslationEvaluations: (label: string) =>
     request<TranslationEvaluationStatusesResponse>(`/books/${label}/evaluations/translations`),
 
@@ -1557,6 +1766,7 @@ export const api = {
       geminiApiKey: string
       openaiApiKey?: string
       azure?: AzureCredentials
+      elevenLabsApiKey?: string
     }
   ) =>
     request<GenerateSingleTTSResponse>(`/books/${label}/tts/generate-one`, {
@@ -1566,6 +1776,7 @@ export const api = {
         ...(credentials.openaiApiKey ? { "X-OpenAI-Key": credentials.openaiApiKey } : {}),
         ...(credentials.azure?.key ? { "X-Azure-Speech-Key": credentials.azure.key } : {}),
         ...(credentials.azure?.region ? { "X-Azure-Speech-Region": credentials.azure.region } : {}),
+        ...(credentials.elevenLabsApiKey ? { "X-ElevenLabs-API-Key": credentials.elevenLabsApiKey } : {}),
       },
       body: JSON.stringify({ textId, language }),
     }),
@@ -1630,11 +1841,17 @@ export const api = {
   getTemplates: () =>
     request<{ templates: string[] }>(`/templates`),
 
-  getStyleguides: () =>
-    request<{ styleguides: string[] }>(`/styleguides`),
+  getStyleguides: (bookLabel?: string) =>
+    request<{ styleguides: string[] }>(
+      bookLabel ? `/styleguides?book=${encodeURIComponent(bookLabel)}` : `/styleguides`,
+    ),
 
-  getStyleguidePreview: (name: string) =>
-    request<{ name: string; html: string }>(`/styleguides/${name}/preview`),
+  getStyleguidePreview: (name: string, bookLabel?: string) =>
+    request<{ name: string; html: string }>(
+      `/styleguides/${encodeURIComponent(name)}/preview${
+        bookLabel ? `?book=${encodeURIComponent(bookLabel)}` : ""
+      }`,
+    ),
 
   uploadStyleguide: (file: File) => {
     const form = new FormData()
@@ -1716,6 +1933,15 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  getCoreTtsProfiles: () =>
+    request<Record<string, string>>("/speech-config/core-tts-profiles"),
+
+  updateCoreTtsProfiles: (data: Record<string, string>) =>
+    request<Record<string, string>>("/speech-config/core-tts-profiles", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
   getVoiceMappings: () =>
     request<Record<string, Record<string, string>>>("/speech-config/voices"),
 
@@ -1723,6 +1949,14 @@ export const api = {
     request<Record<string, Record<string, string>>>("/speech-config/voices", {
       method: "PUT",
       body: JSON.stringify(data),
+    }),
+
+  /** Human-readable names for the opaque ElevenLabs voice IDs in voices.yaml.
+   *  Returns an empty list (not an error) when no ElevenLabs key is set, so the
+   *  voice picker can fall back to a free-text input. */
+  getElevenLabsVoices: (elevenLabsApiKey?: string) =>
+    request<{ voices: ElevenLabsVoice[] }>("/speech-config/elevenlabs-voices", {
+      headers: elevenLabsApiKey ? { "X-ElevenLabs-API-Key": elevenLabsApiKey } : {},
     }),
 
   prepareExport: (
@@ -1843,6 +2077,26 @@ export const api = {
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
       throw new Error(body.error ?? `ADT export failed: ${res.status}`)
+    }
+    const buf = await res.arrayBuffer()
+    return new Blob([buf], { type: "application/zip" })
+  },
+
+  exportPnld: async (label: string): Promise<Blob | null> => {
+    if (!isDesktop()) {
+      triggerDirectDownload(`${BASE_URL}/books/${label}/export-pnld`)
+      return null
+    }
+    const url = `${BASE_URL}/books/${label}/export-pnld`
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/zip" },
+      mode: "cors",
+      signal: AbortSignal.timeout(1_800_000),
+    })
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({ error: res.statusText }))
+      throw new Error(body.error ?? `PNLD export failed: ${res.status}`)
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })

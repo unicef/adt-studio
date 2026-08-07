@@ -206,6 +206,107 @@ Q
 }
 
 /**
+ * Create a 1-page PDF with a single raster image placed via a `cm` with a
+ * negative scale on one axis, simulating a genuinely mirrored image as it
+ * would appear in a real (possibly malformed) source PDF.
+ *
+ * The pixmap is asymmetric (left half red, right half blue for a horizontal
+ * flip; top half red, bottom half blue for a vertical flip) so the mirror is
+ * detectable by inspecting the *extracted* pixel buffer, not just its hash.
+ * This exercises the full `extractPdf` pipeline end-to-end (stream parsing →
+ * CTM-based flip detection → buffer flip), unlike unit tests that feed
+ * hand-authored CTM arrays directly to internal functions.
+ */
+export function createMirroredRasterTestPdf(axis: "horizontal" | "vertical"): Buffer {
+  const doc = new mupdf.PDFDocument();
+
+  const imgW = 20;
+  const imgH = 20;
+  const pixmap = new mupdf.Pixmap(mupdf.ColorSpace.DeviceRGB, [0, 0, imgW, imgH], false);
+  pixmap.clear(255);
+  const samples = pixmap.getPixels();
+  for (let y = 0; y < imgH; y++) {
+    for (let x = 0; x < imgW; x++) {
+      const i = (y * imgW + x) * 3;
+      const isFirstHalf = axis === "horizontal" ? x < imgW / 2 : y < imgH / 2;
+      if (isFirstHalf) {
+        samples[i] = 255; samples[i + 1] = 0; samples[i + 2] = 0; // red
+      } else {
+        samples[i] = 0; samples[i + 1] = 0; samples[i + 2] = 255; // blue
+      }
+    }
+  }
+
+  const image = new mupdf.Image(pixmap);
+  const imgObj = doc.addImage(image);
+
+  const xobjects = doc.newDictionary();
+  xobjects.put("Im1", imgObj);
+  const resourcesDict = doc.newDictionary();
+  resourcesDict.put("XObject", xobjects);
+  const resources = doc.addObject(resourcesDict);
+
+  // Negative scale on the flipped axis mirrors the image via the CTM.
+  const cm = axis === "horizontal" ? "-200 0 0 200 300 500" : "200 0 0 -200 300 500";
+  const stream = `
+q
+${cm} cm
+/Im1 Do
+Q
+`;
+  const buf = new mupdf.Buffer();
+  buf.writeLine(stream);
+  doc.insertPage(-1, doc.addPage([0, 0, 612, 792], 0, resources, buf));
+  return Buffer.from(doc.saveToBuffer("").asUint8Array());
+}
+
+/**
+ * Create a PDF whose rectangular raster is stored landscape but painted with
+ * the same off-diagonal quarter-turn CTM used by InDesign in the real-world
+ * certificate regression fixture.
+ */
+export function createQuarterTurnRasterTestPdf(): Buffer {
+  const doc = new mupdf.PDFDocument();
+  const imgW = 20;
+  const imgH = 10;
+  const pixmap = new mupdf.Pixmap(mupdf.ColorSpace.DeviceRGB, [0, 0, imgW, imgH], false);
+  const samples = pixmap.getPixels();
+
+  for (let y = 0; y < imgH; y++) {
+    for (let x = 0; x < imgW; x++) {
+      const i = (y * imgW + x) * 3;
+      const left = x < imgW / 2;
+      const top = y < imgH / 2;
+      const rgb = top
+        ? (left ? [255, 0, 0] : [0, 255, 0])
+        : (left ? [0, 0, 255] : [255, 255, 0]);
+      samples[i] = rgb[0];
+      samples[i + 1] = rgb[1];
+      samples[i + 2] = rgb[2];
+    }
+  }
+
+  const image = new mupdf.Image(pixmap);
+  const imgObj = doc.addImage(image);
+  const xobjects = doc.newDictionary();
+  xobjects.put("Im1", imgObj);
+  const resourcesDict = doc.newDictionary();
+  resourcesDict.put("XObject", xobjects);
+  const resources = doc.addObject(resourcesDict);
+
+  const stream = `
+q
+0 -200 100 0 100 300 cm
+/Im1 Do
+Q
+`;
+  const buf = new mupdf.Buffer();
+  buf.writeLine(stream);
+  doc.insertPage(-1, doc.addPage([0, 0, 612, 792], 0, resources, buf));
+  return Buffer.from(doc.saveToBuffer("").asUint8Array());
+}
+
+/**
  * Create a 1-page PDF with a raster image, overlapping vector, AND nearby text label.
  * The text "Figure 1" is placed just below the image+vector figure.
  * Used to verify text label absorption expands the figure group bbox.

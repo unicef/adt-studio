@@ -13,6 +13,7 @@ import {
   demoteFirstHeadingIfPromoted,
   promoteFirstHeadingToH1,
   reconstructHtmlWithEdit,
+  serializeContentWrapper,
 } from "./iframe-html"
 import {
   type ComputedTypographyStyles,
@@ -23,6 +24,14 @@ import {
   weightToToken,
 } from "./iframe-computed-styles"
 import { INTERACTIVE_SCRIPT, INTERACTIVE_STYLES } from "./iframe-interactive"
+import {
+  anchorKey,
+  anchorSelector,
+  parseAnchor,
+  parseAnchorKey,
+  resolveVisibleTarget,
+  type ActivityAnchor,
+} from "./activity-link"
 import { primaryFontFamily, googleFontsCss2Url, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 
 export type { ComputedTypographyStyles }
@@ -42,14 +51,19 @@ function previewAssetsUrl(bookLabel: string): string {
  *  actual panel width. */
 const DEFAULT_RENDER_WIDTH = 1280
 
+const TRANSIENT_ATTRS = [
+  "data-adt-selected",
+  "data-adt-editing",
+  "data-adt-linked",
+  "data-adt-preview",
+  "data-adt-link-hover",
+  "contenteditable",
+] as const
+
 function stripTransientAttributes(doc: Document): void {
-  doc
-    .querySelectorAll("[data-adt-selected], [data-adt-editing], [contenteditable]")
-    .forEach((el) => {
-      el.removeAttribute("data-adt-selected")
-      el.removeAttribute("data-adt-editing")
-      el.removeAttribute("contenteditable")
-    })
+  doc.querySelectorAll(TRANSIENT_ATTRS.map((a) => `[${a}]`).join(", ")).forEach((el) => {
+    for (const attr of TRANSIENT_ATTRS) el.removeAttribute(attr)
+  })
 }
 
 /** Parse a pixel value (e.g. "612px") to a number, or null for non-px values. */
@@ -81,6 +95,7 @@ export interface BookPreviewFrameHandle {
    *  used by the Typography inspector. Returns nulls when the element isn't
    *  in the iframe yet or a value can't be parsed. */
   getComputedTypographyStyles: (dataId: string) => ComputedTypographyStyles
+  getAnchorViewportRect: (anchor: ActivityAnchor) => DOMRect | null
 }
 
 export interface BookPreviewFrameProps {
@@ -105,16 +120,44 @@ export interface BookPreviewFrameProps {
   selectedDataId?: string | null
   /** Inner viewport width the iframe renders at; the wrapper scales it to fit. */
   renderWidth?: number
+  /** Optional visible-height cap. The complete page/device frame scales down
+   *  to fit instead of introducing a scroll region. */
+  maxVisibleHeight?: number
   /** When set, draws device chrome (bezel + rounded corners) around the iframe. */
   deviceView?: DeviceView
   /** Reports the iframe's current on-screen width in CSS pixels (renderWidth × scale).
    *  Updates whenever the canvas resizes — useful for showing the active viewport size. */
   onVisibleWidthChange?: (width: number) => void
+  /** Link mode — clicks resolve to an activity anchor and are reported via
+   *  `onLinkSelect` instead of opening the inline editor. Mutually exclusive
+   *  with `editable`; the page becomes a click-to-locate map. */
+  linkMode?: boolean
+  /** Anchor to outline solid — the editor's committed selection. */
+  linkedAnchor?: ActivityAnchor | null
+  /** Anchor to outline dashed — a transient preview (the editor's pointer is
+   *  over the matching field). Ignored when it equals `linkedAnchor`. */
+  previewAnchor?: ActivityAnchor | null
+  /** Fired when an element is clicked in link mode; null when the click
+   *  landed on nothing addressable. */
+  onLinkSelect?: (anchor: ActivityAnchor | null) => void
+  /** Fired as the pointer crosses addressable elements in link mode. Purely a
+   *  preview signal — the consumer decides whether to act on it. */
+  onLinkHover?: (anchor: ActivityAnchor | null) => void
   /** Resolved reflowable base-font CSS chain (e.g. `'Atkinson
    *  Hyperlegible','Merriweather',sans-serif`). When set, the shell loads the
    *  family from Google Fonts and overrides the global Merriweather, matching
    *  packaged output. Omit for fixed-layout (keeps per-span fonts). */
   bodyFontFamily?: string
+  /** Fires once the iframe has loaded, fonts are ready, and content injected —
+   *  useful for revealing the frame after a loading skeleton. */
+  onReady?: () => void
+  /** Lightweight read-only mode for tiny previews: don't block first paint on
+   *  web-font loading and skip LaTeX→MathML conversion. Approximate but fast. */
+  thumbnail?: boolean
+  /** Recompile Tailwind for this frame's own HTML once ready, so a version
+   *  whose classes aren't in the shared tailwind_output.css still renders
+   *  correctly. Needed for accurate version previews (adds one CSS request). */
+  autoRefreshCss?: boolean
 }
 
 /**
@@ -141,9 +184,18 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   applyBodyBackground,
   selectedDataId,
   renderWidth = DEFAULT_RENDER_WIDTH,
+  maxVisibleHeight,
   deviceView,
   onVisibleWidthChange,
+  linkMode = false,
+  linkedAnchor,
+  previewAnchor,
+  onLinkSelect,
+  onLinkHover,
   bodyFontFamily,
+  onReady,
+  thumbnail = false,
+  autoRefreshCss = false,
 }, ref) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -151,34 +203,46 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
 
   const assetsPrefix = previewAssetsUrl(bookLabel)
 
-  useImperativeHandle(ref, () => ({
-    getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
-    refreshCss: async (extraHtml: string) => {
-      const id = ++refreshIdRef.current
-      const doc = iframeRef.current?.contentDocument
-      if (!doc?.head) return
-      const res = await fetch(`${assetsPrefix}/content/tailwind_output.css`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ extraHtml }),
-      })
-      if (id !== refreshIdRef.current || !res.ok) return
-      const css = await res.text()
-      if (id !== refreshIdRef.current) return
-      const styleId = "adt-dynamic-css"
-      let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
-      if (!styleEl) {
-        styleEl = doc.createElement("style")
-        styleEl.id = styleId
-        doc.head.appendChild(styleEl)
-      }
-      styleEl.textContent = css
+  // Recompile Tailwind for the given HTML and inject the result, so classes not
+  // present in the static tailwind_output.css (e.g. classes unique to another
+  // version) still get styled. Called imperatively by the live editor, and
+  // self-triggered by preview frames via `autoRefreshCss`.
+  const refreshCssInternal = useCallback(async (extraHtml: string, signal?: AbortSignal) => {
+    const id = ++refreshIdRef.current
+    const doc = iframeRef.current?.contentDocument
+    if (!doc?.head) return
+    const res = await fetch(`${assetsPrefix}/content/tailwind_output.css`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ extraHtml }),
+      signal,
+    })
+    if (id !== refreshIdRef.current || !res.ok) return
+    const css = await res.text()
+    if (id !== refreshIdRef.current) return
+    const styleId = "adt-dynamic-css"
+    let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
+    if (!styleEl) {
+      styleEl = doc.createElement("style")
+      styleEl.id = styleId
+      doc.head.appendChild(styleEl)
+    }
+    styleEl.textContent = css
+    // Resolve only after the post-CSS height is measured, so callers that
+    // reveal on completion (autoRefreshCss) don't flash a pre-reflow layout.
+    await new Promise<void>((resolve) =>
       requestAnimationFrame(() => {
         const main = doc.querySelector("main")
         const h = (main ?? doc.body)?.scrollHeight
         if (h && h > 0) setContentHeight(h)
+        resolve()
       })
-    },
+    )
+  }, [assetsPrefix])
+
+  useImperativeHandle(ref, () => ({
+    getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
+    refreshCss: refreshCssInternal,
     getElementClasses: (dataId: string): string[] => {
       const doc = iframeRef.current?.contentDocument
       if (!doc) return []
@@ -196,13 +260,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       // edits in a session. They're stripped only at API persist time.
       stripTransientAttributes(doc)
       const wrapper = doc.getElementById("content")
-      let html: string
-      if (wrapper) {
-        const cls = (wrapper.getAttribute("class") || "").trim()
-        html = cls ? wrapper.outerHTML : wrapper.innerHTML
-      } else {
-        html = doc.body.innerHTML
-      }
+      const html = wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
@@ -215,13 +273,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       else el.style.removeProperty(property)
       stripTransientAttributes(doc)
       const wrapper = doc.getElementById("content")
-      let html: string
-      if (wrapper) {
-        const cls = (wrapper.getAttribute("class") || "").trim()
-        html = cls ? wrapper.outerHTML : wrapper.innerHTML
-      } else {
-        html = doc.body.innerHTML
-      }
+      const html = wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
@@ -265,6 +317,20 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
         inlineFontFamily: inlineFamily || null,
       }
     },
+    getAnchorViewportRect: (anchor: ActivityAnchor): DOMRect | null => {
+      const doc = iframeRef.current?.contentDocument
+      const iframeRect = iframeRef.current?.getBoundingClientRect()
+      if (!doc || !iframeRect) return null
+      const el = doc.querySelector(anchorSelector(anchor))
+      if (!el) return null
+      const r = resolveVisibleTarget(el).getBoundingClientRect()
+      return new DOMRect(
+        iframeRect.left + r.left * scale,
+        iframeRect.top + r.top * scale,
+        r.width * scale,
+        r.height * scale,
+      )
+    },
   }))
   const [iframeReady, setIframeReady] = useState(false)
   const [scale, setScale] = useState(1)
@@ -298,6 +364,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   const [displayHtml, setDisplayHtml] = useState(sanitizedHtml)
   useEffect(() => {
     setDisplayHtml(sanitizedHtml)
+    if (thumbnail) return // skip math conversion round-trip for tiny previews
     let cancelled = false
     fetch(`${assetsPrefix}/convert-math`, {
       method: "POST",
@@ -312,7 +379,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       })
       .catch(() => {}) // fallback: display without math conversion
     return () => { cancelled = true }
-  }, [sanitizedHtml, assetsPrefix])
+  }, [sanitizedHtml, assetsPrefix, thumbnail])
   latestHtmlRef.current = displayHtml
   sanitizedHtmlRef.current = sanitizedHtml
 
@@ -411,16 +478,20 @@ ${autoFitScript}
   )
 
   // Listen for postMessage from iframe
-  const callbacksRef = useRef({ onSelectElement, onTextChanged })
-  callbacksRef.current = { onSelectElement, onTextChanged }
+  const callbacksRef = useRef({ onSelectElement, onTextChanged, onLinkSelect, onLinkHover })
+  callbacksRef.current = { onSelectElement, onTextChanged, onLinkSelect, onLinkHover }
 
   const handleMessage = useCallback((e: MessageEvent) => {
     const iframe = iframeRef.current
     if (!iframe || e.source !== iframe.contentWindow) return
     const data = e.data ?? {}
     if (typeof data !== "object" || !data.type) return
-    const { type, dataId, rect, newText, editedInnerHtml, tagName } = data
-    if (type === "select" || type === "select-image" || type === "select-container") {
+    const { type, dataId, rect, newText, editedInnerHtml, tagName, kind, id } = data
+    if (type === "link-select") {
+      callbacksRef.current.onLinkSelect?.(parseAnchor(kind, id))
+    } else if (type === "link-hover") {
+      callbacksRef.current.onLinkHover?.(parseAnchor(kind, id))
+    } else if (type === "select" || type === "select-image" || type === "select-container") {
       callbacksRef.current.onSelectElement?.(dataId, rect, tagName)
     } else if (type === "text-changed") {
       // Splice the edited element's innerHTML into the original LaTeX-form HTML
@@ -585,12 +656,31 @@ ${autoFitScript}
     if (el) el.setAttribute("data-adt-selected", "true")
   }, [selectedDataId, displayHtml, iframeReady])
 
-  // Toggle editability dynamically via data attribute (no iframe reload needed)
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument
     if (!doc?.body) return
-    doc.body.dataset.editable = editable ? "true" : "false"
-  }, [editable, iframeReady])
+    doc.body.dataset.editable = editable && !linkMode ? "true" : "false"
+    doc.body.dataset.linkMode = linkMode ? "true" : "false"
+  }, [editable, linkMode, iframeReady])
+
+  const linkedKey = linkedAnchor ? anchorKey(linkedAnchor) : ""
+  const previewKey = previewAnchor ? anchorKey(previewAnchor) : ""
+  useEffect(() => {
+    const doc = iframeRef.current?.contentDocument
+    if (!doc) return
+    doc.querySelectorAll("[data-adt-linked], [data-adt-preview]").forEach((el) => {
+      el.removeAttribute("data-adt-linked")
+      el.removeAttribute("data-adt-preview")
+    })
+    const stamp = (key: string, attr: string) => {
+      const anchor = parseAnchorKey(key)
+      if (!anchor) return
+      const el = doc.querySelector(anchorSelector(anchor))
+      if (el) resolveVisibleTarget(el).setAttribute(attr, "true")
+    }
+    if (previewKey && previewKey !== linkedKey) stamp(previewKey, "data-adt-preview")
+    stamp(linkedKey, "data-adt-linked")
+  }, [linkedKey, previewKey, displayHtml, iframeReady])
 
   // Suppress the iframe's own scrollbar in desktop view (where the iframe is
   // sized to its content and the host container provides the scroll). Phone
@@ -762,7 +852,16 @@ ${selectors}:hover {
   // mobile/tablet grown up to a target visible width for legibility.
   useEffect(() => {
     if (fixedLayoutSize) {
-      setScale(Math.min(FIXED_LAYOUT_MAX_SCALE, availableWidth / fixedLayoutSize.referenceWidth))
+      const heightScale = maxVisibleHeight
+        ? maxVisibleHeight / fixedLayoutSize.height
+        : Number.POSITIVE_INFINITY
+      setScale(
+        Math.min(
+          FIXED_LAYOUT_MAX_SCALE,
+          availableWidth / fixedLayoutSize.referenceWidth,
+          heightScale
+        )
+      )
       return
     }
     const fitScale = Math.max(0, availableWidth / baseWidth)
@@ -770,8 +869,25 @@ ${selectors}:hover {
       deviceView === "desktop" || deviceView === undefined
         ? 1
         : targetVisibleWidth / baseWidth
-    setScale(Math.min(cap, fitScale))
-  }, [availableWidth, fixedLayoutSize, baseWidth, targetVisibleWidth, deviceView])
+    const naturalHeight =
+      deviceView === "desktop" || deviceView === undefined
+        ? contentHeight
+        : frame.chromeHeight
+    const heightScale =
+      maxVisibleHeight && naturalHeight > 0
+        ? maxVisibleHeight / naturalHeight
+        : Number.POSITIVE_INFINITY
+    setScale(Math.min(cap, fitScale, heightScale))
+  }, [
+    availableWidth,
+    fixedLayoutSize,
+    baseWidth,
+    targetVisibleWidth,
+    deviceView,
+    contentHeight,
+    frame.chromeHeight,
+    maxVisibleHeight,
+  ])
 
   // Ref callback so the iframe re-initializes whenever the conditional
   // device-frame branch swaps it out (toggling Desktop ↔ Mobile ↔ Tablet
@@ -794,10 +910,12 @@ ${selectors}:hover {
         setIframeReady(true)
         injectContent(latestHtmlRef.current)
       }
-      if (doc.fonts?.ready) {
-        doc.fonts.ready.then(start)
-      } else {
+      // Thumbnails render read-only at tiny scale — don't block first paint on
+      // web-font loading (fonts swap in a beat later, invisible at that size).
+      if (thumbnail || !doc.fonts?.ready) {
         start()
+      } else {
+        doc.fonts.ready.then(start)
       }
     }
 
@@ -815,6 +933,39 @@ ${selectors}:hover {
   useEffect(() => {
     onVisibleWidthChange?.(visibleWidth)
   }, [visibleWidth, onVisibleWidthChange])
+
+  // Keep onReady in a ref so the reveal effect can fire it without re-running
+  // (and re-POSTing the CSS recompile) on every render.
+  const onReadyRef = useRef(onReady)
+  onReadyRef.current = onReady
+
+  // Reveal the frame once ready. For preview frames that self-recompile their
+  // CSS (autoRefreshCss), defer "ready" until the recompiled styles are injected
+  // and the post-reflow height is measured — otherwise the content paints with
+  // the base stylesheet and visibly reflows when the correct CSS lands.
+  useEffect(() => {
+    if (!iframeReady) return
+    if (!autoRefreshCss) {
+      onReadyRef.current?.()
+      return
+    }
+    let cancelled = false
+    const controller = new AbortController()
+    void (async () => {
+      try {
+        await refreshCssInternal(sanitizedHtmlRef.current, controller.signal)
+      } catch {
+        // The base stylesheet is still usable. Revealing it is preferable to
+        // leaving a compare pane stuck when the preview CSS request disconnects.
+      } finally {
+        if (!cancelled) onReadyRef.current?.()
+      }
+    })()
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [iframeReady, autoRefreshCss, refreshCssInternal])
 
   // Fixed-layout pages carry explicit pixel dimensions and ignore device
   // chrome. Reflowable: mobile/tablet keep their fixed device-screen height

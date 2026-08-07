@@ -8,8 +8,10 @@
  * and `fetchContentFiles`, restructured around atoms.
  */
 import { getDefaultStore } from "jotai"
+import { runtimeBase } from "@/shared/runtime/base-path.js"
 import {
   audioFilesAtom,
+  speechTextsAtom,
   imageFilesAtom,
   translationsAtom,
   videoFilesAtom,
@@ -118,6 +120,67 @@ function replaceTextPreservingUnderlineOptions(
   element.replaceChildren(fragment)
 }
 
+interface TocTextParts {
+  title: string
+  leader: string
+  separator: string
+  pageNumber: string
+}
+
+function splitTocText(text: string): TocTextParts | null {
+  const dotted = text.match(/^(.*?)(\.(?:\s*\.)+)(\s*)([ivxlcdm]+|\d+)\s*$/i)
+  if (dotted) {
+    return {
+      title: dotted[1],
+      leader: dotted[2],
+      separator: dotted[3],
+      pageNumber: dotted[4],
+    }
+  }
+  const merged = text.match(/^(.*?\D)(\s*)([ivxlcdm]+|\d+)\s*$/i)
+  if (!merged?.[1].trim()) return null
+  return {
+    title: merged[1],
+    leader: "",
+    separator: merged[2],
+    pageNumber: merged[3],
+  }
+}
+
+/** Preserve the title/leader/page-number spans created for TOC rows. Generic
+ * innerHTML replacement would flatten the row as soon as language data loads. */
+function replaceTextPreservingTocLayout(
+  element: HTMLElement,
+  translatedText: string,
+): boolean {
+  if (!element.closest('section[data-section-type="table_of_contents"]')) return false
+
+  const title =
+    element.querySelector<HTMLElement>(":scope > [data-toc-title]") ??
+    (element.firstElementChild as HTMLElement | null)
+  const leader =
+    element.querySelector<HTMLElement>(":scope > [data-toc-leader]") ??
+    element.querySelector<HTMLElement>(":scope > [aria-hidden='true'][class*='border-dotted']")
+  const pageNumber =
+    element.querySelector<HTMLElement>(":scope > [data-toc-page-number]") ??
+    (element.lastElementChild as HTMLElement | null)
+
+  if (!title || !leader || !pageNumber || title === pageNumber) return false
+  const parts = splitTocText(translatedText)
+  if (!parts) {
+    title.textContent = translatedText
+    return true
+  }
+
+  title.textContent = parts.leader ? parts.title : parts.title + parts.separator
+  pageNumber.textContent = parts.leader
+    ? parts.separator + parts.pageNumber
+    : parts.pageNumber
+  const srOnly = leader.querySelector<HTMLElement>(".sr-only")
+  if (srOnly) srOnly.textContent = parts.leader
+  return true
+}
+
 async function safeJsonFetch<T = unknown>(
   url: string,
   context: string,
@@ -139,13 +202,14 @@ async function loadInterfaceTranslations(
   lang: string,
   versionParam: string,
 ): Promise<Record<string, string>> {
-  const url = `./assets/interface_translations/${lang}/interface_translations.json${versionParam}`
+  const url = `${runtimeBase()}assets/interface_translations/${lang}/interface_translations.json${versionParam}`
   const data = await safeJsonFetch<Record<string, string>>(url, "interface translations")
   return data ?? {}
 }
 
 interface ContentBundle {
   texts: Record<string, string>
+  speechTexts: Record<string, string>
   audios: Record<string, string>
   videos: Record<string, string>
   images: Record<string, string>
@@ -155,15 +219,17 @@ async function loadContentFiles(
   lang: string,
   versionParam: string,
 ): Promise<ContentBundle> {
-  const base = `./content/i18n/${lang}`
-  const [texts, audios, videos, images] = await Promise.all([
+  const base = `${runtimeBase()}content/i18n/${lang}`
+  const [texts, speechTexts, audios, videos, images] = await Promise.all([
     safeJsonFetch<Record<string, string>>(`${base}/texts.json${versionParam}`, "texts.json"),
+    safeJsonFetch<Record<string, string>>(`${base}/speech_texts.json${versionParam}`, "speech_texts.json"),
     safeJsonFetch<Record<string, string>>(`${base}/audios.json${versionParam}`, "audios.json"),
     safeJsonFetch<Record<string, string>>(`${base}/videos.json${versionParam}`, "videos.json"),
     safeJsonFetch<Record<string, string>>(`${base}/images.json${versionParam}`, "images.json"),
   ])
   return {
     texts: texts ?? {},
+    speechTexts: speechTexts ?? {},
     audios: audios ?? {},
     videos: videos ?? {},
     images: images ?? {},
@@ -196,6 +262,7 @@ export async function loadTranslations(
   // shape); content keys override interface keys with the same id, just like
   // the original spread order.
   store.set(translationsAtom, { ...interfaceData, ...content.texts })
+  store.set(speechTextsAtom, content.speechTexts)
   store.set(audioFilesAtom, content.audios)
   store.set(videoFilesAtom, content.videos)
   // Replace (don't merge) imageFiles so switching to a language without an
@@ -249,11 +316,16 @@ export function applyTranslationsToDOM(
     const isEasyRead = translationKey.endsWith("_easy_read")
     const renderedHtml = text.replace(/\n/g, "<br>")
     elements.forEach((el) => {
+      // Step-by-step activities render their own React-managed DOM (with
+      // inputs inside sentence texts) and translate through the same dict —
+      // rewriting their innerHTML here would destroy the inputs.
+      if (el.closest("[data-stepper-root]")) return
       if (el.tagName === "IMG") {
         el.setAttribute("alt", text)
         return
       }
       const htmlElement = el as HTMLElement
+      if (replaceTextPreservingTocLayout(htmlElement, text)) return
       // Easy Read is a new content mode: toggle its inline formatting on
       // every element (the helper restores prior styles when disabled, so
       // this is a no-op for the normal path) before swapping text.

@@ -111,6 +111,9 @@ function TocList({
                 active && "bg-accent text-accent-foreground font-medium",
                 entry.level === 2 && "pl-6",
                 entry.level === 3 && "pl-9",
+                entry.level === 4 && "pl-12",
+                entry.level === 5 && "pl-14",
+                entry.level === 6 && "pl-16",
               )}
               aria-current={active ? "page" : undefined}
             >

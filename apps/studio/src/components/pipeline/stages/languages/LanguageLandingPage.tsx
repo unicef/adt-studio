@@ -15,6 +15,7 @@ import {
   SettingsField,
 } from "@/components/pipeline/components/SettingsCard"
 import { LanguagePicker } from "@/components/LanguagePicker"
+import { Switch } from "@/components/ui/switch"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useIsFixedLayout } from "@/hooks/use-fixed-layout"
 import { useStageStatus } from "@/hooks/use-stage-status"
@@ -25,6 +26,7 @@ import { usePersistConfig } from "@/hooks/use-persist-config"
 import { useBook } from "@/hooks/use-books"
 import { normalizeLocale } from "@/lib/languages"
 import { reconcileSourceOutputLanguage } from "./lib/translations-view-state"
+import { prefersReducedMotion } from "@/lib/utils"
 import { displayLang } from "./lib/display-lang"
 import { SelectImagesDialog } from "./components/SelectImagesDialog"
 import { ImageTranslationVisual } from "./components/ImageTranslationVisual"
@@ -48,6 +50,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   const isFixedLayout = useIsFixedLayout(bookLabel)
 
   const [outputLanguages, setOutputLanguages] = useState<Set<string>>(new Set())
+  const [textNormalizationEnabled, setTextNormalizationEnabled] = useState(true)
   const [selectedImageIds, setSelectedImageIds] = useState<string[]>([])
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
   const seededRef = useRef(false)
@@ -96,13 +99,16 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
         setSelectedImageIds(it.selected_image_ids as string[])
       }
     }
+    if (m.core_tts && typeof m.core_tts === "object") {
+      const coreTts = m.core_tts as Record<string, unknown>
+      setTextNormalizationEnabled(coreTts.language_normalization !== false)
+    } else {
+      setTextNormalizationEnabled(true)
+    }
   }, [activeConfigData, book, baseLanguage])
 
   const withChipTransition = (update: () => void) => {
-    const reduceMotion =
-      typeof window !== "undefined" &&
-      // eslint-disable-next-line lingui/no-unlocalized-strings -- CSS media query, not user-visible
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    const reduceMotion = prefersReducedMotion()
     const doc = typeof document !== "undefined" ? document : null
     if (!doc || typeof doc.startViewTransition !== "function" || reduceMotion) {
       update()
@@ -138,6 +144,20 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
       unknown
     >
     persist({ image_translation: { ...existing, ...patch } })
+  }
+
+  const handleTextNormalizationChange = (enabled: boolean) => {
+    setTextNormalizationEnabled(enabled)
+    const existing = (bookConfigData?.config?.core_tts ?? {}) as Record<
+      string,
+      unknown
+    >
+    persist({
+      core_tts: {
+        ...existing,
+        language_normalization: enabled,
+      },
+    })
   }
 
   const handleImagesConfirm = (ids: string[]) => {
@@ -276,6 +296,31 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
             />
           </div>
         </SettingsField>
+      </SettingsCard>
+
+      <SettingsCard>
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <label
+              htmlFor="text-normalization"
+              className="text-sm font-semibold leading-5 text-foreground"
+            >
+              <Trans>Text normalization</Trans>
+            </label>
+            <p className="text-xs leading-relaxed text-[#737373]">
+              <Trans>
+                Prepare numbers, dates, and abbreviations for natural speech.
+                Math and LaTeX are handled separately.
+              </Trans>
+            </p>
+          </div>
+          <Switch
+            id="text-normalization"
+            checked={textNormalizationEnabled}
+            onCheckedChange={handleTextNormalizationChange}
+            aria-label={t`Enable text normalization`}
+          />
+        </div>
       </SettingsCard>
 
       <SettingsCard>

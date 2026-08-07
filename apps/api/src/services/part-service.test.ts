@@ -78,7 +78,7 @@ function addProcessedPage(label: string, pageNumber: number): void {
 function markPartStepsDone(label: string): void {
   const storage = createBookStorage(label, tmpDir)
   try {
-    for (const step of ["extract", "metadata", "book-summary", "page-sectioning", "web-rendering"]) {
+    for (const step of ["extract", "metadata", "book-summary", "book-outline", "page-sectioning", "web-rendering"]) {
       storage.markStepCompleted(step)
     }
   } finally {
@@ -128,10 +128,12 @@ async function buildCompletedPart(
   end: number,
   overrides = "concurrency: 4\n",
   metadataTitle?: string,
+  prepare?: (label: string) => void,
 ): Promise<Buffer> {
   makeBook(label, `${overrides}start_page: ${start}\nend_page: ${end}\n`)
   for (let n = start; n <= end; n++) addProcessedPage(label, n)
   if (metadataTitle !== undefined) addBookMetadata(label, metadataTitle)
+  prepare?.(label)
   markPartStepsDone(label)
   writePartManifest(label, start, end)
   // a content-addressed cache entry to verify it is carried over
@@ -209,6 +211,7 @@ describe("mergePart", () => {
 
     expect(result.addedPages).toBe(2)
     expect(result.replacedPages).toBe(0)
+    expect(result.staleSteps).toEqual(expect.arrayContaining(["sectioning", "storyboard"]))
 
     const db = targetDb("raven")
     try {
@@ -224,18 +227,31 @@ describe("mergePart", () => {
       const glossary = db.all("SELECT status FROM step_runs WHERE step = 'glossary'")
       expect(glossary).toEqual([])
 
-      // Per-page stages are carried from the part and stay complete...
+      // The part-local tree is retained for inspection/version history, but its
+      // completion is cleared because it was derived from a non-authoritative
+      // part-local outline.
       const sectioning = db.all(
         "SELECT status FROM step_runs WHERE step = 'page-sectioning'",
       ) as Array<{ status: string }>
-      expect(sectioning).toEqual([{ status: "done" }])
+      expect(sectioning).toEqual([])
 
-      // ...including book-summary, which lives in the Extract stage and must
+      const rendering = db.all(
+        "SELECT status FROM step_runs WHERE step = 'web-rendering'",
+      ) as Array<{ status: string }>
+      expect(rendering).toEqual([])
+
+      // Book-summary lives in the Extract stage and must
       // NOT be cleared (else the whole Extract stage reads as "not run").
       const bookSummary = db.all(
         "SELECT status FROM step_runs WHERE step = 'book-summary'",
       ) as Array<{ status: string }>
       expect(bookSummary).toEqual([{ status: "done" }])
+
+      // A part-local outline is not authoritative for the assembled book.
+      const bookOutline = db.all(
+        "SELECT status FROM step_runs WHERE step = 'book-outline'",
+      ) as Array<{ status: string }>
+      expect(bookOutline).toEqual([])
     } finally {
       db.close()
     }
@@ -330,6 +346,48 @@ describe("mergePart", () => {
       expect(versions.map((v) => v.version)).toEqual([1, 2])
     } finally {
       db.close()
+    }
+
+    const storage = createBookStorage("raven", tmpDir)
+    try {
+      expect(storage.getLatestNodeData("page-sectioning", "pg001")?.version).toBe(2)
+      expect(storage.getCurrentNodeVersion("page-sectioning", "pg001")).toBe(2)
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("merges the contributor's restored version rather than MAX(version)", async () => {
+    makeBook("raven")
+    const zip = await buildCompletedPart(
+      "raven-p001-001",
+      1,
+      1,
+      "concurrency: 4\n",
+      undefined,
+      (partLabel) => {
+        const storage = createBookStorage(partLabel, tmpDir)
+        try {
+          storage.putNodeData("page-sectioning", "pg001", {
+            reasoning: "superseded",
+            sections: [],
+          })
+          expect(storage.setCurrentNodeVersion("page-sectioning", "pg001", 1)).toBe(true)
+        } finally {
+          storage.close()
+        }
+      },
+    )
+
+    mergePart("raven", tmpDir, zip, {}, configPath)
+
+    const storage = createBookStorage("raven", tmpDir)
+    try {
+      const row = storage.getLatestNodeData("page-sectioning", "pg001")
+      expect(row?.version).toBe(1)
+      expect((row?.data as { reasoning: string }).reasoning).toBe("ok")
+    } finally {
+      storage.close()
     }
   })
 

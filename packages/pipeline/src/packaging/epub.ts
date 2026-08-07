@@ -3,7 +3,16 @@ import path from "node:path"
 import { JSDOM } from "jsdom"
 import type { Storage } from "@adt/storage"
 import type { BookMetadata, EpubGlossaryConfig, TocGenerationOutput, WordTimestampOutput } from "@adt/types"
-import { type PackageAdtWebOptions, EXPORT_MIME_TYPES, NON_READER_FILES, copyDirRecursive, injectWebpubStyles, getWordTimestamps, pad3 } from "./web.js"
+import {
+  type PackageAdtWebOptions,
+  EXPORT_MIME_TYPES,
+  NON_READER_FILES,
+  copyDirRecursive,
+  injectWebpubStyles,
+  getWordTimestamps,
+  pageNeedsActivitiesBundle,
+  pad3,
+} from "./web.js"
 import { htmlToXhtml } from "../html-semantics.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 
@@ -17,6 +26,7 @@ function wordIdFor(dataId: string, idx: number): string {
 }
 import { buildSmil, formatMediaDuration, type SmilParagraph } from "../smil.js"
 import { tokenizeWords } from "../word-tokenize.js"
+import { replaceStepperShellsWithStaticHtml } from "../render-editable-activity.js"
 import { styleMapToInline } from "../fixed-layout-rendering.js"
 import {
   buildGlossaryDocument,
@@ -104,6 +114,12 @@ export function packageEpub(
   // (glossref + doc-glossary + landmarks) below.
   stripRuntimeBundle(oebpsDir)
 
+  // Step-by-step activity shells are hydrated by the (now stripped) runtime
+  // bundle — replace them with a static worksheet rendering so the pages
+  // aren't blank in EPUB readers. Runs before SMIL generation so the restored
+  // data-id texts get media overlays.
+  replaceStepperShells(oebpsDir)
+
   // ------------------------------------------------------------------
   // Glossary (load once before the page loop)
   // ------------------------------------------------------------------
@@ -175,6 +191,7 @@ export function packageEpub(
 
     const rawHtml = fs.readFileSync(htmlPath, "utf-8")
     const isQuizPage = rawHtml.includes('data-section-type="activity_quiz"')
+    const needsActivitiesBundle = pageNeedsActivitiesBundle(rawHtml)
     let html = rawHtml
     // Fixed-layout: swap the quiz page's responsive viewport for the book's fixed
     // one so the reader lays it out (and centers it) like its pre-paginated
@@ -188,8 +205,8 @@ export function packageEpub(
     let xhtml = convertPageToXhtml(html)
     const xhtmlHref = page.href.replace(/\.html$/, ".xhtml")
 
-    if (isQuizPage) {
-      // Ship the activities bundle so the reader runs the interactive quiz, and
+    if (needsActivitiesBundle) {
+      // Ship the activities bundle so the reader runs the interactive controls, and
       // mark the page scripted in the OPF.
       xhtml = xhtml.replace(
         "</body>",
@@ -898,6 +915,23 @@ ${navPoints}
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Swap interactive stepper shells for static worksheet HTML in every page. */
+function replaceStepperShells(oebpsDir: string): void {
+  const walk = (dir: string): void => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        walk(fullPath)
+      } else if (entry.isFile() && /\.(html|xhtml)$/.test(entry.name)) {
+        const content = fs.readFileSync(fullPath, "utf-8")
+        const replaced = replaceStepperShellsWithStaticHtml(content)
+        if (replaced !== content) fs.writeFileSync(fullPath, replaced)
+      }
+    }
+  }
+  walk(oebpsDir)
+}
 
 function escapeXml(str: string): string {
   return str

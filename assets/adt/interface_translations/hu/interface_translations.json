@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Az adminisztrátori eszközök egy következő frissítésben kerülnek bevezetésre.",
     "main-menu-label": "Főmenü",
     "cover-label": "Borító",
-    "print-page-label": "Oldal nyomtatása"
+    "print-page-label": "Oldal nyomtatása",
+    "stepper-progress-n-of-m": "Lépés: ${n}/${m}",
+    "stepper-word-bank": "Választható szavak",
+    "stepper-open-ended-saved": "Ügyes vagy — a válaszod elmentve.",
+    "stepper-open-ended-rephrase": "Legyünk kedvesek — próbáld átfogalmazni a válaszod.",
+    "open-ended-answer-label": "A válaszod"
 }

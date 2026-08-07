@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Τα εργαλεία διαχείρισης θα προστεθούν σε επόμενη ενημέρωση.",
     "main-menu-label": "Κύριο μενού",
     "cover-label": "Εξώφυλλο",
-    "print-page-label": "Εκτύπωση σελίδας"
+    "print-page-label": "Εκτύπωση σελίδας",
+    "stepper-progress-n-of-m": "Βήμα ${n} από ${m}",
+    "stepper-word-bank": "Λέξεις για επιλογή",
+    "stepper-open-ended-saved": "Μπράβο — η απάντησή σου αποθηκεύτηκε.",
+    "stepper-open-ended-rephrase": "Ας είμαστε ευγενικοί — δοκίμασε να διατυπώσεις αλλιώς την απάντησή σου.",
+    "open-ended-answer-label": "Η απάντησή σου"
 }

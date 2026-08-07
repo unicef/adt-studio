@@ -53,6 +53,9 @@ function typographyFromDetected(scale: TypeScale): BookTypography {
       style("chapter_title", "Chapter title", "adt-h1", scale.h1Px),
       style("section_heading", "Section heading", "adt-h2", scale.h2Px),
       style("subheading", "Subheading", "adt-h3", scale.h3Px),
+      style("heading_level_4", "Heading level 4", "adt-h4", (scale.h3Px * 2 + scale.bodyPx) / 3),
+      style("heading_level_5", "Heading level 5", "adt-h5", (scale.h3Px + scale.bodyPx * 2) / 3),
+      style("heading_level_6", "Heading level 6", "adt-h6", scale.bodyPx),
       style("body", "Body", "adt-body", scale.bodyPx),
       style("caption", "Caption", "adt-caption", scale.captionPx),
     ],
@@ -99,6 +102,19 @@ export function buildTypographyCss(typography: BookTypography): string {
    via clamp(). Edit on the Fonts tab. */
 @layer components {
 ${rules.join("\n")}
+
+/* MathML sets its own vertical metrics. A prose line-height inherited from a
+   surrounding role class (e.g. .adt-body at ${lineHeightFor("adt-body")}) squashes
+   stacked <mtable> rows and fraction bars into each other, so reset it here and
+   let the layout of columnar sums, long division, and fractions come out right. */
+math, math * { line-height: normal; white-space: normal; font-family: initial; }
+math mtable { line-height: normal; }
+/* A wrapper carrying prose utilities (whitespace-pre-wrap, leading-*, font-mono)
+   crushes MathML layout. Neutralise them for the math subtree regardless of what
+   classes the renderer put on the wrapper. */
+.whitespace-pre-wrap math, .whitespace-pre math, [class*="leading-"] math { line-height: normal; white-space: normal; }
+/* Wide sums scroll instead of overflowing the reading column. */
+math[display="block"] { display: block math; overflow-x: auto; max-width: 100%; }
 }`.trim()
 }
 
@@ -108,7 +124,16 @@ export function resolveTypographyCss(storage: Storage): string {
 }
 
 /** The semantic size classes the type scale binds to. */
-const TYPOGRAPHY_CLASSES = ["adt-h1", "adt-h2", "adt-h3", "adt-body", "adt-caption"] as const
+const TYPOGRAPHY_CLASSES = [
+  "adt-h1",
+  "adt-h2",
+  "adt-h3",
+  "adt-h4",
+  "adt-h5",
+  "adt-h6",
+  "adt-body",
+  "adt-caption",
+] as const
 
 function countClass(html: string, cls: string): number {
   return (html.match(new RegExp(`\\b${cls}\\b`, "g")) ?? []).length

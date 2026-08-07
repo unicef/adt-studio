@@ -8,12 +8,14 @@ import {
   buildGlossaryJson,
   injectWebpubStyles,
   packageAdtWeb,
+  pageNeedsActivitiesBundle,
   renderPageHtml,
   resolveReflowableFontChain,
   renderQuizHtml,
   rewriteImageUrls,
   convertLatexToMathml,
   convertLatexString,
+  containsMathContent,
 } from "../packaging/web.js"
 import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
 import { deriveQuizPalette } from "../quiz-palette.js"
@@ -45,6 +47,28 @@ function createMockStorage(
         )
         .sort((a, b) => a.node.localeCompare(b.node) || a.itemId.localeCompare(b.itemId)),
     close: () => {},
+  }
+}
+
+function readyCoreTtsCatalog(...ids: string[]) {
+  return {
+    language: "en",
+    entries: ids.map((id) => ({
+      id,
+      displayText: id,
+      speechText: id,
+      changed: false,
+      transformations: [],
+      status: "ready",
+      generation: {
+        mode: "unchanged",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        enabledTransformations: [],
+        sourceTextHash: "source",
+        contextHash: "context",
+      },
+    })),
+    generatedAt: "2026-01-01T00:00:00.000Z",
   }
 }
 
@@ -244,6 +268,44 @@ describe("renderPageHtml", () => {
     expect(html).toContain("base.bundle.min.js")
     expect(html).not.toContain("offline-preloader.js")
     expect(html).not.toContain("scorm.js")
+  })
+
+  it("injects the custom-activity registration stub in <head> for activity_custom pages", () => {
+    const html = renderPageHtml({
+      content:
+        '<section data-section-type="activity_custom_jigsaw" data-id="pg008_s2"><div>tiles</div><script>window.adtRegisterCustomActivity(section,{validate:()=>true});</script></section>',
+      language: "en",
+      sectionId: "pg008",
+      pageTitle: "Test",
+      pageIndex: 8,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    // The stub defines the registration hook and a pending queue...
+    expect(html).toContain("window.adtRegisterCustomActivity=function")
+    expect(html).toContain("__adtPendingCustomActivities")
+    // ...and it MUST live in <head>, before the section's parse-time script runs.
+    const headEnd = html.indexOf("</head>")
+    const stubAt = html.indexOf("__adtPendingCustomActivities")
+    const sectionAt = html.indexOf("activity_custom_jigsaw")
+    expect(stubAt).toBeGreaterThan(0)
+    expect(stubAt).toBeLessThan(headEnd)
+    expect(stubAt).toBeLessThan(sectionAt)
+  })
+
+  it("does not inject the custom-activity stub for non-custom pages", () => {
+    const html = renderPageHtml({
+      content: '<section data-section-type="activity_multiple_choice"><p>Pick one</p></section>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect(html).not.toContain("__adtPendingCustomActivities")
   })
 
   it("does not reference woff2 fonts directly (they are declared in fonts.css)", () => {
@@ -822,6 +884,33 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": {
+        en: {
+          language: "en",
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          entries: ["pg001_t001", "pg001_t002", "pg001_im001"].map((id) => ({
+            id,
+            displayText: id === "pg001_t001" ? "$x^2$" : id,
+            speechText:
+              id === "pg001_im001"
+                ? null
+                : id === "pg001_t001"
+                  ? "x squared"
+                  : id,
+            changed: id === "pg001_t001",
+            transformations: id === "pg001_t001" ? ["latex-to-speech"] : [],
+            status: id === "pg001_im001" ? "failed" : "ready",
+            failureReason: id === "pg001_im001" ? "Raw LaTeX remained" : undefined,
+            generation: {
+              mode: "unchanged",
+              generatedAt: "2026-01-01T00:00:00.000Z",
+              enabledTransformations: [],
+              sourceTextHash: "source",
+              contextHash: "context",
+            },
+          })),
+        },
+      },
       "tts-timestamps": {
         en: {
           entries: {
@@ -947,6 +1036,33 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": {
+        en: {
+          language: "en",
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          entries: ["pg001_t001", "pg001_t002", "pg001_im001"].map((id) => ({
+            id,
+            displayText: id === "pg001_t001" ? "$x^2$" : id,
+            speechText:
+              id === "pg001_im001"
+                ? null
+                : id === "pg001_t001"
+                  ? "x squared"
+                  : id,
+            changed: id === "pg001_t001",
+            transformations: id === "pg001_t001" ? ["latex-to-speech"] : [],
+            status: id === "pg001_im001" ? "failed" : "ready",
+            failureReason: id === "pg001_im001" ? "Raw LaTeX remained" : undefined,
+            generation: {
+              mode: "unchanged",
+              generatedAt: "2026-01-01T00:00:00.000Z",
+              enabledTransformations: [],
+              sourceTextHash: "source",
+              contextHash: "context",
+            },
+          })),
+        },
+      },
       "tts-timestamps": {
         en: {
           entries: {
@@ -977,6 +1093,14 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "audios.json"), "utf-8"),
     ) as Record<string, string>
     expect(audios).toEqual({ pg001_t001: "pg001_t001.mp3" })
+
+    const speechTexts = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "speech_texts.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(speechTexts).toEqual({
+      pg001_t001: "x squared",
+      pg001_t002: "pg001_t002",
+    })
 
     const bundledAudioDir = path.join(bookDir, "adt", "content", "i18n", "en", "audio")
     expect(fs.existsSync(path.join(bundledAudioDir, "pg001_t001.mp3"))).toBe(true)
@@ -1142,6 +1266,7 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": { en: readyCoreTtsCatalog("pg001_t001") },
     })
 
     await packageAdtWeb(storage, {
@@ -1296,6 +1421,7 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": { en: readyCoreTtsCatalog("pg001_t001") },
       "tts-timestamps": {
         en: {
           entries: {
@@ -1987,6 +2113,48 @@ describe("convertLatexToMathml", () => {
     expect(mathCount).toBe(2)
   })
 
+  it("leaves a custom activity's inline <script> byte-identical", () => {
+    // A grading script's regex literals (\( … \)) and template literals ($…$)
+    // look exactly like delimited LaTeX. Rewriting them into MathML would turn
+    // the script into a SyntaxError in the packaged book.
+    const script =
+      "<script>const re = /\\(([^)]+)\\)/; const msg = `${correct}/${total} right`;</script>"
+    const result = convertLatexToMathml(`<section><p>Sort them</p>${script}</section>`)
+    expect(result).toContain(script)
+    expect(result).not.toContain("<math")
+  })
+
+  it("still converts math outside a script in the same section", () => {
+    const script = "<script>const re = /\\(x\\)/;</script>"
+    const result = convertLatexToMathml(`<section><p>The value $x^2$ here</p>${script}</section>`)
+    expect(result).toContain("<math")
+    expect(result).toContain(script)
+  })
+})
+
+describe("containsMathContent", () => {
+  it("ignores $ and \\( that only appear inside an inline script", () => {
+    const html =
+      "<section><p>Sort the animals</p>" +
+      "<script>const msg = `${n}/${total}`; const re = /\\(a\\)/;</script></section>"
+    expect(containsMathContent(html)).toBe(false)
+  })
+
+  it("ignores LaTeX-looking commands inside a <style> block", () => {
+    const html = "<section><p>Plain text</p><style>.x{content:'\\\\frac{1}{2}'}</style></section>"
+    expect(containsMathContent(html)).toBe(false)
+  })
+
+  it("still detects math in markup alongside a script", () => {
+    const html =
+      "<section><p>The value $x^2$ here</p><script>const a = 1;</script></section>"
+    expect(containsMathContent(html)).toBe(true)
+  })
+
+  it("still detects undelimited LaTeX in markup", () => {
+    expect(containsMathContent('<p data-id="t1">6\\ \\text{cubos}</p>')).toBe(true)
+  })
+
   it("converts undelimited LaTeX with \\text{} in text nodes", () => {
     const html = '<p data-id="tx001">V_{\\text{empilhamento I}} = 6\\ \\text{cubos}</p>'
     const result = convertLatexToMathml(html)
@@ -2004,6 +2172,60 @@ describe("convertLatexToMathml", () => {
   it("does not modify text nodes without LaTeX", () => {
     const html = "<p>Just plain text here</p>"
     expect(convertLatexToMathml(html)).toBe(html)
+  })
+
+  // Regression: UNDELIMITED_LATEX_RE anchors its alternation immediately after
+  // the backslash, so a shorter alternative listed first shadows every longer
+  // one sharing its suffix — `frac` cannot match the `d` in `\dfrac`. Both
+  // variants below rendered as literal LaTeX on the page before the fix.
+  it("converts undelimited \\dfrac (not shadowed by the \\frac alternative)", () => {
+    const html = '<p data-id="tx001">\\dfrac{2}{5} + \\dfrac{3}{9}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mfrac>")
+    expect(result).not.toContain("\\dfrac")
+  })
+
+  it("converts undelimited \\tfrac (not shadowed by the \\frac alternative)", () => {
+    const html = '<p data-id="tx001">\\tfrac{1}{2}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mfrac>")
+    expect(result).not.toContain("\\tfrac")
+  })
+
+  // Regression: the delimited pass used to run over the raw HTML string, so a
+  // `$…$` pair inside a tag attribute (activity inputs echoing the expression
+  // in aria-label) was replaced with MathML. For parenthesized expressions the
+  // MathML carries quoted attributes (`fence="true"`), whose first embedded
+  // quote truncated the attribute value and split the tag open — the input
+  // vanished and its attribute tail rendered as page text.
+  it("never converts LaTeX inside tag attributes", () => {
+    const input =
+      '<input type="text" aria-label="c. $5(2x)$" class="mt-4 w-full rounded border border-gray-300 bg-white p-2">'
+    const html = `<p data-id="tx001">c. $5(2x)$</p>${input}`
+    const result = convertLatexToMathml(html)
+    expect(result).toContain(input)
+    expect(result).toContain("<math")
+    expect(result).not.toContain("$5(2x)$</p>")
+  })
+
+  it("converts delimited math in text nodes on both sides of a tag boundary", () => {
+    const result = convertLatexToMathml("<p>$a + b$</p><p>$c + d$</p>")
+    const mathCount = (result.match(/<math/g) ?? []).length
+    expect(mathCount).toBe(2)
+  })
+
+  // Regression: `\begin{` is listed in MATH_INDICATORS, which only decides
+  // whether the converter runs at all. The converter's own gate never listed
+  // it, so columnar sums and long division were detected as "this page has
+  // maths" and then left unconverted.
+  it("converts a bare \\begin{array} block (columnar arithmetic)", () => {
+    const html = '<p data-id="tx002">\\begin{array}{r} 24 \\\\ + 18 \\\\ \\hline 42 \\end{array}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mtable")
+    expect(result).not.toContain("\\begin{array}")
   })
 })
 
@@ -2133,6 +2355,17 @@ describe("injectActivitiesBundle", () => {
     expect(plain).not.toContain("activities.bundle.local.js")
   })
 
+  it("injects the bundle into mixed-content pages with inline word-bank controls", () => {
+    const html = `<html><body><section data-section-type="text_and_images"><button data-word-bank-chip="I">I</button><input data-word-bank-target="true"></section></body></html>`
+    fs.writeFileSync(path.join(tmp, "word-bank.html"), html)
+
+    injectActivitiesBundle(tmp)
+
+    expect(fs.readFileSync(path.join(tmp, "word-bank.html"), "utf-8")).toContain(
+      "./assets/activities.bundle.local.js",
+    )
+  })
+
   it("does not double-inject", () => {
     const html = `<html><body><section data-section-type="activity_sorting"></section></body></html>`
     fs.writeFileSync(path.join(tmp, "a.html"), html)
@@ -2140,6 +2373,19 @@ describe("injectActivitiesBundle", () => {
     injectActivitiesBundle(tmp)
     const out = fs.readFileSync(path.join(tmp, "a.html"), "utf-8")
     expect(out.match(/activities\.bundle\.local\.js/g)).toHaveLength(1)
+  })
+})
+
+describe("pageNeedsActivitiesBundle", () => {
+  it("recognizes dedicated activities and complete inline word banks", () => {
+    expect(pageNeedsActivitiesBundle('<section data-section-type="activity_quiz">')).toBe(true)
+    expect(
+      pageNeedsActivitiesBundle('<button data-word-bank-chip="I"><input data-word-bank-target>'),
+    ).toBe(true)
+  })
+
+  it("does not activate for incomplete word-bank markup", () => {
+    expect(pageNeedsActivitiesBundle('<button data-word-bank-chip="I">')).toBe(false)
   })
 })
 

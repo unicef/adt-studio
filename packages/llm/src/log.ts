@@ -16,6 +16,15 @@ export interface LlmLogEntry {
   durationMs: number
   usage?: TokenUsage
   validationErrors?: string[]
+  /**
+   * Resolved provider request parameters, recorded so a run is inspectable
+   * after the fact ("which settings produced this output?").
+   *
+   * Free-form because each call type sends a different shape. ElevenLabs TTS is
+   * the first to populate it; regular LLM calls don't record their temperature
+   * or schema yet either, and can adopt this field without a schema change.
+   */
+  params?: Record<string, unknown>
   messages: LlmLogMessage[]
   /** Groups related LLM calls (e.g. an AI edit, its verify, and its retry). */
   correlationId?: string

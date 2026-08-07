@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Aaladaha maamulaha waxaa lagu darayaa cusboonaysiin soo socota.",
     "main-menu-label": "Liiska weyn",
     "cover-label": "Daboolka",
-    "print-page-label": "Daabac boggii"
+    "print-page-label": "Daabac boggii",
+    "stepper-progress-n-of-m": "Tallaabo ${n} ka mid ah ${m}",
+    "stepper-word-bank": "Erayo la doorto",
+    "stepper-open-ended-saved": "Shaqo fiican — jawaabtaadii waa la keydiyay.",
+    "stepper-open-ended-rephrase": "Aan naxariis ku dhaqanno — isku day inaad jawaabtaada si kale u qorto.",
+    "open-ended-answer-label": "Jawaabtaada"
 }
