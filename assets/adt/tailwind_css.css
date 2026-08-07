@@ -108,6 +108,22 @@ body[data-activity-dock="top"] {
   padding-top: calc(var(--nav-height) + 3.75rem);
 }
 
+body[nav-position] {
+  --adt-chrome-inset: var(--nav-height);
+}
+body[data-activity-dock] {
+  --adt-chrome-inset: calc(var(--nav-height) + 3.75rem);
+}
+
+#content.min-h-screen,
+#content .min-h-screen {
+  min-height: calc(100vh - var(--adt-chrome-inset, 0px));
+}
+#content.h-screen,
+#content .h-screen {
+  height: calc(100vh - var(--adt-chrome-inset, 0px));
+}
+
 /*
  * Accessibility — icon size.
  * Scales every SVG inside a dock-trigger button (and the dock activity X /

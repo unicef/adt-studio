@@ -1868,6 +1868,23 @@ describe("rewriteImageUrls", () => {
     expect(out).toContain("height: auto")
   })
 
+  it("leaves a full-bleed background image to its own classes", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" class="absolute inset-0 z-0 h-full w-full object-cover">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain('src="images/photo.jpg"')
+    expect(out).not.toContain("height: auto")
+    expect(out).not.toContain("max-width: 100%")
+  })
+
+  it("still sizes an ordinary in-flow image", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" class="rounded-lg shadow">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain("max-width: 100%")
+    expect(out).toContain("height: auto")
+  })
+
   it("preserves existing inline styles when adding max-width", () => {
     const html = `<img src="/api/books/mybook/images/abc123" style="border: 1px solid red;">`
     const imageMap = new Map([["abc123", "photo.jpg"]])

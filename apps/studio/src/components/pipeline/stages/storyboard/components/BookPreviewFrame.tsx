@@ -359,6 +359,10 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     () => DOMPurify.sanitize(html, { FORBID_ATTR: ["contenteditable"] }),
     [html],
   )
+  const viewportSizedContent = useMemo(
+    () => /\b(?:min-h|h)-(?:screen|dvh|svh|lvh)\b|\b100[dsl]?vh\b/.test(sanitizedHtml),
+    [sanitizedHtml],
+  )
   // Convert LaTeX to MathML for display via the API — the underlying data stays as LaTeX.
   // Start with sanitized HTML immediately, then update when the API responds.
   const [displayHtml, setDisplayHtml] = useState(sanitizedHtml)
@@ -870,7 +874,7 @@ ${selectors}:hover {
         ? 1
         : targetVisibleWidth / baseWidth
     const naturalHeight =
-      deviceView === "desktop" || deviceView === undefined
+      (deviceView === "desktop" || deviceView === undefined) && !viewportSizedContent
         ? contentHeight
         : frame.chromeHeight
     const heightScale =
@@ -887,6 +891,7 @@ ${selectors}:hover {
     contentHeight,
     frame.chromeHeight,
     maxVisibleHeight,
+    viewportSizedContent,
   ])
 
   // Ref callback so the iframe re-initializes whenever the conditional
@@ -974,11 +979,12 @@ ${selectors}:hover {
   // `min-h-screen flex items-center` produces when a section is shorter than
   // the canvas.
   const isDesktop = !deviceView || deviceView === "desktop"
+  const contentTall = isDesktop && !viewportSizedContent
   const iframeWidth = fixedLayoutSize?.width ?? frame.screenWidth
-  const iframeHeight = fixedLayoutSize?.height ?? (isDesktop ? contentHeight : frame.screenHeight)
+  const iframeHeight = fixedLayoutSize?.height ?? (contentTall ? contentHeight : frame.screenHeight)
   const visibleHeight = fixedLayoutSize
     ? fixedLayoutSize.height * scale
-    : isDesktop
+    : contentTall
       ? contentHeight * scale
       : frame.chromeHeight * scale
 
