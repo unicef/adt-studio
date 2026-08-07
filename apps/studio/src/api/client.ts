@@ -1884,6 +1884,13 @@ export const api = {
       signal: AbortSignal.timeout(15 * 60_000),
     }),
 
+  installLocalSpeechVoice: (repository: string, voice: string) =>
+    request<LocalSpeechModel>(`/local-speech/models/${repository}/voices`, {
+      method: "POST",
+      body: JSON.stringify({ voice }),
+      signal: AbortSignal.timeout(15 * 60_000),
+    }),
+
   removeLocalSpeechModel: (repository: string) =>
     request<{ removed: string }>(`/local-speech/models/${repository}`, { method: "DELETE" }),
 

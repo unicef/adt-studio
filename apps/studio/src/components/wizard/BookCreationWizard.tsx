@@ -8,7 +8,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { api } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
-import { useLlmAccess } from "@/hooks/use-llm-access"
+import { hasCredentialForModel } from "@/hooks/use-llm-access"
 import { useBooks, useCreateBook } from "@/hooks/use-books"
 import { useWizard } from "./index"
 import { useWizardForm } from "./wizardForm"
@@ -210,7 +210,6 @@ export function BookCreationWizard() {
   const form = useWizardForm()
   const createMutation = useCreateBook()
   const { apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
-  const { hasLlmAccess } = useLlmAccess()
   const { data: books, isPending: booksLoading } = useBooks()
   const [previewOpen, setPreviewOpen] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -219,6 +218,12 @@ export function BookCreationWizard() {
 
   const values = useStore(form.store, (s) => s.values)
   const { file, renderStrategy, editingLanguage, outputLanguages, styleguide } = values
+  const hasSelectedLlmAccess = hasCredentialForModel(values.generationModel, {
+    apiKey,
+    anthropicKey,
+    googleKey,
+    customBaseUrl,
+  })
   const accent = getPresetAccent(values.selectedPreset)
   const stepIndex = currentStep - 1
   const existingBookLabels = booksLoading ? undefined : books?.map((b: { label: string }) => b.label)
@@ -310,7 +315,7 @@ export function BookCreationWizard() {
       // scope we skip it: each contributor extracts their own page-range part,
       // so extracting the full book on this machine would be the very cost the
       // split feature avoids.
-      if (values.scope !== "split" && hasLlmAccess) {
+      if (values.scope !== "split" && hasSelectedLlmAccess) {
         // Seed the run status the book page reads, so it paints "Extract
         // queued" on first render. Without this the page mounts with a cold
         // cache and shows an idle pipeline until its own step-status fetch

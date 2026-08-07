@@ -868,6 +868,9 @@ msgstr "Add a new picture from your disk"
 msgid "Add a quiz"
 msgstr "Add a quiz"
 
+msgid "Add a voice"
+msgstr "Add a voice"
+
 msgid "Add after"
 msgstr "Add after"
 
@@ -1021,6 +1024,9 @@ msgstr "Add the selected provider's API key in Book settings to run speech."
 msgid "Add this provider's API key in Book settings."
 msgstr "Add this provider's API key in Book settings."
 
+msgid "Add this provider's key in Settings → API keys before generation."
+msgstr "Add this provider's key in Settings → API keys before generation."
+
 msgid "Add tile"
 msgstr "Add tile"
 
@@ -1032,6 +1038,9 @@ msgstr "Add video"
 
 msgid "Add videos"
 msgstr "Add videos"
+
+msgid "Add voice"
+msgstr "Add voice"
 
 msgid "Add your first book"
 msgstr "Add your first book"
@@ -1260,6 +1269,12 @@ msgstr "Already handed out"
 
 msgid "Alt"
 msgstr "Alt"
+
+msgid "American female"
+msgstr "American female"
+
+msgid "American male"
+msgstr "American male"
 
 msgid "Among the Stars"
 msgstr "Among the Stars"
@@ -1748,6 +1763,12 @@ msgstr "Breakpoint override"
 msgid "Brewing a fresh batch of HTML..."
 msgstr "Brewing a fresh batch of HTML..."
 
+msgid "British female"
+msgstr "British female"
+
+msgid "British male"
+msgstr "British male"
+
 msgid "Browse all Google Fonts…"
 msgstr "Browse all Google Fonts…"
 
@@ -2023,6 +2044,9 @@ msgstr "Choose a preset that matches your content — textbook, storyboard, refe
 msgid "Choose a previously uploaded video or upload a new one."
 msgstr "Choose a previously uploaded video or upload a new one."
 
+msgid "Choose a voice and listen before using it in a book. Voices not yet installed are downloaded when you preview them."
+msgstr "Choose a voice and listen before using it in a book. Voices not yet installed are downloaded when you preview them."
+
 msgid "Choose an existing image from this project"
 msgstr "Choose an existing image from this project"
 
@@ -2046,6 +2070,9 @@ msgstr "Choose how the content should be formatted."
 
 msgid "Choose images..."
 msgstr "Choose images..."
+
+msgid "Choose local or cloud generation to continue"
+msgstr "Choose local or cloud generation to continue"
 
 msgid "Choose Provider"
 msgstr "Choose Provider"
@@ -2143,6 +2170,12 @@ msgstr "Close edit panel"
 msgid "Close style editor"
 msgstr "Close style editor"
 
+msgid "Cloud API"
+msgstr "Cloud API"
+
+msgid "Cloud model"
+msgstr "Cloud model"
+
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 
@@ -2208,6 +2241,9 @@ msgstr "Compared with fallback prompt."
 
 msgid "Compatible"
 msgstr "Compatible"
+
+msgid "Compatible (ONNX)"
+msgstr "Compatible (ONNX)"
 
 msgid "Completed"
 msgstr "Completed"
@@ -2929,11 +2965,17 @@ msgstr "DONE"
 #~ msgid "Downgrade"
 #~ msgstr "Downgrade"
 
-msgid "Download"
-msgstr "Download"
+#~ msgid "Download"
+#~ msgstr "Download"
+
+msgid "Download & preview"
+msgstr "Download & preview"
 
 msgid "Download a full backup of this project"
 msgstr "Download a full backup of this project"
+
+msgid "Download a Gemma model in Settings → Local AI first."
+msgstr "Download a Gemma model in Settings → Local AI first."
 
 msgid "Download a lightweight part (the full PDF plus a page range and a fingerprint) for someone else to process on their own machine, then merge their result back here."
 msgstr "Download a lightweight part (the full PDF plus a page range and a fingerprint) for someone else to process on their own machine, then merge their result back here."
@@ -2949,6 +2991,9 @@ msgstr "Download model"
 
 msgid "Download part"
 msgstr "Download part"
+
+msgid "download required"
+msgstr "download required"
 
 #~ msgid "Download size"
 #~ msgstr "Download size"
@@ -3566,8 +3611,17 @@ msgstr "Failed:"
 msgid "Falls back to"
 msgstr "Falls back to"
 
+msgid "Fast private offline narration using voices already managed by macOS."
+msgstr "Fast private offline narration using voices already managed by macOS."
+
 msgid "Fast, consistent results with no AI cost"
 msgstr "Fast, consistent results with no AI cost"
+
+msgid "Faster and higher quality, with provider usage charges."
+msgstr "Faster and higher quality, with provider usage charges."
+
+msgid "Fastest on this Mac (MLX)"
+msgstr "Fastest on this Mac (MLX)"
 
 msgid "Feedback"
 msgstr "Feedback"
@@ -3631,6 +3685,9 @@ msgstr "Filters out decorative or non-content images on each page."
 
 msgid "Final Page"
 msgstr "Final Page"
+
+msgid "Find another compatible model"
+msgstr "Find another compatible model"
 
 msgid "First images from the deep-field telescope."
 msgstr "First images from the deep-field telescope."
@@ -3803,6 +3860,9 @@ msgstr "Gemini Voice"
 msgid "Gemini voice consistency"
 msgstr "Gemini voice consistency"
 
+msgid "Gemma model"
+msgstr "Gemma model"
+
 msgid "General"
 msgstr "General"
 
@@ -3854,8 +3914,11 @@ msgstr "Generate comprehension quizzes and activities based on the book content.
 msgid "Generate descriptive captions for every image in the book. Pick a reading level so captions match your audience, and add custom instructions if you want to nudge the tone or focus."
 msgstr "Generate descriptive captions for every image in the book. Pick a reading level so captions match your audience, and add custom instructions if you want to nudge the tone or focus."
 
-msgid "Generate English narration locally with Kokoro. WAV files are embedded in the exported ADT."
-msgstr "Generate English narration locally with Kokoro. WAV files are embedded in the exported ADT."
+msgid "Generate English narration locally with Kokoro. Download a voice, preview it below, then select it during the Speech stage. WAV files are embedded in the exported ADT."
+msgstr "Generate English narration locally with Kokoro. Download a voice, preview it below, then select it during the Speech stage. WAV files are embedded in the exported ADT."
+
+#~ msgid "Generate English narration locally with Kokoro. WAV files are embedded in the exported ADT."
+#~ msgstr "Generate English narration locally with Kokoro. WAV files are embedded in the exported ADT."
 
 msgid "Generate feedback"
 msgstr "Generate feedback"
@@ -3957,6 +4020,9 @@ msgstr "Generation failed"
 
 msgid "Generation failed. Please try again."
 msgstr "Generation failed. Please try again."
+
+msgid "Generation method"
+msgstr "Generation method"
 
 msgid "Generation Prompt"
 msgstr "Generation Prompt"
@@ -4806,6 +4872,9 @@ msgstr "Loading Easy Read..."
 msgid "Loading export..."
 msgstr "Loading export..."
 
+msgid "Loading generation options"
+msgstr "Loading generation options"
+
 msgid "Loading glossary..."
 msgstr "Loading glossary..."
 
@@ -4905,6 +4974,9 @@ msgstr "Local AI runtime"
 msgid "Local AI runtime is unavailable"
 msgstr "Local AI runtime is unavailable"
 
+msgid "Local Gemma"
+msgstr "Local Gemma"
+
 msgid "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
 msgstr "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
 
@@ -4917,8 +4989,11 @@ msgstr "Local model selected."
 msgid "Local speech"
 msgstr "Local speech"
 
-msgid "Local speech is ready."
-msgstr "Local speech is ready."
+#~ msgid "Local speech is ready."
+#~ msgstr "Local speech is ready."
+
+msgid "Local speech runtime"
+msgstr "Local speech runtime"
 
 msgid "Local voice"
 msgstr "Local voice"
@@ -4961,6 +5036,18 @@ msgstr "Low"
 
 msgid "Lower values produce more consistent styling across pages."
 msgstr "Lower values produce more consistent styling across pages."
+
+msgid "Mac Fast"
+msgstr "Mac Fast"
+
+msgid "macOS System"
+msgstr "macOS System"
+
+msgid "macOS system voices are available in the Mac desktop app."
+msgstr "macOS system voices are available in the Mac desktop app."
+
+msgid "macOS system voices require the Mac desktop app."
+msgstr "macOS system voices require the Mac desktop app."
 
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Make sure you're uploading a .zip file exported from ADT Studio."
@@ -5274,6 +5361,9 @@ msgstr "Model on GPU"
 
 msgid "Model overrides"
 msgstr "Model overrides"
+
+msgid "Model repository"
+msgstr "Model repository"
 
 #~ msgid "Model variant"
 #~ msgstr "Model variant"
@@ -6351,6 +6441,9 @@ msgstr "paragraph"
 msgid "Paragraph"
 msgstr "Paragraph"
 
+msgid "Parallel slots"
+msgstr "Parallel slots"
+
 msgid "Parsing pages"
 msgstr "Parsing pages"
 
@@ -6617,6 +6710,9 @@ msgstr "Prefer terms central to the book's subject matter. Skip generic vocabula
 msgid "Preparing speech..."
 msgstr "Preparing speech..."
 
+msgid "Preparing..."
+msgstr "Preparing..."
+
 msgid "Preparing…"
 msgstr "Preparing…"
 
@@ -6644,6 +6740,15 @@ msgstr "Preview linked page"
 msgid "Preview of the HTML/CSS patterns used for LLM-generated pages."
 msgstr "Preview of the HTML/CSS patterns used for LLM-generated pages."
 
+msgid "Preview phrase"
+msgstr "Preview phrase"
+
+msgid "Preview voice"
+msgstr "Preview voice"
+
+msgid "Preview voices"
+msgstr "Preview voices"
+
 msgid "Preview: per-sentence"
 msgstr "Preview: per-sentence"
 
@@ -6670,6 +6775,9 @@ msgstr "Previously uploaded videos"
 
 msgid "Print a variable"
 msgstr "Print a variable"
+
+msgid "Private and free after download. Best for first drafts."
+msgstr "Private and free after download. Best for first drafts."
 
 msgid "Private offline English narration with a downloaded Kokoro model."
 msgstr "Private offline English narration with a downloaded Kokoro model."
@@ -8450,6 +8558,9 @@ msgstr "Step-by-step activity preview"
 msgid "Steps"
 msgstr "Steps"
 
+msgid "Stop"
+msgstr "Stop"
+
 msgid "Stop step"
 msgstr "Stop step"
 
@@ -8718,8 +8829,8 @@ msgstr "Terms were picked by AI from the book. Edit a definition or its emojis, 
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Terms, character names, or phrases the judge should preserve or prefer."
 
-msgid "Test"
-msgstr "Test"
+#~ msgid "Test"
+#~ msgstr "Test"
 
 msgid "Text"
 msgstr "Text"
@@ -9011,6 +9122,9 @@ msgstr "This book isn't fully assembled yet — pages <0>{0}</0> haven't been me
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
+
+msgid "This choice is saved only for this book and can be changed later."
+msgstr "This choice is saved only for this book and can be changed later."
 
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
@@ -9444,6 +9558,9 @@ msgstr "Unable to load the model settings."
 msgid "Unable to load the task-specific model defaults."
 msgstr "Unable to load the task-specific model defaults."
 
+msgid "Unable to play voice preview."
+msgstr "Unable to play voice preview."
+
 msgid "Unable to render PDF preview."
 msgstr "Unable to render PDF preview."
 
@@ -9840,8 +9957,14 @@ msgstr "Visual style editing isn't available for fixed-layout pages yet. You can
 msgid "Voice"
 msgstr "Voice"
 
+msgid "Voice installed"
+msgstr "Voice installed"
+
 msgid "Voice Mappings"
 msgstr "Voice Mappings"
+
+msgid "Voice to preview"
+msgstr "Voice to preview"
 
 msgid "Voices"
 msgstr "Voices"
@@ -9930,6 +10053,9 @@ msgstr "Welcome"
 
 msgid "Welcome to ADT Studio"
 msgstr "Welcome to ADT Studio"
+
+msgid "Welcome to ADT Studio. This is a sample of the selected local voice."
+msgstr "Welcome to ADT Studio. This is a sample of the selected local voice."
 
 msgid "What is the main role of a plant's roots?"
 msgstr "What is the main role of a plant's roots?"

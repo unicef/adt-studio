@@ -31,6 +31,9 @@ const TestRequest = z.object({
   voice: z.enum(KOKORO_VOICES).default(DEFAULT_KOKORO_VOICE),
   text: z.string().min(1).max(500).default("Local speech is ready."),
 })
+const InstallVoiceRequest = z.object({
+  voice: z.enum(KOKORO_VOICES),
+})
 
 const MODEL_FILES: Record<LocalHfTTSDtype, string> = {
   q8: "onnx/model_quantized.onnx",
@@ -56,8 +59,8 @@ function listInstalled(modelsDir: string): LocalHfModelManifest[] {
     })
 }
 
-async function fetchModelInfo(repository: string, fetchImpl: typeof fetch): Promise<HfModelInfo> {
-  const response = await fetchImpl(`https://huggingface.co/api/models/${repository}/revision/main`, {
+async function fetchModelInfo(repository: string, fetchImpl: typeof fetch, revision = "main"): Promise<HfModelInfo> {
+  const response = await fetchImpl(`https://huggingface.co/api/models/${repository}/revision/${revision}`, {
     headers: { Accept: "application/json" }, signal: AbortSignal.timeout(15_000),
   })
   if (!response.ok) throw new HTTPException(response.status === 404 ? 404 : 502, { message: `Hugging Face returned HTTP ${response.status}` })
@@ -115,6 +118,7 @@ async function downloadFile(args: {
 export function createLocalSpeechRoutes(modelsDir: string, options: { fetchImpl?: typeof fetch } = {}) {
   const app = new Hono()
   const fetchImpl = options.fetchImpl ?? fetch
+  const installingVoices = new Set<string>()
   fs.mkdirSync(modelsDir, { recursive: true })
 
   app.get("/local-speech/status", (c) => c.json({
@@ -247,6 +251,91 @@ export function createLocalSpeechRoutes(modelsDir: string, options: { fetchImpl?
     fs.rmSync(destination, { recursive: true, force: true })
     clearLocalHfTTSRuntimeCache()
     return c.json({ removed: repository })
+  })
+
+  app.post("/local-speech/models/:owner/:model/voices", async (c) => {
+    const repository = normalizeHfModelSource(`${c.req.param("owner")}/${c.req.param("model")}`)
+    const parsed = InstallVoiceRequest.safeParse(await c.req.json().catch(() => null))
+    if (!parsed.success) throw new HTTPException(400, { message: "Invalid local speech voice" })
+    const destination = localHfModelDirectory(modelsDir, repository)
+    if (!fs.existsSync(path.join(destination, "manifest.json"))) {
+      throw new HTTPException(404, { message: "Model is not installed" })
+    }
+    const manifest = readLocalHfManifest(modelsDir, repository)
+    if (manifest.voices.includes(parsed.data.voice)) return c.json(manifest)
+
+    const installKey = `${repository}:${parsed.data.voice}`
+    if (installingVoices.has(installKey)) {
+      throw new HTTPException(409, { message: "This voice is already downloading" })
+    }
+    installingVoices.add(installKey)
+
+    const staging = path.join(modelsDir, ".staging", crypto.randomUUID())
+    let finalVoice: string | undefined
+    let voiceMoved = false
+    let manifestCommitted = false
+    try {
+      const info = await fetchModelInfo(repository, fetchImpl, manifest.revision)
+      if (info.sha !== manifest.revision) throw new Error("Hugging Face returned a different model revision")
+      let stagedVoice: string
+      if (manifest.runtime === "mlx") {
+        const revision = assertCompatible(info, [KOKORO_MLX_ARCHIVE])
+        if (revision !== manifest.revision) throw new Error("Model revision changed")
+        const archivePath = path.join(staging, KOKORO_MLX_ARCHIVE)
+        await downloadFile({
+          repository,
+          revision,
+          file: KOKORO_MLX_ARCHIVE,
+          destination: archivePath,
+          sibling: info.siblings?.find((item) => item.rfilename === KOKORO_MLX_ARCHIVE),
+          fetchImpl,
+          signal: c.req.raw.signal,
+        })
+        const archive = unzipSync(new Uint8Array(fs.readFileSync(archivePath)))
+        const archiveVoice = `voices/${parsed.data.voice}.safetensors`
+        const data = archive[archiveVoice]
+        if (!data?.byteLength) throw new Error(`Kokoro MLX bundle is missing ${archiveVoice}`)
+        stagedVoice = path.join(staging, archiveVoice)
+        finalVoice = path.join(destination, "mlx", archiveVoice)
+        fs.mkdirSync(path.dirname(stagedVoice), { recursive: true })
+        fs.writeFileSync(stagedVoice, data, { flag: "wx" })
+      } else {
+        const voiceFile = `voices/${parsed.data.voice}.bin`
+        const revision = assertCompatible(info, [voiceFile])
+        if (revision !== manifest.revision) throw new Error("Model revision changed")
+        stagedVoice = path.join(staging, voiceFile)
+        finalVoice = path.join(destination, voiceFile)
+        await downloadFile({
+          repository,
+          revision,
+          file: voiceFile,
+          destination: stagedVoice,
+          sibling: info.siblings?.find((item) => item.rfilename === voiceFile),
+          fetchImpl,
+          signal: c.req.raw.signal,
+        })
+      }
+      fs.mkdirSync(path.dirname(finalVoice), { recursive: true })
+      fs.renameSync(stagedVoice, finalVoice)
+      voiceMoved = true
+      const updated: LocalHfModelManifest = {
+        ...manifest,
+        voices: [...manifest.voices, parsed.data.voice],
+      }
+      const manifestTemp = path.join(destination, "manifest.json.tmp")
+      fs.writeFileSync(manifestTemp, `${JSON.stringify(updated, null, 2)}\n`, { flag: "wx" })
+      fs.renameSync(manifestTemp, path.join(destination, "manifest.json"))
+      manifestCommitted = true
+      clearLocalHfTTSRuntimeCache()
+      return c.json(updated, 201)
+    } catch (error) {
+      fs.rmSync(path.join(destination, "manifest.json.tmp"), { force: true })
+      if (voiceMoved && !manifestCommitted && finalVoice) fs.rmSync(finalVoice, { force: true })
+      throw new HTTPException(502, { message: error instanceof Error ? error.message : String(error) })
+    } finally {
+      installingVoices.delete(installKey)
+      fs.rmSync(staging, { recursive: true, force: true })
+    }
   })
 
   app.post("/local-speech/test", async (c) => {

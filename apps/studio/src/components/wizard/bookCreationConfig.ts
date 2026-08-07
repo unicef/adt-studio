@@ -18,6 +18,7 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
 
   const config: Record<string, unknown> = {
     ...baseConfig,
+    ...(values.generationModel.trim() && { default_model: values.generationModel.trim() }),
     default_render_strategy: values.renderStrategy,
     page_sectioning: { mode: values.sectioningMode },
     spread_mode: values.pageGrouping === "spread",

@@ -4,6 +4,7 @@ import { PresetViewer } from "./PresetViewer"
 import { PdfField } from "./PdfField"
 import { Scope } from "./Scope"
 import { ProjectNameField } from "./ProjectNameField"
+import { GenerationMethod } from "./GenerationMethod"
 import { createProjectLabelSchema } from "./projectLabelSchema"
 
 export function Step1() {
@@ -15,6 +16,15 @@ export function Step1() {
     <div className="flex flex-col gap-6 p-8">
       <PresetViewer />
       <PdfField />
+
+      <form.Field name="generationModel">
+        {(field) => (
+          <GenerationMethod
+            value={field.state.value}
+            onChange={field.handleChange}
+          />
+        )}
+      </form.Field>
 
       <form.Field
         name="label"

@@ -869,6 +869,9 @@ msgstr "Shto një figurë të re nga disku yt"
 msgid "Add a quiz"
 msgstr "Shto një kuiz"
 
+msgid "Add a voice"
+msgstr "Shto një zë"
+
 msgid "Add after"
 msgstr "Shto pas"
 
@@ -1022,6 +1025,9 @@ msgstr "Shto çelësin API të ofruesit të zgjedhur në cilësimet e Librit pë
 msgid "Add this provider's API key in Book settings."
 msgstr "Shto çelësin API të këtij ofruesi në cilësimet e Librit."
 
+msgid "Add this provider's key in Settings → API keys before generation."
+msgstr "Shtoni çelësin e këtij ofruesi te Cilësimet → Çelësat API para gjenerimit."
+
 msgid "Add tile"
 msgstr "Shto pllakëz"
 
@@ -1033,6 +1039,9 @@ msgstr "Shto video"
 
 msgid "Add videos"
 msgstr "Shto video"
+
+msgid "Add voice"
+msgstr "Shto zërin"
 
 msgid "Add your first book"
 msgstr "Shto librin tuaj të parë"
@@ -1261,6 +1270,12 @@ msgstr "Tashmë të shpërndara"
 
 msgid "Alt"
 msgstr "Alt"
+
+msgid "American female"
+msgstr "Zë femëror amerikan"
+
+msgid "American male"
+msgstr "Zë mashkullor amerikan"
 
 msgid "Among the Stars"
 msgstr "Mes yjeve"
@@ -1749,6 +1764,12 @@ msgstr "Anashkalim i pikës së thyerjes"
 msgid "Brewing a fresh batch of HTML..."
 msgstr "Duke krijuar një tufë të re HTML..."
 
+msgid "British female"
+msgstr "Zë femëror britanik"
+
+msgid "British male"
+msgstr "Zë mashkullor britanik"
+
 msgid "Browse all Google Fonts…"
 msgstr "Shfleto të gjitha Google Fonts…"
 
@@ -2024,6 +2045,9 @@ msgstr "Zgjidhni një preset që përputhet me përmbajtjen tuaj — tekst shkol
 msgid "Choose a previously uploaded video or upload a new one."
 msgstr "Zgjidh një video të ngarkuar më parë ose ngarko një të re."
 
+msgid "Choose a voice and listen before using it in a book. Voices not yet installed are downloaded when you preview them."
+msgstr "Zgjidhni një zë dhe dëgjojeni para se ta përdorni në libër. Zërat e painstaluar shkarkohen kur i dëgjoni."
+
 msgid "Choose an existing image from this project"
 msgstr "Zgjidhni një imazh ekzistues nga ky projekt"
 
@@ -2047,6 +2071,9 @@ msgstr "Zgjidhni si duhet të formatohet përmbajtja."
 
 msgid "Choose images..."
 msgstr "Zgjidhni imazhe..."
+
+msgid "Choose local or cloud generation to continue"
+msgstr "Zgjidhni gjenerimin lokal ose në cloud për të vazhduar"
 
 msgid "Choose Provider"
 msgstr "Zgjidhni Ofruesin"
@@ -2144,6 +2171,12 @@ msgstr "Mbyll panelin e redaktimit"
 msgid "Close style editor"
 msgstr "Mbyll redaktorin e stilit"
 
+msgid "Cloud API"
+msgstr "API në cloud"
+
+msgid "Cloud model"
+msgstr "Modeli në cloud"
+
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Peshqit klovn, breshkat e detit dhe peshqit papagall janë vetëm disa nga mijëra speciet që varen nga rifet për ushqim, strehim dhe vendlindje."
 
@@ -2209,6 +2242,9 @@ msgstr "Krahasuar me prompt-in fallback."
 
 msgid "Compatible"
 msgstr "I përputhshëm"
+
+msgid "Compatible (ONNX)"
+msgstr "I përputhshëm (ONNX)"
 
 msgid "Completed"
 msgstr "Përfunduar"
@@ -2930,11 +2966,17 @@ msgstr "KRYER"
 #~ msgid "Downgrade"
 #~ msgstr "Kthim në version më të vjetër"
 
-msgid "Download"
-msgstr "Shkarko"
+#~ msgid "Download"
+#~ msgstr "Shkarko"
+
+msgid "Download & preview"
+msgstr "Shkarko dhe dëgjo"
 
 msgid "Download a full backup of this project"
 msgstr "Shkarko një kopje rezervë të plotë të këtij projekti"
+
+msgid "Download a Gemma model in Settings → Local AI first."
+msgstr "Së pari shkarkoni një model Gemma te Cilësimet → IA lokale."
 
 msgid "Download a lightweight part (the full PDF plus a page range and a fingerprint) for someone else to process on their own machine, then merge their result back here."
 msgstr "Shkarko një pjesë të lehtë (PDF-ja e plotë plus një interval faqesh dhe një gjurmë) që dikush tjetër ta përpunojë në makinën e vet, e më pas bashko rezultatin e tij këtu."
@@ -2950,6 +2992,9 @@ msgstr "Shkarko modelin"
 
 msgid "Download part"
 msgstr "Shkarko pjesën"
+
+msgid "download required"
+msgstr "kërkohet shkarkim"
 
 #~ msgid "Download size"
 #~ msgstr "Madhësia e shkarkimit"
@@ -3567,8 +3612,17 @@ msgstr "Dështoi:"
 msgid "Falls back to"
 msgstr "Kthehet te"
 
+msgid "Fast private offline narration using voices already managed by macOS."
+msgstr "Narracion i shpejtë, privat dhe offline me zërat e menaxhuar nga macOS."
+
 msgid "Fast, consistent results with no AI cost"
 msgstr "Rezultate të shpejta dhe konsistente pa kosto AI"
+
+msgid "Faster and higher quality, with provider usage charges."
+msgstr "Më i shpejtë dhe me cilësi më të lartë, me tarifa përdorimi të ofruesit."
+
+msgid "Fastest on this Mac (MLX)"
+msgstr "Më i shpejti në këtë Mac (MLX)"
 
 msgid "Feedback"
 msgstr "Reagimi"
@@ -3632,6 +3686,9 @@ msgstr "Filtron imazhet dekorative ose pa përmbajtje nga çdo faqe."
 
 msgid "Final Page"
 msgstr "Faqja e fundit"
+
+msgid "Find another compatible model"
+msgstr "Gjej një model tjetër të përputhshëm"
 
 msgid "First images from the deep-field telescope."
 msgstr "Imazhet e para nga teleskopi i fushës së thellë."
@@ -3804,6 +3861,9 @@ msgstr "Zëri Gemini"
 msgid "Gemini voice consistency"
 msgstr "Qëndrueshmëria e zërit të Gemini"
 
+msgid "Gemma model"
+msgstr "Modeli Gemma"
+
 msgid "General"
 msgstr "Të përgjithshme"
 
@@ -3855,8 +3915,11 @@ msgstr "Gjenero kuize dhe aktivitete të kuptimit bazuar në përmbajtjen e libr
 msgid "Generate descriptive captions for every image in the book. Pick a reading level so captions match your audience, and add custom instructions if you want to nudge the tone or focus."
 msgstr "Gjenero tituj përshkrues për çdo imazh në libër. Zgjidh një nivel leximi që titujt të përputhen me audiencën tuaj dhe shto udhëzime të personalizuara nëse doni të ndikoni tonin ose fokusimin."
 
-msgid "Generate English narration locally with Kokoro. WAV files are embedded in the exported ADT."
-msgstr "Gjenero narracion në anglisht lokalisht me Kokoro. Skedarët WAV përfshihen në ADT-në e eksportuar."
+msgid "Generate English narration locally with Kokoro. Download a voice, preview it below, then select it during the Speech stage. WAV files are embedded in the exported ADT."
+msgstr "Gjeneroni narracion në anglisht lokalisht me Kokoro. Shkarkoni një zë, dëgjojeni më poshtë dhe zgjidheni në fazën e të folurit. Skedarët WAV përfshihen në ADT-në e eksportuar."
+
+#~ msgid "Generate English narration locally with Kokoro. WAV files are embedded in the exported ADT."
+#~ msgstr "Gjenero narracion në anglisht lokalisht me Kokoro. Skedarët WAV përfshihen në ADT-në e eksportuar."
 
 msgid "Generate feedback"
 msgstr "Gjenero reagimin"
@@ -3958,6 +4021,9 @@ msgstr "Gjenerimi dështoi"
 
 msgid "Generation failed. Please try again."
 msgstr "Gjenerimi dështoi. Ju lutemi provoni përsëri."
+
+msgid "Generation method"
+msgstr "Mënyra e gjenerimit"
 
 msgid "Generation Prompt"
 msgstr "Prompt Gjenerimi"
@@ -4807,6 +4873,9 @@ msgstr "Duke ngarkuar Leximin e Lehtë..."
 msgid "Loading export..."
 msgstr "Duke ngarkuar eksportimin..."
 
+msgid "Loading generation options"
+msgstr "Duke ngarkuar opsionet e gjenerimit"
+
 msgid "Loading glossary..."
 msgstr "Duke ngarkuar glosarin..."
 
@@ -4906,6 +4975,9 @@ msgstr "Motori lokal i IA-së"
 msgid "Local AI runtime is unavailable"
 msgstr "Motori lokal i IA-së nuk është i disponueshëm"
 
+msgid "Local Gemma"
+msgstr "Gemma lokale"
+
 msgid "Local generation is the private default. If you add OpenAI credits later, select an OpenAI model and rerun any step to regenerate or improve that result."
 msgstr "Gjenerimi lokal është zgjedhja private e paracaktuar. Nëse shton kredite OpenAI më vonë, zgjidh një model OpenAI dhe riekzekuto çdo hap për ta rigjeneruar ose përmirësuar rezultatin."
 
@@ -4918,8 +4990,11 @@ msgstr "Modeli lokal u zgjodh."
 msgid "Local speech"
 msgstr "Të folurit lokal"
 
-msgid "Local speech is ready."
-msgstr "Të folurit lokal është gati."
+#~ msgid "Local speech is ready."
+#~ msgstr "Të folurit lokal është gati."
+
+msgid "Local speech runtime"
+msgstr "Mjedisi lokal i të folurit"
 
 msgid "Local voice"
 msgstr "Zëri lokal"
@@ -4962,6 +5037,18 @@ msgstr "I ulët"
 
 msgid "Lower values produce more consistent styling across pages."
 msgstr "Vlerat më të ulëta prodhojnë stil më konsistent nëpër faqe."
+
+msgid "Mac Fast"
+msgstr "Mac i shpejtë"
+
+msgid "macOS System"
+msgstr "Sistemi macOS"
+
+msgid "macOS system voices are available in the Mac desktop app."
+msgstr "Zërat e sistemit macOS janë të disponueshëm në aplikacionin desktop për Mac."
+
+msgid "macOS system voices require the Mac desktop app."
+msgstr "Zërat e sistemit macOS kërkojnë aplikacionin desktop për Mac."
 
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studio."
@@ -5265,7 +5352,7 @@ msgid "Model download failed."
 msgstr "Shkarkimi i modelit dështoi."
 
 msgid "Model download paused. You can resume it later."
-msgstr ""
+msgstr "Shkarkimi i modelit u ndal. Mund ta vazhdoni më vonë."
 
 msgid "Model downloaded and selected."
 msgstr "Modeli u shkarkua dhe u zgjodh."
@@ -5275,6 +5362,9 @@ msgstr "Modeli në GPU"
 
 msgid "Model overrides"
 msgstr "Mbivendosjet e modeleve"
+
+msgid "Model repository"
+msgstr "Depoja e modelit"
 
 #~ msgid "Model variant"
 #~ msgstr "Variant modeli"
@@ -6352,6 +6442,9 @@ msgstr "paragraf"
 msgid "Paragraph"
 msgstr "Paragraf"
 
+msgid "Parallel slots"
+msgstr "Vende paralele"
+
 msgid "Parsing pages"
 msgstr "Analizimi i faqeve"
 
@@ -6396,7 +6489,7 @@ msgid "Pause"
 msgstr "Pauzë"
 
 msgid "Pause download"
-msgstr ""
+msgstr "Ndalo shkarkimin"
 
 msgid "Payload"
 msgstr "Ngarkesa"
@@ -6618,6 +6711,9 @@ msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjen
 msgid "Preparing speech..."
 msgstr "Duke përgatitur audion..."
 
+msgid "Preparing..."
+msgstr "Duke përgatitur..."
+
 msgid "Preparing…"
 msgstr "Duke u përgatitur…"
 
@@ -6645,6 +6741,15 @@ msgstr "Shiko faqen e lidhur"
 msgid "Preview of the HTML/CSS patterns used for LLM-generated pages."
 msgstr "Pamje paraprake e modeleve HTML/CSS të përdorura për faqet e gjeneruara nga LLM."
 
+msgid "Preview phrase"
+msgstr "Fraza e mostrës"
+
+msgid "Preview voice"
+msgstr "Dëgjo zërin"
+
+msgid "Preview voices"
+msgstr "Dëgjo zërat"
+
 msgid "Preview: per-sentence"
 msgstr "Pamje paraprake: për-fjali"
 
@@ -6671,6 +6776,9 @@ msgstr "Video të ngarkuara më parë"
 
 msgid "Print a variable"
 msgstr "Shfaq një variabël"
+
+msgid "Private and free after download. Best for first drafts."
+msgstr "Privat dhe falas pas shkarkimit. Më i përshtatshëm për draftet e para."
 
 msgid "Private offline English narration with a downloaded Kokoro model."
 msgstr "Narracion privat jashtë linje në anglisht me një model Kokoro të shkarkuar."
@@ -8451,6 +8559,9 @@ msgstr "Pamja paraprake e aktivitetit hap pas hapi"
 msgid "Steps"
 msgstr "Hapat"
 
+msgid "Stop"
+msgstr "Ndalo"
+
 msgid "Stop step"
 msgstr "Ndalo hapin"
 
@@ -8719,8 +8830,8 @@ msgstr "Termet u zgjodhën nga AI nga libri. Redakto një përkufizim ose emoji-
 msgid "Terms, character names, or phrases the judge should preserve or prefer."
 msgstr "Termat, emrat e karaktereve ose frazat që gjykatësi duhet të ruajë ose preferojë."
 
-msgid "Test"
-msgstr "Testo"
+#~ msgid "Test"
+#~ msgstr "Testo"
 
 msgid "Text"
 msgstr "Teksti"
@@ -9012,6 +9123,9 @@ msgstr "Ky libër ende nuk është plotësuar — faqet <0>{0}</0> nuk janë bas
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinale të PDF-së. Fontet e bashkëngjitura gjithsesi udhëzojnë IA-në për aktivitetet dhe faqet e gjeneruara."
+
+msgid "This choice is saved only for this book and can be changed later."
+msgstr "Kjo zgjedhje ruhet vetëm për këtë libër dhe mund të ndryshohet më vonë."
 
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Kjo veçori nuk është e pajtueshme me Paraqitjen e fiksuar. Nëse vazhdoni, mund të merrni rezultate të padëshiruara."
@@ -9445,6 +9559,9 @@ msgstr "Cilësimet e modeleve nuk mund të ngarkoheshin."
 msgid "Unable to load the task-specific model defaults."
 msgstr "Parazgjedhjet e modeleve sipas detyrës nuk mund të ngarkoheshin."
 
+msgid "Unable to play voice preview."
+msgstr "Nuk mund të luhej mostra e zërit."
+
 msgid "Unable to render PDF preview."
 msgstr "Pamja paraprake e PDF nuk mund të shfaqet."
 
@@ -9841,8 +9958,14 @@ msgstr "Redaktimi vizual i stileve nuk është ende i disponueshëm për faqet m
 msgid "Voice"
 msgstr "Zë"
 
+msgid "Voice installed"
+msgstr "Zëri u instalua"
+
 msgid "Voice Mappings"
 msgstr "Hartëzime zërash"
+
+msgid "Voice to preview"
+msgstr "Zëri për dëgjim"
 
 msgid "Voices"
 msgstr "Zëra"
@@ -9931,6 +10054,9 @@ msgstr "Mirë se vini"
 
 msgid "Welcome to ADT Studio"
 msgstr "Mirë se vini në ADT Studio"
+
+msgid "Welcome to ADT Studio. This is a sample of the selected local voice."
+msgstr "Mirë se vini në ADT Studio. Kjo është një mostër e zërit lokal të zgjedhur."
 
 msgid "What is the main role of a plant's roots?"
 msgstr "Cili është roli kryesor i rrënjëve të një bime?"
