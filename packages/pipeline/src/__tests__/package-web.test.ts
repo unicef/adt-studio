@@ -687,6 +687,10 @@ describe("packageAdtWeb", () => {
     const agentsGuide = fs.readFileSync(path.join(bookDir, "adt", "AGENTS.md"), "utf-8")
     expect(agentsGuide).toContain("editing contract version `2`")
     expect(agentsGuide).toContain("activity_custom_<descriptive_slug>")
+    expect(agentsGuide).toContain("editingContract.nonActivities")
+    expect(agentsGuide).toContain("Adding, removing, or reordering pages")
+    expect(agentsGuide).toContain("activity_multiple_choice")
+    expect(agentsGuide).toContain("Audit every page for learning activities")
     expect(agentsGuide).toContain("Do not add custom stylesheet files")
     expect(fs.readFileSync(path.join(bookDir, "adt", "CLAUDE.md"), "utf-8")).toBe(agentsGuide)
   })
@@ -888,6 +892,7 @@ describe("packageAdtWeb", () => {
       href: "index.html",
       type: "activity_quiz",
     }])
+    expect(roundTripManifest.editingContract?.nonActivities).toEqual([])
 
     // SCORM adapter should include the quiz activity ID
     const scorm = fs.readFileSync(path.join(bookDir, "adt", "assets", "scorm.js"), "utf-8")

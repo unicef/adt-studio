@@ -6,29 +6,58 @@ This is an exported Accessible Digital Textbook (ADT), not an ADT Studio project
 
 This bundle declares ADT Studio editing contract version `{{ editingContractVersion }}`. If the user may re-import it, the rules in this section are mandatory.
 
-### Safe changes
+### Supported changes
 
 - Edit visible text inside an existing element that has a `data-id`. Update the same key in `content/i18n/{{ language }}/texts.json` so the exported reader shows the edit before re-import.
 - Edit layout with existing Tailwind utility classes or an element's inline `style` attribute.
 - Replace or add image files under `images/` and reference them with relative paths such as `images/example.png`.
 - Update an image's `alt` text while preserving its `data-id`.
+- Add, remove, or reorder page HTML when all page indexes described below are updated together.
+- Add or change activities and classify interactive content using the activity audit below.
 - Preview the book through its existing `index.html` and runtime files.
 
-### Do not change
+### Non-negotiable invariants
 
-- Do not rename, remove, or duplicate `data-id` values.
-- Do not rename page HTML files or move them into subdirectories.
-- Do not change `#content`, `section[data-section-id]`, or `data-section-type`.
+- Preserve existing `data-id` values. New editable elements need new book-wide unique `data-id` values.
+- Every page HTML file must stay at the bundle root and contain exactly one `#content` root and one canonical `section[data-section-id]` matching `content/pages.json`.
+- Existing page filenames and section IDs are stable identities. Do not rename them; create new identities for new pages.
 - Do not add custom stylesheet files or `<link rel="stylesheet">` tags.
 - Do not add custom script files or `<script src="...">` tags.
 - Do not put page images in `assets/`, a custom folder, or a remote URL. Page media belongs in `images/`.
 - Do not edit compiled runtime files under `assets/` or `content/tailwind_output.css`.
-- Do not add, remove, or reorder pages in `content/pages.json`.
-- Do not change `manifest.json` or its editing contract version.
+- Do not change `manifest.json` fields outside `editingContract.pageOrder`, `editingContract.pageDataIds`, `editingContract.activities`, and `editingContract.nonActivities`.
+- Never change the editing contract version or the `frozen` baseline fields.
 
 If a requested change requires breaking one of these rules, tell the user that the result will no longer be re-importable into ADT Studio and ask before proceeding.
 
-### Activities
+### Adding, removing, or reordering pages
+
+Treat the following files as one transaction. A structural edit is valid only when they agree:
+
+1. Create or remove the root-level page HTML file.
+2. Update `content/pages.json`. Each entry needs a unique `section_id`, unique root-level `href`, and the intended reading order.
+3. Mirror that exact order in `manifest.json` under `editingContract.pageOrder`, using `{ "sectionId", "href" }`.
+4. Set `editingContract.pageDataIds[href]` to every `data-id` in that page, in document order. Remove this key when removing a page.
+5. Add visible text from new `data-id` elements to `content/i18n/{{ language }}/texts.json`. Remove text only when its owning content is intentionally removed.
+6. Update `content/toc.json` when the navigation structure changes.
+7. Update the activity classifications described below for added or removed pages.
+
+New pages should use a new filename and section ID following the existing convention, for example `pg042_sec001.html` and `pg042_sec001`. Start with `data-section-type="content"` unless the whole page is an activity. Do not add the new page to `frozen.pageHtmlFingerprints`; frozen values describe the original Studio export.
+
+### Activity classification
+
+An activity asks the learner to provide, select, arrange, or manipulate an answer. Navigation links, language controls, media playback, accessibility controls, and ordinary content are not learning activities merely because they are interactive.
+
+Use these exact Studio activity types:
+
+| Type | Use when |
+| --- | --- |
+{% for activity in activityClassificationGuide %}| `{{ activity.type }}` | {{ activity.description }} |
+{% endfor %}
+
+For an activity made outside Studio that does not fit a known type, use `activity_custom_<descriptive_slug>`, for example `activity_custom_crossword`. Custom activities are preserved during round-trip export, but Studio may not provide a dedicated editor or generator for them.
+
+#### Positive classification
 
 Every activity must be represented by the page's canonical `<section>` element:
 
@@ -49,7 +78,45 @@ Every activity must be represented by the page's canonical `<section>` element:
 - Do not disguise an activity as a normal content section. ADT Studio statically inspects these markers during re-import and asks the user to review unmarked interactive content.
 - Custom activities may be preserved during re-import, but ADT Studio can only regenerate activity types supported by its current pipeline.
 
-The `editingContract.activities` array in `manifest.json` records the activities present at export time. When adding or changing an activity outside ADT Studio, update the matching entry's `sectionId`, page `href`, and exact `type`. Never remove unrelated entries.
+Add every activity to `editingContract.activities` with its stable identity and exact type:
+
+```json
+{
+  "sectionId": "pg004_sec002",
+  "href": "pg004_sec002.html",
+  "type": "activity_multiple_choice"
+}
+```
+
+Remove the same section from `editingContract.nonActivities`. Never remove unrelated classifications.
+
+#### Negative classification
+
+Interactive content that is intentionally not a learning activity must retain a non-activity `data-section-type` such as `content` and be listed in `editingContract.nonActivities`:
+
+```json
+{
+  "sectionId": "pg006_sec001",
+  "href": "pg006_sec001.html"
+}
+```
+
+Remove the same section from `editingContract.activities`. Ordinary static pages do not need a negative declaration; use `nonActivities` only when controls, dragging, or activity-like data attributes would otherwise trigger review.
+
+#### AI activity audit
+
+When the user asks an AI to classify the book, the AI must:
+
+1. Read every entry in `content/pages.json` and inspect its matching canonical section.
+2. Classify the page using the definitions above, based on the learning mechanic rather than filenames or styling.
+3. For an activity, set the exact `activity_*` section type, add or update its `editingContract.activities` entry, and remove any negative entry.
+4. For interactive non-activity content, use a non-activity section type, add its `editingContract.nonActivities` entry, and remove any positive entry.
+5. Ensure no section appears twice or in both arrays, and every classification has the same `sectionId` and `href` as `editingContract.pageOrder`.
+6. Leave uncertain cases unchanged and report them to the user instead of guessing.
+
+Suggested user request:
+
+> Audit every page for learning activities using the Activity classification section in AGENTS.md. Update the page section types, `editingContract.activities`, and `editingContract.nonActivities`. Do not change the learning content. Report any uncertain pages.
 
 ## Canonical structure
 
@@ -94,11 +161,13 @@ After a text edit, existing audio may be stale. Leave its IDs intact and use ADT
 
 ## Before handing the bundle back
 
-1. Confirm every page listed in `content/pages.json` still exists at the bundle root.
-2. Confirm each page has exactly one `#content` root and its matching `section[data-section-id]`.
-3. Search for duplicate or missing `data-id` values.
-4. Confirm page images resolve from `images/`.
-5. Confirm no custom or remote stylesheets and no custom external scripts were added.
-6. Zip the contents of this directory without introducing another internal layout.
+1. Confirm `content/pages.json` and `editingContract.pageOrder` contain the same pages in the same order.
+2. Confirm every page exists at the bundle root and has a matching `editingContract.pageDataIds` entry.
+3. Confirm each page has exactly one `#content` root and its matching `section[data-section-id]`.
+4. Search the whole book for duplicate or missing `data-id` values.
+5. Confirm every `activities` and `nonActivities` entry matches `pageOrder`, with no duplicate or conflicting classifications.
+6. Confirm page images resolve from `images/`.
+7. Confirm no custom or remote stylesheets and no custom external scripts were added.
+8. Zip the contents of this directory without introducing another internal layout.
 
 ADT Studio performs the same checks during import and will explain any incompatibility instead of trying to guess how a custom structure should map back into the pipeline.

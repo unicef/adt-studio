@@ -55,7 +55,10 @@ import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
 import { buildTextCatalog, inspectImportedHtmlContract } from "../text-catalog.js"
-import { inspectImportedActivity } from "../imported-activity.js"
+import {
+  inspectImportedActivity,
+  ACTIVITY_CLASSIFICATION_GUIDE,
+} from "../imported-activity.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getRenderSectioning } from "../render-sectioning.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
@@ -945,6 +948,7 @@ export async function packageAdtWeb(
   const pageHtmlFingerprints: Record<string, string> = {}
   const pageDataIds: Record<string, string[]> = {}
   const activities: Array<{ sectionId: string; href: string; type: string }> = []
+  const nonActivities: Array<{ sectionId: string; href: string }> = []
   for (const href of new Set(pageList.map((page) => page.href))) {
     const filePath = path.join(adtDir, href)
     if (fs.existsSync(filePath)) {
@@ -965,6 +969,11 @@ export async function packageAdtWeb(
             href,
             type: activity.sectionType,
           })
+        } else if (activity.signals.length > 0) {
+          // Interactive reader controls are not necessarily learning activities.
+          // Record that negative classification so a future import does not ask
+          // the user or an agent to classify the same page again.
+          nonActivities.push({ sectionId: page.section_id, href })
         }
       }
     }
@@ -977,6 +986,7 @@ export async function packageAdtWeb(
       pageOrder: pageList.map((page) => ({ sectionId: page.section_id, href: page.href })),
       pageDataIds,
       activities,
+      nonActivities,
     },
     book: { label, title },
     ...(lineage ? { lineage } : {}),
@@ -1032,6 +1042,7 @@ export async function packageAdtWeb(
       hasGlossary,
       hasQuiz,
       editingContractVersion: ADT_EDITING_CONTRACT_VERSION,
+      activityClassificationGuide: [...ACTIVITY_CLASSIFICATION_GUIDE],
     })
     fs.writeFileSync(path.join(adtDir, "AGENTS.md"), agentsMd)
     fs.writeFileSync(path.join(adtDir, "CLAUDE.md"), agentsMd)
@@ -2372,6 +2383,7 @@ interface AgentsMdContext {
   hasGlossary: boolean
   hasQuiz: boolean
   editingContractVersion: number
+  activityClassificationGuide: Array<{ type: string; description: string }>
 }
 
 async function renderAgentsMd(
