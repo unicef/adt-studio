@@ -64,6 +64,29 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
 
 export const SETTINGS_TABS: SettingsTab[] = SETTINGS_GROUPS.flatMap((group) => group.tabs)
 
+export const SETTINGS_TAB_BY_KEY = Object.fromEntries(
+  SETTINGS_TABS.map((tab) => [tab.key, tab]),
+) as Record<SettingsSection, SettingsTab>
+
+export const SETTINGS_ANCHORS = {
+  themeMode: "settings-theme-mode",
+  interface: "settings-interface",
+  reduceMotion: "settings-reduce-motion",
+  notificationPosition: "settings-notification-position",
+  notificationSound: "settings-notification-sound",
+  notificationAutoDismiss: "settings-notification-auto-dismiss",
+  notificationTest: "settings-notification-test",
+  defaultLlm: "settings-default-llm",
+  imageModel: "settings-image-model",
+  speechModel: "settings-speech-model",
+  appVersion: "settings-app-version",
+  booksFolder: "settings-books-folder",
+  diagnostics: "settings-diagnostics",
+} as const
+
+export const localeAnchor = (locale: string) => `settings-locale-${locale}`
+export const providerAnchor = (provider: string) => `settings-provider-${provider}`
+
 export function activeSettingsTab(pathname: string): SettingsTab {
   return (
     SETTINGS_TABS.find((tab) => pathname.startsWith(SETTINGS_PATHS[tab.key])) ?? SETTINGS_TABS[0]

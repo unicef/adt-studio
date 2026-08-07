@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/sonner"
 import { useNotificationPrefs, type ToastPosition } from "@/hooks/use-notification-prefs"
 import { cn } from "@/lib/utils"
 import { CARD, HEADING, LEAD, SettingRow } from "./ui"
+import { SETTINGS_ANCHORS } from "./nav"
 
 const POSITIONS: { key: ToastPosition; label: MessageDescriptor }[] = [
   { key: "top-left", label: msg`Top left` },
@@ -53,6 +54,7 @@ export function NotificationsSection() {
       <div className={CARD}>
         <SettingRow
           alignStart
+          anchorId={SETTINGS_ANCHORS.notificationPosition}
           title={<Trans>Position</Trans>}
           subtitle={
             <Trans>
@@ -87,10 +89,18 @@ export function NotificationsSection() {
             })}
           </div>
         </SettingRow>
-        <SettingRow title={<Trans>Play a sound</Trans>} subtitle={<Trans>A soft chime when a long task completes.</Trans>}>
+        <SettingRow
+          anchorId={SETTINGS_ANCHORS.notificationSound}
+          title={<Trans>Play a sound</Trans>}
+          subtitle={<Trans>A soft chime when a long task completes.</Trans>}
+        >
           <Switch checked={prefs.sound} onCheckedChange={(sound) => setPrefs({ sound })} />
         </SettingRow>
-        <SettingRow title={<Trans>Auto-dismiss</Trans>} subtitle={<Trans>Hide toasts automatically after a delay.</Trans>}>
+        <SettingRow
+          anchorId={SETTINGS_ANCHORS.notificationAutoDismiss}
+          title={<Trans>Auto-dismiss</Trans>}
+          subtitle={<Trans>Hide toasts automatically after a delay.</Trans>}
+        >
           <div className="flex items-center gap-3">
             <Select
               value={String(prefs.autoDelay)}
@@ -115,7 +125,11 @@ export function NotificationsSection() {
             <Switch checked={prefs.autoDismiss} onCheckedChange={(autoDismiss) => setPrefs({ autoDismiss })} />
           </div>
         </SettingRow>
-        <SettingRow title={<Trans>Try it out</Trans>} subtitle={<Trans>Send a sample notification using these settings.</Trans>}>
+        <SettingRow
+          anchorId={SETTINGS_ANCHORS.notificationTest}
+          title={<Trans>Try it out</Trans>}
+          subtitle={<Trans>Send a sample notification using these settings.</Trans>}
+        >
           <Button variant="outline" size="sm" onClick={sendTestToast}>
             <Bell className="size-3.5" />
             <Trans>Send test</Trans>

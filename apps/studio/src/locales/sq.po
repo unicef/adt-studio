@@ -763,6 +763,9 @@ msgstr "Grupimi i faqes informative"
 msgid "About section mode"
 msgstr "Modaliteti i seksionit informativ"
 
+msgid "about version update logs diagnostics"
+msgstr "rreth versioni përditësim regjistrat diagnostikim"
+
 msgid "Accent color"
 msgstr "Ngjyra e theksit"
 
@@ -4808,6 +4811,9 @@ msgstr "Aktivitet interaktiv hap pas hapi."
 msgid "Interface"
 msgstr "Ndërfaqja"
 
+msgid "interface new classic layout"
+msgstr "ndërfaqe e re klasike paraqitje"
+
 msgid "Intro"
 msgstr "Hyrje"
 
@@ -4945,6 +4951,9 @@ msgstr "etiketuar {printedLabel}"
 
 msgid "Language"
 msgstr "Gjuhë"
+
+msgid "language locale translation region"
+msgstr "gjuha lokalja përkthimi rajoni"
 
 msgid "Language-Specific Prompts"
 msgstr "Nxitje specifike për gjuhën"
@@ -5620,6 +5629,9 @@ msgstr "Prompti specifik për modelin nuk u gjet"
 msgid "Models"
 msgstr "Modelet"
 
+msgid "models llm image speech"
+msgstr "modelet llm imazh zë"
+
 msgid "moderate"
 msgstr "i moderuar"
 
@@ -5646,6 +5658,9 @@ msgstr "Më i zakonshmi"
 
 msgid "Most used"
 msgstr "Më i përdorur"
+
+msgid "motion animation accessibility"
+msgstr "lëvizje animacion aksesueshmëri"
 
 msgid "Move down"
 msgstr "Zhvendos poshtë"
@@ -6226,6 +6241,9 @@ msgstr "Nuk ka asgjë për të shfaqur"
 
 msgid "Notifications"
 msgstr "Njoftimet"
+
+msgid "notifications toasts alerts sound"
+msgstr "njoftime sinjalizime alarme tingull"
 
 msgid "Now click the end page."
 msgstr "Tani klikoni faqen e fundit."
@@ -7030,6 +7048,9 @@ msgstr "Pozicioni"
 msgid "Position {0}, {1} → {2}×{3} pt"
 msgstr "Pozicioni {0}, {1} → {2}×{3} pt"
 
+msgid "position corner toast placement"
+msgstr "pozicioni cepi njoftimi vendosja"
+
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
 
@@ -7153,11 +7174,17 @@ msgstr "Versioni i promptit u zgjodh."
 msgid "Prompts"
 msgstr "Promptet"
 
+msgid "prompts templates instructions"
+msgstr "prompt shabllone udhëzime"
+
 msgid "Provider"
 msgstr "Ofruesi"
 
 msgid "Provider credentials"
 msgstr "Kredencialet e ofruesit"
+
+msgid "providers api key credentials endpoint"
+msgstr "ofrues çelës api kredenciale endpoint"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Siguron modele të qëndrueshme HTML/CSS për faqet e gjeneruara nga LLM."
@@ -9472,6 +9499,9 @@ msgstr "Bota para nesh"
 msgid "Theme"
 msgstr "Tema"
 
+msgid "theme appearance dark light colors interface"
+msgstr "tema pamja e errët e çelët ngjyra ndërfaqe"
+
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Këto ndryshime nuk janë zbatuar ende. Nëse del, do të humbasin — ose ruaji dhe ri-ekzekuto për t'i zbatuar. Ekzekutimi vazhdon në sfond ndërsa ti punon."
 
@@ -10347,6 +10377,9 @@ msgstr "Versioni {selected}"
 
 msgid "Version history"
 msgstr "Historiku i versioneve"
+
+msgid "version update release"
+msgstr "versioni përditësimi publikimi"
 
 msgid "Versioned"
 msgstr "Me version"

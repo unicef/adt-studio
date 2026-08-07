@@ -762,6 +762,9 @@ msgstr "Acerca de la agrupación de páginas"
 msgid "About section mode"
 msgstr "Acerca del modo de sección"
 
+msgid "about version update logs diagnostics"
+msgstr "acerca de versión actualización registros diagnóstico"
+
 msgid "Accent color"
 msgstr "Color de acento"
 
@@ -4807,6 +4810,9 @@ msgstr "Actividad interactiva paso a paso."
 msgid "Interface"
 msgstr "Interfaz"
 
+msgid "interface new classic layout"
+msgstr "interfaz nueva clásica diseño"
+
 msgid "Intro"
 msgstr "Introducción"
 
@@ -4944,6 +4950,9 @@ msgstr "etiquetada {printedLabel}"
 
 msgid "Language"
 msgstr "Idioma"
+
+msgid "language locale translation region"
+msgstr "idioma configuración regional traducción región"
 
 msgid "Language-Specific Prompts"
 msgstr "Prompts por idioma"
@@ -5619,6 +5628,9 @@ msgstr "Prompt específico del modelo no encontrado"
 msgid "Models"
 msgstr "Modelos"
 
+msgid "models llm image speech"
+msgstr "modelos llm imagen voz"
+
 msgid "moderate"
 msgstr "moderate"
 
@@ -5645,6 +5657,9 @@ msgstr "Más común"
 
 msgid "Most used"
 msgstr "Más usado"
+
+msgid "motion animation accessibility"
+msgstr "movimiento animación accesibilidad"
 
 msgid "Move down"
 msgstr "Mover hacia abajo"
@@ -6225,6 +6240,9 @@ msgstr "Nada que mostrar"
 
 msgid "Notifications"
 msgstr "Notificaciones"
+
+msgid "notifications toasts alerts sound"
+msgstr "notificaciones avisos alertas sonido"
 
 msgid "Now click the end page."
 msgstr "Ahora haz clic en la página final."
@@ -7029,6 +7047,9 @@ msgstr "Posición"
 msgid "Position {0}, {1} → {2}×{3} pt"
 msgstr "Posición {0}, {1} → {2}×{3} pt"
 
+msgid "position corner toast placement"
+msgstr "posición esquina aviso ubicación"
+
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Prácticas de Alfabetización y Matemáticas"
 
@@ -7152,11 +7173,17 @@ msgstr "Versión del prompt seleccionada."
 msgid "Prompts"
 msgstr "Prompts"
 
+msgid "prompts templates instructions"
+msgstr "prompts plantillas instrucciones"
+
 msgid "Provider"
 msgstr "Proveedor"
 
 msgid "Provider credentials"
 msgstr "Credenciales del proveedor"
+
+msgid "providers api key credentials endpoint"
+msgstr "proveedores clave api credenciales endpoint"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Proporciona patrones HTML/CSS consistentes para páginas generadas por LLM."
@@ -9471,6 +9498,9 @@ msgstr "El mundo ante nosotros"
 msgid "Theme"
 msgstr "Tema"
 
+msgid "theme appearance dark light colors interface"
+msgstr "tema apariencia oscuro claro colores interfaz"
+
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Estos cambios aún no se han aplicado. Si sales, se perderán, o guarda y re-ejecuta para aplicarlos. La ejecución continúa en segundo plano mientras sigues trabajando."
 
@@ -10346,6 +10376,9 @@ msgstr "Versión {selected}"
 
 msgid "Version history"
 msgstr "Historial de versiones"
+
+msgid "version update release"
+msgstr "versión actualización lanzamiento"
 
 msgid "Versioned"
 msgstr "Versionado"

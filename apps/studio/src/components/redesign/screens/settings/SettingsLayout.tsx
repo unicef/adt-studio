@@ -3,10 +3,12 @@ import { TopBar } from "@/components/title-bar/TopBar"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import { SettingsSidebar } from "./SettingsSidebar"
 import { activeSettingsTab } from "./nav"
+import { useSettingsAnchor } from "./useSettingsAnchor"
 
 export function SettingsLayout() {
   const { pathname } = useLocation()
   const fullWidth = activeSettingsTab(pathname).fullWidth === true
+  useSettingsAnchor()
 
   return (
     <div className="flex h-full w-full overflow-hidden bg-background text-foreground">

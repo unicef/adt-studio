@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { CARD, HEADING, LEAD, SettingRow } from "./ui"
+import { SETTINGS_ANCHORS } from "./nav"
 
 export function AboutSection() {
   const version = useAppVersion()
@@ -21,7 +22,10 @@ export function AboutSection() {
       <div className={LEAD}>
         <Trans>ADT Studio turns PDFs into accessible digital textbooks.</Trans>
       </div>
-      <div className="relative mb-3.5 overflow-hidden rounded-2xl border bg-card p-[30px] shadow-sm">
+      <div
+        id={SETTINGS_ANCHORS.appVersion}
+        className="relative mb-3.5 scroll-mt-24 overflow-hidden rounded-2xl border bg-card p-[30px] shadow-sm"
+      >
         <div className="pointer-events-none absolute -top-[140px] right-[-90px] size-[340px] rounded-full bg-[radial-gradient(circle,rgba(43,127,255,.10),transparent_70%)]" />
         <div className="relative flex items-center gap-5">
           <div className="grid size-[74px] shrink-0 place-items-center rounded-[19px] bg-white shadow-[0_30px_60px_-20px_rgba(43,127,255,0.25),0_4px_14px_rgba(0,0,0,0.08)]">
@@ -59,13 +63,21 @@ export function AboutSection() {
       </div>
       <div className={cn(CARD, "relative overflow-hidden")}>
         <div aria-disabled className="pointer-events-none select-none opacity-50">
-          <SettingRow title={<Trans>Books folder</Trans>} subtitle={<Trans>Where book projects live on this machine.</Trans>}>
+          <SettingRow
+            anchorId={SETTINGS_ANCHORS.booksFolder}
+            title={<Trans>Books folder</Trans>}
+            subtitle={<Trans>Where book projects live on this machine.</Trans>}
+          >
             <Button variant="outline" size="sm" disabled>
               <Folder className="size-3.5" />
               <Trans>~/ADT/Books</Trans>
             </Button>
           </SettingRow>
-          <SettingRow title={<Trans>Diagnostics</Trans>} subtitle={<Trans>Logs help us debug pipeline failures.</Trans>}>
+          <SettingRow
+            anchorId={SETTINGS_ANCHORS.diagnostics}
+            title={<Trans>Diagnostics</Trans>}
+            subtitle={<Trans>Logs help us debug pipeline failures.</Trans>}
+          >
             <Button variant="outline" size="sm" disabled>
               <FileDown className="size-3.5" />
               <Trans>Export logs</Trans>

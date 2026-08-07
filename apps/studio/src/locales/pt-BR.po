@@ -762,6 +762,9 @@ msgstr "Sobre o agrupamento de páginas"
 msgid "About section mode"
 msgstr "Sobre modo de seção"
 
+msgid "about version update logs diagnostics"
+msgstr "sobre versão atualização logs diagnóstico"
+
 msgid "Accent color"
 msgstr "Cor de destaque"
 
@@ -4807,6 +4810,9 @@ msgstr "Atividade interativa passo a passo."
 msgid "Interface"
 msgstr "Interface"
 
+msgid "interface new classic layout"
+msgstr "interface nova clássica layout"
+
 msgid "Intro"
 msgstr "Introdução"
 
@@ -4944,6 +4950,9 @@ msgstr "rotulada {printedLabel}"
 
 msgid "Language"
 msgstr "Idioma"
+
+msgid "language locale translation region"
+msgstr "idioma localidade tradução região"
 
 msgid "Language-Specific Prompts"
 msgstr "Prompts por idioma"
@@ -5619,6 +5628,9 @@ msgstr "Prompt específico do modelo não encontrado"
 msgid "Models"
 msgstr "Modelos"
 
+msgid "models llm image speech"
+msgstr "modelos llm imagem voz"
+
 msgid "moderate"
 msgstr "moderate"
 
@@ -5645,6 +5657,9 @@ msgstr "Mais comum"
 
 msgid "Most used"
 msgstr "Mais usado"
+
+msgid "motion animation accessibility"
+msgstr "movimento animação acessibilidade"
 
 msgid "Move down"
 msgstr "Mover para baixo"
@@ -6225,6 +6240,9 @@ msgstr "Nada para mostrar"
 
 msgid "Notifications"
 msgstr "Notificações"
+
+msgid "notifications toasts alerts sound"
+msgstr "notificações avisos alertas som"
 
 msgid "Now click the end page."
 msgstr "Agora clique na página final."
@@ -7029,6 +7047,9 @@ msgstr "Posição"
 msgid "Position {0}, {1} → {2}×{3} pt"
 msgstr "Posição {0}, {1} → {2}×{3} pt"
 
+msgid "position corner toast placement"
+msgstr "posição canto aviso posicionamento"
+
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
 
@@ -7152,11 +7173,17 @@ msgstr "Versão do prompt selecionada."
 msgid "Prompts"
 msgstr "Prompts"
 
+msgid "prompts templates instructions"
+msgstr "prompts modelos instruções"
+
 msgid "Provider"
 msgstr "Provedor"
 
 msgid "Provider credentials"
 msgstr "Credenciais do provedor"
+
+msgid "providers api key credentials endpoint"
+msgstr "provedores chave api credenciais endpoint"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Fornece padrões HTML/CSS consistentes para páginas geradas por LLM."
@@ -9471,6 +9498,9 @@ msgstr "O mundo diante de nós"
 msgid "Theme"
 msgstr "Tema"
 
+msgid "theme appearance dark light colors interface"
+msgstr "tema aparência escuro claro cores interface"
+
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Estas alterações ainda não foram aplicadas. Se você sair, serão perdidas — ou salve e reexecute para aplicá-las. A execução continua em segundo plano enquanto você trabalha."
 
@@ -10346,6 +10376,9 @@ msgstr "Versão {selected}"
 
 msgid "Version history"
 msgstr "Histórico de versões"
+
+msgid "version update release"
+msgstr "versão atualização lançamento"
 
 msgid "Versioned"
 msgstr "Versionado"

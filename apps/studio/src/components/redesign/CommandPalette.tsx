@@ -10,6 +10,13 @@ import { toBookVM, type CoverSpec } from "./data"
 import { BookCover } from "./BookCover"
 import { Kbd } from "./ui/Kbd"
 import { REDESIGN_PATHS } from "./nav"
+import { rankBySearch, searchTokens } from "./search"
+import { SETTINGS_PATHS, SETTINGS_TAB_BY_KEY } from "./screens/settings/nav"
+import {
+  SETTINGS_SEARCH_ENTRIES,
+  SETTINGS_SECTION_ENTRIES,
+  settingsSearchText,
+} from "./screens/settings/searchIndex"
 
 const LISTBOX_ID = "redesign-palette-results"
 const optionId = (itemId: string) => `${LISTBOX_ID}-${itemId}`
@@ -18,6 +25,7 @@ interface PaletteItem {
   id: string
   title: string
   sub?: string
+  keywords?: string
   icon?: LucideIcon
   cover?: CoverSpec
   author?: string
@@ -69,7 +77,7 @@ type PaletteResultsProps = Omit<CommandPaletteProps, "open">
 
 function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsProps) {
   const navigate = useNavigate()
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const [query, setQuery] = useState("")
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -80,7 +88,7 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
   }, [])
 
   const groups = useMemo<PaletteGroup[]>(() => {
-    const q = query.trim().toLowerCase()
+    const tokens = searchTokens(query)
     const nav: PaletteItem[] = [
       { id: "nav-home", title: t`Home`, icon: House, run: () => navigate({ to: REDESIGN_PATHS.home }) },
       { id: "nav-library", title: t`Library`, icon: BookMarked, run: () => navigate({ to: REDESIGN_PATHS.library }) },
@@ -102,13 +110,35 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
         run: () => navigate({ to: "/books/$label/$step", params: { label: b.label, step: "book" } }),
       }
     })
-    const match = (it: PaletteItem) => !q || (it.title + " " + (it.sub ?? "")).toLowerCase().includes(q)
+    const settingsItems: PaletteItem[] = (
+      tokens.length > 0 ? SETTINGS_SEARCH_ENTRIES : SETTINGS_SECTION_ENTRIES
+    ).map((entry) => {
+      const tab = SETTINGS_TAB_BY_KEY[entry.section]
+      const sectionLabel = i18n._(tab.label)
+      const hint = entry.hint ? settingsSearchText(i18n, entry.hint) : undefined
+      return {
+        id: entry.id,
+        title: settingsSearchText(i18n, entry.label),
+        sub: entry.kind === "section" ? hint : hint ? `${sectionLabel} · ${hint}` : sectionLabel,
+        keywords: entry.keywords ? i18n._(entry.keywords) : undefined,
+        icon: entry.icon ?? tab.icon,
+        run: () => navigate({ to: SETTINGS_PATHS[entry.section], hash: entry.anchor }),
+      }
+    })
+
+    const rank = (items: PaletteItem[]) =>
+      rankBySearch(items, tokens, (it) => ({
+        title: it.title,
+        extra: `${it.sub ?? ""} ${it.keywords ?? ""}`,
+      }))
+
     return [
-      { label: t`Navigation`, items: nav.filter(match) },
-      { label: t`Books`, items: bookItems.filter(match) },
-      { label: t`Actions`, items: actions.filter(match) },
+      { label: t`Navigation`, items: rank(nav) },
+      { label: t`Books`, items: rank(bookItems) },
+      { label: t`Settings`, items: rank(settingsItems) },
+      { label: t`Actions`, items: rank(actions) },
     ].filter((g) => g.items.length > 0)
-  }, [query, books, locale, onOpenAdd, navigate, t])
+  }, [query, books, locale, onOpenAdd, navigate, t, i18n])
 
   const flat = useMemo(() => groups.flatMap((g) => g.items), [groups])
   const activeId = flat[active]?.id

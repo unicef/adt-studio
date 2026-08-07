@@ -1,22 +1,16 @@
 import { useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { msg } from "@lingui/core/macro"
-import { Check, Sun, Moon, Monitor } from "lucide-react"
+import { Check } from "lucide-react"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Switch } from "@/components/ui/switch"
 import { useUiVersion } from "@/hooks/use-ui-version"
 import { cn } from "@/lib/utils"
 import { CARD, HEADING, LEAD, SettingRow } from "./ui"
+import { THEME_OPTIONS, type ThemeMode } from "./options"
+import { SETTINGS_ANCHORS } from "./nav"
 
-type ThemeMode = "light" | "dark" | "system"
 const THEME_KEY = "adt.theme"
-
-const THEMES = [
-  { key: "light" as const, label: msg`Light`, icon: Sun, previewBg: "#fafafa", railBg: "#f4f5f7", hairline: "#e4e4e7", barStrong: "#a1a1aa", barSoft: "#d4d4d8", cardBg: "#ffffff", split: false },
-  { key: "dark" as const, label: msg`Dark`, icon: Moon, previewBg: "#0f172a", railBg: "#1e293b", hairline: "#334155", barStrong: "#64748b", barSoft: "#334155", cardBg: "#1e293b", split: false },
-  { key: "system" as const, label: msg`System`, icon: Monitor, previewBg: "#fafafa", railBg: "#f4f5f7", hairline: "#e4e4e7", barStrong: "#a1a1aa", barSoft: "#d4d4d8", cardBg: "#ffffff", split: true },
-]
 
 function storedTheme(): ThemeMode {
   try {
@@ -54,8 +48,8 @@ export function ThemeSection() {
       <div className={LEAD}>
         <Trans>How ADT Studio looks on this machine.</Trans>
       </div>
-      <div className="mb-4 grid grid-cols-3 gap-3.5">
-        {THEMES.map((th) => {
+      <div id={SETTINGS_ANCHORS.themeMode} className="mb-4 grid scroll-mt-24 grid-cols-3 gap-3.5">
+        {THEME_OPTIONS.map((th) => {
           const sel = theme === th.key
           const Icon = th.icon
           return (
@@ -101,7 +95,11 @@ export function ThemeSection() {
         })}
       </div>
       <div className={CARD}>
-        <SettingRow title={<Trans>Interface</Trans>} subtitle={<Trans>Switch between the new and the classic ADT Studio interface.</Trans>}>
+        <SettingRow
+          anchorId={SETTINGS_ANCHORS.interface}
+          title={<Trans>Interface</Trans>}
+          subtitle={<Trans>Switch between the new and the classic ADT Studio interface.</Trans>}
+        >
           <SegmentedControl
             className="w-52"
             options={[
@@ -117,7 +115,11 @@ export function ThemeSection() {
             }}
           />
         </SettingRow>
-        <SettingRow title={<Trans>Reduce motion</Trans>} subtitle={<Trans>Minimise onboarding and list-reorder animations.</Trans>}>
+        <SettingRow
+          anchorId={SETTINGS_ANCHORS.reduceMotion}
+          title={<Trans>Reduce motion</Trans>}
+          subtitle={<Trans>Minimise onboarding and list-reorder animations.</Trans>}
+        >
           <Switch checked={motion} onCheckedChange={setMotion} />
         </SettingRow>
       </div>

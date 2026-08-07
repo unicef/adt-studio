@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { HEADING, LEAD } from "./ui"
 import { useProviderCards, type ProviderId } from "./providers"
 import { ProviderKeyDialog } from "./ProviderKeyDialog"
+import { providerAnchor } from "./nav"
 
 export function ProvidersSection() {
   const { i18n } = useLingui()
@@ -26,9 +27,10 @@ export function ProvidersSection() {
           return (
             <button
               key={card.id}
+              id={providerAnchor(card.id)}
               type="button"
               onClick={() => setEditing(card.id)}
-              className="flex items-center gap-3.5 rounded-xl border bg-card px-[18px] py-[15px] text-left shadow-sm transition-colors hover:border-brand-300 hover:bg-accent/40"
+              className="flex scroll-mt-24 items-center gap-3.5 rounded-xl border bg-card px-[18px] py-[15px] text-left shadow-sm transition-colors hover:border-brand-300 hover:bg-accent/40"
             >
               <span className={cn("grid size-10 shrink-0 place-items-center rounded-[11px]", card.tile)}>
                 <Icon className="size-[19px]" />

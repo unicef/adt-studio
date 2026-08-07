@@ -16,16 +16,58 @@ export interface ProviderField {
   validate?: (value: string) => MessageDescriptor | null
 }
 
-export interface ProviderCard {
-  id: ProviderId
+export interface ProviderMeta {
   name: string
   desc: MessageDescriptor
   hint?: MessageDescriptor
   icon: LucideIcon
   tile: string
+}
+
+export interface ProviderCard extends ProviderMeta {
+  id: ProviderId
   connected: boolean
   summary: string
   fields: ProviderField[]
+}
+
+export const PROVIDER_IDS = ["openai", "anthropic", "google", "custom", "azure"] as const satisfies readonly ProviderId[]
+
+export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
+  openai: {
+    name: "OpenAI",
+    desc: msg`GPT models for pipeline tasks.`,
+    icon: Sparkles,
+    tile: "bg-emerald-50 text-emerald-600",
+  },
+  anthropic: {
+    name: "Anthropic",
+    desc: msg`Claude models — Opus, Sonnet.`,
+    hint: msg`Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)`,
+    icon: Sparkles,
+    tile: "bg-amber-50 text-amber-600",
+  },
+  google: {
+    name: "Google AI",
+    desc: msg`Gemini — LLM and TTS voices.`,
+    hint: msg`Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)`,
+    icon: Sparkles,
+    tile: "bg-blue-50 text-blue-600",
+  },
+  custom: {
+    name: "Custom (OpenAI-compatible)",
+    desc: msg`Ollama, vLLM, Together AI — any compatible endpoint.`,
+    hint: msg`Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the "custom:" prefix when selecting models, e.g. custom:llama3.`,
+    icon: Server,
+    tile: "bg-muted text-muted-foreground",
+  },
+  azure: {
+    name: "Azure Speech",
+    desc: msg`Azure TTS voices · subscription key + region.`,
+    hint: msg`Used for Azure Speech TTS provider.`,
+    icon: AudioLines,
+    tile: "bg-indigo-50 text-indigo-600",
+  },
 }
 
 export function mask(key: string): string {
@@ -72,10 +114,7 @@ export function useProviderCards(): ProviderCard[] {
     () => [
       {
         id: "openai",
-        name: "OpenAI",
-        desc: msg`GPT models for pipeline tasks.`,
-        icon: Sparkles,
-        tile: "bg-emerald-50 text-emerald-600",
+        ...PROVIDER_META.openai,
         connected: apiKey.length > 0,
         summary: mask(apiKey),
         fields: [
@@ -92,11 +131,7 @@ export function useProviderCards(): ProviderCard[] {
       },
       {
         id: "anthropic",
-        name: "Anthropic",
-        desc: msg`Claude models — Opus, Sonnet.`,
-        hint: msg`Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)`,
-        icon: Sparkles,
-        tile: "bg-amber-50 text-amber-600",
+        ...PROVIDER_META.anthropic,
         connected: anthropicKey.length > 0,
         summary: mask(anthropicKey),
         fields: [
@@ -112,11 +147,7 @@ export function useProviderCards(): ProviderCard[] {
       },
       {
         id: "google",
-        name: "Google AI",
-        desc: msg`Gemini — LLM and TTS voices.`,
-        hint: msg`Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)`,
-        icon: Sparkles,
-        tile: "bg-blue-50 text-blue-600",
+        ...PROVIDER_META.google,
         connected: googleKey.length > 0,
         summary: mask(googleKey),
         fields: [
@@ -132,11 +163,7 @@ export function useProviderCards(): ProviderCard[] {
       },
       {
         id: "custom",
-        name: "Custom (OpenAI-compatible)",
-        desc: msg`Ollama, vLLM, Together AI — any compatible endpoint.`,
-        hint: msg`Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the "custom:" prefix when selecting models, e.g. custom:llama3.`,
-        icon: Server,
-        tile: "bg-muted text-muted-foreground",
+        ...PROVIDER_META.custom,
         connected: customBaseUrl.length > 0 || customApiKey.length > 0,
         summary: customBaseUrl,
         fields: [
@@ -160,11 +187,7 @@ export function useProviderCards(): ProviderCard[] {
       },
       {
         id: "azure",
-        name: "Azure Speech",
-        desc: msg`Azure TTS voices · subscription key + region.`,
-        hint: msg`Used for Azure Speech TTS provider.`,
-        icon: AudioLines,
-        tile: "bg-indigo-50 text-indigo-600",
+        ...PROVIDER_META.azure,
         connected: azureKey.length > 0,
         summary: mask(azureKey),
         fields: [

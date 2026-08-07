@@ -17,6 +17,7 @@ import { getStepLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { HEADING, LEAD } from "./ui"
+import { SETTINGS_ANCHORS } from "./nav"
 import {
   DEFAULT_MODEL,
   useDefaultLlmSetting,
@@ -63,6 +64,7 @@ function SaveButton({
 }
 
 function SpecializedCard({
+  anchorId,
   icon: Icon,
   tile,
   title,
@@ -76,6 +78,7 @@ function SpecializedCard({
   prefixProvider,
   steps,
 }: {
+  anchorId: string
   icon: typeof ImageIcon
   tile: string
   title: React.ReactNode
@@ -90,7 +93,7 @@ function SpecializedCard({
   steps: readonly StepDef[]
 }) {
   return (
-    <article className="flex flex-col rounded-2xl border bg-card p-[18px] shadow-sm">
+    <article id={anchorId} className="flex scroll-mt-24 flex-col rounded-2xl border bg-card p-[18px] shadow-sm">
       <div className="flex items-center gap-3">
         <span className={cn("grid size-10 shrink-0 place-items-center rounded-[11px]", tile)}>
           <Icon className="size-[19px]" />
@@ -141,7 +144,11 @@ export function ModelsSection() {
         <Trans>Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults.</Trans>
       </div>
 
-      <section className="overflow-hidden rounded-2xl border bg-card shadow-sm" aria-label={t`Default model`}>
+      <section
+        id={SETTINGS_ANCHORS.defaultLlm}
+        className="scroll-mt-24 overflow-hidden rounded-2xl border bg-card shadow-sm"
+        aria-label={t`Default model`}
+      >
         <div className="flex items-center gap-3 px-[18px] pt-[18px]">
           <span className="grid size-10 shrink-0 place-items-center rounded-[11px] bg-brand-50 text-brand-600">
             <Brain className="size-[19px]" />
@@ -246,6 +253,7 @@ export function ModelsSection() {
 
       <div className="grid gap-3 md:grid-cols-2">
         <SpecializedCard
+          anchorId={SETTINGS_ANCHORS.imageModel}
           icon={ImageIcon}
           tile="bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400"
           title={<Trans>Image generation and editing</Trans>}
@@ -259,6 +267,7 @@ export function ModelsSection() {
           steps={STEPS_BY_DEFAULT_MODEL_KIND["image-generation"]}
         />
         <SpecializedCard
+          anchorId={SETTINGS_ANCHORS.speechModel}
           icon={AudioLines}
           tile="bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400"
           title={<Trans>Speech generation</Trans>}

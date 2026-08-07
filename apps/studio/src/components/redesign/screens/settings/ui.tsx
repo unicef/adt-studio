@@ -9,12 +9,19 @@ export interface SettingRowProps {
   title: ReactNode
   subtitle: ReactNode
   alignStart?: boolean
+  anchorId?: string
   children: ReactNode
 }
 
-export function SettingRow({ title, subtitle, alignStart, children }: SettingRowProps) {
+export function SettingRow({ title, subtitle, alignStart, anchorId, children }: SettingRowProps) {
   return (
-    <div className={cn("flex gap-5 border-t py-[18px] first:border-t-0", alignStart ? "items-start" : "items-center")}>
+    <div
+      id={anchorId}
+      className={cn(
+        "flex scroll-mt-24 gap-5 border-t py-[18px] first:border-t-0",
+        alignStart ? "items-start" : "items-center",
+      )}
+    >
       <div className="flex-1">
         <div className="text-sm font-semibold">{title}</div>
         <p className="mt-0.5 text-[12.5px] leading-normal text-muted-foreground">{subtitle}</p>
