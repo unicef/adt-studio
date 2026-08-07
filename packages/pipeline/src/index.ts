@@ -160,7 +160,22 @@ export {
   type QuizConfig,
   type QuizPageInput,
 } from "./quiz-generation.js"
-export { buildTextCatalog } from "./text-catalog.js"
+export {
+  buildTextCatalog,
+  extractTextCatalogEntriesFromHtml,
+  projectImportedHtmlSection,
+  extractImportedHtmlPresentationAssets,
+  inspectImportedHtmlContract,
+  ADT_EDITING_ALLOWED_ROOT_ENTRIES,
+  type ImportedHtmlImageReference,
+  type ImportedHtmlSectionProjection,
+  type ImportedHtmlProjectionOptions,
+  type ImportedHtmlPresentationAssets,
+  type ImportedHtmlContractIssue,
+  type ImportedHtmlContractIssueCode,
+  type ImportedHtmlContractInspection,
+  type ImportedHtmlContractOptions,
+} from "./text-catalog.js"
 export {
   buildEasyReadConfig,
   buildEasyReadSourceBlocks,
@@ -280,6 +295,8 @@ export { htmlToXhtml } from "./html-semantics.js"
 export {
   packageAdtWeb,
   computePackagingInputHash,
+  getWordTimestamps,
+  buildRuntimeTimecodeMap,
   type PackageAdtWebOptions,
   type ComputePackagingInputHashOptions,
   renderPageHtml,

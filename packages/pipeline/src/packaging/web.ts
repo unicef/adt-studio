@@ -21,15 +21,20 @@ import type {
   TocGenerationOutput,
   Quiz,
   ImageCaptioningOutput,
+  AdtExportLineage,
 } from "@adt/types"
 import { WebRenderingOutput as WebRenderingOutputSchema, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 import {
+  ADT_EDITING_CONTRACT_VERSION,
+  ADT_ROUND_TRIP_FORMAT_VERSION,
+  AdtRoundTripManifest,
   GOOGLE_FONTS,
   googleFontsReferencedIn,
   googleFontsCss2Url,
   primaryFontFamily,
 } from "@adt/types"
 import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
+import { canonicalJson } from "@adt/types/fingerprint"
 import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
 import {
   bundleBookFontsIntoCss,
@@ -49,7 +54,7 @@ import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
-import { buildTextCatalog } from "../text-catalog.js"
+import { buildTextCatalog, inspectImportedHtmlContract } from "../text-catalog.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getRenderSectioning } from "../render-sectioning.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
@@ -90,12 +95,19 @@ export interface PackageAdtWebOptions {
   /** Style quizzes to match the book (typography + derived palette). Defaults
    *  to true. When false, quizzes use the generic cream/gray template. */
   quizMatchBookStyle?: boolean
+  lineage?: AdtExportLineage
 }
 
 export interface PageEntry {
   section_id: string
   href: string
   page_number?: number
+}
+
+function assertSafeSectionId(sectionId: string): void {
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(sectionId)) {
+    throw new Error(`Unsafe section id cannot be packaged: ${sectionId}`)
+  }
 }
 
 interface RuntimeTimecodeEntry {
@@ -135,7 +147,7 @@ export function getWordTimestamps(
   return row?.data as WordTimestampOutput | undefined
 }
 
-function buildRuntimeTimecodeMap(
+export function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
   speechConfig?: SpeechConfig,
 ): Record<string, RuntimeTimecodeEntry> {
@@ -164,7 +176,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 4
+const PACKAGING_FORMAT_VERSION = 5
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -237,6 +249,18 @@ function hashValue(value: unknown): string {
     .digest("hex")
 }
 
+function hashBuffer(value: Uint8Array): string {
+  return createHash("sha256").update(value).digest("hex")
+}
+
+function fingerprintIds(ids: Iterable<string>): string {
+  return hashValue([...new Set(ids)].sort((a, b) => a.localeCompare(b)))
+}
+
+function hashJsonFile(filePath: string): string {
+  return hashBuffer(Buffer.from(canonicalJson(JSON.parse(fs.readFileSync(filePath, "utf-8")))))
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -267,6 +291,7 @@ export async function packageAdtWeb(
     fixedLayout,
     reflowableFont,
     quizMatchBookStyle,
+    lineage,
   } = options
   const language = normalizeLocale(rawLanguage)
   const outputLanguages = Array.from(new Set(rawOutputLanguages.map((code) => normalizeLocale(code))))
@@ -306,11 +331,12 @@ export async function packageAdtWeb(
   // Always rebuild the text catalog to avoid staleness; only persist if changed
   const catalog = await buildTextCatalog(storage, pages)
   const catalogRow = storage.getLatestNodeData("text-catalog", "book")
+  let catalogVersion = catalogRow?.version
   const storedEntries = catalogRow
     ? JSON.stringify((catalogRow.data as TextCatalogOutput).entries)
     : null
   if (JSON.stringify(catalog.entries) !== storedEntries) {
-    storage.putNodeData("text-catalog", "book", catalog)
+    catalogVersion = storage.putNodeData("text-catalog", "book", catalog)
   }
 
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
@@ -376,6 +402,7 @@ export async function packageAdtWeb(
           const sectionMeta = sectioning?.sections[rs.sectionIndex]
           if (sectionMeta?.isPruned) continue
           const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
+          assertSafeSectionId(sectionId)
 
           if (rs.sectionType.startsWith("activity_") || sectionMeta?.sectionType.startsWith("activity_")) {
             hasActivitySections = true
@@ -612,7 +639,8 @@ export async function packageAdtWeb(
   )
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
 
-  for (const lang of outputLanguages) {
+  const packagedLanguages = [...new Set([language, ...outputLanguages])]
+  for (const lang of packagedLanguages) {
     const localeDir = path.join(contentDir, "i18n", lang)
     fs.mkdirSync(localeDir, { recursive: true })
 
@@ -892,6 +920,81 @@ export async function packageAdtWeb(
     progress.emit({ type: "step-progress", step, message: `Bundled fonts: ${bundledFonts.join(", ")}` })
   }
 
+  // Round-trip metadata is written after every supported projection is final,
+  // but before the offline preloader snapshots JSON resources.
+  const translationBaselines: Record<string, number> = {}
+  for (const lang of outputLanguages) {
+    if (getBaseLanguage(lang) === getBaseLanguage(language)) continue
+    const legacyLang = lang.replace("-", "_")
+    const row =
+      storage.getLatestNodeData("text-catalog-translation", lang) ??
+      storage.getLatestNodeData("text-catalog-translation", legacyLang)
+    if (row) translationBaselines[lang] = row.version
+  }
+
+  if (catalogVersion === undefined) {
+    const row = storage.getLatestNodeData("text-catalog", "book")
+    catalogVersion = row?.version
+  }
+  if (catalogVersion === undefined) {
+    throw new Error("Cannot write ADT round-trip manifest without a text-catalog version")
+  }
+
+  const sourceTextsPath = path.join(contentDir, "i18n", language, "texts.json")
+  const pageHtmlFingerprints: Record<string, string> = {}
+  const pageDataIds: Record<string, string[]> = {}
+  for (const href of new Set(pageList.map((page) => page.href))) {
+    const filePath = path.join(adtDir, href)
+    if (fs.existsSync(filePath)) {
+      pageHtmlFingerprints[href] = hashBuffer(fs.readFileSync(filePath))
+      const page = pageList.find((entry) => entry.href === href)
+      if (page) {
+        pageDataIds[href] = inspectImportedHtmlContract(
+          fs.readFileSync(filePath, "utf8"),
+          page.section_id,
+          { allowSectionDataId: page.section_id.startsWith("qz") },
+        ).dataIds
+      }
+    }
+  }
+
+  const roundTripManifest = AdtRoundTripManifest.parse({
+    formatVersion: ADT_ROUND_TRIP_FORMAT_VERSION,
+    editingContract: {
+      version: ADT_EDITING_CONTRACT_VERSION,
+      pageOrder: pageList.map((page) => ({ sectionId: page.section_id, href: page.href })),
+      pageDataIds,
+    },
+    book: { label, title },
+    ...(lineage ? { lineage } : {}),
+    languages: {
+      source: language,
+      output: outputLanguages,
+    },
+    baselines: {
+      glossary: glossaryRow?.version ?? null,
+      tocGeneration: tocRow?.version ?? null,
+      textCatalogTranslations: translationBaselines,
+    },
+    textCatalog: {
+      version: catalogVersion,
+      idFingerprint: fingerprintIds(catalog.entries.map((entry) => entry.id)),
+    },
+    translatableText: {
+      idFingerprint: fingerprintIds([
+        ...catalog.entries.map((entry) => entry.id),
+        ...easyReadEntries.map((entry) => entry.id),
+      ]),
+    },
+    frozen: {
+      ...(fs.existsSync(sourceTextsPath)
+        ? { sourceTextsFingerprint: hashJsonFile(sourceTextsPath) }
+        : {}),
+      pageHtmlFingerprints,
+    },
+  })
+  writeJson(path.join(adtDir, "manifest.json"), roundTripManifest)
+
   // Offline preloader must run after all asset writes — it snapshots the
   // final state of every file it inlines (page HTML, content JSON, nav.html).
   generateOfflinePreloader(adtDir, outputLanguages)
@@ -915,8 +1018,10 @@ export async function packageAdtWeb(
       configJson,
       hasGlossary,
       hasQuiz,
+      editingContractVersion: ADT_EDITING_CONTRACT_VERSION,
     })
     fs.writeFileSync(path.join(adtDir, "AGENTS.md"), agentsMd)
+    fs.writeFileSync(path.join(adtDir, "CLAUDE.md"), agentsMd)
   }
 
   progress.emit({ type: "step-complete", step })
@@ -1578,6 +1683,7 @@ export function renderQuizHtml(
     <section
         id="simple-main"
         data-section-type="activity_quiz"
+        data-section-id="${escapeAttr(quizId)}"
         data-id="${escapeAttr(quizId)}"
         data-area-id="${escapeAttr(quizId)}"
         data-correct-answers='${escapeAttr(JSON.stringify(correctAnswers))}'
@@ -1638,9 +1744,9 @@ export function buildImageMap(imagesDir: string): Map<string, string> {
   if (!fs.existsSync(imagesDir)) return map
 
   for (const file of fs.readdirSync(imagesDir)) {
-    const ext = path.extname(file)
-    if (ext === ".jpg" || ext === ".png") {
-      const id = path.basename(file, ext)
+    const ext = path.extname(file).toLowerCase()
+    if ([".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"].includes(ext)) {
+      const id = path.basename(file, path.extname(file))
       map.set(id, file)
     }
   }
@@ -2252,6 +2358,7 @@ interface AgentsMdContext {
   configJson: unknown
   hasGlossary: boolean
   hasQuiz: boolean
+  editingContractVersion: number
 }
 
 async function renderAgentsMd(
@@ -2342,6 +2449,7 @@ async function renderAgentsMd(
     hasQuiz: ctx.hasQuiz,
     configJsonFormatted: JSON.stringify(ctx.configJson, null, 2),
     pageImages,
+    editingContractVersion: ctx.editingContractVersion,
   })
 }
 
@@ -2737,7 +2845,7 @@ function pickDefaultLanguage(
  * (EPUB/WebPub): the SCORM package manifest and the repo's AGENTS.md. Pass as
  * the `skip` set when copying `adt/` into an export directory.
  */
-export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md"])
+export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md", "CLAUDE.md"])
 
 /**
  * File-extension → MIME type for the resources listed in an export manifest
