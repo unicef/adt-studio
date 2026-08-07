@@ -27,6 +27,16 @@ CREATE TABLE IF NOT EXISTS node_data (
   PRIMARY KEY (node, item_id, version)
 );
 
+-- Which version of each (node, item_id) is currently active. Decoupled from
+-- MAX(version) so a user can switch back to an older version without a new row.
+-- Absent pointer falls back to MAX(version).
+CREATE TABLE IF NOT EXISTS node_current (
+  node TEXT NOT NULL,
+  item_id TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  PRIMARY KEY (node, item_id)
+);
+
 CREATE TABLE IF NOT EXISTS images (
   image_id TEXT PRIMARY KEY,
   page_id TEXT NOT NULL REFERENCES pages(page_id),
@@ -159,6 +169,12 @@ function initSchema(db: sqlite.Database): void {
     version = 13
   }
 
+  // Migrate v13 → v14: add node_current pointer table, backfilled to MAX(version)
+  if (version === 13) {
+    migrateV13toV14(db)
+    version = 14
+  }
+
   if (version === SCHEMA_VERSION) {
     cleanupDeprecatedSchema(db)
     upsertSchemaVersion(db, SCHEMA_VERSION)
@@ -222,7 +238,7 @@ function migrateV6toV7(db: sqlite.Database): void {
 
     // Most step names match their node_data node name directly
     const directSteps = [
-      "metadata", "book-summary", "image-filtering", "image-segmentation",
+      "metadata", "book-summary", "book-outline", "image-filtering", "image-segmentation",
       "image-cropping", "page-sectioning",
       "web-rendering", "quiz-generation", "image-captioning", "glossary",
       "text-catalog", "easy-read", "tts",
@@ -410,6 +426,31 @@ function migrateV12toV13(db: sqlite.Database): void {
       ALTER TABLE images ADD COLUMN bounds_y REAL;
       ALTER TABLE images ADD COLUMN bounds_w REAL;
       ALTER TABLE images ADD COLUMN bounds_h REAL;
+    `)
+    db.exec("COMMIT")
+  } catch (err) {
+    db.exec("ROLLBACK")
+    throw err
+  }
+}
+
+/**
+ * Migrate v13 → v14: add the node_current pointer table and backfill each
+ * entity's current version to its highest existing version, so behavior is
+ * unchanged on upgrade (current == latest until the user switches).
+ */
+function migrateV13toV14(db: sqlite.Database): void {
+  db.exec("BEGIN IMMEDIATE")
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS node_current (
+        node TEXT NOT NULL,
+        item_id TEXT NOT NULL,
+        version INTEGER NOT NULL,
+        PRIMARY KEY (node, item_id)
+      );
+      INSERT OR REPLACE INTO node_current (node, item_id, version)
+        SELECT node, item_id, MAX(version) FROM node_data GROUP BY node, item_id;
     `)
     db.exec("COMMIT")
   } catch (err) {

@@ -37,7 +37,7 @@ Keep this container IDENTICAL on every page — same alignment, padding, and max
 5. **Text Styles** — A table mapping each text_type to an HTML element and Tailwind classes. Required text_types:
    - book_title, book_subtitle, chapter_title, section_heading, activity_title
    - section_text, instruction_text, standalone_text, image_associated_text
-   For FONT SIZE, when a typography scale is provided in the input, set the size via the shared classes (`adt-h1`/`adt-h2`/`adt-h3` for headings, `adt-body` for body/instruction/standalone text, `adt-caption` for captions and image-associated text) instead of choosing per-type `text-*` sizes — the size is fixed book-wide by these classes and keeps every page identical. Choose font weights and colors that match the original style. If no typography scale is provided, choose sizes that match the original.
+   For FONT SIZE, when a typography scale is provided in the input, use `adt-h1` through `adt-h6` for headings, `adt-body` for body/instruction/standalone text, and `adt-caption` for captions and image-associated text instead of choosing per-type `text-*` sizes. A heading's exact `hN`/`adt-hN` pair is selected later from the authoritative outline, not by the styleguide. Choose font families, weights, colors, decoration, and spacing that match the original. If no typography scale is provided, choose sizes that match the original.
 
 6. **Image Styles** — A table defining classes for single images, multiple images, and image grid containers.
 
@@ -110,7 +110,7 @@ Reference them via inline `style="font-family: '...'"` (or Tailwind arbitrary va
 This book uses a FIXED, accessible type scale. In the Text Styles table, set FONT SIZE via these classes only (do not add competing `text-*` size utilities on those elements):
 {% for s in typography %}- `{{ s.className }}` — {{ s.label }} ({{ s.mobilePx }}px mobile → {{ s.desktopPx }}px desktop)
 {% endfor %}
-Suggested mapping: book_title / chapter_title → `adt-h1`; book_subtitle / section_heading / activity_title → `adt-h2` (use `adt-h3` for minor or callout headings); section_text / instruction_text / standalone_text → `adt-body`; image_associated_text → `adt-caption`. Show these classes on the elements in your Text Styles examples and Page Templates.
+Canonical mappings are `chapter_title` → `adt-h1` and `section_heading` → `adt-h2`. Other document headings, including activity titles, MUST use the authoritative level supplied later by the content tree (`hN` with matching `adt-hN`); do not assign every activity title to H2 in this styleguide. In the Text Styles table, write `hN` / `adt-hN` for `activity_title` instead of choosing a fixed numeric level. Use `adt-body` for section/instruction/standalone text and `adt-caption` for image-associated text. Heading examples may demonstrate family, weight, color, decoration, and spacing, but must state that their semantic tag and `adt-hN` class are substituted from the supplied outline level at render time.
 {% endif %}
 
 {% for image in page_images %}

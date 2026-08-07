@@ -20,6 +20,8 @@ export function ApiKeysSettings() {
     azureRegion,
     setAzureRegion,
     setGeminiKey,
+    elevenLabsKey,
+    setElevenLabsKey,
   } = useApiKey()
 
   const saveGoogleKey = useMemo(
@@ -59,6 +61,8 @@ export function ApiKeysSettings() {
         onSaveAzureKey={setAzureKey}
         azureRegion={azureRegion}
         onSaveAzureRegion={setAzureRegion}
+        elevenLabsKey={elevenLabsKey}
+        onSaveElevenLabsKey={setElevenLabsKey}
       />
     </div>
   )

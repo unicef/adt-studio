@@ -64,6 +64,7 @@ export function ThreadRow({
       >
         <span
           aria-hidden
+          data-testid="thread-pin-marker"
           style={{
             backgroundColor: thread.resolved ? "#ffffff" : color,
             color: thread.resolved ? color : readableTextColor(color),

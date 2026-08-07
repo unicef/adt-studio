@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Check, ChevronDown, FileText, Loader2, RotateCcw, Search, Sparkles, X } from "lucide-react"
+import { FileText, RotateCcw, Search, Sparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
 import { api } from "@/api/client"
-import type { EasyReadSectionBlock, VersionEntry } from "@/api/client"
+import type { EasyReadEntry, EasyReadSectionBlock } from "@/api/client"
+import { VersionPicker } from "../../components/VersionPicker"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -222,13 +223,52 @@ export function EasyReadEditor({
           </button>
         )}
         <VersionPicker
+          step="easy-read"
+          itemId="book"
           currentVersion={currentVersion}
           saving={saving}
           dirty={dirty}
           bookLabel={bookLabel}
-          onPreview={(d) => actions.current.preview(d)}
+          onRestored={() => actions.current.discard()}
           onSave={() => actions.current.save()}
           onDiscard={() => actions.current.discard()}
+          diff={{
+            items: (d) => (d as { blocks?: EasyReadSectionBlock[] } | null)?.blocks?.flatMap((bl) => bl.entries) ?? [],
+            keyOf: (e) => (e as EasyReadEntry).easyReadId,
+            isEqual: (a, b) => {
+              const x = a as EasyReadEntry
+              const y = b as EasyReadEntry
+              return x.text === y.text && x.originalText === y.originalText
+            },
+            diffText: (e) => (e as EasyReadEntry).text ?? "",
+            searchText: (e) => {
+              const x = e as EasyReadEntry
+              return `${x.originalText ?? ""} ${x.text ?? ""}`
+            },
+            searchPlaceholder: t`Search original or Easy Read text…`,
+            renderItem: (it, ctx) => {
+              const e = it as EasyReadEntry
+              const m = /^pg0*(\d+)/.exec(e.pageId ?? "")
+              const pageRef = m ? t`p${m[1]}` : null
+              return (
+                <span className="flex min-w-0 flex-col gap-0.5">
+                  {pageRef ? (
+                    <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground tabular-nums">
+                      {pageRef}
+                    </span>
+                  ) : null}
+                  {e.originalText && e.originalText !== e.text ? (
+                    <span className="line-clamp-2 text-[11px] text-muted-foreground">{e.originalText}</span>
+                  ) : null}
+                  {ctx?.diff ? (
+                    <span className="text-foreground">{ctx.diff}</span>
+                  ) : e.text ? (
+                    <span className="text-foreground">{e.text}</span>
+                  ) : null}
+                </span>
+              )
+            },
+          }}
         />
       </div>,
     )
@@ -434,123 +474,6 @@ export function EasyReadEditor({
   )
 }
 
-/** Version dropdown that doubles as a Save/Discard control while editing —
- * mirrors the Glossary / Quizzes header affordance, themed for Easy Read. */
-function VersionPicker({
-  currentVersion,
-  saving,
-  dirty,
-  bookLabel,
-  onPreview,
-  onSave,
-  onDiscard,
-}: {
-  currentVersion: number | null
-  saving: boolean
-  dirty: boolean
-  bookLabel: string
-  onPreview: (data: unknown) => void
-  onSave: () => void
-  onDiscard: () => void
-}) {
-  const { t } = useLingui()
-  const [open, setOpen] = useState(false)
-  const [versions, setVersions] = useState<VersionEntry[] | null>(null)
-  const [loading, setLoading] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [open])
-
-  const handleOpen = async () => {
-    if (saving || currentVersion == null) return
-    setOpen(true)
-    setLoading(true)
-    const res = await api.getVersionHistory(bookLabel, "easy-read", "book", true)
-    setVersions(res.versions)
-    setLoading(false)
-  }
-
-  const handlePick = (v: VersionEntry) => {
-    if (v.version === currentVersion && !dirty) {
-      setOpen(false)
-      return
-    }
-    setOpen(false)
-    onPreview(v.data)
-  }
-
-  if (saving) {
-    return <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
-  }
-
-  if (dirty) {
-    return (
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onDiscard}
-          className="rounded bg-black/15 px-2 py-0.5 text-[10px] font-medium text-white transition-colors hover:bg-black/25 cursor-pointer"
-        >
-          {t`Discard`}
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          className="flex items-center gap-1 rounded bg-white px-2 py-0.5 text-[10px] font-medium text-fuchsia-800 transition-colors hover:bg-white/80 cursor-pointer"
-        >
-          <Check className="h-3 w-3" />
-          {t`Save`}
-        </button>
-      </div>
-    )
-  }
-
-  if (currentVersion == null) return null
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={handleOpen}
-        className="flex items-center gap-0.5 rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-normal tabular-nums normal-case tracking-normal text-white transition-colors hover:bg-white/30 cursor-pointer"
-      >
-        v{currentVersion}
-        <ChevronDown className="h-2.5 w-2.5" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full z-30 mt-1 min-w-[80px] rounded border bg-popover py-1 shadow-md animate-in fade-in zoom-in-95 duration-150">
-          {loading ? (
-            <div className="flex items-center justify-center px-3 py-2">
-              <Loader2 className="h-3 w-3 animate-spin" />
-            </div>
-          ) : versions && versions.length > 0 ? (
-            versions.map((v) => (
-              <button
-                key={v.version}
-                type="button"
-                onClick={() => handlePick(v)}
-                className={`w-full px-3 py-1 text-left text-xs transition-colors hover:bg-accent cursor-pointer ${
-                  v.version === currentVersion ? "font-semibold text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                v{v.version}
-              </button>
-            ))
-          ) : (
-            <div className="px-3 py-1 text-xs text-muted-foreground">{t`No versions`}</div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 /** Textarea that grows to fit its content, with the inline-edit affordance used
  * across the gallery: dashed resting border, fuchsia focus ring. */

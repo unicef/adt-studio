@@ -350,7 +350,28 @@ describe("two_column_render.liquid", () => {
 
     expect(result.html).toContain("<section")
     expect(result.html).not.toContain('role="article"')
-    expect(result.html).toContain('<h2 data-id="pg001_gp001_tx001">Lesson heading</h2>')
+    expect(result.html).toContain('<h2 class="adt-h2" data-id="pg001_gp001_tx001">Lesson heading</h2>')
+  })
+
+  it("renders authoritative level-four headings semantically", async () => {
+    const engine = createTemplateEngine(templatesDir)
+    const input = makeInput({
+      nodes: [
+        {
+          nodeId: "pg001_tx001",
+          isPruned: false,
+          role: "heading",
+          text: "A deeper heading",
+          headingLevel: 4,
+        },
+      ],
+    })
+    const config = { ...templateConfig, templateName: "two_column_render" }
+    const result = await renderSectionTemplate(input, config, engine)
+
+    expect(result.html).toContain(
+      '<h4 class="adt-h4" data-id="pg001_tx001">A deeper heading</h4>',
+    )
   })
 
   it("routes a non-image_group container holding an image leaf into the image column", async () => {
@@ -436,7 +457,7 @@ describe("two_column_story.liquid", () => {
 
     expect(result.html).toContain("<section")
     expect(result.html).not.toContain('role="article"')
-    expect(result.html).toContain('<h2 data-id="pg001_gp001_tx001">Story heading</h2>')
+    expect(result.html).toContain('<h2 class="adt-h2" data-id="pg001_gp001_tx001">Story heading</h2>')
   })
 
   it("splits images and text when both are present", async () => {

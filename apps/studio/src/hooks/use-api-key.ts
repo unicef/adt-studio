@@ -8,6 +8,7 @@ const STORAGE_KEY_CUSTOM_API_KEY = "adt-studio-custom-api-key"
 const STORAGE_KEY_AZURE = "adt-studio-azure-key"
 const STORAGE_KEY_AZURE_REGION = "adt-studio-azure-region"
 const STORAGE_KEY_GEMINI = "adt-studio-gemini-key"
+const STORAGE_KEY_ELEVENLABS = "adt-studio-elevenlabs-key"
 
 function useLocalStorageState(key: string) {
   const [value, setValueState] = useState<string>(() => {
@@ -46,6 +47,7 @@ export function useApiKey() {
   const [azureKey, setAzureKey] = useLocalStorageState(STORAGE_KEY_AZURE)
   const [azureRegion, setAzureRegion] = useLocalStorageState(STORAGE_KEY_AZURE_REGION)
   const [geminiKey, setGeminiKey] = useLocalStorageState(STORAGE_KEY_GEMINI)
+  const [elevenLabsKey, setElevenLabsKey] = useLocalStorageState(STORAGE_KEY_ELEVENLABS)
 
   return {
     apiKey,
@@ -70,5 +72,8 @@ export function useApiKey() {
     geminiKey,
     setGeminiKey,
     hasGeminiKey: geminiKey.length > 0,
+    elevenLabsKey,
+    setElevenLabsKey,
+    hasElevenLabsKey: elevenLabsKey.length > 0,
   }
 }

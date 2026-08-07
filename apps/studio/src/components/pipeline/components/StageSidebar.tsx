@@ -56,6 +56,7 @@ const TASK_KIND_LABELS: Record<string, MessageDescriptor> = {
   "prepare-export": msg`Export`,
   "transcribe-timestamps": msg`Timestamps`,
   "book-summary": msg`Book Summary`,
+  "book-outline": msg`Book Outline`,
   "font-assignment": msg`Font Analysis`,
 }
 
@@ -103,10 +104,16 @@ export function StageSidebar({
       : i18n._(msg`${count} comments waiting for you`)
 
   const currentState = stageState(activeStep)
+  // A stale Storyboard still has its renderings — staleness is a step_runs flag,
+  // not a delete. Closing the pages panel on stage status alone took the page
+  // list away from a user whose pages were all still there, and with it the way
+  // to reach the per-section re-render. Matches the gate in StoryboardIndex.
+  const hasRenderings = (sidebarPages ?? []).some((p) => p.hasRendering)
   const stageHasContent =
     currentState === "done" ||
     currentState === "running" ||
-    currentState === "error"
+    currentState === "error" ||
+    (activeStep === "storyboard" && hasRenderings)
   // Quizzes never open a side panel — selection lives in the content header.
   const effectivePagesOpen =
     hasStagePages(activeStep) && stageHasContent && activeStep !== "quizzes"
@@ -179,7 +186,16 @@ export function StageSidebar({
     const Icon = step.icon
     const state = completionOverrides[step.slug] ? "done" : stageState(step.slug)
     const stageCompleted = state === "done"
-    const showOverviewTab = state === "done" || state === "running" || state === "queued"
+    // Overview is the stage's landing page, and its Run button. It is normally
+    // redundant while a stage is idle, because the stage's own view *is* the
+    // landing page — but a stale Storyboard shows the editor instead, so hiding
+    // Overview there leaves no way to re-run the stage at all. It is the first
+    // tab, so re-running stays one click from the gear.
+    const showOverviewTab =
+      state === "done" ||
+      state === "running" ||
+      state === "queued" ||
+      (step.slug === "storyboard" && hasRenderings)
     const settingsTabs = getSettingsTabs(step.slug, i18n, showOverviewTab)
     const showSubTabs = isActive && isSettings && !!settingsTabs
 

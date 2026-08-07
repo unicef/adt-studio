@@ -21,34 +21,38 @@ import {
   hashPdfBytes,
 } from "@adt/types/fingerprint"
 import { renderPdfCover, countPdfPages } from "@adt/pdf"
-import { openBookDb, resolveBookPaths } from "@adt/storage"
+import { CURRENT_VERSION_ORDER, openBookDb, resolveBookPaths } from "@adt/storage"
 import { loadBookConfig } from "@adt/pipeline"
 import { createZipStreamFromEntries } from "./zip-util.js"
 import { getBookConfig, readPartInfo, type BookSummary } from "./book-service.js"
 import type { ExportResult } from "./export-service.js"
 
 /**
- * The per-page processing stages. A merge carries the part's step status for
- * every step in these stages onto the assembled book. This deliberately
- * includes the Extract stage's non-page-level `metadata` and `book-summary`
- * steps: stage completion requires *every* step to be done/skipped, so clearing
- * `book-summary` would make the whole Extract stage read as "not run" and block
- * the downstream UI (e.g. the Sectioning page's "Extract hasn't run" gate).
+ * A merge carries only the statuses in the stage that owns `book-outline`, and
+ * excludes that one book-wide step. Metadata, summary, and per-page extraction
+ * remain authoritative; the part-local outline and every downstream stage do
+ * not. Their versioned node data is still copied for inspection, but completion
+ * is cleared until the assembled-book hierarchy rebuild runs.
  */
-const PER_PAGE_STAGE_NAMES = new Set<string>(["extract", "sectioning", "storyboard"])
-const PER_PAGE_STAGE_STEPS = new Set<string>(
-  PIPELINE.filter((s) => PER_PAGE_STAGE_NAMES.has(s.name)).flatMap((s) =>
-    s.steps.map((st) => st.name),
-  ),
+const BOOK_OUTLINE_STEP = "book-outline"
+const BOOK_OUTLINE_STAGE = PIPELINE.find((stage) =>
+  stage.steps.some((step) => step.name === BOOK_OUTLINE_STEP),
 )
-/** Steps of the downstream / book-level stages, cleared on merge so the UI
- *  flags them for re-running on the assembled book. */
-const DOWNSTREAM_STEPS = PIPELINE.filter((s) => !PER_PAGE_STAGE_NAMES.has(s.name)).flatMap((s) =>
-  s.steps.map((st) => st.name),
+if (!BOOK_OUTLINE_STAGE) throw new Error("PIPELINE must define the book-outline step")
+
+const MERGE_AUTHORITATIVE_STEPS = new Set<string>(
+  BOOK_OUTLINE_STAGE.steps
+    .map((step) => step.name)
+    .filter((step) => step !== BOOK_OUTLINE_STEP),
 )
-const DOWNSTREAM_STAGE_NAMES = PIPELINE.filter((s) => !PER_PAGE_STAGE_NAMES.has(s.name)).map(
-  (s) => s.name,
+const DOWNSTREAM_STAGES = PIPELINE.filter(
+  (stage) => stage.name !== BOOK_OUTLINE_STAGE.name,
 )
+const DOWNSTREAM_STEPS = [
+  ...DOWNSTREAM_STAGES.flatMap((stage) => stage.steps.map((step) => step.name)),
+  BOOK_OUTLINE_STEP,
+]
+const DOWNSTREAM_STAGE_NAMES = DOWNSTREAM_STAGES.map((stage) => stage.name)
 
 /** Config fields whose drift the semantics tier reports (per-page prompts +
  *  editing language). */
@@ -730,14 +734,24 @@ export function mergePart(
       else addedPages++
     }
 
-    // Latest version of every node_data row in the part.
-    const latestNodes = part.db.all(
-      `SELECT nd.node, nd.item_id, nd.data
+    // Current version of every node_data row in the part. A contributor may
+    // have intentionally restored an older version, so MAX(version) is not
+    // necessarily the version that should be merged.
+    const orderedNodes = part.db.all(
+      `SELECT nd.node AS node, nd.item_id AS item_id, nd.data AS data
          FROM node_data nd
-         JOIN (SELECT node, item_id, MAX(version) AS mv FROM node_data GROUP BY node, item_id) m
-           ON nd.node = m.node AND nd.item_id = m.item_id AND nd.version = m.mv`,
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         ORDER BY nd.node, nd.item_id, ${CURRENT_VERSION_ORDER}`,
     ) as Array<{ node: string; item_id: string; data: string | null }>
-    const perPageNodes = latestNodes.filter((row) => {
+    const currentNodes: typeof orderedNodes = []
+    const seenNodes = new Set<string>()
+    for (const row of orderedNodes) {
+      const key = `${row.node}\0${row.item_id}`
+      if (seenNodes.has(key)) continue
+      seenNodes.add(key)
+      currentNodes.push(row)
+    }
+    const perPageNodes = currentNodes.filter((row) => {
       const pid = pageIdOfItem(row.item_id)
       return pid !== null && pageIdSet.has(pid)
     })
@@ -794,6 +808,11 @@ export function mergePart(
           "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
           [row.node, row.item_id, nextVersion, row.data],
         )
+        targetDb.run(
+          `INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)
+           ON CONFLICT (node, item_id) DO UPDATE SET version = excluded.version`,
+          [row.node, row.item_id, nextVersion],
+        )
       }
 
       // Book-level metadata (title/authors/publisher/language/cover) is the one
@@ -809,11 +828,15 @@ export function mergePart(
           (targetDb.all(
             "SELECT 1 FROM node_data WHERE node = 'metadata' AND item_id = 'book' LIMIT 1",
           ) as unknown[]).length > 0
-        const metaRow = latestNodes.find((r) => r.node === "metadata" && r.item_id === "book")
+        const metaRow = currentNodes.find((r) => r.node === "metadata" && r.item_id === "book")
         if (!targetHasMetadata && metaRow) {
           targetDb.run(
             "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
             ["metadata", "book", 1, metaRow.data],
+          )
+          targetDb.run(
+            "INSERT INTO node_current (node, item_id, version) VALUES (?, ?, ?)",
+            ["metadata", "book", 1],
           )
           metadataMerged = true
         }
@@ -836,12 +859,11 @@ export function mergePart(
         )
       }
 
-      // Carry the part's status for every step in the per-page stages
-      // (extract/sectioning/storyboard, incl. metadata + book-summary) so the
-      // assembled book's early stages read as complete. Stage completion needs
-      // every step done/skipped, so we must NOT leave any of these unset.
+      // Carry only statuses whose output is authoritative after assembly.
+      // Outline-derived sectioning/rendering data remains inspectable in node
+      // history, but its completion is cleared below until a whole-book rebuild.
       for (const sr of partStepRuns) {
-        if (PER_PAGE_STAGE_STEPS.has(sr.step) && (sr.status === "done" || sr.status === "skipped")) {
+        if (MERGE_AUTHORITATIVE_STEPS.has(sr.step) && (sr.status === "done" || sr.status === "skipped")) {
           targetDb.run(
             `INSERT INTO step_runs (step, status) VALUES (?, ?)
              ON CONFLICT (step) DO UPDATE SET status = excluded.status`,

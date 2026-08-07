@@ -5,6 +5,31 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import { createBookStorage } from "@adt/storage"
 import { createAdtPreviewRoutes } from "./adt-preview.js"
 
+function putReadyCoreTts(
+  storage: ReturnType<typeof createBookStorage>,
+  ...ids: string[]
+): void {
+  storage.putNodeData("core-tts-catalog", "en", {
+    language: "en",
+    entries: ids.map((id) => ({
+      id,
+      displayText: id,
+      speechText: id,
+      changed: false,
+      transformations: [],
+      status: "ready",
+      generation: {
+        mode: "unchanged",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        enabledTransformations: [],
+        sourceTextHash: "source",
+        contextHash: "context",
+      },
+    })),
+    generatedAt: "2026-01-01T00:00:00.000Z",
+  })
+}
+
 describe("ADT preview routes", () => {
   let tmpDir: string
   let webAssetsDir: string
@@ -267,6 +292,69 @@ describe("ADT preview routes", () => {
     expect(texts.pg001_tx002).toBe("Just plain prose.")
   })
 
+  it("serves prepared speech separately and withholds failed entries from audio", async () => {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [
+          {
+            id: "pg001_tx001",
+            displayText: "$x^2$",
+            speechText: "x squared",
+            changed: true,
+            transformations: ["latex-to-speech"],
+            status: "ready",
+            generation: {
+              mode: "generated",
+              generatedAt: "2026-01-01T00:00:00.000Z",
+              enabledTransformations: ["latex-to-speech"],
+              sourceTextHash: "source",
+              contextHash: "context",
+            },
+          },
+          {
+            id: "pg001_tx002",
+            displayText: "$x^2$",
+            speechText: null,
+            changed: false,
+            transformations: ["latex-to-speech"],
+            status: "failed",
+            failureReason: "Raw LaTeX remained",
+            generation: {
+              mode: "generated",
+              generatedAt: "2026-01-01T00:00:00.000Z",
+              enabledTransformations: ["latex-to-speech"],
+              sourceTextHash: "source",
+              contextHash: "context",
+            },
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      storage.putNodeData("tts", "en", {
+        entries: ["pg001_tx001", "pg001_tx002"].map((textId) => ({
+          textId,
+          language: "en",
+          fileName: `${textId}.mp3`,
+          voice: "alloy",
+          model: "gpt-4o-mini-tts",
+          cached: false,
+        })),
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      storage.close()
+    }
+
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+    const speechRes = await app.request(`/books/${label}/adt-preview/content/i18n/en/speech_texts.json`)
+    const audioRes = await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)
+
+    expect(await speechRes.json()).toEqual({ pg001_tx001: "x squared" })
+    expect(await audioRes.json()).toEqual({ pg001_tx001: "pg001_tx001.mp3" })
+  })
+
   it("includes quiz pages anchored to pages without rendered sections in pages.json", async () => {
     const storage = createBookStorage(label, tmpDir)
     try {
@@ -349,6 +437,7 @@ describe("ADT preview routes", () => {
         },
         generatedAt: "2026-01-01T00:00:00.000Z",
       })
+      putReadyCoreTts(storage, "pg001_t001")
     } finally {
       storage.close()
     }
@@ -407,6 +496,25 @@ describe("ADT preview routes", () => {
 	          },
 	        ],
 	        generatedAt: "2026-01-01T00:00:00.000Z",
+	      })
+	      storage.putNodeData("core-tts-catalog", "en", {
+	        language: "en",
+	        generatedAt: "2026-01-01T00:00:00.000Z",
+	        entries: ["pg001_t001", "pg001_t002"].map((id) => ({
+	          id,
+	          displayText: id,
+	          speechText: id,
+	          changed: false,
+	          transformations: [],
+	          status: "ready",
+	          generation: {
+	            mode: "unchanged",
+	            generatedAt: "2026-01-01T00:00:00.000Z",
+	            enabledTransformations: [],
+	            sourceTextHash: "source",
+	            contextHash: "context",
+	          },
+	        })),
 	      })
 	      storage.putNodeData("tts-timestamps", "en", {
 	        entries: {
@@ -473,6 +581,7 @@ describe("ADT preview routes", () => {
         ],
         generatedAt: "2026-01-01T00:00:00.000Z",
       })
+      putReadyCoreTts(storage, "pg001_t001")
     } finally {
       storage.close()
     }
@@ -522,6 +631,7 @@ describe("ADT preview routes", () => {
         },
         generatedAt: "2026-01-01T00:00:00.000Z",
       })
+      putReadyCoreTts(storage, "pg001_t001")
     } finally {
       storage.close()
     }

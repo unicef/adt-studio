@@ -243,6 +243,28 @@ describe("easy read routes", () => {
     const storage = createBookStorage("selective-speech", tmpDir)
     try {
       storage.putNodeData("easy-read", "book", twoEntryEasyReadData("Easy one", "Easy two"))
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [
+          ["pg001_tx001_easy_read", "Easy one"],
+          ["pg001_tx002_easy_read", "Easy two"],
+        ].map(([id, text]) => ({
+          id,
+          displayText: text,
+          speechText: text,
+          changed: false,
+          transformations: [],
+          status: "ready",
+          generation: {
+            mode: "unchanged",
+            generatedAt: "2026-01-01T00:00:00.000Z",
+            enabledTransformations: [],
+            sourceTextHash: "source",
+            contextHash: "context",
+          },
+        })),
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
       storage.putNodeData("tts", "en", {
         entries: [
           {
@@ -285,6 +307,7 @@ describe("easy read routes", () => {
       })
       storage.markStepCompleted("tts")
       storage.markStepCompleted("word-timestamps")
+      storage.markStepCompleted("core-tts-catalog")
     } finally {
       storage.close()
     }
@@ -310,7 +333,23 @@ describe("easy read routes", () => {
         "pg001_tx002_easy_read",
       ])
 
+      expect(after.getLatestNodeData("core-tts-catalog", "en")?.data).toMatchObject({
+        entries: [
+          {
+            id: "pg001_tx001_easy_read",
+            speechText: null,
+            status: "failed",
+          },
+          {
+            id: "pg001_tx002_easy_read",
+            speechText: "Easy two",
+            status: "ready",
+          },
+        ],
+      })
+
       const stepRuns = after.getStepRuns()
+      expect(stepRuns.find((step) => step.step === "core-tts-catalog")).toBeUndefined()
       expect(stepRuns.find((step) => step.step === "tts")).toBeUndefined()
       expect(stepRuns.find((step) => step.step === "word-timestamps")).toBeUndefined()
     } finally {

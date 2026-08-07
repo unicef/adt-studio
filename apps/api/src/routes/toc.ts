@@ -2,9 +2,9 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { TocGenerationOutput, WebRenderingOutput, parseBookLabel } from "@adt/types"
+import { TocGenerationOutput, WebRenderingOutput, isHeadingRole, parseBookLabel } from "@adt/types"
 import type { ContentNodeData } from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, readCurrentNodeRow } from "@adt/storage"
 import { getRenderSectioning } from "@adt/pipeline"
 
 function safeParseLabel(label: string): string {
@@ -38,18 +38,16 @@ export function createTocRoutes(booksDir: string): Hono {
 
     const db = openBookDb(dbPath)
     try {
-      const rows = db.all(
-        "SELECT data, version FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-        ["toc-generation", "book"],
-      ) as Array<{ data: string; version: number }>
+      // Current-pointer version (falls back to MAX) so a rollback is reflected.
+      const row = readCurrentNodeRow(db, "toc-generation", "book")
 
-      if (rows.length === 0) {
+      if (!row) {
         return c.json(null)
       }
 
       let parsed: unknown
       try {
-        parsed = JSON.parse(rows[0].data)
+        parsed = JSON.parse(row.data)
       } catch {
         throw new HTTPException(500, {
           message: `Stored TOC data is corrupted for book: ${safeLabel}`,
@@ -63,7 +61,7 @@ export function createTocRoutes(booksDir: string): Hono {
         })
       }
 
-      return c.json({ ...validated.data, version: rows[0].version })
+      return c.json({ ...validated.data, version: row.version })
     } finally {
       db.close()
     }
@@ -119,7 +117,7 @@ export function createTocRoutes(booksDir: string): Hono {
           while (stack.length > 0) {
             const node = stack.shift()!
             if (node.isPruned) continue
-            if (node.role === "heading" && node.text) return node.text
+            if (isHeadingRole(node.role) && node.text) return node.text
             if (node.children) stack.unshift(...node.children)
           }
           return null

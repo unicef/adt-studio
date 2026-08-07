@@ -67,6 +67,9 @@ export interface SignLanguageVideoData {
 }
 
 export interface Storage {
+  /** Run all storage operations in one SQLite transaction. Nested calls join
+   *  the outer transaction. Any thrown error rolls the whole operation back. */
+  transaction<T>(operation: () => T): T
   clearExtractedData(): void
   clearNodesByType(nodes: string[]): void
   putExtractedPage(page: ExtractedPage): void
@@ -96,6 +99,11 @@ export interface Storage {
   /** Highest node_data version across every node but the excluded one. */
   maxNodeVersionExcluding(excluded: string): number | null
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null
+  /** Point (node, itemId) at an existing version without creating a new one
+   *  (rollback). Returns false if that version doesn't exist. */
+  setCurrentNodeVersion(node: string, itemId: string, version: number): boolean
+  /** The active version pointer, or null when unset (current == MAX). */
+  getCurrentNodeVersion(node: string, itemId: string): number | null
 
   /** Mark a pipeline step as started (running). */
   markStepStarted(step: string): void

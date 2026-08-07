@@ -73,16 +73,18 @@ afterEach(cleanup)
 
 describe("ThreadRow markers", () => {
   it("shows the pin number for a pin that is on the page", () => {
-    const { container } = renderRow(comment({ id: "c1" }))
-    expect(container.textContent).toContain("3")
+    renderRow(comment({ id: "c1" }))
+    expect(screen.getByTestId("thread-pin-marker").textContent).toBe("3")
     expect(screen.queryByText("Pin not on this version")).toBeNull()
   })
 
+  /** Asserted on the marker alone. Scanning the whole row also swept up the
+   *  relative timestamp, so this passed until the fixture turned three days old
+   *  and "3d ago" started supplying the very digit the test forbade. */
   it("drops the number and says so when the anchor is not on this version", () => {
-    const { container } = renderRow(comment({ id: "c1" }), { pinMissing: true })
+    renderRow(comment({ id: "c1" }), { pinMissing: true })
     expect(screen.getByText("Pin not on this version")).toBeTruthy()
-    expect(container.textContent).toContain("–")
-    expect(container.textContent).not.toContain("3")
+    expect(screen.getByTestId("thread-pin-marker").textContent).toBe("–")
   })
 
   it("marks a whole-page comment with a dot instead of a number", () => {

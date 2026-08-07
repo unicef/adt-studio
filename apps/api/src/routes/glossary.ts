@@ -10,7 +10,7 @@ import {
   parseBookLabel,
 } from "@adt/types"
 import type { ImageCaptioningOutput } from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, readCurrentNodeRow } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import {
   buildTextCatalog,
@@ -99,18 +99,15 @@ export function createGlossaryRoutes(
 
     const db = openBookDb(dbPath)
     try {
-      const rows = db.all(
-        "SELECT data, version FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-        ["glossary", "book"]
-      ) as Array<{ data: string; version: number }>
+      const row = readCurrentNodeRow(db, "glossary", "book")
 
-      if (rows.length === 0) {
+      if (!row) {
         return c.json(null)
       }
 
       let parsed: unknown
       try {
-        parsed = JSON.parse(rows[0].data)
+        parsed = JSON.parse(row.data)
       } catch {
         throw new HTTPException(500, {
           message: `Stored glossary data is corrupted for book: ${safeLabel}`,
@@ -124,7 +121,7 @@ export function createGlossaryRoutes(
         })
       }
 
-      return c.json({ ...validated.data, version: rows[0].version })
+      return c.json({ ...validated.data, version: row.version })
     } finally {
       db.close()
     }

@@ -128,6 +128,19 @@ export type DrawItemParagraph = z.infer<typeof DrawItemParagraph>
 export const DrawItem = z.discriminatedUnion("kind", [DrawItemImage, DrawItemParagraph])
 export type DrawItem = z.infer<typeof DrawItem>
 
+/**
+ * `src` of the auto-fit script that fixed-layout pages load.
+ *
+ * Lives here because it has two independent writers that must agree byte for
+ * byte: the pipeline renderer embeds it inside `#content` when emitting a
+ * page, and the studio re-adds it when serializing an edited page back to
+ * storage (DOMPurify strips the tag while the preview is live). A drift
+ * between the two would break auto-fit only on manually edited pages — the
+ * hardest case to notice — so both read this constant instead of repeating
+ * the literal. Relative to the page, matching the packaged bundle layout.
+ */
+export const AUTO_FIT_SCRIPT_SRC = "./assets/auto-fit.js"
+
 export const PositionedTextOutput = z.object({
   /**
    * Draw items (images and paragraphs) in the PDF's draw order. Array order
