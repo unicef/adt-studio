@@ -173,7 +173,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 4
+const PACKAGING_FORMAT_VERSION = 5
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -1780,17 +1780,6 @@ export function rewriteImageUrls(
   const referencedImages: string[] = []
   const doc = parseDocument(normalizeSectionRoles(html))
 
-  const declaresOwnLayout = (img: { attribs: Record<string, string> }): boolean => {
-    const style = (img.attribs.style ?? "").replace(/\s+/g, "")
-    if (/position:(absolute|fixed)/.test(style)) return true
-    const classes = (img.attribs.class ?? "").split(/\s+/)
-    return classes.some((name) =>
-      /^(?:absolute|fixed|h-full|w-full|h-screen|inset-0|object-(?:cover|contain|fill))$/.test(
-        name.replace(/^[a-z0-9]+:/, ""),
-      ),
-    )
-  }
-
   const imgs = DomUtils.findAll(
     (el) => el.type === "tag" && el.name === "img",
     doc.children,
@@ -1806,17 +1795,6 @@ export function rewriteImageUrls(
         resolvedImageId = imageId
         img.attribs.src = `images/${filename}`
         referencedImages.push(imageId)
-        delete img.attribs.width
-        delete img.attribs.height
-        const existingStyle = img.attribs.style ?? ""
-        if (!declaresOwnLayout(img)) {
-          const sizeStyle = "max-width: 100%; height: auto;"
-          if (!existingStyle.includes("max-width")) {
-            img.attribs.style = existingStyle
-              ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
-              : sizeStyle
-          }
-        }
       }
     }
     // Also handle data-id based images
@@ -1827,17 +1805,6 @@ export function rewriteImageUrls(
       img.attribs.src = `images/${filename}`
       if (!referencedImages.includes(dataId)) {
         referencedImages.push(dataId)
-      }
-      delete img.attribs.width
-      delete img.attribs.height
-      const existingStyle = img.attribs.style ?? ""
-      if (!declaresOwnLayout(img)) {
-        const sizeStyle = "max-width: 100%; height: auto;"
-        if (!existingStyle.includes("max-width")) {
-          img.attribs.style = existingStyle
-            ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
-            : sizeStyle
-        }
       }
     }
 

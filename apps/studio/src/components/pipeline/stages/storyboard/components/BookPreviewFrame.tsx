@@ -14,6 +14,7 @@ import {
   promoteFirstHeadingToH1,
   reconstructHtmlWithEdit,
   serializeContentWrapper,
+  usesViewportHeight,
 } from "./iframe-html"
 import {
   type ComputedTypographyStyles,
@@ -360,7 +361,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     [html],
   )
   const viewportSizedContent = useMemo(
-    () => /\b(?:min-h|h)-(?:screen|dvh|svh|lvh)\b|\b100[dsl]?vh\b/.test(sanitizedHtml),
+    () => usesViewportHeight(sanitizedHtml),
     [sanitizedHtml],
   )
   // Convert LaTeX to MathML for display via the API — the underlying data stays as LaTeX.
@@ -686,40 +687,18 @@ ${autoFitScript}
     stamp(linkedKey, "data-adt-linked")
   }, [linkedKey, previewKey, displayHtml, iframeReady])
 
-  // Suppress the iframe's own scrollbar in desktop view (where the iframe is
-  // sized to its content and the host container provides the scroll). Phone
-  // and tablet frames keep the default since their fixed-height chrome relies
-  // on internal scrolling.
+  // Suppress the iframe's own scrollbar only when desktop content is sized to
+  // its measured height. Viewport-dependent pages keep a stable viewport and
+  // scroll internally when min-height content grows beyond it, matching the
+  // packaged reader instead of clipping the overflow.
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument
     if (!doc) return
     const desktop = !deviceView || deviceView === "desktop"
-    const value = desktop ? "hidden" : ""
+    const value = desktop && !viewportSizedContent ? "hidden" : "auto"
     if (doc.documentElement) doc.documentElement.style.overflow = value
     if (doc.body) doc.body.style.overflow = value
-  }, [deviceView, iframeReady])
-
-  // Fixed-layout pages overlay positioned text on top of full-page images
-  // via DOM order. The editable-mode `img[data-id] { z-index: 1 }` rule (used
-  // for image-selection outlines in reflowable books) would lift those images
-  // above the text and bury it — neutralise the z-index for fixed-layout pages.
-  useEffect(() => {
-    const doc = iframeRef.current?.contentDocument
-    if (!doc?.head) return
-    const styleId = "adt-fixed-layout-styles"
-    let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
-    if (!fixedLayoutSize) {
-      styleEl?.remove()
-      return
-    }
-    if (!styleEl) {
-      styleEl = doc.createElement("style")
-      styleEl.id = styleId
-      doc.head.appendChild(styleEl)
-    }
-    // eslint-disable-next-line lingui/no-unlocalized-strings
-    styleEl.textContent = `body[data-editable="true"] img[data-id] { z-index: auto; }`
-  }, [fixedLayoutSize, iframeReady])
+  }, [deviceView, iframeReady, viewportSizedContent])
 
   // Inject/update the attached book fonts (Google <link> + uploaded @font-face)
   // into the live iframe head. Done here rather than in `srcdoc` so attaching a
@@ -805,7 +784,6 @@ ${autoFitScript}
     // eslint-disable-next-line lingui/no-unlocalized-strings
     styleEl.textContent = `
 ${selectors} {
-  position: relative;
   box-shadow: -3px 0 0 0 rgba(245, 158, 11, 0.6);
   transition: box-shadow 0.3s;
 }

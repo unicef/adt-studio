@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest"
-import { reconstructHtmlWithEdit, serializeContentWrapper } from "./iframe-html"
+import {
+  reconstructHtmlWithEdit,
+  serializeContentWrapper,
+  usesViewportHeight,
+} from "./iframe-html"
 
 // jsdom does not implement CSS.escape, which reconstructHtmlWithEdit relies on
 // (present in real browsers / Electron). The fixtures use plain-identifier
@@ -111,5 +115,27 @@ describe("reconstructHtmlWithEdit", () => {
 
   it("returns null when the data-id is not found", () => {
     expect(reconstructHtmlWithEdit(FIXED_LAYOUT, "missing", "x")).toBeNull()
+  })
+})
+
+describe("usesViewportHeight", () => {
+  it.each([
+    `<section class="min-h-screen"></section>`,
+    `<section class="md:h-screen"></section>`,
+    `<section class="lg:max-h-dvh"></section>`,
+    `<section class="min-h-[calc(100dvh-100px)]"></section>`,
+    `<section class="min-h-[var(--page-height)]"></section>`,
+    `<section style="min-height: 80svh"></section>`,
+    `<img style="max-height: var(--page-height, 100vh)">`,
+  ])("detects viewport-dependent layout in attributes", (html) => {
+    expect(usesViewportHeight(html)).toBe(true)
+  })
+
+  it("ignores viewport utility names in visible prose", () => {
+    expect(usesViewportHeight(`<p>Use min-h-screen to fill the viewport.</p>`)).toBe(false)
+  })
+
+  it("ignores fixed-height layout", () => {
+    expect(usesViewportHeight(`<section class="min-h-[520px] h-96"></section>`)).toBe(false)
   })
 })

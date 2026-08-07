@@ -7,6 +7,35 @@ export function promoteFirstHeadingToH1(html: string): string {
   return html.replace(/<h([2-6])(\b[^>]*)>([\s\S]*?)<\/h\1>/i, '<h1$2>$3</h1>')
 }
 
+/**
+ * Whether rendered markup depends on the iframe viewport height.
+ *
+ * Inspect attributes rather than the raw HTML string so prose or code samples
+ * containing text such as "min-h-screen" do not change the preview frame.
+ * Any viewport-unit dependency needs a stable iframe viewport; otherwise the
+ * measure -> resize -> reflow loop can continuously increase the page height.
+ */
+export function usesViewportHeight(html: string): boolean {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(`<div id="__root">${html}</div>`, "text/html")
+  const viewportUnit = /(?:^|[^a-z])(?:\d*\.?\d+)(?:dvh|svh|lvh|vh)\b/i
+  const viewportClass = /(?:^|:)(?:min-h|h|max-h)-(?:screen|dvh|svh|lvh)$/
+
+  return Array.from(doc.querySelectorAll<HTMLElement>("[class], [style]")).some((el) => {
+    const classes = Array.from(el.classList)
+    if (
+      classes.some(
+        (name) => name.includes("--page-height") || viewportClass.test(name) || viewportUnit.test(name),
+      )
+    ) {
+      return true
+    }
+
+    const style = el.getAttribute("style") ?? ""
+    return style.includes("--page-height") || viewportUnit.test(style)
+  })
+}
+
 // Inverse of `promoteFirstHeadingToH1`. Used when serializing iframe DOM back
 // to persistence so the display-only promote doesn't migrate `<h2>` → `<h1>`
 // in the saved rendering.

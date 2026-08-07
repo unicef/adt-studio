@@ -108,6 +108,25 @@ body[data-activity-dock="top"] {
   padding-top: calc(var(--nav-height) + 3.75rem);
 }
 
+body {
+  /*
+   * The usable page viewport is shared by generated content and the reader.
+   * Storyboard iframes have no chrome, so the inset remains zero there. The
+   * packaged reader sets it from its navigation/activity dock attributes.
+   */
+  --adt-chrome-inset: 0px;
+  --adt-page-height-screen: calc(100vh - var(--adt-chrome-inset));
+  --adt-page-height-dvh: calc(100dvh - var(--adt-chrome-inset));
+  --adt-page-height-svh: calc(100svh - var(--adt-chrome-inset));
+  --adt-page-height-lvh: calc(100lvh - var(--adt-chrome-inset));
+  --page-height: var(--adt-page-height-screen);
+}
+@supports (height: 100dvh) {
+  body {
+    --page-height: var(--adt-page-height-dvh);
+  }
+}
+
 body[nav-position] {
   --adt-chrome-inset: var(--nav-height);
 }
@@ -115,13 +134,46 @@ body[data-activity-dock] {
   --adt-chrome-inset: calc(var(--nav-height) + 3.75rem);
 }
 
-#content.min-h-screen,
-#content .min-h-screen {
-  min-height: calc(100vh - var(--adt-chrome-inset, 0px));
+/*
+ * Override Tailwind's viewport-height utilities at their source. Tailwind
+ * generates responsive variants from these definitions too, so md:h-screen
+ * and similar classes follow the same reader-aware contract.
+ */
+@utility min-h-screen {
+  min-height: var(--adt-page-height-screen);
 }
-#content.h-screen,
-#content .h-screen {
-  height: calc(100vh - var(--adt-chrome-inset, 0px));
+@utility h-screen {
+  height: var(--adt-page-height-screen);
+}
+@utility max-h-screen {
+  max-height: var(--adt-page-height-screen);
+}
+@utility min-h-dvh {
+  min-height: var(--adt-page-height-dvh);
+}
+@utility h-dvh {
+  height: var(--adt-page-height-dvh);
+}
+@utility max-h-dvh {
+  max-height: var(--adt-page-height-dvh);
+}
+@utility min-h-svh {
+  min-height: var(--adt-page-height-svh);
+}
+@utility h-svh {
+  height: var(--adt-page-height-svh);
+}
+@utility max-h-svh {
+  max-height: var(--adt-page-height-svh);
+}
+@utility min-h-lvh {
+  min-height: var(--adt-page-height-lvh);
+}
+@utility h-lvh {
+  height: var(--adt-page-height-lvh);
+}
+@utility max-h-lvh {
+  max-height: var(--adt-page-height-lvh);
 }
 
 /*

@@ -433,7 +433,6 @@ export const INTERACTIVE_STYLES = `body[data-editable="true"] *:hover:not(:has(*
       outline-offset: 2px;
       cursor: pointer;
     }
-    body[data-editable="true"] img[data-id]:not(.absolute):not(.fixed):not(.sticky) { position: relative; z-index: 1; }
     [data-adt-selected] { outline: 2px solid rgb(124, 58, 237) !important; outline-offset: 2px !important; }
     [data-adt-editing] { outline: 2px solid rgb(91, 33, 182) !important; outline-offset: 2px !important; }
     body[data-link-mode="true"] [data-id],
