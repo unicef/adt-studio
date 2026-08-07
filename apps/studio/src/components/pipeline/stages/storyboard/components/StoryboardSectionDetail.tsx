@@ -82,6 +82,7 @@ import {
 import { toast } from "sonner"
 import { Puzzle, ListChecks } from "lucide-react"
 import { StyleEditorPanel } from "./style-editor"
+import { FitScaleIndicator } from "./FitScaleIndicator"
 import { ViewportToggle } from "./style-editor/ViewportToggle"
 import {
   DEVICE_WIDTHS,
@@ -2693,6 +2694,10 @@ export function StoryboardSectionDetail({
         className="flex-1 overflow-auto px-4 py-4 relative [scrollbar-gutter:stable]"
         ref={scrollContainerRef}
       >
+        <FitScaleIndicator
+          visibleWidth={previewVisibleWidth}
+          fullWidth={DEVICE_WIDTHS[deviceView]}
+        />
         {!section ? (
           <StageEmptyState
             icon={LayoutGrid}

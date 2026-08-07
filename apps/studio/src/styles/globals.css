@@ -382,6 +382,38 @@
   }
 }
 
+/* Fit-to-panel indicator: a Dynamic-Island-style pill that springs in when the
+   storyboard preview scales below 1:1 and snaps out when it returns. Defined
+   unlayered so its transition beats the Badge's utility-layer transition-colors;
+   driven by a data-state attribute so both the enter and the exit animate. */
+.adt-fit-pill {
+  transform-origin: top center;
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  filter: blur(0);
+  transition:
+    transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 220ms ease-out,
+    filter 220ms ease-out;
+}
+.adt-fit-pill[data-state="closed"] {
+  transform: translateY(-10px) scale(0.86);
+  opacity: 0;
+  filter: blur(3px);
+  transition:
+    transform 190ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 150ms ease-out,
+    filter 150ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .adt-fit-pill,
+  .adt-fit-pill[data-state="closed"] {
+    transform: none;
+    filter: none;
+    transition: opacity 160ms ease-out;
+  }
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
