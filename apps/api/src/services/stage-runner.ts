@@ -1131,7 +1131,7 @@ async function runExtractStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
     await generateAndStoreBookOutline(
@@ -1351,7 +1351,7 @@ async function runSectioningStep(
         promptEngine,
         rateLimiter,
         onLog: onLlmLog,
-        credentials: llmCredentials,
+        providerCredentials: llmCredentials,
         signal: options.signal,
       })
       bookOutline = await generateAndStoreBookOutline(

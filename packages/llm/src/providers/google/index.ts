@@ -150,7 +150,14 @@ export const googleProvider: ProviderModule<GoogleCredentials> = {
 
   createStructuredTextBackend: (context) => {
     const client = createGoogleGenerativeAI({ apiKey: context.credentials.apiKey })
-    return createAiSdkStructuredTextBackend(() => client(context.modelId))
+    return createAiSdkStructuredTextBackend((options) =>
+      client(
+        context.modelId,
+        options.structuredOutputs !== undefined
+          ? { structuredOutputs: options.structuredOutputs }
+          : undefined,
+      ),
+    )
   },
 
   createAgentBackend: (context) =>
