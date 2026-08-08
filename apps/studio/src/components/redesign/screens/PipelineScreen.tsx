@@ -13,7 +13,7 @@ import { PipelineTopBar } from "./pipeline/PipelineTopBar"
 import { PluginDock } from "./pipeline/PluginDock"
 import { StoryboardEmptyState } from "./pipeline/StoryboardEmptyState"
 import { STEP_VIEWS, type StepFrame } from "./pipeline/steps"
-import { findPlugin, isPluginSlug, type PluginSlug } from "./pipeline/plugins"
+import { findDockEntry, isDockSlug, type DockSlug } from "./pipeline/plugins"
 import type { Viewport } from "./pipeline/types"
 import { usePipelineState } from "./pipeline/usePipelineState"
 
@@ -44,7 +44,7 @@ function StatusPill({
 
 export function PipelineScreen() {
   const { label } = route.useParams()
-  const { plugin: pluginSlug } = route.useSearch()
+  const { step: stepSlug } = route.useSearch()
   const navigate = useNavigate()
   const { t } = useLingui()
 
@@ -59,11 +59,11 @@ export function PipelineScreen() {
     return state.pages.find((p) => p.pageId === selectedPageId) ?? state.pages[0]
   }, [state.pages, selectedPageId])
 
-  const openPlugin = (slug: string) => {
-    if (!isPluginSlug(slug)) return
-    navigate({ to: "/redesign/pipeline/$label", params: { label }, search: { plugin: slug } })
+  const openStep = (slug: string) => {
+    if (!isDockSlug(slug)) return
+    navigate({ to: "/redesign/pipeline/$label", params: { label }, search: { step: slug } })
   }
-  const closePlugin = () => {
+  const closeStep = () => {
     navigate({ to: "/redesign/pipeline/$label", params: { label }, search: {} })
   }
 
@@ -71,15 +71,15 @@ export function PipelineScreen() {
     return <ScreenFallback error={state.error} />
   }
 
-  const activePlugin = pluginSlug ? findPlugin(pluginSlug) : undefined
+  const activeStep = stepSlug ? findDockEntry(stepSlug) : undefined
 
-  if (activePlugin && isPluginSlug(activePlugin.slug)) {
-    const slug: PluginSlug = activePlugin.slug
+  if (activeStep && isDockSlug(activeStep.slug)) {
+    const slug: DockSlug = activeStep.slug
     const frame: StepFrame = {
       foundations: state.foundations,
       plugins: state.plugins,
-      onBack: closePlugin,
-      onOpenPlugin: openPlugin,
+      onBack: closeStep,
+      onOpenPlugin: openStep,
       extractDone: state.extractDone,
       hasSections: state.hasSections,
       sectionCount: state.pages.reduce((sum, p) => sum + p.sectionCount, 0),
@@ -90,7 +90,7 @@ export function PipelineScreen() {
       <StepView
         key={slug}
         label={label}
-        plugin={{ ...activePlugin, slug }}
+        plugin={{ ...activeStep, slug }}
         pages={state.pages}
         frame={frame}
       />
@@ -154,7 +154,7 @@ export function PipelineScreen() {
             className="absolute bottom-5.5 left-1/2 -translate-x-1/2"
             foundations={state.foundations}
             plugins={state.plugins}
-            onOpenPlugin={openPlugin}
+            onOpenPlugin={openStep}
             hint={empty ? <Trans>Plugins unlock once the sections exist</Trans> : undefined}
           />
         </div>
