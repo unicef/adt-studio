@@ -12,12 +12,18 @@ const PILLS = [
   { key: "html", Icon: LayoutGrid, className: "text-sky-300 bg-sky-500/10", label: <Trans>Structured HTML</Trans> },
 ] as const;
 
+/** Two-phase intro: the logo lands centered, then glides up to reveal the app. */
 export function WelcomeScene({ onNext }: OnboardingStepProps) {
   const [mounted, setMounted] = useState(false);
+  const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
-    const id = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(id);
+    const raf = requestAnimationFrame(() => setMounted(true));
+    const timer = setTimeout(() => setRevealed(true), 1100);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
   }, []);
 
   return (
@@ -29,8 +35,10 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
         width={56}
         height={56}
         className={cn(
-          "rounded-[14px] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-          mounted ? "scale-100 opacity-100" : "scale-[0.8] opacity-0",
+          "z-10 rounded-[14px] transition-all duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+          !mounted && "scale-[0.6] opacity-0",
+          mounted && !revealed && "translate-y-[190px] scale-[2] opacity-100",
+          revealed && "translate-y-0 scale-100 opacity-100",
         )}
         style={{ boxShadow: "0 18px 44px -14px rgba(43,127,255,.6)" }}
       />
@@ -38,9 +46,9 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
       <h1
         className={cn(
           "mt-6 text-[34px] font-semibold leading-tight tracking-tight transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-          mounted ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
+          revealed ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
         )}
-        style={{ transitionDelay: "120ms" }}
+        style={{ transitionDelay: revealed ? "120ms" : "0ms" }}
       >
         <Trans>Welcome to ADT Studio</Trans>
       </h1>
@@ -48,9 +56,9 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
       <p
         className={cn(
           "mt-3 flex max-w-lg flex-wrap items-center justify-center gap-x-1.5 gap-y-2 text-[15px] leading-relaxed text-zinc-400 transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-          mounted ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
+          revealed ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
         )}
-        style={{ transitionDelay: "220ms" }}
+        style={{ transitionDelay: revealed ? "220ms" : "0ms" }}
       >
         <Trans>Turn any textbook into an accessible edition —</Trans>
         {PILLS.map((pill) => (
@@ -70,9 +78,9 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
       <div
         className={cn(
           "mt-7 transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-          mounted ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
+          revealed ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
         )}
-        style={{ transitionDelay: "360ms" }}
+        style={{ transitionDelay: revealed ? "360ms" : "0ms" }}
       >
         <button
           type="button"
@@ -88,9 +96,9 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
       <div
         className={cn(
           "mt-auto w-full max-w-2xl px-2 transition-all duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-          mounted ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0",
+          revealed ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0",
         )}
-        style={{ transitionDelay: "520ms" }}
+        style={{ transitionDelay: revealed ? "520ms" : "0ms" }}
       >
         <AppPreview />
       </div>
