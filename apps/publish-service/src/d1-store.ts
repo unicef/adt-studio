@@ -6,6 +6,7 @@ import {
   type PublicationVersion,
   type PublishComment,
 } from "@adt/types"
+import { ATTEMPT_WINDOW_SECONDS } from "./access-throttle.js"
 import type {
   AddVersionInput,
   AddVersionResult,
@@ -71,6 +72,11 @@ interface CommentRow {
 }
 
 const PageManifest = PublicationPageEntry.array()
+
+/** Rows older than the counting window can never affect a verdict again. */
+function pruneBefore(at: string): string {
+  return new Date(Date.parse(at) - ATTEMPT_WINDOW_SECONDS * 1000).toISOString()
+}
 
 const COMMENT_COLUMNS = `c.id, c.token, c.version, c.page_section_id, c.parent_id, c.session_id,
          s.name AS author_name, s.color AS author_color, c.body, c.anchor,
@@ -378,6 +384,39 @@ export function createD1PublicationStore(db: D1Database): PublicationStore {
         .run()
       if ((result.meta.changes ?? 0) === 0) return null
       return readPublication(token)
+    },
+
+    async countAccessFailures({ token, client, since }) {
+      const rows = (await db
+        .prepare(
+          `SELECT
+             SUM(CASE WHEN client = ? THEN 1 ELSE 0 END) AS by_client,
+             COUNT(*) AS by_token
+           FROM access_attempts
+           WHERE token = ? AND at >= ?`,
+        )
+        .bind(client, token, since)
+        .first()) as { by_client: number | null; by_token: number | null } | null
+      return { byClient: rows?.by_client ?? 0, byToken: rows?.by_token ?? 0 }
+    },
+
+    async recordAccessFailure({ token, client, at }) {
+      /** Pruned on write rather than on a schedule: the table only grows when someone is
+       *  getting a code wrong, and the row that pays for the cleanup is the one that caused
+       *  the growth. */
+      await db.batch([
+        db
+          .prepare(`INSERT INTO access_attempts (token, client, at) VALUES (?, ?, ?)`)
+          .bind(token, client, at),
+        db.prepare(`DELETE FROM access_attempts WHERE at < ?`).bind(pruneBefore(at)),
+      ])
+    },
+
+    async clearAccessFailures({ token, client }) {
+      await db
+        .prepare(`DELETE FROM access_attempts WHERE token = ? AND client = ?`)
+        .bind(token, client)
+        .run()
     },
 
     async deletePublication(token) {

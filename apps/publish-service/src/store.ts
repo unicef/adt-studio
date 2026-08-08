@@ -116,6 +116,19 @@ export interface PublicationStore {
   /** Clears `revoked_at`. Idempotent, and deliberately blind to `expires_at`: resuming a
    *  publication re-opens the link, it does not extend it. */
   reinstate(token: string): Promise<Publication | null>
+  /** Counts recent failures at the two secret-verifying doors, for one caller and for the
+   *  publication as a whole. Both numbers are needed: the per-caller one does the enforcing,
+   *  and the per-token one is the backstop against a distributed guess. */
+  countAccessFailures(input: {
+    token: string
+    client: string
+    since: string
+  }): Promise<{ byClient: number; byToken: number }>
+  recordAccessFailure(input: { token: string; client: string; at: string }): Promise<void>
+  /** Called on every success, so a reader who mistypes twice and then gets in leaves no
+   *  residue for the next person behind the same address. */
+  clearAccessFailures(input: { token: string; client: string }): Promise<void>
+
   /** Erases the publication and everything hanging off it — versions, sessions, comments.
    *  Unlike `revoke`, there is nothing to resume afterwards: the token stops resolving and
    *  the reviewers' names and threads go with it. Returns the row as it was, so the caller
@@ -155,6 +168,11 @@ export interface PublicationStore {
 }
 
 export const emptyPublicationStore: PublicationStore = {
+  async countAccessFailures() {
+    return { byClient: 0, byToken: 0 }
+  },
+  async recordAccessFailure() {},
+  async clearAccessFailures() {},
   async findByToken() {
     return null
   },

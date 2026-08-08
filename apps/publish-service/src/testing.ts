@@ -93,6 +93,7 @@ export function createMemoryPublicationStore(): PublicationStore {
   /** `StoredCommenterSession` deliberately carries no timestamp — only the reader list wants
    *  one — so the fake keeps it beside the map rather than widening the shared shape. */
   const sessionCreatedAt = new Map<string, string>()
+  const accessFailures: Array<{ token: string; client: string; at: string }> = []
 
   const sumSnapshotBytes = (token: string): number | null => {
     const measured = (versions.get(token) ?? [])
@@ -211,6 +212,27 @@ export function createMemoryPublicationStore(): PublicationStore {
       const updated: Publication = { ...record, revoked_at: null }
       publications.set(token, updated)
       return updated
+    },
+
+    async countAccessFailures({ token, client, since }) {
+      const recent = accessFailures.filter(
+        (entry) => entry.token === token && entry.at >= since,
+      )
+      return {
+        byClient: recent.filter((entry) => entry.client === client).length,
+        byToken: recent.length,
+      }
+    },
+
+    async recordAccessFailure(entry) {
+      accessFailures.push({ ...entry })
+    },
+
+    async clearAccessFailures({ token, client }) {
+      for (let i = accessFailures.length - 1; i >= 0; i -= 1) {
+        const entry = accessFailures[i]!
+        if (entry.token === token && entry.client === client) accessFailures.splice(i, 1)
+      }
     },
 
     async deletePublication(token) {
