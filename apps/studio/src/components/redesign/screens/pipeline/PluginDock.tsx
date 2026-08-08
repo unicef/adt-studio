@@ -25,18 +25,21 @@ function DockDisc({
   active: boolean
   onClick: () => void
 }) {
+  const { t } = useLingui()
   const locked = item.state === "locked"
   const name = getStageLabelI18n(item.slug)
+  const blockedHint = item.lockedBy
+    ? t`Run ${getStageLabelI18n(item.lockedBy)} first`
+    : undefined
   return (
     <button
       type="button"
-      disabled={locked}
       onClick={onClick}
-      title={getStageDescriptionI18n(item.slug) ?? name}
+      title={blockedHint ?? getStageDescriptionI18n(item.slug) ?? name}
       aria-current={active ? "true" : undefined}
       className={cn(
-        "relative flex w-[62px] flex-col items-center gap-1 rounded-xl px-1 py-1.5 transition-colors",
-        locked ? "opacity-35" : "hover:bg-muted",
+        "relative flex w-[62px] flex-col items-center gap-1 rounded-xl px-1 py-1.5 transition-colors hover:bg-muted",
+        locked && "opacity-45",
       )}
     >
       <span
@@ -137,9 +140,11 @@ export function PluginDock({
               <button
                 key={item.slug}
                 type="button"
-                disabled={item.state === "locked"}
                 onClick={() => onOpenPlugin(item.slug)}
-                className="flex w-full items-start gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted disabled:opacity-45 disabled:hover:bg-transparent"
+                className={cn(
+                  "flex w-full items-start gap-2.5 rounded-lg px-2 py-2 text-left transition-colors hover:bg-muted",
+                  item.state === "locked" && "opacity-55",
+                )}
               >
                 <span
                   className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full text-white"
@@ -159,7 +164,9 @@ export function PluginDock({
                     )}
                     {item.state === "locked" && (
                       <span className="text-[10px] font-medium text-muted-foreground">
-                        <Trans>locked</Trans>
+                        {item.lockedBy
+                          ? t`needs ${getStageLabelI18n(item.lockedBy)}`
+                          : t`locked`}
                       </span>
                     )}
                   </span>

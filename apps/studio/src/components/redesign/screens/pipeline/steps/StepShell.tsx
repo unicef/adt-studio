@@ -7,6 +7,8 @@ import { PluginWorkspace } from "../PluginWorkspace"
 import { StageRunningPanel } from "../StageRunningPanel"
 import { useOptionalStageActivity, useRunActivity, type RunStageActivity } from "../useRunActivity"
 import { useStageRun } from "../useStageRun"
+import { STEP_PREREQ_REASON } from "../stepPrereq"
+import { useStepPrereq } from "../useStepPrereq"
 import type { StepProps } from "./types"
 
 export interface StepShellProps extends StepProps {
@@ -56,7 +58,7 @@ export function StepEmpty({
   runDisabledReason,
   ...props
 }: StepEmptyProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
   const { label, plugin, pages, frame } = props
   const [scope, setScope] = useState<ScopeKey>("book")
 
@@ -65,17 +67,29 @@ export function StepEmpty({
   const stageRun = useStageRun(label, plugin.slug)
   const activity = useOptionalStageActivity(plugin.slug)
   const run = useRunActivity()
+  const prereq = useStepPrereq(label, plugin.slug)
 
   const name = getStageLabelI18n(plugin.slug)
+  const prereqReason = STEP_PREREQ_REASON[plugin.slug]
   const effectiveRun = onRun ?? stageRun.run
-  const effectiveCanRun = canRun ?? (onRun ? true : stageRun.canRun)
-  const effectiveReason =
+  const explicitCanRun = canRun ?? (onRun ? true : stageRun.canRun)
+  // The blocking upstream wins over everything: no API key matters if the step
+  // has nothing to run against yet.
+  const effectiveCanRun = prereq.isMet && explicitCanRun
+  const effectiveReason = !prereq.isMet ? (
+    prereqReason ? (
+      i18n._(prereqReason)
+    ) : (
+      <Trans>Run {prereq.upstreamLabel} first.</Trans>
+    )
+  ) : (
     runDisabledReason ??
     (!stageRun.isRunnable ? null : !stageRun.hasApiKey ? (
       <Trans>Add an API key in Book settings to run {name}.</Trans>
     ) : stageRun.isRunning ? (
       <Trans>A run is already in progress.</Trans>
     ) : null)
+  )
 
   // Once queued, this stage takes over the frame so the click has visible effect.
   if (activity?.isActive) {
@@ -114,12 +128,29 @@ export function StepEmpty({
         runDisabledReason={effectiveReason}
         prerequisites={
           prerequisites ?? [
+            ...(prereq.upstream
+              ? [
+                  {
+                    key: "upstream",
+                    met: prereq.isMet,
+                    label: t`${prereq.upstreamLabel} finished`,
+                  },
+                ]
+              : []),
             {
               key: "sections",
               met: frame.hasSections,
               label: t`Sections generated — ${frame.sectionCount} sections across ${pages.length} pages`,
             },
-            { key: "extract", met: frame.extractDone, label: t`Text normalized by extraction` },
+            ...(stageRun.isRunnable
+              ? [
+                  {
+                    key: "api-key",
+                    met: stageRun.hasApiKey,
+                    label: t`API key set in Book settings`,
+                  },
+                ]
+              : []),
           ]
         }
       />

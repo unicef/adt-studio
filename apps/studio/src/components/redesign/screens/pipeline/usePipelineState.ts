@@ -3,6 +3,7 @@ import type { BookSummary, PageSummaryItem } from "@/api/client"
 import { useBooks } from "@/hooks/use-books"
 import { usePages } from "@/hooks/use-pages"
 import { FOUNDATIONS, PLUGINS, type DockEntry, type DockSlug } from "./plugins"
+import { STEP_PREREQ, isStepLocked, type StageEvidence } from "./stepPrereq"
 
 export type DockState = "done" | "ready" | "locked"
 
@@ -10,6 +11,8 @@ export interface DockItem extends DockEntry {
   state: DockState
   /** Outstanding work surfaced as a badge on the dock disc. */
   pending: number
+  /** Upstream stage holding this one back, when locked. */
+  lockedBy?: string
 }
 
 export interface PipelinePage extends PageSummaryItem {
@@ -62,10 +65,19 @@ export function usePipelineState(label: string): PipelineState {
 
     const pendingFor = (slug: DockSlug) => (slug === "captions" ? missingCaptions : 0)
 
+    const evidence: StageEvidence = {
+      completed: (stage) => done.has(stage),
+      pageCount: pages.length,
+      hasSections,
+      hasRendering,
+    }
+    const isLocked = (slug: DockSlug) => isStepLocked(slug, evidence)
+
     const toItem = (item: DockEntry, locked: boolean): DockItem => ({
       ...item,
       state: done.has(item.slug) ? "done" : locked ? "locked" : "ready",
       pending: done.has(item.slug) ? pendingFor(item.slug) : 0,
+      lockedBy: locked ? STEP_PREREQ[item.slug] ?? undefined : undefined,
     })
 
     return {
@@ -80,12 +92,10 @@ export function usePipelineState(label: string): PipelineState {
       sectionCount,
       imageCount,
       missingCaptions,
-      // Sectioning stays reachable whenever pages exist: older books can carry
-      // extracted pages without `extract` in completedStages.
-      foundations: FOUNDATIONS.map((item) =>
-        toItem(item, item.slug !== "extract" && pages.length === 0),
-      ),
-      plugins: PLUGINS.map((item) => toItem(item, !hasSections)),
+      // Extract and Sectioning never lock — they pull missing ancestors into
+      // the run rather than refusing to start.
+      foundations: FOUNDATIONS.map((item) => toItem(item, isLocked(item.slug))),
+      plugins: PLUGINS.map((item) => toItem(item, isLocked(item.slug))),
     }
   }, [book, pagesQuery.data, booksQuery.isLoading, pagesQuery.isLoading, booksQuery.error, pagesQuery.error])
 }
