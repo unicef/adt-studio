@@ -80,7 +80,7 @@ export function PluginEmptyState({
       <div className="grid w-full grid-cols-2 gap-3.5">
         <section className="flex flex-col gap-2.5 rounded-xl border border-dashed bg-card p-3.5">
           <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            <Trans>Sample of what the AI returns</Trans>
+            {copy.sampleTitle ? i18n._(copy.sampleTitle) : <Trans>Sample of what the AI returns</Trans>}
           </h2>
           {copy.sample}
           <p className="text-[11.5px] leading-relaxed text-muted-foreground">{copy.sampleNote}</p>

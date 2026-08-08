@@ -15,6 +15,8 @@ export interface PluginCopy {
   sample: React.ReactNode
   /** One line explaining the shape of every produced item. */
   sampleNote: React.ReactNode
+  /** Overrides the sample heading for plugins that do not generate with AI. */
+  sampleTitle?: MessageDescriptor
 }
 
 function SampleCard({ children }: { children: React.ReactNode }) {
@@ -206,6 +208,24 @@ export const PLUGIN_COPY: Record<PluginSlug, PluginCopy> = {
     emptyTitle: msg`No sign language videos yet`,
     runVerb: msg`Upload sign language videos`,
     manualVerb: msg`Assign a video manually`,
-    ...GENERIC,
+    sampleTitle: msg`What a video looks like here`,
+    sample: (
+      <SampleCard>
+        <SampleHead>
+          <span className="text-sm font-bold">
+            <Trans>interpreter-page-10.mp4</Trans>
+          </span>
+        </SampleHead>
+        <p className="text-[12.5px] leading-relaxed text-foreground">
+          <Trans>Assigned to section 1 of page 10, so it plays alongside that passage.</Trans>
+        </p>
+        <p className="font-mono text-[10px] text-muted-foreground">
+          <Trans>uploaded · not AI-generated</Trans>
+        </p>
+      </SampleCard>
+    ),
+    sampleNote: (
+      <Trans>Videos are recorded by an interpreter and uploaded here, then assigned to a section.</Trans>
+    ),
   },
 }
