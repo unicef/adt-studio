@@ -35,7 +35,8 @@ export function LibraryScreen() {
   const { t, i18n } = useLingui()
   const { books, locale, isLoading, error } = useRedesignBooks()
   const { openAdd, requestDelete } = useRedesignShell()
-  const openBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
+  const openBook = (label: string) =>
+    navigate({ to: "/redesign/pipeline/$label", params: { label }, search: {} })
 
   const [view, setView] = useState<"list" | "grid">("grid")
   const [search, setSearch] = useState("")

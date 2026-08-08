@@ -30,6 +30,7 @@ import { Route as RedesignSettingsNotificationsRouteImport } from "./routes/rede
 import { Route as RedesignSettingsModelsRouteImport } from "./routes/redesign.settings.models"
 import { Route as RedesignSettingsLanguageRouteImport } from "./routes/redesign.settings.language"
 import { Route as RedesignSettingsAboutRouteImport } from "./routes/redesign.settings.about"
+import { Route as RedesignPipelineLabelRouteImport } from "./routes/redesign.pipeline.$label"
 import { Route as BooksLabelDebugRouteImport } from "./routes/books.$label.debug"
 import { Route as BooksLabelStepRouteImport } from "./routes/books.$label.$step"
 import { Route as BooksLabelStepIndexRouteImport } from "./routes/books.$label.$step.index"
@@ -144,6 +145,11 @@ const RedesignSettingsAboutRoute = RedesignSettingsAboutRouteImport.update({
   path: "/about",
   getParentRoute: () => RedesignSettingsRoute,
 } as any)
+const RedesignPipelineLabelRoute = RedesignPipelineLabelRouteImport.update({
+  id: "/pipeline/$label",
+  path: "/pipeline/$label",
+  getParentRoute: () => RedesignRoute,
+} as any)
 const BooksLabelDebugRoute = BooksLabelDebugRouteImport.update({
   id: "/debug",
   path: "/debug",
@@ -185,6 +191,7 @@ export interface FileRoutesByFullPath {
   "/redesign/": typeof RedesignIndexRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/redesign/pipeline/$label": typeof RedesignPipelineLabelRoute
   "/redesign/settings/about": typeof RedesignSettingsAboutRoute
   "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
   "/redesign/settings/models": typeof RedesignSettingsModelsRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   "/redesign/library": typeof RedesignLibraryRoute
   "/redesign": typeof RedesignIndexRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/redesign/pipeline/$label": typeof RedesignPipelineLabelRoute
   "/redesign/settings/about": typeof RedesignSettingsAboutRoute
   "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
   "/redesign/settings/models": typeof RedesignSettingsModelsRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   "/redesign/": typeof RedesignIndexRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/redesign/pipeline/$label": typeof RedesignPipelineLabelRoute
   "/redesign/settings/about": typeof RedesignSettingsAboutRoute
   "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
   "/redesign/settings/models": typeof RedesignSettingsModelsRoute
@@ -268,6 +277,7 @@ export interface FileRouteTypes {
     | "/redesign/"
     | "/books/$label/$step"
     | "/books/$label/debug"
+    | "/redesign/pipeline/$label"
     | "/redesign/settings/about"
     | "/redesign/settings/language"
     | "/redesign/settings/models"
@@ -292,6 +302,7 @@ export interface FileRouteTypes {
     | "/redesign/library"
     | "/redesign"
     | "/books/$label/debug"
+    | "/redesign/pipeline/$label"
     | "/redesign/settings/about"
     | "/redesign/settings/language"
     | "/redesign/settings/models"
@@ -320,6 +331,7 @@ export interface FileRouteTypes {
     | "/redesign/"
     | "/books/$label/$step"
     | "/books/$label/debug"
+    | "/redesign/pipeline/$label"
     | "/redesign/settings/about"
     | "/redesign/settings/language"
     | "/redesign/settings/models"
@@ -494,6 +506,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof RedesignSettingsAboutRouteImport
       parentRoute: typeof RedesignSettingsRoute
     }
+    "/redesign/pipeline/$label": {
+      id: "/redesign/pipeline/$label"
+      path: "/pipeline/$label"
+      fullPath: "/redesign/pipeline/$label"
+      preLoaderRoute: typeof RedesignPipelineLabelRouteImport
+      parentRoute: typeof RedesignRoute
+    }
     "/books/$label/debug": {
       id: "/books/$label/debug"
       path: "/debug"
@@ -562,6 +581,7 @@ interface RedesignRouteChildren {
   RedesignLibraryRoute: typeof RedesignLibraryRoute
   RedesignSettingsRoute: typeof RedesignSettingsRouteWithChildren
   RedesignIndexRoute: typeof RedesignIndexRoute
+  RedesignPipelineLabelRoute: typeof RedesignPipelineLabelRoute
 }
 
 const RedesignRouteChildren: RedesignRouteChildren = {
@@ -569,6 +589,7 @@ const RedesignRouteChildren: RedesignRouteChildren = {
   RedesignLibraryRoute: RedesignLibraryRoute,
   RedesignSettingsRoute: RedesignSettingsRouteWithChildren,
   RedesignIndexRoute: RedesignIndexRoute,
+  RedesignPipelineLabelRoute: RedesignPipelineLabelRoute,
 }
 
 const RedesignRouteWithChildren = RedesignRoute._addFileChildren(
