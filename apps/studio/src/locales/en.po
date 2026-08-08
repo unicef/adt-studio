@@ -165,6 +165,14 @@ msgstr "{0} audio"
 msgid "{0} checks per page"
 msgstr "{0} checks per page"
 
+#. placeholder {0}: entries.length
+msgid "{0} clips"
+msgstr "{0} clips"
+
+#. placeholder {0}: failed.length
+msgid "{0} clips failed to generate in the last run."
+msgstr "{0} clips failed to generate in the last run."
+
 #. placeholder {0}: getStageLabelI18n(uiStage)
 msgid "{0} complete"
 msgstr "{0} complete"
@@ -234,6 +242,7 @@ msgid "{0} items with unsaved changes"
 msgstr "{0} items with unsaved changes"
 
 #. placeholder {0}: String(outputLanguages.length)
+#. placeholder {0}: languages.length
 msgid "{0} languages"
 msgstr "{0} languages"
 
@@ -286,7 +295,7 @@ msgstr "{0} pages"
 msgid "{0} pages · {1, plural, one {# part} other {# parts}}"
 msgstr "{0} pages · {1, plural, one {# part} other {# parts}}"
 
-#. placeholder {0}: state.pages.length
+#. placeholder {0}: pages.length
 msgid "{0} pages ready"
 msgstr "{0} pages ready"
 
@@ -299,10 +308,12 @@ msgid "{0} pending save"
 msgstr "{0} pending save"
 
 #. placeholder {0}: String(displayQuizzes.length)
+#. placeholder {0}: quizzes.length
 msgid "{0} questions"
 msgstr "{0} questions"
 
 #. placeholder {0}: String(group.blocks.length)
+#. placeholder {0}: blocks.length
 msgid "{0} sections"
 msgstr "{0} sections"
 
@@ -319,6 +330,7 @@ msgstr "{0} selected images are no longer in the storyboard."
 #~ msgstr "{0} tasks inherit this model"
 
 #. placeholder {0}: String(visibleCount)
+#. placeholder {0}: items.length
 msgid "{0} terms"
 msgstr "{0} terms"
 
@@ -333,6 +345,10 @@ msgstr "{0} translations"
 #. placeholder {0}: versions.length
 #~ msgid "{0} versions"
 #~ msgstr "{0} versions"
+
+#. placeholder {0}: videos.length
+msgid "{0} videos"
+msgstr "{0} videos"
 
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
@@ -377,6 +393,16 @@ msgstr "{0}m ago"
 msgid "{0}s ago"
 msgstr "{0}s ago"
 
+#. placeholder {0}: items.length - active
+msgid "{active} kept · {0} pruned"
+msgstr "{active} kept · {0} pruned"
+
+msgid "{active} terms"
+msgstr "{active} terms"
+
+msgid "{assigned} assigned"
+msgstr "{assigned} assigned"
+
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 
@@ -406,6 +432,9 @@ msgstr "{coveredSections} of {totalSections} sections covered"
 
 msgid "{days} days ago"
 msgstr "{days} days ago"
+
+msgid "{deepest} levels"
+msgstr "{deepest} levels"
 
 msgid "{disabledProvidersText} are disabled — add their API keys in Book settings to enable them."
 msgstr "{disabledProvidersText} are disabled — add their API keys in Book settings to enable them."
@@ -463,6 +492,9 @@ msgstr "{mins}m ago"
 msgid "{missing} alt-text pending"
 msgstr "{missing} alt-text pending"
 
+msgid "{missing} without a description"
+msgstr "{missing} without a description"
+
 msgid "{missingAudioCount} missing"
 msgstr "{missingAudioCount} missing"
 
@@ -472,8 +504,8 @@ msgstr "{missingForCurrentStage} entry/entries are missing audio. Re-run to gene
 msgid "{missingForCurrentStage} entry/entries are missing translations. Re-run to fill the missing items."
 msgstr "{missingForCurrentStage} entry/entries are missing translations. Re-run to fill the missing items."
 
-msgid "{name} has already run"
-msgstr "{name} has already run"
+#~ msgid "{name} has already run"
+#~ msgstr "{name} has already run"
 
 msgid "{name} settings"
 msgstr "{name} settings"
@@ -541,6 +573,18 @@ msgstr "{textCount} text leaves"
 #. placeholder {0}: index + 1
 msgid "{title} - page {0}"
 msgstr "{title} - page {0}"
+
+msgid "{total} blocks"
+msgstr "{total} blocks"
+
+msgid "{total} images"
+msgstr "{total} images"
+
+msgid "{total} source strings in the catalog."
+msgstr "{total} source strings in the catalog."
+
+msgid "{total} strings"
+msgstr "{total} strings"
 
 msgid "{totalPages} pages"
 msgstr "{totalPages} pages"
@@ -755,6 +799,9 @@ msgstr "A sorting activity."
 
 msgid "A specific URL where an API can be accessed and a request submitted."
 msgstr "A specific URL where an API can be accessed and a request submitted."
+
+msgid "A speech run is in progress — this list is updating."
+msgstr "A speech run is in progress — this list is updating."
 
 msgid "A story with characters and events that stand for a deeper, often moral, meaning."
 msgstr "A story with characters and events that stand for a deeper, often moral, meaning."
@@ -1292,8 +1339,13 @@ msgstr "after 6s"
 
 #. placeholder {0}: String(pageNumber)
 #. placeholder {0}: afterPage.pageNumber
+#. placeholder {0}: pageNumber(quiz.afterPageId)
 msgid "after page {0}"
 msgstr "after page {0}"
+
+#. placeholder {0}: pageNumbers.get(pageId) ?? "—"
+msgid "After page {0}"
+msgstr "After page {0}"
 
 msgid "After page {afterNumber}"
 msgstr "After page {afterNumber}"
@@ -1399,6 +1451,9 @@ msgstr "All Categories"
 msgid "All changes saved"
 msgstr "All changes saved"
 
+msgid "All described"
+msgstr "All described"
+
 msgid "All issues and manual review items"
 msgstr "All issues and manual review items"
 
@@ -1432,6 +1487,12 @@ msgstr "All Severities"
 msgid "All steps"
 msgstr "All steps"
 
+msgid "All terms"
+msgstr "All terms"
+
+msgid "All videos"
+msgstr "All videos"
+
 msgid "Allegory"
 msgstr "Allegory"
 
@@ -1446,6 +1507,9 @@ msgstr "Alt"
 
 msgid "alt-text · 148 characters"
 msgstr "alt-text · 148 characters"
+
+msgid "alternative description"
+msgstr "alternative description"
 
 msgid "Among the Stars"
 msgstr "Among the Stars"
@@ -1677,11 +1741,17 @@ msgstr "Asset"
 msgid "Assign a video manually"
 msgstr "Assign a video manually"
 
+msgid "Assign a video to a section so it plays alongside that passage."
+msgstr "Assign a video to a section so it plays alongside that passage."
+
 msgid "Assign..."
 msgstr "Assign..."
 
 msgid "Assigned"
 msgstr "Assigned"
+
+msgid "Assigned to section 1 of page 10, so it plays alongside that passage."
+msgstr "Assigned to section 1 of page 10, so it plays alongside that passage."
 
 msgid "Assignment evidence"
 msgstr "Assignment evidence"
@@ -1897,6 +1967,9 @@ msgstr "Blank reference"
 
 msgid "Blocked"
 msgstr "Blocked"
+
+msgid "Blocks by page"
+msgstr "Blocks by page"
 
 msgid "Body"
 msgstr "Body"
@@ -2761,6 +2834,10 @@ msgstr "Could not read this PDF. The file may be corrupted or password-protected
 msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Could not remove {failed} of {total} videos. Please try again."
 
+#. placeholder {0}: error.message
+msgid "Could not save your change: {0}"
+msgstr "Could not save your change: {0}"
+
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Couldn't apply the spreads — please try again."
 
@@ -2960,6 +3037,9 @@ msgstr "Dark"
 msgid "Debug mode is not enabled."
 msgstr "Debug mode is not enabled."
 
+msgid "decorative"
+msgstr "decorative"
+
 msgid "Decorative"
 msgstr "Decorative"
 
@@ -3086,6 +3166,10 @@ msgstr "Definition"
 msgid "Definition for {0}"
 msgstr "Definition for {0}"
 
+#. placeholder {0}: item.word
+msgid "definition of {0}"
+msgstr "definition of {0}"
+
 msgid "Definitions and Terminology"
 msgstr "Definitions and Terminology"
 
@@ -3094,6 +3178,7 @@ msgstr "Delete"
 
 #. placeholder {0}: book.displayTitle
 #. placeholder {0}: book.title ?? book.label
+#. placeholder {0}: video.originalName
 msgid "Delete {0}"
 msgstr "Delete {0}"
 
@@ -3522,6 +3607,9 @@ msgstr "Edit"
 msgid "Edit {0}"
 msgstr "Edit {0}"
 
+msgid "Edit {ariaLabel}"
+msgstr "Edit {ariaLabel}"
+
 msgid "Edit & enrich"
 msgstr "Edit & enrich"
 
@@ -3740,6 +3828,9 @@ msgstr "Entries were generated by AI. Edit a title, change its indent level, or 
 msgid "entry"
 msgstr "entry"
 
+msgid "entry title"
+msgstr "entry title"
+
 msgid "Entry title"
 msgstr "Entry title"
 
@@ -3778,6 +3869,10 @@ msgstr "Est. Cost"
 
 msgid "Evaporation"
 msgstr "Evaporation"
+
+#. placeholder {0}: output?.pagesPerQuiz ?? 1
+msgid "every {0} pages"
+msgstr "every {0} pages"
 
 msgid "Every edit and re-run is saved as a new version, so you can always roll back."
 msgstr "Every edit and re-run is saved as a new version, so you can always roll back."
@@ -4569,8 +4664,8 @@ msgstr "Guidance for this book"
 msgid "Hand out page-range parts and merge them back later."
 msgstr "Hand out page-range parts and merge them back later."
 
-msgid "Has output"
-msgstr "Has output"
+#~ msgid "Has output"
+#~ msgstr "Has output"
 
 msgid "Header"
 msgstr "Header"
@@ -4776,6 +4871,9 @@ msgstr "Image Cropping"
 msgid "Image Cropping Prompt"
 msgstr "Image Cropping Prompt"
 
+msgid "Image descriptions"
+msgstr "Image descriptions"
+
 msgid "Image edit complete"
 msgstr "Image edit complete"
 
@@ -4862,6 +4960,9 @@ msgstr "images"
 
 msgid "Images"
 msgstr "Images"
+
+msgid "Images by page"
+msgstr "Images by page"
 
 msgid "Images only"
 msgstr "Images only"
@@ -5038,6 +5139,9 @@ msgstr "Interface"
 
 msgid "interface new classic layout"
 msgstr "interface new classic layout"
+
+msgid "interpreter-page-10.mp4"
+msgstr "interpreter-page-10.mp4"
 
 msgid "Intro"
 msgstr "Intro"
@@ -5282,6 +5386,9 @@ msgstr "Let the agent choose"
 
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
+
+msgid "Level {level}"
+msgstr "Level {level}"
 
 msgid "Library"
 msgstr "Library"
@@ -5565,6 +5672,9 @@ msgstr "Manage in book"
 msgid "Manage sign-language videos"
 msgstr "Manage sign-language videos"
 
+msgid "manual"
+msgstr "manual"
+
 msgid "Manual only"
 msgstr "Manual only"
 
@@ -5594,6 +5704,13 @@ msgstr "Mark as decorative"
 
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Mark as decorative (hidden from screen readers)"
+
+msgid "Mark as meaningful"
+msgstr "Mark as meaningful"
+
+#. placeholder {0}: index + 1
+msgid "Mark option {0} as the correct answer"
+msgstr "Mark option {0} as the correct answer"
 
 msgid "Mark spreads"
 msgstr "Mark spreads"
@@ -5962,6 +6079,12 @@ msgstr "N/A"
 msgid "Names and terms are consistent"
 msgstr "Names and terms are consistent"
 
+msgid "Narration"
+msgstr "Narration"
+
+msgid "Narration languages"
+msgstr "Narration languages"
+
 msgid "Natural, expressive voices. Best general-purpose default."
 msgstr "Natural, expressive voices. Best general-purpose default."
 
@@ -6012,6 +6135,9 @@ msgstr "New here?"
 
 msgid "New session"
 msgstr "New session"
+
+msgid "New term"
+msgstr "New term"
 
 #~ msgid "New version"
 #~ msgstr "New version"
@@ -6082,6 +6208,9 @@ msgstr "No assessment"
 
 msgid "No audio"
 msgstr "No audio"
+
+msgid "No audio for this language yet."
+msgstr "No audio for this language yet."
 
 msgid "No audio for this page"
 msgstr "No audio for this page"
@@ -6166,6 +6295,9 @@ msgstr "No ElevenLabs voice is mapped for this language, so it uses the default 
 
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "No embedded text layer — text was recovered from the page image"
+
+msgid "No entries at this level."
+msgstr "No entries at this level."
 
 msgid "No entries match your search"
 msgstr "No entries match your search"
@@ -6335,6 +6467,9 @@ msgstr "No pruned terms"
 msgid "No pull requests are associated with this release."
 msgstr "No pull requests are associated with this release."
 
+msgid "No questions for this page."
+msgstr "No questions for this page."
+
 msgid "No quizzes for this page"
 msgstr "No quizzes for this page"
 
@@ -6428,6 +6563,9 @@ msgstr "No spreads marked yet. Switch to All pages and link two facing pages to 
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 
+msgid "No strings match this search."
+msgstr "No strings match this search."
+
 msgid "No suggestions are pending save in this view."
 msgstr "No suggestions are pending save in this view."
 
@@ -6436,6 +6574,9 @@ msgstr "No table of contents yet"
 
 msgid "No terms in the glossary"
 msgstr "No terms in the glossary"
+
+msgid "No terms match this filter."
+msgstr "No terms match this filter."
 
 msgid "No terms match your search"
 msgstr "No terms match your search"
@@ -6544,6 +6685,9 @@ msgstr "Not started — add a PDF to begin"
 
 msgid "Not started yet"
 msgstr "Not started yet"
+
+msgid "Not translated yet"
+msgstr "Not translated yet"
 
 msgid "Not yet split:"
 msgstr "Not yet split:"
@@ -6674,8 +6818,8 @@ msgstr "open"
 msgid "Open"
 msgstr "Open"
 
-msgid "Open {name}"
-msgstr "Open {name}"
+#~ msgid "Open {name}"
+#~ msgstr "Open {name}"
 
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Open a page in Preview to show its page-specific accessibility findings here."
@@ -6785,6 +6929,10 @@ msgstr "OpenAI, Azure, and Gemini text-to-speech."
 msgid "Operation failed"
 msgstr "Operation failed"
 
+#. placeholder {0}: index + 1
+msgid "option {0}"
+msgstr "option {0}"
+
 msgid "Option columns"
 msgstr "Option columns"
 
@@ -6884,6 +7032,9 @@ msgstr "Out for processing"
 
 msgid "Out of date"
 msgstr "Out of date"
+
+msgid "Outline depth"
+msgstr "Outline depth"
 
 msgid "Outline ID:"
 msgstr "Outline ID:"
@@ -6993,6 +7144,12 @@ msgstr "Page {0}"
 msgid "Page {0} — Section {1}"
 msgstr "Page {0} — Section {1}"
 
+#. placeholder {0}: block.pageNumber
+#. placeholder {1}: block.sectionIndex + 1
+#. placeholder {2}: block.sectionType
+msgid "Page {0} · section {1} · {2}"
+msgstr "Page {0} · section {1} · {2}"
+
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
 msgstr "Page {0} captions"
@@ -7018,6 +7175,9 @@ msgstr "Page {pageId}"
 
 msgid "Page {pageNum}"
 msgstr "Page {pageNum}"
+
+msgid "Page {pageNumber}"
+msgstr "Page {pageNumber}"
 
 msgid "page {shownStr}"
 msgstr "page {shownStr}"
@@ -7584,6 +7744,9 @@ msgstr "Prune image"
 msgid "Prune section from flow"
 msgstr "Prune section from flow"
 
+msgid "Prune term"
+msgstr "Prune term"
+
 msgid "Prune this term — it will be hidden from output and excluded from future regenerations."
 msgstr "Prune this term — it will be hidden from output and excluded from future regenerations."
 
@@ -7647,6 +7810,9 @@ msgstr "Questions"
 
 msgid "Questions are tied to the section they test, so they move with the content."
 msgstr "Questions are tied to the section they test, so they move with the content."
+
+msgid "Questions by page"
+msgstr "Questions by page"
 
 msgid "queued"
 msgstr "queued"
@@ -7809,6 +7975,9 @@ msgstr "Readers see"
 
 msgid "Readers switch between the original and simplified text with the Easy Read toggle."
 msgstr "Readers switch between the original and simplified text with the Easy Read toggle."
+
+msgid "Readers switch between the original text and these blocks."
+msgstr "Readers switch between the original text and these blocks."
 
 msgid "Readers toggle between the original text and the Easy Read version."
 msgstr "Readers toggle between the original text and the Easy Read version."
@@ -8145,6 +8314,9 @@ msgstr "Restore element"
 msgid "Restore section to flow"
 msgstr "Restore section to flow"
 
+msgid "Restore term"
+msgstr "Restore term"
+
 msgid "Restore this term — it will be eligible again on the next regeneration."
 msgstr "Restore this term — it will be eligible again on the next regeneration."
 
@@ -8298,6 +8470,9 @@ msgstr "Reviewing..."
 
 msgid "Rewrite the book in Easy Read"
 msgstr "Rewrite the book in Easy Read"
+
+msgid "Rewrite this passage…"
+msgstr "Rewrite this passage…"
 
 msgid "Rewriting the story of this section..."
 msgstr "Rewriting the story of this section..."
@@ -8642,11 +8817,17 @@ msgstr "Search settings"
 msgid "Search settings…"
 msgstr "Search settings…"
 
+msgid "Search source or translation…"
+msgstr "Search source or translation…"
+
 msgid "Search style guides..."
 msgstr "Search style guides..."
 
 msgid "Search terms or definitions…"
 msgstr "Search terms or definitions…"
+
+msgid "Search terms…"
+msgstr "Search terms…"
 
 #~ msgid "Search versions"
 #~ msgstr "Search versions"
@@ -8764,9 +8945,14 @@ msgstr "sections"
 msgid "Sections"
 msgstr "Sections"
 
+#. placeholder {0}: frame.sectionCount
+#. placeholder {1}: pages.length
+msgid "Sections generated — {0} sections across {1} pages"
+msgstr "Sections generated — {0} sections across {1} pages"
+
 #. placeholder {0}: state.pages.length
-msgid "Sections generated — {sectionCount} sections across {0} pages"
-msgstr "Sections generated — {sectionCount} sections across {0} pages"
+#~ msgid "Sections generated — {sectionCount} sections across {0} pages"
+#~ msgstr "Sections generated — {sectionCount} sections across {0} pages"
 
 msgid "See examples"
 msgstr "See examples"
@@ -8827,6 +9013,9 @@ msgstr "Select a node type and enter an item ID to view versions."
 
 msgid "Select a page grouping to continue"
 msgstr "Select a page grouping to continue"
+
+msgid "Select a page to filter. Click again to show all."
+msgstr "Select a page to filter. Click again to show all."
 
 #~ msgid "Select a prompt"
 #~ msgstr "Select a prompt"
@@ -9666,6 +9855,9 @@ msgstr "Target file"
 msgid "Target language"
 msgstr "Target language"
 
+msgid "Target languages"
+msgstr "Target languages"
+
 msgid "Target model"
 msgstr "Target model"
 
@@ -9741,6 +9933,9 @@ msgstr "Terminology guidance"
 
 msgid "terms"
 msgstr "terms"
+
+msgid "Terms by letter"
+msgstr "Terms by letter"
 
 msgid "Terms marked with an asterisk (*) are defined by the ISO standard and may differ from colloquial usage in other fields."
 msgstr "Terms marked with an asterisk (*) are defined by the ISO standard and may differ from colloquial usage in other fields."
@@ -9954,8 +10149,8 @@ msgstr "The quick brown fox jumps over the lazy dog 0123456789"
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "The quick brown fox jumps over the lazy dog."
 
-msgid "The redesigned editor for this plugin is not ready yet — open the current one to review and edit its output."
-msgstr "The redesigned editor for this plugin is not ready yet — open the current one to review and edit its output."
+#~ msgid "The redesigned editor for this plugin is not ready yet — open the current one to review and edit its output."
+#~ msgstr "The redesigned editor for this plugin is not ready yet — open the current one to review and edit its output."
 
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "The rendering strategy used for sections without an explicit mapping."
@@ -10304,6 +10499,9 @@ msgstr "Title"
 msgid "Title and image with text overlaid as a caption — AI matches the source book's visual style."
 msgstr "Title and image with text overlaid as a caption — AI matches the source book's visual style."
 
+msgid "Titles are what the reader sees in the navigation menu."
+msgstr "Titles are what the reader sees in the navigation menu."
+
 msgid "Titles generated by the model from section content."
 msgstr "Titles generated by the model from section content."
 
@@ -10409,6 +10607,10 @@ msgstr "translation"
 
 msgid "Translation"
 msgstr "Translation"
+
+#. placeholder {0}: entry.id
+msgid "translation of {0}"
+msgstr "translation of {0}"
 
 msgid "Translation Plan"
 msgstr "Translation Plan"
@@ -10596,6 +10798,9 @@ msgstr "Unable to update the task-specific model defaults."
 msgid "Unassign video"
 msgstr "Unassign video"
 
+msgid "unassigned"
+msgstr "unassigned"
+
 msgid "Unassigned"
 msgstr "Unassigned"
 
@@ -10701,6 +10906,9 @@ msgstr "Upload a PDF to get started. Everything you create lands here, ready for
 msgid "Upload a PDF to preview its pages here."
 msgstr "Upload a PDF to preview its pages here."
 
+msgid "Upload a sign language video"
+msgstr "Upload a sign language video"
+
 msgid "Upload a sign-language video for any section and it'll appear here. Switch to Missing to see what still needs one."
 msgstr "Upload a sign-language video for any section and it'll appear here. Switch to Missing to see what still needs one."
 
@@ -10752,6 +10960,9 @@ msgstr "Upload to an LMS as a SCORM 1.2 package with completion tracking and off
 msgid "Upload to an LMS to track progress, quiz results, and completion."
 msgstr "Upload to an LMS to track progress, quiz results, and completion."
 
+msgid "Upload video"
+msgstr "Upload video"
+
 msgid "Upload your own audio file"
 msgstr "Upload your own audio file"
 
@@ -10760,6 +10971,9 @@ msgstr "Upload your own font files or pick a Google Fonts family. Fonts are embe
 
 msgid "Upload ZIP or drag and drop"
 msgstr "Upload ZIP or drag and drop"
+
+msgid "uploaded · not AI-generated"
+msgstr "uploaded · not AI-generated"
 
 msgid "Uploading..."
 msgstr "Uploading..."
@@ -10865,6 +11079,10 @@ msgstr "Used for this quiz"
 msgid "Using fallback"
 msgstr "Using fallback"
 
+#. placeholder {0}: query.data?.version ?? 1
+msgid "v{0}"
+msgstr "v{0}"
+
 msgid "v{hovered} preview"
 msgstr "v{hovered} preview"
 
@@ -10927,6 +11145,9 @@ msgstr "videos"
 
 msgid "Videos"
 msgstr "Videos"
+
+msgid "Videos are recorded by an interpreter and uploaded here, then assigned to a section."
+msgstr "Videos are recorded by an interpreter and uploaded here, then assigned to a section."
 
 msgid "View"
 msgstr "View"
@@ -11088,6 +11309,9 @@ msgstr "Welcome"
 msgid "Welcome to ADT Studio"
 msgstr "Welcome to ADT Studio"
 
+msgid "What a video looks like here"
+msgstr "What a video looks like here"
+
 msgid "What ADT Studio does"
 msgstr "What ADT Studio does"
 
@@ -11151,6 +11375,9 @@ msgstr "While editing"
 msgid "Whole book"
 msgstr "Whole book"
 
+msgid "Whole outline"
+msgstr "Whole outline"
+
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 
@@ -11192,6 +11419,9 @@ msgstr "Word Highlighting"
 
 msgid "Word highlighting ready"
 msgstr "Word highlighting ready"
+
+msgid "Word timestamps let the reader follow along as it plays."
+msgstr "Word timestamps let the reader follow along as it plays."
 
 msgid "Word timestamps let the reader highlight each word as it is spoken."
 msgstr "Word timestamps let the reader highlight each word as it is spoken."
@@ -11278,6 +11508,12 @@ msgstr "Your book"
 
 msgid "Your Books"
 msgstr "Your Books"
+
+msgid "Your browser cannot play this audio."
+msgstr "Your browser cannot play this audio."
+
+msgid "Your browser cannot play this video."
+msgstr "Your browser cannot play this video."
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "Your first ADT <0>starts here.</0>"
