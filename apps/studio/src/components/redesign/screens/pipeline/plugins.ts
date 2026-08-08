@@ -35,14 +35,14 @@ function entry(slug: DockSlug): DockEntry {
 export const FOUNDATIONS: DockEntry[] = FOUNDATION_SLUGS.map(entry)
 export const PLUGINS: DockEntry[] = PLUGIN_SLUGS.map(entry)
 
-const PLUGIN_SLUG_SET: Set<string> = new Set(PLUGIN_SLUGS)
+const DOCK_SLUG_SET: Set<string> = new Set<string>([...FOUNDATION_SLUGS, ...PLUGIN_SLUGS])
 
-export function isPluginSlug(slug: string): slug is PluginSlug {
-  return PLUGIN_SLUG_SET.has(slug)
+export function isDockSlug(slug: string): slug is DockSlug {
+  return DOCK_SLUG_SET.has(slug)
 }
 
-export function findPlugin(slug: string): DockEntry | undefined {
-  return PLUGINS.find((p) => p.slug === slug)
+export function findDockEntry(slug: string): DockEntry | undefined {
+  return [...FOUNDATIONS, ...PLUGINS].find((p) => p.slug === slug)
 }
 
 /** Translucent wash of a stage hex, legible over both light and dark surfaces. */

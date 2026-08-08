@@ -74,8 +74,10 @@ export function usePipelineState(label: string): PipelineState {
       hasSections,
       imageCount,
       missingCaptions,
+      // Sectioning stays reachable whenever pages exist: older books can carry
+      // extracted pages without `extract` in completedStages.
       foundations: FOUNDATIONS.map((item) =>
-        toItem(item, item.slug !== "extract" && !extractDone),
+        toItem(item, item.slug !== "extract" && pages.length === 0),
       ),
       plugins: PLUGINS.map((item) => toItem(item, !hasSections)),
     }

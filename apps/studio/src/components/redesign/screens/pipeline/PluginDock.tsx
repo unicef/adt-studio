@@ -94,7 +94,12 @@ export function PluginDock({
       )}
       <div className="flex items-center gap-1 rounded-2xl border bg-card/92 p-2 shadow-[0_16px_40px_-18px_rgba(0,0,0,0.35)] backdrop-blur-md">
         {foundations.map((item) => (
-          <DockDisc key={item.slug} item={item} active={false} onClick={() => onOpenPlugin(item.slug)} />
+          <DockDisc
+            key={item.slug}
+            item={item}
+            active={activeSlug === item.slug}
+            onClick={() => onOpenPlugin(item.slug)}
+          />
         ))}
 
         <div className="mx-1 h-9 w-px bg-border" />

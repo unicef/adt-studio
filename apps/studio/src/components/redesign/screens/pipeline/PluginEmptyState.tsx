@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { getStageDescriptionI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
 import { PLUGIN_COPY } from "./pluginCopy"
-import { tint, type DockEntry, type PluginSlug } from "./plugins"
+import { tint, type DockEntry, type DockSlug } from "./plugins"
 
 export type ScopeKey = "book" | "page" | "selection"
 
@@ -23,7 +23,7 @@ export interface Prerequisite {
 }
 
 export interface PluginEmptyStateProps {
-  plugin: DockEntry & { slug: PluginSlug }
+  plugin: DockEntry & { slug: DockSlug }
   prerequisites: Prerequisite[]
   scope: ScopeKey
   onScopeChange: (scope: ScopeKey) => void

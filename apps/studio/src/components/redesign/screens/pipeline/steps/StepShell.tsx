@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
-import { PluginEmptyState, type ScopeKey } from "../PluginEmptyState"
+import { PluginEmptyState, type Prerequisite, type ScopeKey } from "../PluginEmptyState"
 import { PluginRailEmpty } from "../PluginRailEmpty"
 import { PluginWorkspace } from "../PluginWorkspace"
 import type { StepProps } from "./types"
@@ -35,12 +35,20 @@ export interface StepEmptyProps extends StepProps {
   onRun?: () => void
   onManual?: () => void
   onImport?: () => void
+  /** Overrides the default "sections exist, text is normalized" checklist. */
+  prerequisites?: Prerequisite[]
 }
 
 /** The never-run frame every step falls back to (design 4a). */
-export function StepEmpty({ onRun, onManual, onImport, ...props }: StepEmptyProps) {
+export function StepEmpty({
+  onRun,
+  onManual,
+  onImport,
+  prerequisites,
+  ...props
+}: StepEmptyProps) {
   const { t } = useLingui()
-  const { label, plugin, pages, frame } = props
+  const { plugin, pages, frame } = props
   const [scope, setScope] = useState<ScopeKey>("book")
 
   return (
@@ -64,14 +72,16 @@ export function StepEmpty({ onRun, onManual, onImport, ...props }: StepEmptyProp
         onRun={onRun ?? (() => {})}
         onManual={onManual ?? (() => {})}
         onImport={onImport}
-        prerequisites={[
-          {
-            key: "sections",
-            met: frame.hasSections,
-            label: t`Sections generated — ${frame.sectionCount} sections across ${pages.length} pages`,
-          },
-          { key: "extract", met: frame.extractDone, label: t`Text normalized by extraction` },
-        ]}
+        prerequisites={
+          prerequisites ?? [
+            {
+              key: "sections",
+              met: frame.hasSections,
+              label: t`Sections generated — ${frame.sectionCount} sections across ${pages.length} pages`,
+            },
+            { key: "extract", met: frame.extractDone, label: t`Text normalized by extraction` },
+          ]
+        }
       />
     </StepShell>
   )

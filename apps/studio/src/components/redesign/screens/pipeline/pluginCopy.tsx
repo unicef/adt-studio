@@ -2,7 +2,7 @@ import { Trans } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Sparkles } from "lucide-react"
-import type { PluginSlug } from "./plugins"
+import type { DockSlug } from "./plugins"
 
 export interface PluginCopy {
   /** Headline for the never-run state. */
@@ -50,7 +50,55 @@ const GENERIC: Pick<PluginCopy, "sample" | "sampleNote"> = {
   sampleNote: <Trans>Everything is editable and saved as a new version — nothing is overwritten.</Trans>,
 }
 
-export const PLUGIN_COPY: Record<PluginSlug, PluginCopy> = {
+export const PLUGIN_COPY: Record<DockSlug, PluginCopy> = {
+  extract: {
+    emptyTitle: msg`Nothing extracted yet`,
+    runVerb: msg`Extract the PDF`,
+    manualVerb: msg`Upload a different PDF`,
+    sampleTitle: msg`What extraction pulls out`,
+    sample: (
+      <SampleCard>
+        <SampleHead>
+          <span className="text-sm font-bold">
+            <Trans>Page 10</Trans>
+          </span>
+        </SampleHead>
+        <p className="text-[12.5px] leading-relaxed text-foreground">
+          <Trans>The text of the page, in reading order, plus every illustration cut out of it.</Trans>
+        </p>
+        <p className="font-mono text-[10px] text-muted-foreground">
+          <Trans>112 words · 1 image · 2 fonts</Trans>
+        </p>
+      </SampleCard>
+    ),
+    sampleNote: (
+      <Trans>Pages with no text layer are read from the page image instead, and flagged so you can check them.</Trans>
+    ),
+  },
+  sectioning: {
+    emptyTitle: msg`Nothing sectioned yet`,
+    runVerb: msg`Generate sections`,
+    manualVerb: msg`Create a section manually`,
+    sampleTitle: msg`What sectioning produces`,
+    sample: (
+      <SampleCard>
+        <SampleHead>
+          <span className="text-sm font-bold">
+            <Trans>text_and_single_image</Trans>
+          </span>
+        </SampleHead>
+        <p className="text-[12.5px] leading-relaxed text-foreground">
+          <Trans>A stanza and the illustration beside it, kept together as one readable unit.</Trans>
+        </p>
+        <p className="font-mono text-[10px] text-muted-foreground">
+          <Trans>page 10 · 7 nodes</Trans>
+        </p>
+      </SampleCard>
+    ),
+    sampleNote: (
+      <Trans>Sections are what the reader navigates — every later step attaches its output to them.</Trans>
+    ),
+  },
   glossary: {
     emptyTitle: msg`No terms in the glossary`,
     runVerb: msg`Suggest terms from the book`,
