@@ -93,7 +93,7 @@ export function PluginWorkspace({
 
       <div className="flex min-h-0 flex-1">
         <aside
-          className="flex w-[132px] shrink-0 flex-col gap-2.5 border-r bg-card p-3"
+          className="flex w-56 shrink-0 flex-col gap-2.5 border-r bg-card p-3"
           style={{ backgroundColor: tint(plugin.hex, 0.03) }}
         >
           {rail}

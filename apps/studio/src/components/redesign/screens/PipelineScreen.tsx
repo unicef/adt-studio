@@ -2,7 +2,6 @@ import { useMemo, useState } from "react"
 import { getRouteApi, useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { CircleCheck, CircleAlert } from "lucide-react"
-import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { cn } from "@/lib/utils"
 import { ScreenFallback } from "../ui/ScreenFallback"
@@ -12,11 +11,8 @@ import { PagesRail } from "./pipeline/PagesRail"
 import { PagesRailEmpty } from "./pipeline/PagesRailEmpty"
 import { PipelineTopBar } from "./pipeline/PipelineTopBar"
 import { PluginDock } from "./pipeline/PluginDock"
-import { PluginEmptyState, type ScopeKey } from "./pipeline/PluginEmptyState"
-import { PluginRailEmpty } from "./pipeline/PluginRailEmpty"
-import { PluginResults } from "./pipeline/PluginResults"
-import { PluginWorkspace } from "./pipeline/PluginWorkspace"
 import { StoryboardEmptyState } from "./pipeline/StoryboardEmptyState"
+import { STEP_VIEWS, type StepFrame } from "./pipeline/steps"
 import { findPlugin, isPluginSlug, type PluginSlug } from "./pipeline/plugins"
 import type { Viewport } from "./pipeline/types"
 import { usePipelineState } from "./pipeline/usePipelineState"
@@ -55,7 +51,6 @@ export function PipelineScreen() {
   const state = usePipelineState(label)
   const [viewport, setViewport] = useState<Viewport>("desktop")
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
-  const [scope, setScope] = useState<ScopeKey>("book")
 
   usePageTitle(state.book?.title ?? label)
 
@@ -79,49 +74,26 @@ export function PipelineScreen() {
   const activePlugin = pluginSlug ? findPlugin(pluginSlug) : undefined
 
   if (activePlugin && isPluginSlug(activePlugin.slug)) {
-    const slug = activePlugin.slug as PluginSlug
-    const sectionCount = state.pages.reduce((sum, p) => sum + p.sectionCount, 0)
-    const done = state.plugins.find((p) => p.slug === slug)?.state === "done"
+    const slug: PluginSlug = activePlugin.slug
+    const frame: StepFrame = {
+      foundations: state.foundations,
+      plugins: state.plugins,
+      onBack: closePlugin,
+      onOpenPlugin: openPlugin,
+      extractDone: state.extractDone,
+      hasSections: state.hasSections,
+      sectionCount: state.pages.reduce((sum, p) => sum + p.sectionCount, 0),
+    }
+    const StepView = STEP_VIEWS[slug]
 
     return (
-      <PluginWorkspace
-        plugin={activePlugin}
-        chips={[done ? t`Has output` : t`Never run`, t`${state.pages.length} pages ready`]}
-        canApply={done}
-        foundations={state.foundations}
-        plugins={state.plugins}
-        onBack={closePlugin}
-        onOpenPlugin={openPlugin}
-        rail={
-          <PluginRailEmpty
-            hex={activePlugin.hex}
-            title={getStageLabelI18n(slug)}
-            pageCount={state.pages.length}
-            sectionCount={sectionCount}
-          />
-        }
-      >
-        {done ? (
-          <PluginResults label={label} plugin={activePlugin} />
-        ) : (
-          <PluginEmptyState
-            plugin={{ ...activePlugin, slug }}
-            scope={scope}
-            onScopeChange={setScope}
-            onRun={() => {}}
-            onManual={() => {}}
-            onImport={slug === "glossary" ? () => {} : undefined}
-            prerequisites={[
-              {
-                key: "sections",
-                met: state.hasSections,
-                label: t`Sections generated — ${sectionCount} sections across ${state.pages.length} pages`,
-              },
-              { key: "extract", met: state.extractDone, label: t`Text normalized by extraction` },
-            ]}
-          />
-        )}
-      </PluginWorkspace>
+      <StepView
+        key={slug}
+        label={label}
+        plugin={{ ...activePlugin, slug }}
+        pages={state.pages}
+        frame={frame}
+      />
     )
   }
 
