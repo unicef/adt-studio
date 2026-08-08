@@ -251,6 +251,10 @@ msgstr "{0} gjuhë"
 msgid "{0} missing prompt files will be created. Existing files are left unchanged."
 msgstr "{0} skedarë prompti që mungojnë do të krijohen. Skedarët ekzistues nuk do të ndryshohen."
 
+#. placeholder {0}: lines.length
+msgid "{0} nodes"
+msgstr "{0} nyje"
+
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
 msgid "{0} of {1}"
@@ -288,6 +292,7 @@ msgstr "{0} nga {1} faqe nuk kanë tekst të nxjerrë"
 
 #. placeholder {0}: String(displayPages.length)
 #. placeholder {0}: book.pageCount
+#. placeholder {0}: pages.length
 msgid "{0} pages"
 msgstr "{0} faqe"
 
@@ -350,6 +355,10 @@ msgstr "{0} përkthime"
 #. placeholder {0}: videos.length
 msgid "{0} videos"
 msgstr "{0} video"
+
+#. placeholder {0}: page.wordCount
+msgid "{0} words"
+msgstr "{0} fjalë"
 
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
@@ -526,6 +535,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {faqe} other {faqe}} të ris
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} faqe"
 
+msgid "{pruned} dropped"
+msgstr "{pruned} të hequra"
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
 
@@ -581,6 +593,9 @@ msgstr "{total} blloqe"
 msgid "{total} images"
 msgstr "{total} imazhe"
 
+msgid "{total} sections"
+msgstr "{total} seksione"
+
 msgid "{total} source strings in the catalog."
 msgstr "{total} tekste burimore në katalog."
 
@@ -592,6 +607,9 @@ msgstr "{totalPages} faqe"
 
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} faqe · {totalSections} seksione"
+
+msgid "{withWarnings} recovered from images"
+msgstr "{withWarnings} të rikuperuara nga imazhet"
 
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
@@ -659,6 +677,9 @@ msgstr "1.2 Shtrirja"
 
 msgid "1× in the book · page 12"
 msgstr "1× në libër · faqja 12"
+
+msgid "112 words · 1 image · 2 fonts"
+msgstr "112 fjalë · 1 imazh · 2 shkronja"
 
 msgid "14.2 kB"
 msgstr "14.2 kB"
@@ -803,6 +824,9 @@ msgstr "Një URL specifike ku mund të aksesohet një API dhe të dërgohet një
 
 msgid "A speech run is in progress — this list is updating."
 msgstr "Një gjenerim zëri është në vazhdim — kjo listë po përditësohet."
+
+msgid "A stanza and the illustration beside it, kept together as one readable unit."
+msgstr "Një strofë dhe ilustrimi pranë saj, të mbajtura bashkë si një njësi e vetme leximi."
 
 msgid "A story with characters and events that stand for a deeper, often moral, meaning."
 msgstr "Një histori me personazhe dhe ngjarje që simbolizojnë një kuptim më të thellë, shpesh moral."
@@ -1457,6 +1481,9 @@ msgstr "Të gjitha të përshkruara"
 
 msgid "All issues and manual review items"
 msgstr "Të gjitha problemet dhe elementet e rishikimit manual"
+
+msgid "All kept"
+msgstr "Të gjitha të mbajtura"
 
 msgid "All pages"
 msgstr "Të gjitha faqet"
@@ -2863,6 +2890,9 @@ msgstr "Nuk u rikthye dot v{version}. Ju lutemi provoni përsëri."
 msgid "Counting occurrences…"
 msgstr "Po numërohen ndodhitë…"
 
+msgid "Counts show how many images each page contributed."
+msgstr "Numrat tregojnë sa imazhe dha secila faqe."
+
 msgid "Course"
 msgstr "Kurs"
 
@@ -3465,11 +3495,20 @@ msgstr "Hidh PDF-in këtu"
 msgid "Drop the bundle on any static host to serve the book as a website."
 msgstr "Hidh paketat në çdo host statik për të shërbyer librin si faqe interneti."
 
+msgid "Drop this image"
+msgstr "Hiq këtë imazh"
+
+msgid "Drop this section"
+msgstr "Hiq këtë seksion"
+
 msgid "Drop ZIP here"
 msgstr "Hidh ZIP-in këtu"
 
 msgid "Dropdown"
 msgstr "Listë me zgjedhje"
+
+msgid "Dropped sections stay in the book but never reach the reader."
+msgstr "Seksionet e hequra mbeten në libër, por nuk i shkojnë kurrë lexuesit."
 
 msgid "Duplicate"
 msgstr "Dupliko"
@@ -4017,6 +4056,9 @@ msgstr "Pamje paraprake e nxjerrjes"
 msgid "Extract text and images from each page of the PDF using AI-powered analysis."
 msgstr "Nxirrni tekst dhe imazhe nga çdo faqe e PDF-it duke përdorur analizë të bazuar në AI."
 
+msgid "Extract the PDF"
+msgstr "Nxirr PDF-në"
+
 msgid "Extracted"
 msgstr "Nxjerrë"
 
@@ -4029,6 +4071,9 @@ msgstr "Nxjerrë nga dokumenti"
 #. placeholder {0}: String(count)
 msgid "Extracted Images ({0})"
 msgstr "Imazhe të nxjerra ({0})"
+
+msgid "Extracted text"
+msgstr "Teksti i nxjerrë"
 
 msgid "Extracted Text"
 msgstr "Tekst i nxjerrë"
@@ -5231,6 +5276,12 @@ msgstr "Mbaji të pandryshuara skemat e daljes dhe ID-të kur redakton promptet.
 
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të ndryshme aktivitetesh në të njëjtën faqe."
+
+msgid "Keep this image"
+msgstr "Mbaj këtë imazh"
+
+msgid "Keep this section"
+msgstr "Mbaj këtë seksion"
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërkojnë ndarje."
@@ -6591,6 +6642,9 @@ msgstr "Nuk ka tekst"
 msgid "No text extracted"
 msgstr "Nuk u ekstraktua tekst"
 
+msgid "No text on this page."
+msgstr "Nuk ka tekst në këtë faqe."
+
 msgid "No translations for this page"
 msgstr "Nuk ka përkthime për këtë faqe"
 
@@ -6696,6 +6750,9 @@ msgstr "Ende të pandara:"
 msgid "Note"
 msgstr "Shënim"
 
+msgid "Nothing extracted yet"
+msgstr "Ende nuk është nxjerrë asgjë"
+
 msgid "Nothing here yet. Pages with results show up in this list after the scan."
 msgstr "Ende asgjë këtu. Faqet me rezultate shfaqen në këtë listë pas skanimit."
 
@@ -6704,6 +6761,9 @@ msgstr "Asgjë e rëndësishme nuk mungon ose nuk është shtuar"
 
 msgid "Nothing pending review"
 msgstr "Asgjë në pritje për shqyrtim"
+
+msgid "Nothing sectioned yet"
+msgstr "Ende nuk është ndarë asgjë në seksione"
 
 msgid "Nothing split yet"
 msgstr "Asgjë e ndarë ende"
@@ -6884,6 +6944,9 @@ msgstr "Hap pull request-in {0}"
 
 msgid "Open settings"
 msgstr "Hapni cilësimet"
+
+msgid "Open source PDF"
+msgstr "Hap PDF-në burimore"
 
 msgid "Open source PDF in a new tab"
 msgstr "Hapni PDF-in burimor në një skedë të re"
@@ -7183,6 +7246,12 @@ msgstr "Faqja {pageNumber}"
 msgid "page {shownStr}"
 msgstr "faqja {shownStr}"
 
+msgid "Page 10"
+msgstr "Faqja 10"
+
+msgid "page 10 · 7 nodes"
+msgstr "faqja 10 · 7 nyje"
+
 msgid "Page 10 · narration"
 msgstr "Faqja 10 · narracion"
 
@@ -7283,6 +7352,9 @@ msgstr "Faqe për Kuiz"
 
 msgid "Pages reviewed"
 msgstr "Faqe të rishikuara"
+
+msgid "Pages with no text layer are read from the page image instead, and flagged so you can check them."
+msgstr "Faqet pa shtresë teksti lexohen nga imazhi i faqes dhe shënohen që t'i kontrolloni."
 
 msgid "Paper Collage"
 msgstr "Kolazh Letre"
@@ -8946,6 +9018,12 @@ msgstr "seksione"
 msgid "Sections"
 msgstr "Seksione"
 
+msgid "Sections are what the reader navigates — every later step attaches its output to them."
+msgstr "Seksionet janë ato që lexuesi shfleton — çdo hap i mëvonshëm ia bashkëngjit rezultatin e vet atyre."
+
+msgid "Sections by page"
+msgstr "Seksione sipas faqes"
+
 #. placeholder {0}: frame.sectionCount
 #. placeholder {1}: pages.length
 msgid "Sections generated — {0} sections across {1} pages"
@@ -9414,6 +9492,14 @@ msgstr "Gjuha burimore"
 
 msgid "Source PDF"
 msgstr "PDF Burim"
+
+#. placeholder {0}: pages.length
+msgid "Source PDF has {sourcePages} pages — {0} extracted."
+msgstr "PDF-ja burimore ka {sourcePages} faqe — {0} të nxjerra."
+
+#. placeholder {0}: pdf.data?.pageCount ?? 0
+msgid "Source PDF uploaded — {0} pages"
+msgstr "PDF-ja burimore u ngarkua — {0} faqe"
 
 msgid "Space around"
 msgstr "Hapësirë rreth"
@@ -9972,6 +10058,9 @@ msgstr "Ngjyra e tekstit"
 msgid "Text color: {0}"
 msgstr "Ngjyra e tekstit: {0}"
 
+msgid "Text layer on every page"
+msgstr "Shtresë teksti në çdo faqe"
+
 msgid "Text normalization"
 msgstr "Normalizimi i tekstit"
 
@@ -10004,6 +10093,9 @@ msgstr "Madhësitë e tekstit u ruajtën."
 
 msgid "Text Types"
 msgstr "Llojet e Tekstit"
+
+msgid "text_and_single_image"
+msgstr "text_and_single_image"
 
 msgid "Textbooks & Activities"
 msgstr "Tekste Shkollore dhe Aktivitete"
@@ -10183,6 +10275,9 @@ msgstr "Dielli ngroh ujin në oqeane, liqene dhe lumenj, duke e kthyer në avull
 msgid "The table of contents."
 msgstr "Tabela e përmbajtjes."
 
+msgid "The text of the page, in reading order, plus every illustration cut out of it."
+msgstr "Teksti i faqes, sipas radhës së leximit, plus çdo ilustrim i prerë prej saj."
+
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "TOC liston seksionet e shtypura të vendosura nga Storyboard. Përfundo Storyboard para se të ekzekutosh këtë fazë."
 
@@ -10353,6 +10448,9 @@ msgstr "Ky skedar prompti specifik për modelin nuk ekziston ende. Ruajtja ndër
 msgid "This option has no answer key entry"
 msgstr "Ky opsion nuk ka hyrje në çelësin e përgjigjeve"
 
+msgid "This page had no embedded text layer — the text below was recovered from the page image."
+msgstr "Kjo faqe nuk kishte shtresë teksti të integruar — teksti më poshtë u rikuperua nga imazhi i faqes."
+
 msgid "This page has images without an alternative description."
 msgstr "Kjo faqe ka imazhe pa përshkrim alternativ."
 
@@ -10430,6 +10528,9 @@ msgstr "Kjo pjesë nuk ekziston në këtë version."
 
 msgid "This section has no storyboard rendering yet"
 msgstr "Ky seksion nuk ka ende renderim storyboard"
+
+msgid "This section has no text nodes."
+msgstr "Ky seksion nuk ka nyje teksti."
 
 msgid "This section is pruned and isn't rendered."
 msgstr "Ky seksion është prerë dhe nuk renderizohet."
@@ -10889,6 +10990,9 @@ msgstr "Ngarko"
 msgid "Upload a completed part (exported as a project). Per-page results are copied in as new versions; book-level stages are marked for re-running."
 msgstr "Ngarko një pjesë të përfunduar (e eksportuar si projekt). Rezultatet për çdo faqe kopjohen si versione të reja; fazat në nivel libri shënohen për riekzekutim."
 
+msgid "Upload a different PDF"
+msgstr "Ngarko një PDF tjetër"
+
 msgid "Upload a new image file from your computer"
 msgstr "Ngarko një skedar imazhi të ri nga kompjuteri yt"
 
@@ -11316,11 +11420,17 @@ msgstr "Si duket një video këtu"
 msgid "What ADT Studio does"
 msgstr "Çfarë bën ADT Studio"
 
+msgid "What extraction pulls out"
+msgstr "Çfarë nxjerr nxjerrja"
+
 msgid "What is the main role of a plant's roots?"
 msgstr "Cili është roli kryesor i rrënjëve të një bime?"
 
 msgid "What it does"
 msgstr "Çfarë bën"
+
+msgid "What sectioning produces"
+msgstr "Çfarë prodhon ndarja në seksione"
 
 msgid "What should the AI change?"
 msgstr "Çfarë duhet të ndryshojë AI-ja?"

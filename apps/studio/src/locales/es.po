@@ -250,6 +250,10 @@ msgstr "{0} idiomas"
 msgid "{0} missing prompt files will be created. Existing files are left unchanged."
 msgstr "Se crearán {0} archivos de prompt faltantes. Los archivos existentes no se modificarán."
 
+#. placeholder {0}: lines.length
+msgid "{0} nodes"
+msgstr "{0} nodos"
+
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
 msgid "{0} of {1}"
@@ -287,6 +291,7 @@ msgstr "{0} de {1} páginas no tienen texto extraído"
 
 #. placeholder {0}: String(displayPages.length)
 #. placeholder {0}: book.pageCount
+#. placeholder {0}: pages.length
 msgid "{0} pages"
 msgstr "{0} páginas"
 
@@ -349,6 +354,10 @@ msgstr "{0} traducciones"
 #. placeholder {0}: videos.length
 msgid "{0} videos"
 msgstr "{0} vídeos"
+
+#. placeholder {0}: page.wordCount
+msgid "{0} words"
+msgstr "{0} palabras"
 
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
@@ -525,6 +534,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {página} other {páginas}} 
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} páginas"
 
+msgid "{pruned} dropped"
+msgstr "{pruned} descartadas"
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 
@@ -580,6 +592,9 @@ msgstr "{total} bloques"
 msgid "{total} images"
 msgstr "{total} imágenes"
 
+msgid "{total} sections"
+msgstr "{total} secciones"
+
 msgid "{total} source strings in the catalog."
 msgstr "{total} cadenas de origen en el catálogo."
 
@@ -591,6 +606,9 @@ msgstr "{totalPages} páginas"
 
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} páginas · {totalSections} secciones"
+
+msgid "{withWarnings} recovered from images"
+msgstr "{withWarnings} recuperadas de imágenes"
 
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
@@ -658,6 +676,9 @@ msgstr "1.2 Alcance"
 
 msgid "1× in the book · page 12"
 msgstr "1× en el libro · página 12"
+
+msgid "112 words · 1 image · 2 fonts"
+msgstr "112 palabras · 1 imagen · 2 fuentes"
 
 msgid "14.2 kB"
 msgstr "14,2 kB"
@@ -802,6 +823,9 @@ msgstr "Una URL específica donde se puede acceder a una API y enviar una solici
 
 msgid "A speech run is in progress — this list is updating."
 msgstr "Hay una generación de audio en curso: esta lista se está actualizando."
+
+msgid "A stanza and the illustration beside it, kept together as one readable unit."
+msgstr "Una estrofa y la ilustración que la acompaña, mantenidas juntas como una unidad de lectura."
 
 msgid "A story with characters and events that stand for a deeper, often moral, meaning."
 msgstr "Una historia con personajes y eventos que representan un significado más profundo, a menudo moral."
@@ -1456,6 +1480,9 @@ msgstr "Todas descritas"
 
 msgid "All issues and manual review items"
 msgstr "Todos los problemas y elementos de revisión manual"
+
+msgid "All kept"
+msgstr "Todas conservadas"
 
 msgid "All pages"
 msgstr "Todas las páginas"
@@ -2862,6 +2889,9 @@ msgstr "No se pudo restaurar la v{version}. Inténtalo de nuevo."
 msgid "Counting occurrences…"
 msgstr "Contando ocurrencias…"
 
+msgid "Counts show how many images each page contributed."
+msgstr "Los números indican cuántas imágenes aportó cada página."
+
 msgid "Course"
 msgstr "Curso"
 
@@ -3464,11 +3494,20 @@ msgstr "Suelta el PDF aquí"
 msgid "Drop the bundle on any static host to serve the book as a website."
 msgstr "Coloca el paquete en cualquier host estático para servir el libro como un sitio web."
 
+msgid "Drop this image"
+msgstr "Descartar esta imagen"
+
+msgid "Drop this section"
+msgstr "Descartar esta sección"
+
 msgid "Drop ZIP here"
 msgstr "Suelta el ZIP aquí"
 
 msgid "Dropdown"
 msgstr "Lista desplegable"
+
+msgid "Dropped sections stay in the book but never reach the reader."
+msgstr "Las secciones descartadas permanecen en el libro, pero nunca llegan al lector."
 
 msgid "Duplicate"
 msgstr "Duplicar"
@@ -4016,6 +4055,9 @@ msgstr "Vista previa de Extracción"
 msgid "Extract text and images from each page of the PDF using AI-powered analysis."
 msgstr "Extrae texto e imágenes de cada página del PDF usando análisis con IA."
 
+msgid "Extract the PDF"
+msgstr "Extraer el PDF"
+
 msgid "Extracted"
 msgstr "Extraído"
 
@@ -4028,6 +4070,9 @@ msgstr "Extraído del documento"
 #. placeholder {0}: String(count)
 msgid "Extracted Images ({0})"
 msgstr "Imágenes extraídas ({0})"
+
+msgid "Extracted text"
+msgstr "Texto extraído"
 
 msgid "Extracted Text"
 msgstr "Texto extraído"
@@ -5230,6 +5275,12 @@ msgstr "Mantén los esquemas de salida y los ID sin cambios al editar prompts."
 
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Mantén las páginas completas por defecto, pero divídelas cuando se detecten tipos de actividad distintos en la misma página."
+
+msgid "Keep this image"
+msgstr "Conservar esta imagen"
+
+msgid "Keep this section"
+msgstr "Conservar esta sección"
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mantiene las páginas completas a menos que tipos mixtos de actividad requieran división."
@@ -6590,6 +6641,9 @@ msgstr "Sin texto"
 msgid "No text extracted"
 msgstr "No se extrajo texto"
 
+msgid "No text on this page."
+msgstr "No hay texto en esta página."
+
 msgid "No translations for this page"
 msgstr "Sin traducciones para esta página"
 
@@ -6695,6 +6749,9 @@ msgstr "Aún sin dividir:"
 msgid "Note"
 msgstr "Nota"
 
+msgid "Nothing extracted yet"
+msgstr "Aún no se ha extraído nada"
+
 msgid "Nothing here yet. Pages with results show up in this list after the scan."
 msgstr "Aquí no hay nada todavía. Las páginas con resultados aparecerán en esta lista tras el análisis."
 
@@ -6703,6 +6760,9 @@ msgstr "No falta ni se añade nada importante"
 
 msgid "Nothing pending review"
 msgstr "Nada pendiente de revisión"
+
+msgid "Nothing sectioned yet"
+msgstr "Aún no se ha seccionado nada"
 
 msgid "Nothing split yet"
 msgstr "Nada dividido todavía"
@@ -6883,6 +6943,9 @@ msgstr "Abrir solicitud de cambios {0}"
 
 msgid "Open settings"
 msgstr "Abrir ajustes"
+
+msgid "Open source PDF"
+msgstr "Abrir el PDF de origen"
 
 msgid "Open source PDF in a new tab"
 msgstr "Abrir el PDF de origen en una nueva pestaña"
@@ -7182,6 +7245,12 @@ msgstr "Página {pageNumber}"
 msgid "page {shownStr}"
 msgstr "página {shownStr}"
 
+msgid "Page 10"
+msgstr "Página 10"
+
+msgid "page 10 · 7 nodes"
+msgstr "página 10 · 7 nodos"
+
 msgid "Page 10 · narration"
 msgstr "Página 10 · narración"
 
@@ -7282,6 +7351,9 @@ msgstr "Páginas por quiz"
 
 msgid "Pages reviewed"
 msgstr "Pages reviewed"
+
+msgid "Pages with no text layer are read from the page image instead, and flagged so you can check them."
+msgstr "Las páginas sin capa de texto se leen desde la imagen de la página y se marcan para que puedas revisarlas."
 
 msgid "Paper Collage"
 msgstr "Collage en papel"
@@ -8945,6 +9017,12 @@ msgstr "secciones"
 msgid "Sections"
 msgstr "Secciones"
 
+msgid "Sections are what the reader navigates — every later step attaches its output to them."
+msgstr "Las secciones son lo que el lector recorre: cada paso posterior asocia su resultado a ellas."
+
+msgid "Sections by page"
+msgstr "Secciones por página"
+
 #. placeholder {0}: frame.sectionCount
 #. placeholder {1}: pages.length
 msgid "Sections generated — {0} sections across {1} pages"
@@ -9413,6 +9491,14 @@ msgstr "Idioma de origen"
 
 msgid "Source PDF"
 msgstr "PDF Fuente"
+
+#. placeholder {0}: pages.length
+msgid "Source PDF has {sourcePages} pages — {0} extracted."
+msgstr "El PDF de origen tiene {sourcePages} páginas; se extrajeron {0}."
+
+#. placeholder {0}: pdf.data?.pageCount ?? 0
+msgid "Source PDF uploaded — {0} pages"
+msgstr "PDF de origen subido: {0} páginas"
 
 msgid "Space around"
 msgstr "Espacio alrededor"
@@ -9971,6 +10057,9 @@ msgstr "Color del texto"
 msgid "Text color: {0}"
 msgstr "Color del texto: {0}"
 
+msgid "Text layer on every page"
+msgstr "Capa de texto en todas las páginas"
+
 msgid "Text normalization"
 msgstr "Normalización del texto"
 
@@ -10003,6 +10092,9 @@ msgstr "Tamaños de texto guardados."
 
 msgid "Text Types"
 msgstr "Tipos de texto"
+
+msgid "text_and_single_image"
+msgstr "text_and_single_image"
 
 msgid "Textbooks & Activities"
 msgstr "Libros de Texto y Actividades"
@@ -10182,6 +10274,9 @@ msgstr "El sol calienta el agua en océanos, lagos y ríos, convirtiéndola en v
 msgid "The table of contents."
 msgstr "La tabla de contenidos."
 
+msgid "The text of the page, in reading order, plus every illustration cut out of it."
+msgstr "El texto de la página, en orden de lectura, y cada ilustración recortada de ella."
+
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "El TOC lista las secciones escritas colocadas por el Storyboard. Termina el Storyboard antes de ejecutar esta etapa."
 
@@ -10352,6 +10447,9 @@ msgstr "Este archivo de prompt específico del modelo aún no existe. Guardar mi
 msgid "This option has no answer key entry"
 msgstr "Esta opción no tiene entrada en la clave de respuestas"
 
+msgid "This page had no embedded text layer — the text below was recovered from the page image."
+msgstr "Esta página no tenía capa de texto incrustada: el texto de abajo se recuperó desde la imagen de la página."
+
 msgid "This page has images without an alternative description."
 msgstr "Esta página tiene imágenes sin descripción alternativa."
 
@@ -10429,6 +10527,9 @@ msgstr "Esta sección no existe en esta versión."
 
 msgid "This section has no storyboard rendering yet"
 msgstr "Esta sección aún no tiene renderización de storyboard"
+
+msgid "This section has no text nodes."
+msgstr "Esta sección no tiene nodos de texto."
 
 msgid "This section is pruned and isn't rendered."
 msgstr "Esta sección está podada y no se renderiza."
@@ -10888,6 +10989,9 @@ msgstr "Subir"
 msgid "Upload a completed part (exported as a project). Per-page results are copied in as new versions; book-level stages are marked for re-running."
 msgstr "Sube una parte completada (exportada como proyecto). Los resultados por página se copian como nuevas versiones; las etapas de nivel de libro se marcan para volver a ejecutarse."
 
+msgid "Upload a different PDF"
+msgstr "Subir otro PDF"
+
 msgid "Upload a new image file from your computer"
 msgstr "Sube un nuevo archivo de imagen desde tu computadora"
 
@@ -11315,11 +11419,17 @@ msgstr "Cómo se ve un vídeo aquí"
 msgid "What ADT Studio does"
 msgstr "Qué hace ADT Studio"
 
+msgid "What extraction pulls out"
+msgstr "Qué obtiene la extracción"
+
 msgid "What is the main role of a plant's roots?"
 msgstr "¿Cuál es la función principal de las raíces de una planta?"
 
 msgid "What it does"
 msgstr "Lo que hace"
+
+msgid "What sectioning produces"
+msgstr "Qué produce el seccionado"
 
 msgid "What should the AI change?"
 msgstr "¿Qué debería cambiar la IA?"
