@@ -4,6 +4,11 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 
 Element.prototype.scrollIntoView = vi.fn()
+const writeClipboard = vi.fn()
+Object.defineProperty(navigator, "clipboard", {
+  configurable: true,
+  value: { writeText: writeClipboard },
+})
 
 const navigate = vi.fn()
 const previewImport = vi.fn()
@@ -86,6 +91,7 @@ afterEach(() => {
   importError = null
   adtImportError = null
   dropZoneEnabled = true
+  writeClipboard.mockReset()
 })
 
 describe("ImportProject", () => {
@@ -353,6 +359,16 @@ describe("ImportProject", () => {
         supported: false,
         issues: [{ code: "missing-editing-contract", pageHref: "manifest.json" }],
       },
+      agentGuide: {
+        status: "missing",
+        currentVersion: 1,
+        files: {
+          agentsMd: { present: false, version: null, current: false },
+          claudeMd: { present: false, version: null, current: false },
+        },
+        currentGuide: "<!-- adt-studio-agent-guide: 1 -->\n# Editing Unsupported book",
+        repairPrompt: "Repair this exported ADT using the current guide.",
+      },
       match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
     })
 
@@ -362,13 +378,18 @@ describe("ImportProject", () => {
       target: { files: [new File(["zip"], "unsupported.zip", { type: "application/zip" })] },
     })
 
-    expect(await screen.findAllByText("Unsupported ADT structure")).toHaveLength(2)
-    expect(screen.getByText(/missing ADT Studio round-trip metadata/)).toBeTruthy()
+    expect(await screen.findByText("This book needs repair before import")).toBeTruthy()
+    expect(screen.getByText(/Assistant guides are missing/)).toBeTruthy()
+    expect(screen.getByText(/manifest.json is missing current ADT Studio round-trip metadata/)).toBeTruthy()
     expect(screen.queryByText("Archive ready to review")).toBeNull()
     expect(screen.getByText("Review details").className).toContain("text-red-700")
-    const importButton = screen.getByRole("button", { name: "Import as new project" })
-    expect(importButton.hasAttribute("disabled")).toBe(true)
-    fireEvent.click(importButton)
+    fireEvent.click(screen.getByRole("button", { name: "Copy repair request" }))
+    await waitFor(() => expect(writeClipboard).toHaveBeenCalledWith(
+      "Repair this exported ADT using the current guide.",
+    ))
+    const correctedZipButton = screen.getByRole("button", { name: "Choose corrected ZIP" })
+    expect(correctedZipButton.hasAttribute("disabled")).toBe(false)
+    fireEvent.click(correctedZipButton)
     expect(importAdt).not.toHaveBeenCalled()
   })
 

@@ -23,6 +23,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Button } from "@/components/ui/button"
 import { ActivityClassificationDialog } from "@/components/import/ActivityClassificationDialog"
+import { AdtImportRepairPanel } from "@/components/import/AdtImportRepairPanel"
 import { FileDropOverlay, useFileDropZone } from "@/components/ui/file-drop-overlay"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { cn, formatBytes, isZipFile } from "@/lib/utils"
@@ -459,7 +460,7 @@ function AdtBundlePreviewCard({
   activityDecisions: Record<string, string | null>
   onReviewActivities: () => void
 }) {
-  const { t, i18n } = useLingui()
+  const { i18n } = useLingui()
   const activityReview = preview.activityReview ?? EMPTY_ACTIVITY_REVIEW
   const detectedFeatureNames = new Set([
     activityReview.quizCount > 0 ? "quizzes" : null,
@@ -475,44 +476,6 @@ function AdtBundlePreviewCard({
   const classifiedActivityCount = reviewItems.filter((item) => (
     Object.prototype.hasOwnProperty.call(activityDecisions, item.sectionId)
   )).length
-  const compatibilityIssueLabel = (code: AdtBundleImportPreview["compatibility"]["issues"][number]["code"]) => {
-    if (code === "missing-editing-contract") {
-      return t`This archive is missing ADT Studio round-trip metadata. Re-export it as a Web ZIP from a current version of ADT Studio before editing it externally.`
-    }
-    if (code === "unsupported-editing-contract") {
-      return t`This bundle uses a newer ADT Studio editing contract.`
-    }
-    if (code === "nested-page") return t`Page HTML files must stay at the bundle root.`
-    if (code === "unexpected-bundle-entry") {
-      return t`The bundle contains a folder outside the canonical ADT structure.`
-    }
-    if (code === "changed-page-structure") {
-      return t`Page order, filenames, section IDs, and data IDs must remain unchanged.`
-    }
-    if (code === "missing-content-root" || code === "multiple-content-roots") {
-      return t`The canonical #content page root is missing or duplicated.`
-    }
-    if (code === "missing-section" || code === "multiple-sections") {
-      return t`The page section does not match content/pages.json.`
-    }
-    if (code === "missing-section-type") return t`The page section is missing data-section-type.`
-    if (code === "missing-data-id" || code === "duplicate-data-id" || code === "image-missing-data-id") {
-      return t`Editable content has missing or duplicate data-id values.`
-    }
-    if (code === "remote-asset" || code === "unsafe-asset") {
-      return t`The page references a remote or unsafe asset.`
-    }
-    if (code === "unsupported-stylesheet") {
-      return t`Custom stylesheets are not supported. Use the bundled Tailwind classes or inline styles.`
-    }
-    if (code === "unsupported-script") {
-      return t`Custom script files are not supported in a re-importable ADT.`
-    }
-    if (code === "unsupported-asset-location") {
-      return t`Page media must be stored in the canonical images folder.`
-    }
-    return t`A referenced local asset is missing from the bundle.`
-  }
   return (
     <div className="grid min-h-[400px] w-full grid-cols-1 overflow-hidden rounded-xl border border-slate-200 bg-white motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-300 md:grid-cols-[minmax(0,1.7fr)_minmax(220px,0.8fr)]">
       <div className="flex flex-col">
@@ -553,26 +516,10 @@ function AdtBundlePreviewCard({
         ) : null}
 
         {!preview.compatibility.supported ? (
-          <div className="mx-5 mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2.5">
-            <div className="flex items-start gap-2">
-              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600" />
-              <div className="min-w-0">
-                <p className="text-xs font-semibold text-red-950"><Trans>Unsupported ADT structure</Trans></p>
-                <p className="mt-0.5 text-xs leading-relaxed text-red-900">
-                  <Trans>This publication cannot be imported because its HTML does not follow the ADT Studio round-trip pattern.</Trans>
-                </p>
-                <ul className="mt-1.5 max-h-32 space-y-1 overflow-y-auto pr-1 text-xs leading-relaxed text-red-900">
-                  {preview.compatibility.issues.map((issue, index) => (
-                    <li key={`${issue.code}:${issue.pageHref}:${issue.detail ?? index}`}>
-                      <span className="font-medium">{issue.pageHref}:</span>{" "}
-                      {compatibilityIssueLabel(issue.code)}
-                      {issue.detail ? <span className="font-mono"> ({issue.detail})</span> : null}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          </div>
+          <AdtImportRepairPanel
+            compatibility={preview.compatibility}
+            agentGuide={preview.agentGuide}
+          />
         ) : null}
 
         <div className="px-5 pb-4">
@@ -1021,10 +968,9 @@ export function ImportProject() {
                 disabled={
                   !preview ||
                   (!isPartImportPreview(preview) && !isAdtBundleImportPreview(preview) && !!preview.validationError) ||
-                  (isAdtBundleImportPreview(preview) && !preview.compatibility.supported) ||
                   importPending
                 }
-                onClick={handleImport}
+                onClick={unsupportedAdt ? () => fileInputRef.current?.click() : handleImport}
                 className="h-9 border-0 bg-amber-700 px-4 text-white hover:bg-amber-800 disabled:opacity-50"
               >
                 {importPending ? (
@@ -1035,8 +981,10 @@ export function ImportProject() {
                 ) : (
                   <>
                     <Upload className="h-4 w-4" />
-                    {preview && isAdtBundleImportPreview(preview)
-                      ? unresolvedActivityCount > 0
+                    {unsupportedAdt
+                      ? <Trans>Choose corrected ZIP</Trans>
+                      : preview && isAdtBundleImportPreview(preview)
+                        ? unresolvedActivityCount > 0
                         ? <Trans>Review {unresolvedActivityCount} activities</Trans>
                         : <Trans>Import as new project</Trans>
                       : <Trans>Import</Trans>}

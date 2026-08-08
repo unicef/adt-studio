@@ -1540,6 +1540,12 @@ msgstr "Ressource"
 msgid "Assign..."
 msgstr "Attribuer..."
 
+msgid "Assistant guides are missing"
+msgstr "Les guides pour assistants sont manquants"
+
+msgid "Assistant guides are outdated"
+msgstr "Les guides pour assistants sont obsolètes"
+
 msgid "At the river's edge"
 msgstr "Au bord de la rivière"
 
@@ -2168,6 +2174,9 @@ msgstr "Choisir un autre fichier"
 msgid "Choose classification"
 msgstr "Choisir une classification"
 
+msgid "Choose corrected ZIP"
+msgstr "Choisir le ZIP corrigé"
+
 msgid "Choose features to include in this export"
 msgstr "Choisissez les fonctionnalités à inclure dans cette exportation"
 
@@ -2523,11 +2532,20 @@ msgstr "Copié"
 msgid "Copy"
 msgstr "Copier"
 
+msgid "Copy current guide"
+msgstr "Copier le guide actuel"
+
 msgid "Copy error details"
 msgstr "Copier les détails de l'erreur"
 
 msgid "Copy error output"
 msgstr "Copier la sortie d'erreur"
+
+msgid "Copy failed"
+msgstr "Échec de la copie"
+
+msgid "Copy repair request"
+msgstr "Copier la demande de réparation"
 
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Les récifs coralliens couvrent moins de 1 % du fond océanique, mais ils abritent environ 25 % de toutes les espèces marines. Souvent appelés les « forêts tropicales de la mer », ces écosystèmes sous-marins sont construits par de minuscules animaux appelés polypes coralliens."
@@ -2722,6 +2740,9 @@ msgstr "Actuel"
 
 msgid "Current (v{currentVersion})"
 msgstr "Actuelle (v{currentVersion})"
+
+msgid "Current assistant guides found"
+msgstr "Guides actuels pour assistants détectés"
 
 msgid "Current book font"
 msgstr "Police actuelle du livre"
@@ -4273,6 +4294,10 @@ msgstr "Regroupe les régions d'image en illustrations distinctes sur chaque pag
 msgid "Guidance for this book"
 msgstr "Consignes pour ce livre"
 
+#. placeholder {0}: agentGuide.currentVersion
+msgid "Guide version {0}"
+msgstr "Version du guide {0}"
+
 msgid "Hand out page-range parts and merge them back later."
 msgstr "Distribuez des parties par plage de pages et fusionnez-les plus tard."
 
@@ -4308,6 +4333,9 @@ msgstr "Masquer l'historique des modifications IA"
 
 msgid "Hide API key"
 msgstr "Masquer la clé API"
+
+msgid "Hide current guide"
+msgstr "Masquer le guide actuel"
 
 msgid "Hide error details"
 msgstr "Masquer les détails de l'erreur"
@@ -4783,6 +4811,9 @@ msgstr "sa langue originale"
 msgid "Its page structure no longer matches the selected project. Choose Create a new project to import it separately."
 msgstr "Sa structure de pages ne correspond plus au projet sélectionné. Choisissez Créer un nouveau projet pour l'importer séparément."
 
+msgid "Its published HTML and metadata do not follow the current ADT Studio round-trip structure."
+msgstr "Son HTML publié et ses métadonnées ne respectent pas la structure aller-retour actuelle d’ADT Studio."
+
 msgid "Jane Reviewer"
 msgstr "Jane Reviewer"
 
@@ -5204,6 +5235,9 @@ msgstr "Gérer les clés API"
 
 msgid "Manage sign-language videos"
 msgstr "Gérer les vidéos en langue des signes"
+
+msgid "manifest.json is missing current ADT Studio round-trip metadata."
+msgstr "Les métadonnées aller-retour actuelles d’ADT Studio sont absentes de manifest.json."
 
 msgid "Manual only"
 msgstr "Manuel uniquement"
@@ -6150,6 +6184,9 @@ msgstr "Activé"
 msgid "On v{currentVersion} · latest is v{latestVersion}"
 msgstr "Sur v{currentVersion} · la dernière est v{latestVersion}"
 
+msgid "One assistant guide needs an update"
+msgstr "Un guide pour assistant doit être mis à jour"
+
 msgid "One Column"
 msgstr "Une colonne"
 
@@ -6550,6 +6587,9 @@ msgstr "Regroupement de pages"
 msgid "Page Grouping Mode"
 msgstr "Mode de regroupement de pages"
 
+msgid "Page HTML and the bundle indexes disagree. Update pages.json, pageOrder, and pageDataIds together."
+msgstr "Le HTML des pages et les index du paquet ne correspondent pas. Mettez à jour pages.json, pageOrder et pageDataIds ensemble."
+
 msgid "Page HTML files must stay at the bundle root."
 msgstr "Les fichiers HTML des pages doivent rester à la racine du paquet."
 
@@ -6571,8 +6611,8 @@ msgstr "Numéro de page"
 msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 msgstr "Numéros de page détectés — ils seront lus à voix haute : {pageNumberPreview}. Tout couper de la synthèse vocale ?"
 
-msgid "Page order, filenames, section IDs, and data IDs must remain unchanged."
-msgstr "L’ordre des pages, les noms de fichiers, les identifiants de section et les identifiants de données doivent rester inchangés."
+#~ msgid "Page order, filenames, section IDs, and data IDs must remain unchanged."
+#~ msgstr "L’ordre des pages, les noms de fichiers, les identifiants de section et les identifiants de données doivent rester inchangés."
 
 msgid "Page preview"
 msgstr "Aperçu de la page"
@@ -7506,6 +7546,9 @@ msgstr "Rend les activités à partir d'un modèle fixe pour un style cohérent.
 
 msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Rend chaque page dans la mise en page du storyboard utilisée par le lecteur web."
+
+msgid "Repair with an AI assistant"
+msgstr "Réparer avec un assistant IA"
 
 msgid "Replace"
 msgstr "Remplacer"
@@ -9156,6 +9199,9 @@ msgstr "L'IA conservera le style original tout en appliquant vos modifications."
 msgid "The application ran into an unexpected error. You can try reloading — your work in progress is saved on disk."
 msgstr "L'application a rencontré une erreur inattendue. Vous pouvez essayer de recharger — votre travail en cours est enregistré sur le disque."
 
+msgid "The archive already has the latest instructions. The repair request adds the exact validation errors for the AI to fix."
+msgstr "L’archive contient déjà les dernières instructions. La demande de réparation ajoute les erreurs de validation exactes que l’IA doit corriger."
+
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "L'archive doit contenir une base de données de projet et son PDF. Réexportez-la depuis ADT Studio."
 
@@ -9330,6 +9376,9 @@ msgstr "Le vif renard brun saute par-dessus le chien paresseux."
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "La stratégie de rendu utilisée pour les sections sans correspondance explicite."
 
+msgid "The repair request includes the latest guide and these validation errors. Save the guide as both AGENTS.md and CLAUDE.md at the archive root."
+msgstr "La demande de réparation inclut le dernier guide et ces erreurs de validation. Enregistrez le guide sous AGENTS.md et CLAUDE.md à la racine de l’archive."
+
 msgid "The river meets the sea"
 msgstr "La rivière rejoint la mer"
 
@@ -9423,8 +9472,8 @@ msgstr "Cette activité a été ajoutée après l’exportation."
 msgid "This archive can't be opened safely"
 msgstr "Cette archive ne peut pas être ouverte en toute sécurité"
 
-msgid "This archive is missing ADT Studio round-trip metadata. Re-export it as a Web ZIP from a current version of ADT Studio before editing it externally."
-msgstr "Les métadonnées de réimportation d’ADT Studio sont absentes de cette archive. Réexportez-la au format ZIP Web depuis une version récente d’ADT Studio avant de la modifier en dehors de l’application."
+#~ msgid "This archive is missing ADT Studio round-trip metadata. Re-export it as a Web ZIP from a current version of ADT Studio before editing it externally."
+#~ msgstr "Les métadonnées de réimportation d’ADT Studio sont absentes de cette archive. Réexportez-la au format ZIP Web depuis une version récente d’ADT Studio avant de la modifier en dehors de l’application."
 
 msgid "This archive is too large"
 msgstr "Cette archive est trop volumineuse"
@@ -9455,11 +9504,17 @@ msgstr "Ce livre est intitulé \\\"{0}\\\"."
 msgid "This book isn't fully assembled yet — pages <0>{0}</0> haven't been merged back. Anything you run here covers only the merged pages, so the result will be incomplete until every part is merged."
 msgstr "Ce livre n'est pas encore complet — les pages <0>{0}</0> n'ont pas été fusionnées. Tout ce que vous lancez ici ne couvre que les pages fusionnées, le résultat sera donc incomplet tant que toutes les parties ne sont pas fusionnées."
 
+msgid "This book needs repair before import"
+msgstr "Ce livre doit être réparé avant l’importation"
+
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'origine du PDF. Les polices jointes guident tout de même l'IA pour les activités et les pages générées."
 
-msgid "This bundle uses a newer ADT Studio editing contract."
-msgstr "Ce paquet utilise un contrat d’édition ADT Studio plus récent."
+#~ msgid "This bundle uses a newer ADT Studio editing contract."
+#~ msgstr "Ce paquet utilise un contrat d’édition ADT Studio plus récent."
+
+msgid "This bundle uses an editing contract that this version of ADT Studio cannot import."
+msgstr "Ce paquet utilise un contrat d’édition que cette version d’ADT Studio ne peut pas importer."
 
 #~ msgid "This feature cannot be regenerated from imported HTML yet. The imported output remains preserved in the book preview and export."
 #~ msgstr "Cette fonctionnalité ne peut pas encore être régénérée depuis le HTML importé. Le résultat importé reste conservé dans l’aperçu et l’exportation du livre."
@@ -10285,6 +10340,9 @@ msgstr "Voir"
 
 #~ msgid "View all changes"
 #~ msgstr "Voir toutes les modifications"
+
+msgid "View current guide"
+msgstr "Afficher le guide actuel"
 
 msgid "View details"
 msgstr "Voir les détails"

@@ -215,6 +215,16 @@ export interface AdtBundleImportPreview {
       detail?: string
     }>
   }
+  agentGuide: {
+    status: "current" | "partial" | "outdated" | "missing"
+    currentVersion: number
+    files: {
+      agentsMd: { present: boolean; version: number | null; current: boolean }
+      claudeMd: { present: boolean; version: number | null; current: boolean }
+    }
+    currentGuide: string
+    repairPrompt: string
+  }
 }
 
 export type AnyImportPreview = ImportPreview | PartImportPreview | AdtBundleImportPreview
