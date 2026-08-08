@@ -967,7 +967,7 @@ export async function packageAdtWeb(
             href,
             type: activity.sectionType,
           })
-        } else if (activity.signals.length > 0) {
+        } else if (activity.explicitNonActivity || activity.signals.length > 0) {
           // Interactive reader controls are not necessarily learning activities.
           // Record that negative classification so a future import does not ask
           // the user or an agent to classify the same page again.

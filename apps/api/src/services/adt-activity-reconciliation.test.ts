@@ -160,5 +160,18 @@ describe("ADT activity reconciliation", () => {
       activityCount: 0,
       items: [],
     })
+
+    const legacyInteractiveContent = analyzeImportedActivities(bundle(page(
+      "content",
+      `<p data-id="text-1">Search the page</p><input type="search" aria-label="Search" />`,
+    ).replace(
+      `data-section-type="content"`,
+      `data-section-type="content" data-adt-non-activity="true"`,
+    )))
+    expect(legacyInteractiveContent).toMatchObject({
+      needsReviewCount: 0,
+      activityCount: 0,
+      items: [],
+    })
   })
 })

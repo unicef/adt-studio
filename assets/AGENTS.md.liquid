@@ -71,6 +71,7 @@ Every activity must be represented by the page's canonical `<section>` element:
 </section>
 ```
 
+- Remove `data-adt-non-activity` when classifying the section as an activity.
 - Preserve existing `data-section-type="activity_*"` values unless the learning mechanic itself changes.
 - A new custom activity must use `data-section-type="activity_custom_<descriptive_slug>"`, for example `activity_custom_crossword`.
 - Keep the existing `data-section-id`; it is the activity's stable identity.
@@ -93,7 +94,19 @@ Remove the same section from `editingContract.nonActivities`. Never remove unrel
 
 #### Negative classification
 
-Interactive content that is intentionally not a learning activity must retain a non-activity `data-section-type` such as `content` and be listed in `editingContract.nonActivities`:
+Interactive content that is intentionally not a learning activity must retain a non-activity `data-section-type` such as `content` and set an explicit marker on its canonical section:
+
+```html
+<section
+  data-section-id="pg006_sec001"
+  data-section-type="content"
+  data-adt-non-activity="true"
+>
+  ...
+</section>
+```
+
+When `manifest.json` has an `editingContract`, also list the page in `editingContract.nonActivities`:
 
 ```json
 {
@@ -102,7 +115,7 @@ Interactive content that is intentionally not a learning activity must retain a 
 }
 ```
 
-Remove the same section from `editingContract.activities`. Ordinary static pages do not need a negative declaration; use `nonActivities` only when controls, dragging, or activity-like data attributes would otherwise trigger review.
+Remove the same section from `editingContract.activities`. For a legacy bundle without an editing contract, the HTML marker is sufficient for ADT Studio to recognize the decision and carry it into the manifest on the next export. Ordinary static pages do not need a negative marker or declaration; use them only when controls, dragging, or activity-like data attributes would otherwise trigger review.
 
 #### AI activity audit
 
@@ -110,14 +123,14 @@ When the user asks an AI to classify the book, the AI must:
 
 1. Read every entry in `content/pages.json` and inspect its matching canonical section.
 2. Classify the page using the definitions above, based on the learning mechanic rather than filenames or styling.
-3. For an activity, set the exact `activity_*` section type, add or update its `editingContract.activities` entry, and remove any negative entry.
-4. For interactive non-activity content, use a non-activity section type, add its `editingContract.nonActivities` entry, and remove any positive entry.
-5. Ensure no section appears twice or in both arrays, and every classification has the same `sectionId` and `href` as `editingContract.pageOrder`.
+3. For an activity, set the exact `activity_*` section type, remove `data-adt-non-activity`, add or update its `editingContract.activities` entry when the editing contract exists, and remove any negative entry.
+4. For interactive non-activity content, use a non-activity section type, set `data-adt-non-activity="true"`, add its `editingContract.nonActivities` entry when the editing contract exists, and remove any positive entry.
+5. When an editing contract exists, ensure no section appears twice or in both arrays, and every classification has the same `sectionId` and `href` as `editingContract.pageOrder`.
 6. Leave uncertain cases unchanged and report them to the user instead of guessing.
 
 Suggested user request:
 
-> Audit every page for learning activities using the Activity classification section in AGENTS.md. Update the page section types, `editingContract.activities`, and `editingContract.nonActivities`. Do not change the learning content. Report any uncertain pages.
+> Audit every page for learning activities using the Activity classification section in AGENTS.md. Update each page section type and its `data-adt-non-activity` marker. When an editing contract exists, also update `editingContract.activities` and `editingContract.nonActivities`. Do not change the learning content. Report any uncertain pages.
 
 ## Canonical structure
 

@@ -8,7 +8,7 @@ import type {
 import { getGlossaryItemTextId } from "./glossary.js"
 import { ACTIVITY_CLASSIFICATION_GUIDE } from "./imported-activity.js"
 
-export const ADT_AGENT_GUIDE_VERSION = 1 as const
+export const ADT_AGENT_GUIDE_VERSION = 2 as const
 
 export interface AdtAgentGuidePageEntry {
   section_id: string

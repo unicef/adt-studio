@@ -1539,6 +1539,9 @@ describe("POST /books/preview-import", () => {
     expect(body.activityReview.items[0].previewHtml).toContain(
       "data:image/png;base64,iVBORw==",
     )
+    expect(body.agentGuide.activityPrompt).toContain("<activity_review_candidates_json>")
+    expect(body.agentGuide.activityPrompt).toContain("pg001_sec001")
+    expect(body.agentGuide.activityPrompt).toContain("data-adt-non-activity")
   })
 
   it("reports unsupported exported HTML before import", async () => {
@@ -1564,14 +1567,14 @@ describe("POST /books/preview-import", () => {
       },
       agentGuide: {
         status: "missing",
-        currentVersion: 1,
+        currentVersion: 2,
         files: {
           agentsMd: { present: false, current: false },
           claudeMd: { present: false, current: false },
         },
       },
     })
-    expect(body.agentGuide.currentGuide).toContain("<!-- adt-studio-agent-guide: 1 -->")
+    expect(body.agentGuide.currentGuide).toContain("<!-- adt-studio-agent-guide: 2 -->")
     expect(body.agentGuide.repairPrompt).toContain('"code": "missing-content-root"')
     expect(body.agentGuide.repairPrompt).toContain("<current_adt_agent_guide>")
   })
@@ -1594,43 +1597,43 @@ describe("POST /books/preview-import", () => {
       return response.json()
     }
 
-    const current = await preview(1, false)
+    const current = await preview(2, false)
     expect(current.agentGuide).toMatchObject({
       status: "current",
       files: {
-        agentsMd: { version: 1, current: true },
-        claudeMd: { version: 1, current: true },
+        agentsMd: { version: 2, current: true },
+        claudeMd: { version: 2, current: true },
       },
     })
     expect(current.agentGuide.repairPrompt).not.toContain(
       "<current_adt_agent_guide>",
     )
 
-    const partial = await preview(1, true)
+    const partial = await preview(2, true)
     expect(partial.agentGuide).toMatchObject({
       status: "partial",
       files: {
-        agentsMd: { version: 1, current: true },
+        agentsMd: { version: 2, current: true },
         claudeMd: { present: false, current: false },
       },
     })
 
-    const outdated = await preview(0, false)
+    const outdated = await preview(1, false)
     expect(outdated.agentGuide).toMatchObject({
       status: "outdated",
       files: {
-        agentsMd: { version: 0, current: false },
-        claudeMd: { version: 0, current: false },
+        agentsMd: { version: 1, current: false },
+        claudeMd: { version: 1, current: false },
       },
     })
 
-    const newer = await preview(2, false)
+    const newer = await preview(3, false)
     expect(newer.agentGuide).toMatchObject({
       status: "current",
-      currentVersion: 1,
+      currentVersion: 2,
       files: {
-        agentsMd: { version: 2, current: true },
-        claudeMd: { version: 2, current: true },
+        agentsMd: { version: 3, current: true },
+        claudeMd: { version: 3, current: true },
       },
     })
   })

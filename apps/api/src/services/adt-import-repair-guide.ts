@@ -21,6 +21,7 @@ export interface AdtAgentGuideReview {
   }
   currentGuide: string
   repairPrompt: string
+  activityPrompt: string | null
 }
 
 const compatibilityIssueGuidance: Record<AdtImportCompatibilityIssueCode, string> = {
@@ -98,6 +99,38 @@ export function createAdtImportRepairGuide(
       ? []
       : ["", "<current_adt_agent_guide>", currentGuide, "</current_adt_agent_guide>"]),
   ].join("\n")
+  const activityCandidates = activityReview.items
+    .filter((item) => item.status === "needs-review")
+    .map((item) => ({
+      sectionId: item.sectionId,
+      href: item.href,
+      declaredType: item.declaredType,
+      detectedType: item.detectedType,
+      suggestedType: item.suggestedType,
+      reasons: item.reasons,
+      signals: item.signals,
+      validationErrors: item.validationErrors,
+      textPreview: item.textPreview,
+    }))
+  const activityPrompt = activityCandidates.length === 0
+    ? null
+    : [
+        "Audit and classify the ambiguous activity candidates in this exported ADT.",
+        guideInstruction,
+        "Work on the unzipped archive. Read each listed page and its canonical section before deciding from the learning mechanic, not from filenames or styling.",
+        "For a learning activity, choose the exact applicable activity_* value from the guide for data-section-type, remove data-adt-non-activity, and update editingContract.activities when that contract exists.",
+        "For interactive content that is not a learning activity, keep a non-activity section type, set data-adt-non-activity=\"true\", and update editingContract.nonActivities when that contract exists.",
+        "Do not invent or change learning content. Leave uncertain cases unchanged and report them instead of guessing.",
+        "",
+        "<activity_review_candidates_json>",
+        JSON.stringify(activityCandidates, null, 2),
+        "</activity_review_candidates_json>",
+        "",
+        "After classifying the pages, run the guide checklist and return a ZIP whose contents are at the archive root.",
+        ...(status === "current"
+          ? []
+          : ["", "<current_adt_agent_guide>", currentGuide, "</current_adt_agent_guide>"]),
+      ].join("\n")
 
   return {
     status,
@@ -105,5 +138,6 @@ export function createAdtImportRepairGuide(
     files,
     currentGuide,
     repairPrompt,
+    activityPrompt,
   }
 }

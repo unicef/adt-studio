@@ -87,8 +87,19 @@ export function analyzeImportedActivities(
       { allowSectionDataId: /^(?:qz|quiz)[-_]?\d*/i.test(page.section_id) },
     )
     const detectedType = inspection.isActivity ? inspection.sectionType : null
-    if (declaredNonActivity && !detectedType && declaredNonActivity.href === page.href) continue
-    if (!declared && !declaredNonActivity && !detectedType && inspection.signals.length === 0) continue
+    const validDeclaredNonActivity = Boolean(
+      declaredNonActivity && declaredNonActivity.href === page.href,
+    )
+    if (!declared && !detectedType && (validDeclaredNonActivity || inspection.explicitNonActivity)) {
+      continue
+    }
+    if (
+      !declared
+      && !declaredNonActivity
+      && !inspection.explicitNonActivity
+      && !detectedType
+      && inspection.signals.length === 0
+    ) continue
 
     const reasons: AdtActivityReviewReason[] = []
     if (hasInventory && detectedType && !declared && !declaredNonActivity) {
@@ -98,9 +109,15 @@ export function analyzeImportedActivities(
       detectedType
       || declaredNonActivity.href !== page.href
     )) reasons.push("type-mismatch")
+    if (inspection.explicitNonActivity && detectedType) reasons.push("type-mismatch")
     if (declared && !detectedType) reasons.push("missing-marker")
     if (declared && detectedType && declared.type !== detectedType) reasons.push("type-mismatch")
-    if (!declaredNonActivity && !detectedType && inspection.signals.length > 0) {
+    if (
+      !declaredNonActivity
+      && !inspection.explicitNonActivity
+      && !detectedType
+      && inspection.signals.length > 0
+    ) {
       reasons.push("interactive-unmarked")
     }
     if (inspection.validationErrors.length > 0) reasons.push("invalid-structure")

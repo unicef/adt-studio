@@ -33,6 +33,7 @@ export interface ImportedActivityInspection {
   isKnownType: boolean
   isCustomType: boolean
   isQuiz: boolean
+  explicitNonActivity: boolean
   supportsStudioEditing: boolean
   signals: ImportedActivitySignal[]
   validationErrors: string[]
@@ -67,6 +68,9 @@ export function inspectImportedActivity(
     sectionType && (KNOWN_ACTIVITY_SECTION_TYPES as readonly string[]).includes(sectionType),
   )
   const isCustomType = Boolean(sectionType?.startsWith("activity_custom_"))
+  const explicitNonActivity = section?.attribs?.["data-adt-non-activity"]
+    ?.trim()
+    .toLowerCase() === "true"
   const signals = new Set<ImportedActivitySignal>()
 
   if (section) {
@@ -105,6 +109,7 @@ export function inspectImportedActivity(
     isKnownType,
     isCustomType,
     isQuiz: sectionType === "activity_quiz",
+    explicitNonActivity,
     supportsStudioEditing: Boolean(
       sectionType && (sectionType === "activity_quiz" || supportsEditableActivity(sectionType)),
     ),
