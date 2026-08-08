@@ -14,7 +14,7 @@ import { AddBookDialog } from "./AddBookDialog"
 import { RedesignShellContext } from "./RedesignShellContext"
 import { useRedesignBooks } from "./use-redesign-books"
 import { Kbd } from "./ui/Kbd"
-import { REDESIGN_PATHS } from "./nav"
+import { isFullBleedRedesignView } from "./nav"
 
 const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
   { keys: ["⌘", "K"], label: msg`Open command palette` },
@@ -27,7 +27,7 @@ const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
 export function RedesignLayout() {
   const { t, i18n } = useLingui()
   const { pathname } = useLocation()
-  const isSettings = pathname.startsWith(REDESIGN_PATHS.settings)
+  const isFullBleed = isFullBleedRedesignView(pathname)
   usePageTitle(t`ADT Studio`)
   const { books, locale } = useRedesignBooks()
   const deleteMutation = useDeleteBook()
@@ -62,7 +62,7 @@ export function RedesignLayout() {
   return (
     <RedesignShellContext value={shell}>
       <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
-        {!isSettings && (
+        {!isFullBleed && (
           <AppSidebar
             libraryCount={books.length}
             handoffsCount={handoffsCount}

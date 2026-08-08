@@ -42,6 +42,7 @@ const DOCS_LABEL: Record<RedesignView, MessageDescriptor> = {
   home: msg`Home guide`,
   library: msg`Library guide`,
   handoffs: msg`Split & merge guide`,
+  pipeline: msg`Pipeline guide`,
   settings: msg`Settings guide`,
 }
 
@@ -92,7 +93,12 @@ export function AppSidebar({
   const [helpOpen, setHelpOpen] = useState(false)
   const { showWhatsNew } = useUpdateDialog()
 
-  const items: { view: RedesignView; label: string; icon: LucideIcon; count?: number }[] = [
+  const items: {
+    view: Exclude<RedesignView, "pipeline">
+    label: string
+    icon: LucideIcon
+    count?: number
+  }[] = [
     { view: "home", label: t`Home`, icon: House },
     { view: "library", label: t`Library`, icon: BookMarked, count: libraryCount },
     { view: "handoffs", label: t`Split & merge`, icon: Split, count: handoffsCount },

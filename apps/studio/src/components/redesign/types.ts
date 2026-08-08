@@ -1,1 +1,1 @@
-export type RedesignView = "home" | "library" | "handoffs" | "settings"
+export type RedesignView = "home" | "library" | "handoffs" | "pipeline" | "settings"
