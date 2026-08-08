@@ -2231,6 +2231,9 @@ msgstr "Klasifikimi për {0}"
 msgid "Classify every page"
 msgstr "Klasifikoni çdo faqe"
 
+msgid "Classify with an AI assistant"
+msgstr "Klasifiko me një asistent IA"
+
 msgid "Classifying images…"
 msgstr "Po klasifikohen imazhet…"
 
@@ -2530,6 +2533,9 @@ msgstr "Kopjuar"
 
 msgid "Copy"
 msgstr "Kopjo"
+
+msgid "Copy AI instructions"
+msgstr "Kopjo udhëzimet për IA-në"
 
 msgid "Copy current guide"
 msgstr "Kopjo udhëzuesin aktual"
@@ -7888,6 +7894,9 @@ msgstr "Ekzekuto Storyboard-in së pari — përkthimi ka nevojë për seksionet
 
 msgid "Run Storyboard to generate sections you can match sign-language videos to."
 msgstr "Ekzekuto Storyboard-in për të gjeneruar seksione me të cilat mund të lidhni video të gjuhës së shenjave."
+
+msgid "Run the instructions in the unzipped book, create a new ZIP, then choose that corrected file here."
+msgstr "Zbatoni udhëzimet në librin e çkompresuar, krijoni një ZIP të ri dhe më pas zgjidhni këtu skedarin e korrigjuar."
 
 msgid "Run the pipeline"
 msgstr "Ekzekuto pipeline-in"

@@ -308,6 +308,17 @@ describe("ImportProject", () => {
         typeOptions: ["activity_matching", "activity_custom_external"],
       },
       compatibility: { supported: true, issues: [] },
+      agentGuide: {
+        status: "missing",
+        currentVersion: 2,
+        files: {
+          agentsMd: { present: false, version: null, current: false },
+          claudeMd: { present: false, version: null, current: false },
+        },
+        currentGuide: "<!-- adt-studio-agent-guide: 2 -->\n# Editing External activity",
+        repairPrompt: "Repair this exported ADT.",
+        activityPrompt: "Classify the ambiguous activity candidate.",
+      },
     })
 
     const view = render(<ImportProject />)
@@ -317,6 +328,11 @@ describe("ImportProject", () => {
 
     const review = await screen.findByRole("button", { name: "Review 1 activities" })
     expect(review).toHaveProperty("disabled", false)
+    expect(screen.getByText("Classify with an AI assistant")).toBeTruthy()
+    fireEvent.click(screen.getByRole("button", { name: "Copy AI instructions" }))
+    await waitFor(() => {
+      expect(writeClipboard).toHaveBeenCalledWith("Classify the ambiguous activity candidate.")
+    })
     fireEvent.click(review)
     expect(screen.getByRole("dialog")).toBeTruthy()
     expect(screen.getByTitle("Preview of index.html").getAttribute("srcdoc"))
@@ -361,13 +377,14 @@ describe("ImportProject", () => {
       },
       agentGuide: {
         status: "missing",
-        currentVersion: 1,
+        currentVersion: 2,
         files: {
           agentsMd: { present: false, version: null, current: false },
           claudeMd: { present: false, version: null, current: false },
         },
-        currentGuide: "<!-- adt-studio-agent-guide: 1 -->\n# Editing Unsupported book",
+        currentGuide: "<!-- adt-studio-agent-guide: 2 -->\n# Editing Unsupported book",
         repairPrompt: "Repair this exported ADT using the current guide.",
+        activityPrompt: null,
       },
       match: { confidence: "none", recommendedProjectLabel: null, candidates: [] },
     })

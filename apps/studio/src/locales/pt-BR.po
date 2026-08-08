@@ -2230,6 +2230,9 @@ msgstr "Classificação de {0}"
 msgid "Classify every page"
 msgstr "Classifique todas as páginas"
 
+msgid "Classify with an AI assistant"
+msgstr "Classificar com um assistente de IA"
+
 msgid "Classifying images…"
 msgstr "Classificando imagens…"
 
@@ -2529,6 +2532,9 @@ msgstr "Copiado"
 
 msgid "Copy"
 msgstr "Copiar"
+
+msgid "Copy AI instructions"
+msgstr "Copiar instruções para a IA"
 
 msgid "Copy current guide"
 msgstr "Copiar guia atual"
@@ -7887,6 +7893,9 @@ msgstr "Execute Storyboard primeiro — a tradução precisa das seções classi
 
 msgid "Run Storyboard to generate sections you can match sign-language videos to."
 msgstr "Execute Storyboard para gerar seções que você pode associar a vídeos em linguagem de sinais."
+
+msgid "Run the instructions in the unzipped book, create a new ZIP, then choose that corrected file here."
+msgstr "Execute as instruções no livro descompactado, crie um novo ZIP e escolha aqui o arquivo corrigido."
 
 msgid "Run the pipeline"
 msgstr "Executar o pipeline"

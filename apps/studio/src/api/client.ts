@@ -224,6 +224,7 @@ export interface AdtBundleImportPreview {
     }
     currentGuide: string
     repairPrompt: string
+    activityPrompt: string | null
   }
 }
 
