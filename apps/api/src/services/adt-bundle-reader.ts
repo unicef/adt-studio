@@ -61,6 +61,10 @@ export interface ReadAdtBundle {
   glossaries: Record<string, AdtBundleGlossaryData>
   texts: Record<string, AdtBundleTextsData>
   ignoredEdits: AdtBundleIgnoredEdits
+  agentGuides: {
+    agentsMd: string | null
+    claudeMd: string | null
+  }
   /** Canonical raster assets included only for the pre-import visual review. */
   previewImages?: Record<string, { bytes: Uint8Array; mimeType: string }>
 }
@@ -73,6 +77,7 @@ const RUNTIME_CONFIG_PATH = /^(?:[^/]+\/)?assets\/config\.json$/
 const PAGES_PATH = /^(?:[^/]+\/)?content\/pages\.json$/
 const COVER_PATH = /^(?:[^/]+\/)?cover\.(?:png|jpe?g|webp)$/i
 const PREVIEW_IMAGE_PATH = /^(?:[^/]+\/)?images\/[^/]+\.(?:gif|jpe?g|png|webp)$/i
+const AGENT_GUIDE_PATH = /^(?:[^/]+\/)?(?:AGENTS|CLAUDE)\.md$/i
 
 const RuntimeConfig = z.object({
   title: z.string().trim().min(1).optional(),
@@ -130,6 +135,7 @@ function selectedLimit(name: string, includePreviewImages: boolean): number | nu
   if (TOC_PATH.test(name) || I18N_PATH.test(name)) return ADT_BUNDLE_READER_LIMITS.jsonBytes
   if (RUNTIME_CONFIG_PATH.test(name) || PAGES_PATH.test(name)) return ADT_BUNDLE_READER_LIMITS.jsonBytes
   if (COVER_PATH.test(name)) return 10 * 1024 * 1024
+  if (AGENT_GUIDE_PATH.test(name)) return 512 * 1024
   if (includePreviewImages && PREVIEW_IMAGE_PATH.test(name)) return 10 * 1024 * 1024
   if (PAGE_HTML_PATH.test(name)) return ADT_BUNDLE_READER_LIMITS.htmlBytes
   return null
@@ -389,6 +395,16 @@ export function readAdtBundle(
     ?? runtimeConfig?.title
     ?? titleFromHtml(files[`${root}index.html`])
     ?? manifest.book.label
+  const readAgentGuide = (name: "agents.md" | "claude.md"): string | null => {
+    const matches = Object.keys(files).filter((filePath) => (
+      filePath.startsWith(root)
+      && filePath.slice(root.length).toLowerCase() === name
+    ))
+    if (matches.length > 1) {
+      throw new AdtBundleReadError(`ADT bundle contains duplicate assistant guides: ${name}`)
+    }
+    return matches[0] ? decodeUtf8(matches[0], files[matches[0]]) : null
+  }
   const tocPath = `${root}content/toc.json`
   const toc = parseJson(tocPath, requiredFile(files, tocPath), AdtBundleToc)
 
@@ -438,6 +454,10 @@ export function readAdtBundle(
       sourceTextsChanged,
       pageHtmlChanged: pageHtmlChanged.sort(),
       pageHtmlMissing: pageHtmlMissing.sort(),
+    },
+    agentGuides: {
+      agentsMd: readAgentGuide("agents.md"),
+      claudeMd: readAgentGuide("claude.md"),
     },
     ...(options.includePreviewImages ? { previewImages } : {}),
   }

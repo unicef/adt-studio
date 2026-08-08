@@ -232,7 +232,13 @@ export function createBookRoutes(
       return c.json(previewImportPart(zipBuffer))
     }
     try {
-      return c.json(previewAdtRecoveryImport(zipBuffer))
+      const guideTemplatePath = webAssetsDir
+        ? path.join(path.dirname(webAssetsDir), "AGENTS.md.liquid")
+        : path.resolve(process.cwd(), "assets", "AGENTS.md.liquid")
+      const guideTemplate = fs.existsSync(guideTemplatePath)
+        ? fs.readFileSync(guideTemplatePath, "utf8")
+        : undefined
+      return c.json(previewAdtRecoveryImport(zipBuffer, guideTemplate))
     } catch (error) {
       if (error instanceof AdtBundleNotDetectedError) {
         return c.json(previewImport(zipBuffer))

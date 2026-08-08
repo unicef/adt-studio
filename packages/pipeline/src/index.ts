@@ -325,6 +325,13 @@ export {
   convertLatexToMathml,
 } from "./packaging/web.js"
 export {
+  ADT_AGENT_GUIDE_VERSION,
+  inspectAdtAgentGuide,
+  renderAdtAgentGuide,
+  type AdtAgentGuideContext,
+  type AdtAgentGuideInspection,
+} from "./adt-agent-guide.js"
+export {
   resolveQuizPalette,
   deriveQuizPalette,
   paletteWithAccent,

@@ -45,6 +45,10 @@ import {
   AdtBundleReadError,
   readAdtBundle,
 } from "./adt-bundle-reader.js"
+import {
+  createAdtImportRepairGuide,
+  type AdtAgentGuideReview,
+} from "./adt-import-repair-guide.js"
 import { ADT_RECOVERY_MARKER } from "./adt-recovery-marker.js"
 import { ensureProjectIdentity } from "./project-identity.js"
 import {
@@ -93,6 +97,7 @@ export interface AdtRecoveryImportPreview {
   contentChanged: boolean
   activityReview: AdtImportedActivityReview
   compatibility: AdtImportCompatibility
+  agentGuide: AdtAgentGuideReview
 }
 
 export type AdtImportCompatibilityIssueCode =
@@ -326,6 +331,7 @@ export function assessAdtImportCompatibility(
 
 export function previewAdtRecoveryImport(
   zipBuffer: Buffer,
+  agentGuideTemplate?: string,
 ): AdtRecoveryImportPreview {
   const bundle = readAdtBundle(zipBuffer, { includePreviewImages: true })
   if (bundle.pages.length === 0 || Object.keys(bundle.pageHtml).length === 0) {
@@ -348,6 +354,15 @@ export function previewAdtRecoveryImport(
       .map((language) => normalizeLocale(language))
       .filter((language) => language !== sourceLanguage),
   )]
+  const activityReview = analyzeImportedActivities(bundle, { includePreviews: true })
+  const compatibility = assessAdtImportCompatibility(zipBuffer, bundle)
+  const template = agentGuideTemplate ?? (() => {
+    const defaultPath = path.resolve(process.cwd(), "assets", "AGENTS.md.liquid")
+    if (!fs.existsSync(defaultPath)) {
+      throw new AdtRecoverySessionError("ADT Studio repair guide is unavailable")
+    }
+    return fs.readFileSync(defaultPath, "utf8")
+  })()
 
   return {
     isAdtBundle: true,
@@ -370,8 +385,9 @@ export function previewAdtRecoveryImport(
       || bundle.ignoredEdits.sourceTextsChanged
       || bundle.ignoredEdits.pageHtmlChanged.length > 0
       || bundle.ignoredEdits.pageHtmlMissing.length > 0,
-    activityReview: analyzeImportedActivities(bundle, { includePreviews: true }),
-    compatibility: assessAdtImportCompatibility(zipBuffer, bundle),
+    activityReview,
+    compatibility,
+    agentGuide: createAdtImportRepairGuide(bundle, compatibility, template, activityReview),
   }
 }
 

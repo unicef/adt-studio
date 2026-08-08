@@ -55,10 +55,8 @@ import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
 import { buildTextCatalog, inspectImportedHtmlContract } from "../text-catalog.js"
-import {
-  inspectImportedActivity,
-  ACTIVITY_CLASSIFICATION_GUIDE,
-} from "../imported-activity.js"
+import { inspectImportedActivity } from "../imported-activity.js"
+import { renderAdtAgentGuide } from "../adt-agent-guide.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getRenderSectioning } from "../render-sectioning.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
@@ -1027,23 +1025,25 @@ export async function packageAdtWeb(
   // Render AGENTS.md from Liquid template with book-specific data
   const agentsMdTemplate = path.join(path.dirname(webAssetsDir), "AGENTS.md.liquid")
   if (fs.existsSync(agentsMdTemplate)) {
-    const agentsMd = await renderAgentsMd(agentsMdTemplate, {
-      title,
-      label,
-      summary: bookSummary,
-      language,
-      outputLanguages,
-      pageList,
-      catalog,
-      glossary,
-      quizData,
-      imageMap,
-      configJson,
-      hasGlossary,
-      hasQuiz,
-      editingContractVersion: ADT_EDITING_CONTRACT_VERSION,
-      activityClassificationGuide: [...ACTIVITY_CLASSIFICATION_GUIDE],
-    })
+    const agentsMd = renderAdtAgentGuide(
+      fs.readFileSync(agentsMdTemplate, "utf8"),
+      {
+        title,
+        label,
+        summary: bookSummary,
+        language,
+        outputLanguages,
+        pageList,
+        catalog,
+        glossary,
+        quizData,
+        imageMap,
+        configJson,
+        hasGlossary,
+        hasQuiz,
+        editingContractVersion: ADT_EDITING_CONTRACT_VERSION,
+      },
+    )
     fs.writeFileSync(path.join(adtDir, "AGENTS.md"), agentsMd)
     fs.writeFileSync(path.join(adtDir, "CLAUDE.md"), agentsMd)
   }
@@ -2362,120 +2362,6 @@ async function buildJsBundle(
   if (fs.existsSync(preBuiltActivities)) {
     fs.copyFileSync(preBuiltActivities, path.join(outputAssetsDir, "activities.bundle.local.js"))
   }
-}
-
-// ---------------------------------------------------------------------------
-// AGENTS.md template rendering
-// ---------------------------------------------------------------------------
-
-interface AgentsMdContext {
-  title: string
-  label: string
-  summary: string | undefined
-  language: string
-  outputLanguages: string[]
-  pageList: PageEntry[]
-  catalog: TextCatalogOutput | undefined
-  glossary: GlossaryOutput | undefined
-  quizData: QuizGenerationOutput | undefined
-  imageMap: Map<string, string>
-  configJson: unknown
-  hasGlossary: boolean
-  hasQuiz: boolean
-  editingContractVersion: number
-  activityClassificationGuide: Array<{ type: string; description: string }>
-}
-
-async function renderAgentsMd(
-  templatePath: string,
-  ctx: AgentsMdContext,
-): Promise<string> {
-  const { Liquid } = await import("liquidjs")
-  const liquid = new Liquid({ strictVariables: false })
-  const template = fs.readFileSync(templatePath, "utf-8")
-
-  const entries = ctx.catalog?.entries ?? []
-
-  // Find sample entries for examples
-  const sampleBodyText = entries.find((e) => /_gp\d+_tx\d+$/.test(e.id)) ?? { id: "pg001_gp001_tx001", text: "" }
-  const sampleImageText = entries.find((e) => /_im\d+$/.test(e.id)) ?? { id: "pg001_im001", text: "" }
-
-  // Derive the page ID from the first content page's section_id (e.g. "pg002_sec001" → "pg002_sec001")
-  const samplePageId = ctx.pageList.find((p) => p.section_id.startsWith("pg") && p.page_number !== undefined)?.section_id
-    ?? ctx.pageList[0]?.section_id ?? "pg001_sec001"
-
-  // Glossary sample
-  let sampleGlossary: Record<string, unknown> | undefined
-  if (ctx.glossary?.items?.length) {
-    const item = ctx.glossary.items[0]
-    const glId = getGlossaryItemTextId(item, 0)
-    sampleGlossary = {
-      id: glId,
-      defId: `${glId}_def`,
-      word: item.word,
-      definition: item.definition,
-      variations: item.variations,
-      variationsJson: JSON.stringify(item.variations),
-      emoji: item.emojis.join(""),
-    }
-  }
-
-  // Quiz sample
-  let sampleQuiz: Record<string, unknown> | undefined
-  if (ctx.quizData?.quizzes?.length) {
-    const quiz = ctx.quizData.quizzes[0]
-    const quizId = "qz001"
-    const correctAnswers: Record<string, boolean> = {}
-    const explanations: Record<string, string> = {}
-    const options = quiz.options.map((opt, i) => {
-      const optId = `${quizId}_o${i}`
-      const expId = `${optId}_exp`
-      correctAnswers[optId] = i === quiz.answerIndex
-      explanations[optId] = expId
-      return {
-        id: optId,
-        text: opt.text,
-        expId,
-        expText: opt.explanation,
-      }
-    })
-    sampleQuiz = {
-      id: quizId,
-      question: quiz.question,
-      options,
-      correctAnswersJson: JSON.stringify(correctAnswers),
-      explanationsJson: JSON.stringify(explanations),
-    }
-  }
-
-  // Page images — collect all pg{NNN}_page.* filenames
-  const pageImages: string[] = []
-  for (const [id, filename] of ctx.imageMap) {
-    if (id.endsWith("_page")) {
-      pageImages.push(filename)
-    }
-  }
-  pageImages.sort()
-
-  return liquid.parseAndRender(template, {
-    title: ctx.title,
-    label: ctx.label,
-    summary: ctx.summary,
-    language: ctx.language,
-    outputLanguages: ctx.outputLanguages,
-    totalPages: ctx.pageList.length,
-    firstPages: ctx.pageList.slice(0, 5),
-    samplePageId,
-    sampleBodyText,
-    sampleImageText,
-    sampleGlossary,
-    sampleQuiz,
-    hasGlossary: ctx.hasGlossary,
-    hasQuiz: ctx.hasQuiz,
-    configJsonFormatted: JSON.stringify(ctx.configJson, null, 2),
-    pageImages,
-    editingContractVersion: ctx.editingContractVersion,
-  })
 }
 
 // ---------------------------------------------------------------------------

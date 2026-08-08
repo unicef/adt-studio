@@ -1380,6 +1380,8 @@ function createExportedAdtZip(options: {
   sectionType?: string
   activityInventory?: Array<{ sectionId: string; href: string; type: string }>
   extraSectionHtml?: string
+  agentGuideVersion?: number
+  omitClaudeGuide?: boolean
 } = {}): Buffer {
   const encode = (value: unknown) => new TextEncoder().encode(JSON.stringify(value))
   const fingerprint = "0".repeat(64)
@@ -1426,6 +1428,16 @@ function createExportedAdtZip(options: {
       features: { readAloud: true, ...options.runtimeFeatures },
     }),
     "assets/scorm.js": new TextEncoder().encode("void window.parent.API"),
+    ...(options.agentGuideVersion !== undefined ? {
+      "AGENTS.md": new TextEncoder().encode(
+        `<!-- adt-studio-agent-guide: ${options.agentGuideVersion} -->\n# Existing guide`,
+      ),
+      ...(!options.omitClaudeGuide ? {
+        "CLAUDE.md": new TextEncoder().encode(
+          `<!-- adt-studio-agent-guide: ${options.agentGuideVersion} -->\n# Existing guide`,
+        ),
+      } : {}),
+    } : {}),
     "content/pages.json": encode([
       { section_id: sectionId, href: "index.html", page_number: 1 },
     ]),
@@ -1540,7 +1552,8 @@ describe("POST /books/preview-import", () => {
 
     const res = await app.request("/books/preview-import", { method: "POST", body: formData })
     expect(res.status).toBe(200)
-    expect(await res.json()).toMatchObject({
+    const body = await res.json()
+    expect(body).toMatchObject({
       isAdtBundle: true,
       compatibility: {
         supported: false,
@@ -1548,6 +1561,76 @@ describe("POST /books/preview-import", () => {
           expect.objectContaining({ code: "missing-content-root", pageHref: "index.html" }),
           expect.objectContaining({ code: "missing-section", pageHref: "index.html" }),
         ]),
+      },
+      agentGuide: {
+        status: "missing",
+        currentVersion: 1,
+        files: {
+          agentsMd: { present: false, current: false },
+          claudeMd: { present: false, current: false },
+        },
+      },
+    })
+    expect(body.agentGuide.currentGuide).toContain("<!-- adt-studio-agent-guide: 1 -->")
+    expect(body.agentGuide.repairPrompt).toContain('"code": "missing-content-root"')
+    expect(body.agentGuide.repairPrompt).toContain("<current_adt_agent_guide>")
+  })
+
+  it("recognizes current and partially installed assistant guides", async () => {
+    const preview = async (agentGuideVersion: number, omitClaudeGuide: boolean) => {
+      const app = createBookRoutes(tmpDir)
+      const formData = new FormData()
+      formData.append(
+        "zip",
+        new Blob([createExportedAdtZip({
+          unsupportedStructure: true,
+          agentGuideVersion,
+          omitClaudeGuide,
+        })], { type: "application/zip" }),
+        "guided-export.zip",
+      )
+      const response = await app.request("/books/preview-import", { method: "POST", body: formData })
+      expect(response.status).toBe(200)
+      return response.json()
+    }
+
+    const current = await preview(1, false)
+    expect(current.agentGuide).toMatchObject({
+      status: "current",
+      files: {
+        agentsMd: { version: 1, current: true },
+        claudeMd: { version: 1, current: true },
+      },
+    })
+    expect(current.agentGuide.repairPrompt).not.toContain(
+      "<current_adt_agent_guide>",
+    )
+
+    const partial = await preview(1, true)
+    expect(partial.agentGuide).toMatchObject({
+      status: "partial",
+      files: {
+        agentsMd: { version: 1, current: true },
+        claudeMd: { present: false, current: false },
+      },
+    })
+
+    const outdated = await preview(0, false)
+    expect(outdated.agentGuide).toMatchObject({
+      status: "outdated",
+      files: {
+        agentsMd: { version: 0, current: false },
+        claudeMd: { version: 0, current: false },
+      },
+    })
+
+    const newer = await preview(2, false)
+    expect(newer.agentGuide).toMatchObject({
+      status: "current",
+      currentVersion: 1,
+      files: {
+        agentsMd: { version: 2, current: true },
+        claudeMd: { version: 2, current: true },
       },
     })
   })
