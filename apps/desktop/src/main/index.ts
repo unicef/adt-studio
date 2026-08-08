@@ -5,6 +5,7 @@ import { join } from "node:path";
 
 import { createMainWindow } from "./windows/main";
 import { createSplashWindow } from "./windows/splash";
+import { createOnboardingWindow } from "./windows/onboarding";
 
 import {
   startApiServer,
@@ -18,6 +19,8 @@ import { registerAppInfoIpc } from "./ipc/app-info";
 import { registerTitleBarIpc } from "./ipc/title-bar";
 import { registerWindowCloseIpc } from "./ipc/window-close";
 import { registerFileDialogIpc } from "./ipc/file-dialog";
+import { registerOnboardingIpc } from "./ipc/onboarding";
+import { hasCompletedOnboarding } from "./services/onboarding-state";
 import { registerSplashIpc } from "./ipc/splash";
 import { registerUpdatesIpc } from "./ipc/updates";
 import { handleScreenshotMessages } from "./ipc/api-bridge/screenshot";
@@ -77,7 +80,7 @@ app.whenReady().then(async () => {
   apiProcess.on("message", handleAccessibilityAuditMessages(apiProcess));
 
   app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
+    if (BrowserWindow.getAllWindows().length === 0) openMainWindow();
   });
 
   ipcMain.handle("api-debug-mode", () => isApiDebugMode);
@@ -93,15 +96,45 @@ app.whenReady().then(async () => {
     });
   }
 
-  const mainWindow = createMainWindow();
+  let mainWindow: BrowserWindow | null = null;
 
-  mainWindow.once("ready-to-show", () => {
-    if (!splashWindow.isDestroyed()) {
-      splashWindow.destroy();
+  const openMainWindow = (
+    startPath = "/",
+    closeAfter?: BrowserWindow | null,
+  ): BrowserWindow => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.focus();
+      if (closeAfter && !closeAfter.isDestroyed()) closeAfter.destroy();
+      return mainWindow;
     }
 
-    checkForUpdates().catch(() => {});
+    const win = createMainWindow(startPath);
+    mainWindow = win;
+    win.on("closed", () => {
+      if (mainWindow === win) mainWindow = null;
+    });
+
+    win.once("ready-to-show", () => {
+      if (!splashWindow.isDestroyed()) splashWindow.destroy();
+      if (closeAfter && !closeAfter.isDestroyed()) closeAfter.destroy();
+      checkForUpdates().catch(() => {});
+    });
+
+    return win;
+  };
+
+  registerOnboardingIpc(({ startPath, window }) => {
+    openMainWindow(startPath, window);
   });
+
+  if (hasCompletedOnboarding()) {
+    openMainWindow();
+  } else {
+    const onboardingWindow = createOnboardingWindow();
+    onboardingWindow.once("ready-to-show", () => {
+      if (!splashWindow.isDestroyed()) splashWindow.destroy();
+    });
+  }
 });
 
 app.on("will-quit", () => {

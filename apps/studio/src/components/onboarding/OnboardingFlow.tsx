@@ -5,33 +5,23 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { OnboardingLayout, OnboardingStepContainer } from "./OnboardingLayout";
 import { OnboardingProgress } from "./OnboardingProgress";
 import { ONBOARDING_STEPS } from "./steps";
-import { markOnboardingCompleted } from "@/hooks/use-onboarding";
+import {
+  finishOnboardingViaBridge,
+  markOnboardingCompleted,
+} from "@/hooks/use-onboarding";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { usePlatform } from "@/hooks/use-platform";
-import { useWindowControls } from "@/hooks/use-window-controls";
-import {
-  LinuxControls,
-  MacOSTrafficLightSpacer,
-  WindowsControls,
-} from "@/components/title-bar";
 import { DRAG_REGION, NO_DRAG_REGION } from "@/constants";
 
 export function OnboardingFlow() {
   const navigate = useNavigate();
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
-  const platform = usePlatform();
-  const { available: hasWindowControls } = useWindowControls();
-  const showMacOSSpacer = hasWindowControls && platform === "macos";
-  const showWindowsControls = hasWindowControls && platform === "windows";
-  const showLinuxControls = hasWindowControls && platform === "linux";
 
   const step = ONBOARDING_STEPS[index];
   const isFirst = index === 0;
   const isLast = index === ONBOARDING_STEPS.length - 1;
-  const lastIndex = ONBOARDING_STEPS.length - 1;
 
   const onNext = useCallback(() => {
     setDirection("forward");
@@ -44,19 +34,16 @@ export function OnboardingFlow() {
   }, []);
 
   const onFinish = useCallback(() => {
+    if (finishOnboardingViaBridge("/books/new")) return;
     markOnboardingCompleted();
     navigate({ to: "/books/new" });
   }, [navigate]);
 
   const onSkip = useCallback(() => {
+    if (finishOnboardingViaBridge("/")) return;
     markOnboardingCompleted();
     navigate({ to: "/" });
   }, [navigate]);
-
-  const skipIntro = useCallback(() => {
-    setDirection("forward");
-    setIndex(lastIndex);
-  }, [lastIndex]);
 
   const StepComponent = step.component;
   const animationClass =
@@ -67,14 +54,9 @@ export function OnboardingFlow() {
   return (
     <OnboardingLayout>
       <div
-        className={cn(
-          "absolute inset-x-0 top-0 z-20 flex min-h-11 items-center px-6 animate-onboarding-fade-in [animation-delay:200ms]",
-          animationClass,
-          showWindowsControls && "pr-0 pl-2",
-        )}
+        className="relative z-20 flex min-h-10 items-center px-4 pt-2 animate-onboarding-fade-in [animation-delay:200ms]"
         style={DRAG_REGION}
       >
-        {showMacOSSpacer && <MacOSTrafficLightSpacer />}
         <div style={NO_DRAG_REGION}>
           <LocaleSwitcher variant="standalone" />
         </div>
@@ -82,24 +64,16 @@ export function OnboardingFlow() {
         {!isLast && (
           <button
             type="button"
-            onClick={skipIntro}
+            onClick={onSkip}
             style={NO_DRAG_REGION}
-            className="rounded-lg border border-border bg-card/80 px-4 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur transition-colors hover:text-foreground cursor-pointer"
+            className="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-200 cursor-pointer"
           >
-            <Trans>Skip intro</Trans>
+            <Trans>Skip</Trans>
           </button>
-        )}
-        {showLinuxControls && <LinuxControls className="self-stretch ml-3" />}
-        {showWindowsControls && (
-          <WindowsControls className="self-stretch ml-2 h-auto" />
         )}
       </div>
 
-      <OnboardingStepContainer
-        variant={step.layout}
-        animationClass={animationClass}
-        stepKey={step.id}
-      >
+      <OnboardingStepContainer animationClass={animationClass} stepKey={step.id}>
         <StepComponent
           onNext={onNext}
           onBack={onBack}
@@ -110,12 +84,15 @@ export function OnboardingFlow() {
         />
       </OnboardingStepContainer>
 
-      <div className="absolute inset-x-0 min-h-[69px] bottom-0 flex items-center justify-between border-t border-border/50 px-8 py-4 animate-onboarding-fade-in [animation-delay:400ms]">
-        <div className="min-w-[230px]">
+      <div className="relative z-20 flex min-h-[56px] items-center justify-between border-t border-white/[0.06] px-5 py-3 animate-onboarding-fade-in [animation-delay:400ms]">
+        <div className="min-w-[120px]">
           <Button
             variant="ghost"
             size="sm"
-            className={cn("rounded-lg", isFirst && "hidden")}
+            className={cn(
+              "rounded-lg text-zinc-400 hover:bg-white/5 hover:text-zinc-100",
+              isFirst && "invisible",
+            )}
             onClick={onBack}
             disabled={isFirst}
           >
@@ -126,10 +103,13 @@ export function OnboardingFlow() {
 
         <OnboardingProgress total={ONBOARDING_STEPS.length} current={index} />
 
-        <div className="flex items-center justify-end gap-2 min-w-[230px]">
+        <div className="flex min-w-[120px] items-center justify-end gap-2">
           <Button
             size="sm"
-            className={cn("rounded-lg", (isFirst || isLast) && "hidden")}
+            className={cn(
+              "rounded-lg bg-white text-zinc-900 hover:bg-zinc-200",
+              (isFirst || isLast) && "invisible",
+            )}
             onClick={onNext}
           >
             <Trans>Continue</Trans>

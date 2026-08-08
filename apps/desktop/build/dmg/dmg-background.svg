@@ -1,0 +1,32 @@
+<svg width="560" height="560" viewBox="0 0 560 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e9f0fb"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.34" r="0.5">
+      <stop offset="0" stop-color="#2b7fff" stop-opacity="0.30"/>
+      <stop offset="0.55" stop-color="#5b9bff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#2b7fff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="arrow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9db4d6"/>
+      <stop offset="1" stop-color="#2b7fff"/>
+    </linearGradient>
+    <pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse">
+      <circle cx="1.3" cy="1.3" r="1.3" fill="#2b7fff" fill-opacity="0.06"/>
+    </pattern>
+  </defs>
+
+  <rect width="560" height="560" fill="url(#bg)"/>
+  <rect width="560" height="560" fill="url(#dots)"/>
+  <ellipse cx="280" cy="190" rx="260" ry="220" fill="url(#glow)"/>
+
+  <!-- guiding arrow pointing down from the app toward the Applications folder -->
+  <g transform="translate(280 264)" opacity="0.7">
+    <path d="M0 0 V64" stroke="#4f8ae0" stroke-width="4" stroke-linecap="round" stroke-dasharray="4 13"/>
+    <path d="M-9 62 L0 80 L9 62" stroke="#2b7fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <text x="280" y="512" text-anchor="middle" font-family="-apple-system, SF Pro Display, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#5a6b85" letter-spacing="0.2">Drag ADT Studio into Applications to install</text>
+</svg>

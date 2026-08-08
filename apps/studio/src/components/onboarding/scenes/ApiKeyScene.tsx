@@ -103,13 +103,13 @@ export function ApiKeyStep(_props: OnboardingStepProps) {
     { key: "azure", label: t`Azure`, isSaved: azureKey.length > 0 },
   ];
 
-  const passwordInputClass = "h-11 rounded-xl pr-10";
+  const passwordInputClass = "h-10 rounded-lg pr-10";
   const eyeToggle = (
     <Button
       type="button"
       variant="ghost"
       size="icon"
-      className="absolute right-0 top-0 h-11 w-11"
+      className="absolute right-0 top-0 h-10 w-10"
       onClick={() => setShowKey((v) => !v)}
       tabIndex={-1}
     >
@@ -118,17 +118,17 @@ export function ApiKeyStep(_props: OnboardingStepProps) {
   );
 
   return (
-    <div className="relative flex h-full w-full items-center justify-center p-8">
-      <div className="flex w-full max-w-xl flex-col items-center gap-8 text-center">
-        <div className="animate-onboarding-icon-float flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-sm">
-          <KeyRound className="h-8 w-8" />
+    <div className="relative flex h-full w-full items-center justify-center px-10 py-6">
+      <div className="flex w-full max-w-md flex-col items-center gap-5 text-center">
+        <div className="animate-onboarding-icon-float flex h-12 w-12 items-center justify-center rounded-xl bg-primary/15 text-primary shadow-sm">
+          <KeyRound className="h-6 w-6" />
         </div>
 
-        <div className="space-y-3 flex flex-col items-center">
-          <h2 className="animate-onboarding-fade-up text-4xl font-semibold tracking-tight text-foreground md:text-5xl [animation-delay:100ms]">
+        <div className="space-y-2 flex flex-col items-center">
+          <h2 className="animate-onboarding-fade-up text-2xl font-semibold tracking-tight text-foreground [animation-delay:100ms]">
             <Trans>Connect an AI provider</Trans>
           </h2>
-          <p className="animate-onboarding-fade-up max-w-lg text-base leading-relaxed text-muted-foreground [animation-delay:220ms]">
+          <p className="animate-onboarding-fade-up max-w-md text-sm leading-relaxed text-muted-foreground [animation-delay:220ms]">
             <Trans>
               ADT Studio uses your own API keys to run the pipeline. Keys are
               stored locally on this device and never sent anywhere else.
@@ -249,7 +249,7 @@ export function ApiKeyStep(_props: OnboardingStepProps) {
                     placeholder={t`e.g. http://localhost:11434/v1`}
                     value={customBaseUrl}
                     onChange={(e) => setCustomBaseUrl(e.target.value)}
-                    className="h-11 rounded-xl"
+                    className="h-10 rounded-lg"
                   />
                 </div>
                 <div className="space-y-2">
@@ -309,7 +309,7 @@ export function ApiKeyStep(_props: OnboardingStepProps) {
                     placeholder={t`e.g. eastus, westeurope`}
                     value={azureRegion}
                     onChange={(e) => setAzureRegion(e.target.value)}
-                    className="h-11 rounded-xl"
+                    className="h-10 rounded-lg"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">

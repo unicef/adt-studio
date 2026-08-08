@@ -22,7 +22,7 @@ export function FinaleScene({ onFinish, onSkip }: OnboardingStepProps) {
   const skipDelay = ctaDelay + 200;
 
   return (
-    <div className="relative flex h-full w-full flex-col items-center justify-center gap-12 px-8 text-center">
+    <div className="relative flex h-full w-full flex-col items-center justify-center gap-8 px-10 text-center">
       <span
         className={cn(
           "text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground transition-opacity duration-500",
@@ -32,10 +32,10 @@ export function FinaleScene({ onFinish, onSkip }: OnboardingStepProps) {
         <Trans>Mission 01</Trans>
       </span>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         <h2
           className={cn(
-            "max-w-3xl text-5xl font-semibold leading-[1.05] tracking-tight text-foreground transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)] md:text-6xl text-balance",
+            "max-w-2xl text-3xl font-semibold leading-[1.1] tracking-tight text-foreground transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)] text-balance",
             mounted ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
           )}
           style={{ transitionDelay: "120ms" }}
@@ -47,7 +47,7 @@ export function FinaleScene({ onFinish, onSkip }: OnboardingStepProps) {
         </h2>
         <p
           className={cn(
-            "mx-auto max-w-lg text-base leading-relaxed text-muted-foreground transition-opacity duration-[600ms] md:text-lg",
+            "mx-auto max-w-md text-sm leading-relaxed text-muted-foreground transition-opacity duration-[600ms]",
             mounted ? "opacity-100" : "opacity-0",
           )}
           style={{ transitionDelay: "300ms" }}
