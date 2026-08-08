@@ -7,6 +7,7 @@ export interface StepFrame {
   plugins: DockItem[]
   onBack: () => void
   onOpenPlugin: (slug: string) => void
+  onOpenSettings: (slug: DockSlug) => void
   extractDone: boolean
   hasSections: boolean
   sectionCount: number

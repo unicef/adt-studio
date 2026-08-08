@@ -21,6 +21,7 @@ export interface PluginWorkspaceProps {
   plugins: DockItem[]
   onBack: () => void
   onOpenPlugin: (slug: string) => void
+  onOpenSettings: () => void
 }
 
 /** Full-screen frame for a plugin's long editing session (design 4a). */
@@ -34,6 +35,7 @@ export function PluginWorkspace({
   plugins,
   onBack,
   onOpenPlugin,
+  onOpenSettings,
 }: PluginWorkspaceProps) {
   const { t } = useLingui()
   const name = getStageLabelI18n(plugin.slug)
@@ -80,6 +82,7 @@ export function PluginWorkspace({
           </button>
           <button
             type="button"
+            onClick={onOpenSettings}
             aria-label={t`${name} settings`}
             title={t`${name} settings`}
             className="grid size-7 place-items-center rounded-lg transition-colors hover:bg-white/16"
@@ -114,14 +117,15 @@ export function PluginWorkspace({
         </aside>
       </div>
 
-      <div className="flex h-[76px] shrink-0 items-center justify-center border-t bg-card">
-        <PluginDock
-          foundations={foundations}
-          plugins={plugins}
-          activeSlug={plugin.slug}
-          onOpenPlugin={onOpenPlugin}
-        />
-      </div>
+      <PluginDock
+        foundations={foundations}
+        plugins={plugins}
+        activeSlug={plugin.slug}
+        onOpenPlugin={onOpenPlugin}
+      />
+      {/*<div className="flex h-[76px] shrink-0 items-center justify-center border-t bg-card">
+
+      </div>*/}
     </div>
   )
 }

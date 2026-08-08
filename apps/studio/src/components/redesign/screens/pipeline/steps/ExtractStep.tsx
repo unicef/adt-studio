@@ -7,7 +7,8 @@ import { useSaveImageClassification } from "@/hooks/use-page-mutations"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
 import { cn } from "@/lib/utils"
 import { tint } from "../plugins"
-import { StepEmpty, StepLoading, StepShell } from "./StepShell"
+import { useRunActivity, useStageActivity } from "../useRunActivity"
+import { StepEmpty, StepLoading, StepRunning, StepShell } from "./StepShell"
 import { RowAction, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./ui"
 import type { StepProps } from "./types"
 import type { PipelinePage } from "../usePipelineState"
@@ -132,6 +133,8 @@ export function ExtractStep(props: StepProps) {
   const { label, plugin, pages } = props
   const { t } = useLingui()
   const pdf = useSourcePdfInfo(label)
+  const run = useRunActivity()
+  const extract = useStageActivity("extract")
 
   const details = useQueries({
     queries: pages.map((page) => ({
@@ -147,6 +150,17 @@ export function ExtractStep(props: StepProps) {
     [pages, details],
   )
 
+  if (extract.isActive && pages.length === 0) {
+    return (
+      <StepRunning
+        {...props}
+        stage={extract}
+        isCancelling={run.isCancelling}
+        onCancel={run.cancelRun}
+        outcome={t`Each page shows up here — text, fonts and images — as it is extracted.`}
+      />
+    )
+  }
   if (pages.length === 0) {
     return (
       <StepEmpty
@@ -161,7 +175,7 @@ export function ExtractStep(props: StepProps) {
       />
     )
   }
-  if (details.some((d) => d.isLoading)) return <StepLoading {...props} />
+  if (details.every((d) => d.isLoading)) return <StepLoading {...props} />
 
   const withWarnings = entries.filter((e) => e.detail?.extractionWarning).length
   const shown = activePageId ? entries.filter((e) => e.page.pageId === activePageId) : entries
@@ -171,6 +185,7 @@ export function ExtractStep(props: StepProps) {
     <StepShell
       {...props}
       chips={[
+        ...(extract.isActive ? [extract.runningLabel] : []),
         t`${pages.length} pages`,
         withWarnings > 0 ? t`${withWarnings} recovered from images` : t`Text layer on every page`,
       ]}

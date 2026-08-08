@@ -312,6 +312,10 @@ msgstr "{0} pending"
 msgid "{0} pending save"
 msgstr "{0} pending save"
 
+#. placeholder {0}: run.badgeCount
+msgid "{0} pipeline steps running"
+msgstr "{0} pipeline steps running"
+
 #. placeholder {0}: String(displayQuizzes.length)
 #. placeholder {0}: quizzes.length
 msgid "{0} questions"
@@ -501,6 +505,9 @@ msgstr "{mins}m ago"
 msgid "{missing} alt-text pending"
 msgstr "{missing} alt-text pending"
 
+#~ msgid "{missing} pages pending"
+#~ msgstr "{missing} pages pending"
+
 msgid "{missing} without a description"
 msgstr "{missing} without a description"
 
@@ -539,6 +546,12 @@ msgstr "{pruned} dropped"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
+
+#~ msgid "{rendered} sections"
+#~ msgstr "{rendered} sections"
+
+#~ msgid "{rendered} sections rendered"
+#~ msgstr "{rendered} sections rendered"
 
 #. placeholder {0}: reviewCount === 1 ? "manual review item" : "manual review items"
 msgid "{reviewCount} {0}"
@@ -781,6 +794,9 @@ msgstr "A question worth asking"
 
 msgid "A quiz already sits here — add another after it or replace it"
 msgstr "A quiz already sits here — add another after it or replace it"
+
+msgid "A run is already in progress."
+msgstr "A run is already in progress."
 
 msgid "A scenic view at dusk."
 msgstr "A scenic view at dusk."
@@ -1092,6 +1108,9 @@ msgstr "Add an API key in Book settings to generate Easy Read content."
 msgid "Add an API key in Book settings to generate quizzes."
 msgstr "Add an API key in Book settings to generate quizzes."
 
+msgid "Add an API key in Book settings to run {name}."
+msgstr "Add an API key in Book settings to run {name}."
+
 msgid "Add an API key in Book settings to run captions."
 msgstr "Add an API key in Book settings to run captions."
 
@@ -1109,6 +1128,9 @@ msgstr "Add an API key in Book settings to run storyboard."
 
 msgid "Add an API key in Book settings to run the glossary."
 msgstr "Add an API key in Book settings to run the glossary."
+
+msgid "Add an API key in Book settings to run the storyboard."
+msgstr "Add an API key in Book settings to run the storyboard."
 
 msgid "Add an API key in Book settings to run TOC generation."
 msgstr "Add an API key in Book settings to run TOC generation."
@@ -1298,6 +1320,9 @@ msgstr "Adds glossary pages to the book. Terms link to their entry and each entr
 
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
+
+#~ msgid "Adjust the rendering settings"
+#~ msgstr "Adjust the rendering settings"
 
 msgid "ADT"
 msgstr "ADT"
@@ -1630,6 +1655,9 @@ msgstr "API Key (optional)"
 
 msgid "API key required to re-render"
 msgstr "API key required to re-render"
+
+msgid "API key set in Book settings"
+msgstr "API key set in Book settings"
 
 msgid "API Key Settings"
 msgstr "API Key Settings"
@@ -3593,8 +3621,14 @@ msgstr "Each iteration is one LLM call. Lower values are faster and cheaper; hig
 msgid "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
 msgstr "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
 
+msgid "Each page shows up here — text, fonts and images — as it is extracted."
+msgstr "Each page shows up here — text, fonts and images — as it is extracted."
+
 msgid "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
 msgstr "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
+
+#~ msgid "Each preview is the section as the reader will see it."
+#~ msgstr "Each preview is the section as the reader will see it."
 
 msgid "Each prompt is applied to whichever provider its language is routed to — for example, Albanian (sq) routed to Gemini receives this as its accent steering."
 msgstr "Each prompt is applied to whichever provider its language is routed to — for example, Albanian (sq) routed to Gemini receives this as its accent steering."
@@ -3937,6 +3971,9 @@ msgstr "Every page in this book has all sections pruned. There is no content ava
 msgid "Every page is pruned"
 msgstr "Every page is pruned"
 
+#~ msgid "Every page rendered"
+#~ msgstr "Every page rendered"
+
 msgid "Every reader opens the same book, with the features they need on tap."
 msgstr "Every reader opens the same book, with the features they need on tap."
 
@@ -3954,6 +3991,9 @@ msgstr "Every translatable string lands in one catalog you can review language b
 
 msgid "Everything is editable and saved as a new version — nothing is overwritten."
 msgstr "Everything is editable and saved as a new version — nothing is overwritten."
+
+msgid "Everything is ready to build the storyboard"
+msgstr "Everything is ready to build the storyboard"
 
 msgid "Example Books"
 msgstr "Example Books"
@@ -4077,11 +4117,17 @@ msgstr "Extracted text"
 msgid "Extracted Text"
 msgstr "Extracted Text"
 
+msgid "Extracting the PDF: {pageCount} pages so far"
+msgstr "Extracting the PDF: {pageCount} pages so far"
+
 msgid "Extracting..."
 msgstr "Extracting..."
 
 msgid "Extraction"
 msgstr "Extraction"
+
+msgid "Extraction and sectioning are done — {sectionCount} sections across {pageCount} pages. Rendering turns them into the pages the reader will actually see."
+msgstr "Extraction and sectioning are done — {sectionCount} sections across {pageCount} pages. Rendering turns them into the pages the reader will actually see."
 
 #. placeholder {0}: state.pages.length
 msgid "Extraction complete · {0} pages"
@@ -4517,6 +4563,9 @@ msgstr "Generate suggested replacement translations for flagged entries"
 
 msgid "Generate the narration"
 msgstr "Generate the narration"
+
+#~ msgid "Generate the sections first — the storyboard renders from them."
+#~ msgstr "Generate the sections first — the storyboard renders from them."
 
 msgid "Generate with AI"
 msgstr "Generate with AI"
@@ -5128,8 +5177,8 @@ msgstr "Input"
 msgid "Input Tokens"
 msgstr "Input Tokens"
 
-msgid "Insert section"
-msgstr "Insert section"
+#~ msgid "Insert section"
+#~ msgstr "Insert section"
 
 msgid "Insert the quiz here"
 msgstr "Insert the quiz here"
@@ -6758,8 +6807,14 @@ msgstr "Nothing here yet. Pages with results show up in this list after the scan
 msgid "Nothing important is missing or added"
 msgstr "Nothing important is missing or added"
 
+msgid "Nothing is running right now. Stages you start show their steps here."
+msgstr "Nothing is running right now. Stages you start show their steps here."
+
 msgid "Nothing pending review"
 msgstr "Nothing pending review"
+
+#~ msgid "Nothing rendered yet"
+#~ msgstr "Nothing rendered yet"
 
 msgid "Nothing sectioned yet"
 msgstr "Nothing sectioned yet"
@@ -7251,6 +7306,9 @@ msgstr "Page 10"
 msgid "page 10 · 7 nodes"
 msgstr "page 10 · 7 nodes"
 
+#~ msgid "page 10 · desktop · tablet · mobile"
+#~ msgstr "page 10 · desktop · tablet · mobile"
+
 msgid "Page 10 · narration"
 msgstr "Page 10 · narration"
 
@@ -7339,6 +7397,13 @@ msgstr "Pages {0}–{1} of {2}"
 
 msgid "pages {shownStr}"
 msgstr "pages {shownStr}"
+
+msgid "Pages and images show up in the left rail as each page is extracted."
+msgstr "Pages and images show up in the left rail as each page is extracted."
+
+#. placeholder {0}: pages.length
+msgid "Pages extracted — {0} pages"
+msgstr "Pages extracted — {0} pages"
 
 msgid "Pages in the selected range"
 msgstr "Pages in the selected range"
@@ -7540,6 +7605,9 @@ msgstr "Pinned"
 
 msgid "Pinned to one element — press Esc to release it and go back to previewing on hover."
 msgstr "Pinned to one element — press Esc to release it and go back to previewing on hover."
+
+msgid "Pipeline"
+msgstr "Pipeline"
 
 msgid "Pipeline · extract"
 msgstr "Pipeline · extract"
@@ -7892,6 +7960,9 @@ msgstr "queued"
 msgid "Queued"
 msgstr "Queued"
 
+msgid "Queued — it starts as soon as the running stage finishes"
+msgstr "Queued — it starts as soon as the running stage finishes"
+
 msgid "Quick fill"
 msgstr "Quick fill"
 
@@ -7987,6 +8058,9 @@ msgstr "Re-render is disabled for custom activities — it would discard the int
 
 msgid "Re-render section"
 msgstr "Re-render section"
+
+#~ msgid "Re-render storyboard"
+#~ msgstr "Re-render storyboard"
 
 msgid "Re-render this section"
 msgstr "Re-render this section"
@@ -8278,8 +8352,23 @@ msgstr "Render Reasoning"
 msgid "Render Strategy"
 msgstr "Render Strategy"
 
+#~ msgid "Render the storyboard"
+#~ msgstr "Render the storyboard"
+
+#~ msgid "Rendered pages"
+#~ msgstr "Rendered pages"
+
+msgid "Rendered pages replace this panel as each page is built."
+msgstr "Rendered pages replace this panel as each page is built."
+
+#~ msgid "Rendered sections show up here as each page is built."
+#~ msgstr "Rendered sections show up here as each page is built."
+
 msgid "Rendering Prompt"
 msgstr "Rendering Prompt"
+
+#~ msgid "Rendering reads the sections you kept — drop a section and it disappears from the book."
+#~ msgstr "Rendering reads the sections you kept — drop a section and it disappears from the book."
 
 msgid "Rendering this section..."
 msgstr "Rendering this section..."
@@ -8643,6 +8732,9 @@ msgstr "Run the pipeline"
 msgid "Run the pipeline to extract content"
 msgstr "Run the pipeline to extract content"
 
+msgid "Run the storyboard"
+msgstr "Run the storyboard"
+
 msgid "Run TOC"
 msgstr "Run TOC"
 
@@ -8963,6 +9055,9 @@ msgstr "section 2 · page 10"
 msgid "Section 3 · Overview"
 msgstr "Section 3 · Overview"
 
+#~ msgid "Section 3 · text_and_single_image"
+#~ msgstr "Section 3 · text_and_single_image"
+
 msgid "Section 3.2"
 msgstr "Section 3.2"
 
@@ -8989,6 +9084,10 @@ msgstr "Section Types"
 
 msgid "Sectioning"
 msgstr "Sectioning"
+
+#. placeholder {0}: state.sectionCount
+msgid "Sectioning complete · {0} sections"
+msgstr "Sectioning complete · {0} sections"
 
 msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 msgstr "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
@@ -9031,6 +9130,12 @@ msgstr "Sections generated — {0} sections across {1} pages"
 #. placeholder {0}: state.pages.length
 #~ msgid "Sections generated — {sectionCount} sections across {0} pages"
 #~ msgstr "Sections generated — {sectionCount} sections across {0} pages"
+
+msgid "Sections show up here as each page is structured."
+msgstr "Sections show up here as each page is structured."
+
+msgid "Sections show up in the left rail as each page is structured."
+msgstr "Sections show up in the left rail as each page is structured."
 
 msgid "See examples"
 msgstr "See examples"
@@ -9752,6 +9857,9 @@ msgstr "Storyboard Overview"
 msgid "Storyboard Preview"
 msgstr "Storyboard Preview"
 
+msgid "Storyboard settings"
+msgstr "Storyboard settings"
+
 msgid "Storyboards & captions"
 msgstr "Storyboards & captions"
 
@@ -10252,6 +10360,9 @@ msgstr "The river meets the sea"
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "The saved translation review is stale. Run Review again for the visible translations."
+
+#~ msgid "The section laid out as an accessible web page, ready for the reader."
+#~ msgstr "The section laid out as an accessible web page, ready for the reader."
 
 #~ msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
 #~ msgstr "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
@@ -11346,6 +11457,9 @@ msgstr "Waiting for API output…"
 msgid "Waiting for page to be processed..."
 msgstr "Waiting for page to be processed..."
 
+msgid "Waiting for the running stage to finish"
+msgstr "Waiting for the running stage to finish"
+
 msgid "Wall Clock"
 msgstr "Wall Clock"
 
@@ -11436,6 +11550,9 @@ msgstr "What should the AI change?"
 
 msgid "What should the review focus on?"
 msgstr "What should the review focus on?"
+
+#~ msgid "What the storyboard produces"
+#~ msgstr "What the storyboard produces"
 
 msgid "What we discovered"
 msgstr "What we discovered"

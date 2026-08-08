@@ -86,7 +86,7 @@ export function PluginDock({
   const { t } = useLingui()
 
   return (
-    <div className={cn("flex flex-col items-center gap-2", className)}>
+    <div className={cn("absolute bottom-6 left-[55%] -translate-x-1/2 flex flex-col items-center gap-2", className)}>
       {hint && (
         <div className="rounded-full border bg-card px-3 py-1 text-[10.5px] text-muted-foreground">
           {hint}

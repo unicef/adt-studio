@@ -6,7 +6,9 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { NO_DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
 import { REDESIGN_PATHS } from "../../nav"
+import { PipelineRunIndicator } from "./PipelineRunIndicator"
 import type { Viewport } from "./types"
+import { PreviewViewportToggle } from "@/components/pipeline/components/PreviewViewportToggle"
 
 export interface PipelineTopBarProps {
   label: string
@@ -94,15 +96,10 @@ export function PipelineTopBar({
       </nav>
 
       <div style={NO_DRAG_REGION} className="shrink-0">
-        <SegmentedControl
-          className={cn("ml-1 h-8 w-[248px]", disabled && "pointer-events-none opacity-45")}
+        <PreviewViewportToggle
           value={viewport}
-          onValueChange={onViewportChange}
-          options={[
-            { value: "desktop", label: t`Desktop` },
-            { value: "tablet", label: t`Tablet` },
-            { value: "mobile", label: t`Mobile` },
-          ]}
+          onChange={onViewportChange}
+          variant="surface"
         />
       </div>
 
@@ -111,8 +108,7 @@ export function PipelineTopBar({
       {status}
 
       <div style={NO_DRAG_REGION} className="flex items-center gap-1.5">
-        <IconAction icon={Code2} label={t`HTML`} disabled={disabled} mono />
-        <IconAction icon={Pencil} label={t`Edit`} disabled={disabled} />
+        <PipelineRunIndicator />
         <button
           type="button"
           title={t`Book settings`}

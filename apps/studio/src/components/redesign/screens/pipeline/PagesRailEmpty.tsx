@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react"
 export interface PagesRailEmptyProps {
   pageCount: number
   imageCount: number
+  extracting?: boolean
 }
 
 function GhostLine({ width, tone = "muted" }: { width: string; tone?: "muted" | "brand" }) {
@@ -16,11 +17,11 @@ function GhostLine({ width, tone = "muted" }: { width: string; tone?: "muted" | 
 }
 
 /** Left rail before any section exists — explains what will land in this list. */
-export function PagesRailEmpty({ pageCount, imageCount }: PagesRailEmptyProps) {
+export function PagesRailEmpty({ pageCount, imageCount, extracting }: PagesRailEmptyProps) {
   const { t } = useLingui()
 
   return (
-    <aside className="flex w-[212px] shrink-0 flex-col border-r bg-card">
+    <aside className="flex w-64 shrink-0 flex-col border-r bg-card">
       <div className="flex items-center justify-between px-3.5 pb-2 pt-3.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           <Trans>Sections</Trans>
@@ -58,7 +59,9 @@ export function PagesRailEmpty({ pageCount, imageCount }: PagesRailEmptyProps) {
         </p>
 
         <p className="border-t pt-2.5 text-[10px] leading-relaxed text-muted-foreground">
-          {t`PDF extracted: ${pageCount} pages · ${imageCount} images`}
+          {extracting
+            ? t`Extracting the PDF: ${pageCount} pages so far`
+            : t`PDF extracted: ${pageCount} pages · ${imageCount} images`}
         </p>
       </div>
     </aside>

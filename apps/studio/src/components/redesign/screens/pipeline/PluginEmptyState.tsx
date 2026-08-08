@@ -30,6 +30,8 @@ export interface PluginEmptyStateProps {
   onRun: () => void
   onManual: () => void
   onImport?: () => void
+  canRun?: boolean
+  runDisabledReason?: React.ReactNode
 }
 
 /** Never-run state for a plugin: what it does, a real sample, and two ways in (design 4a). */
@@ -41,6 +43,8 @@ export function PluginEmptyState({
   onRun,
   onManual,
   onImport,
+  canRun = true,
+  runDisabledReason,
 }: PluginEmptyStateProps) {
   const { i18n } = useLingui()
   const copy = PLUGIN_COPY[plugin.slug]
@@ -60,20 +64,30 @@ export function PluginEmptyState({
         </p>
       </div>
 
-      <div className="flex items-center gap-2.5">
-        <Button onClick={onRun} style={{ background: plugin.hex }} className="text-white hover:opacity-90">
-          <Sparkles className="size-3.5" />
-          {i18n._(copy.runVerb)}
-        </Button>
-        <Button variant="outline" onClick={onManual}>
-          <Plus className="size-3.5" />
-          {i18n._(copy.manualVerb)}
-        </Button>
-        {onImport && (
-          <Button variant="outline" onClick={onImport}>
-            <Upload className="size-3.5" />
-            <Trans>Import a list</Trans>
+      <div className="flex flex-col items-center gap-2">
+        <div className="flex items-center gap-2.5">
+          <Button
+            onClick={onRun}
+            disabled={!canRun}
+            style={{ background: plugin.hex }}
+            className="text-white hover:opacity-90"
+          >
+            <Sparkles className="size-3.5" />
+            {i18n._(copy.runVerb)}
           </Button>
+          <Button variant="outline" onClick={onManual}>
+            <Plus className="size-3.5" />
+            {i18n._(copy.manualVerb)}
+          </Button>
+          {onImport && (
+            <Button variant="outline" onClick={onImport}>
+              <Upload className="size-3.5" />
+              <Trans>Import a list</Trans>
+            </Button>
+          )}
+        </div>
+        {!canRun && runDisabledReason && (
+          <p className="text-[11.5px] text-muted-foreground">{runDisabledReason}</p>
         )}
       </div>
 

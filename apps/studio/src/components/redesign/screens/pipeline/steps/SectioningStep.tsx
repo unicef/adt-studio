@@ -5,7 +5,9 @@ import { EyeOff, Undo2 } from "lucide-react"
 import { api, type ContentNode, type PageDetail } from "@/api/client"
 import { useSaveSectioning } from "@/hooks/use-page-mutations"
 import { tint } from "../plugins"
-import { StepEmpty, StepLoading, StepShell } from "./StepShell"
+import { useRunActivity, useStageActivity } from "../useRunActivity"
+import { useSectioningRun } from "../useSectioningRun"
+import { StepEmpty, StepLoading, StepRunning, StepShell } from "./StepShell"
 import { RowAction, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./ui"
 import type { StepProps } from "./types"
 import type { PipelinePage } from "../usePipelineState"
@@ -119,6 +121,10 @@ function PageSections({
 export function SectioningStep(props: StepProps) {
   const { label, plugin, pages } = props
   const { t } = useLingui()
+  const run = useRunActivity()
+  const sectioning = useStageActivity("sectioning")
+  const extract = useStageActivity("extract")
+  const sectioningRun = useSectioningRun(label)
 
   const details = useQueries({
     queries: pages.map((page) => ({
@@ -137,8 +143,45 @@ export function SectioningStep(props: StepProps) {
     [pages, details],
   )
 
+  const feeding = sectioning.isActive ? sectioning : extract.isActive ? extract : null
+  if (feeding && entries.length === 0) {
+    return (
+      <StepRunning
+        {...props}
+        stage={feeding}
+        isCancelling={run.isCancelling}
+        onCancel={run.cancelRun}
+        outcome={t`Sections show up here as each page is structured.`}
+      />
+    )
+  }
   if (details.some((d) => d.isLoading)) return <StepLoading {...props} />
-  if (entries.length === 0) return <StepEmpty {...props} />
+  if (entries.length === 0) {
+    return (
+      <StepEmpty
+        {...props}
+        onRun={sectioningRun.run}
+        canRun={sectioningRun.canRun}
+        runDisabledReason={
+          sectioningRun.hasApiKey ? undefined : (
+            <Trans>Add an API key in Book settings to run sectioning.</Trans>
+          )
+        }
+        prerequisites={[
+          {
+            key: "pages",
+            met: pages.length > 0,
+            label: t`Pages extracted — ${pages.length} pages`,
+          },
+          {
+            key: "api-key",
+            met: sectioningRun.hasApiKey,
+            label: t`API key set in Book settings`,
+          },
+        ]}
+      />
+    )
+  }
 
   const total = entries.reduce((sum, e) => sum + e.tree.sections.length, 0)
   const pruned = entries.reduce(
@@ -150,7 +193,11 @@ export function SectioningStep(props: StepProps) {
   return (
     <StepShell
       {...props}
-      chips={[t`${total} sections`, pruned > 0 ? t`${pruned} dropped` : t`All kept`]}
+      chips={[
+        ...(sectioning.isActive ? [sectioning.runningLabel] : []),
+        t`${total} sections`,
+        pruned > 0 ? t`${pruned} dropped` : t`All kept`,
+      ]}
       canApply={total - pruned > 0}
       rail={
         <StepRail

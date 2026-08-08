@@ -313,6 +313,10 @@ msgstr "{0} në pritje"
 msgid "{0} pending save"
 msgstr "{0} në pritje të ruajtjes"
 
+#. placeholder {0}: run.badgeCount
+msgid "{0} pipeline steps running"
+msgstr "{0} hapa të pipeline-it në ekzekutim"
+
 #. placeholder {0}: String(displayQuizzes.length)
 #. placeholder {0}: quizzes.length
 msgid "{0} questions"
@@ -502,6 +506,9 @@ msgstr "{mins} min më parë"
 msgid "{missing} alt-text pending"
 msgstr "{missing} tekst alternativ në pritje"
 
+#~ msgid "{missing} pages pending"
+#~ msgstr "{missing} faqe në pritje"
+
 msgid "{missing} without a description"
 msgstr "{missing} pa përshkrim"
 
@@ -540,6 +547,12 @@ msgstr "{pruned} të hequra"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
+
+#~ msgid "{rendered} sections"
+#~ msgstr "{rendered} seksione"
+
+#~ msgid "{rendered} sections rendered"
+#~ msgstr "{rendered} seksione të renderizuara"
 
 #. placeholder {0}: reviewCount === 1 ? "manual review item" : "manual review items"
 msgid "{reviewCount} {0}"
@@ -782,6 +795,9 @@ msgstr "Një pyetje që vlen të bëhet"
 
 msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zëvendësojeni"
+
+msgid "A run is already in progress."
+msgstr "Një ekzekutim është tashmë në vazhdim."
 
 msgid "A scenic view at dusk."
 msgstr "Një pamje piktoreske në muzg."
@@ -1093,6 +1109,9 @@ msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar përmba
 msgid "Add an API key in Book settings to generate quizzes."
 msgstr "Shto një çelës API në cilësimet e Librit për të gjeneruar kuize."
 
+msgid "Add an API key in Book settings to run {name}."
+msgstr "Shto një çelës API te cilësimet e librit për të ekzekutuar {name}."
+
 msgid "Add an API key in Book settings to run captions."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar titujt."
 
@@ -1110,6 +1129,9 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar storyb
 
 msgid "Add an API key in Book settings to run the glossary."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar fjalorthin."
+
+msgid "Add an API key in Book settings to run the storyboard."
+msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar storyboard-in."
 
 msgid "Add an API key in Book settings to run TOC generation."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar gjenerimin e TOC."
@@ -1299,6 +1321,9 @@ msgstr "Shton faqe glosari në libër. Termat lidhen me zërin e tyre dhe çdo z
 
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Shton udhëzime për Dizajnin Universal për të Nxënit (gjuhë e thjeshtë, alternativë me tastierë + klikim për tërheqjen, vlerësim aria-live, pa reagime vetëm me ngjyra). Çaktivizoje për të krahasuar rezultatin pa këto udhëzime."
+
+#~ msgid "Adjust the rendering settings"
+#~ msgstr "Rregullo cilësimet e renderizimit"
 
 msgid "ADT"
 msgstr "ADT"
@@ -1631,6 +1656,9 @@ msgstr "Çelës API (opsional)"
 
 msgid "API key required to re-render"
 msgstr "Kërkohet çelës API për ri-renderim"
+
+msgid "API key set in Book settings"
+msgstr "Çelësi API i vendosur në cilësimet e Librit"
 
 msgid "API Key Settings"
 msgstr "Cilësimet e çelësit API"
@@ -3594,8 +3622,14 @@ msgstr "Çdo iteracion është një thirrje LLM. Vlerat e ulëta janë më të s
 msgid "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
 msgstr "Çdo lloj detyre në rrjedhën e punës përdor një model të përshtatshëm. Gjenerimi i imazheve dhe i të folurit përdorin modelet e veta të parazgjedhura sipas detyrës."
 
+msgid "Each page shows up here — text, fonts and images — as it is extracted."
+msgstr "Secila faqe shfaqet këtu — teksti, fontet dhe imazhet — sapo nxirret."
+
 msgid "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
 msgstr "Çdo polip sekreton një skelet të fortë karbonati kalciumi. Gjatë qindra viteve, miliona prej këtyre skeletve grumbullohen duke formuar strukturat masive të rifeve që shohim sot."
+
+#~ msgid "Each preview is the section as the reader will see it."
+#~ msgstr "Secila pamje paraprake është seksioni ashtu siç do ta shohë lexuesi."
 
 msgid "Each prompt is applied to whichever provider its language is routed to — for example, Albanian (sq) routed to Gemini receives this as its accent steering."
 msgstr "Çdo udhëzim zbatohet te ofruesi te i cili drejtohet gjuha e tij — për shembull, shqipja (sq) e drejtuar te Gemini e merr këtë si drejtimin e theksit."
@@ -3938,6 +3972,9 @@ msgstr "Çdo faqe në këtë libër ka të gjitha seksionet të shkurtuara. Nuk 
 msgid "Every page is pruned"
 msgstr "Çdo faqe është shkurtuar"
 
+#~ msgid "Every page rendered"
+#~ msgstr "Të gjitha faqet u renderizuan"
+
 msgid "Every reader opens the same book, with the features they need on tap."
 msgstr "Çdo lexues hap të njëjtin libër, me veçoritë që i nevojiten të gatshme."
 
@@ -3955,6 +3992,9 @@ msgstr "Çdo tekst i përkthyeshëm përfundon në një katalog të vetëm që m
 
 msgid "Everything is editable and saved as a new version — nothing is overwritten."
 msgstr "Gjithçka është e redaktueshme dhe ruhet si version i ri — asgjë nuk mbishkruhet."
+
+msgid "Everything is ready to build the storyboard"
+msgstr "Gjithçka është gati për të ndërtuar storyboard-in"
 
 msgid "Example Books"
 msgstr "Libra shembull"
@@ -4078,11 +4118,17 @@ msgstr "Teksti i nxjerrë"
 msgid "Extracted Text"
 msgstr "Tekst i nxjerrë"
 
+msgid "Extracting the PDF: {pageCount} pages so far"
+msgstr "Po nxirret PDF-ja: {pageCount} faqe deri tani"
+
 msgid "Extracting..."
 msgstr "Duke nxjerrë..."
 
 msgid "Extraction"
 msgstr "Nxjerrja"
+
+msgid "Extraction and sectioning are done — {sectionCount} sections across {pageCount} pages. Rendering turns them into the pages the reader will actually see."
+msgstr "Nxjerrja dhe ndarja në seksione përfunduan — {sectionCount} seksione në {pageCount} faqe. Renderizimi i kthen ato në faqet që do të shohë lexuesi."
 
 #. placeholder {0}: state.pages.length
 msgid "Extraction complete · {0} pages"
@@ -4518,6 +4564,9 @@ msgstr "Gjenero përkthime zëvendësuese të sugjeruara për hyrjet e flamuruar
 
 msgid "Generate the narration"
 msgstr "Gjenero narracionin"
+
+#~ msgid "Generate the sections first — the storyboard renders from them."
+#~ msgstr "Gjeneroni fillimisht seksionet — storyboard-i renderizohet prej tyre."
 
 msgid "Generate with AI"
 msgstr "Gjenero me AI"
@@ -5129,8 +5178,8 @@ msgstr "Hyrje"
 msgid "Input Tokens"
 msgstr "Token-ët hyrës"
 
-msgid "Insert section"
-msgstr "Fut seksion"
+#~ msgid "Insert section"
+#~ msgstr "Fut seksion"
 
 msgid "Insert the quiz here"
 msgstr "Vendos kuizin këtu"
@@ -6759,8 +6808,14 @@ msgstr "Ende asgjë këtu. Faqet me rezultate shfaqen në këtë listë pas skan
 msgid "Nothing important is missing or added"
 msgstr "Asgjë e rëndësishme nuk mungon ose nuk është shtuar"
 
+msgid "Nothing is running right now. Stages you start show their steps here."
+msgstr "Asgjë nuk është në ekzekutim tani. Fazat që nisni shfaqin hapat e tyre këtu."
+
 msgid "Nothing pending review"
 msgstr "Asgjë në pritje për shqyrtim"
+
+#~ msgid "Nothing rendered yet"
+#~ msgstr "Ende asgjë e renderizuar"
 
 msgid "Nothing sectioned yet"
 msgstr "Ende nuk është ndarë asgjë në seksione"
@@ -7252,6 +7307,9 @@ msgstr "Faqja 10"
 msgid "page 10 · 7 nodes"
 msgstr "faqja 10 · 7 nyje"
 
+#~ msgid "page 10 · desktop · tablet · mobile"
+#~ msgstr "faqja 10 · desktop · tablet · celular"
+
 msgid "Page 10 · narration"
 msgstr "Faqja 10 · narracion"
 
@@ -7340,6 +7398,13 @@ msgstr "Faqet {0}–{1} nga {2}"
 
 msgid "pages {shownStr}"
 msgstr "faqet {shownStr}"
+
+msgid "Pages and images show up in the left rail as each page is extracted."
+msgstr "Faqet dhe imazhet shfaqen në kolonën e majtë sapo nxirret secila faqe."
+
+#. placeholder {0}: pages.length
+msgid "Pages extracted — {0} pages"
+msgstr "Faqet e nxjerra — {0} faqe"
 
 msgid "Pages in the selected range"
 msgstr "Faqet në intervalin e zgjedhur"
@@ -7541,6 +7606,9 @@ msgstr "E fiksuar"
 
 msgid "Pinned to one element — press Esc to release it and go back to previewing on hover."
 msgstr "I fiksuar te një element — shtypni Esc për ta liruar dhe për t'u kthyer te pamja paraprake me kalimin e kursorit."
+
+msgid "Pipeline"
+msgstr "Pipeline"
 
 msgid "Pipeline · extract"
 msgstr "Pipeline · nxjerrje"
@@ -7893,6 +7961,9 @@ msgstr "në radhë"
 msgid "Queued"
 msgstr "Në radhë"
 
+msgid "Queued — it starts as soon as the running stage finishes"
+msgstr "Në radhë — nis sapo të përfundojë faza në ekzekutim"
+
 msgid "Quick fill"
 msgstr "Plotësim i shpejtë"
 
@@ -7988,6 +8059,9 @@ msgstr "Ri-renderimi është i çaktivizuar për aktivitetet e personalizuara �
 
 msgid "Re-render section"
 msgstr "Ri-renderizo seksionin"
+
+#~ msgid "Re-render storyboard"
+#~ msgstr "Ri-renderizo storyboard-in"
 
 msgid "Re-render this section"
 msgstr "Ri-renderizo këtë seksion"
@@ -8279,8 +8353,23 @@ msgstr "Arsyetimi i Renderimit"
 msgid "Render Strategy"
 msgstr "Strategjia e Renderimit"
 
+#~ msgid "Render the storyboard"
+#~ msgstr "Renderizo storyboard-in"
+
+#~ msgid "Rendered pages"
+#~ msgstr "Faqet e renderizuara"
+
+msgid "Rendered pages replace this panel as each page is built."
+msgstr "Faqet e renderizuara e zëvendësojnë këtë panel sapo ndërtohet secila faqe."
+
+#~ msgid "Rendered sections show up here as each page is built."
+#~ msgstr "Seksionet e renderizuara shfaqen këtu sapo ndërtohet secila faqe."
+
 msgid "Rendering Prompt"
 msgstr "Kërkesa e Renderimit"
+
+#~ msgid "Rendering reads the sections you kept — drop a section and it disappears from the book."
+#~ msgstr "Renderizimi lexon seksionet që mbajtët — hiqni një seksion dhe ai zhduket nga libri."
 
 msgid "Rendering this section..."
 msgstr "Duke renderuar këtë seksion..."
@@ -8644,6 +8733,9 @@ msgstr "Ekzekuto pipeline-in"
 msgid "Run the pipeline to extract content"
 msgstr "Ekzekuto pipeline-in për të ekstraktuar përmbajtjen"
 
+msgid "Run the storyboard"
+msgstr "Ekzekuto storyboard-in"
+
 msgid "Run TOC"
 msgstr "Ekzekuto TOC-in"
 
@@ -8964,6 +9056,9 @@ msgstr "seksioni 2 · faqja 10"
 msgid "Section 3 · Overview"
 msgstr "Seksioni 3 · Përmbledhje"
 
+#~ msgid "Section 3 · text_and_single_image"
+#~ msgstr "Seksioni 3 · text_and_single_image"
+
 msgid "Section 3.2"
 msgstr "Seksioni 3.2"
 
@@ -8990,6 +9085,10 @@ msgstr "Llojet e Seksionit"
 
 msgid "Sectioning"
 msgstr "Seksionim"
+
+#. placeholder {0}: state.sectionCount
+msgid "Sectioning complete · {0} sections"
+msgstr "Ndarja në seksione përfundoi · {0} seksione"
 
 msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 msgstr "Seksionimi ka ndryshuar që kur u renderizuan këto faqe. Ekzekuto përsëri Storyboard-in për t'i rigjeneruar ato."
@@ -9032,6 +9131,12 @@ msgstr "Seksione të gjeneruara — {0} seksione në {1} faqe"
 #. placeholder {0}: state.pages.length
 #~ msgid "Sections generated — {sectionCount} sections across {0} pages"
 #~ msgstr "Seksione të gjeneruara — {sectionCount} seksione në {0} faqe"
+
+msgid "Sections show up here as each page is structured."
+msgstr "Seksionet shfaqen këtu sapo strukturohet secila faqe."
+
+msgid "Sections show up in the left rail as each page is structured."
+msgstr "Seksionet shfaqen në kolonën e majtë sapo strukturohet secila faqe."
 
 msgid "See examples"
 msgstr "Shiko shembuj"
@@ -9753,6 +9858,9 @@ msgstr "Pasqyrë e Storyboard-it"
 msgid "Storyboard Preview"
 msgstr "Parashikim i Storyboard-it"
 
+msgid "Storyboard settings"
+msgstr "Cilësimet e storyboard-it"
+
 msgid "Storyboards & captions"
 msgstr "Storyboard-e dhe diçitura"
 
@@ -10253,6 +10361,9 @@ msgstr "Lumi takon detin"
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "Rishikimi i ruajtur i përkthimit është i vjetëruar. Ekzekutoni Rishikimin përsëri për përkthimet e dukshme."
+
+#~ msgid "The section laid out as an accessible web page, ready for the reader."
+#~ msgstr "Seksioni i faqosur si një faqe web e aksesueshme, gati për lexuesin."
 
 #~ msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
 #~ msgstr "Seksioni u modifikua pas konvertimit — kthehuni te versioni klasik dhe konvertojeni sërish për të rifreskuar hapat."
@@ -11347,6 +11458,9 @@ msgstr "Duke pritur daljen e API-t…"
 msgid "Waiting for page to be processed..."
 msgstr "Duke pritur të përpunohet faqja..."
 
+msgid "Waiting for the running stage to finish"
+msgstr "Në pritje të përfundimit të fazës në ekzekutim"
+
 msgid "Wall Clock"
 msgstr "Orë muri"
 
@@ -11437,6 +11551,9 @@ msgstr "Çfarë duhet të ndryshojë AI-ja?"
 
 msgid "What should the review focus on?"
 msgstr "Në çfarë duhet të fokusohet rishikimi?"
+
+#~ msgid "What the storyboard produces"
+#~ msgstr "Çfarë prodhon storyboard-i"
 
 msgid "What we discovered"
 msgstr "Çfarë zbuluam"

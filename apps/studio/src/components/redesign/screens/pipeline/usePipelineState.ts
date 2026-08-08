@@ -25,6 +25,8 @@ export interface PipelineState {
   extractDone: boolean
   sectionsDone: boolean
   hasSections: boolean
+  hasRendering: boolean
+  sectionCount: number
   imageCount: number
   missingCaptions: number
   foundations: DockItem[]
@@ -53,6 +55,8 @@ export function usePipelineState(label: string): PipelineState {
     const extractDone = done.has("extract")
     const sectionsDone = done.has("sectioning")
     const hasSections = pages.some((p) => p.sectionCount > 0)
+    const hasRendering = pages.some((p) => p.hasRendering)
+    const sectionCount = pages.reduce((sum, p) => sum + p.sectionCount, 0)
     const imageCount = pages.reduce((sum, p) => sum + p.imageCount, 0)
     const missingCaptions = pages.reduce((sum, p) => sum + p.missingCaptions, 0)
 
@@ -72,6 +76,8 @@ export function usePipelineState(label: string): PipelineState {
       extractDone,
       sectionsDone,
       hasSections,
+      hasRendering,
+      sectionCount,
       imageCount,
       missingCaptions,
       // Sectioning stays reachable whenever pages exist: older books can carry
