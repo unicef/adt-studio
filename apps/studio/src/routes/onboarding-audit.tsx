@@ -4,6 +4,7 @@ import { createFileRoute } from "@tanstack/react-router"
 import { RotateCcw } from "lucide-react"
 import { OnboardingCardBody } from "@/components/onboarding/OnboardingCardBody"
 import { ONBOARDING_STEPS, type OnboardingStepProps } from "@/components/onboarding/steps"
+import { ProviderSceneRail } from "@/components/onboarding/scenes/ProviderSceneRail"
 import { ProviderSceneGuided } from "@/components/onboarding/scenes/ProviderSceneGuided"
 import { ProviderSceneList } from "@/components/onboarding/scenes/ProviderSceneList"
 import { FinaleSceneRecap } from "@/components/onboarding/scenes/FinaleSceneRecap"
@@ -39,9 +40,16 @@ const PROVIDER_INDEX = ONBOARDING_STEPS.findIndex((s) => s.id === "provider")
 
 const VARIANTS: Variant[] = [
   {
-    key: "provider-guided",
+    key: "provider-rail",
     num: "A",
-    label: "Provider — Variant A · guided cards + inline validation",
+    label: "Provider — Variant A · icon rail (icons left, inputs right) · AI-agnostic",
+    index: PROVIDER_INDEX,
+    component: ProviderSceneRail,
+  },
+  {
+    key: "provider-guided",
+    num: "A′",
+    label: "Provider — Variant A′ · guided cards + inline validation",
     index: PROVIDER_INDEX,
     component: ProviderSceneGuided,
   },
