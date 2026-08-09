@@ -1,8 +1,9 @@
+import type { ComponentType } from "react";
 import { Trans } from "@lingui/react/macro";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { OnboardingStepContainer } from "./OnboardingLayout";
 import { OnboardingProgress } from "./OnboardingProgress";
-import { ONBOARDING_STEPS } from "./steps";
+import { ONBOARDING_STEPS, type OnboardingStepProps } from "./steps";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -27,14 +28,24 @@ export function OnboardingCardBody({
   onBack,
   onFinish,
   onSkip,
+  componentOverride,
+  stepKeyOverride,
+  isFirstOverride,
+  isLastOverride,
 }: OnboardingCardHandlers & {
   index: number;
   direction: "forward" | "back";
+  /** Render this scene instead of the one at `index` (used by the audit gallery to preview variants). */
+  componentOverride?: ComponentType<OnboardingStepProps>;
+  stepKeyOverride?: string;
+  isFirstOverride?: boolean;
+  isLastOverride?: boolean;
 }) {
   const step = ONBOARDING_STEPS[index];
-  const isFirst = index === 0;
-  const isLast = index === ONBOARDING_STEPS.length - 1;
-  const StepComponent = step.component;
+  const isFirst = isFirstOverride ?? index === 0;
+  const isLast = isLastOverride ?? index === ONBOARDING_STEPS.length - 1;
+  const StepComponent = componentOverride ?? step.component;
+  const stepKey = stepKeyOverride ?? step.id;
   const animationClass =
     direction === "forward"
       ? "animate-step-enter-forward"
@@ -64,7 +75,7 @@ export function OnboardingCardBody({
         </div>
       )}
 
-      <OnboardingStepContainer animationClass={animationClass} stepKey={step.id}>
+      <OnboardingStepContainer animationClass={animationClass} stepKey={stepKey}>
         <StepComponent
           onNext={onNext}
           onBack={onBack}
