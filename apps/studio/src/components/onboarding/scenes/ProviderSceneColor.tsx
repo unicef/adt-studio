@@ -11,6 +11,7 @@ import {
   Waves,
   KeyRound,
   Clock,
+  ArrowRight,
 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
@@ -61,16 +62,20 @@ type Row = {
   set?: (v: string) => void
 }
 
+const LIST_W = 536
+const RAIL_W = 214
+
 /**
- * Provider screen — colorful reference build. Bold brand-gradient icon tiles in a
- * single provider list on the left; selecting an available provider expands its
- * inline key field. A vibrant gradient panel with a floating logo constellation
- * fills the right. Not-yet-wired providers/methods render disabled ("Soon").
+ * Provider screen — colorful list that morphs into a rail once you pick a
+ * provider. Empty state: full-width brand-gradient list + a vibrant gradient
+ * "constellation" sidebar. On select, the list animates down to a compact icon
+ * rail and the sidebar crossfades into the key-entry panel (A → A2), giving the
+ * inputs room. Not-yet-wired rows (Codex, Claude SDK, DeepSeek) stay disabled.
  */
-export function ProviderSceneColor(_props: OnboardingStepProps) {
+export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
   const { t } = useLingui()
   const k = useApiKey()
-  const [selectedId, setSelectedId] = useState("openai")
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [reveal, setReveal] = useState(false)
 
   const rows = useMemo<Row[]>(
@@ -157,7 +162,6 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
           to: "#6D28D9",
           Mark: KeyRound,
           enabled: true,
-          keyUrl: undefined,
           placeholder: "http://localhost:11434/v1",
           value: k.customBaseUrl,
           set: k.setCustomBaseUrl,
@@ -167,15 +171,22 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
     [k, t],
   )
 
-  const selected = rows.find((r) => r.id === selectedId) ?? rows[0]
+  const railMode = selectedId !== null
+  const selected = rows.find((r) => r.id === selectedId) ?? null
   const isConnected = (r: Row) => (r.value ?? "").trim().length > 0
-  const val = (selected.value ?? "").trim()
-  const looksValid = val.length > 0 && (!selected.prefix || val.startsWith(selected.prefix))
+  const val = (selected?.value ?? "").trim()
+  const looksValid = val.length > 0 && (!selected?.prefix || val.startsWith(selected.prefix))
+
+  const select = (r: Row) => {
+    if (!r.enabled) return
+    setReveal(false)
+    setSelectedId(r.id)
+  }
 
   const paste = async () => {
     try {
       const text = await navigator.clipboard.readText()
-      if (text && selected.set) selected.set(text.trim())
+      if (text && selected?.set) selected.set(text.trim())
     } catch {
       /* clipboard unavailable */
     }
@@ -184,39 +195,56 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
   const constellation = rows.filter((r) => r.id !== "custom")
 
   return (
-    <div className="animate-onboarding-fade-in flex h-full w-full gap-5 px-8 pb-2 pt-6">
-      {/* left — provider list */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <h2 className="text-[22px] font-semibold tracking-[-0.02em] text-[#0a0a0a]">
-          <Trans>Choose your AI provider</Trans>
-        </h2>
-        <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-[#737373]">
-          <Lock className="h-3.5 w-3.5 text-[#9aa0aa]" />
-          <Trans>Keys are stored locally on this device — never sent anywhere else.</Trans>
-        </p>
+    <div className="animate-onboarding-fade-in flex h-full w-full flex-col px-8 pb-2 pt-5">
+      {/* header */}
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[21px] font-semibold tracking-[-0.02em] text-[#0a0a0a]">
+            <Trans>Choose your AI provider</Trans>
+          </h2>
+          <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-[#737373]">
+            <Lock className="h-3.5 w-3.5 text-[#9aa0aa]" />
+            <Trans>Keys are stored locally on this device — never sent anywhere else.</Trans>
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onSkip}
+          className="shrink-0 rounded-lg px-3 py-1.5 text-[12.5px] font-medium text-[#9aa0aa] transition-colors hover:text-[#0a0a0a] cursor-pointer"
+        >
+          <Trans>Skip for now</Trans>
+        </button>
+      </div>
 
-        <div className="mt-3.5 flex-1 space-y-1.5 overflow-y-auto pr-1">
-          {rows.map((r) => {
-            const isSel = r.id === selectedId && r.enabled
-            const connected = isConnected(r)
-            return (
-              <div key={r.id}>
+      {/* morphing body */}
+      <div className="mt-3.5 flex min-h-0 flex-1 gap-4">
+        {/* left — list that collapses to a rail */}
+        <div
+          style={{ width: railMode ? RAIL_W : LIST_W }}
+          className="flex min-h-0 shrink-0 flex-col transition-[width] duration-[520ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
+        >
+          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
+            {rows.map((r) => {
+              const sel = r.id === selectedId && r.enabled
+              const connected = isConnected(r)
+              return (
                 <button
+                  key={r.id}
                   type="button"
                   disabled={!r.enabled}
-                  onClick={() => r.enabled && setSelectedId(r.id)}
+                  onClick={() => select(r)}
+                  style={sel ? { boxShadow: `inset 3px 0 0 0 ${r.to}` } : undefined}
                   className={cn(
-                    "group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all duration-200",
-                    r.enabled ? "cursor-pointer" : "cursor-not-allowed",
-                    isSel
-                      ? "border-[#3b82f7]/40 bg-[#f5f8ff] shadow-sm"
+                    "group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all duration-300",
+                    r.enabled ? "cursor-pointer" : "cursor-not-allowed opacity-55",
+                    sel
+                      ? "border-transparent bg-[#f5f7ff]"
                       : "border-black/[0.07] bg-white hover:border-black/15",
-                    !r.enabled && "opacity-55",
                   )}
                 >
                   <span
                     className={cn(
-                      "grid h-10 w-10 shrink-0 place-items-center rounded-[12px] text-white shadow-sm",
+                      "grid h-10 w-10 shrink-0 place-items-center rounded-[12px] text-white shadow-sm transition-all duration-300",
                       !r.enabled && "grayscale",
                     )}
                     style={{ backgroundImage: `linear-gradient(135deg, ${r.from}, ${r.to})` }}
@@ -229,141 +257,201 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                         {r.name}
                       </span>
                       {!r.enabled && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9aa0aa]">
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9aa0aa]">
                           <Clock className="h-2.5 w-2.5" />
                           <Trans>Soon</Trans>
                         </span>
                       )}
                     </span>
-                    <span className="mt-0.5 block truncate text-[12px] text-[#737373]">
+                    <span
+                      className={cn(
+                        "block overflow-hidden truncate text-[12px] text-[#737373] transition-all duration-[320ms]",
+                        railMode ? "max-h-0 opacity-0" : "mt-0.5 max-h-5 opacity-100",
+                      )}
+                    >
                       {r.desc}
                     </span>
                   </span>
-                  {/* selection indicator */}
-                  {r.enabled &&
-                    (connected ? (
-                      <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#0f9d58]">
-                        <Check className="h-3 w-3 text-white" strokeWidth={3} />
-                      </span>
-                    ) : (
+                  {/* selection / status indicator */}
+                  {connected ? (
+                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#0f9d58]">
+                      <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                    </span>
+                  ) : (
+                    r.enabled && (
                       <span
                         className={cn(
-                          "grid h-5 w-5 shrink-0 place-items-center rounded-full border-2",
-                          isSel ? "border-[#3b82f7]" : "border-black/15",
+                          "grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 transition-all duration-300",
+                          railMode ? "scale-0 opacity-0" : "scale-100 opacity-100",
+                          sel ? "border-[#3b82f7]" : "border-black/15",
                         )}
                       >
-                        {isSel && <span className="h-2 w-2 rounded-full bg-[#3b82f7]" />}
+                        {sel && <span className="h-2 w-2 rounded-full bg-[#3b82f7]" />}
                       </span>
-                    ))}
+                    )
+                  )}
                 </button>
+              )
+            })}
+          </div>
+        </div>
 
-                {/* inline key input for the selected provider */}
-                {isSel && (
-                  <div className="animate-onboarding-fade-in mt-1.5 rounded-2xl border border-black/[0.07] bg-[#fafafb] px-3.5 py-3">
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <label htmlFor="color-key" className="text-[12px] font-semibold text-[#0a0a0a]">
-                        {selected.id === "custom" ? (
-                          <Trans>Base URL</Trans>
-                        ) : (
-                          <>
-                            {selected.name} <Trans>API key</Trans>
-                          </>
-                        )}
-                      </label>
-                      {selected.keyUrl && (
-                        <a
-                          href={selected.keyUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[12px] font-medium text-[#3b82f7] hover:underline"
-                        >
-                          <Trans>Get a key</Trans>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
+        {/* right — gradient sidebar (empty) morphs to key-entry panel (selected) */}
+        <div className="relative min-w-0 flex-1">
+          {/* empty-state gradient constellation */}
+          <div
+            className={cn(
+              "absolute inset-0 overflow-hidden rounded-[20px] transition-all duration-[520ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+              railMode ? "pointer-events-none scale-[0.98] opacity-0" : "opacity-100",
+            )}
+          >
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage:
+                  "radial-gradient(120% 90% at 20% 12%, #a7f3e4 0%, #38bdf8 34%, #3b82f7 62%, #7c3aed 100%)",
+              }}
+            />
+            <div
+              aria-hidden
+              className="absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(closest-side at 70% 78%, rgba(255,255,255,0.28), transparent 70%)",
+              }}
+            />
+            {constellation.map((r, i) => {
+              const spots = [
+                { top: "15%", left: "24%", size: 32, o: 0.9 },
+                { top: "26%", left: "72%", size: 26, o: 0.72 },
+                { top: "47%", left: "16%", size: 24, o: 0.68 },
+                { top: "53%", left: "56%", size: 42, o: 0.95 },
+                { top: "72%", left: "32%", size: 28, o: 0.8 },
+                { top: "78%", left: "76%", size: 32, o: 0.85 },
+              ]
+              const s = spots[i % spots.length]
+              return (
+                <span
+                  key={r.id}
+                  className="absolute -translate-x-1/2 -translate-y-1/2 text-white"
+                  style={{ top: s.top, left: s.left, width: s.size, height: s.size, opacity: s.o }}
+                >
+                  <r.Mark className="h-full w-full drop-shadow-sm" />
+                  <span className="sr-only">{r.name}</span>
+                </span>
+              )
+            })}
+            <div className="absolute inset-x-0 bottom-0 p-5">
+              <div className="text-[15px] font-semibold leading-snug text-white drop-shadow">
+                <Trans>Your AI, your keys.</Trans>
+              </div>
+              <div className="mt-1 text-[12px] leading-snug text-white/80">
+                <Trans>Pick a provider to connect — swap or add more anytime.</Trans>
+              </div>
+            </div>
+          </div>
+
+          {/* selected-state key panel */}
+          <div
+            className={cn(
+              "absolute inset-0 flex flex-col rounded-2xl border border-black/[0.08] bg-[#fbfbfc] p-5 transition-all duration-[520ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+              railMode ? "opacity-100 delay-100" : "pointer-events-none translate-x-2 opacity-0",
+            )}
+          >
+            {selected && (
+              <>
+                <div className="flex items-center gap-3">
+                  <span
+                    className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] text-white shadow-sm"
+                    style={{ backgroundImage: `linear-gradient(135deg, ${selected.from}, ${selected.to})` }}
+                  >
+                    <selected.Mark className="h-6 w-6" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[16px] font-semibold text-[#0a0a0a]">{selected.name}</div>
+                    <div className="truncate text-[12.5px] text-[#737373]">{selected.desc}</div>
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <label htmlFor="color-key" className="text-[12.5px] font-semibold text-[#0a0a0a]">
+                      {selected.id === "custom" ? (
+                        <Trans>Base URL</Trans>
+                      ) : (
+                        <>
+                          {selected.name} <Trans>API key</Trans>
+                        </>
                       )}
-                    </div>
-                    <div className="relative">
-                      <Input
-                        id="color-key"
-                        type={selected.id !== "custom" && !reveal ? "password" : "text"}
-                        autoComplete="off"
-                        spellCheck={false}
-                        placeholder={selected.placeholder}
-                        value={selected.value ?? ""}
-                        onChange={(e) => selected.set?.(e.target.value)}
-                        className={cn("h-9 rounded-lg bg-white pr-20", looksValid && "border-[#0f9d58]")}
-                      />
-                      <div className="absolute right-1 top-0 flex h-9 items-center">
+                    </label>
+                    {selected.keyUrl && (
+                      <a
+                        href={selected.keyUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[12px] font-medium text-[#3b82f7] hover:underline"
+                      >
+                        <Trans>Get a key</Trans>
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="color-key"
+                      type={selected.id !== "custom" && !reveal ? "password" : "text"}
+                      autoComplete="off"
+                      spellCheck={false}
+                      placeholder={selected.placeholder}
+                      value={selected.value ?? ""}
+                      onChange={(e) => selected.set?.(e.target.value)}
+                      className={cn("h-10 rounded-lg bg-white pr-20", looksValid && "border-[#0f9d58]")}
+                    />
+                    <div className="absolute right-1 top-0 flex h-10 items-center">
+                      <button
+                        type="button"
+                        onClick={paste}
+                        title={t`Paste`}
+                        className="grid h-8 w-8 place-items-center rounded-md text-[#9aa0aa] transition-colors hover:text-[#0a0a0a]"
+                      >
+                        <ClipboardPaste className="h-4 w-4" />
+                      </button>
+                      {selected.id !== "custom" && (
                         <button
                           type="button"
-                          onClick={paste}
-                          title={t`Paste`}
-                          className="grid h-7 w-7 place-items-center rounded-md text-[#9aa0aa] transition-colors hover:text-[#0a0a0a]"
+                          tabIndex={-1}
+                          onClick={() => setReveal((v) => !v)}
+                          className="grid h-8 w-8 place-items-center rounded-md text-[#9aa0aa] transition-colors hover:text-[#0a0a0a]"
                         >
-                          <ClipboardPaste className="h-4 w-4" />
+                          {reveal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
-                        {selected.id !== "custom" && (
-                          <button
-                            type="button"
-                            tabIndex={-1}
-                            onClick={() => setReveal((v) => !v)}
-                            className="grid h-7 w-7 place-items-center rounded-md text-[#9aa0aa] transition-colors hover:text-[#0a0a0a]"
-                          >
-                            {reveal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
+                  <div className="mt-2 flex min-h-[18px] items-center text-[12px]">
+                    {looksValid ? (
+                      <span className="flex items-center gap-1.5 font-medium text-[#0f9d58]">
+                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                        <Trans>Connected — key saved</Trans>
+                      </span>
+                    ) : (
+                      <span className="text-[#9aa0aa]">
+                        <Trans>Paste your key to connect this provider.</Trans>
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-      {/* right — vibrant decorative panel with logo constellation */}
-      <div className="relative hidden w-[292px] shrink-0 overflow-hidden rounded-[20px] md:block">
-        <div
-          className="absolute inset-0"
-          style={{
-            backgroundImage:
-              "radial-gradient(120% 90% at 20% 12%, #a7f3e4 0%, #38bdf8 34%, #3b82f7 62%, #7c3aed 100%)",
-          }}
-        />
-        <div
-          aria-hidden
-          className="absolute inset-0"
-          style={{ background: "radial-gradient(closest-side at 70% 78%, rgba(255,255,255,0.28), transparent 70%)" }}
-        />
-        {/* floating brand logos */}
-        {constellation.map((r, i) => {
-          const spots = [
-            { top: "14%", left: "26%", size: 30, o: 0.9 },
-            { top: "24%", left: "70%", size: 26, o: 0.75 },
-            { top: "46%", left: "18%", size: 24, o: 0.7 },
-            { top: "52%", left: "58%", size: 40, o: 0.95 },
-            { top: "70%", left: "34%", size: 28, o: 0.8 },
-            { top: "76%", left: "74%", size: 32, o: 0.85 },
-          ]
-          const s = spots[i % spots.length]
-          return (
-            <span
-              key={r.id}
-              className="absolute -translate-x-1/2 -translate-y-1/2 text-white"
-              style={{ top: s.top, left: s.left, opacity: s.o, width: s.size, height: s.size }}
-            >
-              <r.Mark className="h-full w-full drop-shadow-sm" />
-              <span className="sr-only">{r.name}</span>
-            </span>
-          )
-        })}
-        <div className="absolute inset-x-0 bottom-0 p-5">
-          <div className="text-[15px] font-semibold leading-snug text-white drop-shadow">
-            <Trans>Your AI, your keys.</Trans>
-          </div>
-          <div className="mt-1 text-[12px] leading-snug text-white/80">
-            <Trans>Bring any provider — swap or add more anytime.</Trans>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(null)}
+                  className="mt-auto inline-flex w-fit items-center gap-1 text-[12px] font-medium text-[#9aa0aa] transition-colors hover:text-[#0a0a0a] cursor-pointer"
+                >
+                  <ArrowRight className="h-3.5 w-3.5 rotate-180" />
+                  <Trans>Back to all providers</Trans>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
