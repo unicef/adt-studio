@@ -1,4 +1,4 @@
-import { useMemo, useState, type ComponentType } from "react"
+import { useMemo, useState, type CSSProperties, type ComponentType } from "react"
 import {
   Eye,
   EyeOff,
@@ -70,22 +70,46 @@ type Provider = {
   methods: Method[]
 }
 
-const LIST_W = 536
-const RAIL_W = 214
+const RIGHT_W = 360
+
+/** Selected-row treatment under review — swap to compare: 1 ring+tint, 2 elevated, 3 soft fill. */
+const SELECTED_STYLE: 1 | 2 | 3 = 1
 
 function firstEnabledMethod(p: Provider): string {
   return (p.methods.find((m) => m.enabled) ?? p.methods[0]).id
 }
 
+/** Inline style + radio color for the selected provider row, per SELECTED_STYLE. */
+function selectedRowStyle(accent: string): { style: CSSProperties; radio: string } {
+  if (SELECTED_STYLE === 2) {
+    return {
+      style: {
+        borderColor: "rgba(0,0,0,0.08)",
+        backgroundColor: "#ffffff",
+        boxShadow: `0 0 0 2.5px ${accent}2e, 0 12px 26px -12px ${accent}80`,
+      },
+      radio: accent,
+    }
+  }
+  if (SELECTED_STYLE === 3) {
+    return {
+      style: { borderColor: "transparent", backgroundColor: "#f3f5fb" },
+      radio: "#3b82f7",
+    }
+  }
+  // 1 — brand ring + soft brand tint
+  return {
+    style: { borderColor: accent, borderWidth: 1.5, backgroundColor: `${accent}12` },
+    radio: accent,
+  }
+}
+
 /**
- * Provider screen — colorful list that morphs into a rail once you pick a
- * provider. The side list shows providers only; auth methods (Codex under
- * OpenAI, Claude SDK under Anthropic) live inside the provider's detail panel.
- * Empty state: full-width brand-gradient list + a vibrant gradient
- * "constellation" sidebar. On select, the list animates down to a compact icon
- * rail and the sidebar crossfades into the key-entry panel (A → A2). Providers
- * and methods that aren't wired up yet render disabled ("Soon"). A key is never
- * required — Continue stays enabled with nothing selected.
+ * Provider screen — colorful provider list on the left; a fixed-width panel on
+ * the right that crossfades between the empty-state gradient "constellation" and
+ * the key-entry inputs once a provider is picked. Side list shows providers
+ * only; auth methods (Codex under OpenAI, Claude SDK under Anthropic) live as
+ * tabs inside the detail panel. Nothing is required — Continue stays enabled.
  */
 export function ProviderSceneColor(_props: OnboardingStepProps) {
   const { t } = useLingui()
@@ -208,7 +232,6 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
     [k, t],
   )
 
-  const railMode = selectedId !== null
   const provider = providers.find((p) => p.id === selectedId) ?? null
   const method = provider?.methods.find((m) => m.id === methodId) ?? provider?.methods[0] ?? null
 
@@ -254,93 +277,80 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
         </p>
       </div>
 
-      {/* morphing body */}
+      {/* body: fixed columns, no width morph */}
       <div className="mt-3.5 flex min-h-0 flex-1 gap-4">
-        {/* left — list that collapses to a rail */}
-        <div
-          style={{ width: railMode ? RAIL_W : LIST_W }}
-          className="flex min-h-0 shrink-0 flex-col transition-[width] duration-[520ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
-        >
-          <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
-            {providers.map((p) => {
-              const sel = p.id === selectedId && p.enabled
-              const connected = isConnected(p)
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  disabled={!p.enabled}
-                  onClick={() => select(p)}
-                  style={sel ? { boxShadow: `inset 3px 0 0 0 ${p.to}` } : undefined}
+        {/* left — provider list (fixed) */}
+        <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
+          {providers.map((p) => {
+            const sel = p.id === selectedId && p.enabled
+            const connected = isConnected(p)
+            const selStyle = sel ? selectedRowStyle(p.to) : null
+            return (
+              <button
+                key={p.id}
+                type="button"
+                disabled={!p.enabled}
+                onClick={() => select(p)}
+                style={selStyle?.style}
+                className={cn(
+                  "group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all duration-200",
+                  p.enabled ? "cursor-pointer" : "cursor-not-allowed opacity-55",
+                  !sel && "border-black/[0.07] bg-white hover:border-black/15",
+                )}
+              >
+                <span
                   className={cn(
-                    "group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all duration-300",
-                    p.enabled ? "cursor-pointer" : "cursor-not-allowed opacity-55",
-                    sel
-                      ? "border-transparent bg-[#f5f7ff]"
-                      : "border-black/[0.07] bg-white hover:border-black/15",
+                    "grid h-10 w-10 shrink-0 place-items-center rounded-[12px] text-white shadow-sm",
+                    !p.enabled && "grayscale",
                   )}
+                  style={{ backgroundImage: `linear-gradient(135deg, ${p.from}, ${p.to})` }}
                 >
-                  <span
-                    className={cn(
-                      "grid h-10 w-10 shrink-0 place-items-center rounded-[12px] text-white shadow-sm transition-all duration-300",
-                      !p.enabled && "grayscale",
+                  <p.Mark className="h-[21px] w-[21px]" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="flex items-center gap-2">
+                    <span className="truncate text-[14px] font-semibold text-[#0a0a0a]">{p.name}</span>
+                    {!p.enabled && (
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9aa0aa]">
+                        <Clock className="h-2.5 w-2.5" />
+                        <Trans>Soon</Trans>
+                      </span>
                     )}
-                    style={{ backgroundImage: `linear-gradient(135deg, ${p.from}, ${p.to})` }}
-                  >
-                    <p.Mark className="h-[21px] w-[21px]" />
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="truncate text-[14px] font-semibold text-[#0a0a0a]">
-                        {p.name}
-                      </span>
-                      {!p.enabled && (
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9aa0aa]">
-                          <Clock className="h-2.5 w-2.5" />
-                          <Trans>Soon</Trans>
-                        </span>
-                      )}
-                    </span>
+                  <span className="mt-0.5 block truncate text-[12px] text-[#737373]">{p.desc}</span>
+                </span>
+                {/* selection / status indicator */}
+                {connected ? (
+                  <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#0f9d58]">
+                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                  </span>
+                ) : (
+                  p.enabled && (
                     <span
-                      className={cn(
-                        "block overflow-hidden truncate text-[12px] text-[#737373] transition-all duration-[320ms]",
-                        railMode ? "max-h-0 opacity-0" : "mt-0.5 max-h-5 opacity-100",
-                      )}
+                      className="grid h-5 w-5 shrink-0 place-items-center rounded-full border-2"
+                      style={{ borderColor: sel ? selStyle!.radio : "rgba(0,0,0,0.15)" }}
                     >
-                      {p.desc}
+                      {sel && (
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: selStyle!.radio }}
+                        />
+                      )}
                     </span>
-                  </span>
-                  {/* selection / status indicator */}
-                  {connected ? (
-                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-[#0f9d58]">
-                      <Check className="h-3 w-3 text-white" strokeWidth={3} />
-                    </span>
-                  ) : (
-                    p.enabled && (
-                      <span
-                        className={cn(
-                          "grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 transition-all duration-300",
-                          railMode ? "scale-0 opacity-0" : "scale-100 opacity-100",
-                          sel ? "border-[#3b82f7]" : "border-black/15",
-                        )}
-                      >
-                        {sel && <span className="h-2 w-2 rounded-full bg-[#3b82f7]" />}
-                      </span>
-                    )
-                  )}
-                </button>
-              )
-            })}
-          </div>
+                  )
+                )}
+              </button>
+            )
+          })}
         </div>
 
-        {/* right — gradient sidebar (empty) morphs to key-entry panel (selected) */}
-        <div className="relative min-w-0 flex-1">
+        {/* right — fixed-width panel: empty-state gradient crossfades to inputs */}
+        <div className="relative shrink-0" style={{ width: RIGHT_W }}>
           {/* empty-state gradient constellation */}
           <div
             className={cn(
-              "absolute inset-0 overflow-hidden rounded-[20px] transition-all duration-[520ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-              railMode ? "pointer-events-none scale-[0.98] opacity-0" : "opacity-100",
+              "absolute inset-0 overflow-hidden rounded-[20px] transition-opacity duration-300",
+              provider ? "pointer-events-none opacity-0" : "opacity-100",
             )}
           >
             <div
@@ -392,8 +402,8 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
           {/* selected-state key panel */}
           <div
             className={cn(
-              "absolute inset-0 flex flex-col rounded-2xl border border-black/[0.08] bg-[#fbfbfc] p-5 transition-all duration-[520ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-              railMode ? "opacity-100 delay-100" : "pointer-events-none translate-x-2 opacity-0",
+              "absolute inset-0 flex flex-col rounded-2xl border border-black/[0.08] bg-[#fbfbfc] p-5 transition-opacity duration-300",
+              provider ? "opacity-100" : "pointer-events-none opacity-0",
             )}
           >
             {provider && method && (
@@ -406,12 +416,12 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                     <provider.Mark className="h-6 w-6" />
                   </span>
                   <div className="min-w-0">
-                    <div className="text-[16px] font-semibold text-[#0a0a0a]">{provider.name}</div>
-                    <div className="truncate text-[12.5px] text-[#737373]">{provider.desc}</div>
+                    <div className="text-[15.5px] font-semibold text-[#0a0a0a]">{provider.name}</div>
+                    <div className="truncate text-[12px] text-[#737373]">{provider.desc}</div>
                   </div>
                 </div>
 
-                {/* method segmented control (Codex under OpenAI, Claude SDK under Anthropic) */}
+                {/* method tabs (Codex under OpenAI, Claude SDK under Anthropic) */}
                 {provider.methods.length > 1 && (
                   <div className="mt-4 inline-flex w-fit rounded-xl bg-black/[0.04] p-1">
                     {provider.methods.map((m) => {
@@ -423,7 +433,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                           disabled={!m.enabled}
                           onClick={() => m.enabled && setMethodId(m.id)}
                           className={cn(
-                            "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-all duration-200",
+                            "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-all duration-200",
                             !m.enabled && "cursor-not-allowed opacity-40",
                             on ? "bg-white text-[#0a0a0a] shadow-sm" : "text-[#5a5f68] hover:text-[#0a0a0a]",
                           )}
@@ -445,7 +455,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                 {method.enabled && method.set ? (
                   <div className="mt-4">
                     <div className="mb-1.5 flex items-center justify-between">
-                      <label htmlFor="color-key" className="text-[12.5px] font-semibold text-[#0a0a0a]">
+                      <label htmlFor="color-key" className="text-[12px] font-semibold text-[#0a0a0a]">
                         {provider.id === "custom" ? (
                           <Trans>Base URL</Trans>
                         ) : (
@@ -475,7 +485,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                         placeholder={method.placeholder}
                         value={method.value ?? ""}
                         onChange={(e) => method.set?.(e.target.value)}
-                        className={cn("h-10 rounded-lg bg-white pr-20", looksValid && "border-[#0f9d58]")}
+                        className={cn("h-10 rounded-lg bg-white pr-16", looksValid && "border-[#0f9d58]")}
                       />
                       <div className="absolute right-1 top-0 flex h-10 items-center">
                         <button
@@ -512,13 +522,13 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-black/[0.12] bg-white/60 px-6 py-8 text-center">
+                  <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-black/[0.12] bg-white/60 px-5 py-8 text-center">
                     <Clock className="h-5 w-5 text-[#9aa0aa]" />
                     <div className="mt-2 text-[13px] font-semibold text-[#5a5f68]">
                       <Trans>Coming soon</Trans>
                     </div>
-                    <div className="mt-1 max-w-[280px] text-[12px] text-[#9aa0aa]">
-                      <Trans>This connection isn't available yet — it'll light up in a future release.</Trans>
+                    <div className="mt-1 text-[12px] text-[#9aa0aa]">
+                      <Trans>This connection isn't available yet.</Trans>
                     </div>
                   </div>
                 )}
