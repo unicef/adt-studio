@@ -73,6 +73,7 @@
   --animate-onboarding-drift-b: onboarding-drift-b 28s ease-in-out infinite;
   --animate-onboarding-icon-float: onboarding-icon-float 5s ease-in-out infinite;
   --animate-onboarding-shimmer: onboarding-shimmer 2.8s ease-in-out infinite;
+  --animate-onboarding-eq: onboarding-eq 0.85s ease-in-out infinite;
 }
 
 @keyframes accordion-down {
@@ -263,6 +264,16 @@
   50% {
     opacity: 0.7;
     transform: scale(1.04);
+  }
+}
+
+@keyframes onboarding-eq {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
   }
 }
 

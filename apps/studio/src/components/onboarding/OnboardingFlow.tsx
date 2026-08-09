@@ -53,25 +53,25 @@ export function OnboardingFlow() {
 
   return (
     <OnboardingLayout>
-      <div
-        className="relative z-20 flex min-h-10 items-center px-4 pt-2 animate-onboarding-fade-in [animation-delay:200ms]"
-        style={DRAG_REGION}
-      >
-        <div style={NO_DRAG_REGION}>
-          <LocaleSwitcher variant="standalone" />
-        </div>
-        <div className="flex-1" />
-        {!isLast && (
+      {!isLast && (
+        <div
+          className="relative z-20 flex min-h-11 items-center px-4 pt-2 animate-onboarding-fade-in [animation-delay:200ms]"
+          style={DRAG_REGION}
+        >
+          <div style={NO_DRAG_REGION}>
+            <LocaleSwitcher variant="standalone" />
+          </div>
+          <div className="flex-1" />
           <button
             type="button"
             onClick={onSkip}
             style={NO_DRAG_REGION}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-zinc-500 transition-colors hover:text-zinc-200 cursor-pointer"
+            className="rounded-lg px-3 py-1.5 text-xs font-medium text-[#9aa0aa] transition-colors hover:text-[#0a0a0a] cursor-pointer"
           >
             <Trans>Skip</Trans>
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <OnboardingStepContainer animationClass={animationClass} stepKey={step.id}>
         <StepComponent
@@ -84,39 +84,40 @@ export function OnboardingFlow() {
         />
       </OnboardingStepContainer>
 
-      <div className="relative z-20 flex min-h-[56px] items-center justify-between border-t border-white/[0.06] px-5 py-3 animate-onboarding-fade-in [animation-delay:400ms]">
-        <div className="min-w-[120px]">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "rounded-lg text-zinc-400 hover:bg-white/5 hover:text-zinc-100",
-              isFirst && "invisible",
-            )}
-            onClick={onBack}
-            disabled={isFirst}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <Trans>Back</Trans>
-          </Button>
-        </div>
+      {!isLast && (
+        <div className="relative z-20 flex min-h-[56px] items-center justify-between border-t border-black/[0.06] px-6 py-3 animate-onboarding-fade-in [animation-delay:400ms]">
+          <div className="min-w-[120px]">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={cn(
+                "rounded-lg text-[#737373] hover:bg-black/[0.04] hover:text-[#0a0a0a]",
+                isFirst && "invisible",
+              )}
+              onClick={onBack}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <Trans>Back</Trans>
+            </Button>
+          </div>
 
-        <OnboardingProgress total={ONBOARDING_STEPS.length} current={index} />
+          <OnboardingProgress total={ONBOARDING_STEPS.length} current={index} />
 
-        <div className="flex min-w-[120px] items-center justify-end gap-2">
-          <Button
-            size="sm"
-            className={cn(
-              "rounded-lg bg-white text-zinc-900 hover:bg-zinc-200",
-              (isFirst || isLast) && "invisible",
-            )}
-            onClick={onNext}
-          >
-            <Trans>Continue</Trans>
-            <ArrowRight className="h-4 w-4" />
-          </Button>
+          <div className="flex min-w-[120px] items-center justify-end">
+            <Button
+              size="sm"
+              className={cn(
+                "rounded-lg bg-[#3b82f7] text-white hover:bg-[#2f74e6]",
+                isFirst && "invisible",
+              )}
+              onClick={onNext}
+            >
+              <Trans>Continue</Trans>
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
     </OnboardingLayout>
   );
 }
