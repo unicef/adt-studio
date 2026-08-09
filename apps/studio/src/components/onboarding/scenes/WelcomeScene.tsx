@@ -68,7 +68,6 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
       >
         <button
           type="button"
-          autoFocus
           onClick={onNext}
           className="group inline-flex items-center gap-2 rounded-xl bg-[#3b82f7] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_-4px_rgba(59,130,247,0.45)] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
         >

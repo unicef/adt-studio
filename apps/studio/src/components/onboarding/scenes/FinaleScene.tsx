@@ -57,7 +57,6 @@ export function FinaleScene({ onFinish }: OnboardingStepProps) {
         </p>
         <button
           type="button"
-          autoFocus
           onClick={onFinish}
           className="group mt-7 inline-flex items-center gap-2.5 rounded-2xl bg-white px-6 py-3.5 text-[15px] font-semibold text-[#0f1729] shadow-[0_16px_40px_-8px_rgba(40,90,220,0.6)] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
         >
