@@ -11,7 +11,7 @@ import {
   Waves,
   KeyRound,
   Clock,
-  ArrowRight,
+  ArrowLeft,
 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
@@ -47,7 +47,19 @@ function GeminiMark({ className }: { className?: string }) {
 
 /* --- model --- */
 
-type Row = {
+type Method = {
+  id: string
+  label: string
+  Icon: ComponentType<{ className?: string }>
+  enabled: boolean
+  secret?: boolean
+  keyUrl?: string
+  prefix?: string
+  placeholder?: string
+  value?: string
+  set?: (v: string) => void
+}
+type Provider = {
   id: string
   name: string
   desc: string
@@ -55,30 +67,34 @@ type Row = {
   to: string
   Mark: ComponentType<{ className?: string }>
   enabled: boolean
-  keyUrl?: string
-  prefix?: string
-  placeholder?: string
-  value?: string
-  set?: (v: string) => void
+  methods: Method[]
 }
 
 const LIST_W = 536
 const RAIL_W = 214
 
+function firstEnabledMethod(p: Provider): string {
+  return (p.methods.find((m) => m.enabled) ?? p.methods[0]).id
+}
+
 /**
  * Provider screen — colorful list that morphs into a rail once you pick a
- * provider. Empty state: full-width brand-gradient list + a vibrant gradient
+ * provider. The side list shows providers only; auth methods (Codex under
+ * OpenAI, Claude SDK under Anthropic) live inside the provider's detail panel.
+ * Empty state: full-width brand-gradient list + a vibrant gradient
  * "constellation" sidebar. On select, the list animates down to a compact icon
- * rail and the sidebar crossfades into the key-entry panel (A → A2), giving the
- * inputs room. Not-yet-wired rows (Codex, Claude SDK, DeepSeek) stay disabled.
+ * rail and the sidebar crossfades into the key-entry panel (A → A2). Providers
+ * and methods that aren't wired up yet render disabled ("Soon"). A key is never
+ * required — Continue stays enabled with nothing selected.
  */
-export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
+export function ProviderSceneColor(_props: OnboardingStepProps) {
   const { t } = useLingui()
   const k = useApiKey()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [methodId, setMethodId] = useState<string | null>(null)
   const [reveal, setReveal] = useState(false)
 
-  const rows = useMemo<Row[]>(
+  const providers = useMemo<Provider[]>(
     () =>
       /* eslint-disable lingui/no-unlocalized-strings -- brand/product names, key prefixes/placeholders, URLs are not translated */
       [
@@ -90,43 +106,45 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
           to: "#0D8F6F",
           Mark: OpenAiMark,
           enabled: true,
-          keyUrl: "https://platform.openai.com/api-keys",
-          prefix: "sk-",
-          placeholder: "sk-...",
-          value: k.apiKey,
-          set: k.setApiKey,
-        },
-        {
-          id: "codex",
-          name: "OpenAI Codex",
-          desc: t`Reuse your ChatGPT Plus or Pro plan.`,
-          from: "#34D399",
-          to: "#10A37F",
-          Mark: Terminal,
-          enabled: false,
+          methods: [
+            {
+              id: "api",
+              label: t`API key`,
+              Icon: KeyRound,
+              enabled: true,
+              secret: true,
+              keyUrl: "https://platform.openai.com/api-keys",
+              prefix: "sk-",
+              placeholder: "sk-...",
+              value: k.apiKey,
+              set: k.setApiKey,
+            },
+            { id: "codex", label: "Codex", Icon: Terminal, enabled: false },
+          ],
         },
         {
           id: "anthropic",
           name: "Anthropic",
-          desc: t`Claude Opus & Sonnet via API.`,
+          desc: t`Claude Opus & Sonnet.`,
           from: "#E08A5F",
           to: "#C2410C",
           Mark: AnthropicMark,
           enabled: true,
-          keyUrl: "https://console.anthropic.com/settings/keys",
-          prefix: "sk-ant",
-          placeholder: "sk-ant-...",
-          value: k.anthropicKey,
-          set: k.setAnthropicKey,
-        },
-        {
-          id: "claude-sdk",
-          name: "Claude SDK",
-          desc: t`Reuse your Claude Pro or Max plan.`,
-          from: "#F0A87A",
-          to: "#D97757",
-          Mark: Blocks,
-          enabled: false,
+          methods: [
+            {
+              id: "api",
+              label: t`API key`,
+              Icon: KeyRound,
+              enabled: true,
+              secret: true,
+              keyUrl: "https://console.anthropic.com/settings/keys",
+              prefix: "sk-ant",
+              placeholder: "sk-ant-...",
+              value: k.anthropicKey,
+              set: k.setAnthropicKey,
+            },
+            { id: "sdk", label: "Claude SDK", Icon: Blocks, enabled: false },
+          ],
         },
         {
           id: "gemini",
@@ -136,14 +154,23 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
           to: "#9B4FD0",
           Mark: GeminiMark,
           enabled: true,
-          keyUrl: "https://aistudio.google.com/app/apikey",
-          prefix: "AIza",
-          placeholder: "AIza...",
-          value: k.googleKey,
-          set: (v) => {
-            k.setGoogleKey(v)
-            k.setGeminiKey(v)
-          },
+          methods: [
+            {
+              id: "api",
+              label: t`API key`,
+              Icon: KeyRound,
+              enabled: true,
+              secret: true,
+              keyUrl: "https://aistudio.google.com/app/apikey",
+              prefix: "AIza",
+              placeholder: "AIza...",
+              value: k.googleKey,
+              set: (v) => {
+                k.setGoogleKey(v)
+                k.setGeminiKey(v)
+              },
+            },
+          ],
         },
         {
           id: "deepseek",
@@ -153,6 +180,7 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
           to: "#4D6BFE",
           Mark: Waves,
           enabled: false,
+          methods: [{ id: "api", label: t`API key`, Icon: KeyRound, enabled: false }],
         },
         {
           id: "custom",
@@ -162,9 +190,18 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
           to: "#6D28D9",
           Mark: KeyRound,
           enabled: true,
-          placeholder: "http://localhost:11434/v1",
-          value: k.customBaseUrl,
-          set: k.setCustomBaseUrl,
+          methods: [
+            {
+              id: "base",
+              label: t`Base URL`,
+              Icon: KeyRound,
+              enabled: true,
+              secret: false,
+              placeholder: "http://localhost:11434/v1",
+              value: k.customBaseUrl,
+              set: k.setCustomBaseUrl,
+            },
+          ],
         },
       ],
     /* eslint-enable lingui/no-unlocalized-strings */
@@ -172,48 +209,49 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
   )
 
   const railMode = selectedId !== null
-  const selected = rows.find((r) => r.id === selectedId) ?? null
-  const isConnected = (r: Row) => (r.value ?? "").trim().length > 0
-  const val = (selected?.value ?? "").trim()
-  const looksValid = val.length > 0 && (!selected?.prefix || val.startsWith(selected.prefix))
+  const provider = providers.find((p) => p.id === selectedId) ?? null
+  const method = provider?.methods.find((m) => m.id === methodId) ?? provider?.methods[0] ?? null
 
-  const select = (r: Row) => {
-    if (!r.enabled) return
+  const isConnected = (p: Provider) => p.methods.some((m) => (m.value ?? "").trim().length > 0)
+  const val = (method?.value ?? "").trim()
+  const looksValid = val.length > 0 && (!method?.prefix || val.startsWith(method.prefix))
+
+  const select = (p: Provider) => {
+    if (!p.enabled) return
     setReveal(false)
-    setSelectedId(r.id)
+    setSelectedId(p.id)
+    setMethodId(firstEnabledMethod(p))
   }
 
   const paste = async () => {
     try {
       const text = await navigator.clipboard.readText()
-      if (text && selected?.set) selected.set(text.trim())
+      if (text && method?.set) method.set(text.trim())
     } catch {
       /* clipboard unavailable */
     }
   }
 
-  const constellation = rows.filter((r) => r.id !== "custom")
+  const constellationMarks: { Mark: ComponentType<{ className?: string }>; name: string }[] = [
+    { Mark: OpenAiMark, name: "OpenAI" },
+    { Mark: Terminal, name: "Codex" },
+    { Mark: AnthropicMark, name: "Anthropic" },
+    { Mark: Blocks, name: "Claude SDK" },
+    { Mark: GeminiMark, name: "Gemini" },
+    { Mark: Waves, name: "DeepSeek" },
+  ]
 
   return (
-    <div className="animate-onboarding-fade-in flex h-full w-full flex-col px-8 pb-2 pt-5">
+    <div className="animate-onboarding-fade-in flex h-full w-full flex-col px-8 pb-2 pt-6">
       {/* header */}
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-[21px] font-semibold tracking-[-0.02em] text-[#0a0a0a]">
-            <Trans>Choose your AI provider</Trans>
-          </h2>
-          <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-[#737373]">
-            <Lock className="h-3.5 w-3.5 text-[#9aa0aa]" />
-            <Trans>Keys are stored locally on this device — never sent anywhere else.</Trans>
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={onSkip}
-          className="shrink-0 rounded-lg px-3 py-1.5 text-[12.5px] font-medium text-[#9aa0aa] transition-colors hover:text-[#0a0a0a] cursor-pointer"
-        >
-          <Trans>Skip for now</Trans>
-        </button>
+      <div className="min-w-0">
+        <h2 className="text-[21px] font-semibold tracking-[-0.02em] text-[#0a0a0a]">
+          <Trans>Choose your AI provider</Trans>
+        </h2>
+        <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-[#737373]">
+          <Lock className="h-3.5 w-3.5 text-[#9aa0aa]" />
+          <Trans>Keys are stored locally on this device — never sent anywhere else.</Trans>
+        </p>
       </div>
 
       {/* morphing body */}
@@ -224,19 +262,19 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
           className="flex min-h-0 shrink-0 flex-col transition-[width] duration-[520ms] ease-[cubic-bezier(0.22,1,0.36,1)]"
         >
           <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1">
-            {rows.map((r) => {
-              const sel = r.id === selectedId && r.enabled
-              const connected = isConnected(r)
+            {providers.map((p) => {
+              const sel = p.id === selectedId && p.enabled
+              const connected = isConnected(p)
               return (
                 <button
-                  key={r.id}
+                  key={p.id}
                   type="button"
-                  disabled={!r.enabled}
-                  onClick={() => select(r)}
-                  style={sel ? { boxShadow: `inset 3px 0 0 0 ${r.to}` } : undefined}
+                  disabled={!p.enabled}
+                  onClick={() => select(p)}
+                  style={sel ? { boxShadow: `inset 3px 0 0 0 ${p.to}` } : undefined}
                   className={cn(
                     "group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all duration-300",
-                    r.enabled ? "cursor-pointer" : "cursor-not-allowed opacity-55",
+                    p.enabled ? "cursor-pointer" : "cursor-not-allowed opacity-55",
                     sel
                       ? "border-transparent bg-[#f5f7ff]"
                       : "border-black/[0.07] bg-white hover:border-black/15",
@@ -245,18 +283,18 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
                   <span
                     className={cn(
                       "grid h-10 w-10 shrink-0 place-items-center rounded-[12px] text-white shadow-sm transition-all duration-300",
-                      !r.enabled && "grayscale",
+                      !p.enabled && "grayscale",
                     )}
-                    style={{ backgroundImage: `linear-gradient(135deg, ${r.from}, ${r.to})` }}
+                    style={{ backgroundImage: `linear-gradient(135deg, ${p.from}, ${p.to})` }}
                   >
-                    <r.Mark className="h-[21px] w-[21px]" />
+                    <p.Mark className="h-[21px] w-[21px]" />
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
                       <span className="truncate text-[14px] font-semibold text-[#0a0a0a]">
-                        {r.name}
+                        {p.name}
                       </span>
-                      {!r.enabled && (
+                      {!p.enabled && (
                         <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9aa0aa]">
                           <Clock className="h-2.5 w-2.5" />
                           <Trans>Soon</Trans>
@@ -269,7 +307,7 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
                         railMode ? "max-h-0 opacity-0" : "mt-0.5 max-h-5 opacity-100",
                       )}
                     >
-                      {r.desc}
+                      {p.desc}
                     </span>
                   </span>
                   {/* selection / status indicator */}
@@ -278,7 +316,7 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
                       <Check className="h-3 w-3 text-white" strokeWidth={3} />
                     </span>
                   ) : (
-                    r.enabled && (
+                    p.enabled && (
                       <span
                         className={cn(
                           "grid h-5 w-5 shrink-0 place-items-center rounded-full border-2 transition-all duration-300",
@@ -320,7 +358,7 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
                   "radial-gradient(closest-side at 70% 78%, rgba(255,255,255,0.28), transparent 70%)",
               }}
             />
-            {constellation.map((r, i) => {
+            {constellationMarks.map((c, i) => {
               const spots = [
                 { top: "15%", left: "24%", size: 32, o: 0.9 },
                 { top: "26%", left: "72%", size: 26, o: 0.72 },
@@ -332,12 +370,12 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
               const s = spots[i % spots.length]
               return (
                 <span
-                  key={r.id}
+                  key={c.name}
                   className="absolute -translate-x-1/2 -translate-y-1/2 text-white"
                   style={{ top: s.top, left: s.left, width: s.size, height: s.size, opacity: s.o }}
                 >
-                  <r.Mark className="h-full w-full drop-shadow-sm" />
-                  <span className="sr-only">{r.name}</span>
+                  <c.Mark className="h-full w-full drop-shadow-sm" />
+                  <span className="sr-only">{c.name}</span>
                 </span>
               )
             })}
@@ -346,7 +384,7 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
                 <Trans>Your AI, your keys.</Trans>
               </div>
               <div className="mt-1 text-[12px] leading-snug text-white/80">
-                <Trans>Pick a provider to connect — swap or add more anytime.</Trans>
+                <Trans>Pick a provider to connect — or skip and add one later.</Trans>
               </div>
             </div>
           </div>
@@ -358,96 +396,139 @@ export function ProviderSceneColor({ onSkip }: OnboardingStepProps) {
               railMode ? "opacity-100 delay-100" : "pointer-events-none translate-x-2 opacity-0",
             )}
           >
-            {selected && (
+            {provider && method && (
               <>
                 <div className="flex items-center gap-3">
                   <span
                     className="grid h-11 w-11 shrink-0 place-items-center rounded-[13px] text-white shadow-sm"
-                    style={{ backgroundImage: `linear-gradient(135deg, ${selected.from}, ${selected.to})` }}
+                    style={{ backgroundImage: `linear-gradient(135deg, ${provider.from}, ${provider.to})` }}
                   >
-                    <selected.Mark className="h-6 w-6" />
+                    <provider.Mark className="h-6 w-6" />
                   </span>
                   <div className="min-w-0">
-                    <div className="text-[16px] font-semibold text-[#0a0a0a]">{selected.name}</div>
-                    <div className="truncate text-[12.5px] text-[#737373]">{selected.desc}</div>
+                    <div className="text-[16px] font-semibold text-[#0a0a0a]">{provider.name}</div>
+                    <div className="truncate text-[12.5px] text-[#737373]">{provider.desc}</div>
                   </div>
                 </div>
 
-                <div className="mt-5">
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <label htmlFor="color-key" className="text-[12.5px] font-semibold text-[#0a0a0a]">
-                      {selected.id === "custom" ? (
-                        <Trans>Base URL</Trans>
-                      ) : (
-                        <>
-                          {selected.name} <Trans>API key</Trans>
-                        </>
-                      )}
-                    </label>
-                    {selected.keyUrl && (
-                      <a
-                        href={selected.keyUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[12px] font-medium text-[#3b82f7] hover:underline"
-                      >
-                        <Trans>Get a key</Trans>
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
-                    )}
+                {/* method segmented control (Codex under OpenAI, Claude SDK under Anthropic) */}
+                {provider.methods.length > 1 && (
+                  <div className="mt-4 inline-flex w-fit rounded-xl bg-black/[0.04] p-1">
+                    {provider.methods.map((m) => {
+                      const on = m.id === method.id
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          disabled={!m.enabled}
+                          onClick={() => m.enabled && setMethodId(m.id)}
+                          className={cn(
+                            "inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12.5px] font-medium transition-all duration-200",
+                            !m.enabled && "cursor-not-allowed opacity-40",
+                            on ? "bg-white text-[#0a0a0a] shadow-sm" : "text-[#5a5f68] hover:text-[#0a0a0a]",
+                          )}
+                        >
+                          <m.Icon className="h-3.5 w-3.5" />
+                          {m.label}
+                          {!m.enabled && (
+                            <span className="ml-0.5 rounded bg-black/[0.06] px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#9aa0aa]">
+                              <Trans>Soon</Trans>
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
                   </div>
-                  <div className="relative">
-                    <Input
-                      id="color-key"
-                      type={selected.id !== "custom" && !reveal ? "password" : "text"}
-                      autoComplete="off"
-                      spellCheck={false}
-                      placeholder={selected.placeholder}
-                      value={selected.value ?? ""}
-                      onChange={(e) => selected.set?.(e.target.value)}
-                      className={cn("h-10 rounded-lg bg-white pr-20", looksValid && "border-[#0f9d58]")}
-                    />
-                    <div className="absolute right-1 top-0 flex h-10 items-center">
-                      <button
-                        type="button"
-                        onClick={paste}
-                        title={t`Paste`}
-                        className="grid h-8 w-8 place-items-center rounded-md text-[#9aa0aa] transition-colors hover:text-[#0a0a0a]"
-                      >
-                        <ClipboardPaste className="h-4 w-4" />
-                      </button>
-                      {selected.id !== "custom" && (
+                )}
+
+                {/* method body */}
+                {method.enabled && method.set ? (
+                  <div className="mt-4">
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <label htmlFor="color-key" className="text-[12.5px] font-semibold text-[#0a0a0a]">
+                        {provider.id === "custom" ? (
+                          <Trans>Base URL</Trans>
+                        ) : (
+                          <>
+                            {provider.name} <Trans>API key</Trans>
+                          </>
+                        )}
+                      </label>
+                      {method.keyUrl && (
+                        <a
+                          href={method.keyUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-[12px] font-medium text-[#3b82f7] hover:underline"
+                        >
+                          <Trans>Get a key</Trans>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="color-key"
+                        type={method.secret && !reveal ? "password" : "text"}
+                        autoComplete="off"
+                        spellCheck={false}
+                        placeholder={method.placeholder}
+                        value={method.value ?? ""}
+                        onChange={(e) => method.set?.(e.target.value)}
+                        className={cn("h-10 rounded-lg bg-white pr-20", looksValid && "border-[#0f9d58]")}
+                      />
+                      <div className="absolute right-1 top-0 flex h-10 items-center">
                         <button
                           type="button"
-                          tabIndex={-1}
-                          onClick={() => setReveal((v) => !v)}
+                          onClick={paste}
+                          title={t`Paste`}
                           className="grid h-8 w-8 place-items-center rounded-md text-[#9aa0aa] transition-colors hover:text-[#0a0a0a]"
                         >
-                          {reveal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          <ClipboardPaste className="h-4 w-4" />
                         </button>
+                        {method.secret && (
+                          <button
+                            type="button"
+                            tabIndex={-1}
+                            onClick={() => setReveal((v) => !v)}
+                            className="grid h-8 w-8 place-items-center rounded-md text-[#9aa0aa] transition-colors hover:text-[#0a0a0a]"
+                          >
+                            {reveal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-2 flex min-h-[18px] items-center text-[12px]">
+                      {looksValid ? (
+                        <span className="flex items-center gap-1.5 font-medium text-[#0f9d58]">
+                          <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                          <Trans>Connected — key saved</Trans>
+                        </span>
+                      ) : (
+                        <span className="text-[#9aa0aa]">
+                          <Trans>Paste your key to connect this provider.</Trans>
+                        </span>
                       )}
                     </div>
                   </div>
-                  <div className="mt-2 flex min-h-[18px] items-center text-[12px]">
-                    {looksValid ? (
-                      <span className="flex items-center gap-1.5 font-medium text-[#0f9d58]">
-                        <Check className="h-3.5 w-3.5" strokeWidth={3} />
-                        <Trans>Connected — key saved</Trans>
-                      </span>
-                    ) : (
-                      <span className="text-[#9aa0aa]">
-                        <Trans>Paste your key to connect this provider.</Trans>
-                      </span>
-                    )}
+                ) : (
+                  <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-black/[0.12] bg-white/60 px-6 py-8 text-center">
+                    <Clock className="h-5 w-5 text-[#9aa0aa]" />
+                    <div className="mt-2 text-[13px] font-semibold text-[#5a5f68]">
+                      <Trans>Coming soon</Trans>
+                    </div>
+                    <div className="mt-1 max-w-[280px] text-[12px] text-[#9aa0aa]">
+                      <Trans>This connection isn't available yet — it'll light up in a future release.</Trans>
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <button
                   type="button"
                   onClick={() => setSelectedId(null)}
                   className="mt-auto inline-flex w-fit items-center gap-1 text-[12px] font-medium text-[#9aa0aa] transition-colors hover:text-[#0a0a0a] cursor-pointer"
                 >
-                  <ArrowRight className="h-3.5 w-3.5 rotate-180" />
+                  <ArrowLeft className="h-3.5 w-3.5" />
                   <Trans>Back to all providers</Trans>
                 </button>
               </>
