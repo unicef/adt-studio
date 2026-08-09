@@ -62,14 +62,16 @@ export function OnboardingFlow() {
             <LocaleSwitcher variant="standalone" />
           </div>
           <div className="flex-1" />
-          <button
-            type="button"
-            onClick={onSkip}
-            style={NO_DRAG_REGION}
-            className="rounded-lg px-3 py-1.5 text-xs font-medium text-[#9aa0aa] transition-colors hover:text-[#0a0a0a] cursor-pointer"
-          >
-            <Trans>Skip</Trans>
-          </button>
+          {!isFirst && (
+            <button
+              type="button"
+              onClick={onSkip}
+              style={NO_DRAG_REGION}
+              className="rounded-lg px-3 py-1.5 text-xs font-medium text-[#9aa0aa] transition-colors hover:text-[#0a0a0a] cursor-pointer"
+            >
+              <Trans>Skip</Trans>
+            </button>
+          )}
         </div>
       )}
 
@@ -84,7 +86,7 @@ export function OnboardingFlow() {
         />
       </OnboardingStepContainer>
 
-      {!isLast && (
+      {!isLast && !isFirst && (
         <div className="relative z-20 flex min-h-[56px] items-center justify-between border-t border-black/[0.06] px-6 py-3 animate-onboarding-fade-in [animation-delay:400ms]">
           <div className="min-w-[120px]">
             <Button
