@@ -1,40 +1,44 @@
 import { useEffect, useState } from "react"
 import { CornerDownLeft } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
-import { cn, prefersReducedMotion } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { AppPreview } from "../AppPreview"
 import type { OnboardingStepProps } from "../steps"
 
-/** Rendered logo animation (tablet powers on → book opens) plays, then the welcome reveals. */
+/** Logo lands centered, rises to the top, then the welcome + app preview reveal. */
 export function WelcomeScene({ onNext }: OnboardingStepProps) {
+  const [mounted, setMounted] = useState(false)
   const [revealed, setRevealed] = useState(false)
-  const reduced = prefersReducedMotion()
 
   useEffect(() => {
-    const timer = setTimeout(() => setRevealed(true), reduced ? 0 : 900)
-    return () => clearTimeout(timer)
-  }, [reduced])
+    const raf = requestAnimationFrame(() => setMounted(true))
+    const timer = setTimeout(() => setRevealed(true), 1050)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearTimeout(timer)
+    }
+  }, [])
 
   return (
-    <div className="relative flex h-full w-full flex-col items-center overflow-hidden px-10 pt-2 text-center">
-      {reduced ? (
-        <img aria-hidden src="/logo.png" alt="" className="mt-3 h-[120px] w-[120px] object-contain" />
-      ) : (
-        <video
-          aria-hidden
-          src="/onboarding/welcome-logo.mp4"
-          poster="/logo.png"
-          autoPlay
-          muted
-          playsInline
-          preload="auto"
-          className="z-10 h-[200px] w-[200px] object-contain"
-        />
-      )}
+    <div className="relative flex h-full w-full flex-col items-center overflow-hidden px-10 pt-3 text-center">
+      <img
+        aria-hidden
+        src="/logo.png"
+        alt=""
+        width={52}
+        height={52}
+        className={cn(
+          "z-10 rounded-[14px] transition-all duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+          !mounted && "scale-[0.6] opacity-0",
+          mounted && !revealed && "translate-y-[190px] scale-[2] opacity-100",
+          revealed && "translate-y-0 scale-100 opacity-100",
+        )}
+        style={{ boxShadow: "0 16px 40px -12px rgba(59,130,247,.55)" }}
+      />
 
       <h1
         className={cn(
-          "mt-1 text-[32px] font-semibold leading-tight tracking-[-0.02em] text-[#0a0a0a] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+          "mt-3.5 text-[32px] font-semibold leading-tight tracking-[-0.02em] text-[#0a0a0a] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
           revealed ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
         )}
         style={{ transitionDelay: revealed ? "100ms" : "0ms" }}
@@ -74,7 +78,7 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
 
       <div
         className={cn(
-          "mt-8 w-full max-w-[780px] transition-all duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+          "mt-[54px] w-full max-w-[780px] transition-all duration-[900ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
           revealed ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0",
         )}
         style={{ transitionDelay: revealed ? "380ms" : "0ms" }}
