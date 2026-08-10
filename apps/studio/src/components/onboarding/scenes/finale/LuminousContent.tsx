@@ -2,8 +2,7 @@ import { ArrowRight } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 
-// TODO: confirm the real docs URL. Placeholder points at the GitHub Pages docs.
-export const DOCS_URL = "https://unicef.github.io/adt-studio/docs"
+export const DOCS_URL = "https://unicef.github.io/adt-studio/docs/"
 
 /**
  * Shared Luminous finale content — eyebrow, oversized headline with an entrance

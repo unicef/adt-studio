@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as SettingsRouteImport } from "./routes/settings"
-import { Route as OnboardingFinaleLabRouteImport } from "./routes/onboarding-finale-lab"
 import { Route as OnboardingAuditRouteImport } from "./routes/onboarding-audit"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
 import { Route as IndexRouteImport } from "./routes/index"
@@ -28,11 +27,6 @@ import { Route as BooksLabelStepPageIdRouteImport } from "./routes/books.$label.
 const SettingsRoute = SettingsRouteImport.update({
   id: "/settings",
   path: "/settings",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingFinaleLabRoute = OnboardingFinaleLabRouteImport.update({
-  id: "/onboarding-finale-lab",
-  path: "/onboarding-finale-lab",
   getParentRoute: () => rootRouteImport,
 } as any)
 const OnboardingAuditRoute = OnboardingAuditRouteImport.update({
@@ -105,7 +99,6 @@ export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
   "/onboarding-audit": typeof OnboardingAuditRoute
-  "/onboarding-finale-lab": typeof OnboardingFinaleLabRoute
   "/settings": typeof SettingsRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
@@ -122,7 +115,6 @@ export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
   "/onboarding-audit": typeof OnboardingAuditRoute
-  "/onboarding-finale-lab": typeof OnboardingFinaleLabRoute
   "/settings": typeof SettingsRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
@@ -138,7 +130,6 @@ export interface FileRoutesById {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
   "/onboarding-audit": typeof OnboardingAuditRoute
-  "/onboarding-finale-lab": typeof OnboardingFinaleLabRoute
   "/settings": typeof SettingsRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
@@ -157,7 +148,6 @@ export interface FileRouteTypes {
     | "/"
     | "/onboarding"
     | "/onboarding-audit"
-    | "/onboarding-finale-lab"
     | "/settings"
     | "/books/$label"
     | "/books/import"
@@ -174,7 +164,6 @@ export interface FileRouteTypes {
     | "/"
     | "/onboarding"
     | "/onboarding-audit"
-    | "/onboarding-finale-lab"
     | "/settings"
     | "/books/import"
     | "/books/new"
@@ -189,7 +178,6 @@ export interface FileRouteTypes {
     | "/"
     | "/onboarding"
     | "/onboarding-audit"
-    | "/onboarding-finale-lab"
     | "/settings"
     | "/books/$label"
     | "/books/import"
@@ -207,7 +195,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OnboardingRoute: typeof OnboardingRoute
   OnboardingAuditRoute: typeof OnboardingAuditRoute
-  OnboardingFinaleLabRoute: typeof OnboardingFinaleLabRoute
   SettingsRoute: typeof SettingsRoute
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
@@ -222,13 +209,6 @@ declare module "@tanstack/react-router" {
       path: "/settings"
       fullPath: "/settings"
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/onboarding-finale-lab": {
-      id: "/onboarding-finale-lab"
-      path: "/onboarding-finale-lab"
-      fullPath: "/onboarding-finale-lab"
-      preLoaderRoute: typeof OnboardingFinaleLabRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/onboarding-audit": {
@@ -361,7 +341,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OnboardingRoute: OnboardingRoute,
   OnboardingAuditRoute: OnboardingAuditRoute,
-  OnboardingFinaleLabRoute: OnboardingFinaleLabRoute,
   SettingsRoute: SettingsRoute,
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,
