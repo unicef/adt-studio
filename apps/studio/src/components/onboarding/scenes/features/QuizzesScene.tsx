@@ -30,13 +30,13 @@ function QuizzesDemo() {
               key={o.label}
               className={cn(
                 "flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 transition-all duration-300",
-                on ? "bg-[#eafaf0] ring-1 ring-[#22a35f]" : "bg-[#f6f7f9]",
+                on ? "bg-[#fff7ed] ring-1 ring-[#ea580c]" : "bg-[#f6f7f9]",
               )}
             >
               <span
                 className={cn(
                   "grid h-4 w-4 shrink-0 place-items-center rounded-full border-[1.5px] transition-colors",
-                  on ? "border-[#22a35f] bg-[#22a35f]" : "border-[#cfd3da] bg-white",
+                  on ? "border-[#ea580c] bg-[#ea580c]" : "border-[#cfd3da] bg-white",
                 )}
               >
                 {on && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
@@ -44,7 +44,7 @@ function QuizzesDemo() {
               <span
                 className={cn(
                   "text-[12.5px] transition-colors",
-                  on ? "font-semibold text-[#177a45]" : "font-medium text-[#4a4d55]",
+                  on ? "font-semibold text-[#9a3412]" : "font-medium text-[#4a4d55]",
                 )}
               >
                 {o.label}
@@ -55,7 +55,7 @@ function QuizzesDemo() {
       </div>
       <div
         className={cn(
-          "absolute bottom-5 left-5 flex items-center gap-1 rounded-full bg-[#22a35f] px-2.5 py-1 transition-all duration-300",
+          "absolute bottom-5 left-5 flex items-center gap-1 rounded-full bg-[#ea580c] px-2.5 py-1 transition-all duration-300",
           answered ? "opacity-100" : "opacity-0",
         )}
       >
@@ -64,7 +64,7 @@ function QuizzesDemo() {
           <Trans>Correct</Trans>
         </span>
       </div>
-      <DemoCursor x={cursor.x} y={cursor.y} clicking={clicking} color="#22a35f" />
+      <DemoCursor x={cursor.x} y={cursor.y} clicking={clicking} color="#ea580c" />
     </div>
   )
 }

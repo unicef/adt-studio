@@ -40,7 +40,7 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
   }
 
   return (
-    <div className="relative flex h-full w-full flex-col items-center overflow-hidden px-10 pt-3 text-center">
+    <div className="relative flex h-full w-full flex-col items-center overflow-hidden bg-[#f4fffe] px-10 pt-3 text-center">
       {OB_IS_BETA ? (
         <img
           aria-hidden
