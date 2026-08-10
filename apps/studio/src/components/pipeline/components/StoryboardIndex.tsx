@@ -321,22 +321,36 @@ type StoryboardListItem =
 const READING_ORDER_DRAG_TYPE = "application/x-adt-reading-order"
 
 /**
- * The row's place in the book, shown first because it is the order the reader
- * meets things in. `pg N` beside it stays the *source* PDF page — the two stop
- * agreeing the moment the book is reordered, so each is labelled.
+ * The row's two numbers, which are different things and stop agreeing as soon
+ * as the book is reordered: where the page sits in the book (the filled chip,
+ * first, because it is the order the reader meets it in) and where it came from
+ * in the PDF. The `PDF` prefix is what makes the second unambiguous — this line
+ * is only a few characters wide, so the word does the work a tooltip alone
+ * cannot.
  */
-function PositionBadge({ position, sourceLabel }: { position: number; sourceLabel: string }) {
+function RowPosition({
+  position,
+  pageNumber,
+  kind,
+}: {
+  position: number
+  pageNumber: number
+  /** A quiz sits *after* a source page rather than coming from one. */
+  kind: "section" | "quiz"
+}) {
   const { t } = useLinguiMacro()
   return (
     <>
       <span
-        title={t`Position in the book`}
+        title={t`Page ${String(position)} of the book`}
         className="inline-flex items-center justify-center min-w-[15px] h-[13px] px-0.5 rounded bg-foreground/10 text-[9px] font-semibold leading-none tabular-nums"
       >
         {position}
       </span>
-      <span title={t`Page in the source PDF`} className="ml-1">
-        {sourceLabel}
+      <span title={t`From page ${String(pageNumber)} of the source PDF`} className="ml-1">
+        {/* One whole message per case rather than a translated word glued onto
+            a number — word order around "PDF" differs by language. */}
+        {kind === "quiz" ? t`after PDF ${String(pageNumber)}` : t`PDF ${String(pageNumber)}`}
       </span>
     </>
   )
@@ -371,6 +385,7 @@ function SectionRow({
   stageRunning?: boolean
 }) {
   const { i18n } = useLingui()
+  const { t } = useLinguiMacro()
   const { data: pageImageData, isLoading: pageImageLoading } = usePageImage(bookLabel, page.pageId)
   const rowRef = useRef<HTMLButtonElement>(null)
 
@@ -404,10 +419,10 @@ function SectionRow({
       onMouseLeave={hover.handleLeave}
       title={
         section.isPruned
-          ? i18n._(msg`Section ${section.sectionIndex + 1} (pruned)`)
+          ? t`Book page ${String(position)} · PDF page ${String(page.pageNumber)} (pruned)`
           : section.sectionType
-            ? i18n._(msg`Section ${section.sectionIndex + 1} · ${section.sectionType}`)
-            : i18n._(msg`Section ${section.sectionIndex + 1}`)
+            ? t`Book page ${String(position)} · PDF page ${String(page.pageNumber)} · ${section.sectionType}`
+            : t`Book page ${String(position)} · PDF page ${String(page.pageNumber)}`
       }
       className={cn(
         "flex items-start gap-2 px-2 py-1.5 text-left transition-colors w-full",
@@ -460,7 +475,7 @@ function SectionRow({
           {previewLabel}
         </span>
         <span className="mt-1 inline-flex items-center text-[10px] opacity-60 leading-none">
-          <PositionBadge position={position} sourceLabel={`pg ${String(page.pageNumber)}`} />
+          <RowPosition position={position} pageNumber={page.pageNumber} kind="section" />
           {page.sectionCount > 1 && (
             <span className="ml-1 inline-flex items-center justify-center min-w-[15px] h-[13px] px-0.5 rounded bg-black/10 text-[9px] font-semibold leading-none">
               {`${section.sectionIndex + 1}/${page.sectionCount}`}
@@ -474,8 +489,10 @@ function SectionRow({
             pos={hover.pos}
             pdfThumb={pdfThumb}
             renderedThumb={renderedThumb}
+            position={position}
             pageNumber={page.pageNumber}
             sectionIndex={section.sectionIndex}
+            sectionCount={page.sectionCount}
             sectionType={section.sectionType}
             isActivity={section.isActivity}
             isPruned={section.isPruned}
@@ -519,7 +536,7 @@ function QuizRow({
       onClick={onSelect}
       onMouseEnter={hover.handleEnter}
       onMouseLeave={hover.handleLeave}
-      title={i18n._(msg`Quiz after page ${page.pageNumber}`)}
+      title={t`Book page ${String(position)} · quiz after PDF page ${String(page.pageNumber)}`}
       className={cn(
         "flex items-start gap-2 px-2 py-1.5 text-left transition-colors w-full",
         isActive
@@ -568,10 +585,7 @@ function QuizRow({
       <div className="flex flex-col gap-0.5 min-w-0 flex-1 pt-0.5">
         <span className="text-[11px] leading-snug line-clamp-2">{quiz.question}</span>
         <span className="mt-1 inline-flex items-center text-[10px] opacity-60 leading-none">
-          <PositionBadge
-            position={position}
-            sourceLabel={t`after pg ${String(page.pageNumber)}`}
-          />
+          <RowPosition position={position} pageNumber={page.pageNumber} kind="quiz" />
         </span>
       </div>
       {hover.show &&
@@ -607,7 +621,7 @@ function QuizPreview({
             <Trans>Quiz</Trans>
           </span>
           <span className="text-xs text-muted-foreground">
-            <Trans>after page {String(pageNumber)}</Trans>
+            <Trans>after PDF page {String(pageNumber)}</Trans>
           </span>
         </div>
         {/* Question + options */}
@@ -691,8 +705,10 @@ function ComparisonPreview({
   pos,
   pdfThumb,
   renderedThumb,
+  position,
   pageNumber,
   sectionIndex,
+  sectionCount,
   sectionType,
   isActivity,
   isPruned,
@@ -701,8 +717,10 @@ function ComparisonPreview({
   pos: { top: number; left: number }
   pdfThumb: string | null
   renderedThumb: string | null
+  position: number
   pageNumber: number
   sectionIndex: number
+  sectionCount: number
   sectionType: string
   isActivity: boolean
   isPruned: boolean
@@ -717,13 +735,24 @@ function ComparisonPreview({
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-b bg-muted/30">
           <div className="flex items-center gap-2 min-w-0">
+            {/* Two different numbers that used to read as one: where the page
+                sits in the book, and where it came from in the PDF. Naming both
+                "page" keeps them parallel and short — after a reorder they
+                simply differ. */}
             <span className="text-xs font-semibold text-foreground">
-              <Trans>Page {String(pageNumber)}</Trans>
+              <Trans>Book page {String(position)}</Trans>
             </span>
             <span className="text-xs text-muted-foreground">·</span>
             <span className="text-xs text-muted-foreground">
-              <Trans>Section {String(sectionIndex + 1)}</Trans>
+              <Trans>PDF page {String(pageNumber)}</Trans>
             </span>
+            {sectionCount > 1 && (
+              <span className="text-xs text-muted-foreground">
+                <Trans>
+                  · part {String(sectionIndex + 1)} of {String(sectionCount)}
+                </Trans>
+              </span>
+            )}
             {isActivity && (
               <span className="inline-flex items-center gap-1 px-1.5 h-[18px] rounded bg-violet-100 text-violet-700 text-[10px] font-semibold">
                 <Puzzle className="w-2.5 h-2.5" />
