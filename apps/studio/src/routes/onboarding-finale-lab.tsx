@@ -4,9 +4,8 @@ import { createFileRoute } from "@tanstack/react-router"
 import { RotateCcw } from "lucide-react"
 import type { OnboardingStepProps } from "@/components/onboarding/steps"
 import { FinaleSceneRecap } from "@/components/onboarding/scenes/FinaleSceneRecap"
-import { FinaleV1PowerOn } from "@/components/onboarding/scenes/FinaleV1PowerOn"
-import { FinaleV2LightsUp } from "@/components/onboarding/scenes/FinaleV2LightsUp"
-import { FinaleV3Convergence } from "@/components/onboarding/scenes/FinaleV3Convergence"
+import { FinaleLuminous } from "@/components/onboarding/scenes/FinaleLuminous"
+import { FinaleAurora } from "@/components/onboarding/scenes/FinaleAurora"
 import { usePageTitle } from "@/hooks/use-page-title"
 
 export const Route = createFileRoute("/onboarding-finale-lab")({
@@ -25,31 +24,24 @@ type Variant = {
 
 const VARIANTS: Variant[] = [
   {
-    id: "v1",
-    num: "V1",
-    label: "Power on the studio",
-    note: "Arc-style orb→window reveal: logo bursts and the real app blooms out of it, vignette lifts. Bookends the 3D intro.",
-    component: FinaleV1PowerOn,
+    id: "luminous",
+    num: "A",
+    label: "Luminous (light)",
+    note: "Exaggerated-minimal, consistent with the light flow: oversized type on warm white, one blue accent, soft feature-colored aurora, masked line-rise reveal. No screenshot.",
+    component: FinaleLuminous,
   },
   {
-    id: "v2",
-    num: "V2",
-    label: "Lights up (curtain call)",
-    note: "Product-as-hero: app is present but dark; a light sweep lifts the dimming so it resolves crisp. Restraint, no logo.",
-    component: FinaleV2LightsUp,
-  },
-  {
-    id: "v3",
-    num: "V3",
-    label: "Feature convergence",
-    note: "The four reader features converge into the logo, which bursts and blooms into the app. Callback to the journey.",
-    component: FinaleV3Convergence,
+    id: "aurora",
+    num: "B",
+    label: "Aurora (dark, cinematic)",
+    note: "One designed frame — the four feature hues + accessibility blue woven into a slow-flowing aurora, oversized type, masked reveal, single CTA. No screenshot.",
+    component: FinaleAurora,
   },
   {
     id: "current",
     num: "C",
-    label: "Current live finale (for reference)",
-    note: "The shipping cinematic recap — app rises once behind a static vignette.",
+    label: "Old live finale (for reference)",
+    note: "The current shipping recap — app screenshot rising behind a static vignette (the collage we're replacing).",
     component: FinaleSceneRecap,
   },
 ]

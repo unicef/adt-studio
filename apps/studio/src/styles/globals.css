@@ -75,6 +75,8 @@
   --animate-onboarding-shimmer: onboarding-shimmer 2.8s ease-in-out infinite;
   --animate-onboarding-eq: onboarding-eq 0.85s ease-in-out infinite;
   --animate-onboarding-gradient: onboarding-gradient 6s ease-in-out infinite;
+  --animate-finale-rise: finale-rise 0.95s cubic-bezier(0.19, 1, 0.22, 1) both;
+  --animate-finale-aurora: finale-aurora 20s ease-in-out infinite;
 }
 
 @keyframes accordion-down {
@@ -275,6 +277,37 @@
   }
   50% {
     transform: scaleY(1);
+  }
+}
+
+@keyframes finale-rise {
+  from {
+    transform: translateY(118%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes finale-aurora {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(4%, -3%, 0) scale(1.08);
+  }
+  66% {
+    transform: translate3d(-3%, 2%, 0) scale(0.96);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-finale-rise {
+    animation: none;
+  }
+  .animate-finale-aurora {
+    animation: none;
   }
 }
 

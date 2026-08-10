@@ -95,7 +95,7 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
         <button
           type="button"
           onClick={onNext}
-          className="group inline-flex items-center gap-2 rounded-xl bg-[#3b82f7] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_-4px_rgba(59,130,247,0.45)] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+          className="group inline-flex items-center gap-2 rounded-xl bg-[var(--ob-accent)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_20px_-4px_rgba(var(--ob-accent-rgb),0.45)] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
         >
           <Trans>Let's start</Trans>
           <CornerDownLeft className="h-4 w-4 text-white/80 transition-transform duration-200 group-hover:translate-x-0.5" />

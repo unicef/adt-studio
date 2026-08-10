@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import { FEATURE_META, type FeatureSlug } from "./shared/featureMeta"
+import { OB_PANEL_GRADIENT } from "../theme"
 
 /**
  * Split feature page: left = eyebrow (exact stage icon+color) + heading + copy,
@@ -45,10 +46,7 @@ export function FeatureScene({
 
       <div
         className="relative flex-1 overflow-hidden rounded-[22px]"
-        style={{
-          background:
-            "linear-gradient(150deg, #4285f8 0%, #2258c9 60%, #1e46a3 100%)",
-        }}
+        style={{ background: OB_PANEL_GRADIENT }}
       >
         <span className="absolute left-6 top-6 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70">
           {panelLabel}

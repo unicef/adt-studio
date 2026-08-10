@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { cn, isElectron } from "@/lib/utils"
+import { onboardingThemeVars } from "./theme"
 
 /**
  * Full-window shell for the first-run onboarding. In the desktop build this
@@ -37,11 +38,12 @@ export function OnboardingLayout({ children }: { children: ReactNode }) {
 
   return (
     <div
+      style={onboardingThemeVars}
       className={cn(
         "fixed inset-0 flex items-center justify-center overflow-hidden",
         inElectron
           ? "bg-transparent p-0"
-          : "bg-[radial-gradient(120%_120%_at_50%_-10%,#eaf1ff_0%,#eef0f5_55%,#e7e9ef_100%)] p-6",
+          : "bg-[radial-gradient(120%_120%_at_50%_-10%,var(--ob-accent-wash)_0%,#eef0f5_55%,#e7e9ef_100%)] p-6",
       )}
     >
       <div

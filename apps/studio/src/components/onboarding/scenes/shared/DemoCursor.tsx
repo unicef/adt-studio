@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils"
+import { OB_ACCENT } from "../../theme"
 
 /**
  * The regular macOS arrow pointer. Slides so its tip lands on (x, y) and emits a
@@ -9,7 +10,7 @@ export function DemoCursor({
   x,
   y,
   clicking,
-  color = "#3b82f7",
+  color = OB_ACCENT,
 }: {
   x: number
   y: number

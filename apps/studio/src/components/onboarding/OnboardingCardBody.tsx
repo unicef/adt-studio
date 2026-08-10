@@ -85,7 +85,9 @@ export function OnboardingCardBody({
           <div className="flex min-w-[120px] items-center justify-end">
             <Button
               size="sm"
-              className={cn("rounded-lg bg-[#3b82f7] text-white hover:bg-[#2f74e6]")}
+              className={cn(
+                "rounded-lg bg-[var(--ob-accent)] text-white hover:bg-[var(--ob-accent-strong)]",
+              )}
               onClick={onNext}
             >
               <Trans>Continue</Trans>
