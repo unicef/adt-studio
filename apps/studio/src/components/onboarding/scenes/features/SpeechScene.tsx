@@ -12,7 +12,7 @@ function SpeechDemo() {
   const atPlay = phase >= 1
   const playing = phase >= 2
   const clicking = phase === 2
-  const cursor = atPlay ? { x: 26, y: 212 } : { x: 250, y: 258 }
+  const cursor = atPlay ? { x: 48, y: 234 } : { x: 258, y: 250 }
   return (
     <div className="relative h-[280px] w-[300px] rounded-2xl bg-white p-5 shadow-[0_18px_44px_-12px_rgba(6,20,60,0.45)]">
       <div className="text-[13px] font-bold text-[#0a0a0a]">

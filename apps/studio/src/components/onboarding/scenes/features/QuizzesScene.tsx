@@ -11,7 +11,7 @@ function QuizzesDemo() {
   const atOpt = phase >= 1
   const answered = phase >= 2
   const clicking = phase === 2
-  const cursor = atOpt ? { x: 40, y: 118 } : { x: 250, y: 258 }
+  const cursor = atOpt ? { x: 44, y: 128 } : { x: 258, y: 258 }
   const options = [
     { label: t`Respiration`, correct: false },
     { label: t`Photosynthesis`, correct: true },

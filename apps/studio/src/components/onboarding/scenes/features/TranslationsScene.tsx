@@ -12,7 +12,7 @@ function TranslationsDemo() {
   const atPill = phase >= 1
   const translated = phase >= 2
   const clicking = phase === 2
-  const cursor = atPill ? { x: 66, y: 8 } : { x: 250, y: 250 }
+  const cursor = atPill ? { x: 78, y: 34 } : { x: 258, y: 250 }
   // eslint-disable-next-line lingui/no-unlocalized-strings -- language codes, not UI copy
   const active = translated ? "PT" : "EN"
   return (
