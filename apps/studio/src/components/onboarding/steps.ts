@@ -4,7 +4,7 @@ import { SpeechScene } from "./scenes/features/SpeechScene";
 import { TranslationsScene } from "./scenes/features/TranslationsScene";
 import { QuizzesScene } from "./scenes/features/QuizzesScene";
 import { GlossaryScene } from "./scenes/features/GlossaryScene";
-import { ProviderScene } from "./scenes/ProviderScene";
+import { ProviderSceneColor } from "./scenes/ProviderSceneColor";
 import { FinaleSceneRecap } from "./scenes/FinaleSceneRecap";
 
 export type OnboardingStepProps = {
@@ -34,6 +34,6 @@ export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   { id: "translations", component: TranslationsScene },
   { id: "quizzes", component: QuizzesScene },
   { id: "glossary", component: GlossaryScene },
-  { id: "provider", component: ProviderScene },
+  { id: "provider", component: ProviderSceneColor },
   { id: "finale", component: FinaleSceneRecap },
 ] as const;
