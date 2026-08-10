@@ -14,7 +14,10 @@ import mupdf, {
   type Pixmap,
 } from "mupdf";
 import { cropPng, decodePng, stitchPngsHorizontally } from "./png-utils.js";
-import { extractTextFromStructuredText } from "./fm-sinhala.js";
+import {
+  extractFilteredTextFromStructuredText,
+  extractTextFromStructuredText,
+} from "./fm-sinhala.js";
 import type { RenderMethodValue } from "@adt/types";
 import { renderSvgToPng } from "./svg-render.js";
 import {
@@ -46,7 +49,6 @@ import {
   detectTextWatermarks,
   isWatermarkLine,
   renderPageWithoutWatermarks,
-  stripWatermarkTextLines,
   type WatermarkSignature,
 } from "./watermarks.js";
 
@@ -886,13 +888,29 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtr
 
   // Extract text (handles legacy FM Sinhala font remapping when detected)
   const stext = page.toStructuredText();
-  const rawText = extractTextFromStructuredText(stext);
-  const text = watermarks && watermarks.length > 0
-    ? stripWatermarkTextLines(rawText, watermarks)
-    : rawText;
-  const fontStats = tallyFontCategories(stext);
   const pageBounds = page.getBounds();
-  const textShapes = extractTextShapes(stext, 0, pageBounds[2] - pageBounds[0], watermarks);
+  const text = watermarks && watermarks.length > 0
+    ? extractFilteredTextFromStructuredText(stext, ({ rawText, bbox }) =>
+        isWatermarkLine(
+          rawText,
+          bbox && [
+            bbox[0] - pageBounds[0],
+            bbox[1] - pageBounds[1],
+            bbox[2] - pageBounds[0],
+            bbox[3] - pageBounds[1],
+          ],
+          watermarks,
+        ))
+    : extractTextFromStructuredText(stext);
+  const fontStats = tallyFontCategories(stext);
+  const textShapes = extractTextShapes(
+    stext,
+    0,
+    pageBounds[2] - pageBounds[0],
+    watermarks,
+    pageBounds[0],
+    pageBounds[1],
+  );
 
   // Extract raster images directly from PDF objects (not SVG)
   const pdfDoc = doc as unknown as PDFDocument;
@@ -946,6 +964,21 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtr
   // positioned text at fixed-layout quality (spacing cleanup on) so the data is
   // ready regardless of when the user picks fixed-layout.
   const paragraphData = parsePageParagraphs(page, stext, 2, true);
+  if (watermarks && watermarks.length > 0) {
+    paragraphData.paragraphs = paragraphData.paragraphs.filter((paragraph) => {
+      const bounds = paragraph.blockBounds;
+      return !isWatermarkLine(
+        paragraph.text,
+        bounds && [
+          bounds.x - pageBounds[0],
+          bounds.y - pageBounds[1],
+          bounds.x + bounds.width - pageBounds[0],
+          bounds.y + bounds.height - pageBounds[1],
+        ],
+        watermarks,
+      );
+    });
+  }
   // Fold hand-lettered vector paint into the duplicate selectable text run.
   const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, recorder.ops);
   // Dropping the now-duplicate vector shapes CHANGES the image set, so keep it
@@ -966,9 +999,6 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtr
     recorder.ops,
   );
   if (watermarks && watermarks.length > 0) {
-    positionedText.drawItems = positionedText.drawItems.filter(
-      (item) => item.kind !== "paragraph" || !isWatermarkLine(item.text, watermarks),
-    );
     extractionDebug.watermarks = watermarks;
   }
 
@@ -1682,20 +1712,48 @@ async function extractSpreadPage(
   // Concatenate text from both pages (handles legacy FM Sinhala font remapping)
   const leftStext = leftPage.toStructuredText();
   const rightStext = rightPage.toStructuredText();
-  const leftText = extractTextFromStructuredText(leftStext);
-  const rightText = extractTextFromStructuredText(rightStext);
-  const rawText = leftText + "\n" + rightText;
-  const text = hasWatermarks ? stripWatermarkTextLines(rawText, watermarks) : rawText;
+  const leftBounds = leftPage.getBounds();
+  const rightBounds = rightPage.getBounds();
+  const extractPageText = (
+    stext: typeof leftStext,
+    bounds: BBox,
+  ): string => hasWatermarks
+    ? extractFilteredTextFromStructuredText(stext, ({ rawText, bbox }) =>
+        isWatermarkLine(
+          rawText,
+          bbox && [
+            bbox[0] - bounds[0],
+            bbox[1] - bounds[1],
+            bbox[2] - bounds[0],
+            bbox[3] - bounds[1],
+          ],
+          watermarks,
+        ))
+    : extractTextFromStructuredText(stext);
+  const text = extractPageText(leftStext, leftBounds) + "\n"
+    + extractPageText(rightStext, rightBounds);
   const leftFontStats = tallyFontCategories(leftStext);
   const rightFontStats = tallyFontCategories(rightStext);
   const fontStats = {
     serifChars: leftFontStats.serifChars + rightFontStats.serifChars,
     sansChars: leftFontStats.sansChars + rightFontStats.sansChars,
   };
-  const leftBounds = leftPage.getBounds();
-  const rightBounds = rightPage.getBounds();
-  const leftTextShapes = extractTextShapes(leftStext, 0, leftBounds[2] - leftBounds[0], watermarks);
-  const rightTextShapes = extractTextShapes(rightStext, leftTextShapes.length, rightBounds[2] - rightBounds[0], watermarks);
+  const leftTextShapes = extractTextShapes(
+    leftStext,
+    0,
+    leftBounds[2] - leftBounds[0],
+    watermarks,
+    leftBounds[0],
+    leftBounds[1],
+  );
+  const rightTextShapes = extractTextShapes(
+    rightStext,
+    leftTextShapes.length,
+    rightBounds[2] - rightBounds[0],
+    watermarks,
+    rightBounds[0],
+    rightBounds[1],
+  );
 
   // Extract raster images from both pages
   const pdfDoc = doc as unknown as PDFDocument;
@@ -1800,6 +1858,36 @@ async function extractSpreadPage(
 
   // Reuse the per-page StructuredText already built above — no extra pass.
   const paragraphData = parsePageParagraphsSpread(leftPage, rightPage, leftStext, rightStext, 2, true);
+  if (hasWatermarks) {
+    const spreadWatermarks = [
+      ...watermarks.map((signature) => ({
+        ...signature,
+        bbox: [
+          signature.bbox[0] + leftBounds[0],
+          signature.bbox[1] + leftBounds[1],
+          signature.bbox[2] + leftBounds[0],
+          signature.bbox[3] + leftBounds[1],
+        ] as BBox,
+      })),
+      ...watermarks.map((signature) => ({
+        ...signature,
+        bbox: [
+          signature.bbox[0] + rightBounds[0] + leftPageWidthPt,
+          signature.bbox[1] + rightBounds[1],
+          signature.bbox[2] + rightBounds[0] + leftPageWidthPt,
+          signature.bbox[3] + rightBounds[1],
+        ] as BBox,
+      })),
+    ];
+    paragraphData.paragraphs = paragraphData.paragraphs.filter((paragraph) => {
+      const bounds = paragraph.blockBounds;
+      return !isWatermarkLine(
+        paragraph.text,
+        bounds && [bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height],
+        spreadWatermarks,
+      );
+    });
+  }
   const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, ops);
   // The destructive figure dedup stays gated to fixed-layout so reflowable
   // image output is unchanged (see extractPage).
@@ -1817,9 +1905,6 @@ async function extractSpreadPage(
     ops,
   );
   if (hasWatermarks) {
-    positionedText.drawItems = positionedText.drawItems.filter(
-      (item) => item.kind !== "paragraph" || !isWatermarkLine(item.text, watermarks),
-    );
     extractionDebug.watermarks = watermarks;
   }
 
@@ -2166,17 +2251,21 @@ function rasterContentBboxOnPage(image: ExtractedImage): BBox | undefined {
     const height = pixelsPixmap.getHeight();
     if (width <= 0 || height <= 0) return undefined;
 
+    // MuPDF's component count already includes alpha. Pixmap rows may also
+    // contain padding, so use the reported row stride instead of deriving it
+    // from width. Treat the remaining components as grayscale or RGB.
     const components = pixelsPixmap.getNumberOfComponents();
-    const hasAlpha = pixelsPixmap.getAlpha();
-    const stride = components + (hasAlpha ? 1 : 0);
+    const hasAlpha = pixelsPixmap.getAlpha() !== 0;
+    const colorComponents = components - (hasAlpha ? 1 : 0);
+    const rowStride = pixelsPixmap.getStride();
     const pixels = pixelsPixmap.getPixels();
 
     const sample = (x: number, y: number): [number, number, number, number] => {
-      const offset = (y * width + x) * stride;
+      const offset = y * rowStride + x * components;
       const r = pixels[offset] ?? 255;
-      const g = components === 1 ? r : (pixels[offset + 1] ?? r);
-      const b = components === 1 ? r : (pixels[offset + 2] ?? r);
-      const a = hasAlpha ? (pixels[offset + components] ?? 255) : 255;
+      const g = colorComponents === 1 ? r : (pixels[offset + 1] ?? r);
+      const b = colorComponents === 1 ? r : (pixels[offset + 2] ?? r);
+      const a = hasAlpha ? (pixels[offset + components - 1] ?? 255) : 255;
       return [r, g, b, a];
     };
 
@@ -2221,13 +2310,35 @@ function rasterContentBboxOnPage(image: ExtractedImage): BBox | undefined {
     maxX = Math.min(width - 1, maxX + 1);
     maxY = Math.min(height - 1, maxY + 1);
 
-    const xScale = image.bounds.width / width;
-    const yScale = image.bounds.height / height;
+    const sourceBbox: BBox = [minX, minY, maxX + 1, maxY + 1];
+    const orientation = image.orientationTransform ?? "identity";
+    const swapsAxes = orientation === "rotate-90-clockwise"
+      || orientation === "rotate-90-counterclockwise"
+      || orientation === "transpose"
+      || orientation === "anti-transpose";
+    const orientedWidth = swapsAxes ? height : width;
+    const orientedHeight = swapsAxes ? width : height;
+    const orientedBbox: BBox = (() => {
+      const [x0, y0, x1, y1] = sourceBbox;
+      switch (orientation) {
+        case "flip-horizontal": return [width - x1, y0, width - x0, y1];
+        case "flip-vertical": return [x0, height - y1, x1, height - y0];
+        case "rotate-180": return [width - x1, height - y1, width - x0, height - y0];
+        case "rotate-90-clockwise": return [height - y1, x0, height - y0, x1];
+        case "rotate-90-counterclockwise": return [y0, width - x1, y1, width - x0];
+        case "transpose": return [y0, x0, y1, x1];
+        case "anti-transpose": return [height - y1, width - x1, height - y0, width - x0];
+        case "identity": return sourceBbox;
+      }
+    })();
+
+    const xScale = image.bounds.width / orientedWidth;
+    const yScale = image.bounds.height / orientedHeight;
     return [
-      image.bounds.x + minX * xScale,
-      image.bounds.y + minY * yScale,
-      image.bounds.x + (maxX + 1) * xScale,
-      image.bounds.y + (maxY + 1) * yScale,
+      image.bounds.x + orientedBbox[0] * xScale,
+      image.bounds.y + orientedBbox[1] * yScale,
+      image.bounds.x + orientedBbox[2] * xScale,
+      image.bounds.y + orientedBbox[3] * yScale,
     ];
   } catch {
     return undefined;
@@ -3383,6 +3494,8 @@ function extractTextShapes(
   startSeqno: number,
   pageWidth: number,
   watermarks?: WatermarkSignature[],
+  originX = 0,
+  originY = 0,
 ): ShapeInfo[] {
   const shapes: ShapeInfo[] = [];
   let seqno = startSeqno;
@@ -3411,7 +3524,11 @@ function extractTextShapes(
         // Watermark lines never become figure labels either.
         if (
           x1 > x0 && y1 > y0 && lineWidth <= maxTextWidth
-          && !(hasWatermarks && isWatermarkLine(lineText, watermarks))
+          && !(hasWatermarks && isWatermarkLine(
+            lineText,
+            [x0 - originX, y0 - originY, x1 - originX, y1 - originY],
+            watermarks,
+          ))
         ) {
           shapes.push({
             bbox: currentBbox,
@@ -4244,4 +4361,5 @@ export const _testing = {
   stampRasterPlacementsFromOps,
   stampFigureSeqnosFromOps,
   restyleCoincidentVectorText,
+  rasterContentBboxOnPage,
 };

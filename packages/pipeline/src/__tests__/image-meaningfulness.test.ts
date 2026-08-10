@@ -8,6 +8,7 @@ import type {
 import {
   addFigureExtractionContext,
   buildMeaningfulnessConfig,
+  deduplicateAutoFigureCandidates,
   filterPageImageMeaningfulness,
 } from "../image-meaningfulness.js"
 
@@ -201,6 +202,63 @@ describe("addFigureExtractionContext", () => {
     expect(images[0].figureContext).toBeUndefined()
     expect(images[1].figureContext?.coveredImageIds).toEqual(["pg001_im001"])
     expect(images[1].containedInFigureId).toBeUndefined()
+  })
+})
+
+describe("deduplicateAutoFigureCandidates", () => {
+  const debug = {
+    pageId: "pg001",
+    totalShapes: 2,
+    totalTextShapes: 0,
+    totalVectorShapes: 1,
+    totalImageShapes: 1,
+    backgroundsFiltered: 0,
+    groupsBeforeMerge: 1,
+    groupsAfterMerge: 1,
+    textOnlyGroupsSkipped: 0,
+    tooSmallGroupsSkipped: 0,
+    groups: [{
+      imageId: "pg001_im002",
+      groupIndex: 1,
+      shapeCount: 2,
+      shapes: [],
+      groupBbox: [0, 0, 20, 20] as [number, number, number, number],
+      hasImages: true,
+      hasText: false,
+      hasNonText: true,
+      renderMethod: "page-crop" as const,
+      renderReason: "test",
+      coveredRasterImageIds: ["pg001_im001"],
+    }],
+  }
+
+  it("keeps a surviving composite and prunes its covered standalone", () => {
+    const result = deduplicateAutoFigureCandidates({
+      images: [
+        { imageId: "pg001_im001", isPruned: false },
+        { imageId: "pg001_im002", isPruned: false },
+      ],
+    }, debug)
+
+    expect(result.images).toEqual([
+      {
+        imageId: "pg001_im001",
+        isPruned: true,
+        reason: "duplicate artwork: kept composite pg001_im002",
+      },
+      { imageId: "pg001_im002", isPruned: false },
+    ])
+  })
+
+  it("keeps the standalone when the composite was already pruned", () => {
+    const classification: ImageClassificationOutput = {
+      images: [
+        { imageId: "pg001_im001", isPruned: false },
+        { imageId: "pg001_im002", isPruned: true, reason: "not meaningful" },
+      ],
+    }
+
+    expect(deduplicateAutoFigureCandidates(classification, debug)).toBe(classification)
   })
 })
 

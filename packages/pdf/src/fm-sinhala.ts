@@ -36,6 +36,12 @@ export function convertFMToUnicode(text: string): string {
 interface StextJsonLine {
   font?: { name?: string };
   text?: string;
+  bbox?: [number, number, number, number] | {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+  };
 }
 
 interface StextJsonBlock {
@@ -98,6 +104,48 @@ export function extractTextFromStructuredText(stext: StructuredText): string {
     if (lines.length > 0) {
       textBlocks.push(lines.join("\n"));
     }
+  }
+
+  return normalizeExtractedText(textBlocks.join("\n\n"));
+}
+
+export interface StructuredTextLineInfo {
+  rawText: string;
+  text: string;
+  bbox?: [number, number, number, number];
+}
+
+/**
+ * Geometry-aware extraction used by watermark removal. JSON traversal keeps
+ * line bboxes while preserving FM conversion and text-block boundaries.
+ */
+export function extractFilteredTextFromStructuredText(
+  stext: StructuredText,
+  excludeLine: (line: StructuredTextLineInfo) => boolean,
+): string {
+  const json: StextJson = JSON.parse(stext.asJSON());
+  const textBlocks: string[] = [];
+
+  for (const block of json.blocks) {
+    if (block.type !== "text" || !block.lines) continue;
+    const lines: string[] = [];
+    for (const line of block.lines) {
+      const rawText = line.text ?? "";
+      const fontName = line.font?.name ?? "";
+      const text = isFMFont(fontName) ? convertFMToUnicode(rawText) : rawText;
+      const bbox = Array.isArray(line.bbox)
+        ? line.bbox
+        : line.bbox
+          ? [
+              line.bbox.x,
+              line.bbox.y,
+              line.bbox.x + line.bbox.w,
+              line.bbox.y + line.bbox.h,
+            ] as [number, number, number, number]
+          : undefined;
+      if (!excludeLine({ rawText, text, bbox })) lines.push(text);
+    }
+    if (lines.length > 0) textBlocks.push(lines.join("\n"));
   }
 
   return normalizeExtractedText(textBlocks.join("\n\n"));

@@ -87,6 +87,8 @@ export interface WatermarkSignature {
   pagesSampled: number;
 }
 
+export type WatermarkBBox = [number, number, number, number];
+
 interface TextOpInfo {
   text: string;
   bbox: [number, number, number, number];
@@ -243,6 +245,16 @@ function bboxMatches(
   );
 }
 
+function bboxSubstantiallyOverlaps(a: WatermarkBBox, b: WatermarkBBox): boolean {
+  const intersectionWidth = Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0]));
+  const intersectionHeight = Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1]));
+  const intersectionArea = intersectionWidth * intersectionHeight;
+  const areaA = Math.max(0, a[2] - a[0]) * Math.max(0, a[3] - a[1]);
+  const areaB = Math.max(0, b[2] - b[0]) * Math.max(0, b[3] - b[1]);
+  const smallerArea = Math.min(areaA, areaB);
+  return smallerArea > 0 && intersectionArea / smallerArea >= 0.7;
+}
+
 /**
  * True when a text line is fully composed of watermark strings: removing
  * every signature occurrence leaves nothing. Handles watermarks drawn as a
@@ -251,29 +263,52 @@ function bboxMatches(
  */
 export function isWatermarkLine(
   line: string,
+  bbox: WatermarkBBox | undefined,
   watermarks: WatermarkSignature[],
 ): boolean {
+  if (!bbox) return false;
+
+  const candidates = watermarks.filter((sig) => {
+    const [x0, y0, x1, y1] = sig.bbox;
+    return x1 >= bbox[0] - MATCH_BBOX_TOLERANCE
+      && x0 <= bbox[2] + MATCH_BBOX_TOLERANCE
+      && y1 >= bbox[1] - MATCH_BBOX_TOLERANCE
+      && y0 <= bbox[3] + MATCH_BBOX_TOLERANCE;
+  });
+  if (candidates.length === 0) return false;
+
   let rest = line.replace(/\s+/g, "");
   if (rest.length === 0) return false;
-  for (const sig of watermarks) {
+  for (const sig of candidates) {
     if (sig.text.length === 0) continue;
     while (rest.includes(sig.text)) {
       rest = rest.replace(sig.text, "");
     }
-    if (rest.length === 0) return true;
   }
-  return rest.length === 0;
+  if (rest.length > 0) return false;
+
+  // Equality alone is unsafe: a short stamp op such as "ONLY" can occur in
+  // legitimate text elsewhere. The union handles word-by-word watermark ops.
+  const union: WatermarkBBox = [
+    Math.min(...candidates.map((sig) => sig.bbox[0])),
+    Math.min(...candidates.map((sig) => sig.bbox[1])),
+    Math.max(...candidates.map((sig) => sig.bbox[2])),
+    Math.max(...candidates.map((sig) => sig.bbox[3])),
+  ];
+  return bboxMatches(union, bbox, MATCH_BBOX_TOLERANCE * 2)
+    || bboxSubstantiallyOverlaps(union, bbox);
 }
 
-/** Remove full watermark lines from extracted reflowable page text. */
+/** Remove full watermark lines using bboxes aligned by line index. */
 export function stripWatermarkTextLines(
   text: string,
   watermarks: WatermarkSignature[],
+  lineBboxes: Array<WatermarkBBox | undefined>,
 ): string {
   if (watermarks.length === 0) return text;
   return text
     .split("\n")
-    .filter((line) => !isWatermarkLine(line, watermarks))
+    .filter((line, index) => !isWatermarkLine(line, lineBboxes[index], watermarks))
     .join("\n")
     .replace(/\n{3,}/g, "\n\n");
 }

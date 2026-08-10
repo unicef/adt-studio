@@ -97,6 +97,7 @@ import {
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
   addFigureExtractionContext,
+  deduplicateAutoFigureCandidates,
   cropPageImages,
   applyCrops,
   buildCroppingConfig,
@@ -1197,6 +1198,7 @@ async function runExtractStep(
     if (!stepController.signal.aborted) {
       await runMeaningfulnessPass(
         label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
+        resolveFigureExtractionMode(config) === "auto",
         effectiveConcurrency, pageResults, pageFailureDeps, progress
       )
     }
@@ -3582,12 +3584,25 @@ async function runMeaningfulnessPass(
   storage: Storage,
   config: MeaningfulnessConfig | null,
   model: ReturnType<typeof createLLMModel> | null,
+  autoDedup: boolean,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
   deps: PageFailureDeps,
   progress: StageRunProgress,
 ): Promise<void> {
   if (!config || !model) {
+    if (autoDedup) {
+      for (const page of pages) {
+        const existing = results.get(page.pageId)
+        if (!existing) continue
+        const extractionDebug = storage.getLatestNodeData("extraction-debug", page.pageId)
+          ?.data as import("@adt/pdf").ExtractionDebugOutput | undefined
+        const updated = deduplicateAutoFigureCandidates(existing, extractionDebug)
+        if (updated === existing) continue
+        results.set(page.pageId, updated)
+        storage.putNodeData("image-filtering", page.pageId, updated)
+      }
+    }
     progress.emit({ type: "step-skip", step: "image-meaningfulness" })
     return
   }

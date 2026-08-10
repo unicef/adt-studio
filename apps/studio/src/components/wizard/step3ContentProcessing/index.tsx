@@ -108,9 +108,27 @@ export function Step3() {
   const imageFilterMinSide = useStore(form.store, (s) => s.values.imageFilterMinSide)
   const imageFilterMaxSide = useStore(form.store, (s) => s.values.imageFilterMaxSide)
 
+  const watermarkSettings = (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs font-semibold text-[#737373]">
+        <Trans>Watermarks</Trans>
+      </p>
+      <ImageProcessingFeatureSwitch
+        id="wizard-remove-watermarks"
+        title={i18n._(TITLE_REMOVE_WATERMARKS)}
+        subtitle={i18n._(SUBTITLE_REMOVE_WATERMARKS)}
+        previewFocus="idle"
+        checked={removeWatermarks}
+        onCheckedChange={(checked) => form.setFieldValue("removeWatermarks", checked)}
+        accent={accent}
+      />
+    </div>
+  )
+
   if (renderStrategy === "fixed_layout") {
     return (
       <div className="flex w-full flex-col gap-4 p-8">
+        {watermarkSettings}
         <div
           className="rounded-lg border border-dashed px-5 py-6"
           style={{ borderColor: accent.bg, backgroundColor: `${accent.bg}0d` }}
@@ -133,20 +151,7 @@ export function Step3() {
 
   return (
     <div className="flex w-full flex-col gap-8 p-8">
-      <div className="flex flex-col gap-3">
-        <p className="text-xs font-semibold text-[#737373]">
-          <Trans>Watermarks</Trans>
-        </p>
-        <ImageProcessingFeatureSwitch
-          id="wizard-remove-watermarks"
-          title={i18n._(TITLE_REMOVE_WATERMARKS)}
-          subtitle={i18n._(SUBTITLE_REMOVE_WATERMARKS)}
-          previewFocus="idle"
-          checked={removeWatermarks}
-          onCheckedChange={(checked) => form.setFieldValue("removeWatermarks", checked)}
-          accent={accent}
-        />
-      </div>
+      {watermarkSettings}
 
       <div className="flex flex-col gap-3">
         <p className="text-xs font-semibold text-[#737373]">

@@ -35,6 +35,7 @@ export {
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
   addFigureExtractionContext,
+  deduplicateAutoFigureCandidates,
   type MeaningfulnessConfig,
   type MeaningfulnessImageInput,
   type MeaningfulnessPageInput,

@@ -16,6 +16,7 @@ export {
   detectTextWatermarks,
   isWatermarkLine,
   stripWatermarkTextLines,
+  type WatermarkBBox,
   type WatermarkSignature,
 } from "./watermarks.js";
 export { renderSvgToPng } from "./svg-render.js";

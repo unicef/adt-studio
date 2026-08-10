@@ -41,6 +41,7 @@ import {
   type SpreadEdgeSample,
   classifyPageImages,
   buildImageClassifyConfig,
+  deduplicateAutoFigureCandidates,
   readEditableActivities,
   remapEditableActivities,
   invalidateCoreTtsForDisplayEntries,
@@ -1335,10 +1336,17 @@ export function createPageRoutes(
         if (page.extractionDebug) {
           storage.putNodeData("extraction-debug", page.pageId, page.extractionDebug)
         }
+        const classified = classifyPageImages(
+          page.pageId,
+          storage.getPageImages(page.pageId),
+          imageClassifyConfig,
+        )
         storage.putNodeData(
           "image-filtering",
           page.pageId,
-          classifyPageImages(page.pageId, storage.getPageImages(page.pageId), imageClassifyConfig),
+          resolveFigureExtractionMode(config) === "auto"
+            ? deduplicateAutoFigureCandidates(classified, page.extractionDebug)
+            : classified,
         )
       }
     }

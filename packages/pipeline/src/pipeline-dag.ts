@@ -54,6 +54,7 @@ import {
 import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.js"
 import {
   addFigureExtractionContext,
+  deduplicateAutoFigureCandidates,
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
 } from "./image-meaningfulness.js"
@@ -414,10 +415,25 @@ export async function runFullPipeline(
     })
 
     executors.set("image-meaningfulness", async (p) => {
-      if (!meaningfulnessConfig) return
-      const model = getModel(meaningfulnessConfig.modelId)
       const pages = storage.getPages()
       const totalPages = pages.length
+      if (!meaningfulnessConfig) {
+        if (resolveFigureExtractionMode(config) === "auto") {
+          for (const page of pages) {
+            const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
+            if (!classRow) continue
+            const extractionDebug = storage.getLatestNodeData("extraction-debug", page.pageId)
+              ?.data as import("@adt/pdf").ExtractionDebugOutput | undefined
+            const existing = classRow.data as ImageClassificationOutput
+            const updated = deduplicateAutoFigureCandidates(existing, extractionDebug)
+            if (updated !== existing) {
+              storage.putNodeData("image-filtering", page.pageId, updated)
+            }
+          }
+        }
+        return
+      }
+      const model = getModel(meaningfulnessConfig.modelId)
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return

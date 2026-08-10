@@ -62,20 +62,32 @@ describe("isWatermarkLine", () => {
   ];
 
   it("matches the single-op form and word-by-word compositions", () => {
-    expect(isWatermarkLine("FOR TESTING ONLY", sigs)).toBe(true);
-    expect(isWatermarkLine("FORTESTINGONLY", sigs)).toBe(true);
-    expect(isWatermarkLine("FOR TESTING ONLY FOR TESTING ONLY", sigs)).toBe(true);
+    expect(isWatermarkLine("FOR TESTING ONLY", [0, 0, 100, 100], sigs)).toBe(true);
+    expect(isWatermarkLine("FORTESTINGONLY", [0, 0, 100, 100], sigs)).toBe(true);
+
+    const wordSigs: WatermarkSignature[] = [
+      { text: "FOR", bbox: [0, 0, 25, 100], rotated: true, pagesSeen: 4, pagesSampled: 4 },
+      { text: "TESTING", bbox: [25, 0, 75, 100], rotated: true, pagesSeen: 4, pagesSampled: 4 },
+      { text: "ONLY", bbox: [75, 0, 100, 100], rotated: true, pagesSeen: 4, pagesSampled: 4 },
+    ];
+    expect(isWatermarkLine("FOR TESTING ONLY", [0, 0, 100, 100], wordSigs)).toBe(true);
   });
 
   it("never matches lines that carry real content", () => {
-    expect(isWatermarkLine("FOR TESTING ONLY use pencil", sigs)).toBe(false);
-    expect(isWatermarkLine("Content of page one", sigs)).toBe(false);
-    expect(isWatermarkLine("", sigs)).toBe(false);
+    expect(isWatermarkLine("FOR TESTING ONLY use pencil", [0, 0, 100, 100], sigs)).toBe(false);
+    expect(isWatermarkLine("Content of page one", [0, 0, 100, 100], sigs)).toBe(false);
+    expect(isWatermarkLine("", [0, 0, 100, 100], sigs)).toBe(false);
+    expect(isWatermarkLine("FOR TESTING ONLY", [200, 200, 300, 300], sigs)).toBe(false);
+    expect(isWatermarkLine("FOR TESTING ONLY", undefined, sigs)).toBe(false);
   });
 
   it("strips only watermark lines from page text", () => {
     const text = "Content of page one\nFOR TESTING ONLY\nMore content";
-    expect(stripWatermarkTextLines(text, sigs)).toBe("Content of page one\nMore content");
+    expect(stripWatermarkTextLines(
+      text,
+      sigs,
+      [undefined, [0, 0, 100, 100], undefined],
+    )).toBe("Content of page one\nMore content");
   });
 });
 

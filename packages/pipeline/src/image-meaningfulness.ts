@@ -59,6 +59,38 @@ export interface MeaningfulnessConfig {
   figureExtractionMode: FigureExtractionMode
 }
 
+/**
+ * Resolve extraction-level duplicates when Auto kept both a figure composite
+ * and the standalone raster artwork covered by that composite. This local,
+ * deterministic pass also runs when the optional LLM meaningfulness filter is
+ * disabled or has no configured model.
+ */
+export function deduplicateAutoFigureCandidates(
+  existingClassification: ImageClassificationOutput,
+  debug?: ExtractionDebugOutput,
+): ImageClassificationOutput {
+  if (!debug) return existingClassification
+
+  const entries = existingClassification.images.map((image) => ({ ...image }))
+  const byId = new Map(entries.map((image) => [image.imageId, image]))
+  let changed = false
+
+  for (const group of debug.groups) {
+    const composite = byId.get(group.imageId)
+    if (!composite || composite.isPruned) continue
+
+    for (const coveredId of group.coveredRasterImageIds ?? []) {
+      const standalone = byId.get(coveredId)
+      if (!standalone || standalone.isPruned) continue
+      standalone.isPruned = true
+      standalone.reason = `duplicate artwork: kept composite ${group.imageId}`
+      changed = true
+    }
+  }
+
+  return changed ? { ...existingClassification, images: entries } : existingClassification
+}
+
 /** Attach transparent PDF-grouping evidence to the images sent to the LLM. */
 export function addFigureExtractionContext(
   images: MeaningfulnessImageInput[],
