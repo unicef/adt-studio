@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from "react"
 import { prefersReducedMotion } from "@/lib/utils"
 
 /**
- * Cycles through `phases` on a loop, dwelling for `durations[phase]` ms on each.
- * `durations` is read through a ref so passing a fresh array literal each render
- * does not restart the loop. Honors reduced-motion by parking on the result
- * phase. Drives the auto-playing cursor demos.
+ * Plays through `phases` exactly once (0 → phases-1), dwelling `durations[i]` ms
+ * on phase i before advancing, then STOPS on the final phase — no looping, so
+ * each demo has a clear ending. Reduced-motion jumps straight to the final phase.
+ * Re-runs when the component remounts (e.g. the audit "Replay" button).
  */
 export function useDemoLoop(phases: number, durations: number[]): number {
   const [phase, setPhase] = useState(0)
@@ -14,19 +14,19 @@ export function useDemoLoop(phases: number, durations: number[]): number {
 
   useEffect(() => {
     if (prefersReducedMotion()) {
-      setPhase(Math.min(2, phases - 1))
+      setPhase(phases - 1)
       return
     }
     let i = 0
     let timer: ReturnType<typeof setTimeout>
-    const schedule = () => {
+    const step = () => {
       timer = setTimeout(() => {
-        i = (i + 1) % phases
+        i += 1
         setPhase(i)
-        schedule()
+        if (i < phases - 1) step()
       }, durRef.current[i] ?? 1000)
     }
-    schedule()
+    if (phases > 1) step()
     return () => clearTimeout(timer)
   }, [phases])
 

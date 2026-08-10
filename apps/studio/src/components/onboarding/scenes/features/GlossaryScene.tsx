@@ -45,7 +45,7 @@ function GlossaryDemo() {
           </Trans>
         </div>
       </div>
-      <DemoCursor x={cursor.x} y={cursor.y} clicking={clicking} pointer={phase >= 2} color="#65a30d" />
+      <DemoCursor x={cursor.x} y={cursor.y} clicking={clicking} color="#65a30d" />
     </div>
   )
 }
