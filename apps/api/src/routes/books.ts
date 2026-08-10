@@ -57,7 +57,10 @@ import {
   computeSplitStatus,
 } from "../services/part-service.js"
 import type { TaskService } from "../services/task-service.js"
-import { ARCHIVE_SAFETY_LIMITS } from "../services/archive-safety.js"
+import {
+  ARCHIVE_SAFETY_LIMITS,
+  formatArchiveByteLimit,
+} from "../services/archive-safety.js"
 import {
   AdtProjectImportError,
   importAdtProject,
@@ -95,12 +98,16 @@ const MIME_TYPES: Record<string, string> = {
 
 const adtRecoveryBodyLimit = bodyLimit({
   maxSize: ADT_BUNDLE_READER_LIMITS.archiveBytes + 1024 * 1024,
-  onError: (c) => c.json({ error: "ADT bundle upload exceeds the size limit" }, 413),
+  onError: (c) => c.json({
+    error: `ADT bundle upload exceeds the ${formatArchiveByteLimit(ADT_BUNDLE_READER_LIMITS.archiveBytes)} compressed size limit`,
+  }, 413),
 })
 
 const archiveImportBodyLimit = bodyLimit({
   maxSize: ARCHIVE_SAFETY_LIMITS.compressedBytes + 1024 * 1024,
-  onError: (c) => c.json({ error: "Archive upload exceeds the size limit" }, 413),
+  onError: (c) => c.json({
+    error: `Archive upload exceeds the ${formatArchiveByteLimit(ARCHIVE_SAFETY_LIMITS.compressedBytes)} compressed size limit`,
+  }, 413),
 })
 
 export function createBookRoutes(

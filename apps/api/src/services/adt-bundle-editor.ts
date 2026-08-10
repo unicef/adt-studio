@@ -1,8 +1,9 @@
 import { strToU8, unzipSync } from "fflate"
 
 import { ADT_BUNDLE_READER_LIMITS } from "./adt-bundle-reader.js"
+import { ARCHIVE_SAFETY_LIMITS } from "./archive-safety.js"
 
-const MAX_UNCOMPRESSED_ARCHIVE_BYTES = 512 * 1024 * 1024
+const MAX_UNCOMPRESSED_ARCHIVE_BYTES = ARCHIVE_SAFETY_LIMITS.expandedBytes
 const MAX_OFFLINE_PRELOADER_BYTES = 64 * 1024 * 1024
 const MAX_OFFLINE_CACHE_SOURCE_BYTES = 128 * 1024 * 1024
 

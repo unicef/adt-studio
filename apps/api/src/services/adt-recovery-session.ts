@@ -51,6 +51,7 @@ import {
 } from "./adt-import-repair-guide.js"
 import { ADT_RECOVERY_MARKER } from "./adt-recovery-marker.js"
 import { ensureProjectIdentity } from "./project-identity.js"
+import { ARCHIVE_SAFETY_LIMITS } from "./archive-safety.js"
 import {
   analyzeImportedActivities,
   resolveImportedActivityDecisions,
@@ -1319,7 +1320,7 @@ function readRecoverySpeechConfig(bookDir: string): SpeechConfig | undefined {
   return parsed.data
 }
 
-const MAX_RECOVERY_EXPANDED_BYTES = 512 * 1024 * 1024
+const MAX_RECOVERY_EXPANDED_BYTES = ARCHIVE_SAFETY_LIMITS.expandedBytes
 
 function projectLatestSpeech(
   label: string,

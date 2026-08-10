@@ -15,14 +15,15 @@ import type {
   AdtRoundTripManifest as AdtRoundTripManifestData,
 } from "@adt/types"
 import { canonicalJson } from "@adt/types/fingerprint"
+import { ARCHIVE_SAFETY_LIMITS } from "./archive-safety.js"
 
 export const ADT_BUNDLE_READER_LIMITS = {
-  archiveBytes: 100 * 1024 * 1024,
+  archiveBytes: ARCHIVE_SAFETY_LIMITS.compressedBytes,
   entries: 10_000,
   manifestBytes: 1024 * 1024,
   jsonBytes: 10 * 1024 * 1024,
   htmlBytes: 20 * 1024 * 1024,
-  selectedBytes: 100 * 1024 * 1024,
+  selectedBytes: 256 * 1024 * 1024,
 } as const
 
 export class AdtBundleReadError extends Error {

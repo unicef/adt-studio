@@ -1,10 +1,19 @@
 import { unzipSync } from "fflate"
 
 export const ARCHIVE_SAFETY_LIMITS = {
-  compressedBytes: 100 * 1024 * 1024,
-  expandedBytes: 512 * 1024 * 1024,
+  // Exported books commonly include losslessly-compressed images and generated
+  // speech. A 100 MiB ceiling rejected otherwise healthy classroom books.
+  // Keep a finite bound because imports are validated and expanded in memory.
+  compressedBytes: 512 * 1024 * 1024,
+  expandedBytes: 1024 * 1024 * 1024,
   entries: 10_000,
 } as const
+
+export function formatArchiveByteLimit(bytes: number): string {
+  const gibibytes = bytes / (1024 * 1024 * 1024)
+  if (Number.isInteger(gibibytes) && gibibytes >= 1) return `${gibibytes} GiB`
+  return `${bytes / (1024 * 1024)} MiB`
+}
 
 export class ArchiveSafetyError extends Error {
   constructor(message: string) {
