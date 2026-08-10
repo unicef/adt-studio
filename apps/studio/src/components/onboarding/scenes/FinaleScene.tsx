@@ -1,70 +1,66 @@
-import { useEffect, useState } from "react"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Accessibility } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
-import { cn } from "@/lib/utils"
-import { AppPreview } from "../AppPreview"
 import type { OnboardingStepProps } from "../steps"
 
-/** Cinematic close: the real app rises behind a dark vignette; one action opens it. */
-export function FinaleScene({ onFinish }: OnboardingStepProps) {
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    const id = requestAnimationFrame(() => setMounted(true))
-    return () => cancelAnimationFrame(id)
-  }, [])
-
+/** Warm, animated close: a note on accessibility — reading for everyone. */
+export function FinaleScene({ onFinish, onSkip }: OnboardingStepProps) {
   return (
-    <div className="relative h-full w-full overflow-hidden">
-      {/* real app emerging */}
+    <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden px-10 text-center">
+      {/* soft aurora — ambient, drifting */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_-10%,#eaf3ff_0%,#ffffff_55%,#eafbf1_100%)]" />
       <div
-        className={cn(
-          "absolute inset-x-0 top-8 mx-auto w-[112%] max-w-none -translate-x-[6%] transition-all duration-[1100ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-          mounted ? "scale-100 opacity-100" : "scale-[1.06] opacity-0",
-        )}
-      >
-        <AppPreview />
-      </div>
-
-      {/* cinematic overlay */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(9,14,34,0.55) 0%, rgba(8,12,30,0.72) 45%, rgba(5,9,26,0.94) 100%)",
-        }}
+        aria-hidden
+        className="animate-onboarding-drift-a pointer-events-none absolute -left-16 top-4 h-72 w-72 rounded-full bg-[#3b82f7]/25 blur-3xl"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute left-1/2 top-[44%] h-72 w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{ background: "radial-gradient(closest-side, rgba(59,130,247,0.42), transparent)" }}
+        className="animate-onboarding-drift-b pointer-events-none absolute -right-12 top-24 h-72 w-72 rounded-full bg-[#22a35f]/20 blur-3xl"
+      />
+      <div
+        aria-hidden
+        className="animate-onboarding-drift-a pointer-events-none absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-[#a855f7]/15 blur-3xl [animation-delay:-8s]"
       />
 
-      <div
-        className={cn(
-          "absolute inset-0 flex flex-col items-center justify-center px-10 text-center transition-all duration-[800ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-          mounted ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0",
-        )}
-        style={{ transitionDelay: "250ms" }}
-      >
-        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b3c6ff]">
-          <Trans>All set</Trans>
-        </div>
-        <h2 className="mt-3 text-[36px] font-semibold leading-[1.05] tracking-[-0.02em] text-white">
-          <Trans>Your studio is ready.</Trans>
+      <div className="relative flex flex-col items-center">
+        <span className="animate-onboarding-fade-up inline-flex items-center gap-1.5 rounded-full border border-black/[0.06] bg-white/70 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#3b82f7] shadow-sm backdrop-blur [animation-delay:60ms]">
+          <Accessibility className="h-3.5 w-3.5" strokeWidth={2.4} />
+          <Trans>Built for every reader</Trans>
+        </span>
+
+        <h2 className="mt-6 max-w-[560px] text-[44px] font-semibold leading-[1.05] tracking-[-0.03em] text-[#0a0a0a]">
+          <span className="animate-onboarding-fade-up inline-block [animation-delay:160ms]">
+            <Trans>Reading, for</Trans>
+          </span>{" "}
+          <span className="animate-onboarding-fade-up relative inline-block [animation-delay:300ms]">
+            <span className="animate-onboarding-gradient bg-[linear-gradient(90deg,#3b82f7,#0ea5e9,#22a35f,#3b82f7)] bg-[length:200%_auto] bg-clip-text text-transparent">
+              <Trans>everyone.</Trans>
+            </span>
+          </span>
         </h2>
-        <p className="mt-3 max-w-md text-[15px] leading-relaxed text-[#d3d9e8]">
-          <Trans>Everything's set up. Step into ADT Studio and add your first book.</Trans>
+
+        <p className="animate-onboarding-fade-up mt-5 max-w-[460px] text-[16px] leading-relaxed text-[#525866] [animation-delay:460ms]">
+          <Trans>
+            Every learner deserves to read, listen, and understand. ADT Studio
+            builds accessibility into every book — right from the first page.
+          </Trans>
         </p>
-        <button
-          type="button"
-          onClick={onFinish}
-          className="group mt-7 inline-flex items-center gap-2.5 rounded-2xl bg-white px-6 py-3.5 text-[15px] font-semibold text-[#0f1729] shadow-[0_16px_40px_-8px_rgba(40,90,220,0.6)] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
-        >
-          <Trans>Open ADT Studio</Trans>
-          <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2.4} />
-        </button>
-        <div className="mt-3.5 text-[12.5px] font-medium text-[#9fa8bf]">
-          <Trans>or press ↵</Trans>
+
+        <div className="animate-onboarding-fade-up mt-9 flex flex-col items-center gap-3.5 [animation-delay:640ms]">
+          <button
+            type="button"
+            onClick={onFinish}
+            className="group inline-flex items-center gap-2.5 rounded-2xl bg-[#3b82f7] px-7 py-3.5 text-[15px] font-semibold text-white shadow-[0_14px_34px_-8px_rgba(59,130,247,0.55)] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+          >
+            <Trans>Add your first book</Trans>
+            <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2.4} />
+          </button>
+          <button
+            type="button"
+            onClick={onSkip}
+            className="text-[13px] font-medium text-[#9aa0aa] transition-colors hover:text-[#0a0a0a] cursor-pointer"
+          >
+            <Trans>Explore a sample instead</Trans>
+          </button>
         </div>
       </div>
     </div>
