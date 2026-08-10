@@ -175,7 +175,7 @@ export function Step3() {
           subtitle={i18n._(SUBTITLE_FIGURE_EXTRACTION)}
           value={figureExtraction}
           onValueChange={(value) => form.setFieldValue("figureExtraction", value)}
-          recommended={recommendations.figureExtraction === "auto"}
+          recommended={recommendations.figureExtraction === "auto" && selectedPresetId !== "textbook"}
           presetLabel={preset?.title}
           accent={accent}
           labels={{ off: i18n._(msg`Off`), auto: i18n._(msg`Auto`), all: i18n._(msg`All`) }}
@@ -201,7 +201,7 @@ export function Step3() {
             previewFocus="segmentation"
             checked={imageSegmentation}
             onCheckedChange={(checked) => form.setFieldValue("imageSegmentation", checked)}
-            recommended={recommendations.imageSegmentation === true}
+            recommended={recommendations.imageSegmentation === true && selectedPresetId !== "textbook"}
             presetLabel={preset?.title}
             accent={accent}
           />
