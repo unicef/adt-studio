@@ -39,7 +39,7 @@ export function AppPreview({ className }: { className?: string }) {
     <div
       aria-hidden
       className={
-        "overflow-hidden rounded-t-2xl border border-b-0 border-black/[0.08] bg-white text-left shadow-[0_-24px_60px_-30px_rgba(59,130,247,0.35)] " +
+        "overflow-hidden rounded-t-2xl border border-b-0 border-black/[0.08] bg-white text-left shadow-[0_-24px_60px_-30px_rgba(var(--ob-accent-rgb),0.35)] " +
         (className ?? "")
       }
     >
@@ -62,7 +62,7 @@ export function AppPreview({ className }: { className?: string }) {
               </div>
             </div>
           </div>
-          <div className="mb-2.5 flex items-center justify-center gap-1 rounded-lg bg-[#3b82f7] py-1.5 text-[10px] font-semibold text-white">
+          <div className="mb-2.5 flex items-center justify-center gap-1 rounded-lg bg-[var(--ob-accent)] py-1.5 text-[10px] font-semibold text-white">
             <Plus className="h-3 w-3" />
             Add book
           </div>
@@ -79,14 +79,14 @@ export function AppPreview({ className }: { className?: string }) {
                 key={n.label}
                 className={
                   "flex items-center gap-2 rounded-md px-2 py-1.5 " +
-                  (n.active ? "bg-[#eef4ff]" : "")
+                  (n.active ? "bg-[var(--ob-accent-tint)]" : "")
                 }
               >
                 <n.Icon
-                  className={"h-3.5 w-3.5 " + (n.active ? "text-[#3b82f7]" : "text-[#9aa0aa]")}
+                  className={"h-3.5 w-3.5 " + (n.active ? "text-[var(--ob-accent)]" : "text-[#9aa0aa]")}
                   strokeWidth={2.2}
                 />
-                <span className={"text-[10px] " + (n.active ? "font-semibold text-[#3b82f7]" : "text-[#5a5f68]")}>
+                <span className={"text-[10px] " + (n.active ? "font-semibold text-[var(--ob-accent)]" : "text-[#5a5f68]")}>
                   {n.label}
                 </span>
               </div>
@@ -117,7 +117,7 @@ export function AppPreview({ className }: { className?: string }) {
               </span>
             </div>
             <div className="min-w-0 flex-1">
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#eef4ff] px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-[0.06em] text-[#2563eb]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--ob-accent-tint)] px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-[0.06em] text-[var(--ob-accent-strong)]">
                 <Sparkles className="h-2 w-2" />
                 New here?
               </span>
@@ -128,7 +128,7 @@ export function AppPreview({ className }: { className?: string }) {
                 Drop in a textbook PDF and we'll extract pages, generate accessible captions, build storyboards, and assemble quizzes — every step inspectable, every result versioned.
               </div>
               <div className="mt-2 flex gap-1.5">
-                <span className="inline-flex items-center gap-1 rounded-md bg-[#3b82f7] px-2 py-1 text-[8px] font-semibold text-white">
+                <span className="inline-flex items-center gap-1 rounded-md bg-[var(--ob-accent)] px-2 py-1 text-[8px] font-semibold text-white">
                   <Plus className="h-2.5 w-2.5" /> Add your first book
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-md border border-black/[0.1] px-2 py-1 text-[8px] font-semibold text-[#0a0a0a]">
@@ -146,7 +146,7 @@ export function AppPreview({ className }: { className?: string }) {
                 Each stage runs in your library — fully transparent, easy to rerun.
               </div>
             </div>
-            <span className="ml-auto text-[8px] font-semibold text-[#2563eb]">Read the docs ↗</span>
+            <span className="ml-auto text-[8px] font-semibold text-[var(--ob-accent-strong)]">Read the docs ↗</span>
           </div>
           <div className="mt-2 grid grid-cols-4 gap-2">
             {CARDS.map((c) => (

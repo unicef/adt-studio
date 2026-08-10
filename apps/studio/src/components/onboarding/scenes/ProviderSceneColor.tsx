@@ -356,7 +356,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
               className="absolute inset-0"
               style={{
                 backgroundImage:
-                  "radial-gradient(120% 90% at 20% 12%, #a7f3e4 0%, #38bdf8 34%, #3b82f7 62%, #7c3aed 100%)",
+                  "radial-gradient(120% 90% at 20% 12%, #fbcfe8 0%, #f472b6 34%, #ec4899 62%, #a21caf 100%)",
               }}
             />
             <div
@@ -468,7 +468,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                           href={method.keyUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1 text-[12px] font-medium text-[#3b82f7] hover:underline"
+                          className="inline-flex items-center gap-1 text-[12px] font-medium text-[var(--ob-accent)] hover:underline"
                         >
                           <Trans>Get a key</Trans>
                           <ExternalLink className="h-3 w-3" />

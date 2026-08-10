@@ -38,7 +38,7 @@ export function FinaleSceneRecap({ onSkip }: OnboardingStepProps) {
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-[44%] h-72 w-[560px] -translate-x-1/2 -translate-y-1/2 rounded-full"
-        style={{ background: "radial-gradient(closest-side, rgba(59,130,247,0.42), transparent)" }}
+        style={{ background: "radial-gradient(closest-side, rgba(var(--ob-accent-rgb),0.42), transparent)" }}
       />
 
       <div
@@ -48,7 +48,7 @@ export function FinaleSceneRecap({ onSkip }: OnboardingStepProps) {
         )}
         style={{ transitionDelay: "250ms" }}
       >
-        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#b3c6ff]">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9c6df]">
           <Trans>All set</Trans>
         </div>
         <h2 className="mt-3 text-[36px] font-semibold leading-[1.05] tracking-[-0.02em] text-white">
@@ -62,7 +62,7 @@ export function FinaleSceneRecap({ onSkip }: OnboardingStepProps) {
         <button
           type="button"
           onClick={onSkip}
-          className="group mt-6 inline-flex items-center gap-2.5 rounded-2xl bg-white px-6 py-3.5 text-[15px] font-semibold text-[#0f1729] shadow-[0_16px_40px_-8px_rgba(40,90,220,0.6)] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+          className="group mt-6 inline-flex items-center gap-2.5 rounded-2xl bg-white px-6 py-3.5 text-[15px] font-semibold text-[#0f1729] shadow-[0_16px_40px_-8px_rgba(var(--ob-accent-rgb),0.55)] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
         >
           <Trans>Go to Home</Trans>
           <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2.4} />

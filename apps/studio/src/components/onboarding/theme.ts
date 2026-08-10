@@ -1,3 +1,4 @@
+/* eslint-disable lingui/no-unlocalized-strings -- design tokens: color hexes and CSS gradient strings, never user-facing */
 import type { CSSProperties } from "react"
 
 /**
