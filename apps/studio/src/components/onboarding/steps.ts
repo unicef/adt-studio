@@ -5,7 +5,7 @@ import { TranslationsScene } from "./scenes/features/TranslationsScene";
 import { QuizzesScene } from "./scenes/features/QuizzesScene";
 import { GlossaryScene } from "./scenes/features/GlossaryScene";
 import { ProviderScene } from "./scenes/ProviderScene";
-import { FinaleScene } from "./scenes/FinaleScene";
+import { FinaleSceneRecap } from "./scenes/FinaleSceneRecap";
 
 export type OnboardingStepProps = {
   onNext: () => void;
@@ -35,5 +35,5 @@ export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   { id: "quizzes", component: QuizzesScene },
   { id: "glossary", component: GlossaryScene },
   { id: "provider", component: ProviderScene },
-  { id: "finale", component: FinaleScene },
+  { id: "finale", component: FinaleSceneRecap },
 ] as const;

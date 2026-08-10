@@ -1,36 +1,21 @@
-import { useEffect, useMemo, useState } from "react"
-import { ArrowRight, Check } from "lucide-react"
+import { useEffect, useState } from "react"
+import { ArrowRight } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
-import { useApiKey } from "@/hooks/use-api-key"
 import { AppPreview } from "../AppPreview"
 import type { OnboardingStepProps } from "../steps"
 
 /**
- * Finale — Variant with a state recap. Same cinematic close (real app rising
- * behind a dark vignette) plus a row of chips confirming what got connected, and
- * a quiet secondary action for people who don't want to import a book yet.
+ * Finale — cinematic close: the real app rising behind a dark vignette, with a
+ * warm "you're ready" message and a quiet secondary action for people who don't
+ * want to import a book yet.
  */
 export function FinaleSceneRecap({ onFinish, onSkip }: OnboardingStepProps) {
   const [mounted, setMounted] = useState(false)
-  const k = useApiKey()
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true))
     return () => cancelAnimationFrame(id)
   }, [])
-
-  const chips = useMemo(() => {
-    /* eslint-disable lingui/no-unlocalized-strings -- provider brand names, not translated */
-    const all: [string, string][] = [
-      [k.apiKey, "OpenAI"],
-      [k.anthropicKey, "Anthropic"],
-      [k.googleKey, "Google AI"],
-      [k.customBaseUrl, "Custom"],
-      [k.azureKey, "Azure Speech"],
-    ]
-    /* eslint-enable lingui/no-unlocalized-strings */
-    return all.filter(([v]) => v.trim().length > 0).map(([, name]) => name)
-  }, [k])
 
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -69,25 +54,6 @@ export function FinaleSceneRecap({ onFinish, onSkip }: OnboardingStepProps) {
         <h2 className="mt-3 text-[36px] font-semibold leading-[1.05] tracking-[-0.02em] text-white">
           <Trans>Your studio is ready.</Trans>
         </h2>
-
-        {/* recap chips */}
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          {chips.length > 0 ? (
-            chips.map((name) => (
-              <span
-                key={name}
-                className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[12.5px] font-medium text-white backdrop-blur-sm"
-              >
-                <Check className="h-3.5 w-3.5 text-[#7ef0b0]" strokeWidth={3} />
-                {name}
-              </span>
-            ))
-          ) : (
-            <span className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-[12.5px] font-medium text-[#d3d9e8] backdrop-blur-sm">
-              <Trans>No keys yet — add a provider anytime in Settings</Trans>
-            </span>
-          )}
-        </div>
 
         <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[#d3d9e8]">
           <Trans>Everything's set up. Step into ADT Studio and add your first book.</Trans>
