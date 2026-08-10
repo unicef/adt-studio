@@ -41,12 +41,12 @@ export function OnboardingFlow() {
       if (e.key !== "Enter") return;
       const el = e.target as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA")) return;
-      if (isLast) onFinish();
+      if (isLast) onSkip();
       else onNext();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isLast, onFinish, onNext]);
+  }, [isLast, onSkip, onNext]);
 
   return (
     <OnboardingLayout>

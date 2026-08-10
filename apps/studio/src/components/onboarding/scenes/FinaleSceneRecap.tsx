@@ -10,7 +10,7 @@ import type { OnboardingStepProps } from "../steps"
  * warm "you're ready" message and a quiet secondary action for people who don't
  * want to import a book yet.
  */
-export function FinaleSceneRecap({ onFinish, onSkip }: OnboardingStepProps) {
+export function FinaleSceneRecap({ onSkip }: OnboardingStepProps) {
   const [mounted, setMounted] = useState(false)
   useEffect(() => {
     const id = requestAnimationFrame(() => setMounted(true))
@@ -56,24 +56,16 @@ export function FinaleSceneRecap({ onFinish, onSkip }: OnboardingStepProps) {
         </h2>
 
         <p className="mt-4 max-w-md text-[15px] leading-relaxed text-[#d3d9e8]">
-          <Trans>Everything's set up. Step into ADT Studio and add your first book.</Trans>
+          <Trans>Everything's set up. Step into ADT Studio whenever you're ready.</Trans>
         </p>
 
         <button
           type="button"
-          onClick={onFinish}
+          onClick={onSkip}
           className="group mt-6 inline-flex items-center gap-2.5 rounded-2xl bg-white px-6 py-3.5 text-[15px] font-semibold text-[#0f1729] shadow-[0_16px_40px_-8px_rgba(40,90,220,0.6)] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
         >
-          <Trans>Add your first book</Trans>
+          <Trans>Go to Home</Trans>
           <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2.4} />
-        </button>
-
-        <button
-          type="button"
-          onClick={onSkip}
-          className="mt-3.5 text-[12.5px] font-medium text-[#9fa8bf] transition-colors hover:text-white cursor-pointer"
-        >
-          <Trans>I'll do that later — go to Home</Trans>
         </button>
       </div>
     </div>
