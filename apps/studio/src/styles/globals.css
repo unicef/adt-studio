@@ -363,6 +363,7 @@
   --ob-border-strong: rgba(0, 0, 0, 0.15);
   --ob-card-shadow: 0 40px 120px -24px rgba(20, 32, 80, 0.45);
   --ob-demo-shadow: 0 18px 44px -12px rgba(6, 20, 60, 0.45);
+  --ob-sheen: rgba(255, 255, 255, 0.7);
 }
 
 .dark .ob-root {
@@ -379,6 +380,7 @@
   --ob-border-strong: rgba(255, 255, 255, 0.2);
   --ob-card-shadow: 0 40px 120px -24px rgba(0, 0, 0, 0.7);
   --ob-demo-shadow: 0 18px 44px -12px rgba(0, 0, 0, 0.6);
+  --ob-sheen: rgba(255, 255, 255, 0);
 }
 
 @keyframes onboarding-gradient {

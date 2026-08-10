@@ -29,7 +29,7 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
   const markClasses = cn(
     "z-10 h-14 w-14 rounded-[22%] object-contain transition-all duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
     revealed
-      ? "translate-y-0 scale-100 cursor-default ring-1 ring-[var(--ob-border)] shadow-[0_8px_24px_-10px_rgba(0,0,0,0.35)]"
+      ? "translate-y-0 scale-100 cursor-default drop-shadow-[0_10px_24px_-10px_rgba(var(--ob-accent-rgb),0.45)]"
       : "translate-y-[232px] scale-[3.7] cursor-pointer drop-shadow-[0_18px_50px_rgba(var(--ob-accent-rgb),0.5)]",
   )
 

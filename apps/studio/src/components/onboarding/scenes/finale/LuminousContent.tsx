@@ -54,7 +54,7 @@ export function LuminousContent({
         </h2>
         <div
           aria-hidden
-          className="animate-finale-sheen pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-white/70 to-transparent mix-blend-overlay"
+          className="animate-finale-sheen pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-[var(--ob-sheen)] to-transparent mix-blend-overlay"
         />
       </div>
 
