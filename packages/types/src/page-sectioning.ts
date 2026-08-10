@@ -196,6 +196,35 @@ export const PageSectioningOutput = z.object({
 })
 export type PageSectioningOutput = z.infer<typeof PageSectioningOutput>
 
+// ── Section identity ────────────────────────────────────────────
+// A sectionId is `${pageId}_sec${NNN}`. It identifies one output page and is
+// immutable for that section's whole life: it names the section's HTML file in
+// every bundle, and `sign_language_videos`, `toc-generation` entries and
+// text-catalog `${sectionId}_ans_*` keys all reference it. The sequence number
+// is allocated once and never reused, so it is NOT the section's array
+// position — `pg003_sec004` may well be `sections[1]`, and `pg003_sec001` may
+// not exist at all. Use the array index for array lookups and the id for
+// identity; never derive one from the other.
+
+/** Sequence numbers are zero-padded to 3 digits, so this is the ceiling. */
+export const MAX_SECTION_SEQ = 999
+
+/** Build the canonical sectionId for a page + sequence number. */
+export function formatSectionId(pageId: string, seq: number): string {
+  return `${pageId}_sec${String(seq).padStart(3, "0")}`
+}
+
+/**
+ * Split a sectionId back into its page and sequence number. Returns null for
+ * ids of other kinds (quiz `qz001`, glossary page `glp001`, …) so callers can
+ * use this as a type guard rather than a partial regex.
+ */
+export function parseSectionId(id: string): { pageId: string; seq: number } | null {
+  const match = /^(.+)_sec(\d+)$/.exec(id)
+  if (!match) return null
+  return { pageId: match[1], seq: Number(match[2]) }
+}
+
 // ── LLM-facing schemas ──────────────────────────────────────────
 // Recursive via z.lazy() so the JSON schema produced for OpenAI
 // structured outputs has proper `items` on `children` (OpenAI strict

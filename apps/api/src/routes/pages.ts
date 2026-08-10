@@ -26,6 +26,10 @@ import {
   getStageClearOrder,
   getStageDependents,
   EDITABLE_ACTIVITY_NODE,
+  TocGenerationOutput,
+  formatSectionId,
+  parseSectionId,
+  MAX_SECTION_SEQ,
   CoreTtsCatalogOutput,
   TextCatalogOutput,
   type TTSOutput,
@@ -48,6 +52,8 @@ import {
   remapEditableActivities,
   invalidateCoreTtsForDisplayEntries,
   resolveFigureExtractionMode,
+  PAGE_SECTIONING_NODE,
+  FIXED_LAYOUT_SECTIONING_NODE,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
@@ -729,13 +735,75 @@ function migrateEditableActivities(
   return storage.putNodeData(EDITABLE_ACTIVITY_NODE, pageId, { activities })
 }
 
-/** Renumber sectionIds to the canonical `${pageId}_sec${NNN}` sequence. */
-function renumberSectionIds(
-  sections: Array<{ sectionId: string }>,
-  pageId: string
-): void {
-  for (let i = 0; i < sections.length; i++) {
-    sections[i].sectionId = `${pageId}_sec${String(i + 1).padStart(3, "0")}`
+/**
+ * Mint `${pageId}_sec${NNN}` ids that no version of this page's sectioning has
+ * ever used, so a section's id is immutable for its whole life and a retired id
+ * is never handed out again.
+ *
+ * The high-water mark comes from *history*, not just the current version. Delete
+ * `_sec003`, then split `_sec002`, and a max-of-current counter would reissue
+ * `_sec003` — silently adopting the deleted section's `toc-generation` entry,
+ * sign-language video and text-catalog `${sectionId}_ans_*` keys (and therefore
+ * their translations and generated audio) onto unrelated content.
+ *
+ * A counter stored on the entity would be worse: it would live inside the very
+ * thing it counts, so restoring an older sectioning version would roll the
+ * counter back and reissue every id allocated since.
+ */
+function createSectionIdFactory(storage: Storage, pageId: string): () => string {
+  const used = new Set<number>()
+  for (const node of [PAGE_SECTIONING_NODE, FIXED_LAYOUT_SECTIONING_NODE]) {
+    for (const row of storage.getAllNodeVersions(node, pageId)) {
+      const parsed = PageSectioningOutput.safeParse(row.data)
+      if (!parsed.success) continue
+      for (const section of parsed.data.sections) {
+        const id = parseSectionId(section.sectionId)
+        if (id) used.add(id.seq)
+      }
+    }
+  }
+  let next = (used.size > 0 ? Math.max(...used) : 0) + 1
+  return () => {
+    if (next > MAX_SECTION_SEQ) {
+      // Unreachable in practice: each structural op allocates one id, so this
+      // needs ~1000 edits to a single page. Capped so the `_sec(\d{3})` shape
+      // every consumer parses stays valid rather than silently widening.
+      throw new HTTPException(400, {
+        message: `Page ${pageId} has allocated all ${MAX_SECTION_SEQ} of its section ids. Split this page's content across pages, or re-extract it, before editing its sections further.`,
+      })
+    }
+    return formatSectionId(pageId, next++)
+  }
+}
+
+/**
+ * Drop book-level references to sections that no longer exist. Called by every
+ * op that removes a section; without it a merge or delete leaves a dangling
+ * `toc-generation` entry (a broken href in the EPUB nav) or a sign-language
+ * video pinned to an id nothing resolves.
+ *
+ * Videos are *unassigned*, not deleted: the upload is the user's, and they can
+ * reattach it to the surviving section.
+ */
+function retireSectionIds(storage: Storage, retired: string[]): void {
+  if (retired.length === 0) return
+  const retiredIds = new Set(retired)
+
+  const tocRow = storage.getLatestNodeData("toc-generation", "book")
+  if (tocRow) {
+    const parsed = TocGenerationOutput.safeParse(tocRow.data)
+    if (parsed.success) {
+      const entries = parsed.data.entries.filter((entry) => !retiredIds.has(entry.sectionId))
+      if (entries.length !== parsed.data.entries.length) {
+        storage.putNodeData("toc-generation", "book", { ...parsed.data, entries })
+      }
+    }
+  }
+
+  for (const video of storage.getSignLanguageVideos()) {
+    if (video.sectionId && retiredIds.has(video.sectionId)) {
+      storage.assignSignLanguageVideo(video.videoId, null)
+    }
   }
 }
 
@@ -971,7 +1039,9 @@ export function createPageRoutes(
           }
 
           const sectionEntries: PageSummarySection[] = (rawSections ?? []).map((s, i) => {
-            const sectionId = s.sectionId ?? `${row.item_id}_sec${String(i + 1).padStart(3, "0")}`
+            // `sectionId` is required by the schema; this only covers raw legacy
+            // rows that never had one. Display-only — nothing names a file from it.
+            const sectionId = s.sectionId ?? formatSectionId(row.item_id, i + 1)
             // Pruned sections keep their own text in the per-section preview so
             // they can be displayed in the storyboard sidebar even when grayed out.
             const sectionText = collectText(s.nodes, { skipPruned: false })
@@ -2169,10 +2239,12 @@ export function createPageRoutes(
         throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
       }
 
-      // Clone the section and insert after the original
+      // Clone the section and insert after the original. The original keeps its
+      // sectionId — only the clone gets a new one.
       const containerIdMap = new Map<string, string>()
       const clonedSection = {
         ...sectioning.sections[idx],
+        sectionId: createSectionIdFactory(storage, pageId)(),
         nodes: cloneNodesWithFreshContainerIds(
           sectioning.sections[idx].nodes,
           createNodeIdFactory(pageId, sectioning.sections),
@@ -2181,8 +2253,6 @@ export function createPageRoutes(
       }
       const newSections = [...sectioning.sections]
       newSections.splice(idx + 1, 0, clonedSection)
-
-      renumberSectionIds(newSections, pageId)
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -2372,8 +2442,11 @@ export function createPageRoutes(
         nodes: keptNodes,
         ...(keptPlacement ? { placement: keptPlacement } : {}),
       }
+      // The first half keeps the original sectionId (it inherits it from
+      // `section`); only the new second half gets a fresh one.
       const movedSection = {
         ...section,
+        sectionId: createSectionIdFactory(storage, pageId)(),
         nodes: movedNodes,
         ...(movedPlacement ? { placement: movedPlacement } : {}),
       }
@@ -2387,8 +2460,6 @@ export function createPageRoutes(
       const newSections = [...sectioning.sections]
       newSections[idx] = keptSection
       newSections.splice(idx + 1, 0, movedSection)
-
-      renumberSectionIds(newSections, pageId)
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -2523,7 +2594,9 @@ export function createPageRoutes(
       }
       newSections.splice(removeIdx, 1)
 
-      renumberSectionIds(newSections, pageId)
+      // The surviving section keeps its sectionId (inherited from `keepSection`);
+      // the removed section's id is retired, never reassigned to a survivor.
+      const retiredSectionIds = [removeSection.sectionId]
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -2588,6 +2661,7 @@ export function createPageRoutes(
         mapIndex: (i) =>
           i === keepIdx || i === removeIdx ? null : i > removeIdx ? i - 1 : i,
       })
+      retireSectionIds(storage, retiredSectionIds)
 
       return c.json({
         mergedSectionIndex: keepIdx,
@@ -2705,9 +2779,11 @@ export function createPageRoutes(
       const newSrcSections = [...srcSectioning.sections]
       newSrcSections.splice(idx, 1)
 
-      renumberSectionIds(newSrcSections, pageId)
-
-      renumberSectionIds(newTgtSections, targetPageId)
+      // The target section keeps its sectionId; the moved section's id is
+      // retired. Surviving sections on *either* page keep theirs — this op used
+      // to renumber both pages wholesale, which silently reassigned every later
+      // section's TOC entry, sign-language video and answer-text catalog keys.
+      const retiredSectionIds = [movedSection.sectionId]
 
       // Save updated sectionings
       const srcVersion = saveStoryboardNode(
@@ -2743,6 +2819,7 @@ export function createPageRoutes(
       migrateEditableActivities(storage, targetPageId, {
         mapIndex: (i) => (i === tgtIdx ? null : i),
       })
+      retireSectionIds(storage, retiredSectionIds)
 
       return c.json({
         sourcePageId: pageId,
@@ -2796,11 +2873,10 @@ export function createPageRoutes(
         throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
       }
 
-      // Remove section at idx
+      // Remove section at idx. Survivors keep their sectionIds; only the
+      // deleted section's id is retired.
       const newSections = [...sectioning.sections]
-      newSections.splice(idx, 1)
-
-      renumberSectionIds(newSections, pageId)
+      const [deletedSection] = newSections.splice(idx, 1)
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -2835,8 +2911,8 @@ export function createPageRoutes(
       }
 
       // Deleting rebuilds the rendering to match: the section's HTML entry is
-      // dropped, later indexes shift down, and section ids are rewritten. The
-      // surviving sections keep the HTML they already had, so nothing needs
+      // dropped and later indexes shift down. The surviving sections keep both
+      // their sectionIds and the HTML they already had, so nothing needs
       // re-rendering and the storyboard stays current.
       const sectioningVersion = saveStoryboardNode(
         storage,
@@ -2851,6 +2927,7 @@ export function createPageRoutes(
       migrateEditableActivities(storage, pageId, {
         mapIndex: (i) => (i === idx ? null : i > idx ? i - 1 : i),
       })
+      retireSectionIds(storage, [deletedSection.sectionId])
 
       return c.json({
         sectioningVersion,

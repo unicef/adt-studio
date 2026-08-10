@@ -97,6 +97,13 @@ export interface Storage {
 
   putNodeData(node: string, itemId: string, data: unknown): number
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null
+  /**
+   * Every stored version for (node, itemId), oldest first — including versions
+   * the current pointer has moved past. Used to allocate ids that were never
+   * used by *any* version, so a rollback can't make a fresh id collide with a
+   * retired one.
+   */
+  getAllNodeVersions(node: string, itemId: string): NodeDataRow[]
   /** Point (node, itemId) at an existing version without creating a new one
    *  (rollback). Returns false if that version doesn't exist. */
   setCurrentNodeVersion(node: string, itemId: string, version: number): boolean
