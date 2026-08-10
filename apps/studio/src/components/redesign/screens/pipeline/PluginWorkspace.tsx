@@ -1,14 +1,16 @@
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, ChevronRight, Settings, Sparkles } from "lucide-react"
+import { ArrowLeft, Settings } from "lucide-react"
 import { TitleBarControls } from "@/components/title-bar/title-bar-controls"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { NO_DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
+import { AiEditPanel } from "./AiEditPanel"
 import { PluginDock } from "./PluginDock"
 import { tint, type DockEntry } from "./plugins"
-import type { DockItem } from "./usePipelineState"
+import type { DockItem, PipelinePage } from "./usePipelineState"
 
 export interface PluginWorkspaceProps {
+  label: string
   plugin: DockEntry
   /** Short chips summarising the plugin's current output. */
   chips: string[]
@@ -17,6 +19,8 @@ export interface PluginWorkspaceProps {
   /** Left rail body: per-page index of the plugin's output. */
   rail: React.ReactNode
   children: React.ReactNode
+  pages: PipelinePage[]
+  hasSections: boolean
   foundations: DockItem[]
   plugins: DockItem[]
   onBack: () => void
@@ -26,11 +30,14 @@ export interface PluginWorkspaceProps {
 
 /** Full-screen frame for a plugin's long editing session (design 4a). */
 export function PluginWorkspace({
+  label,
   plugin,
   chips,
   canApply,
   rail,
   children,
+  pages,
+  hasSections,
   foundations,
   plugins,
   onBack,
@@ -39,6 +46,9 @@ export function PluginWorkspace({
 }: PluginWorkspaceProps) {
   const { t } = useLingui()
   const name = getStageLabelI18n(plugin.slug)
+  // No step reports its own selection upward, so the AI rail falls back to the
+  // first page — the same fallback the pipeline screen uses.
+  const chatPage = pages[0] ?? null
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
@@ -94,7 +104,7 @@ export function PluginWorkspace({
         <TitleBarControls className="-my-px -mr-3.5 h-12.5" />
       </header>
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         <aside
           className="flex w-56 shrink-0 flex-col gap-2.5 border-r bg-card p-3"
           style={{ backgroundColor: tint(plugin.hex, 0.03) }}
@@ -106,15 +116,13 @@ export function PluginWorkspace({
           {children}
         </div>
 
-        <aside className="flex w-[46px] shrink-0 flex-col items-center gap-3.5 border-l bg-card py-3">
-          <span className="grid size-[30px] place-items-center rounded-[9px] bg-brand-50 text-brand-600">
-            <Sparkles className="size-3.5" />
-          </span>
-          <span className="text-[11px] tracking-[0.06em] text-muted-foreground [writing-mode:vertical-rl]">
-            <Trans>Edit with AI</Trans>
-          </span>
-          <ChevronRight className="mt-auto size-3.5 text-muted-foreground" />
-        </aside>
+        <AiEditPanel
+          label={label}
+          pageId={chatPage?.pageId ?? null}
+          pageLabel={chatPage ? t`page ${chatPage.pageNumber}` : undefined}
+          sectionIndex={chatPage?.sections[0]?.sectionIndex ?? 0}
+          empty={!hasSections}
+        />
       </div>
 
       <PluginDock

@@ -13,7 +13,6 @@ export interface PluginDockProps {
   onOpenPlugin: (slug: string) => void
   /** Shown above the dock while plugins are still locked. */
   hint?: React.ReactNode
-  className?: string
 }
 
 function DockDisc({
@@ -39,14 +38,14 @@ function DockDisc({
       aria-current={active ? "true" : undefined}
       className={cn(
         "relative flex w-[62px] flex-col items-center gap-1 rounded-xl px-1 py-1.5 transition-colors hover:bg-muted",
-        locked && "opacity-45",
       )}
     >
       <span
         className="grid size-[34px] place-items-center rounded-full text-white transition-shadow"
         style={{
           background: locked ? "var(--border)" : item.hex,
-          boxShadow: active ? `0 0 0 3px ${tint(item.hex, 0.35)}` : undefined,
+          color: locked ? "var(--muted-foreground)" : undefined,
+          boxShadow: active ? `0 0 0 3px ${tint(item.hex, 0.55)}` : undefined,
         }}
       >
         <item.icon className="size-[17px]" strokeWidth={2.4} />
@@ -77,19 +76,23 @@ function DockDisc({
   )
 }
 
-/** Floating dock of pipeline stages: foundations, then plugins, then the plugin catalog. */
+/**
+ * Floating dock of pipeline stages: foundations, then plugins, then the plugin
+ * catalog. It owns its own placement — fixed to the window, centred — so the
+ * dock lands in exactly the same spot on every screen that renders it, whatever
+ * rails happen to sit beside it.
+ */
 export function PluginDock({
   foundations,
   plugins,
   activeSlug,
   onOpenPlugin,
   hint,
-  className,
 }: PluginDockProps) {
   const { t } = useLingui()
 
   return (
-    <div className={cn("absolute bottom-6 left-[55%] -translate-x-1/2 flex flex-col items-center gap-2", className)}>
+    <div className="fixed bottom-6 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2">
       {hint && (
         <div className="rounded-full border bg-card px-3 py-1 text-[10.5px] text-muted-foreground">
           {hint}

@@ -226,6 +226,10 @@ msgstr "{0} imazhe të zgjedhura"
 msgid "{0} img"
 msgstr "{0} img"
 
+#. placeholder {0}: prereq.upstreamLabel
+msgid "{0} in progress — this stage waits its turn"
+msgstr "{0} në vazhdim — kjo fazë pret radhën e vet"
+
 #. placeholder {0}: reviewCounts.needsAttention
 msgid "{0} issue/issues"
 msgstr "{0} çështje/çështje"
@@ -800,8 +804,8 @@ msgstr "Një pyetje që vlen të bëhet"
 msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zëvendësojeni"
 
-msgid "A run is already in progress."
-msgstr "Një ekzekutim është tashmë në vazhdim."
+#~ msgid "A run is already in progress."
+#~ msgstr "Një ekzekutim është tashmë në vazhdim."
 
 msgid "A scenic view at dusk."
 msgstr "Një pamje piktoreske në muzg."
@@ -4823,6 +4827,9 @@ msgstr "Fshih çelësin API"
 msgid "Hide error details"
 msgstr "Fshih detajet e gabimit"
 
+msgid "Hide the AI panel"
+msgstr "Fshih panelin e IA"
+
 msgid "Hide toasts automatically after a delay."
 msgstr "Fshihni njoftimet automatikisht pas një vonese."
 
@@ -7266,6 +7273,7 @@ msgid "Page"
 msgstr "Faqe"
 
 #. placeholder {0}: activePage.pageNumber
+#. placeholder {0}: chatPage.pageNumber
 msgid "page {0}"
 msgstr "faqja {0}"
 

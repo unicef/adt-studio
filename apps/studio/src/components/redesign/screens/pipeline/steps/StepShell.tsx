@@ -19,13 +19,25 @@ export interface StepShellProps extends StepProps {
 }
 
 /** The workspace frame with a step's own rail and body plugged in. */
-export function StepShell({ plugin, frame, chips, canApply, rail, children }: StepShellProps) {
+export function StepShell({
+  label,
+  plugin,
+  pages,
+  frame,
+  chips,
+  canApply,
+  rail,
+  children,
+}: StepShellProps) {
   return (
     <PluginWorkspace
+      label={label}
       plugin={plugin}
       chips={chips}
       canApply={canApply}
       rail={rail}
+      pages={pages}
+      hasSections={frame.hasSections}
       foundations={frame.foundations}
       plugins={frame.plugins}
       onBack={frame.onBack}
@@ -86,8 +98,6 @@ export function StepEmpty({
     runDisabledReason ??
     (!stageRun.isRunnable ? null : !stageRun.hasApiKey ? (
       <Trans>Add an API key in Book settings to run {name}.</Trans>
-    ) : stageRun.isRunning ? (
-      <Trans>A run is already in progress.</Trans>
     ) : null)
   )
 
@@ -133,7 +143,9 @@ export function StepEmpty({
                   {
                     key: "upstream",
                     met: prereq.isMet,
-                    label: t`${prereq.upstreamLabel} finished`,
+                    label: prereq.upstreamInFlight
+                      ? t`${prereq.upstreamLabel} in progress — this stage waits its turn`
+                      : t`${prereq.upstreamLabel} finished`,
                   },
                 ]
               : []),

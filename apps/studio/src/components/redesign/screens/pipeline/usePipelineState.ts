@@ -1,6 +1,7 @@
 import { useMemo } from "react"
 import type { BookSummary, PageSummaryItem } from "@/api/client"
 import { useBooks } from "@/hooks/use-books"
+import { useBookRun } from "@/hooks/use-book-run"
 import { usePages } from "@/hooks/use-pages"
 import { FOUNDATIONS, PLUGINS, type DockEntry, type DockSlug } from "./plugins"
 import { STEP_PREREQ, isStepLocked, type StageEvidence } from "./stepPrereq"
@@ -41,6 +42,7 @@ const NO_PAGES: PageSummaryItem[] = []
 export function usePipelineState(label: string): PipelineState {
   const booksQuery = useBooks()
   const pagesQuery = usePages(label)
+  const { stageState } = useBookRun()
 
   const book = useMemo(
     () => booksQuery.data?.find((b) => b.label === label),
@@ -66,7 +68,11 @@ export function usePipelineState(label: string): PipelineState {
     const pendingFor = (slug: DockSlug) => (slug === "captions" ? missingCaptions : 0)
 
     const evidence: StageEvidence = {
-      completed: (stage) => done.has(stage),
+      covered: (stage) => {
+        if (done.has(stage)) return true
+        const state = stageState(stage)
+        return state === "done" || state === "running" || state === "queued"
+      },
       pageCount: pages.length,
       hasSections,
       hasRendering,
@@ -97,5 +103,5 @@ export function usePipelineState(label: string): PipelineState {
       foundations: FOUNDATIONS.map((item) => toItem(item, isLocked(item.slug))),
       plugins: PLUGINS.map((item) => toItem(item, isLocked(item.slug))),
     }
-  }, [book, pagesQuery.data, booksQuery.isLoading, pagesQuery.isLoading, booksQuery.error, pagesQuery.error])
+  }, [book, pagesQuery.data, booksQuery.isLoading, pagesQuery.isLoading, booksQuery.error, pagesQuery.error, stageState])
 }

@@ -14,14 +14,13 @@ export interface SectioningRun {
 
 export function useSectioningRun(label: string): SectioningRun {
   const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun, stageState, isRunning: runInFlight } = useBookRun()
+  const { queueRun, stageState } = useBookRun()
   const { data: pages, isLoading: pagesLoading } = usePages(label)
   const { data: splitStatus, isLoading: splitStatusLoading } = useSplitStatus(label)
 
   const sectioningState = stageState("sectioning")
   const extractState = stageState("extract")
-  const isRunning =
-    runInFlight || sectioningState === "running" || sectioningState === "queued"
+  const isRunning = sectioningState === "running" || sectioningState === "queued"
   const extractCovered =
     extractState === "done" || extractState === "running" || extractState === "queued"
   const hasExtractedPages = (pages?.length ?? 0) > 0

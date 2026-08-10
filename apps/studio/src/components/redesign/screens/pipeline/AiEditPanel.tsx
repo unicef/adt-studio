@@ -1,8 +1,9 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
-import { Sparkles } from "lucide-react"
+import { PanelRightClose, Sparkles } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useAiPanelOpen } from "@/hooks/use-ai-panel"
 import { useAiEditHistory } from "@/hooks/use-pages"
 import { cn } from "@/lib/utils"
 
@@ -46,28 +47,55 @@ function Shell({
   meta,
   children,
   composerPlaceholder,
+  onCollapse,
 }: {
   title: React.ReactNode
   meta: React.ReactNode
   children: React.ReactNode
   composerPlaceholder: string
+  onCollapse: () => void
 }) {
+  const { t } = useLingui()
   return (
-    <aside className="flex w-[326px] shrink-0 flex-col border-l bg-card">
+    <div className="flex h-full w-[326px] flex-col border-l bg-card">
       <div className="flex items-center gap-2 border-b px-3.5 py-3">
         <span className="text-[13px] font-semibold">{title}</span>
         <span className="ml-auto truncate font-mono text-[11px] text-muted-foreground">{meta}</span>
+        <button
+          type="button"
+          onClick={onCollapse}
+          title={t`Hide the AI panel`}
+          aria-label={t`Hide the AI panel`}
+          className="-mr-1 grid size-6 shrink-0 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <PanelRightClose className="size-3.5" />
+        </button>
       </div>
       {children}
       <Composer placeholder={composerPlaceholder} />
-    </aside>
+    </div>
   )
 }
 
+interface PanelContentProps extends AiEditPanelProps {
+  open: boolean
+  onCollapse: () => void
+}
+
 /** Right-hand "Edit with AI" rail: turn history for the open page, plus a composer. */
-export function AiEditPanel({ label, pageId, pageLabel, sectionIndex = 0, empty }: AiEditPanelProps) {
+function PanelContent({
+  label,
+  pageId,
+  pageLabel,
+  sectionIndex = 0,
+  empty,
+  open,
+  onCollapse,
+}: PanelContentProps) {
   const { t, i18n } = useLingui()
-  const history = useAiEditHistory(label, pageId ?? "", sectionIndex, { enabled: !empty && !!pageId })
+  const history = useAiEditHistory(label, pageId ?? "", sectionIndex, {
+    enabled: open && !empty && !!pageId,
+  })
   const turns = history.data?.history ?? []
 
   if (empty) {
@@ -76,6 +104,7 @@ export function AiEditPanel({ label, pageId, pageLabel, sectionIndex = 0, empty 
         title={<Trans>Edit with AI</Trans>}
         meta={t`no history`}
         composerPlaceholder={t`Say how to split the book…`}
+        onCollapse={onCollapse}
       >
         <div className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-hidden px-3.5 py-4">
           <div className="flex flex-col items-center gap-1.5 rounded-xl border border-dashed px-2 py-6 text-center">
@@ -114,6 +143,7 @@ export function AiEditPanel({ label, pageId, pageLabel, sectionIndex = 0, empty 
       title={<Trans>Edit with AI</Trans>}
       meta={pageLabel ? t`history · ${pageLabel}` : ""}
       composerPlaceholder={t`Ask the AI to edit this page…`}
+      onCollapse={onCollapse}
     >
       <ScrollArea className="min-h-0 flex-1">
         <div className="flex flex-col gap-3 p-3.5">
@@ -175,5 +205,45 @@ export function AiEditPanel({ label, pageId, pageLabel, sectionIndex = 0, empty 
         </div>
       </ScrollArea>
     </Shell>
+  )
+}
+
+/**
+ * Collapsible frame around the panel: the rail slides its own width shut and
+ * hands the canvas the space, leaving a floating button to bring it back.
+ * Both halves stay mounted so the open and close animations both play.
+ */
+export function AiEditPanel(props: AiEditPanelProps) {
+  const { t } = useLingui()
+  const [open, setOpen] = useAiPanelOpen()
+
+  return (
+    <>
+      <aside
+        inert={!open}
+        aria-hidden={!open}
+        className={cn(
+          "shrink-0 overflow-hidden transition-[width,opacity] duration-300 ease-out motion-reduce:transition-none",
+          open ? "w-[326px] opacity-100" : "w-0 opacity-0",
+        )}
+      >
+        <PanelContent {...props} open={open} onCollapse={() => setOpen(false)} />
+      </aside>
+
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        inert={open}
+        aria-hidden={open}
+        title={t`Edit with AI`}
+        aria-label={t`Edit with AI`}
+        className={cn(
+          "absolute bottom-5.5 right-5 z-20 grid size-11 place-items-center rounded-full bg-brand-600 text-white shadow-[0_12px_30px_-12px_rgba(0,0,0,0.55)] transition-[opacity,transform] duration-300 ease-out hover:bg-brand-700 motion-reduce:transition-none",
+          open ? "pointer-events-none scale-50 opacity-0" : "scale-100 opacity-100",
+        )}
+      >
+        <Sparkles className="size-[19px]" />
+      </button>
+    </>
   )
 }

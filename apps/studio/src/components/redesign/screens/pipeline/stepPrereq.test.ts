@@ -1,10 +1,24 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
+
+vi.mock("@lingui/core/macro", () => ({
+  msg(strings: TemplateStringsArray, ...values: unknown[]) {
+    let text = ""
+    for (let index = 0; index < strings.length; index += 1) {
+      text += strings[index]
+      if (index < values.length) {
+        text += String(values[index])
+      }
+    }
+    return { id: text }
+  },
+}))
+
 import { PLUGIN_SLUGS, FOUNDATION_SLUGS, type DockSlug } from "./plugins"
 import { STEP_PREREQ, isStepLocked, type StageEvidence } from "./stepPrereq"
 
 /** A book that has run nothing at all. */
 const FRESH: StageEvidence = {
-  completed: () => false,
+  covered: () => false,
   pageCount: 0,
   hasSections: false,
   hasRendering: false,
@@ -67,7 +81,7 @@ describe("isStepLocked", () => {
     expect(isStepLocked("speech", STORYBOARDED)).toBe(true)
     const translated = evidence({
       ...STORYBOARDED,
-      completed: (stage) => stage === "translate",
+      covered: (stage) => stage === "translate",
     })
     expect(isStepLocked("speech", translated)).toBe(false)
   })
@@ -75,11 +89,11 @@ describe("isStepLocked", () => {
   it("trusts artifacts when completedStages is missing the flag", () => {
     // Older books carry renderings without "storyboard" in completedStages.
     expect(isStepLocked("glossary", STORYBOARDED)).toBe(false)
-    expect(STORYBOARDED.completed("storyboard")).toBe(false)
+    expect(STORYBOARDED.covered("storyboard")).toBe(false)
   })
 
   it("still unlocks from the run status alone, before artifacts land", () => {
-    const running = evidence({ completed: (stage) => stage === "storyboard" })
+    const running = evidence({ covered: (stage) => stage === "storyboard" })
     expect(isStepLocked("glossary", running)).toBe(false)
   })
 

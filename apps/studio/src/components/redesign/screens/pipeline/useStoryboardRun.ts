@@ -24,12 +24,11 @@ export function resolveStoryboardStartStage(
 
 export function useStoryboardRun(label: string): StoryboardRun {
   const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun, stageState, isRunning: runInFlight } = useBookRun()
+  const { queueRun, stageState } = useBookRun()
   const { data: pages, isLoading: pagesLoading } = usePages(label)
 
   const storyboardState = stageState("storyboard")
-  const isRunning =
-    runInFlight || storyboardState === "running" || storyboardState === "queued"
+  const isRunning = storyboardState === "running" || storyboardState === "queued"
 
   const covered = (stage: "extract" | "sectioning") => {
     const state = stageState(stage)

@@ -171,7 +171,7 @@ export function PipelineScreen() {
         }
       />
 
-      <div className="flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1">
         {empty ? (
           <PagesRailEmpty
             pageCount={state.pages.length}
@@ -225,14 +225,6 @@ export function PipelineScreen() {
           ) : (
             activePage && <PageCanvas label={label} page={activePage} viewport={viewport} />
           )}
-
-          <PluginDock
-            className="absolute bottom-5.5 left-1/2 -translate-x-1/2"
-            foundations={state.foundations}
-            plugins={state.plugins}
-            onOpenPlugin={openStep}
-            hint={empty ? <Trans>Plugins unlock once the sections exist</Trans> : undefined}
-          />
         </div>
 
         <AiEditPanel
@@ -243,6 +235,13 @@ export function PipelineScreen() {
           empty={empty}
         />
       </div>
+
+      <PluginDock
+        foundations={state.foundations}
+        plugins={state.plugins}
+        onOpenPlugin={openStep}
+        hint={empty ? <Trans>Plugins unlock once the sections exist</Trans> : undefined}
+      />
     </div>
   )
 }

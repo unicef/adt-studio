@@ -31,28 +31,32 @@ export const STEP_PREREQ: Record<DockSlug, StageName | null> = {
 
 /** What we know about a book's progress, from the run status and its artifacts. */
 export interface StageEvidence {
-  /** The run reports this stage as done. */
-  completed: (stage: string) => boolean
+  /**
+   * The stage will have produced its output by the time anything queued now
+   * starts — the server drains its per-book run queue in click order, so a
+   * stage queued behind this one never starts before it finishes.
+   */
+  covered: (stage: string) => boolean
   pageCount: number
   hasSections: boolean
   hasRendering: boolean
 }
 
 /**
- * A stage counts as satisfied when the run reports it done *or* when its
- * artifacts are already on disk. Older books carry pages, sections and
- * renderings without the matching entry in `completedStages`, and gating
- * purely on the flag would lock their whole pipeline.
+ * A stage counts as satisfied when the run covers it *or* when its artifacts
+ * are already on disk. Older books carry pages, sections and renderings
+ * without the matching entry in `completedStages`, and gating purely on the
+ * flag would lock their whole pipeline.
  */
 export function isStageSatisfied(stage: StageName, evidence: StageEvidence): boolean {
-  if (evidence.completed(stage)) return true
+  if (evidence.covered(stage)) return true
   if (stage === "extract") return evidence.pageCount > 0
   if (stage === "sectioning") return evidence.hasSections
   if (stage === "storyboard") return evidence.hasRendering
   return false
 }
 
-/** True while the step's blocking upstream has produced nothing yet. */
+/** True while the step's blocking upstream is neither done nor on its way. */
 export function isStepLocked(slug: DockSlug, evidence: StageEvidence): boolean {
   const upstream = STEP_PREREQ[slug]
   return upstream != null && !isStageSatisfied(upstream, evidence)

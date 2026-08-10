@@ -225,6 +225,10 @@ msgstr "{0} imagens selecionadas"
 msgid "{0} img"
 msgstr "{0} img"
 
+#. placeholder {0}: prereq.upstreamLabel
+msgid "{0} in progress — this stage waits its turn"
+msgstr "{0} em andamento — esta etapa aguarda sua vez"
+
 #. placeholder {0}: reviewCounts.needsAttention
 msgid "{0} issue/issues"
 msgstr "{0} problema(s)"
@@ -799,8 +803,8 @@ msgstr "Uma pergunta que vale a pena fazer"
 msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Já existe um questionário aqui — adicione outro depois ou substitua-o"
 
-msgid "A run is already in progress."
-msgstr "Já existe uma execução em andamento."
+#~ msgid "A run is already in progress."
+#~ msgstr "Já existe uma execução em andamento."
 
 msgid "A scenic view at dusk."
 msgstr "Uma vista cênica ao entardecer."
@@ -4822,6 +4826,9 @@ msgstr "Ocultar chave de API"
 msgid "Hide error details"
 msgstr "Ocultar detalhes do erro"
 
+msgid "Hide the AI panel"
+msgstr "Ocultar o painel de IA"
+
 msgid "Hide toasts automatically after a delay."
 msgstr "Ocultar os avisos automaticamente após um intervalo."
 
@@ -7265,6 +7272,7 @@ msgid "Page"
 msgstr "Página"
 
 #. placeholder {0}: activePage.pageNumber
+#. placeholder {0}: chatPage.pageNumber
 msgid "page {0}"
 msgstr "página {0}"
 
