@@ -18,6 +18,7 @@ import {
   containsMathContent,
 } from "../packaging/web.js"
 import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
+import { resolveReadingOrder } from "../reading-order.js"
 import { deriveQuizPalette } from "../quiz-palette.js"
 
 function createMockStorage(
@@ -1805,6 +1806,132 @@ describe("packageAdtWeb", () => {
       { section_id: "pg001_sec001", href: "index.html", page_number: 1 },
       { section_id: "pg001_sec002", href: "pg001_sec002.html", page_number: 1 },
     ])
+  })
+
+  it("writes pages.json in exactly the resolver's reading order", async () => {
+    // The whole point of the shared resolver: packaging and the live preview
+    // read the same sequence, so they cannot drift. Anything that changes the
+    // resolver and not the packaged manifest (or vice versa) fails here.
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+      { pageId: "pg002", pageNumber: 2, text: "Page two" },
+    ]
+
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>1a</p>" },
+            { sectionIndex: 1, sectionType: "content", reasoning: "", html: "<p>1b</p>" },
+          ],
+        },
+        pg002: {
+          sections: [
+            { sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>2a</p>" },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+            // Pruned: present in the book, absent from the output.
+            {
+              sectionId: "pg001_sec002",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: true,
+            },
+          ],
+        },
+        pg002: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg002_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 2,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+      "quiz-generation": {
+        book: {
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          language: "en",
+          pagesPerQuiz: 3,
+          quizzes: [
+            {
+              quizId: "qz001",
+              quizIndex: 0,
+              afterPageId: "pg001",
+              pageIds: ["pg001"],
+              question: "What is 2+2?",
+              options: [
+                { text: "3", explanation: "" },
+                { text: "4", explanation: "" },
+                { text: "5", explanation: "" },
+              ],
+              answerIndex: 1,
+              reasoning: "...",
+            },
+          ],
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const pagesJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
+    ) as Array<{ section_id: string; href: string }>
+
+    const resolved = resolveReadingOrder(storage)
+    expect(pagesJson.map((p) => p.section_id)).toEqual(resolved.items.map((i) => i.id))
+    // ...and that sequence is the expected one, so a resolver bug can't make
+    // both sides agree on something wrong.
+    expect(pagesJson.map((p) => p.section_id)).toEqual([
+      "pg001_sec001",
+      "qz001",
+      "pg002_sec001",
+    ])
+    // Every emitted page is a real file, named by id except the first.
+    expect(pagesJson.map((p) => p.href)).toEqual([
+      "index.html",
+      "qz001.html",
+      "pg002_sec001.html",
+    ])
+    for (const entry of pagesJson) {
+      expect(fs.existsSync(path.join(bookDir, "adt", entry.href))).toBe(true)
+    }
   })
 
   it("invokes apps/adt-runtime/build.config.mjs when only pre-built ESM exists", async () => {
