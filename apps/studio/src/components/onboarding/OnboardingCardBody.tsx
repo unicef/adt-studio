@@ -62,16 +62,6 @@ export function OnboardingCardBody({
             <LocaleSwitcher variant="standalone" />
           </div>
           <div className="flex-1" />
-          {!isFirst && (
-            <button
-              type="button"
-              onClick={onSkip}
-              style={NO_DRAG_REGION}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium text-[#9aa0aa] transition-colors hover:text-[#0a0a0a] cursor-pointer"
-            >
-              <Trans>Skip</Trans>
-            </button>
-          )}
         </div>
       )}
 

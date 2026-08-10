@@ -98,7 +98,7 @@ function selectedRowStyle(accent: string): { style: CSSProperties; radio: string
   }
   // 1 — brand ring + soft brand tint
   return {
-    style: { borderColor: accent, borderWidth: 1.5, backgroundColor: `${accent}12` },
+    style: { borderColor: accent, backgroundColor: `${accent}12` },
     radio: accent,
   }
 }
@@ -292,7 +292,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                 onClick={() => select(p)}
                 style={selStyle?.style}
                 className={cn(
-                  "group flex w-full items-center gap-3 rounded-2xl border px-3 py-2.5 text-left transition-all duration-200",
+                  "group flex w-full items-center gap-3 rounded-2xl border-[1.5px] border-transparent px-3 py-2.5 text-left transition-all duration-200",
                   p.enabled ? "cursor-pointer" : "cursor-not-allowed opacity-55",
                   !sel && "border-black/[0.07] bg-white hover:border-black/15",
                 )}
