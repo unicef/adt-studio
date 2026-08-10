@@ -11,7 +11,6 @@ import {
   Waves,
   KeyRound,
   Clock,
-  ArrowLeft,
 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
@@ -255,10 +254,6 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
     }
   }
 
-  const panelStyle: CSSProperties = provider
-    ? { backgroundColor: `${provider.to}14`, borderColor: `${provider.to}3d` }
-    : { borderColor: "rgba(0,0,0,0.08)", backgroundColor: "#ffffff" }
-
   const constellationMarks: { Mark: ComponentType<{ className?: string }>; name: string }[] = [
     { Mark: OpenAiMark, name: "OpenAI" },
     { Mark: Terminal, name: "Codex" },
@@ -405,9 +400,8 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
 
           {/* selected-state key panel */}
           <div
-            style={panelStyle}
             className={cn(
-              "absolute inset-0 flex flex-col rounded-2xl border p-5 transition-opacity duration-300",
+              "absolute inset-0 flex flex-col rounded-2xl border border-black/[0.08] bg-white p-5 transition-opacity duration-300",
               provider ? "opacity-100" : "pointer-events-none opacity-0",
             )}
           >
@@ -428,10 +422,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
 
                 {/* method tabs (Codex under OpenAI, Claude SDK under Anthropic) */}
                 {provider.methods.length > 1 && (
-                  <div
-                    className="mt-4 inline-flex w-fit rounded-xl p-1"
-                    style={{ backgroundColor: `${provider.to}1a` }}
-                  >
+                  <div className="mt-4 inline-flex w-fit rounded-xl bg-black/[0.04] p-1">
                     {provider.methods.map((m) => {
                       const on = m.id === method.id
                       return (
@@ -540,15 +531,6 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                     </div>
                   </div>
                 )}
-
-                <button
-                  type="button"
-                  onClick={() => setSelectedId(null)}
-                  className="mt-auto inline-flex w-fit items-center gap-1 text-[12px] font-medium text-[#9aa0aa] transition-colors hover:text-[#0a0a0a] cursor-pointer"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  <Trans>Back to all providers</Trans>
-                </button>
               </>
             )}
           </div>
