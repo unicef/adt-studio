@@ -2,10 +2,10 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { TocGenerationOutput, WebRenderingOutput, isHeadingRole, parseBookLabel } from "@adt/types"
+import { TocGenerationOutput, isHeadingRole, parseBookLabel } from "@adt/types"
 import type { ContentNodeData } from "@adt/types"
 import { openBookDb, createBookStorage, readCurrentNodeRow } from "@adt/storage"
-import { getRenderSectioning } from "@adt/pipeline"
+import { resolveReadingOrder, readingOrderHref } from "@adt/pipeline"
 
 function safeParseLabel(label: string): string {
   try {
@@ -101,45 +101,35 @@ export function createTocRoutes(booksDir: string): Hono {
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const pages = storage.getPages()
-      const sections: Array<{ sectionId: string; href: string; title: string; pageNumber: number }> = []
-
-      for (const page of pages) {
-        const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        if (!renderRow) continue
-        const renderParsed = WebRenderingOutput.safeParse(renderRow.data)
-        if (!renderParsed.success) continue
-
-        const sectioning = getRenderSectioning(storage, page.pageId)
-
-        const findFirstHeadingText = (nodes: ContentNodeData[]): string | null => {
-          const stack: ContentNodeData[] = [...nodes]
-          while (stack.length > 0) {
-            const node = stack.shift()!
-            if (node.isPruned) continue
-            if (isHeadingRole(node.role) && node.text) return node.text
-            if (node.children) stack.unshift(...node.children)
-          }
-          return null
+      const findFirstHeadingText = (nodes: ContentNodeData[]): string | null => {
+        const stack: ContentNodeData[] = [...nodes]
+        while (stack.length > 0) {
+          const node = stack.shift()!
+          if (node.isPruned) continue
+          if (isHeadingRole(node.role) && node.text) return node.text
+          if (node.children) stack.unshift(...node.children)
         }
-
-        for (const rs of renderParsed.data.sections) {
-          const meta = sectioning?.sections?.[rs.sectionIndex]
-          // Orphan rendering entries have no resolvable sectionId — a positional
-          // guess could name a different section, so skip them.
-          if (!meta || meta.isPruned) continue
-
-          const sectionId = meta.sectionId
-          const title = findFirstHeadingText(meta.nodes) ?? sectionId
-
-          sections.push({
-            sectionId,
-            href: `${sectionId}.html`,
-            title,
-            pageNumber: page.pageNumber,
-          })
-        }
+        return null
       }
+
+      // Reading order, so the section picker lists sections in the order the
+      // reader meets them. This walk used to iterate rendering entries in stored
+      // array order without sorting by `sectionIndex`, unlike every other
+      // consumer — the resolver makes that divergence impossible.
+      const pageNumberById = new Map(storage.getPages().map((p) => [p.pageId, p.pageNumber]))
+      const sections = resolveReadingOrder(storage, { includeQuizzes: false })
+        .items.flatMap((item) =>
+          item.kind !== "section"
+            ? []
+            : [
+                {
+                  sectionId: item.id,
+                  href: readingOrderHref(item),
+                  title: findFirstHeadingText(item.section.nodes) ?? item.id,
+                  pageNumber: pageNumberById.get(item.pageId) ?? 0,
+                },
+              ]
+        )
 
       return c.json(sections)
     } finally {
