@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { WelcomeScene } from "./scenes/WelcomeScene";
+import { BetaScene } from "./scenes/BetaScene";
 import { SpeechScene } from "./scenes/features/SpeechScene";
 import { TranslationsScene } from "./scenes/features/TranslationsScene";
 import { QuizzesScene } from "./scenes/features/QuizzesScene";
@@ -19,6 +20,7 @@ export type OnboardingStepProps = {
 export type OnboardingStep = {
   id:
     | "welcome"
+    | "beta"
     | "speech"
     | "translations"
     | "quizzes"
@@ -30,6 +32,7 @@ export type OnboardingStep = {
 
 export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   { id: "welcome", component: WelcomeScene },
+  { id: "beta", component: BetaScene },
   { id: "speech", component: SpeechScene },
   { id: "translations", component: TranslationsScene },
   { id: "quizzes", component: QuizzesScene },

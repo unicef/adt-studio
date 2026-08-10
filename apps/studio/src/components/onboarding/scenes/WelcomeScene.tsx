@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { CornerDownLeft } from "lucide-react"
+import { CornerDownLeft, FlaskConical } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { cn, prefersReducedMotion } from "@/lib/utils"
 import { AppPreview } from "../AppPreview"
@@ -36,14 +36,25 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
         )}
       />
 
-      <h1
+      <span
         className={cn(
-          "mt-3.5 text-[32px] font-semibold leading-tight tracking-[-0.02em] text-[#0a0a0a] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+          "mt-3.5 inline-flex items-center gap-1.5 rounded-full bg-[var(--ob-accent-tint)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--ob-accent-strong)] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
           revealed ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
         )}
-        style={{ transitionDelay: revealed ? "260ms" : "0ms" }}
+        style={{ transitionDelay: revealed ? "220ms" : "0ms" }}
       >
-        <Trans>Welcome to ADT Studio</Trans>
+        <FlaskConical className="h-3.5 w-3.5" strokeWidth={2.4} />
+        <Trans>Beta preview</Trans>
+      </span>
+
+      <h1
+        className={cn(
+          "mt-3 text-[32px] font-semibold leading-tight tracking-[-0.02em] text-[#0a0a0a] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+          revealed ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
+        )}
+        style={{ transitionDelay: revealed ? "300ms" : "0ms" }}
+      >
+        <Trans>Welcome to the ADT Studio beta</Trans>
       </h1>
 
       <p
@@ -51,11 +62,11 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
           "mt-3.5 max-w-[470px] text-[15px] leading-relaxed text-[#737373] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
           revealed ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
         )}
-        style={{ transitionDelay: revealed ? "340ms" : "0ms" }}
+        style={{ transitionDelay: revealed ? "380ms" : "0ms" }}
       >
         <Trans>
-          Turn any textbook into an accessible edition — every step of the
-          pipeline, built in.
+          You're one of the first to try it. Turn any textbook into an
+          accessible edition — every step of the pipeline, built in.
         </Trans>
       </p>
 
