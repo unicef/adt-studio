@@ -1,16 +1,9 @@
 /* eslint-disable lingui/no-unlocalized-strings -- internal design-audit route, not shipped UI copy */
-import { useState, type ComponentType } from "react"
+import { useState } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { RotateCcw } from "lucide-react"
 import { OnboardingCardBody } from "@/components/onboarding/OnboardingCardBody"
-import { ONBOARDING_STEPS, type OnboardingStepProps } from "@/components/onboarding/steps"
-import { ProviderSceneColor } from "@/components/onboarding/scenes/ProviderSceneColor"
-import { ProviderSceneRail } from "@/components/onboarding/scenes/ProviderSceneRail"
-import { ProviderSceneGuided } from "@/components/onboarding/scenes/ProviderSceneGuided"
-import { ProviderSceneList } from "@/components/onboarding/scenes/ProviderSceneList"
-import { FinaleSceneRecap } from "@/components/onboarding/scenes/FinaleSceneRecap"
-import { FinaleSceneList } from "@/components/onboarding/scenes/FinaleSceneList"
-import { FinaleSceneWords } from "@/components/onboarding/scenes/FinaleSceneWords"
+import { ONBOARDING_STEPS } from "@/components/onboarding/steps"
 import { usePageTitle } from "@/hooks/use-page-title"
 
 export const Route = createFileRoute("/onboarding-audit")({
@@ -29,88 +22,17 @@ const LABELS: Record<string, string> = {
 
 const noop = () => {}
 
-type Variant = {
-  key: string
-  num: string
-  label: string
-  /** Chrome-position clone: provider variants sit mid-flow; finale is chrome-free. */
-  index: number
-  component: ComponentType<OnboardingStepProps>
-  isLast?: boolean
-}
-
-const PROVIDER_INDEX = ONBOARDING_STEPS.findIndex((s) => s.id === "provider")
-
-const VARIANTS: Variant[] = [
-  {
-    key: "provider-color",
-    num: "A",
-    label: "Provider — Variant A · colorful list + gradient constellation (Aside-inspired)",
-    index: PROVIDER_INDEX,
-    component: ProviderSceneColor,
-  },
-  {
-    key: "provider-rail",
-    num: "A2",
-    label: "Provider — Variant A2 · icon rail (icons left, inputs right)",
-    index: PROVIDER_INDEX,
-    component: ProviderSceneRail,
-  },
-  {
-    key: "provider-guided",
-    num: "A′",
-    label: "Provider — Variant A′ · guided cards + inline validation",
-    index: PROVIDER_INDEX,
-    component: ProviderSceneGuided,
-  },
-  {
-    key: "provider-list",
-    num: "B",
-    label: "Provider — Variant B · grouped list, inline expand",
-    index: PROVIDER_INDEX,
-    component: ProviderSceneList,
-  },
-  {
-    key: "finale-recap",
-    num: "C",
-    label: "Finale — cinematic + recap chips (alternative)",
-    index: ONBOARDING_STEPS.length - 1,
-    component: FinaleSceneRecap,
-    isLast: true,
-  },
-  {
-    key: "finale-list",
-    num: "C4",
-    label: "Finale — MagicUI AnimatedList · feature feed springs in one-by-one",
-    index: ONBOARDING_STEPS.length - 1,
-    component: FinaleSceneList,
-    isLast: true,
-  },
-  {
-    key: "finale-words",
-    num: "C5",
-    label: "Finale — MagicUI WordRotate + AuroraText · rotating reader promises",
-    index: ONBOARDING_STEPS.length - 1,
-    component: FinaleSceneWords,
-    isLast: true,
-  },
-]
-
-/** Renders one onboarding screen at true 900×620 size — either a real step or a design variant. */
+/** Renders one onboarding screen at true 900×620 size, live with animations. */
 function ScreenTile({
   index,
   globalRound,
   num,
   label,
-  component,
-  isLast,
 }: {
   index: number
   globalRound: number
   num: string
   label: string
-  component?: ComponentType<OnboardingStepProps>
-  isLast?: boolean
 }) {
   const [localRound, setLocalRound] = useState(0)
   return (
@@ -139,9 +61,6 @@ function ScreenTile({
           onBack={noop}
           onFinish={noop}
           onSkip={noop}
-          componentOverride={component}
-          stepKeyOverride={component ? `${localRound}` : undefined}
-          isLastOverride={isLast}
         />
       </div>
     </div>
@@ -160,7 +79,7 @@ function OnboardingAuditPage() {
           </h1>
           <p className="mt-1 text-sm text-[#737373]">
             All {ONBOARDING_STEPS.length} screens at their real 900×620 size, live with animations
-            and interactions (cursor demos loop; the provider dialog opens). Navigation buttons are
+            and interactions (cursor demos play; the provider dialog opens). Navigation buttons are
             inert here so every screen stays visible.
           </p>
         </div>
@@ -181,27 +100,6 @@ function OnboardingAuditPage() {
             globalRound={globalRound}
             num={String(i + 1).padStart(2, "0")}
             label={LABELS[step.id] ?? step.id}
-          />
-        ))}
-      </div>
-
-      <div className="mx-auto mt-16 mb-8 w-full max-w-[900px] px-1">
-        <h2 className="text-xl font-bold tracking-tight text-[#0a0a0a]">Design variants</h2>
-        <p className="mt-1 text-sm text-[#737373]">
-          Alternatives under review for the provider and finale screens — not wired into the live
-          flow. Rendered with identical chrome so they compare 1:1 with the real screens above.
-        </p>
-      </div>
-      <div className="flex flex-col items-center gap-14">
-        {VARIANTS.map((v) => (
-          <ScreenTile
-            key={v.key}
-            index={v.index}
-            globalRound={globalRound}
-            num={v.num}
-            label={v.label}
-            component={v.component}
-            isLast={v.isLast}
           />
         ))}
       </div>

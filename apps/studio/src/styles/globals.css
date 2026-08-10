@@ -75,7 +75,6 @@
   --animate-onboarding-shimmer: onboarding-shimmer 2.8s ease-in-out infinite;
   --animate-onboarding-eq: onboarding-eq 0.85s ease-in-out infinite;
   --animate-onboarding-gradient: onboarding-gradient 6s ease-in-out infinite;
-  --animate-aurora: aurora 10s ease-in-out infinite alternate;
 }
 
 @keyframes accordion-down {
@@ -286,29 +285,6 @@
   }
   50% {
     background-position: 100% 50%;
-  }
-}
-
-@keyframes aurora {
-  0% {
-    background-position: 0% 50%;
-    transform: rotate(-1deg) scale(1);
-  }
-  25% {
-    background-position: 50% 100%;
-    transform: rotate(1deg) scale(1.02);
-  }
-  50% {
-    background-position: 100% 50%;
-    transform: rotate(-1deg) scale(1);
-  }
-  75% {
-    background-position: 50% 0%;
-    transform: rotate(1deg) scale(1.02);
-  }
-  100% {
-    background-position: 0% 50%;
-    transform: rotate(-1deg) scale(1);
   }
 }
 
