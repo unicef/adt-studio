@@ -468,6 +468,14 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       }
     },
 
+    getAllNodeVersions(node: string, itemId: string): NodeDataRow[] {
+      const rows = db.all(
+        "SELECT version, data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version",
+        [node, itemId]
+      ) as Array<{ version: number; data: string }>
+      return rows.map((row) => ({ version: row.version, data: JSON.parse(row.data) }))
+    },
+
     getNodeVersionFingerprint(excludeNodes: string[] = []): Array<{ node: string; itemId: string; version: number }> {
       // Fingerprint off the *current* version so switching back to an older
       // version invalidates downstream caches / packaged output.

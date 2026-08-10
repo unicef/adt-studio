@@ -386,8 +386,12 @@ export async function packageAdtWeb(
         const sections = [...rendering.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
         for (const rs of sections) {
           const sectionMeta = sectioning?.sections[rs.sectionIndex]
-          if (sectionMeta?.isPruned) continue
-          const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
+          // No sectioning row for this rendering entry means the two are out of
+          // sync. sectionIds are allocated once and never reused, so a guessed
+          // `_secNNN` could collide with a real section and have two pages write
+          // the same file. Skip the orphan entry instead.
+          if (!sectionMeta || sectionMeta.isPruned) continue
+          const sectionId = sectionMeta.sectionId
 
           if (rs.sectionType.startsWith("activity_") || sectionMeta?.sectionType.startsWith("activity_")) {
             hasActivitySections = true
