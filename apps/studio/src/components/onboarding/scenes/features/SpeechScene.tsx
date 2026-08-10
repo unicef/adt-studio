@@ -23,16 +23,16 @@ function SpeechDemo() {
   const played = phase >= 2
   const cursor = atPlay ? { x: 48, y: 234 } : { x: 258, y: 250 }
   return (
-    <div className="relative h-[280px] w-[300px] rounded-2xl bg-white p-5 shadow-[0_18px_44px_-12px_rgba(6,20,60,0.45)]">
-      <div className="text-[13px] font-bold text-[#0a0a0a]">
+    <div className="relative h-[280px] w-[300px] rounded-2xl bg-[var(--ob-surface)] p-5 shadow-[0_18px_44px_-12px_rgba(6,20,60,0.45)]">
+      <div className="text-[13px] font-bold text-[var(--ob-fg)]">
         <Trans>The Water Cycle</Trans>
       </div>
       <div className="mt-3.5 space-y-2.5">
         {[86, 96, 74].map((w, i) => (
-          <div key={i} className="h-[6px] rounded-full bg-[#eef0f4]" style={{ width: `${w}%` }} />
+          <div key={i} className="h-[6px] rounded-full bg-[var(--ob-track)]" style={{ width: `${w}%` }} />
         ))}
         <div
-          className={cn("h-[6px] rounded-full transition-colors duration-300", played ? "bg-[#fda4af]" : "bg-[#eef0f4]")}
+          className={cn("h-[6px] rounded-full transition-colors duration-300", played ? "bg-[#fda4af]" : "bg-[var(--ob-track)]")}
           style={{ width: "66%" }}
         />
       </div>
@@ -53,7 +53,7 @@ function SpeechDemo() {
             />
           ))}
         </div>
-        <span className="shrink-0 text-[11px] font-medium text-[#737373]">0:42</span>
+        <span className="shrink-0 text-[11px] font-medium text-[var(--ob-muted)]">0:42</span>
       </div>
       <DemoCursor x={cursor.x} y={cursor.y} clicking={clicking} color="#e11d48" />
     </div>

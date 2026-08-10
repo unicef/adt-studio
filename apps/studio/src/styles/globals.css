@@ -347,6 +347,40 @@
   }
 }
 
+/* Onboarding surface tokens — flip with the app `.dark` class. Feature-panel
+   gradients and white-on-panel text stay vibrant in both themes. */
+.ob-root {
+  --ob-page: radial-gradient(120% 120% at 50% -10%, var(--ob-accent-wash) 0%, #eef0f5 55%, #e7e9ef 100%);
+  --ob-bg: #ffffff;
+  --ob-surface: #ffffff;
+  --ob-surface-2: #fbfbfc;
+  --ob-row: #f6f7f9;
+  --ob-track: #eef0f4;
+  --ob-fg: #0a0a0a;
+  --ob-muted: #737373;
+  --ob-faint: #9aa0aa;
+  --ob-border: rgba(0, 0, 0, 0.08);
+  --ob-border-strong: rgba(0, 0, 0, 0.15);
+  --ob-card-shadow: 0 40px 120px -24px rgba(20, 32, 80, 0.45);
+  --ob-demo-shadow: 0 18px 44px -12px rgba(6, 20, 60, 0.45);
+}
+
+.dark .ob-root {
+  --ob-page: radial-gradient(120% 120% at 50% -10%, #131a2b 0%, #0c1017 55%, #080b12 100%);
+  --ob-bg: #0e1320;
+  --ob-surface: #161c2b;
+  --ob-surface-2: #1b2333;
+  --ob-row: rgba(255, 255, 255, 0.045);
+  --ob-track: rgba(255, 255, 255, 0.09);
+  --ob-fg: #f1f4fb;
+  --ob-muted: #9aa4b6;
+  --ob-faint: #6c7688;
+  --ob-border: rgba(255, 255, 255, 0.1);
+  --ob-border-strong: rgba(255, 255, 255, 0.2);
+  --ob-card-shadow: 0 40px 120px -24px rgba(0, 0, 0, 0.7);
+  --ob-demo-shadow: 0 18px 44px -12px rgba(0, 0, 0, 0.6);
+}
+
 @keyframes onboarding-gradient {
   0%,
   100% {

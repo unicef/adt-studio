@@ -28,13 +28,13 @@ export function LuminousContent({
     >
       <div className="animate-onboarding-fade-up mb-7 flex items-center gap-2.5 [animation-delay:40ms]">
         <img src={OB_LOGO_SRC} alt="" aria-hidden className="h-9 w-9 rounded-[22%] object-contain" />
-        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6b7688]">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--ob-muted)]">
           <Trans>Built for every reader</Trans>
         </span>
       </div>
 
       <div className="relative overflow-hidden pb-[0.12em]">
-        <h2 className="text-[64px] font-semibold leading-[0.98] tracking-[-0.035em] text-[#0a0f1e]">
+        <h2 className="text-[64px] font-semibold leading-[0.98] tracking-[-0.035em] text-[var(--ob-fg)]">
           <span className="block overflow-hidden pb-[0.08em]">
             <span className="animate-finale-rise inline-block [animation-delay:140ms]">
               <Trans>Reading,</Trans>
@@ -58,7 +58,7 @@ export function LuminousContent({
         />
       </div>
 
-      <p className="animate-onboarding-fade-up mt-6 max-w-[460px] text-[17px] leading-relaxed text-[#4a5568] [animation-delay:520ms]">
+      <p className="animate-onboarding-fade-up mt-6 max-w-[460px] text-[17px] leading-relaxed text-[var(--ob-muted)] [animation-delay:520ms]">
         <Trans>
           Speech, translations, quizzes and a glossary — built into every book,
           so every learner can read, listen and understand.
@@ -92,7 +92,7 @@ export function LuminousContent({
           href={DOCS_URL}
           target="_blank"
           rel="noreferrer"
-          className="text-[14px] font-medium text-[#8a93a6] transition-colors hover:text-[#0a0f1e] cursor-pointer"
+          className="text-[14px] font-medium text-[var(--ob-faint)] transition-colors hover:text-[var(--ob-fg)] cursor-pointer"
         >
           <Trans>Read the docs</Trans>
         </a>

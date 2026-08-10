@@ -18,8 +18,8 @@ function QuizzesDemo() {
     { label: t`Condensation`, correct: false },
   ]
   return (
-    <div className="relative h-[286px] w-[300px] rounded-2xl bg-white p-5 shadow-[0_18px_44px_-12px_rgba(6,20,60,0.45)]">
-      <div className="text-[13px] font-bold leading-snug text-[#0a0a0a]">
+    <div className="relative h-[286px] w-[300px] rounded-2xl bg-[var(--ob-surface)] p-5 shadow-[0_18px_44px_-12px_rgba(6,20,60,0.45)]">
+      <div className="text-[13px] font-bold leading-snug text-[var(--ob-fg)]">
         <Trans>Which process releases oxygen?</Trans>
       </div>
       <div className="mt-3.5 space-y-2">
@@ -30,13 +30,13 @@ function QuizzesDemo() {
               key={o.label}
               className={cn(
                 "flex items-center gap-2.5 rounded-[10px] px-3 py-2.5 transition-all duration-300",
-                on ? "bg-[#fff7ed] ring-1 ring-[#ea580c]" : "bg-[#f6f7f9]",
+                on ? "bg-[#fff7ed] ring-1 ring-[#ea580c]" : "bg-[var(--ob-row)]",
               )}
             >
               <span
                 className={cn(
                   "grid h-4 w-4 shrink-0 place-items-center rounded-full border-[1.5px] transition-colors",
-                  on ? "border-[#ea580c] bg-[#ea580c]" : "border-[#cfd3da] bg-white",
+                  on ? "border-[#ea580c] bg-[#ea580c]" : "border-[var(--ob-border-strong)] bg-[var(--ob-surface)]",
                 )}
               >
                 {on && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
@@ -44,7 +44,7 @@ function QuizzesDemo() {
               <span
                 className={cn(
                   "text-[12.5px] transition-colors",
-                  on ? "font-semibold text-[#9a3412]" : "font-medium text-[#4a4d55]",
+                  on ? "font-semibold text-[#9a3412]" : "font-medium text-[var(--ob-muted)]",
                 )}
               >
                 {o.label}

@@ -16,27 +16,27 @@ function TranslationsDemo() {
   // eslint-disable-next-line lingui/no-unlocalized-strings -- language codes, not UI copy
   const active = translated ? "PT" : "EN"
   return (
-    <div className="relative h-[280px] w-[300px] rounded-2xl bg-white p-5 shadow-[0_18px_44px_-12px_rgba(6,20,60,0.45)]">
+    <div className="relative h-[280px] w-[300px] rounded-2xl bg-[var(--ob-surface)] p-5 shadow-[0_18px_44px_-12px_rgba(6,20,60,0.45)]">
       <div className="flex gap-1.5">
         {LANGS.map((l) => (
           <span
             key={l}
             className={cn(
               "rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors duration-300",
-              l === active ? "bg-[#fbe8f3] text-[#db2777]" : "bg-[#f4f4f6] text-[#9aa0aa]",
+              l === active ? "bg-[#fbe8f3] text-[#db2777]" : "bg-[#f4f4f6] text-[var(--ob-faint)]",
             )}
           >
             {l}
           </span>
         ))}
       </div>
-      <div className="mt-4 text-[14px] font-bold text-[#0a0a0a]">
+      <div className="mt-4 text-[14px] font-bold text-[var(--ob-fg)]">
         {/* eslint-disable-next-line lingui/no-unlocalized-strings -- sample book content */}
         {translated ? "O Ciclo da Água" : "The Water Cycle"}
       </div>
       <div className="mt-3 space-y-2.5">
         {[92, 82, 88, 68].map((w, i) => (
-          <div key={i} className="h-[6px] rounded-full bg-[#eef0f4]" style={{ width: `${w}%` }} />
+          <div key={i} className="h-[6px] rounded-full bg-[var(--ob-track)]" style={{ width: `${w}%` }} />
         ))}
       </div>
       <div

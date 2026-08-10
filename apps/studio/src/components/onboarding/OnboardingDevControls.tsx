@@ -12,9 +12,9 @@ import { OB_CHANNEL } from "./theme"
  * only under `import.meta.env.DEV`.
  */
 export function OnboardingDevControls() {
-  // The layout neutralizes the app's dark theme on mount, so the onboarding
-  // starts light regardless of the app's setting.
-  const [dark, setDark] = useState(false)
+  const [dark, setDark] = useState(
+    () => typeof document !== "undefined" && document.documentElement.classList.contains("dark"),
+  )
 
   const setTheme = (next: boolean) => {
     document.documentElement.classList.toggle("dark", next)
@@ -31,13 +31,15 @@ export function OnboardingDevControls() {
   const seg = (active: boolean) =>
     cn(
       "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors cursor-pointer",
-      active ? "bg-[#0f1729] text-white shadow-sm" : "text-[#5a5f68] hover:text-[#0a0a0a]",
+      active
+        ? "bg-[var(--ob-accent)] text-white shadow-sm"
+        : "text-[var(--ob-muted)] hover:text-[var(--ob-fg)]",
     )
 
   return (
     <div
       style={NO_DRAG_REGION}
-      className="fixed bottom-4 left-4 z-[60] flex items-center gap-2 rounded-2xl border border-black/[0.08] bg-white/85 p-1.5 shadow-[0_10px_30px_-12px_rgba(20,32,80,0.4)] backdrop-blur"
+      className="fixed bottom-4 left-4 z-[60] flex items-center gap-2 rounded-2xl border border-[var(--ob-border)] bg-[var(--ob-surface)]/90 p-1.5 shadow-[0_10px_30px_-12px_rgba(20,32,80,0.4)] backdrop-blur"
     >
       <div className="flex items-center gap-0.5">
         <button type="button" onClick={() => setTheme(false)} className={seg(!dark)}>
@@ -49,7 +51,7 @@ export function OnboardingDevControls() {
           Dark
         </button>
       </div>
-      <span className="h-4 w-px bg-black/10" />
+      <span className="h-4 w-px bg-[var(--ob-border)]" />
       <div className="flex items-center gap-0.5">
         <button
           type="button"

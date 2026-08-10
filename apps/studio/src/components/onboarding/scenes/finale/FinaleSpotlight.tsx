@@ -9,7 +9,7 @@ const GRAIN =
 /** A3 — centered Luminous over a warm spotlight, faint concentric rings + grain. */
 export function FinaleSpotlight({ onSkip }: OnboardingStepProps) {
   return (
-    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[#fbfcff] px-14">
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[var(--ob-bg)] px-14">
       {/* warm spotlight from behind the headline */}
       <div
         aria-hidden

@@ -67,12 +67,12 @@ export function OnboardingCardBody({
       </OnboardingStepContainer>
 
       {!isLast && !isFirst && (
-        <div className="relative z-20 flex min-h-[56px] items-center justify-between border-t border-black/[0.06] px-6 py-3 animate-onboarding-fade-in [animation-delay:400ms]">
+        <div className="relative z-20 flex min-h-[56px] items-center justify-between border-t border-[var(--ob-border)] px-6 py-3 animate-onboarding-fade-in [animation-delay:400ms]">
           <div className="min-w-[120px]">
             <Button
               variant="ghost"
               size="sm"
-              className="rounded-lg text-[#737373] hover:bg-black/[0.04] hover:text-[#0a0a0a]"
+              className="rounded-lg text-[var(--ob-muted)] hover:bg-black/[0.04] hover:text-[var(--ob-fg)]"
               onClick={onBack}
             >
               <ArrowLeft className="h-4 w-4" />

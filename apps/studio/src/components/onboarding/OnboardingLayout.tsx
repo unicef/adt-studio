@@ -19,18 +19,6 @@ export function OnboardingLayout({ children }: { children: ReactNode }) {
     return () => cancelAnimationFrame(id)
   }, [])
 
-  // The onboarding is a full-window, light-only branded surface. Neutralize the
-  // app's dark theme while it's mounted so shared token-based components (locale
-  // switcher, buttons) don't half-flip on the white card. Restored on exit.
-  useEffect(() => {
-    const root = document.documentElement
-    const wasDark = root.classList.contains("dark")
-    if (wasDark) root.classList.remove("dark")
-    return () => {
-      if (wasDark) root.classList.add("dark")
-    }
-  }, [])
-
   useEffect(() => {
     if (!inElectron) return
     const targets = [
@@ -53,17 +41,15 @@ export function OnboardingLayout({ children }: { children: ReactNode }) {
     <div
       style={onboardingThemeVars}
       className={cn(
-        "fixed inset-0 flex items-center justify-center overflow-hidden",
-        inElectron
-          ? "bg-transparent p-0"
-          : "bg-[radial-gradient(120%_120%_at_50%_-10%,var(--ob-accent-wash)_0%,#eef0f5_55%,#e7e9ef_100%)] p-6",
+        "ob-root fixed inset-0 flex items-center justify-center overflow-hidden",
+        inElectron ? "bg-transparent p-0" : "bg-[image:var(--ob-page)] p-6",
       )}
     >
       <div
         className={cn(
-          "relative flex h-full w-full max-h-[620px] max-w-[900px] flex-col overflow-hidden text-[#0a0a0a]",
-          "rounded-[18px] border border-black/[0.08] bg-white",
-          "shadow-[0_40px_120px_-24px_rgba(20,32,80,0.45)]",
+          "relative flex h-full w-full max-h-[620px] max-w-[900px] flex-col overflow-hidden text-[var(--ob-fg)]",
+          "rounded-[18px] border border-[var(--ob-border)] bg-[var(--ob-bg)]",
+          "shadow-[var(--ob-card-shadow)]",
           "transition-all duration-[650ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
           mounted ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-[0.97] opacity-0",
         )}

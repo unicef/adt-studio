@@ -2,27 +2,27 @@ import { FlaskConical, DownloadCloud, Check } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { OB_PANEL_GRADIENT } from "../theme"
 
-/* eslint-disable lingui/no-unlocalized-strings -- version identifiers, not UI copy */
+ 
 const BUILDS = [
   { version: "v0.9.0-beta.2", current: true, pr: null },
   { version: "v0.9.0-beta-pr-482", current: false, pr: "482" },
   { version: "v0.9.0-beta.1", current: false, pr: null },
 ]
-/* eslint-enable lingui/no-unlocalized-strings */
+ 
 
 /** Mock of the in-app beta library — the panel demo for the beta page. */
 function BetaLibraryDemo() {
   return (
-    <div className="w-[300px] rounded-2xl bg-white p-5 shadow-[0_18px_44px_-12px_rgba(60,10,90,0.45)]">
+    <div className="w-[300px] rounded-2xl bg-[var(--ob-surface)] p-5 shadow-[0_18px_44px_-12px_rgba(60,10,90,0.45)]">
       <div className="flex items-center gap-2.5">
         <span className="grid h-8 w-8 place-items-center rounded-lg bg-[var(--ob-accent-tint)]">
           <DownloadCloud className="h-4 w-4 text-[var(--ob-accent-strong)]" strokeWidth={2.2} />
         </span>
         <div className="leading-tight">
-          <div className="text-[13px] font-bold text-[#0a0a0a]">
+          <div className="text-[13px] font-bold text-[var(--ob-fg)]">
             <Trans>Software update</Trans>
           </div>
-          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#9aa0aa]">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[var(--ob-faint)]">
             <Trans>Beta library</Trans>
           </div>
         </div>
@@ -34,11 +34,11 @@ function BetaLibraryDemo() {
             key={b.version}
             className={
               "flex items-center justify-between rounded-lg px-2.5 py-2 " +
-              (b.current ? "bg-[var(--ob-accent-tint)]" : "bg-[#f6f7f9]")
+              (b.current ? "bg-[var(--ob-accent-tint)]" : "bg-[var(--ob-row)]")
             }
           >
             <span className="flex min-w-0 items-center gap-1.5">
-              <span className="truncate text-[12px] font-semibold tabular-nums text-[#0a0a0a]">
+              <span className="truncate text-[12px] font-semibold tabular-nums text-[var(--ob-fg)]">
                 {b.version}
               </span>
               {b.pr && (
@@ -53,7 +53,7 @@ function BetaLibraryDemo() {
                 <Trans>Current</Trans>
               </span>
             ) : (
-              <span className="rounded-md border border-black/[0.12] px-2 py-0.5 text-[10px] font-semibold text-[#0a0a0a]">
+              <span className="rounded-md border border-[var(--ob-border-strong)] px-2 py-0.5 text-[10px] font-semibold text-[var(--ob-fg)]">
                 <Trans>Install</Trans>
               </span>
             )}
@@ -80,10 +80,10 @@ export function BetaScene() {
           <FlaskConical className="h-4 w-4" strokeWidth={2.4} />
           <Trans>How the beta works</Trans>
         </div>
-        <h2 className="text-[30px] font-semibold leading-[1.08] tracking-[-0.02em] text-[#0a0a0a]">
+        <h2 className="text-[30px] font-semibold leading-[1.08] tracking-[-0.02em] text-[var(--ob-fg)]">
           <Trans>You're testing an early build.</Trans>
         </h2>
-        <p className="mt-4 max-w-[340px] text-[15px] leading-relaxed text-[#737373] [&_code]:rounded [&_code]:bg-[var(--ob-accent-tint)] [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:font-semibold [&_code]:text-[var(--ob-accent-strong)]">
+        <p className="mt-4 max-w-[340px] text-[15px] leading-relaxed text-[var(--ob-muted)] [&_code]:rounded [&_code]:bg-[var(--ob-accent-tint)] [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:font-semibold [&_code]:text-[var(--ob-accent-strong)]">
           <Trans>
             New builds land here first — from our <code>develop</code> staging
             branch, and from individual pull requests we stage so you can try a

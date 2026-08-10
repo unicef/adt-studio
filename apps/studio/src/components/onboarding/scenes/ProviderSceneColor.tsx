@@ -268,11 +268,11 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
     <div className="animate-onboarding-fade-in flex h-full w-full flex-col px-8 pb-2 pt-6">
       {/* header */}
       <div className="min-w-0">
-        <h2 className="text-[21px] font-semibold tracking-[-0.02em] text-[#0a0a0a]">
+        <h2 className="text-[21px] font-semibold tracking-[-0.02em] text-[var(--ob-fg)]">
           <Trans>Choose your AI provider</Trans>
         </h2>
-        <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-[#737373]">
-          <Lock className="h-3.5 w-3.5 text-[#9aa0aa]" />
+        <p className="mt-1 flex items-center gap-1.5 text-[12.5px] text-[var(--ob-muted)]">
+          <Lock className="h-3.5 w-3.5 text-[var(--ob-faint)]" />
           <Trans>Keys are stored locally on this device — never sent anywhere else.</Trans>
         </p>
       </div>
@@ -295,7 +295,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                 className={cn(
                   "group flex w-full items-center gap-3 rounded-2xl border-[1.5px] border-transparent px-3 py-2.5 text-left transition-all duration-200",
                   p.enabled ? "cursor-pointer" : "cursor-not-allowed opacity-55",
-                  !sel && "border-black/[0.07] bg-white hover:border-black/15",
+                  !sel && "border-[var(--ob-border)] bg-[var(--ob-surface)] hover:border-[var(--ob-border-strong)]",
                 )}
               >
                 <span
@@ -309,15 +309,15 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-2">
-                    <span className="truncate text-[14px] font-semibold text-[#0a0a0a]">{p.name}</span>
+                    <span className="truncate text-[14px] font-semibold text-[var(--ob-fg)]">{p.name}</span>
                     {!p.enabled && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#9aa0aa]">
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-black/[0.05] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--ob-faint)]">
                         <Clock className="h-2.5 w-2.5" />
                         <Trans>Soon</Trans>
                       </span>
                     )}
                   </span>
-                  <span className="mt-0.5 block truncate text-[12px] text-[#737373]">{p.desc}</span>
+                  <span className="mt-0.5 block truncate text-[12px] text-[var(--ob-muted)]">{p.desc}</span>
                 </span>
                 {/* selection / status indicator */}
                 {connected ? (
@@ -399,7 +399,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
           {/* selected-state key panel */}
           <div
             className={cn(
-              "absolute inset-0 flex flex-col rounded-2xl border border-black/[0.08] bg-white p-5 transition-opacity duration-300",
+              "absolute inset-0 flex flex-col rounded-2xl border border-[var(--ob-border)] bg-[var(--ob-surface)] p-5 transition-opacity duration-300",
               provider ? "opacity-100" : "pointer-events-none opacity-0",
             )}
           >
@@ -413,8 +413,8 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                     <provider.Mark className="h-6 w-6" />
                   </span>
                   <div className="min-w-0">
-                    <div className="text-[15.5px] font-semibold text-[#0a0a0a]">{provider.name}</div>
-                    <div className="truncate text-[12px] text-[#737373]">{provider.desc}</div>
+                    <div className="text-[15.5px] font-semibold text-[var(--ob-fg)]">{provider.name}</div>
+                    <div className="truncate text-[12px] text-[var(--ob-muted)]">{provider.desc}</div>
                   </div>
                 </div>
 
@@ -432,13 +432,13 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                           className={cn(
                             "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12px] font-medium transition-all duration-200",
                             !m.enabled && "cursor-not-allowed opacity-40",
-                            on ? "bg-white text-[#0a0a0a] shadow-sm" : "text-[#5a5f68] hover:text-[#0a0a0a]",
+                            on ? "bg-[var(--ob-surface)] text-[var(--ob-fg)] shadow-sm" : "text-[var(--ob-muted)] hover:text-[var(--ob-fg)]",
                           )}
                         >
                           <m.Icon className="h-3.5 w-3.5" />
                           {m.label}
                           {!m.enabled && (
-                            <span className="ml-0.5 rounded bg-black/[0.06] px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[#9aa0aa]">
+                            <span className="ml-0.5 rounded bg-black/[0.06] px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-[var(--ob-faint)]">
                               <Trans>Soon</Trans>
                             </span>
                           )}
@@ -452,7 +452,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                 {method.enabled && method.set ? (
                   <div className="mt-4">
                     <div className="mb-1.5 flex items-center justify-between">
-                      <label htmlFor="color-key" className="text-[12px] font-semibold text-[#0a0a0a]">
+                      <label htmlFor="color-key" className="text-[12px] font-semibold text-[var(--ob-fg)]">
                         {provider.id === "custom" ? (
                           <Trans>Base URL</Trans>
                         ) : (
@@ -482,14 +482,14 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                         placeholder={method.placeholder}
                         value={method.value ?? ""}
                         onChange={(e) => method.set?.(e.target.value)}
-                        className={cn("h-10 rounded-lg bg-white pr-16", looksValid && "border-[#0f9d58]")}
+                        className={cn("h-10 rounded-lg bg-[var(--ob-surface)] pr-16", looksValid && "border-[#0f9d58]")}
                       />
                       <div className="absolute right-1 top-0 flex h-10 items-center">
                         <button
                           type="button"
                           onClick={paste}
                           title={t`Paste`}
-                          className="grid h-8 w-8 place-items-center rounded-md text-[#9aa0aa] transition-colors hover:text-[#0a0a0a]"
+                          className="grid h-8 w-8 place-items-center rounded-md text-[var(--ob-faint)] transition-colors hover:text-[var(--ob-fg)]"
                         >
                           <ClipboardPaste className="h-4 w-4" />
                         </button>
@@ -498,7 +498,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                             type="button"
                             tabIndex={-1}
                             onClick={() => setReveal((v) => !v)}
-                            className="grid h-8 w-8 place-items-center rounded-md text-[#9aa0aa] transition-colors hover:text-[#0a0a0a]"
+                            className="grid h-8 w-8 place-items-center rounded-md text-[var(--ob-faint)] transition-colors hover:text-[var(--ob-fg)]"
                           >
                             {reveal ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                           </button>
@@ -512,19 +512,19 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
                           <Trans>Connected — key saved</Trans>
                         </span>
                       ) : (
-                        <span className="text-[#9aa0aa]">
+                        <span className="text-[var(--ob-faint)]">
                           <Trans>Paste your key to connect this provider.</Trans>
                         </span>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-black/[0.12] bg-white/60 px-5 py-8 text-center">
-                    <Clock className="h-5 w-5 text-[#9aa0aa]" />
-                    <div className="mt-2 text-[13px] font-semibold text-[#5a5f68]">
+                  <div className="mt-4 flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed border-[var(--ob-border-strong)] bg-[var(--ob-row)] px-5 py-8 text-center">
+                    <Clock className="h-5 w-5 text-[var(--ob-faint)]" />
+                    <div className="mt-2 text-[13px] font-semibold text-[var(--ob-muted)]">
                       <Trans>Coming soon</Trans>
                     </div>
-                    <div className="mt-1 text-[12px] text-[#9aa0aa]">
+                    <div className="mt-1 text-[12px] text-[var(--ob-faint)]">
                       <Trans>This connection isn't available yet.</Trans>
                     </div>
                   </div>
