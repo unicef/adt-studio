@@ -49,10 +49,6 @@ function GlossaryDemo() {
           open ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0",
         )}
       >
-        <span
-          aria-hidden
-          className="absolute -top-1 left-[120px] h-2.5 w-2.5 rotate-45 rounded-[2px] bg-white ring-1 ring-black/[0.06]"
-        />
         <div className="relative flex items-baseline gap-1.5">
           <span className="text-[13px] font-bold text-[#0a0a0a]">{TERM.word}</span>
           <span className="text-[12px] leading-none">{TERM.emojis}</span>
