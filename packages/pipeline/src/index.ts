@@ -4,7 +4,11 @@ export {
   createConsoleProgress,
 } from "./progress.js"
 export { processWithConcurrency } from "./concurrency.js"
-export { extractPDF, type ExtractOptions } from "./pdf-extraction.js"
+export {
+  extractPDF,
+  resolveFigureExtractionMode,
+  type ExtractOptions,
+} from "./pdf-extraction.js"
 export {
   detectSpreads,
   type SpreadEdgeSample,
@@ -30,7 +34,9 @@ export {
 export {
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
+  addFigureExtractionContext,
   type MeaningfulnessConfig,
+  type MeaningfulnessImageInput,
   type MeaningfulnessPageInput,
 } from "./image-meaningfulness.js"
 export {

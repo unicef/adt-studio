@@ -42,6 +42,13 @@ import {
   applyOrientationTransformsToRasterImages,
   type ImageOrientationTransform,
 } from "./flip-utils.js";
+import {
+  detectTextWatermarks,
+  isWatermarkLine,
+  renderPageWithoutWatermarks,
+  stripWatermarkTextLines,
+  type WatermarkSignature,
+} from "./watermarks.js";
 
 // ============================================================================
 // Types
@@ -63,6 +70,22 @@ export interface ExtractInput {
   spreadPairs?: number[];
   /** When true, include text shapes in vector grouping to produce raster crops of vectors with text overlays. Defaults to true. */
   vectorTextGrouping?: boolean;
+  /**
+   * When true, rasters whose artwork was absorbed into a composite figure
+   * crop are still emitted as standalone images (figure-extraction "auto"
+   * mode). Downstream image meaningfulness then chooses the best
+   * representation and prunes the other, instead of extraction hard-deleting
+   * the standalone copy. Default false: composites replace their rasters.
+   */
+  keepCoveredRasters?: boolean;
+  /**
+   * When true, detect repeated identical text stamps across the document
+   * (diagonal or page-spanning, e.g. "FOR ONLINE READING ONLY") and remove
+   * them from the page render, reflowable text, and positioned text.
+   * Detected signatures are recorded in the extraction debug output.
+   * Default false.
+   */
+  removeWatermarks?: boolean;
   /**
    * When true, run the metric-based positioned-text spacing cleanup
    * (`cleanParagraphSpacing`) on extracted paragraphs. The pass strips
@@ -237,6 +260,13 @@ export interface GroupDebugInfo {
   hasNonText: boolean;
   renderMethod: RenderMethod;
   renderReason: string;
+  /**
+   * imageIds of standalone raster extractions whose artwork is contained in
+   * this composite crop. With `keepCoveredRasters` those images still exist
+   * downstream, so meaningfulness can pick one representation and prune the
+   * other; without it they were removed from the page's image set.
+   */
+  coveredRasterImageIds?: string[];
 }
 
 /** Full extraction debug output for a page */
@@ -252,6 +282,25 @@ export interface ExtractionDebugOutput {
   textOnlyGroupsSkipped: number;
   tooSmallGroupsSkipped: number;
   groups: GroupDebugInfo[];
+  /**
+   * Watermark signatures detected for this document and applied to this
+   * page (render filtering + text scrubbing). Absent when watermark
+   * removal is off or nothing was detected.
+   */
+  watermarks?: WatermarkSignature[];
+}
+
+/**
+ * Per-page extraction behavior switches, shared by the single-page and
+ * spread paths. Grouped into one object so new options don't keep growing
+ * the positional signatures.
+ */
+interface PageExtractOptions {
+  vectorTextGrouping: boolean;
+  keepCoveredRasters: boolean;
+  fixedLayout: boolean;
+  /** Doc-wide watermark signatures; undefined when removal is disabled. */
+  watermarks?: WatermarkSignature[];
 }
 
 // ============================================================================
@@ -269,7 +318,7 @@ export async function extractPdf(
   input: ExtractInput,
   onProgress?: (progress: ExtractProgress) => void
 ): Promise<ExtractResult> {
-  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs, vectorTextGrouping = true, fixedLayout = false } = input;
+  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs, vectorTextGrouping = true, keepCoveredRasters = false, removeWatermarks = false, fixedLayout = false } = input;
   validatePageRange(startPage, endPage);
 
   // Open PDF (suppressing mupdf stderr spam)
@@ -284,6 +333,12 @@ export async function extractPdf(
   const end = Math.min(endPage ?? totalPagesInPdf, totalPagesInPdf);
 
   const pages: ExtractedPage[] = [];
+  const pageOpts: PageExtractOptions = {
+    vectorTextGrouping,
+    keepCoveredRasters,
+    fixedLayout,
+    watermarks: removeWatermarks ? detectTextWatermarks(doc) : undefined,
+  };
 
   const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
   const totalLogical = logicalGroups.length;
@@ -292,8 +347,8 @@ export async function extractPdf(
     const group = logicalGroups[g];
     const page =
       group.length === 2
-        ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
-        : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
+        ? await extractSpreadPage(doc, group[0], group[1], pageOpts)
+        : await extractPage(doc, group[0], pageOpts);
     pages.push(page);
 
     onProgress?.({ page: g + 1, totalPages: totalLogical });
@@ -317,7 +372,7 @@ export function extractPdfStream(
   input: ExtractInput,
   onProgress?: (progress: ExtractProgress) => void
 ): ExtractStreamResult {
-  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs, vectorTextGrouping = true, fixedLayout = false } = input;
+  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs, vectorTextGrouping = true, keepCoveredRasters = false, removeWatermarks = false, fixedLayout = false } = input;
   validatePageRange(startPage, endPage);
 
   const doc = openPdfFromBuffer(pdfBuffer);
@@ -329,6 +384,12 @@ export function extractPdfStream(
 
   async function* generatePages(): AsyncGenerator<ExtractedPage, void, unknown> {
     try {
+      const pageOpts: PageExtractOptions = {
+        vectorTextGrouping,
+        keepCoveredRasters,
+        fixedLayout,
+        watermarks: removeWatermarks ? detectTextWatermarks(doc) : undefined,
+      };
       const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
       const totalLogical = logicalGroups.length;
 
@@ -336,8 +397,8 @@ export function extractPdfStream(
         const group = logicalGroups[g];
         const page =
           group.length === 2
-            ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
-            : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
+            ? await extractSpreadPage(doc, group[0], group[1], pageOpts)
+            : await extractPage(doc, group[0], pageOpts);
 
         onProgress?.({ page: g + 1, totalPages: totalLogical });
         yield page;
@@ -365,17 +426,27 @@ export async function extractPages(input: {
   pdfBuffer: Buffer;
   groups: number[][];
   vectorTextGrouping?: boolean;
+  keepCoveredRasters?: boolean;
+  removeWatermarks?: boolean;
   fixedLayout?: boolean;
 }): Promise<ExtractedPage[]> {
-  const { pdfBuffer, groups, vectorTextGrouping = true, fixedLayout = false } = input;
+  const { pdfBuffer, groups, vectorTextGrouping = true, keepCoveredRasters = false, removeWatermarks = false, fixedLayout = false } = input;
   const doc = openPdfFromBuffer(pdfBuffer);
   try {
     const pages: ExtractedPage[] = [];
+    // Detection samples the whole document (not just the requested groups)
+    // so re-extracted pages agree with the original full extraction.
+    const pageOpts: PageExtractOptions = {
+      vectorTextGrouping,
+      keepCoveredRasters,
+      fixedLayout,
+      watermarks: removeWatermarks ? detectTextWatermarks(doc) : undefined,
+    };
     for (const group of groups) {
       const page =
         group.length === 2
-          ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
-          : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
+          ? await extractSpreadPage(doc, group[0], group[1], pageOpts)
+          : await extractPage(doc, group[0], pageOpts);
       pages.push(page);
     }
     return pages;
@@ -786,16 +857,22 @@ function extractPdfMetadata(doc: MupdfDocument): PdfMetadata {
   return metadata;
 }
 
-async function extractPage(doc: MupdfDocument, pageIndex: number, vectorTextGrouping: boolean = true, fixedLayout: boolean = false): Promise<ExtractedPage> {
+async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtractOptions): Promise<ExtractedPage> {
+  const { vectorTextGrouping, keepCoveredRasters, fixedLayout, watermarks } = opts;
   const pageNum = pageIndex + 1;
   const pageId = "pg" + String(pageNum).padStart(3, "0");
 
   const page = doc.loadPage(pageIndex);
 
-  // Render full-page image at 2x scale (~144 DPI)
+  // Render full-page image at 2x scale (~144 DPI). With watermark removal
+  // active, the render drops the detected stamp ops so figure crops and the
+  // stored page image are clean; a failed filtered render falls back.
   const matrix = mupdf.Matrix.scale(2, 2);
-  const pixmap = page.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false);
-  const pagePngBuf = Buffer.from(pixmap.asPNG());
+  const cleanPng = watermarks && watermarks.length > 0
+    ? renderPageWithoutWatermarks(page, 2, watermarks)
+    : null;
+  const pagePngBuf = cleanPng
+    ?? Buffer.from(page.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false).asPNG());
 
   const pageImage: ExtractedImage = {
     imageId: `${pageId}_page`,
@@ -809,25 +886,47 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, vectorTextGrou
 
   // Extract text (handles legacy FM Sinhala font remapping when detected)
   const stext = page.toStructuredText();
-  const text = extractTextFromStructuredText(stext);
+  const rawText = extractTextFromStructuredText(stext);
+  const text = watermarks && watermarks.length > 0
+    ? stripWatermarkTextLines(rawText, watermarks)
+    : rawText;
   const fontStats = tallyFontCategories(stext);
   const pageBounds = page.getBounds();
-  const textShapes = extractTextShapes(stext, 0, pageBounds[2] - pageBounds[0]);
+  const textShapes = extractTextShapes(stext, 0, pageBounds[2] - pageBounds[0], watermarks);
 
   // Extract raster images directly from PDF objects (not SVG)
   const pdfDoc = doc as unknown as PDFDocument;
   const pdfPage = page as unknown as PDFPage;
   const allRasterImages = extractRasterImagesFromPdf(pdfDoc, pdfPage, pageId);
 
+  // Record image draw operations before figure grouping. The recorder has the
+  // exact placement geometry that mupdf's SVG output often omits; grouping can
+  // therefore combine raster artwork with its vector leaders and text labels.
+  const recorder = runRecorderInViewport(
+    page,
+    pageBounds,
+    0,
+    0,
+    hasDuplicateDimensions(allRasterImages),
+  );
+  stampRasterPlacementsFromOps(allRasterImages, recorder.ops);
+
   // Extract vector shapes and figure groups from SVG (text shapes participate in grouping when enabled)
   const pageSvg = getPageSvg(page);
   const { images: figureImagesRaw, coveredRasterHashes, debug: extractionDebug } = await extractVectorImagesFromSvg(
-    pageSvg, pageId, allRasterImages.length, pagePngBuf, vectorTextGrouping ? textShapes : undefined
+    pageSvg,
+    pageId,
+    allRasterImages.length,
+    pagePngBuf,
+    vectorTextGrouping ? textShapes : undefined,
+    vectorTextGrouping ? allRasterImages : undefined,
   );
   let figureImages = figureImagesRaw;
 
-  // Filter out raster images that are covered by figure groups (dedup)
-  const rasterImages = coveredRasterHashes.size > 0
+  // Filter out raster images that are covered by figure groups (dedup).
+  // In keepCoveredRasters mode the standalone copies stay: meaningfulness
+  // downstream picks composite vs standalone instead of extraction deciding.
+  const rasterImages = !keepCoveredRasters && coveredRasterHashes.size > 0
     ? allRasterImages.filter(img => !coveredRasterHashes.has(img.hash))
     : allRasterImages;
 
@@ -841,14 +940,6 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, vectorTextGrou
   // is a layout reconstruction (reading flow, not stream order) so it can't be
   // used for z-order — but the device callbacks fire once per content-stream
   // operator, in stream order, with fully-resolved CTMs.
-  const recorder = runRecorderInViewport(
-    page,
-    pageBounds,
-    0,
-    0,
-    hasDuplicateDimensions(allRasterImages),
-  );
-  stampRasterPlacementsFromOps(allRasterImages, recorder.ops);
   applyOrientationTransformsToRasterImages(rasterImages);
 
   // Reuse the StructuredText already built above — no extra pass. Build
@@ -874,6 +965,12 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, vectorTextGrou
     figureImages,
     recorder.ops,
   );
+  if (watermarks && watermarks.length > 0) {
+    positionedText.drawItems = positionedText.drawItems.filter(
+      (item) => item.kind !== "paragraph" || !isWatermarkLine(item.text, watermarks),
+    );
+    extractionDebug.watermarks = watermarks;
+  }
 
   return {
     pageId,
@@ -1549,9 +1646,9 @@ async function extractSpreadPage(
   doc: MupdfDocument,
   leftIndex: number,
   rightIndex: number,
-  vectorTextGrouping: boolean = true,
-  fixedLayout: boolean = false,
+  opts: PageExtractOptions,
 ): Promise<ExtractedPage> {
+  const { vectorTextGrouping, keepCoveredRasters, fixedLayout, watermarks } = opts;
   const leftNum = leftIndex + 1;
   const rightNum = rightIndex + 1;
   const pageId =
@@ -1562,14 +1659,14 @@ async function extractSpreadPage(
   const leftPage = doc.loadPage(leftIndex);
   const rightPage = doc.loadPage(rightIndex);
 
-  // Render both pages and stitch side by side
+  // Render both pages and stitch side by side. Watermark ops are dropped per
+  // half (signatures are in single-page coordinates) before stitching.
   const matrix = mupdf.Matrix.scale(2, 2);
-  const leftPng = Buffer.from(
-    leftPage.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false).asPNG()
-  );
-  const rightPng = Buffer.from(
-    rightPage.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false).asPNG()
-  );
+  const hasWatermarks = watermarks !== undefined && watermarks.length > 0;
+  const leftPng = (hasWatermarks ? renderPageWithoutWatermarks(leftPage, 2, watermarks) : null)
+    ?? Buffer.from(leftPage.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false).asPNG());
+  const rightPng = (hasWatermarks ? renderPageWithoutWatermarks(rightPage, 2, watermarks) : null)
+    ?? Buffer.from(rightPage.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false).asPNG());
   const pagePngBuf = stitchPngsHorizontally(leftPng, rightPng);
 
   const pageImage: ExtractedImage = {
@@ -1587,7 +1684,8 @@ async function extractSpreadPage(
   const rightStext = rightPage.toStructuredText();
   const leftText = extractTextFromStructuredText(leftStext);
   const rightText = extractTextFromStructuredText(rightStext);
-  const text = leftText + "\n" + rightText;
+  const rawText = leftText + "\n" + rightText;
+  const text = hasWatermarks ? stripWatermarkTextLines(rawText, watermarks) : rawText;
   const leftFontStats = tallyFontCategories(leftStext);
   const rightFontStats = tallyFontCategories(rightStext);
   const fontStats = {
@@ -1596,8 +1694,8 @@ async function extractSpreadPage(
   };
   const leftBounds = leftPage.getBounds();
   const rightBounds = rightPage.getBounds();
-  const leftTextShapes = extractTextShapes(leftStext, 0, leftBounds[2] - leftBounds[0]);
-  const rightTextShapes = extractTextShapes(rightStext, leftTextShapes.length, rightBounds[2] - rightBounds[0]);
+  const leftTextShapes = extractTextShapes(leftStext, 0, leftBounds[2] - leftBounds[0], watermarks);
+  const rightTextShapes = extractTextShapes(rightStext, leftTextShapes.length, rightBounds[2] - rightBounds[0], watermarks);
 
   // Extract raster images from both pages
   const pdfDoc = doc as unknown as PDFDocument;
@@ -1606,30 +1704,65 @@ async function extractSpreadPage(
   const allLeftRaster = extractRasterImagesFromPdf(pdfDoc, leftPdfPage, pageId);
   const allRightRaster = extractRasterImagesFromPdf(pdfDoc, rightPdfPage, pageId, allLeftRaster.length);
 
+  // Capture exact raster placements before grouping each half. Right-page
+  // positions are shifted into the stitched spread coordinate space.
+  const leftPageWidthPt = leftBounds[2] - leftBounds[0];
+  const leftRecorder = runRecorderInViewport(
+    leftPage,
+    leftBounds,
+    0,
+    0,
+    hasDuplicateDimensions(allLeftRaster),
+  );
+  const leftMaxSeqno = leftRecorder.ops.reduce(
+    (m, o) => Math.max(m, o.seqno),
+    -1,
+  );
+  const rightRecorder = runRecorderInViewport(
+    rightPage,
+    rightBounds,
+    leftPageWidthPt,
+    leftMaxSeqno + 1,
+    hasDuplicateDimensions(allRightRaster),
+  );
+  const ops: StreamOp[] = [...leftRecorder.ops, ...rightRecorder.ops];
+  stampRasterPlacementsFromOps(allLeftRaster, leftRecorder.ops);
+  stampRasterPlacementsFromOps(allRightRaster, rightRecorder.ops);
+
   // Extract vector shapes and figure groups from both pages
   const leftSvg = getPageSvg(leftPage);
   const rightSvg = getPageSvg(rightPage);
   const rasterCount = allLeftRaster.length + allRightRaster.length;
-  const leftPageWidthPt = leftBounds[2] - leftBounds[0];
-  const leftResult = await extractVectorImagesFromSvg(leftSvg, pageId, rasterCount, leftPng, vectorTextGrouping ? leftTextShapes : undefined);
+  const leftResult = await extractVectorImagesFromSvg(
+    leftSvg,
+    pageId,
+    rasterCount,
+    leftPng,
+    vectorTextGrouping ? leftTextShapes : undefined,
+    vectorTextGrouping ? allLeftRaster : undefined,
+  );
   const rightResult = await extractVectorImagesFromSvg(
     rightSvg,
     pageId,
     rasterCount + leftResult.images.length,
     rightPng,
     vectorTextGrouping ? rightTextShapes : undefined,
+    vectorTextGrouping ? allRightRaster : undefined,
     leftPageWidthPt,
   );
 
-  // Merge covered hashes from both pages and filter raster images
+  // Merge covered hashes from both pages and filter raster images.
+  // In keepCoveredRasters mode the standalone copies stay: meaningfulness
+  // downstream picks composite vs standalone instead of extraction deciding.
   const coveredRasterHashes = new Set([
     ...leftResult.coveredRasterHashes,
     ...rightResult.coveredRasterHashes,
   ]);
-  const leftRaster = coveredRasterHashes.size > 0
+  const dropCovered = !keepCoveredRasters && coveredRasterHashes.size > 0;
+  const leftRaster = dropCovered
     ? allLeftRaster.filter(img => !coveredRasterHashes.has(img.hash))
     : allLeftRaster;
-  const rightRaster = coveredRasterHashes.size > 0
+  const rightRaster = dropCovered
     ? allRightRaster.filter(img => !coveredRasterHashes.has(img.hash))
     : allRightRaster;
 
@@ -1660,30 +1793,9 @@ async function extractSpreadPage(
   // Run the recorder on both pages, in viewport coords; right-page x is shifted
   // by left page width so positions address the stitched spread, and right-page
   // seqnos shift past left so cross-page sort puts left ahead of right.
-  const leftRecorder = runRecorderInViewport(
-    leftPage,
-    leftBounds,
-    0,
-    0,
-    hasDuplicateDimensions(allLeftRaster),
-  );
-  const leftMaxSeqno = leftRecorder.ops.reduce(
-    (m, o) => Math.max(m, o.seqno),
-    -1,
-  );
-  const rightRecorder = runRecorderInViewport(
-    rightPage,
-    rightBounds,
-    leftPageWidthPt,
-    leftMaxSeqno + 1,
-    hasDuplicateDimensions(allRightRaster),
-  );
-  const ops: StreamOp[] = [...leftRecorder.ops, ...rightRecorder.ops];
-  // Rasters: stamp per page so dim-tied images on different pages don't
-  // pair across the spread boundary.
-  stampRasterPlacementsFromOps(allLeftRaster, leftRecorder.ops);
+  // Rasters were stamped per page before grouping so dimension-tied images on
+  // different pages could not pair across the spread boundary.
   applyOrientationTransformsToRasterImages(leftRaster);
-  stampRasterPlacementsFromOps(allRightRaster, rightRecorder.ops);
   applyOrientationTransformsToRasterImages(rightRaster);
 
   // Reuse the per-page StructuredText already built above — no extra pass.
@@ -1704,6 +1816,12 @@ async function extractSpreadPage(
     figureImages,
     ops,
   );
+  if (hasWatermarks) {
+    positionedText.drawItems = positionedText.drawItems.filter(
+      (item) => item.kind !== "paragraph" || !isWatermarkLine(item.text, watermarks),
+    );
+    extractionDebug.watermarks = watermarks;
+  }
 
   const images: ExtractedImage[] = [...rasterImages, ...figureImages];
 
@@ -1978,6 +2096,12 @@ const TEXT_OVERLAP_MARGIN = 10;
  */
 const TEXT_MAX_WIDTH_RATIO = 0.5;
 
+/** Maximum short-axis size for a vector to be treated as a connector. */
+const CONNECTOR_MAX_THICKNESS = 8;
+
+/** Maximum bbox-area ratio for an overlay to be considered part of a raster. */
+const RASTER_OVERLAY_MAX_AREA_RATIO = 0.25;
+
 /**
  * Maximum gap (in points) between small aligned groups to merge them.
  * Bridges gaps between elements in a row/column (e.g., calculator buttons)
@@ -2005,12 +2129,142 @@ interface ShapeInfo {
   clipPathIds: string[];
   /** True if this shape represents an <image> element (raster content) */
   isImage?: boolean;
+  /**
+   * True when this image shape was synthesized from an XObject draw op rather
+   * than emitted by mupdf's SVG writer. Some PDFs omit raster placements from
+   * SVG entirely, so these shapes let labels/connectors participate in figure
+   * grouping without treating every overlapping page-layout rectangle as part
+   * of the raster figure.
+   */
+  isRasterPlacement?: boolean;
+  /** Non-background pixel extent mapped into page coordinates, crop-only. */
+  rasterContentBbox?: BBox;
+  /** Source image used to calculate rasterContentBbox only for emitted groups. */
+  rasterSource?: ExtractedImage;
+  /** Spread-page offset to remove from a lazily calculated content bbox. */
+  rasterContentXOffset?: number;
   /** SHA-256 hash prefix of the decoded image data (for dedup with raster extraction) */
   imageDataHash?: string;
   /** True if this shape represents a text line (from structured text, not SVG) */
   isText?: boolean;
   /** Character count of the text content (only set when isText is true) */
   textLength?: number;
+}
+
+function rasterContentBboxOnPage(image: ExtractedImage): BBox | undefined {
+  if (!image.bounds) return undefined;
+
+  let decoded: InstanceType<typeof mupdf.Image> | undefined;
+  let sourcePixmap: Pixmap | undefined;
+  let pixelsPixmap: Pixmap | undefined;
+  try {
+    decoded = new mupdf.Image(image.buffer);
+    sourcePixmap = decoded.toPixmap();
+    pixelsPixmap = normalizeToDisplayableRgb(sourcePixmap);
+
+    const width = pixelsPixmap.getWidth();
+    const height = pixelsPixmap.getHeight();
+    if (width <= 0 || height <= 0) return undefined;
+
+    const components = pixelsPixmap.getNumberOfComponents();
+    const hasAlpha = pixelsPixmap.getAlpha();
+    const stride = components + (hasAlpha ? 1 : 0);
+    const pixels = pixelsPixmap.getPixels();
+
+    const sample = (x: number, y: number): [number, number, number, number] => {
+      const offset = (y * width + x) * stride;
+      const r = pixels[offset] ?? 255;
+      const g = components === 1 ? r : (pixels[offset + 1] ?? r);
+      const b = components === 1 ? r : (pixels[offset + 2] ?? r);
+      const a = hasAlpha ? (pixels[offset + components] ?? 255) : 255;
+      return [r, g, b, a];
+    };
+
+    const corners = [
+      sample(0, 0),
+      sample(width - 1, 0),
+      sample(0, height - 1),
+      sample(width - 1, height - 1),
+    ];
+    const background = corners[0].map((_, channel) =>
+      corners.reduce((sum, pixel) => sum + pixel[channel], 0) / corners.length
+    ) as [number, number, number, number];
+
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const [r, g, b, a] = sample(x, y);
+        const visible = background[3] < 32
+          ? a > 16
+          : Math.max(
+              Math.abs(r - background[0]),
+              Math.abs(g - background[1]),
+              Math.abs(b - background[2]),
+            ) > 20;
+        if (!visible) continue;
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+
+    if (maxX < minX || maxY < minY) return undefined;
+
+    // One source pixel protects antialiased artwork edges without reintroducing
+    // unrelated page content from outside the XObject.
+    minX = Math.max(0, minX - 1);
+    minY = Math.max(0, minY - 1);
+    maxX = Math.min(width - 1, maxX + 1);
+    maxY = Math.min(height - 1, maxY + 1);
+
+    const xScale = image.bounds.width / width;
+    const yScale = image.bounds.height / height;
+    return [
+      image.bounds.x + minX * xScale,
+      image.bounds.y + minY * yScale,
+      image.bounds.x + (maxX + 1) * xScale,
+      image.bounds.y + (maxY + 1) * yScale,
+    ];
+  } catch {
+    return undefined;
+  } finally {
+    if (pixelsPixmap && pixelsPixmap !== sourcePixmap) pixelsPixmap.destroy();
+    sourcePixmap?.destroy();
+    decoded?.destroy();
+  }
+}
+
+function rasterPlacementShapes(
+  rasters: ExtractedImage[],
+  startSeqno: number,
+  xOffset: number,
+): ShapeInfo[] {
+  let fallbackSeqno = startSeqno;
+  return rasters.flatMap((image) => {
+    if (!image.bounds) return [];
+    const bbox: BBox = [
+      image.bounds.x - xOffset,
+      image.bounds.y,
+      image.bounds.x - xOffset + image.bounds.width,
+      image.bounds.y + image.bounds.height,
+    ];
+    return [{
+      bbox,
+      originalBbox: bbox,
+      seqno: image.streamSeqno ?? fallbackSeqno++,
+      svgElement: "",
+      clipPathIds: [],
+      isImage: true,
+      isRasterPlacement: true,
+      imageDataHash: image.hash,
+      rasterSource: image,
+      rasterContentXOffset: xOffset,
+    }];
+  });
 }
 
 /**
@@ -2757,6 +3011,88 @@ function boxesOverlap(box1: BBox, box2: BBox, margin: number = 0): boolean {
   );
 }
 
+function bboxArea([x0, y0, x1, y1]: BBox): number {
+  return Math.max(0, x1 - x0) * Math.max(0, y1 - y0);
+}
+
+function bboxIntersectionArea(a: BBox, b: BBox): number {
+  return Math.max(0, Math.min(a[2], b[2]) - Math.max(a[0], b[0]))
+    * Math.max(0, Math.min(a[3], b[3]) - Math.max(a[1], b[1]));
+}
+
+/**
+ * Raster placements synthesized from PDF draw ops need stricter attachment
+ * rules than ordinary SVG shapes. A broad layout rectangle or watermark may
+ * overlap an image without belonging to it (cover headings and activity cards
+ * are common examples). Conversely, thin leader lines, arrows, small overlays,
+ * and labels printed inside the raster's placement are strong figure evidence.
+ */
+function shouldAttachToRasterPlacement(raster: ShapeInfo, other: ShapeInfo): boolean {
+  if (other.isImage) return boxesOverlap(raster.bbox, other.bbox);
+
+  if (other.isText) {
+    const [tx0, ty0, tx1, ty1] = other.bbox;
+    const [rx0, ry0, rx1, ry1] = raster.bbox;
+    const cx = (tx0 + tx1) / 2;
+    const cy = (ty0 + ty1) / 2;
+    const textArea = bboxArea(other.bbox);
+    const overlapRatio = textArea > 0
+      ? bboxIntersectionArea(raster.bbox, other.bbox) / textArea
+      : 0;
+
+    // Require the label to begin within the raster placement. This excludes a
+    // heading that merely hangs over the image's top edge while retaining
+    // labels overlaid on a diagram canvas (including labels below individual
+    // objects that are still inside the overall raster bbox).
+    const insidePlacement = cx >= rx0 && cx <= rx1
+      && cy >= ry0 && cy <= ry1
+      && ty0 >= ry0 - OVERLAP_MARGIN
+      && overlapRatio >= 0.5;
+
+    const verticalOverlap = Math.max(0, Math.min(ty1, ry1) - Math.max(ty0, ry0));
+    const textHeight = ty1 - ty0;
+    const verticalOverlapRatio = textHeight > 0 ? verticalOverlap / textHeight : 0;
+    const horizontalGap = tx1 < rx0
+      ? rx0 - tx1
+      : tx0 > rx1
+        ? tx0 - rx1
+        : 0;
+    const besidePlacement = (cx < rx0 || cx > rx1)
+      && verticalOverlapRatio >= 0.5
+      && horizontalGap <= ROW_MERGE_GAP;
+
+    const belowPlacement = cx >= rx0 && cx <= rx1
+      && ty0 >= ry1 - TEXT_OVERLAP_MARGIN / 2
+      && ty0 <= ry1 + TEXT_OVERLAP_MARGIN / 2
+      && (other.textLength ?? Infinity) <= 20;
+
+    return insidePlacement || besidePlacement || belowPlacement;
+  }
+
+  if (!boxesOverlap(raster.bbox, other.bbox, OVERLAP_MARGIN)) return false;
+
+  const otherWidth = other.bbox[2] - other.bbox[0];
+  const otherHeight = other.bbox[3] - other.bbox[1];
+  const isConnector = Math.min(otherWidth, otherHeight) <= CONNECTOR_MAX_THICKNESS;
+  if (isConnector) return true;
+
+  const rasterArea = bboxArea(raster.bbox);
+  const otherArea = bboxArea(other.bbox);
+  if (rasterArea <= 0 || otherArea / rasterArea > RASTER_OVERLAY_MAX_AREA_RATIO) {
+    return false;
+  }
+
+  // A compact highlight/annotation substantially inside the image is likely
+  // intrinsic to the figure; a large callout background is not.
+  return bboxIntersectionArea(raster.bbox, other.bbox) / otherArea >= 0.8;
+}
+
+function shouldGroupShapes(a: ShapeInfo, b: ShapeInfo, margin: number): boolean {
+  if (a.isRasterPlacement) return shouldAttachToRasterPlacement(a, b);
+  if (b.isRasterPlacement) return shouldAttachToRasterPlacement(b, a);
+  return boxesOverlap(a.bbox, b.bbox, margin);
+}
+
 /**
  * Group overlapping shapes using union-find algorithm.
  */
@@ -2806,7 +3142,7 @@ function groupOverlappingShapes(
       }
       // Text-to-text: standard margin to avoid chaining paragraphs
 
-      if (boxesOverlap(shapes[i].bbox, shapes[j].bbox, m)) {
+      if (shouldGroupShapes(shapes[i], shapes[j], m)) {
         union(i, j);
       }
     }
@@ -2869,9 +3205,25 @@ function computeGroupInkBbox(
 
   for (const shape of group) {
     const stroke = parseStrokeInkExtent(shape.svgElement);
-    const padX = stroke + aaGuardX;
-    const padY = stroke + aaGuardY;
-    const [x0, y0, x1, y1] = shape.bbox;
+    // A draw-op placement is already the raster's exact page boundary.
+    // Expanding it by the vector anti-alias guard can capture a stray row of
+    // adjacent body text in a page crop (notably when a diagram starts directly
+    // below a paragraph), so only SVG/text geometry receives that padding.
+    const padX = shape.isRasterPlacement ? 0 : stroke + aaGuardX;
+    const padY = shape.isRasterPlacement ? 0 : stroke + aaGuardY;
+    if (shape.isRasterPlacement && !shape.rasterContentBbox && shape.rasterSource) {
+      const contentBbox = rasterContentBboxOnPage(shape.rasterSource);
+      if (contentBbox) {
+        const xOffset = shape.rasterContentXOffset ?? 0;
+        shape.rasterContentBbox = [
+          contentBbox[0] - xOffset,
+          contentBbox[1],
+          contentBbox[2] - xOffset,
+          contentBbox[3],
+        ];
+      }
+    }
+    const [x0, y0, x1, y1] = shape.rasterContentBbox ?? shape.bbox;
     minX = Math.min(minX, x0 - padX);
     minY = Math.min(minY, y0 - padY);
     maxX = Math.max(maxX, x1 + padX);
@@ -2879,6 +3231,60 @@ function computeGroupInkBbox(
   }
 
   return [minX, minY, maxX, maxY];
+}
+
+/**
+ * If a raster's transparent/white margin makes a crop begin halfway through
+ * unrelated selectable text, move that edge just past the text line. Only
+ * lines that actually straddle an edge are considered, and an edge is never
+ * moved across a companion shape that belongs to the figure.
+ */
+function trimExcludedTextAtCropEdges(
+  crop: BBox,
+  group: ShapeInfo[],
+  textShapes: ShapeInfo[] | undefined,
+  guardX: number,
+  guardY: number,
+): BBox {
+  if (!textShapes || textShapes.length === 0) return crop;
+
+  const included = new Set(group);
+  const excluded = textShapes.filter((shape) => !included.has(shape));
+  const companions = group.filter((shape) => !shape.isRasterPlacement);
+  let [left, top, right, bottom] = crop;
+
+  for (const text of excluded) {
+    const [x0, y0, x1, y1] = text.bbox;
+    const overlapsX = x1 > left && x0 < right;
+    const overlapsY = y1 > top && y0 < bottom;
+
+    if (overlapsX && y0 < top && y1 > top) {
+      const nextTop = y1 + guardY;
+      if (nextTop < bottom && !companions.some((shape) => shape.bbox[1] < nextTop)) {
+        top = nextTop;
+      }
+    }
+    if (overlapsX && y0 < bottom && y1 > bottom) {
+      const nextBottom = y0 - guardY;
+      if (nextBottom > top && !companions.some((shape) => shape.bbox[3] > nextBottom)) {
+        bottom = nextBottom;
+      }
+    }
+    if (overlapsY && x0 < left && x1 > left) {
+      const nextLeft = x1 + guardX;
+      if (nextLeft < right && !companions.some((shape) => shape.bbox[0] < nextLeft)) {
+        left = nextLeft;
+      }
+    }
+    if (overlapsY && x0 < right && x1 > right) {
+      const nextRight = x0 - guardX;
+      if (nextRight > left && !companions.some((shape) => shape.bbox[2] > nextRight)) {
+        right = nextRight;
+      }
+    }
+  }
+
+  return [left, top, right, bottom];
 }
 
 /**
@@ -2895,6 +3301,9 @@ function mergeAlignedGroups(groups: ShapeInfo[][]): ShapeInfo[][] {
   if (groups.length <= 1) return groups;
 
   const bboxes = groups.map(g => computeGroupBbox(g));
+  const containsRasterPlacement = groups.map((group) =>
+    group.some((shape) => shape.isRasterPlacement)
+  );
   const n = groups.length;
   const parent = Array.from({ length: n }, (_, i) => i);
 
@@ -2919,6 +3328,11 @@ function mergeAlignedGroups(groups: ShapeInfo[][]): ShapeInfo[][] {
     const aSmall = aw < ROW_MERGE_MAX_DIMENSION && ah < ROW_MERGE_MAX_DIMENSION;
 
     for (let j = i + 1; j < n; j++) {
+      // Raster groups already received deliberate label/connector attachments
+      // in the first pass. Generic row/column merging can otherwise bridge a
+      // nearby activity box or chapter layout into the figure transitively.
+      if (containsRasterPlacement[i] || containsRasterPlacement[j]) continue;
+
       const [bx0, by0, bx1, by1] = bboxes[j];
       const bw = bx1 - bx0;
       const bh = by1 - by0;
@@ -2968,20 +3382,25 @@ function extractTextShapes(
   stext: ReturnType<ReturnType<MupdfDocument["loadPage"]>["toStructuredText"]>,
   startSeqno: number,
   pageWidth: number,
+  watermarks?: WatermarkSignature[],
 ): ShapeInfo[] {
   const shapes: ShapeInfo[] = [];
   let seqno = startSeqno;
   let currentBbox: BBox | null = null;
   let charCount = 0;
+  let lineText = "";
   const maxTextWidth = pageWidth * TEXT_MAX_WIDTH_RATIO;
+  const hasWatermarks = watermarks !== undefined && watermarks.length > 0;
 
   stext.walk({
     beginLine(bbox: [number, number, number, number]) {
       currentBbox = [bbox[0], bbox[1], bbox[2], bbox[3]];
       charCount = 0;
+      lineText = "";
     },
     onChar(c: string) {
       if (c.trim().length > 0) charCount++;
+      if (hasWatermarks) lineText += c;
     },
     endLine() {
       if (currentBbox && charCount > 0) {
@@ -2989,7 +3408,11 @@ function extractTextShapes(
         const lineWidth = x1 - x0;
         // Skip wide text lines — they're body paragraphs, not figure labels.
         // Figure annotations (labels, dimensions) are short and localized.
-        if (x1 > x0 && y1 > y0 && lineWidth <= maxTextWidth) {
+        // Watermark lines never become figure labels either.
+        if (
+          x1 > x0 && y1 > y0 && lineWidth <= maxTextWidth
+          && !(hasWatermarks && isWatermarkLine(lineText, watermarks))
+        ) {
           shapes.push({
             bbox: currentBbox,
             originalBbox: currentBbox,
@@ -3003,6 +3426,7 @@ function extractTextShapes(
       }
       currentBbox = null;
       charCount = 0;
+      lineText = "";
     },
   });
 
@@ -3321,6 +3745,7 @@ async function extractVectorImagesFromSvg(
   startIndex: number,
   pagePngBuffer: Buffer,
   textShapes?: ShapeInfo[],
+  rasterPlacements?: ExtractedImage[],
   /** Added to every produced image's `bounds.x` so right-page figures in a
    *  spread address the stitched viewport. Defaults to 0 (single page). */
   xOffset: number = 0,
@@ -3357,7 +3782,21 @@ async function extractVectorImagesFromSvg(
 
   // Extract shapes from SVG content (paths, rects, and image elements)
   const allShapes = extractShapesFromSvg(svgContent);
-  const svgShapeCount = allShapes.length;
+
+  // mupdf's SVG writer frequently omits XObject images even though the page
+  // renderer and recorder see them. Re-introduce their exact draw-op bounds as
+  // synthetic image shapes so vector connectors and selectable labels can be
+  // assembled with the raster artwork into one complete figure.
+  if (rasterPlacements && rasterPlacements.length > 0) {
+    allShapes.push(...rasterPlacementShapes(rasterPlacements, allShapes.length, xOffset));
+  }
+
+  // Ties a covered raster hash back to its standalone extraction so debug
+  // groups can name the imageIds their composite absorbed (SVG <image>
+  // shapes share the same hash space via their decoded-content hash).
+  const rasterImageIdByHash = new Map(
+    (rasterPlacements ?? []).map((image) => [image.hash, image.imageId]),
+  );
 
   // Include text line shapes so they participate in spatial grouping.
   // Wide text lines are already filtered out in extractTextShapes (TEXT_MAX_WIDTH_RATIO).
@@ -3455,18 +3894,46 @@ async function extractVectorImagesFromSvg(
     }
 
     const hasText = group.some(s => s.isText);
+    const hasRasterPlacement = group.some((shape) => shape.isRasterPlacement);
+    if (hasRasterPlacement) {
+      const companions = group.filter((shape) => !shape.isRasterPlacement);
+      const companionTextCount = companions.filter((shape) => shape.isText).length;
+      const companionVectorCount = companions.filter(
+        (shape) => !shape.isText && !shape.isImage
+      ).length;
+      const hasSvgImageCompanion = companions.some((shape) => shape.isImage);
+
+      // The directly extracted raster is already the best representation when
+      // no meaningful overlay joined it. A lone text line is normally a nearby
+      // caption/header and remains semantic HTML; genuine single-label figures
+      // generally also have a leader/annotation vector joining the group.
+      if (companions.length === 0 || (
+        companionTextCount === 1
+        && companionVectorCount === 0
+        && !hasSvgImageCompanion
+      )) {
+        continue;
+      }
+    }
     const nonTextShapes = group.filter(s => !s.isText);
     // Crop to the figure's true ink extent (geometry + per-shape stroke
     // half-width + 1px AA), clamped to the page. The small-figure skip above
     // intentionally stays on the geometry bbox so a stroke can't inflate a
     // sub-threshold speck past MIN_VECTOR_DIMENSION.
     const ink = computeGroupInkBbox(group, aaGuardX, aaGuardY);
-    const cropBbox: BBox = [
+    const pageClampedBbox: BBox = [
       Math.max(0, ink[0]),
       Math.max(0, ink[1]),
       Math.min(pageWidth, ink[2]),
       Math.min(pageHeight, ink[3]),
     ];
+    const cropBbox = trimExcludedTextAtCropEdges(
+      pageClampedBbox,
+      group,
+      textShapes,
+      aaGuardX,
+      aaGuardY,
+    );
 
     const cropW = cropBbox[2] - cropBbox[0];
     const cropH = cropBbox[3] - cropBbox[1];
@@ -3502,7 +3969,7 @@ async function extractVectorImagesFromSvg(
     }));
 
     const imageId = pageId + "_im" + String(imgIndex).padStart(3, "0");
-    debug.groups.push({
+    const groupDebug: GroupDebugInfo = {
       imageId,
       groupIndex,
       shapeCount: group.length,
@@ -3513,7 +3980,8 @@ async function extractVectorImagesFromSvg(
       hasNonText,
       renderMethod,
       renderReason,
-    });
+    };
+    debug.groups.push(groupDebug);
 
     let img: ExtractedImage | null;
 
@@ -3521,11 +3989,15 @@ async function extractVectorImagesFromSvg(
       img = cropFigureFromPageRender(pagePngBuffer, cropBbox, pageId, imgIndex, pageWidth, pageHeight);
       if (img) {
         img.renderMethod = "page-crop";
+        const coveredIds: string[] = [];
         for (const s of group) {
           if (s.isImage && s.imageDataHash) {
             coveredRasterHashes.add(s.imageDataHash);
+            const coveredId = rasterImageIdByHash.get(s.imageDataHash);
+            if (coveredId && !coveredIds.includes(coveredId)) coveredIds.push(coveredId);
           }
         }
+        if (coveredIds.length > 0) groupDebug.coveredRasterImageIds = coveredIds;
       }
     } else {
       img = await renderShapeGroup(nonTextShapes, pageId, imgIndex, svgDefs, pageWidth, pageHeight, cropBbox);

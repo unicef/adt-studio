@@ -1529,6 +1529,19 @@ msgstr "Authors"
 msgid "Auto"
 msgstr "Auto"
 
+msgid "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
+msgstr "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
+
+msgid "Auto preserves charts, labeled images, and complex infographics as single assets while leaving styled headings, callouts, and conventional tables for accessible HTML. All keeps every composite candidate. Off prevents PDF text from being merged into figures."
+msgstr "Auto preserves charts, labeled images, and complex infographics as single assets while leaving styled headings, callouts, and conventional tables for accessible HTML. All keeps every composite candidate. Off prevents PDF text from being merged into figures."
+
+msgid "Auto recommended"
+msgstr "Auto recommended"
+
+#. placeholder {0}: i18n._(presetLabel)
+msgid "Auto recommended for {0}"
+msgstr "Auto recommended for {0}"
+
 msgid "Auto-detected · {detectedLabel}"
 msgstr "Auto-detected · {detectedLabel}"
 
@@ -2924,11 +2937,14 @@ msgstr "Detects activities already present in the book and transforms them into 
 msgid "Detects and splits composited illustrations into separate regions so each asset can be placed and refined on its own."
 msgstr "Detects and splits composited illustrations into separate regions so each asset can be placed and refined on its own."
 
-msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
-msgstr "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
+#~ msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
+#~ msgstr "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
 
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
+
+msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
+msgstr "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
 
 msgid "Diagram"
 msgstr "Diagram"
@@ -7269,6 +7285,9 @@ msgstr "Remove this block"
 msgid "Remove type"
 msgstr "Remove type"
 
+msgid "Remove Watermarks"
+msgstr "Remove Watermarks"
+
 msgid "removed"
 msgstr "removed"
 
@@ -10055,6 +10074,9 @@ msgstr "Water moving through a membrane."
 
 msgid "Watercolor"
 msgstr "Watercolor"
+
+msgid "Watermarks"
+msgstr "Watermarks"
 
 msgid "wcag2a\n"
 "wcag2aa\n"

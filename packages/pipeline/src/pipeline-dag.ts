@@ -27,7 +27,7 @@ import type {
   WebRenderingOutput,
 } from "@adt/types"
 import { isTtsExcluded } from "@adt/types"
-import { extractPDF } from "./pdf-extraction.js"
+import { extractPDF, resolveFigureExtractionMode } from "./pdf-extraction.js"
 import {
   resolveFontsCacheDir,
   buildBookFontsPromptContext,
@@ -52,7 +52,11 @@ import {
   buildPageSectioningConfig,
 } from "./page-sectioning.js"
 import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.js"
-import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
+import {
+  addFigureExtractionContext,
+  filterPageImageMeaningfulness,
+  buildMeaningfulnessConfig,
+} from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
 import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
 import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds, collectSourcePageImages } from "./web-rendering.js"
@@ -239,7 +243,9 @@ export async function runFullPipeline(
           endPage: endPage ?? config.end_page,
           spreadMode: config.spread_mode,
           spreadPairs: config.spread_pairs,
-          vectorTextGrouping: config.vector_text_grouping,
+          vectorTextGrouping: resolveFigureExtractionMode(config) !== "off",
+          keepCoveredRasters: resolveFigureExtractionMode(config) === "auto",
+          removeWatermarks: config.remove_watermarks === true,
           // Gates the positioned-text pipeline (fixed-layout rendering is its
           // only consumer). Must match stage-runner so re-runs are consistent.
           fixedLayout: isFixedLayoutBook(config),
@@ -420,18 +426,27 @@ export async function runFullPipeline(
           imageResult.images.filter((img) => !img.isPruned).map((img) => img.imageId)
         )
         const images = storage.getPageImages(page.pageId)
-        const unprunedImages = images
+        const rawUnprunedImages = images
           .filter((img) => unprunedImageIds.has(img.imageId))
           .map((img) => ({
             imageId: img.imageId,
             imageBase64: storage.getImageBase64(img.imageId),
             width: img.width,
             height: img.height,
+            renderMethod: img.renderMethod,
           }))
+        const extractionDebug = storage.getLatestNodeData("extraction-debug", page.pageId)
+          ?.data as import("@adt/pdf").ExtractionDebugOutput | undefined
+        const unprunedImages = addFigureExtractionContext(rawUnprunedImages, extractionDebug)
         if (unprunedImages.length > 0) {
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
           imageResult = await filterPageImageMeaningfulness(
-            { pageId: page.pageId, pageImageBase64, images: unprunedImages },
+            {
+              pageId: page.pageId,
+              pageImageBase64,
+              pageText: page.text,
+              images: unprunedImages,
+            },
             imageResult,
             meaningfulnessConfig,
             model,

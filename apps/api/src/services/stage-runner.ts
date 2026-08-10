@@ -7,6 +7,7 @@ import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRa
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
+  resolveFigureExtractionMode,
   resolveFontsCacheDir,
   buildBookFontsPromptContext,
   readTypography,
@@ -95,6 +96,7 @@ import {
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
+  addFigureExtractionContext,
   cropPageImages,
   applyCrops,
   buildCroppingConfig,
@@ -1001,7 +1003,9 @@ async function runExtractStep(
         endPage: config.end_page,
         spreadMode: config.spread_mode,
         spreadPairs: config.spread_pairs,
-        vectorTextGrouping: config.vector_text_grouping,
+        vectorTextGrouping: resolveFigureExtractionMode(config) !== "off",
+        keepCoveredRasters: resolveFigureExtractionMode(config) === "auto",
+        removeWatermarks: config.remove_watermarks === true,
         fixedLayout: isFixedLayoutBook(config),
         fontsCacheDir: resolveFontsCacheDir(booksDir),
       },
@@ -3612,20 +3616,25 @@ async function runMeaningfulnessPass(
       const unprunedImageIds = new Set(
         existing.images.filter((img) => !img.isPruned).map((img) => img.imageId)
       )
-      const unprunedImages = images
+      const rawUnprunedImages = images
         .filter((img) => unprunedImageIds.has(img.imageId))
         .map((img) => ({
           imageId: img.imageId,
           imageBase64: storage.getImageBase64(img.imageId),
           width: img.width,
           height: img.height,
+          renderMethod: img.renderMethod,
         }))
+      const extractionDebug = storage.getLatestNodeData("extraction-debug", page.pageId)
+        ?.data as import("@adt/pdf").ExtractionDebugOutput | undefined
+      const unprunedImages = addFigureExtractionContext(rawUnprunedImages, extractionDebug)
 
       if (unprunedImages.length > 0) {
         const updated = await filterPageImageMeaningfulness(
           {
             pageId: page.pageId,
             pageImageBase64: storage.getPageImageBase64(page.pageId),
+            pageText: page.text,
             images: unprunedImages,
           },
           existing,

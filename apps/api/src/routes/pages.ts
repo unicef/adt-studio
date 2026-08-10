@@ -44,6 +44,7 @@ import {
   readEditableActivities,
   remapEditableActivities,
   invalidateCoreTtsForDisplayEntries,
+  resolveFigureExtractionMode,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
@@ -1318,7 +1319,9 @@ export function createPageRoutes(
       const newPages = await extractPages({
         pdfBuffer,
         groups: toAdd,
-        vectorTextGrouping: config.vector_text_grouping !== false,
+        vectorTextGrouping: resolveFigureExtractionMode(config) !== "off",
+        keepCoveredRasters: resolveFigureExtractionMode(config) === "auto",
+        removeWatermarks: config.remove_watermarks === true,
         fixedLayout: isFixedLayoutBook(config),
       })
       const imageClassifyConfig = {

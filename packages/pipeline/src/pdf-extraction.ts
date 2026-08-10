@@ -1,6 +1,7 @@
 import fs from "node:fs"
 import { extractPdfStream, samplePageEdges, type ExtractStreamResult } from "@adt/pdf"
 import type { Storage } from "@adt/storage"
+import type { AppConfig, FigureExtractionMode } from "@adt/types"
 import type { Progress } from "./progress.js"
 import { toBookMetadata } from "./metadata-model.js"
 import { ensureBookGoogleFontsCached } from "./fonts-bundle.js"
@@ -13,6 +14,14 @@ import {
 } from "./type-scale.js"
 import { detectSpreads, type SpreadEdgeSample } from "./spread-detection.js"
 
+/** Resolve the new mode while preserving the behavior of existing books. */
+export function resolveFigureExtractionMode(
+  config: Pick<AppConfig, "figure_extraction_mode" | "vector_text_grouping">,
+): FigureExtractionMode {
+  if (config.figure_extraction_mode) return config.figure_extraction_mode
+  return config.vector_text_grouping === false ? "off" : "all"
+}
+
 export interface ExtractOptions {
   pdfPath: string
   startPage?: number
@@ -20,6 +29,12 @@ export interface ExtractOptions {
   spreadMode?: boolean
   spreadPairs?: number[]
   vectorTextGrouping?: boolean
+  /** Keep standalone rasters whose artwork a composite figure absorbed
+   *  (figure-extraction "auto"); meaningfulness dedups downstream. */
+  keepCoveredRasters?: boolean
+  /** Detect and remove repeated identical text stamps (watermarks) from
+   *  page renders, figure crops, and extracted text. */
+  removeWatermarks?: boolean
   /** Whether the book renders fixed-layout. Gates the entire positioned-text
    *  extraction pipeline (stream-order recorder + paragraph parsing), which is
    *  consumed only by fixed-layout rendering, and enables the metric-based
@@ -33,7 +48,7 @@ export async function extractPDF(
   storage: Storage,
   progress: Progress
 ): Promise<void> {
-  const { pdfPath, startPage, endPage, spreadMode, spreadPairs, vectorTextGrouping, fixedLayout, fontsCacheDir } =
+  const { pdfPath, startPage, endPage, spreadMode, spreadPairs, vectorTextGrouping, keepCoveredRasters, removeWatermarks, fixedLayout, fontsCacheDir } =
     options
 
   progress.emit({ type: "step-start", step: "extract" })
@@ -66,7 +81,7 @@ export async function extractPDF(
     const pdfBuffer = fs.readFileSync(pdfPath)
 
     const { pdfMetadata, pages } = extractPdfStream(
-      { pdfBuffer, startPage, endPage, spreadMode, spreadPairs, vectorTextGrouping, fixedLayout },
+      { pdfBuffer, startPage, endPage, spreadMode, spreadPairs, vectorTextGrouping, keepCoveredRasters, removeWatermarks, fixedLayout },
       (p) => {
         progress.emit({
           type: "step-progress",
