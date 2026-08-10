@@ -3,7 +3,7 @@ import { CornerDownLeft, FlaskConical } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { cn, prefersReducedMotion } from "@/lib/utils"
 import { AppPreview } from "../AppPreview"
-import { OB_LOGO_SRC } from "../theme"
+import { OB_LOGO_SRC, OB_IS_BETA } from "../theme"
 import type { OnboardingStepProps } from "../steps"
 
 /**
@@ -36,16 +36,18 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
         )}
       />
 
-      <span
-        className={cn(
-          "mt-3.5 inline-flex items-center gap-1.5 rounded-full bg-[var(--ob-accent-tint)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--ob-accent-strong)] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-          revealed ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
-        )}
-        style={{ transitionDelay: revealed ? "220ms" : "0ms" }}
-      >
-        <FlaskConical className="h-3.5 w-3.5" strokeWidth={2.4} />
-        <Trans>Beta preview</Trans>
-      </span>
+      {OB_IS_BETA && (
+        <span
+          className={cn(
+            "mt-3.5 inline-flex items-center gap-1.5 rounded-full bg-[var(--ob-accent-tint)] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--ob-accent-strong)] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+            revealed ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
+          )}
+          style={{ transitionDelay: revealed ? "220ms" : "0ms" }}
+        >
+          <FlaskConical className="h-3.5 w-3.5" strokeWidth={2.4} />
+          <Trans>Beta preview</Trans>
+        </span>
+      )}
 
       <h1
         className={cn(
@@ -54,7 +56,11 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
         )}
         style={{ transitionDelay: revealed ? "300ms" : "0ms" }}
       >
-        <Trans>Welcome to the ADT Studio beta</Trans>
+        {OB_IS_BETA ? (
+          <Trans>Welcome to the ADT Studio beta</Trans>
+        ) : (
+          <Trans>Welcome to ADT Studio</Trans>
+        )}
       </h1>
 
       <p
@@ -64,10 +70,17 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
         )}
         style={{ transitionDelay: revealed ? "380ms" : "0ms" }}
       >
-        <Trans>
-          You're one of the first to try it. Turn any textbook into an
-          accessible edition — every step of the pipeline, built in.
-        </Trans>
+        {OB_IS_BETA ? (
+          <Trans>
+            You're one of the first to try it. Turn any textbook into an
+            accessible edition — every step of the pipeline, built in.
+          </Trans>
+        ) : (
+          <Trans>
+            Turn any textbook into an accessible edition — every step of the
+            pipeline, built in.
+          </Trans>
+        )}
       </p>
 
       <div

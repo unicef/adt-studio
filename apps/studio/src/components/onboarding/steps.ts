@@ -7,6 +7,7 @@ import { QuizzesScene } from "./scenes/features/QuizzesScene";
 import { GlossaryScene } from "./scenes/features/GlossaryScene";
 import { ProviderSceneColor } from "./scenes/ProviderSceneColor";
 import { FinaleSpotlight } from "./scenes/finale/FinaleSpotlight";
+import { OB_IS_BETA } from "./theme";
 
 export type OnboardingStepProps = {
   onNext: () => void;
@@ -30,13 +31,15 @@ export type OnboardingStep = {
   component: ComponentType<OnboardingStepProps>;
 };
 
+// The "how the beta works" step only appears on beta builds; stable ships the
+// standard flow. Channel is resolved in ./theme.
 export const ONBOARDING_STEPS: readonly OnboardingStep[] = [
   { id: "welcome", component: WelcomeScene },
-  { id: "beta", component: BetaScene },
+  ...(OB_IS_BETA ? [{ id: "beta", component: BetaScene } as const] : []),
   { id: "speech", component: SpeechScene },
   { id: "translations", component: TranslationsScene },
   { id: "quizzes", component: QuizzesScene },
   { id: "glossary", component: GlossaryScene },
   { id: "provider", component: ProviderSceneColor },
   { id: "finale", component: FinaleSpotlight },
-] as const;
+];

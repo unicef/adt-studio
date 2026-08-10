@@ -1,35 +1,91 @@
 /* eslint-disable lingui/no-unlocalized-strings -- design tokens: color hexes and CSS gradient strings, never user-facing */
 import type { CSSProperties } from "react"
 import betaLogoSrc from "@/assets/update-icons/beta-512x512.png?url"
+import stableLogoSrc from "@/assets/update-icons/stable-512x512.png?url"
 
 /**
- * Single source of truth for the onboarding accent + brand mark.
+ * Single source of truth for the onboarding accent + brand mark, resolved by
+ * release channel.
  *
- * The beta release wears the app's own beta identity: the violet/magenta tone
- * (hue ~305, matching the beta update banner and the beta app icon) instead of
- * the stable blue, and the beta app icon (purple, with the BETA pill) instead
- * of the blue stable logo. Every accent surface in the onboarding — buttons,
- * glows, the demo cursor, the feature demo panel, tints and washes — reads from
- * these values (as CSS variables via {@link onboardingThemeVars}, or imported
- * directly for inline gradients / the logo). Change the palette here and the
- * whole flow follows; to restore the stable blue, set `--ob-accent` back to
- * `#3b82f7` and swap {@link OB_LOGO_SRC} for the stable icon.
+ * A **beta** build wears the app's beta identity — the violet/magenta tone
+ * (hue ~305, matching the beta update banner and the beta app icon), the beta
+ * app icon, and the extra "how the beta works" step. A **stable** build wears
+ * the standard blue accent and the stable app icon, with no beta step. The
+ * channel is read once from the app version (`-beta` ⇒ beta); the web build has
+ * no version so it defaults to stable, and `?channel=beta|stable` overrides it
+ * for previewing either flow in the browser.
+ *
+ * Every accent surface in the onboarding — buttons, glows, the demo cursor, the
+ * feature demo panel, tints and washes — reads from these values (as CSS
+ * variables via {@link onboardingThemeVars}, or imported directly for inline
+ * gradients / the logo), so the whole flow follows the resolved channel.
  */
-export const OB_ACCENT = "#9a41e4"
-export const OB_ACCENT_STRONG = "#7e29c7"
-export const OB_ACCENT_DEEP = "#6022a2"
-/** RGB channels only, for `rgba(var(--ob-accent-rgb), a)` glows. */
-export const OB_ACCENT_RGB = "154, 65, 228"
-/** Soft fill behind badges / active nav rows. */
-export const OB_ACCENT_TINT = "#f3dfff"
-/** Faint page wash (web build backdrop, demo card backgrounds). */
-export const OB_ACCENT_WASH = "#fbf3ff"
-/** Rich gradient for the feature demo panel. */
-export const OB_PANEL_GRADIENT =
-  "linear-gradient(150deg, #e365ff 0%, #8a3ee0 55%, #4c258c 100%)"
+export type OnboardingChannel = "stable" | "beta"
 
-/** The beta app icon — the brand mark shown throughout the beta onboarding. */
-export const OB_LOGO_SRC = betaLogoSrc
+function detectOnboardingChannel(): OnboardingChannel {
+  if (typeof window === "undefined") return "stable"
+  try {
+    const override = new URLSearchParams(window.location.search).get("channel")
+    if (override === "beta" || override === "stable") return override
+  } catch {
+    // location unavailable — fall through to version detection
+  }
+  const version = window.api?.version
+  return version && version.toLowerCase().includes("-beta") ? "beta" : "stable"
+}
+
+export const OB_CHANNEL: OnboardingChannel = detectOnboardingChannel()
+export const OB_IS_BETA = OB_CHANNEL === "beta"
+
+const PALETTES = {
+  stable: {
+    accent: "#3b82f7",
+    strong: "#2563eb",
+    deep: "#1d4ed8",
+    rgb: "59, 130, 247",
+    tint: "#dbeafe",
+    wash: "#f5f8ff",
+    panel: "linear-gradient(150deg, #5aa2ff 0%, #3b82f7 55%, #1e3a8a 100%)",
+    providerPanel:
+      "radial-gradient(120% 90% at 20% 12%, #cfe0ff 0%, #6ea8ff 34%, #3b82f7 62%, #1e3a8a 100%)",
+    accentGradient: "linear-gradient(90deg,#2563eb,#22a3ff,#4f46e5,#2563eb)",
+    logo: stableLogoSrc,
+  },
+  beta: {
+    accent: "#9a41e4",
+    strong: "#7e29c7",
+    deep: "#6022a2",
+    rgb: "154, 65, 228",
+    tint: "#f3dfff",
+    wash: "#fbf3ff",
+    panel: "linear-gradient(150deg, #e365ff 0%, #8a3ee0 55%, #4c258c 100%)",
+    providerPanel:
+      "radial-gradient(120% 90% at 20% 12%, #efc9ff 0%, #c56bff 34%, #9a41e4 62%, #5a1e97 100%)",
+    accentGradient: "linear-gradient(90deg,#9a41e4,#c56bff,#7e29c7,#9a41e4)",
+    logo: betaLogoSrc,
+  },
+} as const
+
+const P = PALETTES[OB_CHANNEL]
+
+export const OB_ACCENT = P.accent
+export const OB_ACCENT_STRONG = P.strong
+export const OB_ACCENT_DEEP = P.deep
+/** RGB channels only, for `rgba(var(--ob-accent-rgb), a)` glows. */
+export const OB_ACCENT_RGB = P.rgb
+/** Soft fill behind badges / active nav rows. */
+export const OB_ACCENT_TINT = P.tint
+/** Faint page wash (web build backdrop, demo card backgrounds). */
+export const OB_ACCENT_WASH = P.wash
+/** Rich gradient for the feature demo panel. */
+export const OB_PANEL_GRADIENT = P.panel
+/** Rich radial for the provider preview panel. */
+export const OB_PROVIDER_PANEL = P.providerPanel
+/** Flowing gradient for the finale accent word. */
+export const OB_ACCENT_GRADIENT = P.accentGradient
+
+/** The channel's app icon — the brand mark shown throughout the onboarding. */
+export const OB_LOGO_SRC = P.logo
 
 /**
  * CSS custom properties applied to the onboarding root so descendants can use

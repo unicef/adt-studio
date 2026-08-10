@@ -1,7 +1,7 @@
 import { ArrowRight } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
-import { OB_LOGO_SRC } from "../../theme"
+import { OB_LOGO_SRC, OB_ACCENT_GRADIENT } from "../../theme"
 
 export const DOCS_URL = "https://unicef.github.io/adt-studio/docs/"
 
@@ -43,7 +43,10 @@ export function LuminousContent({
           <span className="block overflow-hidden pb-[0.08em]">
             <span className="animate-finale-rise inline-block [animation-delay:250ms]">
               <Trans>for</Trans>{" "}
-              <span className="animate-onboarding-gradient bg-[linear-gradient(90deg,#9a41e4,#c56bff,#7e29c7,#9a41e4)] bg-[length:200%_auto] bg-clip-text text-transparent">
+              <span
+                className="animate-onboarding-gradient bg-[length:200%_auto] bg-clip-text text-transparent"
+                style={{ backgroundImage: OB_ACCENT_GRADIENT }}
+              >
                 <Trans>everyone.</Trans>
               </span>
             </span>

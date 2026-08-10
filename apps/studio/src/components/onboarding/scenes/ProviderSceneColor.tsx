@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { useApiKey } from "@/hooks/use-api-key"
 import type { OnboardingStepProps } from "../steps"
+import { OB_PROVIDER_PANEL } from "../theme"
 
 /* --- brand marks (inline SVG, dependency-free) --- */
 
@@ -354,10 +355,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
           >
             <div
               className="absolute inset-0"
-              style={{
-                backgroundImage:
-                  "radial-gradient(120% 90% at 20% 12%, #efc9ff 0%, #c56bff 34%, #9a41e4 62%, #5a1e97 100%)",
-              }}
+              style={{ backgroundImage: OB_PROVIDER_PANEL }}
             />
             <div
               aria-hidden
