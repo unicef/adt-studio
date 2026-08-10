@@ -5527,6 +5527,11 @@ msgstr "Mover hacia abajo"
 msgid "Move up"
 msgstr "Mover hacia arriba"
 
+#. placeholder {0}: String(position + 1)
+#. placeholder {1}: String(items.length)
+msgid "Moved to position {0} of {1}"
+msgstr "Movido a la posición {0} de {1}"
+
 msgid "Multi-format publications"
 msgstr "Publicaciones multiformato"
 
@@ -6531,6 +6536,9 @@ msgstr "Número de página"
 
 msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 msgstr "Se detectaron números de página — se leerán en voz alta: {pageNumberPreview}. ¿Silenciarlos todos en la conversión de texto a voz?"
+
+msgid "Page order"
+msgstr "Orden de páginas"
 
 msgid "Page preview"
 msgstr "Vista previa de la página"

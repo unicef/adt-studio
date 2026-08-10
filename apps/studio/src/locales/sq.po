@@ -5529,6 +5529,11 @@ msgstr "Zhvendos poshtë"
 msgid "Move up"
 msgstr "Zhvendos lart"
 
+#. placeholder {0}: String(position + 1)
+#. placeholder {1}: String(items.length)
+msgid "Moved to position {0} of {1}"
+msgstr "U zhvendos në pozicionin {0} nga {1}"
+
 msgid "Multi-format publications"
 msgstr "Botime me shumë formate"
 
@@ -6533,6 +6538,9 @@ msgstr "Numri i faqes"
 
 msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 msgstr "U zbuluan numra faqesh — do të lexohen me zë: {pageNumberPreview}. T'i heshtni të gjitha nga shndërrimi i tekstit në të folur?"
+
+msgid "Page order"
+msgstr "Renditja e faqeve"
 
 msgid "Page preview"
 msgstr "Pamja paraprake e faqes"

@@ -3,6 +3,7 @@ import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
+import { useLingui as useLinguiMacro } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCircle, Loader2, Monitor, Puzzle } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
@@ -11,6 +12,8 @@ import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
 import { STAGES } from "../stage-config"
+import { useReadingOrder, useSaveReadingOrder, moveReadingOrderItem } from "@/hooks/use-reading-order"
+import { announceToScreenReader } from "@/lib/aria-live"
 import { resolveQuizId, type Quiz } from "@adt/types"
 
 /**
@@ -34,39 +37,97 @@ export function StoryboardIndex({
 }) {
   const { data: pages } = usePages(bookLabel)
   const { data: quizzesData } = useQuizzes(bookLabel)
+  const { data: readingOrder } = useReadingOrder(bookLabel)
+  const saveOrder = useSaveReadingOrder(bookLabel)
   const navigate = useNavigate()
   const parentRef = useRef<HTMLDivElement>(null)
   const storyboardStageDef = STAGES.find((s) => s.slug === "storyboard")
+  const { t } = useLinguiMacro()
+  const [dragId, setDragId] = useState<string | null>(null)
+  const [dropTarget, setDropTarget] = useState<{ index: number; after: boolean } | null>(null)
 
+  /**
+   * HTML5 drag does not scroll an `overflow-y-auto` container, so a drag can't
+   * reach a target that is off-screen. Nudge the list when the pointer nears
+   * either edge.
+   */
+  const autoScroll = useCallback((clientY: number) => {
+    const el = parentRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const zone = 48
+    if (clientY < rect.top + zone) el.scrollTop -= 12
+    else if (clientY > rect.bottom - zone) el.scrollTop += 12
+  }, [])
+
+  // The list *is* the reading order — the server resolves it, so the sidebar,
+  // the live preview and every export agree by construction rather than by
+  // three walks being kept in step.
   const items = useMemo<StoryboardListItem[]>(() => {
-    if (!pages) return []
-    // Resolve each quiz's stable id from its position in the stored array —
-    // the only place that position is meaningful — and carry it from here on.
-    const quizzesByAfterPageId = new Map<string, Array<{ quiz: Quiz; quizId: string }>>()
-    ;(quizzesData?.quizzes?.quizzes ?? []).forEach((q, i) => {
-      const list = quizzesByAfterPageId.get(q.afterPageId) ?? []
-      list.push({ quiz: q, quizId: resolveQuizId(q, i) })
-      quizzesByAfterPageId.set(q.afterPageId, list)
+    if (!pages || !readingOrder) return []
+
+    const sectionById = new Map<string, { page: PageSummaryItem; section: PageSummarySection }>()
+    for (const page of pages) {
+      for (const section of page.sections) sectionById.set(section.sectionId, { page, section })
+    }
+    const quizById = new Map<string, { quiz: Quiz; page: PageSummaryItem }>()
+    const pageById = new Map(pages.map((page) => [page.pageId, page]))
+    ;(quizzesData?.quizzes?.quizzes ?? []).forEach((quiz, i) => {
+      const page = pageById.get(quiz.afterPageId)
+      if (page) quizById.set(resolveQuizId(quiz, i), { quiz, page })
     })
 
-    const out: StoryboardListItem[] = []
-    for (const page of pages) {
-      for (const section of page.sections) {
-        out.push({
-          kind: "section",
-          page,
-          section,
-        })
+    return readingOrder.items.flatMap<StoryboardListItem>((entry) => {
+      if (entry.kind === "quiz") {
+        const hit = quizById.get(entry.id)
+        return hit ? [{ kind: "quiz", page: hit.page, quiz: hit.quiz, quizId: entry.id }] : []
       }
-      const quizzes = quizzesByAfterPageId.get(page.pageId)
-      if (quizzes) {
-        for (const { quiz, quizId } of quizzes) {
-          out.push({ kind: "quiz", page, quiz, quizId })
-        }
-      }
-    }
-    return out
-  }, [pages, quizzesData])
+      const hit = sectionById.get(entry.id)
+      return hit ? [{ kind: "section", page: hit.page, section: hit.section }] : []
+    })
+  }, [pages, quizzesData, readingOrder])
+
+  /**
+   * Move `id` so it lands at `toVisibleIndex` of the *visible* list, then save.
+   *
+   * The saved order also carries items excluded from the output (pruned ones),
+   * which hold a slot so re-including them restores their place. The visible
+   * target is therefore translated into a position in the full order, anchored
+   * on the row currently at that index.
+   */
+  const moveTo = useCallback(
+    (id: string, toVisibleIndex: number) => {
+      if (!readingOrder) return
+      const anchor = items[Math.max(0, Math.min(toVisibleIndex, items.length))]
+      const fullTarget = anchor
+        ? readingOrder.order.findIndex((entry) => entry.id === itemIdOf(anchor))
+        : readingOrder.order.length
+      if (fullTarget < 0) return
+
+      const next = moveReadingOrderItem(readingOrder.order, id, fullTarget)
+      if (next.every((entry, i) => entry.id === readingOrder.order[i]?.id)) return
+
+      const visible = new Set(items.map(itemIdOf))
+      const position = next.filter((entry) => visible.has(entry.id)).findIndex((e) => e.id === id)
+      announceToScreenReader(
+        t`Moved to position ${String(position + 1)} of ${String(items.length)}`,
+      )
+
+      saveOrder.mutate({ items: next, expectedVersion: readingOrder.version })
+    },
+    [readingOrder, items, saveOrder, t],
+  )
+
+  const moveBy = useCallback(
+    (id: string, delta: number) => {
+      const from = items.findIndex((item) => itemIdOf(item) === id)
+      if (from < 0) return
+      // splice-based move: stepping down needs +1 because the item is removed
+      // from its old slot before being reinserted.
+      moveTo(id, delta > 0 ? from + 2 : from - 1)
+    },
+    [items, moveTo],
+  )
 
   const selectedItemIndex = useMemo(() => {
     if (!selectedPageId || sectionIndex == null) return -1
@@ -138,11 +199,13 @@ export function StoryboardIndex({
       >
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const item = items[virtualRow.index]
+          const itemId = itemIdOf(item)
           const isActive =
             item.kind === "section"
               ? item.page.pageId === selectedPageId &&
                 item.section.sectionIndex === (sectionIndex ?? 0)
               : item.quizId === selectedQuizId
+          const isDragging = dragId === itemId
           return (
             <div
               key={
@@ -152,6 +215,64 @@ export function StoryboardIndex({
               }
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
+              // Rows are absolutely positioned by the virtualizer and unmount
+              // when scrolled away, so the tree editor's standalone drop-zone
+              // slivers can't be reused. Each row is its own drop target and
+              // decides "before" or "after" from the pointer's position within
+              // it, drawn as a border on the matching edge.
+              draggable={!stageRunning}
+              onDragStart={(e) => {
+                if (stageRunning) {
+                  e.preventDefault()
+                  return
+                }
+                e.dataTransfer.effectAllowed = "move"
+                e.dataTransfer.setData(READING_ORDER_DRAG_TYPE, itemId)
+                // Defer the state change: a synchronous re-render can replace
+                // the dragged node and make some browsers abort the drag
+                // before the first dragover fires.
+                requestAnimationFrame(() => setDragId(itemId))
+              }}
+              onDragEnd={() => {
+                setDragId(null)
+                setDropTarget(null)
+              }}
+              onDragOver={(e) => {
+                if (!e.dataTransfer.types.includes(READING_ORDER_DRAG_TYPE)) return
+                e.preventDefault()
+                e.dataTransfer.dropEffect = "move"
+                const rect = e.currentTarget.getBoundingClientRect()
+                const after = e.clientY > rect.top + rect.height / 2
+                setDropTarget({ index: virtualRow.index, after })
+                autoScroll(e.clientY)
+              }}
+              onDrop={(e) => {
+                if (!e.dataTransfer.types.includes(READING_ORDER_DRAG_TYPE)) return
+                e.preventDefault()
+                const sourceId = e.dataTransfer.getData(READING_ORDER_DRAG_TYPE)
+                const rect = e.currentTarget.getBoundingClientRect()
+                const after = e.clientY > rect.top + rect.height / 2
+                setDragId(null)
+                setDropTarget(null)
+                if (sourceId) moveTo(sourceId, virtualRow.index + (after ? 1 : 0))
+              }}
+              onKeyDown={(e) => {
+                if (!e.altKey || stageRunning) return
+                if (e.key === "ArrowUp") {
+                  e.preventDefault()
+                  moveBy(itemId, -1)
+                } else if (e.key === "ArrowDown") {
+                  e.preventDefault()
+                  moveBy(itemId, 1)
+                }
+              }}
+              className={cn(
+                "border-y border-transparent",
+                isDragging && "opacity-40",
+                dropTarget?.index === virtualRow.index &&
+                  !isDragging &&
+                  (dropTarget.after ? "border-b-primary" : "border-t-primary"),
+              )}
               style={{
                 position: "absolute",
                 top: 0,
@@ -193,6 +314,14 @@ export function StoryboardIndex({
 type StoryboardListItem =
   | { kind: "section"; page: PageSummaryItem; section: PageSummarySection }
   | { kind: "quiz"; page: PageSummaryItem; quiz: Quiz; quizId: string }
+
+/** Custom MIME type so the list only accepts its own rows, not arbitrary drags. */
+const READING_ORDER_DRAG_TYPE = "application/x-adt-reading-order"
+
+/** The row's stable output id — what the reading order is expressed in. */
+function itemIdOf(item: StoryboardListItem): string {
+  return item.kind === "section" ? item.section.sectionId : item.quizId
+}
 
 /* ---------- SectionRow ---------- */
 
