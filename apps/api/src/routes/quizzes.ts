@@ -12,6 +12,8 @@ import {
 } from "@adt/types"
 import { openBookDb, createBookStorage, readCurrentNodeRow, type Storage } from "@adt/storage"
 import {
+  resolveReadingOrder,
+  readingOrderPageIds,
   buildQuizGenerationConfig,
   generateQuiz,
   loadBookConfig,
@@ -202,16 +204,18 @@ export function createQuizRoutes(
         })
       }
 
-      // Map every page to its number so we can order pages within the quiz
-      // batch and place the resulting quiz at the right spot in the book.
-      const pageNumberById = new Map<string, number>()
-      for (const page of storage.getPages()) {
-        pageNumberById.set(page.pageId, page.pageNumber)
-      }
+      // Rank every page by where the reader meets it, so the selected pages are
+      // fed to the LLM in book order and the resulting quiz is placed at the
+      // right spot — both of which stop matching source page numbers as soon as
+      // the user reorders the book.
+      const readingRank = new Map<string, number>()
+      readingOrderPageIds(resolveReadingOrder(storage, { includeQuizzes: false })).forEach(
+        (pageId, index) => readingRank.set(pageId, index)
+      )
 
       // Gather rendering + sectioning for the selected pages, in reading order.
       const orderedPageIds = [...new Set(pageIds)].sort(
-        (a, b) => (pageNumberById.get(a) ?? 0) - (pageNumberById.get(b) ?? 0)
+        (a, b) => (readingRank.get(a) ?? 0) - (readingRank.get(b) ?? 0)
       )
       const batch: QuizPageInput[] = []
       for (const pageId of orderedPageIds) {
@@ -266,8 +270,7 @@ export function createQuizRoutes(
       const quizzes = [...priorQuizzes, newQuiz]
       quizzes.sort(
         (a, b) =>
-          (pageNumberById.get(a.afterPageId) ?? 0) -
-          (pageNumberById.get(b.afterPageId) ?? 0)
+          (readingRank.get(a.afterPageId) ?? 0) - (readingRank.get(b.afterPageId) ?? 0)
       )
       quizzes.forEach((q, i) => {
         q.quizIndex = i

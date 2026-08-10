@@ -408,6 +408,7 @@ export {
   resolveReadingOrder,
   defaultReadingOrder,
   reconcileReadingOrder,
+  readingOrderPageIds,
   toPageEntry,
   readingOrderHref,
   type ResolvedItem,

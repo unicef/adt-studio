@@ -88,6 +88,30 @@ export interface PageEntry {
   page_number?: number
 }
 
+/**
+ * Source pages in the order the reader meets them, each appearing once, at the
+ * position of its first section.
+ *
+ * For anything that groups or counts *pages* in reading sequence — quiz
+ * batching, "every N pages" placement. Using `storage.getPages()` for that
+ * instead silently means "in source-PDF order", which stops matching the book
+ * the moment the user reorders it.
+ *
+ * Pages whose sections have been split apart by a reorder collapse to their
+ * first appearance; page-granular consumers cannot express more than that.
+ */
+export function readingOrderPageIds(resolved: ResolvedReadingOrder): string[] {
+  const seen = new Set<string>()
+  const pageIds: string[] = []
+  for (const item of resolved.items) {
+    if (item.kind !== "section") continue
+    if (seen.has(item.pageId)) continue
+    seen.add(item.pageId)
+    pageIds.push(item.pageId)
+  }
+  return pageIds
+}
+
 /** Bundle filename / preview route for an item. Always id-based, never positional. */
 export function readingOrderHref(item: ResolvedItem): string {
   return `${item.id}.html`

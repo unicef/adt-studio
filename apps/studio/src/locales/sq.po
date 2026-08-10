@@ -6530,6 +6530,9 @@ msgstr "Imazhi i faqes"
 msgid "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 msgstr "Imazhi i faqes si sfond me tekst të pozicionuar sipër. Ruan kompozimin origjinal të faqes; ideal për libra me ilustrime."
 
+msgid "Page in the source PDF"
+msgstr "Faqja në PDF-in origjinal"
+
 msgid "Page Mode"
 msgstr "Modaliteti i Faqes"
 
@@ -6882,6 +6885,8 @@ msgstr "Pozicioni {0}, {1} → {2}×{3} pt"
 #. placeholder {0}: b.pr
 msgid "PR #{0}"
 msgstr "PR #{0}"
+msgid "Position in the book"
+msgstr "Pozicioni në libër"
 
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"

@@ -39,6 +39,8 @@ import {
   generateToc,
   buildTocGenerationConfig,
   generateAllQuizzes,
+  resolveReadingOrder,
+  readingOrderPageIds,
   buildQuizGenerationConfig,
   // Master step imports
   getRenderSectioning,
@@ -1769,11 +1771,17 @@ async function runQuizzesStep(
     // Gather page data for quiz generation. A page is eligible only when it has
     // BOTH a web-rendering and a render-sectioning node — the quiz LLM reads
     // rendered text, and batching counts sectioned content pages.
-    const pages = storage.getPages()
+    // Batch in READING order, not source-PDF order: quizzes are placed every N
+    // pages, so the pages a quiz covers — and where it lands — have to follow
+    // the sequence the reader actually meets. Using source order after a
+    // reorder groups pages that are no longer adjacent and anchors each quiz to
+    // an arbitrary position, which shows up as uneven spacing in the book.
+    const pages = readingOrderPageIds(resolveReadingOrder(storage, { includeQuizzes: false }))
     const quizPages: QuizPageInput[] = []
     let missingRendering = 0
     let missingSectioning = 0
-    for (const page of pages) {
+    for (const pageId of pages) {
+      const page = { pageId }
       const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
       // Filter by the SEMANTIC sectioning (real types like `text_and_single_image`),
       // not the render sectioning — in fixed-layout the render tree is positioned

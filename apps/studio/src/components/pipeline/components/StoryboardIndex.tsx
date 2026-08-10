@@ -286,6 +286,7 @@ export function StoryboardIndex({
                   bookLabel={bookLabel}
                   page={item.page}
                   section={item.section}
+                  position={virtualRow.index + 1}
                   isActive={isActive}
                   activeColor={storyboardStageDef?.bgLight}
                   activeText={storyboardStageDef?.textColor}
@@ -299,6 +300,7 @@ export function StoryboardIndex({
                   bookLabel={bookLabel}
                   page={item.page}
                   quiz={item.quiz}
+                  position={virtualRow.index + 1}
                   isActive={isActive}
                   onSelect={() => handleQuizClick(item.quizId)}
                 />
@@ -318,6 +320,28 @@ type StoryboardListItem =
 /** Custom MIME type so the list only accepts its own rows, not arbitrary drags. */
 const READING_ORDER_DRAG_TYPE = "application/x-adt-reading-order"
 
+/**
+ * The row's place in the book, shown first because it is the order the reader
+ * meets things in. `pg N` beside it stays the *source* PDF page — the two stop
+ * agreeing the moment the book is reordered, so each is labelled.
+ */
+function PositionBadge({ position, sourceLabel }: { position: number; sourceLabel: string }) {
+  const { t } = useLinguiMacro()
+  return (
+    <>
+      <span
+        title={t`Position in the book`}
+        className="inline-flex items-center justify-center min-w-[15px] h-[13px] px-0.5 rounded bg-foreground/10 text-[9px] font-semibold leading-none tabular-nums"
+      >
+        {position}
+      </span>
+      <span title={t`Page in the source PDF`} className="ml-1">
+        {sourceLabel}
+      </span>
+    </>
+  )
+}
+
 /** The row's stable output id — what the reading order is expressed in. */
 function itemIdOf(item: StoryboardListItem): string {
   return item.kind === "section" ? item.section.sectionId : item.quizId
@@ -329,6 +353,7 @@ function SectionRow({
   bookLabel,
   page,
   section,
+  position,
   isActive,
   activeColor,
   activeText,
@@ -338,6 +363,7 @@ function SectionRow({
   bookLabel: string
   page: PageSummaryItem
   section: PageSummarySection
+  position: number
   isActive: boolean
   activeColor?: string
   activeText?: string
@@ -434,7 +460,7 @@ function SectionRow({
           {previewLabel}
         </span>
         <span className="mt-1 inline-flex items-center text-[10px] opacity-60 leading-none">
-          {`pg ${String(page.pageNumber)}`}
+          <PositionBadge position={position} sourceLabel={`pg ${String(page.pageNumber)}`} />
           {page.sectionCount > 1 && (
             <span className="ml-1 inline-flex items-center justify-center min-w-[15px] h-[13px] px-0.5 rounded bg-black/10 text-[9px] font-semibold leading-none">
               {`${section.sectionIndex + 1}/${page.sectionCount}`}
@@ -471,16 +497,19 @@ function SectionRow({
 function QuizRow({
   page,
   quiz,
+  position,
   isActive,
   onSelect,
 }: {
   bookLabel: string
   page: PageSummaryItem
   quiz: Quiz
+  position: number
   isActive: boolean
   onSelect: () => void
 }) {
   const { i18n } = useLingui()
+  const { t } = useLinguiMacro()
   const rowRef = useRef<HTMLButtonElement>(null)
   const hover = useHoverPreview(rowRef, { width: 420, height: 340 })
   return (
@@ -538,8 +567,11 @@ function QuizRow({
       </div>
       <div className="flex flex-col gap-0.5 min-w-0 flex-1 pt-0.5">
         <span className="text-[11px] leading-snug line-clamp-2">{quiz.question}</span>
-        <span className="text-[9px] font-mono opacity-50 leading-none">
-          <Trans>after pg {String(page.pageNumber)}</Trans>
+        <span className="mt-1 inline-flex items-center text-[10px] opacity-60 leading-none">
+          <PositionBadge
+            position={position}
+            sourceLabel={t`after pg ${String(page.pageNumber)}`}
+          />
         </span>
       </div>
       {hover.show &&
