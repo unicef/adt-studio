@@ -1171,6 +1171,9 @@ msgstr "Pacote ADT"
 #~ msgid "ADT Studio"
 #~ msgstr "ADT Studio"
 
+msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
+msgstr "O ADT Studio aceita arquivos ZIP compactados de até 512 MiB. Escolha um pacote menor e tente novamente."
+
 msgid "ADT Studio recognized the publication, but required book files are missing or inconsistent. Open the error details to see what must be repaired."
 msgstr "O ADT Studio reconheceu a publicação, mas arquivos obrigatórios do livro estão ausentes ou inconsistentes. Abra os detalhes do erro para ver o que precisa ser corrigido."
 
@@ -2196,8 +2199,8 @@ msgstr "Escolha um preset que combine com seu conteúdo — livro didático, sto
 msgid "Choose a previously uploaded video or upload a new one."
 msgstr "Escolha um vídeo enviado anteriormente ou envie um novo."
 
-msgid "Choose a smaller ADT bundle and try again."
-msgstr "Escolha um pacote ADT menor e tente novamente."
+#~ msgid "Choose a smaller ADT bundle and try again."
+#~ msgstr "Escolha um pacote ADT menor e tente novamente."
 
 msgid "Choose a Web Export ZIP created by a current version of ADT Studio."
 msgstr "Escolha um ZIP de exportação web criado por uma versão atual do ADT Studio."
@@ -2226,8 +2229,8 @@ msgstr "Escolha outro arquivo"
 #~ msgid "Choose another bundle"
 #~ msgstr "Escolher outro pacote"
 
-msgid "Choose another destination or create a new project."
-msgstr "Escolha outro destino ou crie um novo projeto."
+#~ msgid "Choose another destination or create a new project."
+#~ msgstr "Escolha outro destino ou crie um novo projeto."
 
 msgid "Choose another file"
 msgstr "Escolher outro arquivo"
@@ -2265,8 +2268,8 @@ msgstr "Escolha a página da qual recortar."
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Escolha o arquivo de parte que foi compartilhado com você, ou exporte-o novamente."
 
-msgid "Choose the recommended project, or create a new project instead."
-msgstr "Escolha o projeto recomendado ou crie um novo projeto."
+#~ msgid "Choose the recommended project, or create a new project instead."
+#~ msgstr "Escolha o projeto recomendado ou crie um novo projeto."
 
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Escolha as páginas de origem e onde o questionário será inserido no editor de páginas."
@@ -4977,8 +4980,8 @@ msgstr "Items marked as needing changes for this reviewer session."
 msgid "its original language"
 msgstr "sua língua original"
 
-msgid "Its page structure no longer matches the selected project. Choose Create a new project to import it separately."
-msgstr "A estrutura de páginas não corresponde mais ao projeto selecionado. Escolha Criar um novo projeto para importá-lo separadamente."
+#~ msgid "Its page structure no longer matches the selected project. Choose Create a new project to import it separately."
+#~ msgstr "A estrutura de páginas não corresponde mais ao projeto selecionado. Escolha Criar um novo projeto para importá-lo separadamente."
 
 msgid "Its published HTML and metadata do not follow the current ADT Studio round-trip structure."
 msgstr "O HTML publicado e os metadados não seguem a estrutura atual de reimportação do ADT Studio."
@@ -6359,8 +6362,8 @@ msgstr "Ainda não há nada para editar"
 msgid "Nothing to show"
 msgstr "Nada para mostrar"
 
-msgid "Nothing was changed. Open the existing project, or choose Create a new project to keep a separate copy."
-msgstr "Nada foi alterado. Abra o projeto existente ou escolha Criar um novo projeto para manter uma cópia separada."
+#~ msgid "Nothing was changed. Open the existing project, or choose Create a new project to keep a separate copy."
+#~ msgstr "Nada foi alterado. Abra o projeto existente ou escolha Criar um novo projeto para manter uma cópia separada."
 
 msgid "Now click the end page."
 msgstr "Agora clique na página final."
@@ -9722,8 +9725,8 @@ msgstr "A seção foi editada após a conversão — use «Reconstruir a partir 
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "As seções serão combinadas localmente. Sem uma chave de API, será necessário executar novamente o Storyboard para regenerar a seção combinada."
 
-msgid "The selected project is no longer available"
-msgstr "O projeto selecionado não está mais disponível"
+#~ msgid "The selected project is no longer available"
+#~ msgstr "O projeto selecionado não está mais disponível"
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "O storyboard deve ser concluído antes de gerar {stageName}. Execute a etapa do Storyboard primeiro."
@@ -9982,14 +9985,14 @@ msgstr "Este prompt instrui o LLM sobre como avaliar o HTML renderizado em rela�
 #~ msgid "This prompt is using the latest global version. Reset removes that version and returns to the shipped default."
 #~ msgstr "Este prompt está usando a versão global mais recente. Resetar remove essa versão e retorna ao padrão distribuído."
 
-msgid "This publication can't be added as a revision"
-msgstr "Esta publicação não pode ser adicionada como revisão"
+#~ msgid "This publication can't be added as a revision"
+#~ msgstr "Esta publicação não pode ser adicionada como revisão"
 
 msgid "This publication cannot be imported because its HTML does not follow the ADT Studio round-trip pattern."
 msgstr "Esta publicação não pode ser importada porque o HTML não segue o padrão de ida e volta do ADT Studio."
 
-msgid "This publication doesn't match the selected project"
-msgstr "Esta publicação não corresponde ao projeto selecionado"
+#~ msgid "This publication doesn't match the selected project"
+#~ msgstr "Esta publicação não corresponde ao projeto selecionado"
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Este questionário será removido do livro. Você ainda pode restaurá-lo pelo histórico de versões."
@@ -10006,8 +10009,8 @@ msgstr "Isso remove a versão global deste arquivo de prompt. Os arquivos de fal
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Isso restaura a fonte padrão em todas as páginas e limpa os ajustes de fonte por elemento e a seleção de fonte do livro todo. As fontes anexadas permanecem na lista. A reversão está disponível por página no histórico de versões."
 
-msgid "This revision is already in the project"
-msgstr "Esta revisão já está no projeto"
+#~ msgid "This revision is already in the project"
+#~ msgstr "Esta revisão já está no projeto"
 
 msgid "This screen couldn’t load"
 msgstr "Esta tela não pôde ser carregada"

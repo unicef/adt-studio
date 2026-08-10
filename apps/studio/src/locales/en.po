@@ -1171,6 +1171,9 @@ msgstr "ADT Package"
 #~ msgid "ADT Studio"
 #~ msgstr "ADT Studio"
 
+msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
+msgstr "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
+
 msgid "ADT Studio recognized the publication, but required book files are missing or inconsistent. Open the error details to see what must be repaired."
 msgstr "ADT Studio recognized the publication, but required book files are missing or inconsistent. Open the error details to see what must be repaired."
 
@@ -2196,8 +2199,8 @@ msgstr "Choose a preset that matches your content — textbook, storyboard, refe
 msgid "Choose a previously uploaded video or upload a new one."
 msgstr "Choose a previously uploaded video or upload a new one."
 
-msgid "Choose a smaller ADT bundle and try again."
-msgstr "Choose a smaller ADT bundle and try again."
+#~ msgid "Choose a smaller ADT bundle and try again."
+#~ msgstr "Choose a smaller ADT bundle and try again."
 
 msgid "Choose a Web Export ZIP created by a current version of ADT Studio."
 msgstr "Choose a Web Export ZIP created by a current version of ADT Studio."
@@ -2226,8 +2229,8 @@ msgstr "Choose another archive"
 #~ msgid "Choose another bundle"
 #~ msgstr "Choose another bundle"
 
-msgid "Choose another destination or create a new project."
-msgstr "Choose another destination or create a new project."
+#~ msgid "Choose another destination or create a new project."
+#~ msgstr "Choose another destination or create a new project."
 
 msgid "Choose another file"
 msgstr "Choose another file"
@@ -2265,8 +2268,8 @@ msgstr "Choose the page to crop from."
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Choose the part file that was shared with you, or export it again."
 
-msgid "Choose the recommended project, or create a new project instead."
-msgstr "Choose the recommended project, or create a new project instead."
+#~ msgid "Choose the recommended project, or create a new project instead."
+#~ msgstr "Choose the recommended project, or create a new project instead."
 
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Choose the source pages and where the quiz lands in the page editor."
@@ -4977,8 +4980,8 @@ msgstr "Items marked as needing changes for this reviewer session."
 msgid "its original language"
 msgstr "its original language"
 
-msgid "Its page structure no longer matches the selected project. Choose Create a new project to import it separately."
-msgstr "Its page structure no longer matches the selected project. Choose Create a new project to import it separately."
+#~ msgid "Its page structure no longer matches the selected project. Choose Create a new project to import it separately."
+#~ msgstr "Its page structure no longer matches the selected project. Choose Create a new project to import it separately."
 
 msgid "Its published HTML and metadata do not follow the current ADT Studio round-trip structure."
 msgstr "Its published HTML and metadata do not follow the current ADT Studio round-trip structure."
@@ -6359,8 +6362,8 @@ msgstr "Nothing to edit yet"
 msgid "Nothing to show"
 msgstr "Nothing to show"
 
-msgid "Nothing was changed. Open the existing project, or choose Create a new project to keep a separate copy."
-msgstr "Nothing was changed. Open the existing project, or choose Create a new project to keep a separate copy."
+#~ msgid "Nothing was changed. Open the existing project, or choose Create a new project to keep a separate copy."
+#~ msgstr "Nothing was changed. Open the existing project, or choose Create a new project to keep a separate copy."
 
 msgid "Now click the end page."
 msgstr "Now click the end page."
@@ -9722,8 +9725,8 @@ msgstr "The section was edited after conversion — use \"Rebuild from page\" to
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 
-msgid "The selected project is no longer available"
-msgstr "The selected project is no longer available"
+#~ msgid "The selected project is no longer available"
+#~ msgstr "The selected project is no longer available"
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
@@ -9982,14 +9985,14 @@ msgstr "This prompt instructs the LLM how to evaluate the rendered HTML against 
 #~ msgid "This prompt is using the latest global version. Reset removes that version and returns to the shipped default."
 #~ msgstr "This prompt is using the latest global version. Reset removes that version and returns to the shipped default."
 
-msgid "This publication can't be added as a revision"
-msgstr "This publication can't be added as a revision"
+#~ msgid "This publication can't be added as a revision"
+#~ msgstr "This publication can't be added as a revision"
 
 msgid "This publication cannot be imported because its HTML does not follow the ADT Studio round-trip pattern."
 msgstr "This publication cannot be imported because its HTML does not follow the ADT Studio round-trip pattern."
 
-msgid "This publication doesn't match the selected project"
-msgstr "This publication doesn't match the selected project"
+#~ msgid "This publication doesn't match the selected project"
+#~ msgstr "This publication doesn't match the selected project"
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "This quiz will be removed from the book. You can still restore it from the version history."
@@ -10006,8 +10009,8 @@ msgstr "This removes the global version for this prompt file. Shipped fallback f
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 
-msgid "This revision is already in the project"
-msgstr "This revision is already in the project"
+#~ msgid "This revision is already in the project"
+#~ msgstr "This revision is already in the project"
 
 msgid "This screen couldn’t load"
 msgstr "This screen couldn’t load"

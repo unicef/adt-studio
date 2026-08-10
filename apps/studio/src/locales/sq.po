@@ -1172,6 +1172,9 @@ msgstr "Paketë ADT"
 #~ msgid "ADT Studio"
 #~ msgstr "ADT Studio"
 
+msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
+msgstr "ADT Studio pranon arkiva ZIP të kompresuara deri në 512 MiB. Zgjidhni një paketë më të vogël dhe provoni përsëri."
+
 msgid "ADT Studio recognized the publication, but required book files are missing or inconsistent. Open the error details to see what must be repaired."
 msgstr "ADT Studio e njohu publikimin, por skedarët e domosdoshëm të librit mungojnë ose nuk përputhen. Hapni hollësitë e gabimit për të parë çfarë duhet riparuar."
 
@@ -2197,8 +2200,8 @@ msgstr "Zgjidhni një preset që përputhet me përmbajtjen tuaj — tekst shkol
 msgid "Choose a previously uploaded video or upload a new one."
 msgstr "Zgjidh një video të ngarkuar më parë ose ngarko një të re."
 
-msgid "Choose a smaller ADT bundle and try again."
-msgstr "Zgjidhni një paketë ADT më të vogël dhe provoni përsëri."
+#~ msgid "Choose a smaller ADT bundle and try again."
+#~ msgstr "Zgjidhni një paketë ADT më të vogël dhe provoni përsëri."
 
 msgid "Choose a Web Export ZIP created by a current version of ADT Studio."
 msgstr "Zgjidhni një ZIP të eksportit në ueb, të krijuar nga një version aktual i ADT Studio."
@@ -2227,8 +2230,8 @@ msgstr "Zgjidhni një arkiv tjetër"
 #~ msgid "Choose another bundle"
 #~ msgstr "Zgjidh një paketë tjetër"
 
-msgid "Choose another destination or create a new project."
-msgstr "Zgjidhni një destinacion tjetër ose krijoni një projekt të ri."
+#~ msgid "Choose another destination or create a new project."
+#~ msgstr "Zgjidhni një destinacion tjetër ose krijoni një projekt të ri."
 
 msgid "Choose another file"
 msgstr "Zgjidhni skedar tjetër"
@@ -2266,8 +2269,8 @@ msgstr "Zgjidh faqen nga e cila do të presësh."
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Zgjidhni skedarin e pjesës që ju është ndarë, ose eksportojeni përsëri."
 
-msgid "Choose the recommended project, or create a new project instead."
-msgstr "Zgjidhni projektin e rekomanduar ose krijoni një projekt të ri."
+#~ msgid "Choose the recommended project, or create a new project instead."
+#~ msgstr "Zgjidhni projektin e rekomanduar ose krijoni një projekt të ri."
 
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Zgjidhni faqet burimore dhe ku vendoset testi në redaktorin e faqeve."
@@ -4978,8 +4981,8 @@ msgstr "Elementet e shënuara si që kërkojnë ndryshime për këtë sesion ris
 msgid "its original language"
 msgstr "gjuhën e saj origjinale"
 
-msgid "Its page structure no longer matches the selected project. Choose Create a new project to import it separately."
-msgstr "Struktura e faqeve nuk përputhet më me projektin e zgjedhur. Zgjidhni Krijo një projekt të ri për ta importuar veçmas."
+#~ msgid "Its page structure no longer matches the selected project. Choose Create a new project to import it separately."
+#~ msgstr "Struktura e faqeve nuk përputhet më me projektin e zgjedhur. Zgjidhni Krijo një projekt të ri për ta importuar veçmas."
 
 msgid "Its published HTML and metadata do not follow the current ADT Studio round-trip structure."
 msgstr "HTML-ja e publikuar dhe metadatat e tij nuk ndjekin strukturën aktuale të rikthimit në ADT Studio."
@@ -6360,8 +6363,8 @@ msgstr "Ende s'ka asgjë për të redaktuar"
 msgid "Nothing to show"
 msgstr "Nuk ka asgjë për të shfaqur"
 
-msgid "Nothing was changed. Open the existing project, or choose Create a new project to keep a separate copy."
-msgstr "Asgjë nuk u ndryshua. Hapni projektin ekzistues ose zgjidhni Krijo një projekt të ri për të mbajtur një kopje të veçantë."
+#~ msgid "Nothing was changed. Open the existing project, or choose Create a new project to keep a separate copy."
+#~ msgstr "Asgjë nuk u ndryshua. Hapni projektin ekzistues ose zgjidhni Krijo një projekt të ri për të mbajtur një kopje të veçantë."
 
 msgid "Now click the end page."
 msgstr "Tani klikoni faqen e fundit."
@@ -9723,8 +9726,8 @@ msgstr "Seksioni u ndryshua pas konvertimit — përdor «Rindërto nga faqja» 
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "Seksionet do të kombinohen lokalisht. Pa një çelës API-je, Storyboard-i do të duhet të ekzekutohet përsëri për të rigjeneruar seksionin e kombinuar."
 
-msgid "The selected project is no longer available"
-msgstr "Projekti i zgjedhur nuk është më i disponueshëm"
+#~ msgid "The selected project is no longer available"
+#~ msgstr "Projekti i zgjedhur nuk është më i disponueshëm"
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Storyboard duhet të plotësohet para gjenerimit të {stageName}. Ekzekuto fazën Storyboard fillimisht."
@@ -9983,14 +9986,14 @@ msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundr
 #~ msgid "This prompt is using the latest global version. Reset removes that version and returns to the shipped default."
 #~ msgstr "Ky prompt po përdor versionin më të fundit global. Resetimi heq atë version dhe kthen parazgjedhjen e shpërndarë."
 
-msgid "This publication can't be added as a revision"
-msgstr "Ky publikim nuk mund të shtohet si rishikim"
+#~ msgid "This publication can't be added as a revision"
+#~ msgstr "Ky publikim nuk mund të shtohet si rishikim"
 
 msgid "This publication cannot be imported because its HTML does not follow the ADT Studio round-trip pattern."
 msgstr "Ky publikim nuk mund të importohet sepse HTML-ja e tij nuk ndjek modelin e rikthimit të ADT Studio."
 
-msgid "This publication doesn't match the selected project"
-msgstr "Ky publikim nuk përputhet me projektin e zgjedhur"
+#~ msgid "This publication doesn't match the selected project"
+#~ msgstr "Ky publikim nuk përputhet me projektin e zgjedhur"
 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Ky test do të hiqet nga libri. Mund ta rikthesh nga historia e versioneve."
@@ -10007,8 +10010,8 @@ msgstr "Kjo heq versionin global për këtë skedar prompti. Skedarët fallback 
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Kjo rikthen fontin e parazgjedhur në çdo faqe dhe pastron mbishkrimet e fontit për element dhe përzgjedhjen e fontit për të gjithë librin. Fontet e bashkëngjitura mbeten në listë. Kthimi është i disponueshëm për çdo faqe nga historiku i versioneve."
 
-msgid "This revision is already in the project"
-msgstr "Ky rishikim është tashmë në projekt"
+#~ msgid "This revision is already in the project"
+#~ msgstr "Ky rishikim është tashmë në projekt"
 
 msgid "This screen couldn’t load"
 msgstr "Ky ekran nuk mund të ngarkohej"

@@ -17,24 +17,15 @@ const { useFriendlyArchiveError } = await import("./use-archive-error")
 afterEach(cleanup)
 
 describe("useFriendlyArchiveError", () => {
-  it("explains a duplicate ADT revision without calling the valid archive invalid", () => {
+  it("states the compressed upload limit for oversized archives", () => {
     const { result } = renderHook(() => useFriendlyArchiveError(
-      "This exact exported ADT revision is already imported",
+      "Archive upload exceeds the 512 MiB compressed size limit",
     ))
 
     expect(result.current).toEqual({
-      title: "This revision is already in the project",
-      hint: "Nothing was changed. Open the existing project, or choose Create a new project to keep a separate copy.",
+      title: "This archive is too large",
+      hint: "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again.",
     })
-  })
-
-  it("tells the editor when a changed page structure requires a separate project", () => {
-    const { result } = renderHook(() => useFriendlyArchiveError(
-      "The edited ADT has a different page structure. Import it as a new project instead.",
-    ))
-
-    expect(result.current?.title).toBe("This publication can't be added as a revision")
-    expect(result.current?.hint).toContain("Create a new project")
   })
 
   it("prioritizes an unsafe-path explanation over the broad ADT bundle error", () => {
