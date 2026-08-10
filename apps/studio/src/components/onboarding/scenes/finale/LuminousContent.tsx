@@ -1,6 +1,7 @@
 import { ArrowRight } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
+import { OB_LOGO_SRC } from "../../theme"
 
 export const DOCS_URL = "https://unicef.github.io/adt-studio/docs/"
 
@@ -26,7 +27,7 @@ export function LuminousContent({
       )}
     >
       <div className="animate-onboarding-fade-up mb-7 flex items-center gap-2.5 [animation-delay:40ms]">
-        <img src="/logo.png" alt="" aria-hidden className="h-9 w-9 object-contain" />
+        <img src={OB_LOGO_SRC} alt="" aria-hidden className="h-9 w-9 rounded-[22%] object-contain" />
         <span className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#6b7688]">
           <Trans>Built for every reader</Trans>
         </span>
@@ -42,7 +43,7 @@ export function LuminousContent({
           <span className="block overflow-hidden pb-[0.08em]">
             <span className="animate-finale-rise inline-block [animation-delay:250ms]">
               <Trans>for</Trans>{" "}
-              <span className="animate-onboarding-gradient bg-[linear-gradient(90deg,#2563eb,#22a3ff,#4f46e5,#2563eb)] bg-[length:200%_auto] bg-clip-text text-transparent">
+              <span className="animate-onboarding-gradient bg-[linear-gradient(90deg,#9a41e4,#c56bff,#7e29c7,#9a41e4)] bg-[length:200%_auto] bg-clip-text text-transparent">
                 <Trans>everyone.</Trans>
               </span>
             </span>
@@ -70,12 +71,12 @@ export function LuminousContent({
         <div className="relative">
           <div
             aria-hidden
-            className="animate-finale-glow pointer-events-none absolute -inset-2 rounded-[20px] bg-[#2563eb]/40 blur-xl"
+            className="animate-finale-glow pointer-events-none absolute -inset-2 rounded-[20px] bg-[rgba(var(--ob-accent-rgb),0.4)] blur-xl"
           />
           <button
             type="button"
             onClick={onSkip}
-            className="group relative inline-flex items-center gap-2.5 rounded-2xl bg-[#2563eb] px-7 py-3.5 text-[15px] font-semibold text-white shadow-[0_14px_34px_-10px_rgba(37,99,235,0.6)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[#1d4ed8] active:translate-y-0 cursor-pointer"
+            className="group relative inline-flex items-center gap-2.5 rounded-2xl bg-[var(--ob-accent)] px-7 py-3.5 text-[15px] font-semibold text-white shadow-[0_14px_34px_-10px_rgba(var(--ob-accent-rgb),0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:bg-[var(--ob-accent-strong)] active:translate-y-0 cursor-pointer"
           >
             <Trans>Go to Home</Trans>
             <ArrowRight

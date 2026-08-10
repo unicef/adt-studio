@@ -15,7 +15,7 @@ export function FinaleSpotlight({ onSkip }: OnboardingStepProps) {
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          background: "radial-gradient(64% 58% at 50% 42%, rgba(37,99,235,0.13), transparent 72%)",
+          background: "radial-gradient(64% 58% at 50% 42%, rgba(var(--ob-accent-rgb),0.14), transparent 72%)",
         }}
       />
 
@@ -25,7 +25,7 @@ export function FinaleSpotlight({ onSkip }: OnboardingStepProps) {
           <div
             key={d}
             aria-hidden
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#2563eb]/[0.07]"
+            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[rgba(var(--ob-accent-rgb),0.09)]"
             style={{ width: d, height: d }}
           />
         ))}
