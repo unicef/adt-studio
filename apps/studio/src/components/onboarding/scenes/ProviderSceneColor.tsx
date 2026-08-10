@@ -300,13 +300,10 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
               >
                 <span
                   className={cn(
-                    "grid h-10 w-10 shrink-0 place-items-center rounded-[12px] text-white",
+                    "grid h-10 w-10 shrink-0 place-items-center rounded-[12px] text-white shadow-sm",
                     !p.enabled && "grayscale",
                   )}
-                  style={{
-                    backgroundImage: `linear-gradient(135deg, ${p.from}, ${p.to})`,
-                    boxShadow: `0 6px 14px -8px ${p.from}99, 0 1px 3px -1px ${p.from}59`,
-                  }}
+                  style={{ backgroundImage: `linear-gradient(135deg, ${p.from}, ${p.to})` }}
                 >
                   <p.Mark className="h-[21px] w-[21px]" />
                 </span>
