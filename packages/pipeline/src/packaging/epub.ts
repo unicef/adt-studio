@@ -3,7 +3,16 @@ import path from "node:path"
 import { JSDOM } from "jsdom"
 import type { Storage } from "@adt/storage"
 import type { BookMetadata, EpubGlossaryConfig, TocGenerationOutput, WordTimestampOutput } from "@adt/types"
-import { type PackageAdtWebOptions, EXPORT_MIME_TYPES, NON_READER_FILES, copyDirRecursive, injectWebpubStyles, getWordTimestamps, pad3 } from "./web.js"
+import {
+  type PackageAdtWebOptions,
+  EXPORT_MIME_TYPES,
+  NON_READER_FILES,
+  copyDirRecursive,
+  injectWebpubStyles,
+  getWordTimestamps,
+  pageNeedsActivitiesBundle,
+  pad3,
+} from "./web.js"
 import { htmlToXhtml } from "../html-semantics.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 
@@ -182,6 +191,7 @@ export function packageEpub(
 
     const rawHtml = fs.readFileSync(htmlPath, "utf-8")
     const isQuizPage = rawHtml.includes('data-section-type="activity_quiz"')
+    const needsActivitiesBundle = pageNeedsActivitiesBundle(rawHtml)
     let html = rawHtml
     // Fixed-layout: swap the quiz page's responsive viewport for the book's fixed
     // one so the reader lays it out (and centers it) like its pre-paginated
@@ -195,8 +205,8 @@ export function packageEpub(
     let xhtml = convertPageToXhtml(html)
     const xhtmlHref = page.href.replace(/\.html$/, ".xhtml")
 
-    if (isQuizPage) {
-      // Ship the activities bundle so the reader runs the interactive quiz, and
+    if (needsActivitiesBundle) {
+      // Ship the activities bundle so the reader runs the interactive controls, and
       // mark the page scripted in the OPF.
       xhtml = xhtml.replace(
         "</body>",

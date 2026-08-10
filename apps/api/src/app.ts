@@ -17,6 +17,7 @@ import { createPromptRoutes } from "./routes/prompts.js"
 import { createTextCatalogRoutes } from "./routes/text-catalog.js"
 import { createEasyReadRoutes } from "./routes/easy-read.js"
 import { createBookSummaryRoutes } from "./routes/book-summary.js"
+import { createBookOutlineRoutes } from "./routes/book-outline.js"
 import { createFontRoutes } from "./routes/fonts.js"
 import { createTypographyRoutes } from "./routes/typography.js"
 import { createTTSRoutes } from "./routes/tts.js"
@@ -106,6 +107,7 @@ app.route("/api", createPromptRoutes(promptsDir, booksDir))
 app.route("/api", createTextCatalogRoutes(booksDir))
 app.route("/api", createEasyReadRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createBookSummaryRoutes(booksDir, promptsDir, configPath, taskService))
+app.route("/api", createBookOutlineRoutes(booksDir))
 app.route("/api", createFontRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTypographyRoutes(booksDir))
 app.route("/api", createEditableActivitiesRoutes(booksDir, promptsDir, configPath))
@@ -115,7 +117,7 @@ app.route(
   createStageRoutes(stageService, eventBus, pageErrorDecisions, booksDir, promptsDir, webAssetsDir, configPath)
 )
 app.route("/api", createTaskRoutes(taskService))
-app.route("/api", createPresetRoutes(configPath))
+app.route("/api", createPresetRoutes(configPath, booksDir))
 app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath))
 app.route("/api", createSpeechConfigRoutes(configPath))
 app.route("/api", createReviewerValidationRoutes(booksDir, configFolderPath, configPath))

@@ -9,6 +9,7 @@ import {
   createTTSSynthesizer,
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,
+  createElevenLabsTTSSynthesizer,
 } from "@adt/llm"
 import type { LLMModel, LlmLogEntry, LogLevel, TTSSynthesizer } from "@adt/llm"
 import type {
@@ -36,6 +37,17 @@ import { readTypography } from "./typography.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
 import {
+  BOOK_OUTLINE_ITEM,
+  BOOK_OUTLINE_NODE,
+  buildBookOutlineConfig,
+  generateBookOutline,
+  outlineContextForPage,
+  readBookOutline,
+} from "./book-outline.js"
+import { buildBookOutlineEvidence } from "./book-outline-evidence.js"
+import { readTypeScale } from "./type-scale.js"
+import { PositionedTextOutput } from "@adt/types"
+import {
   sectionPage,
   buildPageSectioningConfig,
 } from "./page-sectioning.js"
@@ -53,7 +65,17 @@ import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } fro
 import { buildTextCatalog } from "./text-catalog.js"
 import { buildEasyReadConfig, buildEasyReadSourceBlocks, createEmptyEasyReadOutput, generateEasyRead, flattenEasyReadEntries, isDeterministicEmptyEasyReadOutput } from "./easy-read.js"
 import { translateCatalogBatch, buildCatalogTranslationConfig, getTargetLanguages } from "./catalog-translation.js"
-import { getBaseLanguage, normalizeLocale } from "./language-context.js"
+import {
+  buildCoreTtsPreparationConfig,
+  loadCoreTtsProfiles,
+  resolveCoreTtsProfile,
+  getCoreTtsPreparationLocales,
+  prepareCoreTtsCatalog,
+  getCoreTtsCatalog,
+  buildCoreTtsSourceContext,
+  getReadyCoreTtsEntries,
+} from "./core-tts.js"
+import { normalizeLocale } from "./language-context.js"
 import {
   loadVoicesConfig,
   loadSpeechInstructions,
@@ -63,6 +85,12 @@ import {
   resolveSpeechModel,
   resolveSpeechFormat,
   generateSpeechFile,
+  findAdjacentSpeechText,
+  elevenLabsVoiceSettingsFromConfig,
+  classifyElevenLabsTtsError,
+  elevenLabsTtsRetryDelayMs,
+  ELEVENLABS_TTS_MAX_CONCURRENCY,
+  ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
   type ProviderRouting,
 } from "./speech.js"
 import { packageAdtWeb } from "./packaging/web.js"
@@ -110,6 +138,7 @@ export interface FullPipelineOptions {
   azureSpeechKey?: string
   azureSpeechRegion?: string
   geminiApiKey?: string
+  elevenLabsApiKey?: string
 }
 
 /**
@@ -188,6 +217,7 @@ export async function runFullPipeline(
 
     // Build all step configs upfront
     const metadataConfig = buildMetadataConfig(config)
+    const bookOutlineConfig = buildBookOutlineConfig(config)
     const pageSectioningConfig = buildPageSectioningConfig(config)
     const imageClassifyConfig = buildImageClassifyConfig(config)
     const meaningfulnessConfig = buildMeaningfulnessConfig(config)
@@ -245,6 +275,25 @@ export async function runFullPipeline(
       const model = getModel(bookSummaryConfig.modelId)
       const result = await generateBookSummary(summaryPages, bookSummaryConfig, model)
       storage.putNodeData("book-summary", "book", result)
+    })
+
+    executors.set("book-outline", async () => {
+      const pages = storage.getPages()
+      const evidencePages = pages.map((page) => {
+        const positionedRow = storage.getLatestNodeData("positioned-text", page.pageId)
+        const positioned = PositionedTextOutput.safeParse(positionedRow?.data)
+        return {
+          pageId: page.pageId,
+          pageNumber: page.pageNumber,
+          text: page.text,
+          imageBase64: storage.getPageImageBase64(page.pageId),
+          ...(positioned.success && { positionedText: positioned.data }),
+        }
+      })
+      const evidence = buildBookOutlineEvidence(evidencePages, readTypeScale(storage))
+      const model = getModel(bookOutlineConfig.modelId)
+      const result = await generateBookOutline(evidence, bookOutlineConfig, model)
+      storage.putNodeData(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM, result)
     })
 
     executors.set("image-filtering", async (p) => {
@@ -477,6 +526,7 @@ export async function runFullPipeline(
       // produced in the web-rendering step instead (see below).
       const model = getModel(pageSectioningConfig.modelId)
       const pages = storage.getPages()
+      const bookOutline = readBookOutline(storage)
       const totalPages = pages.length
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const imageClassRow = storage.getLatestNodeData("image-filtering", page.pageId)
@@ -497,6 +547,7 @@ export async function runFullPipeline(
             text: page.text,
             imageBase64,
             availableImages,
+            outline: outlineContextForPage(bookOutline, page.pageId),
           },
           pageSectioningConfig,
           model,
@@ -864,23 +915,79 @@ export async function runFullPipeline(
       }
     })
 
-    executors.set("tts", async (p) => {
+    executors.set("core-tts-catalog", async (p) => {
       const language = getLanguage(storage, config)
-      const easyReadConfig = buildEasyReadConfig(config, language)
       const outputLanguages = getOutputLanguages(config, language)
       const catalogRow = storage.getLatestNodeData("text-catalog", "book")
       if (!catalogRow) return
-      const sourceCatalog = catalogRow.data as TextCatalogOutput
+      const catalog = catalogRow.data as TextCatalogOutput
       const easyReadRow = storage.getLatestNodeData("easy-read", "book")
-      // Easy Read audio is generated for every language (source included)
-      // whenever Easy Read is enabled — target languages already carry the
-      // easy-read entries via text-catalog-translation, so gate the source
-      // side on `enabled` to match.
-      const easyReadEntries = easyReadConfig.enabled
-        ? flattenEasyReadEntries(easyReadRow?.data as EasyReadOutput | undefined)
-        : []
-      const sourceEntries = [...sourceCatalog.entries, ...easyReadEntries]
-      if (sourceEntries.length === 0) return
+      const easyReadEntries = flattenEasyReadEntries(
+        easyReadRow?.data as EasyReadOutput | undefined,
+      )
+      const sourceDisplayEntries = [...catalog.entries, ...easyReadEntries]
+      if (sourceDisplayEntries.length === 0) return
+
+      const preparationConfig = buildCoreTtsPreparationConfig(config)
+      const model = getModel(preparationConfig.modelId)
+      const profiles = loadCoreTtsProfiles(
+        options.configDir ?? path.resolve(process.cwd(), "config"),
+      )
+      const sourceCatalog = await prepareCoreTtsCatalog({
+        entries: sourceDisplayEntries,
+        language,
+        config: preparationConfig,
+        profile: resolveCoreTtsProfile(language, profiles),
+        llmModel: model,
+        previous: getCoreTtsCatalog(storage, language),
+      })
+      storage.putNodeData("core-tts-catalog", language, sourceCatalog)
+      const sourceContext = buildCoreTtsSourceContext(
+        sourceDisplayEntries,
+        sourceCatalog,
+      )
+
+      const preparationLocales = getCoreTtsPreparationLocales(
+        outputLanguages,
+        language,
+      )
+      let completed = 1
+      for (const locale of preparationLocales) {
+        const lang = locale.language
+        let displayEntries = sourceDisplayEntries
+        if (!locale.usesSourceDisplayText) {
+          const legacy = lang.replace("-", "_")
+          const row =
+            storage.getLatestNodeData("text-catalog-translation", lang) ??
+            storage.getLatestNodeData("text-catalog-translation", legacy)
+          if (!row) continue
+          displayEntries = (row.data as TextCatalogOutput).entries
+        }
+        const targetCatalog = await prepareCoreTtsCatalog({
+          entries: displayEntries,
+          language: lang,
+          config: preparationConfig,
+          profile: resolveCoreTtsProfile(lang, profiles),
+          llmModel: model,
+          previous: getCoreTtsCatalog(storage, lang),
+          sourceContext,
+        })
+        storage.putNodeData("core-tts-catalog", lang, targetCatalog)
+        completed++
+        p.emit({
+          type: "step-progress",
+          step: "core-tts-catalog",
+          message: `${completed}/${outputLanguages.length} languages`,
+          page: completed,
+          totalPages: outputLanguages.length,
+        })
+      }
+    })
+
+    executors.set("tts", async (p) => {
+      const language = getLanguage(storage, config)
+      const outputLanguages = getOutputLanguages(config, language)
+      if (!outputLanguages.some((lang) => getReadyCoreTtsEntries(storage, lang).length > 0)) return
 
       const configDir = options.configDir ?? path.resolve(process.cwd(), "config")
       const azureConfig = options.azureSpeechKey && options.azureSpeechRegion
@@ -888,6 +995,9 @@ export async function runFullPipeline(
         : undefined
       const geminiConfig = options.geminiApiKey
         ? { apiKey: options.geminiApiKey }
+        : undefined
+      const elevenLabsConfig = options.elevenLabsApiKey
+        ? { apiKey: options.elevenLabsApiKey }
         : undefined
       const voiceMaps = loadVoicesConfig(configDir)
       const instructionsMap = loadSpeechInstructions(configDir)
@@ -914,39 +1024,83 @@ export async function runFullPipeline(
           synthesizers.set("gemini", synth)
           return synth
         }
+        if (providerName === "elevenlabs") {
+          if (!elevenLabsConfig && !process.env.ELEVENLABS_API_KEY) {
+            throw new Error("ELEVENLABS_API_KEY is required for ElevenLabs TTS provider")
+          }
+          const synth = createElevenLabsTTSSynthesizer(elevenLabsConfig, {
+            sampleRate: config.speech?.sample_rate,
+            bitRate: config.speech?.bit_rate,
+          })
+          synthesizers.set("elevenlabs", synth)
+          return synth
+        }
         const synth = createTTSSynthesizer()
         synthesizers.set(providerName, synth)
         return synth
       }
 
-      interface TTSWorkItem { textId: string; text: string; language: string }
+      interface TTSWorkItem { textId: string; text: string; language: string; previousText?: string; nextText?: string }
       const workItems: TTSWorkItem[] = []
+      const resultsByLang = new Map<string, SpeechFileEntry[]>()
+      for (const lang of outputLanguages) resultsByLang.set(lang, [])
       for (const lang of outputLanguages) {
-        const baseSource = getBaseLanguage(language)
-        const baseLang = getBaseLanguage(lang)
-        let entries: TextCatalogEntry[]
-        if (baseLang === baseSource) {
-          entries = sourceEntries
-        } else {
-          const legacyLang = lang.replace("-", "_")
-          const translatedRow =
-            storage.getLatestNodeData("text-catalog-translation", lang) ??
-            storage.getLatestNodeData("text-catalog-translation", legacyLang)
-          if (!translatedRow) throw new Error(`Missing translated catalog for output language: ${lang}`)
-          entries = (translatedRow.data as TextCatalogOutput).entries
-        }
-        for (const entry of entries) {
+        const entries = getReadyCoreTtsEntries(storage, lang)
+        const provider = resolveProviderForLanguage(lang, routing)
+        const legacyLang = lang.replace("-", "_")
+        const existingRow =
+          storage.getLatestNodeData("tts", lang) ??
+          storage.getLatestNodeData("tts", legacyLang)
+        const existingById = new Map(
+          ((existingRow?.data as TTSOutput | undefined)?.entries ?? []).map(
+            (entry) => [entry.textId, entry],
+          ),
+        )
+        for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
+          const entry = entries[entryIndex]
           if (isTtsExcluded(entry.id, config.speech)) continue
-          workItems.push({ textId: entry.id, text: entry.text, language: lang })
+          const existing = existingById.get(entry.id)
+          if (existing?.provider === "manual") {
+            const normalizedPath = path.join(
+              path.resolve(booksRoot),
+              label,
+              "audio",
+              lang,
+              existing.fileName,
+            )
+            const legacyPath = path.join(
+              path.resolve(booksRoot),
+              label,
+              "audio",
+              legacyLang,
+              existing.fileName,
+            )
+            if (fs.existsSync(normalizedPath) || fs.existsSync(legacyPath)) {
+              resultsByLang.get(lang)!.push(existing)
+              continue
+            }
+          }
+          // ElevenLabs-only: adjacent-entry context, opt-in via
+          // elevenlabs_use_context. Must resolve identically to stage-runner.ts
+          // so the shared cache key (computeSpeechCacheKey) stays in sync.
+          const previousText =
+            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
+              : undefined
+          const nextText =
+            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
+              : undefined
+          workItems.push({ textId: entry.id, text: entry.text, language: lang, previousText, nextText })
         }
       }
 
       const totalItems = workItems.length
       let completedItems = 0
-      const resultsByLang = new Map<string, SpeechFileEntry[]>()
-      for (const lang of outputLanguages) resultsByLang.set(lang, [])
 
-      await processWithConcurrency(workItems, effectiveConcurrency, async (item) => {
+      const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(config.speech)
+
+      const runTtsItem = async (item: TTSWorkItem) => {
         const provider = resolveProviderForLanguage(item.language, routing)
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
@@ -959,21 +1113,55 @@ export async function runFullPipeline(
             ? resolveInstructions(item.language, instructionsMap)
             : ""
         const ttsSynthesizer = getSynthesizer(provider)
-        const entry = await generateSpeechFile({
-          textId: item.textId,
-          text: item.text,
-          language: item.language,
-          model: providerModel,
-          voice,
-          instructions,
-          format: outputFormat,
-          bookDir: path.join(path.resolve(booksRoot), label),
-          cacheDir,
-          ttsSynthesizer,
-          provider,
-          geminiTemperature: config.speech?.temperature,
-          geminiSeed: config.speech?.seed,
-        })
+        const generate = () =>
+          generateSpeechFile({
+            textId: item.textId,
+            text: item.text,
+            language: item.language,
+            model: providerModel,
+            voice,
+            instructions,
+            format: outputFormat,
+            bookDir: path.join(path.resolve(booksRoot), label),
+            cacheDir,
+            ttsSynthesizer,
+            provider,
+            geminiTemperature: config.speech?.temperature,
+            geminiSeed: config.speech?.seed,
+            elevenLabsPreviousText: item.previousText,
+            elevenLabsNextText: item.nextText,
+            elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+            ...elevenLabsVoiceSettings,
+          })
+
+        // ElevenLabs throttles on concurrent requests, so a burst returns 429s
+        // that would otherwise fail the entry outright. Retry 429/5xx with the
+        // same backoff the API stage-runner uses.
+        let entry: Awaited<ReturnType<typeof generateSpeechFile>>
+        if (provider === "elevenlabs") {
+          for (let attemptCount = 1; ; attemptCount++) {
+            try {
+              entry = await generate()
+              break
+            } catch (err) {
+              const message = err instanceof Error ? err.message : String(err)
+              if (
+                classifyElevenLabsTtsError(message) === "permanent" ||
+                attemptCount > ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES
+              ) {
+                throw err
+              }
+              const delayMs = elevenLabsTtsRetryDelayMs(attemptCount)
+              console.warn(
+                `[pipeline] ElevenLabs TTS failed for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${delayMs}ms: ${message}`
+              )
+              await new Promise((resolve) => setTimeout(resolve, delayMs))
+            }
+          }
+        } else {
+          entry = await generate()
+        }
+
         if (entry) resultsByLang.get(item.language)!.push(entry)
         completedItems++
         p.emit({
@@ -983,7 +1171,26 @@ export async function runFullPipeline(
           page: completedItems,
           totalPages: totalItems,
         })
-      })
+      }
+
+      // ElevenLabs plans cap *concurrent* requests (Free ~4, Starter ~5), far
+      // below the default concurrency of 32, so its items run in their own
+      // capped pass. Everything else keeps full concurrency — the two passes run
+      // together so a mixed book doesn't throttle its non-ElevenLabs languages.
+      const elevenLabsItems = workItems.filter(
+        (item) => resolveProviderForLanguage(item.language, routing) === "elevenlabs"
+      )
+      const otherItems = workItems.filter(
+        (item) => resolveProviderForLanguage(item.language, routing) !== "elevenlabs"
+      )
+      await Promise.all([
+        processWithConcurrency(otherItems, effectiveConcurrency, runTtsItem),
+        processWithConcurrency(
+          elevenLabsItems,
+          Math.min(ELEVENLABS_TTS_MAX_CONCURRENCY, effectiveConcurrency),
+          runTtsItem
+        ),
+      ])
 
       for (const lang of outputLanguages) {
         const entries = resultsByLang.get(lang)!

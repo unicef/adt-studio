@@ -65,6 +65,7 @@ import {
 } from "./BookPreviewFrame"
 import { SectionEditPanel } from "./SectionEditPanel"
 import { writeCustomAnswerToHtml } from "../lib/activity-answer-labels"
+import { updateOrderingAnswer } from "../lib/ordering-answers"
 import { detectChangedStoryboardViewports } from "../lib/storyboard-viewport-changes"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
@@ -453,7 +454,7 @@ export function StoryboardSectionDetail({
   const [merging, setMerging] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
-  const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string } | null>(null)
+  const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string; consequence?: string } | null>(null)
   const [pendingSectioning, setPendingSectioning] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRendering] = useState<RenderingData | null>(null)
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
@@ -858,6 +859,17 @@ export function StoryboardSectionDetail({
     setSaving(true)
     setPanelOpen(false)
     const shouldRerender = needsRerenderRef.current
+    // Editing here is meant to be incremental: change a section's type, text or
+    // pruning, re-render that one section, carry on. Every such edit either
+    // arrives already mirrored into the HTML or queues a render of the section
+    // it touched, so the storyboard is current (or seconds away from it) and
+    // resetting the whole stage would only take the editor away for a book that
+    // is fine. The stage is marked stale only when we cannot bring the HTML back
+    // in sync at all: no API key, or a custom activity whose inline grading
+    // script a re-render would flatten.
+    const isCustomActivity = section?.sectionType?.startsWith("activity_custom") ?? false
+    const willRerender = shouldRerender && hasApiKey && !isCustomActivity
+    const renderingInSync = !shouldRerender || willRerender
     try {
       const minDelay = new Promise((r) => setTimeout(r, 400))
 
@@ -872,16 +884,18 @@ export function StoryboardSectionDetail({
         }
       }
 
-      await api.updateSectioning(bookLabel, pageId, pendingSectioning)
-
       // Save rendering if dirty (from delete/prune removing HTML elements).
       // Use renderingFromPrune if we just stripped pruned elements above,
       // since React state won't have updated yet within this async call.
       const flushed = flushPendingHtml()
       const renderingToSave = renderingFromPrune ?? flushed ?? pendingRendering
-      if (renderingToSave) {
-        await api.updateRendering(bookLabel, pageId, stripTransientIds(renderingToSave))
-      }
+
+      // Both nodes in one request so a failure can't split them apart.
+      await api.saveStoryboard(bookLabel, pageId, {
+        sectioning: pendingSectioning,
+        rendering: renderingToSave ? stripTransientIds(renderingToSave) : undefined,
+        renderingInSync,
+      })
 
       setPendingSectioning(null)
       setPendingRendering(null)
@@ -896,10 +910,22 @@ export function StoryboardSectionDetail({
       // Skip for pure prune/delete — those are already handled by local HTML removal.
       // Also skip custom activities: re-render rebuilds from the flat sectioning
       // tree and would discard their inline grading script.
-      const isCustomActivity =
-        section?.sectionType?.startsWith("activity_custom") ?? false
-      if (shouldRerender && hasApiKey && !isCustomActivity) {
-        api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex).catch(() => {})
+      // The task marks the storyboard stale itself if it fails, so a section that
+      // never gets its HTML cannot leave the stage reporting complete. A rejected
+      // *submission* never reaches the task runner, so that net does not fire and
+      // we have to take the completion mark back here instead.
+      if (willRerender) {
+        api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex).catch(async (err) => {
+          setAiError(err instanceof Error ? err.message : t`Re-render failed`)
+          if (!renderingInSync) return
+          await api
+            .saveStoryboard(bookLabel, pageId, {
+              sectioning: pendingSectioning,
+              renderingInSync: false,
+            })
+            .catch(() => {})
+          invalidateStoryboardDependents(queryClient, bookLabel)
+        })
       }
     } catch (err) {
       setAiError(err instanceof Error ? err.message : t`Save failed`)
@@ -933,23 +959,23 @@ export function StoryboardSectionDetail({
     try {
       const minDelay = new Promise((r) => setTimeout(r, 400))
 
-      await api.updateRendering(bookLabel, pageId, stripTransientIds(renderingToSave))
-
       // Back-propagate text changes into sectioning. `renderingToSave` already
       // includes the flushed inspector edit; the closure `pendingRendering`
       // is stale until React re-renders.
       const editedHtml = getRenderedSectionByIndex(renderingToSave, sectionIndex)?.html
       const sBase = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
-      if (editedHtml && sBase) {
-        const updatedSectioning = backPropagateTextChanges(
-          sBase,
-          sectionIndex,
-          editedHtml
-        )
-        if (updatedSectioning !== sBase) {
-          await api.updateSectioning(bookLabel, pageId, updatedSectioning)
-        }
-      }
+      const updatedSectioning =
+        editedHtml && sBase ? backPropagateTextChanges(sBase, sectionIndex, editedHtml) : null
+
+      // The sectioning we send is derived from the HTML we send, so the pair is
+      // in sync by construction — this save leaves the Storyboard current and
+      // only marks the stages downstream of it for re-run.
+      await api.saveStoryboard(bookLabel, pageId, {
+        rendering: stripTransientIds(renderingToSave),
+        ...(updatedSectioning && updatedSectioning !== sBase
+          ? { sectioning: updatedSectioning, renderingInSync: true }
+          : {}),
+      })
 
       setPendingRendering(null)
       setPendingSectioning(null)
@@ -1032,7 +1058,16 @@ export function StoryboardSectionDetail({
   const executeMergeSection = async (direction: "next" | "prev") => {
     setMerging(true)
     try {
-      const result = await api.mergeSection(bookLabel, pageId, sectionIndex, direction)
+      // The merge concatenates both sections' HTML into the kept entry, so no
+      // section is left without one. With a key the targeted re-render keeps
+      // the stage current; without one the server marks it for a full re-run.
+      const result = await api.mergeSection(
+        bookLabel,
+        pageId,
+        sectionIndex,
+        direction,
+        hasApiKey,
+      )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
@@ -1054,7 +1089,16 @@ export function StoryboardSectionDetail({
   const executeMergeCrossPage = async (direction: "next" | "prev") => {
     setMerging(true)
     try {
-      const result = await api.mergeSectionCrossPage(bookLabel, pageId, sectionIndex, direction)
+      // This empties both pages' renderings outright — every section on them
+      // loses its HTML, not just the merged one — so both pages have to be
+      // re-rendered whole before the stage is complete again. Two page renders
+      // is still the affected pages only, never the rest of the book.
+      const result = await api.mergeSectionCrossPage(
+        bookLabel,
+        pageId,
+        sectionIndex,
+        direction,
+      )
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.sourcePageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.targetPageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
@@ -1063,6 +1107,18 @@ export function StoryboardSectionDetail({
       invalidateStoryboardDependents(queryClient, bookLabel)
       // Navigate to the previous section or 0 since the current section was removed
       onNavigateSection?.(Math.max(0, sectionIndex - 1))
+
+      if (hasApiKey) {
+        try {
+          await api.reRenderPages(
+            bookLabel,
+            [result.sourcePageId, result.targetPageId],
+            apiKey,
+          )
+        } catch (err) {
+          setAiError(err instanceof Error ? err.message : t`Re-render failed`)
+        }
+      }
     } catch (err) {
       setAiError(err instanceof Error ? err.message : t`Merge failed`)
     } finally {
@@ -1102,6 +1158,9 @@ export function StoryboardSectionDetail({
       action: () => executeMergeSection(direction),
       label,
       warning: buildMergeWarning(neighbor?.sectionType),
+      consequence: hasApiKey
+        ? t`The combined section will be re-rendered.`
+        : t`The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section.`,
     })
   }
 
@@ -1114,6 +1173,11 @@ export function StoryboardSectionDetail({
       action: () => executeMergeCrossPage(direction),
       label,
       warning: buildMergeWarning(),
+      // Unlike a same-page merge this clears both pages' renderings entirely,
+      // so say which pages go and who puts them back.
+      consequence: hasApiKey
+        ? t`Both pages lose their rendering and will be re-rendered automatically.`
+        : t`Both pages lose their rendering. Without an API key they cannot be re-rendered, so the Storyboard will need re-running.`,
     })
   }
 
@@ -1348,19 +1412,34 @@ export function StoryboardSectionDetail({
   // grading script) read the correct answer straight from the section HTML —
   // `data-correct-items` on a drop target, or `data-answer` on a per-slot input
   // — so for custom sections we also write each edit back into the HTML, or the
-  // change would be cosmetic and never affect grading. Templated activities
-  // grade off `window.correctAnswers` (built from `activityAnswers`), so the
-  // derived update alone is enough for them.
+  // change would be cosmetic and never affect grading. Ordering activities
+  // also carry an inspectable HTML order, so rank edits atomically swap the
+  // displaced item and update both representations.
   const updateAnswers = useCallback(
     (patch: Record<string, string | boolean>) => {
       const rBase = pendingRendering ?? page.rendering
       if (!rBase) return
       const isCustom = section?.sectionType.startsWith("activity_custom") ?? false
+      const isOrdering = section?.sectionType === "activity_ordering"
+      const currentSection = rBase.sections.find((s) => s.sectionIndex === sectionIndex)
+      let orderingUpdate: ReturnType<typeof updateOrderingAnswer> = null
+      if (isOrdering) {
+        const entries = Object.entries(patch)
+        if (entries.length !== 1 || !currentSection) return
+        const [itemId, value] = entries[0]
+        orderingUpdate = updateOrderingAnswer(
+          currentSection.html,
+          currentSection.activityAnswers ?? {},
+          itemId,
+          value,
+        )
+        if (!orderingUpdate) return
+      }
       const updated = {
         ...rBase,
         sections: rBase.sections.map((s) => {
           if (s.sectionIndex !== sectionIndex) return s
-          let html = s.html
+          let html = orderingUpdate?.html ?? s.html
           if (isCustom && html) {
             for (const [itemKey, value] of Object.entries(patch)) {
               html = writeCustomAnswerToHtml(html, itemKey, String(value))
@@ -1369,7 +1448,7 @@ export function StoryboardSectionDetail({
           return {
             ...s,
             html,
-            activityAnswers: { ...s.activityAnswers, ...patch },
+            activityAnswers: orderingUpdate?.answers ?? { ...s.activityAnswers, ...patch },
           }
         }),
       }
@@ -1432,7 +1511,17 @@ export function StoryboardSectionDetail({
     if (storyboardRunning) return
     const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
     if (!base) return
-    if (base.sections[sectionIndex]?.isPruned) needsRerenderRef.current = true
+    // Pruning a section is a read-time filter — packaging and the text catalog
+    // skip it (`packaging/web.ts`, `text-catalog.ts`) but its HTML stays in
+    // web-rendering. So unpruning restores it as-is and needs no LLM. The one
+    // exception is a section that was already pruned when the storyboard ran:
+    // `web-rendering.ts` skips pruned sections, so it has no HTML to restore.
+    const unpruning = base.sections[sectionIndex]?.isPruned ?? false
+    const renderedHtml = getRenderedSectionByIndex(
+      pendingRendering ?? page.rendering,
+      sectionIndex
+    )?.html
+    if (unpruning && !renderedHtml) needsRerenderRef.current = true
     const updated: SectioningData = {
       ...base,
       sections: base.sections.map((s, si) => {
@@ -1513,6 +1602,7 @@ export function StoryboardSectionDetail({
     [removeElementsFromRendering]
   )
 
+  // Reorder / regroup: the HTML keeps the old order until re-rendered.
   const handleStructuralChange = useCallback(() => {
     needsRerenderRef.current = true
   }, [])
@@ -3233,6 +3323,7 @@ export function StoryboardSectionDetail({
           <DialogTitle>{t`Confirm merge`}</DialogTitle>
           <DialogDescription>
             {t`Are you sure you want to ${confirmMerge?.label ?? ""}? This action cannot be undone.`}
+            {confirmMerge?.consequence ? ` ${confirmMerge.consequence}` : null}
           </DialogDescription>
         </DialogHeader>
         {confirmMerge?.warning && (

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
@@ -40,8 +41,31 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
   fs.mkdirSync(paths.videosDir, { recursive: true })
 
   const db = openBookDb(paths.dbPath)
+  let transactionDepth = 0
+
+  const transaction = <T>(operation: () => T): T => {
+    // All Storage methods share this connection, so nested operations are
+    // already part of the outer transaction. The outermost call alone owns
+    // BEGIN/COMMIT/ROLLBACK.
+    if (transactionDepth > 0) return operation()
+
+    db.exec("BEGIN IMMEDIATE")
+    transactionDepth = 1
+    try {
+      const result = operation()
+      db.exec("COMMIT")
+      return result
+    } catch (err) {
+      db.exec("ROLLBACK")
+      throw err
+    } finally {
+      transactionDepth = 0
+    }
+  }
 
   return {
+    transaction,
+
     clearExtractedData(): void {
       clearImageFiles(paths.imagesDir)
       clearImageFiles(paths.debugImagesDir)
@@ -51,15 +75,10 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     clearNodesByType(nodes: string[]): void {
       if (nodes.length === 0) return
       const placeholders = nodes.map(() => "?").join(", ")
-      db.exec("BEGIN IMMEDIATE")
-      try {
+      transaction(() => {
         db.run(`DELETE FROM node_data WHERE node IN (${placeholders})`, nodes)
         db.run(`DELETE FROM node_current WHERE node IN (${placeholders})`, nodes)
-        db.exec("COMMIT")
-      } catch (err) {
-        db.exec("ROLLBACK")
-        throw err
-      }
+      })
     },
 
     putExtractedPage(page: ExtractedPage): void {
@@ -201,7 +220,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
           cropId,
           input.pageId,
           `images/${filename}`,
-          "",
+          hashBuffer(input.buffer),
           input.width,
           input.height,
           "crop",
@@ -235,7 +254,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
           segId,
           input.pageId,
           `images/${filename}`,
-          "",
+          hashBuffer(input.buffer),
           input.width,
           input.height,
           "segment",
@@ -268,7 +287,7 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
           newImageId,
           input.pageId,
           `images/${filename}`,
-          "",
+          hashBuffer(input.buffer),
           input.width,
           input.height,
           "translate",
@@ -622,6 +641,10 @@ function writeImage(
       image.bounds?.height ?? null,
     ]
   )
+}
+
+function hashBuffer(buffer: Buffer): string {
+  return createHash("sha256").update(buffer).digest("hex").slice(0, 16)
 }
 
 function ensureWithinRoot(target: string, root: string): void {

@@ -354,7 +354,7 @@ export function DefaultModelSettings() {
               prefixProvider={false}
             />
             <p className="mt-5 text-pretty text-sm leading-6 text-muted-foreground">
-              <Trans>Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:</Trans>
+              <Trans>Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:</Trans>
             </p>
             <TaskList compact steps={STEPS_BY_DEFAULT_MODEL_KIND["speech-generation"]} />
           </article>

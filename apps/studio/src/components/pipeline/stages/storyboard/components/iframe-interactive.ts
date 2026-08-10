@@ -194,14 +194,11 @@ export const INTERACTIVE_SCRIPT = `<script>
     // Text was edited: leave the new content in place and let the parent's
     // re-render replace it. Restoring the pre-edit HTML here would cause a
     // visible flash of the old text before the parent's update propagates.
-    var wrapper = document.getElementById('content');
-    var fullHtml;
-    if (wrapper) {
-      var cls = (wrapper.getAttribute('class') || '').trim();
-      fullHtml = cls ? wrapper.outerHTML : wrapper.innerHTML;
-    } else {
-      fullHtml = document.body.innerHTML;
-    }
+    // We deliberately do NOT serialize the iframe's own #content here — the
+    // parent reconstructs from the pristine source HTML via
+    // reconstructHtmlWithEdit, which keeps non-edited siblings in LaTeX form
+    // and preserves the fixed-layout wrapper + auto-fit script that DOMPurify
+    // stripped from this document on load.
     parent.postMessage({
       type: 'text-changed',
       dataId: dataId,
@@ -210,8 +207,7 @@ export const INTERACTIVE_SCRIPT = `<script>
       // styled child spans (e.g. fixed-layout colour runs) as the user types
       // within them. The parent splices this into the original LaTeX-form HTML
       // so non-edited siblings keep LaTeX (not MathML).
-      editedInnerHtml: el.innerHTML,
-      fullHtml: fullHtml
+      editedInnerHtml: el.innerHTML
     }, '*');
   }
 
@@ -225,6 +221,83 @@ export const INTERACTIVE_SCRIPT = `<script>
 
   new MutationObserver(invalidateAnswerControls)
     .observe(document.body, { childList: true, subtree: true });
+
+  // Accessible word-bank cloze interaction. Rendering HTML declares reusable
+  // chips with data-word-bank-chip and inline fields with
+  // data-word-bank-target; the iframe owns behaviour because persisted HTML
+  // is intentionally sanitized and cannot carry event handlers or scripts.
+  var selectedWordBankValue = '';
+
+  function wordBankStatus() {
+    return document.querySelector('[data-word-bank-status], #pg021-word-bank-status');
+  }
+
+  function wordBankElement(target, attribute) {
+    var node = target;
+    while (node && node !== document.body) {
+      if (node.nodeType === 1 && node.hasAttribute(attribute)) return node;
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  function announceWordBank(message) {
+    var status = wordBankStatus();
+    if (status) status.textContent = message;
+  }
+
+  function selectWordBankChip(chip) {
+    selectedWordBankValue = chip.getAttribute('data-word-bank-chip') || '';
+    document.querySelectorAll('[data-word-bank-chip]').forEach(function(item) {
+      item.setAttribute('aria-pressed', item === chip ? 'true' : 'false');
+    });
+    announceWordBank(selectedWordBankValue + ' selected. Move to a blank and press Enter.');
+  }
+
+  function placeWordBankValue(target, value) {
+    if (!value || !target) return;
+    target.value = value;
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+    target.dispatchEvent(new Event('change', { bubbles: true }));
+    target.classList.add('bg-emerald-50', 'border-emerald-600');
+    announceWordBank(value + ' placed in ' + (target.getAttribute('aria-label') || 'blank') + '.');
+  }
+
+  document.addEventListener('click', function(e) {
+    if (isLinkMode()) return;
+    var chip = wordBankElement(e.target, 'data-word-bank-chip');
+    if (chip) selectWordBankChip(chip);
+  });
+
+  document.addEventListener('dragstart', function(e) {
+    if (isLinkMode()) return;
+    var chip = wordBankElement(e.target, 'data-word-bank-chip');
+    if (!chip) return;
+    selectWordBankChip(chip);
+    if (e.dataTransfer) e.dataTransfer.setData('text/plain', selectedWordBankValue);
+  });
+
+  document.addEventListener('dragover', function(e) {
+    var target = wordBankElement(e.target, 'data-word-bank-target');
+    if (target && !isLinkMode()) e.preventDefault();
+  });
+
+  document.addEventListener('drop', function(e) {
+    if (isLinkMode()) return;
+    var target = wordBankElement(e.target, 'data-word-bank-target');
+    if (!target) return;
+    e.preventDefault();
+    var value = e.dataTransfer ? e.dataTransfer.getData('text/plain') : '';
+    placeWordBankValue(target, value || selectedWordBankValue);
+  });
+
+  document.addEventListener('keydown', function(e) {
+    if (isLinkMode() || e.key !== 'Enter' || !selectedWordBankValue) return;
+    var target = wordBankElement(e.target, 'data-word-bank-target');
+    if (!target) return;
+    e.preventDefault();
+    placeWordBankValue(target, selectedWordBankValue);
+  });
 
   document.addEventListener('mousedown', function(e) {
     if (!isLinkMode()) return;

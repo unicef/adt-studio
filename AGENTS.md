@@ -92,6 +92,7 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 | `PROMPTS_DIR` | `/app/prompts` | `-v ./prompts:/app/prompts` |
 | `CONFIG_PATH` | `/app/config.yaml` | `-v ./config.yaml:/app/config.yaml:ro` |
 | `FONTS_CACHE_DIR` | `<BOOKS_DIR>/.fonts-cache` | Global Google Fonts cache shared across books (persists in the books volume by default) |
+| `STYLEGUIDES_DIR` | `<BOOKS_DIR>/.styleguides` | User-uploaded global style guides. LLM-generated guides live under each book's `styleguides/` directory so project exports remain self-contained. Bundled presets remain read-only. |
 | `PORT` | `3001` | Internal only — nginx proxies to this |
 
 **`TEMPLATES_DIR` trap:** The Dockerfile and `docker-compose.yml` set `TEMPLATES_DIR=/app/templates` but the application **never reads this env var**. Templates dir is always derived from `path.join(path.dirname(PROMPTS_DIR), "templates")`. To use a custom templates directory, mount it as a sibling of `prompts/` — i.e. override `PROMPTS_DIR` and keep `templates/` next to it.

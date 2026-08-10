@@ -10,6 +10,7 @@ import {
   NON_READER_FILES,
   copyDirRecursive,
   injectWebpubStyles,
+  pageNeedsActivitiesBundle,
   writeJson,
 } from "./web.js"
 
@@ -226,7 +227,6 @@ function transformHtmlFiles(dir: string, transform: (html: string) => string | n
   }
 }
 
-const ACTIVITY_SECTION_MARKER = 'data-section-type="activity_'
 const ACTIVITIES_SCRIPT_TAG = '    <script src="./assets/activities.bundle.local.js"></script>\n'
 
 /**
@@ -236,7 +236,7 @@ const ACTIVITIES_SCRIPT_TAG = '    <script src="./assets/activities.bundle.local
  */
 export function injectActivitiesBundle(dir: string): void {
   transformHtmlFiles(dir, (html) => {
-    if (!html.includes(ACTIVITY_SECTION_MARKER)) return null
+    if (!pageNeedsActivitiesBundle(html)) return null
     if (html.includes("activities.bundle.local.js")) return null
     return html.replace("</body>", `${ACTIVITIES_SCRIPT_TAG}</body>`)
   })

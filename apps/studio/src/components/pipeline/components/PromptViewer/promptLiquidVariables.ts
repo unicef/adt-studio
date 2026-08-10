@@ -240,6 +240,7 @@ const PROMPT_VARIABLES: Record<string, string[]> = {
     "nodes",
     "leaf_texts",
     "viewports",
+    "has_merged_content",
   ],
   visual_review_flexible: [
     "page_image_base64",
@@ -248,6 +249,8 @@ const PROMPT_VARIABLES: Record<string, string[]> = {
     "nodes",
     "leaf_texts",
     "viewports",
+    "has_merged_content",
+    "user_instructions",
   ],
   html_edit: [
     "current_html",

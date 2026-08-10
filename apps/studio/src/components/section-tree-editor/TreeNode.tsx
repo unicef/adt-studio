@@ -29,7 +29,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
-import type { ContentNodeData } from "@adt/types"
+import { isHeadingRole, type ContentNodeData } from "@adt/types"
 import { BASE_URL } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu"
@@ -121,7 +121,7 @@ function getStructureVisual(structure: string | undefined): Visual {
 function getRoleVisual(role: string | undefined): Visual {
   if (!role) return SLATE
   if (role === "image") return EMERALD(ImageIcon)
-  if (role === "heading") return AMBER(Hash)
+  if (isHeadingRole(role)) return AMBER(Hash)
   if (role === "math") return INDIGO(Sigma)
   if (role === "caption" || role === "label") return { ...SLATE, Icon: Tag }
   if (role === "quote") return { ...SLATE, Icon: Quote }

@@ -146,8 +146,9 @@ Suggested user request:
 │   ├── tailwind_output.css       # generated; do not edit
 │   └── i18n/{language}/
 │       ├── texts.json
-│       ├── audios.json
-│       └── audio/
+│       ├── speech_texts.json     # exact prepared read-aloud wording
+│       ├── audios.json           # data-id to audio filename mapping
+│       └── audio/                # generated speech files
 └── assets/                       # ADT runtime; do not edit
 ```
 
@@ -164,7 +165,12 @@ The page shell must retain this relationship:
 
 `data-id` is the stable link between page HTML, translations, Speech audio, highlighting, and other generated features. Preserve it even when changing the element's text, classes, or inline styles.
 
-After a text edit, existing audio may be stale. Leave its IDs intact and use ADT Studio after re-import to regenerate Speech.
+### Speech and localization files
+
+- `texts.json` controls displayed text for each language.
+- `speech_texts.json` contains the exact wording prepared for read-aloud and may intentionally differ from displayed text.
+- `audios.json` maps stable text IDs to files under the matching `audio/` directory.
+- When visible text changes, preserve the IDs and use ADT Studio after re-import to regenerate Speech. Do not fabricate replacement audio or timestamps unless the user explicitly requests it.
 
 ## Book details
 

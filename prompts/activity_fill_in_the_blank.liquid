@@ -68,6 +68,8 @@ If the source provides a SINGLE leaf containing the whole word (e.g. one `activi
 
 This is the **default and strongly preferred** layout. Each sentence containing a blank is wrapped in a container with the `fitb-sentence` class. Instead of placing `<input>` elements directly, insert `[[blank:item-N]]` placeholder markers at the exact position where the missing word belongs.
 
+**Source-page geometry is mandatory:** inspect the page image question by question before producing HTML. For each writable field, determine whether it is (a) inside the question sentence, (b) beside a short label/question, or (c) on one or more lines below the question. Reproduce that relationship. Never collect inputs into a detached answer area, and never place the field before its question. Give each question/answer group visible breathing room (`mb-4` or `mb-6`); for a field below a prompt, keep at least `mt-2` and use the full source-like width. The number of editable fields must equal the distinct writable fields visible in the source image.
+
 Rules for `[[blank:item-N]]` markers:
 - `N` is the sequential item number (1, 2, 3, ...)
 - Place the marker **exactly where the missing word goes** in the sentence
@@ -271,6 +273,7 @@ When in doubt, pattern 2b is safer than pattern 2 — a misplaced marker outside
 13. The `fitb-sentence` class MUST be present on any element (or its parent) that contains `[[blank:item-N]]` markers
 14. Font sizing: prefer `text-lg` (~18px) for fitb content. You may use `text-base` when cells are tight, and `text-xl` sparingly for single short words in wide single-column layouts. Avoid `text-2xl` or larger in multi-column grids — long words wrap and overflow the cells on desktop even when the page looks fine on mobile
 15. For text leaves, default to `<span>`. Use block elements (`<p>`, `<h1>`–`<h6>`, `<li>`) ONLY when the leaf is semantically a standalone block — a full paragraph of prose, a heading, a list item, or preformatted content. Short labels, captions, option text, and inline fragments MUST use `<span>` to avoid unwanted line breaks. If a `<span>` needs block-level layout, apply `block` or `inline-block` Tailwind classes rather than switching to `<p>`/`<div>`.
+16. Before responding, compare every question against the source page image and verify: its input is inline/beside/below in the same relationship, there is visible spacing between the prompt and answer area, and no question that expects writing is missing an editable field.
 
 ### Response Format (STRICT)
 Return JSON object:

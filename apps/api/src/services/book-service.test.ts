@@ -300,6 +300,7 @@ describe("listBooks", () => {
       "image-meaningfulness",
       "text-classification",
       "book-summary",
+      "book-outline",
       "translation",
     ])
 

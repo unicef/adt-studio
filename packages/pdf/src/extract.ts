@@ -38,9 +38,9 @@ import {
 import type { DrawItem, PositionedTextOutput } from "@adt/types";
 import { classifyFontCategoryByName } from "@adt/types";
 import {
-  detectFlipFromCurrentTransformationMatrix,
-  applyFlipsToRasterImages,
-  type ImageFlipTransform,
+  detectOrientationFromCurrentTransformationMatrix,
+  applyOrientationTransformsToRasterImages,
+  type ImageOrientationTransform,
 } from "./flip-utils.js";
 
 // ============================================================================
@@ -145,17 +145,17 @@ export interface ExtractedImage {
    * as the recorder's `ImageStreamOp.contentDigest` so the two compare equal.
    * Transient: not persisted to the images table.
    *
-   * STALE AFTER FLIP: hashes the pre-flip pixels. Only read during the
-   * placement-matching pass, which runs before `applyFlipsToRasterImages` —
+   * STALE AFTER ORIENTATION: hashes the original pixels. Only read during the
+   * placement-matching pass, which runs before the orientation transform —
    * do not reuse it downstream to reason about the image's current pixels.
    */
   pixelDigest?: string;
   /**
-   * Flip transform derived from the EXACT draw op matched to this image by
-   * `stampRasterPlacementsFromOps`. Transient: used by `applyFlipsToRasterImages`
-   * to avoid re-matching stream ops in a second pass.
+   * Right-angle orientation derived from the EXACT draw op matched to this
+   * image by `stampRasterPlacementsFromOps`. Transient: baked into the image
+   * pixels after placement matching.
    */
-  flipTransform?: ImageFlipTransform;
+  orientationTransform?: ImageOrientationTransform;
   /**
    * Geometry bboxes of this vector figure's constituent SVG shapes, in the
    * same coordinate space as recorder ops (page coords + spread xOffset).
@@ -846,10 +846,10 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, vectorTextGrou
     pageBounds,
     0,
     0,
-    hasDuplicateDimensions(rasterImages),
+    hasDuplicateDimensions(allRasterImages),
   );
-  stampRasterPlacementsFromOps(rasterImages, recorder.ops);
-  applyFlipsToRasterImages(rasterImages);
+  stampRasterPlacementsFromOps(allRasterImages, recorder.ops);
+  applyOrientationTransformsToRasterImages(rasterImages);
 
   // Reuse the StructuredText already built above — no extra pass. Build
   // positioned text at fixed-layout quality (spacing cleanup on) so the data is
@@ -1069,8 +1069,8 @@ function hasDuplicateDimensions(images: ExtractedImage[]): boolean {
 
 /**
  * Match each `fillImage` / `fillImageMask` op to an extracted raster XObject,
- * stamping the matched raster's `streamSeqno`, `bounds`, and `flipTransform`
- * (derived from the op's CTM).
+ * stamping the matched raster's `streamSeqno`, `bounds`, and discrete
+ * orientation (derived from the op's CTM).
  *
  * Matching keys on native pixel dimensions. When a dimension bucket holds more
  * than one image the match is ambiguous: a page that can see several same-size
@@ -1099,7 +1099,9 @@ function stampRasterPlacementsFromOps(
     if (!candidates || candidates.length === 0) continue;
     let matched: ExtractedImage | undefined;
     // Disambiguate same-dimension candidates by pixel content when available.
-    if (candidates.length > 1 && op.contentDigest) {
+    // Check even a single remaining candidate: an earlier op may belong to an
+    // image that was omitted by a caller, and must not steal a known non-match.
+    if (op.contentDigest) {
       const idx = candidates.findIndex(
         (c) => c.pixelDigest !== undefined && c.pixelDigest === op.contentDigest,
       );
@@ -1112,6 +1114,7 @@ function stampRasterPlacementsFromOps(
         // that a later digest-bearing op still needs to match.
         const undigested = candidates.findIndex((c) => c.pixelDigest === undefined);
         if (undigested >= 0) matched = candidates.splice(undigested, 1)[0];
+        else continue;
       }
     }
     // Unambiguous bucket, or no digest match — pair in stream order.
@@ -1119,7 +1122,16 @@ function stampRasterPlacementsFromOps(
     if (!matched) continue;
     matched.streamSeqno = op.seqno;
     matched.bounds = bboxToImageBounds(op.bbox);
-    matched.flipTransform = detectFlipFromCurrentTransformationMatrix(op.currentTransformationMatrix);
+    const orientation = detectOrientationFromCurrentTransformationMatrix(
+      op.currentTransformationMatrix,
+    );
+    if (orientation) {
+      matched.orientationTransform = orientation;
+    } else {
+      console.warn(
+        `[pdf] unsupported image orientation for ${matched.imageId}; keeping original pixels`,
+      );
+    }
     const clipD = selectImageClipPath(op);
     if (clipD) matched.clipPath = clipD;
     if (op.blendMode && op.blendMode !== "Normal") {
@@ -1653,7 +1665,7 @@ async function extractSpreadPage(
     leftBounds,
     0,
     0,
-    hasDuplicateDimensions(leftRaster),
+    hasDuplicateDimensions(allLeftRaster),
   );
   const leftMaxSeqno = leftRecorder.ops.reduce(
     (m, o) => Math.max(m, o.seqno),
@@ -1664,15 +1676,15 @@ async function extractSpreadPage(
     rightBounds,
     leftPageWidthPt,
     leftMaxSeqno + 1,
-    hasDuplicateDimensions(rightRaster),
+    hasDuplicateDimensions(allRightRaster),
   );
   const ops: StreamOp[] = [...leftRecorder.ops, ...rightRecorder.ops];
   // Rasters: stamp per page so dim-tied images on different pages don't
   // pair across the spread boundary.
-  stampRasterPlacementsFromOps(leftRaster, leftRecorder.ops);
-  applyFlipsToRasterImages(leftRaster);
-  stampRasterPlacementsFromOps(rightRaster, rightRecorder.ops);
-  applyFlipsToRasterImages(rightRaster);
+  stampRasterPlacementsFromOps(allLeftRaster, leftRecorder.ops);
+  applyOrientationTransformsToRasterImages(leftRaster);
+  stampRasterPlacementsFromOps(allRightRaster, rightRecorder.ops);
+  applyOrientationTransformsToRasterImages(rightRaster);
 
   // Reuse the per-page StructuredText already built above — no extra pass.
   const paragraphData = parsePageParagraphsSpread(leftPage, rightPage, leftStext, rightStext, 2, true);

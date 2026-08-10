@@ -1,6 +1,5 @@
 import fs from "node:fs"
 import path from "node:path"
-import { createHash } from "node:crypto"
 import { z } from "zod"
 import { Hono } from "hono"
 import { bodyLimit } from "hono/body-limit"
@@ -486,6 +485,7 @@ export function createBookRoutes(
           "text-catalog",
           "easy-read",
           "text-catalog-translation",
+          "core-tts-catalog",
           "tts",
           "tts-timestamps",
           "accessibility-assessment",
@@ -498,6 +498,7 @@ export function createBookRoutes(
           "text-catalog",
           "easy-read",
           "catalog-translation",
+          "core-tts-catalog",
           "image-translation",
           "tts",
           "word-timestamps",
@@ -931,9 +932,9 @@ export function createBookRoutes(
     const db = openBookDb(dbPath)
     try {
       const rows = db.all(
-        "SELECT path FROM images WHERE image_id = ?",
+        "SELECT path, hash FROM images WHERE image_id = ?",
         [imageId]
-      ) as Array<{ path: string }>
+      ) as Array<{ path: string; hash: string }>
 
       if (rows.length === 0) {
         throw new HTTPException(404, {
@@ -960,21 +961,22 @@ export function createBookRoutes(
         })
       }
 
+      // Extract reruns intentionally reuse stable image IDs while replacing
+      // their bytes. Require revalidation so Chromium cannot show a previous
+      // extraction for up to 24 hours under the same URL.
+      c.header("Cache-Control", "private, no-cache")
+      if (rows[0].hash) {
+        const etag = `"${rows[0].hash}"`
+        c.header("ETag", etag)
+        if (c.req.header("If-None-Match") === etag) {
+          return c.body(null, 304)
+        }
+      }
+
       const imageBuffer = fs.readFileSync(imagePath)
       const ext = path.extname(imagePath).toLowerCase()
       const contentType = MIME_TYPES[ext] ?? "application/octet-stream"
-      const etag = `"${createHash("sha256").update(imageBuffer).digest("hex")}"`
       c.header("Content-Type", contentType)
-      c.header("Cache-Control", "private, no-cache")
-      c.header("ETag", etag)
-      const ifNoneMatch = c.req.header("If-None-Match")
-      const matchesCachedContent = ifNoneMatch
-        ?.split(",")
-        .some((candidate) => {
-          const tag = candidate.trim()
-          return tag === "*" || tag === etag || tag === `W/${etag}`
-        })
-      if (matchesCachedContent) return c.body(null, 304)
       return c.body(imageBuffer)
     } finally {
       db.close()

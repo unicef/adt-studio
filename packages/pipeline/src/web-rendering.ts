@@ -48,6 +48,9 @@ export interface RenderNode {
   structure?: string
   role?: string
   text?: string
+  heading_level?: number
+  outline_entry_id?: string
+  heading_style_cluster_id?: string
   image_id?: string
   image_url?: string
   children?: RenderNode[]
@@ -57,6 +60,9 @@ export interface LeafText {
   text_id: string
   text_type: string
   text: string
+  heading_level?: number
+  outline_entry_id?: string
+  heading_style_cluster_id?: string
 }
 
 export interface ImageRef {
@@ -262,11 +268,21 @@ export function buildRenderContext(
         text_id: node.nodeId,
         text_type: node.role,
         text: node.text ?? "",
+        ...(node.headingLevel !== undefined && { heading_level: node.headingLevel }),
+        ...(node.outlineEntryId !== undefined && { outline_entry_id: node.outlineEntryId }),
+        ...(node.headingStyleClusterId !== undefined && {
+          heading_style_cluster_id: node.headingStyleClusterId,
+        }),
       })
       return {
         node_id: node.nodeId,
         role: node.role,
         text: node.text ?? "",
+        ...(node.headingLevel !== undefined && { heading_level: node.headingLevel }),
+        ...(node.outlineEntryId !== undefined && { outline_entry_id: node.outlineEntryId }),
+        ...(node.headingStyleClusterId !== undefined && {
+          heading_style_cluster_id: node.headingStyleClusterId,
+        }),
       }
     }
 

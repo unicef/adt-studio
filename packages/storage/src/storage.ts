@@ -67,6 +67,9 @@ export interface SignLanguageVideoData {
 }
 
 export interface Storage {
+  /** Run all storage operations in one SQLite transaction. Nested calls join
+   *  the outer transaction. Any thrown error rolls the whole operation back. */
+  transaction<T>(operation: () => T): T
   clearExtractedData(): void
   clearNodesByType(nodes: string[]): void
   putExtractedPage(page: ExtractedPage): void

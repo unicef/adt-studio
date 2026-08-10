@@ -23,7 +23,7 @@ import type {
   ImageCaptioningOutput,
   AdtExportLineage,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 import {
   ADT_EDITING_CONTRACT_VERSION,
   ADT_ROUND_TRIP_FORMAT_VERSION,
@@ -58,6 +58,7 @@ import { buildTextCatalog, inspectImportedHtmlContract } from "../text-catalog.j
 import { inspectImportedActivity } from "../imported-activity.js"
 import { renderAdtAgentGuide } from "../adt-agent-guide.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
+import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
 import { getRenderSectioning } from "../render-sectioning.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
 import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
@@ -98,6 +99,15 @@ export interface PackageAdtWebOptions {
    *  to true. When false, quizzes use the generic cream/gray template. */
   quizMatchBookStyle?: boolean
   lineage?: AdtExportLineage
+}
+
+/** Pages with either a dedicated activity section or an inline word bank need
+ * the standalone activity runtime after the full reader bundle is stripped. */
+export function pageNeedsActivitiesBundle(html: string): boolean {
+  return (
+    html.includes('data-section-type="activity_') ||
+    (html.includes("data-word-bank-chip") && html.includes("data-word-bank-target"))
+  )
 }
 
 export interface PageEntry {
@@ -152,11 +162,13 @@ export function getWordTimestamps(
 export function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
   speechConfig?: SpeechConfig,
+  readySpeechIds?: ReadonlySet<string>,
 ): Record<string, RuntimeTimecodeEntry> {
   const map: Record<string, RuntimeTimecodeEntry> = {}
 
   for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
     if (entry.words.length === 0) continue
+    if (readySpeechIds && !readySpeechIds.has(textId)) continue
     if (isTtsExcluded(textId, speechConfig)) continue
     map[textId] = {
       timecodes: [
@@ -630,15 +642,15 @@ export async function packageAdtWeb(
     })
   }
 
-  const hasTTS = (features?.readAloud !== false) && outputLanguages.some(
-    (lang) => {
-      const legacyLang = lang.replace("-", "_")
-      return (
-        storage.getLatestNodeData("tts", lang) !== null ||
-        storage.getLatestNodeData("tts", legacyLang) !== null
-      )
-    },
-  )
+  const hasTTS = (features?.readAloud !== false) && outputLanguages.some((lang) => {
+    const readyIds = new Set(getReadyCoreTtsEntries(storage, lang).map((entry) => entry.id))
+    const legacyLang = lang.replace("-", "_")
+    const row =
+      storage.getLatestNodeData("tts", lang) ??
+      storage.getLatestNodeData("tts", legacyLang)
+    const data = row?.data as TTSOutput | undefined
+    return data?.entries.some((entry) => readyIds.has(entry.textId)) === true
+  })
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
 
   const packagedLanguages = [...new Set([language, ...outputLanguages])]
@@ -674,6 +686,18 @@ export async function packageAdtWeb(
     }
     writeJson(path.join(localeDir, "texts.json"), textsMap)
 
+    // speech_texts.json is intentionally separate from display content. Failed
+    // conversions are omitted, which also withholds their audio below.
+    const coreTtsCatalog = getCoreTtsCatalog(storage, lang)
+    const speechTextsMap: Record<string, string> = {}
+    for (const entry of coreTtsCatalog?.entries ?? []) {
+      if (entry.status === "ready" && entry.speechText !== null) {
+        speechTextsMap[entry.id] = entry.speechText
+      }
+    }
+    const readySpeechIds = new Set(Object.keys(speechTextsMap))
+    writeJson(path.join(localeDir, "speech_texts.json"), speechTextsMap)
+
     // audios.json + copy audio files
     const audioMap: Record<string, string> = {}
 
@@ -689,6 +713,7 @@ export async function packageAdtWeb(
 
       if (ttsData?.entries) {
         for (const entry of ttsData.entries) {
+          if (!readySpeechIds.has(entry.textId)) continue
           // Exclusions apply at packaging time too, so muting an element
           // takes effect without regenerating speech.
           if (isTtsExcluded(entry.textId, speechConfig)) continue
@@ -711,7 +736,7 @@ export async function packageAdtWeb(
     writeJson(
       path.join(timecodeDir, "timecode_output.json"),
       highlightEnabled
-        ? buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), speechConfig)
+        ? buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), speechConfig, readySpeechIds)
         : {},
     )
 
@@ -2426,6 +2451,7 @@ export function generateOfflinePreloader(
 
     for (const file of [
       "texts.json",
+      "speech_texts.json",
       "audios.json",
       "videos.json",
       "images.json",
@@ -2715,7 +2741,7 @@ function findHeadingText(
 ): { textId: string; text: string } | null {
   const walk = (node: ContentNodeData): { textId: string; text: string } | null => {
     if (node.isPruned) return null
-    if (node.role === "heading" && node.text) {
+    if (isHeadingRole(node.role) && node.text) {
       return { textId: node.nodeId, text: node.text }
     }
     if (node.children) {

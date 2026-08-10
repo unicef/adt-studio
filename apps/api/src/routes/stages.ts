@@ -115,9 +115,10 @@ export function createStageRoutes(
     const azureSpeechKey = c.req.header("X-Azure-Speech-Key") || undefined
     const azureSpeechRegion = c.req.header("X-Azure-Speech-Region") || undefined
     const geminiApiKey = c.req.header("X-Gemini-API-Key") || undefined
+    const elevenLabsApiKey = c.req.header("X-ElevenLabs-API-Key") || undefined
     const speechOnly = fromStage === "speech" && toStage === "speech"
     const hasSpeechProviderCredential = Boolean(
-      apiKey || (azureSpeechKey && azureSpeechRegion) || geminiApiKey,
+      apiKey || (azureSpeechKey && azureSpeechRegion) || geminiApiKey || elevenLabsApiKey,
     )
     if (!apiKey && !(speechOnly && hasSpeechProviderCredential)) {
       throw new HTTPException(400, {
@@ -127,7 +128,7 @@ export function createStageRoutes(
       })
     }
 
-    console.log(`[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} azureKey=${azureSpeechKey ? "set" : "NOT SET"} azureRegion=${azureSpeechRegion ?? "NOT SET"} geminiKey=${geminiApiKey ? "set" : "NOT SET"}`)
+    console.log(`[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} azureKey=${azureSpeechKey ? "set" : "NOT SET"} azureRegion=${azureSpeechRegion ?? "NOT SET"} geminiKey=${geminiApiKey ? "set" : "NOT SET"} elevenLabsKey=${elevenLabsApiKey ? "set" : "NOT SET"}`)
 
     const clearData = makeBeforeRun(label, fromStage, toStage, booksDir)
 
@@ -148,6 +149,7 @@ export function createStageRoutes(
       azureSpeechKey,
       azureSpeechRegion,
       geminiApiKey,
+      elevenLabsApiKey,
       // Queued jobs clear data when they start executing
       beforeRun: clearData,
     })
