@@ -42,6 +42,11 @@ msgstr ", et "
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? Cela supprimera toutes les données extraites et est irréversible."
 
+#. placeholder {0}: String(sectionIndex + 1)
+#. placeholder {1}: String(sectionCount)
+msgid "· part {0} of {1}"
+msgstr "· partie {0} sur {1}"
+
 msgid "\"A landscape forged by fire.\""
 msgstr "\\\"Un paysage forgé par le feu.\\\""
 
@@ -1132,6 +1137,9 @@ msgstr "Adventure Tales - Vol. 1"
 msgid "Affected pages"
 msgstr "Pages affectées"
 
+#~ msgid "after"
+#~ msgstr "après"
+
 msgid "After"
 msgstr "Après"
 
@@ -1139,7 +1147,6 @@ msgstr "Après"
 msgid "After {0}"
 msgstr "Après {0}"
 
-#. placeholder {0}: String(pageNumber)
 #. placeholder {0}: afterPage.pageNumber
 msgid "after page {0}"
 msgstr "après la page {0}"
@@ -1150,9 +1157,17 @@ msgstr "Après la page {afterNumber}"
 msgid "After page {placement}"
 msgstr "Après la page {placement}"
 
+#. placeholder {0}: String(pageNumber)
+msgid "after PDF {0}"
+msgstr "après PDF {0}"
+
+#. placeholder {0}: String(pageNumber)
+msgid "after PDF page {0}"
+msgstr "après la page {0} du PDF"
+
 #. placeholder {0}: String(page.pageNumber)
-msgid "after pg {0}"
-msgstr "après p. {0}"
+#~ msgid "after pg {0}"
+#~ msgstr "après p. {0}"
 
 #~ msgid "age 8"
 #~ msgstr "8 ans"
@@ -1783,6 +1798,31 @@ msgstr "Plan du livre"
 
 msgid "Book package ready"
 msgstr "Paquet du livre prêt"
+
+#. placeholder {0}: String(position)
+msgid "Book page {0}"
+msgstr "Page {0} du livre"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+msgid "Book page {0} · PDF page {1}"
+msgstr "Page {0} du livre · page {1} du PDF"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+#. placeholder {2}: section.sectionType
+msgid "Book page {0} · PDF page {1} · {2}"
+msgstr "Page {0} du livre · page {1} du PDF · {2}"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+msgid "Book page {0} · PDF page {1} (pruned)"
+msgstr "Page {0} du livre · page {1} du PDF (exclue)"
+
+#. placeholder {0}: String(position)
+#. placeholder {1}: String(page.pageNumber)
+msgid "Book page {0} · quiz after PDF page {1}"
+msgstr "Page {0} du livre · quiz après la page {1} du PDF"
 
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Pages du livre. Faites défiler horizontalement pour voir plus."
@@ -3945,6 +3985,10 @@ msgstr "Du livre"
 
 msgid "From page"
 msgstr "De la page"
+
+#. placeholder {0}: String(pageNumber)
+msgid "From page {0} of the source PDF"
+msgstr "Depuis la page {0} du PDF source"
 
 msgid "From reference image..."
 msgstr "À partir de l'image de référence..."
@@ -6491,6 +6535,10 @@ msgstr "Légendes de la page {0}"
 msgid "Page {0} of {1}"
 msgstr "Page {0} sur {1}"
 
+#. placeholder {0}: String(position)
+msgid "Page {0} of the book"
+msgstr "Page {0} du livre"
+
 msgid "Page {n}"
 msgstr "Page {n}"
 
@@ -6530,8 +6578,8 @@ msgstr "Image de la page"
 msgid "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 msgstr "Image de page en arrière-plan avec texte positionné en superposition. Préserve la composition originale de la page ; idéal pour les livres illustrés."
 
-msgid "Page in the source PDF"
-msgstr "Page dans le PDF source"
+#~ msgid "Page in the source PDF"
+#~ msgstr "Page dans le PDF source"
 
 msgid "Page Mode"
 msgstr "Mode de page"
@@ -6680,6 +6728,10 @@ msgstr "Charge utile"
 msgid "PDF"
 msgstr "PDF"
 
+#. placeholder {0}: String(pageNumber)
+msgid "PDF {0}"
+msgstr "PDF {0}"
+
 msgid "PDF accepted"
 msgstr "PDF accepté"
 
@@ -6691,6 +6743,10 @@ msgstr "Fichier PDF"
 
 msgid "PDF info"
 msgstr "Infos PDF"
+
+#. placeholder {0}: String(pageNumber)
+msgid "PDF page {0}"
+msgstr "Page {0} du PDF"
 
 msgid "PDF page {pageLabel} preview"
 msgstr "Aperçu de la page PDF {pageLabel}"
@@ -6887,6 +6943,8 @@ msgid "PR #{0}"
 msgstr "PR #{0}"
 msgid "Position in the book"
 msgstr "Position dans le livre"
+#~ msgid "Position in the book"
+#~ msgstr "Position dans le livre"
 
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
@@ -7129,8 +7187,8 @@ msgid "Quiz {0}"
 msgstr "Quiz {0}"
 
 #. placeholder {0}: page.pageNumber
-msgid "Quiz after page {0}"
-msgstr "Quiz après la page {0}"
+#~ msgid "Quiz after page {0}"
+#~ msgstr "Quiz après la page {0}"
 
 msgid "Quiz frequency"
 msgstr "Fréquence des quiz"
@@ -8108,12 +8166,11 @@ msgstr "Section {0} — {1}"
 
 #. placeholder {0}: section.sectionIndex + 1
 #. placeholder {1}: section.sectionType
-msgid "Section {0} · {1}"
-msgstr "Section {0} · {1}"
+#~ msgid "Section {0} · {1}"
+#~ msgstr "Section {0} · {1}"
 
 #. placeholder {0}: String(i + 1)
 #. placeholder {0}: i + 1
-#. placeholder {0}: section.sectionIndex + 1
 msgid "Section {0} (pruned)"
 msgstr "Section {0} (élagué)"
 
