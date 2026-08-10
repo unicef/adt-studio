@@ -50,7 +50,7 @@ function TranslationsDemo() {
           <Trans>Translated to PT</Trans>
         </span>
       </div>
-      <DemoCursor x={cursor.x} y={cursor.y} clicking={clicking} color="#db2777" />
+      <DemoCursor x={cursor.x} y={cursor.y} clicking={clicking} pointer={phase >= 2} color="#db2777" />
     </div>
   )
 }

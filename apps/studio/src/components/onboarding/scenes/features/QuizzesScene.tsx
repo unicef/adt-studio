@@ -64,7 +64,7 @@ function QuizzesDemo() {
           <Trans>Correct</Trans>
         </span>
       </div>
-      <DemoCursor x={cursor.x} y={cursor.y} clicking={clicking} color="#ea580c" />
+      <DemoCursor x={cursor.x} y={cursor.y} clicking={clicking} pointer={phase >= 2} color="#ea580c" />
     </div>
   )
 }

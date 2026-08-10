@@ -46,7 +46,7 @@ function SpeechDemo() {
         </div>
         <span className="shrink-0 text-[11px] font-medium text-[#737373]">0:42</span>
       </div>
-      <DemoCursor x={cursor.x} y={cursor.y} clicking={clicking} color="#e11d48" />
+      <DemoCursor x={cursor.x} y={cursor.y} clicking={clicking} pointer={phase >= 2} color="#e11d48" />
     </div>
   )
 }
