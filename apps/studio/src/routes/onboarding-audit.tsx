@@ -9,6 +9,8 @@ import { ProviderSceneRail } from "@/components/onboarding/scenes/ProviderSceneR
 import { ProviderSceneGuided } from "@/components/onboarding/scenes/ProviderSceneGuided"
 import { ProviderSceneList } from "@/components/onboarding/scenes/ProviderSceneList"
 import { FinaleSceneRecap } from "@/components/onboarding/scenes/FinaleSceneRecap"
+import { FinaleSceneList } from "@/components/onboarding/scenes/FinaleSceneList"
+import { FinaleSceneWords } from "@/components/onboarding/scenes/FinaleSceneWords"
 import { usePageTitle } from "@/hooks/use-page-title"
 
 export const Route = createFileRoute("/onboarding-audit")({
@@ -74,6 +76,22 @@ const VARIANTS: Variant[] = [
     label: "Finale — cinematic + recap chips (alternative)",
     index: ONBOARDING_STEPS.length - 1,
     component: FinaleSceneRecap,
+    isLast: true,
+  },
+  {
+    key: "finale-list",
+    num: "C4",
+    label: "Finale — MagicUI AnimatedList · feature feed springs in one-by-one",
+    index: ONBOARDING_STEPS.length - 1,
+    component: FinaleSceneList,
+    isLast: true,
+  },
+  {
+    key: "finale-words",
+    num: "C5",
+    label: "Finale — MagicUI WordRotate + AuroraText · rotating reader promises",
+    index: ONBOARDING_STEPS.length - 1,
+    component: FinaleSceneWords,
     isLast: true,
   },
 ]
