@@ -11,7 +11,7 @@ import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
 import { STAGES } from "../stage-config"
-import type { Quiz } from "@adt/types"
+import { resolveQuizId, type Quiz } from "@adt/types"
 
 /**
  * Sidebar list shown only on the storyboard stage. Lists every section
@@ -40,12 +40,14 @@ export function StoryboardIndex({
 
   const items = useMemo<StoryboardListItem[]>(() => {
     if (!pages) return []
-    const quizzesByAfterPageId = new Map<string, Quiz[]>()
-    for (const q of quizzesData?.quizzes?.quizzes ?? []) {
+    // Resolve each quiz's stable id from its position in the stored array —
+    // the only place that position is meaningful — and carry it from here on.
+    const quizzesByAfterPageId = new Map<string, Array<{ quiz: Quiz; quizId: string }>>()
+    ;(quizzesData?.quizzes?.quizzes ?? []).forEach((q, i) => {
       const list = quizzesByAfterPageId.get(q.afterPageId) ?? []
-      list.push(q)
+      list.push({ quiz: q, quizId: resolveQuizId(q, i) })
       quizzesByAfterPageId.set(q.afterPageId, list)
-    }
+    })
 
     const out: StoryboardListItem[] = []
     for (const page of pages) {
@@ -58,8 +60,8 @@ export function StoryboardIndex({
       }
       const quizzes = quizzesByAfterPageId.get(page.pageId)
       if (quizzes) {
-        for (const quiz of quizzes) {
-          out.push({ kind: "quiz", page, quiz })
+        for (const { quiz, quizId } of quizzes) {
+          out.push({ kind: "quiz", page, quiz, quizId })
         }
       }
     }
@@ -89,20 +91,20 @@ export function StoryboardIndex({
     }
   }, [selectedItemIndex, virtualizer])
 
-  // Quizzes are routed via a synthetic pageId of `quiz-{index}` so we can
+  // Quizzes are routed via a synthetic pageId of `quiz-{quizId}` so we can
   // reuse the existing route shape (`/books/$label/$step/$pageId`). The
   // storyboard view detects that prefix and renders the quiz panel.
-  const selectedQuizIndex = selectedPageId?.startsWith("quiz-")
-    ? parseInt(selectedPageId.slice(5), 10)
+  const selectedQuizId = selectedPageId?.startsWith("quiz-")
+    ? selectedPageId.slice("quiz-".length)
     : null
   const handleQuizClick = useCallback(
-    (quizIndex: number) => {
+    (quizId: string) => {
       navigate({
         to: "/books/$label/$step/$pageId",
         params: {
           label: bookLabel,
           step: "storyboard",
-          pageId: `quiz-${quizIndex}`,
+          pageId: `quiz-${quizId}`,
         },
       })
     },
@@ -140,13 +142,13 @@ export function StoryboardIndex({
             item.kind === "section"
               ? item.page.pageId === selectedPageId &&
                 item.section.sectionIndex === (sectionIndex ?? 0)
-              : item.quiz.quizIndex === selectedQuizIndex
+              : item.quizId === selectedQuizId
           return (
             <div
               key={
                 item.kind === "section"
                   ? `s:${item.section.sectionId}`
-                  : `q:${item.quiz.quizIndex}:${item.page.pageId}`
+                  : `q:${item.quizId}`
               }
               data-index={virtualRow.index}
               ref={virtualizer.measureElement}
@@ -177,7 +179,7 @@ export function StoryboardIndex({
                   page={item.page}
                   quiz={item.quiz}
                   isActive={isActive}
-                  onSelect={() => handleQuizClick(item.quiz.quizIndex)}
+                  onSelect={() => handleQuizClick(item.quizId)}
                 />
               )}
             </div>
@@ -190,7 +192,7 @@ export function StoryboardIndex({
 
 type StoryboardListItem =
   | { kind: "section"; page: PageSummaryItem; section: PageSummarySection }
-  | { kind: "quiz"; page: PageSummaryItem; quiz: Quiz }
+  | { kind: "quiz"; page: PageSummaryItem; quiz: Quiz; quizId: string }
 
 /* ---------- SectionRow ---------- */
 
