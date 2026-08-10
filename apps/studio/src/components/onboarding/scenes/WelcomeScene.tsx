@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CornerDownLeft, FlaskConical } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { cn, prefersReducedMotion } from "@/lib/utils"
@@ -7,34 +7,62 @@ import { OB_LOGO_SRC, OB_IS_BETA } from "../theme"
 import type { OnboardingStepProps } from "../steps"
 
 /**
- * Opens with the beta app icon large and centered, then shrinks/moves it to the
- * top slot and reveals the welcome design + app preview. Reduced-motion skips
- * straight to the resting state, and a click skips the intro.
+ * Opens with the brand mark large and centered, then shrinks/moves it to the top
+ * slot and reveals the welcome design + app preview. On stable the mark is the
+ * rendered 3D logo video that resolves into the app icon; on beta it's the beta
+ * icon (whose color the video doesn't match). Reduced-motion skips straight to
+ * the resting state, and a click skips the intro.
  */
 export function WelcomeScene({ onNext }: OnboardingStepProps) {
   const reduced = prefersReducedMotion()
   const [revealed, setRevealed] = useState(reduced)
+  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     if (reduced) return
-    const timer = setTimeout(() => setRevealed(true), 1150)
+    // Beta shows the static icon on a short timer; stable lets the intro video
+    // drive the reveal (with a fallback in case `ended` never fires).
+    const timer = setTimeout(() => setRevealed(true), OB_IS_BETA ? 1150 : 6000)
     return () => clearTimeout(timer)
   }, [reduced])
 
+  const markClasses = cn(
+    "z-10 h-14 w-14 rounded-[22%] object-contain transition-all duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+    revealed
+      ? "translate-y-0 scale-100 cursor-default"
+      : "translate-y-[232px] scale-[3.7] cursor-pointer drop-shadow-[0_18px_50px_rgba(var(--ob-accent-rgb),0.5)]",
+  )
+
+  const skipIntro = () => {
+    const v = videoRef.current
+    if (v && Number.isFinite(v.duration)) v.currentTime = v.duration
+    setRevealed(true)
+  }
+
   return (
     <div className="relative flex h-full w-full flex-col items-center overflow-hidden px-10 pt-3 text-center">
-      <img
-        aria-hidden
-        src={OB_LOGO_SRC}
-        alt=""
-        onClick={() => setRevealed(true)}
-        className={cn(
-          "z-10 h-14 w-14 rounded-[22%] object-contain transition-all duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-          revealed
-            ? "translate-y-0 scale-100 cursor-default"
-            : "translate-y-[232px] scale-[3.7] cursor-pointer drop-shadow-[0_18px_50px_rgba(var(--ob-accent-rgb),0.5)]",
-        )}
-      />
+      {OB_IS_BETA ? (
+        <img
+          aria-hidden
+          src={OB_LOGO_SRC}
+          alt=""
+          onClick={() => setRevealed(true)}
+          className={markClasses}
+        />
+      ) : (
+        <video
+          ref={videoRef}
+          aria-hidden
+          src="/onboarding/welcome-logo.mp4"
+          poster="/logo.png"
+          muted
+          playsInline
+          autoPlay
+          onEnded={() => setRevealed(true)}
+          onClick={skipIntro}
+          className={markClasses}
+        />
+      )}
 
       {OB_IS_BETA && (
         <span

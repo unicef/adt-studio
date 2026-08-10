@@ -1,6 +1,5 @@
 import type { ReactNode } from "react"
 import { FEATURE_META, type FeatureSlug } from "./shared/featureMeta"
-import { OB_PANEL_GRADIENT } from "../theme"
 
 /**
  * Split feature page: left = eyebrow (exact stage icon+color) + heading + copy,
@@ -25,7 +24,7 @@ export function FeatureScene({
   caption: ReactNode
   children: ReactNode
 }) {
-  const { Icon, hex } = FEATURE_META[slug]
+  const { Icon, hex, panel } = FEATURE_META[slug]
   return (
     <div className="animate-onboarding-fade-in flex h-full w-full items-stretch gap-7 px-10 py-9">
       <div className="flex w-[45%] flex-col justify-center">
@@ -46,7 +45,7 @@ export function FeatureScene({
 
       <div
         className="relative flex-1 overflow-hidden rounded-[22px]"
-        style={{ background: OB_PANEL_GRADIENT }}
+        style={{ background: panel }}
       >
         <span className="absolute left-6 top-6 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/70">
           {panelLabel}

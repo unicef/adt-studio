@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react"
 import { cn, isElectron } from "@/lib/utils"
 import { onboardingThemeVars } from "./theme"
+import { OnboardingDevControls } from "./OnboardingDevControls"
 
 /**
  * Full-window shell for the first-run onboarding. In the desktop build this
@@ -69,6 +70,7 @@ export function OnboardingLayout({ children }: { children: ReactNode }) {
       >
         {children}
       </div>
+      {import.meta.env.DEV && <OnboardingDevControls />}
     </div>
   )
 }
