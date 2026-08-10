@@ -775,6 +775,20 @@ describe("packageAdtWeb", () => {
             },
           ],
         },
+        pg002: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg002_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: null,
+              isPruned: false,
+            },
+          ],
+        },
       },
       "quiz-generation": {
         book: {
@@ -1601,7 +1615,7 @@ describe("packageAdtWeb", () => {
     expect(pageHtml).toContain('alt="A lifecycle diagram with six stages"')
   })
 
-  it("sets activities true from rendered section type even without section metadata", async () => {
+  it("sets activities true from the rendered section type, not the sectioning's", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")
     fs.mkdirSync(bookDir, { recursive: true })
@@ -1621,6 +1635,24 @@ describe("packageAdtWeb", () => {
               reasoning: "ok",
               html: '<section role="activity"><div>Pick one</div></section>',
               activityAnswers: { "item-1": true },
+            },
+          ],
+        },
+      },
+      // Sectioning says "content" while the rendering says activity — the
+      // rendered type must win.
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
             },
           ],
         },

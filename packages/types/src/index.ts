@@ -163,6 +163,9 @@ export {
   ImagePartBounds,
   SectionViewport,
   NodePlacement,
+  formatSectionId,
+  parseSectionId,
+  MAX_SECTION_SEQ,
 } from "./page-sectioning.js"
 
 export {
