@@ -36,6 +36,7 @@ import {
 } from "@adt/types"
 import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
+import { clearReadingOrderDependents } from "./reading-order.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "@adt/storage"
@@ -471,6 +472,7 @@ const RestorableNode = z.enum([
   "image-captioning",
   "page-sectioning",
   "web-rendering",
+  "reading-order",
 ])
 type RestorableNode = z.infer<typeof RestorableNode>
 
@@ -622,6 +624,13 @@ function clearRestoredNodeDependents(
     case "toc-generation":
       storage.clearNodesByType(["accessibility-assessment"])
       storage.clearStepRuns(["package-web", "accessibility-assessment"])
+      return
+
+    // Rolling the page order back re-sequences the packaged bundle and the
+    // assessment that walks it. Nothing else: the order carries no text, no
+    // catalog ids and no audio.
+    case "reading-order":
+      clearReadingOrderDependents(storage)
   }
 }
 
