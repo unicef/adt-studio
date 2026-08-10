@@ -4,9 +4,9 @@ import { OB_PANEL_GRADIENT } from "../theme"
 
 /* eslint-disable lingui/no-unlocalized-strings -- version identifiers, not UI copy */
 const BUILDS = [
-  { version: "v0.9.0-beta.2", current: true },
-  { version: "v0.9.0-beta.1", current: false },
-  { version: "v0.8.4-beta.6", current: false },
+  { version: "v0.9.0-beta.2", current: true, pr: null },
+  { version: "v0.9.0-beta-pr-482", current: false, pr: "482" },
+  { version: "v0.9.0-beta.1", current: false, pr: null },
 ]
 /* eslint-enable lingui/no-unlocalized-strings */
 
@@ -37,8 +37,15 @@ function BetaLibraryDemo() {
               (b.current ? "bg-[var(--ob-accent-tint)]" : "bg-[#f6f7f9]")
             }
           >
-            <span className="text-[12px] font-semibold tabular-nums text-[#0a0a0a]">
-              {b.version}
+            <span className="flex min-w-0 items-center gap-1.5">
+              <span className="truncate text-[12px] font-semibold tabular-nums text-[#0a0a0a]">
+                {b.version}
+              </span>
+              {b.pr && (
+                <span className="shrink-0 rounded bg-[var(--ob-accent-tint)] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.04em] text-[var(--ob-accent-strong)]">
+                  <Trans>PR #{b.pr}</Trans>
+                </span>
+              )}
             </span>
             {b.current ? (
               <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--ob-accent-strong)]">
@@ -78,8 +85,9 @@ export function BetaScene() {
         </h2>
         <p className="mt-4 max-w-[340px] text-[15px] leading-relaxed text-[#737373] [&_code]:rounded [&_code]:bg-[var(--ob-accent-tint)] [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:font-semibold [&_code]:text-[var(--ob-accent-strong)]">
           <Trans>
-            New tools land here first, straight from our <code>develop</code>{" "}
-            staging branch. It's a preview — so expect the odd rough edge, while
+            New builds land here first — from our <code>develop</code> staging
+            branch, and from individual pull requests we stage so you can try a
+            change and share your take before it's merged. It's a preview, so
             your books stay on this device and every result stays versioned.
           </Trans>
         </p>
@@ -96,7 +104,7 @@ export function BetaScene() {
           <BetaLibraryDemo />
         </div>
         <div className="absolute inset-x-6 bottom-6 text-[17px] font-semibold leading-snug text-white">
-          <Trans>Switch or roll back builds anytime.</Trans>
+          <Trans>Try any build — even an open PR — then roll back anytime.</Trans>
         </div>
       </div>
     </div>
