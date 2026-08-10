@@ -12,6 +12,10 @@ export type PipelineNodeName =
   // pipeline. Kept separate from `page-sectioning` (which always holds the
   // semantic tree) so switching render strategy never destroys sectioning.
   | "fixed-layout-sectioning"
+  // The reader-facing page order. USER INTENT, not pipeline output — it is
+  // deliberately absent from every stage's output nodes so that re-running a
+  // stage never deletes it. See EXTRA_STAGE_OUTPUT_NODES below.
+  | "reading-order"
 
 /**
  * Shared, UI-agnostic cache/resource tags used by apps to derive
@@ -29,6 +33,14 @@ export type PipelineCacheResource =
   | "step-status"
   | "debug"
 
+/**
+ * Nodes a stage writes beyond its own step names. Anything listed here is
+ * *deleted* when that stage is re-run (see `getStageClearNodes`).
+ *
+ * `reading-order` must never appear here. It is the user's own arrangement of
+ * the book, not something a stage produces, and clearing it would throw that
+ * away irrecoverably on the next storyboard re-run.
+ */
 const EXTRA_STAGE_OUTPUT_NODES: Partial<Record<StageName, readonly PipelineNodeName[]>> = {
   "translate": ["text-catalog-translation"],
   "extract": ["positioned-text"],
@@ -142,6 +154,7 @@ const NODE_CACHE_RESOURCES: Record<PipelineNodeName, readonly PipelineCacheResou
   "text-catalog-translation": ["text-catalog"],
   "positioned-text": ["pages"],
   "fixed-layout-sectioning": ["pages"],
+  "reading-order": ["pages", "toc"],
 }
 
 const CACHE_RESOURCE_ORDER: readonly PipelineCacheResource[] = [

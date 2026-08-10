@@ -22,6 +22,9 @@ import type {
 } from "@adt/types"
 import {
   WebRenderingOutput as WebRenderingOutputSchema,
+  ReadingOrderOutput as ReadingOrderOutputSchema,
+  READING_ORDER_NODE,
+  READING_ORDER_ITEM_ID,
   ensureQuizIds,
   resolveQuizId,
 } from "@adt/types"
@@ -59,6 +62,18 @@ export interface ResolvedReadingOrder {
    * maps that consumers used to rebuild by walking the book a second time.
    */
   positionById: Map<string, number>
+  /**
+   * The full order including items excluded from the output — currently the
+   * pruned ones. They keep their slot, so re-including an item restores it
+   * where it was rather than at the end.
+   */
+  order: ReadingOrderItem[]
+  /** A stored order supplied the sequence (rather than the source-derived one). */
+  fromStoredOrder: boolean
+  /** Version of the stored entity, for optimistic saves and the version picker. */
+  storedVersion: number | null
+  /** How the stored order differed from the book's current contents. */
+  reconcile: ReconcileResult
 }
 
 export interface ResolveReadingOrderOptions {
@@ -139,6 +154,92 @@ export function defaultReadingOrder(
   return items
 }
 
+export interface ReconcileResult {
+  /** The effective order after folding the book's current contents in. */
+  items: ReadingOrderItem[]
+  /** Stored ids that no longer exist in the book. */
+  dropped: ReadingOrderItem[]
+  /** Ids new to the book, with the surviving item they were placed after. */
+  added: Array<{ item: ReadingOrderItem; afterId: string | null }>
+  /** `items` differs from what was stored. */
+  changed: boolean
+}
+
+/**
+ * Fold the book's current contents into a stored reading order.
+ *
+ * Rules:
+ *  1. No stored order → the default order, unchanged.
+ *  2. Stored ids the book no longer has are dropped. They are *not* kept as
+ *     tombstones: `node_data` history already is one, so restoring an earlier
+ *     version brings the exact prior list back, and if the item is genuinely
+ *     gone the next reconcile drops it again. A live tombstone list would grow
+ *     without bound and need a GC policy.
+ *  3. Ids the book has but the stored order does not are inserted at their
+ *     *default-order neighbourhood* — immediately after the nearest preceding
+ *     default-order sibling that survived, else before the nearest following
+ *     one, else appended.
+ *
+ *     This rule is why clone, split, "new page extracted" and "quiz added" need
+ *     no reading-order code of their own: a clone's default position is right
+ *     after its original, so that is where it lands. Appending to the end would
+ *     be wrong for every one of them.
+ *  4. Duplicates in the stored order: the first occurrence wins.
+ *
+ * Pure and idempotent — reconciling a reconciled order changes nothing.
+ */
+export function reconcileReadingOrder(
+  storedItems: readonly ReadingOrderItem[] | null,
+  defaultItems: readonly ReadingOrderItem[]
+): ReconcileResult {
+  if (!storedItems) {
+    return { items: [...defaultItems], dropped: [], added: [], changed: false }
+  }
+
+  const availableById = new Map(defaultItems.map((item) => [item.id, item]))
+
+  const kept: ReadingOrderItem[] = []
+  const dropped: ReadingOrderItem[] = []
+  const seen = new Set<string>()
+  for (const item of storedItems) {
+    if (seen.has(item.id)) continue
+    seen.add(item.id)
+    const available = availableById.get(item.id)
+    if (available) kept.push(available)
+    else dropped.push(item)
+  }
+
+  // Walk the default order and slot in anything the stored order didn't have,
+  // tracking the last surviving item seen so newcomers land beside the sibling
+  // they were created next to.
+  const items = [...kept]
+  const added: ReconcileResult["added"] = []
+  let lastSurvivingId: string | null = null
+  for (const item of defaultItems) {
+    if (seen.has(item.id)) {
+      lastSurvivingId = item.id
+      continue
+    }
+    const at =
+      lastSurvivingId === null
+        ? 0
+        : items.findIndex((existing) => existing.id === lastSurvivingId) + 1
+    items.splice(at, 0, item)
+    added.push({ item, afterId: lastSurvivingId })
+    // Subsequent newcomers in the same gap keep their relative order.
+    lastSurvivingId = item.id
+    seen.add(item.id)
+  }
+
+  const changed =
+    dropped.length > 0 ||
+    added.length > 0 ||
+    items.length !== storedItems.length ||
+    items.some((item, index) => item.id !== storedItems[index]?.id)
+
+  return { items, dropped, added, changed }
+}
+
 /**
  * Resolve the book's output sequence.
  *
@@ -158,9 +259,17 @@ export function resolveReadingOrder(
       ? []
       : ensureQuizIds(quizRow.data as QuizGenerationOutput).output.quizzes
 
-  // Phase 5 inserts the stored, user-editable order here, reconciled against
-  // this default. Until then the source-derived order is the only order.
-  const order = defaultReadingOrder(pageContexts, quizzes)
+  const defaults = defaultReadingOrder(pageContexts, quizzes)
+
+  // The user's explicit order, if they have set one, reconciled against what
+  // the book currently contains. Reconciling here — at read time, every time —
+  // rather than writing a corrected order back on every structural edit keeps
+  // the entity's version history a log of deliberate reorders instead of
+  // machine-generated churn, and means a bad reconcile can never be persisted.
+  const storedRow = storage.getLatestNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID)
+  const stored = storedRow ? ReadingOrderOutputSchema.safeParse(storedRow.data) : null
+  const reconcile = reconcileReadingOrder(stored?.success ? stored.data.items : null, defaults)
+  const order = reconcile.items
 
   const sectionsById = new Map<
     string,
@@ -206,5 +315,9 @@ export function resolveReadingOrder(
   return {
     items,
     positionById: new Map(items.map((item, index) => [item.id, index + 1])),
+    order,
+    fromStoredOrder: Boolean(stored?.success),
+    storedVersion: storedRow?.version ?? null,
+    reconcile,
   }
 }
