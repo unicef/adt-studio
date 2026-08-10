@@ -6853,6 +6853,9 @@ msgstr "Page image"
 msgid "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 msgstr "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 
+msgid "Page in the source PDF"
+msgstr "Page in the source PDF"
+
 msgid "Page Mode"
 msgstr "Page Mode"
 
@@ -7190,6 +7193,8 @@ msgstr "position corner toast placement"
 #. placeholder {0}: b.pr
 msgid "PR #{0}"
 msgstr "PR #{0}"
+msgid "Position in the book"
+msgstr "Position in the book"
 
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
