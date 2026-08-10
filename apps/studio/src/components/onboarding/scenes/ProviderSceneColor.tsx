@@ -255,6 +255,14 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
     }
   }
 
+  const panelStyle: CSSProperties = provider
+    ? {
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- CSS gradient value, not UI copy
+        backgroundImage: `linear-gradient(160deg, ${provider.from}1f, ${provider.to}0f 52%, #ffffff)`,
+        borderColor: `${provider.to}3d`,
+      }
+    : { borderColor: "rgba(0,0,0,0.08)", backgroundColor: "#fbfbfc" }
+
   const constellationMarks: { Mark: ComponentType<{ className?: string }>; name: string }[] = [
     { Mark: OpenAiMark, name: "OpenAI" },
     { Mark: Terminal, name: "Codex" },
@@ -265,7 +273,13 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
   ]
 
   return (
-    <div className="animate-onboarding-fade-in flex h-full w-full flex-col px-8 pb-2 pt-6">
+    <div
+      className="animate-onboarding-fade-in flex h-full w-full flex-col px-8 pb-2 pt-6"
+      style={{
+        backgroundImage:
+          "radial-gradient(115% 80% at 100% 0%, #eaf1ff 0%, rgba(255,255,255,0) 44%), radial-gradient(110% 85% at 0% 100%, #fbeeff 0%, rgba(255,255,255,0) 42%)",
+      }}
+    >
       {/* header */}
       <div className="min-w-0">
         <h2 className="text-[21px] font-semibold tracking-[-0.02em] text-[#0a0a0a]">
@@ -401,8 +415,9 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
 
           {/* selected-state key panel */}
           <div
+            style={panelStyle}
             className={cn(
-              "absolute inset-0 flex flex-col rounded-2xl border border-black/[0.08] bg-[#fbfbfc] p-5 transition-opacity duration-300",
+              "absolute inset-0 flex flex-col rounded-2xl border p-5 transition-opacity duration-300",
               provider ? "opacity-100" : "pointer-events-none opacity-0",
             )}
           >
@@ -423,7 +438,10 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
 
                 {/* method tabs (Codex under OpenAI, Claude SDK under Anthropic) */}
                 {provider.methods.length > 1 && (
-                  <div className="mt-4 inline-flex w-fit rounded-xl bg-black/[0.04] p-1">
+                  <div
+                    className="mt-4 inline-flex w-fit rounded-xl p-1"
+                    style={{ backgroundColor: `${provider.to}1a` }}
+                  >
                     {provider.methods.map((m) => {
                       const on = m.id === method.id
                       return (
