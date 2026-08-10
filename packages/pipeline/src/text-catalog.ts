@@ -309,6 +309,8 @@ export const ADT_EDITING_ALLOWED_ROOT_ENTRIES = new Set([
   "AGENTS.md",
   "CLAUDE.md",
   "imsmanifest.xml",
+  ".build-hash",
+  ".build-version",
   ".DS_Store",
   "Thumbs.db",
   "__MACOSX",

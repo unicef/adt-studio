@@ -236,6 +236,8 @@ function makeCurrentBundleWithExternallyAddedPage(): Buffer {
       languages: { available: ["en"], default: "en" },
       features: {},
     }),
+    ".build-hash": strToU8("package-input-hash"),
+    ".build-version": strToU8("package-version"),
     "content/pages.json": json([
       { section_id: "pg001_sec001", href: "index.html", page_number: 1 },
       { section_id: "pg002_sec001", href: "pg002_sec001.html", page_number: 2 },
