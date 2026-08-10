@@ -9,6 +9,8 @@ import { ProviderSceneRail } from "@/components/onboarding/scenes/ProviderSceneR
 import { ProviderSceneGuided } from "@/components/onboarding/scenes/ProviderSceneGuided"
 import { ProviderSceneList } from "@/components/onboarding/scenes/ProviderSceneList"
 import { FinaleSceneRecap } from "@/components/onboarding/scenes/FinaleSceneRecap"
+import { FinaleScenePayoff } from "@/components/onboarding/scenes/FinaleScenePayoff"
+import { FinaleSceneMinimal } from "@/components/onboarding/scenes/FinaleSceneMinimal"
 import { usePageTitle } from "@/hooks/use-page-title"
 
 export const Route = createFileRoute("/onboarding-audit")({
@@ -71,9 +73,25 @@ const VARIANTS: Variant[] = [
   {
     key: "finale-recap",
     num: "C",
-    label: "Finale — recap chips + secondary action",
+    label: "Finale — cinematic + recap chips (current-ish)",
     index: ONBOARDING_STEPS.length - 1,
     component: FinaleSceneRecap,
+    isLast: true,
+  },
+  {
+    key: "finale-payoff",
+    num: "C2",
+    label: "Finale — payoff · the finished accessible book + feature badges (recommended)",
+    index: ONBOARDING_STEPS.length - 1,
+    component: FinaleScenePayoff,
+    isLast: true,
+  },
+  {
+    key: "finale-minimal",
+    num: "C3",
+    label: "Finale — minimal · drop a PDF + feature strip",
+    index: ONBOARDING_STEPS.length - 1,
+    component: FinaleSceneMinimal,
     isLast: true,
   },
 ]
