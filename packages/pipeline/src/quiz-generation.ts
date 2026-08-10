@@ -7,7 +7,7 @@ import type {
   QuizGenerationOutput,
   Quiz,
 } from "@adt/types"
-import { quizLLMSchema, DEFAULT_LLM_MAX_RETRIES } from "@adt/types"
+import { quizLLMSchema, DEFAULT_LLM_MAX_RETRIES, ensureQuizIds } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { processWithConcurrency } from "./concurrency.js"
 import { buildLanguageContext, normalizeLocale } from "./language-context.js"
@@ -245,10 +245,12 @@ export async function generateAllQuizzes(
   // Sort by index since parallel execution may complete out of order
   quizzes.sort((a, b) => a.quizIndex - b.quizIndex)
 
-  return {
+  // A full stage run replaces the whole set, so ids start from `qz001` — the
+  // same values this output has always produced positionally.
+  return ensureQuizIds({
     generatedAt: new Date().toISOString(),
     language: config.language,
     pagesPerQuiz: config.pagesPerQuiz,
     quizzes,
-  }
+  }).output
 }

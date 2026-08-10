@@ -12,6 +12,7 @@ import type {
 import {
   WebRenderingOutput as WebRenderingOutputSchema,
   answerTextId,
+  resolveQuizId,
 } from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
 import { getGlossaryItemTextId } from "./glossary.js"
@@ -204,7 +205,7 @@ function buildQuizEntries(storage: Storage): TextCatalogEntry[] {
   const entries: TextCatalogEntry[] = []
   for (let i = 0; i < data.quizzes.length; i++) {
     const quiz = data.quizzes[i]
-    const qid = `qz${pad3(i + 1)}`
+    const qid = resolveQuizId(quiz, i)
     entries.push({ id: `${qid}_que`, text: quiz.question })
 
     for (let j = 0; j < quiz.options.length; j++) {
