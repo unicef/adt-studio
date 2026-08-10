@@ -20,6 +20,7 @@ import {
   getAdtRecoverySession,
   getImportedAdtFeaturesNeedingRegeneration,
   listAdtRecoverySessions,
+  previewAdtRecoveryImport,
   restoreImportedAdtPresentation,
   syncAdtRecoveryPreview,
 } from "./adt-recovery-session.js"
@@ -113,6 +114,22 @@ function makeBundleWithUnchangedHtmlCatalog(): Buffer {
     gl001: "Hyena",
     gl001_def: "An animal",
   })
+  return Buffer.from(zipSync(files))
+}
+
+function makeBundleWithTwoSectionsOnOnePage(): Buffer {
+  const files = unzipSync(makeBundle())
+  files["content/pages.json"] = json([
+    { section_id: "pg001_sec001", href: "index.html", page_number: 1 },
+    { section_id: "pg001_sec002", href: "pg001_sec002.html", page_number: 1 },
+  ])
+  files["pg001_sec002.html"] = strToU8(`<!doctype html><html><body>
+    <main id="content">
+      <section data-section-id="pg001_sec002" data-section-type="content">
+        <p data-id="pg001_n003">Second section on the same page</p>
+      </section>
+    </main>
+  </body></html>`)
   return Buffer.from(zipSync(files))
 }
 
@@ -235,6 +252,23 @@ afterEach(() => {
 })
 
 describe("ADT recovery workspace", () => {
+  it("reports recovered storyboard pages rather than section entries", () => {
+    const bundle = makeBundleWithTwoSectionsOnOnePage()
+
+    expect(previewAdtRecoveryImport(bundle).pageCount).toBe(1)
+
+    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-page-count-"))
+    temporaryRoots.push(booksDir)
+    const session = createAdtRecoverySession(bundle, booksDir, "multi-section.zip")
+    expect(session.pageCount).toBe(1)
+    const storage = createBookStorage(session.label, booksDir)
+    try {
+      expect(storage.getPages()).toHaveLength(1)
+    } finally {
+      storage.close()
+    }
+  })
+
   it("accepts quiz pages emitted before Studio added data-section-id", () => {
     expect(assessAdtImportCompatibility(makeCurrentBundleWithLegacyQuizMarkup()))
       .toEqual({ supported: true, issues: [] })

@@ -376,7 +376,7 @@ export function previewAdtRecoveryImport(
     sourceLanguage,
     outputLanguages,
     runtimeFeatures: bundle.runtimeFeatures,
-    pageCount: bundle.pages.length,
+    pageCount: recoveredPageCount(bundle.pages),
     glossaryEntryCount: Object.keys(bundle.glossaries[bundle.manifest.languages.source] ?? {}).length,
     tocEntryCount: bundle.toc.length,
     translationLanguageCount: outputLanguages.filter((language) => (
@@ -441,6 +441,16 @@ function pageIdFromSection(sectionId: string, index: number): string | null {
   if (/^(?:qz|quiz)[-_]?\d*/i.test(sectionId)) return null
   const pageMatch = sectionId.match(/^(pg\d+)/i)
   return pageMatch?.[1] ?? `pg${String(index + 1).padStart(3, "0")}`
+}
+
+function recoveredPageCount(
+  pages: Array<{ section_id: string; href: string; page_number?: number }>,
+): number {
+  return new Set(
+    pages
+      .map((page, index) => pageIdFromSection(page.section_id, index))
+      .filter((pageId): pageId is string => pageId !== null),
+  ).size
 }
 
 function createRecoveredCatalog(
@@ -1072,7 +1082,7 @@ function describeAdtRecoverySession(
     sourceLanguage,
     outputLanguages,
     runtimeFeatures: { ...bundle.runtimeFeatures, readAloud },
-    pageCount: bundle.pages.length,
+    pageCount: recoveredPageCount(bundle.pages),
     catalogEntryCount: catalog.entries.length,
     glossaryEntryCount: Object.keys(bundle.glossaries[bundle.manifest.languages.source] ?? {}).length,
     tocEntryCount: bundle.toc.length,
@@ -1248,7 +1258,7 @@ export function createAdtRecoverySession(
     sourceLanguage,
     outputLanguages,
     runtimeFeatures: bundle.runtimeFeatures,
-    pageCount: bundle.pages.length,
+    pageCount: recoveredPageCount(bundle.pages),
     catalogEntryCount: catalog.entries.length,
     glossaryEntryCount: Object.keys(bundle.glossaries[bundle.manifest.languages.source] ?? {}).length,
     tocEntryCount: bundle.toc.length,
