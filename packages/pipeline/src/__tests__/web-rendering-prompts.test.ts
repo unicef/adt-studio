@@ -272,3 +272,30 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain("a visible screenshot/crop used instead of semantic exercise HTML")
   })
 })
+
+describe("page-mode visual review prompt", () => {
+  it("preserves overlapping image components as one responsive figure", async () => {
+    const messages = await promptEngine.renderPrompt("visual_review_page", {})
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("treat them as layers of one responsive figure")
+    expect(prompt).toContain("Never stack coordinate-linked layers vertically")
+    expect(prompt).toContain("inline percentage positioning is allowed")
+    expect(prompt).toContain("Never synthesize, redraw, trace, approximate, or imitate a signature")
+    expect(prompt).toContain("leave the mark absent")
+  })
+})
+
+describe("image meaningfulness prompt", () => {
+  it("preserves signatures and other authenticity marks", async () => {
+    const messages = await promptEngine.renderPrompt("image_meaningfulness", {
+      page_image_base64: "page-image",
+      images: [],
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("identity/authenticity mark")
+    expect(prompt).toContain("must be preserved exactly")
+    expect(prompt).toContain("Never classify a signature")
+  })
+})

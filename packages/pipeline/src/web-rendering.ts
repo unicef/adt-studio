@@ -415,6 +415,8 @@ const DEFAULT_VISUAL_REFINEMENT = {
   temperature: 0.3,
 }
 
+const PAGE_MODE_VISUAL_REFINEMENT_PROMPT = "visual_review_page"
+
 /**
  * Build a resolver that returns a RenderConfig for a given section type.
  *
@@ -469,7 +471,12 @@ export function buildRenderStrategyResolver(
           // without editing every render strategy.
           maxIterations:
             appConfig.visual_review_max_iterations ?? vr.max_iterations ?? DEFAULT_VISUAL_REFINEMENT.max_iterations,
-          promptName: appConfig.visual_review_prompt ?? vr.prompt ?? DEFAULT_VISUAL_REFINEMENT.prompt,
+          promptName:
+            appConfig.visual_review_prompt ??
+            vr.prompt ??
+            (appConfig.page_sectioning?.mode === "page"
+              ? PAGE_MODE_VISUAL_REFINEMENT_PROMPT
+              : DEFAULT_VISUAL_REFINEMENT.prompt),
           timeoutMs: (vr.timeout ?? DEFAULT_VISUAL_REFINEMENT.timeout) * 1000,
           temperature: vr.temperature ?? DEFAULT_VISUAL_REFINEMENT.temperature,
         },
