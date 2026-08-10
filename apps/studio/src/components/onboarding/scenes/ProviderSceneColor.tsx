@@ -356,7 +356,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
               className="absolute inset-0"
               style={{
                 backgroundImage:
-                  "radial-gradient(120% 90% at 20% 12%, #fbcfe8 0%, #f472b6 34%, #ec4899 62%, #a21caf 100%)",
+                  "radial-gradient(120% 90% at 20% 12%, #efc9ff 0%, #c56bff 34%, #9a41e4 62%, #5a1e97 100%)",
               }}
             />
             <div

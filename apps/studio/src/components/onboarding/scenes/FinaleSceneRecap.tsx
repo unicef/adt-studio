@@ -48,7 +48,7 @@ export function FinaleSceneRecap({ onSkip }: OnboardingStepProps) {
         )}
         style={{ transitionDelay: "250ms" }}
       >
-        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#f9c6df]">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#e2b3ff]">
           <Trans>All set</Trans>
         </div>
         <h2 className="mt-3 text-[36px] font-semibold leading-[1.05] tracking-[-0.02em] text-white">

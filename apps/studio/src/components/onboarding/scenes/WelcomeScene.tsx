@@ -1,66 +1,40 @@
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import { CornerDownLeft } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { cn, prefersReducedMotion } from "@/lib/utils"
 import { AppPreview } from "../AppPreview"
+import { OB_LOGO_SRC } from "../theme"
 import type { OnboardingStepProps } from "../steps"
 
 /**
- * Plays the rendered logo animation centered, freezes on its final frame (which
- * is the logo), then shrinks/moves it to the top slot and reveals the welcome
- * design + app preview. Reduced-motion skips straight to the resting state.
+ * Opens with the beta app icon large and centered, then shrinks/moves it to the
+ * top slot and reveals the welcome design + app preview. Reduced-motion skips
+ * straight to the resting state, and a click skips the intro.
  */
 export function WelcomeScene({ onNext }: OnboardingStepProps) {
   const reduced = prefersReducedMotion()
   const [revealed, setRevealed] = useState(reduced)
-  const videoRef = useRef<HTMLVideoElement>(null)
 
   useEffect(() => {
     if (reduced) return
-    const v = videoRef.current
-    if (v) v.playbackRate = 1.5
-    // Fallback in case autoplay is blocked or `ended` never fires.
-    const maxTimer = setTimeout(() => setRevealed(true), 6000)
-    return () => clearTimeout(maxTimer)
+    const timer = setTimeout(() => setRevealed(true), 1150)
+    return () => clearTimeout(timer)
   }, [reduced])
-
-  // Skip the intro: jump the video to its last frame (the logo) and reveal.
-  const skipIntro = () => {
-    const v = videoRef.current
-    if (v && v.duration) {
-      try {
-        v.currentTime = v.duration
-      } catch {
-        // seeking unavailable
-      }
-    }
-    setRevealed(true)
-  }
 
   return (
     <div className="relative flex h-full w-full flex-col items-center overflow-hidden px-10 pt-3 text-center">
-      {reduced ? (
-        <img aria-hidden src="/logo.png" alt="" className="h-14 w-14 object-contain" />
-      ) : (
-        <video
-          ref={videoRef}
-          aria-hidden
-          src="/onboarding/welcome-logo.mp4"
-          poster="/logo.png"
-          autoPlay
-          muted
-          playsInline
-          preload="auto"
-          onEnded={() => setRevealed(true)}
-          onClick={skipIntro}
-          className={cn(
-            "z-10 h-14 w-14 object-contain transition-all duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
-            revealed
-              ? "translate-y-0 scale-100 cursor-default"
-              : "translate-y-[232px] scale-[3.7] cursor-pointer",
-          )}
-        />
-      )}
+      <img
+        aria-hidden
+        src={OB_LOGO_SRC}
+        alt=""
+        onClick={() => setRevealed(true)}
+        className={cn(
+          "z-10 h-14 w-14 rounded-[22%] object-contain transition-all duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+          revealed
+            ? "translate-y-0 scale-100 cursor-default"
+            : "translate-y-[232px] scale-[3.7] cursor-pointer drop-shadow-[0_18px_50px_rgba(var(--ob-accent-rgb),0.5)]",
+        )}
+      />
 
       <h1
         className={cn(

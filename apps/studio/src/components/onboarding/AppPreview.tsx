@@ -15,6 +15,7 @@ import {
   SquareCheckBig,
   Package,
 } from "lucide-react"
+import { OB_LOGO_SRC } from "./theme"
 
 const NAV = [
   { Icon: Home, label: "Home", active: true },
@@ -54,7 +55,7 @@ export function AppPreview({ className }: { className?: string }) {
         {/* sidebar */}
         <aside className="w-[168px] shrink-0 border-r border-black/[0.05] bg-[#fafafa] p-3">
           <div className="mb-3 flex items-center gap-2">
-            <img src="/logo.png" alt="" className="h-6 w-6 rounded-[7px]" />
+            <img src={OB_LOGO_SRC} alt="" className="h-6 w-6 rounded-[7px]" />
             <div className="leading-tight">
               <div className="text-[10px] font-bold text-[#0a0a0a]">ADT Studio</div>
               <div className="text-[6px] font-semibold uppercase tracking-[0.08em] text-[#9aa0aa]">

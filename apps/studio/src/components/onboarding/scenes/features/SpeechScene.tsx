@@ -33,7 +33,7 @@ function SpeechDemo() {
           <div key={i} className="h-[6px] rounded-full bg-[#eef0f4]" style={{ width: `${w}%` }} />
         ))}
         <div
-          className={cn("h-[6px] rounded-full transition-colors duration-300", played ? "bg-[#f9a8d4]" : "bg-[#eef0f4]")}
+          className={cn("h-[6px] rounded-full transition-colors duration-300", played ? "bg-[#d8a5f5]" : "bg-[#eef0f4]")}
           style={{ width: "66%" }}
         />
       </div>
@@ -48,7 +48,7 @@ function SpeechDemo() {
               className={cn("w-[3px] rounded-full", playing && "animate-onboarding-eq")}
               style={{
                 height: h,
-                backgroundColor: i < 7 ? "var(--ob-accent)" : "#f5c2da",
+                backgroundColor: i < 7 ? "var(--ob-accent)" : "#e2c9f5",
                 animationDelay: `${i * 60}ms`,
               }}
             />

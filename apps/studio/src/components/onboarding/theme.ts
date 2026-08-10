@@ -1,29 +1,35 @@
 /* eslint-disable lingui/no-unlocalized-strings -- design tokens: color hexes and CSS gradient strings, never user-facing */
 import type { CSSProperties } from "react"
+import betaLogoSrc from "@/assets/update-icons/beta-512x512.png?url"
 
 /**
- * Single source of truth for the onboarding accent color.
+ * Single source of truth for the onboarding accent + brand mark.
  *
- * The beta release uses a pink accent to visually distinguish it from the
- * stable (blue) product. Every accent surface in the onboarding — buttons,
+ * The beta release wears the app's own beta identity: the violet/magenta tone
+ * (hue ~305, matching the beta update banner and the beta app icon) instead of
+ * the stable blue, and the beta app icon (purple, with the BETA pill) instead
+ * of the blue stable logo. Every accent surface in the onboarding — buttons,
  * glows, the demo cursor, the feature demo panel, tints and washes — reads from
  * these values (as CSS variables via {@link onboardingThemeVars}, or imported
- * directly for inline gradients). Change the palette here and the whole flow
- * follows; to restore the stable blue set `--ob-accent` back to `#3b82f7` and
- * friends.
+ * directly for inline gradients / the logo). Change the palette here and the
+ * whole flow follows; to restore the stable blue, set `--ob-accent` back to
+ * `#3b82f7` and swap {@link OB_LOGO_SRC} for the stable icon.
  */
-export const OB_ACCENT = "#ec4899"
-export const OB_ACCENT_STRONG = "#db2777"
-export const OB_ACCENT_DEEP = "#be185d"
+export const OB_ACCENT = "#9a41e4"
+export const OB_ACCENT_STRONG = "#7e29c7"
+export const OB_ACCENT_DEEP = "#6022a2"
 /** RGB channels only, for `rgba(var(--ob-accent-rgb), a)` glows. */
-export const OB_ACCENT_RGB = "236, 72, 153"
+export const OB_ACCENT_RGB = "154, 65, 228"
 /** Soft fill behind badges / active nav rows. */
-export const OB_ACCENT_TINT = "#fce7f3"
+export const OB_ACCENT_TINT = "#f3dfff"
 /** Faint page wash (web build backdrop, demo card backgrounds). */
-export const OB_ACCENT_WASH = "#fdf2f8"
+export const OB_ACCENT_WASH = "#fbf3ff"
 /** Rich gradient for the feature demo panel. */
 export const OB_PANEL_GRADIENT =
-  "linear-gradient(150deg, #f472b6 0%, #db2777 60%, #a1104f 100%)"
+  "linear-gradient(150deg, #e365ff 0%, #8a3ee0 55%, #4c258c 100%)"
+
+/** The beta app icon — the brand mark shown throughout the beta onboarding. */
+export const OB_LOGO_SRC = betaLogoSrc
 
 /**
  * CSS custom properties applied to the onboarding root so descendants can use

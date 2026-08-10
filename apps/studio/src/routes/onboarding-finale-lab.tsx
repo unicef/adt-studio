@@ -3,9 +3,9 @@ import { useState, type ComponentType } from "react"
 import { createFileRoute } from "@tanstack/react-router"
 import { RotateCcw } from "lucide-react"
 import type { OnboardingStepProps } from "@/components/onboarding/steps"
-import { FinaleSceneRecap } from "@/components/onboarding/scenes/FinaleSceneRecap"
-import { FinaleLuminous } from "@/components/onboarding/scenes/FinaleLuminous"
-import { FinaleAurora } from "@/components/onboarding/scenes/FinaleAurora"
+import { FinaleAuroraLight } from "@/components/onboarding/scenes/finale/FinaleAuroraLight"
+import { FinaleMesh } from "@/components/onboarding/scenes/finale/FinaleMesh"
+import { FinaleSpotlight } from "@/components/onboarding/scenes/finale/FinaleSpotlight"
 import { usePageTitle } from "@/hooks/use-page-title"
 
 export const Route = createFileRoute("/onboarding-finale-lab")({
@@ -24,25 +24,25 @@ type Variant = {
 
 const VARIANTS: Variant[] = [
   {
-    id: "luminous",
-    num: "A",
-    label: "Luminous (light)",
-    note: "Exaggerated-minimal, consistent with the light flow: oversized type on warm white, one blue accent, soft feature-colored aurora, masked line-rise reveal. No screenshot.",
-    component: FinaleLuminous,
-  },
-  {
     id: "aurora",
-    num: "B",
-    label: "Aurora (dark, cinematic)",
-    note: "One designed frame — the four feature hues + accessibility blue woven into a slow-flowing aurora, oversized type, masked reveal, single CTA. No screenshot.",
-    component: FinaleAurora,
+    num: "A1",
+    label: "Aurora blobs (centered)",
+    note: "Luminous layout, centered: living feature-colored aurora of soft blobs blooming behind oversized type.",
+    component: FinaleAuroraLight,
   },
   {
-    id: "current",
-    num: "C",
-    label: "Old live finale (for reference)",
-    note: "The current shipping recap — app screenshot rising behind a static vignette (the collage we're replacing).",
-    component: FinaleSceneRecap,
+    id: "mesh",
+    num: "A2",
+    label: "Mesh gradient (centered)",
+    note: "Luminous layout, centered: a soft painterly mesh-gradient wash of brand + feature hues, slowly flowing.",
+    component: FinaleMesh,
+  },
+  {
+    id: "spotlight",
+    num: "A3",
+    label: "Spotlight + rings + grain (centered)",
+    note: "Luminous layout, centered: a warm spotlight, faint concentric rings (reading reaching outward) and subtle film grain.",
+    component: FinaleSpotlight,
   },
 ]
 
