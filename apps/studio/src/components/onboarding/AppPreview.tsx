@@ -40,7 +40,7 @@ export function AppPreview({ className }: { className?: string }) {
     <div
       aria-hidden
       className={
-        "overflow-hidden rounded-t-2xl border border-b-0 border-black/[0.08] bg-white text-left shadow-[0_-24px_60px_-30px_rgba(var(--ob-accent-rgb),0.35)] " +
+        "overflow-hidden rounded-t-2xl border border-b-0 border-black/[0.08] bg-white text-left shadow-[0_0_46px_-10px_rgba(var(--ob-accent-rgb),0.45)] " +
         (className ?? "")
       }
     >
