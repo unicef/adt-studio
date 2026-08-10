@@ -18,6 +18,18 @@ export function OnboardingLayout({ children }: { children: ReactNode }) {
     return () => cancelAnimationFrame(id)
   }, [])
 
+  // The onboarding is a full-window, light-only branded surface. Neutralize the
+  // app's dark theme while it's mounted so shared token-based components (locale
+  // switcher, buttons) don't half-flip on the white card. Restored on exit.
+  useEffect(() => {
+    const root = document.documentElement
+    const wasDark = root.classList.contains("dark")
+    if (wasDark) root.classList.remove("dark")
+    return () => {
+      if (wasDark) root.classList.add("dark")
+    }
+  }, [])
+
   useEffect(() => {
     if (!inElectron) return
     const targets = [
