@@ -256,12 +256,8 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
   }
 
   const panelStyle: CSSProperties = provider
-    ? {
-        // eslint-disable-next-line lingui/no-unlocalized-strings -- CSS gradient value, not UI copy
-        backgroundImage: `linear-gradient(160deg, ${provider.from}1f, ${provider.to}0f 52%, #ffffff)`,
-        borderColor: `${provider.to}3d`,
-      }
-    : { borderColor: "rgba(0,0,0,0.08)", backgroundColor: "#fbfbfc" }
+    ? { backgroundColor: `${provider.to}14`, borderColor: `${provider.to}3d` }
+    : { borderColor: "rgba(0,0,0,0.08)", backgroundColor: "#ffffff" }
 
   const constellationMarks: { Mark: ComponentType<{ className?: string }>; name: string }[] = [
     { Mark: OpenAiMark, name: "OpenAI" },
@@ -273,13 +269,7 @@ export function ProviderSceneColor(_props: OnboardingStepProps) {
   ]
 
   return (
-    <div
-      className="animate-onboarding-fade-in flex h-full w-full flex-col px-8 pb-2 pt-6"
-      style={{
-        backgroundImage:
-          "radial-gradient(115% 80% at 100% 0%, #eaf1ff 0%, rgba(255,255,255,0) 44%), radial-gradient(110% 85% at 0% 100%, #fbeeff 0%, rgba(255,255,255,0) 42%)",
-      }}
-    >
+    <div className="animate-onboarding-fade-in flex h-full w-full flex-col px-8 pb-2 pt-6">
       {/* header */}
       <div className="min-w-0">
         <h2 className="text-[21px] font-semibold tracking-[-0.02em] text-[#0a0a0a]">
