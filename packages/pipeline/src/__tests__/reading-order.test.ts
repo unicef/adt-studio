@@ -3,7 +3,8 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { createBookStorage, type Storage } from "@adt/storage"
-import { resolveReadingOrder, toPageEntry } from "../reading-order.js"
+import { resolveReadingOrder, toPageEntry, readingOrderPageIds } from "../reading-order.js"
+import { READING_ORDER_NODE, READING_ORDER_ITEM_ID } from "@adt/types"
 
 describe("reading-order resolver", () => {
   const tmpDirs: string[] = []
@@ -270,6 +271,64 @@ describe("reading-order resolver", () => {
     } finally {
       storage.close()
     }
+  })
+
+  describe("readingOrderPageIds", () => {
+    it("lists source pages in the order the reader meets them", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+          schemaVersion: 1,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          items: [
+            { kind: "section", id: "pg002_sec001" },
+            { kind: "section", id: "pg002_sec002" },
+            { kind: "section", id: "pg001_sec001" },
+            { kind: "section", id: "pg001_sec002" },
+          ],
+        })
+
+        // Quiz batching groups "every N pages", so it has to count pages the way
+        // the reader meets them — source order would batch pg001 with pg002 in
+        // the wrong direction and anchor each quiz at an arbitrary position.
+        expect(readingOrderPageIds(resolveReadingOrder(storage))).toEqual(["pg002", "pg001"])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("lists a page once, at its first section", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        // Interleaved: page one's sections straddle page two's.
+        storage.putNodeData(READING_ORDER_NODE, READING_ORDER_ITEM_ID, {
+          schemaVersion: 1,
+          updatedAt: "2026-01-01T00:00:00.000Z",
+          items: [
+            { kind: "section", id: "pg001_sec001" },
+            { kind: "section", id: "pg002_sec001" },
+            { kind: "section", id: "pg001_sec002" },
+            { kind: "section", id: "pg002_sec002" },
+          ],
+        })
+
+        expect(readingOrderPageIds(resolveReadingOrder(storage))).toEqual(["pg001", "pg002"])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("falls back to source order when nothing has been reordered", () => {
+      const storage = makeStorage()
+      try {
+        seedTwoPages(storage)
+        expect(readingOrderPageIds(resolveReadingOrder(storage))).toEqual(["pg001", "pg002"])
+      } finally {
+        storage.close()
+      }
+    })
   })
 
   it("numbers positions 1-based over the emitted items only", () => {

@@ -67,6 +67,7 @@ import { captionPageImages, buildCaptionConfig, collectCaptionImageIds, groupGlo
 import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
+import { resolveReadingOrder, readingOrderPageIds } from "./reading-order.js"
 import { buildTextCatalog } from "./text-catalog.js"
 import { buildEasyReadConfig, buildEasyReadSourceBlocks, createEmptyEasyReadOutput, generateEasyRead, flattenEasyReadEntries, isDeterministicEmptyEasyReadOutput } from "./easy-read.js"
 import { translateCatalogBatch, buildCatalogTranslationConfig, getTargetLanguages } from "./catalog-translation.js"
@@ -698,9 +699,13 @@ export async function runFullPipeline(
       const quizConfig = buildQuizGenerationConfig(config, language)
       if (!quizConfig) return
       const model = getModel(quizConfig.modelId)
-      const pages = storage.getPages()
+      // Reading order, not source-PDF order — see the note in stage-runner's
+      // quiz executor: batching by source order after a reorder groups
+      // non-adjacent pages and spaces the quizzes unevenly.
+      const pages = readingOrderPageIds(resolveReadingOrder(storage, { includeQuizzes: false }))
       const quizPages: QuizPageInput[] = []
-      for (const page of pages) {
+      for (const pageId of pages) {
+        const page = { pageId }
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
         // Filter by the SEMANTIC sectioning (real section types like
         // `text_and_single_image`), not the render sectioning — in fixed-layout
