@@ -29,7 +29,7 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
   const markClasses = cn(
     "z-10 h-14 w-14 rounded-[22%] object-contain transition-all duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
     revealed
-      ? "translate-y-0 scale-100 cursor-default"
+      ? "translate-y-0 scale-100 cursor-default ring-1 ring-[var(--ob-border)] shadow-[0_8px_24px_-10px_rgba(0,0,0,0.35)]"
       : "translate-y-[232px] scale-[3.7] cursor-pointer drop-shadow-[0_18px_50px_rgba(var(--ob-accent-rgb),0.5)]",
   )
 
@@ -40,7 +40,7 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
   }
 
   return (
-    <div className="relative flex h-full w-full flex-col items-center overflow-hidden bg-white px-10 pt-3 text-center">
+    <div className="relative flex h-full w-full flex-col items-center overflow-hidden px-10 pt-3 text-center">
       {OB_IS_BETA ? (
         <img
           aria-hidden
@@ -53,7 +53,6 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
         <video
           ref={videoRef}
           aria-hidden
-          src="/onboarding/welcome-logo.mp4"
           poster="/logo.png"
           muted
           playsInline
@@ -61,7 +60,12 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
           onEnded={() => setRevealed(true)}
           onClick={skipIntro}
           className={markClasses}
-        />
+        >
+          {/* Alpha WebM (transparent, works on any theme) is preferred when present;
+              falls back to the white-background MP4 until a 3D alpha render lands. */}
+          <source src="/onboarding/welcome-logo.webm" type="video/webm" />
+          <source src="/onboarding/welcome-logo.mp4" type="video/mp4" />
+        </video>
       )}
 
       {OB_IS_BETA && (
@@ -79,7 +83,7 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
 
       <h1
         className={cn(
-          "mt-3 text-[32px] font-semibold leading-tight tracking-[-0.02em] text-[#0a0a0a] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+          "mt-3 text-[32px] font-semibold leading-tight tracking-[-0.02em] text-[var(--ob-fg)] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
           revealed ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
         )}
         style={{ transitionDelay: revealed ? "300ms" : "0ms" }}
@@ -93,7 +97,7 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
 
       <p
         className={cn(
-          "mt-3.5 max-w-[470px] text-[15px] leading-relaxed text-[#737373] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+          "mt-3.5 max-w-[470px] text-[15px] leading-relaxed text-[var(--ob-muted)] transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
           revealed ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0",
         )}
         style={{ transitionDelay: revealed ? "380ms" : "0ms" }}
