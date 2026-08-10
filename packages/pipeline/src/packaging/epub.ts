@@ -7,6 +7,7 @@ import {
   type PackageAdtWebOptions,
   EXPORT_MIME_TYPES,
   NON_READER_FILES,
+  isEntryRedirectStub,
   copyDirRecursive,
   injectWebpubStyles,
   getWordTimestamps,
@@ -158,6 +159,16 @@ export function packageEpub(
   // ------------------------------------------------------------------
   const pagesJsonPath = path.join(oebpsDir, "content", "pages.json")
   const rawPages = JSON.parse(fs.readFileSync(pagesJsonPath, "utf-8")) as PageEntry[]
+
+  // The web bundle's `index.html` entry redirect has no place in an EPUB: the
+  // spine lists pages explicitly, and leaving it behind would put a `text/html`
+  // resource in the OPF manifest, which EPUB 3 only permits with a fallback.
+  // Bundles predating id-named pages have a real content page at that name and
+  // are left alone.
+  if (isEntryRedirectStub(rawPages)) {
+    const stubPath = path.join(oebpsDir, "index.html")
+    if (fs.existsSync(stubPath)) fs.unlinkSync(stubPath)
+  }
   // Placement boundaries for in-flow glossary pages (page/both modes) and
   // the per-window occurrence lists that populate them.
   const glossaryBoundaries =

@@ -378,8 +378,11 @@ export async function packageAdtWeb(
   }
 
   for (const item of readingOrder.items) {
-    const isFirstPage = pageList.length === 0
-    const filename = isFirstPage ? "index.html" : `${item.id}.html`
+    // Every page is named by its stable id. Nothing is named for its position,
+    // so a page keeps its URL no matter where it sits in the reading order —
+    // `index.html` is written separately below as a redirect to whatever page
+    // is currently first.
+    const filename = `${item.id}.html`
     const pageIndex = pageList.length + 1
 
     if (item.kind === "quiz") {
@@ -400,10 +403,7 @@ export async function packageAdtWeb(
       })
       fs.writeFileSync(path.join(adtDir, filename), quizPageHtml)
 
-      // Phase 4 drops the index.html special case; until then the first page
-    // keeps that name, so the entry's href is overridden here rather than in
-    // the resolver (which is already position-independent).
-    pageList.push({ ...toPageEntry(item), href: filename })
+      pageList.push(toPageEntry(item))
       continue
     }
 
@@ -496,10 +496,7 @@ export async function packageAdtWeb(
     })
     fs.writeFileSync(path.join(adtDir, filename), pageHtml)
 
-    // Phase 4 drops the index.html special case; until then the first page
-    // keeps that name, so the entry's href is overridden here rather than in
-    // the resolver (which is already position-independent).
-    pageList.push({ ...toPageEntry(item), href: filename })
+    pageList.push(toPageEntry(item))
 
     // Build TOC entry from first heading text in this section
     if (headingText) {
@@ -516,6 +513,17 @@ export async function packageAdtWeb(
   // Write manifests
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Writing manifests..." })
+
+  // Entry point. Pages are named by id, so the bundle needs something at a
+  // predictable path for "open this folder" / SCORM / the dev server to land on.
+  // A redirect keeps that convenience without giving one page two URLs or
+  // renaming a file when the reading order changes.
+  if (pageList.length > 0) {
+    fs.writeFileSync(
+      path.join(adtDir, "index.html"),
+      renderEntryRedirectHtml(pageList[0].href, language, title),
+    )
+  }
 
   writeJson(path.join(contentDir, "pages.json"), pageList)
 
@@ -705,9 +713,8 @@ export async function packageAdtWeb(
         : {},
     )
 
-    // videos.json — map "video-{pageIndex}" → video filename for assigned sign language videos
-    // The ADT JS runtime expects keys prefixed with "video-" and files in a "video/" directory.
-    // Each video is assigned to a sectionId which maps 1:1 to a pageIndex.
+    // videos.json — map sectionId → video filename for assigned sign language
+    // videos. Files live in a "video/" directory beside this manifest.
     const videosMap: Record<string, string> = {}
     // Glossary term id → bundle-relative video href, surfaced through
     // glossary.json so the runtime popover/panel can embed the sign video.
@@ -734,7 +741,11 @@ export async function packageAdtWeb(
         const srcPath = storage.getSignLanguageVideoPath(video.videoId)
         if (srcPath && fs.existsSync(srcPath)) {
           fs.copyFileSync(srcPath, path.join(videoDir, filename))
-          videosMap[`video-${readingOrder.positionById.get(video.sectionId!)}`] = filename
+          // Keyed by sectionId, matching the video's own filename. Keying by
+          // reading position meant this map and the position baked into each
+          // page had to be computed identically and stay in step; the id is
+          // what the assignment was actually made against.
+          videosMap[video.sectionId!] = filename
         }
       }
       for (const video of glossaryVideos) {
@@ -1372,6 +1383,10 @@ ${fallbackHeadingHtml}${contentBlock}
     <meta name="viewport" content="${opts.fixedViewport ? `width=${opts.fixedViewport.width}, height=${opts.fixedViewport.height}` : "width=device-width, initial-scale=1"}" />
     <title>${escapeHtml(opts.pageTitle)}</title>
     <meta name="title-id" content="${escapeAttr(opts.sectionId)}" />
+    <!-- Despite the name, this is the page's 1-based position in the reading
+         order, not a section id and not the printed page number. It drives the
+         "N of M" dock counter and is re-emitted on every package, so it tracks
+         the current order. Identity lives in title-id above. -->
     <meta name="page-section-id" content="${opts.pageIndex}" />
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
@@ -2634,8 +2649,9 @@ function generateImsManifest(
   const identifier = `ADT_${label.toUpperCase().replace(/[^A-Z0-9]/g, "_")}`
   const escapedTitle = escapeHtml(title)
 
+  // Pages are all id-named; `index.html` is the redirect stub, listed above as
+  // the SCO entry point and absent from pageList.
   const fileEntries = pageList
-    .filter((p) => p.href !== "index.html") // index.html already listed above
     .map((p) => `      <file href="${escapeAttr(p.href)}"/>`)
     .join("\n")
 
@@ -2759,6 +2775,53 @@ function pickDefaultLanguage(
  * the `skip` set when copying `adt/` into an export directory.
  */
 export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md"])
+
+/**
+ * The bundle's entry point: a redirect to the first page of the reading order.
+ *
+ * Kept deliberately dumb — no runtime, no bundle — because it exists only so
+ * opening the bundle root lands somewhere sensible. The `<meta refresh>` covers
+ * readers with no JS, `location.replace` keeps it out of the back-button
+ * history, and the visible link is the fallback when neither runs.
+ *
+ * Manifest-driven exports drop it via {@link isEntryRedirectStub} rather than a
+ * blanket skip, so bundles packaged before this change — where `index.html` is
+ * a real content page listed in pages.json — still export correctly.
+ */
+/**
+ * Is `index.html` in this bundle the entry redirect, rather than a content page?
+ *
+ * Decided by the reading order, not by inspecting the file: a stub is by
+ * definition absent from pages.json, and a bundle packaged before pages were
+ * id-named has its first content page there under that name.
+ */
+export function isEntryRedirectStub(pageList: Array<{ href: string }>): boolean {
+  return !pageList.some((page) => page.href === "index.html")
+}
+
+function renderEntryRedirectHtml(
+  firstHref: string,
+  language: string,
+  title: string,
+): string {
+  const href = escapeAttr(firstHref)
+  // The link text is the book's own title rather than an invented English
+  // phrase: this file ships in every language and has no interface catalogue.
+  const label = escapeHtml(title)
+  return `<!DOCTYPE html>
+<html lang="${escapeAttr(language)}">
+<head>
+<meta charset="utf-8" />
+<meta http-equiv="refresh" content="0; url=${href}" />
+<title>${label}</title>
+<script>location.replace(${JSON.stringify(firstHref)})</script>
+</head>
+<body>
+<p><a href="${href}">${label}</a></p>
+</body>
+</html>
+`
+}
 
 /**
  * File-extension → MIME type for the resources listed in an export manifest

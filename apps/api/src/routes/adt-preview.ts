@@ -837,21 +837,16 @@ export function createAdtPreviewRoutes(
     return c.body(JSON.stringify(timecodes))
   })
 
-  // /content/i18n/:lang/videos.json — Sign language video mapping
-  // The ADT JS runtime expects keys like "video-{pageIndex}" and files served from "video/" path.
-  // Each video is assigned to a sectionId which maps 1:1 to a pageIndex.
+  // /content/i18n/:lang/videos.json — Sign language video mapping, keyed by
+  // sectionId. Files are served from the sibling "video/" path.
   app.get("/books/:label/adt-preview/content/i18n/:lang/videos.json", (c) => {
     const videosMap = withStorage(c.req.param("label"), (storage) => {
       const map: Record<string, string> = {}
-      const sectionToIndex = resolveReadingOrder(storage).positionById
+      const inReadingOrder = resolveReadingOrder(storage).positionById
       for (const video of storage.getSignLanguageVideos()) {
-        if (video.sectionId) {
+        if (video.sectionId && inReadingOrder.has(video.sectionId)) {
           const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
-          const filename = `sl_${video.sectionId}${ext}`
-          const idx = sectionToIndex.get(video.sectionId)
-          if (idx !== undefined) {
-            map[`video-${idx}`] = filename
-          }
+          map[video.sectionId] = `sl_${video.sectionId}${ext}`
         }
       }
       return map
