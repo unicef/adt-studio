@@ -22,7 +22,7 @@ import type {
   Quiz,
   ImageCaptioningOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE, resolveQuizId } from "@adt/types"
 import {
   GOOGLE_FONTS,
   googleFontsReferencedIn,
@@ -508,8 +508,7 @@ export async function packageAdtWeb(
 
     // Insert quiz pages after this page (even if page content was skipped)
     for (const quiz of quizzes) {
-      const quizIndex = quizData!.quizzes.indexOf(quiz)
-      const quizId = `qz${pad3(quizIndex + 1)}`
+      const quizId = resolveQuizId(quiz, quizData!.quizzes.indexOf(quiz))
 
       const isFirstPage = pageList.length === 0
       const quizFilename = isFirstPage ? "index.html" : `${quizId}.html`
