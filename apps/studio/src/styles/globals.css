@@ -76,7 +76,6 @@
   --animate-onboarding-eq: onboarding-eq 0.85s ease-in-out infinite;
   --animate-onboarding-gradient: onboarding-gradient 6s ease-in-out infinite;
   --animate-finale-rise: finale-rise 0.95s cubic-bezier(0.19, 1, 0.22, 1) both;
-  --animate-finale-aurora: finale-aurora 20s ease-in-out infinite;
   --animate-finale-aurora-in: finale-aurora-in 1.4s cubic-bezier(0.19, 1, 0.22, 1) both;
   --animate-finale-sheen: finale-sheen 1.15s cubic-bezier(0.4, 0, 0.2, 1) 0.85s both;
   --animate-finale-glow: finale-glow 4.5s ease-in-out infinite;
@@ -292,19 +291,6 @@
   }
 }
 
-@keyframes finale-aurora {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  33% {
-    transform: translate3d(4%, -3%, 0) scale(1.08);
-  }
-  66% {
-    transform: translate3d(-3%, 2%, 0) scale(0.96);
-  }
-}
-
 @keyframes finale-aurora-in {
   from {
     opacity: 0;
@@ -339,7 +325,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-finale-rise,
-  .animate-finale-aurora,
   .animate-finale-aurora-in,
   .animate-finale-sheen,
   .animate-finale-glow {
@@ -362,7 +347,6 @@
   --ob-border: rgba(0, 0, 0, 0.08);
   --ob-border-strong: rgba(0, 0, 0, 0.15);
   --ob-card-shadow: 0 40px 120px -24px rgba(20, 32, 80, 0.45);
-  --ob-demo-shadow: 0 18px 44px -12px rgba(6, 20, 60, 0.45);
   --ob-sheen: rgba(255, 255, 255, 0.7);
 }
 
@@ -379,7 +363,6 @@
   --ob-border: rgba(255, 255, 255, 0.1);
   --ob-border-strong: rgba(255, 255, 255, 0.2);
   --ob-card-shadow: 0 40px 120px -24px rgba(0, 0, 0, 0.7);
-  --ob-demo-shadow: 0 18px 44px -12px rgba(0, 0, 0, 0.6);
   --ob-sheen: rgba(255, 255, 255, 0);
 }
 

@@ -41,7 +41,6 @@ const PALETTES = {
   stable: {
     accent: "#3b82f7",
     strong: "#2563eb",
-    deep: "#1d4ed8",
     rgb: "59, 130, 247",
     tint: "#dbeafe",
     wash: "#f5f8ff",
@@ -54,7 +53,6 @@ const PALETTES = {
   beta: {
     accent: "#9a41e4",
     strong: "#7e29c7",
-    deep: "#6022a2",
     rgb: "154, 65, 228",
     tint: "#f3dfff",
     wash: "#fbf3ff",
@@ -70,7 +68,6 @@ const P = PALETTES[OB_CHANNEL]
 
 export const OB_ACCENT = P.accent
 export const OB_ACCENT_STRONG = P.strong
-export const OB_ACCENT_DEEP = P.deep
 /** RGB channels only, for `rgba(var(--ob-accent-rgb), a)` glows. */
 export const OB_ACCENT_RGB = P.rgb
 /** Soft fill behind badges / active nav rows. */
@@ -95,7 +92,6 @@ export const OB_LOGO_SRC = P.logo
 export const onboardingThemeVars: CSSProperties = {
   "--ob-accent": OB_ACCENT,
   "--ob-accent-strong": OB_ACCENT_STRONG,
-  "--ob-accent-deep": OB_ACCENT_DEEP,
   "--ob-accent-rgb": OB_ACCENT_RGB,
   "--ob-accent-tint": OB_ACCENT_TINT,
   "--ob-accent-wash": OB_ACCENT_WASH,
