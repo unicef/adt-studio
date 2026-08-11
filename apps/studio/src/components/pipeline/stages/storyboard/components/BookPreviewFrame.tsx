@@ -87,6 +87,14 @@ export interface BookPreviewFrameHandle {
    *  element by data-id. Returns updated full HTML, or null. Used for styling
    *  that must win over class/cascade rules (e.g. per-element font-family). */
   setElementStyleProp: (dataId: string, property: string, value: string) => string | null
+  /** Remove an element by data-id from the live iframe DOM and serialize the
+   *  result. Returns the updated full HTML plus the real (non-transient)
+   *  data-ids found in the removed subtree, or null when the element isn't in
+   *  the iframe. Needed for containers whose data-id is a transient `_el#`
+   *  assigned at selection time — those ids never exist in the stored HTML,
+   *  so removal has to go through the iframe DOM. The reported ids let the
+   *  caller drop the matching sectioning leaves along with the HTML. */
+  removeElement: (dataId: string) => { html: string; removedDataIds: string[] } | null
   /** Re-inject the current `html` prop into the iframe, discarding any in-iframe
    *  DOM mutations (e.g. live `setElementClasses` edits). Used when the parent
    *  wants to revert to the saved state without changing the html prop. */
@@ -276,6 +284,23 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       const html = wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
+    },
+    removeElement: (dataId: string): { html: string; removedDataIds: string[] } | null => {
+      const doc = iframeRef.current?.contentDocument
+      if (!doc) return null
+      const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
+      if (!el) return null
+      const removedDataIds = [el, ...Array.from(el.querySelectorAll("[data-id]"))]
+        .map((n) => n.getAttribute("data-id"))
+        .filter((id): id is string => !!id && !/^_el\d+$/.test(id))
+      el.remove()
+      stripTransientAttributes(doc)
+      const wrapper = doc.getElementById("content")
+      const html = wrapper ? serializeContentWrapper(wrapper) : doc.body.innerHTML
+      return {
+        html: demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current),
+        removedDataIds,
+      }
     },
     resetContent: () => {
       if (readyRef.current) injectContent(latestHtmlRef.current)
