@@ -8,6 +8,8 @@ import {
   stripEmojis,
   isSpeakableText,
   resolveVoice,
+  resolveVoiceForSlot,
+  isSecondaryVoiceConfigured,
   resolveInstructions,
   resolveSpeechModel,
   resolveSpeechFormat,
@@ -159,6 +161,75 @@ describe("resolveVoice", () => {
 
   it("does not reuse the OpenAI alloy fallback for ElevenLabs voices", () => {
     expect(resolveVoice("elevenlabs", "en", {}, "alloy")).toBe("21m00Tcm4TlvDq8ikWAM")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// resolveVoiceForSlot / isSecondaryVoiceConfigured
+// ---------------------------------------------------------------------------
+
+describe("resolveVoiceForSlot", () => {
+  const voiceMaps: VoiceMaps = {
+    openai: {
+      default: "alloy",
+      en: { primary: { voice: "alloy", label: "Alloy" }, secondary: { voice: "shimmer", label: "Shimmer" } },
+      es: "coral",
+    },
+  }
+
+  it("resolves the primary slot from a legacy scalar entry", () => {
+    expect(resolveVoiceForSlot("openai", "es", voiceMaps, "primary")).toEqual({ voice: "coral" })
+  })
+
+  it("resolves the primary slot from a canonical slot-object entry", () => {
+    expect(resolveVoiceForSlot("openai", "en", voiceMaps, "primary")).toEqual({
+      voice: "alloy",
+      label: "Alloy",
+    })
+  })
+
+  it("resolves the secondary slot when configured", () => {
+    expect(resolveVoiceForSlot("openai", "en", voiceMaps, "secondary")).toEqual({
+      voice: "shimmer",
+      label: "Shimmer",
+    })
+  })
+
+  it("returns null for the secondary slot when a legacy scalar entry has no secondary", () => {
+    expect(resolveVoiceForSlot("openai", "es", voiceMaps, "secondary")).toBeNull()
+  })
+
+  it("returns null for the secondary slot when nothing is configured at all", () => {
+    expect(resolveVoiceForSlot("openai", "fr", voiceMaps, "secondary")).toBeNull()
+  })
+
+  it("still falls back to the hardcoded provider default for the primary slot", () => {
+    expect(resolveVoiceForSlot("gemini", "en", {}, "primary")).toEqual({ voice: "Kore" })
+    expect(resolveVoiceForSlot("elevenlabs", "en", {}, "primary")).toEqual({
+      voice: "21m00Tcm4TlvDq8ikWAM",
+    })
+  })
+})
+
+describe("isSecondaryVoiceConfigured", () => {
+  const voiceMaps: VoiceMaps = {
+    openai: {
+      default: "alloy",
+      en: { primary: { voice: "alloy" }, secondary: { voice: "shimmer" } },
+      es: "coral",
+    },
+  }
+
+  it("is true when the resolved entry has a secondary voice", () => {
+    expect(isSecondaryVoiceConfigured("openai", "en", voiceMaps)).toBe(true)
+  })
+
+  it("is false for a legacy scalar entry", () => {
+    expect(isSecondaryVoiceConfigured("openai", "es", voiceMaps)).toBe(false)
+  })
+
+  it("is false when nothing is configured for the language", () => {
+    expect(isSecondaryVoiceConfigured("openai", "fr", voiceMaps)).toBe(false)
   })
 })
 
@@ -323,6 +394,42 @@ describe("loadVoicesConfig", () => {
   it("returns empty object when file does not exist", () => {
     expect(loadVoicesConfig(tmpDir)).toEqual({})
   })
+
+  it("loads a canonical primary/secondary slot mapping alongside legacy scalars", () => {
+    fs.writeFileSync(
+      path.join(tmpDir, "voices.yaml"),
+      [
+        "openai:",
+        "  default: alloy",
+        "  en:",
+        "    primary:",
+        "      voice: alloy",
+        "      label: Alloy",
+        "    secondary:",
+        "      voice: shimmer",
+        "      label: Shimmer",
+        "",
+      ].join("\n")
+    )
+    const result = loadVoicesConfig(tmpDir)
+    expect(result).toEqual({
+      openai: {
+        default: "alloy",
+        en: {
+          primary: { voice: "alloy", label: "Alloy" },
+          secondary: { voice: "shimmer", label: "Shimmer" },
+        },
+      },
+    })
+  })
+
+  it("returns empty object and warns when voices.yaml fails schema validation", () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    fs.writeFileSync(path.join(tmpDir, "voices.yaml"), "openai:\n  en:\n    primary: 5\n")
+    expect(loadVoicesConfig(tmpDir)).toEqual({})
+    expect(warnSpy).toHaveBeenCalled()
+    warnSpy.mockRestore()
+  })
 })
 
 describe("loadSpeechInstructions", () => {
@@ -404,6 +511,7 @@ describe("generateSpeechFile", () => {
       voice: "alloy",
       model: "gpt-4o-mini-tts",
       cached: false,
+      voiceSlot: "primary",
     })
 
     // Verify file was written
@@ -423,6 +531,40 @@ describe("generateSpeechFile", () => {
       responseFormat: "mp3",
       instructions: "Speak cheerfully.",
     })
+  })
+
+  it("suffixes the filename and stamps voiceSlot/voiceLabel for the secondary slot", async () => {
+    const result = await generateSpeechFile({
+      textId: "p001_t001",
+      text: "Hello world",
+      language: "en",
+      model: "gpt-4o-mini-tts",
+      voice: "shimmer",
+      instructions: "Speak cheerfully.",
+      format: "mp3",
+      bookDir,
+      cacheDir,
+      ttsSynthesizer: mockSynthesizer,
+      voiceSlot: "secondary",
+      voiceLabel: "Shimmer",
+    })
+
+    expect(result).toEqual({
+      textId: "p001_t001",
+      language: "en",
+      fileName: "p001_t001--secondary.mp3",
+      voice: "shimmer",
+      model: "gpt-4o-mini-tts",
+      cached: false,
+      voiceSlot: "secondary",
+      voiceLabel: "Shimmer",
+    })
+
+    const audioPath = path.join(bookDir, "audio", "en", "p001_t001--secondary.mp3")
+    expect(fs.existsSync(audioPath)).toBe(true)
+    // Primary file for the same textId must not exist / be untouched.
+    const primaryAudioPath = path.join(bookDir, "audio", "en", "p001_t001.mp3")
+    expect(fs.existsSync(primaryAudioPath)).toBe(false)
   })
 
   it("writes locale audio using normalized locale casing", async () => {

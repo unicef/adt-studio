@@ -324,10 +324,23 @@ export {
   isTtsExcluded,
   SpeechFileEntry,
   SpeechFailedEntry,
+  resolveEntryVoiceSlot,
   TTSOutput,
   WordTimestamp,
   WordTimestampEntry,
   WordTimestampOutput,
+  VOICE_SLOTS,
+  VoiceSlot,
+  DEFAULT_VOICE_SLOT,
+  SECONDARY_VOICE_SLOT_SUFFIX,
+  voiceSlotEntryId,
+  parseVoiceSlotEntryId,
+  VoiceSlotConfig,
+  VoiceSlots,
+  VoiceMapEntry,
+  VoiceLanguageMap,
+  VoicesConfig,
+  normalizeVoiceMapEntry,
 } from "./speech.js"
 
 export {

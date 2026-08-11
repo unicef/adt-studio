@@ -24,9 +24,10 @@ import type {
   EasyReadOutput,
   SpeechFileEntry,
   TTSOutput,
+  VoiceSlot,
   WebRenderingOutput,
 } from "@adt/types"
-import { isTtsExcluded } from "@adt/types"
+import { isTtsExcluded, voiceSlotEntryId } from "@adt/types"
 import { extractPDF } from "./pdf-extraction.js"
 import {
   resolveFontsCacheDir,
@@ -79,7 +80,8 @@ import { normalizeLocale } from "./language-context.js"
 import {
   loadVoicesConfig,
   loadSpeechInstructions,
-  resolveVoice,
+  resolveVoiceForSlot,
+  isSecondaryVoiceConfigured,
   resolveInstructions,
   resolveProviderForLanguage,
   resolveSpeechModel,
@@ -1040,7 +1042,15 @@ export async function runFullPipeline(
         return synth
       }
 
-      interface TTSWorkItem { textId: string; text: string; language: string; previousText?: string; nextText?: string }
+      interface TTSWorkItem {
+        textId: string
+        text: string
+        language: string
+        previousText?: string
+        nextText?: string
+        voiceSlot: VoiceSlot
+        voiceLabel?: string
+      }
       const workItems: TTSWorkItem[] = []
       const resultsByLang = new Map<string, SpeechFileEntry[]>()
       for (const lang of outputLanguages) resultsByLang.set(lang, [])
@@ -1051,47 +1061,72 @@ export async function runFullPipeline(
         const existingRow =
           storage.getLatestNodeData("tts", lang) ??
           storage.getLatestNodeData("tts", legacyLang)
+        // Keyed by the slot-qualified id so primary/secondary variants of the
+        // same textId are independently reusable/retryable.
         const existingById = new Map(
           ((existingRow?.data as TTSOutput | undefined)?.entries ?? []).map(
-            (entry) => [entry.textId, entry],
+            (entry) => [voiceSlotEntryId(entry.textId, entry.voiceSlot), entry],
           ),
         )
+        // Only generate the slots actually configured for this provider/language:
+        // primary always, secondary only when voices.yaml configures one.
+        const configuredSlots: VoiceSlot[] = isSecondaryVoiceConfigured(provider, lang, voiceMaps)
+          ? ["primary", "secondary"]
+          : ["primary"]
         for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
           const entry = entries[entryIndex]
           if (isTtsExcluded(entry.id, config.speech)) continue
-          const existing = existingById.get(entry.id)
-          if (existing?.provider === "manual") {
-            const normalizedPath = path.join(
-              path.resolve(booksRoot),
-              label,
-              "audio",
-              lang,
-              existing.fileName,
-            )
-            const legacyPath = path.join(
-              path.resolve(booksRoot),
-              label,
-              "audio",
-              legacyLang,
-              existing.fileName,
-            )
-            if (fs.existsSync(normalizedPath) || fs.existsSync(legacyPath)) {
-              resultsByLang.get(lang)!.push(existing)
-              continue
+
+          for (const slot of configuredSlots) {
+            const resolvedVoice = resolveVoiceForSlot(provider, lang, voiceMaps, slot, config.speech?.voice)
+            // Guarded by configuredSlots above, but resolveVoiceForSlot can
+            // still return null for "secondary" — skip defensively rather than
+            // generating with an undefined voice.
+            if (!resolvedVoice) continue
+            const voiceLabel = resolvedVoice.label
+            const slotEntryId = voiceSlotEntryId(entry.id, slot)
+            const existing = existingById.get(slotEntryId)
+            if (existing?.provider === "manual") {
+              const normalizedPath = path.join(
+                path.resolve(booksRoot),
+                label,
+                "audio",
+                lang,
+                existing.fileName,
+              )
+              const legacyPath = path.join(
+                path.resolve(booksRoot),
+                label,
+                "audio",
+                legacyLang,
+                existing.fileName,
+              )
+              if (fs.existsSync(normalizedPath) || fs.existsSync(legacyPath)) {
+                resultsByLang.get(lang)!.push(existing)
+                continue
+              }
             }
+            // ElevenLabs-only: adjacent-entry context, opt-in via
+            // elevenlabs_use_context. Must resolve identically to stage-runner.ts
+            // so the shared cache key (computeSpeechCacheKey) stays in sync.
+            const previousText =
+              provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+                ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
+                : undefined
+            const nextText =
+              provider === "elevenlabs" && config.speech?.elevenlabs_use_context
+                ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
+                : undefined
+            workItems.push({
+              textId: entry.id,
+              text: entry.text,
+              language: lang,
+              previousText,
+              nextText,
+              voiceSlot: slot,
+              voiceLabel,
+            })
           }
-          // ElevenLabs-only: adjacent-entry context, opt-in via
-          // elevenlabs_use_context. Must resolve identically to stage-runner.ts
-          // so the shared cache key (computeSpeechCacheKey) stays in sync.
-          const previousText =
-            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
-              ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
-              : undefined
-          const nextText =
-            provider === "elevenlabs" && config.speech?.elevenlabs_use_context
-              ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
-              : undefined
-          workItems.push({ textId: entry.id, text: entry.text, language: lang, previousText, nextText })
         }
       }
 
@@ -1104,7 +1139,10 @@ export async function runFullPipeline(
         const provider = resolveProviderForLanguage(item.language, routing)
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-        const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
+        // Resolved when the work item was built (configuredSlots guard above),
+        // so this should always be non-null.
+        const resolvedVoice = resolveVoiceForSlot(provider, item.language, voiceMaps, item.voiceSlot, config.speech?.voice)!
+        const voice = resolvedVoice.voice
         // OpenAI + Gemini both receive resolved instructions (Gemini embeds them in
         // the prompt text); Azure has no instruction channel. Must match stage-runner.ts
         // and tts.ts so the shared TTS cache key (computeSpeechCacheKey) stays consistent.
@@ -1126,6 +1164,8 @@ export async function runFullPipeline(
             cacheDir,
             ttsSynthesizer,
             provider,
+            voiceSlot: item.voiceSlot,
+            voiceLabel: item.voiceLabel,
             geminiTemperature: config.speech?.temperature,
             geminiSeed: config.speech?.seed,
             elevenLabsPreviousText: item.previousText,

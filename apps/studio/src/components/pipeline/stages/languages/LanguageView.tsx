@@ -57,6 +57,8 @@ type ReviewFilter =
   | "acceptable"
   | "accepted-anyway";
 
+type VoiceSlot = "primary" | "secondary";
+
 function TranslationReviewInline({
   item,
   suggestionApplied,
@@ -361,6 +363,11 @@ export function LanguageView({
     queryFn: () => api.getTTS(bookLabel),
     enabled: !!bookLabel,
   });
+  const { data: voiceMappings } = useQuery({
+    queryKey: ["voice-mappings"],
+    queryFn: () => api.getVoiceMappings(),
+    enabled: isSpeechStage,
+  });
 
   const merged = activeConfigData?.merged as
     Record<string, unknown> | undefined;
@@ -420,6 +427,7 @@ export function LanguageView({
   const hasExplicitOutputLanguages = outputLanguages.length > 0;
 
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
+  const [selectedVoiceSlot, setSelectedVoiceSlot] = useState<VoiceSlot>("primary");
   const [categoryFilter, setCategoryFilter] = useState<CatalogCategory>("all");
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const [appliedSuggestionEntryIds, setAppliedSuggestionEntryIds] = useState<
@@ -650,6 +658,14 @@ export function LanguageView({
     enabled: isSpeechStage && !!bookLabel && !!audioLang,
   });
   const timestampMap = timestampData?.entries ?? {};
+  const selectedTimestampMap = useMemo(() => {
+    const map: typeof timestampMap = {};
+    for (const entry of Object.values(timestampMap)) {
+      const slot = entry.voiceSlot ?? "primary";
+      if (slot === selectedVoiceSlot) map[entry.textId] = entry;
+    }
+    return map;
+  }, [selectedVoiceSlot, timestampMap]);
 
   // Pending state for edits (keyed by language)
   const [pendingEntries, setPendingEntries] = useState<
@@ -1003,6 +1019,7 @@ export function LanguageView({
   >();
   if (ttsData && audioLang && ttsData.languages[audioLang]) {
     for (const e of ttsData.languages[audioLang].entries) {
+      if ((e.voiceSlot ?? "primary") !== selectedVoiceSlot) continue;
       audioMap.set(e.textId, {
         fileName: e.fileName,
         voice: e.voice,
@@ -1015,6 +1032,7 @@ export function LanguageView({
   const failedAudioMap = new Map<string, string>();
   if (ttsData && audioLang) {
     for (const f of ttsData.languages[audioLang]?.failed ?? []) {
+      if ((f.voiceSlot ?? "primary") !== selectedVoiceSlot) continue;
       failedAudioMap.set(f.textId, f.error);
     }
   }
@@ -1023,6 +1041,7 @@ export function LanguageView({
   // (e.g. a bare page number) in page-batched mode — so the user can prune them.
   const failedTimestampMap = new Map<string, string>();
   for (const f of timestampData?.failed ?? []) {
+    if ((f.voiceSlot ?? "primary") !== selectedVoiceSlot) continue;
     failedTimestampMap.set(f.textId, f.error);
   }
   // Separate base-language audio map for the source column in translation view
@@ -1037,6 +1056,7 @@ export function LanguageView({
     audioLang !== editingLanguage
   ) {
     for (const e of ttsData.languages[editingLanguage].entries) {
+      if ((e.voiceSlot ?? "primary") !== selectedVoiceSlot) continue;
       baseAudioMap.set(e.textId, {
         fileName: e.fileName,
         voice: e.voice,
@@ -1070,6 +1090,34 @@ export function LanguageView({
         0,
       )
     : 0;
+  const activeLanguageTts = audioLang ? ttsData?.languages[audioLang] : undefined;
+  const configuredVoiceSlots = useMemo(() => {
+    if (!audioLang || !voiceMappings) return undefined;
+    const provider = resolveSpeechProviderForLanguage(audioLang, speechConfig);
+    const providerMappings = voiceMappings[provider];
+    if (!providerMappings) return undefined;
+    const normalized = normalizeLocale(audioLang).toLowerCase();
+    const base = normalized.split("-")[0];
+    const mapping =
+      providerMappings[normalized] ??
+      providerMappings[base] ??
+      providerMappings.default;
+    return typeof mapping === "string"
+      ? { primary: { voice: mapping } }
+      : mapping;
+  }, [audioLang, speechConfig, voiceMappings]);
+  const secondaryVoiceEntry = activeLanguageTts?.entries.find(
+    (entry) => entry.voiceSlot === "secondary",
+  );
+  const primaryVoiceEntry = activeLanguageTts?.entries.find(
+    (entry) => (entry.voiceSlot ?? "primary") === "primary",
+  );
+  const hasSecondaryVoice = !!configuredVoiceSlots?.secondary || !!secondaryVoiceEntry;
+  useEffect(() => {
+    if (!hasSecondaryVoice && selectedVoiceSlot === "secondary") {
+      setSelectedVoiceSlot("primary");
+    }
+  }, [hasSecondaryVoice, selectedVoiceSlot]);
   // Muted entries neither need audio nor count as missing
   const speakableEntries = displayEntries.filter(
     (entry) => !getEntryTtsExclusion(entry.id, ttsExclusionConfig).excluded,
@@ -1143,7 +1191,7 @@ export function LanguageView({
   ]);
 
   const generateAudioMutation = useMutation({
-    mutationFn: async (variables: { textId: string; language: string }) => {
+    mutationFn: async (variables: { textId: string; language: string; voiceSlot: VoiceSlot }) => {
       if (!geminiKey) {
         throw new Error(
           i18n._(msg`Gemini API key is required to generate audio.`),
@@ -1153,6 +1201,7 @@ export function LanguageView({
         bookLabel,
         variables.textId,
         variables.language,
+        variables.voiceSlot,
         {
           geminiApiKey: geminiKey,
           openaiApiKey: apiKey || undefined,
@@ -1197,21 +1246,23 @@ export function LanguageView({
   const handleGenerateAudio = useCallback(
     (textId: string) => {
       if (!audioLang || !currentLanguageUsesGemini) return;
-      generateAudioMutation.mutate({ textId, language: audioLang });
+      generateAudioMutation.mutate({ textId, language: audioLang, voiceSlot: selectedVoiceSlot });
     },
-    [audioLang, currentLanguageUsesGemini, generateAudioMutation],
+    [audioLang, currentLanguageUsesGemini, generateAudioMutation, selectedVoiceSlot],
   );
 
   const uploadAudioMutation = useMutation({
     mutationFn: async (variables: {
       textId: string;
       language: string;
+      voiceSlot: VoiceSlot;
       file: File;
     }) =>
       api.uploadTTSForItem(
         bookLabel,
         variables.textId,
         variables.language,
+        variables.voiceSlot,
         variables.file,
       ),
     onMutate: (variables) => {
@@ -1253,18 +1304,19 @@ export function LanguageView({
   const handleUploadAudio = useCallback(
     (textId: string, file: File) => {
       if (!audioLang) return;
-      uploadAudioMutation.mutate({ textId, language: audioLang, file });
+      uploadAudioMutation.mutate({ textId, language: audioLang, voiceSlot: selectedVoiceSlot, file });
     },
-    [audioLang, uploadAudioMutation],
+    [audioLang, selectedVoiceSlot, uploadAudioMutation],
   );
 
   const transcribeMutation = useMutation({
-    mutationFn: async (variables: { textId: string; language: string }) => {
+    mutationFn: async (variables: { textId: string; language: string; voiceSlot: VoiceSlot }) => {
       if (!apiKey) throw new Error("OpenAI API key required for transcription");
       return api.transcribeOne(
         bookLabel,
         variables.textId,
         variables.language,
+        variables.voiceSlot,
         apiKey,
       );
     },
@@ -1296,6 +1348,7 @@ export function LanguageView({
         {
           words: variables.words,
           duration: variables.duration,
+          voiceSlot: selectedVoiceSlot,
         },
       );
     },
@@ -1316,15 +1369,15 @@ export function LanguageView({
         duration,
       });
     },
-    [audioLang, saveTimestampsMutation],
+    [audioLang, saveTimestampsMutation, selectedVoiceSlot],
   );
 
   const handleTranscribe = useCallback(
     (textId: string) => {
       if (!audioLang || !apiKey) return;
-      transcribeMutation.mutate({ textId, language: audioLang });
+      transcribeMutation.mutate({ textId, language: audioLang, voiceSlot: selectedVoiceSlot });
     },
-    [audioLang, apiKey, transcribeMutation],
+    [audioLang, apiKey, selectedVoiceSlot, transcribeMutation],
   );
 
   // Resolve speech config summary for display.
@@ -1898,6 +1951,45 @@ export function LanguageView({
             </div>
           )}
 
+          {isSpeechStage && hasSecondaryVoice && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground">{t`Narrator voice`}</span>
+              <div className="inline-flex rounded-md bg-muted p-0.5">
+                {([
+                  {
+                    slot: "primary" as const,
+                    label:
+                      primaryVoiceEntry?.voiceLabel ||
+                      configuredVoiceSlots?.primary.label ||
+                      primaryVoiceEntry?.voice ||
+                      configuredVoiceSlots?.primary.voice ||
+                      t`Primary`,
+                  },
+                  {
+                    slot: "secondary" as const,
+                    label:
+                      secondaryVoiceEntry?.voiceLabel ||
+                      configuredVoiceSlots?.secondary?.label ||
+                      secondaryVoiceEntry?.voice ||
+                      configuredVoiceSlots?.secondary?.voice ||
+                      t`Secondary`,
+                  },
+                ]).map((option) => (
+                  <Button
+                    key={option.slot}
+                    type="button"
+                    size="sm"
+                    variant={selectedVoiceSlot === option.slot ? "default" : "ghost"}
+                    className="h-7 text-xs"
+                    onClick={() => setSelectedVoiceSlot(option.slot)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Category filter pills */}
           {pageFilteredEntries.length > 0 && (
             <div className="flex gap-1.5">
@@ -2306,7 +2398,7 @@ export function LanguageView({
                               <SpeechHighlightedText
                                 text={entry.text}
                                 timestamps={
-                                  isSpeechStage ? timestampMap[entry.id] : undefined
+                                  isSpeechStage ? selectedTimestampMap[entry.id] : undefined
                                 }
                                 currentTime={
                                   playingEntryId === entry.id ? playbackTime : 0
@@ -2354,7 +2446,7 @@ export function LanguageView({
                                   uploadErrorById[entry.id] ??
                                   generateErrorById[entry.id]
                                 }
-                                timestamps={timestampMap[entry.id]}
+                                timestamps={selectedTimestampMap[entry.id]}
                                 onTranscribe={handleTranscribe}
                                 isTranscribing={
                                   transcribeMutation.isPending &&
@@ -2504,7 +2596,7 @@ export function LanguageView({
                                     <>
                                       <SpeechHighlightedText
                                         text={translated || ""}
-                                        timestamps={timestampMap[entry.id]}
+                                        timestamps={selectedTimestampMap[entry.id]}
                                         currentTime={
                                           playingEntryId === entry.id
                                             ? playbackTime
@@ -2601,7 +2693,7 @@ export function LanguageView({
                                       uploadErrorById[entry.id] ??
                                       generateErrorById[entry.id]
                                     }
-                                    timestamps={timestampMap[entry.id]}
+                                    timestamps={selectedTimestampMap[entry.id]}
                                     onTranscribe={handleTranscribe}
                                     isTranscribing={
                                       transcribeMutation.isPending &&

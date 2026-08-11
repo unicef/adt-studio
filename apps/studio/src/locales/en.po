@@ -5423,6 +5423,12 @@ msgstr "N/A"
 msgid "Names and terms are consistent"
 msgstr "Names and terms are consistent"
 
+msgid "Narrator name, e.g. Valentina"
+msgstr "Narrator name, e.g. Valentina"
+
+msgid "Narrator voice"
+msgstr "Narrator voice"
+
 msgid "Natural, expressive voices. Best general-purpose default."
 msgstr "Natural, expressive voices. Best general-purpose default."
 
@@ -6783,6 +6789,12 @@ msgstr "Previous slide"
 msgid "Previously uploaded videos"
 msgstr "Previously uploaded videos"
 
+msgid "Primary"
+msgstr "Primary"
+
+msgid "Primary narrator"
+msgstr "Primary narrator"
+
 msgid "Print a variable"
 msgstr "Print a variable"
 
@@ -7863,6 +7875,12 @@ msgstr "Search..."
 
 msgid "Search…"
 msgstr "Search…"
+
+msgid "Secondary"
+msgstr "Secondary"
+
+msgid "Secondary narrator (optional)"
+msgstr "Secondary narrator (optional)"
 
 msgid "section"
 msgstr "section"

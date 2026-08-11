@@ -829,6 +829,73 @@ speech:
     expect(res.status).toBe(400)
     await expect(res.text()).resolves.toContain("Set X-Gemini-API-Key header.")
   })
+
+  it("generates a slot-specific secondary voice variant when configured", async () => {
+    const label = "gemini-secondary-voice"
+    seedBook(label)
+    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `gemini:
+  en:
+    primary:
+      voice: Kore
+    secondary:
+      voice: Puck
+      label: Second Narrator
+`
+    )
+
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            { content: { parts: [{ inlineData: { data: Buffer.from([1, 2, 3, 4]).toString("base64") } }] } },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Gemini-API-Key": "gm-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en", voiceSlot: "secondary" }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.entry.voiceSlot).toBe("secondary")
+    expect(body.entry.voiceLabel).toBe("Second Narrator")
+    expect(body.entry.fileName).toBe("pg001_t001--secondary.wav")
+    expect(body.entry.voice).toBe("Puck")
+
+    expect(
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+    ).toBe(true)
+  })
+
+  it("rejects a secondary voice request when no secondary is configured", async () => {
+    const label = "gemini-no-secondary"
+    seedBook(label)
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Gemini-API-Key": "gm-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en", voiceSlot: "secondary" }),
+    })
+
+    expect(res.status).toBe(400)
+    await expect(res.text()).resolves.toContain("Secondary voice is not configured")
+  })
 })
 
 describe("POST /books/:label/tts/upload-one", () => {
@@ -934,6 +1001,7 @@ describe("POST /books/:label/tts/upload-one", () => {
           model: "uploaded",
           cached: false,
           provider: "manual",
+          voiceSlot: "primary",
         },
       ])
 
@@ -995,6 +1063,7 @@ describe("POST /books/:label/tts/upload-one", () => {
       language: "en",
       words: [{ word: "Hello", start: 0, end: 0.5 }],
       duration: 0.5,
+      voiceSlot: "primary",
     })
     expect(transcribeWithWhisperMock).toHaveBeenCalledWith(
       expect.any(Buffer),
@@ -1014,10 +1083,149 @@ describe("POST /books/:label/tts/upload-one", () => {
         language: "en",
         words: [{ word: "Hello", start: 0, end: 0.5 }],
         duration: 0.5,
+        voiceSlot: "primary",
       })
     } finally {
       after.close()
     }
+  })
+
+  it("uploads a secondary voiceSlot with a slot-specific filename when configured", async () => {
+    const label = "manual-audio-secondary"
+    seedBook(label)
+    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `gemini:
+  en:
+    primary:
+      voice: Kore
+    secondary:
+      voice: Puck
+      label: Second Narrator
+`
+    )
+
+    const formData = new FormData()
+    formData.append("textId", "pg001_t001")
+    formData.append("language", "en")
+    formData.append("voiceSlot", "secondary")
+    formData.append(
+      "audio",
+      new File([new Uint8Array([9, 8, 7, 6])], "custom.wav", {
+        type: "audio/wav",
+      })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/upload-one`, {
+      method: "POST",
+      body: formData,
+    })
+
+    expect(res.status).toBe(201)
+    const body = await res.json()
+    expect(body.entry).toMatchObject({
+      textId: "pg001_t001",
+      fileName: "pg001_t001--secondary.wav",
+      voiceSlot: "secondary",
+      voiceLabel: "Second Narrator",
+      provider: "manual",
+    })
+
+    expect(
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+    ).toBe(true)
+
+    const after = createBookStorage(label, tmpDir)
+    try {
+      const ttsRow = after.getLatestNodeData("tts", "en")
+      const entries = (ttsRow?.data as { entries: Array<{ textId: string; voiceSlot?: string }> }).entries
+      expect(entries).toHaveLength(1)
+      expect(entries[0].voiceSlot).toBe("secondary")
+    } finally {
+      after.close()
+    }
+  })
+
+  it("rejects a secondary voiceSlot upload when no secondary is configured", async () => {
+    const label = "manual-audio-no-secondary"
+    seedBook(label)
+
+    const formData = new FormData()
+    formData.append("textId", "pg001_t001")
+    formData.append("language", "en")
+    formData.append("voiceSlot", "secondary")
+    formData.append(
+      "audio",
+      new File([new Uint8Array([9, 8, 7, 6])], "custom.wav", {
+        type: "audio/wav",
+      })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/upload-one`, {
+      method: "POST",
+      body: formData,
+    })
+
+    expect(res.status).toBe(400)
+    await expect(res.text()).resolves.toContain("Secondary voice is not configured")
+  })
+
+  it("keeps primary and secondary uploads independent across reruns", async () => {
+    const label = "manual-audio-independent"
+    seedBook(label)
+    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `gemini:
+  en:
+    primary:
+      voice: Kore
+    secondary:
+      voice: Puck
+`
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+
+    const uploadSlot = async (slot: "primary" | "secondary", byte: number) => {
+      const formData = new FormData()
+      formData.append("textId", "pg001_t001")
+      formData.append("language", "en")
+      formData.append("voiceSlot", slot)
+      formData.append(
+        "audio",
+        new File([new Uint8Array([byte])], "custom.wav", { type: "audio/wav" })
+      )
+      return app.request(`/books/${label}/tts/upload-one`, { method: "POST", body: formData })
+    }
+
+    const primaryRes = await uploadSlot("primary", 1)
+    expect(primaryRes.status).toBe(201)
+    const secondaryRes = await uploadSlot("secondary", 2)
+    expect(secondaryRes.status).toBe(201)
+
+    const after = createBookStorage(label, tmpDir)
+    try {
+      const entries = (after.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ textId: string; voiceSlot?: string; fileName: string }>
+      }).entries
+      expect(entries).toHaveLength(2)
+      const bySlot = Object.fromEntries(entries.map((e) => [e.voiceSlot ?? "primary", e]))
+      expect(bySlot.primary.fileName).toBe("pg001_t001.wav")
+      expect(bySlot.secondary.fileName).toBe("pg001_t001--secondary.wav")
+    } finally {
+      after.close()
+    }
+
+    // Re-uploading the primary slot must not disturb the secondary variant.
+    const reuploadPrimary = await uploadSlot("primary", 3)
+    expect(reuploadPrimary.status).toBe(201)
+    expect(
+      fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001--secondary.wav"))
+    ).toBe(true)
   })
 })
 
@@ -1069,6 +1277,249 @@ describe("DELETE /books/:label/tts", () => {
     try {
       expect(after.getLatestNodeData("tts", "en")).toBeNull()
       expect(after.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+    } finally {
+      after.close()
+    }
+  })
+})
+
+describe("GET /books/:label/tts", () => {
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-tts-route-"))
+    configPath = path.join(tmpDir, "config.yaml")
+    writeConfig()
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+    tmpDir = ""
+    configPath = ""
+  })
+
+  it("exposes voiceSlot and voiceLabel for both primary and secondary entries", async () => {
+    const label = "get-tts-dual-voice"
+    seedBook(label)
+
+    const audioDir = path.join(tmpDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.wav"), Buffer.from([1]))
+    fs.writeFileSync(path.join(audioDir, "pg001_t001--secondary.wav"), Buffer.from([2]))
+
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001.wav",
+            voice: "Kore",
+            model: "gemini-2.5-flash-preview-tts",
+            cached: false,
+            provider: "gemini",
+            voiceSlot: "primary",
+          },
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001--secondary.wav",
+            voice: "Puck",
+            model: "gemini-2.5-flash-preview-tts",
+            cached: false,
+            provider: "gemini",
+            voiceSlot: "secondary",
+            voiceLabel: "Second Narrator",
+          },
+        ],
+        generatedAt: new Date().toISOString(),
+      })
+    } finally {
+      storage.close()
+    }
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts`)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    const entries = body.languages.en.entries as Array<{
+      textId: string
+      fileName: string
+      voiceSlot: string
+      voiceLabel?: string
+    }>
+    expect(entries).toHaveLength(2)
+    const primary = entries.find((e) => e.fileName === "pg001_t001.wav")
+    const secondary = entries.find((e) => e.fileName === "pg001_t001--secondary.wav")
+    expect(primary?.voiceSlot).toBe("primary")
+    expect(secondary?.voiceSlot).toBe("secondary")
+    expect(secondary?.voiceLabel).toBe("Second Narrator")
+  })
+
+  it("treats a legacy entry with no voiceSlot as primary", async () => {
+    const label = "get-tts-legacy"
+    seedBook(label)
+
+    const audioDir = path.join(tmpDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.wav"), Buffer.from([1]))
+
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("tts", "en", {
+        entries: [{
+          textId: "pg001_t001",
+          language: "en",
+          fileName: "pg001_t001.wav",
+          voice: "alloy",
+          model: "gpt-4o-mini-tts",
+          cached: false,
+          provider: "openai",
+        }],
+        generatedAt: new Date().toISOString(),
+      })
+    } finally {
+      storage.close()
+    }
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts`)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.languages.en.entries[0].voiceSlot).toBe("primary")
+  })
+})
+
+describe("word timestamps are slot-specific", () => {
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-tts-route-"))
+    configPath = path.join(tmpDir, "config.yaml")
+    writeConfig()
+    transcribeWithWhisperMock.mockReset()
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+    tmpDir = ""
+    configPath = ""
+  })
+
+  it("PUT timestamps keeps primary and secondary edits independent", async () => {
+    const label = "timestamps-slots"
+    seedBook(label)
+
+    const app = createTTSRoutes(tmpDir, configPath)
+
+    const putRes1 = await app.request(
+      `/books/${label}/tts/timestamps/en/pg001_t001`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          words: [{ word: "Hello", start: 0, end: 0.4 }],
+          duration: 0.4,
+          voiceSlot: "primary",
+        }),
+      }
+    )
+    expect(putRes1.status).toBe(200)
+
+    const putRes2 = await app.request(
+      `/books/${label}/tts/timestamps/en/pg001_t001`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          words: [{ word: "Hello", start: 0, end: 0.9 }],
+          duration: 0.9,
+          voiceSlot: "secondary",
+        }),
+      }
+    )
+    expect(putRes2.status).toBe(200)
+
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      const row = storage.getLatestNodeData("tts-timestamps", "en")
+      const entries = (row?.data as { entries: Record<string, { duration: number; voiceSlot?: string }> }).entries
+      expect(entries.pg001_t001.duration).toBe(0.4)
+      expect(entries.pg001_t001.voiceSlot).toBe("primary")
+      expect(entries["pg001_t001--secondary"].duration).toBe(0.9)
+      expect(entries["pg001_t001--secondary"].voiceSlot).toBe("secondary")
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("transcribe-one finds the audio for the requested voiceSlot only", async () => {
+    const label = "transcribe-one-slots"
+    seedBook(label)
+
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001.wav",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+            provider: "openai",
+            voiceSlot: "primary",
+          },
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001--secondary.wav",
+            voice: "shimmer",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+            provider: "openai",
+            voiceSlot: "secondary",
+          },
+        ],
+        generatedAt: new Date().toISOString(),
+      })
+    } finally {
+      storage.close()
+    }
+
+    const audioDir = path.join(tmpDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.wav"), Buffer.from([1]))
+    fs.writeFileSync(path.join(audioDir, "pg001_t001--secondary.wav"), Buffer.from([2]))
+
+    transcribeWithWhisperMock.mockResolvedValue({
+      words: [{ word: "Hi", start: 0, end: 0.3 }],
+      duration: 0.3,
+    })
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/transcribe-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-OpenAI-Key": "sk-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en", voiceSlot: "secondary" }),
+    })
+
+    expect(res.status).toBe(200)
+    expect(transcribeWithWhisperMock).toHaveBeenCalledWith(
+      expect.any(Buffer),
+      "pg001_t001--secondary.wav",
+      "sk-test",
+      "en",
+      expect.anything(),
+    )
+
+    const after = createBookStorage(label, tmpDir)
+    try {
+      const row = after.getLatestNodeData("tts-timestamps", "en")
+      const entries = (row?.data as { entries: Record<string, { voiceSlot?: string }> }).entries
+      expect(entries["pg001_t001--secondary"].voiceSlot).toBe("secondary")
+      expect(entries.pg001_t001).toBeUndefined()
     } finally {
       after.close()
     }

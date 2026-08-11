@@ -1451,8 +1451,19 @@ function SpeechLanguageCards({
   // key on lowercase locales (`es-uy`) while these codes carry an uppercase
   // region (`es-UY`) — so the screen showed the global default voice and prompt
   // for a language the pipeline would narrate with its own.
+  const getPrimaryVoiceMap = (provider: string): Record<string, string> | undefined => {
+    const mappings = voiceMappings?.[provider]
+    if (!mappings) return undefined
+    return Object.fromEntries(
+      Object.entries(mappings).map(([locale, entry]) => [
+        locale,
+        typeof entry === "string" ? entry : entry.primary.voice,
+      ]),
+    )
+  }
+
   const resolveVoice = (lang: string, provider: string): string =>
-    resolveLocaleMapping(voiceMappings?.[provider], lang).value
+    resolveLocaleMapping(getPrimaryVoiceMap(provider), lang).value
 
   const resolveInstruction = (lang: string): string =>
     resolveLocaleMapping(speechInstructions, lang).value
@@ -1465,7 +1476,7 @@ function SpeechLanguageCards({
   // mapping for this locale or its base language.
   const usesEnglishDefaultVoice = (lang: string, provider: string): boolean => {
     if (provider !== "elevenlabs" || getBaseLanguage(normalizeLocale(lang)) === "en") return false
-    return resolveLocaleMapping(voiceMappings?.[provider], lang).source === "default"
+    return resolveLocaleMapping(getPrimaryVoiceMap(provider), lang).source === "default"
   }
 
   // Route a language to a different provider

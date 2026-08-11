@@ -221,6 +221,8 @@ export {
 } from "./easy-read.js"
 export {
   resolveVoice,
+  resolveVoiceForSlot,
+  isSecondaryVoiceConfigured,
   resolveInstructions,
   resolveProviderForLanguage,
   resolveSpeechModel,
@@ -228,6 +230,7 @@ export {
   resolveGeminiTtsRateLimit,
   getDocumentedGeminiTtsRpm,
   type ResolvedGeminiTtsRateLimit,
+  type ResolvedVoice,
   isSpeakableText,
   stripEmojis,
   loadVoicesConfig,

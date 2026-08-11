@@ -7,11 +7,16 @@ import {
   DEFAULT_ELEVENLABS_TTS_MODEL_ID,
   DEFAULT_ELEVENLABS_VOICE_ID,
   isTtsExcluded,
+  normalizeVoiceMapEntry,
+  voiceSlotEntryId,
+  VoicesConfig,
   type SpeechConfig,
   type SpeechFileEntry,
   type TTSProviderConfig,
   type TTSRateLimitConfig,
   type TextCatalogEntry,
+  type VoiceMapEntry,
+  type VoiceSlot,
 } from "@adt/types"
 import type {
   ElevenLabsVoiceSettingsOverrides,
@@ -67,24 +72,63 @@ export function isSpeakableText(text: string): boolean {
 // Voice resolution
 // ---------------------------------------------------------------------------
 
-export type VoiceMaps = Record<string, Record<string, string>>
+export type VoiceMaps = Record<string, Record<string, VoiceMapEntry>>
 
 export function loadVoicesConfig(configDir: string): VoiceMaps {
   const filePath = path.join(configDir, "voices.yaml")
   if (!fs.existsSync(filePath)) return {}
-  return yaml.load(fs.readFileSync(filePath, "utf-8")) as VoiceMaps
+  const raw = yaml.load(fs.readFileSync(filePath, "utf-8"))
+  const parsed = VoicesConfig.safeParse(raw ?? {})
+  if (!parsed.success) {
+    console.warn(`[speech] invalid voices.yaml at ${filePath}: ${parsed.error.message}`)
+    return {}
+  }
+  return parsed.data
+}
+
+/** A resolved voice: the provider's identifier plus its optional user-facing
+ *  label (from `voices.yaml`). */
+export interface ResolvedVoice {
+  voice: string
+  label?: string
 }
 
 /**
- * Resolve the voice name for a given provider and language code.
- * Resolution: exact match → base language → default.
+ * Resolve the configured voice for a given provider, language code, and
+ * voice slot ("primary"/"secondary"). Resolution: exact language match →
+ * base language → `default` entry — the same fallback chain as before, now
+ * applied to whichever mapping entry wins, then the requested slot is read
+ * off it (see {@link normalizeVoiceMapEntry}).
+ *
+ * `primary` always resolves (falling back to the hardcoded provider default
+ * when nothing is configured). `secondary` returns `null` when no secondary
+ * voice is configured for the resolved entry — callers use this to decide
+ * whether a language exposes a second selectable voice at all.
  */
-export function resolveVoice(
+export function resolveVoiceForSlot(
   provider: string,
   languageCode: string,
   voiceMaps: VoiceMaps,
+  slot: VoiceSlot,
   defaultVoice?: string
-): string {
+): ResolvedVoice | null {
+  const providerConfig = voiceMaps[provider]
+  const normalized = normalizeLocale(languageCode).toLowerCase()
+  const baseLang = getBaseLanguage(normalized)
+
+  const rawEntry: VoiceMapEntry | undefined =
+    providerConfig?.[normalized] ?? providerConfig?.[baseLang] ?? providerConfig?.["default"]
+  const resolved = rawEntry !== undefined ? normalizeVoiceMapEntry(rawEntry) : undefined
+
+  if (slot === "secondary") {
+    const secondary = resolved?.secondary
+    return secondary ? { voice: secondary.voice, label: secondary.label } : null
+  }
+
+  if (resolved?.primary) {
+    return { voice: resolved.primary.voice, label: resolved.primary.label }
+  }
+
   const normalizedDefaultVoice = defaultVoice?.trim()
   const usesGenericDefault = !normalizedDefaultVoice || normalizedDefaultVoice === DEFAULT_OPENAI_VOICE
   const fallback =
@@ -93,20 +137,35 @@ export function resolveVoice(
       : provider === "elevenlabs" && usesGenericDefault
         ? DEFAULT_ELEVENLABS_VOICE_ID
         : normalizedDefaultVoice || DEFAULT_OPENAI_VOICE
-  const providerConfig = voiceMaps[provider]
-  if (!providerConfig) return fallback
+  return { voice: fallback }
+}
 
-  const normalized = normalizeLocale(languageCode).toLowerCase()
+/**
+ * Whether a secondary voice is configured for a given provider/language —
+ * i.e. whether `resolveVoiceForSlot(..., "secondary", ...)` would resolve.
+ * Used to decide which slots a language generates audio for.
+ */
+export function isSecondaryVoiceConfigured(
+  provider: string,
+  languageCode: string,
+  voiceMaps: VoiceMaps
+): boolean {
+  return resolveVoiceForSlot(provider, languageCode, voiceMaps, "secondary") !== null
+}
 
-  // Exact match (e.g. "es-uy")
-  if (normalized in providerConfig) return providerConfig[normalized]
-
-  // Base language (e.g. "es" from "es-uy")
-  const baseLang = getBaseLanguage(normalized)
-  if (baseLang in providerConfig) return providerConfig[baseLang]
-
-  // Default from voices.yaml, then config default, then hardcoded
-  return providerConfig["default"] ?? fallback
+/**
+ * Resolve the voice name for a given provider and language code.
+ * Resolution: exact match → base language → default.
+ * Always resolves the "primary" slot — see {@link resolveVoiceForSlot} for
+ * secondary-voice resolution.
+ */
+export function resolveVoice(
+  provider: string,
+  languageCode: string,
+  voiceMaps: VoiceMaps,
+  defaultVoice?: string
+): string {
+  return resolveVoiceForSlot(provider, languageCode, voiceMaps, "primary", defaultVoice)!.voice
 }
 
 // ---------------------------------------------------------------------------
@@ -593,6 +652,14 @@ export interface GenerateSpeechFileOptions extends ElevenLabsVoiceSettingsOverri
   ttsSynthesizer: TTSSynthesizer
   rateLimiter?: RateLimiter
   provider?: string
+  /** Which configured voice this file is for. Defaults to "primary" — the
+   *  filename preserves the legacy bare `textId.ext`. "secondary" writes
+   *  `textId--secondary.ext` instead (see {@link voiceSlotEntryId}) so the two
+   *  variants never collide on disk. */
+  voiceSlot?: VoiceSlot
+  /** User-facing label for the voice (from `voices.yaml`), echoed onto the
+   *  returned entry for display purposes only — not hashed into the cache key. */
+  voiceLabel?: string
   /** Gemini sampling params (SpeechConfig temperature/seed). Passed to the
    *  synthesizer and folded into the cache key for the Gemini provider only.
    *  Undefined → not sent; Gemini uses its own defaults (sampling disabled). */
@@ -636,6 +703,8 @@ export async function generateSpeechFile(
     ttsSynthesizer,
     rateLimiter,
     provider,
+    voiceSlot,
+    voiceLabel,
     geminiTemperature,
     geminiSeed,
     elevenLabsPreviousText,
@@ -648,6 +717,7 @@ export async function generateSpeechFile(
     elevenLabsSpeed,
     signal,
   } = options
+  const slot: VoiceSlot = voiceSlot ?? "primary"
 
   // One object shared by the cache key and the synthesize() call below, so the
   // hashed settings can never diverge from the settings actually sent.
@@ -689,7 +759,7 @@ export async function generateSpeechFile(
     ...elevenLabsVoiceSettings,
   })
 
-  const fileName = `${safeTextId}.${safeFormat}`
+  const fileName = `${voiceSlotEntryId(safeTextId, slot)}.${safeFormat}`
   const audioRoot = path.resolve(bookDir, "audio")
   const audioDir = path.resolve(audioRoot, normalizedLanguage)
   assertWithinBase(audioRoot, audioDir, "audio directory")
@@ -711,6 +781,8 @@ export async function generateSpeechFile(
       model,
       cached: true,
       provider,
+      voiceSlot: slot,
+      ...(voiceLabel ? { voiceLabel } : {}),
     }
   }
 
@@ -750,6 +822,8 @@ export async function generateSpeechFile(
     model,
     cached: false,
     provider,
+    voiceSlot: slot,
+    ...(voiceLabel ? { voiceLabel } : {}),
   }
 }
 
@@ -773,6 +847,10 @@ export interface GeneratePageSpeechFilesOptions {
   whisperApiKey: string
   rateLimiter?: RateLimiter
   provider?: string
+  /** Which configured voice this page batch is for. Defaults to "primary" —
+   *  see {@link GenerateSpeechFileOptions.voiceSlot}. */
+  voiceSlot?: VoiceSlot
+  voiceLabel?: string
   geminiTemperature?: number
   geminiSeed?: number
   signal?: AbortSignal
@@ -797,9 +875,10 @@ export async function generatePageSpeechFiles(
 ): Promise<SpeechFileEntry[]> {
   const {
     entries, language, model, voice, instructions, format, bookDir, cacheDir,
-    ttsSynthesizer, whisperApiKey, rateLimiter, provider, geminiTemperature,
-    geminiSeed, signal,
+    ttsSynthesizer, whisperApiKey, rateLimiter, provider, voiceSlot, voiceLabel,
+    geminiTemperature, geminiSeed, signal,
   } = options
+  const slot: VoiceSlot = voiceSlot ?? "primary"
 
   const safeFormat = assertSafeSegment(format.toLowerCase(), SAFE_FORMAT_RE, "audio format")
   if (safeFormat !== "wav") {
@@ -897,7 +976,7 @@ export async function generatePageSpeechFiles(
     // A short edge fade guarantees zero-amplitude slice edges (belt-and-braces
     // with the silence-snap above) so back-to-back playback has no clicks.
     const slice = sliceWav(pageBytes, range.start, range.end, PAGE_SLICE_FADE_MS)
-    const fileName = `${range.id}.${safeFormat}`
+    const fileName = `${voiceSlotEntryId(range.id, slot)}.${safeFormat}`
     const outputPath = path.resolve(audioDir, fileName)
     assertWithinBase(audioDir, outputPath, "audio file")
     // Only write when the bytes actually change, so an unchanged slice keeps its
@@ -906,7 +985,17 @@ export async function generatePageSpeechFiles(
     if (!fs.existsSync(outputPath) || !fs.readFileSync(outputPath).equals(slice)) {
       fs.writeFileSync(outputPath, slice)
     }
-    results.push({ textId: range.id, language: normalizedLanguage, fileName, voice, model, cached, provider })
+    results.push({
+      textId: range.id,
+      language: normalizedLanguage,
+      fileName,
+      voice,
+      model,
+      cached,
+      provider,
+      voiceSlot: slot,
+      ...(voiceLabel ? { voiceLabel } : {}),
+    })
   }
   return results
 }

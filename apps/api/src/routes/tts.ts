@@ -8,6 +8,9 @@ import {
   parseBookLabel,
   TTSOutput,
   isTtsExcluded,
+  voiceSlotEntryId,
+  resolveEntryVoiceSlot,
+  VoiceSlot,
   type SpeechFileEntry,
   type SpeechFailedEntry,
   type TTSProviderConfig,
@@ -34,7 +37,8 @@ import {
   resolveProviderForLanguage,
   resolveSpeechFormat,
   resolveSpeechModel,
-  resolveVoice,
+  resolveVoiceForSlot,
+  isSecondaryVoiceConfigured,
   generateSpeechFile,
   generateWordTimestamps,
   getCoreTtsCatalog,
@@ -45,6 +49,7 @@ import {
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
   type ProviderRouting,
+  type VoiceMaps,
 } from "@adt/pipeline"
 import { getLiveSpeechRun } from "../services/speech-progress.js"
 
@@ -52,6 +57,7 @@ const GenerateSingleTTSBody = z
   .object({
     textId: z.string().min(1),
     language: z.string().min(1),
+    voiceSlot: VoiceSlot.optional(),
   })
   .strict()
 
@@ -59,6 +65,7 @@ const UploadSingleTTSFields = z
   .object({
     textId: z.string().min(1),
     language: z.string().min(1),
+    voiceSlot: VoiceSlot.optional(),
   })
   .strict()
 
@@ -173,26 +180,36 @@ function mergeSpeechEntry(
   nextEntry: SpeechFileEntry,
   orderedIds: string[]
 ): SpeechFileEntry[] {
-  const byId = new Map(existingEntries.map((entry) => [entry.textId, entry]))
-  byId.set(nextEntry.textId, nextEntry)
+  // Keyed by the slot-qualified id so primary/secondary variants of the same
+  // textId are independent entries rather than overwriting each other.
+  const byId = new Map(
+    existingEntries.map((entry) => [voiceSlotEntryId(entry.textId, entry.voiceSlot), entry])
+  )
+  byId.set(voiceSlotEntryId(nextEntry.textId, nextEntry.voiceSlot), nextEntry)
 
   const order = new Map(orderedIds.map((id, index) => [id, index]))
-  return [...byId.values()].sort(
-    (left, right) =>
+  // Secondary sorts immediately after its primary counterpart for the same textId.
+  const slotRank = (entry: SpeechFileEntry) =>
+    resolveEntryVoiceSlot(entry) === "secondary" ? 1 : 0
+  return [...byId.values()].sort((left, right) => {
+    const byOrder =
       (order.get(left.textId) ?? Number.MAX_SAFE_INTEGER) -
       (order.get(right.textId) ?? Number.MAX_SAFE_INTEGER)
-  )
+    return byOrder !== 0 ? byOrder : slotRank(left) - slotRank(right)
+  })
 }
 
 function buildUpdatedTtsOutput(
   storage: ReturnType<typeof createBookStorage>,
   language: string,
   entries: SpeechFileEntry[],
-  resolvedTextId: string
+  resolvedTextId: string,
+  resolvedVoiceSlot: VoiceSlot
 ): TTSOutput {
   const previous = getLatestTtsOutput(storage, language)
   const failed = (previous?.failed ?? []).filter(
-    (entry) => entry.textId !== resolvedTextId
+    (entry) =>
+      !(entry.textId === resolvedTextId && resolveEntryVoiceSlot(entry) === resolvedVoiceSlot)
   )
   return {
     entries,
@@ -204,9 +221,15 @@ function buildUpdatedTtsOutput(
 function getTtsCompletionSummary(
   storage: ReturnType<typeof createBookStorage>,
   config: ReturnType<typeof loadBookConfig>,
-  sourceLanguage: string
+  sourceLanguage: string,
+  voiceMaps: VoiceMaps
 ): { remainingItems: number; allComplete: boolean } {
   const outputLanguages = getOutputLanguages(config, sourceLanguage)
+  const providerConfigs: Record<string, TTSProviderConfig> = config.speech?.providers ?? {}
+  const routing: ProviderRouting = {
+    providers: providerConfigs,
+    defaultProvider: config.speech?.default_provider ?? "openai",
+  }
   let remainingItems = 0
 
   for (const language of outputLanguages) {
@@ -224,13 +247,23 @@ function getTtsCompletionSummary(
       }
       throw err
     }
+    // Completion only requires the slots actually configured for this
+    // provider/language — an unconfigured secondary is never counted.
+    const provider = resolveProviderForLanguage(language, routing)
+    const configuredSlots: VoiceSlot[] = isSecondaryVoiceConfigured(provider, language, voiceMaps)
+      ? ["primary", "secondary"]
+      : ["primary"]
     const availableIds = new Set(
-      getLatestTtsEntries(storage, language).map((entry) => entry.textId)
+      getLatestTtsEntries(storage, language).map((entry) =>
+        voiceSlotEntryId(entry.textId, entry.voiceSlot)
+      )
     )
     for (const entry of expectedEntries) {
       if (isTtsExcluded(entry.id, config.speech)) continue
-      if (!availableIds.has(entry.id)) {
-        remainingItems++
+      for (const slot of configuredSlots) {
+        if (!availableIds.has(voiceSlotEntryId(entry.id, slot))) {
+          remainingItems++
+        }
       }
     }
   }
@@ -300,7 +333,8 @@ function getSingleItemFallbackAttempts(options: {
   elevenLabsApiKey?: string
   language: string
   providerConfigs: Record<string, TTSProviderConfig>
-  voiceMaps: ReturnType<typeof loadVoicesConfig>
+  voiceMaps: VoiceMaps
+  voiceSlot: VoiceSlot
   defaultOpenAIModel?: string
   /** The provider already tried as the primary attempt — excluded so a
    *  failure isn't retried against the same provider that just failed. */
@@ -309,31 +343,42 @@ function getSingleItemFallbackAttempts(options: {
   const attempts: SingleItemFallbackAttempt[] = []
 
   if (options.openaiApiKey) {
-    attempts.push({
-      provider: "openai",
-      model: resolveSpeechModel(
-        "openai",
-        options.providerConfigs,
-        options.defaultOpenAIModel,
-      ),
-      voice: resolveVoice("openai", options.language, options.voiceMaps),
-    })
+    const resolved = resolveVoiceForSlot("openai", options.language, options.voiceMaps, options.voiceSlot)
+    // A fallback provider that has no secondary voice configured for this
+    // language is skipped rather than silently generating with the wrong slot.
+    if (resolved) {
+      attempts.push({
+        provider: "openai",
+        model: resolveSpeechModel(
+          "openai",
+          options.providerConfigs,
+          options.defaultOpenAIModel,
+        ),
+        voice: resolved.voice,
+      })
+    }
   }
 
   if (options.azureSpeechKey && options.azureSpeechRegion) {
-    attempts.push({
-      provider: "azure",
-      model: resolveSpeechModel("azure", options.providerConfigs),
-      voice: resolveVoice("azure", options.language, options.voiceMaps),
-    })
+    const resolved = resolveVoiceForSlot("azure", options.language, options.voiceMaps, options.voiceSlot)
+    if (resolved) {
+      attempts.push({
+        provider: "azure",
+        model: resolveSpeechModel("azure", options.providerConfigs),
+        voice: resolved.voice,
+      })
+    }
   }
 
   if (options.elevenLabsApiKey) {
-    attempts.push({
-      provider: "elevenlabs",
-      model: resolveSpeechModel("elevenlabs", options.providerConfigs),
-      voice: resolveVoice("elevenlabs", options.language, options.voiceMaps),
-    })
+    const resolved = resolveVoiceForSlot("elevenlabs", options.language, options.voiceMaps, options.voiceSlot)
+    if (resolved) {
+      attempts.push({
+        provider: "elevenlabs",
+        model: resolveSpeechModel("elevenlabs", options.providerConfigs),
+        voice: resolved.voice,
+      })
+    }
   }
 
   return attempts.filter((attempt) => attempt.provider !== options.primaryProvider)
@@ -359,7 +404,8 @@ function resolveUploadedAudioFormat(file: File): "mp3" | "wav" | "ogg" {
 function clearWordTimestampEntry(
   storage: ReturnType<typeof createBookStorage>,
   language: string,
-  textId: string
+  textId: string,
+  voiceSlot: VoiceSlot
 ): void {
   const normalizedLanguage = normalizeLocale(language)
   const legacyLanguage = normalizedLanguage.replace("-", "_")
@@ -372,14 +418,19 @@ function clearWordTimestampEntry(
   const data = row.data as WordTimestampOutput
   const existing = data.entries
   const failed = data.failed ?? []
-  const hasEntry = textId in existing
-  const hasFailed = failed.some((f) => f.textId === textId)
+  const slotEntryId = voiceSlotEntryId(textId, voiceSlot)
+  const hasEntry = slotEntryId in existing
+  const hasFailed = failed.some(
+    (f) => f.textId === textId && resolveEntryVoiceSlot(f) === voiceSlot
+  )
   if (!hasEntry && !hasFailed) return
 
   const nextEntries = { ...existing }
-  delete nextEntries[textId]
+  delete nextEntries[slotEntryId]
   // Removing/replacing the audio makes any prior highlighting failure stale.
-  const nextFailed = failed.filter((f) => f.textId !== textId)
+  const nextFailed = failed.filter(
+    (f) => !(f.textId === textId && resolveEntryVoiceSlot(f) === voiceSlot)
+  )
 
   storage.putNodeData("tts-timestamps", normalizedLanguage, {
     entries: nextEntries,
@@ -444,7 +495,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     }
 
     const resolvedBooksDir = path.resolve(booksDir)
-    const mapEntries = (language: string, entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string }>) => {
+    const mapEntries = (language: string, entries: SpeechFileEntry[]) => {
       const audioDir = path.join(resolvedBooksDir, safeLabel, "audio", language)
       const storage = createBookStorage(safeLabel, booksDir)
       let readyIds: Set<string>
@@ -469,12 +520,16 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           model: e.model,
           cached: e.cached,
           provider: e.provider,
+          // Missing/undefined slot is a legacy (pre-dual-voice) entry —
+          // resolve it to "primary" so the client never has to special-case it.
+          voiceSlot: resolveEntryVoiceSlot(e),
+          voiceLabel: e.voiceLabel,
           cacheKey,
         }
       })
     }
 
-    const languages: Record<string, { entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string; cacheKey?: string }>; failed?: Array<{ textId: string; error: string }>; generatedAt: string; version: number }> = {}
+    const languages: Record<string, { entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string; voiceSlot: VoiceSlot; voiceLabel?: string; cacheKey?: string }>; failed?: SpeechFailedEntry[]; generatedAt: string; version: number }> = {}
 
     // While a speech run is active, serve its live snapshot — node data is
     // only persisted at the end of the run, but audio files land on disk per
@@ -570,6 +625,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const audioFile = formData.get("audio")
     const textId = formData.get("textId")
     const language = formData.get("language")
+    const voiceSlotField = formData.get("voiceSlot")
 
     if (!(audioFile instanceof File)) {
       throw new HTTPException(400, { message: "Audio file is required" })
@@ -578,12 +634,15 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     const parsed = UploadSingleTTSFields.safeParse({
       textId: typeof textId === "string" ? textId : undefined,
       language: typeof language === "string" ? language : undefined,
+      voiceSlot: typeof voiceSlotField === "string" ? voiceSlotField : undefined,
     })
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid upload request: ${parsed.error.message}`,
       })
     }
+
+    const voiceSlot: VoiceSlot = parsed.data.voiceSlot ?? "primary"
 
     const normalizedLanguage = normalizeLocale(parsed.data.language)
     if (!SAFE_AUDIO_LANGUAGE_RE.test(normalizedLanguage)) {
@@ -620,15 +679,32 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         })
       }
 
+      const providerConfigs: Record<string, TTSProviderConfig> = config.speech?.providers ?? {}
+      const routing: ProviderRouting = {
+        providers: providerConfigs,
+        defaultProvider: config.speech?.default_provider ?? "openai",
+      }
+      const provider = resolveProviderForLanguage(normalizedLanguage, routing)
+      const configDir = getConfigDir(configPath)
+      const voiceMaps = loadVoicesConfig(configDir)
+      if (voiceSlot === "secondary" && !isSecondaryVoiceConfigured(provider, normalizedLanguage, voiceMaps)) {
+        throw new HTTPException(400, {
+          message: `Secondary voice is not configured for ${normalizedLanguage}`,
+        })
+      }
+      const voiceLabel = resolveVoiceForSlot(provider, normalizedLanguage, voiceMaps, voiceSlot)?.label
+
       const format = resolveUploadedAudioFormat(audioFile)
       const nextEntry: SpeechFileEntry = {
         textId: textEntry.id,
         language: normalizedLanguage,
-        fileName: `${textEntry.id}.${format}`,
+        fileName: `${voiceSlotEntryId(textEntry.id, voiceSlot)}.${format}`,
         voice: "uploaded",
         model: "uploaded",
         cached: false,
         provider: "manual",
+        voiceSlot,
+        ...(voiceLabel ? { voiceLabel } : {}),
       }
 
       const buffer = Buffer.from(await audioFile.arrayBuffer())
@@ -655,7 +731,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
       const existingEntries = getLatestTtsEntries(storage, normalizedLanguage)
       const existingEntry = existingEntries.find(
-        (entry) => entry.textId === textEntry.id
+        (entry) => entry.textId === textEntry.id && resolveEntryVoiceSlot(entry) === voiceSlot
       )
 
       fs.mkdirSync(audioDir, { recursive: true })
@@ -683,15 +759,16 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       const version = storage.putNodeData(
         "tts",
         normalizedLanguage,
-        buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
+        buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id, voiceSlot)
       )
 
-      clearWordTimestampEntry(storage, normalizedLanguage, textEntry.id)
+      clearWordTimestampEntry(storage, normalizedLanguage, textEntry.id, voiceSlot)
 
       const completion = getTtsCompletionSummary(
         storage,
         config,
-        sourceLanguage
+        sourceLanguage,
+        voiceMaps
       )
       if (completion.allComplete) {
         storage.markStepCompleted("tts")
@@ -750,6 +827,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         message: `Invalid TTS item request: ${parsed.error.message}`,
       })
     }
+
+    const voiceSlot: VoiceSlot = parsed.data.voiceSlot ?? "primary"
 
     const geminiApiKey = c.req.header("X-Gemini-API-Key")?.trim()
     const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
@@ -815,6 +894,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       const configDir = getConfigDir(configPath)
       const voiceMaps = loadVoicesConfig(configDir)
       const instructionsMap = loadSpeechInstructions(configDir)
+      if (voiceSlot === "secondary" && !isSecondaryVoiceConfigured(provider, normalizedLanguage, voiceMaps)) {
+        throw new HTTPException(400, {
+          message: `Secondary voice is not configured for ${normalizedLanguage}`,
+        })
+      }
       const defaultSpeechModel =
         config.speech?.model ?? config.default_speech_generation_model
       const model = resolveSpeechModel(
@@ -823,12 +907,17 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         defaultSpeechModel,
       )
       const format = resolveSpeechFormat(provider, config.speech?.format)
-      const voice = resolveVoice(
+      // Guarded above: "secondary" only reaches here when configured, so this
+      // always resolves.
+      const resolvedVoice = resolveVoiceForSlot(
         provider,
         normalizedLanguage,
         voiceMaps,
+        voiceSlot,
         config.speech?.voice
-      )
+      )!
+      const voice = resolvedVoice.voice
+      const voiceLabel = resolvedVoice.label
       const fallbackAttempts = getSingleItemFallbackAttempts({
         openaiApiKey,
         azureSpeechKey,
@@ -837,6 +926,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         language: normalizedLanguage,
         providerConfigs,
         voiceMaps,
+        voiceSlot,
         defaultOpenAIModel: defaultSpeechModel,
         primaryProvider: provider,
       })
@@ -919,6 +1009,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                     )
                   : createTTSSynthesizer(openaiApiKey),
           provider: options.targetProvider,
+          voiceSlot,
+          voiceLabel,
           geminiTemperature: config.speech?.temperature,
           geminiSeed: config.speech?.seed,
           // ElevenLabs-only: adjacent-entry context, opt-in via
@@ -1041,13 +1133,14 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         const version = storage.putNodeData(
           "tts",
           normalizedLanguage,
-          buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
+          buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id, voiceSlot)
         )
 
         const completion = getTtsCompletionSummary(
           storage,
           config,
-          sourceLanguage
+          sourceLanguage,
+          voiceMaps
         )
         if (completion.allComplete) {
           storage.markStepCompleted("tts")
@@ -1117,13 +1210,14 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
               const version = storage.putNodeData(
                 "tts",
                 normalizedLanguage,
-                buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
+                buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id, voiceSlot)
               )
 
               const completion = getTtsCompletionSummary(
                 storage,
                 config,
-                sourceLanguage
+                sourceLanguage,
+                voiceMaps
               )
               if (completion.allComplete) {
                 storage.markStepCompleted("tts")
@@ -1230,6 +1324,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         end: z.number(),
       })),
       duration: z.number(),
+      voiceSlot: VoiceSlot.optional(),
     }).strict()
 
     const parsed = schema.safeParse(body)
@@ -1239,6 +1334,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       })
     }
 
+    const voiceSlot: VoiceSlot = parsed.data.voiceSlot ?? "primary"
     const normalizedLanguage = normalizeLocale(language)
     const storage = createBookStorage(safeLabel, booksDir)
 
@@ -1248,22 +1344,26 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         ? (existingRow.data as WordTimestampOutput)
         : undefined
       const existing = existingData?.entries ?? {}
+      const slotEntryId = voiceSlotEntryId(textId, voiceSlot)
 
       const updatedEntry: WordTimestampEntry = {
         textId,
         language: normalizedLanguage,
         words: parsed.data.words,
         duration: parsed.data.duration,
+        voiceSlot,
       }
 
       const merged: Record<string, WordTimestampEntry> = {
         ...existing,
-        [textId]: updatedEntry,
+        [slotEntryId]: updatedEntry,
       }
 
       // A manual edit resolves this item — drop it from the failed list while
       // preserving any other still-failed items.
-      const remainingFailed = (existingData?.failed ?? []).filter((f) => f.textId !== textId)
+      const remainingFailed = (existingData?.failed ?? []).filter(
+        (f) => !(f.textId === textId && resolveEntryVoiceSlot(f) === voiceSlot)
+      )
 
       storage.putNodeData("tts-timestamps", normalizedLanguage, {
         entries: merged,
@@ -1301,6 +1401,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       })
     }
 
+    const voiceSlot: VoiceSlot = parsed.data.voiceSlot ?? "primary"
+
     const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
     if (!openaiApiKey) {
       throw new HTTPException(400, {
@@ -1314,7 +1416,9 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
     try {
       // Find the audio file for this entry
       const ttsEntries = getLatestTtsEntries(storage, normalizedLanguage)
-      const ttsEntry = ttsEntries.find((e) => e.textId === parsed.data.textId)
+      const ttsEntry = ttsEntries.find(
+        (e) => e.textId === parsed.data.textId && resolveEntryVoiceSlot(e) === voiceSlot
+      )
       if (!ttsEntry) {
         throw new HTTPException(404, {
           message: `No audio found for ${parsed.data.textId} in ${normalizedLanguage}`,
@@ -1358,6 +1462,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         language: normalizedLanguage,
         words: result.words,
         duration: result.duration,
+        voiceSlot,
       }
 
       // Merge into existing timestamps for this language
@@ -1366,16 +1471,17 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         ? (existingRow.data as WordTimestampOutput)
         : undefined
       const existing = existingData?.entries ?? {}
+      const slotEntryId = voiceSlotEntryId(parsed.data.textId, voiceSlot)
 
       const merged: Record<string, WordTimestampEntry> = {
         ...existing,
-        [parsed.data.textId]: timestampEntry,
+        [slotEntryId]: timestampEntry,
       }
 
       // Successful re-transcription resolves this item — drop it from the failed
       // list while preserving any other still-failed items.
       const remainingFailed = (existingData?.failed ?? []).filter(
-        (f) => f.textId !== parsed.data.textId,
+        (f) => !(f.textId === parsed.data.textId && resolveEntryVoiceSlot(f) === voiceSlot),
       )
 
       storage.putNodeData("tts-timestamps", normalizedLanguage, {
@@ -1435,7 +1541,9 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       const existing = existingRow
         ? (existingRow.data as WordTimestampOutput).entries
         : {}
-      totalToTranscribe = ttsEntries.filter((e) => !existing[e.textId]).length
+      totalToTranscribe = ttsEntries.filter(
+        (e) => !existing[voiceSlotEntryId(e.textId, resolveEntryVoiceSlot(e))]
+      ).length
       if (totalToTranscribe === 0) {
         return c.json({ taskId: null, count: 0, skipped: ttsEntries.length })
       }
@@ -1460,7 +1568,9 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
             ? (existingRow.data as WordTimestampOutput).entries
             : {}
 
-          const toTranscribe = ttsEntries.filter((e) => !existing[e.textId])
+          const toTranscribe = ttsEntries.filter(
+            (e) => !existing[voiceSlotEntryId(e.textId, resolveEntryVoiceSlot(e))]
+          )
           if (toTranscribe.length === 0) return { count: 0, skipped: ttsEntries.length }
 
           const bookDir = path.join(path.resolve(booksDir), safeLabel)
@@ -1482,6 +1592,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           const succeededIds = new Set<string>()
 
           for (const ttsEntry of toTranscribe) {
+            const slot = resolveEntryVoiceSlot(ttsEntry)
+            const slotEntryId = voiceSlotEntryId(ttsEntry.textId, slot)
             try {
               const audioPath = path.resolve(bookDir, "audio", normalizedLanguage, ttsEntry.fileName)
               if (!fs.existsSync(audioPath)) {
@@ -1504,6 +1616,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 language: normalizedLanguage,
                 words: result.words,
                 duration: result.duration,
+                voiceSlot: slot,
               }
 
               // Write incrementally to avoid overwriting concurrent user edits;
@@ -1514,15 +1627,15 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 : undefined
               const current = currentData?.entries ?? {}
               const remainingFailed = (currentData?.failed ?? []).filter(
-                (f) => f.textId !== ttsEntry.textId,
+                (f) => !(f.textId === ttsEntry.textId && resolveEntryVoiceSlot(f) === slot),
               )
               storage.putNodeData("tts-timestamps", normalizedLanguage, {
-                entries: { ...current, [ttsEntry.textId]: entry },
+                entries: { ...current, [slotEntryId]: entry },
                 generatedAt: new Date().toISOString(),
                 ...(remainingFailed.length > 0 ? { failed: remainingFailed } : {}),
               } satisfies WordTimestampOutput)
 
-              succeededIds.add(ttsEntry.textId)
+              succeededIds.add(slotEntryId)
               count++
             } catch (err) {
               // Record the failure and keep going — one bad item (e.g. an empty
@@ -1530,6 +1643,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
               newlyFailed.push({
                 textId: ttsEntry.textId,
                 error: err instanceof Error ? err.message : String(err),
+                voiceSlot: slot,
               })
             }
             emitProgress(
@@ -1544,8 +1658,12 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
             const currentRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
             const currentData = currentRow ? (currentRow.data as WordTimestampOutput) : undefined
             const failedById = new Map<string, SpeechFailedEntry>()
-            for (const f of currentData?.failed ?? []) failedById.set(f.textId, f)
-            for (const f of newlyFailed) failedById.set(f.textId, f)
+            for (const f of currentData?.failed ?? []) {
+              failedById.set(voiceSlotEntryId(f.textId, resolveEntryVoiceSlot(f)), f)
+            }
+            for (const f of newlyFailed) {
+              failedById.set(voiceSlotEntryId(f.textId, resolveEntryVoiceSlot(f)), f)
+            }
             for (const id of succeededIds) failedById.delete(id)
             const failed = [...failedById.values()]
             storage.putNodeData("tts-timestamps", normalizedLanguage, {

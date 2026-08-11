@@ -103,6 +103,88 @@ export const SpeechConfig = z.object({
 })
 export type SpeechConfig = z.infer<typeof SpeechConfig>
 
+// ---------------------------------------------------------------------------
+// Dual voice slots (primary + optional secondary)
+// ---------------------------------------------------------------------------
+
+/** Stable identifiers for a book's optional dual selectable voices. Every
+ *  provider/language combination has a required `primary` voice; `secondary`
+ *  is optional. Speech identity everywhere is `language + voiceSlot + textId`. */
+export const VOICE_SLOTS = ["primary", "secondary"] as const
+export const VoiceSlot = z.enum(VOICE_SLOTS)
+export type VoiceSlot = z.infer<typeof VoiceSlot>
+
+export const DEFAULT_VOICE_SLOT: VoiceSlot = "primary"
+
+/** Appended to the secondary voice's on-disk filename / word-timestamp map
+ *  key so it never collides with the primary variant of the same textId.
+ *  Primary keeps the bare `textId` (unchanged, backward compatible). */
+export const SECONDARY_VOICE_SLOT_SUFFIX = "--secondary"
+
+/**
+ * The slot-qualified identity for a catalog entry, used for on-disk audio
+ * filenames (`textId.ext` / `textId--secondary.ext`) and word-timestamp map
+ * keys. Primary preserves the legacy bare `textId`; secondary appends
+ * {@link SECONDARY_VOICE_SLOT_SUFFIX}. Missing/undefined slot is treated as
+ * primary, matching how legacy (pre-dual-voice) data is consumed.
+ */
+export function voiceSlotEntryId(textId: string, slot?: VoiceSlot | null): string {
+  return slot === "secondary" ? `${textId}${SECONDARY_VOICE_SLOT_SUFFIX}` : textId
+}
+
+/** Inverse of {@link voiceSlotEntryId}: recovers the base textId and slot
+ *  from a slot-qualified id (e.g. a word-timestamp map key). */
+export function parseVoiceSlotEntryId(id: string): { textId: string; voiceSlot: VoiceSlot } {
+  if (id.endsWith(SECONDARY_VOICE_SLOT_SUFFIX)) {
+    return {
+      textId: id.slice(0, -SECONDARY_VOICE_SLOT_SUFFIX.length),
+      voiceSlot: "secondary",
+    }
+  }
+  return { textId: id, voiceSlot: "primary" }
+}
+
+/** A single voice's provider identifier + optional user-facing label. */
+export const VoiceSlotConfig = z.object({
+  voice: z.string().trim().min(1),
+  label: z.string().trim().min(1).optional(),
+})
+export type VoiceSlotConfig = z.infer<typeof VoiceSlotConfig>
+
+/** Canonical per-provider/language voice mapping: a required primary voice
+ *  and an optional secondary. */
+export const VoiceSlots = z.object({
+  primary: VoiceSlotConfig,
+  secondary: VoiceSlotConfig.optional(),
+})
+export type VoiceSlots = z.infer<typeof VoiceSlots>
+
+/**
+ * A raw `voices.yaml` per-language entry. Legacy books configure a plain
+ * scalar string (the provider's voice identifier) — equivalent to
+ * `{ primary: { voice: <string> } }` with no secondary. Books adding a
+ * second selectable voice configure the full {@link VoiceSlots} shape
+ * instead.
+ */
+export const VoiceMapEntry = z.union([z.string(), VoiceSlots])
+export type VoiceMapEntry = z.infer<typeof VoiceMapEntry>
+
+export const VoiceLanguageMap = z.record(z.string(), VoiceMapEntry)
+export type VoiceLanguageMap = z.infer<typeof VoiceLanguageMap>
+
+/** Whole `voices.yaml`: provider name -> language code -> mapping entry. */
+export const VoicesConfig = z.record(z.string(), VoiceLanguageMap)
+export type VoicesConfig = z.infer<typeof VoicesConfig>
+
+/**
+ * Normalizes a raw `voices.yaml` entry (legacy scalar or full slots object)
+ * into the canonical {@link VoiceSlots} shape. A legacy string always
+ * resolves to a primary-only mapping (no secondary).
+ */
+export function normalizeVoiceMapEntry(entry: VoiceMapEntry): VoiceSlots {
+  return typeof entry === "string" ? { primary: { voice: entry } } : entry
+}
+
 export function isSpeechWordHighlightingEnabled(
   config?: Pick<SpeechConfig, "word_highlighting"> | null,
 ): boolean {
@@ -147,6 +229,13 @@ export const SpeechFileEntry = z.object({
   model: z.string(),
   cached: z.boolean(),
   provider: z.string().optional(),
+  /** Which configured voice produced this file. Missing/undefined means
+   *  primary — entries persisted before dual-voice support never set this
+   *  field and every consumer must treat that as primary (see
+   *  {@link resolveEntryVoiceSlot}). */
+  voiceSlot: VoiceSlot.optional(),
+  /** User-facing label for the voice (from `voices.yaml`), if configured. */
+  voiceLabel: z.string().optional(),
 })
 export type SpeechFileEntry = z.infer<typeof SpeechFileEntry>
 
@@ -154,8 +243,19 @@ export type SpeechFileEntry = z.infer<typeof SpeechFileEntry>
 export const SpeechFailedEntry = z.object({
   textId: z.string(),
   error: z.string(),
+  /** Which voice slot failed. Missing/undefined means primary, mirroring
+   *  {@link SpeechFileEntry.voiceSlot}. */
+  voiceSlot: VoiceSlot.optional(),
 })
 export type SpeechFailedEntry = z.infer<typeof SpeechFailedEntry>
+
+/** The effective voice slot of a persisted entry/failure — missing/undefined
+ *  always means primary, so legacy (pre-dual-voice) data keeps working. */
+export function resolveEntryVoiceSlot(
+  entry?: { voiceSlot?: VoiceSlot } | null,
+): VoiceSlot {
+  return entry?.voiceSlot ?? DEFAULT_VOICE_SLOT
+}
 
 export const TTSOutput = z.object({
   entries: z.array(SpeechFileEntry),
@@ -178,6 +278,12 @@ export const WordTimestampEntry = z.object({
   language: z.string(),
   words: z.array(WordTimestamp),
   duration: z.number(),
+  /** Which configured voice this transcription belongs to. Missing/undefined
+   *  means primary (see {@link resolveEntryVoiceSlot}). The parent
+   *  {@link WordTimestampOutput.entries} record is keyed by
+   *  {@link voiceSlotEntryId} rather than by this field, so primary and
+   *  secondary transcripts of the same textId never collide. */
+  voiceSlot: VoiceSlot.optional(),
 })
 export type WordTimestampEntry = z.infer<typeof WordTimestampEntry>
 

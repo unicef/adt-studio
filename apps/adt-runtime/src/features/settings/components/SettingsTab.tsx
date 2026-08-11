@@ -21,6 +21,11 @@ import {
   type Theme,
 } from "@/shared/state/ui.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
+import {
+  audioVoicesAtom,
+  narratorVoiceAtom,
+  type NarratorVoiceSlot,
+} from "@/features/language/state/language.atoms";
 import { useIsMobile } from "@/shared/hooks/use-is-mobile";
 import { trackToggleEvent } from "@/shared/lib/analytics";
 
@@ -44,6 +49,8 @@ export function SettingsTab() {
   const [iconSize, setIconSize] = useAtom(iconSizeAtom);
   const [reduceMotion, setReduceMotion] = useAtom(reduceMotionAtom);
   const [theme, setTheme] = useAtom(themeAtom);
+  const audioVoices = useAtomValue(audioVoicesAtom);
+  const [narratorVoice, setNarratorVoice] = useAtom(narratorVoiceAtom);
 
   const wrap =
     (name: string, setter: (v: boolean) => void) => (next: boolean) => {
@@ -72,6 +79,28 @@ export function SettingsTab() {
                 checked={readAloud}
                 onChange={wrap("ReadAloud", setReadAloud)}
               />
+              {audioVoices?.voices.secondary ? (
+                <SegmentedRow<NarratorVoiceSlot>
+                  label={t("narrator-voice-label") || "Narrator voice"}
+                  value={
+                    narratorVoice === "secondary" ? "secondary" : "primary"
+                  }
+                  onChange={(voice) => {
+                    trackToggleEvent(`NarratorVoice:${voice}`, true);
+                    setNarratorVoice(voice);
+                  }}
+                  options={[
+                    {
+                      value: "primary",
+                      label: audioVoices.voices.primary.label,
+                    },
+                    {
+                      value: "secondary",
+                      label: audioVoices.voices.secondary.label,
+                    },
+                  ]}
+                />
+              ) : null}
               {showTtsSubsettings ? (
                 <>
                   {features.autoplay ? (

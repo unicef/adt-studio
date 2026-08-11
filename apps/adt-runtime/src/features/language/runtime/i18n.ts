@@ -11,6 +11,8 @@ import { getDefaultStore } from "jotai"
 import { runtimeBase } from "@/shared/runtime/base-path.js"
 import {
   audioFilesAtom,
+  audioVoicesAtom,
+  type AudioVoicesManifest,
   speechTextsAtom,
   imageFilesAtom,
   translationsAtom,
@@ -191,9 +193,26 @@ async function safeJsonFetch<T = unknown>(
       console.warn(`[i18n] ${context}: ${url} returned ${res.status}`)
       return null
     }
+
     return (await res.json()) as T
   } catch (err) {
     console.warn(`[i18n] failed to load ${url}`, err)
+    return null
+  }
+
+}
+
+async function safeOptionalJsonFetch<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url)
+    if (res.status === 404) return null
+    if (!res.ok) {
+      console.warn(`[i18n] optional content: ${url} returned ${res.status}`)
+      return null
+    }
+    return (await res.json()) as T
+  } catch (err) {
+    console.warn(`[i18n] failed to load optional ${url}`, err)
     return null
   }
 }
@@ -211,6 +230,7 @@ interface ContentBundle {
   texts: Record<string, string>
   speechTexts: Record<string, string>
   audios: Record<string, string>
+  audioVoices: AudioVoicesManifest | null
   videos: Record<string, string>
   images: Record<string, string>
 }
@@ -220,10 +240,11 @@ async function loadContentFiles(
   versionParam: string,
 ): Promise<ContentBundle> {
   const base = `${runtimeBase()}content/i18n/${lang}`
-  const [texts, speechTexts, audios, videos, images] = await Promise.all([
+  const [texts, speechTexts, audios, audioVoices, videos, images] = await Promise.all([
     safeJsonFetch<Record<string, string>>(`${base}/texts.json${versionParam}`, "texts.json"),
     safeJsonFetch<Record<string, string>>(`${base}/speech_texts.json${versionParam}`, "speech_texts.json"),
     safeJsonFetch<Record<string, string>>(`${base}/audios.json${versionParam}`, "audios.json"),
+    safeOptionalJsonFetch<AudioVoicesManifest>(`${base}/audio_voices.json${versionParam}`),
     safeJsonFetch<Record<string, string>>(`${base}/videos.json${versionParam}`, "videos.json"),
     safeJsonFetch<Record<string, string>>(`${base}/images.json${versionParam}`, "images.json"),
   ])
@@ -231,6 +252,7 @@ async function loadContentFiles(
     texts: texts ?? {},
     speechTexts: speechTexts ?? {},
     audios: audios ?? {},
+    audioVoices,
     videos: videos ?? {},
     images: images ?? {},
   }
@@ -264,6 +286,7 @@ export async function loadTranslations(
   store.set(translationsAtom, { ...interfaceData, ...content.texts })
   store.set(speechTextsAtom, content.speechTexts)
   store.set(audioFilesAtom, content.audios)
+  store.set(audioVoicesAtom, content.audioVoices)
   store.set(videoFilesAtom, content.videos)
   // Replace (don't merge) imageFiles so switching to a language without an
   // image variant correctly falls back to the original src.

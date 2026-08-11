@@ -4,7 +4,7 @@ import { createHash } from "node:crypto"
 import { pathToFileURL } from "node:url"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { isHeadingRole, isTtsExcluded, parseBookLabel } from "@adt/types"
+import { isHeadingRole, isTtsExcluded, parseBookLabel, resolveEntryVoiceSlot } from "@adt/types"
 import {
   WebRenderingOutput,
   type SpeechConfig,
@@ -248,6 +248,7 @@ function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
   speechConfig?: SpeechConfig,
   readySpeechIds?: ReadonlySet<string>,
+  voiceSlot: "primary" | "secondary" = "primary",
 ): Record<string, {
   timecodes: [null, {
     word_timestamps: Array<{ text: string; start: number; end: number }>
@@ -259,7 +260,9 @@ function buildRuntimeTimecodeMap(
     }]
   }> = {}
 
-  for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
+  for (const entry of Object.values(timestamps?.entries ?? {})) {
+    if (resolveEntryVoiceSlot(entry) !== voiceSlot) continue
+    const textId = entry.textId
     if (entry.words.length === 0) continue
     if (readySpeechIds && !readySpeechIds.has(textId)) continue
     if (isTtsExcluded(textId, speechConfig)) continue
@@ -901,6 +904,41 @@ export function createAdtPreviewRoutes(
     return c.body(JSON.stringify(audioMap))
   })
 
+  app.get("/books/:label/adt-preview/content/i18n/:lang/audio_voices.json", (c) => {
+    const lang = normalizeLocale(c.req.param("lang"))
+    const manifest = withStorage(c.req.param("label"), (storage) => {
+      const speechConfig = loadBookConfig(
+        parseBookLabel(c.req.param("label")),
+        booksDir,
+        configPath,
+      ).speech
+      const legacyLang = lang.replace("-", "_")
+      const ttsData = (
+        storage.getLatestNodeData("tts", lang) ??
+        storage.getLatestNodeData("tts", legacyLang)
+      )?.data as TTSOutput | undefined
+      const readySpeechIds = new Set(
+        getReadyCoreTtsEntries(storage, lang).map((entry) => entry.id),
+      )
+      const voices = {
+        primary: { label: "Primary", audios: {} as Record<string, string> },
+        secondary: { label: "Secondary", audios: {} as Record<string, string> },
+      }
+      for (const entry of ttsData?.entries ?? []) {
+        if (!readySpeechIds.has(entry.textId) || isTtsExcluded(entry.textId, speechConfig)) continue
+        const slot = resolveEntryVoiceSlot(entry)
+        voices[slot].audios[entry.textId] = entry.fileName
+        voices[slot].label = entry.voiceLabel?.trim() || entry.voice
+      }
+      return { defaultVoice: "primary", voices }
+    })
+    if (Object.keys(manifest.voices.secondary.audios).length === 0) {
+      return c.json({ error: "Secondary narrator not configured" }, 404)
+    }
+    setNoStoreHeaders(c)
+    return c.json(manifest)
+  })
+
   // /content/i18n/:lang/timecode/timecode_output.json — word-level read-aloud timings
   app.get("/books/:label/adt-preview/content/i18n/:lang/timecode/timecode_output.json", (c) => {
     const lang = normalizeLocale(c.req.param("lang"))
@@ -921,6 +959,28 @@ export function createAdtPreviewRoutes(
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
     return c.body(JSON.stringify(timecodes))
+  })
+
+  app.get("/books/:label/adt-preview/content/i18n/:lang/timecode/timecode_voices.json", (c) => {
+    const lang = normalizeLocale(c.req.param("lang"))
+    const safeLabel = parseBookLabel(c.req.param("label"))
+    const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
+    const timecodes = withStorage(c.req.param("label"), (storage) => {
+      const readySpeechIds = new Set(
+        getReadyCoreTtsEntries(storage, lang).map((entry) => entry.id),
+      )
+      const timestamps = getWordTimestamps(storage, lang)
+      return {
+        primary: bookConfig.speech?.word_highlighting === true
+          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, readySpeechIds, "primary")
+          : {},
+        secondary: bookConfig.speech?.word_highlighting === true
+          ? buildRuntimeTimecodeMap(timestamps, bookConfig.speech, readySpeechIds, "secondary")
+          : {},
+      }
+    })
+    setNoStoreHeaders(c)
+    return c.json(timecodes)
   })
 
   // /content/i18n/:lang/videos.json — Sign language video mapping

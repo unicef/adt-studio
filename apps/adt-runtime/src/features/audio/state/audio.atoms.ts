@@ -55,3 +55,7 @@ export interface WordTimestamp {
 }
 export type TimecodeMap = Record<string, WordTimestamp[]>
 export const timecodeMapAtom = ephemeralAtom<TimecodeMap>({})
+export const timecodeMapsAtom = ephemeralAtom<Record<"primary" | "secondary", TimecodeMap>>({
+  primary: {},
+  secondary: {},
+})

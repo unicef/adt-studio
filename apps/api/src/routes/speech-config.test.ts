@@ -195,3 +195,90 @@ describe("GET /speech-config/elevenlabs-voices", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })
+
+describe("GET/PUT /speech-config/voices", () => {
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-speech-config-voices-"))
+    configPath = path.join(tmpDir, "config.yaml")
+    fs.writeFileSync(configPath, "role_types: {}\n")
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  it("returns {} when voices.yaml does not exist", async () => {
+    const app = createSpeechConfigRoutes(configPath)
+    const res = await app.request("/speech-config/voices")
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({})
+  })
+
+  it("round-trips a legacy scalar voice mapping", async () => {
+    const app = createSpeechConfigRoutes(configPath)
+    const body = { openai: { en: "alloy", fr: "onyx" } }
+    const update = await app.request("/speech-config/voices", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+    expect(update.status).toBe(200)
+    expect(await update.json()).toEqual(body)
+
+    const read = await app.request("/speech-config/voices")
+    expect(await read.json()).toEqual(body)
+  })
+
+  it("round-trips a canonical primary/secondary voice mapping", async () => {
+    const app = createSpeechConfigRoutes(configPath)
+    const body = {
+      openai: {
+        en: {
+          primary: { voice: "alloy", label: "Narrator" },
+          secondary: { voice: "shimmer", label: "Alt Narrator" },
+        },
+      },
+    }
+    const update = await app.request("/speech-config/voices", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+    expect(update.status).toBe(200)
+    expect(await update.json()).toEqual(body)
+
+    const read = await app.request("/speech-config/voices")
+    expect(await read.json()).toEqual(body)
+  })
+
+  it("rejects an invalid voice mapping body with 400", async () => {
+    const app = createSpeechConfigRoutes(configPath)
+    const res = await app.request("/speech-config/voices", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      // secondary must be an object with a `voice` string, not a bare number
+      body: JSON.stringify({ openai: { en: { primary: { voice: "alloy" }, secondary: 42 } } }),
+    })
+    expect(res.status).toBe(400)
+    const json = await res.json()
+    expect(json.error).toBeDefined()
+
+    // The invalid body must never be written to disk.
+    expect(fs.existsSync(path.join(tmpDir, "config", "voices.yaml"))).toBe(false)
+  })
+
+  it("returns {} and warns when voices.yaml on disk is invalid", async () => {
+    const configDir = path.join(tmpDir, "config")
+    fs.mkdirSync(configDir, { recursive: true })
+    fs.writeFileSync(path.join(configDir, "voices.yaml"), "openai:\n  en:\n    secondary: 42\n")
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+
+    const app = createSpeechConfigRoutes(configPath)
+    const res = await app.request("/speech-config/voices")
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({})
+    expect(warnSpy).toHaveBeenCalled()
+
+    warnSpy.mockRestore()
+  })
+})

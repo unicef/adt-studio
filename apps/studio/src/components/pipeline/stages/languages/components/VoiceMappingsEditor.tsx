@@ -5,7 +5,7 @@ import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { api } from "@/api/client"
+import { api, type VoiceMapEntry, type VoiceSlotsConfig } from "@/api/client"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
@@ -27,11 +27,18 @@ type VoiceProviderKey = (typeof PROVIDER_ORDER)[number]
 
 interface VoiceRow {
   lang: string
-  openai: string
-  azure: string
-  gemini: string
-  elevenlabs: string
+  openai: VoiceSlotsConfig
+  azure: VoiceSlotsConfig
+  gemini: VoiceSlotsConfig
+  elevenlabs: VoiceSlotsConfig
 }
+
+const emptyVoices = (): VoiceSlotsConfig => ({ primary: { voice: "", label: "" } })
+
+const normalizeVoices = (entry?: VoiceMapEntry): VoiceSlotsConfig =>
+  typeof entry === "string"
+    ? { primary: { voice: entry, label: "" } }
+    : entry ?? emptyVoices()
 
 export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
   const { t } = useLingui()
@@ -72,10 +79,10 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
     for (const lang of allLangs) {
       built.push({
         lang,
-        openai: openai[lang] ?? "",
-        azure: azure[lang] ?? "",
-        gemini: gemini[lang] ?? "",
-        elevenlabs: elevenlabs[lang] ?? "",
+        openai: normalizeVoices(openai[lang]),
+        azure: normalizeVoices(azure[lang]),
+        gemini: normalizeVoices(gemini[lang]),
+        elevenlabs: normalizeVoices(elevenlabs[lang]),
       })
     }
     // Sort with "default" first, then alphabetical
@@ -99,8 +106,22 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
     setDefaultVoice(typeof voice === "string" ? voice : "")
   }, [activeConfigData, dirtyDefaultVoice])
 
-  const updateRow = (index: number, field: VoiceProviderKey, value: string) => {
-    setRows((prev) => prev.map((r, i) => i === index ? { ...r, [field]: value } : r))
+  const updateVoice = (
+    index: number,
+    provider: VoiceProviderKey,
+    slot: "primary" | "secondary",
+    field: "voice" | "label",
+    value: string,
+  ) => {
+    setRows((prev) => prev.map((row, i) => {
+      if (i !== index) return row
+      const voices = row[provider]
+      const current = voices[slot] ?? { voice: "", label: "" }
+      return {
+        ...row,
+        [provider]: { ...voices, [slot]: { ...current, [field]: value } },
+      }
+    }))
     setDirtyMappings(true)
   }
 
@@ -112,7 +133,13 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
   const addLanguage = () => {
     const key = newLangKey.trim().toLowerCase()
     if (!key || rows.some((r) => r.lang === key)) return
-    setRows((prev) => [...prev, { lang: key, openai: "", azure: "", gemini: "", elevenlabs: "" }])
+    setRows((prev) => [...prev, {
+      lang: key,
+      openai: emptyVoices(),
+      azure: emptyVoices(),
+      gemini: emptyVoices(),
+      elevenlabs: emptyVoices(),
+    }])
     setNewLangKey("")
     setShowAddLang(false)
     setDirtyMappings(true)
@@ -124,12 +151,29 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
       const saves: Promise<unknown>[] = []
 
       if (dirtyMappings) {
-        const nextMappings: Record<string, Record<string, string>> = {}
+        const nextMappings: Record<string, Record<string, VoiceMapEntry>> = {}
         for (const key of PROVIDER_ORDER) {
-          const values: Record<string, string> = {}
+          const values: Record<string, VoiceMapEntry> = {}
           for (const row of rows) {
-            const value = row[key].trim()
-            if (value) values[row.lang] = value
+            const primaryVoice = row[key].primary.voice.trim()
+            if (!primaryVoice) continue
+            const primaryLabel = row[key].primary.label?.trim()
+            const secondaryVoice = row[key].secondary?.voice.trim()
+            const secondaryLabel = row[key].secondary?.label?.trim()
+            values[row.lang] = {
+              primary: {
+                voice: primaryVoice,
+                ...(primaryLabel ? { label: primaryLabel } : {}),
+              },
+              ...(secondaryVoice
+                ? {
+                    secondary: {
+                      voice: secondaryVoice,
+                      ...(secondaryLabel ? { label: secondaryLabel } : {}),
+                    },
+                  }
+                : {}),
+            }
           }
           if (Object.keys(values).length > 0) {
             nextMappings[key] = values
@@ -297,29 +341,44 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
                   {row.lang}
                 </td>
                 {PROVIDER_ORDER.map((key) => (
-                  <td key={key} className="px-3 py-1.5">
-                    {/* ElevenLabs voices are opaque IDs, so they get a picker
-                        that resolves names. The other providers use readable
-                        names already (alloy, Kore, en-US-JennyNeural). */}
-                    {key === "elevenlabs" ? (
-                      <ElevenLabsVoiceCombobox
-                        value={row[key]}
-                        onChange={(voiceId) => updateRow(i, key, voiceId)}
-                      />
-                    ) : (
-                      <Input
-                        value={row[key]}
-                        onChange={(e) => updateRow(i, key, e.target.value)}
-                        className="h-7 text-xs"
-                        placeholder={
-                          key === "openai"
-                            ? t`e.g. alloy`
-                            : key === "azure"
-                              ? t`e.g. en-US-JennyNeural`
-                              : t`e.g. Kore`
-                        }
-                      />
-                    )}
+                  <td key={key} className="px-3 py-2 align-top">
+                    <div className="space-y-2">
+                      {(["primary", "secondary"] as const).map((slot) => {
+                        const configured = row[key][slot]
+                        return (
+                          <div key={slot} className="space-y-1 rounded border p-1.5">
+                            <span className="text-[10px] font-medium uppercase text-muted-foreground">
+                              {slot === "primary" ? t`Primary narrator` : t`Secondary narrator (optional)`}
+                            </span>
+                            {key === "elevenlabs" ? (
+                              <ElevenLabsVoiceCombobox
+                                value={configured?.voice ?? ""}
+                                onChange={(voiceId) => updateVoice(i, key, slot, "voice", voiceId)}
+                              />
+                            ) : (
+                              <Input
+                                value={configured?.voice ?? ""}
+                                onChange={(e) => updateVoice(i, key, slot, "voice", e.target.value)}
+                                className="h-7 text-xs"
+                                placeholder={
+                                  key === "openai"
+                                    ? t`e.g. alloy`
+                                    : key === "azure"
+                                      ? t`e.g. en-US-JennyNeural`
+                                      : t`e.g. Kore`
+                                }
+                              />
+                            )}
+                            <Input
+                              value={configured?.label ?? ""}
+                              onChange={(e) => updateVoice(i, key, slot, "label", e.target.value)}
+                              className="h-7 text-xs"
+                              placeholder={t`Narrator name, e.g. Valentina`}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
                   </td>
                 ))}
                 <td className="px-2 py-1.5">

@@ -5424,6 +5424,12 @@ msgstr "N/A"
 msgid "Names and terms are consistent"
 msgstr "Emrat dhe termat janë të qëndrueshëm"
 
+msgid "Narrator name, e.g. Valentina"
+msgstr "Emri i narratorit, p.sh. Valentina"
+
+msgid "Narrator voice"
+msgstr "Zëri i narratorit"
+
 msgid "Natural, expressive voices. Best general-purpose default."
 msgstr "Zëra natyralë dhe shprehës. Parazgjedhja më e mirë për qëllime të përgjithshme."
 
@@ -6784,6 +6790,12 @@ msgstr "Sllajdi i mëparshëm"
 msgid "Previously uploaded videos"
 msgstr "Video të ngarkuara më parë"
 
+msgid "Primary"
+msgstr "Kryesor"
+
+msgid "Primary narrator"
+msgstr "Narratori kryesor"
+
 msgid "Print a variable"
 msgstr "Shfaq një variabël"
 
@@ -7864,6 +7876,12 @@ msgstr "Kërko..."
 
 msgid "Search…"
 msgstr "Kërko…"
+
+msgid "Secondary"
+msgstr "Dytësor"
+
+msgid "Secondary narrator (optional)"
+msgstr "Narratori dytësor (opsional)"
 
 msgid "section"
 msgstr "seksion"
