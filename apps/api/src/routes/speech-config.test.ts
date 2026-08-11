@@ -229,7 +229,7 @@ describe("GET/PUT /speech-config/voices", () => {
     expect(await read.json()).toEqual(body)
   })
 
-  it("round-trips a canonical primary/secondary voice mapping", async () => {
+  it("normalizes legacy slot mappings to the supported global primary voice", async () => {
     const app = createSpeechConfigRoutes(configPath)
     const body = {
       openai: {
@@ -245,10 +245,17 @@ describe("GET/PUT /speech-config/voices", () => {
       body: JSON.stringify(body),
     })
     expect(update.status).toBe(200)
-    expect(await update.json()).toEqual(body)
+    const primaryOnly = {
+      openai: {
+        en: {
+          primary: { voice: "alloy", label: "Narrator" },
+        },
+      },
+    }
+    expect(await update.json()).toEqual(primaryOnly)
 
     const read = await app.request("/speech-config/voices")
-    expect(await read.json()).toEqual(body)
+    expect(await read.json()).toEqual(primaryOnly)
   })
 
   it("rejects an invalid voice mapping body with 400", async () => {

@@ -999,6 +999,9 @@ msgstr "Add quiz here"
 msgid "Add reviewer guidance."
 msgstr "Add reviewer guidance."
 
+msgid "Add second voice"
+msgstr "Add second voice"
+
 msgid "Add section"
 msgstr "Add section"
 
@@ -5423,8 +5426,8 @@ msgstr "N/A"
 msgid "Names and terms are consistent"
 msgstr "Names and terms are consistent"
 
-msgid "Narrator name, e.g. Valentina"
-msgstr "Narrator name, e.g. Valentina"
+#~ msgid "Narrator name, e.g. Valentina"
+#~ msgstr "Narrator name, e.g. Valentina"
 
 msgid "Narrator voice"
 msgstr "Narrator voice"
@@ -6792,8 +6795,8 @@ msgstr "Previously uploaded videos"
 msgid "Primary"
 msgstr "Primary"
 
-msgid "Primary narrator"
-msgstr "Primary narrator"
+#~ msgid "Primary narrator"
+#~ msgstr "Primary narrator"
 
 msgid "Print a variable"
 msgstr "Print a variable"
@@ -7265,6 +7268,9 @@ msgstr "Remove picture"
 
 msgid "Remove placement"
 msgstr "Remove placement"
+
+msgid "Remove second voice"
+msgstr "Remove second voice"
 
 msgid "Remove section"
 msgstr "Remove section"
@@ -7876,11 +7882,23 @@ msgstr "Search..."
 msgid "Search…"
 msgstr "Search…"
 
+#~ msgid "Second narrator"
+#~ msgstr "Second narrator"
+
+msgid "Second voice"
+msgstr "Second voice"
+
+msgid "Second voice model"
+msgstr "Second voice model"
+
+msgid "Second voice provider"
+msgstr "Second voice provider"
+
 msgid "Secondary"
 msgstr "Secondary"
 
-msgid "Secondary narrator (optional)"
-msgstr "Secondary narrator (optional)"
+#~ msgid "Secondary narrator (optional)"
+#~ msgstr "Secondary narrator (optional)"
 
 msgid "section"
 msgstr "section"
@@ -8047,6 +8065,9 @@ msgstr "Select a render strategy to preview how your book pages will be laid out
 
 msgid "Select a reviewer session to inspect its progress and findings."
 msgstr "Select a reviewer session to inspect its progress and findings."
+
+msgid "Select a second voice before saving"
+msgstr "Select a second voice before saving"
 
 msgid "Select a section mode to continue"
 msgstr "Select a section mode to continue"

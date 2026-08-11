@@ -80,11 +80,8 @@ import { normalizeLocale } from "./language-context.js"
 import {
   loadVoicesConfig,
   loadSpeechInstructions,
-  resolveVoiceForSlot,
-  isSecondaryVoiceConfigured,
+  resolveSpeechVoice,
   resolveInstructions,
-  resolveProviderForLanguage,
-  resolveSpeechModel,
   resolveSpeechFormat,
   generateSpeechFile,
   findAdjacentSpeechText,
@@ -93,7 +90,6 @@ import {
   elevenLabsTtsRetryDelayMs,
   ELEVENLABS_TTS_MAX_CONCURRENCY,
   ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
-  type ProviderRouting,
 } from "./speech.js"
 import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
@@ -1005,9 +1001,6 @@ export async function runFullPipeline(
       const instructionsMap = loadSpeechInstructions(configDir)
       const speechModel =
         config.speech?.model ?? config.default_speech_generation_model
-      const defaultProvider = config.speech?.default_provider ?? "openai"
-      const providerConfigs = config.speech?.providers ?? {}
-      const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
 
       const synthesizers = new Map<string, TTSSynthesizer>()
       function getSynthesizer(providerName: string): TTSSynthesizer {
@@ -1049,6 +1042,9 @@ export async function runFullPipeline(
         previousText?: string
         nextText?: string
         voiceSlot: VoiceSlot
+        provider: string
+        model: string
+        voice: string
         voiceLabel?: string
       }
       const workItems: TTSWorkItem[] = []
@@ -1056,7 +1052,6 @@ export async function runFullPipeline(
       for (const lang of outputLanguages) resultsByLang.set(lang, [])
       for (const lang of outputLanguages) {
         const entries = getReadyCoreTtsEntries(storage, lang)
-        const provider = resolveProviderForLanguage(lang, routing)
         const legacyLang = lang.replace("-", "_")
         const existingRow =
           storage.getLatestNodeData("tts", lang) ??
@@ -1068,22 +1063,28 @@ export async function runFullPipeline(
             (entry) => [voiceSlotEntryId(entry.textId, entry.voiceSlot), entry],
           ),
         )
-        // Only generate the slots actually configured for this provider/language:
-        // primary always, secondary only when voices.yaml configures one.
-        const configuredSlots: VoiceSlot[] = isSecondaryVoiceConfigured(provider, lang, voiceMaps)
-          ? ["primary", "secondary"]
-          : ["primary"]
+        const configuredVoices = (["primary", "secondary"] as const)
+          .map((slot) => ({
+            slot,
+            profile: resolveSpeechVoice(lang, slot, config.speech, voiceMaps, speechModel),
+          }))
+          .filter(
+            (item): item is {
+              slot: VoiceSlot
+              profile: NonNullable<ReturnType<typeof resolveSpeechVoice>>
+            } => item.profile !== null,
+          )
         for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
           const entry = entries[entryIndex]
           if (isTtsExcluded(entry.id, config.speech)) continue
 
-          for (const slot of configuredSlots) {
-            const resolvedVoice = resolveVoiceForSlot(provider, lang, voiceMaps, slot, config.speech?.voice)
-            // Guarded by configuredSlots above, but resolveVoiceForSlot can
-            // still return null for "secondary" — skip defensively rather than
-            // generating with an undefined voice.
-            if (!resolvedVoice) continue
-            const voiceLabel = resolvedVoice.label
+          for (const { slot, profile } of configuredVoices) {
+            const {
+              provider,
+              model,
+              voice,
+              label: voiceLabel,
+            } = profile
             const slotEntryId = voiceSlotEntryId(entry.id, slot)
             const existing = existingById.get(slotEntryId)
             if (existing?.provider === "manual") {
@@ -1124,6 +1125,9 @@ export async function runFullPipeline(
               previousText,
               nextText,
               voiceSlot: slot,
+              provider,
+              model,
+              voice,
               voiceLabel,
             })
           }
@@ -1136,13 +1140,10 @@ export async function runFullPipeline(
       const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(config.speech)
 
       const runTtsItem = async (item: TTSWorkItem) => {
-        const provider = resolveProviderForLanguage(item.language, routing)
-        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
+        const provider = item.provider
+        const providerModel = item.model
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-        // Resolved when the work item was built (configuredSlots guard above),
-        // so this should always be non-null.
-        const resolvedVoice = resolveVoiceForSlot(provider, item.language, voiceMaps, item.voiceSlot, config.speech?.voice)!
-        const voice = resolvedVoice.voice
+        const voice = item.voice
         // OpenAI + Gemini both receive resolved instructions (Gemini embeds them in
         // the prompt text); Azure has no instruction channel. Must match stage-runner.ts
         // and tts.ts so the shared TTS cache key (computeSpeechCacheKey) stays consistent.
@@ -1218,10 +1219,10 @@ export async function runFullPipeline(
       // capped pass. Everything else keeps full concurrency — the two passes run
       // together so a mixed book doesn't throttle its non-ElevenLabs languages.
       const elevenLabsItems = workItems.filter(
-        (item) => resolveProviderForLanguage(item.language, routing) === "elevenlabs"
+        (item) => item.provider === "elevenlabs"
       )
       const otherItems = workItems.filter(
-        (item) => resolveProviderForLanguage(item.language, routing) !== "elevenlabs"
+        (item) => item.provider !== "elevenlabs"
       )
       await Promise.all([
         processWithConcurrency(otherItems, effectiveConcurrency, runTtsItem),

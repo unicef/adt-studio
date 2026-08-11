@@ -22,7 +22,7 @@ import type {
   Quiz,
   ImageCaptioningOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, ELEVENLABS_SHIPPED_VOICE_NAMES, isHeadingRole, isTtsExcluded, resolveEntryVoiceSlot, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 import {
   GOOGLE_FONTS,
   googleFontsReferencedIn,
@@ -706,7 +706,12 @@ export async function packageAdtWeb(
             fs.copyFileSync(resolvedSrcFile, destFile)
             const slot = resolveEntryVoiceSlot(entry)
             audioVoices[slot].audios[entry.textId] = entry.fileName
-            audioVoices[slot].label = entry.voiceLabel?.trim() || entry.voice
+            audioVoices[slot].label =
+              entry.voiceLabel?.trim() ||
+              (entry.provider === "elevenlabs"
+                ? ELEVENLABS_SHIPPED_VOICE_NAMES[entry.voice]
+                : undefined) ||
+              entry.voice
           }
         }
       }

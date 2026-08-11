@@ -1001,6 +1001,9 @@ msgstr "Ajouter le quiz ici"
 msgid "Add reviewer guidance."
 msgstr "Ajouter des consignes pour le réviseur."
 
+msgid "Add second voice"
+msgstr "Ajouter une deuxième voix"
+
 msgid "Add section"
 msgstr "Ajouter une section"
 
@@ -5425,8 +5428,8 @@ msgstr "N/A"
 msgid "Names and terms are consistent"
 msgstr "Les noms et les termes sont cohérents"
 
-msgid "Narrator name, e.g. Valentina"
-msgstr "Nom du narrateur, p. ex. Valentina"
+#~ msgid "Narrator name, e.g. Valentina"
+#~ msgstr "Nom du narrateur, p. ex. Valentina"
 
 msgid "Narrator voice"
 msgstr "Voix du narrateur"
@@ -6794,8 +6797,8 @@ msgstr "Vidéos téléversées précédemment"
 msgid "Primary"
 msgstr "Principale"
 
-msgid "Primary narrator"
-msgstr "Narrateur principal"
+#~ msgid "Primary narrator"
+#~ msgstr "Narrateur principal"
 
 msgid "Print a variable"
 msgstr "Afficher une variable"
@@ -7267,6 +7270,9 @@ msgstr "Retirer l'image"
 
 msgid "Remove placement"
 msgstr "Retirer l'emplacement"
+
+msgid "Remove second voice"
+msgstr "Supprimer la deuxième voix"
 
 msgid "Remove section"
 msgstr "Retirer section"
@@ -7878,11 +7884,23 @@ msgstr "Rechercher..."
 msgid "Search…"
 msgstr "Rechercher…"
 
+#~ msgid "Second narrator"
+#~ msgstr "Deuxième narrateur"
+
+msgid "Second voice"
+msgstr "Deuxième voix"
+
+msgid "Second voice model"
+msgstr "Modèle de la deuxième voix"
+
+msgid "Second voice provider"
+msgstr "Fournisseur de la deuxième voix"
+
 msgid "Secondary"
 msgstr "Secondaire"
 
-msgid "Secondary narrator (optional)"
-msgstr "Narrateur secondaire (facultatif)"
+#~ msgid "Secondary narrator (optional)"
+#~ msgstr "Narrateur secondaire (facultatif)"
 
 msgid "section"
 msgstr "section"
@@ -8049,6 +8067,9 @@ msgstr "Sélectionnez une stratégie de rendu pour prévisualiser la mise en pag
 
 msgid "Select a reviewer session to inspect its progress and findings."
 msgstr "Sélectionnez une session de révision pour inspecter sa progression et ses résultats."
+
+msgid "Select a second voice before saving"
+msgstr "Sélectionnez une deuxième voix avant d'enregistrer"
 
 msgid "Select a section mode to continue"
 msgstr "Sélectionnez un mode de section pour continuer"

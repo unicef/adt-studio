@@ -1068,21 +1068,24 @@ export function LanguageView({
   const langTtsSummary = useMemo(() => {
     const map = new Map<
       string,
-      { provider: string; model: string; voice: string }
+      { provider: string; model: string; voice: string; voiceLabel?: string }
     >();
     if (!ttsData) return map;
     for (const [lang, data] of Object.entries(ttsData.languages)) {
       const first = data.entries[0];
       if (first) {
         map.set(lang, {
-          provider: first.provider ?? "",
+          provider:
+            first.provider ??
+            resolveSpeechProviderForLanguage(lang, speechConfig),
           model: first.model,
           voice: first.voice,
+          voiceLabel: first.voiceLabel,
         });
       }
     }
     return map;
-  }, [ttsData]);
+  }, [speechConfig, ttsData]);
 
   const totalAudioFiles = ttsData
     ? Object.values(ttsData.languages).reduce(
@@ -1091,7 +1094,7 @@ export function LanguageView({
       )
     : 0;
   const activeLanguageTts = audioLang ? ttsData?.languages[audioLang] : undefined;
-  const configuredVoiceSlots = useMemo(() => {
+  const configuredPrimaryVoice = useMemo(() => {
     if (!audioLang || !voiceMappings) return undefined;
     const provider = resolveSpeechProviderForLanguage(audioLang, speechConfig);
     const providerMappings = voiceMappings[provider];
@@ -1102,17 +1105,41 @@ export function LanguageView({
       providerMappings[normalized] ??
       providerMappings[base] ??
       providerMappings.default;
-    return typeof mapping === "string"
-      ? { primary: { voice: mapping } }
-      : mapping;
+    return typeof mapping === "string" ? { voice: mapping } : mapping?.primary;
   }, [audioLang, speechConfig, voiceMappings]);
+  const configuredSecondaryVoice = useMemo(() => {
+    if (!audioLang) return undefined;
+    const secondaryVoices = speechConfigRecord?.secondary_voices;
+    if (!secondaryVoices || typeof secondaryVoices !== "object") return undefined;
+    const normalizedLanguage = normalizeLocale(audioLang).toLowerCase();
+    const match = Object.entries(
+      secondaryVoices as Record<string, unknown>,
+    ).find(
+      ([language]) =>
+        normalizeLocale(language).toLowerCase() === normalizedLanguage,
+    );
+    if (!match || !match[1] || typeof match[1] !== "object") return undefined;
+    const profile = match[1] as Record<string, unknown>;
+    if (
+      typeof profile.provider !== "string" ||
+      typeof profile.voice !== "string" ||
+      !profile.voice.trim()
+    ) {
+      return undefined;
+    }
+    return {
+      provider: profile.provider,
+      voice: profile.voice,
+      label: typeof profile.label === "string" ? profile.label : undefined,
+    };
+  }, [audioLang, speechConfigRecord]);
   const secondaryVoiceEntry = activeLanguageTts?.entries.find(
     (entry) => entry.voiceSlot === "secondary",
   );
   const primaryVoiceEntry = activeLanguageTts?.entries.find(
     (entry) => (entry.voiceSlot ?? "primary") === "primary",
   );
-  const hasSecondaryVoice = !!configuredVoiceSlots?.secondary || !!secondaryVoiceEntry;
+  const hasSecondaryVoice = !!configuredSecondaryVoice || !!secondaryVoiceEntry;
   useEffect(() => {
     if (!hasSecondaryVoice && selectedVoiceSlot === "secondary") {
       setSelectedVoiceSlot("primary");
@@ -1931,7 +1958,11 @@ export function LanguageView({
                           isActive ? "opacity-50" : "opacity-40",
                         )}
                       >
-                        {ttsSummary.model} · {ttsSummary.voice}
+                        {ttsSummary.model} ·{" "}
+                        {ttsSummary.voiceLabel ||
+                          (ttsSummary.provider === "elevenlabs"
+                            ? describeElevenLabsVoice(ttsSummary.voice)
+                            : ttsSummary.voice)}
                       </span>
                     )}
                   </button>
@@ -1960,18 +1991,40 @@ export function LanguageView({
                     slot: "primary" as const,
                     label:
                       primaryVoiceEntry?.voiceLabel ||
-                      configuredVoiceSlots?.primary.label ||
+                      configuredPrimaryVoice?.label ||
+                      ((
+                        primaryVoiceEntry?.provider ??
+                        (audioLang
+                          ? resolveSpeechProviderForLanguage(audioLang, speechConfig)
+                          : undefined)
+                      ) === "elevenlabs"
+                        ? describeElevenLabsVoice(
+                            primaryVoiceEntry?.voice ||
+                              configuredPrimaryVoice?.voice ||
+                              "",
+                          )
+                        : undefined) ||
                       primaryVoiceEntry?.voice ||
-                      configuredVoiceSlots?.primary.voice ||
+                      configuredPrimaryVoice?.voice ||
                       t`Primary`,
                   },
                   {
                     slot: "secondary" as const,
                     label:
                       secondaryVoiceEntry?.voiceLabel ||
-                      configuredVoiceSlots?.secondary?.label ||
+                      configuredSecondaryVoice?.label ||
+                      ((
+                        secondaryVoiceEntry?.provider ??
+                        configuredSecondaryVoice?.provider
+                      ) === "elevenlabs"
+                        ? describeElevenLabsVoice(
+                            secondaryVoiceEntry?.voice ||
+                              configuredSecondaryVoice?.voice ||
+                              "",
+                          )
+                        : undefined) ||
                       secondaryVoiceEntry?.voice ||
-                      configuredVoiceSlots?.secondary?.voice ||
+                      configuredSecondaryVoice?.voice ||
                       t`Secondary`,
                   },
                 ]).map((option) => (

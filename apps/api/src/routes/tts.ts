@@ -34,11 +34,10 @@ import {
   loadVoicesConfig,
   normalizeLocale,
   resolveInstructions,
-  resolveProviderForLanguage,
   resolveSpeechFormat,
   resolveSpeechModel,
+  resolveSpeechVoice,
   resolveVoiceForSlot,
-  isSecondaryVoiceConfigured,
   generateSpeechFile,
   generateWordTimestamps,
   getCoreTtsCatalog,
@@ -48,7 +47,6 @@ import {
   buildElevenLabsTtsLogParams,
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
-  type ProviderRouting,
   type VoiceMaps,
 } from "@adt/pipeline"
 import { getLiveSpeechRun } from "../services/speech-progress.js"
@@ -225,11 +223,6 @@ function getTtsCompletionSummary(
   voiceMaps: VoiceMaps
 ): { remainingItems: number; allComplete: boolean } {
   const outputLanguages = getOutputLanguages(config, sourceLanguage)
-  const providerConfigs: Record<string, TTSProviderConfig> = config.speech?.providers ?? {}
-  const routing: ProviderRouting = {
-    providers: providerConfigs,
-    defaultProvider: config.speech?.default_provider ?? "openai",
-  }
   let remainingItems = 0
 
   for (const language of outputLanguages) {
@@ -247,10 +240,13 @@ function getTtsCompletionSummary(
       }
       throw err
     }
-    // Completion only requires the slots actually configured for this
-    // provider/language — an unconfigured secondary is never counted.
-    const provider = resolveProviderForLanguage(language, routing)
-    const configuredSlots: VoiceSlot[] = isSecondaryVoiceConfigured(provider, language, voiceMaps)
+    const configuredSlots: VoiceSlot[] = resolveSpeechVoice(
+      language,
+      "secondary",
+      config.speech,
+      voiceMaps,
+      config.speech?.model ?? config.default_speech_generation_model,
+    )
       ? ["primary", "secondary"]
       : ["primary"]
     const availableIds = new Set(
@@ -679,20 +675,21 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         })
       }
 
-      const providerConfigs: Record<string, TTSProviderConfig> = config.speech?.providers ?? {}
-      const routing: ProviderRouting = {
-        providers: providerConfigs,
-        defaultProvider: config.speech?.default_provider ?? "openai",
-      }
-      const provider = resolveProviderForLanguage(normalizedLanguage, routing)
       const configDir = getConfigDir(configPath)
       const voiceMaps = loadVoicesConfig(configDir)
-      if (voiceSlot === "secondary" && !isSecondaryVoiceConfigured(provider, normalizedLanguage, voiceMaps)) {
+      const profile = resolveSpeechVoice(
+        normalizedLanguage,
+        voiceSlot,
+        config.speech,
+        voiceMaps,
+        config.speech?.model ?? config.default_speech_generation_model,
+      )
+      if (!profile) {
         throw new HTTPException(400, {
           message: `Secondary voice is not configured for ${normalizedLanguage}`,
         })
       }
-      const voiceLabel = resolveVoiceForSlot(provider, normalizedLanguage, voiceMaps, voiceSlot)?.label
+      const voiceLabel = profile.label
 
       const format = resolveUploadedAudioFormat(audioFile)
       const nextEntry: SpeechFileEntry = {
@@ -855,11 +852,23 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
       const providerConfigs: Record<string, TTSProviderConfig> =
         config.speech?.providers ?? {}
-      const routing: ProviderRouting = {
-        providers: providerConfigs,
-        defaultProvider: config.speech?.default_provider ?? "openai",
+      const configDir = getConfigDir(configPath)
+      const voiceMaps = loadVoicesConfig(configDir)
+      const defaultSpeechModel =
+        config.speech?.model ?? config.default_speech_generation_model
+      const profile = resolveSpeechVoice(
+        normalizedLanguage,
+        voiceSlot,
+        config.speech,
+        voiceMaps,
+        defaultSpeechModel,
+      )
+      if (!profile) {
+        throw new HTTPException(400, {
+          message: `Secondary voice is not configured for ${normalizedLanguage}`,
+        })
       }
-      const provider = resolveProviderForLanguage(normalizedLanguage, routing)
+      const { provider, model, voice, label: voiceLabel } = profile
       // The API key is validated against the *resolved* provider rather than
       // always demanding a Gemini key: a book routed to ElevenLabs (or Azure,
       // or OpenAI) has no Gemini key to give, and previously got turned away
@@ -891,45 +900,22 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         })
       }
 
-      const configDir = getConfigDir(configPath)
-      const voiceMaps = loadVoicesConfig(configDir)
       const instructionsMap = loadSpeechInstructions(configDir)
-      if (voiceSlot === "secondary" && !isSecondaryVoiceConfigured(provider, normalizedLanguage, voiceMaps)) {
-        throw new HTTPException(400, {
-          message: `Secondary voice is not configured for ${normalizedLanguage}`,
-        })
-      }
-      const defaultSpeechModel =
-        config.speech?.model ?? config.default_speech_generation_model
-      const model = resolveSpeechModel(
-        provider,
-        providerConfigs,
-        defaultSpeechModel,
-      )
       const format = resolveSpeechFormat(provider, config.speech?.format)
-      // Guarded above: "secondary" only reaches here when configured, so this
-      // always resolves.
-      const resolvedVoice = resolveVoiceForSlot(
-        provider,
-        normalizedLanguage,
-        voiceMaps,
-        voiceSlot,
-        config.speech?.voice
-      )!
-      const voice = resolvedVoice.voice
-      const voiceLabel = resolvedVoice.label
-      const fallbackAttempts = getSingleItemFallbackAttempts({
-        openaiApiKey,
-        azureSpeechKey,
-        azureSpeechRegion,
-        elevenLabsApiKey,
-        language: normalizedLanguage,
-        providerConfigs,
-        voiceMaps,
-        voiceSlot,
-        defaultOpenAIModel: defaultSpeechModel,
-        primaryProvider: provider,
-      })
+      const fallbackAttempts = voiceSlot === "primary"
+        ? getSingleItemFallbackAttempts({
+            openaiApiKey,
+            azureSpeechKey,
+            azureSpeechRegion,
+            elevenLabsApiKey,
+            language: normalizedLanguage,
+            providerConfigs,
+            voiceMaps,
+            voiceSlot,
+            defaultOpenAIModel: defaultSpeechModel,
+            primaryProvider: provider,
+          })
+        : []
       const bookDir = path.join(path.resolve(booksDir), safeLabel)
       const cacheDir = path.join(bookDir, ".cache")
 

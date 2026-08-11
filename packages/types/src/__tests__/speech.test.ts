@@ -80,7 +80,34 @@ describe("SpeechConfig exclusions", () => {
       excluded_categories: ["captions", "easy-read"],
       excluded_text_ids: ["pg001_t001"],
     })
+
     expect(result.success).toBe(true)
+  })
+
+  describe("SpeechConfig secondary voices", () => {
+    it("accepts a per-language secondary provider, model, and voice", () => {
+      expect(
+        SpeechConfig.safeParse({
+          secondary_voices: {
+            "es-UY": {
+              provider: "gemini",
+              model: "gemini-2.5-flash-preview-tts",
+              voice: "Puck",
+            },
+          },
+        }).success,
+      ).toBe(true)
+    })
+
+    it("rejects unsupported providers and empty voices", () => {
+      expect(
+        SpeechConfig.safeParse({
+          secondary_voices: {
+            "es-UY": { provider: "unsupported", voice: "" },
+          },
+        }).success,
+      ).toBe(false)
+    })
   })
 
   it("rejects unknown categories", () => {

@@ -318,6 +318,8 @@ export {
 export {
   TTSProviderConfig,
   TTSRateLimitConfig,
+  SpeechProvider,
+  SecondarySpeechVoiceConfig,
   SpeechConfig,
   isSpeechWordHighlightingEnabled,
   type TtsExclusionConfig,

@@ -4,7 +4,12 @@ import crypto from "node:crypto"
 import { Hono } from "hono"
 import yaml from "js-yaml"
 import { z } from "zod"
-import { VoicesConfig, parseVoicesConfigEntries } from "@adt/types"
+import {
+  VoicesConfig,
+  normalizeVoiceMapEntry,
+  parseVoicesConfigEntries,
+  type VoiceMapEntry,
+} from "@adt/types"
 
 /** Subset of ElevenLabs' `GET /v2/voices` response we surface to the UI. The
  *  upstream payload also carries sample URLs, sharing metadata and settings we
@@ -137,10 +142,24 @@ export function createSpeechConfigRoutes(configPath: string): Hono {
   app.put("/speech-config/voices", async (c) => {
     const parsed = VoicesConfig.safeParse(await c.req.json())
     if (!parsed.success) return c.json({ error: parsed.error.message }, 400)
+    const primaryOnly = Object.fromEntries(
+      Object.entries(parsed.data).map(([provider, mappings]) => [
+        provider,
+        Object.fromEntries(
+          Object.entries(mappings).map(([language, entry]: [string, VoiceMapEntry]) => {
+            const primary = normalizeVoiceMapEntry(entry).primary
+            return [
+              language,
+              primary.label ? { primary } : primary.voice,
+            ]
+          }),
+        ),
+      ]),
+    )
     const filePath = path.join(configDir, "voices.yaml")
     fs.mkdirSync(configDir, { recursive: true })
-    fs.writeFileSync(filePath, yaml.dump(parsed.data, { lineWidth: -1 }), "utf-8")
-    return c.json(parsed.data)
+    fs.writeFileSync(filePath, yaml.dump(primaryOnly, { lineWidth: -1 }), "utf-8")
+    return c.json(primaryOnly)
   })
 
   // GET /speech-config/elevenlabs-voices — human-readable names for the

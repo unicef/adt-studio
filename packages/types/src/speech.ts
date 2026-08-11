@@ -34,6 +34,17 @@ export const TTSProviderConfig = z.object({
 })
 export type TTSProviderConfig = z.infer<typeof TTSProviderConfig>
 
+export const SpeechProvider = z.enum(["openai", "azure", "gemini", "elevenlabs"])
+export type SpeechProvider = z.infer<typeof SpeechProvider>
+
+export const SecondarySpeechVoiceConfig = z.object({
+  provider: SpeechProvider,
+  model: z.string().trim().min(1).optional(),
+  voice: z.string().trim().min(1),
+  label: z.string().trim().min(1).optional(),
+})
+export type SecondarySpeechVoiceConfig = z.infer<typeof SecondarySpeechVoiceConfig>
+
 export const SpeechConfig = z.object({
   model: z.string().optional(),
   format: z.string().optional(),
@@ -43,6 +54,8 @@ export const SpeechConfig = z.object({
   word_highlighting: z.boolean().optional(),
   default_provider: z.string().optional(),
   providers: z.record(z.string(), TTSProviderConfig).optional(),
+  /** Optional per-book secondary narrator profiles keyed by normalized locale. */
+  secondary_voices: z.record(z.string(), SecondarySpeechVoiceConfig).optional(),
   bit_rate: z.string().optional(),
   sample_rate: z.number().optional(),
   /**
@@ -151,8 +164,9 @@ export const VoiceSlotConfig = z.object({
 })
 export type VoiceSlotConfig = z.infer<typeof VoiceSlotConfig>
 
-/** Canonical per-provider/language voice mapping: a required primary voice
- *  and an optional secondary. */
+/** Extended legacy voices.yaml entry retained for compatibility with projects
+ * created during dual-voice development. New secondary narrators live in the
+ * book's speech.secondary_voices configuration. */
 export const VoiceSlots = z.object({
   primary: VoiceSlotConfig,
   secondary: VoiceSlotConfig.optional(),
@@ -163,8 +177,8 @@ export type VoiceSlots = z.infer<typeof VoiceSlots>
  * A raw `voices.yaml` per-language entry. Legacy books configure a plain
  * scalar string (the provider's voice identifier) — equivalent to
  * `{ primary: { voice: <string> } }` with no secondary. Books adding a
- * second selectable voice configure the full {@link VoiceSlots} shape
- * instead.
+ * stored an extended {@link VoiceSlots} shape during dual-voice development;
+ * it remains readable, while current editors write only a primary mapping.
  */
 export const VoiceMapEntry = z.union([z.string(), VoiceSlots])
 export type VoiceMapEntry = z.infer<typeof VoiceMapEntry>

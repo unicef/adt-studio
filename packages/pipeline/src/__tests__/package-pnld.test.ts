@@ -373,8 +373,22 @@ describe("relocateMedia", () => {
       fs.mkdirSync(path.join(dataDir, "content", "i18n", lang, "audio"), { recursive: true })
       fs.mkdirSync(path.join(dataDir, "content", "i18n", lang, "video"), { recursive: true })
       fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "audio", "p1.mp3"), lang)
+      fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "audio", "p2--secondary.wav"), lang)
+      fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "audio", "p3--secondary.ogg"), lang)
       fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "video", "sl1.mp4"), lang)
       fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "audios.json"), JSON.stringify({ a1: "p1.mp3" }))
+      fs.writeFileSync(
+        path.join(dataDir, "content", "i18n", lang, "audio_voices.json"),
+        JSON.stringify({
+          voices: {
+            primary: { label: "Primary", audios: { a1: "p1.mp3" } },
+            secondary: {
+              label: "Secondary",
+              audios: { a2: "p2--secondary.wav", a3: "p3--secondary.ogg" },
+            },
+          },
+        }),
+      )
       fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "videos.json"), JSON.stringify({ v1: "sl1.mp4" }))
       fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "texts.json"), JSON.stringify({ t: "x" }))
     }
@@ -383,10 +397,24 @@ describe("relocateMedia", () => {
     // Media lands in the flat per-type folders, disambiguated by language.
     expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__p1.mp3"))).toBe(true)
     expect(fs.existsSync(path.join(dir, "resources", "audios", "en-us__p1.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__p2--secondary.wav"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__p3--secondary.ogg"))).toBe(true)
     expect(fs.existsSync(path.join(dir, "resources", "videos", "pt-br__sl1.mp4"))).toBe(true)
     expect(fs.existsSync(path.join(dir, "resources", "videos", "en-us__sl1.mp4"))).toBe(true)
     // The JSON stays in resources/data, with map values rewritten to the new names.
     expect(readJson(path.join(dataDir, "content", "i18n", "pt-br", "audios.json")).a1).toBe("pt-br__p1.mp3")
+    expect(
+      readJson(path.join(dataDir, "content", "i18n", "pt-br", "audio_voices.json")),
+    ).toMatchObject({
+      voices: {
+        secondary: {
+          audios: {
+            a2: "pt-br__p2--secondary.wav",
+            a3: "pt-br__p3--secondary.ogg",
+          },
+        },
+      },
+    })
     expect(readJson(path.join(dataDir, "content", "i18n", "en-us", "videos.json")).v1).toBe("en-us__sl1.mp4")
     expect(readJson(path.join(dataDir, "content", "i18n", "pt-br", "texts.json")).t).toBe("x")
     // resources/data survives (it still holds the JSON); the emptied audio/video dirs are gone.

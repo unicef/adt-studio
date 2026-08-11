@@ -62,7 +62,7 @@ function searchableText(voice: ElevenLabsVoice): string {
 interface ElevenLabsVoiceComboboxProps {
   /** The stored ElevenLabs voice ID (may be empty, or an ID not in this account). */
   value: string
-  onChange: (voiceId: string) => void
+  onChange: (voiceId: string, voiceName?: string) => void
   className?: string
 }
 
@@ -125,7 +125,7 @@ export function ElevenLabsVoiceCombobox({
   }
 
   const pick = (voiceId: string) => {
-    onChange(voiceId)
+    onChange(voiceId, voiceId ? describeVoice(voiceId) : undefined)
     handleOpenChange(false)
   }
 

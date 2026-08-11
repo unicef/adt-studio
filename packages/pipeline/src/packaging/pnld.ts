@@ -493,6 +493,8 @@ function lowercaseConfigLanguages(configPath: string): void {
 const MEDIA_DEST: Record<string, { folder: string; map: string }> = {
   ".mp3": { folder: "audios", map: "audios.json" },
   ".flac": { folder: "audios", map: "audios.json" },
+  ".wav": { folder: "audios", map: "audios.json" },
+  ".ogg": { folder: "audios", map: "audios.json" },
   ".mp4": { folder: "videos", map: "videos.json" },
 }
 

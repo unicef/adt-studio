@@ -6,6 +6,7 @@ import {
   DEFAULT_OPENAI_TTS_MODEL_ID,
   DEFAULT_ELEVENLABS_TTS_MODEL_ID,
   DEFAULT_ELEVENLABS_VOICE_ID,
+  ELEVENLABS_SHIPPED_VOICE_NAMES,
   isTtsExcluded,
   normalizeVoiceMapEntry,
   voiceSlotEntryId,
@@ -95,6 +96,18 @@ export interface ResolvedVoice {
   label?: string
 }
 
+function resolvedVoiceLabel(
+  provider: string,
+  voice: string,
+  configuredLabel?: string,
+): string | undefined {
+  const label = configuredLabel?.trim()
+  if (label) return label
+  return provider === "elevenlabs"
+    ? ELEVENLABS_SHIPPED_VOICE_NAMES[voice]
+    : undefined
+}
+
 /**
  * Resolve the configured voice for a given provider, language code, and
  * voice slot ("primary"/"secondary"). Resolution: exact language match →
@@ -124,11 +137,19 @@ export function resolveVoiceForSlot(
 
   if (slot === "secondary") {
     const secondary = resolved?.secondary
-    return secondary ? { voice: secondary.voice, label: secondary.label } : null
+    return secondary
+      ? {
+          voice: secondary.voice,
+          label: resolvedVoiceLabel(provider, secondary.voice, secondary.label),
+        }
+      : null
   }
 
   if (resolved?.primary) {
-    return { voice: resolved.primary.voice, label: resolved.primary.label }
+    return {
+      voice: resolved.primary.voice,
+      label: resolvedVoiceLabel(provider, resolved.primary.voice, resolved.primary.label),
+    }
   }
 
   const normalizedDefaultVoice = defaultVoice?.trim()
@@ -139,7 +160,10 @@ export function resolveVoiceForSlot(
       : provider === "elevenlabs" && usesGenericDefault
         ? DEFAULT_ELEVENLABS_VOICE_ID
         : normalizedDefaultVoice || DEFAULT_OPENAI_VOICE
-  return { voice: fallback }
+  return {
+    voice: fallback,
+    label: resolvedVoiceLabel(provider, fallback),
+  }
 }
 
 /**
@@ -159,7 +183,8 @@ export function isSecondaryVoiceConfigured(
  * Resolve the voice name for a given provider and language code.
  * Resolution: exact match → base language → default.
  * Always resolves the "primary" slot — see {@link resolveVoiceForSlot} for
- * secondary-voice resolution.
+ * secondary-voice resolution of legacy global mappings. Current per-book
+ * secondary narrator profiles resolve through {@link resolveSpeechVoice}.
  */
 export function resolveVoice(
   provider: string,
@@ -245,6 +270,60 @@ export function resolveSpeechModel(
   if (provider === "gemini") return DEFAULT_GEMINI_MODEL
   if (provider === "elevenlabs") return DEFAULT_ELEVENLABS_TTS_MODEL_ID
   return defaultModel?.trim() || DEFAULT_OPENAI_TTS_MODEL_ID
+}
+
+export interface ResolvedSpeechVoice {
+  provider: string
+  model: string
+  voice: string
+  label?: string
+}
+
+/** Resolve the complete provider/model/voice profile for one narrator slot.
+ * Primary keeps the global provider routing and voices.yaml lookup. Secondary
+ * is an exact, per-book locale override from speech.secondary_voices. */
+export function resolveSpeechVoice(
+  languageCode: string,
+  slot: VoiceSlot,
+  speech: SpeechConfig | undefined,
+  voiceMaps: VoiceMaps,
+  defaultModel?: string,
+): ResolvedSpeechVoice | null {
+  const providerConfigs = speech?.providers ?? {}
+  if (slot === "secondary") {
+    const normalized = normalizeLocale(languageCode)
+    const configured = Object.entries(speech?.secondary_voices ?? {}).find(
+      ([locale]) => normalizeLocale(locale) === normalized,
+    )?.[1]
+    if (!configured) return null
+    return {
+      provider: configured.provider,
+      model:
+        configured.model?.trim() ||
+        resolveSpeechModel(configured.provider, providerConfigs, defaultModel),
+      voice: configured.voice,
+      label: configured.label,
+    }
+  }
+
+  const routing: ProviderRouting = {
+    providers: providerConfigs,
+    defaultProvider: speech?.default_provider ?? "openai",
+  }
+  const provider = resolveProviderForLanguage(languageCode, routing)
+  const resolvedVoice = resolveVoiceForSlot(
+    provider,
+    languageCode,
+    voiceMaps,
+    "primary",
+    speech?.voice,
+  )!
+  return {
+    provider,
+    model: resolveSpeechModel(provider, providerConfigs, defaultModel),
+    voice: resolvedVoice.voice,
+    label: resolvedVoice.label,
+  }
 }
 
 export function resolveSpeechFormat(

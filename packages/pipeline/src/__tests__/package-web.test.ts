@@ -877,8 +877,9 @@ describe("packageAdtWeb", () => {
               textId: "pg001_t001",
               language: "en",
               fileName: "pg001_t001.mp3",
-              voice: "alloy",
-              model: "gpt-4o-mini-tts",
+              voice: "QK4xDwo9ESPHA4JNUpX3",
+              model: "eleven_multilingual_v2",
+              provider: "elevenlabs",
               cached: false,
             },
             {
@@ -988,6 +989,7 @@ describe("packageAdtWeb", () => {
     expect(audioVoices.voices.primary.audios).toEqual({
       pg001_t001: "pg001_t001.mp3",
     })
+    expect(audioVoices.voices.primary.label).toBe("Tomás")
     expect(audioVoices.voices.secondary).toEqual({
       label: "Mateo",
       audios: { pg001_t001: "pg001_t001--secondary.mp3" },

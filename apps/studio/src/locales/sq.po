@@ -1000,6 +1000,9 @@ msgstr "Shto kuiz këtu"
 msgid "Add reviewer guidance."
 msgstr "Shto udhëzime për rishikuesin."
 
+msgid "Add second voice"
+msgstr "Shto zërin e dytë"
+
 msgid "Add section"
 msgstr "Shto seksion"
 
@@ -5424,8 +5427,8 @@ msgstr "N/A"
 msgid "Names and terms are consistent"
 msgstr "Emrat dhe termat janë të qëndrueshëm"
 
-msgid "Narrator name, e.g. Valentina"
-msgstr "Emri i narratorit, p.sh. Valentina"
+#~ msgid "Narrator name, e.g. Valentina"
+#~ msgstr "Emri i narratorit, p.sh. Valentina"
 
 msgid "Narrator voice"
 msgstr "Zëri i narratorit"
@@ -6793,8 +6796,8 @@ msgstr "Video të ngarkuara më parë"
 msgid "Primary"
 msgstr "Kryesor"
 
-msgid "Primary narrator"
-msgstr "Narratori kryesor"
+#~ msgid "Primary narrator"
+#~ msgstr "Narratori kryesor"
 
 msgid "Print a variable"
 msgstr "Shfaq një variabël"
@@ -7266,6 +7269,9 @@ msgstr "Hiq figurën"
 
 msgid "Remove placement"
 msgstr "Hiq vendosjen"
+
+msgid "Remove second voice"
+msgstr "Hiq zërin e dytë"
 
 msgid "Remove section"
 msgstr "Hiq seksionin"
@@ -7877,11 +7883,23 @@ msgstr "Kërko..."
 msgid "Search…"
 msgstr "Kërko…"
 
+#~ msgid "Second narrator"
+#~ msgstr "Narratori i dytë"
+
+msgid "Second voice"
+msgstr "Zëri i dytë"
+
+msgid "Second voice model"
+msgstr "Modeli i zërit të dytë"
+
+msgid "Second voice provider"
+msgstr "Ofruesi i zërit të dytë"
+
 msgid "Secondary"
 msgstr "Dytësor"
 
-msgid "Secondary narrator (optional)"
-msgstr "Narratori dytësor (opsional)"
+#~ msgid "Secondary narrator (optional)"
+#~ msgstr "Narratori dytësor (opsional)"
 
 msgid "section"
 msgstr "seksion"
@@ -8048,6 +8066,9 @@ msgstr "Zgjidhni një strategji renderimi për të parë paraprakisht si do të 
 
 msgid "Select a reviewer session to inspect its progress and findings."
 msgstr "Zgjidhni një sesion rishikuesi për të inspektuar progresin dhe gjetjet e tij."
+
+msgid "Select a second voice before saving"
+msgstr "Zgjidhni një zë të dytë para se të ruani"
 
 msgid "Select a section mode to continue"
 msgstr "Zgjidhni një modalitet seksioni për të vazhduar"

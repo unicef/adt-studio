@@ -894,6 +894,7 @@ export function createAdtPreviewRoutes(
         for (const entry of ttsData.entries) {
           if (!readySpeechIds.has(entry.textId)) continue
           if (isTtsExcluded(entry.textId, speechConfig)) continue
+          if (resolveEntryVoiceSlot(entry) !== "primary") continue
           map[entry.textId] = entry.fileName
         }
       }

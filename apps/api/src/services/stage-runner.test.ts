@@ -98,6 +98,35 @@ structure_types:
   )
 }
 
+function writeSecondarySpeechConfig(
+  configPath: string,
+  options: {
+    provider: "openai" | "azure" | "gemini" | "elevenlabs"
+    voice: string
+    model?: string
+    label?: string
+  },
+): void {
+  const secondaryLines = [
+    `      provider: ${options.provider}`,
+    ...(options.model ? [`      model: ${options.model}`] : []),
+    `      voice: ${options.voice}`,
+    ...(options.label ? [`      label: ${options.label}`] : []),
+  ].join("\n")
+  fs.writeFileSync(
+    configPath,
+    `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+ secondary_voices:
+   en:
+${secondaryLines}
+`,
+ )
+}
+
 function seedCaptionBook(
   booksDir: string,
   label: string,
@@ -1844,13 +1873,18 @@ speech:
     }
   })
 
-  it("generates independent primary and secondary voice variants when voices.yaml configures both", async () => {
+  it("generates independent primary and secondary profiles with different providers", async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
     const booksDir = path.join(tmpDir, "books")
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
-    writeBaseConfig(configPath)
+    writeSecondarySpeechConfig(configPath, {
+      provider: "gemini",
+      model: "gemini-2.5-flash-preview-tts",
+      voice: "Puck",
+      label: "Alt Narrator",
+    })
     fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
     fs.writeFileSync(
       path.join(tmpDir, "config", "voices.yaml"),
@@ -1859,9 +1893,7 @@ speech:
     primary:
       voice: alloy
       label: Narrator
-    secondary:
-      voice: shimmer
-      label: Alt Narrator
+
 `
     )
     seedTextAndSpeechBook(booksDir, "speech-dual-voice")
@@ -1901,6 +1933,7 @@ speech:
       {
         booksDir,
         apiKey: "sk-test",
+        geminiApiKey: "gm-test",
         promptsDir,
         configPath,
         fromStage: "translate",
@@ -1918,7 +1951,13 @@ speech:
       expect.objectContaining({ voice: "alloy", voiceSlot: "primary", voiceLabel: "Narrator" })
     )
     expect(generateSpeechFileMock).toHaveBeenCalledWith(
-      expect.objectContaining({ voice: "shimmer", voiceSlot: "secondary", voiceLabel: "Alt Narrator" })
+      expect.objectContaining({
+        provider: "gemini",
+        model: "gemini-2.5-flash-preview-tts",
+        voice: "Puck",
+        voiceSlot: "secondary",
+        voiceLabel: "Alt Narrator",
+      })
     )
 
     const storage = createBookStorage("speech-dual-voice", booksDir)
@@ -1948,7 +1987,11 @@ speech:
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
-    writeBaseConfig(configPath)
+    writeSecondarySpeechConfig(configPath, {
+      provider: "openai",
+      voice: "shimmer",
+      label: "Alt One",
+    })
     fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
     fs.writeFileSync(
       path.join(tmpDir, "config", "voices.yaml"),
@@ -1956,8 +1999,7 @@ speech:
   en:
     primary:
       voice: alloy
-    secondary:
-      voice: shimmer
+
 `
     )
     seedTextAndSpeechBook(booksDir, "speech-dual-voice-rerun")
@@ -1977,6 +2019,7 @@ speech:
       model: string
       instructions: string
       provider?: string
+      voiceLabel?: string
     }) => {
       const audioDir = path.join(options.bookDir, "audio", options.language)
       fs.mkdirSync(audioDir, { recursive: true })
@@ -2004,6 +2047,7 @@ speech:
         cached: false,
         provider: options.provider ?? "openai",
         voiceSlot: slot,
+        ...(options.voiceLabel ? { voiceLabel: options.voiceLabel } : {}),
       }
     })
 
@@ -2039,19 +2083,45 @@ speech:
     )
     expect(generateSpeechFileMock).not.toHaveBeenCalled()
 
+    // A label-only change must keep both audio files cached while refreshing
+    // the metadata used by Studio and exported narrator selectors.
+    writeSecondarySpeechConfig(configPath, {
+      provider: "openai",
+      voice: "shimmer",
+      label: "Alt Two",
+    })
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} },
+    )
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const storage = createBookStorage("speech-dual-voice-rerun", booksDir)
+    try {
+      const output = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ voiceSlot?: string; voiceLabel?: string }>
+      }
+      expect(
+        output.entries.find((entry) => entry.voiceSlot === "secondary")?.voiceLabel,
+      ).toBe("Alt Two")
+    } finally {
+      storage.close()
+    }
+
     // Now invalidate only the secondary voice's cache entry (e.g. its voice
     // config changed) — only the secondary slot should regenerate while the
     // primary variant is reused untouched.
-    fs.writeFileSync(
-      path.join(tmpDir, "config", "voices.yaml"),
-      `openai:
-  en:
-    primary:
-      voice: alloy
-    secondary:
-      voice: nova
-`
-    )
+    writeSecondarySpeechConfig(configPath, {
+      provider: "openai",
+      voice: "nova",
+    })
     generateSpeechFileMock.mockClear()
     await runner.run(
       "speech-dual-voice-rerun",

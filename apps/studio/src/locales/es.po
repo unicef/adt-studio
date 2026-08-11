@@ -999,6 +999,9 @@ msgstr "Añadir cuestionario aquí"
 msgid "Add reviewer guidance."
 msgstr "Add reviewer guidance."
 
+msgid "Add second voice"
+msgstr "Agregar segunda voz"
+
 msgid "Add section"
 msgstr "Add section"
 
@@ -5423,8 +5426,8 @@ msgstr "N/A"
 msgid "Names and terms are consistent"
 msgstr "Los nombres y términos son coherentes"
 
-msgid "Narrator name, e.g. Valentina"
-msgstr "Nombre del narrador, p. ej. Valentina"
+#~ msgid "Narrator name, e.g. Valentina"
+#~ msgstr "Nombre del narrador, p. ej. Valentina"
 
 msgid "Narrator voice"
 msgstr "Voz del narrador"
@@ -6792,8 +6795,8 @@ msgstr "Videos subidos anteriormente"
 msgid "Primary"
 msgstr "Principal"
 
-msgid "Primary narrator"
-msgstr "Narrador principal"
+#~ msgid "Primary narrator"
+#~ msgstr "Narrador principal"
 
 msgid "Print a variable"
 msgstr "Imprimir una variable"
@@ -7265,6 +7268,9 @@ msgstr "Quitar imagen"
 
 msgid "Remove placement"
 msgstr "Quitar ubicación"
+
+msgid "Remove second voice"
+msgstr "Eliminar segunda voz"
 
 msgid "Remove section"
 msgstr "Remove section"
@@ -7876,11 +7882,23 @@ msgstr "Buscar..."
 msgid "Search…"
 msgstr "Buscar…"
 
+#~ msgid "Second narrator"
+#~ msgstr "Segundo narrador"
+
+msgid "Second voice"
+msgstr "Segunda voz"
+
+msgid "Second voice model"
+msgstr "Modelo de la segunda voz"
+
+msgid "Second voice provider"
+msgstr "Proveedor de la segunda voz"
+
 msgid "Secondary"
 msgstr "Secundaria"
 
-msgid "Secondary narrator (optional)"
-msgstr "Narrador secundario (opcional)"
+#~ msgid "Secondary narrator (optional)"
+#~ msgstr "Narrador secundario (opcional)"
 
 msgid "section"
 msgstr "sección"
@@ -8047,6 +8065,9 @@ msgstr "Selecciona una estrategia de renderizado para previsualizar cómo se dis
 
 msgid "Select a reviewer session to inspect its progress and findings."
 msgstr "Select a reviewer session to inspect its progress and findings."
+
+msgid "Select a second voice before saving"
+msgstr "Selecciona una segunda voz antes de guardar"
 
 msgid "Select a section mode to continue"
 msgstr "Selecciona un modo de sección para continuar"

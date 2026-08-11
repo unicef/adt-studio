@@ -12,6 +12,7 @@ import {
   isSecondaryVoiceConfigured,
   resolveInstructions,
   resolveSpeechModel,
+  resolveSpeechVoice,
   resolveSpeechFormat,
   resolveGeminiTtsRateLimit,
   getDocumentedGeminiTtsRpm,
@@ -181,6 +182,70 @@ describe("resolveVoiceForSlot", () => {
     expect(resolveVoiceForSlot("openai", "es", voiceMaps, "primary")).toEqual({ voice: "coral" })
   })
 
+  describe("resolveSpeechVoice", () => {
+    const voices: VoiceMaps = {
+      openai: { "es-uy": "coral" },
+    }
+
+    it("uses global routing and voices for the primary narrator", () => {
+      expect(
+        resolveSpeechVoice(
+          "es-UY",
+          "primary",
+          {
+            default_provider: "openai",
+            providers: { openai: { model: "primary-model" } },
+          },
+          voices,
+        ),
+      ).toEqual({
+        provider: "openai",
+        model: "primary-model",
+        voice: "coral",
+        label: undefined,
+      })
+    })
+
+    it("uses the per-book provider, model, and voice for the secondary narrator", () => {
+      expect(
+        resolveSpeechVoice(
+          "es-UY",
+          "secondary",
+          {
+            secondary_voices: {
+              "es-UY": {
+                provider: "gemini",
+                model: "gemini-custom-tts",
+                voice: "Puck",
+              },
+            },
+          },
+          voices,
+        ),
+      ).toEqual({
+        provider: "gemini",
+        model: "gemini-custom-tts",
+        voice: "Puck",
+        label: undefined,
+      })
+    })
+
+    it("does not apply a secondary narrator to a different regional locale", () => {
+      expect(
+        resolveSpeechVoice(
+          "es-AR",
+          "secondary",
+          {
+            secondary_voices: {
+              "es-UY": { provider: "gemini", voice: "Puck" },
+            },
+          },
+          voices,
+        ),
+      ).toBeNull()
+    })
+  })
+
   it("resolves the primary slot from a canonical slot-object entry", () => {
     expect(resolveVoiceForSlot("openai", "en", voiceMaps, "primary")).toEqual({
       voice: "alloy",
@@ -207,6 +272,21 @@ describe("resolveVoiceForSlot", () => {
     expect(resolveVoiceForSlot("gemini", "en", {}, "primary")).toEqual({ voice: "Kore" })
     expect(resolveVoiceForSlot("elevenlabs", "en", {}, "primary")).toEqual({
       voice: "21m00Tcm4TlvDq8ikWAM",
+      label: "Rachel",
+    })
+  })
+
+  it("adds the shipped display name to a legacy ElevenLabs scalar mapping", () => {
+    expect(
+      resolveVoiceForSlot(
+        "elevenlabs",
+        "es-UY",
+        { elevenlabs: { "es-uy": "QK4xDwo9ESPHA4JNUpX3" } },
+        "primary",
+      ),
+    ).toEqual({
+      voice: "QK4xDwo9ESPHA4JNUpX3",
+      label: "Tomás",
     })
   })
 })

@@ -332,15 +332,24 @@ describe("ADT preview routes", () => {
         ],
         generatedAt: "2026-01-01T00:00:00.000Z",
       })
-      storage.putNodeData("tts", "en", {
-        entries: ["pg001_tx001", "pg001_tx002"].map((textId) => ({
+      const primaryEntries = ["pg001_tx001", "pg001_tx002"].map((textId) => ({
           textId,
           language: "en",
           fileName: `${textId}.mp3`,
           voice: "alloy",
           model: "gpt-4o-mini-tts",
           cached: false,
-        })),
+        }))
+      storage.putNodeData("tts", "en", {
+        entries: [
+          ...primaryEntries,
+          {
+            ...primaryEntries[0],
+            fileName: "pg001_tx001--secondary.mp3",
+            voice: "shimmer",
+            voiceSlot: "secondary",
+          },
+        ],
         generatedAt: "2026-01-01T00:00:00.000Z",
       })
     } finally {

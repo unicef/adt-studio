@@ -35,6 +35,29 @@ speech:
   )
 }
 
+function writeSecondaryVoiceConfig(label = "Second Narrator"): void {
+  fs.writeFileSync(
+    configPath,
+    `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  providers:
+    gemini:
+      languages:
+        - en
+  secondary_voices:
+    en:
+      provider: gemini
+      model: gemini-2.5-flash-preview-tts
+      voice: Puck
+      label: ${label}
+`,
+  )
+}
+
 /** The `params` recorded on the newest llm_log row, or undefined if none.
  *  Read straight from the DB the way the debug route does — storage exposes a
  *  writer for log rows but no reader. */
@@ -833,18 +856,7 @@ speech:
   it("generates a slot-specific secondary voice variant when configured", async () => {
     const label = "gemini-secondary-voice"
     seedBook(label)
-    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
-    fs.writeFileSync(
-      path.join(tmpDir, "config", "voices.yaml"),
-      `gemini:
-  en:
-    primary:
-      voice: Kore
-    secondary:
-      voice: Puck
-      label: Second Narrator
-`
-    )
+    writeSecondaryVoiceConfig()
 
     fetchMock.mockResolvedValue(
       new Response(
@@ -1093,18 +1105,7 @@ describe("POST /books/:label/tts/upload-one", () => {
   it("uploads a secondary voiceSlot with a slot-specific filename when configured", async () => {
     const label = "manual-audio-secondary"
     seedBook(label)
-    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
-    fs.writeFileSync(
-      path.join(tmpDir, "config", "voices.yaml"),
-      `gemini:
-  en:
-    primary:
-      voice: Kore
-    secondary:
-      voice: Puck
-      label: Second Narrator
-`
-    )
+    writeSecondaryVoiceConfig()
 
     const formData = new FormData()
     formData.append("textId", "pg001_t001")
@@ -1176,17 +1177,7 @@ describe("POST /books/:label/tts/upload-one", () => {
   it("keeps primary and secondary uploads independent across reruns", async () => {
     const label = "manual-audio-independent"
     seedBook(label)
-    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
-    fs.writeFileSync(
-      path.join(tmpDir, "config", "voices.yaml"),
-      `gemini:
-  en:
-    primary:
-      voice: Kore
-    secondary:
-      voice: Puck
-`
-    )
+    writeSecondaryVoiceConfig("Puck")
 
     const app = createTTSRoutes(tmpDir, configPath)
 
