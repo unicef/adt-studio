@@ -205,7 +205,7 @@ describe("_withCaptureLimit", () => {
     expect(tracked.peak()).toBe(0)
   })
 
-  it("does not start a queued capture that was aborted while waiting", async () => {
+  it("immediately removes and rejects a queued capture aborted while waiting", async () => {
     const gate = deferred<void>()
     let started = 0
     const limited = _withCaptureLimit({
@@ -226,10 +226,11 @@ describe("_withCaptureLimit", () => {
     const assertion = expect(queued).rejects.toThrow("cancelled")
     controller.abort(new Error("cancelled"))
 
-    gate.resolve()
-    await Promise.all(holding)
     await assertion
     expect(started).toBe(2)
+
+    gate.resolve()
+    await Promise.all(holding)
   })
 
   it("releases the slot when the underlying capture fails", async () => {

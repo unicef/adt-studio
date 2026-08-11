@@ -164,7 +164,7 @@ export function _withCaptureLimit(renderer: ScreenshotRenderer): ScreenshotRende
           logCapture(startedAt - queuedAt, performance.now() - startedAt, "error")
           throw err
         }
-      })
+      }, options?.signal)
     },
     close: () => renderer.close(),
   }

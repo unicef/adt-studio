@@ -21,7 +21,7 @@ export async function processWithConcurrency<T>(
 
 export interface Semaphore {
   /** Run `fn` once a slot is free. Queued callers wait instead of competing. */
-  run<T>(fn: () => Promise<T>): Promise<T>
+  run<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T>
   readonly limit: number
   readonly active: number
   readonly queued: number
@@ -33,25 +33,46 @@ export interface Semaphore {
  */
 export function createSemaphore(limit: number): Semaphore {
   const max = Math.max(1, Math.floor(limit))
-  const waiters: Array<() => void> = []
+  const waiters: Array<{
+    grant: () => void
+    reject: (reason: Error) => void
+  }> = []
   let active = 0
 
-  function acquire(): Promise<void> {
+  function abortError(signal: AbortSignal): Error {
+    return signal.reason instanceof Error ? signal.reason : new Error("Operation aborted")
+  }
+
+  function acquire(signal?: AbortSignal): Promise<void> {
+    if (signal?.aborted) return Promise.reject(abortError(signal))
     if (active < max) {
       active++
       return Promise.resolve()
     }
-    return new Promise<void>((resolve) => {
-      waiters.push(() => {
-        active++
-        resolve()
-      })
+
+    return new Promise<void>((resolve, reject) => {
+      const waiter = {
+        grant: () => {
+          signal?.removeEventListener("abort", onAbort)
+          active++
+          resolve()
+        },
+        reject,
+      }
+      const onAbort = () => {
+        const index = waiters.indexOf(waiter)
+        if (index === -1) return
+        waiters.splice(index, 1)
+        reject(abortError(signal!))
+      }
+      signal?.addEventListener("abort", onAbort, { once: true })
+      waiters.push(waiter)
     })
   }
 
   function release(): void {
     active--
-    waiters.shift()?.()
+    waiters.shift()?.grant()
   }
 
   return {
@@ -64,8 +85,8 @@ export function createSemaphore(limit: number): Semaphore {
     get queued() {
       return waiters.length
     },
-    async run<T>(fn: () => Promise<T>): Promise<T> {
-      await acquire()
+    async run<T>(fn: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+      await acquire(signal)
       try {
         return await fn()
       } finally {
