@@ -217,6 +217,43 @@ export async function checkForUpdates(): Promise<UpdateStatus> {
   }
 }
 
+const PERIODIC_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
+let periodicCheckTimer: ReturnType<typeof setInterval> | null = null;
+
+/**
+ * Poll for updates on a fixed interval so a new release surfaces mid-session,
+ * not only at launch. Skips while a check/download/install is already in flight
+ * (a re-check would clobber that state). Idempotent; no-op when unpacked / dev.
+ */
+export function startPeriodicUpdateChecks(
+  intervalMs: number = PERIODIC_CHECK_INTERVAL_MS,
+): void {
+  if (periodicCheckTimer || !app.isPackaged) return;
+
+  periodicCheckTimer = setInterval(() => {
+    const phase = lastStatus.phase;
+    if (
+      phase === "checking" ||
+      phase === "downloading" ||
+      phase === "downloaded" ||
+      phase === "installing"
+    ) {
+      return;
+    }
+    checkForUpdates().catch(() => {});
+  }, intervalMs);
+
+  // The interval must not keep the app alive on its own.
+  periodicCheckTimer.unref?.();
+}
+
+export function stopPeriodicUpdateChecks(): void {
+  if (!periodicCheckTimer) return;
+  clearInterval(periodicCheckTimer);
+  periodicCheckTimer = null;
+}
+
 export async function listAvailableVersions(
   force = false,
 ): Promise<AvailableRelease[]> {
