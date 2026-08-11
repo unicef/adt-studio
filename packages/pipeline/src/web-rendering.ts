@@ -13,6 +13,7 @@ import type { LLMModel } from "@adt/llm"
 import type { BookFontPromptEntry } from "./fonts-bundle.js"
 import { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
 import { renderSectionTemplate, type TemplateEngine } from "./render-template.js"
+import { repairTableOfContentsLayout } from "./toc-layout.js"
 
 export interface VisualRefinementConfig {
   enabled: boolean
@@ -391,6 +392,17 @@ export async function renderPage(
         visualRefinement,
         options,
       )
+    }
+
+    // LLM rendering already applies this repair; templates bypass that path.
+    if (
+      config.renderType === "template" &&
+      section.sectionType === "table_of_contents"
+    ) {
+      rendering = {
+        ...rendering,
+        html: repairTableOfContentsLayout(rendering.html, context.leaf_texts),
+      }
     }
 
     throwIfAborted(options.signal)

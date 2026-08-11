@@ -144,6 +144,7 @@ export {
   EpubGlossaryMode,
   EpubGlossaryConfig,
   AgentsConfig,
+  FigureExtractionMode,
   AppConfig,
   type TypeDef,
 } from "./config.js"

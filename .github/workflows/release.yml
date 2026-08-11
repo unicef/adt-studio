@@ -3,12 +3,19 @@ name: Release
 on:
   push:
     branches: [main, develop]
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
+      preview_only:
+        description: "Preview notes and covers only — no release, build, tag, or push"
+        required: true
+        default: true
+        type: boolean
       release_type:
         description: "Version increment"
         required: true
-        default: beta
+        default: patch
         type: choice
         options:
           - beta
@@ -17,12 +24,39 @@ on:
           - patch
           - minor
           - major
+      hero_feature:
+        description: "Main feature to emphasize in stable release notes and cover (optional)"
+        required: false
+        type: string
+      cover_palette:
+        description: "ADT + pipeline feature palette"
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - random
+          - adt
+          - extract
+          - sectioning
+          - storyboard
+          - captions
+          - quizzes
+          - glossary
+          - toc
+          - easy-read
+          - sign-language
+          - translate
+          - speech
+          - validation
+          - preview
+          - export
 
 permissions:
   contents: read
 
 concurrency:
-  group: release
+  group: ${{ inputs.preview_only && 'release-preview' || 'release' }}
   cancel-in-progress: false
 
 # Opt JS actions into Node 24 ahead of the June 2026 default — silences the
@@ -32,10 +66,121 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  preview:
+    if: github.event_name == 'workflow_dispatch' && inputs.preview_only
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: release-ai-preview
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fetch canonical release tags
+        run: >-
+          git fetch --force --tags https://github.com/unicef/adt-studio.git
+          'refs/tags/v*:refs/tags/v*'
+
+      - name: Resolve preview release range
+        id: release
+        env:
+          RELEASE_TYPE: ${{ inputs.release_type }}
+        run: |
+          if [[ "$RELEASE_TYPE" == beta* ]]; then
+            echo "::error::AI release assets are used for stable releases. Select patch, minor, or major for a preview."
+            exit 1
+          fi
+          VERSION=$(node scripts/calculate-release-version.mjs "$RELEASE_TYPE")
+          TAG="v$VERSION"
+          PREV_TAG=$(git tag --list 'v*' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -V \
+            | tail -1)
+          if [[ -z "$PREV_TAG" ]]; then
+            echo "::error::No previous release tag was found for the preview."
+            exit 1
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
+          echo "Previewing $PREV_TAG...$TAG from $GITHUB_SHA"
+
+      - name: Compose factual preview notes
+        env:
+          PREV_TAG: ${{ steps.release.outputs.prev_tag }}
+        run: |
+          mkdir -p release-preview
+          {
+            echo "## Changes since $PREV_TAG"
+            echo
+            git log --reverse --format='- %s (`%h`)' "$PREV_TAG..$GITHUB_SHA"
+          } > release-notes-base.md
+          test -s release-notes-base.md
+
+      - name: Generate preview notes and theme covers
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TAG: ${{ steps.release.outputs.tag }}
+          PREV_TAG: ${{ steps.release.outputs.prev_tag }}
+          REPO: ${{ github.repository }}
+          HERO_FEATURE: ${{ inputs.hero_feature }}
+          COVER_PALETTE: ${{ inputs.cover_palette }}
+        run: |
+          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+            echo "::error::Add OPENAI_API_KEY to the release-ai-preview environment before running a preview."
+            exit 1
+          fi
+          node scripts/generate-ai-release-assets.mjs \
+            --from "$PREV_TAG" \
+            --to "$GITHUB_SHA" \
+            --tag "$TAG" \
+            --repo "$REPO" \
+            --hero "${HERO_FEATURE:-}" \
+            --palette "${COVER_PALETTE:-auto}" \
+            --base-notes-file release-notes-base.md \
+            --cover-name release-cover.png \
+            --cover-url ./release-cover.png \
+            --output release-preview
+
+      - name: Add preview to workflow summary
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          PREV_TAG: ${{ steps.release.outputs.prev_tag }}
+        run: |
+          {
+            echo "## Release asset preview"
+            echo
+            echo "- Prospective release: \`$TAG\`"
+            echo "- Change range: \`$PREV_TAG...$GITHUB_SHA\`"
+            echo "- No tag, release, build, package, or commit was created."
+            echo "- Download the artifact below to inspect both cover themes at full size."
+            echo
+            echo "<details><summary>Generated release notes</summary>"
+            echo
+            sed '/<!-- adt-ai-cover:start -->/,/<!-- adt-ai-cover:end -->/d' \
+              release-preview/release-notes.md
+            echo
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload release preview
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-preview-${{ github.run_id }}
+          retention-days: 3
+          if-no-files-found: error
+          path: release-preview
+
   prepare:
     if: >-
       ${{
         contains(fromJSON('["main", "develop"]'), github.ref_name)
+        && (github.event_name != 'workflow_dispatch' || !inputs.preview_only)
         && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, 'RELEASE:'))
       }}
     runs-on: ubuntu-latest
@@ -121,6 +266,20 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
           echo "Resolved tag: $TAG (type: $RELEASE_TYPE, prerelease: $PRERELEASE)"
+
+      - name: Refuse a second outstanding stable draft
+        if: steps.tag.outputs.prerelease == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          DRAFT=$(gh api --paginate "repos/$REPO/releases?per_page=100" \
+            --jq '.[] | select(.draft == true and (.tag_name | test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))) | .tag_name' \
+            | head -1)
+          if [[ -n "$DRAFT" ]]; then
+            echo "::error::Stable draft $DRAFT is still awaiting review. Publish or abandon it before starting another stable release."
+            exit 1
+          fi
 
       - uses: pnpm/action-setup@v4
 
@@ -332,6 +491,8 @@ jobs:
       tag: ${{ needs.prepare.outputs.tag }}
       version: ${{ needs.prepare.outputs.version }}
       sha: ${{ steps.commit.outputs.sha }}
+      release_id: ${{ steps.release.outputs.release_id }}
+      release_url: ${{ steps.release.outputs.release_url }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -398,7 +559,33 @@ jobs:
         run: |
           sed "s/__TAG__/${TAG}/g" docker/compose-release.yml.template > docker-compose.yml
 
+      - name: Compose stable base release notes
+        if: needs.prepare.outputs.prerelease == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          REPO: ${{ github.repository }}
+          PREV_TAG: ${{ needs.prepare.outputs.prev_tag }}
+        run: |
+          rm -rf release-assets
+          mkdir -p release-assets
+          ARGS=(
+            -X POST "repos/$REPO/releases/generate-notes"
+            -f "tag_name=$TAG"
+            -f "target_commitish=$TAG"
+          )
+          [[ -n "$PREV_TAG" ]] && ARGS+=(-f "previous_tag_name=$PREV_TAG")
+          if gh api "${ARGS[@]}" --jq '.body' > release-notes-base.tmp \
+            && [[ -s release-notes-base.tmp ]]; then
+            mv release-notes-base.tmp release-notes-base.md
+            cp release-notes-base.md release-assets/release-notes.md
+          else
+            rm -f release-notes-base.tmp release-notes-base.md
+            echo "::warning::Could not compose stable base notes; the draft will use GitHub-generated notes."
+          fi
+
       - name: Create GitHub release
+        id: release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ needs.prepare.outputs.tag }}
@@ -408,18 +595,37 @@ jobs:
         run: |
           PRERELEASE_FLAG=""
           [[ "$PRERELEASE" == "true" ]] && PRERELEASE_FLAG="--prerelease"
+          DRAFT_FLAG=()
+          [[ "$PRERELEASE" == "false" ]] && DRAFT_FLAG=(--draft)
           START_TAG_FLAG=()
           [[ -n "$PREV_TAG" ]] && START_TAG_FLAG=(--notes-start-tag "$PREV_TAG")
           NOTES_ARGS=(--generate-notes "${START_TAG_FLAG[@]}")
           if [[ "$PRERELEASE" == "true" && -s release-notes.md ]]; then
             NOTES_ARGS=(--notes-file release-notes.md)
+          elif [[ "$PRERELEASE" == "false" && -s release-assets/release-notes.md ]]; then
+            NOTES_ARGS=(--notes-file release-assets/release-notes.md)
           fi
           gh release create "$TAG" --repo "$REPO" \
             --title "ADT Studio $TAG" \
-            "${NOTES_ARGS[@]}" $PRERELEASE_FLAG \
+            "${NOTES_ARGS[@]}" $PRERELEASE_FLAG "${DRAFT_FLAG[@]}" \
             dist/* \
             docker-compose.yml \
             scripts/windows-setup-and-run.bat
+
+          gh release view "$TAG" --repo "$REPO" \
+            --json databaseId,url,isDraft,isPrerelease > created-release.json
+          echo "release_id=$(jq -r '.databaseId' created-release.json)" >> "$GITHUB_OUTPUT"
+          echo "release_url=$(jq -r '.url' created-release.json)" >> "$GITHUB_OUTPUT"
+
+          if [[ "$PRERELEASE" == "false" ]]; then
+            RELEASE_URL=$(jq -r '.url' created-release.json)
+            {
+              echo "### Stable release draft ready"
+              echo "- Review and publish: $RELEASE_URL"
+              echo "- The factual draft exists before optional AI enrichment begins."
+              echo "- Regenerate notes or cover: https://github.com/$REPO/actions/workflows/regenerate-release-assets.yml"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Sync issue template versions to default branch
         if: github.ref_name == 'main'
@@ -437,3 +643,243 @@ jobs:
             git commit -m "chore(release): sync issue template versions for $TAG [skip ci]"
             git push origin "HEAD:$DEFAULT_BRANCH"
           fi
+
+  enrich-stable-release:
+    if: needs.prepare.outputs.prerelease == 'false'
+    needs: [prepare, finalize]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: release-ai
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.tag }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Read factual stable draft
+        id: draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_ID: ${{ needs.finalize.outputs.release_id }}
+        run: |
+          gh api "repos/$REPO/releases/$RELEASE_ID" > draft.json
+          if [[ "$(jq -r '.draft' draft.json)" != "true" ]] \
+            || [[ "$(jq -r '.prerelease' draft.json)" != "false" ]]; then
+            echo "::error::$TAG is not an unpublished stable draft."
+            exit 1
+          fi
+          jq -r '.body // ""' draft.json > factual-release-notes.md
+          test -s factual-release-notes.md
+          echo "release_id=$(jq -r '.id' draft.json)" >> "$GITHUB_OUTPUT"
+          echo "body_hash=$(sha256sum factual-release-notes.md | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Generate localized notes and theme covers
+        id: generate
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          REPO: ${{ github.repository }}
+          PREV_TAG: ${{ needs.prepare.outputs.prev_tag }}
+          HERO_FEATURE: ${{ inputs.hero_feature }}
+          COVER_PALETTE: ${{ inputs.cover_palette }}
+          COVER_NAME: release-cover-${{ github.run_id }}.png
+        run: |
+          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+            echo "::error::OPENAI_API_KEY is not configured in the release-ai environment."
+            exit 1
+          fi
+          COVER_URL="https://release-assets.invalid/$COVER_NAME"
+          node scripts/generate-ai-release-assets.mjs \
+            --from "$PREV_TAG" \
+            --to "$TAG" \
+            --tag "$TAG" \
+            --repo "$REPO" \
+            --hero "${HERO_FEATURE:-}" \
+            --palette "${COVER_PALETTE:-auto}" \
+            --base-notes-file factual-release-notes.md \
+            --cover-name "$COVER_NAME" \
+            --cover-url "$COVER_URL" \
+            --output release-assets
+
+      - name: Keep factual draft when AI generation fails
+        if: steps.generate.outcome == 'failure'
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_URL: ${{ needs.finalize.outputs.release_url }}
+        run: |
+          echo "::warning::AI enrichment failed. The factual stable draft is intact and can be regenerated later."
+          {
+            echo "### Stable draft created without AI enrichment"
+            echo "- Review draft: $RELEASE_URL"
+            echo "- Run **Regenerate release assets** to try again."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify and enrich stable draft
+        if: steps.generate.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_ID: ${{ steps.draft.outputs.release_id }}
+          EXPECTED_HASH: ${{ steps.draft.outputs.body_hash }}
+          COVER_NAME: release-cover-${{ github.run_id }}.png
+          RELEASE_URL: ${{ needs.finalize.outputs.release_url }}
+        run: |
+          gh api "repos/$REPO/releases/$RELEASE_ID" > draft-current.json
+          if [[ "$(jq -r '.draft' draft-current.json)" != "true" ]]; then
+            echo "::error::$TAG was published while AI enrichment was running."
+            exit 1
+          fi
+          jq -r '.body // ""' draft-current.json > current-release-notes.md
+          ACTUAL_HASH=$(sha256sum current-release-notes.md | awk '{print $1}')
+          if [[ "$ACTUAL_HASH" != "$EXPECTED_HASH" ]]; then
+            echo "::error::The draft changed during AI enrichment; refusing to overwrite human edits."
+            exit 1
+          fi
+
+          for asset in release-assets/release-cover-*.png; do
+            [[ -e "$asset" ]] && gh release upload "$TAG" --repo "$REPO" \
+              "$asset#Release cover"
+          done
+
+          gh api "repos/$REPO/releases/$RELEASE_ID" > draft-before-patch.json
+          jq -r '.body // ""' draft-before-patch.json > body-before-patch.md
+          BEFORE_HASH=$(sha256sum body-before-patch.md | awk '{print $1}')
+          if [[ "$(jq -r '.draft' draft-before-patch.json)" != "true" ]] \
+            || [[ "$BEFORE_HASH" != "$EXPECTED_HASH" ]]; then
+            COVER_PREFIX="release-cover-${GITHUB_RUN_ID}-"
+            gh api --paginate "repos/$REPO/releases/$RELEASE_ID/assets?per_page=100" \
+              | jq -r --arg prefix "$COVER_PREFIX" \
+                '.[] | select(.name | startswith($prefix)) | .id' \
+              | while read -r asset_id; do
+                  gh api --method DELETE "repos/$REPO/releases/assets/$asset_id"
+                done
+            echo "::error::The draft changed before enrichment; refusing to overwrite it."
+            exit 1
+          fi
+
+          gh api "repos/$REPO/releases/$RELEASE_ID/assets?per_page=100" \
+            > release-assets.json
+          LIGHT_NAME="${COVER_NAME%.png}-light.png"
+          DARK_NAME="${COVER_NAME%.png}-dark.png"
+          LIGHT_URL=$(jq -r --arg name "$LIGHT_NAME" \
+            '[.[] | select(.name == $name)] | if length == 1 then .[0].browser_download_url else empty end' \
+            release-assets.json)
+          DARK_URL=$(jq -r --arg name "$DARK_NAME" \
+            '[.[] | select(.name == $name)] | if length == 1 then .[0].browser_download_url else empty end' \
+            release-assets.json)
+          if [[ -z "$LIGHT_URL" || -z "$DARK_URL" ]]; then
+            echo "::error::Could not resolve the uploaded draft cover URLs."
+            exit 1
+          fi
+          LIGHT_URL="$LIGHT_URL" DARK_URL="$DARK_URL" node --input-type=module <<'NODE'
+          import { readFile, writeFile } from "node:fs/promises";
+          import { replaceReleaseCoverUrls } from "./scripts/generate-ai-release-assets.mjs";
+
+          const filename = "release-assets/release-notes.md";
+          const body = await readFile(filename, "utf8");
+          await writeFile(filename, replaceReleaseCoverUrls(body, {
+            lightUrl: process.env.LIGHT_URL,
+            darkUrl: process.env.DARK_URL,
+          }));
+          NODE
+
+          jq -n --rawfile body release-assets/release-notes.md '{body: $body}' \
+            | gh api --method PATCH "repos/$REPO/releases/$RELEASE_ID" --input - >/dev/null
+
+          for asset in \
+            release-assets/release-context.json \
+            release-assets/release-text-request.json \
+            release-assets/release-translation-request.json \
+            release-assets/release-image-prompt-light.txt \
+            release-assets/release-image-prompt-dark.txt \
+            release-assets/release-editorial.json \
+            release-assets/release-i18n.json; do
+            gh release upload "$TAG" --repo "$REPO" "$asset"
+          done
+
+          {
+            echo "### Stable release AI enrichment ready"
+            echo "- Review draft: $RELEASE_URL"
+            echo "- Notes include en, pt-BR, es, fr, and sq localization data."
+            echo "- Light/dark covers and generation inputs are attached for review."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  canonicalize-stable-release-covers:
+    if: github.event_name == 'release' && github.event.release.prerelease == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Replace draft cover links with published URLs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RELEASE_ID: ${{ github.event.release.id }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh api "repos/$REPO/releases/$RELEASE_ID" > release.json
+          gh api "repos/$REPO/releases/$RELEASE_ID/assets?per_page=100" > assets.json
+          jq -r '.body // ""' release.json > release-body.md
+
+          if ! grep -Fq '<!-- adt-ai-cover:start -->' release-body.md; then
+            echo "No generated release cover is embedded; nothing to canonicalize."
+            exit 0
+          fi
+
+          referenced_cover() {
+            local theme="$1" selected="" count=0 name
+            while IFS= read -r name; do
+              if [[ -n "$name" ]] && grep -Fq "/$name" release-body.md; then
+                selected="$name"
+                count=$((count + 1))
+              fi
+            done < <(jq -r --arg theme "$theme" \
+              '.[] | select(.name | test("^release-cover-.*-" + $theme + "\\.png$")) | .name' \
+              assets.json)
+            [[ "$count" == "1" ]] || return 1
+            echo "$selected"
+          }
+          if ! LIGHT_NAME=$(referenced_cover light) \
+            || ! DARK_NAME=$(referenced_cover dark); then
+            echo "::error::Could not identify the light/dark cover pair embedded in the release."
+            exit 1
+          fi
+          LIGHT_URL="https://github.com/$REPO/releases/download/$TAG/$LIGHT_NAME"
+          DARK_URL="https://github.com/$REPO/releases/download/$TAG/$DARK_NAME"
+          LIGHT_URL="$LIGHT_URL" DARK_URL="$DARK_URL" node --input-type=module <<'NODE'
+          import { readFile, writeFile } from "node:fs/promises";
+          import { replaceReleaseCoverUrls } from "./scripts/generate-ai-release-assets.mjs";
+
+          const body = await readFile("release-body.md", "utf8");
+          await writeFile("release-body-published.md", replaceReleaseCoverUrls(body, {
+            lightUrl: process.env.LIGHT_URL,
+            darkUrl: process.env.DARK_URL,
+          }));
+          NODE
+
+          if cmp -s release-body.md release-body-published.md; then
+            echo "Release cover links are already canonical."
+            exit 0
+          fi
+          jq -n --rawfile body release-body-published.md '{body: $body}' \
+            | gh api --method PATCH "repos/$REPO/releases/$RELEASE_ID" --input - >/dev/null
+          echo "Published cover links now use the stable tag URL."

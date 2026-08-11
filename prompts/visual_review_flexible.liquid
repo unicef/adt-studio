@@ -25,6 +25,12 @@ Confirm the rendering HONORS these instructions, and treat every change made to 
 ## MERGED CONTENT FROM ANOTHER PAGE
 This section combines content merged from MORE THAN ONE original page (for example an activity or passage that continues across a page break). Additional continuation page images are provided after the primary page image. When locating this section's content, check ALL of the provided page images — part of the rendering appears only in a continuation page image. Do NOT flag that content as extraneous, hallucinated, or missing from the original merely because it is absent from the primary page image, and do NOT remove it.
 {% endif %}
+{% if section_type == "table_of_contents" %}
+## TABLE OF CONTENTS REVIEW (MANDATORY)
+- User styling instructions never override the functional TOC row contract: every entry, including continuation-page entries, must have its title at the left, page number at the far right, and an EMPTY flexible dotted-border leader filling all space between them. All terminal page numbers must share one vertical right edge; use title-side padding rather than a row margin for hierarchy indentation.
+- Reject a missing or short leader and reject a finite visible dot string such as `"................................"`; it runs out and leaves a blank gap before the number at wider viewports.
+- When title and page number are separate leaves, preserve both `data-id` elements as siblings around an `aria-hidden` element marked `data-toc-leader="true"`. When one leaf owns both, preserve the parent `data-id` and its direct marked title, leader, and page-number children so runtime translation keeps the row intact.
+{% endif %}
 ## REVIEW PHILOSOPHY: WEB ADAPTATION, NOT REPRODUCTION
 This is a web textbook. The print original is a *reference for content*, not a *target for visual fidelity*. Your job is to confirm the rendered section works as a web page — not to police whether it looks like the printed book.
 
@@ -60,7 +66,7 @@ On mobile only (no prefix), favor a single-column stacked layout. At tablet (`md
 
 ## RULES
 - Preserve ALL data-id attributes exactly as they are
-- The only data-id rule is that an element WITH a `data-id` attribute must contain only literal text as its children — no nested HTML tags directly inside that data-id element. Its text content is replaced at render time.
+- The normal data-id rule is that an element WITH a `data-id` attribute contains only literal text. The sole exception is a `table_of_contents` leaf that owns both title and page number; it may contain the direct marked title, leader, and page-number spans described above while keeping exactly the same combined text.
 - A plain wrapper element WITHOUT its own `data-id` (e.g. a `<p>`, `<div>`, `<li>`, or `<section>`) MAY contain multiple data-id-bearing children (typically `<span data-id="...">…</span>` fragments flowing inline). That is the intended shape for a paragraph or list item whose text is split across several leaves — do NOT flag or rewrite it. Only flag cases where an element that itself has a `data-id` also has child tags inside it.
 - Preserve ALL text content exactly — do not change, add, or remove any words
 - Preserve ALL image tags and their data-id attributes

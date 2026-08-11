@@ -779,6 +779,65 @@ describe("renderPage", () => {
     expect(nodes[0].structure).toBe("paragraph")
   })
 
+  it("repairs split-leaf TOC leaders after template rendering", async () => {
+    const fakeTemplateEngine: TemplateEngine = {
+      async render() {
+        return `<section data-section-type="table_of_contents" data-section-id="pg003_sec001">
+          <div class="flex items-baseline">
+            <span data-id="toc-title">Acknowledgements</span>
+            <span data-toc-leader="true" aria-hidden="true">................................</span>
+            <span data-id="toc-page">v</span>
+          </div>
+        </section>`
+      },
+    }
+    const templateConfig = (): RenderConfig => ({
+      renderType: "template",
+      promptName: "",
+      modelId: "",
+      maxRetries: 0,
+      timeoutMs: 0,
+      answerPromptName: "",
+      templateName: "test",
+    })
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>() => {
+        throw new Error("LLM should not be called for template rendering")
+      },
+    }
+
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg003",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [{
+            sectionId: "pg003_sec001",
+            sectionType: "table_of_contents",
+            nodes: [groupNode("toc-row", "list_item", [
+              leafNode("toc-title", "text", "Acknowledgements"),
+              leafNode("toc-page", "text", "v"),
+            ])],
+            backgroundColor: "#ffffff",
+            textColor: "#000000",
+            pageNumber: 3,
+            isPruned: false,
+          }],
+        },
+        images: new Map(),
+      },
+      templateConfig,
+      fakeLlm,
+      fakeTemplateEngine,
+    )
+
+    expect(result.sections[0].html).not.toContain("................................")
+    expect(result.sections[0].html).toContain("border-b-2 border-dotted")
+    expect(result.sections[0].html).toContain('data-id="toc-page" class="shrink-0 text-right tabular-nums"')
+  })
+
   it("throws when template renderType but no template engine", async () => {
     const templateResolveConfig = (): RenderConfig => ({
       renderType: "template",
