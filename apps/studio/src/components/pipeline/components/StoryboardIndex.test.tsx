@@ -187,6 +187,18 @@ function stubRect(el: HTMLElement, top: number, height: number) {
   } as DOMRect)
 }
 
+/** Dragging is opt-in; enter the mode the way a user does. */
+function enableRearrange() {
+  fireEvent.click(screen.getByRole("button", { name: "Rearrange" }))
+}
+
+/** Open a row's menu and click one of its actions. */
+function useRowMenu(rowIndex: number, action: string) {
+  const triggers = screen.getAllByRole("button", { name: "Move this page" })
+  fireEvent.click(triggers[rowIndex])
+  fireEvent.click(screen.getByRole("button", { name: action }))
+}
+
 afterEach(() => {
   cleanup()
   saveMutate.mockReset()
@@ -213,6 +225,8 @@ describe("StoryboardIndex reordering", () => {
     render(<StoryboardIndex bookLabel="book" />)
     const [first, , third] = rows()
 
+    enableRearrange()
+
     const dataTransfer = createDataTransfer()
     fireDrag(first, "dragstart", dataTransfer)
     expect(dataTransfer.getData(READING_ORDER_DRAG_TYPE)).toBe("pg001_sec001")
@@ -237,6 +251,8 @@ describe("StoryboardIndex reordering", () => {
     render(<StoryboardIndex bookLabel="book" />)
     const [, , third] = rows()
 
+    enableRearrange()
+
     const dataTransfer = createDataTransfer()
     fireDrag(rows()[0], "dragstart", dataTransfer)
 
@@ -251,8 +267,65 @@ describe("StoryboardIndex reordering", () => {
     ])
   })
 
+  it("does not reorder by dragging until rearranging is switched on", () => {
+    // The whole point of the mode: the page list is something you click
+    // through, so a stray drag must not silently rewrite the book.
+    render(<StoryboardIndex bookLabel="book" />)
+    const [first, , third] = rows()
+
+    expect(first.getAttribute("draggable")).toBe("false")
+
+    const dataTransfer = createDataTransfer()
+    fireDrag(first, "dragstart", dataTransfer)
+    expect(dataTransfer.getData(READING_ORDER_DRAG_TYPE)).toBe("")
+
+    stubRect(third, 100, 40)
+    fireDrag(third, "drop", dataTransfer, 130)
+    expect(saveMutate).not.toHaveBeenCalled()
+
+    // Switching it on makes the rows draggable.
+    enableRearrange()
+    expect(rows()[0].getAttribute("draggable")).toBe("true")
+  })
+
+  it("moves a page from its own menu without entering the mode", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    useRowMenu(0, "Move down")
+
+    expect(saveMutate).toHaveBeenCalledTimes(1)
+    expect(saveMutate.mock.calls[0][0].items.map((i: { id: string }) => i.id)).toEqual([
+      "pg003_sec001",
+      "pg001_sec001",
+      "pg002_sec001",
+    ])
+  })
+
+  it("moves a page to the end from its menu", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    useRowMenu(0, "Move to end")
+
+    expect(saveMutate.mock.calls[0][0].items.map((i: { id: string }) => i.id)).toEqual([
+      "pg003_sec001",
+      "pg002_sec001",
+      "pg001_sec001",
+    ])
+  })
+
+  it("disables the row menu while the storyboard is running", () => {
+    render(<StoryboardIndex bookLabel="book" stageRunning />)
+
+    const triggers = screen.getAllByRole("button", { name: "Move this page" })
+    expect((triggers[0] as HTMLButtonElement).disabled).toBe(true)
+    expect(
+      (screen.getByRole("button", { name: "Rearrange" }) as HTMLButtonElement).disabled,
+    ).toBe(true)
+  })
+
   it("ignores drags that are not reading-order rows", () => {
     render(<StoryboardIndex bookLabel="book" />)
+    enableRearrange()
     const foreign = createDataTransfer()
     foreign.setData("text/plain", "something else")
 
