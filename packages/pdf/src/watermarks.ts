@@ -299,20 +299,6 @@ export function isWatermarkLine(
     || bboxSubstantiallyOverlaps(union, bbox);
 }
 
-/** Remove full watermark lines using bboxes aligned by line index. */
-export function stripWatermarkTextLines(
-  text: string,
-  watermarks: WatermarkSignature[],
-  lineBboxes: Array<WatermarkBBox | undefined>,
-): string {
-  if (watermarks.length === 0) return text;
-  return text
-    .split("\n")
-    .filter((line, index) => !isWatermarkLine(line, lineBboxes[index], watermarks))
-    .join("\n")
-    .replace(/\n{3,}/g, "\n\n");
-}
-
 /**
  * Render the page to a PNG at `scale`, dropping text ops that match a
  * detected watermark signature (same string, same page geometry). All other

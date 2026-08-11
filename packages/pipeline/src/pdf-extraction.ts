@@ -22,6 +22,14 @@ export function resolveFigureExtractionMode(
   return config.vector_text_grouping === false ? "off" : "all"
 }
 
+/** The extraction flags derived from the resolved figure-extraction mode. */
+export function figureExtractionFlags(
+  config: Pick<AppConfig, "figure_extraction_mode" | "vector_text_grouping">,
+): { vectorTextGrouping: boolean; keepCoveredRasters: boolean } {
+  const mode = resolveFigureExtractionMode(config)
+  return { vectorTextGrouping: mode !== "off", keepCoveredRasters: mode === "auto" }
+}
+
 export interface ExtractOptions {
   pdfPath: string
   startPage?: number

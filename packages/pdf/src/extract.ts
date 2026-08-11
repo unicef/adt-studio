@@ -12,6 +12,7 @@ import mupdf, {
   type PDFPage,
   type PDFObject,
   type Pixmap,
+  type StructuredText,
 } from "mupdf";
 import { cropPng, decodePng, stitchPngsHorizontally } from "./png-utils.js";
 import {
@@ -309,6 +310,20 @@ interface PageExtractOptions {
 // Main extraction function
 // ============================================================================
 
+/** Resolve the shared per-page switches (running watermark detection when
+ *  enabled) so the three extraction entry points can't drift apart. */
+function buildPageExtractOptions(
+  doc: MupdfDocument,
+  input: Pick<ExtractInput, "vectorTextGrouping" | "keepCoveredRasters" | "removeWatermarks" | "fixedLayout">,
+): PageExtractOptions {
+  return {
+    vectorTextGrouping: input.vectorTextGrouping ?? true,
+    keepCoveredRasters: input.keepCoveredRasters ?? false,
+    fixedLayout: input.fixedLayout ?? false,
+    watermarks: input.removeWatermarks ? detectTextWatermarks(doc) : undefined,
+  };
+}
+
 /**
  * Extract pages and images from a PDF.
  *
@@ -320,7 +335,7 @@ export async function extractPdf(
   input: ExtractInput,
   onProgress?: (progress: ExtractProgress) => void
 ): Promise<ExtractResult> {
-  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs, vectorTextGrouping = true, keepCoveredRasters = false, removeWatermarks = false, fixedLayout = false } = input;
+  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs } = input;
   validatePageRange(startPage, endPage);
 
   // Open PDF (suppressing mupdf stderr spam)
@@ -335,12 +350,7 @@ export async function extractPdf(
   const end = Math.min(endPage ?? totalPagesInPdf, totalPagesInPdf);
 
   const pages: ExtractedPage[] = [];
-  const pageOpts: PageExtractOptions = {
-    vectorTextGrouping,
-    keepCoveredRasters,
-    fixedLayout,
-    watermarks: removeWatermarks ? detectTextWatermarks(doc) : undefined,
-  };
+  const pageOpts = buildPageExtractOptions(doc, input);
 
   const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
   const totalLogical = logicalGroups.length;
@@ -374,7 +384,7 @@ export function extractPdfStream(
   input: ExtractInput,
   onProgress?: (progress: ExtractProgress) => void
 ): ExtractStreamResult {
-  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs, vectorTextGrouping = true, keepCoveredRasters = false, removeWatermarks = false, fixedLayout = false } = input;
+  const { pdfBuffer, startPage = 1, endPage, spreadMode = false, spreadPairs } = input;
   validatePageRange(startPage, endPage);
 
   const doc = openPdfFromBuffer(pdfBuffer);
@@ -386,12 +396,7 @@ export function extractPdfStream(
 
   async function* generatePages(): AsyncGenerator<ExtractedPage, void, unknown> {
     try {
-      const pageOpts: PageExtractOptions = {
-        vectorTextGrouping,
-        keepCoveredRasters,
-        fixedLayout,
-        watermarks: removeWatermarks ? detectTextWatermarks(doc) : undefined,
-      };
+      const pageOpts = buildPageExtractOptions(doc, input);
       const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
       const totalLogical = logicalGroups.length;
 
@@ -432,18 +437,13 @@ export async function extractPages(input: {
   removeWatermarks?: boolean;
   fixedLayout?: boolean;
 }): Promise<ExtractedPage[]> {
-  const { pdfBuffer, groups, vectorTextGrouping = true, keepCoveredRasters = false, removeWatermarks = false, fixedLayout = false } = input;
+  const { pdfBuffer, groups } = input;
   const doc = openPdfFromBuffer(pdfBuffer);
   try {
     const pages: ExtractedPage[] = [];
-    // Detection samples the whole document (not just the requested groups)
-    // so re-extracted pages agree with the original full extraction.
-    const pageOpts: PageExtractOptions = {
-      vectorTextGrouping,
-      keepCoveredRasters,
-      fixedLayout,
-      watermarks: removeWatermarks ? detectTextWatermarks(doc) : undefined,
-    };
+    // Watermark detection samples the whole document (not just the requested
+    // groups) so re-extracted pages agree with the original full extraction.
+    const pageOpts = buildPageExtractOptions(doc, input);
     for (const group of groups) {
       const page =
         group.length === 2
@@ -859,6 +859,51 @@ function extractPdfMetadata(doc: MupdfDocument): PdfMetadata {
   return metadata;
 }
 
+/** Translate a bbox by (dx, dy). */
+function translateBBox(bbox: BBox, dx: number, dy: number): BBox {
+  return [bbox[0] + dx, bbox[1] + dy, bbox[2] + dx, bbox[3] + dy];
+}
+
+/** Watermark signatures translated into a shifted coordinate space. */
+function offsetWatermarkSignatures(
+  watermarks: WatermarkSignature[],
+  dx: number,
+  dy: number,
+): WatermarkSignature[] {
+  return watermarks.map((signature) => ({
+    ...signature,
+    bbox: translateBBox(signature.bbox, dx, dy),
+  }));
+}
+
+/** Page text with watermark stamp lines removed. Signatures are stored in
+ *  origin-normalized page coordinates while stext line bboxes include the
+ *  page origin, so lines are shifted back before matching. */
+function extractPageTextFiltered(
+  stext: StructuredText,
+  bounds: BBox,
+  watermarks: WatermarkSignature[] | undefined,
+): string {
+  if (!watermarks || watermarks.length === 0) return extractTextFromStructuredText(stext);
+  return extractFilteredTextFromStructuredText(stext, ({ rawText, bbox }) =>
+    isWatermarkLine(rawText, bbox && translateBBox(bbox, -bounds[0], -bounds[1]), watermarks));
+}
+
+/** Drop paragraphs that are watermark stamps. Callers pass signatures already
+ *  translated into the paragraphs' coordinate space. */
+function filterWatermarkParagraphs<
+  P extends { text: string; blockBounds?: { x: number; y: number; width: number; height: number } },
+>(paragraphs: P[], watermarks: WatermarkSignature[]): P[] {
+  return paragraphs.filter((paragraph) => {
+    const bounds = paragraph.blockBounds;
+    return !isWatermarkLine(
+      paragraph.text,
+      bounds && [bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height],
+      watermarks,
+    );
+  });
+}
+
 async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtractOptions): Promise<ExtractedPage> {
   const { vectorTextGrouping, keepCoveredRasters, fixedLayout, watermarks } = opts;
   const pageNum = pageIndex + 1;
@@ -870,9 +915,8 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtr
   // active, the render drops the detected stamp ops so figure crops and the
   // stored page image are clean; a failed filtered render falls back.
   const matrix = mupdf.Matrix.scale(2, 2);
-  const cleanPng = watermarks && watermarks.length > 0
-    ? renderPageWithoutWatermarks(page, 2, watermarks)
-    : null;
+  const hasWatermarks = watermarks !== undefined && watermarks.length > 0;
+  const cleanPng = hasWatermarks ? renderPageWithoutWatermarks(page, 2, watermarks) : null;
   const pagePngBuf = cleanPng
     ?? Buffer.from(page.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false).asPNG());
 
@@ -889,19 +933,7 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtr
   // Extract text (handles legacy FM Sinhala font remapping when detected)
   const stext = page.toStructuredText();
   const pageBounds = page.getBounds();
-  const text = watermarks && watermarks.length > 0
-    ? extractFilteredTextFromStructuredText(stext, ({ rawText, bbox }) =>
-        isWatermarkLine(
-          rawText,
-          bbox && [
-            bbox[0] - pageBounds[0],
-            bbox[1] - pageBounds[1],
-            bbox[2] - pageBounds[0],
-            bbox[3] - pageBounds[1],
-          ],
-          watermarks,
-        ))
-    : extractTextFromStructuredText(stext);
+  const text = extractPageTextFiltered(stext, pageBounds, watermarks);
   const fontStats = tallyFontCategories(stext);
   const textShapes = extractTextShapes(
     stext,
@@ -964,20 +996,11 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtr
   // positioned text at fixed-layout quality (spacing cleanup on) so the data is
   // ready regardless of when the user picks fixed-layout.
   const paragraphData = parsePageParagraphs(page, stext, 2, true);
-  if (watermarks && watermarks.length > 0) {
-    paragraphData.paragraphs = paragraphData.paragraphs.filter((paragraph) => {
-      const bounds = paragraph.blockBounds;
-      return !isWatermarkLine(
-        paragraph.text,
-        bounds && [
-          bounds.x - pageBounds[0],
-          bounds.y - pageBounds[1],
-          bounds.x + bounds.width - pageBounds[0],
-          bounds.y + bounds.height - pageBounds[1],
-        ],
-        watermarks,
-      );
-    });
+  if (hasWatermarks) {
+    paragraphData.paragraphs = filterWatermarkParagraphs(
+      paragraphData.paragraphs,
+      offsetWatermarkSignatures(watermarks, pageBounds[0], pageBounds[1]),
+    );
   }
   // Fold hand-lettered vector paint into the duplicate selectable text run.
   const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, recorder.ops);
@@ -998,7 +1021,7 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, opts: PageExtr
     figureImages,
     recorder.ops,
   );
-  if (watermarks && watermarks.length > 0) {
+  if (hasWatermarks) {
     extractionDebug.watermarks = watermarks;
   }
 
@@ -1714,24 +1737,8 @@ async function extractSpreadPage(
   const rightStext = rightPage.toStructuredText();
   const leftBounds = leftPage.getBounds();
   const rightBounds = rightPage.getBounds();
-  const extractPageText = (
-    stext: typeof leftStext,
-    bounds: BBox,
-  ): string => hasWatermarks
-    ? extractFilteredTextFromStructuredText(stext, ({ rawText, bbox }) =>
-        isWatermarkLine(
-          rawText,
-          bbox && [
-            bbox[0] - bounds[0],
-            bbox[1] - bounds[1],
-            bbox[2] - bounds[0],
-            bbox[3] - bounds[1],
-          ],
-          watermarks,
-        ))
-    : extractTextFromStructuredText(stext);
-  const text = extractPageText(leftStext, leftBounds) + "\n"
-    + extractPageText(rightStext, rightBounds);
+  const text = extractPageTextFiltered(leftStext, leftBounds, watermarks) + "\n"
+    + extractPageTextFiltered(rightStext, rightBounds, watermarks);
   const leftFontStats = tallyFontCategories(leftStext);
   const rightFontStats = tallyFontCategories(rightStext);
   const fontStats = {
@@ -1859,34 +1866,10 @@ async function extractSpreadPage(
   // Reuse the per-page StructuredText already built above — no extra pass.
   const paragraphData = parsePageParagraphsSpread(leftPage, rightPage, leftStext, rightStext, 2, true);
   if (hasWatermarks) {
-    const spreadWatermarks = [
-      ...watermarks.map((signature) => ({
-        ...signature,
-        bbox: [
-          signature.bbox[0] + leftBounds[0],
-          signature.bbox[1] + leftBounds[1],
-          signature.bbox[2] + leftBounds[0],
-          signature.bbox[3] + leftBounds[1],
-        ] as BBox,
-      })),
-      ...watermarks.map((signature) => ({
-        ...signature,
-        bbox: [
-          signature.bbox[0] + rightBounds[0] + leftPageWidthPt,
-          signature.bbox[1] + rightBounds[1],
-          signature.bbox[2] + rightBounds[0] + leftPageWidthPt,
-          signature.bbox[3] + rightBounds[1],
-        ] as BBox,
-      })),
-    ];
-    paragraphData.paragraphs = paragraphData.paragraphs.filter((paragraph) => {
-      const bounds = paragraph.blockBounds;
-      return !isWatermarkLine(
-        paragraph.text,
-        bounds && [bounds.x, bounds.y, bounds.x + bounds.width, bounds.y + bounds.height],
-        spreadWatermarks,
-      );
-    });
+    paragraphData.paragraphs = filterWatermarkParagraphs(paragraphData.paragraphs, [
+      ...offsetWatermarkSignatures(watermarks, leftBounds[0], leftBounds[1]),
+      ...offsetWatermarkSignatures(watermarks, rightBounds[0] + leftPageWidthPt, rightBounds[1]),
+    ]);
   }
   const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, ops);
   // The destructive figure dedup stays gated to fixed-layout so reflowable
@@ -3526,7 +3509,7 @@ function extractTextShapes(
           x1 > x0 && y1 > y0 && lineWidth <= maxTextWidth
           && !(hasWatermarks && isWatermarkLine(
             lineText,
-            [x0 - originX, y0 - originY, x1 - originX, y1 - originY],
+            translateBBox(currentBbox, -originX, -originY),
             watermarks,
           ))
         ) {
@@ -3845,13 +3828,6 @@ interface FigureExtractionResult {
   images: ExtractedImage[];
   /** Hashes of raster images that are part of figure groups (for dedup with XObject extraction) */
   coveredRasterHashes: Set<string>;
-  /**
-   * Map from the hash of each SVG `<image>` element's decoded bytes to its
-   * SVG source-order seqno. Used by callers to assign `streamSeqno` on
-   * XObject-extracted rasters (matched by hash), yielding unified PDF
-   * content-stream order across rasters + vectors.
-   */
-  imageHashToSeqno: Map<string, number>;
   /** Debug info about grouping and render decisions */
   debug: ExtractionDebugOutput;
 }
@@ -3928,16 +3904,7 @@ async function extractVectorImagesFromSvg(
   debug.totalShapes = allShapes.length;
   debug.totalTextShapes = textShapesIncluded;
 
-  // Map each SVG image shape's hash to its seqno so callers can stamp
-  // `streamSeqno` on the matching XObject-extracted rasters.
-  const imageHashToSeqno = new Map<string, number>();
-  for (const shape of allShapes) {
-    if (shape.isImage && shape.imageDataHash) {
-      imageHashToSeqno.set(shape.imageDataHash, shape.seqno);
-    }
-  }
-
-  if (allShapes.length === 0) return { images, coveredRasterHashes, imageHashToSeqno, debug };
+  if (allShapes.length === 0) return { images, coveredRasterHashes, debug };
 
   // Split shapes into "normal" (participate in foreground grouping) and
   // "background" (large page-fill shapes >75% of page in either dim).
@@ -4194,7 +4161,7 @@ async function extractVectorImagesFromSvg(
     images.push(img);
   }
 
-  return { images, coveredRasterHashes, imageHashToSeqno, debug };
+  return { images, coveredRasterHashes, debug };
 }
 
 /**

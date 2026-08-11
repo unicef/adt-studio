@@ -148,7 +148,6 @@ describe("addFigureExtractionContext", () => {
     )
 
     expect(images[0].figureContext).toEqual({
-      isFigureCandidate: true,
       hasSelectableText: true,
       hasRasterContent: true,
       shapeCount: 4,
@@ -391,6 +390,70 @@ describe("filterPageImageMeaningfulness", () => {
     expect(capturedOptions?.log?.pageId).toBe("pg001")
   })
 
+  it("downgrades the template mode to all on Auto pages with no figure candidates", async () => {
+    let capturedOptions: GenerateObjectOptions | null = null
+    const existing: ImageClassificationOutput = {
+      images: [{ imageId: "pg001_im001", isPruned: false }],
+    }
+    const llm = makeFakeLLMModel(
+      [{ image_id: "pg001_im001", reasoning: "A photo", is_meaningful: true }],
+      (options) => { capturedOptions = options }
+    )
+
+    await filterPageImageMeaningfulness(
+      {
+        pageId: "pg001",
+        pageImageBase64: "base64page",
+        pageText: "page text",
+        images: [
+          { imageId: "pg001_im001", imageBase64: "base64a", width: 300, height: 400 },
+        ],
+      },
+      existing,
+      { ...config, figureExtractionMode: "auto" },
+      llm
+    )
+
+    expect(capturedOptions?.context?.figure_extraction_mode).toBe("all")
+  })
+
+  it("keeps the auto template mode when the page has a figure candidate", async () => {
+    let capturedOptions: GenerateObjectOptions | null = null
+    const existing: ImageClassificationOutput = {
+      images: [{ imageId: "pg001_im001", isPruned: false }],
+    }
+    const llm = makeFakeLLMModel(
+      [{ image_id: "pg001_im001", reasoning: "A chart", is_meaningful: true }],
+      (options) => { capturedOptions = options }
+    )
+
+    await filterPageImageMeaningfulness(
+      {
+        pageId: "pg001",
+        pageImageBase64: "base64page",
+        pageText: "page text",
+        images: [{
+          imageId: "pg001_im001",
+          imageBase64: "base64a",
+          width: 300,
+          height: 400,
+          figureContext: {
+            hasSelectableText: true,
+            hasRasterContent: true,
+            shapeCount: 3,
+            textShapeCount: 1,
+            vectorShapeCount: 1,
+          },
+        }],
+      },
+      existing,
+      { ...config, figureExtractionMode: "auto" },
+      llm
+    )
+
+    expect(capturedOptions?.context?.figure_extraction_mode).toBe("auto")
+  })
+
   it("uses a transparent Auto reason when a candidate is better represented as HTML", async () => {
     const existing: ImageClassificationOutput = {
       images: [{ imageId: "pg001_im001", isPruned: false }],
@@ -412,7 +475,6 @@ describe("filterPageImageMeaningfulness", () => {
           width: 500,
           height: 80,
           figureContext: {
-            isFigureCandidate: true,
             hasSelectableText: true,
             hasRasterContent: false,
             shapeCount: 3,
@@ -453,7 +515,6 @@ describe("filterPageImageMeaningfulness", () => {
           width: 500,
           height: 500,
           figureContext: {
-            isFigureCandidate: true,
             hasSelectableText: false,
             hasRasterContent: true,
             shapeCount: 1,
@@ -505,7 +566,6 @@ describe("filterPageImageMeaningfulness", () => {
             width: 600,
             height: 400,
             figureContext: {
-              isFigureCandidate: true,
               hasSelectableText: false,
               hasRasterContent: true,
               shapeCount: 2,
@@ -569,7 +629,6 @@ describe("filterPageImageMeaningfulness", () => {
             width: 600,
             height: 400,
             figureContext: {
-              isFigureCandidate: true,
               hasSelectableText: true,
               hasRasterContent: true,
               shapeCount: 5,
@@ -633,7 +692,6 @@ describe("filterPageImageMeaningfulness", () => {
             width: 600,
             height: 400,
             figureContext: {
-              isFigureCandidate: true,
               hasSelectableText: false,
               hasRasterContent: true,
               shapeCount: 2,
@@ -692,7 +750,6 @@ describe("filterPageImageMeaningfulness", () => {
           width: 500,
           height: 80,
           figureContext: {
-            isFigureCandidate: true,
             hasSelectableText: false,
             hasRasterContent: false,
             shapeCount: 2,

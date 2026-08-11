@@ -9,16 +9,7 @@ export type {
   ExtractStreamResult,
   ExtractProgress,
   ExtractionDebugOutput,
-  GroupDebugInfo,
-  ShapeDebugInfo,
 } from "./extract.js";
-export {
-  detectTextWatermarks,
-  isWatermarkLine,
-  stripWatermarkTextLines,
-  type WatermarkBBox,
-  type WatermarkSignature,
-} from "./watermarks.js";
 export { renderSvgToPng } from "./svg-render.js";
 export { getPngMetadata, decodePng, cropPng, samplePageEdges } from "./png-utils.js";
 export type { PngMetadata } from "./png-utils.js";

@@ -89,24 +89,9 @@ export function extractTextFromStructuredText(stext: StructuredText): string {
     return normalizeExtractedText(stext.asText());
   }
 
-  // FM fonts detected — walk JSON, remap per-line, preserve block boundaries.
-  const json: StextJson = JSON.parse(stext.asJSON());
-  const textBlocks: string[] = [];
-
-  for (const block of json.blocks) {
-    if (block.type !== "text" || !block.lines) continue;
-    const lines: string[] = [];
-    for (const line of block.lines) {
-      const fontName = line.font?.name ?? "";
-      const text = line.text ?? "";
-      lines.push(isFMFont(fontName) ? convertFMToUnicode(text) : text);
-    }
-    if (lines.length > 0) {
-      textBlocks.push(lines.join("\n"));
-    }
-  }
-
-  return normalizeExtractedText(textBlocks.join("\n\n"));
+  // FM fonts detected — the filtered traversal already remaps per-line and
+  // preserves block boundaries; run it with nothing excluded.
+  return extractFilteredTextFromStructuredText(stext, () => false);
 }
 
 export interface StructuredTextLineInfo {

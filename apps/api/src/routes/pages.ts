@@ -42,6 +42,7 @@ import {
   classifyPageImages,
   buildImageClassifyConfig,
   deduplicateAutoFigureCandidates,
+  figureExtractionFlags,
   readEditableActivities,
   remapEditableActivities,
   invalidateCoreTtsForDisplayEntries,
@@ -1317,11 +1318,11 @@ export function createPageRoutes(
     const toRemove = [...currentIds].filter((id) => !desiredIds.has(id))
 
     if (toAdd.length > 0) {
+      const autoFigureMode = resolveFigureExtractionMode(config) === "auto"
       const newPages = await extractPages({
         pdfBuffer,
         groups: toAdd,
-        vectorTextGrouping: resolveFigureExtractionMode(config) !== "off",
-        keepCoveredRasters: resolveFigureExtractionMode(config) === "auto",
+        ...figureExtractionFlags(config),
         removeWatermarks: config.remove_watermarks === true,
         fixedLayout: isFixedLayoutBook(config),
       })
@@ -1344,7 +1345,7 @@ export function createPageRoutes(
         storage.putNodeData(
           "image-filtering",
           page.pageId,
-          resolveFigureExtractionMode(config) === "auto"
+          autoFigureMode
             ? deduplicateAutoFigureCandidates(classified, page.extractionDebug)
             : classified,
         )

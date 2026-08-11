@@ -72,6 +72,7 @@ Please evaluate the following images.
 Image ID: {{ image.imageId }}
 Dimensions: {{ image.width }}px x {{ image.height }}px
 Render method: {{ image.renderMethod | default: "unknown" }}
+{% if figure_extraction_mode == "auto" %}
 {% if image.figureContext %}
 Composite figure candidate: yes
 Selectable text participated: {{ image.figureContext.hasSelectableText }}
@@ -87,6 +88,7 @@ Composite figure candidate: no extraction evidence available
 {% endif %}
 {% if image.containedInFigureId %}
 This artwork also appears inside composite candidate {{ image.containedInFigureId }}.
+{% endif %}
 {% endif %}
 {% image image.imageBase64 %}
 {% endfor %}

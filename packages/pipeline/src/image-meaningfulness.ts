@@ -10,11 +10,10 @@ import {
 } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import type { ExtractionDebugOutput } from "@adt/pdf"
+import type { Storage } from "@adt/storage"
 import { resolveFigureExtractionMode } from "./pdf-extraction.js"
 
 export interface FigureExtractionContext {
-  /** This candidate was assembled by the PDF vector/text grouping pass. */
-  isFigureCandidate: true
   /** Selectable PDF text participated in this crop and remains available as page text. */
   hasSelectableText: boolean
   /** The group contains embedded raster artwork, not only vector shapes and text. */
@@ -59,6 +58,11 @@ export interface MeaningfulnessConfig {
   figureExtractionMode: FigureExtractionMode
 }
 
+/** Shared prune reason so both dedup paths stay greppable as one rule. */
+function duplicateArtworkReason(compositeId: string): string {
+  return `duplicate artwork: kept composite ${compositeId}`
+}
+
 /**
  * Resolve extraction-level duplicates when Auto kept both a figure composite
  * and the standalone raster artwork covered by that composite. This local,
@@ -83,12 +87,59 @@ export function deduplicateAutoFigureCandidates(
       const standalone = byId.get(coveredId)
       if (!standalone || standalone.isPruned) continue
       standalone.isPruned = true
-      standalone.reason = `duplicate artwork: kept composite ${group.imageId}`
+      standalone.reason = duplicateArtworkReason(group.imageId)
       changed = true
     }
   }
 
   return changed ? { ...existingClassification, images: entries } : existingClassification
+}
+
+function getExtractionDebug(storage: Storage, pageId: string): ExtractionDebugOutput | undefined {
+  return storage.getLatestNodeData("extraction-debug", pageId)?.data as
+    | ExtractionDebugOutput
+    | undefined
+}
+
+/**
+ * Run the deterministic auto dedup against the stored extraction debug and
+ * persist any change. Returns the (possibly unchanged) classification so
+ * callers can keep their own copies in sync.
+ */
+export function dedupAutoFigureCandidatesInStorage(
+  storage: Storage,
+  pageId: string,
+  existing: ImageClassificationOutput,
+): ImageClassificationOutput {
+  const updated = deduplicateAutoFigureCandidates(existing, getExtractionDebug(storage, pageId))
+  if (updated !== existing) storage.putNodeData("image-filtering", pageId, updated)
+  return updated
+}
+
+/**
+ * Assemble the per-page LLM inputs: unpruned images with their base64
+ * payloads, cross-referenced with figure-extraction evidence from the stored
+ * extraction debug.
+ */
+export function buildMeaningfulnessImages(
+  storage: Storage,
+  pageId: string,
+  classification: ImageClassificationOutput,
+): MeaningfulnessImageInput[] {
+  const unprunedIds = new Set(
+    classification.images.filter((img) => !img.isPruned).map((img) => img.imageId)
+  )
+  const raw = storage
+    .getPageImages(pageId)
+    .filter((img) => unprunedIds.has(img.imageId))
+    .map((img) => ({
+      imageId: img.imageId,
+      imageBase64: storage.getImageBase64(img.imageId),
+      width: img.width,
+      height: img.height,
+      renderMethod: img.renderMethod,
+    }))
+  return addFigureExtractionContext(raw, getExtractionDebug(storage, pageId))
 }
 
 /** Attach transparent PDF-grouping evidence to the images sent to the LLM. */
@@ -125,7 +176,6 @@ export function addFigureExtractionContext(
     return {
       ...image,
       figureContext: {
-        isFigureCandidate: true,
         hasSelectableText: group.hasText,
         hasRasterContent: group.hasImages,
         shapeCount: group.shapeCount,
@@ -177,6 +227,20 @@ export async function filterPageImageMeaningfulness(
 
   const inputImageIds = input.images.map((img) => img.imageId)
 
+  // Auto's long prompt branch (and the page text it cites as evidence) only
+  // pays off when the page has composite candidates to arbitrate. On
+  // candidate-free pages render the generic branch instead: the auto guard
+  // and dedup below key off per-image figure evidence, so they no-op there
+  // and only the rendered prompt changes. `page_text` is still passed for
+  // custom templates that reference it unconditionally.
+  const hasFigureEvidence = input.images.some(
+    (img) => img.figureContext || img.containedInFigureId
+  )
+  const promptMode: FigureExtractionMode =
+    config.figureExtractionMode === "auto" && !hasFigureEvidence
+      ? "all"
+      : config.figureExtractionMode
+
   const result = await llmModel.generateObject<{
     images: Array<{ image_id: string; reasoning: string; is_meaningful: boolean }>
   }>({
@@ -185,7 +249,7 @@ export async function filterPageImageMeaningfulness(
     context: {
       page_image_base64: input.pageImageBase64,
       page_text: input.pageText ?? "",
-      figure_extraction_mode: config.figureExtractionMode,
+      figure_extraction_mode: promptMode,
       images: input.images,
     },
     validate: (raw: unknown): ValidationResult => {
@@ -267,10 +331,7 @@ export async function filterPageImageMeaningfulness(
       const compositeId = image.containedInFigureId
       if (!compositeId) continue
       if (pruneReasons.has(image.imageId) || pruneReasons.has(compositeId)) continue
-      pruneReasons.set(
-        image.imageId,
-        `duplicate artwork: kept composite ${compositeId}`
-      )
+      pruneReasons.set(image.imageId, duplicateArtworkReason(compositeId))
     }
   }
 

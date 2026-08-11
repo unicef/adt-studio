@@ -7,6 +7,7 @@ import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRa
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
+  figureExtractionFlags,
   resolveFigureExtractionMode,
   resolveFontsCacheDir,
   buildBookFontsPromptContext,
@@ -96,8 +97,8 @@ import {
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
-  addFigureExtractionContext,
-  deduplicateAutoFigureCandidates,
+  buildMeaningfulnessImages,
+  dedupAutoFigureCandidatesInStorage,
   cropPageImages,
   applyCrops,
   buildCroppingConfig,
@@ -1004,8 +1005,7 @@ async function runExtractStep(
         endPage: config.end_page,
         spreadMode: config.spread_mode,
         spreadPairs: config.spread_pairs,
-        vectorTextGrouping: resolveFigureExtractionMode(config) !== "off",
-        keepCoveredRasters: resolveFigureExtractionMode(config) === "auto",
+        ...figureExtractionFlags(config),
         removeWatermarks: config.remove_watermarks === true,
         fixedLayout: isFixedLayoutBook(config),
         fontsCacheDir: resolveFontsCacheDir(booksDir),
@@ -3595,12 +3595,8 @@ async function runMeaningfulnessPass(
       for (const page of pages) {
         const existing = results.get(page.pageId)
         if (!existing) continue
-        const extractionDebug = storage.getLatestNodeData("extraction-debug", page.pageId)
-          ?.data as import("@adt/pdf").ExtractionDebugOutput | undefined
-        const updated = deduplicateAutoFigureCandidates(existing, extractionDebug)
-        if (updated === existing) continue
-        results.set(page.pageId, updated)
-        storage.putNodeData("image-filtering", page.pageId, updated)
+        const updated = dedupAutoFigureCandidatesInStorage(storage, page.pageId, existing)
+        if (updated !== existing) results.set(page.pageId, updated)
       }
     }
     progress.emit({ type: "step-skip", step: "image-meaningfulness" })
@@ -3627,22 +3623,7 @@ async function runMeaningfulnessPass(
       return
     }
     try {
-      const images = storage.getPageImages(page.pageId)
-      const unprunedImageIds = new Set(
-        existing.images.filter((img) => !img.isPruned).map((img) => img.imageId)
-      )
-      const rawUnprunedImages = images
-        .filter((img) => unprunedImageIds.has(img.imageId))
-        .map((img) => ({
-          imageId: img.imageId,
-          imageBase64: storage.getImageBase64(img.imageId),
-          width: img.width,
-          height: img.height,
-          renderMethod: img.renderMethod,
-        }))
-      const extractionDebug = storage.getLatestNodeData("extraction-debug", page.pageId)
-        ?.data as import("@adt/pdf").ExtractionDebugOutput | undefined
-      const unprunedImages = addFigureExtractionContext(rawUnprunedImages, extractionDebug)
+      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing)
 
       if (unprunedImages.length > 0) {
         const updated = await filterPageImageMeaningfulness(

@@ -4,7 +4,6 @@ import { extractPdf } from "../extract.js";
 import {
   detectTextWatermarks,
   isWatermarkLine,
-  stripWatermarkTextLines,
   type WatermarkSignature,
 } from "../watermarks.js";
 import { decodePng } from "../png-utils.js";
@@ -79,15 +78,6 @@ describe("isWatermarkLine", () => {
     expect(isWatermarkLine("", [0, 0, 100, 100], sigs)).toBe(false);
     expect(isWatermarkLine("FOR TESTING ONLY", [200, 200, 300, 300], sigs)).toBe(false);
     expect(isWatermarkLine("FOR TESTING ONLY", undefined, sigs)).toBe(false);
-  });
-
-  it("strips only watermark lines from page text", () => {
-    const text = "Content of page one\nFOR TESTING ONLY\nMore content";
-    expect(stripWatermarkTextLines(
-      text,
-      sigs,
-      [undefined, [0, 0, 100, 100], undefined],
-    )).toBe("Content of page one\nMore content");
   });
 });
 

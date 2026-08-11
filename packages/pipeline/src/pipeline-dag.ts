@@ -27,7 +27,7 @@ import type {
   WebRenderingOutput,
 } from "@adt/types"
 import { isTtsExcluded } from "@adt/types"
-import { extractPDF, resolveFigureExtractionMode } from "./pdf-extraction.js"
+import { extractPDF, figureExtractionFlags, resolveFigureExtractionMode } from "./pdf-extraction.js"
 import {
   resolveFontsCacheDir,
   buildBookFontsPromptContext,
@@ -53,8 +53,8 @@ import {
 } from "./page-sectioning.js"
 import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.js"
 import {
-  addFigureExtractionContext,
-  deduplicateAutoFigureCandidates,
+  buildMeaningfulnessImages,
+  dedupAutoFigureCandidatesInStorage,
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
 } from "./image-meaningfulness.js"
@@ -244,8 +244,7 @@ export async function runFullPipeline(
           endPage: endPage ?? config.end_page,
           spreadMode: config.spread_mode,
           spreadPairs: config.spread_pairs,
-          vectorTextGrouping: resolveFigureExtractionMode(config) !== "off",
-          keepCoveredRasters: resolveFigureExtractionMode(config) === "auto",
+          ...figureExtractionFlags(config),
           removeWatermarks: config.remove_watermarks === true,
           // Gates the positioned-text pipeline (fixed-layout rendering is its
           // only consumer). Must match stage-runner so re-runs are consistent.
@@ -422,13 +421,9 @@ export async function runFullPipeline(
           for (const page of pages) {
             const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
             if (!classRow) continue
-            const extractionDebug = storage.getLatestNodeData("extraction-debug", page.pageId)
-              ?.data as import("@adt/pdf").ExtractionDebugOutput | undefined
-            const existing = classRow.data as ImageClassificationOutput
-            const updated = deduplicateAutoFigureCandidates(existing, extractionDebug)
-            if (updated !== existing) {
-              storage.putNodeData("image-filtering", page.pageId, updated)
-            }
+            dedupAutoFigureCandidatesInStorage(
+              storage, page.pageId, classRow.data as ImageClassificationOutput,
+            )
           }
         }
         return
@@ -438,22 +433,7 @@ export async function runFullPipeline(
         const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
         let imageResult = classRow.data as ImageClassificationOutput
-        const unprunedImageIds = new Set(
-          imageResult.images.filter((img) => !img.isPruned).map((img) => img.imageId)
-        )
-        const images = storage.getPageImages(page.pageId)
-        const rawUnprunedImages = images
-          .filter((img) => unprunedImageIds.has(img.imageId))
-          .map((img) => ({
-            imageId: img.imageId,
-            imageBase64: storage.getImageBase64(img.imageId),
-            width: img.width,
-            height: img.height,
-            renderMethod: img.renderMethod,
-          }))
-        const extractionDebug = storage.getLatestNodeData("extraction-debug", page.pageId)
-          ?.data as import("@adt/pdf").ExtractionDebugOutput | undefined
-        const unprunedImages = addFigureExtractionContext(rawUnprunedImages, extractionDebug)
+        const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, imageResult)
         if (unprunedImages.length > 0) {
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
           imageResult = await filterPageImageMeaningfulness(
