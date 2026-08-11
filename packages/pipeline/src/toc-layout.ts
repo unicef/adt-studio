@@ -25,7 +25,7 @@ const PAGE_NUMBER_RE = /^\s*(?:[ivxlcdm]+|\d+)\s*$/i
 const DOT_RUN_RE = /^\s*\.(?:\s*\.)+\s*$/
 const ROW_CLASSES = ["flex", "items-baseline", "w-full", "min-w-0", "gap-0"]
 const LEADER_CLASS =
-  "mx-1.5 sm:mx-2 flex-1 min-w-6 border-b-2 border-dotted border-gray-700 opacity-80"
+  "mx-1.5 sm:mx-2 flex-1 min-w-6 border-b-2 border-dotted border-current opacity-80"
 const PAGE_CLASSES = ["shrink-0", "text-right", "tabular-nums"]
 
 function splitEntry(text: string): TocParts | null {
@@ -77,11 +77,23 @@ function removeNode(node: HtmlNode): void {
   if (node.parent) setChildren(node.parent, node.parent.children.filter((child: HtmlNode) => child !== node))
 }
 
-function addClasses(element: HtmlNode, required: string[]): void {
-  const classes = new Set((element.attribs?.class ?? "").split(/\s+/).filter(Boolean))
-  for (const className of required) classes.add(className)
+function normalizeLeaf(element: HtmlNode, required: string[], kind: "title" | "page"): void {
+  const classes = (element.attribs?.class ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((className: string) => {
+      const utility = baseUtility(className)
+      if (required.includes(className)) return false
+      if (/^(?:absolute|fixed)$/.test(utility)) return false
+      if (/^(?:flex(?:-.+)?|grow(?:-.+)?|shrink(?:-.+)?|basis-.+|w-.+|min-w-.+|max-w-.+)$/.test(utility)) {
+        return false
+      }
+      if (kind === "title" && /^(?:truncate|whitespace-nowrap)$/.test(utility)) return false
+      if (kind === "page" && /^text-(?:left|center|justify|start|end)$/.test(utility)) return false
+      return true
+    })
   element.attribs = element.attribs ?? {}
-  element.attribs.class = [...classes].join(" ")
+  element.attribs.class = [...new Set([...classes, ...required])].join(" ")
 }
 
 function baseUtility(className: string): string {
@@ -102,8 +114,9 @@ function normalizeRow(row: HtmlNode): void {
     .filter((className: string) => {
       const utility = baseUtility(className)
       return !(
-        /^(?:flex|inline-flex|grid|inline-grid|w-full|min-w-0|flex-nowrap)$/.test(utility) ||
-        /^(?:grid-cols|gap(?:-[xy])?|items)-/.test(utility)
+        /^(?:flex|inline-flex|grid|inline-grid|flex-nowrap)$/.test(utility) ||
+        /^(?:w|min-w|max-w)-/.test(utility) ||
+        /^(?:grid-cols|gap(?:-[xy])?|items|space-x)-/.test(utility)
       )
     })
   row.attribs = row.attribs ?? {}
@@ -143,7 +156,7 @@ function createLeader(): HtmlNode {
 function findSplitRows(doc: HtmlNode, leafById: Map<string, string>): SplitRow[] {
   const rows: SplitRow[] = []
   for (const row of elements(doc.children)) {
-    if (row.attribs?.["data-id"]) continue
+    if (row.attribs?.["data-id"] || /^h[1-6]$/i.test(row.name ?? "")) continue
     const children = directElements(row)
     const leaves = children.filter((child) => leafById.has(child.attribs?.["data-id"]))
     const pageNumber = leaves.at(-1)
@@ -174,12 +187,16 @@ function normalizeSplitRow(split: SplitRow): void {
   }
   setChildren(leader, [])
 
-  const children = split.row.children.filter((child: HtmlNode) => !isLeader(child))
+  const children = split.row.children.filter(
+    (child: HtmlNode) =>
+      !isLeader(child) &&
+      !(child.type === "text" && DOT_RUN_RE.test(child.data ?? "")),
+  )
   children.splice(children.indexOf(split.pageNumber), 0, leader)
   setChildren(split.row, children)
   normalizeRow(split.row)
-  for (const title of split.titles) addClasses(title, ["min-w-0"])
-  addClasses(split.pageNumber, PAGE_CLASSES)
+  for (const title of split.titles) normalizeLeaf(title, ["min-w-0"], "title")
+  normalizeLeaf(split.pageNumber, PAGE_CLASSES, "page")
 }
 
 function removeDuplicateDecorations(doc: HtmlNode, pageNumbers: Set<string>): boolean {
