@@ -1020,10 +1020,11 @@ msgstr "Add at least one output language to run translation."
 msgid "Add author"
 msgstr "Add author"
 
-msgid "Add book"
-msgstr "Add book"
 msgid "Add back to book"
 msgstr "Add back to book"
+
+msgid "Add book"
+msgstr "Add book"
 
 msgid "Add Book"
 msgstr "Add Book"
@@ -5853,14 +5854,14 @@ msgstr "motion animation accessibility"
 msgid "Move down"
 msgstr "Move down"
 
-msgid "Move this page"
-msgstr "Move this page"
+#~ msgid "Move this page"
+#~ msgstr "Move this page"
 
-msgid "Move to end"
-msgstr "Move to end"
+#~ msgid "Move to end"
+#~ msgstr "Move to end"
 
-msgid "Move to start"
-msgstr "Move to start"
+#~ msgid "Move to start"
+#~ msgstr "Move to start"
 
 msgid "Move up"
 msgstr "Move up"
@@ -6905,6 +6906,9 @@ msgstr "Page {pageNum}"
 msgid "page {shownStr}"
 msgstr "page {shownStr}"
 
+msgid "Page actions"
+msgstr "Page actions"
+
 msgid "Page context"
 msgstr "Page context"
 
@@ -7274,13 +7278,16 @@ msgstr "position corner toast placement"
 #. placeholder {0}: b.pr
 msgid "PR #{0}"
 msgstr "PR #{0}"
-msgid "Position in the book"
-msgstr "Position in the book"
+
 #~ msgid "Position in the book"
 #~ msgstr "Position in the book"
 
 msgid "Position in the book, which differs from the source PDF page once pages are reordered"
 msgstr "Position in the book, which differs from the source PDF page once pages are reordered"
+
+#. placeholder {0}: b.pr
+msgid "PR #{0}"
+msgstr "PR #{0}"
 
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"

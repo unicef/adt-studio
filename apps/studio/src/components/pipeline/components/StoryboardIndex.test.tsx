@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import type { ReadingOrderResponse } from "@/api/client"
 
 const saveMutate = vi.fn()
+const pruneMutate = vi.fn()
 
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children?: React.ReactNode }) => children ?? null,
@@ -130,6 +131,13 @@ vi.mock("@/hooks/use-reading-order", async () => {
   }
 })
 vi.mock("@/api/client", () => ({ getSectionScreenshotUrl: () => "screenshot.png" }))
+vi.mock("@/hooks/use-toggle-prune", () => ({
+  useTogglePrune: () => ({ mutate: pruneMutate, isPending: false }),
+}))
+vi.mock("./VersionPicker", () => ({ VersionPicker: () => null }))
+vi.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({ invalidateQueries: vi.fn() }),
+}))
 
 const { StoryboardIndex, READING_ORDER_DRAG_TYPE } = await import("./StoryboardIndex")
 
@@ -194,14 +202,17 @@ function enableRearrange() {
 
 /** Open a row's menu and click one of its actions. */
 function useRowMenu(rowIndex: number, action: string) {
-  const triggers = screen.getAllByRole("button", { name: "Move this page" })
-  fireEvent.click(triggers[rowIndex])
-  fireEvent.click(screen.getByRole("button", { name: action }))
+  const triggers = screen.getAllByRole("button", { name: "Page actions" })
+  // `ActionMenu` is a portalled Radix dropdown: it opens on pointerdown rather
+  // than click, and its actions are menuitems outside the row's subtree.
+  fireEvent.pointerDown(triggers[rowIndex], { button: 0, ctrlKey: false })
+  fireEvent.click(screen.getByRole("menuitem", { name: action }))
 }
 
 afterEach(() => {
   cleanup()
   saveMutate.mockReset()
+  pruneMutate.mockReset()
   vi.restoreAllMocks()
 })
 
@@ -301,22 +312,29 @@ describe("StoryboardIndex reordering", () => {
     ])
   })
 
-  it("moves a page to the end from its menu", () => {
+  it("removes a page from the book via its menu", () => {
     render(<StoryboardIndex bookLabel="book" />)
 
-    useRowMenu(0, "Move to end")
+    useRowMenu(0, "Remove from book")
 
-    expect(saveMutate.mock.calls[0][0].items.map((i: { id: string }) => i.id)).toEqual([
-      "pg003_sec001",
-      "pg002_sec001",
-      "pg001_sec001",
-    ])
+    expect(pruneMutate).toHaveBeenCalledWith({ pageId: "pg001", sectionIndex: 0 })
+    // Removal is not a reordering, so the order itself is untouched.
+    expect(saveMutate).not.toHaveBeenCalled()
+  })
+
+  it("offers to add a removed page back", () => {
+    render(<StoryboardIndex bookLabel="book" />)
+
+    // Row 1 is the removed page.
+    useRowMenu(1, "Add back to book")
+
+    expect(pruneMutate).toHaveBeenCalledWith({ pageId: "pg003", sectionIndex: 0 })
   })
 
   it("disables the row menu while the storyboard is running", () => {
     render(<StoryboardIndex bookLabel="book" stageRunning />)
 
-    const triggers = screen.getAllByRole("button", { name: "Move this page" })
+    const triggers = screen.getAllByRole("button", { name: "Page actions" })
     expect((triggers[0] as HTMLButtonElement).disabled).toBe(true)
     expect(
       (screen.getByRole("button", { name: "Rearrange" }) as HTMLButtonElement).disabled,

@@ -1022,10 +1022,11 @@ msgstr "Ajoutez au moins une langue de sortie pour exécuter la traduction."
 msgid "Add author"
 msgstr "Ajouter un auteur"
 
-msgid "Add book"
-msgstr "Ajouter un livre"
 msgid "Add back to book"
 msgstr "Remettre dans le livre"
+
+msgid "Add book"
+msgstr "Ajouter un livre"
 
 msgid "Add Book"
 msgstr "Ajouter un livre"
@@ -5855,14 +5856,14 @@ msgstr "mouvement animation accessibilité"
 msgid "Move down"
 msgstr "Déplacer vers le bas"
 
-msgid "Move this page"
-msgstr "Déplacer cette page"
+#~ msgid "Move this page"
+#~ msgstr "Déplacer cette page"
 
-msgid "Move to end"
-msgstr "Déplacer à la fin"
+#~ msgid "Move to end"
+#~ msgstr "Déplacer à la fin"
 
-msgid "Move to start"
-msgstr "Déplacer au début"
+#~ msgid "Move to start"
+#~ msgstr "Déplacer au début"
 
 msgid "Move up"
 msgstr "Déplacer vers le haut"
@@ -6907,6 +6908,9 @@ msgstr "Page {pageNum}"
 msgid "page {shownStr}"
 msgstr "page {shownStr}"
 
+msgid "Page actions"
+msgstr "Actions de la page"
+
 msgid "Page context"
 msgstr "Contexte de la page"
 
@@ -7276,13 +7280,16 @@ msgstr "position coin placement notification"
 #. placeholder {0}: b.pr
 msgid "PR #{0}"
 msgstr "PR #{0}"
-msgid "Position in the book"
-msgstr "Position dans le livre"
+
 #~ msgid "Position in the book"
 #~ msgstr "Position dans le livre"
 
 msgid "Position in the book, which differs from the source PDF page once pages are reordered"
 msgstr "Position dans le livre, qui diffère de la page du PDF source dès que les pages sont réordonnées"
+
+#. placeholder {0}: b.pr
+msgid "PR #{0}"
+msgstr "PR #{0}"
 
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"

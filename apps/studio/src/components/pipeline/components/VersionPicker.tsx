@@ -9,6 +9,7 @@ import {
   Image as ImageIcon,
   Languages,
   List,
+  ListOrdered,
   Loader2,
   type LucideIcon,
 } from "lucide-react"
@@ -54,6 +55,7 @@ export type VersionedStep =
   | "image-captioning"
   | "page-sectioning"
   | "web-rendering"
+  | "reading-order"
 
 type Variant = "header" | "muted"
 
@@ -76,6 +78,7 @@ const STEP_STYLING: Record<VersionedStep, StepStyling> = {
   "image-filtering": { variant: "muted", triggerClass: MUTED_TRIGGER },
   "image-captioning": { variant: "muted", triggerClass: MUTED_TRIGGER },
   "page-sectioning": { variant: "muted", triggerClass: MUTED_TRIGGER },
+  "reading-order": { variant: "muted", triggerClass: MUTED_TRIGGER },
 }
 
 /** Default pending-change descriptor shown in the floating save bar per step. */
@@ -89,6 +92,7 @@ const STEP_PENDING: Partial<
   "easy-read": { icon: FileText, label: msg`Easy Read` },
   "image-filtering": { icon: ImageIcon, label: msg`Image selection` },
   "image-captioning": { icon: ImageIcon, label: msg`Captions` },
+  "reading-order": { icon: ListOrdered, label: msg`Page order` },
 }
 
 interface VersionPickerProps {
@@ -210,8 +214,15 @@ export function VersionPicker({
     <PendingChip icon={stepPending.icon}>{i18n._(stepPending.label)}</PendingChip>
   ) : undefined
 
+  // Not every versioned entity is a pipeline step: the reading order is the
+  // user's own arrangement, edited on the storyboard stage but produced by no
+  // step, and catalog translations belong to the translate stage.
   const stage: StageName =
-    step === "text-catalog-translation" ? "translate" : STEP_TO_STAGE[step]
+    step === "text-catalog-translation"
+      ? "translate"
+      : step === "reading-order"
+        ? "storyboard"
+        : STEP_TO_STAGE[step]
 
   useFloatingSave({
     id: `${step}:${itemId}`,
