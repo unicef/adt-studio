@@ -128,16 +128,16 @@ const config = {
 
   dmg: {
     artifactName,
-    background: "build/dmg/background.png",
-    iconSize: 128,
+    background: isBeta ? "build/dmg/beta-background.png" : "build/dmg/background.png",
+    iconSize: 120,
     iconTextSize: 13,
     window: {
-      width: 560,
-      height: 560,
+      width: 720,
+      height: 480,
     },
     contents: [
-      { x: 280, y: 185, type: "file" },
-      { x: 280, y: 410, type: "link", path: "/Applications" },
+      { x: 190, y: 290, type: "file" },
+      { x: 530, y: 290, type: "link", path: "/Applications" },
     ],
   },
 
