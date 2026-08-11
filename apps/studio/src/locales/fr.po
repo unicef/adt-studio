@@ -2389,6 +2389,9 @@ msgstr "Changer l'image de ce terme"
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "Les modifications s'appliquent au prochain lancement du Storyboard et de l'Export."
 
+msgid "Changes apply to this book only. Re-run the step to use them."
+msgstr "Les modifications s’appliquent uniquement à ce livre. Relancez l’étape pour les utiliser."
+
 msgid "Changes detected"
 msgstr "Modifications détectées"
 
@@ -2595,6 +2598,9 @@ msgstr "Le clonage a échoué"
 
 msgid "Close"
 msgstr "Fermer"
+
+msgid "Close {name} settings"
+msgstr "Fermer les paramètres de {name}"
 
 msgid "Close edit panel"
 msgstr "Fermer le panneau de modification"

@@ -25,7 +25,8 @@ export interface PluginWorkspaceProps {
   plugins: DockItem[]
   onBack: () => void
   onOpenPlugin: (slug: string) => void
-  onOpenSettings: () => void
+  /** Omitted for steps that have no settings of their own — the gear is hidden. */
+  onOpenSettings?: () => void
 }
 
 /** Full-screen frame for a plugin's long editing session (design 4a). */
@@ -90,15 +91,17 @@ export function PluginWorkspace({
           >
             <Trans>Apply to book</Trans>
           </button>
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            aria-label={t`${name} settings`}
-            title={t`${name} settings`}
-            className="grid size-7 place-items-center rounded-lg transition-colors hover:bg-white/16"
-          >
-            <Settings className="size-3.5" />
-          </button>
+          {onOpenSettings && (
+            <button
+              type="button"
+              onClick={onOpenSettings}
+              aria-label={t`${name} settings`}
+              title={t`${name} settings`}
+              className="grid size-7 place-items-center rounded-lg transition-colors hover:bg-white/16"
+            >
+              <Settings className="size-3.5" />
+            </button>
+          )}
         </div>
 
         <TitleBarControls className="-my-px -mr-3.5 h-12.5" />

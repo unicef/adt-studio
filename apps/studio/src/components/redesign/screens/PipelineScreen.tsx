@@ -3,7 +3,6 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { CircleCheck, CircleAlert, Loader2 } from "lucide-react"
 import { usePageTitle } from "@/hooks/use-page-title"
-import { getSettingsTabs } from "@/components/pipeline/settings-tabs"
 import { cn } from "@/lib/utils"
 import { ScreenFallback } from "../ui/ScreenFallback"
 import { AiEditPanel } from "./pipeline/AiEditPanel"
@@ -14,6 +13,11 @@ import { PipelineTopBar } from "./pipeline/PipelineTopBar"
 import { PluginDock } from "./pipeline/PluginDock"
 import { StageRunningPanel } from "./pipeline/StageRunningPanel"
 import { StoryboardEmptyState, type StoryboardPhase } from "./pipeline/StoryboardEmptyState"
+import { StepSettingsScreen } from "./pipeline/settings/StepSettingsScreen"
+import {
+  defaultStepSettingsTab,
+  isStepSettingsSlug,
+} from "./pipeline/settings/slugs"
 import { STEP_VIEWS, type StepFrame } from "./pipeline/steps"
 import { findDockEntry, isDockSlug, type DockSlug } from "./pipeline/plugins"
 import type { Viewport } from "./pipeline/types"
@@ -53,7 +57,7 @@ function StatusPill({
 
 export function PipelineScreen() {
   const { label } = route.useParams()
-  const { step: stepSlug } = route.useSearch()
+  const { step: stepSlug, settings: settingsSlug, tab } = route.useSearch()
   const navigate = useNavigate()
   const { t, i18n } = useLingui()
 
@@ -76,21 +80,63 @@ export function PipelineScreen() {
 
   const openStep = (slug: string) => {
     if (!isDockSlug(slug)) return
-    navigate({ to: "/redesign/pipeline/$label", params: { label }, search: { step: slug } })
+    const keepSettings = settingsSlug && isStepSettingsSlug(slug)
+    navigate({
+      to: "/redesign/pipeline/$label",
+      params: { label },
+      search: keepSettings
+        ? { step: slug, settings: slug, tab: defaultStepSettingsTab(slug, i18n) }
+        : { step: slug },
+    })
   }
   const closeStep = () => {
     navigate({ to: "/redesign/pipeline/$label", params: { label }, search: {} })
   }
   const openSettings = (slug: string) => {
+    if (!isStepSettingsSlug(slug)) return
     navigate({
-      to: "/books/$label/$step/settings",
-      params: { label, step: slug },
-      search: { tab: getSettingsTabs(slug, i18n, false)?.[0]?.key ?? "general" },
+      to: "/redesign/pipeline/$label",
+      params: { label },
+      search: {
+        ...(stepSlug ? { step: stepSlug } : {}),
+        settings: slug,
+        tab: defaultStepSettingsTab(slug, i18n),
+      },
+    })
+  }
+  const closeSettings = () => {
+    navigate({
+      to: "/redesign/pipeline/$label",
+      params: { label },
+      search: stepSlug ? { step: stepSlug } : {},
+    })
+  }
+  const selectSettingsTab = (nextTab: string) => {
+    navigate({
+      to: "/redesign/pipeline/$label",
+      params: { label },
+      search: { ...(stepSlug ? { step: stepSlug } : {}), settings: settingsSlug, tab: nextTab },
     })
   }
 
   if (state.isLoading || state.error || !state.book) {
     return <ScreenFallback error={state.error} />
+  }
+
+  if (settingsSlug) {
+    return (
+      <StepSettingsScreen
+        key={settingsSlug}
+        label={label}
+        slug={settingsSlug}
+        tab={tab ?? defaultStepSettingsTab(settingsSlug, i18n)}
+        foundations={state.foundations}
+        plugins={state.plugins}
+        onClose={closeSettings}
+        onSelectTab={selectSettingsTab}
+        onOpenPlugin={openStep}
+      />
+    )
   }
 
   const activeStep = stepSlug ? findDockEntry(stepSlug) : undefined

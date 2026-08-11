@@ -7,6 +7,7 @@ import { PluginWorkspace } from "../PluginWorkspace"
 import { StageRunningPanel } from "../StageRunningPanel"
 import { useOptionalStageActivity, useRunActivity, type RunStageActivity } from "../useRunActivity"
 import { useStageRun } from "../useStageRun"
+import { isStepSettingsSlug } from "../settings/slugs"
 import { STEP_PREREQ_REASON } from "../stepPrereq"
 import { useStepPrereq } from "../useStepPrereq"
 import type { StepProps } from "./types"
@@ -42,7 +43,9 @@ export function StepShell({
       plugins={frame.plugins}
       onBack={frame.onBack}
       onOpenPlugin={frame.onOpenPlugin}
-      onOpenSettings={() => frame.onOpenSettings(plugin.slug)}
+      onOpenSettings={
+        isStepSettingsSlug(plugin.slug) ? () => frame.onOpenSettings(plugin.slug) : undefined
+      }
     >
       {children}
     </PluginWorkspace>

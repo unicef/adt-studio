@@ -9,6 +9,17 @@ const mocks = vi.hoisted(() => ({
   pages: { value: [] as Array<{ sectionCount: number; hasRendering: boolean }> },
 }))
 
+vi.mock("@lingui/core/macro", () => ({
+  msg(strings: TemplateStringsArray, ...values: unknown[]) {
+    let text = ""
+    for (let index = 0; index < strings.length; index += 1) {
+      text += strings[index]
+      if (index < values.length) text += String(values[index])
+    }
+    return { id: text }
+  },
+}))
+
 vi.mock("@/hooks/use-pages", () => ({
   usePages: () => ({ data: mocks.pages.value }),
 }))

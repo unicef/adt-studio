@@ -49,6 +49,9 @@ export function UnsavedChangesGuard() {
   const shouldBlockFn = useCallback<ShouldBlockFn>(({ current, next }) => {
     if (!hasUnsavedRef.current) return false
     if (current.pathname !== next.pathname) return true
+    const nextSettings = (next.search as { settings?: string } | undefined)?.settings
+    const currentSettings = (current.search as { settings?: string } | undefined)?.settings
+    if (currentSettings && nextSettings !== currentSettings) return true
     const nextTab = (next.search as { tab?: string } | undefined)?.tab
     const currentTab = (current.search as { tab?: string } | undefined)?.tab
     if (nextTab === "overview" && currentTab !== "overview") return true

@@ -2388,6 +2388,9 @@ msgstr "Ndrysho figurën e këtij termi"
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "Ndryshimet zbatohen herën tjetër që ekzekutoni Storyboard dhe Eksportin."
 
+msgid "Changes apply to this book only. Re-run the step to use them."
+msgstr "Ndryshimet zbatohen vetëm për këtë libër. Rinisni hapin që t’i përdorni."
+
 msgid "Changes detected"
 msgstr "U zbuluan ndryshime"
 
@@ -2594,6 +2597,9 @@ msgstr "Klonifikimi dështoi"
 
 msgid "Close"
 msgstr "Mbyll"
+
+msgid "Close {name} settings"
+msgstr "Mbyll cilësimet e {name}"
 
 msgid "Close edit panel"
 msgstr "Mbyll panelin e redaktimit"
