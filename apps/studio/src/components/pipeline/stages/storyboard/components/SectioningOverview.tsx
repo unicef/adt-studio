@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useQueries, useQuery, useQueryClient, useMutation } from "@tanstack/react-query"
 import { api, BASE_URL, type PageSummaryItem, type PageDetail } from "@/api/client"
 import type { ContentNodeData, PageSectioningOutput, PageSectioningSection } from "@adt/types"
 import { collectLeafNodes, deleteNode, replaceNodeId, toggleNodePruned } from "@adt/types"
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
+import { useReadingOrder } from "@/hooks/use-reading-order"
 import {
   ChevronDown,
   ChevronRight,
@@ -74,6 +75,14 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
   const containerStructures = configQuery.data?.merged?.structure_types as
     | Record<string, string>
     | undefined
+
+  // Reading positions come from the server-resolved order, so this table, the
+  // sidebar and every export agree on which page is which.
+  const { data: readingOrder } = useReadingOrder(bookLabel)
+  const readingPositions = useMemo(
+    () => new Map((readingOrder?.items ?? []).map((item) => [item.id, item.position])),
+    [readingOrder],
+  )
 
   // Fetch full page details for all pages that have sections
   const pagesWithSections = pages.filter((p) => p.sectionCount > 0)
@@ -237,6 +246,12 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
                     )}
                   </button>
                 </th>
+                <th
+                  className="text-left px-3 py-2 font-medium text-muted-foreground w-16 text-center"
+                  title={t`Position in the book, which differs from the source PDF page once pages are reordered`}
+                >
+                  <Trans>Book pg</Trans>
+                </th>
                 <th className="text-left px-3 py-2 font-medium text-muted-foreground w-24">
                   <Trans>Page</Trans>
                 </th>
@@ -266,6 +281,7 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
                     key={page.pageId}
                     page={page}
                     bookLabel={bookLabel}
+                    readingPositions={readingPositions}
                     hasPrevPage={hasPrevPage}
                     hasNextPage={hasNextPage}
                     onNavigateToSection={onNavigateToSection}
@@ -361,6 +377,7 @@ function ConfirmDialog({
 function PageSectionRows({
   page,
   bookLabel,
+  readingPositions,
   hasPrevPage,
   hasNextPage,
   onNavigateToSection,
@@ -379,6 +396,8 @@ function PageSectionRows({
 }: {
   page: PageDetail
   bookLabel: string
+  /** sectionId → 1-based book page; absent when removed from the book. */
+  readingPositions: Map<string, number>
   hasPrevPage: boolean
   hasNextPage: boolean
   onNavigateToSection?: (pageId: string, sectionIndex: number) => void
@@ -502,6 +521,7 @@ function PageSectionRows({
             isExpanded={isExpanded}
             onToggle={() => toggleSection(idx)}
             renderReasoning={renderSection?.reasoning}
+            bookPosition={readingPositions.get(section.sectionId) ?? null}
             bookLabel={bookLabel}
             onNavigate={onNavigateToSection ? () => onNavigateToSection(page.pageId, idx) : undefined}
             onMerge={(direction) => onMerge(idx, direction)}
@@ -537,6 +557,7 @@ function SectionRow({
   isExpanded,
   onToggle,
   renderReasoning,
+  bookPosition,
   bookLabel,
   onNavigate,
   onMerge,
@@ -561,6 +582,8 @@ function SectionRow({
   isExpanded: boolean
   onToggle: () => void
   renderReasoning?: string
+  /** 1-based position in the book; null when removed from it. */
+  bookPosition: number | null
   bookLabel: string
   onNavigate?: () => void
   onMerge: (direction: "prev" | "next") => void
@@ -605,6 +628,18 @@ function SectionRow({
             <ChevronRight className="h-3 w-3 text-muted-foreground" />
           )}
         </td>
+        <td className="px-3 py-2 text-center">
+          <span
+            className="inline-flex items-center justify-center min-w-[18px] px-1 rounded bg-foreground/10 font-semibold tabular-nums"
+            title={
+              bookPosition === null
+                ? t`Removed from the book`
+                : t`Page ${String(bookPosition)} of the book`
+            }
+          >
+            {bookPosition ?? "–"}
+          </span>
+        </td>
         <td className="px-3 py-2">
           <span className="font-mono text-muted-foreground">
             {page.pageId}
@@ -627,7 +662,7 @@ function SectionRow({
           </button>
           {section.isPruned && (
             <span className="ml-1.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1 rounded">
-              <Trans>pruned</Trans>
+              <Trans>removed</Trans>
             </span>
           )}
         </td>
@@ -674,7 +709,7 @@ function SectionRow({
             onClone={onClone}
             onDelete={() => {
               onConfirmAction({
-                message: t`Are you sure you want to delete this section? This action cannot be undone.`,
+                message: t`Delete this section and its content permanently? This cannot be undone — use "Remove from book" instead to hide it while keeping it, and its place, for later.`,
                 onConfirm: onDelete,
               })
             }}
