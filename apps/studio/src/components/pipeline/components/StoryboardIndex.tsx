@@ -5,15 +5,18 @@ import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
 import { useLingui as useLinguiMacro } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
-import { AlertTriangle, ArrowDown, ArrowLeftRight, ArrowUp, CheckCircle2, ChevronsDown, ChevronsUp, EyeOff, FileText, GripVertical, HelpCircle, Loader2, Monitor, MoreHorizontal, Puzzle } from "lucide-react"
+import { AlertTriangle, ArrowDown, ArrowLeftRight, ArrowUp, CheckCircle2, Eye, EyeOff, FileText, GripVertical, HelpCircle, Loader2, Monitor, MoreHorizontal, Puzzle } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
+import { useQueryClient } from "@tanstack/react-query"
 import { ActionMenu } from "@/components/ui/action-menu"
+import { VersionPicker } from "./VersionPicker"
 import { STAGES } from "../stage-config"
-import { useReadingOrder, useSaveReadingOrder, moveReadingOrderItem } from "@/hooks/use-reading-order"
+import { useReadingOrder, useSaveReadingOrder, moveReadingOrderItem, readingOrderKey } from "@/hooks/use-reading-order"
+import { useTogglePrune } from "@/hooks/use-toggle-prune"
 import { announceToScreenReader } from "@/lib/aria-live"
 import { resolveQuizId, type Quiz } from "@adt/types"
 
@@ -53,6 +56,8 @@ export function StoryboardIndex({
    * Each row's menu can always move it, with no mode to remember.
    */
   const [dragEnabled, setDragEnabled] = useState(false)
+  const togglePrune = useTogglePrune(bookLabel)
+  const queryClient = useQueryClient()
   const canReorder = !stageRunning
   const dragActive = dragEnabled && canReorder
 
@@ -144,12 +149,6 @@ export function StoryboardIndex({
     [items, moveTo],
   )
 
-  const moveToEdge = useCallback(
-    (id: string, edge: "top" | "bottom") => {
-      moveTo(id, edge === "top" ? 0 : items.length)
-    },
-    [items.length, moveTo],
-  )
 
   const selectedItemIndex = useMemo(() => {
     if (!selectedPageId || sectionIndex == null) return -1
@@ -216,29 +215,49 @@ export function StoryboardIndex({
         <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
           <Trans>{String(items.length)} pages</Trans>
         </span>
-        <button
-          type="button"
-          disabled={!canReorder}
-          aria-pressed={dragActive}
-          onClick={() => setDragEnabled((on) => !on)}
-          title={
-            canReorder
-              ? dragActive
-                ? t`Stop rearranging. Each page's menu can still move it.`
-                : t`Rearrange pages by dragging. Each page's menu can move it without this.`
-              : t`Not available while the storyboard is running`
-          }
-          className={cn(
-            "inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] font-medium transition-colors",
-            !canReorder && "opacity-40 cursor-not-allowed",
-            dragActive
-              ? "bg-violet-600 text-white"
-              : "bg-muted text-muted-foreground hover:bg-muted/80",
-          )}
-        >
-          <GripVertical className="h-3 w-3" />
-          <Trans>Rearrange</Trans>
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Page order is a book-level entity, so its history belongs beside
+              the list rather than on any one page — and next to the control
+              that changes it, which is where someone looking to undo a
+              rearrange will look. */}
+          <VersionPicker
+            step="reading-order"
+            itemId="book"
+            bookLabel={bookLabel}
+            currentVersion={readingOrder?.version ?? null}
+            // Reordering saves on drop, so there is never a pending edit to
+            // hold or discard; this is history and rollback only.
+            saving={false}
+            dirty={false}
+            onDiscard={() => {}}
+            onRestored={() => {
+              void queryClient.invalidateQueries({ queryKey: readingOrderKey(bookLabel) })
+            }}
+          />
+          <button
+            type="button"
+            disabled={!canReorder}
+            aria-pressed={dragActive}
+            onClick={() => setDragEnabled((on) => !on)}
+            title={
+              canReorder
+                ? dragActive
+                  ? t`Stop rearranging. Each page's menu can still move it.`
+                  : t`Rearrange pages by dragging. Each page's menu can move it without this.`
+                : t`Not available while the storyboard is running`
+            }
+            className={cn(
+              "inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] font-medium transition-colors",
+              !canReorder && "opacity-40 cursor-not-allowed",
+              dragActive
+                ? "bg-violet-600 text-white"
+                : "bg-muted text-muted-foreground hover:bg-muted/80",
+            )}
+          >
+            <GripVertical className="h-3 w-3" />
+            <Trans>Rearrange</Trans>
+          </button>
+        </div>
       </div>
       <div ref={parentRef} className="flex-1 overflow-y-auto">
       <div
@@ -320,6 +339,13 @@ export function StoryboardIndex({
                   moveBy(itemId, 1)
                 }
               }}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
               className={cn(
                 "group relative border-y border-transparent",
                 dragActive && "cursor-grab",
@@ -328,13 +354,6 @@ export function StoryboardIndex({
                   !isDragging &&
                   (dropTarget.after ? "border-b-primary" : "border-t-primary"),
               )}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
             >
               {item.kind === "section" ? (
                 <SectionRow
@@ -363,7 +382,9 @@ export function StoryboardIndex({
               {/* Sits over the row rather than inside it: the row is itself a
                   button, and a button cannot contain another one. */}
               <div
-                className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                // Stays visible while its own menu is open — the trigger carries
+                // `data-state="open"`, so this needs no state of its own.
+                className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100 has-data-[state=open]:opacity-100"
                 // Keep menu clicks from selecting the row underneath, and from
                 // being read as the start of a drag.
                 onClick={(e) => e.stopPropagation()}
@@ -374,11 +395,20 @@ export function StoryboardIndex({
                 <RowActionsMenu
                   canMoveUp={virtualRow.index > 0}
                   canMoveDown={virtualRow.index < items.length - 1}
-                  disabled={!canReorder}
+                  disabled={!canReorder || togglePrune.isPending}
+                  isRemoved={item.kind === "section" ? item.section.isPruned : false}
+                  // Quizzes have no removed state of their own yet, so the
+                  // action is offered only for sections.
+                  canRemove={item.kind === "section"}
                   onMoveUp={() => moveBy(itemId, -1)}
                   onMoveDown={() => moveBy(itemId, 1)}
-                  onMoveToTop={() => moveToEdge(itemId, "top")}
-                  onMoveToBottom={() => moveToEdge(itemId, "bottom")}
+                  onToggleRemoved={() => {
+                    if (item.kind !== "section") return
+                    togglePrune.mutate({
+                      pageId: item.page.pageId,
+                      sectionIndex: item.section.sectionIndex,
+                    })
+                  }}
                 />
               </div>
             </div>
@@ -390,23 +420,28 @@ export function StoryboardIndex({
   )
 }
 
-/** Per-row reorder menu — the way to move a page without entering drag mode. */
+/**
+ * Per-row menu — how a page is moved without entering drag mode, and how it is
+ * taken out of the book or put back.
+ */
 function RowActionsMenu({
   canMoveUp,
   canMoveDown,
   disabled,
+  isRemoved,
+  canRemove,
   onMoveUp,
   onMoveDown,
-  onMoveToTop,
-  onMoveToBottom,
+  onToggleRemoved,
 }: {
   canMoveUp: boolean
   canMoveDown: boolean
   disabled: boolean
+  isRemoved: boolean
+  canRemove: boolean
   onMoveUp: () => void
   onMoveDown: () => void
-  onMoveToTop: () => void
-  onMoveToBottom: () => void
+  onToggleRemoved: () => void
 }) {
   const { t } = useLinguiMacro()
   return (
@@ -414,7 +449,7 @@ function RowActionsMenu({
       trigger={<MoreHorizontal className="h-3.5 w-3.5" />}
       triggerClassName="p-0.5 rounded bg-background/90 ring-1 ring-border hover:bg-accent transition-colors cursor-pointer"
       triggerDisabled={disabled}
-      triggerAriaLabel={t`Move this page`}
+      triggerAriaLabel={t`Page actions`}
       menuClassName="min-w-[170px]"
       align="right"
       note={
@@ -439,16 +474,10 @@ function RowActionsMenu({
         },
         { separator: true },
         {
-          icon: ChevronsUp,
-          label: t`Move to start`,
-          onClick: onMoveToTop,
-          disabled: !canMoveUp,
-        },
-        {
-          icon: ChevronsDown,
-          label: t`Move to end`,
-          onClick: onMoveToBottom,
-          disabled: !canMoveDown,
+          icon: isRemoved ? Eye : EyeOff,
+          label: isRemoved ? t`Add back to book` : t`Remove from book`,
+          onClick: onToggleRemoved,
+          hidden: !canRemove,
         },
       ]}
     />

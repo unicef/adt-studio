@@ -936,10 +936,11 @@ msgstr "Shto të paktën një gjuhë dalëse për të ekzekutuar përkthimin."
 msgid "Add author"
 msgstr "Shto autor"
 
-msgid "Add book"
-msgstr "Shto libër"
 msgid "Add back to book"
 msgstr "Shto përsëri në libër"
+
+msgid "Add book"
+msgstr "Shto libër"
 
 msgid "Add Book"
 msgstr "Shto Libër"
@@ -5582,14 +5583,14 @@ msgstr "Më i përdorur"
 msgid "Move down"
 msgstr "Zhvendos poshtë"
 
-msgid "Move this page"
-msgstr "Zhvendos këtë faqe"
+#~ msgid "Move this page"
+#~ msgstr "Zhvendos këtë faqe"
 
-msgid "Move to end"
-msgstr "Zhvendos në fund"
+#~ msgid "Move to end"
+#~ msgstr "Zhvendos në fund"
 
-msgid "Move to start"
-msgstr "Zhvendos në fillim"
+#~ msgid "Move to start"
+#~ msgstr "Zhvendos në fillim"
 
 msgid "Move up"
 msgstr "Zhvendos lart"
@@ -6582,6 +6583,9 @@ msgstr "Faqja {pageNum}"
 msgid "page {shownStr}"
 msgstr "faqja {shownStr}"
 
+msgid "Page actions"
+msgstr "Veprime të faqes"
+
 msgid "Page context"
 msgstr "Konteksti i faqes"
 
@@ -6963,16 +6967,15 @@ msgstr "Pozicioni"
 msgid "Position {0}, {1} → {2}×{3} pt"
 msgstr "Pozicioni {0}, {1} → {2}×{3} pt"
 
-#. placeholder {0}: b.pr
-msgid "PR #{0}"
-msgstr "PR #{0}"
-msgid "Position in the book"
-msgstr "Pozicioni në libër"
 #~ msgid "Position in the book"
 #~ msgstr "Pozicioni në libër"
 
 msgid "Position in the book, which differs from the source PDF page once pages are reordered"
 msgstr "Pozicioni në libër, që ndryshon nga faqja e PDF-it origjinal pasi faqet riorganizohen"
+
+#. placeholder {0}: b.pr
+msgid "PR #{0}"
+msgstr "PR #{0}"
 
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
