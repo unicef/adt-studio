@@ -3207,12 +3207,11 @@ export function StoryboardSectionDetail({
                 // Containers with a sectioning-tree node prune like any leaf
                 // (inherited prune greys and strips their contents at save).
                 // Decoration containers the renderer invented have no tree
-                // node to hold prune state, so the prune action removes them
-                // outright, same as Delete.
-                onTogglePrune: storyboardRunning
-                  ? undefined
-                  : selectedInfo.isContainer && !selectedInfo.hasTreeNode
-                    ? handleDeleteBlock
+                // node to hold prune state, so they get no prune toggle —
+                // Delete is their removal path.
+                onTogglePrune:
+                  storyboardRunning || (selectedInfo.isContainer && !selectedInfo.hasTreeNode)
+                    ? undefined
                     : handleToolbarPrune,
                 onCrop:
                   selectedInfo.isImage && !storyboardRunning
