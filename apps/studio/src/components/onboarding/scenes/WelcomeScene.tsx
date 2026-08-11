@@ -26,8 +26,11 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
     return () => clearTimeout(timer)
   }, [reduced])
 
-  const markClasses = cn(
-    "z-10 h-14 w-14 rounded-[22%] object-contain transition-all duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
+  // The static app icon is the mark; on stable the intro video plays over it and
+  // fades out on reveal, so the resting icon is always the crisp icon (never the
+  // video's white-margined final frame).
+  const markShift = cn(
+    "relative z-10 h-14 w-14 transition-all duration-[850ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
     revealed
       ? "translate-y-0 scale-100 cursor-default drop-shadow-[0_10px_24px_-10px_rgba(var(--ob-accent-rgb),0.45)]"
       : "translate-y-[232px] scale-[3.7] cursor-pointer drop-shadow-[0_18px_50px_rgba(var(--ob-accent-rgb),0.5)]",
@@ -41,32 +44,34 @@ export function WelcomeScene({ onNext }: OnboardingStepProps) {
 
   return (
     <div className="relative flex h-full w-full flex-col items-center overflow-hidden px-10 pt-3 text-center">
-      {OB_IS_BETA ? (
+      <div className={markShift} onClick={skipIntro}>
         <img
           aria-hidden
           src={OB_LOGO_SRC}
           alt=""
-          onClick={() => setRevealed(true)}
-          className={markClasses}
+          className="h-14 w-14 rounded-[22%] object-contain"
         />
-      ) : (
-        <video
-          ref={videoRef}
-          aria-hidden
-          poster="/logo.png"
-          muted
-          playsInline
-          autoPlay
-          onEnded={() => setRevealed(true)}
-          onClick={skipIntro}
-          className={markClasses}
-        >
-          {/* Alpha WebM (transparent, works on any theme) is preferred when present;
-              falls back to the white-background MP4 until a 3D alpha render lands. */}
-          <source src="/onboarding/welcome-logo.webm" type="video/webm" />
-          <source src="/onboarding/welcome-logo.mp4" type="video/mp4" />
-        </video>
-      )}
+        {!OB_IS_BETA && (
+          <video
+            ref={videoRef}
+            aria-hidden
+            poster="/logo.png"
+            muted
+            playsInline
+            autoPlay
+            onEnded={() => setRevealed(true)}
+            className={cn(
+              "absolute inset-0 h-14 w-14 rounded-[22%] object-contain transition-opacity duration-500",
+              revealed ? "opacity-0" : "opacity-100",
+            )}
+          >
+            {/* Alpha WebM (transparent, works on any theme) is preferred when present;
+                falls back to the white-background MP4 until a 3D alpha render lands. */}
+            <source src="/onboarding/welcome-logo.webm" type="video/webm" />
+            <source src="/onboarding/welcome-logo.mp4" type="video/mp4" />
+          </video>
+        )}
+      </div>
 
       {OB_IS_BETA && (
         <span
