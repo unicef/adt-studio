@@ -4,12 +4,12 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react"
 import { UpdateDialog } from "./UpdateDialog"
 import { PostUpdateDialog } from "./PostUpdateDialog"
+import { UpdateToast } from "./UpdateToast"
 import { useAppVersion } from "@/hooks/use-app-version"
 import { useUpdateStatus } from "@/hooks/use-update-status"
 import { isElectron } from "@/lib/utils"
@@ -31,10 +31,10 @@ export function useUpdateDialog(): UpdateDialogContextValue {
 }
 
 export function UpdateDialogProvider({ children }: { children: ReactNode }) {
-  const { status, check } = useUpdateStatus()
+  const { status, check, download, cancel, install } = useUpdateStatus()
   const currentVersion = useAppVersion()
   const [open, setOpen] = useState(false)
-  const autoOpenedFor = useRef<string | null>(null)
+  const [dismissedVersion, setDismissedVersion] = useState<string | null>(null)
 
   const [postUpdate, setPostUpdate] = useState<ElectronPostUpdateInfo | null>(
     null,
@@ -42,17 +42,29 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   const [currentRelease, setCurrentRelease] =
     useState<ElectronAvailableRelease | null>(null)
   const [whatsNewOpen, setWhatsNewOpen] = useState(false)
+  const [detailsOverride, setDetailsOverride] =
+    useState<ElectronPostUpdateInfo | null>(null)
 
   const phase = status.phase
   const hasPendingUpdate =
     phase === "available" || phase === "downloading" || phase === "downloaded"
 
-  useEffect(() => {
-    if (status.phase !== "available") return
-    if (autoOpenedFor.current === status.version) return
-    autoOpenedFor.current = status.version
-    setOpen(true)
-  }, [status])
+  const cardDetails =
+    status.phase === "available" || status.phase === "downloaded"
+      ? { version: status.version, releaseNotes: status.releaseNotes }
+      : null
+  const pendingVersion =
+    status.phase === "available" ||
+    status.phase === "downloading" ||
+    status.phase === "downloaded"
+      ? status.version
+      : null
+  // The card is the ambient surface; never stack it with an open dialog or the
+  // post-install "What's new" celebration.
+  const anyDialogOpen =
+    open || Boolean(postUpdate) || whatsNewOpen || Boolean(detailsOverride)
+  const showToast =
+    hasPendingUpdate && !anyDialogOpen && dismissedVersion !== pendingVersion
 
   useEffect(() => {
     if (!isElectron() || !window.api?.updates?.getPostUpdate) return
@@ -94,9 +106,14 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
     [openUpdateDialog, showWhatsNew, hasPendingUpdate],
   )
 
-  const whatsNewVersion = postUpdate?.version ?? currentVersion ?? ""
-  const whatsNewNotes = postUpdate?.releaseNotes ?? currentRelease?.releaseNotes
-  const showPostUpdate = Boolean(postUpdate) || whatsNewOpen
+  const whatsNewVersion =
+    detailsOverride?.version ?? postUpdate?.version ?? currentVersion ?? ""
+  const whatsNewNotes =
+    detailsOverride?.releaseNotes ??
+    postUpdate?.releaseNotes ??
+    currentRelease?.releaseNotes
+  const showPostUpdate =
+    Boolean(postUpdate) || whatsNewOpen || Boolean(detailsOverride)
 
   return (
     <UpdateDialogContext value={value}>
@@ -105,6 +122,10 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
         open={open}
         onOpenChange={setOpen}
         onShowWhatsNew={showWhatsNew}
+        onSeeDetails={(payload) => {
+          setDetailsOverride(payload)
+          setOpen(false)
+        }}
       />
       {showPostUpdate && (
         <PostUpdateDialog
@@ -113,10 +134,23 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
             if (!next) {
               setPostUpdate(null)
               setWhatsNewOpen(false)
+              setDetailsOverride(null)
             }
           }}
           version={whatsNewVersion}
           releaseNotes={whatsNewNotes}
+        />
+      )}
+      {showToast && (
+        <UpdateToast
+          status={status}
+          onDetails={
+            cardDetails ? () => setDetailsOverride(cardDetails) : undefined
+          }
+          onDownload={download}
+          onInstallNow={install}
+          onCancel={cancel}
+          onDismiss={() => setDismissedVersion(pendingVersion)}
         />
       )}
     </UpdateDialogContext>

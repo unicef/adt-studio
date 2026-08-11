@@ -5,6 +5,7 @@ import { RELEASE_BANNER_ASPECT, trustedAssetUrl } from "./release-banner-utils"
 export interface ReleaseNotesMarkdownProps {
   children: string
   className?: string
+  hideImages?: boolean
 }
 
 type Block =
@@ -17,10 +18,14 @@ type Block =
 export function ReleaseNotesMarkdown({
   children,
   className,
+  hideImages,
 }: ReleaseNotesMarkdownProps) {
-  const blocks = looksLikeHtml(children)
+  const parsed = looksLikeHtml(children)
     ? parseHtmlBlocks(children)
     : parseBlocks(children)
+  const blocks = hideImages
+    ? parsed.filter((block) => block.type !== "image")
+    : parsed
 
   return (
     <div className={cn("space-y-3 text-sm leading-relaxed", className)}>
