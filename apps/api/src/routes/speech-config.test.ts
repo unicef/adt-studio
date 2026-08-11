@@ -267,16 +267,19 @@ describe("GET/PUT /speech-config/voices", () => {
     expect(fs.existsSync(path.join(tmpDir, "config", "voices.yaml"))).toBe(false)
   })
 
-  it("returns {} and warns when voices.yaml on disk is invalid", async () => {
+  it("preserves valid mappings and warns for invalid entries on disk", async () => {
     const configDir = path.join(tmpDir, "config")
     fs.mkdirSync(configDir, { recursive: true })
-    fs.writeFileSync(path.join(configDir, "voices.yaml"), "openai:\n  en:\n    secondary: 42\n")
+    fs.writeFileSync(
+      path.join(configDir, "voices.yaml"),
+      "openai:\n  es: coral\n  en:\n    secondary: 42\n",
+    )
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
 
     const app = createSpeechConfigRoutes(configPath)
     const res = await app.request("/speech-config/voices")
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({})
+    expect(await res.json()).toEqual({ openai: { es: "coral" } })
     expect(warnSpy).toHaveBeenCalled()
 
     warnSpy.mockRestore()

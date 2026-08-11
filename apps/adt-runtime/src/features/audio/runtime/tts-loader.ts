@@ -34,16 +34,20 @@ export async function loadTimecodes(
       primary: map,
       secondary: {},
     }
-    const voicesRes = await fetch(voicesUrl)
-    if (voicesRes.ok) {
-      const voicesRaw = (await voicesRes.json()) as Record<
-        "primary" | "secondary",
-        Record<string, RawTimecodeEntry>
-      >
-      maps = {
-        primary: flattenTimecodes(voicesRaw.primary ?? {}),
-        secondary: flattenTimecodes(voicesRaw.secondary ?? {}),
+    try {
+      const voicesRes = await fetch(voicesUrl)
+      if (voicesRes.ok) {
+        const voicesRaw = (await voicesRes.json()) as Record<
+          "primary" | "secondary",
+          Record<string, RawTimecodeEntry>
+        >
+        maps = {
+          primary: flattenTimecodes(voicesRaw.primary ?? {}),
+          secondary: flattenTimecodes(voicesRaw.secondary ?? {}),
+        }
       }
+    } catch {
+      // Optional for legacy and single-narrator packages.
     }
     getDefaultStore().set(timecodeMapsAtom, maps)
     getDefaultStore().set(timecodeMapAtom, map)

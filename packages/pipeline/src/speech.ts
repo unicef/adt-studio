@@ -9,7 +9,7 @@ import {
   isTtsExcluded,
   normalizeVoiceMapEntry,
   voiceSlotEntryId,
-  VoicesConfig,
+  parseVoicesConfigEntries,
   type SpeechConfig,
   type SpeechFileEntry,
   type TTSProviderConfig,
@@ -78,10 +78,12 @@ export function loadVoicesConfig(configDir: string): VoiceMaps {
   const filePath = path.join(configDir, "voices.yaml")
   if (!fs.existsSync(filePath)) return {}
   const raw = yaml.load(fs.readFileSync(filePath, "utf-8"))
-  const parsed = VoicesConfig.safeParse(raw ?? {})
-  if (!parsed.success) {
-    console.warn(`[speech] invalid voices.yaml at ${filePath}: ${parsed.error.message}`)
-    return {}
+  const parsed = parseVoicesConfigEntries(raw ?? {})
+  for (const error of parsed.errors) {
+    const location = error.language
+      ? `${error.provider}.${error.language}`
+      : error.provider
+    console.warn(`[speech] invalid voices.yaml entry ${location} at ${filePath}: ${error.message}`)
   }
   return parsed.data
 }

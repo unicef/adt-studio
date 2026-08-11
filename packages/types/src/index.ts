@@ -340,6 +340,8 @@ export {
   VoiceMapEntry,
   VoiceLanguageMap,
   VoicesConfig,
+  type ParsedVoicesConfig,
+  parseVoicesConfigEntries,
   normalizeVoiceMapEntry,
 } from "./speech.js"
 

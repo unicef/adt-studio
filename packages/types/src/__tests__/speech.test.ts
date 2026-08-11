@@ -7,6 +7,7 @@ import {
   VoiceMapEntry,
   VoiceSlots,
   VoicesConfig,
+  parseVoicesConfigEntries,
   isTtsExcluded,
   normalizeVoiceMapEntry,
   resolveEntryVoiceSlot,
@@ -274,7 +275,24 @@ describe("VoicesConfig", () => {
         es: "coral",
       },
     })
+
     expect(result.success).toBe(true)
+  })
+})
+
+describe("parseVoicesConfigEntries", () => {
+  it("preserves valid mappings when a sibling entry is invalid", () => {
+    const result = parseVoicesConfigEntries({
+      openai: {
+        es: "coral",
+        en: { secondary: { voice: "shimmer" } },
+      },
+    })
+    expect(result.data).toEqual({ openai: { es: "coral" } })
+    expect(result.errors).toHaveLength(1)
+    expect(result.errors[0]).toEqual(
+      expect.objectContaining({ provider: "openai", language: "en" }),
+    )
   })
 })
 

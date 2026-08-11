@@ -4,7 +4,7 @@ import crypto from "node:crypto"
 import { Hono } from "hono"
 import yaml from "js-yaml"
 import { z } from "zod"
-import { VoicesConfig } from "@adt/types"
+import { VoicesConfig, parseVoicesConfigEntries } from "@adt/types"
 
 /** Subset of ElevenLabs' `GET /v2/voices` response we surface to the UI. The
  *  upstream payload also carries sample URLs, sharing metadata and settings we
@@ -121,10 +121,12 @@ export function createSpeechConfigRoutes(configPath: string): Hono {
     }
     const content = fs.readFileSync(filePath, "utf-8")
     const raw = yaml.load(content)
-    const parsed = VoicesConfig.safeParse(raw ?? {})
-    if (!parsed.success) {
-      console.warn(`[speech-config] invalid voices.yaml at ${filePath}: ${parsed.error.message}`)
-      return c.json({})
+    const parsed = parseVoicesConfigEntries(raw ?? {})
+    for (const error of parsed.errors) {
+      const location = error.language
+        ? `${error.provider}.${error.language}`
+        : error.provider
+      console.warn(`[speech-config] invalid voices.yaml entry ${location} at ${filePath}: ${error.message}`)
     }
     return c.json(parsed.data)
   })

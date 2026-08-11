@@ -423,10 +423,13 @@ describe("loadVoicesConfig", () => {
     })
   })
 
-  it("returns empty object and warns when voices.yaml fails schema validation", () => {
+  it("preserves valid mappings and warns for invalid entries", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
-    fs.writeFileSync(path.join(tmpDir, "voices.yaml"), "openai:\n  en:\n    primary: 5\n")
-    expect(loadVoicesConfig(tmpDir)).toEqual({})
+    fs.writeFileSync(
+      path.join(tmpDir, "voices.yaml"),
+      "openai:\n  es: coral\n  en:\n    primary: 5\n",
+    )
+    expect(loadVoicesConfig(tmpDir)).toEqual({ openai: { es: "coral" } })
     expect(warnSpy).toHaveBeenCalled()
     warnSpy.mockRestore()
   })

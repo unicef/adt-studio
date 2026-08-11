@@ -176,6 +176,42 @@ export type VoiceLanguageMap = z.infer<typeof VoiceLanguageMap>
 export const VoicesConfig = z.record(z.string(), VoiceLanguageMap)
 export type VoicesConfig = z.infer<typeof VoicesConfig>
 
+export interface ParsedVoicesConfig {
+  data: VoicesConfig
+  errors: Array<{ provider: string; language?: string; message: string }>
+}
+
+/** Parse a global voices document without discarding valid mappings because one
+ * provider or language entry is malformed. */
+export function parseVoicesConfigEntries(input: unknown): ParsedVoicesConfig {
+  const data: VoicesConfig = {}
+  const errors: ParsedVoicesConfig["errors"] = []
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return {
+      data,
+      errors: [{ provider: "<root>", message: "Expected a mapping object" }],
+    }
+  }
+
+  for (const [provider, rawLanguages] of Object.entries(input)) {
+    if (!rawLanguages || typeof rawLanguages !== "object" || Array.isArray(rawLanguages)) {
+      errors.push({ provider, message: "Expected a language mapping object" })
+      continue
+    }
+    const languages: VoiceLanguageMap = {}
+    for (const [language, rawEntry] of Object.entries(rawLanguages)) {
+      const parsed = VoiceMapEntry.safeParse(rawEntry)
+      if (parsed.success) {
+        languages[language] = parsed.data
+      } else {
+        errors.push({ provider, language, message: parsed.error.message })
+      }
+    }
+    if (Object.keys(languages).length > 0) data[provider] = languages
+  }
+  return { data, errors }
+}
+
 /**
  * Normalizes a raw `voices.yaml` entry (legacy scalar or full slots object)
  * into the canonical {@link VoiceSlots} shape. A legacy string always
