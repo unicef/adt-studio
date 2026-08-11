@@ -4,7 +4,12 @@ export {
   createConsoleProgress,
 } from "./progress.js"
 export { processWithConcurrency } from "./concurrency.js"
-export { extractPDF, type ExtractOptions } from "./pdf-extraction.js"
+export {
+  extractPDF,
+  resolveFigureExtractionMode,
+  figureExtractionFlags,
+  type ExtractOptions,
+} from "./pdf-extraction.js"
 export {
   detectSpreads,
   type SpreadEdgeSample,
@@ -30,7 +35,12 @@ export {
 export {
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
+  addFigureExtractionContext,
+  buildMeaningfulnessImages,
+  deduplicateAutoFigureCandidates,
+  dedupAutoFigureCandidatesInStorage,
   type MeaningfulnessConfig,
+  type MeaningfulnessImageInput,
   type MeaningfulnessPageInput,
 } from "./image-meaningfulness.js"
 export {

@@ -115,10 +115,121 @@ describe("repairTableOfContentsLayout", () => {
     expect(pageFour).toContain(">66</span>")
   })
 
+  it("replaces fixed dot strings between separately extracted title and page leaves", () => {
+    const leaves = [
+      { text_id: "title-1", text_type: "text", text: "Acknowledgements" },
+      { text_id: "page-1", text_type: "text", text: "v" },
+      { text_id: "title-2", text_type: "text", text: "Introduction" },
+      { text_id: "page-2", text_type: "text", text: "vi" },
+    ]
+    const repaired = repairTableOfContentsLayout(
+      `<div class="space-y-3">
+        <div class="flex w-full items-baseline gap-2">
+          <span data-id="title-1">Acknowledgements</span>
+          <span aria-hidden="true" data-toc-leader="true" class="min-w-0 flex-1 overflow-hidden whitespace-nowrap">................................................................</span>
+          <span data-id="page-1">v</span>
+        </div>
+        <div>
+          <span data-id="title-2">Introduction</span>
+          <span data-id="page-2">vi</span>
+        </div>
+      </div>`,
+      leaves,
+    )
+
+    expect(repaired).not.toContain("................................................................")
+    expect(repaired.match(/data-toc-leader="true"/g)).toHaveLength(2)
+    expect(repaired.match(/border-b-2 border-dotted/g)).toHaveLength(2)
+    expect(repaired).toContain('<span data-id="title-1" class="min-w-0">Acknowledgements</span>')
+    expect(repaired).toContain('<span data-id="page-1" class="shrink-0 text-right tabular-nums">v</span>')
+    expect(tableOfContentsLayoutErrors(repaired, leaves)).toEqual([])
+    expect(repairTableOfContentsLayout(repaired, leaves)).toBe(repaired)
+  })
+
+  it("removes a bare fixed dot string between separate leaves", () => {
+    const leaves = [
+      { text_id: "title", text_type: "text", text: "Introduction" },
+      { text_id: "page", text_type: "text", text: "12" },
+    ]
+    const repaired = repairTableOfContentsLayout(
+      '<div class="flex"><span data-id="title">Introduction</span>................................<span data-id="page">12</span></div>',
+      leaves,
+    )
+
+    expect(repaired).not.toContain("................................")
+    expect(repaired.match(/border-b-2 border-dotted/g)).toHaveLength(1)
+    expect(repairTableOfContentsLayout(repaired, leaves)).toBe(repaired)
+  })
+
+  it("normalizes conflicting row and leader utilities across TOC pages", () => {
+    const leaves = [
+      { text_id: "title", text_type: "text", text: "Weather" },
+      { text_id: "page", text_type: "text", text: "5" },
+    ]
+    const repaired = repairTableOfContentsLayout(
+      `<div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-end gap-x-3 max-sm:gap-x-2 md:w-1/2 max-w-xl space-x-4">
+        <span data-id="title">Weather</span>
+        <span data-toc-leader="true" aria-hidden="true" class="min-w-0 grow border-b-2 border-dotted border-current opacity-50 mx-4">................................</span>
+        <span data-id="page">5</span>
+      </div>`,
+      leaves,
+    )
+
+    expect(repaired).toContain('class="flex items-baseline w-full min-w-0 gap-0"')
+    expect(repaired).toContain('class="mx-1.5 sm:mx-2 flex-1 min-w-6 border-b-2 border-dotted border-current opacity-80"')
+    expect(repaired).not.toContain("grid-cols-")
+    expect(repaired).not.toContain("gap-x-")
+    expect(repaired).not.toContain("md:w-1/2")
+    expect(repaired).not.toContain("max-w-xl")
+    expect(repaired).not.toContain("space-x-4")
+    expect(repairTableOfContentsLayout(repaired, leaves)).toBe(repaired)
+  })
+
+  it("removes conflicting layout utilities from separate leaves", () => {
+    const leaves = [
+      { text_id: "title", text_type: "text", text: "A very long introduction title" },
+      { text_id: "page", text_type: "text", text: "12" },
+    ]
+    const repaired = repairTableOfContentsLayout(
+      '<div class="flex"><span data-id="title" class="shrink-0 whitespace-nowrap">A very long introduction title</span><span data-toc-leader="true"></span><span data-id="page" class="absolute flex-1 w-full text-left">12</span></div>',
+      leaves,
+    )
+
+    expect(repaired).not.toContain("whitespace-nowrap")
+    expect(repaired).not.toContain("absolute")
+    expect(repaired).not.toContain("flex-1 w-full")
+    expect(repaired).not.toContain("text-left")
+    expect(repaired).toContain('data-id="page" class="shrink-0 text-right tabular-nums"')
+    expect(repairTableOfContentsLayout(repaired, leaves)).toBe(repaired)
+  })
+
+  it("uses padding for hierarchy so indented page numbers keep the same right edge", () => {
+    const leaves = [
+      { text_id: "activity", text_type: "text", text: "Activity 1.2 ........ 5" },
+    ]
+    const repaired = repairTableOfContentsLayout(
+      '<div data-id="activity" class="adt-body ml-6 max-sm:ml-4 flex items-baseline w-full">Activity 1.2 ........ 5</div>',
+      leaves,
+    )
+
+    expect(repaired).toContain("adt-body pl-6 max-sm:pl-4")
+    expect(repaired).not.toMatch(/(?:^|[\s\"])ml-/)
+    expect(repaired).not.toContain("max-sm:ml-")
+    expect(repairTableOfContentsLayout(repaired, leaves)).toBe(repaired)
+  })
+
   it("does not mistake a numbered chapter heading for a page-number row", () => {
     const html = '<h2 class="font-bold" data-id="chapter">Chapter 1</h2>'
     expect(repairTableOfContentsLayout(html, [
       { text_id: "chapter", text_type: "text", text: "Chapter 1" },
+    ])).toBe(html)
+  })
+
+  it("does not mistake a split numbered chapter heading for a page-number row", () => {
+    const html = '<h2><span data-id="chapter">Chapter</span><span data-id="number">1</span></h2>'
+    expect(repairTableOfContentsLayout(html, [
+      { text_id: "chapter", text_type: "heading", text: "Chapter", heading_level: 2 },
+      { text_id: "number", text_type: "heading", text: "1", heading_level: 2 },
     ])).toBe(html)
   })
 
@@ -163,17 +274,14 @@ describe("repairTableOfContentsLayout", () => {
 })
 
 describe("tableOfContentsLayoutErrors", () => {
-  it("rejects an unmarked nested row before repair", () => {
+  it("accepts only stable normalized output", () => {
     const html = '<div data-id="toc-1" class="flex"><span>Digestive system</span><span class="border-dotted"></span><span>1</span></div>'
-    expect(tableOfContentsLayoutErrors(html, [
+    const leaves = [
       { text_id: "toc-1", text_type: "text", text: "Digestive system........1" },
-    ])).toContainEqual(expect.stringContaining('data-id="toc-1"'))
-  })
+    ]
 
-  it("accepts the marked title, leader, and page-number structure", () => {
-    const html = '<div data-id="toc-1" class="flex"><span data-toc-title="true">Digestive system</span><span data-toc-leader="true" class="border-dotted"></span><span data-toc-page-number="true">1</span></div>'
-    expect(tableOfContentsLayoutErrors(html, [
-      { text_id: "toc-1", text_type: "text", text: "Digestive system........1" },
-    ])).toEqual([])
+    expect(tableOfContentsLayoutErrors(html, leaves)).toHaveLength(1)
+    const repaired = repairTableOfContentsLayout(html, leaves)
+    expect(tableOfContentsLayoutErrors(repaired, leaves)).toEqual([])
   })
 })

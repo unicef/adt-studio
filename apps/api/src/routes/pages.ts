@@ -41,9 +41,12 @@ import {
   type SpreadEdgeSample,
   classifyPageImages,
   buildImageClassifyConfig,
+  deduplicateAutoFigureCandidates,
+  figureExtractionFlags,
   readEditableActivities,
   remapEditableActivities,
   invalidateCoreTtsForDisplayEntries,
+  resolveFigureExtractionMode,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
@@ -1315,10 +1318,12 @@ export function createPageRoutes(
     const toRemove = [...currentIds].filter((id) => !desiredIds.has(id))
 
     if (toAdd.length > 0) {
+      const autoFigureMode = resolveFigureExtractionMode(config) === "auto"
       const newPages = await extractPages({
         pdfBuffer,
         groups: toAdd,
-        vectorTextGrouping: config.vector_text_grouping !== false,
+        ...figureExtractionFlags(config),
+        removeWatermarks: config.remove_watermarks === true,
         fixedLayout: isFixedLayoutBook(config),
       })
       const imageClassifyConfig = {
@@ -1332,10 +1337,17 @@ export function createPageRoutes(
         if (page.extractionDebug) {
           storage.putNodeData("extraction-debug", page.pageId, page.extractionDebug)
         }
+        const classified = classifyPageImages(
+          page.pageId,
+          storage.getPageImages(page.pageId),
+          imageClassifyConfig,
+        )
         storage.putNodeData(
           "image-filtering",
           page.pageId,
-          classifyPageImages(page.pageId, storage.getPageImages(page.pageId), imageClassifyConfig),
+          autoFigureMode
+            ? deduplicateAutoFigureCandidates(classified, page.extractionDebug)
+            : classified,
         )
       }
     }

@@ -7,6 +7,8 @@ import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRa
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
+  figureExtractionFlags,
+  resolveFigureExtractionMode,
   resolveFontsCacheDir,
   buildBookFontsPromptContext,
   readTypography,
@@ -95,6 +97,8 @@ import {
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
+  buildMeaningfulnessImages,
+  dedupAutoFigureCandidatesInStorage,
   cropPageImages,
   applyCrops,
   buildCroppingConfig,
@@ -1001,7 +1005,8 @@ async function runExtractStep(
         endPage: config.end_page,
         spreadMode: config.spread_mode,
         spreadPairs: config.spread_pairs,
-        vectorTextGrouping: config.vector_text_grouping,
+        ...figureExtractionFlags(config),
+        removeWatermarks: config.remove_watermarks === true,
         fixedLayout: isFixedLayoutBook(config),
         fontsCacheDir: resolveFontsCacheDir(booksDir),
       },
@@ -1193,6 +1198,7 @@ async function runExtractStep(
     if (!stepController.signal.aborted) {
       await runMeaningfulnessPass(
         label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
+        resolveFigureExtractionMode(config) === "auto",
         effectiveConcurrency, pageResults, pageFailureDeps, progress
       )
     }
@@ -3578,12 +3584,21 @@ async function runMeaningfulnessPass(
   storage: Storage,
   config: MeaningfulnessConfig | null,
   model: ReturnType<typeof createLLMModel> | null,
+  autoDedup: boolean,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
   deps: PageFailureDeps,
   progress: StageRunProgress,
 ): Promise<void> {
   if (!config || !model) {
+    if (autoDedup) {
+      for (const page of pages) {
+        const existing = results.get(page.pageId)
+        if (!existing) continue
+        const updated = dedupAutoFigureCandidatesInStorage(storage, page.pageId, existing)
+        if (updated !== existing) results.set(page.pageId, updated)
+      }
+    }
     progress.emit({ type: "step-skip", step: "image-meaningfulness" })
     return
   }
@@ -3608,24 +3623,14 @@ async function runMeaningfulnessPass(
       return
     }
     try {
-      const images = storage.getPageImages(page.pageId)
-      const unprunedImageIds = new Set(
-        existing.images.filter((img) => !img.isPruned).map((img) => img.imageId)
-      )
-      const unprunedImages = images
-        .filter((img) => unprunedImageIds.has(img.imageId))
-        .map((img) => ({
-          imageId: img.imageId,
-          imageBase64: storage.getImageBase64(img.imageId),
-          width: img.width,
-          height: img.height,
-        }))
+      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing)
 
       if (unprunedImages.length > 0) {
         const updated = await filterPageImageMeaningfulness(
           {
             pageId: page.pageId,
             pageImageBase64: storage.getPageImageBase64(page.pageId),
+            pageText: page.text,
             images: unprunedImages,
           },
           existing,
