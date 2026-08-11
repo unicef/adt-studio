@@ -28,6 +28,10 @@ on:
         description: "Main feature to emphasize in stable release notes and cover (optional)"
         required: false
         type: string
+      release_notice:
+        description: "Exact first-line notice for release notes (optional)"
+        required: false
+        type: string
       cover_palette:
         description: "ADT + pipeline feature palette"
         required: true
@@ -129,6 +133,7 @@ jobs:
           PREV_TAG: ${{ steps.release.outputs.prev_tag }}
           REPO: ${{ github.repository }}
           HERO_FEATURE: ${{ inputs.hero_feature }}
+          RELEASE_NOTICE: ${{ inputs.release_notice }}
           COVER_PALETTE: ${{ inputs.cover_palette }}
         run: |
           if [[ -z "${OPENAI_API_KEY:-}" ]]; then
@@ -141,6 +146,7 @@ jobs:
             --tag "$TAG" \
             --repo "$REPO" \
             --hero "${HERO_FEATURE:-}" \
+            --notice "${RELEASE_NOTICE:-}" \
             --palette "${COVER_PALETTE:-auto}" \
             --base-notes-file release-notes-base.md \
             --cover-name release-cover.png \
@@ -196,6 +202,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate release notice
+        env:
+          RELEASE_NOTICE: ${{ inputs.release_notice }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { normalizeReleaseNotice } from "./scripts/generate-ai-release-assets.mjs";
+
+          normalizeReleaseNotice(process.env.RELEASE_NOTICE ?? "");
+          NODE
+
       - name: Debug — list git tags visible to the runner
         run: |
           echo "Total tags: $(git tag --list | wc -l)"
@@ -246,16 +262,9 @@ jobs:
           if [[ "$PRERELEASE" == "false" ]]; then
             DOCKER_TAGS="$DOCKER_TAGS"$'\n'"ghcr.io/unicef/adt-studio:latest"
           fi
-          # Changelog baseline: pin the previous tag so release-note generation
-          # never falls back to the repo's first commit when GitHub can't infer
-          # an ancestor (stable and beta tags live on divergent branch lines).
-          # Stable releases diff against the previous stable so the notes cover
-          # the whole beta cycle; prereleases diff against the most recent tag.
-          if [[ "$PRERELEASE" == "false" ]]; then
-            PREV_TAG=$(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
-          else
-            PREV_TAG=$(git tag --list 'v*' | sort -V | tail -1)
-          fi
+          # Pin the semantic predecessor so a new beta line starts at the
+          # latest stable release and later betas start at the prior beta.
+          PREV_TAG=$(node scripts/resolve-previous-release-tag.mjs "$TAG")
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
@@ -592,6 +601,7 @@ jobs:
           REPO: ${{ github.repository }}
           PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
           PREV_TAG: ${{ needs.prepare.outputs.prev_tag }}
+          RELEASE_NOTICE: ${{ inputs.release_notice }}
         run: |
           PRERELEASE_FLAG=""
           [[ "$PRERELEASE" == "true" ]] && PRERELEASE_FLAG="--prerelease"
@@ -613,7 +623,23 @@ jobs:
             scripts/windows-setup-and-run.bat
 
           gh release view "$TAG" --repo "$REPO" \
-            --json databaseId,url,isDraft,isPrerelease > created-release.json
+            --json databaseId,url,isDraft,isPrerelease,body > created-release.json
+          if [[ -n "${RELEASE_NOTICE:-}" ]]; then
+            RELEASE_NOTICE="$RELEASE_NOTICE" node --input-type=module <<'NODE'
+          import { readFile, writeFile } from "node:fs/promises";
+          import { applyReleaseNotice } from "./scripts/generate-ai-release-assets.mjs";
+
+          const release = JSON.parse(await readFile("created-release.json", "utf8"));
+          await writeFile(
+            "release-notes-with-notice.md",
+            `${applyReleaseNotice(release.body ?? "", process.env.RELEASE_NOTICE).trim()}\n`,
+          );
+          NODE
+            jq -n --rawfile body release-notes-with-notice.md '{body: $body}' \
+              | gh api --method PATCH \
+                "repos/$REPO/releases/$(jq -r '.databaseId' created-release.json)" \
+                --input - >/dev/null
+          fi
           echo "release_id=$(jq -r '.databaseId' created-release.json)" >> "$GITHUB_OUTPUT"
           echo "release_url=$(jq -r '.url' created-release.json)" >> "$GITHUB_OUTPUT"
 
@@ -690,6 +716,7 @@ jobs:
           REPO: ${{ github.repository }}
           PREV_TAG: ${{ needs.prepare.outputs.prev_tag }}
           HERO_FEATURE: ${{ inputs.hero_feature }}
+          RELEASE_NOTICE: ${{ inputs.release_notice }}
           COVER_PALETTE: ${{ inputs.cover_palette }}
           COVER_NAME: release-cover-${{ github.run_id }}.png
         run: |
@@ -704,6 +731,7 @@ jobs:
             --tag "$TAG" \
             --repo "$REPO" \
             --hero "${HERO_FEATURE:-}" \
+            --notice "${RELEASE_NOTICE:-}" \
             --palette "${COVER_PALETTE:-auto}" \
             --base-notes-file factual-release-notes.md \
             --cover-name "$COVER_NAME" \

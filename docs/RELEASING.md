@@ -212,6 +212,10 @@ Stable releases and previews also accept editorial and cover inputs:
 
 - **Main feature** — the user-visible feature the notes and cover should lead
   with;
+- **Release notice** — exact, English-only text rendered in bold as the first
+  visible line of a preview, beta, or stable release. Use it for critical
+  compatibility or reinstall instructions; leaving it blank preserves an
+  existing notice during regeneration;
 - **Cover palette** — `auto`, `random`, `adt`, or a pipeline stage. Every cover
   keeps ADT electric blue (`#2B7FFF`), deep navy (`#0F172A`), white (`#FFFFFF`),
   and cool blue-gray (`#64748B`) as its brand foundation. A stage choice adds
@@ -224,8 +228,10 @@ commit history. `auto` infers the stage from the main feature first, then the
 generated notes, commits, and changed files.
 `random` selects a stage accent deterministically from the release tag. Both
 modes keep the light/dark pair coordinated and retain the ADT brand foundation.
-Preview mode accepts only stable increments (`patch`, `minor`, or `major`),
-because beta releases do not use AI-generated assets.
+Preview mode accepts only stable increments (`patch`, `minor`, or `major`). A
+published beta does not receive AI assets automatically, but it can be used as
+the live end-to-end test target through the regeneration workflow described
+below.
 
 GitHub's `workflow_dispatch` form supports only boolean, choice, number,
 environment, and single-line string inputs. It cannot add sections, multiline
@@ -319,15 +325,28 @@ After the workflow succeeds:
 5. When satisfied, click **Publish release** on the draft. This is the human
    confirmation step for the Electron release notes, covers, and installers.
 
-Regeneration works only for an unpublished stable `vX.Y.Z` draft. Generated
-blocks are wrapped in hidden Markdown markers so image-only regeneration keeps
-the notes unchanged, notes-only regeneration keeps the cover unchanged, and
-human text outside those blocks is preserved. Image-only regeneration reuses
-the approved editorial and translations without another text call. Notes-only
-regeneration preserves the existing title, cover subtitle, alt text, and visual
-concept so the unchanged cover still matches the new notes. If the draft is
-edited or published while regeneration runs, the workflow refuses to overwrite
-it and removes any newly uploaded cover pair.
+Regeneration accepts either an unpublished stable `vX.Y.Z` draft or a published
+numbered beta `vX.Y.Z-beta.N` prerelease. Generated blocks are wrapped in hidden
+Markdown markers so image-only regeneration keeps the notes unchanged,
+notes-only regeneration keeps the cover unchanged, and human text outside
+those blocks is preserved. Image-only regeneration reuses the approved
+editorial and translations without another text call. Notes-only regeneration
+preserves the existing title, cover subtitle, alt text, and visual concept so
+the unchanged cover still matches the new notes.
+
+For a beta test, create the beta normally, then open **Actions -> Regenerate
+release assets**, select `develop` under **Use workflow from**, enter its exact
+numbered tag, and regenerate `both`. The workflow uses the restricted
+`release-ai-preview` environment and updates that published prerelease in
+place, so the result is immediately visible on GitHub and in clients consuming
+its release body. Stable regeneration runs on `main` and uses `release-ai`; a
+stable request launched from another branch is forwarded to `main`.
+
+Before any body update, the workflow verifies the release ID, channel/state,
+and a hash of the original body. If a person edits the release or its state
+changes while generation is running, it refuses to overwrite the edit and
+removes any newly uploaded cover pair. Beta regeneration is therefore a live
+test and should target a disposable or explicitly selected prerelease.
 
 Only one stable draft may exist at a time. A stable draft already has a public
 protected tag and metadata commit, so abandoning one is not equivalent to

@@ -1,10 +1,11 @@
 name: Regenerate release assets
+run-name: Regenerate ${{ inputs.release_tag }} — ${{ inputs.regenerate }}
 
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Unpublished stable draft tag (for example v0.7.5)"
+        description: "Stable draft or published beta tag"
         required: true
         type: string
       regenerate:
@@ -18,6 +19,10 @@ on:
           - image
       hero_feature:
         description: "Main feature to emphasize (optional)"
+        required: false
+        type: string
+      release_notice:
+        description: "Exact first-line notice; blank preserves the current notice"
         required: false
         type: string
       cover_palette:
@@ -45,7 +50,7 @@ on:
           - export
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: regenerate-release-assets-${{ inputs.release_tag }}
@@ -55,29 +60,88 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
-  regenerate:
+  route:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
-    environment: release-ai
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    outputs:
+      channel: ${{ steps.route.outputs.channel }}
+      run_here: ${{ steps.route.outputs.run_here }}
     steps:
-      - name: Validate request
+      - name: Route request to the trusted release branch
+        id: route
         env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
           TAG: ${{ inputs.release_tag }}
+          REGENERATE: ${{ inputs.regenerate }}
+          HERO_FEATURE: ${{ inputs.hero_feature }}
+          RELEASE_NOTICE: ${{ inputs.release_notice }}
+          COVER_PALETTE: ${{ inputs.cover_palette }}
         run: |
-          if [[ "$GITHUB_REF_NAME" != "main" ]]; then
-            echo "::error::Run this workflow from main."
+          if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
+            if [[ "$BRANCH" != "develop" ]]; then
+              echo "::error::Published beta releases must be regenerated from develop."
+              exit 1
+            fi
+            echo "channel=beta" >> "$GITHUB_OUTPUT"
+            echo "run_here=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::release_tag must be a stable or numbered beta v-prefixed version."
             exit 1
           fi
-          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::release_tag must be a stable v-prefixed semantic version."
+
+          echo "channel=stable" >> "$GITHUB_OUTPUT"
+          if [[ "$BRANCH" == "main" ]]; then
+            echo "run_here=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          gh workflow run regenerate-release-assets.yml --repo "$REPO" --ref main \
+            -f "release_tag=$TAG" \
+            -f "regenerate=$REGENERATE" \
+            -f "hero_feature=$HERO_FEATURE" \
+            -f "release_notice=$RELEASE_NOTICE" \
+            -f "cover_palette=$COVER_PALETTE"
+          echo "run_here=false" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Forwarded stable regeneration to main"
+            echo "- Release: \`$TAG\`"
+            echo "- Follow the main run: https://github.com/$REPO/actions/workflows/regenerate-release-assets.yml"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  regenerate:
+    needs: route
+    if: needs.route.outputs.run_here == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: ${{ needs.route.outputs.channel == 'beta' && 'release-ai-preview' || 'release-ai' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Validate routed request
+        env:
+          TAG: ${{ inputs.release_tag }}
+          CHANNEL: ${{ needs.route.outputs.channel }}
+        run: |
+          if [[ "$CHANNEL" == "stable" && "$GITHUB_REF_NAME" != "main" ]]; then
+            echo "::error::Stable regeneration must execute on main."
+            exit 1
+          elif [[ "$CHANNEL" == "beta" && "$GITHUB_REF_NAME" != "develop" ]]; then
+            echo "::error::Beta regeneration must execute on develop."
             exit 1
           fi
 
       - uses: actions/checkout@v4
         with:
-          # Run the trusted generator from the main commit that dispatched this
-          # workflow. The release tag remains the content target and may predate
-          # fixes to the regeneration tooling.
+          # Run the generator from the trusted branch commit that dispatched
+          # this workflow. The release tag remains the content target and may
+          # predate fixes to the regeneration tooling.
           ref: ${{ github.sha }}
           fetch-depth: 0
 
@@ -85,31 +149,31 @@ jobs:
         with:
           node-version: 22
 
-      - name: Validate unpublished draft
+      - name: Validate target release
         id: draft
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           TAG: ${{ inputs.release_tag }}
+          CHANNEL: ${{ needs.route.outputs.channel }}
         run: |
           gh release view "$TAG" --repo "$REPO" \
             --json databaseId,url,isDraft,isPrerelease,body > draft.json
-          if [[ "$(jq -r '.isDraft' draft.json)" != "true" ]] \
-            || [[ "$(jq -r '.isPrerelease' draft.json)" != "false" ]]; then
-            echo "::error::$TAG is not an unpublished stable draft."
+          IS_DRAFT=$(jq -r '.isDraft' draft.json)
+          IS_PRERELEASE=$(jq -r '.isPrerelease' draft.json)
+          if [[ "$CHANNEL" == "stable" ]]; then
+            if [[ "$IS_DRAFT" != "true" || "$IS_PRERELEASE" != "false" ]]; then
+              echo "::error::$TAG is not an unpublished stable draft."
+              exit 1
+            fi
+          elif [[ "$IS_DRAFT" != "false" || "$IS_PRERELEASE" != "true" ]]; then
+            echo "::error::$TAG is not a published beta prerelease."
             exit 1
           fi
           RELEASE_ID=$(jq -r '.databaseId' draft.json)
           jq -r '.body // ""' draft.json > current-release.md
           BODY_HASH=$(sha256sum current-release.md | awk '{print $1}')
-          PREV_TAG=$(git tag --list 'v*' \
-            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
-            | sort -V \
-            | awk -v target="$TAG" '$0 == target { print previous; exit } { previous=$0 }')
-          if [[ -z "$PREV_TAG" ]]; then
-            echo "::error::Could not resolve the stable tag before $TAG."
-            exit 1
-          fi
+          PREV_TAG=$(node scripts/resolve-previous-release-tag.mjs "$TAG")
           echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
           echo "body_hash=$BODY_HASH" >> "$GITHUB_OUTPUT"
           echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
@@ -159,6 +223,7 @@ jobs:
           PREV_TAG: ${{ steps.draft.outputs.prev_tag }}
           REGENERATE: ${{ inputs.regenerate }}
           HERO_FEATURE: ${{ inputs.hero_feature }}
+          RELEASE_NOTICE: ${{ inputs.release_notice }}
           COVER_PALETTE: ${{ inputs.cover_palette }}
           COVER_NAME: release-cover-${{ github.run_id }}.png
         run: |
@@ -173,6 +238,7 @@ jobs:
             --tag "$TAG"
             --repo "$REPO"
             --hero "${HERO_FEATURE:-}"
+            --notice "${RELEASE_NOTICE:-}"
             --palette "${COVER_PALETTE:-auto}"
             --regenerate "$REGENERATE"
             --cover-name "$COVER_NAME"
@@ -195,26 +261,34 @@ jobs:
           fi
           node scripts/generate-ai-release-assets.mjs "${ARGS[@]}"
 
-      - name: Verify draft did not change during generation
+      - name: Verify release did not change during generation
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           RELEASE_ID: ${{ steps.draft.outputs.release_id }}
           EXPECTED_HASH: ${{ steps.draft.outputs.body_hash }}
+          CHANNEL: ${{ needs.route.outputs.channel }}
         run: |
           gh api "repos/$REPO/releases/$RELEASE_ID" > draft-current.json
-          if [[ "$(jq -r '.draft' draft-current.json)" != "true" ]]; then
-            echo "::error::The release was published while regeneration was running."
+          IS_DRAFT=$(jq -r '.draft' draft-current.json)
+          IS_PRERELEASE=$(jq -r '.prerelease' draft-current.json)
+          if [[ "$CHANNEL" == "stable" && \
+            ( "$IS_DRAFT" != "true" || "$IS_PRERELEASE" != "false" ) ]]; then
+            echo "::error::The stable draft changed state while regeneration was running."
+            exit 1
+          elif [[ "$CHANNEL" == "beta" && \
+            ( "$IS_DRAFT" != "false" || "$IS_PRERELEASE" != "true" ) ]]; then
+            echo "::error::The beta release changed state while regeneration was running."
             exit 1
           fi
           jq -r '.body // ""' draft-current.json > body-current.md
           ACTUAL_HASH=$(sha256sum body-current.md | awk '{print $1}')
           if [[ "$ACTUAL_HASH" != "$EXPECTED_HASH" ]]; then
-            echo "::error::The draft was edited while regeneration was running. Run regeneration again to avoid overwriting human edits."
+            echo "::error::The release was edited while regeneration was running. Run regeneration again to avoid overwriting human edits."
             exit 1
           fi
 
-      - name: Upload generated assets and update draft
+      - name: Upload generated assets and update release
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
@@ -222,8 +296,26 @@ jobs:
           RELEASE_ID: ${{ steps.draft.outputs.release_id }}
           REGENERATE: ${{ inputs.regenerate }}
           COVER_NAME: release-cover-${{ github.run_id }}.png
+          CHANNEL: ${{ needs.route.outputs.channel }}
         run: |
+          COVERS_UPLOADED=false
+          cleanup_uploaded_covers() {
+            if [[ "$COVERS_UPLOADED" != "true" ]]; then
+              return
+            fi
+            COVERS_UPLOADED=false
+            COVER_PREFIX="${COVER_NAME%.png}-"
+            gh api --paginate "repos/$REPO/releases/$RELEASE_ID/assets?per_page=100" \
+              | jq -r --arg prefix "$COVER_PREFIX" \
+                '.[] | select(.name | startswith($prefix)) | .id' \
+              | while read -r asset_id; do
+                  gh api --method DELETE "repos/$REPO/releases/assets/$asset_id" || true
+                done
+          }
+          trap cleanup_uploaded_covers ERR
+
           if [[ "$REGENERATE" == "image" || "$REGENERATE" == "both" ]]; then
+            COVERS_UPLOADED=true
             for cover in regenerated-assets/release-cover-*.png; do
               [[ -e "$cover" ]] && gh release upload "$TAG" --repo "$REPO" --clobber \
                 "$cover#Release cover"
@@ -232,33 +324,27 @@ jobs:
           # Recheck after uploading because publishing and manual edits do not
           # participate in this workflow's per-tag concurrency lock.
           gh api "repos/$REPO/releases/$RELEASE_ID" > draft-before-patch.json
-          if [[ "$(jq -r '.draft' draft-before-patch.json)" != "true" ]]; then
-            if [[ "$REGENERATE" == "image" || "$REGENERATE" == "both" ]]; then
-              COVER_PREFIX="${COVER_NAME%.png}-"
-              gh api --paginate "repos/$REPO/releases/$RELEASE_ID/assets?per_page=100" \
-                | jq -r --arg prefix "$COVER_PREFIX" \
-                  '.[] | select(.name | startswith($prefix)) | .id' \
-                | while read -r asset_id; do
-                    gh api --method DELETE "repos/$REPO/releases/assets/$asset_id"
-                  done
-            fi
-            echo "::error::$TAG was published before the notes could be updated."
+          IS_DRAFT=$(jq -r '.draft' draft-before-patch.json)
+          IS_PRERELEASE=$(jq -r '.prerelease' draft-before-patch.json)
+          STATE_CHANGED=false
+          if [[ "$CHANNEL" == "stable" && \
+            ( "$IS_DRAFT" != "true" || "$IS_PRERELEASE" != "false" ) ]]; then
+            STATE_CHANGED=true
+          elif [[ "$CHANNEL" == "beta" && \
+            ( "$IS_DRAFT" != "false" || "$IS_PRERELEASE" != "true" ) ]]; then
+            STATE_CHANGED=true
+          fi
+          if [[ "$STATE_CHANGED" == "true" ]]; then
+            cleanup_uploaded_covers
+            echo "::error::$TAG changed release state before the notes could be updated."
             exit 1
           fi
           jq -r '.body // ""' draft-before-patch.json > body-before-patch.md
           BEFORE_HASH=$(sha256sum body-before-patch.md | awk '{print $1}')
           EXPECTED_HASH=$(sha256sum body-current.md | awk '{print $1}')
           if [[ "$BEFORE_HASH" != "$EXPECTED_HASH" ]]; then
-            if [[ "$REGENERATE" == "image" || "$REGENERATE" == "both" ]]; then
-              COVER_PREFIX="${COVER_NAME%.png}-"
-              gh api --paginate "repos/$REPO/releases/$RELEASE_ID/assets?per_page=100" \
-                | jq -r --arg prefix "$COVER_PREFIX" \
-                  '.[] | select(.name | startswith($prefix)) | .id' \
-                | while read -r asset_id; do
-                    gh api --method DELETE "repos/$REPO/releases/assets/$asset_id"
-                  done
-            fi
-            echo "::error::The draft changed before update; refusing to overwrite it."
+            cleanup_uploaded_covers
+            echo "::error::The release changed before update; refusing to overwrite it."
             exit 1
           fi
 
@@ -274,7 +360,7 @@ jobs:
               '[.[] | select(.name == $name)] | if length == 1 then .[0].browser_download_url else empty end' \
               release-assets.json)
             if [[ -z "$LIGHT_URL" || -z "$DARK_URL" ]]; then
-              echo "::error::Could not resolve the uploaded draft cover URLs."
+              echo "::error::Could not resolve the uploaded release cover URLs."
               exit 1
             fi
             LIGHT_URL="$LIGHT_URL" DARK_URL="$DARK_URL" node --input-type=module <<'NODE'
@@ -292,6 +378,9 @@ jobs:
 
           jq -n --rawfile body regenerated-assets/release-notes.md '{body: $body}' \
             | gh api --method PATCH "repos/$REPO/releases/$RELEASE_ID" --input - >/dev/null
+          # The body now references this cover pair. Keep it if a later metadata
+          # upload fails; a rerun can safely replace the metadata.
+          trap - ERR
 
           gh release upload "$TAG" --repo "$REPO" --clobber \
             "regenerated-assets/release-context.json#AI release source context" \
@@ -325,11 +414,17 @@ jobs:
           REGENERATE: ${{ inputs.regenerate }}
           COVER_PALETTE: ${{ inputs.cover_palette }}
           RELEASE_URL: ${{ steps.draft.outputs.release_url }}
+          CHANNEL: ${{ needs.route.outputs.channel }}
         run: |
           {
             echo "### Release assets regenerated"
             echo "- Updated: \`$REGENERATE\`"
             echo "- Cover palette: \`${COVER_PALETTE:-auto}\`"
-            echo "- Review draft: $RELEASE_URL"
-            echo "- When satisfied, use GitHub's **Publish release** button."
+            if [[ "$CHANNEL" == "beta" ]]; then
+              echo "- Review published beta: $RELEASE_URL"
+              echo "- The regenerated beta notes and covers are already live."
+            else
+              echo "- Review stable draft: $RELEASE_URL"
+              echo "- When satisfied, use GitHub's **Publish release** button."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"

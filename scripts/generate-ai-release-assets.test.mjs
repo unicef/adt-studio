@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
+  applyReleaseNotice,
   buildDarkThemePrompt,
   buildEditorialPrompt,
   buildImagePrompt,
@@ -434,6 +435,47 @@ describe("AI release assets", () => {
     expect(imageOnly).toContain('"pt-BR"');
   });
 
+  it("keeps an exact release notice as the first visible line", () => {
+    const notice =
+      "Windows users: reinstall this release because automatic updates will not work.";
+    const initial = updateReleaseBody({
+      existingBody: "Manual preface",
+      editorial,
+      localizations: releaseLocalizations,
+      releaseNotice: notice,
+      from: "v0.7.4",
+      tag: "v0.7.5",
+      repo: "unicef/adt-studio",
+      coverLightUrl: "https://example.test/light.png",
+      coverDarkUrl: "https://example.test/dark.png",
+      regenerate: "both",
+    });
+
+    expect(initial).toMatch(
+      /^<!-- adt-release-notice:start -->\n\*\*Windows users:/,
+    );
+    expect(initial.match(/Windows users:/g)).toHaveLength(1);
+
+    const regenerated = updateReleaseBody({
+      existingBody: initial,
+      editorial,
+      localizations: releaseLocalizations,
+      releaseNotice: "Windows users: download and reinstall ADT Studio manually.",
+      from: "v0.7.4",
+      tag: "v0.7.5",
+      repo: "unicef/adt-studio",
+      regenerate: "notes",
+    });
+    expect(regenerated).toContain(
+      "**Windows users: download and reinstall ADT Studio manually.**",
+    );
+    expect(regenerated.match(/Windows users:/g)).toHaveLength(1);
+
+    expect(applyReleaseNotice("Existing notes", notice)).toMatch(
+      /^<!-- adt-release-notice:start -->\n\*\*Windows users:/,
+    );
+  });
+
   it("replaces placeholder cover URLs with uploaded release asset URLs", () => {
     const initial = updateReleaseBody({
       existingBody: "Manual preface",
@@ -538,6 +580,8 @@ describe("AI release assets", () => {
         "HEAD",
         "--tag",
         "v9.9.9",
+        "--notice",
+        "Windows users: reinstall this release manually.",
         "--editorial-file",
         editorialFile,
         "--localizations-file",
@@ -546,9 +590,19 @@ describe("AI release assets", () => {
         "--output",
         textOnly,
       ]);
+      const generatedNotes = await readFile(
+        path.join(textOnly, "release-notes.md"),
+        "utf8",
+      );
+      expect(generatedNotes).toMatch(
+        /^<!-- adt-release-notice:start -->\n\*\*Windows users:/,
+      );
+      expect(generatedNotes).toContain("Books That Travel");
       expect(
-        await readFile(path.join(textOnly, "release-notes.md"), "utf8"),
-      ).toContain("Books That Travel");
+        JSON.parse(
+          await readFile(path.join(textOnly, "release-context.json"), "utf8"),
+        ).releaseNotice,
+      ).toBe("Windows users: reinstall this release manually.");
       expect(
         JSON.parse(
           await readFile(path.join(textOnly, "release-i18n.json"), "utf8"),

@@ -142,6 +142,7 @@ function parseBlocks(markdown: string): Block[] {
 
 function normalizeImages(markdown: string): string {
   return markdown
+    .replace(/<!--[\s\S]*?-->/g, "\n")
     .replace(/<picture[\s\S]*?<\/picture>/gi, (match) => {
       const src = firstHtmlImage(match)
       return src ? `\n![](${src})\n` : "\n"

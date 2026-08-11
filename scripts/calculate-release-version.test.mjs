@@ -3,7 +3,10 @@ import {
   calculateReleaseVersion,
   parseReleaseTag,
 } from "./calculate-release-version.mjs";
-import { isBetaVersion } from "./release-version.mjs";
+import {
+  isBetaVersion,
+  resolvePreviousReleaseTag,
+} from "./release-version.mjs";
 
 const tags = [
   "v0.6.9",
@@ -139,5 +142,39 @@ describe("isBetaVersion", () => {
     expect(isBetaVersion(parseReleaseTag("1.2.3-rc.1"))).toBe(false);
     expect(isBetaVersion(parseReleaseTag("1.2.3-electron"))).toBe(false);
     expect(isBetaVersion(parseReleaseTag("1.2.3-betafix.1"))).toBe(false);
+  });
+});
+
+describe("resolvePreviousReleaseTag", () => {
+  const releaseTags = [
+    "v0.7.3",
+    "v0.7.4-beta.1",
+    "v0.7.4-beta.2",
+    "v0.7.4",
+    "v0.7.5-beta.1",
+    "v0.7.5-beta.2",
+    "v0.7.5",
+  ];
+
+  it("uses the preceding stable release for the first beta", () => {
+    expect(resolvePreviousReleaseTag(releaseTags, "v0.7.5-beta.1")).toBe(
+      "v0.7.4",
+    );
+  });
+
+  it("uses the preceding beta on the same line for later betas", () => {
+    expect(resolvePreviousReleaseTag(releaseTags, "v0.7.5-beta.2")).toBe(
+      "v0.7.5-beta.1",
+    );
+  });
+
+  it("ignores beta tags when resolving a stable release", () => {
+    expect(resolvePreviousReleaseTag(releaseTags, "v0.7.5")).toBe("v0.7.4");
+  });
+
+  it("rejects unsupported prerelease channels", () => {
+    expect(() =>
+      resolvePreviousReleaseTag(releaseTags, "v0.7.5-rc.1"),
+    ).toThrow("stable or numbered beta");
   });
 });

@@ -7,6 +7,8 @@ import { pathToFileURL } from "node:url";
 const API_BASE = "https://api.openai.com/v1";
 const COVER_START = "<!-- adt-ai-cover:start -->";
 const COVER_END = "<!-- adt-ai-cover:end -->";
+const NOTICE_START = "<!-- adt-release-notice:start -->";
+const NOTICE_END = "<!-- adt-release-notice:end -->";
 const NOTES_START = "<!-- adt-ai-notes:start -->";
 const NOTES_END = "<!-- adt-ai-notes:end -->";
 const LOCALIZATION_PATTERN = /<!--\s*adt-release-i18n\s*\n[\s\S]*?-->/i;
@@ -934,6 +936,7 @@ export function updateReleaseBody({
   existingBody = "",
   editorial,
   localizations,
+  releaseNotice = "",
   from,
   tag,
   repo,
@@ -970,7 +973,25 @@ export function updateReleaseBody({
     );
     body = replaceLocalizationBlock(body, localizations);
   }
+  if (releaseNotice) body = applyReleaseNotice(body, releaseNotice);
   return `${body.trim()}\n`;
+}
+
+export function normalizeReleaseNotice(value = "") {
+  if (!value) return "";
+  return outputString(value, "releaseNotice", 500).replace(/[\r\n]+/g, " ");
+}
+
+export function applyReleaseNotice(existingBody = "", releaseNotice = "") {
+  const notice = normalizeReleaseNotice(releaseNotice);
+  if (!notice) return existingBody;
+  return replaceMarkerBlock(
+    existingBody,
+    NOTICE_START,
+    NOTICE_END,
+    `**${notice}**`,
+    "start",
+  );
 }
 
 function replaceCoverAttribute(block, pattern, value, label) {
@@ -1060,6 +1081,7 @@ function parseArguments(argv) {
     "tag",
     "repo",
     "hero",
+    "notice",
     "palette",
     "output",
     "regenerate",
@@ -1104,6 +1126,9 @@ export async function runCli(argv = process.argv.slice(2)) {
   const tag = assertTag(requireValue(options.tag ?? process.env.TAG, "tag"));
   const repo = limited(options.repo ?? process.env.REPO, 300);
   const heroFeature = options.hero ?? process.env.HERO_FEATURE ?? "";
+  const releaseNotice = normalizeReleaseNotice(
+    options.notice ?? process.env.RELEASE_NOTICE ?? "",
+  );
   const requestedPalette =
     options.palette ?? process.env.COVER_PALETTE ?? "auto";
   const outputDir = path.resolve(
@@ -1143,6 +1168,7 @@ export async function runCli(argv = process.argv.slice(2)) {
     to,
     repo,
     heroFeature,
+    releaseNotice,
     palette,
     models: {
       text: textModel,
@@ -1265,6 +1291,7 @@ export async function runCli(argv = process.argv.slice(2)) {
     existingBody,
     editorial,
     localizations,
+    releaseNotice,
     from,
     tag,
     repo,

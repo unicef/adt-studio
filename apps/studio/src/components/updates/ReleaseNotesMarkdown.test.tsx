@@ -43,4 +43,26 @@ Full Changelog: https://github.com/unicef/adt-studio/compare/v0.7.4-beta.3...v0.
       "https://github.com/user-attachments/assets/cover.png",
     )
   })
+
+  it("hides release metadata comments while keeping the visible notice", () => {
+    render(
+      <ReleaseNotesMarkdown>{`
+<!-- adt-release-notice:start -->
+**Windows users: reinstall this release manually.**
+<!-- adt-release-notice:end -->
+
+## Improvements
+
+<!-- adt-release-i18n
+{"schemaVersion":1}
+-->
+      `}</ReleaseNotesMarkdown>,
+    )
+
+    expect(
+      screen.getByText("Windows users: reinstall this release manually."),
+    ).toBeTruthy()
+    expect(screen.getByText("Improvements")).toBeTruthy()
+    expect(screen.queryByText(/adt-release|schemaVersion/)).toBeNull()
+  })
 })
