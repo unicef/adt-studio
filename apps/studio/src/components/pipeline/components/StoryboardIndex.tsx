@@ -62,7 +62,12 @@ export function StoryboardIndex({
 
   // The list *is* the reading order — the server resolves it, so the sidebar,
   // the live preview and every export agree by construction rather than by
-  // three walks being kept in step.
+  // separate walks being kept in step.
+  //
+  // Built from the FULL order, not just the rendered items: a page removed from
+  // the book keeps its slot here, greyed out, so the user can see where it sits
+  // and put it back. Only rendered pages take a book-page number, so the
+  // numbering the reader sees is unaffected by what has been removed.
   const items = useMemo<StoryboardListItem[]>(() => {
     if (!pages || !readingOrder) return []
 
@@ -77,40 +82,40 @@ export function StoryboardIndex({
       if (page) quizById.set(resolveQuizId(quiz, i), { quiz, page })
     })
 
-    return readingOrder.items.flatMap<StoryboardListItem>((entry) => {
+    const rendered = new Set(readingOrder.items.map((item) => item.id))
+    let bookPage = 0
+    return readingOrder.order.flatMap<StoryboardListItem>((entry) => {
+      const position = rendered.has(entry.id) ? ++bookPage : null
       if (entry.kind === "quiz") {
         const hit = quizById.get(entry.id)
-        return hit ? [{ kind: "quiz", page: hit.page, quiz: hit.quiz, quizId: entry.id }] : []
+        return hit
+          ? [{ kind: "quiz", page: hit.page, quiz: hit.quiz, quizId: entry.id, position }]
+          : []
       }
       const hit = sectionById.get(entry.id)
-      return hit ? [{ kind: "section", page: hit.page, section: hit.section }] : []
+      return hit ? [{ kind: "section", page: hit.page, section: hit.section, position }] : []
     })
   }, [pages, quizzesData, readingOrder])
 
-  /**
-   * Move `id` so it lands at `toVisibleIndex` of the *visible* list, then save.
-   *
-   * The saved order also carries items excluded from the output (pruned ones),
-   * which hold a slot so re-including them restores their place. The visible
-   * target is therefore translated into a position in the full order, anchored
-   * on the row currently at that index.
-   */
+  /** Move `id` so it lands at `toIndex` of the list, then save. */
   const moveTo = useCallback(
-    (id: string, toVisibleIndex: number) => {
+    (id: string, toIndex: number) => {
       if (!readingOrder) return
-      const anchor = items[Math.max(0, Math.min(toVisibleIndex, items.length))]
-      const fullTarget = anchor
+      // Rows mirror the stored order, but an id the sidebar cannot resolve is
+      // skipped, so the target is anchored on the row at that index rather than
+      // used as a raw offset.
+      const anchor = items[Math.max(0, Math.min(toIndex, items.length))]
+      const target = anchor
         ? readingOrder.order.findIndex((entry) => entry.id === itemIdOf(anchor))
         : readingOrder.order.length
-      if (fullTarget < 0) return
+      if (target < 0) return
 
-      const next = moveReadingOrderItem(readingOrder.order, id, fullTarget)
+      const next = moveReadingOrderItem(readingOrder.order, id, target)
       if (next.every((entry, i) => entry.id === readingOrder.order[i]?.id)) return
 
-      const visible = new Set(items.map(itemIdOf))
-      const position = next.filter((entry) => visible.has(entry.id)).findIndex((e) => e.id === id)
+      const landed = next.findIndex((entry) => entry.id === id) + 1
       announceToScreenReader(
-        t`Moved to position ${String(position + 1)} of ${String(items.length)}`,
+        t`Moved to position ${String(landed)} of ${String(next.length)}`,
       )
 
       saveOrder.mutate({ items: next, expectedVersion: readingOrder.version })
@@ -286,7 +291,7 @@ export function StoryboardIndex({
                   bookLabel={bookLabel}
                   page={item.page}
                   section={item.section}
-                  position={virtualRow.index + 1}
+                  position={item.position}
                   isActive={isActive}
                   activeColor={storyboardStageDef?.bgLight}
                   activeText={storyboardStageDef?.textColor}
@@ -300,7 +305,7 @@ export function StoryboardIndex({
                   bookLabel={bookLabel}
                   page={item.page}
                   quiz={item.quiz}
-                  position={virtualRow.index + 1}
+                  position={item.position}
                   isActive={isActive}
                   onSelect={() => handleQuizClick(item.quizId)}
                 />
@@ -313,12 +318,13 @@ export function StoryboardIndex({
   )
 }
 
-type StoryboardListItem =
+type StoryboardListItem = { position: number | null } & (
   | { kind: "section"; page: PageSummaryItem; section: PageSummarySection }
   | { kind: "quiz"; page: PageSummaryItem; quiz: Quiz; quizId: string }
+)
 
 /** Custom MIME type so the list only accepts its own rows, not arbitrary drags. */
-const READING_ORDER_DRAG_TYPE = "application/x-adt-reading-order"
+export const READING_ORDER_DRAG_TYPE = "application/x-adt-reading-order"
 
 /**
  * The row's two numbers, which are different things and stop agreeing as soon
@@ -333,7 +339,8 @@ function RowPosition({
   pageNumber,
   kind,
 }: {
-  position: number
+  /** null when the page is removed from the book and so has no book page. */
+  position: number | null
   pageNumber: number
   /** A quiz sits *after* a source page rather than coming from one. */
   kind: "section" | "quiz"
@@ -342,10 +349,15 @@ function RowPosition({
   return (
     <>
       <span
-        title={t`Page ${String(position)} of the book`}
+        data-testid="book-page"
+        title={
+          position === null
+            ? t`Removed from the book`
+            : t`Page ${String(position)} of the book`
+        }
         className="inline-flex items-center justify-center min-w-[15px] h-[13px] px-0.5 rounded bg-foreground/10 text-[9px] font-semibold leading-none tabular-nums"
       >
-        {position}
+        {position ?? "–"}
       </span>
       <span title={t`From page ${String(pageNumber)} of the source PDF`} className="ml-1">
         {/* One whole message per case rather than a translated word glued onto
@@ -377,7 +389,7 @@ function SectionRow({
   bookLabel: string
   page: PageSummaryItem
   section: PageSummarySection
-  position: number
+  position: number | null
   isActive: boolean
   activeColor?: string
   activeText?: string
@@ -419,7 +431,7 @@ function SectionRow({
       onMouseLeave={hover.handleLeave}
       title={
         section.isPruned
-          ? t`Book page ${String(position)} · PDF page ${String(page.pageNumber)} (pruned)`
+          ? t`Removed from the book · PDF page ${String(page.pageNumber)}`
           : section.sectionType
             ? t`Book page ${String(position)} · PDF page ${String(page.pageNumber)} · ${section.sectionType}`
             : t`Book page ${String(position)} · PDF page ${String(page.pageNumber)}`
@@ -521,7 +533,7 @@ function QuizRow({
   bookLabel: string
   page: PageSummaryItem
   quiz: Quiz
-  position: number
+  position: number | null
   isActive: boolean
   onSelect: () => void
 }) {
@@ -536,7 +548,7 @@ function QuizRow({
       onClick={onSelect}
       onMouseEnter={hover.handleEnter}
       onMouseLeave={hover.handleLeave}
-      title={t`Book page ${String(position)} · quiz after PDF page ${String(page.pageNumber)}`}
+      title={t`Book page ${String(position ?? "–")} · quiz after PDF page ${String(page.pageNumber)}`}
       className={cn(
         "flex items-start gap-2 px-2 py-1.5 text-left transition-colors w-full",
         isActive
@@ -717,7 +729,7 @@ function ComparisonPreview({
   pos: { top: number; left: number }
   pdfThumb: string | null
   renderedThumb: string | null
-  position: number
+  position: number | null
   pageNumber: number
   sectionIndex: number
   sectionCount: number
@@ -740,7 +752,11 @@ function ComparisonPreview({
                 "page" keeps them parallel and short — after a reorder they
                 simply differ. */}
             <span className="text-xs font-semibold text-foreground">
-              <Trans>Book page {String(position)}</Trans>
+              {position === null ? (
+                <Trans>Removed from the book</Trans>
+              ) : (
+                <Trans>Book page {String(position)}</Trans>
+              )}
             </span>
             <span className="text-xs text-muted-foreground">·</span>
             <span className="text-xs text-muted-foreground">

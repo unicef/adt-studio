@@ -23,8 +23,15 @@ export interface SectionActionsDropdownProps {
 }
 
 /**
- * Reusable three-dot dropdown menu for section actions (merge, clone, delete, prune).
+ * Reusable three-dot dropdown menu for section actions.
  * Used by SectioningOverview, SectionEditPanel, and the Sectioning screen.
+ *
+ * Two different removals, deliberately worded so the reversible one is the
+ * obvious choice. "Remove from book" only hides the page: it keeps its slot in
+ * the reading order and all of its content, so adding it back restores it
+ * exactly where it was. "Delete permanently" destroys the section. Both used to
+ * read as plain removals — "Exclude from render" and "Delete" — which pushed
+ * users towards the destructive one for a job the reversible one does.
  */
 export function SectionActionsDropdown({
   sectionIndex,
@@ -70,7 +77,7 @@ export function SectionActionsDropdown({
       items={[
         {
           icon: isPruned ? Eye : EyeOff,
-          label: isPruned ? t`Include in render` : t`Exclude from render`,
+          label: isPruned ? t`Add back to book` : t`Remove from book`,
           onClick: onTogglePrune,
           disabled: pruneDisabled ?? disabled,
         },
@@ -120,7 +127,7 @@ export function SectionActionsDropdown({
         { separator: true },
         {
           icon: Trash2,
-          label: t`Delete`,
+          label: t`Delete permanently`,
           onClick: onDelete,
           danger: true,
           disabled,
