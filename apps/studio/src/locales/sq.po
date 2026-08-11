@@ -1,17 +1,18 @@
+#
 msgid ""
 msgstr ""
-"POT-Creation-Date: 2026-06-02 03:47-0300\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"X-Generator: @lingui/cli\n"
-"Language: sq\n"
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-02 03:47-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
+"Language: sq\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: \n"
+"X-Generator: @lingui/cli\n"
 
 msgid " · {needsChanges} need changes"
 msgstr " · {needsChanges} kërkojnë ndryshime"
@@ -260,7 +261,6 @@ msgstr "{0} seksione"
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} imazhe të zgjedhura nuk janë më në storyboard."
 
-#. placeholder {0}: formatVersion(group.series)
 #~ msgid "{0} series"
 #~ msgstr "Seria {0}"
 
@@ -276,7 +276,6 @@ msgstr "{0} tekste"
 msgid "{0} translations"
 msgstr "{0} përkthime"
 
-#. placeholder {0}: versions.length
 #~ msgid "{0} versions"
 #~ msgstr "{0} versione"
 
@@ -735,8 +734,14 @@ msgstr "Përmbledhja e Aksesueshmërisë"
 #~ msgid "Accessible book"
 #~ msgstr "Libër i aksesueshëm"
 
+msgid "Accessible image captions and storyboards."
+msgstr "Përshkrime të arritshme imazhesh dhe storyboard-e."
+
 msgid "Accessible sizes"
 msgstr "Madhësi të aksesueshme"
+
+msgid "Accessible textbooks"
+msgstr "Tekste shkollore të arritshme"
 
 msgid "Actions disabled while storyboard is running"
 msgstr "Veprimet janë çaktivizuara ndërsa storyboard-i është në ekzekutim"
@@ -925,6 +930,9 @@ msgstr "Shto të paktën një gjuhë dalëse për të ekzekutuar përkthimin."
 msgid "Add author"
 msgstr "Shto autor"
 
+msgid "Add book"
+msgstr "Shto libër"
+
 msgid "Add Book"
 msgstr "Shto Libër"
 
@@ -1044,6 +1052,9 @@ msgstr "Shto video"
 
 msgid "Add your first book"
 msgstr "Shto librin tuaj të parë"
+
+msgid "Add your first book and ADT Studio takes care of the rest."
+msgstr "Shto librin tënd të parë dhe ADT Studio kujdeset për pjesën tjetër."
 
 msgid "Add your first term"
 msgstr "Shto termin tuaj të parë"
@@ -1532,6 +1543,22 @@ msgstr "Autorët"
 
 msgid "Auto"
 msgstr "Automatik"
+
+msgid "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
+msgstr "Modaliteti Auto i mban së bashku grafikët, imazhet me etiketa dhe infografikat komplekse, ndërsa titujt, kutitë e veçuara dhe tabelat e zakonshme i lë për HTML të qasshme."
+
+msgid "Auto preserves charts, labeled images, and complex infographics as single assets while leaving styled headings, callouts, and conventional tables for accessible HTML. All keeps every composite candidate. Off prevents PDF text from being merged into figures."
+msgstr "Modaliteti Auto i ruan grafikët, imazhet me etiketa dhe infografikat komplekse si elemente të vetme, ndërsa titujt e stilizuar, kutitë e veçuara dhe tabelat e zakonshme i lë për HTML të qasshme. Modaliteti Të gjitha e mban çdo kandidat të përbërë. Modaliteti Joaktiv parandalon bashkimin e tekstit të PDF-së me figurat."
+
+msgid "Auto recommended"
+msgstr "Rekomandohet Auto"
+
+#. placeholder {0}: i18n._(presetLabel)
+msgid "Auto recommended for {0}"
+msgstr "Auto rekomandohet për {0}"
+
+msgid "Auto-build assessments and key-term lists."
+msgstr "Ndërto automatikisht vlerësime dhe lista termash kyç."
 
 msgid "Auto-built quizzes and exercises readers can actually answer — with instant feedback, right inside the page."
 msgstr "Kuize dhe ushtrime të ndërtuara automatikisht që lexuesi mund t'u përgjigjet vërtet, me përgjigje të menjëhershme, brenda vetë faqes."
@@ -2943,6 +2970,9 @@ msgstr "Tituj të detajuar dhe teknikë për lexues të universitetit dhe të rr
 msgid "Details"
 msgstr "Detajet"
 
+msgid "Detect chapters, headings and learning units."
+msgstr "Zbulo kapituj, tituj dhe njësi mësimore."
+
 #~ msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
 #~ msgstr "U zbuluan {confirmCount} {confirmCount, plural, one {faqe e përbashkët} other {faqe të përbashkëta}} të mundshme — konfirmoni cilat të bashkohen"
 
@@ -2964,11 +2994,14 @@ msgstr "Zbulon aktivitetet që gjenden tashmë në libër dhe i transformon ato 
 msgid "Detects and splits composited illustrations into separate regions so each asset can be placed and refined on its own."
 msgstr "Zbulon dhe ndan ilustrimet e kompozuara në rajone të veçanta që çdo element të mund të vendoset dhe rafinohet më vete."
 
-msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
-msgstr "Zbulon grafikë dhe figura komplekse që përmbajnë kombinim teksti, vektorësh dhe imazhesh dhe i pret nga faqja."
+#~ msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
+#~ msgstr "Zbulon grafikë dhe figura komplekse që përmbajnë kombinim teksti, vektorësh dhe imazhesh dhe i pret nga faqja."
 
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Zbulon ushtrimet dhe kuizet e ngulura në libër dhe i klasifikon si seksionet e tyre që të mund të renderohën si elementë interaktivë."
+
+msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
+msgstr "Zbulon tekstin e vulosur në mënyrë identike në të gjitha faqet — si një njoftim diagonal “vetëm për lexim në internet” — dhe e heq atë nga faqet e renderuara, figurat e nxjerra dhe teksti i librit. Çaktivizojeni për t’i ruajtur faqet saktësisht siç janë shtypur."
 
 msgid "Diagram"
 msgstr "Diagram"
@@ -3105,6 +3138,9 @@ msgstr "Lëshoni një pjesë <0>.zip</0> këtu, ose shfletoni"
 #~ msgid "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
 #~ msgstr "Hidh një PDF për të filluar. ADT Studio e organizon atë në një projekt të ri libri që të mos fillosh nga zeroja."
 
+msgid "Drop in a textbook PDF and we'll extract pages, generate accessible captions, build storyboards, and assemble quizzes — every step inspectable, every result versioned."
+msgstr "Ngarko një PDF të një teksti shkollor dhe ne do të nxjerrim faqet, do të gjenerojmë përshkrime të arritshme, do të ndërtojmë storyboard-e dhe do të montojmë kuize — çdo hap i inspektueshëm, çdo rezultat i versionuar."
+
 msgid "Drop PDF here"
 msgstr "Hidh PDF-in këtu"
 
@@ -3209,6 +3245,9 @@ msgstr "Çdo udhëzim zbatohet te ofruesi te i cili drejtohet gjuha e tij — p�
 
 msgid "Each section introduces a new theme with worked examples, followed by short practice activities at the end of the page."
 msgstr "Çdo seksion prezanton një temë të re me shembuj të zgjidhur, të ndjekur nga aktivitete të shkurtra praktike në fund të faqes."
+
+msgid "Each stage runs in your library — fully transparent, easy to rerun."
+msgstr "Çdo fazë ekzekutohet në bibliotekën tënde — plotësisht transparente dhe e lehtë për t'u ripërsëritur."
 
 msgid "Earlier"
 msgstr "Më i hershëm"
@@ -3600,6 +3639,9 @@ msgstr "Duke eksportuar..."
 
 msgid "Extract"
 msgstr "Nxjerr"
+
+msgid "Extract & filter"
+msgstr "Nxirr dhe filtro"
 
 msgid "Extract hasn't run yet"
 msgstr "Nxjerrja nuk është ekzekutuar ende"
@@ -4305,6 +4347,9 @@ msgstr "História e Sociedade - Vol. 1"
 msgid "Hit"
 msgstr "Goditje"
 
+msgid "Home"
+msgstr "Ballina"
+
 msgid "Home / Chapter 1"
 msgstr "Kryefaqja / Kapitulli 1"
 
@@ -4514,6 +4559,9 @@ msgstr "Importo"
 
 msgid "Import a Project"
 msgstr "Importo një projekt"
+
+msgid "Import existing project"
+msgstr "Importo projekt ekzistues"
 
 msgid "Import project"
 msgstr "Importo projektin"
@@ -4879,6 +4927,9 @@ msgstr "Lëre modelin të shkruajë tituj përshkrues kapitujsh bazuar në përm
 
 msgid "Let's start"
 msgstr "Le të fillojmë"
+
+msgid "Library"
+msgstr "Biblioteka"
 
 msgid "Library apps"
 msgstr "Aplikacione biblioteke"
@@ -5552,6 +5603,9 @@ msgstr "Element i ri i listës kontrolluese"
 
 msgid "New Entry"
 msgstr "Hyrje e re"
+
+msgid "New here?"
+msgstr "I ri këtu?"
 
 msgid "New session"
 msgstr "Sesion i ri"
@@ -7001,6 +7055,9 @@ msgstr "Pull request-e"
 msgid "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
 msgstr "Nxirrni përmbajtje të strukturuar nga PDF-ja burimore. Nxjerrja identifikon titujt, paragrafet, listat dhe imazhet, kështu që fazat pasuese punojnë me përmbajtje të pastër dhe të tipizuar në vend të PDF-së bruto."
 
+msgid "Pull text, images, and structure from any PDF."
+msgstr "Nxirr tekst, imazhe dhe strukturë nga çdo PDF."
+
 msgid "Pulls the book's metadata — title, author, language — from the PDF."
 msgstr "Nxjerr metadatat e librit — titullin, autorin, gjuhën — nga PDF-ja."
 
@@ -7089,6 +7146,9 @@ msgstr "kuize"
 msgid "Quizzes"
 msgstr "Kuizet"
 
+msgid "Quizzes & glossary"
+msgstr "Kuize dhe fjalorth"
+
 msgid "Quizzes are generating. Wait for the run to finish before adding a quiz."
 msgstr "Kuizet po gjenerohen. Prisni të përfundojë ekzekutimi para se të shtoni një kuiz."
 
@@ -7166,6 +7226,9 @@ msgstr "Lexoje në gjuhën e tyre."
 
 msgid "Read the docs"
 msgstr "Lexo dokumentacionin"
+
+msgid "Read the docs ↗"
+msgstr "Lexo dokumentacionin ↗"
 
 msgid "Read the prompt aloud"
 msgstr "Lexo kërkesën me zë"
@@ -7396,6 +7459,9 @@ msgstr "Hiq këtë bllok"
 
 msgid "Remove type"
 msgstr "Hiq tipin"
+
+msgid "Remove Watermarks"
+msgstr "Hiq filigranët"
 
 msgid "removed"
 msgstr "hequr"
@@ -7928,6 +7994,9 @@ msgstr "Kërko libra"
 
 msgid "Search books..."
 msgstr "Kërko libra..."
+
+msgid "Search books…"
+msgstr "Kërko libra…"
 
 msgid "Search by title, version, or description…"
 msgstr "Kërko sipas titullit, versionit ose përshkrimit…"
@@ -8740,6 +8809,9 @@ msgstr "Pasqyrë e Storyboard-it"
 
 msgid "Storyboard Preview"
 msgstr "Parashikim i Storyboard-it"
+
+msgid "Storyboards & captions"
+msgstr "Storyboard-e dhe përshkrime"
 
 msgid "Storybook"
 msgstr "Storybook"
@@ -9697,6 +9769,9 @@ msgstr "Normalizimi TTS"
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Rregullo se si thjeshtohet teksti në cilësimet e Udhëzimit Easy Read. Pas ekzekutimit, çdo bllok bëhet i redaktueshëm këtu në hapin Easy Read."
 
+msgid "Turn any educational PDF into an accessible, interactive learning bundle — extracted, captioned, and quiz-ready."
+msgstr "Shndërro çdo PDF edukativ në një paketë mësimore të arritshme dhe interaktive — të nxjerrë, me përshkrime dhe gati për kuize."
+
 #~ msgid "Turn any PDF into a fully accessible book — audio, translations, structured HTML layouts — all generated from your source file, <0>all editable</0>, <1>all yours</1>."
 #~ msgstr "Ktheje çdo PDF në një libër plotësisht të aksesueshëm — audio, përkthime, paraqitje HTML të strukturuara — të gjitha të gjeneruara nga skedari juaj burim, <0>të gjitha të redaktueshme</0>, <1>të gjitha tuajat</1>."
 
@@ -10214,6 +10289,9 @@ msgstr "Uji lëviz vazhdimisht nëpërmjet avullimit, kondensimit dhe reshjeve. 
 msgid "Watercolor"
 msgstr "Akuarel"
 
+msgid "Watermarks"
+msgstr "Filigranët"
+
 msgid "wcag2a\n"
 "wcag2aa\n"
 "best-practice"
@@ -10259,6 +10337,9 @@ msgstr "Mirë se vini në ADT Studio"
 
 msgid "Welcome to the ADT Studio beta"
 msgstr "Mirë se vini në beta-n e ADT Studio"
+
+msgid "What ADT Studio does"
+msgstr "Çfarë bën ADT Studio"
 
 msgid "What is the main role of a plant's roots?"
 msgstr "Cili është roli kryesor i rrënjëve të një bime?"

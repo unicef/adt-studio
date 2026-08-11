@@ -734,8 +734,14 @@ msgstr "Accessibility Summary"
 #~ msgid "Accessible book"
 #~ msgstr "Accessible book"
 
+msgid "Accessible image captions and storyboards."
+msgstr "Accessible image captions and storyboards."
+
 msgid "Accessible sizes"
 msgstr "Accessible sizes"
+
+msgid "Accessible textbooks"
+msgstr "Accessible textbooks"
 
 msgid "Actions disabled while storyboard is running"
 msgstr "Actions disabled while storyboard is running"
@@ -924,6 +930,9 @@ msgstr "Add at least one output language to run translation."
 msgid "Add author"
 msgstr "Add author"
 
+msgid "Add book"
+msgstr "Add book"
+
 msgid "Add Book"
 msgstr "Add Book"
 
@@ -1043,6 +1052,9 @@ msgstr "Add videos"
 
 msgid "Add your first book"
 msgstr "Add your first book"
+
+msgid "Add your first book and ADT Studio takes care of the rest."
+msgstr "Add your first book and ADT Studio takes care of the rest."
 
 msgid "Add your first term"
 msgstr "Add your first term"
@@ -1531,6 +1543,22 @@ msgstr "Authors"
 
 msgid "Auto"
 msgstr "Auto"
+
+msgid "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
+msgstr "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
+
+msgid "Auto preserves charts, labeled images, and complex infographics as single assets while leaving styled headings, callouts, and conventional tables for accessible HTML. All keeps every composite candidate. Off prevents PDF text from being merged into figures."
+msgstr "Auto preserves charts, labeled images, and complex infographics as single assets while leaving styled headings, callouts, and conventional tables for accessible HTML. All keeps every composite candidate. Off prevents PDF text from being merged into figures."
+
+msgid "Auto recommended"
+msgstr "Auto recommended"
+
+#. placeholder {0}: i18n._(presetLabel)
+msgid "Auto recommended for {0}"
+msgstr "Auto recommended for {0}"
+
+msgid "Auto-build assessments and key-term lists."
+msgstr "Auto-build assessments and key-term lists."
 
 msgid "Auto-built quizzes and exercises readers can actually answer — with instant feedback, right inside the page."
 msgstr "Auto-built quizzes and exercises readers can actually answer — with instant feedback, right inside the page."
@@ -2942,6 +2970,9 @@ msgstr "Detailed, technical captions for college and adult readers."
 msgid "Details"
 msgstr "Details"
 
+msgid "Detect chapters, headings and learning units."
+msgstr "Detect chapters, headings and learning units."
+
 #~ msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
 #~ msgstr "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
 
@@ -2963,11 +2994,14 @@ msgstr "Detects activities already present in the book and transforms them into 
 msgid "Detects and splits composited illustrations into separate regions so each asset can be placed and refined on its own."
 msgstr "Detects and splits composited illustrations into separate regions so each asset can be placed and refined on its own."
 
-msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
-msgstr "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
+#~ msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
+#~ msgstr "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
 
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
+
+msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
+msgstr "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
 
 msgid "Diagram"
 msgstr "Diagram"
@@ -3104,6 +3138,9 @@ msgstr "Drop a part <0>.zip</0> here, or browse"
 #~ msgid "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
 #~ msgstr "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
 
+msgid "Drop in a textbook PDF and we'll extract pages, generate accessible captions, build storyboards, and assemble quizzes — every step inspectable, every result versioned."
+msgstr "Drop in a textbook PDF and we'll extract pages, generate accessible captions, build storyboards, and assemble quizzes — every step inspectable, every result versioned."
+
 msgid "Drop PDF here"
 msgstr "Drop PDF here"
 
@@ -3208,6 +3245,9 @@ msgstr "Each prompt is applied to whichever provider its language is routed to �
 
 msgid "Each section introduces a new theme with worked examples, followed by short practice activities at the end of the page."
 msgstr "Each section introduces a new theme with worked examples, followed by short practice activities at the end of the page."
+
+msgid "Each stage runs in your library — fully transparent, easy to rerun."
+msgstr "Each stage runs in your library — fully transparent, easy to rerun."
 
 msgid "Earlier"
 msgstr "Earlier"
@@ -3599,6 +3639,9 @@ msgstr "Exporting..."
 
 msgid "Extract"
 msgstr "Extract"
+
+msgid "Extract & filter"
+msgstr "Extract & filter"
 
 msgid "Extract hasn't run yet"
 msgstr "Extract hasn't run yet"
@@ -4304,6 +4347,9 @@ msgstr "História e Sociedade - Vol. 1"
 msgid "Hit"
 msgstr "Hit"
 
+msgid "Home"
+msgstr "Home"
+
 msgid "Home / Chapter 1"
 msgstr "Home / Chapter 1"
 
@@ -4513,6 +4559,9 @@ msgstr "Import"
 
 msgid "Import a Project"
 msgstr "Import a Project"
+
+msgid "Import existing project"
+msgstr "Import existing project"
 
 msgid "Import project"
 msgstr "Import project"
@@ -4878,6 +4927,9 @@ msgstr "Let the model write descriptive chapter titles based on each section's c
 
 msgid "Let's start"
 msgstr "Let's start"
+
+msgid "Library"
+msgstr "Library"
 
 msgid "Library apps"
 msgstr "Library apps"
@@ -5551,6 +5603,9 @@ msgstr "New checklist item"
 
 msgid "New Entry"
 msgstr "New Entry"
+
+msgid "New here?"
+msgstr "New here?"
 
 msgid "New session"
 msgstr "New session"
@@ -7000,6 +7055,9 @@ msgstr "Pull requests"
 msgid "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
 msgstr "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
 
+msgid "Pull text, images, and structure from any PDF."
+msgstr "Pull text, images, and structure from any PDF."
+
 msgid "Pulls the book's metadata — title, author, language — from the PDF."
 msgstr "Pulls the book's metadata — title, author, language — from the PDF."
 
@@ -7088,6 +7146,9 @@ msgstr "quizzes"
 msgid "Quizzes"
 msgstr "Quizzes"
 
+msgid "Quizzes & glossary"
+msgstr "Quizzes & glossary"
+
 msgid "Quizzes are generating. Wait for the run to finish before adding a quiz."
 msgstr "Quizzes are generating. Wait for the run to finish before adding a quiz."
 
@@ -7165,6 +7226,9 @@ msgstr "Read it in their language."
 
 msgid "Read the docs"
 msgstr "Read the docs"
+
+msgid "Read the docs ↗"
+msgstr "Read the docs ↗"
 
 msgid "Read the prompt aloud"
 msgstr "Read the prompt aloud"
@@ -7395,6 +7459,9 @@ msgstr "Remove this block"
 
 msgid "Remove type"
 msgstr "Remove type"
+
+msgid "Remove Watermarks"
+msgstr "Remove Watermarks"
 
 msgid "removed"
 msgstr "removed"
@@ -7927,6 +7994,9 @@ msgstr "Search books"
 
 msgid "Search books..."
 msgstr "Search books..."
+
+msgid "Search books…"
+msgstr "Search books…"
 
 msgid "Search by title, version, or description…"
 msgstr "Search by title, version, or description…"
@@ -8739,6 +8809,9 @@ msgstr "Storyboard Overview"
 
 msgid "Storyboard Preview"
 msgstr "Storyboard Preview"
+
+msgid "Storyboards & captions"
+msgstr "Storyboards & captions"
 
 msgid "Storybook"
 msgstr "Storybook"
@@ -9696,6 +9769,9 @@ msgstr "TTS Normalization"
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 
+msgid "Turn any educational PDF into an accessible, interactive learning bundle — extracted, captioned, and quiz-ready."
+msgstr "Turn any educational PDF into an accessible, interactive learning bundle — extracted, captioned, and quiz-ready."
+
 #~ msgid "Turn any PDF into a fully accessible book — audio, translations, structured HTML layouts — all generated from your source file, <0>all editable</0>, <1>all yours</1>."
 #~ msgstr "Turn any PDF into a fully accessible book — audio, translations, structured HTML layouts — all generated from your source file, <0>all editable</0>, <1>all yours</1>."
 
@@ -10213,6 +10289,9 @@ msgstr "Water moves continuously through evaporation, condensation, and precipit
 msgid "Watercolor"
 msgstr "Watercolor"
 
+msgid "Watermarks"
+msgstr "Watermarks"
+
 msgid "wcag2a\n"
 "wcag2aa\n"
 "best-practice"
@@ -10258,6 +10337,9 @@ msgstr "Welcome to ADT Studio"
 
 msgid "Welcome to the ADT Studio beta"
 msgstr "Welcome to the ADT Studio beta"
+
+msgid "What ADT Studio does"
+msgstr "What ADT Studio does"
 
 msgid "What is the main role of a plant's roots?"
 msgstr "What is the main role of a plant's roots?"

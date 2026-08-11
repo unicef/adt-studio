@@ -131,9 +131,40 @@ app.whenReady().then(async () => {
     openMainWindow();
   } else {
     const onboardingWindow = createOnboardingWindow();
+
+    // The onboarding window is transparent + frameless and only reveals itself
+    // on `ready-to-show`. If the renderer never loads (e.g. the dev server isn't
+    // up yet, or a packaged asset fails), that event never fires and the user is
+    // stranded on the splash with an invisible window. Fall back to the main app
+    // window so first-run is always recoverable; onboarding stays unmarked and
+    // shows again on the next launch.
+    let recovered = false;
+    const fallbackToMainWindow = () => {
+      if (recovered) return;
+      recovered = true;
+      clearTimeout(readyGuard);
+      if (!onboardingWindow.isDestroyed()) onboardingWindow.destroy();
+      openMainWindow();
+    };
+
+    const readyGuard = setTimeout(() => {
+      if (!onboardingWindow.isDestroyed() && !onboardingWindow.isVisible()) {
+        fallbackToMainWindow();
+      }
+    }, 15000);
+
     onboardingWindow.once("ready-to-show", () => {
+      clearTimeout(readyGuard);
       if (!splashWindow.isDestroyed()) splashWindow.destroy();
     });
+
+    onboardingWindow.webContents.on(
+      "did-fail-load",
+      (_event, errorCode, _desc, _url, isMainFrame) => {
+        // -3 (ERR_ABORTED) fires for superseded navigations, not real failures.
+        if (isMainFrame && errorCode !== -3) fallbackToMainWindow();
+      },
+    );
   }
 });
 

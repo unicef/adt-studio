@@ -259,7 +259,6 @@ msgstr "{0} seções"
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} imagens selecionadas não estão mais no storyboard."
 
-#. placeholder {0}: formatVersion(group.series)
 #~ msgid "{0} series"
 #~ msgstr "Série {0}"
 
@@ -275,7 +274,6 @@ msgstr "{0} textos"
 msgid "{0} translations"
 msgstr "{0} traduções"
 
-#. placeholder {0}: versions.length
 #~ msgid "{0} versions"
 #~ msgstr "{0} versões"
 
@@ -734,8 +732,14 @@ msgstr "Accessibility Summary"
 #~ msgid "Accessible book"
 #~ msgstr "Livro acessível"
 
+msgid "Accessible image captions and storyboards."
+msgstr "Legendas de imagens acessíveis e storyboards."
+
 msgid "Accessible sizes"
 msgstr "Tamanhos acessíveis"
+
+msgid "Accessible textbooks"
+msgstr "Livros didáticos acessíveis"
 
 msgid "Actions disabled while storyboard is running"
 msgstr "Ações desabilitadas enquanto o storyboard está em execução"
@@ -924,6 +928,9 @@ msgstr "Adicione pelo menos um idioma de saída para executar tradução."
 msgid "Add author"
 msgstr "Adicionar autor"
 
+msgid "Add book"
+msgstr "Adicionar livro"
+
 msgid "Add Book"
 msgstr "Adicionar livro"
 
@@ -1043,6 +1050,9 @@ msgstr "Adicionar vídeos"
 
 msgid "Add your first book"
 msgstr "Adicione seu primeiro livro"
+
+msgid "Add your first book and ADT Studio takes care of the rest."
+msgstr "Adicione seu primeiro livro e o ADT Studio cuida do resto."
 
 msgid "Add your first term"
 msgstr "Adicione seu primeiro termo"
@@ -1531,6 +1541,22 @@ msgstr "Autores"
 
 msgid "Auto"
 msgstr "Automático"
+
+msgid "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
+msgstr "O modo Auto mantém juntos gráficos, imagens rotuladas e infográficos complexos, deixando títulos, caixas de destaque e tabelas convencionais para HTML acessível."
+
+msgid "Auto preserves charts, labeled images, and complex infographics as single assets while leaving styled headings, callouts, and conventional tables for accessible HTML. All keeps every composite candidate. Off prevents PDF text from being merged into figures."
+msgstr "O modo Auto preserva gráficos, imagens rotuladas e infográficos complexos como recursos únicos, deixando títulos estilizados, caixas de destaque e tabelas convencionais para HTML acessível. O modo Tudo mantém todos os candidatos compostos. Desativado impede que o texto do PDF seja mesclado às figuras."
+
+msgid "Auto recommended"
+msgstr "Auto recomendado"
+
+#. placeholder {0}: i18n._(presetLabel)
+msgid "Auto recommended for {0}"
+msgstr "Auto recomendado para {0}"
+
+msgid "Auto-build assessments and key-term lists."
+msgstr "Crie automaticamente avaliações e listas de termos-chave."
 
 msgid "Auto-built quizzes and exercises readers can actually answer — with instant feedback, right inside the page."
 msgstr "Questionários e exercícios gerados automaticamente que o leitor consegue responder de verdade, com feedback instantâneo na própria página."
@@ -2942,6 +2968,9 @@ msgstr "Legendas detalhadas e técnicas para leitores universitários e adultos.
 msgid "Details"
 msgstr "Detalhes"
 
+msgid "Detect chapters, headings and learning units."
+msgstr "Detecte capítulos, títulos e unidades de aprendizagem."
+
 #~ msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
 #~ msgstr "Detectado {confirmCount} possível {confirmCount, plural, one {spread} other {spreads}} — confirme qual mesclar"
 
@@ -2963,11 +2992,14 @@ msgstr "Detecta atividades já presentes no livro e as transforma em elementos H
 msgid "Detects and splits composited illustrations into separate regions so each asset can be placed and refined on its own."
 msgstr "Detecta e divide ilustrações compostas em regiões separadas para que cada elemento possa ser colocado e refinado individualmente."
 
-msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
-msgstr "Detecta gráficos e figuras complexas que contêm uma mistura de texto, vetores e imagens e os recorta da página."
+#~ msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
+#~ msgstr "Detecta gráficos e figuras complexas que contêm uma mistura de texto, vetores e imagens e os recorta da página."
 
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Detecta exercícios e questionários embutidos no livro e os classifica como suas próprias seções para que possam ser renderizados como elementos interativos posteriormente."
+
+msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
+msgstr "Detecta texto carimbado de forma idêntica em todas as páginas — como um aviso diagonal de “somente para leitura on-line” — e o remove das páginas renderizadas, das figuras extraídas e do texto do livro. Desative para manter as páginas exatamente como impressas."
 
 msgid "Diagram"
 msgstr "Diagrama"
@@ -3104,6 +3136,9 @@ msgstr "Solte uma parte <0>.zip</0> aqui ou navegue"
 #~ msgid "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
 #~ msgstr "Selecione um PDF para começar. O ADT Studio o organiza em um novo projeto de livro para que você não comece do zero."
 
+msgid "Drop in a textbook PDF and we'll extract pages, generate accessible captions, build storyboards, and assemble quizzes — every step inspectable, every result versioned."
+msgstr "Envie o PDF de um livro didático e nós extrairemos as páginas, geraremos legendas acessíveis, criaremos storyboards e montaremos questionários — cada etapa é inspecionável e cada resultado é versionado."
+
 msgid "Drop PDF here"
 msgstr "Solte o PDF aqui"
 
@@ -3208,6 +3243,9 @@ msgstr "Cada instrução é aplicada ao provedor para o qual seu idioma é rotea
 
 msgid "Each section introduces a new theme with worked examples, followed by short practice activities at the end of the page."
 msgstr "Cada seção introduz um novo tema com exemplos trabalhados, seguidos por atividades práticas curtas no final da página."
+
+msgid "Each stage runs in your library — fully transparent, easy to rerun."
+msgstr "Cada etapa é executada na sua biblioteca — totalmente transparente e fácil de reexecutar."
 
 msgid "Earlier"
 msgstr "Anterior"
@@ -3599,6 +3637,9 @@ msgstr "Exportando..."
 
 msgid "Extract"
 msgstr "Extração"
+
+msgid "Extract & filter"
+msgstr "Extrair e filtrar"
 
 msgid "Extract hasn't run yet"
 msgstr "Extração ainda não foi executada"
@@ -4304,6 +4345,9 @@ msgstr "História e Sociedade - Vol. 1"
 msgid "Hit"
 msgstr "Hit"
 
+msgid "Home"
+msgstr "Início"
+
 msgid "Home / Chapter 1"
 msgstr "Início / Capítulo 1"
 
@@ -4513,6 +4557,9 @@ msgstr "Importar"
 
 msgid "Import a Project"
 msgstr "Importar um projeto"
+
+msgid "Import existing project"
+msgstr "Importar projeto existente"
 
 msgid "Import project"
 msgstr "Importar projeto"
@@ -4878,6 +4925,9 @@ msgstr "Deixe o modelo escrever títulos de capítulos descritivos com base no c
 
 msgid "Let's start"
 msgstr "Vamos começar"
+
+msgid "Library"
+msgstr "Biblioteca"
 
 msgid "Library apps"
 msgstr "Aplicativos de biblioteca"
@@ -5551,6 +5601,9 @@ msgstr "New checklist item"
 
 msgid "New Entry"
 msgstr "Nova entrada"
+
+msgid "New here?"
+msgstr "Novo por aqui?"
 
 msgid "New session"
 msgstr "New session"
@@ -7000,6 +7053,9 @@ msgstr "Pull requests"
 msgid "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
 msgstr "Extraia conteúdo estruturado do PDF de origem. A extração identifica títulos, parágrafos, listas e imagens para que as etapas posteriores trabalhem com conteúdo limpo e digitado em vez de PDF bruto."
 
+msgid "Pull text, images, and structure from any PDF."
+msgstr "Extraia texto, imagens e estrutura de qualquer PDF."
+
 msgid "Pulls the book's metadata — title, author, language — from the PDF."
 msgstr "Extrai os metadados do livro — título, autor, idioma — do PDF."
 
@@ -7088,6 +7144,9 @@ msgstr "questionários"
 msgid "Quizzes"
 msgstr "Questionários"
 
+msgid "Quizzes & glossary"
+msgstr "Questionários e glossário"
+
 msgid "Quizzes are generating. Wait for the run to finish before adding a quiz."
 msgstr "Os questionários estão sendo gerados. Aguarde o término da execução antes de adicionar um questionário."
 
@@ -7165,6 +7224,9 @@ msgstr "Leia no idioma deles."
 
 msgid "Read the docs"
 msgstr "Ler a documentação"
+
+msgid "Read the docs ↗"
+msgstr "Ler a documentação ↗"
 
 msgid "Read the prompt aloud"
 msgstr "Leia o prompt em voz alta"
@@ -7395,6 +7457,9 @@ msgstr "Remover este bloco"
 
 msgid "Remove type"
 msgstr "Remover tipo"
+
+msgid "Remove Watermarks"
+msgstr "Remover marcas d'água"
 
 msgid "removed"
 msgstr "removido"
@@ -7927,6 +7992,9 @@ msgstr "Buscar livros"
 
 msgid "Search books..."
 msgstr "Buscar livros..."
+
+msgid "Search books…"
+msgstr "Buscar livros…"
 
 msgid "Search by title, version, or description…"
 msgstr "Pesquisar por título, versão ou descrição…"
@@ -8739,6 +8807,9 @@ msgstr "Visão Geral do Storyboard"
 
 msgid "Storyboard Preview"
 msgstr "Pré-visualização do Storyboard"
+
+msgid "Storyboards & captions"
+msgstr "Storyboards e legendas"
 
 msgid "Storybook"
 msgstr "Livro de Histórias"
@@ -9696,6 +9767,9 @@ msgstr "Normalização de TTS"
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Ajuste como o texto é simplificado nas configurações do Prompt de Leitura Fácil. Após a execução, cada bloco fica editável aqui na etapa de Leitura Fácil."
 
+msgid "Turn any educational PDF into an accessible, interactive learning bundle — extracted, captioned, and quiz-ready."
+msgstr "Transforme qualquer PDF educacional em um pacote de aprendizagem acessível e interativo — extraído, legendado e pronto para questionários."
+
 #~ msgid "Turn any PDF into a fully accessible book — audio, translations, structured HTML layouts — all generated from your source file, <0>all editable</0>, <1>all yours</1>."
 #~ msgstr "Transforme qualquer PDF em um livro totalmente acessível — áudio, traduções, layouts HTML estruturados — tudo gerado a partir do seu arquivo fonte, <0>tudo editável</0>, <1>tudo seu</1>."
 
@@ -10213,6 +10287,9 @@ msgstr "A água se move continuamente através da evaporação, condensação e 
 msgid "Watercolor"
 msgstr "Aquarela"
 
+msgid "Watermarks"
+msgstr "Marcas d'água"
+
 msgid "wcag2a\n"
 "wcag2aa\n"
 "best-practice"
@@ -10258,6 +10335,9 @@ msgstr "Bem-vindo ao ADT Studio"
 
 msgid "Welcome to the ADT Studio beta"
 msgstr "Boas-vindas à beta do ADT Studio"
+
+msgid "What ADT Studio does"
+msgstr "O que o ADT Studio faz"
 
 msgid "What is the main role of a plant's roots?"
 msgstr "Qual é a principal função das raízes de uma planta?"
