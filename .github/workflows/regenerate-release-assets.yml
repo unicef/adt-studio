@@ -75,7 +75,10 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.release_tag }}
+          # Run the trusted generator from the main commit that dispatched this
+          # workflow. The release tag remains the content target and may predate
+          # fixes to the regeneration tooling.
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - uses: actions/setup-node@v4

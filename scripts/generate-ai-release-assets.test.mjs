@@ -230,6 +230,82 @@ describe("AI release assets", () => {
     expect(result.locales.sq.sections.fixed.items).toHaveLength(1);
   });
 
+  it("retries localization output that fails application validation", async () => {
+    const invalidTranslations = structuredClone(translatedLocales);
+    invalidTranslations["pt-BR"].sections.fixed.items[0] = Array.from(
+      { length: 31 },
+      () => "palavra",
+    ).join(" ");
+    const payloads = [invalidTranslations, translatedLocales];
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: JSON.stringify(payloads.shift()),
+              },
+            ],
+          },
+        ],
+      }),
+    }));
+
+    const result = await generateLocalizations({
+      request: buildTranslationRequest({ editorial }),
+      editorial,
+      apiKey: "test-key",
+      fetchImpl,
+    });
+
+    expect(result.locales["pt-BR"].sections.fixed.items[0]).toBe(
+      translatedLocales["pt-BR"].sections.fixed.items[0],
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    const retryRequest = JSON.parse(fetchImpl.mock.calls[1][1].body);
+    expect(retryRequest.input.at(-1).content).toContain(
+      "pt-BR.sections.fixed.items[0] must contain at most 30 words",
+    );
+  });
+
+  it("stops retrying invalid output at the configured limit", async () => {
+    const invalidTranslations = structuredClone(translatedLocales);
+    invalidTranslations["pt-BR"].sections.fixed.items[0] = Array.from(
+      { length: 31 },
+      () => "palavra",
+    ).join(" ");
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                text: JSON.stringify(invalidTranslations),
+              },
+            ],
+          },
+        ],
+      }),
+    }));
+
+    await expect(
+      generateLocalizations({
+        request: buildTranslationRequest({ editorial }),
+        editorial,
+        apiKey: "test-key",
+        fetchImpl,
+        maxAttempts: 2,
+      }),
+    ).rejects.toThrow(/failed validation after 2 attempts/);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
   it("decodes image data and uses the requested image endpoint", async () => {
     const fetchImpl = vi.fn(async () => ({
       ok: true,
