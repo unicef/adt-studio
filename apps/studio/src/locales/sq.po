@@ -937,6 +937,8 @@ msgstr "Shto autor"
 
 msgid "Add book"
 msgstr "Shto libër"
+msgid "Add back to book"
+msgstr "Shto përsëri në libër"
 
 msgid "Add Book"
 msgstr "Shto Libër"
@@ -1478,8 +1480,8 @@ msgstr "Jeni të sigurt që dëshironi të fshini të folurit e gjeneruar?"
 msgid "Are you sure you want to delete this image? This action cannot be undone."
 msgstr "Jeni të sigurt që dëshironi të fshini këtë imazh? Ky veprim nuk mund të zhbëhet."
 
-msgid "Are you sure you want to delete this section? This action cannot be undone."
-msgstr "Jeni të sigurt që dëshironi të fshini këtë seksion? Ky veprim nuk mund të zhbëhet."
+#~ msgid "Are you sure you want to delete this section? This action cannot be undone."
+#~ msgstr "Jeni të sigurt që dëshironi të fshini këtë seksion? Ky veprim nuk mund të zhbëhet."
 
 msgid "Are you sure you want to generate word-level timestamps for {langDisplay}?"
 msgstr "Jeni të sigurt që dëshironi të gjeneroni vulat kohore në nivel fjalësh për {langDisplay}?"
@@ -1816,10 +1818,10 @@ msgstr "Faqja {0} e librit · faqja {1} e PDF-it · {2}"
 
 #. placeholder {0}: String(position)
 #. placeholder {1}: String(page.pageNumber)
-msgid "Book page {0} · PDF page {1} (pruned)"
-msgstr "Faqja {0} e librit · faqja {1} e PDF-it (e përjashtuar)"
+#~ msgid "Book page {0} · PDF page {1} (pruned)"
+#~ msgstr "Faqja {0} e librit · faqja {1} e PDF-it (e përjashtuar)"
 
-#. placeholder {0}: String(position)
+#. placeholder {0}: String(position ?? "–")
 #. placeholder {1}: String(page.pageNumber)
 msgid "Book page {0} · quiz after PDF page {1}"
 msgstr "Faqja {0} e librit · kuiz pas faqes {1} të PDF-it"
@@ -1829,6 +1831,9 @@ msgstr "Faqet e librit. Lëviz horizontalisht për të parë më shumë."
 
 msgid "Book part"
 msgstr "Pjesë e librit"
+
+msgid "Book pg"
+msgstr "Faqe libri"
 
 msgid "Book preview"
 msgstr "Pamje paraprake e librit"
@@ -2929,6 +2934,9 @@ msgstr "Fshi dosjen"
 msgid "Delete option"
 msgstr "Fshi opsionin"
 
+msgid "Delete permanently"
+msgstr "Fshi përgjithmonë"
+
 msgid "Delete prompt file?"
 msgstr "Të fshihet skedari i promptit?"
 
@@ -2949,6 +2957,9 @@ msgstr "Fshi këtë kuiz"
 
 msgid "Delete this quiz?"
 msgstr "Fshi këtë kuiz?"
+
+msgid "Delete this section and its content permanently? This cannot be undone — use \"Remove from book\" instead to hide it while keeping it, and its place, for later."
+msgstr "Të fshihet përgjithmonë kjo pjesë dhe përmbajtja e saj? Kjo nuk mund të zhbëhet — përdor \"Hiq nga libri\" për ta fshehur duke e ruajtur, bashkë me vendin e saj, për më vonë."
 
 msgid "Delete video"
 msgstr "Fshi videon"
@@ -5573,8 +5584,8 @@ msgstr "Zhvendos poshtë"
 msgid "Move up"
 msgstr "Zhvendos lart"
 
-#. placeholder {0}: String(position + 1)
-#. placeholder {1}: String(items.length)
+#. placeholder {0}: String(landed)
+#. placeholder {1}: String(next.length)
 msgid "Moved to position {0} of {1}"
 msgstr "U zhvendos në pozicionin {0} nga {1}"
 
@@ -6535,6 +6546,7 @@ msgstr "Titujt e faqes {0}"
 msgid "Page {0} of {1}"
 msgstr "Faqja {0} nga {1}"
 
+#. placeholder {0}: String(bookPosition)
 #. placeholder {0}: String(position)
 msgid "Page {0} of the book"
 msgstr "Faqja {0} e librit"
@@ -6945,6 +6957,9 @@ msgid "Position in the book"
 msgstr "Pozicioni në libër"
 #~ msgid "Position in the book"
 #~ msgstr "Pozicioni në libër"
+
+msgid "Position in the book, which differs from the source PDF page once pages are reordered"
+msgstr "Pozicioni në libër, që ndryshon nga faqja e PDF-it origjinal pasi faqet riorganizohen"
 
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
@@ -7497,6 +7512,9 @@ msgstr "Hiq skedarin"
 msgid "Remove font {0}"
 msgstr "Hiq fontin {0}"
 
+msgid "Remove from book"
+msgstr "Hiq nga libri"
+
 msgid "Remove from group"
 msgstr "Hiq nga grupi"
 
@@ -7542,6 +7560,13 @@ msgstr "hequr"
 
 msgid "Removed"
 msgstr "Hequr"
+
+msgid "Removed from the book"
+msgstr "Hequr nga libri"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Removed from the book · PDF page {0}"
+msgstr "Hequr nga libri · faqja {0} e PDF-it"
 
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Renderoni çdo seksion të shtypur në një faqe HTML interaktive. Zgjidhni një strategji paraqitjeje që përshtatet me librin dhe lini storyboard-in të kujdeset për pjesën tjetër."

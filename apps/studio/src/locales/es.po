@@ -935,6 +935,8 @@ msgstr "Añadir autor"
 
 msgid "Add book"
 msgstr "Añadir libro"
+msgid "Add back to book"
+msgstr "Añadir de nuevo al libro"
 
 msgid "Add Book"
 msgstr "Agregar libro"
@@ -1476,8 +1478,8 @@ msgstr "¿Estás seguro de que quieres eliminar el audio generado?"
 msgid "Are you sure you want to delete this image? This action cannot be undone."
 msgstr "¿Estás seguro de que quieres eliminar esta imagen? Esta acción no se puede deshacer."
 
-msgid "Are you sure you want to delete this section? This action cannot be undone."
-msgstr "¿Estás seguro de que quieres eliminar esta sección? Esta acción no se puede deshacer."
+#~ msgid "Are you sure you want to delete this section? This action cannot be undone."
+#~ msgstr "¿Estás seguro de que quieres eliminar esta sección? Esta acción no se puede deshacer."
 
 msgid "Are you sure you want to generate word-level timestamps for {langDisplay}?"
 msgstr "¿Estás seguro de que deseas generar marcas de tiempo a nivel de palabra para {langDisplay}?"
@@ -1814,10 +1816,10 @@ msgstr "Página {0} del libro · página {1} del PDF · {2}"
 
 #. placeholder {0}: String(position)
 #. placeholder {1}: String(page.pageNumber)
-msgid "Book page {0} · PDF page {1} (pruned)"
-msgstr "Página {0} del libro · página {1} del PDF (excluida)"
+#~ msgid "Book page {0} · PDF page {1} (pruned)"
+#~ msgstr "Página {0} del libro · página {1} del PDF (excluida)"
 
-#. placeholder {0}: String(position)
+#. placeholder {0}: String(position ?? "–")
 #. placeholder {1}: String(page.pageNumber)
 msgid "Book page {0} · quiz after PDF page {1}"
 msgstr "Página {0} del libro · cuestionario tras la página {1} del PDF"
@@ -1827,6 +1829,9 @@ msgstr "Páginas del libro. Desplázate horizontalmente para ver más."
 
 msgid "Book part"
 msgstr "Parte del libro"
+
+msgid "Book pg"
+msgstr "Pág. libro"
 
 msgid "Book preview"
 msgstr "Vista previa del libro"
@@ -2927,6 +2932,9 @@ msgstr "Eliminar carpeta"
 msgid "Delete option"
 msgstr "Eliminar opción"
 
+msgid "Delete permanently"
+msgstr "Eliminar permanentemente"
+
 msgid "Delete prompt file?"
 msgstr "¿Eliminar archivo de prompt?"
 
@@ -2947,6 +2955,9 @@ msgstr "Eliminar este cuestionario"
 
 msgid "Delete this quiz?"
 msgstr "¿Eliminar este cuestionario?"
+
+msgid "Delete this section and its content permanently? This cannot be undone — use \"Remove from book\" instead to hide it while keeping it, and its place, for later."
+msgstr "¿Eliminar permanentemente esta sección y su contenido? Esto no se puede deshacer: usa \"Quitar del libro\" para ocultarla conservándola, junto con su posición, para más adelante."
 
 msgid "Delete video"
 msgstr "Eliminar video"
@@ -5571,8 +5582,8 @@ msgstr "Mover hacia abajo"
 msgid "Move up"
 msgstr "Mover hacia arriba"
 
-#. placeholder {0}: String(position + 1)
-#. placeholder {1}: String(items.length)
+#. placeholder {0}: String(landed)
+#. placeholder {1}: String(next.length)
 msgid "Moved to position {0} of {1}"
 msgstr "Movido a la posición {0} de {1}"
 
@@ -6533,6 +6544,7 @@ msgstr "Subtítulos de la página {0}"
 msgid "Page {0} of {1}"
 msgstr "Página {0} de {1}"
 
+#. placeholder {0}: String(bookPosition)
 #. placeholder {0}: String(position)
 msgid "Page {0} of the book"
 msgstr "Página {0} del libro"
@@ -6943,6 +6955,9 @@ msgid "Position in the book"
 msgstr "Posición en el libro"
 #~ msgid "Position in the book"
 #~ msgstr "Posición en el libro"
+
+msgid "Position in the book, which differs from the source PDF page once pages are reordered"
+msgstr "Posición en el libro, que difiere de la página del PDF original cuando se reordenan las páginas"
 
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Prácticas de Alfabetización y Matemáticas"
@@ -7495,6 +7510,9 @@ msgstr "Eliminar archivo"
 msgid "Remove font {0}"
 msgstr "Eliminar fuente {0}"
 
+msgid "Remove from book"
+msgstr "Quitar del libro"
+
 msgid "Remove from group"
 msgstr "Quitar del grupo"
 
@@ -7540,6 +7558,13 @@ msgstr "eliminado"
 
 msgid "Removed"
 msgstr "Eliminado"
+
+msgid "Removed from the book"
+msgstr "Quitada del libro"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Removed from the book · PDF page {0}"
+msgstr "Quitada del libro · página {0} del PDF"
 
 msgid "Render each typed section into an interactive HTML page. Pick a layout strategy that matches the book and let storyboard handle the rest."
 msgstr "Renderiza cada sección escrita en una página HTML interactiva. Elige una estrategia de diseño que coincida con el libro y deja que el storyboard maneje el resto."

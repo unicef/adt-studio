@@ -3361,7 +3361,7 @@ export function StoryboardSectionDetail({
         <DialogHeader>
           <DialogTitle>{t`Delete section`}</DialogTitle>
           <DialogDescription>
-            {t`Are you sure you want to delete this section? This action cannot be undone.`}
+            {t`Delete this section and its content permanently? This cannot be undone — use "Remove from book" instead to hide it while keeping it, and its place, for later.`}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
