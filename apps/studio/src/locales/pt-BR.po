@@ -934,10 +934,11 @@ msgstr "Adicione pelo menos um idioma de saída para executar tradução."
 msgid "Add author"
 msgstr "Adicionar autor"
 
-msgid "Add book"
-msgstr "Adicionar livro"
 msgid "Add back to book"
 msgstr "Adicionar de volta ao livro"
+
+msgid "Add book"
+msgstr "Adicionar livro"
 
 msgid "Add Book"
 msgstr "Adicionar livro"
@@ -5580,14 +5581,14 @@ msgstr "Mais usado"
 msgid "Move down"
 msgstr "Mover para baixo"
 
-msgid "Move this page"
-msgstr "Mover esta página"
+#~ msgid "Move this page"
+#~ msgstr "Mover esta página"
 
-msgid "Move to end"
-msgstr "Mover para o fim"
+#~ msgid "Move to end"
+#~ msgstr "Mover para o fim"
 
-msgid "Move to start"
-msgstr "Mover para o início"
+#~ msgid "Move to start"
+#~ msgstr "Mover para o início"
 
 msgid "Move up"
 msgstr "Mover para cima"
@@ -6580,6 +6581,9 @@ msgstr "Página {pageNum}"
 msgid "page {shownStr}"
 msgstr "página {shownStr}"
 
+msgid "Page actions"
+msgstr "Ações da página"
+
 msgid "Page context"
 msgstr "Contexto da página"
 
@@ -6961,16 +6965,15 @@ msgstr "Posição"
 msgid "Position {0}, {1} → {2}×{3} pt"
 msgstr "Posição {0}, {1} → {2}×{3} pt"
 
-#. placeholder {0}: b.pr
-msgid "PR #{0}"
-msgstr "PR #{0}"
-msgid "Position in the book"
-msgstr "Posição no livro"
 #~ msgid "Position in the book"
 #~ msgstr "Posição no livro"
 
 msgid "Position in the book, which differs from the source PDF page once pages are reordered"
 msgstr "Posição no livro, que difere da página do PDF original quando as páginas são reordenadas"
+
+#. placeholder {0}: b.pr
+msgid "PR #{0}"
+msgstr "PR #{0}"
 
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"

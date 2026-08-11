@@ -5,6 +5,7 @@ import type { ContentNodeData, PageSectioningOutput, PageSectioningSection } fro
 import { collectLeafNodes, deleteNode, replaceNodeId, toggleNodePruned } from "@adt/types"
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { useReadingOrder } from "@/hooks/use-reading-order"
+import { useTogglePrune } from "@/hooks/use-toggle-prune"
 import {
   ChevronDown,
   ChevronRight,
@@ -38,7 +39,6 @@ interface SectioningOverviewProps {
 export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: SectioningOverviewProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const { apiKey, hasApiKey } = useApiKey()
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)
@@ -134,52 +134,10 @@ export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: Se
     onSuccess: (_data, vars) => invalidatePages(vars.pageId),
   })
 
-  const togglePruneMutation = useMutation({
-    mutationFn: ({ pageId, sectionIndex }: { pageId: string; sectionIndex: number }) => {
-      const page = pageDetails.find((p) => p.pageId === pageId)
-      if (!page?.sectioningTree) throw new Error("No sectioning data")
-      const updated: PageSectioningOutput = {
-        ...page.sectioningTree,
-        sections: page.sectioningTree.sections.map((s, i) =>
-          i === sectionIndex ? { ...s, isPruned: !s.isPruned } : s
-        ),
-      }
-      // Pruning only filters the section out at read time; its HTML stays in
-      // web-rendering, so the toggle leaves the storyboard current. Unpruning a
-      // section that was pruned when the storyboard ran is the case that needs
-      // work: it was skipped then, so it has no HTML and the LLM has to produce
-      // it. Render just that section rather than marking the whole stage stale —
-      // this is the normal way content gets brought in, one section at a time.
-      const wasPruned = page.sectioningTree.sections[sectionIndex]?.isPruned ?? false
-      const hasHtml = (page.rendering?.sections ?? []).some(
-        (s) => s.sectionIndex === sectionIndex && !!s.html
-      )
-      const needsRerender = wasPruned && !hasHtml
-      return api
-        .saveStoryboard(bookLabel, pageId, {
-          sectioning: updated,
-          // Without a key we cannot fill the HTML, so the stage must report it.
-          renderingInSync: !needsRerender || hasApiKey,
-        })
-        .then(async (result) => {
-          // Sectioning is saved with the section unpruned, so the re-render will
-          // actually emit it — `web-rendering` skips pruned sections. The task
-          // marks the storyboard stale itself if it fails; a rejected submission
-          // never reaches the runner, so take the completion mark back here.
-          if (!needsRerender || !hasApiKey) return result
-          try {
-            await api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex)
-          } catch (err) {
-            await api
-              .saveStoryboard(bookLabel, pageId, { sectioning: updated, renderingInSync: false })
-              .catch(() => {})
-            throw err
-          }
-          return result
-        })
-    },
-    onSuccess: (_data, vars) => invalidatePages(vars.pageId),
-  })
+  // Shared with the storyboard sidebar so both do the same thing, including the
+  // targeted re-render needed when a section that was out at render time is put
+  // back and therefore has no HTML.
+  const togglePruneMutation = useTogglePrune(bookLabel)
 
   const isMutating = storyboardRunning || mergeMutation.isPending || mergeCrossPageMutation.isPending || cloneMutation.isPending || deleteMutation.isPending || togglePruneMutation.isPending
 
