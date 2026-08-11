@@ -72,32 +72,12 @@ type Provider = {
 
 const RIGHT_W = 360
 
-/** Selected-row treatment under review — swap to compare: 1 ring+tint, 2 elevated, 3 soft fill. */
-const SELECTED_STYLE: 1 | 2 | 3 = 1
-
 function firstEnabledMethod(p: Provider): string {
   return (p.methods.find((m) => m.enabled) ?? p.methods[0]).id
 }
 
-/** Inline style + radio color for the selected provider row, per SELECTED_STYLE. */
+/** Selected provider row: brand ring + soft brand tint. */
 function selectedRowStyle(accent: string): { style: CSSProperties; radio: string } {
-  if (SELECTED_STYLE === 2) {
-    return {
-      style: {
-        borderColor: "rgba(0,0,0,0.08)",
-        backgroundColor: "#ffffff",
-        boxShadow: `0 0 0 2.5px ${accent}2e, 0 12px 26px -12px ${accent}80`,
-      },
-      radio: accent,
-    }
-  }
-  if (SELECTED_STYLE === 3) {
-    return {
-      style: { borderColor: "transparent", backgroundColor: "#f3f5fb" },
-      radio: "#3b82f7",
-    }
-  }
-  // 1 — brand ring + soft brand tint
   return {
     style: { borderColor: accent, backgroundColor: `${accent}12` },
     radio: accent,

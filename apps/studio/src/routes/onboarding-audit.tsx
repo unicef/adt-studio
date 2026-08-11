@@ -1,12 +1,16 @@
 /* eslint-disable lingui/no-unlocalized-strings -- internal design-audit route, not shipped UI copy */
 import { useState } from "react"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
 import { RotateCcw } from "lucide-react"
 import { OnboardingCardBody } from "@/components/onboarding/OnboardingCardBody"
 import { ONBOARDING_STEPS } from "@/components/onboarding/steps"
 import { usePageTitle } from "@/hooks/use-page-title"
 
 export const Route = createFileRoute("/onboarding-audit")({
+  // Dev-only design gallery — never reachable in a production build.
+  beforeLoad: () => {
+    if (!import.meta.env.DEV) throw redirect({ to: "/" })
+  },
   component: OnboardingAuditPage,
 })
 
