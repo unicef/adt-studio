@@ -5,12 +5,13 @@ import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react"
 import { useLingui as useLinguiMacro } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
-import { AlertTriangle, ArrowLeftRight, CheckCircle2, EyeOff, FileText, HelpCircle, Loader2, Monitor, Puzzle } from "lucide-react"
+import { AlertTriangle, ArrowDown, ArrowLeftRight, ArrowUp, CheckCircle2, ChevronsDown, ChevronsUp, EyeOff, FileText, GripVertical, HelpCircle, Loader2, Monitor, MoreHorizontal, Puzzle } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { getSectionScreenshotUrl, type PageSummaryItem, type PageSummarySection } from "@/api/client"
+import { ActionMenu } from "@/components/ui/action-menu"
 import { STAGES } from "../stage-config"
 import { useReadingOrder, useSaveReadingOrder, moveReadingOrderItem } from "@/hooks/use-reading-order"
 import { announceToScreenReader } from "@/lib/aria-live"
@@ -45,6 +46,15 @@ export function StoryboardIndex({
   const { t } = useLinguiMacro()
   const [dragId, setDragId] = useState<string | null>(null)
   const [dropTarget, setDropTarget] = useState<{ index: number; after: boolean } | null>(null)
+  /**
+   * Dragging is off until asked for. The page list is primarily something you
+   * click through, and a drag that starts by accident silently rewrites the
+   * book's order — so rearranging by mouse is a mode you enter deliberately.
+   * Each row's menu can always move it, with no mode to remember.
+   */
+  const [dragEnabled, setDragEnabled] = useState(false)
+  const canReorder = !stageRunning
+  const dragActive = dragEnabled && canReorder
 
   /**
    * HTML5 drag does not scroll an `overflow-y-auto` container, so a drag can't
@@ -134,6 +144,13 @@ export function StoryboardIndex({
     [items, moveTo],
   )
 
+  const moveToEdge = useCallback(
+    (id: string, edge: "top" | "bottom") => {
+      moveTo(id, edge === "top" ? 0 : items.length)
+    },
+    [items.length, moveTo],
+  )
+
   const selectedItemIndex = useMemo(() => {
     if (!selectedPageId || sectionIndex == null) return -1
     return items.findIndex(
@@ -194,7 +211,36 @@ export function StoryboardIndex({
   }
 
   return (
-    <div ref={parentRef} className="flex-1 overflow-y-auto">
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="shrink-0 flex items-center justify-between gap-2 px-2 py-1.5 border-b">
+        <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+          <Trans>{String(items.length)} pages</Trans>
+        </span>
+        <button
+          type="button"
+          disabled={!canReorder}
+          aria-pressed={dragActive}
+          onClick={() => setDragEnabled((on) => !on)}
+          title={
+            canReorder
+              ? dragActive
+                ? t`Stop rearranging. Each page's menu can still move it.`
+                : t`Rearrange pages by dragging. Each page's menu can move it without this.`
+              : t`Not available while the storyboard is running`
+          }
+          className={cn(
+            "inline-flex items-center gap-1 px-1.5 h-5 rounded text-[10px] font-medium transition-colors",
+            !canReorder && "opacity-40 cursor-not-allowed",
+            dragActive
+              ? "bg-violet-600 text-white"
+              : "bg-muted text-muted-foreground hover:bg-muted/80",
+          )}
+        >
+          <GripVertical className="h-3 w-3" />
+          <Trans>Rearrange</Trans>
+        </button>
+      </div>
+      <div ref={parentRef} className="flex-1 overflow-y-auto">
       <div
         style={{
           height: virtualizer.getTotalSize(),
@@ -225,9 +271,9 @@ export function StoryboardIndex({
               // slivers can't be reused. Each row is its own drop target and
               // decides "before" or "after" from the pointer's position within
               // it, drawn as a border on the matching edge.
-              draggable={!stageRunning}
+              draggable={dragActive}
               onDragStart={(e) => {
-                if (stageRunning) {
+                if (!dragActive) {
                   e.preventDefault()
                   return
                 }
@@ -243,6 +289,7 @@ export function StoryboardIndex({
                 setDropTarget(null)
               }}
               onDragOver={(e) => {
+                if (!dragActive) return
                 if (!e.dataTransfer.types.includes(READING_ORDER_DRAG_TYPE)) return
                 e.preventDefault()
                 e.dataTransfer.dropEffect = "move"
@@ -252,6 +299,7 @@ export function StoryboardIndex({
                 autoScroll(e.clientY)
               }}
               onDrop={(e) => {
+                if (!dragActive) return
                 if (!e.dataTransfer.types.includes(READING_ORDER_DRAG_TYPE)) return
                 e.preventDefault()
                 const sourceId = e.dataTransfer.getData(READING_ORDER_DRAG_TYPE)
@@ -262,7 +310,8 @@ export function StoryboardIndex({
                 if (sourceId) moveTo(sourceId, virtualRow.index + (after ? 1 : 0))
               }}
               onKeyDown={(e) => {
-                if (!e.altKey || stageRunning) return
+                // Alt-modified, so it cannot fire from ordinary list navigation.
+                if (!e.altKey || !canReorder) return
                 if (e.key === "ArrowUp") {
                   e.preventDefault()
                   moveBy(itemId, -1)
@@ -272,7 +321,8 @@ export function StoryboardIndex({
                 }
               }}
               className={cn(
-                "border-y border-transparent",
+                "group relative border-y border-transparent",
+                dragActive && "cursor-grab",
                 isDragging && "opacity-40",
                 dropTarget?.index === virtualRow.index &&
                   !isDragging &&
@@ -310,11 +360,98 @@ export function StoryboardIndex({
                   onSelect={() => handleQuizClick(item.quizId)}
                 />
               )}
+              {/* Sits over the row rather than inside it: the row is itself a
+                  button, and a button cannot contain another one. */}
+              <div
+                className="absolute right-1 top-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100"
+                // Keep menu clicks from selecting the row underneath, and from
+                // being read as the start of a drag.
+                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) => e.stopPropagation()}
+                draggable={false}
+                onDragStart={(e) => e.preventDefault()}
+              >
+                <RowActionsMenu
+                  canMoveUp={virtualRow.index > 0}
+                  canMoveDown={virtualRow.index < items.length - 1}
+                  disabled={!canReorder}
+                  onMoveUp={() => moveBy(itemId, -1)}
+                  onMoveDown={() => moveBy(itemId, 1)}
+                  onMoveToTop={() => moveToEdge(itemId, "top")}
+                  onMoveToBottom={() => moveToEdge(itemId, "bottom")}
+                />
+              </div>
             </div>
           )
         })}
       </div>
+      </div>
     </div>
+  )
+}
+
+/** Per-row reorder menu — the way to move a page without entering drag mode. */
+function RowActionsMenu({
+  canMoveUp,
+  canMoveDown,
+  disabled,
+  onMoveUp,
+  onMoveDown,
+  onMoveToTop,
+  onMoveToBottom,
+}: {
+  canMoveUp: boolean
+  canMoveDown: boolean
+  disabled: boolean
+  onMoveUp: () => void
+  onMoveDown: () => void
+  onMoveToTop: () => void
+  onMoveToBottom: () => void
+}) {
+  const { t } = useLinguiMacro()
+  return (
+    <ActionMenu
+      trigger={<MoreHorizontal className="h-3.5 w-3.5" />}
+      triggerClassName="p-0.5 rounded bg-background/90 ring-1 ring-border hover:bg-accent transition-colors cursor-pointer"
+      triggerDisabled={disabled}
+      triggerAriaLabel={t`Move this page`}
+      menuClassName="min-w-[170px]"
+      align="right"
+      note={
+        disabled ? (
+          <p className="px-3 py-1.5 text-[10px] text-muted-foreground italic">
+            {t`Not available while the storyboard is running`}
+          </p>
+        ) : undefined
+      }
+      items={[
+        {
+          icon: ArrowUp,
+          label: t`Move up`,
+          onClick: onMoveUp,
+          disabled: !canMoveUp,
+        },
+        {
+          icon: ArrowDown,
+          label: t`Move down`,
+          onClick: onMoveDown,
+          disabled: !canMoveDown,
+        },
+        { separator: true },
+        {
+          icon: ChevronsUp,
+          label: t`Move to start`,
+          onClick: onMoveToTop,
+          disabled: !canMoveUp,
+        },
+        {
+          icon: ChevronsDown,
+          label: t`Move to end`,
+          onClick: onMoveToBottom,
+          disabled: !canMoveDown,
+        },
+      ]}
+    />
   )
 }
 

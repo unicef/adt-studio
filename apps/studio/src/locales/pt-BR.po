@@ -240,6 +240,7 @@ msgid "{0} of {1} pages had no extracted text"
 msgstr "{0} de {1} páginas não têm texto extraído"
 
 #. placeholder {0}: String(displayPages.length)
+#. placeholder {0}: String(items.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
 msgstr "{0} páginas"
@@ -5579,6 +5580,15 @@ msgstr "Mais usado"
 msgid "Move down"
 msgstr "Mover para baixo"
 
+msgid "Move this page"
+msgstr "Mover esta página"
+
+msgid "Move to end"
+msgstr "Mover para o fim"
+
+msgid "Move to start"
+msgstr "Mover para o início"
+
 msgid "Move up"
 msgstr "Mover para cima"
 
@@ -6103,6 +6113,9 @@ msgstr "Normalização"
 
 msgid "Normalized"
 msgstr "Normalizado"
+
+msgid "Not available while the storyboard is running"
+msgstr "Indisponível enquanto o storyboard está em execução"
 
 msgid "Not compatible with Fixed Layout"
 msgstr "Não compatível com Layout Fixo"
@@ -7376,6 +7389,12 @@ msgstr "Livros reais processados com este predefinido — antes e depois."
 
 msgid "Realistic / Photo"
 msgstr "Realista / Foto"
+
+msgid "Rearrange"
+msgstr "Reorganizar"
+
+msgid "Rearrange pages by dragging. Each page's menu can move it without this."
+msgstr "Reorganize as páginas arrastando-as. O menu de cada página também permite movê-la sem isso."
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Reorganizando os átomos de HTML..."
@@ -8887,6 +8906,9 @@ msgstr "Pré-visualização da atividade passo a passo"
 
 msgid "Steps"
 msgstr "Etapas"
+
+msgid "Stop rearranging. Each page's menu can still move it."
+msgstr "Parar de reorganizar. O menu de cada página continua permitindo movê-la."
 
 msgid "Stop step"
 msgstr "Parar etapa"

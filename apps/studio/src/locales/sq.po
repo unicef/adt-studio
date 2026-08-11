@@ -242,6 +242,7 @@ msgid "{0} of {1} pages had no extracted text"
 msgstr "{0} nga {1} faqe nuk kanë tekst të nxjerrë"
 
 #. placeholder {0}: String(displayPages.length)
+#. placeholder {0}: String(items.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
 msgstr "{0} faqe"
@@ -5581,6 +5582,15 @@ msgstr "Më i përdorur"
 msgid "Move down"
 msgstr "Zhvendos poshtë"
 
+msgid "Move this page"
+msgstr "Zhvendos këtë faqe"
+
+msgid "Move to end"
+msgstr "Zhvendos në fund"
+
+msgid "Move to start"
+msgstr "Zhvendos në fillim"
+
 msgid "Move up"
 msgstr "Zhvendos lart"
 
@@ -6105,6 +6115,9 @@ msgstr "Normalizimi"
 
 msgid "Normalized"
 msgstr "Normalizuar"
+
+msgid "Not available while the storyboard is running"
+msgstr "I padisponueshëm ndërsa storyboard-i është në ekzekutim"
 
 msgid "Not compatible with Fixed Layout"
 msgstr "I papajtueshëm me Paraqitjen e fiksuar"
@@ -7378,6 +7391,12 @@ msgstr "Libra të vërtetë të procesuar me këtë paracaktim — para dhe pas.
 
 msgid "Realistic / Photo"
 msgstr "Realist / Foto"
+
+msgid "Rearrange"
+msgstr "Riorganizo"
+
+msgid "Rearrange pages by dragging. Each page's menu can move it without this."
+msgstr "Riorganizo faqet duke i tërhequr. Menyja e secilës faqe mund ta zhvendosë edhe pa këtë."
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Duke riorganizuar atomet e HTML-it..."
@@ -8889,6 +8908,9 @@ msgstr "Pamja paraprake e aktivitetit hap pas hapi"
 
 msgid "Steps"
 msgstr "Hapat"
+
+msgid "Stop rearranging. Each page's menu can still move it."
+msgstr "Ndalo riorganizimin. Menyja e secilës faqe mund ta zhvendosë përsëri."
 
 msgid "Stop step"
 msgstr "Ndalo hapin"
