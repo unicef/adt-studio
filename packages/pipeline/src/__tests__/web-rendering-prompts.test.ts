@@ -200,7 +200,10 @@ describe("web rendering reading-order prompts", () => {
     const prompt = messages.map(messageText).join("\n")
 
     expect(prompt).toContain("page number flush right")
-    expect(prompt).toContain("dotted leader filling the space between")
+    expect(prompt).toContain("flexible dotted leader filling ALL remaining space")
+    expect(prompt).toContain("every consecutive TOC page")
+    expect(prompt).toContain("continuation pages without a repeated heading")
+    expect(prompt).toContain("border-b-2 border-dotted")
     expect(prompt).toContain("Never put the leader after the page number")
     expect(prompt).toContain('text id=toc_1 "Digestive system1"')
   })
@@ -226,6 +229,8 @@ describe("web rendering reading-order prompts", () => {
 
     expect(prompt).toContain("TABLE OF CONTENTS REVIEW")
     expect(prompt).toContain("page number at the far right")
+    expect(prompt).toContain("including continuation pages")
+    expect(prompt).toContain("leader is missing or short")
     expect(prompt).toContain("Do not remove a correct dotted-leader row")
   })
 
