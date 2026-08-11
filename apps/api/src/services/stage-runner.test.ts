@@ -2141,6 +2141,93 @@ speech:
       expect.objectContaining({ voiceSlot: "secondary" })
     )
   })
+
+  it("refreshes the voice label of a reused manual-audio entry without regenerating", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+`,
+    )
+    // Primary maps to an OpenAI voice carrying a freshly renamed label.
+    fs.mkdirSync(path.join(tmpDir, "config"), { recursive: true })
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `openai:
+  en:
+    primary:
+      voice: alloy
+      label: Renamed Narrator
+`,
+    )
+    seedTextAndSpeechBook(booksDir, "speech-manual-reuse-label")
+
+    // A previously uploaded manual recording carrying a now-stale label, plus
+    // its on-disk audio so the manual reuse guard (file existence) holds.
+    const label = "speech-manual-reuse-label"
+    const audioDir = path.join(booksDir, label, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), Buffer.from("manual-audio"))
+    const seedStorage = createBookStorage(label, booksDir)
+    try {
+      seedStorage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: true,
+            provider: "manual",
+            voiceSlot: "primary",
+            voiceLabel: "Stale Label",
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      seedStorage.close()
+    }
+
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    // The manual recording is reused (never regenerated) but its persisted
+    // label is refreshed from the currently resolved primary profile.
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const storage = createBookStorage(label, booksDir)
+    try {
+      const ttsOutput = storage.getLatestNodeData("tts", "en")?.data as {
+        entries: Record<string, { fileName: string; provider?: string; voiceLabel?: string }>
+      }
+      const entry = Object.values(ttsOutput.entries).find(
+        (e) => e.fileName === "pg001_t001.mp3",
+      )
+      expect(entry?.provider).toBe("manual")
+      expect(entry?.voiceLabel).toBe("Renamed Narrator")
+    } finally {
+      storage.close()
+    }
+  })
 })
 
 describe("processWithConcurrency launch ramp", () => {

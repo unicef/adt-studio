@@ -167,19 +167,6 @@ export function resolveVoiceForSlot(
 }
 
 /**
- * Whether a secondary voice is configured for a given provider/language —
- * i.e. whether `resolveVoiceForSlot(..., "secondary", ...)` would resolve.
- * Used to decide which slots a language generates audio for.
- */
-export function isSecondaryVoiceConfigured(
-  provider: string,
-  languageCode: string,
-  voiceMaps: VoiceMaps
-): boolean {
-  return resolveVoiceForSlot(provider, languageCode, voiceMaps, "secondary") !== null
-}
-
-/**
  * Resolve the voice name for a given provider and language code.
  * Resolution: exact match → base language → default.
  * Always resolves the "primary" slot — see {@link resolveVoiceForSlot} for
@@ -302,7 +289,7 @@ export function resolveSpeechVoice(
         configured.model?.trim() ||
         resolveSpeechModel(configured.provider, providerConfigs, defaultModel),
       voice: configured.voice,
-      label: configured.label,
+      label: resolvedVoiceLabel(configured.provider, configured.voice, configured.label),
     }
   }
 

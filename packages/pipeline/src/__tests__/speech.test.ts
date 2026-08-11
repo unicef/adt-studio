@@ -3,13 +3,12 @@ import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
 import url from "node:url"
-import { ELEVENLABS_SHIPPED_VOICE_NAMES } from "@adt/types"
+import { DEFAULT_ELEVENLABS_TTS_MODEL_ID, ELEVENLABS_SHIPPED_VOICE_NAMES } from "@adt/types"
 import {
   stripEmojis,
   isSpeakableText,
   resolveVoice,
   resolveVoiceForSlot,
-  isSecondaryVoiceConfigured,
   resolveInstructions,
   resolveSpeechModel,
   resolveSpeechVoice,
@@ -166,7 +165,7 @@ describe("resolveVoice", () => {
 })
 
 // ---------------------------------------------------------------------------
-// resolveVoiceForSlot / isSecondaryVoiceConfigured
+// resolveVoiceForSlot
 // ---------------------------------------------------------------------------
 
 describe("resolveVoiceForSlot", () => {
@@ -244,6 +243,45 @@ describe("resolveVoiceForSlot", () => {
         ),
       ).toBeNull()
     })
+
+    it("names an unlabeled secondary ElevenLabs voice from the shipped list", () => {
+      expect(
+        resolveSpeechVoice(
+          "es-UY",
+          "secondary",
+          {
+            secondary_voices: {
+              "es-UY": { provider: "elevenlabs", voice: "QK4xDwo9ESPHA4JNUpX3" },
+            },
+          },
+          voices,
+        ),
+      ).toEqual({
+        provider: "elevenlabs",
+        model: DEFAULT_ELEVENLABS_TTS_MODEL_ID,
+        voice: "QK4xDwo9ESPHA4JNUpX3",
+        label: "Tomás",
+      })
+    })
+
+    it("prefers an explicit secondary label over the shipped name", () => {
+      expect(
+        resolveSpeechVoice(
+          "es-UY",
+          "secondary",
+          {
+            secondary_voices: {
+              "es-UY": {
+                provider: "elevenlabs",
+                voice: "QK4xDwo9ESPHA4JNUpX3",
+                label: "Narrador dos",
+              },
+            },
+          },
+          voices,
+        )?.label,
+      ).toBe("Narrador dos")
+    })
   })
 
   it("resolves the primary slot from a canonical slot-object entry", () => {
@@ -288,28 +326,6 @@ describe("resolveVoiceForSlot", () => {
       voice: "QK4xDwo9ESPHA4JNUpX3",
       label: "Tomás",
     })
-  })
-})
-
-describe("isSecondaryVoiceConfigured", () => {
-  const voiceMaps: VoiceMaps = {
-    openai: {
-      default: "alloy",
-      en: { primary: { voice: "alloy" }, secondary: { voice: "shimmer" } },
-      es: "coral",
-    },
-  }
-
-  it("is true when the resolved entry has a secondary voice", () => {
-    expect(isSecondaryVoiceConfigured("openai", "en", voiceMaps)).toBe(true)
-  })
-
-  it("is false for a legacy scalar entry", () => {
-    expect(isSecondaryVoiceConfigured("openai", "es", voiceMaps)).toBe(false)
-  })
-
-  it("is false when nothing is configured for the language", () => {
-    expect(isSecondaryVoiceConfigured("openai", "fr", voiceMaps)).toBe(false)
   })
 })
 

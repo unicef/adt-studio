@@ -222,7 +222,6 @@ export {
 export {
   resolveVoice,
   resolveVoiceForSlot,
-  isSecondaryVoiceConfigured,
   resolveInstructions,
   resolveProviderForLanguage,
   resolveSpeechModel,
