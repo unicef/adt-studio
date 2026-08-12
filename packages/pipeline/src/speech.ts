@@ -59,6 +59,13 @@ export function stripEmojis(text: string): string {
 }
 
 /**
+ * `skippedReason` for an entry whose text has nothing speakable in it, so
+ * `generateSpeechFile` returned null without calling a provider. Shared so both
+ * execution paths write the same value and the log stays filterable.
+ */
+export const NO_SPEAKABLE_TEXT_REASON = "no-speakable-text"
+
+/**
  * Build the common debug-log record for a TTS request. Keeping this next to
  * the generation helpers prevents the API runner, the one-item route, and the
  * CLI/DAG executor from drifting in their representation of the same call.
@@ -75,6 +82,13 @@ export function buildTtsLogEntry(options: {
   cached: boolean
   attempt: number
   error?: string
+  /**
+   * Set when the entry produced no audio on purpose — `generateSpeechFile`
+   * returns null for text with nothing speakable in it. Marks the row so it
+   * isn't read as a synthesis that happened, and so the stats aggregation can
+   * leave it out of call and cache counts.
+   */
+  skippedReason?: string
   params?: Record<string, unknown>
 }): LlmLogEntry {
   return {
@@ -90,6 +104,7 @@ export function buildTtsLogEntry(options: {
     attempt: Math.max(options.attempt, 1),
     durationMs: options.durationMs,
     ...(options.error ? { error: options.error } : {}),
+    ...(options.skippedReason ? { skippedReason: options.skippedReason } : {}),
     ...(options.params ? { params: options.params } : {}),
     messages: [{
       role: "user",

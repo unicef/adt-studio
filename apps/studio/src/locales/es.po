@@ -9437,6 +9437,9 @@ msgstr "Este libro se renderiza con diseño fijo, por lo que mantiene las fuente
 msgid "This connection isn't available yet."
 msgstr "Esta conexión aún no está disponible."
 
+msgid "This entry has no speakable text, so no audio was generated and no request was sent to the provider."
+msgstr "Esta entrada no tiene texto pronunciable, por lo que no se generó audio ni se envió ninguna solicitud al proveedor."
+
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Esta función no es compatible con Diseño Fijo. Si continúas, podrías obtener resultados no deseados."
 

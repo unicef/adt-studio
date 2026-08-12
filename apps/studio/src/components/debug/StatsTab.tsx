@@ -142,6 +142,11 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
                   <th className="py-2.5 px-4 font-medium text-right">
                     <Trans>Avg Duration</Trans>
                   </th>
+                  {/* Items the step deliberately produced nothing for. Shown so
+                      a step whose only rows are skipped isn't just "0 calls". */}
+                  <th className="py-2.5 px-4 font-medium text-right">
+                    <Trans>No audio</Trans>
+                  </th>
                   <th className="py-2.5 px-4 font-medium text-right">
                     <Trans>Errors</Trans>
                   </th>
@@ -169,6 +174,9 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
                     </td>
                     <td className="py-2.5 px-4 text-right tabular-nums">
                       {formatDuration(s.avgDurationMs)}
+                    </td>
+                    <td className="py-2.5 px-4 text-right tabular-nums text-muted-foreground">
+                      {s.skipped > 0 ? s.skipped : "—"}
                     </td>
                     <td className="py-2.5 px-4 text-right tabular-nums">
                       {s.errorCount > 0 ? (

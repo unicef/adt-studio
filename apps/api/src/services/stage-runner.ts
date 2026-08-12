@@ -76,6 +76,7 @@ import {
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,
   buildTtsLogEntry,
+  NO_SPEAKABLE_TEXT_REASON,
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
   ELEVENLABS_TTS_MAX_CONCURRENCY,
@@ -3143,7 +3144,7 @@ async function runSpeechStep(
           // Record the page synthesis in the LLM log (transparency + cost
           // tracking), mirroring the per-entry path so batched Gemini calls
           // aren't invisible.
-          const emitPageLog = (o: { success: boolean; cacheHit: boolean; attempt: number; error?: string }) => {
+          const emitPageLog = (o: { success: boolean; cacheHit: boolean; attempt: number; error?: string; skippedReason?: string }) => {
             const logEntry = buildTtsLogEntry({
               textId: group.pageKey,
               // The slot rides along in `language` so a dual-voice book's two
@@ -3158,6 +3159,7 @@ async function runSpeechStep(
               cached: o.cacheHit,
               attempt: o.attempt,
               error: o.error,
+              ...(o.skippedReason ? { skippedReason: o.skippedReason } : {}),
             })
             storage.appendLlmLog(logEntry)
             progress.emit({ type: "llm-log", step: "tts", itemId: group.pageKey, promptName: logEntry.promptName, modelId: logEntry.modelId, cacheHit: o.cacheHit, durationMs: logEntry.durationMs })
@@ -3190,7 +3192,15 @@ async function runSpeechStep(
               // limiter for it (mirrors the per-entry `!entry.cached` guard).
               const pageCached = entries.length > 0 && entries.every((e) => e.cached)
               if (entries.length > 0 && !pageCached) geminiTtsRateLimiter?.reward()
-              emitPageLog({ success: true, cacheHit: pageCached, attempt })
+              emitPageLog({
+                success: true,
+                cacheHit: pageCached,
+                attempt,
+                // No entries back means every text in the group was
+                // unspeakable, so generatePageSpeechFiles returned early
+                // without calling the provider (speech.ts, `usable.length === 0`).
+                ...(entries.length === 0 ? { skippedReason: NO_SPEAKABLE_TEXT_REASON } : {}),
+              })
               break
             } catch (err) {
               if (isCancellation(err, [options.signal])) {
@@ -3416,6 +3426,9 @@ async function runSpeechStep(
           cached,
           attempt: attemptCount,
           params: logParams,
+          // No entry means generateSpeechFile found nothing speakable (e.g. an
+          // "—" entry) and never called the provider.
+          ...(entry ? {} : { skippedReason: NO_SPEAKABLE_TEXT_REASON }),
         })
         storage.appendLlmLog(logEntry)
         progress.emit({

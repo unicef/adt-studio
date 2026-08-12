@@ -1369,6 +1369,48 @@ describe("buildTtsLogEntry", () => {
       text: `[en] voice=en-US-JennyNeural\n${text}`,
     })
   })
+
+  it("marks an entry that produced no audio so it isn't read as a synthesis", () => {
+    const entry = buildTtsLogEntry({
+      textId: "pg001_t002",
+      language: "en",
+      voice: "en-US-JennyNeural",
+      model: "azure-tts",
+      provider: "azure",
+      text: "—",
+      durationMs: 0,
+      success: true,
+      cached: false,
+      attempt: 1,
+      skippedReason: "no-speakable-text",
+    })
+
+    // Still a success (nothing went wrong) but distinguishable from an entry
+    // that actually reached the provider.
+    expect(entry).toMatchObject({
+      success: true,
+      errorCount: 0,
+      cacheHit: false,
+      skippedReason: "no-speakable-text",
+    })
+  })
+
+  it("omits skippedReason for an entry that really was synthesized", () => {
+    const entry = buildTtsLogEntry({
+      textId: "pg001_t001",
+      language: "en",
+      voice: "en-US-JennyNeural",
+      model: "azure-tts",
+      provider: "azure",
+      text: "Hello world",
+      durationMs: 250,
+      success: true,
+      cached: false,
+      attempt: 1,
+    })
+
+    expect(entry).not.toHaveProperty("skippedReason")
+  })
 })
 
 // ---------------------------------------------------------------------------
