@@ -54,6 +54,7 @@ import { flattenEasyReadEntries } from "../easy-read.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
 import { getRenderSectioning } from "../render-sectioning.js"
 import { resolveReadingOrder, toPageEntry, type PageEntry } from "../reading-order.js"
+import { sortTocEntriesByPageList } from "./toc-order.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
 import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
 import { buildTailwindCss } from "../tailwind.js"
@@ -530,22 +531,11 @@ export async function packageAdtWeb(
   // Table of contents — prefer LLM-generated TOC, fallback to heading-based
   if (llmToc && llmToc.entries.length > 0) {
     // Map LLM entries to the flat format expected by the runtime, resolving
-    // hrefs from the page list (the first page is always index.html)
+    // hrefs from the page list. Every page is id-named; `index.html` is the
+    // entry redirect and is not in the list.
     const hrefMap = new Map(pageList.map((p) => [p.section_id, p.href]))
-    const tocJson = llmToc.entries
-      // The LLM returns entries in its own order, which is independent of the
-      // reading order. Downstream consumers require document order: WebPub's
-      // nav nests a flat list by `level` as it walks it, and EPUB/PNLD NCX
-      // `playOrder` must increase monotonically. Sort by resolved position, and
-      // keep entries whose section is not in the reading order at the end
-      // rather than silently dropping them.
-      .map((entry, index) => ({ entry, index }))
-      .sort((a, b) => {
-        const posA = readingOrder.positionById.get(a.entry.sectionId) ?? Infinity
-        const posB = readingOrder.positionById.get(b.entry.sectionId) ?? Infinity
-        return posA === posB ? a.index - b.index : posA - posB
-      })
-      .map(({ entry: e }) => ({
+    const tocJson = sortTocEntriesByPageList(llmToc.entries, pageList)
+      .map((e) => ({
         section_id: e.sectionId,
         href: hrefMap.get(e.sectionId) ?? e.href,
         title: e.title,
