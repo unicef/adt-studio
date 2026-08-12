@@ -3997,6 +3997,9 @@ msgstr "Every reader opens the same book, with the features they need on tap."
 msgid "Every section has a video"
 msgstr "Every section has a video"
 
+msgid "Every section on this page is excluded from the render, so the page never reaches the reader. Bring it back from the sectioning step."
+msgstr "Every section on this page is excluded from the render, so the page never reaches the reader. Bring it back from the sectioning step."
+
 msgid "Every Storyboard section has a sign-language video assigned. You can switch to Covered or All to review or replace them."
 msgstr "Every Storyboard section has a sign-language video assigned. You can switch to Covered or All to review or replace them."
 
@@ -5657,6 +5660,9 @@ msgstr "Loading images..."
 msgid "Loading logs..."
 msgstr "Loading logs..."
 
+msgid "Loading page preview…"
+msgstr "Loading page preview…"
+
 msgid "Loading page-level findings"
 msgstr "Loading page-level findings"
 
@@ -6723,6 +6729,9 @@ msgstr "No text extracted"
 msgid "No text on this page."
 msgstr "No text on this page."
 
+msgid "No text or images were extracted from this page, so there is nothing to section. Blank and decorative pages stay out of the book."
+msgstr "No text or images were extracted from this page, so there is nothing to section. Blank and decorative pages stay out of the book."
+
 msgid "No translations for this page"
 msgstr "No translations for this page"
 
@@ -7026,6 +7035,9 @@ msgstr "Open Preview"
 msgid "Open pull request {0}"
 msgstr "Open pull request {0}"
 
+msgid "Open sectioning"
+msgstr "Open sectioning"
+
 msgid "Open settings"
 msgstr "Open settings"
 
@@ -7299,9 +7311,29 @@ msgstr "Page {0} — Section {1}"
 msgid "Page {0} · section {1} · {2}"
 msgstr "Page {0} · section {1} · {2}"
 
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} (discarded)"
+msgstr "Page {0} (discarded)"
+
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
 msgstr "Page {0} captions"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} has no sections yet"
+msgstr "Page {0} has no sections yet"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is blank"
+msgstr "Page {0} is blank"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is discarded"
+msgstr "Page {0} is discarded"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is in the queue. Its sections show up here as soon as the step reaches it."
+msgstr "Page {0} is in the queue. Its sections show up here as soon as the step reaches it."
 
 #. placeholder {0}: current.pageNumber
 #. placeholder {0}: zoom + 1
@@ -8603,6 +8635,9 @@ msgstr "Review pruned sections"
 msgid "Review queue · {0}"
 msgstr "Review queue · {0}"
 
+msgid "Review sectioning"
+msgstr "Review sectioning"
+
 msgid "Review spreads"
 msgstr "Review spreads"
 
@@ -8737,6 +8772,9 @@ msgstr "Run Quizzes"
 
 msgid "Run Sectioning"
 msgstr "Run Sectioning"
+
+msgid "Run sectioning again"
+msgstr "Run sectioning again"
 
 msgid "Run Speech"
 msgstr "Run Speech"
@@ -9148,6 +9186,9 @@ msgstr "Sectioning Prompt"
 
 msgid "Sectioning Reasoning"
 msgstr "Sectioning Reasoning"
+
+msgid "Sectioning this page"
+msgstr "Sectioning this page"
 
 msgid "sections"
 msgstr "sections"
@@ -10346,6 +10387,9 @@ msgstr "The Lost Forest"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."
 
+msgid "The page has content, but sectioning did not split it into sections. Run the step again to give it another pass."
+msgstr "The page has content, but sectioning did not split it into sections. Run the step again to give it another pass."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "The process plants use to turn sunlight, water, and carbon dioxide into food."
 
@@ -10618,8 +10662,8 @@ msgstr "This page has no entries to synthesize"
 msgid "This page has no sectioning output"
 msgstr "This page has no sectioning output"
 
-msgid "This page has no sections yet."
-msgstr "This page has no sections yet."
+#~ msgid "This page has no sections yet."
+#~ msgstr "This page has no sections yet."
 
 msgid "This page has no simplified text blocks"
 msgstr "This page has no simplified text blocks"

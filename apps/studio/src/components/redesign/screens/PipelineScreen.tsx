@@ -269,7 +269,15 @@ export function PipelineScreen() {
               )}
             </div>
           ) : (
-            activePage && <PageCanvas label={label} page={activePage} viewport={viewport} />
+            activePage && (
+              <PageCanvas
+                label={label}
+                page={activePage}
+                viewport={viewport}
+                sectioning={sectioningRun}
+                onOpenSectioning={() => openStep("sectioning")}
+              />
+            )
           )}
         </div>
 

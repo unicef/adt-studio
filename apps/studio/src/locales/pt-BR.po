@@ -3997,6 +3997,9 @@ msgstr "Todo leitor abre o mesmo livro, com os recursos que precisa ao toque."
 msgid "Every section has a video"
 msgstr "Cada seção tem um vídeo"
 
+msgid "Every section on this page is excluded from the render, so the page never reaches the reader. Bring it back from the sectioning step."
+msgstr "Todas as seÃ§Ãµes desta pÃ¡gina estÃ£o excluÃ­das da renderizaÃ§Ã£o, entÃ£o a pÃ¡gina nunca chega ao leitor. Restaure-a pela etapa de Seccionamento."
+
 msgid "Every Storyboard section has a sign-language video assigned. You can switch to Covered or All to review or replace them."
 msgstr "Cada seção do Storyboard tem um vídeo em linguagem de sinais atribuído. Você pode alternar para Coberto ou Todos para revisar ou substituí-los."
 
@@ -5657,6 +5660,9 @@ msgstr "Carregando imagens..."
 msgid "Loading logs..."
 msgstr "Carregando registros..."
 
+msgid "Loading page preview…"
+msgstr "Carregando a prévia da página…"
+
 msgid "Loading page-level findings"
 msgstr "Loading page-level findings"
 
@@ -6723,6 +6729,9 @@ msgstr "Nenhum texto extraído"
 msgid "No text on this page."
 msgstr "Nenhum texto nesta página."
 
+msgid "No text or images were extracted from this page, so there is nothing to section. Blank and decorative pages stay out of the book."
+msgstr "Nenhum texto ou imagem foi extraÃ­do desta pÃ¡gina, entÃ£o nÃ£o hÃ¡ nada para seccionar. PÃ¡ginas em branco e decorativas ficam de fora do livro."
+
 msgid "No translations for this page"
 msgstr "Sem traduções para esta página"
 
@@ -7026,6 +7035,9 @@ msgstr "Open Preview"
 msgid "Open pull request {0}"
 msgstr "Abrir pull request {0}"
 
+msgid "Open sectioning"
+msgstr "Abrir Seccionamento"
+
 msgid "Open settings"
 msgstr "Abrir configurações"
 
@@ -7299,9 +7311,29 @@ msgstr "Página {0} — Seção {1}"
 msgid "Page {0} · section {1} · {2}"
 msgstr "Página {0} · seção {1} · {2}"
 
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} (discarded)"
+msgstr "PÃ¡gina {0} (descartada)"
+
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
 msgstr "Legendas da página {0}"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} has no sections yet"
+msgstr "A pÃ¡gina {0} ainda nÃ£o tem seÃ§Ãµes"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is blank"
+msgstr "A pÃ¡gina {0} estÃ¡ em branco"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is discarded"
+msgstr "A pÃ¡gina {0} estÃ¡ descartada"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is in the queue. Its sections show up here as soon as the step reaches it."
+msgstr "A pÃ¡gina {0} estÃ¡ na fila. As seÃ§Ãµes dela aparecem aqui assim que a etapa chegar nela."
 
 #. placeholder {0}: current.pageNumber
 #. placeholder {0}: zoom + 1
@@ -8603,6 +8635,9 @@ msgstr "Revisar seções excluídas"
 msgid "Review queue · {0}"
 msgstr "Fila de revisão · {0}"
 
+msgid "Review sectioning"
+msgstr "Revisar Seccionamento"
+
 msgid "Review spreads"
 msgstr "Revisar páginas duplas"
 
@@ -8737,6 +8772,9 @@ msgstr "Executar Questionários"
 
 msgid "Run Sectioning"
 msgstr "Executar Seccionamento"
+
+msgid "Run sectioning again"
+msgstr "Executar Seccionamento de novo"
 
 msgid "Run Speech"
 msgstr "Executar Fala"
@@ -9148,6 +9186,9 @@ msgstr "Prompt de seção"
 
 msgid "Sectioning Reasoning"
 msgstr "Raciocínio de seção"
+
+msgid "Sectioning this page"
+msgstr "Seccionando esta pÃ¡gina"
 
 msgid "sections"
 msgstr "seções"
@@ -10346,6 +10387,9 @@ msgstr "A Floresta Perdida"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "O modelo detecta caixas delimitadoras para que cada elemento visual possa ser armazenado e disposto separadamente."
 
+msgid "The page has content, but sectioning did not split it into sections. Run the step again to give it another pass."
+msgstr "A pÃ¡gina tem conteÃºdo, mas o Seccionamento nÃ£o a dividiu em seÃ§Ãµes. Execute a etapa de novo para tentar outra passagem."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "O processo que as plantas usam para transformar luz solar, água e dióxido de carbono em alimento."
 
@@ -10618,8 +10662,8 @@ msgstr "Esta página não tem entradas para sintetizar"
 msgid "This page has no sectioning output"
 msgstr "Esta página não tem saída de seccionamento"
 
-msgid "This page has no sections yet."
-msgstr "Esta página ainda não tem seções."
+#~ msgid "This page has no sections yet."
+#~ msgstr "Esta página ainda não tem seções."
 
 msgid "This page has no simplified text blocks"
 msgstr "Esta página não tem blocos de texto simplificados"

@@ -19,6 +19,8 @@ export interface DockItem extends DockEntry {
 export interface PipelinePage extends PageSummaryItem {
   /** Images on this page that still have no caption. */
   missingCaptions: number
+  /** Every section pruned — the page is excluded from the rendered book. */
+  isDiscarded: boolean
 }
 
 export interface PipelineState {
@@ -54,6 +56,7 @@ export function usePipelineState(label: string): PipelineState {
     const pages: PipelinePage[] = raw.map((page) => ({
       ...page,
       missingCaptions: page.hasCaptioning ? 0 : page.imageCount,
+      isDiscarded: page.sectionCount > 0 && page.prunedSections.length >= page.sectionCount,
     }))
 
     const done = new Set(book?.completedStages ?? [])

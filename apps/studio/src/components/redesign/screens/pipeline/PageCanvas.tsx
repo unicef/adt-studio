@@ -1,10 +1,11 @@
-import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle, ImageOff } from "lucide-react"
-import { getSectionScreenshotUrl } from "@/api/client"
+import { useSectionScreenshot } from "@/hooks/use-pages"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn } from "@/lib/utils"
+import { PageEmptyState } from "./PageEmptyState"
+import { SectionSkeleton } from "./PageSkeleton"
 import type { Viewport } from "./types"
+import type { SectioningRun } from "./useSectioningRun"
 import type { PipelinePage } from "./usePipelineState"
 
 const CANVAS_WIDTH: Record<Viewport, string> = {
@@ -17,6 +18,8 @@ export interface PageCanvasProps {
   label: string
   page: PipelinePage
   viewport: Viewport
+  sectioning: SectioningRun
+  onOpenSectioning: () => void
 }
 
 function SectionFrame({
@@ -33,8 +36,7 @@ function SectionFrame({
   viewport: Viewport
 }) {
   const { t } = useLingui()
-  const [failed, setFailed] = useState(false)
-  const src = getSectionScreenshotUrl(label, page.pageId, sectionIndex, {
+  const screenshot = useSectionScreenshot(label, page.pageId, sectionIndex, {
     viewport,
     cacheKey: page.renderingVersion,
   })
@@ -44,28 +46,48 @@ function SectionFrame({
       <div className="px-1 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
         {t`Section ${sectionIndex + 1} · ${sectionType}`}
       </div>
-      {failed ? (
+      {screenshot.isError ? (
         <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-14 text-muted-foreground">
           <ImageOff className="size-5" />
           <span className="text-[12.5px]">
             <Trans>No preview rendered for this section yet</Trans>
           </span>
         </div>
-      ) : (
+      ) : screenshot.data ? (
         <img
-          src={src}
+          src={screenshot.data}
           alt={t`Preview of section ${sectionIndex + 1}`}
-          onError={() => setFailed(true)}
-          className="w-full rounded-lg border bg-card"
+          className="w-full rounded-lg border bg-card duration-200 animate-in fade-in-0"
         />
+      ) : (
+        <SectionSkeleton className="aspect-[10/13] w-full" />
       )}
     </div>
   )
 }
 
 /** The rendered page as the reader will see it, at the selected viewport width. */
-export function PageCanvas({ label, page, viewport }: PageCanvasProps) {
+export function PageCanvas({
+  label,
+  page,
+  viewport,
+  sectioning,
+  onOpenSectioning,
+}: PageCanvasProps) {
   const sections = page.sections.filter((s) => !s.isPruned)
+
+  if (sections.length === 0) {
+    return (
+      <div className="flex min-h-0 w-full flex-1 items-center justify-center px-6 pb-24">
+        <PageEmptyState
+          label={label}
+          page={page}
+          sectioning={sectioning}
+          onOpenSectioning={onOpenSectioning}
+        />
+      </div>
+    )
+  }
 
   return (
     <ScrollArea className="min-h-0 w-full flex-1">
@@ -81,22 +103,16 @@ export function PageCanvas({ label, page, viewport }: PageCanvasProps) {
             </div>
           )}
 
-          {sections.length === 0 ? (
-            <div className={cn("grid place-items-center rounded-lg border border-dashed py-24 text-[13px] text-muted-foreground")}>
-              <Trans>This page has no sections yet.</Trans>
-            </div>
-          ) : (
-            sections.map((section) => (
-              <SectionFrame
-                key={section.sectionId}
-                label={label}
-                page={page}
-                sectionIndex={section.sectionIndex}
-                sectionType={section.sectionType}
-                viewport={viewport}
-              />
-            ))
-          )}
+          {sections.map((section) => (
+            <SectionFrame
+              key={section.sectionId}
+              label={label}
+              page={page}
+              sectionIndex={section.sectionIndex}
+              sectionType={section.sectionType}
+              viewport={viewport}
+            />
+          ))}
         </div>
       </div>
     </ScrollArea>

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { api } from "@/api/client"
+import { api, getSectionScreenshotUrl } from "@/api/client"
 
 export function usePages(
   label: string,
@@ -30,6 +30,51 @@ export function usePageImage(label: string, pageId: string, options?: { enabled?
     queryFn: () => api.getPageImage(label, pageId),
     enabled: !!label && !!pageId && (options?.enabled ?? true),
     staleTime: Infinity, // Images don't change
+  })
+}
+
+function preloadImage(src: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(src)
+    img.onerror = () => reject(new Error(`Screenshot unavailable: ${src}`))
+    img.src = src
+  })
+}
+
+/** Resolves with the screenshot URL once the browser has it decoded and cached,
+ *  so the consuming <img> can swap in without a flash of empty frame. */
+export function useSectionScreenshot(
+  label: string,
+  pageId: string,
+  sectionIndex: number | null,
+  options?: {
+    viewport?: "desktop" | "tablet" | "mobile"
+    cacheKey?: string | number | null
+    enabled?: boolean
+  }
+) {
+  const viewport = options?.viewport ?? "desktop"
+  const cacheKey = options?.cacheKey ?? null
+  return useQuery({
+    queryKey: [
+      "books",
+      label,
+      "pages",
+      pageId,
+      "sections",
+      sectionIndex,
+      "screenshot",
+      viewport,
+      cacheKey,
+    ],
+    queryFn: () =>
+      preloadImage(
+        getSectionScreenshotUrl(label, pageId, sectionIndex as number, { viewport, cacheKey })
+      ),
+    enabled: !!label && !!pageId && sectionIndex != null && (options?.enabled ?? true),
+    staleTime: Infinity,
+    retry: false,
   })
 }
 

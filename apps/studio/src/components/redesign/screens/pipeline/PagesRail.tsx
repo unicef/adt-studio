@@ -51,11 +51,13 @@ export function PagesRail({ label, pages, activePageId, onSelect }: PagesRailPro
                 type="button"
                 onClick={() => onSelect(page.pageId)}
                 aria-current={active ? "page" : undefined}
+                title={page.isDiscarded ? t`Page ${page.pageNumber} (discarded)` : undefined}
                 className={cn(
                   "flex gap-2.5 rounded-[9px] p-2 text-left transition-colors",
                   active
                     ? "bg-brand-50 shadow-[inset_0_0_0_1px_var(--brand-200)]"
                     : "hover:bg-muted",
+                  page.isDiscarded && "opacity-50",
                 )}
               >
                 <PageThumb
@@ -63,10 +65,17 @@ export function PagesRail({ label, pages, activePageId, onSelect }: PagesRailPro
                   pageId={page.pageId}
                   sectionIndex={page.sections[0]?.sectionIndex ?? null}
                   cacheKey={page.renderingVersion}
+                  pruned={page.isDiscarded}
                   className="h-[70px] w-[52px]"
                 />
                 <div className="flex min-w-0 flex-col gap-1.5">
-                  <span className={cn("text-xs font-semibold", active && "text-brand-700")}>
+                  <span
+                    className={cn(
+                      "text-xs font-semibold",
+                      active && "text-brand-700",
+                      page.isDiscarded && "line-through",
+                    )}
+                  >
                     {t`Page ${page.pageNumber}`}
                   </span>
                   <span className="truncate text-[11px] text-muted-foreground">

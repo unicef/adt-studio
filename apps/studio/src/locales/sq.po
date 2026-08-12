@@ -3998,6 +3998,9 @@ msgstr "Çdo lexues hap të njëjtin libër, me veçoritë që i nevojiten të g
 msgid "Every section has a video"
 msgstr "Çdo seksion ka një video"
 
+msgid "Every section on this page is excluded from the render, so the page never reaches the reader. Bring it back from the sectioning step."
+msgstr "TÃ« gjitha seksionet e kÃ«saj faqeje janÃ« pÃ«rjashtuar nga renderimi, ndaj faqja nuk arrin kurrÃ« te lexuesi. Rikthejeni atÃ« nga hapi i Seksionimit."
+
 msgid "Every Storyboard section has a sign-language video assigned. You can switch to Covered or All to review or replace them."
 msgstr "Çdo seksion i Storyboard-it ka një video të gjuhës së shenjave të caktuar. Mund të kaloni te Të mbuluara ose Të gjitha për t'i rishikuar ose zëvendësuar."
 
@@ -5658,6 +5661,9 @@ msgstr "Duke ngarkuar imazhet..."
 msgid "Loading logs..."
 msgstr "Duke ngarkuar regjistrat..."
 
+msgid "Loading page preview…"
+msgstr "Po ngarkohet pamja paraprake e faqes…"
+
 msgid "Loading page-level findings"
 msgstr "Duke ngarkuar gjetjet në nivel faqeje"
 
@@ -6724,6 +6730,9 @@ msgstr "Nuk u ekstraktua tekst"
 msgid "No text on this page."
 msgstr "Nuk ka tekst në këtë faqe."
 
+msgid "No text or images were extracted from this page, so there is nothing to section. Blank and decorative pages stay out of the book."
+msgstr "Nga kjo faqe nuk u nxor asnjÃ« tekst apo imazh, ndaj nuk ka Ã§farÃ« tÃ« ndahet nÃ« seksione. Faqet bosh dhe dekorative mbeten jashtÃ« librit."
+
 msgid "No translations for this page"
 msgstr "Nuk ka përkthime për këtë faqe"
 
@@ -7027,6 +7036,9 @@ msgstr "Hapni Pamjen Paraprake"
 msgid "Open pull request {0}"
 msgstr "Hap pull request-in {0}"
 
+msgid "Open sectioning"
+msgstr "Hap Seksionimin"
+
 msgid "Open settings"
 msgstr "Hapni cilësimet"
 
@@ -7300,9 +7312,29 @@ msgstr "Faqja {0} — Seksioni {1}"
 msgid "Page {0} · section {1} · {2}"
 msgstr "Faqja {0} · seksioni {1} · {2}"
 
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} (discarded)"
+msgstr "Faqja {0} (e hequr)"
+
 #. placeholder {0}: String(pageNumber)
 msgid "Page {0} captions"
 msgstr "Titujt e faqes {0}"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} has no sections yet"
+msgstr "Faqja {0} ende nuk ka seksione"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is blank"
+msgstr "Faqja {0} Ã«shtÃ« bosh"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is discarded"
+msgstr "Faqja {0} Ã«shtÃ« hequr"
+
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is in the queue. Its sections show up here as soon as the step reaches it."
+msgstr "Faqja {0} Ã«shtÃ« nÃ« radhÃ«. Seksionet e saj shfaqen kÃ«tu sapo hapi tÃ« arrijÃ« tek ajo."
 
 #. placeholder {0}: current.pageNumber
 #. placeholder {0}: zoom + 1
@@ -8604,6 +8636,9 @@ msgstr "Rishiko seksionet e hequra"
 msgid "Review queue · {0}"
 msgstr "Radha e shqyrtimit · {0}"
 
+msgid "Review sectioning"
+msgstr "Shqyrto Seksionimin"
+
 msgid "Review spreads"
 msgstr "Shqyrto fletët e dyfishta"
 
@@ -8738,6 +8773,9 @@ msgstr "Ekzekuto Kuizet"
 
 msgid "Run Sectioning"
 msgstr "Ekzekuto Seksionimin"
+
+msgid "Run sectioning again"
+msgstr "Ekzekuto Seksionimin sÃ«rish"
 
 msgid "Run Speech"
 msgstr "Ekzekuto të Folurit"
@@ -9149,6 +9187,9 @@ msgstr "Prompt i Seksionimit"
 
 msgid "Sectioning Reasoning"
 msgstr "Arsyetimi i Seksionimit"
+
+msgid "Sectioning this page"
+msgstr "Po seksionohet kjo faqe"
 
 msgid "sections"
 msgstr "seksione"
@@ -10347,6 +10388,9 @@ msgstr "Pylli i Humbur"
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."
 
+msgid "The page has content, but sectioning did not split it into sections. Run the step again to give it another pass."
+msgstr "Faqja ka pÃ«rmbajtje, por Seksionimi nuk e ndau atÃ« nÃ« seksione. Ekzekutoje hapin sÃ«rish pÃ«r njÃ« kalim tjetÃ«r."
+
 msgid "The process plants use to turn sunlight, water, and carbon dioxide into food."
 msgstr "Procesi që bimët përdorin për të kthyer dritën e diellit, ujin dhe dioksidin e karbonit në ushqim."
 
@@ -10619,8 +10663,8 @@ msgstr "Kjo faqe nuk ka hyrje për të sintetizuar"
 msgid "This page has no sectioning output"
 msgstr "Kjo faqe nuk ka dalje seksionimi"
 
-msgid "This page has no sections yet."
-msgstr "Kjo faqe ende nuk ka seksione."
+#~ msgid "This page has no sections yet."
+#~ msgstr "Kjo faqe ende nuk ka seksione."
 
 msgid "This page has no simplified text blocks"
 msgstr "Kjo faqe nuk ka blloqe teksti të thjeshtuara"
