@@ -188,6 +188,10 @@ The page shell must retain this relationship:
 5. Confirm every `activities` and `nonActivities` entry matches `pageOrder`, with no duplicate or conflicting classifications.
 6. Confirm page images resolve from `images/`.
 7. Confirm no custom or remote stylesheets and no custom external scripts were added.
-8. Zip the contents of this directory without introducing another internal layout.
+
+Do not create a zip or any other archive inside this folder. If you package the
+bundle, write the archive outside the folder — a stray archive left inside gets
+swept into the bundle when the folder is compressed and is flagged as an
+unexpected bundle entry on re-import. Leave packaging to the user unless asked.
 
 ADT Studio performs the same checks during import and will explain any incompatibility instead of trying to guess how a custom structure should map back into the pipeline.
