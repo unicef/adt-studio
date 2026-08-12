@@ -4842,6 +4842,9 @@ msgstr "Fshih detajet e gabimit"
 msgid "Hide the AI panel"
 msgstr "Fshih panelin e IA"
 
+msgid "Hide the controls"
+msgstr "Fshih kontrollet"
+
 msgid "Hide toasts automatically after a delay."
 msgstr "Fshihni njoftimet automatikisht pas një vonese."
 
@@ -9514,6 +9517,9 @@ msgstr "Shfaq arsyetimin e rishikimit"
 
 msgid "Show reviewer validation"
 msgstr "Shfaq validimin e rishikuesit"
+
+msgid "Show the controls"
+msgstr "Shfaq kontrollet"
 
 msgid "Show this help"
 msgstr "Shfaqni këtë ndihmë"

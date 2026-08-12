@@ -4841,6 +4841,9 @@ msgstr "Ocultar detalhes do erro"
 msgid "Hide the AI panel"
 msgstr "Ocultar o painel de IA"
 
+msgid "Hide the controls"
+msgstr "Esconder os controles"
+
 msgid "Hide toasts automatically after a delay."
 msgstr "Ocultar os avisos automaticamente após um intervalo."
 
@@ -9513,6 +9516,9 @@ msgstr "Mostrar justificativa da revisão"
 
 msgid "Show reviewer validation"
 msgstr "Show reviewer validation"
+
+msgid "Show the controls"
+msgstr "Mostrar os controles"
 
 msgid "Show this help"
 msgstr "Mostrar esta ajuda"

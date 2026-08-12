@@ -7,6 +7,7 @@ import { PreviewViewportToggle } from "@/components/pipeline/components/PreviewV
 import { cn } from "@/lib/utils"
 import { ScreenFallback } from "../ui/ScreenFallback"
 import { AiEditPanel } from "./pipeline/AiEditPanel"
+import { ChromeToggleIcon } from "./pipeline/ChromeToggleIcon"
 import { PageCanvas } from "./pipeline/PageCanvas"
 import { PagesRail } from "./pipeline/PagesRail"
 import { PagesRailEmpty } from "./pipeline/PagesRailEmpty"
@@ -72,6 +73,7 @@ export function PipelineScreen() {
   const storyboardRun = useStoryboardRun(label)
   const [viewport, setViewport] = useState<Viewport>("desktop")
   const [zoom, setZoom] = useState(1)
+  const [chromeHidden, setChromeHidden] = useState(false)
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
 
   usePageTitle(state.book?.title ?? label)
@@ -281,17 +283,31 @@ export function PipelineScreen() {
                   onOpenSectioning={() => openStep("sectioning")}
                 />
                 <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5">
-                  <PreviewViewportToggle
-                    value={viewport}
-                    onChange={setViewport}
-                    variant="surface"
-                    className="h-8 rounded-lg border shadow-sm"
-                  />
-                  <ZoomControl
-                    value={zoom}
-                    onChange={setZoom}
-                    className="bg-card/85 shadow-sm backdrop-blur-sm"
-                  />
+                  {!chromeHidden && (
+                    <>
+                      <PreviewViewportToggle
+                        value={viewport}
+                        onChange={setViewport}
+                        variant="surface"
+                        className="h-8 rounded-lg border shadow-sm"
+                      />
+                      <ZoomControl
+                        value={zoom}
+                        onChange={setZoom}
+                        className="bg-card/85 shadow-sm backdrop-blur-sm"
+                      />
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setChromeHidden((hidden) => !hidden)}
+                    aria-pressed={chromeHidden}
+                    title={chromeHidden ? t`Show the controls` : t`Hide the controls`}
+                    aria-label={chromeHidden ? t`Show the controls` : t`Hide the controls`}
+                    className="grid size-8 place-items-center rounded-lg border bg-card/85 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-muted"
+                  >
+                    <ChromeToggleIcon hidden={chromeHidden} className="size-4" />
+                  </button>
                 </div>
               </>
             )
@@ -307,12 +323,14 @@ export function PipelineScreen() {
         />
       </div>
 
-      <PluginDock
-        foundations={state.foundations}
-        plugins={state.plugins}
-        onOpenPlugin={openStep}
-        hint={empty ? <Trans>Plugins unlock once the sections exist</Trans> : undefined}
-      />
+      {(empty || !chromeHidden) && (
+        <PluginDock
+          foundations={state.foundations}
+          plugins={state.plugins}
+          onOpenPlugin={openStep}
+          hint={empty ? <Trans>Plugins unlock once the sections exist</Trans> : undefined}
+        />
+      )}
     </div>
   )
 }
