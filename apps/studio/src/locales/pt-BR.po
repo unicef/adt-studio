@@ -4303,6 +4303,9 @@ msgstr "Gramática e fluência"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Agrupe o texto e as imagens de cada página em seções classificadas com uma árvore de conteúdo estruturada. As seções determinam como as etapas posteriores renderizam, traduzem e leem o livro em voz alta."
 
+msgid "Group rows under their source PDF page"
+msgstr "Agrupar as linhas sob a página do PDF de origem"
+
 #~ msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
 #~ msgstr "Agrupando o conteúdo por propósito e montando cada seção como HTML revisável."
 
@@ -5028,6 +5031,9 @@ msgstr "Referência rápida de Liquid"
 msgid "List"
 msgstr "Lista"
 
+msgid "List rows in reading order, where they can be moved"
+msgstr "Listar as linhas na ordem de leitura, onde podem ser movidas"
+
 msgid "list_item"
 msgstr "item_lista"
 
@@ -5180,6 +5186,9 @@ msgstr "Carregando catálogo de textos..."
 
 msgid "Loading text sizes…"
 msgstr "Carregando tamanhos de texto…"
+
+msgid "Loading the book order…"
+msgstr "Carregando a ordem do livro…"
 
 msgid "Loading TTS normalization..."
 msgstr "Carregando a normalização de TTS..."
@@ -6130,8 +6139,15 @@ msgstr "Não encontrado no texto do livro"
 msgid "Not generated"
 msgstr "Não gerado"
 
+msgid "Not in the book yet — the storyboard has not rendered this section"
+msgstr "Ainda não está no livro: o storyboard não renderizou esta seção"
+
 msgid "Not rendered yet"
 msgstr "Ainda não renderizado"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Not rendered yet · PDF page {0}"
+msgstr "Ainda não renderizado · página {0} do PDF"
 
 msgid "Not reviewed"
 msgstr "Not reviewed"
@@ -6770,6 +6786,9 @@ msgstr "Arquivo PDF"
 
 msgid "PDF info"
 msgstr "Informações do PDF"
+
+msgid "PDF order"
+msgstr "Ordem do PDF"
 
 #. placeholder {0}: String(pageNumber)
 msgid "PDF page {0}"
@@ -7863,6 +7882,9 @@ msgstr "Girar 90° no sentido anti-horário"
 
 msgid "Row"
 msgstr "Linha"
+
+msgid "Row order"
+msgstr "Ordem das linhas"
 
 msgid "Row reverse"
 msgstr "Linha reversa"
