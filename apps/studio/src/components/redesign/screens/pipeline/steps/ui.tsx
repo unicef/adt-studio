@@ -217,11 +217,11 @@ export function StepRail({
 
       <ScrollArea className="-mx-1 min-h-0 flex-1">
         <div className="flex flex-col gap-0.5 px-1">
-          {entries.map((entry, index) => {
+          {entries.map((entry) => {
             const active = entry.key === activeKey
             return (
               <button
-                key={index}
+                key={entry.key ?? "__unassigned"}
                 type="button"
                 onClick={() => onSelect?.(entry.key)}
                 aria-current={active ? "true" : undefined}

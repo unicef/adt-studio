@@ -1,5 +1,5 @@
 import { DRAG_REGION } from "@/constants";
-import { MacOSTrafficLightSpacer } from "../title-bar";
+import { MacOSTrafficLightSpacer } from "../title-bar/MacOSTrafficLightSpacer";
 import { Trans } from "@lingui/react/macro";
 import { useAppLogo } from "@/hooks/use-app-logo";
 import { cn } from "@/lib/utils";

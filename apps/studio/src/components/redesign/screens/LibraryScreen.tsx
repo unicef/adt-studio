@@ -57,8 +57,9 @@ export function LibraryScreen() {
 
   const shown = useMemo(() => {
     const q = search.trim().toLowerCase()
+    const activeLangs = new Set(active)
     let list = vms.filter((b) => {
-      if (active.length > 0 && !active.includes(b.lang)) return false
+      if (activeLangs.size > 0 && !activeLangs.has(b.lang)) return false
       if (!q) return true
       return (b.displayTitle + " " + b.authors + " " + b.label).toLowerCase().includes(q)
     })
