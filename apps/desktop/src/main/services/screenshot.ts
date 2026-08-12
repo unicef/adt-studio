@@ -1,15 +1,10 @@
+import { DEFAULT_SCREENSHOT_TIMEOUT_MS } from "@adt/types";
 import { BrowserWindow } from "electron";
 import { randomUUID } from "node:crypto";
 import { htmlStore } from "../protocols/html-render";
 
 const windows = new Set<InstanceType<typeof BrowserWindow>>();
 
-const DEFAULT_SCREENSHOT_TIMEOUT_MS = 30_000;
-
-/* An offscreen BrowserWindow can wedge without ever emitting did-finish-load or
-   did-fail-load (a pending subresource, a window that never paints), so every
-   await here needs its own ceiling — otherwise the capture never settles, the
-   caller waits forever, and the window leaks. */
 function withDeadline<T>(
   promise: Promise<T>,
   timeoutMs: number,
@@ -53,6 +48,8 @@ async function screenshot(
         reject(new Error(desc)),
       );
     });
+
+    loadPromise.catch(() => {});
 
     await withDeadline(
       win.loadURL(`html-render://${id}`),

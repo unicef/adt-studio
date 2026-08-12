@@ -1,5 +1,10 @@
 import { z } from "zod"
 
+/** Budget for one whole capture. Generous on purpose: this is a backstop against
+ *  a capture that never settles, not a performance knob. Shared by the utility
+ *  process renderer and the main-process handler so their deadlines stay aligned. */
+export const DEFAULT_SCREENSHOT_TIMEOUT_MS = 30_000
+
 export const screenshotIpcViewportSchema = z.object({
   width: z.number().finite().positive().int(),
   height: z.number().finite().positive().int(),

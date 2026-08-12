@@ -8,10 +8,13 @@
 
 import { randomUUID } from "node:crypto"
 import {
+  DEFAULT_SCREENSHOT_TIMEOUT_MS,
   screenshotIpcCloseSchema,
   screenshotIpcReplySchema,
   screenshotIpcRequestSchema,
 } from "@adt/types"
+
+export { DEFAULT_SCREENSHOT_TIMEOUT_MS }
 
 export const SCREENSHOT_VIEWPORTS = [
   { label: "desktop", width: 1280, height: 800 },
@@ -32,10 +35,6 @@ export function getViewportBreakpoints() {
       vp.width >= 640  ? "max-lg:" : "max-sm:",
   }))
 }
-
-/** Budget for one whole capture. Generous on purpose: this is a backstop against
- *  a capture that never settles, not a performance knob. */
-export const DEFAULT_SCREENSHOT_TIMEOUT_MS = 30_000
 
 export interface ScreenshotRenderer {
   /** Render HTML to a PNG screenshot and return it as base64. */
@@ -163,6 +162,13 @@ export async function _createElectronScreenshotRenderer(): Promise<ScreenshotRen
       const id = randomUUID()
       const timeoutMs = options.timeoutMs ?? DEFAULT_SCREENSHOT_TIMEOUT_MS
       const replyTimeoutMs = timeoutMs + SCREENSHOT_REPLY_GRACE_MS
+      const payload = screenshotIpcRequestSchema.parse({
+        type: "screenshot-base64",
+        id,
+        html,
+        viewport,
+        timeoutMs,
+      })
       return new Promise((resolve, reject) => {
         let timer: ReturnType<typeof setTimeout> | undefined
         const cleanup = () => {
@@ -197,13 +203,6 @@ export async function _createElectronScreenshotRenderer(): Promise<ScreenshotRen
             )
           )
         }, replyTimeoutMs)
-        const payload = screenshotIpcRequestSchema.parse({
-          type: "screenshot-base64",
-          id,
-          html,
-          viewport,
-          timeoutMs,
-        })
         parentPort.postMessage(payload)
       })
     },
