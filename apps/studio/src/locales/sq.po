@@ -4305,6 +4305,9 @@ msgstr "Gramatika dhe rrjedhshmëria"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Grupo tekstin dhe imazhet e çdo faqeje në seksione të tipizuara me një pemë të strukturuar përmbajtjeje. Seksionet drejtojnë mënyrën se si fazat pasuese renderojnë, përkthejnë dhe lexojnë librin me zë."
 
+msgid "Group rows under their source PDF page"
+msgstr "Grupo rreshtat nën faqen e tyre burimore të PDF-së"
+
 #~ msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
 #~ msgstr "Grupimi i përmbajtjes sipas qëllimit, pastaj vendosja e çdo seksioni si HTML i rishikueshëm."
 
@@ -5030,6 +5033,9 @@ msgstr "Referencë e shpejtë Liquid"
 msgid "List"
 msgstr "Listë"
 
+msgid "List rows in reading order, where they can be moved"
+msgstr "Rendit rreshtat sipas rendit të leximit, ku mund të zhvendosen"
+
 msgid "list_item"
 msgstr "list_item"
 
@@ -5182,6 +5188,9 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 
 msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
+
+msgid "Loading the book order…"
+msgstr "Po ngarkohet rendi i librit…"
 
 msgid "Loading TTS normalization..."
 msgstr "Po ngarkohet normalizimi TTS..."
@@ -6132,8 +6141,15 @@ msgstr "Nuk u gjet në tekstin e librit"
 msgid "Not generated"
 msgstr "Nuk u gjenerua"
 
+msgid "Not in the book yet — the storyboard has not rendered this section"
+msgstr "Ende jo në libër — storyboard-i nuk e ka gjeneruar këtë seksion"
+
 msgid "Not rendered yet"
 msgstr "Nuk u gjenerua ende"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Not rendered yet · PDF page {0}"
+msgstr "Nuk u gjenerua ende · faqja {0} e PDF-së"
 
 msgid "Not reviewed"
 msgstr "Nuk u rishikua"
@@ -6772,6 +6788,9 @@ msgstr "Skedar PDF"
 
 msgid "PDF info"
 msgstr "Informacioni PDF"
+
+msgid "PDF order"
+msgstr "Rendi i PDF-së"
 
 #. placeholder {0}: String(pageNumber)
 msgid "PDF page {0}"
@@ -7865,6 +7884,9 @@ msgstr "Rrotullo 90° në kahun kundërorar"
 
 msgid "Row"
 msgstr "Rresht"
+
+msgid "Row order"
+msgstr "Rendi i rreshtave"
 
 msgid "Row reverse"
 msgstr "Rresht i anasjelltë"

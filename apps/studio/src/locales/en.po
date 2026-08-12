@@ -4305,6 +4305,9 @@ msgstr "Grammar and fluency"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 
+msgid "Group rows under their source PDF page"
+msgstr "Group rows under their source PDF page"
+
 #~ msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
 #~ msgstr "Grouping content by purpose, then laying out every section as reviewable HTML."
 
@@ -5030,6 +5033,9 @@ msgstr "Liquid quick reference"
 msgid "List"
 msgstr "List"
 
+msgid "List rows in reading order, where they can be moved"
+msgstr "List rows in reading order, where they can be moved"
+
 msgid "list_item"
 msgstr "list_item"
 
@@ -5182,6 +5188,9 @@ msgstr "Loading text catalog..."
 
 msgid "Loading text sizes…"
 msgstr "Loading text sizes…"
+
+msgid "Loading the book order…"
+msgstr "Loading the book order…"
 
 msgid "Loading TTS normalization..."
 msgstr "Loading TTS normalization..."
@@ -6132,8 +6141,15 @@ msgstr "Not found in the book text"
 msgid "Not generated"
 msgstr "Not generated"
 
+msgid "Not in the book yet — the storyboard has not rendered this section"
+msgstr "Not in the book yet — the storyboard has not rendered this section"
+
 msgid "Not rendered yet"
 msgstr "Not rendered yet"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Not rendered yet · PDF page {0}"
+msgstr "Not rendered yet · PDF page {0}"
 
 msgid "Not reviewed"
 msgstr "Not reviewed"
@@ -6772,6 +6788,9 @@ msgstr "PDF File"
 
 msgid "PDF info"
 msgstr "PDF info"
+
+msgid "PDF order"
+msgstr "PDF order"
 
 #. placeholder {0}: String(pageNumber)
 msgid "PDF page {0}"
@@ -7865,6 +7884,9 @@ msgstr "Rotate 90° counter-clockwise"
 
 msgid "Row"
 msgstr "Row"
+
+msgid "Row order"
+msgstr "Row order"
 
 msgid "Row reverse"
 msgstr "Row reverse"
