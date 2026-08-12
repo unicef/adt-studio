@@ -3,6 +3,7 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { CircleCheck, CircleAlert, Loader2 } from "lucide-react"
 import { usePageTitle } from "@/hooks/use-page-title"
+import { useQuizzes } from "@/hooks/use-quizzes"
 import { PreviewViewportToggle } from "@/components/pipeline/components/PreviewViewportToggle"
 import { cn } from "@/lib/utils"
 import { ScreenFallback } from "../ui/ScreenFallback"
@@ -12,6 +13,7 @@ import { PageCanvas } from "./pipeline/PageCanvas"
 import { PagesRail } from "./pipeline/PagesRail"
 import { PagesRailEmpty } from "./pipeline/PagesRailEmpty"
 import { PipelineTopBar } from "./pipeline/PipelineTopBar"
+import { QuizCanvas } from "./pipeline/QuizCanvas"
 import { SideRail } from "./pipeline/SideRail"
 import { PluginDock } from "./pipeline/PluginDock"
 import { StageRunningPanel } from "./pipeline/StageRunningPanel"
@@ -76,6 +78,13 @@ export function PipelineScreen() {
   const [zoom, setZoom] = useState(1)
   const [chromeHidden, setChromeHidden] = useState(false)
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
+  // A quiz is a storyboard page of its own, so selecting one takes over the canvas.
+  const [selectedQuizIndex, setSelectedQuizIndex] = useState<number | null>(null)
+  const quizzesQuery = useQuizzes(label)
+  const quizzes = useMemo(
+    () => quizzesQuery.data?.quizzes?.quizzes ?? [],
+    [quizzesQuery.data],
+  )
 
   usePageTitle(state.book?.title ?? label)
 
@@ -83,6 +92,19 @@ export function PipelineScreen() {
     if (state.pages.length === 0) return null
     return state.pages.find((p) => p.pageId === selectedPageId) ?? state.pages[0]
   }, [state.pages, selectedPageId])
+
+  const activeQuiz = useMemo(
+    () =>
+      selectedQuizIndex == null
+        ? null
+        : quizzes.find((quiz) => quiz.quizIndex === selectedQuizIndex) ?? null,
+    [quizzes, selectedQuizIndex],
+  )
+
+  const selectPage = (pageId: string) => {
+    setSelectedQuizIndex(null)
+    setSelectedPageId(pageId)
+  }
 
   const openStep = (slug: string) => {
     if (!isDockSlug(slug)) return
@@ -188,8 +210,18 @@ export function PipelineScreen() {
     <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
       <PipelineTopBar
         label={label}
-        pageLabel={empty || !activePage ? undefined : t`Page ${activePage.pageNumber}`}
-        version={empty ? null : activePage?.renderingVersion ?? null}
+        pageLabel={
+          empty
+            ? undefined
+            : activeQuiz
+              ? t`Quiz ${activeQuiz.quizIndex + 1}`
+              : activePage
+                ? t`Page ${activePage.pageNumber}`
+                : undefined
+        }
+        version={
+          empty ? null : activeQuiz ? quizzesQuery.data?.version ?? null : activePage?.renderingVersion ?? null
+        }
         status={
           runningStage ? (
             <StatusPill tone="running">
@@ -232,8 +264,11 @@ export function PipelineScreen() {
             <PagesRail
               label={label}
               pages={state.pages}
+              quizzes={quizzes}
               activePageId={activePage?.pageId ?? null}
-              onSelect={setSelectedPageId}
+              activeQuizIndex={activeQuiz?.quizIndex ?? null}
+              onSelect={selectPage}
+              onSelectQuiz={setSelectedQuizIndex}
               storyboardRunning={storyboardActivity.isActive}
             />
           )}
@@ -275,18 +310,32 @@ export function PipelineScreen() {
               )}
             </div>
           ) : (
-            activePage && (
+            (activeQuiz || activePage) && (
               <>
-                <PageCanvas
-                  label={label}
-                  page={activePage}
-                  viewport={viewport}
-                  zoom={zoom}
-                  onZoomChange={setZoom}
-                  sectioning={sectioningRun}
-                  storyboardRunning={storyboardActivity.isActive}
-                  onOpenSectioning={() => openStep("sectioning")}
-                />
+                {activeQuiz ? (
+                  <QuizCanvas
+                    label={label}
+                    quiz={activeQuiz}
+                    version={quizzesQuery.data?.version ?? null}
+                    pages={state.pages}
+                    viewport={viewport}
+                    zoom={zoom}
+                    onZoomChange={setZoom}
+                  />
+                ) : (
+                  activePage && (
+                    <PageCanvas
+                      label={label}
+                      page={activePage}
+                      viewport={viewport}
+                      zoom={zoom}
+                      onZoomChange={setZoom}
+                      sectioning={sectioningRun}
+                      storyboardRunning={storyboardActivity.isActive}
+                      onOpenSectioning={() => openStep("sectioning")}
+                    />
+                  )
+                )}
                 <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5">
                   {!chromeHidden && (
                     <>
@@ -321,8 +370,14 @@ export function PipelineScreen() {
 
         <AiEditPanel
           label={label}
-          pageId={activePage?.pageId ?? null}
-          pageLabel={activePage ? t`page ${activePage.pageNumber}` : undefined}
+          pageId={activeQuiz ? null : activePage?.pageId ?? null}
+          pageLabel={
+            activeQuiz
+              ? t`quiz ${activeQuiz.quizIndex + 1}`
+              : activePage
+                ? t`page ${activePage.pageNumber}`
+                : undefined
+          }
           sectionIndex={activePage?.sections[0]?.sectionIndex ?? 0}
           empty={empty}
         />

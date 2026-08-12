@@ -557,6 +557,9 @@ msgstr "{percent}%"
 msgid "{pruned} dropped"
 msgstr "{pruned} écartées"
 
+#~ msgid "{quizCount} quiz after this page"
+#~ msgstr "{quizCount} quiz aprÃ¨s cette page"
+
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} détectée(s)"
 
@@ -1018,6 +1021,10 @@ msgstr "Détection d'activité"
 msgid "Activity generation failed"
 msgstr "Échec de la génération de l'activité"
 
+#. placeholder {0}: sectionIndex + 1
+msgid "Activity in section {0}"
+msgstr "ActivitÃ© dans la section {0}"
+
 msgid "Activity Rendering"
 msgstr "Rendu d'activité"
 
@@ -1411,6 +1418,9 @@ msgstr "Après la page {0}"
 
 msgid "After page {afterNumber}"
 msgstr "Après la page {afterNumber}"
+
+msgid "after page {pageNumber}"
+msgstr "après la page {pageNumber}"
 
 msgid "After page {placement}"
 msgstr "Après la page {placement}"
@@ -5262,6 +5272,9 @@ msgstr "Consignes"
 msgid "Interactive"
 msgstr "Interactif"
 
+#~ msgid "Interactive — answer it here exactly as the reader will."
+#~ msgstr "Interactive — rÃ©pondez-y ici exactement comme le fera le lecteur."
+
 msgid "Interactive assessment questions"
 msgstr "Questions d'évaluation interactives"
 
@@ -5400,6 +5413,10 @@ msgstr "Les clés sont conservées dans le stockage local de cette machine. Cust
 
 msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
 msgstr "Les clés sont stockées localement dans ce navigateur ou cette session desktop et ne sont envoyées qu'avec les demandes d'exécution."
+
+#. placeholder {0}: page.pageNumber
+#~ msgid "Knowledge check after page {0}."
+#~ msgstr "VÃ©rification des connaissances aprÃ¨s la page {0}."
 
 #. placeholder {0}: afterPage.pageNumber
 msgid "Knowledge check generated from the source pages, after page {0}."
@@ -7614,6 +7631,10 @@ msgstr "Par mot"
 msgid "Perfect for children's books, pairing large images with minimal text."
 msgstr "Parfait pour les livres pour enfants, associant de grandes images avec un minimum de texte."
 
+#. placeholder {0}: page.pageNumber
+msgid "pg {0}"
+msgstr "p. {0}"
+
 #. placeholder {0}: part.range.startPage
 #. placeholder {0}: r.startPage
 #. placeholder {1}: part.range.endPage
@@ -7854,8 +7875,8 @@ msgid "Preview linked page"
 msgstr "Aperçu de la page liée"
 
 #. placeholder {0}: sectionIndex + 1
-msgid "Preview of section {0}"
-msgstr "Aperçu de la section {0}"
+#~ msgid "Preview of section {0}"
+#~ msgstr "Aperçu de la section {0}"
 
 msgid "Preview of the HTML/CSS patterns used for LLM-generated pages."
 msgstr "Aperçu des modèles HTML/CSS utilisés pour les pages générées par le LLM."
@@ -8059,14 +8080,22 @@ msgstr "quiz"
 msgid "Quiz"
 msgstr "Quiz"
 
+#. placeholder {0}: activeQuiz.quizIndex + 1
+msgid "quiz {0}"
+msgstr "quiz {0}"
+
 #. placeholder {0}: String(activeQuiz.index + 1)
 #. placeholder {0}: String(item.index + 1)
+#. placeholder {0}: activeQuiz.quizIndex + 1
 msgid "Quiz {0}"
 msgstr "Quiz {0}"
 
 #. placeholder {0}: page.pageNumber
 msgid "Quiz after page {0}"
 msgstr "Quiz après la page {0}"
+
+msgid "Quiz after page {pageNumber}"
+msgstr "Quiz après la page {pageNumber}"
 
 msgid "Quiz frequency"
 msgstr "Fréquence des quiz"
@@ -10674,6 +10703,9 @@ msgstr "Cette option n'a pas d'entrée dans le corrigé"
 
 msgid "This page had no embedded text layer — the text below was recovered from the page image."
 msgstr "Cette page n'avait pas de couche de texte intégrée : le texte ci-dessous a été récupéré depuis l'image de la page."
+
+msgid "This page has an interactive activity"
+msgstr "Cette page contient une activitÃ© interactive"
 
 msgid "This page has images without an alternative description."
 msgstr "Cette page contient des images sans description alternative."

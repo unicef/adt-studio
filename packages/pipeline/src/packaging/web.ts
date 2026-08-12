@@ -1197,6 +1197,11 @@ export interface RenderPageOptions {
   /** When true, renders a minimal page without navigation/sidebar chrome.
    *  Content is visible immediately (no opacity-0). Used for storyboard preview. */
   embed?: boolean
+  /** Embed variant for hosts that size the frame to the content instead of
+   *  giving it a viewport: drops the `min-h-screen` floor and reports the
+   *  content height to the parent window, so the frame never scrolls on its
+   *  own. Only meaningful together with `embed`. */
+  fitToContent?: boolean
   /** Fixed viewport dimensions for fixed-layout pages (e.g., pre-paginated EPUB).
    *  When set, overrides the responsive viewport meta with a fixed size. */
   fixedViewport?: { width: number; height: number }
@@ -1338,6 +1343,51 @@ ${fallbackHeadingHtml}${contentBlock}
     </style>`
     : ""
 
+  // Fit mode: every viewport-height floor (`min-h-screen` on the body and on
+  // the `#content` wrapper the quiz/LLM templates ship) resolves against the
+  // frame the host sizes *from this document's height*, so the two feed each
+  // other and the page grows without bound — pushing the centred content out
+  // of view. Dropping the floors keeps the centring and lets the document
+  // collapse to its real content height.
+  const fitStyles =
+    opts.embed && opts.fitToContent
+      ? `
+    <style>
+      html { height: auto !important; }
+      body, .min-h-screen { min-height: 0 !important; }
+      .h-screen { height: auto !important; }
+      /* The host sizes the frame to this document, so the only scrollbar the
+         reader should ever see is the host's own. */
+      html { scrollbar-width: none; }
+      html::-webkit-scrollbar { display: none; }
+    </style>`
+      : ""
+
+  const fitScript =
+    opts.embed && opts.fitToContent
+      ? `
+    <script>
+      (function () {
+        var last = 0
+        function report() {
+          var height = Math.ceil(document.documentElement.getBoundingClientRect().height)
+          if (!height || height === last) return
+          last = height
+          parent.postMessage({ type: "adt-preview:height", height: height }, "*")
+        }
+        // requestAnimationFrame never runs while the host tab is in the
+        // background, so report straight away and refine after layout.
+        function schedule() {
+          report()
+          if (window.requestAnimationFrame) requestAnimationFrame(report)
+        }
+        window.addEventListener("load", schedule)
+        if (window.ResizeObserver) new ResizeObserver(schedule).observe(document.documentElement)
+        schedule()
+      })()
+    </script>`
+      : ""
+
   // Reflowable base-font override: re-declare the same elements fonts.css
   // targets with the chosen family, placed last in <head> so it wins. Omitted
   // for fixed-layout / serif-default books (keeps the global Merriweather).
@@ -1381,7 +1431,7 @@ ${fallbackHeadingHtml}${contentBlock}
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
     <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}${customActivityStub}
-${mathScript}${embedStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
+${mathScript}${embedStyles}${fitStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
 
 <body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:100%;height:100%"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
 ${mainBlock}
@@ -1389,7 +1439,7 @@ ${flFit ? `${flFit.bodyScript}\n` : ""}${answersScript}
     <div class="relative z-50" id="interface-container"></div>
     <div class="relative z-50" id="nav-container"></div>
 ${opts.embed
-      ? `    <script src="./assets/base.bundle.min.js?v=${escapeAttr(opts.bundleVersion)}" type="module"></script>`
+      ? `    <script src="./assets/base.bundle.min.js?v=${escapeAttr(opts.bundleVersion)}" type="module"></script>${fitScript}`
       : `    <script src="./assets/offline-preloader.js"></script>
     <script src="./assets/scorm.js"></script>
     <script src="./assets/base.bundle.local.js"></script>`}

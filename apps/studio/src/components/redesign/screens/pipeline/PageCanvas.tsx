@@ -1,62 +1,57 @@
-import { useEffect, useRef, useState } from "react"
-import { Trans, useLingui } from "@lingui/react/macro"
-import { AlertTriangle, ImageOff } from "lucide-react"
-import { useSectionScreenshot } from "@/hooks/use-pages"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { cn } from "@/lib/utils"
-import { PageDeviceFrame } from "./PageDeviceFrame"
-import { PageEmptyState } from "./PageEmptyState"
-import { SectionSkeleton } from "./PageSkeleton"
-import type { Viewport } from "./types"
-import type { SectioningRun } from "./useSectioningRun"
-import type { PipelinePage } from "./usePipelineState"
-import { zoomBy } from "./zoom"
+import { useRef } from "react";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { AlertTriangle, ImageOff } from "lucide-react";
+import type { PageSummarySection } from "@/api/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
+import {
+  CANVAS_PADDING,
+  CAPTURE_WIDTH,
+  DEVICE_PADDING,
+  canvasContentWidth,
+  useCanvasPane,
+  useCanvasWheelZoom,
+} from "./canvasLayout";
+import { InteractiveBlock } from "./InteractiveBlock";
+import { PageDeviceFrame } from "./PageDeviceFrame";
+import { PageEmptyState } from "./PageEmptyState";
+import { sectionPreviewUrl } from "./previewUrls";
+import type { Viewport } from "./types";
+import type { SectioningRun } from "./useSectioningRun";
+import type { PipelinePage } from "./usePipelineState";
 
-/** Tablet and mobile emulate a device, so their width is fixed — these mirror
- *  the widths the screenshots are captured at, keeping the device screen 1:1.
- *  Desktop takes whatever the pane gives it. */
-const DEVICE_WIDTH: Record<Exclude<Viewport, "desktop">, number> = {
-  tablet: 768,
-  mobile: 390,
-}
-
-const CANVAS_PADDING = 48
-/** px-6 on both sides plus pt-6 / pb-10 around the device. */
-const DEVICE_PADDING = 64
-const DESKTOP_FALLBACK_WIDTH = 760
+/** Fallback height until the live render reports how tall it lays out. */
+const SECTION_FRAME_HEIGHT = 640;
 
 export interface PageCanvasProps {
-  label: string
-  page: PipelinePage
-  viewport: Viewport
-  zoom: number
-  onZoomChange: (zoom: number) => void
-  sectioning: SectioningRun
+  label: string;
+  page: PipelinePage;
+  viewport: Viewport;
+  zoom: number;
+  onZoomChange: (zoom: number) => void;
+  sectioning: SectioningRun;
   /** Storyboard stage in flight — pages it has not reached yet are still building. */
-  storyboardRunning?: boolean
-  onOpenSectioning: () => void
+  storyboardRunning?: boolean;
+  onOpenSectioning: () => void;
 }
 
 function SectionSlice({
   label,
   page,
-  sectionIndex,
+  section,
   viewport,
-  single,
+  contentWidth,
 }: {
-  label: string
-  page: PipelinePage
-  sectionIndex: number
-  viewport: Viewport
-  single: boolean
+  label: string;
+  page: PipelinePage;
+  section: PageSummarySection;
+  viewport: Viewport;
+  contentWidth: number;
 }) {
-  const { t } = useLingui()
-  const screenshot = useSectionScreenshot(label, page.pageId, sectionIndex, {
-    viewport,
-    cacheKey: page.renderingVersion,
-  })
+  const { t } = useLingui();
+  const sectionIndex = section.sectionIndex;
 
-  if (screenshot.isError) {
+  if (!page.hasRendering) {
     return (
       <div className="flex flex-col items-center gap-2 border-b border-dashed py-14 text-muted-foreground last:border-b-0">
         <ImageOff className="size-5" />
@@ -64,20 +59,30 @@ function SectionSlice({
           <Trans>No preview rendered for this section yet</Trans>
         </span>
       </div>
-    )
+    );
   }
 
-  if (!screenshot.data) {
-    return <SectionSkeleton className={single ? "min-h-96 border-0" : "min-h-64 border-0"} />
-  }
-
+  // The section loads the same interactive render the reader gets, so activities
+  // stay answerable and the page shows live HTML instead of a flat capture.
   return (
-    <img
-      src={screenshot.data}
-      alt={t`Preview of section ${sectionIndex + 1}`}
-      className="block w-full duration-200 animate-in fade-in-0"
+    <InteractiveBlock
+      src={sectionPreviewUrl(
+        label,
+        page.pageId,
+        sectionIndex,
+        page.renderingVersion,
+      )}
+      frameTitle={
+        section.isActivity
+          ? t`Activity in section ${sectionIndex + 1}`
+          : t`Section ${sectionIndex + 1}`
+      }
+      frameWidth={CAPTURE_WIDTH[viewport]}
+      frameHeight={SECTION_FRAME_HEIGHT}
+      displayWidth={contentWidth}
+      className="border-b last:border-b-0"
     />
-  )
+  );
 }
 
 /** The rendered page as the reader will see it, at the selected viewport width. */
@@ -91,48 +96,15 @@ export function PageCanvas({
   storyboardRunning,
   onOpenSectioning,
 }: PageCanvasProps) {
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const [pane, setPane] = useState({ width: 0, height: 0 })
-  // The page width follows the pane, so an animated width would lag a whole
-  // 200ms behind the window while dragging. Suspend it until the drag settles.
-  const [resizing, setResizing] = useState(false)
-  const sections = page.sections.filter((s) => !s.isPruned)
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sections = page.sections.filter((s) => !s.isPruned);
   // A page the storyboard has not reached yet has no screenshots to serve, so it
   // waits behind the same panel the rail's spinner promises.
-  const building = !!storyboardRunning && !page.hasRendering && !page.isDiscarded
-  const empty = sections.length === 0 || building
-
-  useEffect(() => {
-    const node = scrollRef.current
-    if (!node) return
-    setPane({ width: node.clientWidth, height: node.clientHeight })
-    let settle: ReturnType<typeof setTimeout>
-    const observer = new ResizeObserver(([entry]) => {
-      setPane({ width: entry.contentRect.width, height: entry.contentRect.height })
-      setResizing(true)
-      clearTimeout(settle)
-      settle = setTimeout(() => setResizing(false), 150)
-    })
-    observer.observe(node)
-    return () => {
-      clearTimeout(settle)
-      observer.disconnect()
-    }
-  }, [empty])
-
-  useEffect(() => {
-    const node = scrollRef.current
-    if (!node) return
-    // Registered manually: React's onWheel is passive, so preventDefault there
-    // cannot stop the browser from zooming the whole app instead.
-    const onWheel = (event: WheelEvent) => {
-      if (!event.ctrlKey && !event.metaKey) return
-      event.preventDefault()
-      onZoomChange(zoomBy(zoom, event.deltaY < 0 ? 1.1 : 1 / 1.1))
-    }
-    node.addEventListener("wheel", onWheel, { passive: false })
-    return () => node.removeEventListener("wheel", onWheel)
-  }, [zoom, onZoomChange])
+  const building =
+    !!storyboardRunning && !page.hasRendering && !page.isDiscarded;
+  const empty = sections.length === 0 || building;
+  const { pane, resizing } = useCanvasPane(scrollRef, !empty);
+  useCanvasWheelZoom(scrollRef, zoom, onZoomChange);
 
   if (empty) {
     return (
@@ -145,26 +117,28 @@ export function PageCanvas({
           onOpenSectioning={onOpenSectioning}
         />
       </div>
-    )
+    );
   }
+
+  const contentWidth = canvasContentWidth(viewport, pane, zoom);
 
   const slices = sections.map((section) => (
     <SectionSlice
       key={section.sectionId}
       label={label}
       page={page}
-      sectionIndex={section.sectionIndex}
+      section={section}
       viewport={viewport}
-      single={sections.length === 1}
+      contentWidth={contentWidth}
     />
-  ))
+  ));
 
   const captionsWarning = page.missingCaptions > 0 && (
     <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
       <AlertTriangle className="size-3.5 shrink-0" />
       <Trans>This page has images without an alternative description.</Trans>
     </div>
-  )
+  );
 
   if (viewport !== "desktop") {
     return (
@@ -173,7 +147,7 @@ export function PageCanvas({
           {captionsWarning}
           <PageDeviceFrame
             viewport={viewport}
-            screenWidth={DEVICE_WIDTH[viewport]}
+            screenWidth={CAPTURE_WIDTH[viewport]}
             zoom={zoom}
             available={{
               width: pane.width - CANVAS_PADDING,
@@ -184,17 +158,18 @@ export function PageCanvas({
           </PageDeviceFrame>
         </div>
       </ScrollArea>
-    )
+    );
   }
-
-  const baseWidth = pane.width ? pane.width - CANVAS_PADDING : DESKTOP_FALLBACK_WIDTH
 
   return (
     <ScrollArea ref={scrollRef} horizontal className="min-h-0 w-full flex-1">
       <div className="flex min-w-max justify-center px-6 pb-[190px] pt-6">
         <div
-          className={cn("flex flex-col gap-4", !resizing && "transition-[width] duration-200")}
-          style={{ width: baseWidth * zoom }}
+          className={cn(
+            "flex flex-col gap-4",
+            !resizing && "transition-[width] duration-200",
+          )}
+          style={{ width: contentWidth }}
         >
           {captionsWarning}
 
@@ -202,5 +177,5 @@ export function PageCanvas({
         </div>
       </div>
     </ScrollArea>
-  )
+  );
 }

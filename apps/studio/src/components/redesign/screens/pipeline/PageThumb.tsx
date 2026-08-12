@@ -69,7 +69,7 @@ export function PageThumb({
     >
       {!needsPdf && screenshot.data ? (
         <img
-          src={screenshot.data}
+          src={screenshot.data.src}
           alt=""
           className="size-full object-cover object-top duration-200 animate-in fade-in-0"
         />

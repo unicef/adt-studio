@@ -33,17 +33,24 @@ export function usePageImage(label: string, pageId: string, options?: { enabled?
   })
 }
 
-function preloadImage(src: string): Promise<string> {
+export interface SectionScreenshot {
+  src: string
+  width: number
+  height: number
+}
+
+function preloadImage(src: string): Promise<SectionScreenshot> {
   return new Promise((resolve, reject) => {
     const img = new Image()
-    img.onload = () => resolve(src)
+    img.onload = () => resolve({ src, width: img.naturalWidth, height: img.naturalHeight })
     img.onerror = () => reject(new Error(`Screenshot unavailable: ${src}`))
     img.src = src
   })
 }
 
-/** Resolves with the screenshot URL once the browser has it decoded and cached,
- *  so the consuming <img> can swap in without a flash of empty frame. */
+/** Resolves once the browser has the screenshot decoded and cached, so the
+ *  consuming <img> can swap in without a flash of empty frame. Carries the
+ *  natural size, which is the only measure of how tall a section renders. */
 export function useSectionScreenshot(
   label: string,
   pageId: string,

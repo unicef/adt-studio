@@ -1036,6 +1036,9 @@ export function createAdtPreviewRoutes(
     const config = loadBookConfig(safeLabel, booksDir, configPath)
     const applyBodyBackground = config.apply_body_background
     const embed = c.req.query("embed") === "1"
+    // The storyboard canvas sizes the frame to the content, so the page must
+    // report its height instead of filling a viewport it does not have.
+    const fitToContent = c.req.query("fit") === "1"
 
     return await withStorage(label, async (storage) => {
       const title = getBookTitle(storage)
@@ -1080,6 +1083,7 @@ export function createAdtPreviewRoutes(
         skipContentWrapper: true,
         applyBodyBackground,
         embed,
+        fitToContent,
         bodyFontFamily,
       })
 
@@ -1176,6 +1180,7 @@ export function createAdtPreviewRoutes(
         bundleVersion: previewBundleVersion,
         applyBodyBackground,
         embed,
+        fitToContent,
         bodyFontFamily,
       })
 
