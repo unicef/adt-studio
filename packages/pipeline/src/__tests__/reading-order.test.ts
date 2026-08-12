@@ -209,6 +209,57 @@ describe("reading-order resolver", () => {
     }
   })
 
+  it("keeps a pruned section's slot after a storyboard re-run drops its rendering", () => {
+    const storage = makeStorage()
+    try {
+      seedTwoPages(storage)
+      storage.putNodeData("page-sectioning", "pg001", {
+        reasoning: "",
+        sections: [section("pg001", 1, { isPruned: true }), section("pg001", 2)],
+      })
+      // `web-rendering` emits nothing for a pruned section, so re-running the
+      // storyboard leaves page one with a single rendered entry. The slot must
+      // survive that: without it the sidebar has no row for the section and the
+      // user can never put it back in the book.
+      storage.putNodeData("web-rendering", "pg001", rendering(1))
+
+      const { order, items } = resolveReadingOrder(storage)
+
+      expect(order.map((entry) => entry.id)).toEqual([
+        "pg001_sec001",
+        "pg001_sec002",
+        "pg002_sec001",
+        "pg002_sec002",
+      ])
+      // Still out of the output, and still in its original slot.
+      expect(items.map((item) => item.id)).not.toContain("pg001_sec001")
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("keeps the slot of a section the storyboard rendered nothing for", () => {
+    const storage = makeStorage()
+    try {
+      seedTwoPages(storage)
+      // Rendering skips sections with no renderable content too, so an empty
+      // section reaches the same state as a pruned one without being pruned.
+      storage.putNodeData("web-rendering", "pg001", rendering(1))
+
+      const { order, items } = resolveReadingOrder(storage)
+
+      expect(order.map((entry) => entry.id)).toContain("pg001_sec002")
+      // No HTML to ship, so it is not an output page.
+      expect(items.map((item) => item.id)).toEqual([
+        "pg001_sec001",
+        "pg002_sec001",
+        "pg002_sec002",
+      ])
+    } finally {
+      storage.close()
+    }
+  })
+
   it("skips rendering entries with no matching sectioning row", () => {
     const storage = makeStorage()
     try {
