@@ -1034,6 +1034,7 @@ export interface GeneratePageSpeechFilesOptions {
   geminiTemperature?: number
   geminiSeed?: number
   signal?: AbortSignal
+  onWhisperLog?: (entry: LlmLogEntry) => void
 }
 
 /**
@@ -1056,7 +1057,7 @@ export async function generatePageSpeechFiles(
   const {
     entries, language, model, voice, instructions, format, bookDir, cacheDir,
     ttsSynthesizer, whisperApiKey, rateLimiter, provider, voiceSlot, voiceLabel,
-    geminiTemperature, geminiSeed, signal,
+    geminiTemperature, geminiSeed, signal, onWhisperLog,
   } = options
   const slot: VoiceSlot = voiceSlot ?? "primary"
 
@@ -1132,6 +1133,7 @@ export async function generatePageSpeechFiles(
     language: getBaseLanguage(language),
     prompt: transcript,
     cacheDir,
+    onLog: onWhisperLog,
   })
 
   // 3) Slice the page audio into per-entry files at sentence boundaries.
@@ -1196,6 +1198,7 @@ export interface GenerateWordTimestampsOptions {
   language?: string
   prompt?: string
   cacheDir: string
+  onLog?: (entry: LlmLogEntry) => void
 }
 
 export interface GenerateWordTimestampsResult extends WhisperTranscriptionResult {
@@ -1209,7 +1212,17 @@ export interface GenerateWordTimestampsResult extends WhisperTranscriptionResult
 export async function generateWordTimestamps(
   options: GenerateWordTimestampsOptions,
 ): Promise<GenerateWordTimestampsResult> {
-  const { audioBuffer, fileName, apiKey, language, prompt, cacheDir } = options
+  const { audioBuffer, fileName, apiKey, language, prompt, cacheDir, onLog } = options
+  const startedAt = Date.now()
+  const log = (success: boolean, cached: boolean, result?: WhisperTranscriptionResult, error?: string) =>
+    onLog?.({
+      requestId: crypto.randomUUID(), timestamp: new Date().toISOString(), taskType: "word-timestamps",
+      pageId: fileName, promptName: "whisper-transcribe", modelId: "openai/whisper-1", cacheHit: cached,
+      success, errorCount: success ? 0 : 1, attempt: 1, durationMs: Date.now() - startedAt,
+      ...(error ? { error } : {}),
+      params: { language: language ?? "", fileName, hasPrompt: Boolean(prompt), ...(result ? { words: result.words.length, durationSec: result.duration } : {}) },
+      messages: [{ role: "user", content: [{ type: "text", text: prompt ?? "" }] }],
+    })
 
   const audioHash = crypto.createHash("sha256").update(audioBuffer).digest("hex")
   const hash = crypto
@@ -1224,14 +1237,18 @@ export async function generateWordTimestamps(
   if (fs.existsSync(cachePath)) {
     try {
       const parsed = JSON.parse(fs.readFileSync(cachePath, "utf-8")) as WhisperTranscriptionResult
+      log(true, true, parsed)
       return { ...parsed, cached: true }
     } catch {
       // Fall through to regenerate on parse failure
     }
   }
 
-  const result = await transcribeWithWhisper(audioBuffer, fileName, apiKey, language, prompt)
+  let result: WhisperTranscriptionResult
+  try { result = await transcribeWithWhisper(audioBuffer, fileName, apiKey, language, prompt) }
+  catch (cause) { const error = cause instanceof Error ? cause.message : String(cause); log(false, false, undefined, error); throw cause }
 
+  log(true, false, result)
   fs.mkdirSync(cacheRoot, { recursive: true })
   fs.writeFileSync(cachePath, JSON.stringify(result, null, 2) + "\n")
 

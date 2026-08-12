@@ -717,6 +717,7 @@ interface GenerateSpeechWordTimestampsOptions {
   textByLanguage: Map<string, Map<string, string>>
   concurrency: number
   progress: StageRunProgress
+  onLog?: (entry: LlmLogEntry) => void
   /** Run cancel — stops admitting new transcription items. */
   signal?: AbortSignal
 }
@@ -741,6 +742,7 @@ async function generateSpeechWordTimestamps(
     textByLanguage,
     concurrency,
     progress,
+    onLog,
     signal,
   } = options
 
@@ -811,6 +813,7 @@ async function generateSpeechWordTimestamps(
           language: getBaseLanguage(language),
           prompt,
           cacheDir,
+          onLog,
         })
         if (result.cached) {
           console.log(`[stage-run] ${label}: word timestamps cache hit for ${entry.textId} (${language})`)
@@ -3184,6 +3187,7 @@ async function runSpeechStep(
                 geminiTemperature: config.speech?.temperature,
                 geminiSeed: config.speech?.seed,
                 signal: options.signal,
+                onWhisperLog: (entry) => storage.appendLlmLog(entry),
               })
               for (const e of entries) ttsResultsByLang.get(group.language)?.push(e)
               // A page served from cache makes no request — don't reward the
@@ -3547,6 +3551,7 @@ async function runSpeechStep(
         textByLanguage,
         concurrency: effectiveConcurrency,
         progress,
+        onLog: (entry) => storage.appendLlmLog(entry),
         signal: options.signal,
       })
       wordTimestampsByLang = generatedWordTimestamps.entriesByLanguage
