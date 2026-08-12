@@ -92,7 +92,8 @@ export function ActionMenu({
         <div
           className={cn(
             "absolute top-full z-50 mt-1 min-w-[160px] rounded-md border bg-popover py-1 text-xs shadow-md",
-            align === "right" ? "right-0" : "left-0",
+            "motion-safe:animate-menu-in",
+            align === "right" ? "right-0 origin-top-right" : "left-0 origin-top-left",
             menuClassName
           )}
         >

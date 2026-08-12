@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
-import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Layers, Pin, Plus } from "lucide-react"
+import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus } from "lucide-react"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { cn } from "@/lib/utils"
 import { BookCover } from "../../../BookCover"
@@ -55,7 +55,7 @@ const BASE_SLUGS = ["extract", "sectioning", "storyboard"] as const
 const BASE: StageDef[] = BASE_SLUGS.map((slug) => STAGES.find((s) => s.slug === slug)!)
 const OPTIONAL: StageDef[] = STAGES.filter((s) => s.slug !== "book" && !(BASE_SLUGS as readonly string[]).includes(s.slug))
 
-export type Status = "new" | "setup" | "production" | "exported" | "rebuild"
+export type Status = "new" | "in-progress" | "ready" | "rebuild"
 
 export interface Progress {
   status: Status
@@ -64,7 +64,6 @@ export interface Progress {
   baseComplete: boolean
   optional: { stage: StageDef; done: boolean }[]
   optionalDone: { stage: StageDef; done: boolean }[]
-  exported: boolean
 }
 
 export function progressFor(vm: BookVM): Progress {
@@ -74,22 +73,13 @@ export function progressFor(vm: BookVM): Progress {
   const baseComplete = !baseFrontier
   const optional = OPTIONAL.map((stage) => ({ stage, done: done.has(stage.slug) }))
   const optionalDone = optional.filter((o) => o.done)
-  const exported = done.has("export")
-  const status: Status = vm.needsRebuild
-    ? "rebuild"
-    : vm.isNew
-      ? "new"
-      : !baseComplete
-        ? "setup"
-        : exported
-          ? "exported"
-          : "production"
-  return { status, baseSteps, baseFrontier, baseComplete, optional, optionalDone, exported }
+  const status: Status = vm.needsRebuild ? "rebuild" : vm.isNew ? "new" : !baseComplete ? "in-progress" : "ready"
+  return { status, baseSteps, baseFrontier, baseComplete, optional, optionalDone }
 }
 
-/** Books that need work now: base in progress, in production, or flagged for rebuild. */
+/** Books that still need work: base being built, or flagged for rebuild. */
 export function isActive(vm: BookVM): boolean {
-  return ["setup", "production", "rebuild"].includes(progressFor(vm).status)
+  return ["in-progress", "rebuild"].includes(progressFor(vm).status)
 }
 
 /**
@@ -115,7 +105,7 @@ export function StageBar({ vm, labels = false, className }: { vm: BookVM; labels
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1">
           {p.baseSteps.map(({ stage, done }) => {
-            const frontier = p.status === "setup" && p.baseFrontier?.slug === stage.slug
+            const frontier = p.status === "in-progress" && p.baseFrontier?.slug === stage.slug
             return (
               <span
                 key={stage.slug}
@@ -184,18 +174,11 @@ export function FrontierChip({ vm, className }: { vm: BookVM; className?: string
         <Trans>Needs rebuild</Trans>
       </span>
     )
-  if (p.status === "exported")
+  if (p.status === "ready")
     return (
       <span className={cn(base, "bg-stage-validation-50 text-stage-validation", className)}>
         <Check className="size-3.5" />
-        <Trans>Exported</Trans>
-      </span>
-    )
-  if (p.status === "production")
-    return (
-      <span className={cn(base, "bg-brand-50 text-brand-700", className)}>
-        <Layers className="size-3.5" />
-        <Trans>In production</Trans>
+        <Trans>Ready</Trans>
       </span>
     )
 
@@ -267,9 +250,8 @@ export function ContinueLabel({ vm }: { vm: BookVM }) {
   const { t } = useLingui()
   const p = progressFor(vm)
   if (p.status === "new") return <Trans>Start</Trans>
-  if (p.status === "exported") return <Trans>Open preview</Trans>
+  if (p.status === "ready") return <Trans>Open</Trans>
   if (p.status === "rebuild") return <Trans>Rebuild</Trans>
-  if (p.status === "production") return <Trans>Continue</Trans>
   return (
     <>
       {t`Continue`} <span className="opacity-70">· {p.baseFrontier!.label}</span>
@@ -282,7 +264,7 @@ export type Filter = "all" | "active" | "splits" | "ready"
 function matchesFilter(vm: BookVM, f: Filter): boolean {
   if (f === "active") return isActive(vm)
   if (f === "splits") return !!(vm.raw.split && !vm.raw.split.fullyMerged)
-  if (f === "ready") return progressFor(vm).status === "exported"
+  if (f === "ready") return progressFor(vm).status === "ready"
   return true
 }
 
@@ -294,7 +276,7 @@ export function filterBooks(books: BookVM[], f: Filter): BookVM[] {
 export function sortByStatus(books: BookVM[]): BookVM[] {
   const rank = (vm: BookVM) => {
     const s = progressFor(vm).status
-    return s === "rebuild" ? 0 : s === "setup" ? 1 : s === "new" ? 2 : s === "production" ? 3 : 4
+    return s === "rebuild" ? 0 : s === "in-progress" ? 1 : s === "new" ? 2 : 3
   }
   return [...books].sort(
     (a, b) => rank(a) - rank(b) || new Date(b.raw.modifiedAt).getTime() - new Date(a.raw.modifiedAt).getTime(),
@@ -316,7 +298,7 @@ export function FilterChips({
   const { t } = useLingui()
   const chips: { key: Filter; label: string }[] = [
     { key: "all", label: t`All` },
-    { key: "active", label: t`In production` },
+    { key: "active", label: t`In progress` },
     { key: "splits", label: t`Splits` },
     { key: "ready", label: t`Ready` },
   ]
@@ -353,6 +335,7 @@ export function ShelfCard({
   pinned = false,
   elevated = false,
   progress = false,
+  badge,
 }: {
   vm: BookVM
   onOpen: (label: string) => void
@@ -360,16 +343,22 @@ export function ShelfCard({
   pinned?: boolean
   elevated?: boolean
   progress?: boolean
+  badge?: ReactNode
 }) {
   return (
-    <button type="button" onClick={() => onOpen(vm.label)} className="group block text-left focus-visible:outline-none">
+    <button
+      type="button"
+      onClick={() => onOpen(vm.label)}
+      className="group block text-left transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.98] focus-visible:outline-none"
+    >
       <div
         className={cn(
-          "relative aspect-[3/4] overflow-hidden rounded-xl shadow-sm ring-1 ring-black/5 transition-transform duration-200 group-hover:-translate-y-1 group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-brand-500",
+          "relative aspect-[3/4] overflow-hidden rounded-xl shadow-sm ring-1 ring-black/5 transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:-translate-y-1 group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-brand-500",
           elevated && "ring-2 ring-brand-500",
         )}
       >
         <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} />
+        {badge && <div className="absolute left-2 top-2 z-10">{badge}</div>}
         {elevated ? (
           <span className="absolute inset-x-2 bottom-2 inline-flex items-center justify-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10.5px] font-semibold text-white backdrop-blur-sm">
             <ContinueLabel vm={vm} />
@@ -440,12 +429,9 @@ export function StatusLabel({ vm, className }: { vm: BookVM; className?: string 
   } else if (p.status === "rebuild") {
     text = t`Needs rebuild`
     color = "text-stage-toc"
-  } else if (p.status === "exported") {
-    text = t`Exported`
+  } else if (p.status === "ready") {
+    text = t`Ready`
     color = "text-stage-validation"
-  } else if (p.status === "production") {
-    text = t`In production`
-    color = "text-brand-700"
   } else {
     text = `${t`Next`} · ${p.baseFrontier!.label}`
     color = "text-foreground"
