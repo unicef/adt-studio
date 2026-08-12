@@ -3,7 +3,6 @@ import type { PageSectioningOutput } from "@adt/types"
 import { api, type PageDetail } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
-import { readingOrderKey } from "@/hooks/use-reading-order"
 
 /**
  * Take a section out of the book, or put it back.
@@ -79,8 +78,9 @@ export function useTogglePrune(bookLabel: string) {
         queryKey: ["books", bookLabel, "pages", vars.pageId],
       })
       void queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
-      // Which items the book renders changed, so book page numbers shift.
-      void queryClient.invalidateQueries({ queryKey: readingOrderKey(bookLabel) })
+      // Refreshes the reading order too — book page numbers shift when what the
+      // book renders changes. Note this fires when the *re-render is submitted*,
+      // not when it lands; the task's own completion handler covers that.
       invalidateStoryboardDependents(queryClient, bookLabel)
     },
   })

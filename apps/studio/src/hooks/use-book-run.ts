@@ -21,6 +21,7 @@ import { useAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
 import { getStageLabelI18n, getStageRunningLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { bookTasksKey } from "./use-book-tasks"
 import { invalidateStoryboardDependents } from "./use-page-mutations"
+import { readingOrderKey } from "./use-reading-order"
 import { useApiKey } from "./use-api-key"
 
 // ---------------------------------------------------------------------------
@@ -963,5 +964,15 @@ function invalidateStageData(qc: ReturnType<typeof useQueryClient>, label: strin
       qc.invalidateQueries({ queryKey: ["books", label, "tts"] })
       qc.invalidateQueries({ queryKey: ["books", label, "tts-timestamps"] })
       break
+  }
+
+  // The reading order is resolved from three things: the sections that exist
+  // (sectioning), which of them the storyboard rendered, and the quizzes — plus
+  // extract, which decides what there is to section at all. Running any of those
+  // stages can add, remove or re-number slots, so the sidebar's cached order has
+  // to be refetched. The remaining stages only add translations, captions or
+  // audio to pages that already have their place, and cannot move anything.
+  if (stage === "extract" || stage === "sectioning" || stage === "storyboard" || stage === "quizzes") {
+    qc.invalidateQueries({ queryKey: readingOrderKey(label) })
   }
 }
