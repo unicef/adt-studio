@@ -63,9 +63,10 @@ export interface ResolvedReadingOrder {
    */
   positionById: Map<string, number>
   /**
-   * The full order including items excluded from the output — currently the
-   * pruned ones. They keep their slot, so re-including an item restores it
-   * where it was rather than at the end.
+   * The full order, including slots excluded from the output: sections the user
+   * pruned, and sections the storyboard rendered nothing for. They keep their
+   * slot, so re-including one restores it where it was rather than at the end —
+   * and, more basically, so the UI has a row to offer that on at all.
    */
   order: ReadingOrderItem[]
   /** A stored order supplied the sequence (rather than the source-derived one). */
@@ -145,13 +146,21 @@ function readPageContexts(storage: Storage): PageContext[] {
 }
 
 /**
- * The source-derived order: pages by `page_number`, each page's rendered
- * sections by `sectionIndex`, then the quizzes anchored to that page.
+ * The source-derived order: pages by `page_number`, each page's sections in
+ * `sectionIndex` order, then the quizzes anchored to that page.
  *
- * Emits pruned sections too — reading order tracks slots, and whether a slot is
- * *shown* is a separate question answered by `isPruned`. Rendering entries with
- * no matching sectioning row are dropped: their real `sectionId` is unknowable,
- * and a positional guess could collide with a live section's id.
+ * Slots come from the *sectioning* tree, never from `web-rendering`. Those two
+ * disagree in one direction that matters: rendering skips a section that is
+ * pruned or that has nothing renderable in it, so driving the order from
+ * rendering silently loses a section's slot the moment the storyboard is
+ * re-run. Which slots exist is a question about what the book contains;
+ * whether a slot produces an output page is a separate one, answered by
+ * `isPruned` and by whether any HTML was rendered — see `resolveReadingOrder`.
+ *
+ * A rendering entry with no matching sectioning row is not a slot at all: its
+ * real `sectionId` is unknowable, and a positional guess could collide with a
+ * live section's id. Iterating sections rather than renderings makes that
+ * impossible by construction.
  */
 export function defaultReadingOrder(
   pageContexts: PageContext[],
@@ -166,9 +175,7 @@ export function defaultReadingOrder(
 
   const items: ReadingOrderItem[] = []
   for (const page of pageContexts) {
-    for (const entry of page.rendering) {
-      const section = page.sections[entry.sectionIndex]
-      if (!section) continue
+    for (const section of page.sections) {
       items.push({ kind: "section", id: section.sectionId })
     }
     for (const { quiz, index } of quizzesByAfterPageId.get(page.pageId) ?? []) {
@@ -297,19 +304,24 @@ export function resolveReadingOrder(
 
   const sectionsById = new Map<
     string,
-    { pageId: string; sectionIndex: number; section: PageSectioningSection; rendering: SectionRendering }
+    {
+      pageId: string
+      sectionIndex: number
+      section: PageSectioningSection
+      /** Absent when the storyboard skipped this section — pruned, or empty. */
+      rendering: SectionRendering | undefined
+    }
   >()
   for (const page of pageContexts) {
-    for (const entry of page.rendering) {
-      const section = page.sections[entry.sectionIndex]
-      if (!section) continue
+    const renderingByIndex = new Map(page.rendering.map((entry) => [entry.sectionIndex, entry]))
+    page.sections.forEach((section, sectionIndex) => {
       sectionsById.set(section.sectionId, {
         pageId: page.pageId,
-        sectionIndex: entry.sectionIndex,
+        sectionIndex,
         section,
-        rendering: entry,
+        rendering: renderingByIndex.get(sectionIndex),
       })
-    }
+    })
   }
   const quizzesById = new Map(
     quizzes.map((quiz, index) => [resolveQuizId(quiz, index), { quiz, index }])
@@ -324,7 +336,11 @@ export function resolveReadingOrder(
       continue
     }
     const hit = sectionsById.get(entry.id)
-    if (!hit || hit.section.isPruned) continue
+    // Both of these keep their slot in `order` but produce no output page: a
+    // pruned section is deliberately out of the book, and an unrendered one has
+    // no HTML to ship. Neither may be dropped from the order itself, or the
+    // user loses the row that would let them put it back.
+    if (!hit || hit.section.isPruned || !hit.rendering) continue
     items.push({
       kind: "section",
       id: entry.id,
