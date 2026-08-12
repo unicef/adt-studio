@@ -4,7 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { PIPELINE, type AppConfig, type ProgressEvent } from "@adt/types"
 import { computeSpeechCacheKey, stripEmojis } from "@adt/pipeline"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, openBookDb } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
   createStageRunner,
@@ -1167,6 +1167,7 @@ describe("createStageRunner speech Gemini partial failures", () => {
   })
 
   afterEach(() => {
+    vi.unstubAllEnvs()
     if (tmpDir) {
       fs.rmSync(tmpDir, { recursive: true, force: true })
       tmpDir = ""
@@ -1448,6 +1449,61 @@ speech:
       expect(ttsStep?.status).toBe("done")
     } finally {
       storage.close()
+    }
+  })
+
+  it("fails the speech step before any synthesis when a provider credential is missing", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: elevenlabs
+  providers:
+    elevenlabs:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "elevenlabs-tts-missing-key")
+    // The synthesizer factory falls back to the ambient key, so a developer
+    // machine with one exported would otherwise pass the pre-flight.
+    vi.stubEnv("ELEVENLABS_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await expect(
+      runner.run(
+        "elevenlabs-tts-missing-key",
+        {
+          booksDir,
+          apiKey: "sk-test",
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    ).rejects.toThrow(/ElevenLabs API key is required/)
+
+    // The credential is checked once, before any item is admitted: no synthesis
+    // is attempted and no per-item failure is logged.
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    const db = openBookDb(
+      path.join(booksDir, "elevenlabs-tts-missing-key", "elevenlabs-tts-missing-key.db")
+    )
+    try {
+      expect(db.all("SELECT request_id FROM llm_log WHERE step = 'tts'")).toHaveLength(0)
+    } finally {
+      db.close()
     }
   })
 

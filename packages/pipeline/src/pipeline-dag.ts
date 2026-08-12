@@ -1150,6 +1150,17 @@ export async function runFullPipeline(
       const totalItems = workItems.length
       let completedItems = 0
 
+      // Fail fast: build every synthesizer this run needs before admitting any
+      // item, so a missing credential surfaces as one clear stage error instead
+      // of one logged per-item failure for every entry that was in flight when
+      // the key turned out to be absent. getSynthesizer is memoized, so
+      // runTtsItem below reuses these instances. Derived from the resolved
+      // work items, so a secondary narrator on its own provider is covered and
+      // a run whose entries are all reused builds nothing.
+      for (const provider of new Set(workItems.map((item) => item.provider))) {
+        getSynthesizer(provider)
+      }
+
       const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(config.speech)
 
       const runTtsItem = async (item: TTSWorkItem) => {
