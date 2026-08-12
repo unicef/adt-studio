@@ -10,6 +10,8 @@ export interface PageEmptyStateProps {
   label: string
   page: PipelinePage
   sectioning: SectioningRun
+  /** Storyboard stage in flight — this page is queued for rendering. */
+  storyboardRunning?: boolean
   onOpenSectioning: () => void
 }
 
@@ -37,6 +39,7 @@ export function PageEmptyState({
   label,
   page,
   sectioning,
+  storyboardRunning,
   onOpenSectioning,
 }: PageEmptyStateProps) {
   const { t } = useLingui()
@@ -71,6 +74,21 @@ export function PageEmptyState({
           <Trans>Open sectioning</Trans>
         </Button>
       </EmptyState>
+    )
+  }
+
+  if (storyboardRunning && !page.hasRendering) {
+    return (
+      <EmptyState
+        className="w-[520px]"
+        illustration={
+          <GhostPage>
+            <Loader2 className="size-5 animate-spin" />
+          </GhostPage>
+        }
+        title={<Trans>Building this page</Trans>}
+        description={t`The storyboard is turning page ${page.pageNumber} into the page the reader sees. It shows up here as soon as it is built.`}
+      />
     )
   }
 

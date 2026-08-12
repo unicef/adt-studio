@@ -2229,6 +2229,9 @@ msgstr "Construyendo previsualización..."
 msgid "Building Storyboard..."
 msgstr "Construyendo storyboard..."
 
+msgid "Building this page"
+msgstr "Construyendo esta pÃ¡gina"
+
 msgid "Builds a glossary of key terms and definitions found in the text."
 msgstr "Crea un glosario de términos clave y definiciones encontradas en el texto."
 
@@ -7344,6 +7347,10 @@ msgstr "La pÃ¡gina {0} estÃ¡ descartada"
 msgid "Page {0} is in the queue. Its sections show up here as soon as the step reaches it."
 msgstr "La pÃ¡gina {0} estÃ¡ en la cola. Sus secciones aparecen aquÃ­ en cuanto el paso llegue a ella."
 
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is still being built"
+msgstr "La pÃ¡gina {0} todavÃ­a se estÃ¡ construyendo"
+
 #. placeholder {0}: current.pageNumber
 #. placeholder {0}: zoom + 1
 #. placeholder {1}: pages.length
@@ -10473,6 +10480,10 @@ msgstr "Las secciones se combinarán localmente. Sin una clave de API, será nec
 
 msgid "The storyboard is still empty"
 msgstr "El storyboard todavía está vacío"
+
+#. placeholder {0}: page.pageNumber
+msgid "The storyboard is turning page {0} into the page the reader sees. It shows up here as soon as it is built."
+msgstr "El Storyboard estÃ¡ convirtiendo la pÃ¡gina {0} en la pÃ¡gina que ve el lector. Aparece aquÃ­ en cuanto estÃ© lista."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "El storyboard debe completarse antes de generar {stageName}. Ejecuta la etapa de Storyboard primero."

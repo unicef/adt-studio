@@ -2229,6 +2229,9 @@ msgstr "Building Preview..."
 msgid "Building Storyboard..."
 msgstr "Building Storyboard..."
 
+msgid "Building this page"
+msgstr "Building this page"
+
 msgid "Builds a glossary of key terms and definitions found in the text."
 msgstr "Builds a glossary of key terms and definitions found in the text."
 
@@ -7344,6 +7347,10 @@ msgstr "Page {0} is discarded"
 msgid "Page {0} is in the queue. Its sections show up here as soon as the step reaches it."
 msgstr "Page {0} is in the queue. Its sections show up here as soon as the step reaches it."
 
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is still being built"
+msgstr "Page {0} is still being built"
+
 #. placeholder {0}: current.pageNumber
 #. placeholder {0}: zoom + 1
 #. placeholder {1}: pages.length
@@ -10473,6 +10480,10 @@ msgstr "The sections will be combined locally. Without an API key, the Storyboar
 
 msgid "The storyboard is still empty"
 msgstr "The storyboard is still empty"
+
+#. placeholder {0}: page.pageNumber
+msgid "The storyboard is turning page {0} into the page the reader sees. It shows up here as soon as it is built."
+msgstr "The storyboard is turning page {0} into the page the reader sees. It shows up here as soon as it is built."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."

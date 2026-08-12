@@ -2230,6 +2230,9 @@ msgstr "Duke ndërtuar pamjen paraprake..."
 msgid "Building Storyboard..."
 msgstr "Duke ndërtuar Storyboard-in..."
 
+msgid "Building this page"
+msgstr "Po ndÃ«rtohet kjo faqe"
+
 msgid "Builds a glossary of key terms and definitions found in the text."
 msgstr "Ndërton një glosar me termat kryesorë dhe përkufizimet e gjetura në tekst."
 
@@ -7345,6 +7348,10 @@ msgstr "Faqja {0} Ã«shtÃ« hequr"
 msgid "Page {0} is in the queue. Its sections show up here as soon as the step reaches it."
 msgstr "Faqja {0} Ã«shtÃ« nÃ« radhÃ«. Seksionet e saj shfaqen kÃ«tu sapo hapi tÃ« arrijÃ« tek ajo."
 
+#. placeholder {0}: page.pageNumber
+msgid "Page {0} is still being built"
+msgstr "Faqja {0} Ã«shtÃ« ende duke u ndÃ«rtuar"
+
 #. placeholder {0}: current.pageNumber
 #. placeholder {0}: zoom + 1
 #. placeholder {1}: pages.length
@@ -10474,6 +10481,10 @@ msgstr "Seksionet do të kombinohen lokalisht. Pa një çelës API-je, Storyboar
 
 msgid "The storyboard is still empty"
 msgstr "Storyboard-i është ende bosh"
+
+#. placeholder {0}: page.pageNumber
+msgid "The storyboard is turning page {0} into the page the reader sees. It shows up here as soon as it is built."
+msgstr "Storyboard-i po e kthen faqen {0} nÃ« faqen qÃ« sheh lexuesi. Ajo shfaqet kÃ«tu sapo tÃ« jetÃ« gati."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Storyboard duhet të plotësohet para gjenerimit të {stageName}. Ekzekuto fazën Storyboard fillimisht."

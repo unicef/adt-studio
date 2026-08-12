@@ -11,6 +11,8 @@ export interface PagesRailProps {
   pages: PipelinePage[]
   activePageId: string | null
   onSelect: (pageId: string) => void
+  /** Storyboard stage in flight — pages it has not reached yet show a spinner. */
+  storyboardRunning?: boolean
 }
 
 type Health = "ok" | "warn" | "todo"
@@ -29,7 +31,13 @@ const DOT_CLASS: Record<Health, string> = {
   todo: "bg-border",
 }
 
-export function PagesRail({ label, pages, activePageId, onSelect }: PagesRailProps) {
+export function PagesRail({
+  label,
+  pages,
+  activePageId,
+  onSelect,
+  storyboardRunning,
+}: PagesRailProps) {
   const { t } = useLingui()
 
   return (
@@ -47,13 +55,21 @@ export function PagesRail({ label, pages, activePageId, onSelect }: PagesRailPro
           {pages.map((page) => {
             const active = page.pageId === activePageId
             const missing = page.missingCaptions
+            const pending = !!storyboardRunning && !page.hasRendering && !page.isDiscarded
             return (
               <button
                 key={page.pageId}
                 type="button"
                 onClick={() => onSelect(page.pageId)}
                 aria-current={active ? "page" : undefined}
-                title={page.isDiscarded ? t`Page ${page.pageNumber} (discarded)` : undefined}
+                aria-busy={pending || undefined}
+                title={
+                  page.isDiscarded
+                    ? t`Page ${page.pageNumber} (discarded)`
+                    : pending
+                      ? t`Page ${page.pageNumber} is still being built`
+                      : undefined
+                }
                 className={cn(
                   "flex gap-2.5 rounded-[9px] p-2 text-left transition-colors",
                   active
@@ -68,6 +84,7 @@ export function PagesRail({ label, pages, activePageId, onSelect }: PagesRailPro
                   sectionIndex={page.sections[0]?.sectionIndex ?? null}
                   cacheKey={page.renderingVersion}
                   pruned={page.isDiscarded}
+                  pending={pending}
                   className="h-[70px] w-[52px]"
                 />
                 <div className="flex min-w-0 flex-col gap-1.5">

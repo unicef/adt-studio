@@ -234,6 +234,7 @@ export function PipelineScreen() {
               pages={state.pages}
               activePageId={activePage?.pageId ?? null}
               onSelect={setSelectedPageId}
+              storyboardRunning={storyboardActivity.isActive}
             />
           )}
         </SideRail>
@@ -283,6 +284,7 @@ export function PipelineScreen() {
                   zoom={zoom}
                   onZoomChange={setZoom}
                   sectioning={sectioningRun}
+                  storyboardRunning={storyboardActivity.isActive}
                   onOpenSectioning={() => openStep("sectioning")}
                 />
                 <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5">

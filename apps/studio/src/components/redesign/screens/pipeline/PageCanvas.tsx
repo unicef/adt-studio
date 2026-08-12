@@ -32,6 +32,8 @@ export interface PageCanvasProps {
   zoom: number
   onZoomChange: (zoom: number) => void
   sectioning: SectioningRun
+  /** Storyboard stage in flight — pages it has not reached yet are still building. */
+  storyboardRunning?: boolean
   onOpenSectioning: () => void
 }
 
@@ -86,6 +88,7 @@ export function PageCanvas({
   zoom,
   onZoomChange,
   sectioning,
+  storyboardRunning,
   onOpenSectioning,
 }: PageCanvasProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -94,7 +97,10 @@ export function PageCanvas({
   // 200ms behind the window while dragging. Suspend it until the drag settles.
   const [resizing, setResizing] = useState(false)
   const sections = page.sections.filter((s) => !s.isPruned)
-  const empty = sections.length === 0
+  // A page the storyboard has not reached yet has no screenshots to serve, so it
+  // waits behind the same panel the rail's spinner promises.
+  const building = !!storyboardRunning && !page.hasRendering && !page.isDiscarded
+  const empty = sections.length === 0 || building
 
   useEffect(() => {
     const node = scrollRef.current
@@ -135,6 +141,7 @@ export function PageCanvas({
           label={label}
           page={page}
           sectioning={sectioning}
+          storyboardRunning={storyboardRunning}
           onOpenSectioning={onOpenSectioning}
         />
       </div>
