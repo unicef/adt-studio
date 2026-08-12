@@ -4,7 +4,7 @@ import { htmlStore } from "../protocols/html-render";
 
 const windows = new Set<InstanceType<typeof BrowserWindow>>();
 
-const DEFAULT_SCREENSHOT_TIMEOUT_MS = 60_000;
+const DEFAULT_SCREENSHOT_TIMEOUT_MS = 30_000;
 
 /* An offscreen BrowserWindow can wedge without ever emitting did-finish-load or
    did-fail-load (a pending subresource, a window that never paints), so every

@@ -35,7 +35,7 @@ export function getViewportBreakpoints() {
 
 /** Budget for one whole capture. Generous on purpose: this is a backstop against
  *  a capture that never settles, not a performance knob. */
-export const DEFAULT_SCREENSHOT_TIMEOUT_MS = 60_000
+export const DEFAULT_SCREENSHOT_TIMEOUT_MS = 30_000
 
 export interface ScreenshotRenderer {
   /** Render HTML to a PNG screenshot and return it as base64. */
