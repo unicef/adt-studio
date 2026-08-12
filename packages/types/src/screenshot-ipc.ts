@@ -10,6 +10,7 @@ export const screenshotIpcRequestSchema = z.object({
   id: z.string().uuid(),
   html: z.string(),
   viewport: screenshotIpcViewportSchema.optional(),
+  timeoutMs: z.number().finite().positive().int().optional(),
 })
 
 export const screenshotIpcCloseSchema = z.object({
