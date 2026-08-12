@@ -51,6 +51,80 @@ function usedQuizIds(storage: Storage): string[] {
   return ids
 }
 
+/**
+ * Place a hand-added quiz in the book's quiz set.
+ *
+ * A position can hold several quizzes shown one after another: `"after"`
+ * appends the newcomer behind any already there, `"replace"` drops them first.
+ * The set is then ordered by where the reader meets each quiz's anchor page and
+ * `quizIndex` renumbered to stay sequential.
+ *
+ * The ordering of the two id-stamping passes is the load-bearing part. A quiz
+ * that predates `quizId` derives its id — and so its `${quizId}_que` catalog
+ * entries, their translations and their generated audio — from its position in
+ * the stored array. Stamping after the sort would therefore hand such a quiz
+ * whichever id used to belong to the quiz now sitting in its place. That was
+ * harmless while the sort key was the source page number, which matched the
+ * derivation order; it stopped being harmless when the key became reading rank,
+ * because a reordered book puts the two in different orders.
+ *
+ * Extracted from the route so this is testable without an LLM call.
+ */
+export function insertQuizAtPosition(opts: {
+  existing: QuizGenerationOutput | null
+  newQuiz: Quiz
+  placement: "replace" | "after"
+  afterPageId: string
+  /** pageId → position in the book. Absent means the book has no such page. */
+  readingRank: Map<string, number>
+  /** Ids used by previous stored versions, so a retired id is not reissued. */
+  reservedIds: string[]
+  fallback: { generatedAt: string; language: string; pagesPerQuiz: number }
+}): QuizGenerationOutput {
+  const { existing, newQuiz, placement, afterPageId, readingRank, reservedIds, fallback } = opts
+
+  // Stamp the stored set while it is still in its stored order — see above.
+  const stampedExisting = existing ? ensureQuizIds(existing, reservedIds).output.quizzes : []
+  // Ids stamped just now count as taken even for a quiz this call drops, so the
+  // newcomer cannot land on a removed quiz's id and inherit its entries.
+  const reserved = [
+    ...reservedIds,
+    ...stampedExisting.flatMap((quiz) => (quiz.quizId ? [quiz.quizId] : [])),
+  ]
+
+  const priorQuizzes =
+    placement === "after"
+      ? stampedExisting
+      : stampedExisting.filter((quiz) => quiz.afterPageId !== afterPageId)
+
+  const quizzes = [...priorQuizzes, newQuiz]
+  quizzes.sort((a, b) => {
+    // An anchor page the book no longer has sorts to the end, matching the TOC
+    // sort in packaging rather than silently leading the book. Equality is
+    // checked first because `Infinity - Infinity` is NaN, which would make the
+    // comparator incoherent for two such quizzes. The sort is stable, so
+    // quizzes sharing an anchor keep their relative order and the appended one
+    // stays last among them.
+    const rankA = readingRank.get(a.afterPageId) ?? Infinity
+    const rankB = readingRank.get(b.afterPageId) ?? Infinity
+    return rankA === rankB ? 0 : rankA - rankB
+  })
+  quizzes.forEach((quiz, index) => {
+    quiz.quizIndex = index
+  })
+
+  // Only the newcomer still needs an id; everything else already has one.
+  return ensureQuizIds(
+    {
+      generatedAt: existing?.generatedAt ?? fallback.generatedAt,
+      language: existing?.language ?? fallback.language,
+      pagesPerQuiz: existing?.pagesPerQuiz ?? fallback.pagesPerQuiz,
+      quizzes,
+    },
+    reserved
+  ).output
+}
+
 export function createQuizRoutes(
   booksDir: string,
   promptsDir?: string,
@@ -251,42 +325,24 @@ export function createQuizRoutes(
       // The user chooses where the quiz lands, independent of its source pages.
       const newQuiz: Quiz = { ...generated, afterPageId }
 
-      // Add to the existing quiz set (or start a fresh one). A position can hold
-      // multiple quizzes shown one after another. With placement "after" the new
-      // quiz is appended so it lands after any quizzes already at this position;
-      // with "replace" the quiz(zes) currently at this position are dropped first.
-      // Then re-order by book position and renumber so quizIndex stays sequential.
-      // The sort is stable, so quizzes sharing an afterPageId keep their relative
-      // order and the appended quiz stays last among them.
       const existingRow = storage.getLatestNodeData("quiz-generation", "book")
       const existing = existingRow
         ? (existingRow.data as QuizGenerationOutput)
         : null
 
-      const priorQuizzes =
-        placement === "after"
-          ? (existing?.quizzes ?? [])
-          : (existing?.quizzes ?? []).filter((q) => q.afterPageId !== afterPageId)
-      const quizzes = [...priorQuizzes, newQuiz]
-      quizzes.sort(
-        (a, b) =>
-          (readingRank.get(a.afterPageId) ?? 0) - (readingRank.get(b.afterPageId) ?? 0)
-      )
-      quizzes.forEach((q, i) => {
-        q.quizIndex = i
-      })
-
-      // Stamp ids before writing: the new quiz needs one, and any pre-existing
-      // quiz that predates `quizId` keeps the id its catalog entries already use.
-      const { output } = ensureQuizIds(
-        {
-          generatedAt: existing?.generatedAt ?? new Date().toISOString(),
-          language: existing?.language ?? quizConfig.language,
-          pagesPerQuiz: existing?.pagesPerQuiz ?? quizConfig.pagesPerQuiz,
-          quizzes,
+      const output = insertQuizAtPosition({
+        existing,
+        newQuiz,
+        placement,
+        afterPageId,
+        readingRank,
+        reservedIds: usedQuizIds(storage),
+        fallback: {
+          generatedAt: new Date().toISOString(),
+          language: quizConfig.language,
+          pagesPerQuiz: quizConfig.pagesPerQuiz,
         },
-        usedQuizIds(storage)
-      )
+      })
 
       const version = storage.putNodeData("quiz-generation", "book", output)
       // Adding a quiz by hand produces the same output as running the stage, so
