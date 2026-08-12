@@ -550,6 +550,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {faqe} other {faqe}} të ris
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} faqe"
 
+msgid "{percent}%"
+msgstr "{percent}%"
+
 msgid "{pruned} dropped"
 msgstr "{pruned} të hequra"
 
@@ -9118,8 +9121,8 @@ msgid "Section {0} · {1}"
 msgstr "Seksioni {0} · {1}"
 
 #. placeholder {0}: sectionIndex + 1
-msgid "Section {0} · {sectionType}"
-msgstr "Seksioni {0} · {sectionType}"
+#~ msgid "Section {0} · {sectionType}"
+#~ msgstr "Seksioni {0} · {sectionType}"
 
 #. placeholder {0}: String(i + 1)
 #. placeholder {0}: i + 1

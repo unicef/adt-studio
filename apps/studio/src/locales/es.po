@@ -549,6 +549,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {página} other {páginas}} 
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} páginas"
 
+msgid "{percent}%"
+msgstr "{percent}%"
+
 msgid "{pruned} dropped"
 msgstr "{pruned} descartadas"
 
@@ -9117,8 +9120,8 @@ msgid "Section {0} · {1}"
 msgstr "Sección {0} · {1}"
 
 #. placeholder {0}: sectionIndex + 1
-msgid "Section {0} · {sectionType}"
-msgstr "Sección {0} · {sectionType}"
+#~ msgid "Section {0} · {sectionType}"
+#~ msgstr "Sección {0} · {sectionType}"
 
 #. placeholder {0}: String(i + 1)
 #. placeholder {0}: i + 1

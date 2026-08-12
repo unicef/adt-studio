@@ -10,12 +10,16 @@ interface ScrollAreaProps
      auto-height Root, so a Root-only `max-h` clips the content without ever
      producing overflow — no scrollbar, and the tail unreachable. */
   viewportClassName?: string
+  /* Radix hides native scrollbars, so content wider than the viewport scrolls
+     without any visible affordance. Opt in to a horizontal bar when the content
+     can outgrow the viewport (zoomed canvases, wide tables). */
+  horizontal?: boolean
 }
 
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
   ScrollAreaProps
->(({ className, children, viewportClassName, ...props }, ref) => (
+>(({ className, children, viewportClassName, horizontal, ...props }, ref) => (
   <ScrollAreaPrimitive.Root
     ref={ref}
     className={cn("relative overflow-hidden", className)}
@@ -31,6 +35,7 @@ const ScrollArea = React.forwardRef<
       {children}
     </ScrollAreaPrimitive.Viewport>
     <ScrollBar />
+    {horizontal && <ScrollBar orientation="horizontal" />}
     <ScrollAreaPrimitive.Corner />
   </ScrollAreaPrimitive.Root>
 ))

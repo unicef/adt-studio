@@ -1,39 +1,48 @@
+import { useEffect, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle, ImageOff } from "lucide-react"
 import { useSectionScreenshot } from "@/hooks/use-pages"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { cn } from "@/lib/utils"
 import { PageEmptyState } from "./PageEmptyState"
 import { SectionSkeleton } from "./PageSkeleton"
 import type { Viewport } from "./types"
 import type { SectioningRun } from "./useSectioningRun"
 import type { PipelinePage } from "./usePipelineState"
+import { zoomBy } from "./zoom"
 
-const CANVAS_WIDTH: Record<Viewport, string> = {
-  desktop: "760px",
-  tablet: "600px",
-  mobile: "390px",
+/** Tablet and mobile emulate a device, so their width is fixed. Desktop takes
+ *  whatever the pane gives it. */
+const DEVICE_WIDTH: Record<Exclude<Viewport, "desktop">, number> = {
+  tablet: 600,
+  mobile: 390,
 }
+
+const CANVAS_PADDING = 48
+const DESKTOP_FALLBACK_WIDTH = 760
 
 export interface PageCanvasProps {
   label: string
   page: PipelinePage
   viewport: Viewport
+  zoom: number
+  onZoomChange: (zoom: number) => void
   sectioning: SectioningRun
   onOpenSectioning: () => void
 }
 
-function SectionFrame({
+function SectionSlice({
   label,
   page,
   sectionIndex,
-  sectionType,
   viewport,
+  single,
 }: {
   label: string
   page: PipelinePage
   sectionIndex: number
-  sectionType: string
   viewport: Viewport
+  single: boolean
 }) {
   const { t } = useLingui()
   const screenshot = useSectionScreenshot(label, page.pageId, sectionIndex, {
@@ -41,28 +50,27 @@ function SectionFrame({
     cacheKey: page.renderingVersion,
   })
 
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="px-1 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground/70">
-        {t`Section ${sectionIndex + 1} · ${sectionType}`}
+  if (screenshot.isError) {
+    return (
+      <div className="flex flex-col items-center gap-2 border-b border-dashed py-14 text-muted-foreground last:border-b-0">
+        <ImageOff className="size-5" />
+        <span className="text-[12.5px]">
+          <Trans>No preview rendered for this section yet</Trans>
+        </span>
       </div>
-      {screenshot.isError ? (
-        <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed py-14 text-muted-foreground">
-          <ImageOff className="size-5" />
-          <span className="text-[12.5px]">
-            <Trans>No preview rendered for this section yet</Trans>
-          </span>
-        </div>
-      ) : screenshot.data ? (
-        <img
-          src={screenshot.data}
-          alt={t`Preview of section ${sectionIndex + 1}`}
-          className="w-full rounded-lg border bg-card duration-200 animate-in fade-in-0"
-        />
-      ) : (
-        <SectionSkeleton className="aspect-[10/13] w-full" />
-      )}
-    </div>
+    )
+  }
+
+  if (!screenshot.data) {
+    return <SectionSkeleton className={single ? "min-h-96 border-0" : "min-h-64 border-0"} />
+  }
+
+  return (
+    <img
+      src={screenshot.data}
+      alt={t`Preview of section ${sectionIndex + 1}`}
+      className="block w-full duration-200 animate-in fade-in-0"
+    />
   )
 }
 
@@ -71,12 +79,52 @@ export function PageCanvas({
   label,
   page,
   viewport,
+  zoom,
+  onZoomChange,
   sectioning,
   onOpenSectioning,
 }: PageCanvasProps) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [paneWidth, setPaneWidth] = useState(0)
+  // The page width follows the pane, so an animated width would lag a whole
+  // 200ms behind the window while dragging. Suspend it until the drag settles.
+  const [resizing, setResizing] = useState(false)
   const sections = page.sections.filter((s) => !s.isPruned)
+  const empty = sections.length === 0
 
-  if (sections.length === 0) {
+  useEffect(() => {
+    const node = scrollRef.current
+    if (!node) return
+    setPaneWidth(node.clientWidth)
+    let settle: ReturnType<typeof setTimeout>
+    const observer = new ResizeObserver(([entry]) => {
+      setPaneWidth(entry.contentRect.width)
+      setResizing(true)
+      clearTimeout(settle)
+      settle = setTimeout(() => setResizing(false), 150)
+    })
+    observer.observe(node)
+    return () => {
+      clearTimeout(settle)
+      observer.disconnect()
+    }
+  }, [empty])
+
+  useEffect(() => {
+    const node = scrollRef.current
+    if (!node) return
+    // Registered manually: React's onWheel is passive, so preventDefault there
+    // cannot stop the browser from zooming the whole app instead.
+    const onWheel = (event: WheelEvent) => {
+      if (!event.ctrlKey && !event.metaKey) return
+      event.preventDefault()
+      onZoomChange(zoomBy(zoom, event.deltaY < 0 ? 1.1 : 1 / 1.1))
+    }
+    node.addEventListener("wheel", onWheel, { passive: false })
+    return () => node.removeEventListener("wheel", onWheel)
+  }, [zoom, onZoomChange])
+
+  if (empty) {
     return (
       <div className="flex min-h-0 w-full flex-1 items-center justify-center px-6 pb-24">
         <PageEmptyState
@@ -89,12 +137,19 @@ export function PageCanvas({
     )
   }
 
+  const fluid = viewport === "desktop"
+  const baseWidth = fluid
+    ? paneWidth
+      ? paneWidth - CANVAS_PADDING
+      : DESKTOP_FALLBACK_WIDTH
+    : DEVICE_WIDTH[viewport]
+
   return (
-    <ScrollArea className="min-h-0 w-full flex-1">
-      <div className="flex justify-center px-6 pb-[190px] pt-6">
+    <ScrollArea ref={scrollRef} horizontal className="min-h-0 w-full flex-1">
+      <div className="flex min-w-max justify-center px-6 pb-[190px] pt-6">
         <div
-          className="flex flex-col gap-5 transition-[width] duration-200"
-          style={{ width: CANVAS_WIDTH[viewport] }}
+          className={cn("flex flex-col gap-4", !resizing && "transition-[width] duration-200")}
+          style={{ width: baseWidth * zoom }}
         >
           {page.missingCaptions > 0 && (
             <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
@@ -103,16 +158,18 @@ export function PageCanvas({
             </div>
           )}
 
-          {sections.map((section) => (
-            <SectionFrame
-              key={section.sectionId}
-              label={label}
-              page={page}
-              sectionIndex={section.sectionIndex}
-              sectionType={section.sectionType}
-              viewport={viewport}
-            />
-          ))}
+          <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+            {sections.map((section) => (
+              <SectionSlice
+                key={section.sectionId}
+                label={label}
+                page={page}
+                sectionIndex={section.sectionIndex}
+                viewport={viewport}
+                single={sections.length === 1}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </ScrollArea>

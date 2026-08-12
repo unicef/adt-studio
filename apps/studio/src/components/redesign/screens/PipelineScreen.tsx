@@ -13,6 +13,7 @@ import { PipelineTopBar } from "./pipeline/PipelineTopBar"
 import { PluginDock } from "./pipeline/PluginDock"
 import { StageRunningPanel } from "./pipeline/StageRunningPanel"
 import { StoryboardEmptyState, type StoryboardPhase } from "./pipeline/StoryboardEmptyState"
+import { ZoomControl } from "./pipeline/ZoomControl"
 import { StepSettingsScreen } from "./pipeline/settings/StepSettingsScreen"
 import {
   defaultStepSettingsTab,
@@ -69,6 +70,7 @@ export function PipelineScreen() {
   const sectioningRun = useSectioningRun(label)
   const storyboardRun = useStoryboardRun(label)
   const [viewport, setViewport] = useState<Viewport>("desktop")
+  const [zoom, setZoom] = useState(1)
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
 
   usePageTitle(state.book?.title ?? label)
@@ -270,13 +272,22 @@ export function PipelineScreen() {
             </div>
           ) : (
             activePage && (
-              <PageCanvas
-                label={label}
-                page={activePage}
-                viewport={viewport}
-                sectioning={sectioningRun}
-                onOpenSectioning={() => openStep("sectioning")}
-              />
+              <>
+                <PageCanvas
+                  label={label}
+                  page={activePage}
+                  viewport={viewport}
+                  zoom={zoom}
+                  onZoomChange={setZoom}
+                  sectioning={sectioningRun}
+                  onOpenSectioning={() => openStep("sectioning")}
+                />
+                <ZoomControl
+                  value={zoom}
+                  onChange={setZoom}
+                  className="absolute right-4 top-4 z-10 bg-card/85 shadow-sm backdrop-blur-sm"
+                />
+              </>
             )
           )}
         </div>
