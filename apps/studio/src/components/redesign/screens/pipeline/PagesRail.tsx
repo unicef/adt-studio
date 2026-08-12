@@ -3,6 +3,7 @@ import { Plus } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { PageThumb } from "./PageThumb"
+import { RailCollapseButton } from "./SideRail"
 import type { PipelinePage } from "./usePipelineState"
 
 export interface PagesRailProps {
@@ -32,12 +33,13 @@ export function PagesRail({ label, pages, activePageId, onSelect }: PagesRailPro
   const { t } = useLingui()
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r bg-card">
-      <div className="flex items-center justify-between px-3.5 pb-2 pt-3.5">
+    <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-card">
+      <div className="flex items-center gap-2 px-3.5 pb-2 pt-3.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           <Trans>Pages</Trans>
         </span>
-        <span className="font-mono text-[11px] text-muted-foreground">{pages.length}</span>
+        <span className="ml-auto font-mono text-[11px] text-muted-foreground">{pages.length}</span>
+        <RailCollapseButton className="-mr-1" />
       </div>
 
       <ScrollArea className="min-h-0 flex-1">

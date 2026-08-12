@@ -4844,6 +4844,9 @@ msgstr "Ocultar el panel de IA"
 msgid "Hide the controls"
 msgstr "Ocultar los controles"
 
+msgid "Hide the sidebar"
+msgstr "Ocultar la barra lateral"
+
 msgid "Hide toasts automatically after a delay."
 msgstr "Ocultar los avisos automáticamente tras un intervalo."
 
@@ -9519,6 +9522,9 @@ msgstr "Show reviewer validation"
 
 msgid "Show the controls"
 msgstr "Mostrar los controles"
+
+msgid "Show the sidebar"
+msgstr "Mostrar la barra lateral"
 
 msgid "Show this help"
 msgstr "Mostrar esta ayuda"

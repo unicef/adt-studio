@@ -4846,6 +4846,9 @@ msgstr "Masquer le panneau IA"
 msgid "Hide the controls"
 msgstr "Masquer les contrÃ´les"
 
+msgid "Hide the sidebar"
+msgstr "Masquer la barre latÃ©rale"
+
 msgid "Hide toasts automatically after a delay."
 msgstr "Masquer automatiquement les notifications après un délai."
 
@@ -9521,6 +9524,9 @@ msgstr "Afficher la validation du réviseur"
 
 msgid "Show the controls"
 msgstr "Afficher les contrÃ´les"
+
+msgid "Show the sidebar"
+msgstr "Afficher la barre latÃ©rale"
 
 msgid "Show this help"
 msgstr "Afficher cette aide"

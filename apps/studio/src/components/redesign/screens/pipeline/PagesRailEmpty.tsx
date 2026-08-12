@@ -1,5 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
+import { RailCollapseButton } from "./SideRail"
 
 export interface PagesRailEmptyProps {
   pageCount: number
@@ -21,12 +22,13 @@ export function PagesRailEmpty({ pageCount, imageCount, extracting }: PagesRailE
   const { t } = useLingui()
 
   return (
-    <aside className="flex w-64 shrink-0 flex-col border-r bg-card">
-      <div className="flex items-center justify-between px-3.5 pb-2 pt-3.5">
+    <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-card">
+      <div className="flex items-center gap-2 px-3.5 pb-2 pt-3.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
           <Trans>Sections</Trans>
         </span>
-        <span className="font-mono text-[11px] text-muted-foreground/60">0</span>
+        <span className="ml-auto font-mono text-[11px] text-muted-foreground/60">0</span>
+        <RailCollapseButton className="-mr-1" />
       </div>
 
       <div className="flex flex-1 flex-col justify-center gap-2.5 px-3 pb-3">

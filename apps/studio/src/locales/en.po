@@ -4844,6 +4844,9 @@ msgstr "Hide the AI panel"
 msgid "Hide the controls"
 msgstr "Hide the controls"
 
+msgid "Hide the sidebar"
+msgstr "Hide the sidebar"
+
 msgid "Hide toasts automatically after a delay."
 msgstr "Hide toasts automatically after a delay."
 
@@ -9519,6 +9522,9 @@ msgstr "Show reviewer validation"
 
 msgid "Show the controls"
 msgstr "Show the controls"
+
+msgid "Show the sidebar"
+msgstr "Show the sidebar"
 
 msgid "Show this help"
 msgstr "Show this help"

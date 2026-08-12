@@ -12,6 +12,7 @@ import { PageCanvas } from "./pipeline/PageCanvas"
 import { PagesRail } from "./pipeline/PagesRail"
 import { PagesRailEmpty } from "./pipeline/PagesRailEmpty"
 import { PipelineTopBar } from "./pipeline/PipelineTopBar"
+import { SideRail } from "./pipeline/SideRail"
 import { PluginDock } from "./pipeline/PluginDock"
 import { StageRunningPanel } from "./pipeline/StageRunningPanel"
 import { StoryboardEmptyState, type StoryboardPhase } from "./pipeline/StoryboardEmptyState"
@@ -220,20 +221,22 @@ export function PipelineScreen() {
       />
 
       <div className="relative flex min-h-0 flex-1">
-        {empty ? (
-          <PagesRailEmpty
-            pageCount={state.pages.length}
-            imageCount={state.imageCount}
-            extracting={extractActivity.isActive}
-          />
-        ) : (
-          <PagesRail
-            label={label}
-            pages={state.pages}
-            activePageId={activePage?.pageId ?? null}
-            onSelect={setSelectedPageId}
-          />
-        )}
+        <SideRail widthClass="w-64">
+          {empty ? (
+            <PagesRailEmpty
+              pageCount={state.pages.length}
+              imageCount={state.imageCount}
+              extracting={extractActivity.isActive}
+            />
+          ) : (
+            <PagesRail
+              label={label}
+              pages={state.pages}
+              activePageId={activePage?.pageId ?? null}
+              onSelect={setSelectedPageId}
+            />
+          )}
+        </SideRail>
 
         <div className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden">
           {empty ? (

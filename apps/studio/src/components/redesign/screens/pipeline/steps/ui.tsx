@@ -3,6 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Check, Loader2, Pencil, X } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { RailCollapseButton } from "../SideRail"
 import { tint } from "../plugins"
 
 /** Scrolling body for a step, matching the workspace's centred column. */
@@ -211,9 +212,12 @@ export function StepRail({
 }) {
   return (
     <>
-      <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-        {heading}
-      </span>
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {heading}
+        </span>
+        <RailCollapseButton className="-mr-1 -my-1" />
+      </div>
 
       <ScrollArea className="-mx-1 min-h-0 flex-1">
         <div className="flex flex-col gap-0.5 px-1">

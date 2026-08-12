@@ -4845,6 +4845,9 @@ msgstr "Fshih panelin e IA"
 msgid "Hide the controls"
 msgstr "Fshih kontrollet"
 
+msgid "Hide the sidebar"
+msgstr "Fshih shiritin anÃ«sor"
+
 msgid "Hide toasts automatically after a delay."
 msgstr "Fshihni njoftimet automatikisht pas një vonese."
 
@@ -9520,6 +9523,9 @@ msgstr "Shfaq validimin e rishikuesit"
 
 msgid "Show the controls"
 msgstr "Shfaq kontrollet"
+
+msgid "Show the sidebar"
+msgstr "Shfaq shiritin anÃ«sor"
 
 msgid "Show this help"
 msgstr "Shfaqni këtë ndihmë"

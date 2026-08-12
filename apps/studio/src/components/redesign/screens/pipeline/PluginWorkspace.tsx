@@ -6,6 +6,7 @@ import { NO_DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
 import { AiEditPanel } from "./AiEditPanel"
 import { PluginDock } from "./PluginDock"
+import { SideRail } from "./SideRail"
 import { tint, type DockEntry } from "./plugins"
 import type { DockItem, PipelinePage } from "./usePipelineState"
 
@@ -108,12 +109,14 @@ export function PluginWorkspace({
       </header>
 
       <div className="relative flex min-h-0 flex-1">
-        <aside
-          className="flex w-56 shrink-0 flex-col gap-2.5 border-r bg-card p-3"
-          style={{ backgroundColor: tint(plugin.hex, 0.03) }}
-        >
-          {rail}
-        </aside>
+        <SideRail widthClass="w-56">
+          <aside
+            className="flex h-full w-56 shrink-0 flex-col gap-2.5 border-r bg-card p-3"
+            style={{ backgroundColor: tint(plugin.hex, 0.03) }}
+          >
+            {rail}
+          </aside>
+        </SideRail>
 
         <div className="flex min-w-0 flex-1 items-center justify-center overflow-auto px-6">
           {children}
