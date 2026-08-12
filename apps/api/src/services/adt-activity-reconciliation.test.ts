@@ -17,11 +17,13 @@ function bundle(
     version?: number
     activities?: Array<{ sectionId: string; href: string; type: string }>
     nonActivities?: Array<{ sectionId: string; href: string }>
+    sectionId?: string
   } = {},
 ): ReadAdtBundle {
+  const sectionId = options.sectionId ?? "pg001_sec001"
   const editingContract: Record<string, unknown> = {
     version: options.version ?? 2,
-    pageOrder: [{ sectionId: "pg001_sec001", href: "index.html" }],
+    pageOrder: [{ sectionId, href: "index.html" }],
     pageDataIds: { "index.html": ["text-1"] },
   }
   if (options.activities !== undefined) editingContract.activities = options.activities
@@ -41,7 +43,7 @@ function bundle(
     title: "Sample",
     cover: null,
     pageCount: 1,
-    pages: [{ section_id: "pg001_sec001", href: "index.html" }],
+    pages: [{ section_id: sectionId, href: "index.html" }],
     pageHtml: { "index.html": html },
     runtimeFeatures: {},
     toc: [],
@@ -52,8 +54,12 @@ function bundle(
   }
 }
 
-function page(sectionType: string, body = `<p data-id="text-1">Text</p>`): string {
-  return `<div id="content"><section data-section-id="pg001_sec001" data-section-type="${sectionType}">${body}</section></div>`
+function page(
+  sectionType: string,
+  body = `<p data-id="text-1">Text</p>`,
+  sectionId = "pg001_sec001",
+): string {
+  return `<div id="content"><section data-section-id="${sectionId}" data-section-type="${sectionType}">${body}</section></div>`
 }
 
 describe("ADT activity reconciliation", () => {
@@ -104,6 +110,31 @@ describe("ADT activity reconciliation", () => {
       suggestedType: "activity_custom_external",
     })
     expect(candidate.items[0].reasons).toContain("interactive-unmarked")
+  })
+
+  it("confirms a generated quiz page whose rendered options fail strict activity structure", () => {
+    // The quiz renderer places `data-activity-item` on the option <label>, while
+    // the activity-structure validator looks for it on the <input type="radio">.
+    // That mismatch made every freshly-exported quiz page report a structure
+    // error; generated quiz pages are frozen output and must stay confirmed.
+    const renderedQuiz = page(
+      "activity_quiz",
+      `<p data-id="qz001_que">Question</p>
+       <label class="activity-option" data-activity-item="qz001_o0">
+         <input type="radio" name="qz001" value="qz001_o0" class="sr-only" />
+         <span class="option-text" data-id="qz001_o0">Option A</span>
+       </label>`,
+      "qz001",
+    )
+    const review = analyzeImportedActivities(
+      bundle(renderedQuiz, {
+        sectionId: "qz001",
+        activities: [{ sectionId: "qz001", href: "index.html", type: "activity_quiz" }],
+      }),
+    )
+    expect(review.needsReviewCount).toBe(0)
+    expect(review.items[0]).toMatchObject({ status: "confirmed", kind: "quiz" })
+    expect(review.items[0].reasons).not.toContain("invalid-structure")
   })
 
   it("accepts explicit v1 markers and requires decisions only for ambiguous items", () => {

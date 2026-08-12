@@ -81,10 +81,11 @@ export function analyzeImportedActivities(
     const declared = declaredBySection.get(page.section_id) ?? null
     const declaredNonActivity = nonActivityBySection.get(page.section_id) ?? null
     if (declared) seen.add(declared.sectionId)
+    const generatedQuizPage = /^(?:qz|quiz)[-_]?\d*/i.test(page.section_id)
     const inspection = inspectImportedActivity(
       bundle.pageHtml[page.href] ?? "",
       page.section_id,
-      { allowSectionDataId: /^(?:qz|quiz)[-_]?\d*/i.test(page.section_id) },
+      { allowSectionDataId: generatedQuizPage },
     )
     const detectedType = inspection.isActivity ? inspection.sectionType : null
     const validDeclaredNonActivity = Boolean(
@@ -120,7 +121,13 @@ export function analyzeImportedActivities(
     ) {
       reasons.push("interactive-unmarked")
     }
-    if (inspection.validationErrors.length > 0) reasons.push("invalid-structure")
+    // Generated quiz pages are frozen output rendered from `quiz-generation`
+    // data — Studio regenerates them, they are never edited through the HTML
+    // round-trip. Their markup is the renderer's own, so structure validation
+    // must not surface them for user classification on import.
+    if (!generatedQuizPage && inspection.validationErrors.length > 0) {
+      reasons.push("invalid-structure")
+    }
 
     const type = suggestedType(declared?.type ?? null, detectedType)
     items.push({
