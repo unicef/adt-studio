@@ -240,6 +240,22 @@ describe("buildIndex", () => {
     expect(index).toContain(`<a href="content/pg002_sec001.html">Página 2</a>`)
     expect((index.match(/<li>/g) ?? [])).toHaveLength(PAGES.length)
   })
+
+  it("orders a stored TOC by reading position, not by the order it was stored in", () => {
+    // The `toc-generation` node keeps whatever order the LLM emitted or the
+    // user's editing left; a reorder never rewrites it. This nav ships beside
+    // a spine and an NCX built from `pageList`, so it has to agree with them.
+    const withToc = buildIndex("My Book", "pt-BR", ["Ada Lovelace"], PAGES, {
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      pageCount: 2,
+      entries: [
+        { id: "t2", title: "Second", sectionId: "pg002_sec001", href: "x.html", chapterId: "c2", level: 1 },
+        { id: "t1", title: "First", sectionId: "pg001_sec001", href: "x.html", chapterId: "c1", level: 1 },
+      ],
+    })
+
+    expect(withToc.indexOf("First")).toBeLessThan(withToc.indexOf("Second"))
+  })
 })
 
 describe("ensureJpegCover", () => {
