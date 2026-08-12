@@ -1,5 +1,47 @@
 import { describe, it, expect } from "vitest"
-import { mirrorDataIdToId, wrapWordSpans } from "../packaging/epub.js"
+import { mirrorDataIdToId, wrapWordSpans, buildNavDocument } from "../packaging/epub.js"
+import type { PageEntry } from "../packaging/web.js"
+
+describe("buildNavDocument", () => {
+  const pages: PageEntry[] = [
+    { section_id: "pg002_sec001", href: "pg002_sec001.xhtml", page_number: 2 },
+    { section_id: "pg001_sec001", href: "pg001_sec001.xhtml", page_number: 1 },
+  ]
+
+  it("orders a stored TOC by reading position, not by the order it was stored in", () => {
+    // The spine and the NCX in the same package are built from `pageList`. The
+    // stored `toc-generation` node is not — it keeps the order the LLM emitted
+    // and a reorder never rewrites it — so without sorting, one EPUB would ship
+    // a nav that disagreed with its own spine.
+    const nav = buildNavDocument("en", "Book", pages, {
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      pageCount: 2,
+      entries: [
+        { id: "t1", title: "Alpha", sectionId: "pg001_sec001", href: "x", chapterId: "c1", level: 1 },
+        { id: "t2", title: "Beta", sectionId: "pg002_sec001", href: "x", chapterId: "c2", level: 1 },
+      ],
+    })
+
+    // pg002 is first in the reading order, so "Beta" leads.
+    expect(nav.indexOf("Beta")).toBeLessThan(nav.indexOf("Alpha"))
+  })
+
+  it("keeps an entry whose section is not in the book at the end rather than dropping it silently", () => {
+    const nav = buildNavDocument("en", "Book", pages, {
+      generatedAt: "2026-01-01T00:00:00.000Z",
+      pageCount: 2,
+      entries: [
+        { id: "t0", title: "Ghost", sectionId: "pg009_sec001", href: "x", chapterId: "c0", level: 1 },
+        { id: "t2", title: "Beta", sectionId: "pg002_sec001", href: "x", chapterId: "c2", level: 1 },
+      ],
+    })
+
+    // The ghost has no href to resolve, so it renders as nothing at all — but
+    // it must not have displaced a real entry on the way there.
+    expect(nav).toContain("Beta")
+    expect(nav).not.toContain("Ghost")
+  })
+})
 
 describe("mirrorDataIdToId", () => {
   it("adds id= matching data-id when id is absent", () => {

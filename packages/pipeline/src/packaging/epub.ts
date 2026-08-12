@@ -16,6 +16,7 @@ import {
 } from "./web.js"
 import { htmlToXhtml } from "../html-semantics.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
+import { sortTocEntriesByPageList } from "./toc-order.js"
 
 /**
  * Canonical word-id format used by SMIL fragment refs, EPUB packaging
@@ -802,7 +803,7 @@ ${spineLines.join("\n")}
 </package>`
 }
 
-function buildNavDocument(
+export function buildNavDocument(
   language: string,
   title: string,
   pageList: PageEntry[],
@@ -818,9 +819,12 @@ function buildNavDocument(
   const isGlossaryPage = (p: PageEntry) => /^glp\d+$/.test(p.section_id)
 
   if (llmToc && llmToc.entries.length > 0) {
-    // Use LLM-generated TOC — map sectionIds to page hrefs
+    // Use LLM-generated TOC — map sectionIds to page hrefs. Sorted by reading
+    // position, because the stored TOC keeps the order the LLM (or the user's
+    // editing) left it in, and a nav document that disagrees with the spine
+    // and the NCX beside it is a broken EPUB.
     const sectionMap = new Map(pageList.map((p) => [p.section_id, p.href]))
-    const items = llmToc.entries
+    const items = sortTocEntriesByPageList(llmToc.entries, pageList)
       .map((e) => {
         const href = sectionMap.get(e.sectionId)
         if (!href) return ""
