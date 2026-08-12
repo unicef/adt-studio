@@ -1,4 +1,4 @@
-import { useEffect, useState, type RefObject } from "react"
+import { useEffect, useLayoutEffect, useState, type RefObject } from "react"
 import type { Viewport } from "./types"
 import { zoomBy } from "./zoom"
 
@@ -21,19 +21,32 @@ export interface CanvasPane {
   height: number
 }
 
+let lastPane: CanvasPane = { width: 0, height: 0 }
+
+function samePane(a: CanvasPane, b: CanvasPane): boolean {
+  return a.width === b.width && a.height === b.height
+}
+
 export function useCanvasPane(ref: RefObject<HTMLDivElement | null>, attached: boolean) {
-  const [pane, setPane] = useState<CanvasPane>({ width: 0, height: 0 })
+  const [pane, setPane] = useState<CanvasPane>(lastPane)
   // The content width follows the pane, so an animated width would lag a whole
   // 200ms behind the window while dragging. Suspend it until the drag settles.
   const [resizing, setResizing] = useState(false)
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const node = ref.current
     if (!node) return
-    setPane({ width: node.clientWidth, height: node.clientHeight })
+    const measured = { width: node.clientWidth, height: node.clientHeight }
+    if (measured.width && !samePane(measured, lastPane)) {
+      lastPane = measured
+      setPane(measured)
+    }
     let settle: ReturnType<typeof setTimeout>
     const observer = new ResizeObserver(([entry]) => {
-      setPane({ width: entry.contentRect.width, height: entry.contentRect.height })
+      const next = { width: entry.contentRect.width, height: entry.contentRect.height }
+      if (samePane(next, lastPane)) return
+      lastPane = next
+      setPane(next)
       setResizing(true)
       clearTimeout(settle)
       settle = setTimeout(() => setResizing(false), 150)

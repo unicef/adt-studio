@@ -25,12 +25,19 @@ const REVEAL_TIMEOUT_MS = 1500
 const measuredHeights = new Map<string, number>()
 const MEASURED_CAP = 60
 
+let lastSettledHeight: number | null = null
+
 function rememberHeight(src: string, height: number): void {
   measuredHeights.delete(src)
   measuredHeights.set(src, height)
   if (measuredHeights.size > MEASURED_CAP) {
     measuredHeights.delete(measuredHeights.keys().next().value as string)
   }
+  lastSettledHeight = height
+}
+
+function startingHeight(src: string): number | null {
+  return measuredHeights.get(src) ?? lastSettledHeight
 }
 
 /** A live `adt-preview` render, scaled from the width it lays out at down to
@@ -45,12 +52,12 @@ export function InteractiveBlock({
   className,
 }: InteractiveBlockProps) {
   const frameRef = useRef<HTMLIFrameElement>(null)
-  const [height, setHeight] = useState<number | null>(() => measuredHeights.get(src) ?? null)
+  const [height, setHeight] = useState<number | null>(() => startingHeight(src))
   const [ready, setReady] = useState(false)
   const scale = displayWidth / frameWidth
 
   useEffect(() => {
-    setHeight(measuredHeights.get(src) ?? null)
+    setHeight(startingHeight(src))
     setReady(false)
   }, [src])
 
@@ -62,9 +69,9 @@ export function InteractiveBlock({
       if (!data || data.type !== "adt-preview:height") return
       if (typeof data.height !== "number" || data.height <= 0) return
       const next = Math.ceil(data.height)
-      rememberHeight(src, next)
       clearTimeout(settle)
       settle = setTimeout(() => {
+        rememberHeight(src, next)
         setHeight(next)
         setReady(true)
       }, HEIGHT_SETTLE_MS)
