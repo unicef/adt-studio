@@ -7,6 +7,8 @@ export interface BookCoverProps {
   title: string
   author: string
   cover: CoverSpec
+  /** How a real cover image fills the frame. "cover" bleeds edge-to-edge (no letterbox). */
+  fit?: "contain" | "cover"
 }
 
 /**
@@ -14,7 +16,7 @@ export interface BookCoverProps {
  * single component renders crisply at 48px, 96px or 227px. Ported from the
  * design's BookCover.dc.html.
  */
-export function BookCover({ title, author, cover }: BookCoverProps) {
+export function BookCover({ title, author, cover, fit = "contain" }: BookCoverProps) {
   const { t } = useLingui()
   const [failedSrc, setFailedSrc] = useState<string | null>(null)
   const imageSrc = cover.src && cover.src !== failedSrc ? cover.src : null
@@ -39,7 +41,7 @@ export function BookCover({ title, author, cover }: BookCoverProps) {
             inset: 0,
             width: "100%",
             height: "100%",
-            objectFit: "contain",
+            objectFit: fit,
             background: "var(--muted)",
           }}
         />
