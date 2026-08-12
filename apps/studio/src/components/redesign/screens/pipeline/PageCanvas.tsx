@@ -4,6 +4,7 @@ import { AlertTriangle, ImageOff } from "lucide-react"
 import { useSectionScreenshot } from "@/hooks/use-pages"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { PageDeviceFrame } from "./PageDeviceFrame"
 import { PageEmptyState } from "./PageEmptyState"
 import { SectionSkeleton } from "./PageSkeleton"
 import type { Viewport } from "./types"
@@ -11,14 +12,17 @@ import type { SectioningRun } from "./useSectioningRun"
 import type { PipelinePage } from "./usePipelineState"
 import { zoomBy } from "./zoom"
 
-/** Tablet and mobile emulate a device, so their width is fixed. Desktop takes
- *  whatever the pane gives it. */
+/** Tablet and mobile emulate a device, so their width is fixed — these mirror
+ *  the widths the screenshots are captured at, keeping the device screen 1:1.
+ *  Desktop takes whatever the pane gives it. */
 const DEVICE_WIDTH: Record<Exclude<Viewport, "desktop">, number> = {
-  tablet: 600,
+  tablet: 768,
   mobile: 390,
 }
 
 const CANVAS_PADDING = 48
+/** px-6 on both sides plus pt-6 / pb-10 around the device. */
+const DEVICE_PADDING = 64
 const DESKTOP_FALLBACK_WIDTH = 760
 
 export interface PageCanvasProps {
@@ -85,7 +89,7 @@ export function PageCanvas({
   onOpenSectioning,
 }: PageCanvasProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
-  const [paneWidth, setPaneWidth] = useState(0)
+  const [pane, setPane] = useState({ width: 0, height: 0 })
   // The page width follows the pane, so an animated width would lag a whole
   // 200ms behind the window while dragging. Suspend it until the drag settles.
   const [resizing, setResizing] = useState(false)
@@ -95,10 +99,10 @@ export function PageCanvas({
   useEffect(() => {
     const node = scrollRef.current
     if (!node) return
-    setPaneWidth(node.clientWidth)
+    setPane({ width: node.clientWidth, height: node.clientHeight })
     let settle: ReturnType<typeof setTimeout>
     const observer = new ResizeObserver(([entry]) => {
-      setPaneWidth(entry.contentRect.width)
+      setPane({ width: entry.contentRect.width, height: entry.contentRect.height })
       setResizing(true)
       clearTimeout(settle)
       settle = setTimeout(() => setResizing(false), 150)
@@ -137,12 +141,46 @@ export function PageCanvas({
     )
   }
 
-  const fluid = viewport === "desktop"
-  const baseWidth = fluid
-    ? paneWidth
-      ? paneWidth - CANVAS_PADDING
-      : DESKTOP_FALLBACK_WIDTH
-    : DEVICE_WIDTH[viewport]
+  const slices = sections.map((section) => (
+    <SectionSlice
+      key={section.sectionId}
+      label={label}
+      page={page}
+      sectionIndex={section.sectionIndex}
+      viewport={viewport}
+      single={sections.length === 1}
+    />
+  ))
+
+  const captionsWarning = page.missingCaptions > 0 && (
+    <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+      <AlertTriangle className="size-3.5 shrink-0" />
+      <Trans>This page has images without an alternative description.</Trans>
+    </div>
+  )
+
+  if (viewport !== "desktop") {
+    return (
+      <ScrollArea ref={scrollRef} horizontal className="min-h-0 w-full flex-1">
+        <div className="flex min-w-max flex-col items-center gap-4 px-6 pb-10 pt-6">
+          {captionsWarning}
+          <PageDeviceFrame
+            viewport={viewport}
+            screenWidth={DEVICE_WIDTH[viewport]}
+            zoom={zoom}
+            available={{
+              width: pane.width - CANVAS_PADDING,
+              height: pane.height - DEVICE_PADDING,
+            }}
+          >
+            {slices}
+          </PageDeviceFrame>
+        </div>
+      </ScrollArea>
+    )
+  }
+
+  const baseWidth = pane.width ? pane.width - CANVAS_PADDING : DESKTOP_FALLBACK_WIDTH
 
   return (
     <ScrollArea ref={scrollRef} horizontal className="min-h-0 w-full flex-1">
@@ -151,25 +189,9 @@ export function PageCanvas({
           className={cn("flex flex-col gap-4", !resizing && "transition-[width] duration-200")}
           style={{ width: baseWidth * zoom }}
         >
-          {page.missingCaptions > 0 && (
-            <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-              <AlertTriangle className="size-3.5 shrink-0" />
-              <Trans>This page has images without an alternative description.</Trans>
-            </div>
-          )}
+          {captionsWarning}
 
-          <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
-            {sections.map((section) => (
-              <SectionSlice
-                key={section.sectionId}
-                label={label}
-                page={page}
-                sectionIndex={section.sectionIndex}
-                viewport={viewport}
-                single={sections.length === 1}
-              />
-            ))}
-          </div>
+          <div className="overflow-hidden rounded-lg bg-card">{slices}</div>
         </div>
       </div>
     </ScrollArea>

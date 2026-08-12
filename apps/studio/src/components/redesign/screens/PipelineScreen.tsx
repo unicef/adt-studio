@@ -3,6 +3,7 @@ import { getRouteApi, useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { CircleCheck, CircleAlert, Loader2 } from "lucide-react"
 import { usePageTitle } from "@/hooks/use-page-title"
+import { PreviewViewportToggle } from "@/components/pipeline/components/PreviewViewportToggle"
 import { cn } from "@/lib/utils"
 import { ScreenFallback } from "../ui/ScreenFallback"
 import { AiEditPanel } from "./pipeline/AiEditPanel"
@@ -186,9 +187,6 @@ export function PipelineScreen() {
         label={label}
         pageLabel={empty || !activePage ? undefined : t`Page ${activePage.pageNumber}`}
         version={empty ? null : activePage?.renderingVersion ?? null}
-        viewport={viewport}
-        onViewportChange={setViewport}
-        disabled={empty}
         status={
           runningStage ? (
             <StatusPill tone="running">
@@ -282,11 +280,19 @@ export function PipelineScreen() {
                   sectioning={sectioningRun}
                   onOpenSectioning={() => openStep("sectioning")}
                 />
-                <ZoomControl
-                  value={zoom}
-                  onChange={setZoom}
-                  className="absolute right-4 top-4 z-10 bg-card/85 shadow-sm backdrop-blur-sm"
-                />
+                <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5">
+                  <PreviewViewportToggle
+                    value={viewport}
+                    onChange={setViewport}
+                    variant="surface"
+                    className="h-8 rounded-lg border shadow-sm"
+                  />
+                  <ZoomControl
+                    value={zoom}
+                    onChange={setZoom}
+                    className="bg-card/85 shadow-sm backdrop-blur-sm"
+                  />
+                </div>
               </>
             )
           )}
