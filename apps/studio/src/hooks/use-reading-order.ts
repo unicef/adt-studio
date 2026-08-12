@@ -30,6 +30,40 @@ export function moveReadingOrderItem(
 }
 
 /**
+ * Move `id` by `delta` rows of a displayed list, expressed against the stored
+ * order. Returns null when the move is a no-op.
+ *
+ * The two are not the same list: `order` holds every slot, while `rowIds` is
+ * what a given screen could actually resolve and draw. So a step is measured in
+ * rows the user can see and then anchored back onto the row it should land
+ * beside, rather than applied to `order` as a raw offset — otherwise a slot the
+ * screen skipped would silently swallow the step.
+ *
+ * Shared by the storyboard sidebar and the overview's book-order view, which
+ * display different subsets and must still agree on what "move down" means.
+ */
+export function moveReadingOrderRow(
+  order: readonly ReadingOrderEntry[],
+  rowIds: readonly string[],
+  id: string,
+  delta: number,
+): ReadingOrderEntry[] | null {
+  const from = rowIds.indexOf(id)
+  if (from < 0) return null
+
+  // Stepping down needs +1 on top of the step: the item leaves its own slot
+  // before being reinserted, so landing "after the next row" is index from + 2.
+  const toRow = delta > 0 ? from + 2 : from - 1
+  const anchorId = rowIds[Math.max(0, Math.min(toRow, rowIds.length))]
+  const target = anchorId != null ? order.findIndex((entry) => entry.id === anchorId) : order.length
+  if (target < 0) return null
+
+  const next = moveReadingOrderItem(order, id, target)
+  if (next.every((entry, index) => entry.id === order[index]?.id)) return null
+  return next
+}
+
+/**
  * Save a reordering, updating the cache before the request lands so the row
  * doesn't visibly snap back to its old slot while the save is in flight.
  * Restores the previous cache entry if the save fails.

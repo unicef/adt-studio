@@ -1,4 +1,4 @@
-import { Copy, Eye, EyeOff, Merge, MoreHorizontal, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, Merge, MoreHorizontal, Trash2 } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import { ActionMenu } from "@/components/ui/action-menu"
 
@@ -20,6 +20,15 @@ export interface SectionActionsDropdownProps {
   disabledReason?: string
   /** Overrides `disabled` for the prune toggle (a local edit on some screens). */
   pruneDisabled?: boolean
+  /**
+   * Reading-order moves. Omitted on screens that list sections in source-PDF
+   * order, where a move would change the book without moving the row — the
+   * control has to sit where its effect is visible.
+   */
+  onMoveUp?: () => void
+  onMoveDown?: () => void
+  canMoveUp?: boolean
+  canMoveDown?: boolean
 }
 
 /**
@@ -48,6 +57,10 @@ export function SectionActionsDropdown({
   disabled,
   disabledReason,
   pruneDisabled,
+  onMoveUp,
+  onMoveDown,
+  canMoveUp,
+  canMoveDown,
 }: SectionActionsDropdownProps) {
   const { t } = useLingui()
 
@@ -75,6 +88,22 @@ export function SectionActionsDropdown({
         ) : undefined
       }
       items={[
+        {
+          icon: ArrowUp,
+          label: t`Move up`,
+          onClick: () => onMoveUp?.(),
+          hidden: !onMoveUp,
+          disabled: disabled || !canMoveUp,
+        },
+        {
+          icon: ArrowDown,
+          label: t`Move down`,
+          onClick: () => onMoveDown?.(),
+          hidden: !onMoveDown,
+          disabled: disabled || !canMoveDown,
+        },
+        // Collapses on its own when both moves are hidden.
+        { separator: true },
         {
           icon: isPruned ? Eye : EyeOff,
           label: isPruned ? t`Add back to book` : t`Remove from book`,

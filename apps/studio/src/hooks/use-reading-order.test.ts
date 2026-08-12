@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { moveReadingOrderItem } from "./use-reading-order"
+import { moveReadingOrderItem, moveReadingOrderRow } from "./use-reading-order"
 import type { ReadingOrderEntry } from "@/api/client"
 
 function order(ids: string): ReadingOrderEntry[] {
@@ -50,5 +50,45 @@ describe("moveReadingOrderItem", () => {
       const result = moveReadingOrderItem(input, "c", target)
       expect([...result].map((e) => e.id).sort()).toEqual(["a", "b", "c", "d", "e"])
     }
+  })
+})
+
+describe("moveReadingOrderRow", () => {
+  const rows = (list: string) => list.split(/\s+/).filter(Boolean)
+
+  function move(orderIds: string, rowIds: string, id: string, delta: number): string | null {
+    const result = moveReadingOrderRow(order(orderIds), rows(rowIds), id, delta)
+    return result === null ? null : ids(result)
+  }
+
+  it("steps a row down past its neighbour", () => {
+    expect(move("a b c", "a b c", "a", 1)).toBe("b a c")
+  })
+
+  it("steps a row up past its neighbour", () => {
+    expect(move("a b c", "a b c", "c", -1)).toBe("a c b")
+  })
+
+  it("is a no-op at either end", () => {
+    expect(move("a b c", "a b c", "a", -1)).toBeNull()
+    expect(move("a b c", "a b c", "c", 1)).toBeNull()
+  })
+
+  it("is a no-op for a row the list does not show", () => {
+    expect(move("a b c", "a b", "c", -1)).toBeNull()
+  })
+
+  // The two lists differ whenever a screen cannot resolve every slot — a quiz
+  // row in the sections-only overview, say. A step must then cross the whole
+  // gap in one go rather than landing the row in a slot the user cannot see,
+  // which would look like the move did nothing.
+  it("steps over slots the displayed list skips", () => {
+    expect(move("a hidden b", "a b", "a", 1)).toBe("hidden b a")
+    expect(move("a hidden b", "a b", "b", -1)).toBe("b a hidden")
+  })
+
+  it("keeps every slot exactly once, including the skipped ones", () => {
+    const result = moveReadingOrderRow(order("a x b y c"), rows("a b c"), "a", 1)
+    expect([...result!].map((e) => e.id).sort()).toEqual(["a", "b", "c", "x", "y"])
   })
 })

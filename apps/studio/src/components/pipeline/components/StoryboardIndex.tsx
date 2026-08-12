@@ -15,7 +15,13 @@ import { useQueryClient } from "@tanstack/react-query"
 import { ActionMenu } from "@/components/ui/action-menu"
 import { VersionPicker } from "./VersionPicker"
 import { STAGES } from "../stage-config"
-import { useReadingOrder, useSaveReadingOrder, moveReadingOrderItem, readingOrderKey } from "@/hooks/use-reading-order"
+import {
+  useReadingOrder,
+  useSaveReadingOrder,
+  moveReadingOrderItem,
+  moveReadingOrderRow,
+  readingOrderKey,
+} from "@/hooks/use-reading-order"
 import { useTogglePrune } from "@/hooks/use-toggle-prune"
 import { announceToScreenReader } from "@/lib/aria-live"
 import { resolveQuizId, type Quiz } from "@adt/types"
@@ -138,15 +144,20 @@ export function StoryboardIndex({
     [readingOrder, items, saveOrder, t],
   )
 
+  /** Step a row up or down. Shared with the overview's book-order view. */
   const moveBy = useCallback(
     (id: string, delta: number) => {
-      const from = items.findIndex((item) => itemIdOf(item) === id)
-      if (from < 0) return
-      // splice-based move: stepping down needs +1 because the item is removed
-      // from its old slot before being reinserted.
-      moveTo(id, delta > 0 ? from + 2 : from - 1)
+      if (!readingOrder) return
+      const next = moveReadingOrderRow(readingOrder.order, items.map(itemIdOf), id, delta)
+      if (!next) return
+
+      const landed = next.findIndex((entry) => entry.id === id) + 1
+      announceToScreenReader(
+        t`Moved to position ${String(landed)} of ${String(next.length)}`,
+      )
+      saveOrder.mutate({ items: next, expectedVersion: readingOrder.version })
     },
-    [items, moveTo],
+    [readingOrder, items, saveOrder, t],
   )
 
 
@@ -504,12 +515,18 @@ function RowPosition({
   position,
   pageNumber,
   kind,
+  isRemoved,
 }: {
-  /** null when the page is removed from the book and so has no book page. */
+  /**
+   * null when the page has no book page — either the user removed it, or the
+   * storyboard rendered nothing for it (a section with no renderable content).
+   */
   position: number | null
   pageNumber: number
   /** A quiz sits *after* a source page rather than coming from one. */
   kind: "section" | "quiz"
+  /** Distinguishes the two reasons a position can be missing. */
+  isRemoved?: boolean
 }) {
   const { t } = useLinguiMacro()
   return (
@@ -517,9 +534,11 @@ function RowPosition({
       <span
         data-testid="book-page"
         title={
-          position === null
-            ? t`Removed from the book`
-            : t`Page ${String(position)} of the book`
+          position !== null
+            ? t`Page ${String(position)} of the book`
+            : isRemoved
+              ? t`Removed from the book`
+              : t`Not in the book yet — the storyboard has not rendered this section`
         }
         className="inline-flex items-center justify-center min-w-[15px] h-[13px] px-0.5 rounded bg-foreground/10 text-[9px] font-semibold leading-none tabular-nums"
       >
@@ -598,9 +617,11 @@ function SectionRow({
       title={
         section.isPruned
           ? t`Removed from the book · PDF page ${String(page.pageNumber)}`
-          : section.sectionType
-            ? t`Book page ${String(position)} · PDF page ${String(page.pageNumber)} · ${section.sectionType}`
-            : t`Book page ${String(position)} · PDF page ${String(page.pageNumber)}`
+          : position === null
+            ? t`Not rendered yet · PDF page ${String(page.pageNumber)}`
+            : section.sectionType
+              ? t`Book page ${String(position)} · PDF page ${String(page.pageNumber)} · ${section.sectionType}`
+              : t`Book page ${String(position)} · PDF page ${String(page.pageNumber)}`
       }
       className={cn(
         "flex items-start gap-2 px-2 py-1.5 text-left transition-colors w-full",
@@ -653,7 +674,12 @@ function SectionRow({
           {previewLabel}
         </span>
         <span className="mt-1 inline-flex items-center text-[10px] opacity-60 leading-none">
-          <RowPosition position={position} pageNumber={page.pageNumber} kind="section" />
+          <RowPosition
+            position={position}
+            pageNumber={page.pageNumber}
+            kind="section"
+            isRemoved={section.isPruned}
+          />
           {page.sectionCount > 1 && (
             <span className="ml-1 inline-flex items-center justify-center min-w-[15px] h-[13px] px-0.5 rounded bg-black/10 text-[9px] font-semibold leading-none">
               {`${section.sectionIndex + 1}/${page.sectionCount}`}
@@ -918,10 +944,12 @@ function ComparisonPreview({
                 "page" keeps them parallel and short — after a reorder they
                 simply differ. */}
             <span className="text-xs font-semibold text-foreground">
-              {position === null ? (
+              {position !== null ? (
+                <Trans>Book page {String(position)}</Trans>
+              ) : isPruned ? (
                 <Trans>Removed from the book</Trans>
               ) : (
-                <Trans>Book page {String(position)}</Trans>
+                <Trans>Not rendered yet</Trans>
               )}
             </span>
             <span className="text-xs text-muted-foreground">·</span>

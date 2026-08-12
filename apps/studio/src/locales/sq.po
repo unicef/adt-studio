@@ -4510,6 +4510,12 @@ msgstr "Gruponi sipas kërkon vëmendje"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Grupo tekstin dhe imazhet e çdo faqeje në seksione të tipizuara me një pemë të strukturuar përmbajtjeje. Seksionet drejtojnë mënyrën se si fazat pasuese renderojnë, përkthejnë dhe lexojnë librin me zë."
 
+msgid "Group rows under their source PDF page"
+msgstr "Grupo rreshtat nën faqen e tyre burimore të PDF-së"
+
+#~ msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
+#~ msgstr "Grupimi i përmbajtjes sipas qëllimit, pastaj vendosja e çdo seksioni si HTML i rishikueshëm."
+
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Grupon rajonet e imazheve në ilustrime të veçanta në çdo faqe."
 
@@ -5289,6 +5295,9 @@ msgstr "Referencë e shpejtë Liquid"
 msgid "List"
 msgstr "Listë"
 
+msgid "List rows in reading order, where they can be moved"
+msgstr "Rendit rreshtat sipas rendit të leximit, ku mund të zhvendosen"
+
 msgid "List view"
 msgstr "Pamje liste"
 
@@ -5450,6 +5459,9 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 
 msgid "Loading text sizes…"
 msgstr "Po ngarkohen madhësitë e tekstit…"
+
+msgid "Loading the book order…"
+msgstr "Po ngarkohet rendi i librit…"
 
 msgid "Loading TTS normalization..."
 msgstr "Po ngarkohet normalizimi TTS..."
@@ -6415,14 +6427,14 @@ msgstr "Normalizuar"
 msgid "Not available on this server"
 msgstr "Jo i disponueshëm në këtë server"
 
+msgid "Not available while the storyboard is running"
+msgstr "I padisponueshëm ndërsa storyboard-i është në ekzekutim"
+
 msgid "Not checked"
 msgstr "Nuk është kontrolluar"
 
 #~ msgid "Not checked yet"
 #~ msgstr "Ende nuk është kontrolluar"
-
-msgid "Not available while the storyboard is running"
-msgstr "I padisponueshëm ndërsa storyboard-i është në ekzekutim"
 
 msgid "Not compatible with Fixed Layout"
 msgstr "I papajtueshëm me Paraqitjen e fiksuar"
@@ -6439,8 +6451,15 @@ msgstr "Nuk u gjet në tekstin e librit"
 msgid "Not generated"
 msgstr "Nuk u gjenerua"
 
+msgid "Not in the book yet — the storyboard has not rendered this section"
+msgstr "Ende jo në libër — storyboard-i nuk e ka gjeneruar këtë seksion"
+
 msgid "Not rendered yet"
 msgstr "Nuk u gjenerua ende"
+
+#. placeholder {0}: String(page.pageNumber)
+msgid "Not rendered yet · PDF page {0}"
+msgstr "Nuk u gjenerua ende · faqja {0} e PDF-së"
 
 msgid "Not reviewed"
 msgstr "Nuk u rishikua"
@@ -7092,6 +7111,9 @@ msgstr "Skedar PDF"
 msgid "PDF info"
 msgstr "Informacioni PDF"
 
+msgid "PDF order"
+msgstr "Rendi i PDF-së"
+
 #. placeholder {0}: String(pageNumber)
 msgid "PDF page {0}"
 msgstr "Faqja {0} e PDF-it"
@@ -7276,10 +7298,6 @@ msgstr "Pozicioni {0}, {1} → {2}×{3} pt"
 
 msgid "position corner toast placement"
 msgstr "pozicioni qoshe vendosja e njoftimeve"
-
-#. placeholder {0}: b.pr
-msgid "PR #{0}"
-msgstr "PR #{0}"
 
 #~ msgid "Position in the book"
 #~ msgstr "Pozicioni në libër"
@@ -8254,6 +8272,9 @@ msgstr "Rrotullo 90° në kahun kundërorar"
 
 msgid "Row"
 msgstr "Rresht"
+
+msgid "Row order"
+msgstr "Rendi i rreshtave"
 
 msgid "Row reverse"
 msgstr "Rresht i anasjelltë"
