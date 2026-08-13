@@ -27,6 +27,13 @@ export function useFriendlyArchiveError(rawError: string | null): FriendlyError 
     }
   }
 
+  if (e.includes("read-only distribution format") || e.includes("cannot be re-imported yet")) {
+    return {
+      title: t`This export format can't be re-imported yet`,
+      hint: t`EPUB, PNLD, and WebPub are read-only distribution formats. Re-import the ADT Web ZIP or a Project backup instead.`,
+    }
+  }
+
   // Order matters: more specific phrases are checked before broader ones.
   if (e.includes("invalid zip file") || e.includes("valid .zip archive")) {
     return {

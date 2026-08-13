@@ -37,6 +37,10 @@ import {
 } from "../services/export-service.js"
 import { importProject, previewImport } from "../services/import-service.js"
 import {
+  detectDistributionFormat,
+  distributionFormatMessage,
+} from "../services/distribution-format.js"
+import {
   ADT_BUNDLE_READER_LIMITS,
   AdtBundleNotDetectedError,
   AdtBundleReadError,
@@ -236,6 +240,14 @@ export function createBookRoutes(
     // from a full project; the response carries `isPart: true` to disambiguate.
     if (isPartArchive(zipBuffer)) {
       return c.json(previewImportPart(zipBuffer))
+    }
+    // Reader-facing distribution exports (WebPub / EPUB / PNLD) are derived from
+    // the ADT bundle but can't be re-imported yet. Detect them before the ADT
+    // reader tries (and fails) to parse their manifest, so the user gets a clear
+    // "not supported yet" message instead of a confusing schema error.
+    const distributionFormat = detectDistributionFormat(zipBuffer)
+    if (distributionFormat) {
+      throw new HTTPException(400, { message: distributionFormatMessage(distributionFormat) })
     }
     try {
       const guideTemplatePath = webAssetsDir
