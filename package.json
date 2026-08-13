@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=22.13.0"
+  },
   "scripts": {
     "predev": "pnpm build",
     "pretest": "pnpm build",
@@ -47,6 +50,8 @@
     "overrides": {
       "form-data": "^4.0.6",
       "@xmldom/xmldom": "0.9.10",
+      "js-yaml": "^4.3.1",
+      "nanoid": "^3.3.18",
       "plist>@xmldom/xmldom": "^0.8.13",
       "rollup": "^4.59.0",
       "seroval": "^1.5.3",

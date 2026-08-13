@@ -3,3 +3,6 @@ packages:
   - "apps/*"
 
 minimumReleaseAge: 10080
+minimumReleaseAgeExclude:
+  # Security fix for GHSA-2v37-7h3g-55p8; release-age policy must not hold it back.
+  - nanoid@3.3.18

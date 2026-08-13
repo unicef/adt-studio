@@ -212,6 +212,12 @@ memory-heavy Vitest workers at four, and prevents local `.env` credentials from
 changing credential-validation test outcomes. All locale catalogs contain zero
 missing translations.
 
+Dependency hardening moved the supported development baseline to Node 22.13,
+upgraded Electron to 41.10.4 and PDF.js to 6.2.108, patched `js-yaml` and
+`nanoid`, and removed an unused production Electron dependency from the
+pipeline package. The production audit now reports no high-severity advisories;
+remaining findings are low/moderate transitive advisories.
+
 ## Recommended 30/60/90-day plan
 
 | Window | Priority |

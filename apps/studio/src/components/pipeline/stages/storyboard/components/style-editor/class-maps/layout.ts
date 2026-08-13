@@ -1,5 +1,3 @@
-/* eslint-disable lingui/no-unlocalized-strings -- Tailwind class identifiers, not user copy */
-
 import type { ClassMap } from "./types"
 
 // Tailwind v3.4 / v4 default spacing scale; gap reuses it (`gap-4` = 16px).

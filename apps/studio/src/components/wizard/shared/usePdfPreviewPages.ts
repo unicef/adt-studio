@@ -15,7 +15,6 @@ function rememberInCache(key: string, entry: CachedPreview) {
   }
   previewCache.set(key, entry)
 }
-
 type PdfPreviewMode = "first" | "all"
 
 interface UsePdfPreviewPagesParams {
@@ -78,13 +77,11 @@ export function usePdfPreviewPages(params: UsePdfPreviewPagesParams) {
         const pdfjs = await getPdfJs()
         if (cancelled) return
 
-        const pdf = await pdfjs.getDocument(documentSource).promise
-        if (cancelled) {
-          await pdf.destroy().catch(() => {})
-          return
-        }
+        const loadingTask = pdfjs.getDocument(documentSource)
+        const pdf = await loadingTask.promise
 
         try {
+          if (cancelled) return
           const rawLabels = await pdf.getPageLabels()
           if (cancelled) return
 
@@ -138,7 +135,7 @@ export function usePdfPreviewPages(params: UsePdfPreviewPagesParams) {
           throw error
         }
         finally {
-          await pdf.destroy().catch(() => {})
+          await loadingTask.destroy().catch(() => {})
         }
       } catch {
         if (cancelled) return

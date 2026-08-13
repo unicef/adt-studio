@@ -43,7 +43,9 @@ const extraResources = [
   },
 ];
 
-const version = process.env.APP_VERSION || require("./package.json").version;
+const packageJson = require("./package.json");
+const version = process.env.APP_VERSION || packageJson.version;
+const electronVersion = packageJson.devDependencies.electron;
 
 const skipTargets = new Set(
   (process.env.SKIP_NOTARIZE || "")
@@ -79,7 +81,7 @@ const artifactName = `${productName}-\${version}.\${ext}`
 const config = {
   appId,
   productName,
-  electronVersion: "41.1.1",
+  electronVersion,
   directories: {
     buildResources: "build",
     output: "release",

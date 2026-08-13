@@ -199,7 +199,7 @@ Download [`windows-setup-and-run.bat`](https://github.com/unicef/adt-studio/rele
 
 ### Local development
 
-Prerequisites: [Node.js](https://nodejs.org/) >= 20, [pnpm](https://pnpm.io/) >= 9, and Playwright Chromium (used by visual refinement in storyboard rendering).
+Prerequisites: [Node.js](https://nodejs.org/) >= 22.13, [pnpm](https://pnpm.io/) 10.32.1, and Playwright Chromium (used by visual refinement in storyboard rendering).
 
 ```bash
 # Clone the repository

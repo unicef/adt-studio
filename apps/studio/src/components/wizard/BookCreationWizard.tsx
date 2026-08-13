@@ -265,7 +265,6 @@ export function BookCreationWizard() {
     const el = document.getElementById(fieldId)
     if (!el) return
     el.scrollIntoView({ behavior: "smooth", block: "center" })
-    // eslint-disable-next-line lingui/no-unlocalized-strings
     const focusable = el.matches("input,button,select,textarea,[tabindex]")
       ? el
       : el.querySelector<HTMLElement>("input,button,select,textarea,[tabindex]")
@@ -431,7 +430,6 @@ export function BookCreationWizard() {
               </div>
             </div>
           </div>
-
 
           {(submitError || createMutation.isError) && (
             <p className="px-6 pb-3 text-sm text-center text-[#ef4444] animate-btn-label-enter">

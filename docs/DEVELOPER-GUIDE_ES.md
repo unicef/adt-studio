@@ -185,7 +185,7 @@ La aplicación de escritorio usa Electron, manejada por [electron-vite](https://
 
 | Software | Versión | Necesario para | Plataforma |
 |----------|---------|---------------|------------|
-| **Node.js** | 20+ | Desarrollo y empaquetado | Todas |
+| **Node.js** | 22.13+ | Desarrollo y empaquetado | Todas |
 | **pnpm** | 10.32.1 | Desarrollo y empaquetado | Todas |
 | **Java** | JDK 11+ | Solo para firmar instaladores Windows con `jsign.jar` | Windows (firmado) |
 | **Apple Developer ID** | — | Solo para notarizar instaladores macOS | macOS (firmado) |
