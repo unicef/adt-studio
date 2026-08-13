@@ -6,6 +6,7 @@ import { PROVIDER_IDS, PROVIDER_META } from "./providers"
 import {
   SETTINGS_ANCHORS,
   SETTINGS_GROUPS,
+  SETTINGS_TAB_BY_KEY,
   localeAnchor,
   providerAnchor,
   type SettingsSection,
@@ -22,8 +23,38 @@ export interface SettingsSearchEntry {
   icon?: LucideIcon
 }
 
+export interface SettingsSearchItem {
+  id: string
+  title: string
+  sub?: string
+  keywords?: string
+  icon?: LucideIcon
+  section: SettingsSection
+  anchor?: string
+}
+
 export function settingsSearchText(i18n: I18n, value: MessageDescriptor | string): string {
   return typeof value === "string" ? value : i18n._(value)
+}
+
+export function buildSettingsSearchItems(
+  i18n: I18n,
+  entries: SettingsSearchEntry[],
+): SettingsSearchItem[] {
+  return entries.map((entry) => {
+    const tab = SETTINGS_TAB_BY_KEY[entry.section]
+    const sectionLabel = i18n._(tab.label)
+    const hint = entry.hint ? settingsSearchText(i18n, entry.hint) : undefined
+    return {
+      id: entry.id,
+      title: settingsSearchText(i18n, entry.label),
+      sub: entry.kind === "section" ? hint : hint ? `${sectionLabel} · ${hint}` : sectionLabel,
+      keywords: entry.keywords ? i18n._(entry.keywords) : undefined,
+      icon: entry.icon ?? tab.icon,
+      section: entry.section,
+      anchor: entry.anchor,
+    }
+  })
 }
 
 const SECTION_KEYWORDS: Record<SettingsSection, MessageDescriptor> = {

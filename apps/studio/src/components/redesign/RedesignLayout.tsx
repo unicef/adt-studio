@@ -18,6 +18,7 @@ import { REDESIGN_PATHS } from "./nav"
 
 const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
   { keys: ["⌘", "K"], label: msg`Open command palette` },
+  { keys: ["/"], label: msg`Focus settings search` },
   { keys: ["G", "H"], label: msg`Go to Home` },
   { keys: ["G", "L"], label: msg`Go to Library` },
   { keys: ["N"], label: msg`Add a book` },

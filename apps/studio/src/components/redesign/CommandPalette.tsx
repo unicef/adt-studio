@@ -11,11 +11,11 @@ import { BookCover } from "./BookCover"
 import { Kbd } from "./ui/Kbd"
 import { REDESIGN_PATHS } from "./nav"
 import { rankBySearch, searchTokens } from "./search"
-import { SETTINGS_PATHS, SETTINGS_TAB_BY_KEY } from "./screens/settings/nav"
+import { SETTINGS_PATHS } from "./screens/settings/nav"
 import {
   SETTINGS_SEARCH_ENTRIES,
   SETTINGS_SECTION_ENTRIES,
-  settingsSearchText,
+  buildSettingsSearchItems,
 } from "./screens/settings/searchIndex"
 
 const LISTBOX_ID = "redesign-palette-results"
@@ -110,21 +110,17 @@ function PaletteResults({ onClose, books, locale, onOpenAdd }: PaletteResultsPro
         run: () => navigate({ to: "/books/$label/$step", params: { label: b.label, step: "book" } }),
       }
     })
-    const settingsItems: PaletteItem[] = (
-      tokens.length > 0 ? SETTINGS_SEARCH_ENTRIES : SETTINGS_SECTION_ENTRIES
-    ).map((entry) => {
-      const tab = SETTINGS_TAB_BY_KEY[entry.section]
-      const sectionLabel = i18n._(tab.label)
-      const hint = entry.hint ? settingsSearchText(i18n, entry.hint) : undefined
-      return {
-        id: entry.id,
-        title: settingsSearchText(i18n, entry.label),
-        sub: entry.kind === "section" ? hint : hint ? `${sectionLabel} · ${hint}` : sectionLabel,
-        keywords: entry.keywords ? i18n._(entry.keywords) : undefined,
-        icon: entry.icon ?? tab.icon,
-        run: () => navigate({ to: SETTINGS_PATHS[entry.section], hash: entry.anchor }),
-      }
-    })
+    const settingsItems: PaletteItem[] = buildSettingsSearchItems(
+      i18n,
+      tokens.length > 0 ? SETTINGS_SEARCH_ENTRIES : SETTINGS_SECTION_ENTRIES,
+    ).map((it) => ({
+      id: it.id,
+      title: it.title,
+      sub: it.sub,
+      keywords: it.keywords,
+      icon: it.icon,
+      run: () => navigate({ to: SETTINGS_PATHS[it.section], hash: it.anchor }),
+    }))
 
     const rank = (items: PaletteItem[]) =>
       rankBySearch(items, tokens, (it) => ({
