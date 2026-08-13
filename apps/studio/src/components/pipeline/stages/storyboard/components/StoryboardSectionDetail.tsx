@@ -1467,17 +1467,35 @@ export function StoryboardSectionDetail({
   // Delete selected block from rendered HTML and remove the matching leaf from sectioning.
   const handleDeleteBlock = useCallback(
     (dataId: string) => {
-      removeElementsFromRendering([dataId])
+      const treeIds = new Set([dataId])
+      if (!removeElementsFromRendering([dataId])) {
+        // Containers the renderer emitted without a data-id carry a transient
+        // `_el#` id that exists only in the live iframe DOM, so the stored-HTML
+        // removal above can't find them. Remove from the iframe and queue the
+        // serialized result the same way class/style edits do — the deselect
+        // below flushes it into pendingRendering. The subtree's real data-ids
+        // are deleted from the sectioning tree as well; leaving them behind
+        // would resurrect the content on the next LLM re-render and keep it in
+        // the text catalog and TTS.
+        const removed = previewFrameRef.current?.removeElement(dataId)
+        if (removed) {
+          pendingHtmlRef.current = { html: removed.html, sectionIndex }
+          setHasUnflushedEdits(true)
+          markPending("elements")
+          for (const id of removed.removedDataIds) treeIds.add(id)
+        }
+      }
       const sBase = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
       if (sBase && section) {
-        const nextNodes = deleteNode(section.nodes, dataId)
+        let nextNodes = section.nodes
+        for (const id of treeIds) nextNodes = deleteNode(nextNodes, id)
         if (nextNodes !== section.nodes) {
           setPendingSectioning(withSectionNodes(sBase, sectionIndex, nextNodes))
         }
       }
       setSelectedElement(null)
     },
-    [removeElementsFromRendering, pendingSectioning, page.sectioningTree, sectionIndex, section]
+    [removeElementsFromRendering, pendingSectioning, page.sectioningTree, sectionIndex, section, markPending]
   )
 
   // Replace the current section with an updated copy (from SectionTreeEditor).
@@ -2269,6 +2287,7 @@ export function StoryboardSectionDetail({
       tagName: tag,
       textType: leaf && !isImage ? leaf.role : undefined,
       isPruned: leaf?.isPruned ?? false,
+      hasTreeNode: leaf != null,
       imageSrc: isImage ? `${BASE_URL}/books/${bookLabel}/images/${dataId}` : undefined,
     }
   }
@@ -3185,8 +3204,13 @@ export function StoryboardSectionDetail({
                   storyboardRunning || selectedInfo.isContainer
                     ? undefined
                     : handleToolbarChangeTextType,
+                // Containers with a sectioning-tree node prune like any leaf
+                // (inherited prune greys and strips their contents at save).
+                // Decoration containers the renderer invented have no tree
+                // node to hold prune state, so they get no prune toggle —
+                // Delete is their removal path.
                 onTogglePrune:
-                  storyboardRunning || selectedInfo.isContainer
+                  storyboardRunning || (selectedInfo.isContainer && !selectedInfo.hasTreeNode)
                     ? undefined
                     : handleToolbarPrune,
                 onCrop:
