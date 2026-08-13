@@ -1,13 +1,13 @@
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Check } from "lucide-react"
+import { Check, Info } from "lucide-react"
 import { activateLocale, type AppLocale } from "@/i18n/locales"
 import { cn } from "@/lib/utils"
-import { SettingsHeading, SettingsLead } from "./ui"
+import { SettingsCard, SettingsHeading, SettingsLead } from "./ui"
 import { LOCALE_OPTIONS } from "./options"
 import { localeAnchor } from "./nav"
 
 export function LanguageSection() {
-  const { i18n } = useLingui()
+  const { t, i18n } = useLingui()
 
   const changeLocale = (next: AppLocale) => {
     if (next === i18n.locale) return
@@ -23,41 +23,79 @@ export function LanguageSection() {
         <Trans>Language</Trans>
       </SettingsHeading>
       <SettingsLead>
-        <Trans>The language ADT Studio's interface is shown in. This does not change a book's output languages.</Trans>
+        <Trans>Choose the language ADT Studio's interface is shown in.</Trans>
       </SettingsLead>
-      <div className="grid grid-cols-2 gap-3">
-        {LOCALE_OPTIONS.map((l) => {
-          const sel = i18n.locale === l.key
-          return (
-            <button
-              key={l.key}
-              id={localeAnchor(l.key)}
-              type="button"
-              onClick={() => changeLocale(l.key)}
-              className={cn(
-                "flex scroll-mt-24 items-center gap-3.5 rounded-xl border-[1.5px] bg-card px-4 py-[15px] text-left transition-colors hover:border-brand-300",
-                sel ? "border-brand-600 shadow-[0_0_0_3px_var(--brand-50)]" : "border-border",
-              )}
-            >
-              <span
+
+      <SettingsCard className="p-1.5">
+        <div className="flex flex-col gap-0.5" role="radiogroup" aria-label={t`Interface language`}>
+          {LOCALE_OPTIONS.map((l) => {
+            const sel = i18n.locale === l.key
+            return (
+              <button
+                key={l.key}
+                id={localeAnchor(l.key)}
+                type="button"
+                role="radio"
+                aria-checked={sel}
+                onClick={() => changeLocale(l.key)}
                 className={cn(
-                  "grid h-7 w-10 shrink-0 place-items-center rounded-md font-mono text-xs font-bold",
-                  sel ? "bg-brand-600 text-white" : "bg-muted text-muted-foreground",
+                  "group flex w-full scroll-mt-24 items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-[background-color,color,transform] duration-150 ease-out motion-safe:active:scale-[0.99]",
+                  sel
+                    ? "bg-brand-50 dark:bg-brand-500/10"
+                    : "hover:bg-black/[0.035] dark:hover:bg-white/5",
                 )}
               >
-                {i18n._(l.code)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className={cn("text-sm font-semibold", sel && "text-brand-700")}>{i18n._(l.name)}</div>
-                <div className="mt-px text-xs text-muted-foreground">{i18n._(l.native)}</div>
-              </div>
-              <span className={cn("grid size-5 shrink-0 place-items-center rounded-full", sel ? "bg-brand-600 text-white" : "bg-muted")}>
-                {sel && <Check className="size-3" />}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+                <span
+                  className={cn(
+                    "grid size-9 shrink-0 place-items-center rounded-lg font-mono text-[11px] font-bold tracking-wide transition-colors duration-150",
+                    sel ? "bg-brand-600 text-white" : "bg-muted text-muted-foreground",
+                  )}
+                >
+                  {i18n._(l.code)}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div
+                    className={cn(
+                      "truncate text-[13.5px] font-medium leading-tight",
+                      sel ? "text-brand-800 dark:text-brand-100" : "text-foreground",
+                    )}
+                  >
+                    {i18n._(l.native)}
+                  </div>
+                  <div className="mt-0.5 truncate text-[11.5px] leading-tight text-muted-foreground">
+                    {i18n._(l.name)}
+                  </div>
+                </div>
+                <span
+                  className={cn(
+                    "grid size-[18px] shrink-0 place-items-center rounded-full border-[1.5px] transition-colors duration-150",
+                    sel
+                      ? "border-brand-600 bg-brand-600"
+                      : "border-border group-hover:border-brand-300",
+                  )}
+                >
+                  <Check
+                    className={cn(
+                      "size-3 text-white transition-[opacity,transform] duration-150 ease-out",
+                      sel ? "scale-100 opacity-100" : "scale-50 opacity-0",
+                    )}
+                  />
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      </SettingsCard>
+
+      <p className="mt-3 flex items-start gap-2 px-1 text-[12px] leading-relaxed text-muted-foreground">
+        <Info className="mt-px size-3.5 shrink-0" />
+        <span>
+          <Trans>
+            This only changes ADT Studio's interface. It does not affect the languages your books
+            are generated in.
+          </Trans>
+        </span>
+      </p>
     </>
   )
 }
