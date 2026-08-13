@@ -13,7 +13,6 @@ import {
   Settings,
   CircleHelp,
   ChevronRight,
-  ChevronsUpDown,
   BookOpen,
   Library,
   Keyboard,
@@ -22,7 +21,6 @@ import {
   Bug,
   Info,
   ArrowUpRight,
-  HardDrive,
   type LucideIcon,
 } from "lucide-react"
 import { Link, useLocation, useNavigate } from "@tanstack/react-router"
@@ -88,7 +86,6 @@ export function AppSidebar({
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const activeView = activeRedesignView(pathname)
-  const [wsOpen, setWsOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const { showWhatsNew } = useUpdateDialog()
 
@@ -96,7 +93,6 @@ export function AppSidebar({
     { view: "home", label: t`Home`, icon: House },
     { view: "library", label: t`Library`, icon: BookMarked, count: libraryCount },
     { view: "handoffs", label: t`Split & merge`, icon: Split, count: handoffsCount },
-    { view: "settings", label: t`Settings`, icon: Settings },
   ]
 
   return (
@@ -156,53 +152,6 @@ export function AppSidebar({
       <div className="min-h-3.5 flex-1" />
 
       <div className="flex flex-col gap-0.5 pt-1.5">
-        <Popover open={wsOpen} onOpenChange={setWsOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-            >
-              <span className="grid size-[26px] shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
-                <HardDrive className="size-3.5" />
-              </span>
-              <div className="min-w-0 flex-1 leading-[1.15]">
-                <div className="truncate text-[12.5px] font-semibold">
-                  <Trans>Local account</Trans>
-                </div>
-                <div className="text-[10.5px] text-muted-foreground">
-                  <Trans>This computer</Trans>
-                </div>
-              </div>
-              <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent side="top" align="start" className="w-60 p-1.5">
-            <div className="flex items-center gap-2.5 px-2 py-2">
-              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
-                <HardDrive className="size-[15px]" />
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className="text-[12.5px] font-semibold">
-                  <Trans>Working locally</Trans>
-                </div>
-                <div className="text-[11px] text-muted-foreground">
-                  <Trans>Books stay on this computer</Trans>
-                </div>
-              </div>
-            </div>
-            <div className="mx-1.5 my-1 h-px bg-border" />
-            <MenuRow
-              icon={Settings}
-              onClick={() => {
-                setWsOpen(false)
-                navigate({ to: REDESIGN_PATHS.settings })
-              }}
-            >
-              <Trans>Open settings</Trans>
-            </MenuRow>
-          </PopoverContent>
-        </Popover>
-
         <Popover open={helpOpen} onOpenChange={setHelpOpen}>
           <PopoverTrigger asChild>
             <button
@@ -294,6 +243,16 @@ export function AppSidebar({
             </MenuRow>
           </PopoverContent>
         </Popover>
+
+        <Link
+          to={REDESIGN_PATHS.settings}
+          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+        >
+          <Settings className="size-[17px]" />
+          <span className="flex-1 text-left">
+            <Trans>Settings</Trans>
+          </span>
+        </Link>
       </div>
     </div>
   )

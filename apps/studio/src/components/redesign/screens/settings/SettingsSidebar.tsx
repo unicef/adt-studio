@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Search, HardDrive } from "lucide-react";
 import { NO_DRAG_REGION } from "@/constants";
 import { cn } from "@/lib/utils";
 import { REDESIGN_PATHS } from "../../nav";
@@ -38,14 +38,8 @@ export function SettingsSidebar() {
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar">
-      <div className="p-3 drag-region">
-        <Link
-          to={REDESIGN_PATHS.home}
-          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-        >
-          <ArrowLeft className="size-[17px]" />
-          <Trans>Back to home</Trans>
-        </Link>
+      <div className="px-3 pt-4">
+        <SidebarLogo />
       </div>
 
       <div style={NO_DRAG_REGION} className="flex flex-col gap-2 px-3 pb-3">
@@ -101,6 +95,31 @@ export function SettingsSidebar() {
         </nav>
       </ScrollArea>
 
+      <div className="flex flex-col gap-0.5 border-t p-3">
+        <div className="flex items-center gap-2.5 rounded-lg px-2.5 py-[7px]">
+          <span className="grid size-[26px] shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+            <HardDrive className="size-3.5" />
+          </span>
+          <div className="min-w-0 flex-1 leading-[1.15]">
+            <div className="truncate text-[12.5px] font-semibold">
+              <Trans>Local account</Trans>
+            </div>
+            <div className="text-[10.5px] text-muted-foreground">
+              <Trans>This computer</Trans>
+            </div>
+          </div>
+        </div>
+
+        <Link
+          to={REDESIGN_PATHS.home}
+          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+        >
+          <ArrowLeft className="size-[17px]" />
+          <span className="flex-1 text-left">
+            <Trans>Back to home</Trans>
+          </span>
+        </Link>
+      </div>
     </aside>
   );
 }
