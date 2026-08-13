@@ -440,9 +440,10 @@ export function ImportProject() {
         />
       ) : null}
 
-      <div className="flex min-h-0 flex-1 overflow-hidden bg-slate-50/40">
-        <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-col px-5 pb-0 pt-6 sm:px-8 lg:px-10">
-          <header className="shrink-0 text-center">
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-slate-50/40">
+        <div className="flex min-h-full flex-col items-center justify-center px-4 py-8">
+          <div className="flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <header className="shrink-0 px-6 pt-8 pb-3 text-center">
             <h1 className="text-2xl font-semibold tracking-[-0.5px] text-slate-950 sm:text-[28px]">
               <Trans>Import a book</Trans>
             </h1>
@@ -462,8 +463,8 @@ export function ImportProject() {
             />
           </header>
 
-          <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-5 pt-1">
-            <div className="mx-auto min-h-[495px] w-full max-w-4xl">
+          <main className="min-h-0 px-6 pb-4 pt-2">
+            <div className="w-full">
               {zipFile ? (
                 <SelectedArchiveBar
                   file={zipFile}
@@ -552,8 +553,8 @@ export function ImportProject() {
             </div>
           </main>
 
-          <footer className="shrink-0 border-t border-slate-200 bg-slate-50/95 py-4">
-            <div className="mx-auto flex w-full max-w-4xl items-center justify-between gap-4">
+          <footer className="shrink-0 border-t border-slate-200 bg-slate-50/70 px-6 py-4">
+            <div className="flex w-full items-center justify-between gap-4">
               <Button
                 variant="secondary"
                 onClick={() => navigate({ to: "/" })}
@@ -596,6 +597,7 @@ export function ImportProject() {
               </Button>
             </div>
           </footer>
+          </div>
         </div>
       </div>
     </>
