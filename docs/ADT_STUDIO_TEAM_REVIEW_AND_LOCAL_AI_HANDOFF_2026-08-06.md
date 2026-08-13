@@ -1,6 +1,8 @@
 # ADT Studio team review and local AI handoff
 
-Date: 2026-08-06  
+Date: 2026-08-06
+Updated: 2026-08-14
+
 Review/implementation branch: `codex/local-gemma-audit`
 
 ## Executive summary
@@ -178,15 +180,37 @@ and at least two blinded native reviewers.
 
 ## Validation completed
 
-- Full repository suite: **196 test files / 2,386 tests passed**.
+- Full repository suite: **223 test files / 2,800 tests passed**.
 - TypeScript strict check passed.
-- Lint: 0 errors; 9 existing unused-suppression warnings.
+- Lint: 0 errors; existing unused-suppression warnings remain in upstream code.
 - Packaged macOS API health check passed.
 - Generated ADT browser smoke: 22/22 HTML pages, zero runtime errors.
 - Real signing/notarization remains blocked by unavailable Developer ID
   credentials.
 - Windows packaging support exists, but real Windows runtime validation remains
   required before release claims.
+
+## Integration with current development
+
+The branch now includes `develop` through commit `52974df6` (2026-08-14).
+Conflict resolution kept the local providers as a small extension of the
+existing provider boundary and retained upstream work for book outlines, Core
+TTS, ElevenLabs, speech debug logs, onboarding, and export remediation.
+
+Local Kokoro and macOS system speech now share routing, voice mapping, caching,
+progress, failure handling, and export behavior with the cloud speech
+providers. ElevenLabs retains its separate concurrency cap and retry policy;
+local and other providers are not slowed by that cap.
+
+The large unmerged provider-abstraction PR was not copied into this branch. It
+overlaps the same routing surface and would create a second abstraction before
+the first is merged. The lean integration is the existing AI SDK/provider
+factory plus explicit embedded-local adapters.
+
+The merged suite also fixes Node 26 test isolation for browser storage, caps
+memory-heavy Vitest workers at four, and prevents local `.env` credentials from
+changing credential-validation test outcomes. All locale catalogs contain zero
+missing translations.
 
 ## Recommended 30/60/90-day plan
 

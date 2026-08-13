@@ -427,6 +427,8 @@ Notes:
 |----------|-------------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, package graph, pipeline model, data flow |
 | [docs/LOCAL_AI.md](docs/LOCAL_AI.md) | Local Gemma 4 setup for the Mac and Windows apps |
+| [docs/EVALUATION_FRAMEWORK.md](docs/EVALUATION_FRAMEWORK.md) | Reproducible ADT, model, judge, and TTS evaluation process |
+| [docs/ADT_STUDIO_TEAM_REVIEW_AND_LOCAL_AI_HANDOFF_2026-08-06.md](docs/ADT_STUDIO_TEAM_REVIEW_AND_LOCAL_AI_HANDOFF_2026-08-06.md) | Team-facing review, local AI results, current integration status, and priorities |
 | [docs/CODEX_PROJECT_REVIEW_2026-08-02.md](docs/CODEX_PROJECT_REVIEW_2026-08-02.md) | Architecture, code, security, dependency, UI/UX, and local-AI review |
 | [docs/RELEASING.md](docs/RELEASING.md) | Release flow, branching model (develop → beta, main → stable), and how the release pipeline works |
 | [docs/DEVELOPER-GUIDE.md](docs/DEVELOPER-GUIDE.md) | Hosting guide and developer extension reference for third-party teams |

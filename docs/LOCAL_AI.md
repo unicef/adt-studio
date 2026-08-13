@@ -24,13 +24,20 @@ Recommendations are conservative starting points, not performance guarantees. Th
 
 ## Runtime architecture
 
-- `local:*` is the default provider.
+- `local:*` model IDs route to the embedded runtime. Authors choose **Local** or
+  **Cloud API** per book; the repository-wide fallback remains OpenAI for
+  backward compatibility.
 - The API supervises a loopback-only `llama-server` process and lazily loads the selected model.
 - Machines with at least 10 logical cores and 24 GB RAM use two measured llama.cpp request slots; smaller machines use one. The debug panel reports the actual choice.
 - The existing OpenAI-compatible client is proxied internally, so text, image inputs, structured-output validation, cancellation, caching, and logs keep one provider boundary.
 - The optional image-meaningfulness LLM refinement is skipped by default for embedded local models. The deterministic image filter remains active; authors can explicitly select a model for the refinement when its extra latency is justified.
 - Ollama remains supported through `ollama:*` IDs for developers who already use it; it is never required.
 - Runtime releases, model revisions, sizes, and hashes are pinned. Model data is never shipped in the installer or exported ADT.
+
+Local speech uses the same provider-routing boundary as OpenAI, Azure, Gemini,
+and ElevenLabs. Cache keys include the selected local runtime/model variant, so
+switching a voice, model revision, speed, or execution backend cannot silently
+reuse incompatible audio.
 
 ## Platform matrix
 
