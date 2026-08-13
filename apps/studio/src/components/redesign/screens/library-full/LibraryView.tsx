@@ -49,14 +49,15 @@ export interface LibraryViewProps {
   books: LibBook[]
   onOpen: (label: string) => void
   onAddBook: () => void
+  initialGroup?: Group
 }
 
-export function LibraryView({ books, onOpen, onAddBook }: LibraryViewProps) {
+export function LibraryView({ books, onOpen, onAddBook, initialGroup = "attention" }: LibraryViewProps) {
   const { t } = useLingui()
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [sort, setSort] = useState<SortKey>("recent")
-  const [group, setGroup] = useState<Group>("attention")
+  const [group, setGroup] = useState<Group>(initialGroup)
   const [view, setView] = useState<ViewMode>("grid")
 
   useEffect(() => {
