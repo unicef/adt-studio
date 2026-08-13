@@ -16,6 +16,7 @@ import {
   generateImage,
   generateLocalizations,
   inferPipelineStage,
+  isBetaReleaseTag,
   pairedCoverAssets,
   replaceReleaseCoverUrls,
   resolveCoverPalette,
@@ -567,9 +568,43 @@ describe("AI release assets", () => {
     expect(prompt).toContain("pipeline violet");
     expect(prompt).toContain("#7C3AED");
     expect(prompt).toContain(editorialPayload.image_prompt);
+    expect(prompt).toContain("all three exact text blocks");
+    expect(prompt).not.toContain('Channel badge: "BETA"');
     expect(
       buildDarkThemePrompt(resolveCoverPalette("storyboard", "v0.7.5")),
     ).toContain("Change only its color theme from light to dark");
+  });
+
+  it("gives beta and staging covers the established beta identity", () => {
+    const palette = resolveCoverPalette("storyboard", "v0.8.0-beta.1");
+    const betaPrompt = buildImagePrompt(
+      editorial,
+      "v0.8.0-beta.1",
+      palette,
+    );
+    const stagingPrompt = buildImagePrompt(
+      editorial,
+      "0.8.0-beta-pr-803",
+      palette,
+    );
+    const darkPrompt = buildDarkThemePrompt(palette, "v0.8.0-beta.1");
+
+    expect(isBetaReleaseTag("v0.8.0-beta.1")).toBe(true);
+    expect(isBetaReleaseTag("0.8.0-beta-pr-803")).toBe(true);
+    expect(isBetaReleaseTag("v0.8.0")).toBe(false);
+    for (const prompt of [betaPrompt, stagingPrompt]) {
+      expect(prompt).toContain('Channel badge: "BETA"');
+      expect(prompt).toContain("all four exact text blocks");
+      expect(prompt).toContain("BETA RELEASE");
+      expect(prompt).toContain("oklch(0.70 0.28 307)");
+      expect(prompt).toContain("never white, pale lavender");
+      expect(prompt).toContain("physically attached to the tile");
+      expect(prompt).toContain("saturated beta violet");
+      expect(prompt).toContain("pipeline violet");
+    }
+    expect(darkPrompt).toContain("oklch(0.11 0.04 260)");
+    expect(darkPrompt).toContain("integrated BETA capsule");
+    expect(darkPrompt).toContain("main feature tile in saturated beta violet");
   });
 
   it("supports a true dry run and an API-free text-only preview", async () => {

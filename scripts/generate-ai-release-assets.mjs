@@ -22,6 +22,14 @@ const ADT_BRAND_COLORS = [
   "ADT Studio electric blue (#2B7FFF), deep navy (#0F172A),",
   "white (#FFFFFF), and cool blue-gray (#64748B)",
 ].join(" ");
+const BETA_COVER_THEME = {
+  surface: "oklch(0.26 0.14 298)",
+  glow: "oklch(0.70 0.28 307)",
+  violet: "oklch(0.44 0.27 285)",
+  mid: "oklch(0.30 0.16 291)",
+  deep: "oklch(0.17 0.09 270)",
+  darkest: "oklch(0.11 0.04 260)",
+};
 const COVER_PALETTES = {
   adt: { label: "ADT", accent: "ADT Studio electric blue", hex: "#2B7FFF" },
   extract: { label: "Extract", accent: "pipeline royal blue", hex: "#2563EB" },
@@ -746,7 +754,48 @@ export function buildImagePrompt(
   tag = "",
   palette = resolveCoverPalette("adt", tag),
 ) {
-  const releaseLabel = `RELEASE ${limited(tag, 40).toUpperCase()}`;
+  const isBeta = isBetaReleaseTag(tag);
+  const tagLabel = limited(tag, 40).toUpperCase();
+  const releaseLabel = isBeta
+    ? `BETA RELEASE ${tagLabel}`
+    : `RELEASE ${tagLabel}`;
+  const betaText = isBeta ? '\n- Channel badge: "BETA"' : "";
+  const backgroundTreatment = isBeta
+    ? `- Match ADT Studio's in-app beta release banner. Use a drenched, deep
+  violet/navy background, never white, pale lavender, pastel, or mostly light.
+  Start from ${BETA_COVER_THEME.surface} and build a gradient from
+  ${BETA_COVER_THEME.mid} into ${BETA_COVER_THEME.deep} and
+  ${BETA_COVER_THEME.darkest}. Add a bright magenta-violet radial glow based on
+  ${BETA_COVER_THEME.glow} behind the feature tile and a secondary
+  ${BETA_COVER_THEME.violet} glow near its lower edge.`
+    : "- Bright white background with an extremely subtle cool-toned edge glow.";
+  const betaBadge = isBeta
+    ? `- Integrate the BETA badge into the lower-right edge of the main feature
+  tile, like the capsule built into the ADT Studio beta app icon. Use a compact
+  dark-violet pill, a thin luminous violet rim, and crisp white uppercase text.
+  It must feel physically attached to the tile, not float in a canvas corner.
+- Render the eyebrow, headline, and subtitle in white or cool near-white. Use a
+  brighter violet for the eyebrow and retain strong accessible contrast.`
+    : "";
+  const badgeConstraint = isBeta
+    ? 'No badge other than the exact "BETA" channel badge.'
+    : "No badge.";
+  const exactTextCount = isBeta ? "four" : "three";
+  const brandAccentTreatment = isBeta
+    ? "Keep beta violet visible in the eyebrow, dot grid, corner rings, tile rim, and small highlights."
+    : "Keep ADT electric blue visible in the eyebrow, dot grid, corner rings, secondary edges, and small highlights.";
+  const textTreatment = isBeta
+    ? `- Left 44% is a strict editorial text column. Eyebrow is small uppercase,
+  widely tracked, and bright violet. Headline is very large, bold, geometric
+  sans-serif in cool near-white, wrapping naturally across one to three lines.
+  Subtitle is smaller cool lavender-gray body text.`
+    : `- Left 44% is a strict editorial text column. Eyebrow is small uppercase,
+  widely tracked, medium blue-gray. Headline is very large, bold, geometric
+  sans-serif in nearly black, wrapping naturally across one to three lines.
+  Make an ampersand blue when present. Subtitle is smaller blue-gray body text.`;
+  const tileTreatment = isBeta
+    ? "Keep the tile itself in saturated beta violet, matching the beta app icon."
+    : "Use the selected feature accent for the tile.";
   return `Use case: ads-marketing
 Asset type: ADT Studio GitHub release cover, 3:2 landscape
 Primary request: Create a polished editorial cover in the established ADT Studio
@@ -755,25 +804,21 @@ release-cover system. This is a complete designed cover, not a standalone object
 Exact text (render verbatim, exactly once, with no other text):
 - Eyebrow: "${releaseLabel}"
 - Headline: "${editorial.title}"
-- Subtitle: "${editorial.coverSubtitle}"
+- Subtitle: "${editorial.coverSubtitle}"${betaText}
 
 Feature illustration: ${editorial.imagePrompt}
 Brand palette: ${palette.brand}.
 Feature palette: ${palette.accent} (${palette.hex}). Use the exact feature
-accent as the dominant color for the main tile and feature objects. Keep ADT
-electric blue visible in the eyebrow, dot grid, corner rings, secondary edges,
-and small highlights. Retain
-neutral white objects and accessible contrast.
+accent as the dominant color for the feature objects and their highlights.
+${brandAccentTreatment} Retain neutral white objects and accessible contrast.
 
 Established visual system:
-- Bright white background with an extremely subtle cool-toned edge glow.
-- Left 44% is a strict editorial text column. Eyebrow is small uppercase,
-  widely tracked, medium blue-gray. Headline is very large, bold, geometric
-  sans-serif in nearly black, wrapping naturally across one to three lines.
-  Make an ampersand blue when present. Subtitle is smaller blue-gray body text.
+${backgroundTreatment}
+${textTreatment}
 - Right 56% contains one oversized, slightly rotated, rounded-square colored app
-  tile in perspective. Build the main feature from simple glossy white and
-  palette-colored 3D symbols attached to or floating just above that tile.
+  tile in perspective. ${tileTreatment}
+  Build the main feature from simple glossy white and palette-colored 3D symbols
+  attached to or floating just above that tile.
 - Decorative grammar: a fading pale accent-color dot grid near the upper-left
   and thin pale accent-color concentric quarter-rings cropped into two opposite
   corners.
@@ -782,34 +827,59 @@ Established visual system:
   floor glow.
 - Balanced premium product-render finish, generous margins, strong hierarchy,
   optimistic accessibility-tool character.
+${betaBadge}
 
 Constraints:
-- Preserve the left-text/right-icon composition and all three exact text blocks.
+- Preserve the left-text/right-icon composition and all ${exactTextCount} exact text blocks.
 - Make every character clean, readable, correctly spelled, and fully on canvas.
-- No logo, watermark, badge, screenshot, fake interface, pseudo-text, extra words,
+- ${badgeConstraint}
+- No logo, watermark, screenshot, fake interface, pseudo-text, extra words,
   decorative letters, people, hands, photoreal environment, or clutter.`;
 }
 
-export function buildDarkThemePrompt(palette) {
+export function buildDarkThemePrompt(palette, tag = "") {
+  const isBeta = isBetaReleaseTag(tag);
+  const backgroundTreatment = isBeta
+    ? `- Deepen the existing beta-banner background toward violet-black using
+  ${BETA_COVER_THEME.deep} and ${BETA_COVER_THEME.darkest}. Preserve the bright
+  ${BETA_COVER_THEME.glow} radial glow and ${BETA_COVER_THEME.violet} lower glow
+  at lower intensity. Do not convert the background to plain navy or black.`
+    : "- Replace the white background with a deep navy-black studio background.";
+  const betaBadge = isBeta
+    ? `- Preserve the integrated BETA capsule exactly where it attaches to the
+  feature tile, with its luminous violet rim and crisp white text.`
+    : "";
+  const featureTileTreatment = isBeta
+    ? `- Keep the main feature tile in saturated beta violet, not the selected
+  feature palette. Preserve ${palette.accent} (${palette.hex}) on the feature
+  objects and their highlights.`
+    : `- Keep the feature tile in a deep, saturated version of ${palette.accent},
+  with luminous stage-colored rim light and highlights.`;
+  const brandAccentTreatment = isBeta
+    ? "- Preserve beta violet in the eyebrow, dot grid, corner rings, tile rim, and small highlights."
+    : "- Preserve ADT electric blue in the eyebrow, dot grid, corner rings, secondary edges, and small highlights so the cover remains visibly part of ADT Studio.";
   return `Use the supplied light ADT Studio release cover as the edit target.
 Change only its color theme from light to dark while preserving the composition,
 crop, perspective, objects, icon geometry, shadows, exact typography, line breaks,
 spacing, and every character of existing text.
 
 Dark-theme treatment:
-- Replace the white background with a deep navy-black studio background.
+${backgroundTreatment}
 - Render headline text warm white, eyebrow text in a lighter palette tint, and
   subtitle text in a readable cool gray-blue.
-- Keep the feature tile in a deep, saturated version of ${palette.accent}, with
-  luminous stage-colored rim light and highlights.
-- Preserve ADT electric blue in the eyebrow, dot grid, corner rings, secondary
-  edges, and small highlights so the cover remains visibly part of ADT Studio.
+${featureTileTreatment}
+${brandAccentTreatment}
 - Keep white feature symbols bright and preserve colored accent symbols.
 - Make the dot grid and corner rings subtle luminous palette-color details.
 - Preserve accessible contrast and the premium glossy 3D material treatment.
+${betaBadge}
 
 Do not add, remove, move, resize, reword, or redesign anything. Do not introduce
 new text, pseudo-text, logos, watermarks, symbols, or objects.`;
+}
+
+export function isBetaReleaseTag(tag = "") {
+  return /-beta(?:[.-]|$)/i.test(tag);
 }
 
 export async function generateImage({
@@ -1287,7 +1357,7 @@ export async function runCli(argv = process.argv.slice(2)) {
   let darkThemePrompt = "";
   if (shouldGenerateImage) {
     imagePrompt = buildImagePrompt(editorial, tag, palette);
-    darkThemePrompt = buildDarkThemePrompt(palette);
+    darkThemePrompt = buildDarkThemePrompt(palette, tag);
     await atomicWrite(
       path.join(outputDir, "release-image-prompt-light.txt"),
       imagePrompt,

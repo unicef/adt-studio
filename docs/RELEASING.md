@@ -345,6 +345,13 @@ unchanged. Notes-only regeneration reads the existing English title and cover
 alt text from the localization embedded in the release body, so the unchanged
 cover remains aligned without a separate editorial metadata attachment.
 
+Numbered beta and staging covers match the app's fallback beta banner: a deep
+violet/navy background with magenta radial glows, bright typography, a
+`BETA RELEASE` eyebrow, and a luminous `BETA` capsule integrated into the
+feature tile. The tile keeps the beta identity while the selected ADT or
+pipeline palette controls its feature objects and highlights. Stable covers
+keep the standard neutral ADT background and have no channel badge.
+
 For a beta test, create the beta normally, then open **Actions -> Regenerate
 release assets**, select `develop` under **Use workflow from**, enter its exact
 numbered tag, and regenerate `both`. The workflow uses the restricted
