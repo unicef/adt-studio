@@ -751,6 +751,16 @@ jobs:
             echo "- Run **Regenerate release assets** to try again."
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Keep generation diagnostics with the workflow run
+        if: steps.generate.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-generation-${{ github.run_id }}
+          retention-days: 3
+          if-no-files-found: error
+          path: release-assets
+
       - name: Verify and enrich stable draft
         if: steps.generate.outcome == 'success'
         env:
@@ -824,22 +834,15 @@ jobs:
           jq -n --rawfile body release-assets/release-notes.md '{body: $body}' \
             | gh api --method PATCH "repos/$REPO/releases/$RELEASE_ID" --input - >/dev/null
 
-          for asset in \
-            release-assets/release-context.json \
-            release-assets/release-text-request.json \
-            release-assets/release-translation-request.json \
-            release-assets/release-image-prompt-light.txt \
-            release-assets/release-image-prompt-dark.txt \
-            release-assets/release-editorial.json \
-            release-assets/release-i18n.json; do
-            gh release upload "$TAG" --repo "$REPO" "$asset"
-          done
+          gh release upload "$TAG" --repo "$REPO" \
+            "release-assets/release-i18n.json#Localized release metadata"
 
           {
             echo "### Stable release AI enrichment ready"
             echo "- Review draft: $RELEASE_URL"
             echo "- Notes include en, pt-BR, es, fr, and sq localization data."
-            echo "- Light/dark covers and generation inputs are attached for review."
+            echo "- Light/dark covers and localization data are attached for review."
+            echo "- Generation diagnostics are retained in this run's artifact for three days."
           } >> "$GITHUB_STEP_SUMMARY"
 
   canonicalize-stable-release-covers:

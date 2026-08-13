@@ -211,26 +211,6 @@ jobs:
           gh api "${ARGS[@]}" --jq '.body' > release-notes-base.md
           test -s release-notes-base.md
 
-      - name: Download current AI metadata
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          TAG: ${{ inputs.release_tag }}
-          REGENERATE: ${{ inputs.regenerate }}
-        run: |
-          mkdir -p current-assets
-          gh release download "$TAG" --repo "$REPO" \
-            --pattern release-editorial.json --dir current-assets || true
-          gh release download "$TAG" --repo "$REPO" \
-            --pattern release-i18n.json --dir current-assets || true
-          if [[ "$REGENERATE" != "both" ]]; then
-            if [[ ! -s current-assets/release-editorial.json ]] \
-              || [[ ! -s current-assets/release-i18n.json ]]; then
-              echo "::error::Selective regeneration needs existing editorial and localization metadata. Regenerate both instead."
-              exit 1
-            fi
-          fi
-
       - name: Regenerate selected assets
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -267,15 +247,16 @@ jobs:
             || ! cmp -s current-release.md release-notes-base.md; then
             ARGS+=(--existing-notes-file current-release.md)
           fi
-          if [[ "$REGENERATE" == "image" ]]; then
-            ARGS+=(
-              --editorial-file current-assets/release-editorial.json
-              --localizations-file current-assets/release-i18n.json
-            )
-          elif [[ "$REGENERATE" == "notes" ]]; then
-            ARGS+=(--preserve-visuals-from current-assets/release-editorial.json)
-          fi
           node scripts/generate-ai-release-assets.mjs "${ARGS[@]}"
+
+      - name: Keep generation diagnostics with the workflow run
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-generation-${{ github.run_id }}
+          retention-days: 3
+          if-no-files-found: error
+          path: regenerated-assets
 
       - name: Verify release did not change during generation
         env:
@@ -398,20 +379,25 @@ jobs:
           # upload fails; a rerun can safely replace the metadata.
           trap - ERR
 
-          gh release upload "$TAG" --repo "$REPO" --clobber \
-            "regenerated-assets/release-context.json#AI release source context" \
-            "regenerated-assets/release-editorial.json#AI release editorial metadata" \
-            "regenerated-assets/release-i18n.json#Localized release metadata"
           if [[ "$REGENERATE" == "notes" || "$REGENERATE" == "both" ]]; then
             gh release upload "$TAG" --repo "$REPO" --clobber \
-              "regenerated-assets/release-text-request.json#AI editorial request" \
-              "regenerated-assets/release-translation-request.json#AI translation request"
+              "regenerated-assets/release-i18n.json#Localized release metadata"
           fi
-          if [[ "$REGENERATE" == "image" || "$REGENERATE" == "both" ]]; then
-            gh release upload "$TAG" --repo "$REPO" --clobber \
-              "regenerated-assets/release-image-prompt-light.txt#Light cover prompt" \
-              "regenerated-assets/release-image-prompt-dark.txt#Dark cover edit prompt"
-          fi
+
+          LEGACY_AI_ASSETS='[
+            "release-context.json",
+            "release-editorial.json",
+            "release-text-request.json",
+            "release-translation-request.json",
+            "release-image-prompt-light.txt",
+            "release-image-prompt-dark.txt"
+          ]'
+          gh api --paginate "repos/$REPO/releases/$RELEASE_ID/assets?per_page=100" \
+            | jq -r --argjson legacy "$LEGACY_AI_ASSETS" \
+              '.[] | select(.name as $name | $legacy | index($name)) | .id' \
+            | while read -r asset_id; do
+                gh api --method DELETE "repos/$REPO/releases/assets/$asset_id"
+              done
 
           if [[ "$REGENERATE" == "image" || "$REGENERATE" == "both" ]]; then
             COVER_PREFIX="${COVER_NAME%.png}-"

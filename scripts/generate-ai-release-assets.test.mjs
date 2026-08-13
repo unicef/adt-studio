@@ -11,6 +11,7 @@ import {
   buildTextRequest,
   buildTranslationRequest,
   editImage,
+  extractEmbeddedReleaseLocalizations,
   generateEditorial,
   generateImage,
   generateLocalizations,
@@ -527,6 +528,31 @@ describe("AI release assets", () => {
     expect(embedded.match(/-->/g)).toHaveLength(1);
   });
 
+  it("reads localization state back from the release body", () => {
+    const body = updateReleaseBody({
+      editorial,
+      localizations: releaseLocalizations,
+      from: "v0.7.4",
+      tag: "v0.7.5",
+      repo: "unicef/adt-studio",
+      coverLightUrl: "light.png",
+      coverDarkUrl: "dark.png",
+      regenerate: "both",
+    });
+
+    expect(extractEmbeddedReleaseLocalizations(body)).toEqual(
+      releaseLocalizations,
+    );
+    expect(extractEmbeddedReleaseLocalizations("Factual notes only")).toBe(
+      undefined,
+    );
+    expect(() =>
+      extractEmbeddedReleaseLocalizations(
+        "<!-- adt-release-i18n\n{not-json}\n-->",
+      ),
+    ).toThrow(/Embedded release localizations are invalid/);
+  });
+
   it("builds an on-brand editorial cover with exact release copy", () => {
     const prompt = buildImagePrompt(
       validateEditorial(editorialPayload),
@@ -619,16 +645,21 @@ describe("AI release assets", () => {
     }
   });
 
-  it("preserves the approved cover concept during notes-only regeneration", async () => {
+  it("preserves cover-facing copy from the body during notes-only regeneration", async () => {
     const root = await mkdtemp(path.join(os.tmpdir(), "adt-release-assets-"));
     try {
-      const preservedFile = path.join(root, "preserved-editorial.json");
+      const existingBodyFile = path.join(root, "existing-release.md");
       await writeFile(
-        preservedFile,
-        JSON.stringify({
-          ...editorialPayload,
-          coverPalette: resolveCoverPalette("storyboard", "v0.7.5"),
-          imagePrompts: { light: "approved light", dark: "approved dark" },
+        existingBodyFile,
+        updateReleaseBody({
+          editorial,
+          localizations: releaseLocalizations,
+          from: "v0.7.4",
+          tag: "v0.7.5",
+          repo: "unicef/adt-studio",
+          coverLightUrl: "approved-light.png",
+          coverDarkUrl: "approved-dark.png",
+          regenerate: "both",
         }),
       );
       const newEditorialPayload = {
@@ -668,8 +699,8 @@ describe("AI release assets", () => {
         newEditorialFile,
         "--localizations-file",
         newLocalizationsFile,
-        "--preserve-visuals-from",
-        preservedFile,
+        "--existing-notes-file",
+        existingBodyFile,
         "--regenerate",
         "notes",
         "--no-image",
@@ -681,12 +712,15 @@ describe("AI release assets", () => {
       );
       expect(metadata.title).toBe(editorialPayload.title);
       expect(metadata.summary).toBe(newEditorialPayload.summary);
-      expect(metadata.imagePrompt).toBe(editorialPayload.image_prompt);
-      expect(metadata.imagePrompts).toEqual({
-        light: "approved light",
-        dark: "approved dark",
-      });
-      expect(metadata.coverPalette.name).toBe("storyboard");
+      expect(metadata.imageAlt).toBe(editorialPayload.image_alt);
+      expect(metadata.imagePrompt).toBe(newEditorialPayload.image_prompt);
+      const notes = await readFile(
+        path.join(output, "release-notes.md"),
+        "utf8",
+      );
+      expect(notes).toContain("approved-light.png");
+      expect(notes).toContain("approved-dark.png");
+      expect(notes).toContain(`## ${editorialPayload.title}`);
     } finally {
       await rm(root, { recursive: true, force: true });
     }

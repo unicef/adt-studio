@@ -312,9 +312,10 @@ regeneration workflow. Beta releases never enter this environment.
 The visible GitHub notes remain English. The generator also creates
 `release-i18n.json` for `en`, `pt-BR`, `es`, `fr`, and `sq`, embeds the same data
 in a hidden `adt-release-i18n` Markdown comment, and attaches it to the draft for
-the landing page and app. The source context, structured text and translation
-requests, image prompts, approved editorial JSON, and both covers are attached
-so reviewers can inspect how every generated asset was produced.
+the landing page and app. Only that localization file and the light/dark covers
+are attached to the release. Generation context, requests, prompts, and other
+diagnostics are retained with the workflow run for three days instead of
+cluttering the public release downloads.
 
 Draft releases use GitHub's internal `untagged-*` URL until publication. The
 workflow records the draft's release ID and actual review URL, uploads the cover
@@ -338,10 +339,11 @@ beta `vX.Y.Z-beta.N`, or a PR staging `X.Y.Z-beta-pr-N` prerelease. Generated
 blocks are wrapped in hidden
 Markdown markers so image-only regeneration keeps the notes unchanged,
 notes-only regeneration keeps the cover unchanged, and human text outside
-those blocks is preserved. Image-only regeneration reuses the approved
-editorial and translations without another text call. Notes-only regeneration
-preserves the existing title, cover subtitle, alt text, and visual concept so
-the unchanged cover still matches the new notes.
+those blocks is preserved. Image-only regeneration makes a fresh editorial pass
+for the new visual concept while leaving the existing notes and translations
+unchanged. Notes-only regeneration reads the existing English title and cover
+alt text from the localization embedded in the release body, so the unchanged
+cover remains aligned without a separate editorial metadata attachment.
 
 For a beta test, create the beta normally, then open **Actions -> Regenerate
 release assets**, select `develop` under **Use workflow from**, enter its exact

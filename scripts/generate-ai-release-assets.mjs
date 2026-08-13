@@ -907,6 +907,21 @@ function replaceLocalizationBlock(body, localizations) {
   return trimmed ? `${trimmed}\n\n${block}` : block;
 }
 
+export function extractEmbeddedReleaseLocalizations(body = "") {
+  const match = body.match(LOCALIZATION_PATTERN);
+  if (!match) return undefined;
+  const json = match[0]
+    .replace(/^<!--\s*adt-release-i18n\s*\n/i, "")
+    .replace(/-->$/, "")
+    .trim();
+  try {
+    return validateReleaseLocalizations(JSON.parse(json));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Embedded release localizations are invalid: ${message}`);
+  }
+}
+
 function category(title, bullets) {
   return bullets.length
     ? `### ${title}\n\n${bullets.map((item) => `- ${item}`).join("\n")}`
@@ -1234,6 +1249,17 @@ export async function runCli(argv = process.argv.slice(2)) {
       imageAlt: preservedEditorial.imageAlt,
       imagePrompt: preservedEditorial.imagePrompt,
     };
+  } else if (regenerate === "notes") {
+    const existingLocalizations =
+      extractEmbeddedReleaseLocalizations(existingBody);
+    const existingEnglish = existingLocalizations?.locales.en;
+    if (existingEnglish) {
+      editorial = {
+        ...editorial,
+        title: existingEnglish.title,
+        imageAlt: existingEnglish.coverAlt,
+      };
+    }
   }
 
   const translationRequest = shouldGenerateNotes
