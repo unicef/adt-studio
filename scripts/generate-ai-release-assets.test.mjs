@@ -556,7 +556,7 @@ describe("AI release assets", () => {
         "--to",
         "HEAD",
         "--tag",
-        "v9.9.9",
+        "0.7.6-beta-pr-803",
         "--output",
         dryRun,
         "--dry-run",

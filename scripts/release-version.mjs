@@ -94,9 +94,14 @@ export function resolvePreviousReleaseTag(tags, targetTag) {
   const target = parseReleaseTag(targetTag);
   if (!target) throw new Error(`Invalid release tag: ${targetTag}`);
   const targetBetaNumber = betaNumberOf(target);
-  if (target.prerelease != null && targetBetaNumber == null) {
+  const targetIsStaging = isStagingBeta(target);
+  if (
+    target.prerelease != null &&
+    targetBetaNumber == null &&
+    !targetIsStaging
+  ) {
     throw new Error(
-      `Release regeneration supports only stable or numbered beta tags: ${targetTag}`,
+      `Release regeneration supports only stable, numbered beta, or staging tags: ${targetTag}`,
     );
   }
 
@@ -104,10 +109,15 @@ export function resolvePreviousReleaseTag(tags, targetTag) {
     .map((tag) => ({ tag, version: parseReleaseTag(tag) }))
     .filter(({ version }) => {
       if (!version) return false;
-      if (targetBetaNumber == null) {
+      if (target.prerelease == null) {
         return (
           version.prerelease == null &&
           compareReleaseVersions(version, target) < 0
+        );
+      }
+      if (targetIsStaging) {
+        return (
+          version.prerelease == null && compareCore(version, target) < 0
         );
       }
 

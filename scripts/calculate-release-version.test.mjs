@@ -172,9 +172,15 @@ describe("resolvePreviousReleaseTag", () => {
     expect(resolvePreviousReleaseTag(releaseTags, "v0.7.5")).toBe("v0.7.4");
   });
 
+  it("uses the preceding stable release for a staging release", () => {
+    expect(
+      resolvePreviousReleaseTag(releaseTags, "0.7.6-beta-pr-803"),
+    ).toBe("v0.7.5");
+  });
+
   it("rejects unsupported prerelease channels", () => {
     expect(() =>
       resolvePreviousReleaseTag(releaseTags, "v0.7.5-rc.1"),
-    ).toThrow("stable or numbered beta");
+    ).toThrow("stable, numbered beta, or staging");
   });
 });

@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: "Stable draft or published beta tag"
+        description: "Stable draft, beta tag, or staging tag"
         required: true
         type: string
       regenerate:
@@ -65,6 +65,7 @@ jobs:
     timeout-minutes: 5
     permissions:
       actions: write
+      pull-requests: read
     outputs:
       channel: ${{ steps.route.outputs.channel }}
       run_here: ${{ steps.route.outputs.run_here }}
@@ -81,6 +82,21 @@ jobs:
           RELEASE_NOTICE: ${{ inputs.release_notice }}
           COVER_PALETTE: ${{ inputs.cover_palette }}
         run: |
+          if [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta-pr-([0-9]+)$ ]]; then
+            PR_NUMBER="${BASH_REMATCH[1]}"
+            PR_JSON=$(gh pr view "$PR_NUMBER" --repo "$REPO" \
+              --json state,baseRefName,isCrossRepository)
+            if [[ "$(jq -r '.state' <<< "$PR_JSON")" != "OPEN" ]] \
+              || [[ "$(jq -r '.baseRefName' <<< "$PR_JSON")" != "develop" ]] \
+              || [[ "$(jq -r '.isCrossRepository' <<< "$PR_JSON")" != "false" ]]; then
+              echo "::error::Staging regeneration requires an open same-repository PR into develop."
+              exit 1
+            fi
+            echo "channel=staging" >> "$GITHUB_OUTPUT"
+            echo "run_here=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
           if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta\.[0-9]+$ ]]; then
             if [[ "$BRANCH" != "develop" ]]; then
               echo "::error::Published beta releases must be regenerated from develop."
@@ -92,7 +108,7 @@ jobs:
           fi
 
           if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::release_tag must be a stable or numbered beta v-prefixed version."
+            echo "::error::release_tag must be stable, numbered beta, or beta-pr staging version."
             exit 1
           fi
 
@@ -120,7 +136,7 @@ jobs:
     if: needs.route.outputs.run_here == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 40
-    environment: ${{ needs.route.outputs.channel == 'beta' && 'release-ai-preview' || 'release-ai' }}
+    environment: ${{ needs.route.outputs.channel == 'stable' && 'release-ai' || 'release-ai-preview' }}
     permissions:
       contents: write
     steps:
@@ -167,7 +183,7 @@ jobs:
               exit 1
             fi
           elif [[ "$IS_DRAFT" != "false" || "$IS_PRERELEASE" != "true" ]]; then
-            echo "::error::$TAG is not a published beta prerelease."
+            echo "::error::$TAG is not a published prerelease."
             exit 1
           fi
           RELEASE_ID=$(jq -r '.databaseId' draft.json)
@@ -420,9 +436,9 @@ jobs:
             echo "### Release assets regenerated"
             echo "- Updated: \`$REGENERATE\`"
             echo "- Cover palette: \`${COVER_PALETTE:-auto}\`"
-            if [[ "$CHANNEL" == "beta" ]]; then
-              echo "- Review published beta: $RELEASE_URL"
-              echo "- The regenerated beta notes and covers are already live."
+            if [[ "$CHANNEL" == "beta" || "$CHANNEL" == "staging" ]]; then
+              echo "- Review published $CHANNEL release: $RELEASE_URL"
+              echo "- The regenerated $CHANNEL notes and covers are already live."
             else
               echo "- Review stable draft: $RELEASE_URL"
               echo "- When satisfied, use GitHub's **Publish release** button."

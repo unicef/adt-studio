@@ -84,6 +84,14 @@ no `v` prefix**. This matters for two reasons:
   `beta.N` tags and stable calculation skips any prerelease, so a
   `-beta-pr-<n>` tag never shifts a future release version.
 
+Staging notes and covers remain factual by default. To test AI-generated
+release content before merging its implementation, run **Regenerate release
+assets** from the release-tooling branch and enter the staging tag exactly as
+shown on its prerelease (for example `0.7.5-beta-pr-123`). Staging targets must
+belong to an open same-repository PR into `develop`; they use the
+`release-ai-preview` environment and are updated live. Closing the target PR
+removes the staging release through the normal cleanup workflow.
+
 The `publish` job is idempotent per PR: before creating the release it deletes
 any existing release (and its tag) ending in `-beta-pr-<n>`, then recreates it
 from the current build. Staging does not create a `v*` tag or a Docker image.
@@ -325,8 +333,9 @@ After the workflow succeeds:
 5. When satisfied, click **Publish release** on the draft. This is the human
    confirmation step for the Electron release notes, covers, and installers.
 
-Regeneration accepts either an unpublished stable `vX.Y.Z` draft or a published
-numbered beta `vX.Y.Z-beta.N` prerelease. Generated blocks are wrapped in hidden
+Regeneration accepts an unpublished stable `vX.Y.Z` draft, a published numbered
+beta `vX.Y.Z-beta.N`, or a PR staging `X.Y.Z-beta-pr-N` prerelease. Generated
+blocks are wrapped in hidden
 Markdown markers so image-only regeneration keeps the notes unchanged,
 notes-only regeneration keeps the cover unchanged, and human text outside
 those blocks is preserved. Image-only regeneration reuses the approved
