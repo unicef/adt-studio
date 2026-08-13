@@ -150,7 +150,7 @@ export function LibraryView({ books, onOpen, onAddBook }: LibraryViewProps) {
       </div>
 
       <div className={cn("min-h-0 flex-1 overflow-auto py-5", results.length === 0 && "grid place-items-center")}>
-        <div key={`${view}|${sort}|${group}|${q}`} className="w-full animate-content-in">
+        <div key={view} className="w-full animate-content-in">
           {results.length === 0 ? (
             <NoResults onClear={() => setSearch("")} />
           ) : view === "grid" ? (
