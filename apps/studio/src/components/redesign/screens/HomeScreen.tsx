@@ -15,6 +15,7 @@ import { SplitsSummaryCard } from "./home/SplitsSummaryCard"
 import { toBookVM, type BookVM } from "../data"
 import { REDESIGN_PATHS } from "../nav"
 import { useRedesignBooks } from "../use-redesign-books"
+import { useOpenBook } from "../use-open-book"
 import { useRedesignShell } from "../RedesignShellContext"
 import { TopBar } from "@/components/title-bar/TopBar"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
@@ -49,7 +50,7 @@ export function HomeScreen() {
   const navigate = useNavigate()
   const { books, locale, isLoading, error } = useRedesignBooks()
   const { openAdd } = useRedesignShell()
-  const openBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
+  const openBook = useOpenBook()
   const previewBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "preview" } })
 
   const vms = useMemo(() => {

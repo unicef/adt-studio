@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react"
-import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg, plural } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
@@ -16,6 +15,7 @@ import { toBookVM } from "../data"
 import { Pager } from "../ui/Pager"
 import { ScreenFallback } from "../ui/ScreenFallback"
 import { useRedesignBooks } from "../use-redesign-books"
+import { useOpenBook } from "../use-open-book"
 import { useRedesignShell } from "../RedesignShellContext"
 import { BookRow } from "./library/BookRow"
 import { BookGridCard } from "./library/BookGridCard"
@@ -31,12 +31,10 @@ const SORTS: { key: SortKey; label: MessageDescriptor }[] = [
 const PAGE_SIZE = 8
 
 export function LibraryScreen() {
-  const navigate = useNavigate()
   const { t, i18n } = useLingui()
   const { books, locale, isLoading, error } = useRedesignBooks()
   const { openAdd, requestDelete } = useRedesignShell()
-  const openBook = (label: string) =>
-    navigate({ to: "/redesign/pipeline/$label", params: { label }, search: {} })
+  const openBook = useOpenBook()
 
   const [view, setView] = useState<"list" | "grid">("grid")
   const [search, setSearch] = useState("")
