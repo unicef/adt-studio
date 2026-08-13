@@ -431,11 +431,11 @@ fallback. The PR list is capped, while the Compare link covers the complete
 range.
 
 Do not edit `### Release source` by hand. It is a parsing contract and must
-remain the last visible section of the release body (hidden localization
-metadata may follow it). Newer apps remove it from the ordinary release notes
-and show its fields in the Beta versions source card; older apps display it as
-normal Markdown. The updater also strips the HTML form rendered by GitHub's
-feed before showing update notes.
+remain the final section of the release body. Hidden localization metadata is
+placed immediately before it so the updater can remove provenance without
+discarding translations. Newer apps show its fields in the Beta versions source
+card; older apps display it as normal Markdown. The updater also strips the HTML
+form rendered by GitHub's feed before showing update notes.
 
 If composition or provenance lookup fails, the workflow discards the temporary
 file and lets `gh release create --generate-notes` produce the release normally.

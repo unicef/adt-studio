@@ -951,6 +951,16 @@ function markerBlock(start, end, content) {
   return `${start}\n${content.trim()}\n${end}`;
 }
 
+function moveMarkerBlockToStart(body, start, end) {
+  const startIndex = body.indexOf(start);
+  const endIndex = body.indexOf(end);
+  if (startIndex < 0 || endIndex <= startIndex) return body;
+  const afterEnd = endIndex + end.length;
+  const block = body.slice(startIndex, afterEnd);
+  const remainder = `${body.slice(0, startIndex)}${body.slice(afterEnd)}`.trim();
+  return remainder ? `${block}\n\n${remainder}` : block;
+}
+
 function replaceMarkerBlock(body, start, end, content, position) {
   const block = markerBlock(start, end, content);
   const startIndex = body.indexOf(start);
@@ -1070,13 +1080,14 @@ export function updateReleaseBody({
       notesContent(editorial, { from, tag, repo }),
       "end",
     );
-    if (releaseSource) {
-      body = body.replace(LOCALIZATION_PATTERN, "").trim();
-      body = `${body}\n\n${releaseSource}`;
-    }
     body = replaceLocalizationBlock(body, localizations);
+    if (releaseSource) {
+      body = `${body.trim()}\n\n${releaseSource}`;
+    }
   }
-  if (releaseNotice) body = applyReleaseNotice(body, releaseNotice);
+  body = releaseNotice
+    ? applyReleaseNotice(body, releaseNotice)
+    : moveMarkerBlockToStart(body, NOTICE_START, NOTICE_END);
   return `${body.trim()}\n`;
 }
 
@@ -1088,13 +1099,15 @@ export function normalizeReleaseNotice(value = "") {
 export function applyReleaseNotice(existingBody = "", releaseNotice = "") {
   const notice = normalizeReleaseNotice(releaseNotice);
   if (!notice) return existingBody;
-  return replaceMarkerBlock(
-    existingBody,
-    NOTICE_START,
-    NOTICE_END,
-    `**${notice}**`,
-    "start",
-  );
+  const startIndex = existingBody.indexOf(NOTICE_START);
+  const endIndex = existingBody.indexOf(NOTICE_END);
+  const withoutExisting =
+    startIndex >= 0 && endIndex > startIndex
+      ? `${existingBody.slice(0, startIndex)}${existingBody.slice(endIndex + NOTICE_END.length)}`
+      : existingBody;
+  const block = markerBlock(NOTICE_START, NOTICE_END, `**${notice}**`);
+  const remainder = withoutExisting.trim();
+  return remainder ? `${block}\n\n${remainder}` : block;
 }
 
 function replaceCoverAttribute(block, pattern, value, label) {

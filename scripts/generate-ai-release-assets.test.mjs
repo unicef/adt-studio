@@ -25,6 +25,7 @@ import {
   validateEditorial,
   validateReleaseLocalizations,
 } from "./generate-ai-release-assets.mjs";
+import { parseReleaseSourceSection } from "./release-source-notes.mjs";
 
 const editorialPayload = {
   title: "Books That Travel",
@@ -476,8 +477,14 @@ describe("AI release assets", () => {
     expect(enriched.indexOf("<!-- adt-ai-notes:end -->")).toBeLessThan(
       enriched.indexOf("### Release source"),
     );
-    expect(enriched.indexOf("### Release source")).toBeLessThan(
-      enriched.indexOf("<!-- adt-release-i18n"),
+    expect(enriched.indexOf("<!-- adt-release-i18n")).toBeLessThan(
+      enriched.indexOf("### Release source"),
+    );
+    const parsed = parseReleaseSourceSection(enriched);
+    expect(parsed.source?.branch).toBe("develop");
+    expect(parsed.notes).toContain("<!-- adt-release-i18n");
+    expect(extractEmbeddedReleaseLocalizations(parsed.notes)).toEqual(
+      releaseLocalizations,
     );
   });
 
@@ -546,6 +553,23 @@ describe("AI release assets", () => {
       "**Windows users: download and reinstall ADT Studio manually.**",
     );
     expect(regenerated.match(/Windows users:/g)).toHaveLength(1);
+
+    const imageRegenerated = updateReleaseBody({
+      existingBody: initial,
+      editorial,
+      from: "v0.7.4",
+      tag: "v0.7.5",
+      repo: "unicef/adt-studio",
+      coverLightUrl: "https://example.test/new-light.png",
+      coverDarkUrl: "https://example.test/new-dark.png",
+      regenerate: "image",
+    });
+    expect(imageRegenerated).toMatch(
+      /^<!-- adt-release-notice:start -->\n\*\*Windows users:/,
+    );
+    expect(imageRegenerated.indexOf("adt-release-notice:start")).toBeLessThan(
+      imageRegenerated.indexOf("adt-ai-cover:start"),
+    );
 
     expect(applyReleaseNotice("Existing notes", notice)).toMatch(
       /^<!-- adt-release-notice:start -->\n\*\*Windows users:/,
