@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { ScreenFallback } from "../ui/ScreenFallback"
 import { AiEditPanel } from "./pipeline/AiEditPanel"
 import { ChromeToggleIcon } from "./pipeline/ChromeToggleIcon"
+import { DockHandle } from "./pipeline/DockHandle"
 import { PageCanvas } from "./pipeline/PageCanvas"
 import { PagesRail } from "./pipeline/PagesRail"
 import { PagesRailEmpty } from "./pipeline/PagesRailEmpty"
@@ -394,13 +395,15 @@ export function PipelineScreen() {
         />
       </div>
 
-      {(empty || !chromeHidden) && (
+      {empty || !chromeHidden ? (
         <PluginDock
           foundations={state.foundations}
           plugins={state.plugins}
           onOpenPlugin={openStep}
           hint={empty ? <Trans>Plugins unlock once the sections exist</Trans> : undefined}
         />
+      ) : (
+        <DockHandle onShow={() => setChromeHidden(false)} />
       )}
     </div>
   )

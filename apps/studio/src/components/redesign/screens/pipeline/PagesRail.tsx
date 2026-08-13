@@ -23,22 +23,6 @@ export interface PagesRailProps {
   storyboardRunning?: boolean
 }
 
-type Health = "ok" | "warn" | "todo"
-
-function healthDots(page: PipelinePage): Health[] {
-  const sectioned: Health = page.sectionCount > 0 ? "ok" : "todo"
-  const rendered: Health = page.hasRendering ? "ok" : page.sectionCount > 0 ? "todo" : "todo"
-  const captioned: Health =
-    page.imageCount === 0 ? "ok" : page.missingCaptions > 0 ? "warn" : "ok"
-  return [sectioned, rendered, captioned]
-}
-
-const DOT_CLASS: Record<Health, string> = {
-  ok: "bg-emerald-500",
-  warn: "bg-amber-500",
-  todo: "bg-border",
-}
-
 export function PagesRail({
   label,
   pages,
@@ -75,7 +59,6 @@ export function PagesRail({
         <div ref={listRef} className="flex flex-col gap-1.5 px-2.5 pb-2.5">
           {pages.map((page) => {
             const active = activeQuizIndex == null && page.pageId === activePageId
-            const missing = page.missingCaptions
             const pending = !!storyboardRunning && !page.hasRendering && !page.isDiscarded
             const hasActivity = page.sections.some((s) => s.isActivity && !s.isPruned)
             return (
@@ -131,16 +114,6 @@ export function PagesRail({
                     </span>
                     <span className="truncate text-[11px] text-muted-foreground">
                       {page.textPreview || t`No text`}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      {healthDots(page).map((health, i) => (
-                        <span key={i} className={cn("size-1.5 rounded-full", DOT_CLASS[health])} />
-                      ))}
-                      {missing > 0 && (
-                        <span className="ml-0.5 text-[10px] font-semibold text-amber-600">
-                          {t`${missing} alt-text pending`}
-                        </span>
-                      )}
                     </span>
                   </div>
                 </button>
