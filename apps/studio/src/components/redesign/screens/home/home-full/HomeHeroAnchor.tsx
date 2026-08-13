@@ -10,7 +10,8 @@ import { StageBar, ContinueLabel, ShelfCard, AddBookTile, LibraryLink, OutputsPa
  * recognition tiles. No scroll; the composition is vertically centered so it
  * fills the screen with breathing room at any book count.
  */
-export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onAddBook, onOpenLibrary }: HomeVariantProps) {
+export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onContinue, onAddBook, onOpenLibrary }: HomeVariantProps) {
+  const continueBook = onContinue ?? onOpen
   const pins = pinnedLabels ?? new Set<string>()
   const dateLabel = useMemo(() => new Intl.DateTimeFormat("en", { weekday: "long", month: "long", day: "numeric" }).format(new Date()), [])
   const sorted = useMemo(() => [...books].sort((a, b) => new Date(b.raw.modifiedAt).getTime() - new Date(a.raw.modifiedAt).getTime()), [books])
@@ -25,10 +26,12 @@ export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onAddBook, onOpenL
 
       <div className="mx-auto flex w-full max-w-[1240px] flex-1 flex-col justify-center gap-12 py-4">
         {resume && (
-          <button
-            type="button"
+          <div
+            role="button"
+            tabIndex={0}
             onClick={() => onOpen(resume.label)}
-            className="group flex items-stretch gap-10 rounded-3xl border bg-card p-8 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " " ? (e.preventDefault(), onOpen(resume.label)) : undefined)}
+            className="group flex cursor-pointer items-stretch gap-10 rounded-3xl border bg-card p-8 text-left shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             <div className="h-[336px] w-[240px] shrink-0 overflow-hidden rounded-xl shadow-xl ring-1 ring-black/5 transition-transform duration-200 group-hover:-translate-y-0.5">
               <BookCover title={resume.displayTitle} author={resume.authors} cover={resume.cover} fit="cover" />
@@ -42,13 +45,20 @@ export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onAddBook, onOpenL
                 {resume.authors} · {resume.pagesText}
               </div>
               <StageBar vm={resume} labels className="mt-6 max-w-[380px]" />
-              <span className="mt-7 inline-flex w-fit items-center gap-2 rounded-full bg-brand-600 px-6 py-3 text-[14px] font-semibold text-white transition-colors group-hover:bg-brand-700">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  continueBook(resume.label)
+                }}
+                className="mt-7 inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-brand-600 px-6 py-3 text-[14px] font-semibold text-white transition-[background-color,transform] hover:bg-brand-700 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+              >
                 <ContinueLabel vm={resume} />
                 <ArrowRight className="size-4" />
-              </span>
+              </button>
             </div>
             <OutputsPanel vm={resume} className="hidden self-stretch border-l pl-10 lg:block" />
-          </button>
+          </div>
         )}
 
         <section>

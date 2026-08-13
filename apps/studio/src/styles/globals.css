@@ -361,6 +361,12 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label[for],
+  summary {
+    cursor: pointer;
+  }
 }
 
 .wizard-scroll {

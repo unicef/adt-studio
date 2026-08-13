@@ -24,7 +24,7 @@ export interface BookDetailDialogProps {
 const PRESS = "transition-transform active:scale-[0.98]"
 const CONTENT =
   // eslint-disable-next-line lingui/no-unlocalized-strings -- tailwind class list
-  "fixed left-[50%] top-[50%] z-50 w-full max-w-[680px] translate-x-[-50%] translate-y-[-50%] overflow-hidden rounded-2xl border bg-background text-foreground shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+  "fixed left-[50%] top-[50%] z-50 flex min-h-[500px] w-full max-w-[780px] translate-x-[-50%] translate-y-[-50%] flex-col overflow-hidden rounded-2xl bg-background text-foreground shadow-2xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
 
 export function BookDetailDialog({ book, onOpenChange, onEdit, onDelete, onPublish }: BookDetailDialogProps) {
   return (
@@ -141,7 +141,7 @@ function BookDetail({
         </div>
       </div>
 
-      <div className="space-y-4 bg-background px-7 pb-7 pt-3">
+      <div className="flex-1 space-y-4 bg-background px-7 pb-7 pt-3">
         {hasError ? (
           <div className="flex items-center gap-3 rounded-xl border border-stage-toc/30 bg-stage-toc/10 px-3.5 py-3 text-[13px]">
             <TriangleAlert className="size-4 shrink-0 text-stage-toc" />

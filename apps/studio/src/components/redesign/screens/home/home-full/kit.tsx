@@ -11,6 +11,8 @@ export interface HomeVariantProps {
   /** Labels of user-pinned books (surfaced first on the shelf). */
   pinnedLabels?: Set<string>
   onOpen: (label: string) => void
+  /** Resume/continue a book directly (skips the detail dialog). Falls back to onOpen. */
+  onContinue?: (label: string) => void
   onAddBook: () => void
   onOpenLibrary: () => void
 }

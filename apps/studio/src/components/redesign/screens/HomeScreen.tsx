@@ -40,6 +40,7 @@ export function HomeScreen() {
           <HomeHeroAnchor
             books={vms}
             onOpen={setDetailLabel}
+            onContinue={openBook}
             onAddBook={openAdd}
             onOpenLibrary={() => navigate({ to: REDESIGN_PATHS.library })}
           />
