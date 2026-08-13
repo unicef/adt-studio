@@ -7,15 +7,9 @@ export interface BookCoverProps {
   title: string
   author: string
   cover: CoverSpec
-  /** How a real cover image fills the frame. "cover" bleeds edge-to-edge (no letterbox). */
   fit?: "contain" | "cover"
 }
 
-/**
- * Spine-and-title book cover, sized entirely in container-query units so a
- * single component renders crisply at 48px, 96px or 227px. Ported from the
- * design's BookCover.dc.html.
- */
 export function BookCover({ title, author, cover, fit = "contain" }: BookCoverProps) {
   const { t } = useLingui()
   const [failedSrc, setFailedSrc] = useState<string | null>(null)

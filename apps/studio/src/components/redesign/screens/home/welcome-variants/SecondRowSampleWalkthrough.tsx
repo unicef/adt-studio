@@ -4,27 +4,18 @@ import { useLingui, Trans } from "@lingui/react/macro"
 import { BookOpen, GraduationCap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
+import { cn, prefersReducedMotion } from "@/lib/utils"
 import { CATEGORIES } from "./categories"
 import { CategoryDemo } from "./CategoryDemo"
 import { SecondRowHeader, SamplePanel } from "./SecondRowShell"
 
-/**
- * Second-row option — walk through one finished sample book, one facet at a time
- * (Listen / See / Understand / Check). The preview auto-advances; a single CTA opens
- * the sample. Activation-first (sample-data pattern).
- *
- * NOTE: "Open this sample" needs a bundled/loadable demo project; wired to the add flow
- * as a placeholder until that ships.
- */
 export function SecondRowSampleWalkthrough() {
   const { i18n } = useLingui()
   const navigate = useNavigate()
   const [active, setActive] = useState(0)
 
   useEffect(() => {
-    // eslint-disable-next-line lingui/no-unlocalized-strings -- CSS media query, not user text
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return
+    if (prefersReducedMotion()) return
     const id = setInterval(() => setActive((a) => (a + 1) % CATEGORIES.length), 3600)
     return () => clearInterval(id)
   }, [])

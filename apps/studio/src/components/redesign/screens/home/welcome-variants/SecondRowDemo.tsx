@@ -1,17 +1,15 @@
 import { useEffect, useState } from "react"
 import { useLingui, Trans } from "@lingui/react/macro"
-import { cn } from "@/lib/utils"
+import { cn, prefersReducedMotion } from "@/lib/utils"
 import { CATEGORIES } from "./categories"
 import { CategoryDemo } from "./CategoryDemo"
 
-/** Second-row option — category tabs with a live demo of what each produces. */
 export function SecondRowDemo() {
   const { i18n } = useLingui()
   const [active, setActive] = useState(0)
 
   useEffect(() => {
-    // eslint-disable-next-line lingui/no-unlocalized-strings -- CSS media query, not user text
-    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return
+    if (prefersReducedMotion()) return
     const id = setInterval(() => setActive((a) => (a + 1) % CATEGORIES.length), 4200)
     return () => clearInterval(id)
   }, [])

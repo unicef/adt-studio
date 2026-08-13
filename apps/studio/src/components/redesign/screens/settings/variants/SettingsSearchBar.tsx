@@ -14,6 +14,9 @@ interface SettingsSearchBarProps {
   size?: "sm" | "lg"
   className?: string
   inputClassName?: string
+  resultsId?: string
+  activeResultId?: string
+  expanded?: boolean
 }
 
 export function SettingsSearchBar({
@@ -26,6 +29,9 @@ export function SettingsSearchBar({
   size = "sm",
   className,
   inputClassName,
+  resultsId,
+  activeResultId,
+  expanded,
 }: SettingsSearchBarProps) {
   const { t } = useLingui()
   const [focused, setFocused] = useState(false)
@@ -55,6 +61,11 @@ export function SettingsSearchBar({
         }}
         placeholder={placeholder ?? t`Search settings…`}
         aria-label={t`Search settings`}
+        role={resultsId ? "combobox" : undefined}
+        aria-autocomplete={resultsId ? "list" : undefined}
+        aria-controls={resultsId}
+        aria-activedescendant={activeResultId}
+        aria-expanded={resultsId ? expanded : undefined}
         className={cn(
           "w-full rounded-[10px] border bg-card pl-9 pr-9 outline-none transition-[border-color,box-shadow] placeholder:text-muted-foreground hover:border-brand-300 focus:border-brand-400 focus:shadow-[0_0_0_3px_var(--brand-50)] [&::-webkit-search-cancel-button]:hidden",
           size === "lg" ? "h-11 text-sm" : "h-9 text-[13px]",

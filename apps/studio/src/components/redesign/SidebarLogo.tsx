@@ -13,9 +13,6 @@ export function SidebarLogo({ className }: SidebarLogoProps) {
   const logoSrc = useAppLogo();
   const platform = usePlatform();
   const { available } = useWindowControls();
-  // On macOS the OS draws the traffic lights top-left; give them their own
-  // draggable band and drop the brand below it. Elsewhere the logo sits at the
-  // very top of the sidebar.
   const macChrome = platform === "macos" && available;
 
   return (

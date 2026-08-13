@@ -4,6 +4,9 @@ import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import type { SettingsSearchResult } from "../useSettingsSearch"
 
+export const SETTINGS_RESULTS_ID = "settings-search-results"
+export const settingsResultId = (resultId: string) => `${SETTINGS_RESULTS_ID}-${resultId}`
+
 interface SettingsResultsListProps {
   results: SettingsSearchResult[]
   activeIndex: number
@@ -42,6 +45,7 @@ export function SettingsResultsList({
 
   return (
     <div
+      id={SETTINGS_RESULTS_ID}
       role="listbox"
       className={cn(
         "flex flex-col motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150",
@@ -54,10 +58,12 @@ export function SettingsResultsList({
         return (
           <button
             key={result.id}
+            id={settingsResultId(result.id)}
             ref={active ? activeRef : undefined}
             type="button"
             role="option"
             aria-selected={active}
+            tabIndex={-1}
             onClick={() => onRun(result)}
             onMouseMove={() => onActiveChange(index)}
             className={cn(

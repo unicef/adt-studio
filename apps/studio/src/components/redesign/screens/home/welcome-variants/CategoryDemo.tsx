@@ -4,7 +4,6 @@ import { cn } from "@/lib/utils"
 import { Equalizer } from "./parts"
 import type { Category } from "./categories"
 
-/** A small, looping demo of what a category produces. Decorative (aria-hidden), motion-safe. */
 export function CategoryDemo({ category }: { category: Category }) {
   const { t } = useLingui()
   const { demo, accentText, accentBg } = category

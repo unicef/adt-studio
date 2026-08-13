@@ -3,7 +3,6 @@ import { Play, Image as ImageIcon, Languages, Hand, ShieldCheck } from "lucide-r
 import { cn } from "@/lib/utils"
 import type { Capability } from "./capabilities"
 
-/** Animated audio-narration equalizer (motion-safe). */
 export function Equalizer({ className }: { className?: string }) {
   const bars = [6, 11, 8, 13, 7, 10, 5]
   return (
@@ -19,7 +18,6 @@ export function Equalizer({ className }: { className?: string }) {
   )
 }
 
-/** A stylised "accessible book page" with a floating caption / language / sign chip. */
 export function PreviewArt({ className }: { className?: string }) {
   const { t } = useLingui()
   return (
@@ -54,7 +52,6 @@ export function PreviewArt({ className }: { className?: string }) {
         </div>
       </div>
 
-      {/* floating capability chips */}
       <Chip className="-left-6 top-8 motion-safe:animate-float-y" icon={<ImageIcon className="size-3.5 text-stage-captions" />} label={t`AI caption`} />
       <Chip className="-right-4 top-24 [animation-delay:1.2s] motion-safe:animate-float-y" icon={<Languages className="size-3.5 text-stage-translate" />} label={t`Español · Français`} />
       <Chip className="-left-2 bottom-6 [animation-delay:0.6s] motion-safe:animate-float-y" icon={<Hand className="size-3.5 text-stage-sign" />} label={t`Sign language`} />
@@ -72,7 +69,6 @@ function Chip({ className, icon, label }: { className?: string; icon: React.Reac
   )
 }
 
-/** Full capability card (icon tile + title + blurb). */
 export function CapCard({ cap }: { cap: Capability }) {
   const { i18n } = useLingui()
   const Icon = cap.icon
@@ -87,7 +83,6 @@ export function CapCard({ cap }: { cap: Capability }) {
   )
 }
 
-/** Compact capability chip (icon + title). */
 export function CapChip({ cap }: { cap: Capability }) {
   const { i18n } = useLingui()
   const Icon = cap.icon

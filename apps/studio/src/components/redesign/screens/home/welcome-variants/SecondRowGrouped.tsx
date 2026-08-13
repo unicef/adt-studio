@@ -1,7 +1,6 @@
 import { useLingui, Trans } from "@lingui/react/macro"
 import { CAPABILITY_GROUPS } from "./capabilities"
 
-/** Second-row option C — capabilities laid out by pipeline group (Convert / Enhance / …). */
 export function SecondRowGrouped() {
   const { i18n } = useLingui()
   return (

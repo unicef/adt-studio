@@ -18,7 +18,6 @@ const STEPS: Step[] = [
   { icon: Package, title: <Trans>Export & share</Trans>, desc: <Trans>Package the bundle and hand it off.</Trans> },
 ]
 
-/** Second-row option — a getting-started checklist (activation-first). Step 1 is live at first run. */
 export function SecondRowChecklist() {
   const navigate = useNavigate()
   return (

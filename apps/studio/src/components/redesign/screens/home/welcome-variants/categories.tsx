@@ -10,20 +10,13 @@ export interface Category {
   label: MessageDescriptor
   tagline: MessageDescriptor
   icon: LucideIcon
-  /** Dark-safe tint pair, e.g. "bg-stage-speech/10 text-stage-speech". */
   tint: string
-  /** Accent classes for the active tab / highlights. */
   accentText: string
   accentBg: string
   items: Capability[]
   demo: DemoKind
 }
 
-/**
- * Four outcome-oriented buckets so the first-run screen shows *what a student gets*
- * without dumping all 12 pipeline stages at once. Extraction, sectioning and
- * storyboards run automatically underneath these.
- */
 export const CATEGORIES: Category[] = [
   {
     id: "listen",

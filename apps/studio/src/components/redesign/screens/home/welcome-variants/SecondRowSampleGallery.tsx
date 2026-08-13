@@ -9,7 +9,6 @@ import { SecondRowHeader } from "./SecondRowShell"
 interface Sample {
   id: string
   icon: LucideIcon
-  /** Cover gradient classes. */
   cover: string
   title: ReactNode
   meta: ReactNode
@@ -50,13 +49,6 @@ const SAMPLES: Sample[] = [
   },
 ]
 
-/**
- * Second-row option — a small gallery of finished sample books to open and explore.
- * Activation-first (sample-data pattern): let users pick a subject that resonates.
- *
- * NOTE: opening a sample needs bundled/loadable demo projects; wired to the add flow
- * as a placeholder until those ship.
- */
 export function SecondRowSampleGallery() {
   const navigate = useNavigate()
   return (

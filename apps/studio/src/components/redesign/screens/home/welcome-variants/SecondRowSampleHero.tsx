@@ -5,19 +5,10 @@ import { Button } from "@/components/ui/button"
 import { PreviewArt } from "./parts"
 import { SampleEyebrow } from "./SecondRowShell"
 
-/**
- * Second-row option — an immersive, centred hero of one finished book: a spotlit preview
- * with its capability chips fanned around it and a single prominent CTA. Activation-first
- * (sample-data pattern).
- *
- * NOTE: "Open the sample book" needs a bundled/loadable demo project; wired to the add flow
- * as a placeholder until that ships.
- */
 export function SecondRowSampleHero() {
   const navigate = useNavigate()
   return (
     <div className="relative mt-6 overflow-hidden rounded-2xl border bg-card bg-gradient-to-b from-brand-500/[0.07] via-transparent to-transparent">
-      {/* soft spotlight — dark-safe, opacity-based */}
       <div
         aria-hidden
         className="pointer-events-none absolute left-1/2 top-0 h-56 w-72 -translate-x-1/2 -translate-y-1/3 rounded-full bg-brand-500/15 blur-3xl"

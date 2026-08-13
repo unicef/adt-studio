@@ -5,7 +5,11 @@ import { SidebarLogo } from "../../SidebarLogo";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSettingsSearch } from "./useSettingsSearch";
 import { SettingsSearchBar } from "./variants/SettingsSearchBar";
-import { SettingsResultsList } from "./variants/SettingsResultsList";
+import {
+  SETTINGS_RESULTS_ID,
+  SettingsResultsList,
+  settingsResultId,
+} from "./variants/SettingsResultsList";
 import { SettingsNavList } from "./variants/SettingsNavList";
 import { SettingsRailFooter } from "./variants/SettingsRailFooter";
 
@@ -35,6 +39,9 @@ export function SettingsSidebar() {
           value={query}
           onChange={setQuery}
           onKeyDown={handleInputKeyDown}
+          resultsId={hasQuery ? SETTINGS_RESULTS_ID : undefined}
+          activeResultId={results[activeIndex] ? settingsResultId(results[activeIndex].id) : undefined}
+          expanded={hasQuery}
         />
       </div>
 

@@ -10,11 +10,11 @@ export function SettingsCard({ children, className }: { children: ReactNode; cla
 }
 
 export function SettingsHeading({ children }: { children: ReactNode }) {
-  return <div className="mb-1 text-2xl font-bold tracking-[-0.02em]">{children}</div>
+  return <h1 className="mb-1 text-2xl font-bold tracking-[-0.02em]">{children}</h1>
 }
 
 export function SettingsLead({ children }: { children: ReactNode }) {
-  return <div className="mb-[22px] text-[13.5px] text-muted-foreground">{children}</div>
+  return <p className="mb-[22px] text-[13.5px] text-muted-foreground">{children}</p>
 }
 
 export interface SettingRowProps {

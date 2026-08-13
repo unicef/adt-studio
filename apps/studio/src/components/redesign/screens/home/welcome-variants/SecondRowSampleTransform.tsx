@@ -7,15 +7,6 @@ import { Button } from "@/components/ui/button"
 import { Equalizer } from "./parts"
 import { SecondRowHeader, SamplePanel } from "./SecondRowShell"
 
-/**
- * Second-row option — a "before → after" transformation: a plain PDF page becomes a
- * finished accessible book in one pass, with a CTA to open the finished sample.
- * Activation-first (sample-data pattern); the highest-converting first-run pattern for
- * a transformation product.
- *
- * NOTE: "Open the sample" needs a bundled/loadable demo project; wired to the add flow
- * as a placeholder until that ships.
- */
 
 const OUTPUTS: { icon: LucideIcon; label: ReactNode; cls: string }[] = [
   { icon: Play, label: <Trans>Narration</Trans>, cls: "text-stage-speech" },
@@ -43,7 +34,6 @@ export function SecondRowSampleTransform() {
 
       <SamplePanel className="p-6">
         <div className="grid grid-cols-1 items-center gap-4 md:grid-cols-[1fr_auto_1fr]" aria-hidden>
-          {/* before — plain PDF */}
           <div>
             <PanelLabel>
               <Trans>Before · PDF</Trans>
@@ -64,7 +54,6 @@ export function SecondRowSampleTransform() {
             </div>
           </div>
 
-          {/* arrow */}
           <div className="flex items-center justify-center py-1">
             <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1.5 text-[11px] font-semibold shadow-sm">
               <Sparkles className="size-3.5 text-brand-600" />
@@ -73,7 +62,6 @@ export function SecondRowSampleTransform() {
             </span>
           </div>
 
-          {/* after — accessible book */}
           <div>
             <PanelLabel accent>
               <Trans>After · Accessible edition</Trans>

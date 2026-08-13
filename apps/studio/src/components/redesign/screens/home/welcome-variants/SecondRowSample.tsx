@@ -5,13 +5,6 @@ import { Button } from "@/components/ui/button"
 import { PreviewArt } from "./parts"
 import { SampleEyebrow, SecondRowHeader, SamplePanel } from "./SecondRowShell"
 
-/**
- * Second-row option — "see it in action": open a finished sample book to experience the
- * output before converting your own PDF. Activation-first (sample-data pattern).
- *
- * NOTE: "Open a sample book" needs a bundled/loadable demo project; wired to the add flow
- * as a placeholder until that ships.
- */
 export function SecondRowSample() {
   const navigate = useNavigate()
   return (

@@ -18,13 +18,11 @@ import {
 
 export interface Capability {
   icon: LucideIcon
-  /** Dark-safe tint pair, e.g. "bg-stage-speech/10 text-stage-speech". */
   tint: string
   title: MessageDescriptor
   blurb: MessageDescriptor
 }
 
-/** Full user-facing ADT capability set — used across the welcome variants. */
 export const CAPABILITIES: Capability[] = [
   { icon: FileText, tint: "bg-brand-100 text-brand-600", title: msg`Extract & clean`, blurb: msg`Text, images and structure pulled from any PDF.` },
   { icon: Network, tint: "bg-stage-sectioning/10 text-stage-sectioning", title: msg`Smart sectioning`, blurb: msg`Chapters, headings and learning units detected.` },
@@ -45,7 +43,6 @@ export interface CapabilityGroup {
   items: Capability[]
 }
 
-/** Capabilities organised by pipeline group — used by the editorial variant. */
 export const CAPABILITY_GROUPS: CapabilityGroup[] = [
   { label: msg`Convert`, items: CAPABILITIES.slice(0, 3) },
   { label: msg`Enhance`, items: [CAPABILITIES[3], CAPABILITIES[8], CAPABILITIES[9], CAPABILITIES[10], CAPABILITIES[7]] },

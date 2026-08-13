@@ -2,7 +2,6 @@ import { useLingui, Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import { CATEGORIES } from "./categories"
 
-/** Second-row option — four outcome categories, each summarising its features. */
 export function SecondRowCategories() {
   const { i18n } = useLingui()
   return (
