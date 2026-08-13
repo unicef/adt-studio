@@ -2606,6 +2606,9 @@ describe("packageWebpub", () => {
     expect(html).toContain("columns: auto !important")
     expect(html).toContain("flex-direction: column !important")
     expect(html).toContain("max-width: 100% !important")
+    expect(html).toContain("@media (max-width: 1023px)")
+    const forcedColumn = html.slice(html.indexOf("@media (max-width: 1023px)"))
+    expect(forcedColumn).toContain("flex-direction: column !important")
     // The glossref affordance is EPUB-only; webpub must not carry it.
     expect(html).not.toContain(".glossref")
   })
