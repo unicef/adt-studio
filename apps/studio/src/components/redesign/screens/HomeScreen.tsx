@@ -1,8 +1,9 @@
-import { useMemo } from "react"
+import { useMemo, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { WelcomeHero } from "./home/WelcomeHero"
 import { FeatureTour } from "./home/FeatureTour"
 import { HomeHeroAnchor } from "./home/home-full/HomeHeroAnchor"
+import { BookDetailDialog } from "./library/BookDetailDialog"
 import { ScreenFallback } from "../ui/ScreenFallback"
 import { toBookVM } from "../data"
 import { REDESIGN_PATHS } from "../nav"
@@ -13,13 +14,17 @@ import { TopBar } from "@/components/title-bar/TopBar"
 export function HomeScreen() {
   const navigate = useNavigate()
   const { books, locale, isLoading, error } = useRedesignBooks()
-  const { openAdd } = useRedesignShell()
+  const { openAdd, requestDelete } = useRedesignShell()
   const openBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
+
+  const [detailLabel, setDetailLabel] = useState<string | null>(null)
 
   const vms = useMemo(() => {
     const sorted = [...books].sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime())
     return sorted.map((b) => toBookVM(b, locale))
   }, [books, locale])
+
+  const detail = detailLabel ? vms.find((b) => b.label === detailLabel) ?? null : null
 
   if (isLoading || error) return <ScreenFallback error={error} />
 
@@ -34,7 +39,7 @@ export function HomeScreen() {
         <div className="relative min-h-0 flex-1">
           <HomeHeroAnchor
             books={vms}
-            onOpen={openBook}
+            onOpen={setDetailLabel}
             onAddBook={openAdd}
             onOpenLibrary={() => navigate({ to: REDESIGN_PATHS.library })}
           />
@@ -45,6 +50,13 @@ export function HomeScreen() {
           <FeatureTour />
         </div>
       )}
+
+      <BookDetailDialog
+        book={detail}
+        onOpenChange={(o) => !o && setDetailLabel(null)}
+        onEdit={openBook}
+        onDelete={(label) => requestDelete(label)}
+      />
     </div>
   )
 }
