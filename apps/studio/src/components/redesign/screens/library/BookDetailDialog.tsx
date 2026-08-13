@@ -65,11 +65,11 @@ function BookDetail({
       <div className="relative overflow-hidden">
         <div className="absolute inset-0">
           {book.cover.src ? (
-            <img src={book.cover.src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl brightness-[0.5]" />
+            <img src={book.cover.src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-105 object-cover blur-lg brightness-[0.62]" />
           ) : (
             <div aria-hidden className="absolute inset-0" style={{ background: book.cover.bg }} />
           )}
-          <div aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,.45), rgba(0,0,0,.8))" }} />
+          <div aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,.38), rgba(0,0,0,.74))" }} />
           <div aria-hidden className="absolute inset-x-0 bottom-0 h-20" style={{ background: "linear-gradient(180deg, transparent, var(--background))" }} />
         </div>
 
@@ -85,8 +85,8 @@ function BookDetail({
           </button>
         </DialogPrimitive.Close>
 
-        <div className="relative flex gap-6 p-7">
-          <div className="h-[236px] w-[168px] shrink-0 overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/25">
+        <div className="relative flex gap-7 p-8">
+          <div className="h-[272px] w-[194px] shrink-0 overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/25">
             <BookCover title={book.displayTitle} author={book.authors} cover={book.cover} fit="cover" />
           </div>
           <div className="flex min-w-0 flex-1 flex-col text-white">
