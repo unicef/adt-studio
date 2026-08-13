@@ -4,9 +4,9 @@ import { Trans } from "@lingui/react/macro"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookCover } from "../../BookCover"
-import { StagePill } from "../../ui/StagePill"
-import type { BookVM } from "../../data"
+import { BookCover } from "@/components/redesign/shared/BookCover"
+import { StagePill } from "@/components/redesign/shared/ui/StagePill"
+import type { BookVM } from "@/components/redesign/shared/data"
 
 const PILL = "gap-1 px-2 text-[10.5px]"
 

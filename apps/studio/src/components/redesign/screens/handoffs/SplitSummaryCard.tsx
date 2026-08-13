@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { useSplitStatus } from "@/hooks/use-parts"
-import { BookCover } from "../../BookCover"
-import { toBookVM } from "../../data"
+import { BookCover } from "@/components/redesign/shared/BookCover"
+import { toBookVM } from "@/components/redesign/shared/data"
 
 export interface SplitSummaryCardProps {
   book: BookSummary

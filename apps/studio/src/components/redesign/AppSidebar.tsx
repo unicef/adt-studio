@@ -29,11 +29,11 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { Kbd } from "./ui/Kbd"
-import { REDESIGN_PATHS, activeRedesignView } from "./nav"
-import type { RedesignView } from "./types"
+import { Kbd } from "@/components/redesign/shared/ui/Kbd"
+import { REDESIGN_PATHS, activeRedesignView } from "@/components/redesign/shared/nav"
+import type { RedesignView } from "@/components/redesign/shared/types"
 import { useUpdateDialog } from "@/components/updates"
-import { SidebarLogo } from "./SidebarLogo"
+import { SidebarLogo } from "@/components/redesign/shared/SidebarLogo"
 
 const DOCS_URL = "https://unicef.github.io/adt-studio/docs/get-started/";
 const ISSUES_URL = "https://github.com/unicef/adt-studio/issues";

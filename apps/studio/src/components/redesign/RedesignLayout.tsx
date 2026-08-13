@@ -12,9 +12,9 @@ import { AppSidebar } from "./AppSidebar"
 import { CommandPalette } from "./CommandPalette"
 import { AddBookDialog } from "./AddBookDialog"
 import { RedesignShellContext } from "./RedesignShellContext"
-import { useRedesignBooks } from "./use-redesign-books"
-import { Kbd } from "./ui/Kbd"
-import { isFullBleedRedesignView } from "./nav"
+import { useRedesignBooks } from "@/components/redesign/shared/hooks/use-redesign-books"
+import { Kbd } from "@/components/redesign/shared/ui/Kbd"
+import { isFullBleedRedesignView } from "@/components/redesign/shared/nav"
 
 const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
   { keys: ["⌘", "K"], label: msg`Open command palette` },

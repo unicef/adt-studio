@@ -1,8 +1,8 @@
 import { TriangleAlert } from "lucide-react"
 import { Trans, Plural } from "@lingui/react/macro"
 import { Badge } from "@/components/ui/badge"
-import { BookCover } from "../../BookCover"
-import type { BookVM } from "../../data"
+import { BookCover } from "@/components/redesign/shared/BookCover"
+import type { BookVM } from "@/components/redesign/shared/data"
 
 export interface BookGridCardProps {
   book: BookVM

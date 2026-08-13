@@ -4,14 +4,14 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { ArrowLeft, Search } from "lucide-react";
 import { NO_DRAG_REGION } from "@/constants";
 import { cn } from "@/lib/utils";
-import { REDESIGN_PATHS } from "../../nav";
+import { REDESIGN_PATHS } from "@/components/redesign/shared/nav";
 import {
   SETTINGS_GROUPS,
   SETTINGS_PATHS,
   activeSettingsTab,
   type SettingsGroup,
 } from "./nav";
-import { SidebarLogo } from "../../SidebarLogo";
+import { SidebarLogo } from "@/components/redesign/shared/SidebarLogo";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export function SettingsSidebar() {

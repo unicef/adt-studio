@@ -4,8 +4,8 @@ import { Puzzle, BookOpen, FolderUp, Pencil, CircleDashed } from "lucide-react"
 import type { BookSummary } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { BookCover } from "../../BookCover"
-import { toBookVM } from "../../data"
+import { BookCover } from "@/components/redesign/shared/BookCover"
+import { toBookVM } from "@/components/redesign/shared/data"
 
 export interface ContributionRowProps {
   book: BookSummary

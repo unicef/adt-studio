@@ -3,7 +3,7 @@ import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { ArrowRight, Check, HelpCircle, LayoutGrid, Network, Plus, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { EmptyState } from "../../ui/EmptyState"
+import { EmptyState } from "@/components/redesign/shared/ui/EmptyState"
 import { cn } from "@/lib/utils"
 
 type TrailState = "done" | "current" | "todo"

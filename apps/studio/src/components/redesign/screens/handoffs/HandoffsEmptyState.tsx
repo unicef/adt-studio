@@ -2,7 +2,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { Scissors, Users, GitMerge, ArrowRight, FolderDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { EmptyState } from "../../ui/EmptyState"
+import { EmptyState } from "@/components/redesign/shared/ui/EmptyState"
 
 /** Split & merge first-run state (design 3a): the split → hand off → merge flow explainer. */
 export function HandoffsEmptyState() {

@@ -2,9 +2,9 @@ import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Plus, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { EmptyState } from "../../ui/EmptyState"
-import { GhostCover } from "../../ui/GhostCover"
-import { BookCover } from "../../BookCover"
+import { EmptyState } from "@/components/redesign/shared/ui/EmptyState"
+import { GhostCover } from "@/components/redesign/shared/ui/GhostCover"
+import { BookCover } from "@/components/redesign/shared/BookCover"
 
 export interface LibraryEmptyStateProps {
   onOpenAdd: () => void

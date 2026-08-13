@@ -3,7 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowLeft, Settings } from "lucide-react"
 import { TitleBarControls } from "@/components/title-bar/title-bar-controls"
 import { NO_DRAG_REGION } from "@/constants"
-import { REDESIGN_PATHS } from "../../nav"
+import { REDESIGN_PATHS } from "@/components/redesign/shared/nav"
 import { PipelineRunIndicator } from "./PipelineRunIndicator"
 
 export interface PipelineTopBarProps {

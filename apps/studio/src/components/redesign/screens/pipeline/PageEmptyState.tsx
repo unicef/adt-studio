@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { FileQuestion, Images, Loader2, Network, Type } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { EmptyState } from "../../ui/EmptyState"
+import { EmptyState } from "@/components/redesign/shared/ui/EmptyState"
 import { PageThumb } from "./PageThumb"
 import type { SectioningRun } from "./useSectioningRun"
 import type { PipelinePage } from "./usePipelineState"
