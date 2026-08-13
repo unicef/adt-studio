@@ -96,7 +96,7 @@ export function AppSidebar({
   ]
 
   return (
-    <div className="flex w-64 shrink-0 flex-col overflow-auto border-r bg-sidebar px-3 pb-3 pt-4">
+    <div className="flex w-64 shrink-0 flex-col overflow-auto border-r bg-sidebar px-3 pb-3">
 
       <SidebarLogo />
 
