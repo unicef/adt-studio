@@ -198,7 +198,31 @@ export {
   type QuizConfig,
   type QuizPageInput,
 } from "./quiz-generation.js"
-export { buildTextCatalog } from "./text-catalog.js"
+export {
+  buildTextCatalog,
+  extractTextCatalogEntriesFromHtml,
+  projectImportedHtmlSection,
+  createSafeImportedHtmlPreview,
+  extractImportedHtmlPresentationAssets,
+  inspectImportedHtmlContract,
+  ADT_EDITING_ALLOWED_ROOT_ENTRIES,
+  type ImportedHtmlImageReference,
+  type ImportedHtmlSectionProjection,
+  type ImportedHtmlProjectionOptions,
+  type ImportedHtmlPresentationAssets,
+  type ImportedHtmlContractIssue,
+  type ImportedHtmlContractIssueCode,
+  type ImportedHtmlContractInspection,
+  type ImportedHtmlContractOptions,
+} from "./text-catalog.js"
+export {
+  inspectImportedActivity,
+  restoreImportedCustomActivityScripts,
+  KNOWN_ACTIVITY_SECTION_TYPES,
+  ACTIVITY_CLASSIFICATION_GUIDE,
+  type ImportedActivityInspection,
+  type ImportedActivitySignal,
+} from "./imported-activity.js"
 export {
   buildCoreTtsPreparationConfig,
   loadCoreTtsProfiles,
@@ -343,6 +367,9 @@ export { htmlToXhtml } from "./html-semantics.js"
 export {
   packageAdtWeb,
   computePackagingInputHash,
+  getWordTimestamps,
+  buildRuntimeTimecodeMap,
+  generateOfflinePreloader,
   type PackageAdtWebOptions,
   type ComputePackagingInputHashOptions,
   renderPageHtml,
@@ -360,6 +387,13 @@ export {
   pad3,
   convertLatexToMathml,
 } from "./packaging/web.js"
+export {
+  ADT_AGENT_GUIDE_VERSION,
+  inspectAdtAgentGuide,
+  renderAdtAgentGuide,
+  type AdtAgentGuideContext,
+  type AdtAgentGuideInspection,
+} from "./adt-agent-guide.js"
 export {
   resolveQuizPalette,
   deriveQuizPalette,

@@ -21,15 +21,20 @@ import type {
   TocGenerationOutput,
   Quiz,
   ImageCaptioningOutput,
+  AdtExportLineage,
 } from "@adt/types"
 import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 import {
+  ADT_EDITING_CONTRACT_VERSION,
+  ADT_ROUND_TRIP_FORMAT_VERSION,
+  AdtRoundTripManifest,
   GOOGLE_FONTS,
   googleFontsReferencedIn,
   googleFontsCss2Url,
   primaryFontFamily,
 } from "@adt/types"
 import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
+import { canonicalJson } from "@adt/types/fingerprint"
 import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
 import {
   bundleBookFontsIntoCss,
@@ -49,7 +54,9 @@ import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
-import { buildTextCatalog } from "../text-catalog.js"
+import { buildTextCatalog, inspectImportedHtmlContract } from "../text-catalog.js"
+import { inspectImportedActivity } from "../imported-activity.js"
+import { renderAdtAgentGuide } from "../adt-agent-guide.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
 import { getRenderSectioning } from "../render-sectioning.js"
@@ -91,6 +98,7 @@ export interface PackageAdtWebOptions {
   /** Style quizzes to match the book (typography + derived palette). Defaults
    *  to true. When false, quizzes use the generic cream/gray template. */
   quizMatchBookStyle?: boolean
+  lineage?: AdtExportLineage
 }
 
 /** Pages with either a dedicated activity section or an inline word bank need
@@ -106,6 +114,12 @@ export interface PageEntry {
   section_id: string
   href: string
   page_number?: number
+}
+
+function assertSafeSectionId(sectionId: string): void {
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(sectionId)) {
+    throw new Error(`Unsafe section id cannot be packaged: ${sectionId}`)
+  }
 }
 
 interface RuntimeTimecodeEntry {
@@ -145,7 +159,7 @@ export function getWordTimestamps(
   return row?.data as WordTimestampOutput | undefined
 }
 
-function buildRuntimeTimecodeMap(
+export function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
   speechConfig?: SpeechConfig,
   readySpeechIds?: ReadonlySet<string>,
@@ -176,7 +190,7 @@ function buildRuntimeTimecodeMap(
 // Folded into the packaging cache hash so already-packaged books regenerate
 // when renderPageHtml's output format changes (which book inputs don't capture).
 // Bump on any such change.
-const PACKAGING_FORMAT_VERSION = 4
+const PACKAGING_FORMAT_VERSION = 5
 
 export interface ComputePackagingInputHashOptions {
   storage: Storage
@@ -249,6 +263,18 @@ function hashValue(value: unknown): string {
     .digest("hex")
 }
 
+function hashBuffer(value: Uint8Array): string {
+  return createHash("sha256").update(value).digest("hex")
+}
+
+function fingerprintIds(ids: Iterable<string>): string {
+  return hashValue([...new Set(ids)].sort((a, b) => a.localeCompare(b)))
+}
+
+function hashJsonFile(filePath: string): string {
+  return hashBuffer(Buffer.from(canonicalJson(JSON.parse(fs.readFileSync(filePath, "utf-8")))))
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -279,6 +305,7 @@ export async function packageAdtWeb(
     fixedLayout,
     reflowableFont,
     quizMatchBookStyle,
+    lineage,
   } = options
   const language = normalizeLocale(rawLanguage)
   const outputLanguages = Array.from(new Set(rawOutputLanguages.map((code) => normalizeLocale(code))))
@@ -318,11 +345,12 @@ export async function packageAdtWeb(
   // Always rebuild the text catalog to avoid staleness; only persist if changed
   const catalog = await buildTextCatalog(storage, pages)
   const catalogRow = storage.getLatestNodeData("text-catalog", "book")
+  let catalogVersion = catalogRow?.version
   const storedEntries = catalogRow
     ? JSON.stringify((catalogRow.data as TextCatalogOutput).entries)
     : null
   if (JSON.stringify(catalog.entries) !== storedEntries) {
-    storage.putNodeData("text-catalog", "book", catalog)
+    catalogVersion = storage.putNodeData("text-catalog", "book", catalog)
   }
 
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
@@ -388,6 +416,7 @@ export async function packageAdtWeb(
           const sectionMeta = sectioning?.sections[rs.sectionIndex]
           if (sectionMeta?.isPruned) continue
           const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
+          assertSafeSectionId(sectionId)
 
           if (rs.sectionType.startsWith("activity_") || sectionMeta?.sectionType.startsWith("activity_")) {
             hasActivitySections = true
@@ -624,7 +653,8 @@ export async function packageAdtWeb(
   })
   const highlightEnabled = hasTTS && speechConfig?.word_highlighting === true
 
-  for (const lang of outputLanguages) {
+  const packagedLanguages = [...new Set([language, ...outputLanguages])]
+  for (const lang of packagedLanguages) {
     const localeDir = path.join(contentDir, "i18n", lang)
     fs.mkdirSync(localeDir, { recursive: true })
 
@@ -917,6 +947,100 @@ export async function packageAdtWeb(
     progress.emit({ type: "step-progress", step, message: `Bundled fonts: ${bundledFonts.join(", ")}` })
   }
 
+  // Round-trip metadata is written after every supported projection is final,
+  // but before the offline preloader snapshots JSON resources.
+  const translationBaselines: Record<string, number> = {}
+  for (const lang of outputLanguages) {
+    if (getBaseLanguage(lang) === getBaseLanguage(language)) continue
+    const legacyLang = lang.replace("-", "_")
+    const row =
+      storage.getLatestNodeData("text-catalog-translation", lang) ??
+      storage.getLatestNodeData("text-catalog-translation", legacyLang)
+    if (row) translationBaselines[lang] = row.version
+  }
+
+  if (catalogVersion === undefined) {
+    const row = storage.getLatestNodeData("text-catalog", "book")
+    catalogVersion = row?.version
+  }
+  if (catalogVersion === undefined) {
+    throw new Error("Cannot write ADT round-trip manifest without a text-catalog version")
+  }
+
+  const sourceTextsPath = path.join(contentDir, "i18n", language, "texts.json")
+  const pageHtmlFingerprints: Record<string, string> = {}
+  const pageDataIds: Record<string, string[]> = {}
+  const activities: Array<{ sectionId: string; href: string; type: string }> = []
+  const nonActivities: Array<{ sectionId: string; href: string }> = []
+  for (const href of new Set(pageList.map((page) => page.href))) {
+    const filePath = path.join(adtDir, href)
+    if (fs.existsSync(filePath)) {
+      pageHtmlFingerprints[href] = hashBuffer(fs.readFileSync(filePath))
+      const page = pageList.find((entry) => entry.href === href)
+      if (page) {
+        const html = fs.readFileSync(filePath, "utf8")
+        const allowSectionDataId = page.section_id.startsWith("qz")
+        pageDataIds[href] = inspectImportedHtmlContract(
+          html,
+          page.section_id,
+          { allowSectionDataId },
+        ).dataIds
+        const activity = inspectImportedActivity(html, page.section_id, { allowSectionDataId })
+        if (activity.isActivity && activity.sectionType) {
+          activities.push({
+            sectionId: page.section_id,
+            href,
+            type: activity.sectionType,
+          })
+        } else if (activity.explicitNonActivity || activity.signals.length > 0) {
+          // Interactive reader controls are not necessarily learning activities.
+          // Record that negative classification so a future import does not ask
+          // the user or an agent to classify the same page again.
+          nonActivities.push({ sectionId: page.section_id, href })
+        }
+      }
+    }
+  }
+
+  const roundTripManifest = AdtRoundTripManifest.parse({
+    formatVersion: ADT_ROUND_TRIP_FORMAT_VERSION,
+    editingContract: {
+      version: ADT_EDITING_CONTRACT_VERSION,
+      pageOrder: pageList.map((page) => ({ sectionId: page.section_id, href: page.href })),
+      pageDataIds,
+      activities,
+      nonActivities,
+    },
+    book: { label, title },
+    ...(lineage ? { lineage } : {}),
+    languages: {
+      source: language,
+      output: outputLanguages,
+    },
+    baselines: {
+      glossary: glossaryRow?.version ?? null,
+      tocGeneration: tocRow?.version ?? null,
+      textCatalogTranslations: translationBaselines,
+    },
+    textCatalog: {
+      version: catalogVersion,
+      idFingerprint: fingerprintIds(catalog.entries.map((entry) => entry.id)),
+    },
+    translatableText: {
+      idFingerprint: fingerprintIds([
+        ...catalog.entries.map((entry) => entry.id),
+        ...easyReadEntries.map((entry) => entry.id),
+      ]),
+    },
+    frozen: {
+      ...(fs.existsSync(sourceTextsPath)
+        ? { sourceTextsFingerprint: hashJsonFile(sourceTextsPath) }
+        : {}),
+      pageHtmlFingerprints,
+    },
+  })
+  writeJson(path.join(adtDir, "manifest.json"), roundTripManifest)
+
   // Offline preloader must run after all asset writes — it snapshots the
   // final state of every file it inlines (page HTML, content JSON, nav.html).
   generateOfflinePreloader(adtDir, outputLanguages)
@@ -926,22 +1050,27 @@ export async function packageAdtWeb(
   // Render AGENTS.md from Liquid template with book-specific data
   const agentsMdTemplate = path.join(path.dirname(webAssetsDir), "AGENTS.md.liquid")
   if (fs.existsSync(agentsMdTemplate)) {
-    const agentsMd = await renderAgentsMd(agentsMdTemplate, {
-      title,
-      label,
-      summary: bookSummary,
-      language,
-      outputLanguages,
-      pageList,
-      catalog,
-      glossary,
-      quizData,
-      imageMap,
-      configJson,
-      hasGlossary,
-      hasQuiz,
-    })
+    const agentsMd = renderAdtAgentGuide(
+      fs.readFileSync(agentsMdTemplate, "utf8"),
+      {
+        title,
+        label,
+        summary: bookSummary,
+        language,
+        outputLanguages,
+        pageList,
+        catalog,
+        glossary,
+        quizData,
+        imageMap,
+        configJson,
+        hasGlossary,
+        hasQuiz,
+        editingContractVersion: ADT_EDITING_CONTRACT_VERSION,
+      },
+    )
     fs.writeFileSync(path.join(adtDir, "AGENTS.md"), agentsMd)
+    fs.writeFileSync(path.join(adtDir, "CLAUDE.md"), agentsMd)
   }
 
   progress.emit({ type: "step-complete", step })
@@ -1604,6 +1733,7 @@ export function renderQuizHtml(
     <section
         id="simple-main"
         data-section-type="activity_quiz"
+        data-section-id="${escapeAttr(quizId)}"
         data-id="${escapeAttr(quizId)}"
         data-area-id="${escapeAttr(quizId)}"
         data-correct-answers='${escapeAttr(JSON.stringify(correctAnswers))}'
@@ -1664,9 +1794,9 @@ export function buildImageMap(imagesDir: string): Map<string, string> {
   if (!fs.existsSync(imagesDir)) return map
 
   for (const file of fs.readdirSync(imagesDir)) {
-    const ext = path.extname(file)
-    if (ext === ".jpg" || ext === ".png") {
-      const id = path.basename(file, ext)
+    const ext = path.extname(file).toLowerCase()
+    if ([".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"].includes(ext)) {
+      const id = path.basename(file, path.extname(file))
       map.set(id, file)
     }
   }
@@ -2261,117 +2391,6 @@ async function buildJsBundle(
 }
 
 // ---------------------------------------------------------------------------
-// AGENTS.md template rendering
-// ---------------------------------------------------------------------------
-
-interface AgentsMdContext {
-  title: string
-  label: string
-  summary: string | undefined
-  language: string
-  outputLanguages: string[]
-  pageList: PageEntry[]
-  catalog: TextCatalogOutput | undefined
-  glossary: GlossaryOutput | undefined
-  quizData: QuizGenerationOutput | undefined
-  imageMap: Map<string, string>
-  configJson: unknown
-  hasGlossary: boolean
-  hasQuiz: boolean
-}
-
-async function renderAgentsMd(
-  templatePath: string,
-  ctx: AgentsMdContext,
-): Promise<string> {
-  const { Liquid } = await import("liquidjs")
-  const liquid = new Liquid({ strictVariables: false })
-  const template = fs.readFileSync(templatePath, "utf-8")
-
-  const entries = ctx.catalog?.entries ?? []
-
-  // Find sample entries for examples
-  const sampleBodyText = entries.find((e) => /_gp\d+_tx\d+$/.test(e.id)) ?? { id: "pg001_gp001_tx001", text: "" }
-  const sampleImageText = entries.find((e) => /_im\d+$/.test(e.id)) ?? { id: "pg001_im001", text: "" }
-
-  // Derive the page ID from the first content page's section_id (e.g. "pg002_sec001" → "pg002_sec001")
-  const samplePageId = ctx.pageList.find((p) => p.section_id.startsWith("pg") && p.page_number !== undefined)?.section_id
-    ?? ctx.pageList[0]?.section_id ?? "pg001_sec001"
-
-  // Glossary sample
-  let sampleGlossary: Record<string, unknown> | undefined
-  if (ctx.glossary?.items?.length) {
-    const item = ctx.glossary.items[0]
-    const glId = getGlossaryItemTextId(item, 0)
-    sampleGlossary = {
-      id: glId,
-      defId: `${glId}_def`,
-      word: item.word,
-      definition: item.definition,
-      variations: item.variations,
-      variationsJson: JSON.stringify(item.variations),
-      emoji: item.emojis.join(""),
-    }
-  }
-
-  // Quiz sample
-  let sampleQuiz: Record<string, unknown> | undefined
-  if (ctx.quizData?.quizzes?.length) {
-    const quiz = ctx.quizData.quizzes[0]
-    const quizId = "qz001"
-    const correctAnswers: Record<string, boolean> = {}
-    const explanations: Record<string, string> = {}
-    const options = quiz.options.map((opt, i) => {
-      const optId = `${quizId}_o${i}`
-      const expId = `${optId}_exp`
-      correctAnswers[optId] = i === quiz.answerIndex
-      explanations[optId] = expId
-      return {
-        id: optId,
-        text: opt.text,
-        expId,
-        expText: opt.explanation,
-      }
-    })
-    sampleQuiz = {
-      id: quizId,
-      question: quiz.question,
-      options,
-      correctAnswersJson: JSON.stringify(correctAnswers),
-      explanationsJson: JSON.stringify(explanations),
-    }
-  }
-
-  // Page images — collect all pg{NNN}_page.* filenames
-  const pageImages: string[] = []
-  for (const [id, filename] of ctx.imageMap) {
-    if (id.endsWith("_page")) {
-      pageImages.push(filename)
-    }
-  }
-  pageImages.sort()
-
-  return liquid.parseAndRender(template, {
-    title: ctx.title,
-    label: ctx.label,
-    summary: ctx.summary,
-    language: ctx.language,
-    outputLanguages: ctx.outputLanguages,
-    totalPages: ctx.pageList.length,
-    firstPages: ctx.pageList.slice(0, 5),
-    samplePageId,
-    sampleBodyText,
-    sampleImageText,
-    sampleGlossary,
-    sampleQuiz,
-    hasGlossary: ctx.hasGlossary,
-    hasQuiz: ctx.hasQuiz,
-    configJsonFormatted: JSON.stringify(ctx.configJson, null, 2),
-    pageImages,
-  })
-}
-
-// ---------------------------------------------------------------------------
 // SCORM + Offline support generators
 // ---------------------------------------------------------------------------
 
@@ -2382,7 +2401,7 @@ async function renderAgentsMd(
  * `file://` (double-click). On HTTP/HTTPS the patch falls through to real
  * `fetch()`, so it's transparent.
  */
-function generateOfflinePreloader(
+export function generateOfflinePreloader(
   adtDir: string,
   outputLanguages: string[],
 ): void {
@@ -2764,7 +2783,7 @@ function pickDefaultLanguage(
  * (EPUB/WebPub): the SCORM package manifest and the repo's AGENTS.md. Pass as
  * the `skip` set when copying `adt/` into an export directory.
  */
-export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md"])
+export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md", "CLAUDE.md"])
 
 /**
  * File-extension → MIME type for the resources listed in an export manifest

@@ -3,8 +3,10 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import type { Storage, PageData } from "@adt/storage"
+import { AdtRoundTripManifest } from "@adt/types"
 import {
   computePackagingInputHash,
+  buildImageMap,
   buildGlossaryJson,
   injectWebpubStyles,
   packageAdtWeb,
@@ -452,6 +454,7 @@ describe("renderQuizHtml", () => {
     )
 
     expect(html).toContain('<section')
+    expect(html).toContain('data-section-id="qz001"')
     expect(html).not.toContain('role="activity"')
   })
 
@@ -512,11 +515,56 @@ describe("packageAdtWeb", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
 
+  it("rejects unsafe section ids before writing page files", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    const storage = createMockStorage(
+      [{ pageId: "pg001", pageNumber: 1, text: "Page" }],
+      {
+        "web-rendering": {
+          pg001: {
+            sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>Page</p>" }],
+          },
+        },
+        "page-sectioning": {
+          pg001: {
+            reasoning: "",
+            sections: [{
+              sectionId: "../../other-book/adt/index",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            }],
+          },
+        },
+      },
+    )
+
+    await expect(packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book",
+      webAssetsDir,
+    })).rejects.toThrow(/Unsafe section id/)
+    expect(fs.existsSync(path.join(tmpDir, "other-book", "adt", "index.html"))).toBe(false)
+  })
+
   it("uses a safe default locale, avoids page-number carryover, and escapes inline answer JSON", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")
     fs.mkdirSync(bookDir, { recursive: true })
     createWebAssets(webAssetsDir)
+    fs.copyFileSync(
+      path.resolve(process.cwd(), "assets", "AGENTS.md.liquid"),
+      path.join(tmpDir, "AGENTS.md.liquid"),
+    )
 
     const pages: PageData[] = [
       { pageId: "pg001", pageNumber: 1, text: "Page one" },
@@ -641,6 +689,36 @@ describe("packageAdtWeb", () => {
     const manifest = fs.readFileSync(manifestPath, "utf-8")
     expect(manifest).toContain("ADL SCORM")
     expect(manifest).toContain("index.html")
+
+    const roundTripManifest = AdtRoundTripManifest.parse(JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "manifest.json"), "utf-8"),
+    ))
+    expect(roundTripManifest).toMatchObject({
+      formatVersion: 1,
+      editingContract: { version: 2 },
+      book: { label: "book", title: "Book Title" },
+      languages: { source: "en", output: ["fr"] },
+      baselines: {
+        glossary: null,
+        tocGeneration: null,
+        textCatalogTranslations: { fr: 1 },
+      },
+      textCatalog: { version: 1 },
+    })
+    expect(roundTripManifest.frozen?.sourceTextsFingerprint).toMatch(/^[a-f0-9]{64}$/)
+    expect(roundTripManifest.frozen?.pageHtmlFingerprints["index.html"]).toMatch(/^[a-f0-9]{64}$/)
+    const agentsGuide = fs.readFileSync(path.join(bookDir, "adt", "AGENTS.md"), "utf-8")
+    expect(agentsGuide).toContain("<!-- adt-studio-agent-guide: 2 -->")
+    expect(agentsGuide).toContain("editing contract version `2`")
+    expect(agentsGuide).toContain("activity_custom_<descriptive_slug>")
+    expect(agentsGuide).toContain("editingContract.nonActivities")
+    expect(agentsGuide).toContain('data-adt-non-activity="true"')
+    expect(agentsGuide).toContain("Adding, removing, or reordering pages")
+    expect(agentsGuide).toContain("activity_multiple_choice")
+    expect(agentsGuide).toContain("Choose exactly one answer from several options.")
+    expect(agentsGuide).toContain("Audit every page for learning activities")
+    expect(agentsGuide).toContain("Do not add custom stylesheet files")
+    expect(fs.readFileSync(path.join(bookDir, "adt", "CLAUDE.md"), "utf-8")).toBe(agentsGuide)
   })
 
   it("packages persisted Easy Read entries for the source language", async () => {
@@ -731,6 +809,13 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
     ) as { features: { easyRead: boolean } }
     expect(configJson.features.easyRead).toBe(true)
+
+    const roundTripManifest = AdtRoundTripManifest.parse(JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "manifest.json"), "utf-8"),
+    ))
+    expect(roundTripManifest.frozen?.sourceTextsFingerprint).toMatch(/^[a-f0-9]{64}$/)
+    expect(roundTripManifest.textCatalog.idFingerprint)
+      .not.toBe(roundTripManifest.translatableText.idFingerprint)
   })
 
   it("inserts quiz pages even when the anchor page has no rendered sections", async () => {
@@ -820,7 +905,20 @@ describe("packageAdtWeb", () => {
 
     const quizHtml = fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf-8")
     expect((quizHtml.match(/<main\b/g) ?? [])).toHaveLength(1)
+    expect(quizHtml).toContain('data-section-id="qz001"')
     expect(quizHtml).not.toContain('role="activity"')
+
+    const roundTripManifest = AdtRoundTripManifest.parse(JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "manifest.json"), "utf-8"),
+    ))
+    expect(roundTripManifest.editingContract?.pageDataIds?.["index.html"])
+      .toEqual(expect.arrayContaining(["qz001", "qz001_que", "qz001_o0", "qz001_o1"]))
+    expect(roundTripManifest.editingContract?.activities).toEqual([{
+      sectionId: "qz001",
+      href: "index.html",
+      type: "activity_quiz",
+    }])
+    expect(roundTripManifest.editingContract?.nonActivities).toEqual([])
 
     // SCORM adapter should include the quiz activity ID
     const scorm = fs.readFileSync(path.join(bookDir, "adt", "assets", "scorm.js"), "utf-8")
@@ -1928,6 +2026,27 @@ describe("packageAdtWeb", () => {
   })
 })
 
+describe("buildImageMap", () => {
+  it("maps every image format supported by imported ADTs", () => {
+    const imagesDir = fs.mkdtempSync(path.join(os.tmpdir(), "image-map-"))
+    try {
+      for (const file of ["one.png", "two.jpeg", "three.webp", "four.gif", "five.svg", "SIX.JPG"]) {
+        fs.writeFileSync(path.join(imagesDir, file), "image")
+      }
+      expect(Object.fromEntries(buildImageMap(imagesDir))).toEqual({
+        one: "one.png",
+        two: "two.jpeg",
+        three: "three.webp",
+        four: "four.gif",
+        five: "five.svg",
+        SIX: "SIX.JPG",
+      })
+    } finally {
+      fs.rmSync(imagesDir, { recursive: true, force: true })
+    }
+  })
+})
+
 describe("rewriteImageUrls", () => {
   it("rewrites src URL from API path to local images/ path", () => {
     const html = `<img src="/api/books/mybook/images/abc123">`
@@ -2536,8 +2655,9 @@ describe("packageWebpub", () => {
   it("drops SCORM/non-reader files and omits them from manifest resources", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()
     await buildAdtFirst(bookDir, webAssetsDir, storage)
-    // packageAdtWeb emits imsmanifest.xml; add a stray AGENTS.md too.
+    // packageAdtWeb emits imsmanifest.xml; add stray AI instruction files too.
     fs.writeFileSync(path.join(bookDir, "adt", "AGENTS.md"), "stray")
+    fs.writeFileSync(path.join(bookDir, "adt", "CLAUDE.md"), "stray")
     expect(fs.existsSync(path.join(bookDir, "adt", "imsmanifest.xml"))).toBe(true)
 
     packageWebpub(storage, {
@@ -2551,12 +2671,14 @@ describe("packageWebpub", () => {
 
     expect(fs.existsSync(path.join(bookDir, "webpub", "imsmanifest.xml"))).toBe(false)
     expect(fs.existsSync(path.join(bookDir, "webpub", "AGENTS.md"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "webpub", "CLAUDE.md"))).toBe(false)
     const manifest = JSON.parse(
       fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
     )
     const hrefs = manifest.resources.map((r: { href: string }) => r.href)
     expect(hrefs).not.toContain("imsmanifest.xml")
     expect(hrefs).not.toContain("AGENTS.md")
+    expect(hrefs).not.toContain("CLAUDE.md")
   })
 
   it("labels resources by MIME type and excludes reading-order docs", async () => {

@@ -9,7 +9,7 @@ import { useNavigate, useSearch } from "@tanstack/react-router"
 import { api, getAdtUrl } from "@/api/client"
 import { useDebugPanelState } from "@/components/debug/debug-panel-state"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
-import { usePackageAdtStatus } from "@/hooks/use-books"
+import { useBook, usePackageAdtStatus } from "@/hooks/use-books"
 import { useReviewerValidationCatalog } from "@/hooks/use-reviewer-validation"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useBookTasks } from "@/hooks/use-book-tasks"
@@ -38,6 +38,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { previewHref?: string }
   const { stageState, isStatusLoading } = useBookRun()
+  const { data: book, isLoading: isBookLoading } = useBook(bookLabel)
   const { isTaskRunning, getTask } = useBookTasks(bookLabel)
   const storyboardDone = stageState("storyboard") === "done"
   const { allPruned, isLoading: prunedLoading } = useAllPagesPruned(bookLabel)
@@ -210,17 +211,17 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
 
   // Only trigger packaging when storyboard is done
   useEffect(() => {
-    if (!storyboardDone || ranRef.current) return
+    if (isBookLoading || !book || !storyboardDone || ranRef.current) return
     ranRef.current = true
     runPackage()
-  }, [runPackage, storyboardDone])
+  }, [book, isBookLoading, runPackage, storyboardDone])
 
   useEffect(() => {
-    if (!storyboardDone) return
+    if (isBookLoading || !book || !storyboardDone) return
     const handler = () => { runPackage() }
     window.addEventListener("adt:repackage", handler)
     return () => window.removeEventListener("adt:repackage", handler)
-  }, [runPackage, storyboardDone])
+  }, [book, isBookLoading, runPackage, storyboardDone])
 
   const navigatePreviewToHref = useCallback((href: string) => {
     const iframe = iframeRef.current
@@ -269,7 +270,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     return () => ro.disconnect()
   }, [ready, deviceView])
 
-  if (isStatusLoading || prunedLoading) {
+  if (isStatusLoading || isBookLoading || prunedLoading) {
     return <LoadingState stageSlug="preview" label={<Trans>Loading preview...</Trans>} />
   }
 

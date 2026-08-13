@@ -14,6 +14,14 @@ import {
   type PartRange,
 } from "@adt/types"
 import { openBookDb } from "@adt/storage"
+import { ADT_RECOVERY_MARKER } from "./adt-recovery-marker.js"
+import { ensureProjectIdentity } from "./project-identity.js"
+
+const ADT_IMPORT_CURRENT_FILE = ".adt-import-current.json"
+
+function workingSource(bookDir: string, fallback: BookSummary["sourceKind"]): BookSummary["workingSource"] {
+  return fs.existsSync(path.join(bookDir, ADT_IMPORT_CURRENT_FILE)) ? "imported-adt" : fallback
+}
 
 type BookDb = ReturnType<typeof openBookDb>
 
@@ -145,8 +153,10 @@ export function listBooks(booksDir: string): BookSummary[] {
 
     const label = entry.name
     const bookDir = path.join(resolvedDir, label)
+    if (fs.existsSync(path.join(bookDir, ADT_RECOVERY_MARKER))) continue
     const dbPath = path.join(bookDir, `${label}.db`)
     const pdfPath = path.join(bookDir, `${label}.pdf`)
+    const identity = ensureProjectIdentity(bookDir)
 
     let title: string | null = null
     let authors: string[] = []
@@ -207,6 +217,10 @@ export function listBooks(booksDir: string): BookSummary[] {
       languageCode,
       pageCount,
       hasSourcePdf: fs.existsSync(pdfPath),
+      projectId: identity.projectId,
+      sourceKind: identity.sourceKind,
+      workingSource: workingSource(bookDir, identity.sourceKind),
+      sourceFingerprint: identity.sourceFingerprint,
       needsRebuild,
       rebuildReason,
       completedStages,
@@ -232,6 +246,7 @@ export function getBook(label: string, booksDir: string): BookDetail {
 
   const dbPath = path.join(bookDir, `${safeLabel}.db`)
   const pdfPath = path.join(bookDir, `${safeLabel}.pdf`)
+  const identity = ensureProjectIdentity(bookDir)
 
   let title: string | null = null
   let authors: string[] = []
@@ -307,6 +322,10 @@ export function getBook(label: string, booksDir: string): BookDetail {
     languageCode,
     pageCount,
     hasSourcePdf: fs.existsSync(pdfPath),
+    projectId: identity.projectId,
+    sourceKind: identity.sourceKind,
+    workingSource: workingSource(bookDir, identity.sourceKind),
+    sourceFingerprint: identity.sourceFingerprint,
     needsRebuild,
     rebuildReason,
     completedStages,
@@ -335,6 +354,7 @@ export function createBook(
 
   fs.mkdirSync(bookDir, { recursive: true })
   fs.writeFileSync(path.join(bookDir, `${safeLabel}.pdf`), pdfBuffer)
+  const identity = ensureProjectIdentity(bookDir, { sourceKind: "pdf" })
 
   if (configOverrides && Object.keys(configOverrides).length > 0) {
     fs.writeFileSync(
@@ -353,6 +373,10 @@ export function createBook(
     languageCode: null,
     pageCount: 0,
     hasSourcePdf: true,
+    projectId: identity.projectId,
+    sourceKind: identity.sourceKind,
+    workingSource: identity.sourceKind,
+    sourceFingerprint: identity.sourceFingerprint,
     needsRebuild: false,
     rebuildReason: null,
     completedStages: [],
@@ -425,4 +449,3 @@ export function deleteBook(label: string, booksDir: string): void {
 
   fs.rmSync(bookDir, { recursive: true, force: true })
 }
-

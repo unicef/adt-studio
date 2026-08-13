@@ -17,6 +17,7 @@ import {
   Clock,
   Scissors,
   Puzzle,
+  FileArchive,
 } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -328,11 +329,20 @@ function BookRow({
                     : <Trans>New</Trans>}
                 </Badge>
               )}
-              {!book.hasSourcePdf && (
+              {book.sourceKind === "imported-adt" ? (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-primary/25 bg-primary/5 px-2 py-0.5 text-[11px] text-primary"
+                  title={t`Created from an exported ADT publication. Imported HTML is the working source; PDF extraction and sectioning are not available.`}
+                >
+                  <FileArchive className="h-3 w-3" />
+                  <Trans>Imported publication</Trans>
+                </Badge>
+              ) : !book.hasSourcePdf ? (
                 <Badge variant="secondary" className="text-[11px] px-2 py-0.5">
                   <Trans>No PDF</Trans>
                 </Badge>
-              )}
+              ) : null}
             </div>
           </div>
 
@@ -550,7 +560,7 @@ function HomePage() {
             <Button variant="ghost" size="sm" asChild>
               <Link to="/books/import" className="gap-1.5 text-muted-foreground">
                 <Upload className="h-3.5 w-3.5" />
-                <Trans>Import project</Trans>
+                <Trans>Import</Trans>
               </Link>
             </Button>
             {totalBooks > 1 && (

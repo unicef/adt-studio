@@ -25,6 +25,7 @@ import {
   weightToToken,
 } from "./iframe-computed-styles"
 import { INTERACTIVE_SCRIPT, INTERACTIVE_STYLES } from "./iframe-interactive"
+import { applyStoryboardImageCachePolicy } from "./storyboard-image-cache"
 import {
   anchorKey,
   anchorSelector,
@@ -383,6 +384,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   // Convert LaTeX to MathML for display via the API — the underlying data stays as LaTeX.
   // Start with sanitized HTML immediately, then update when the API responds.
   const [displayHtml, setDisplayHtml] = useState(sanitizedHtml)
+  const [importedContentClasses, setImportedContentClasses] = useState<string[]>([])
   useEffect(() => {
     setDisplayHtml(sanitizedHtml)
     if (thumbnail) return // skip math conversion round-trip for tiny previews
@@ -401,6 +403,35 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       .catch(() => {}) // fallback: display without math conversion
     return () => { cancelled = true }
   }, [sanitizedHtml, assetsPrefix, thumbnail])
+
+  // Imported ADTs may carry a book-specific stylesheet. Load it into the
+  // editable iframe, but intentionally leave imported scripts for the final
+  // packaged Preview where they cannot interfere with editor interactions.
+  useEffect(() => {
+    const controller = new AbortController()
+    fetch(`${assetsPrefix}/assets/imported-presentation.json`, { signal: controller.signal })
+      .then((response) => response.ok ? response.json() : null)
+      .then((data: { stylesheets?: unknown; contentClasses?: unknown } | null) => {
+        const doc = iframeRef.current?.contentDocument
+        if (!doc?.head || !Array.isArray(data?.stylesheets)) return
+        doc.querySelectorAll("link[data-adt-imported-presentation]").forEach((node) => node.remove())
+        for (const asset of data.stylesheets) {
+          if (typeof asset !== "string") continue
+          const link = doc.createElement("link")
+          link.rel = "stylesheet"
+          link.href = `${BASE_URL}/books/${encodeURIComponent(bookLabel)}/adt/${asset}`
+          link.dataset.adtImportedPresentation = "true"
+          doc.head.appendChild(link)
+        }
+        setImportedContentClasses(
+          Array.isArray(data.contentClasses)
+            ? data.contentClasses.filter((value): value is string => typeof value === "string")
+            : [],
+        )
+      })
+      .catch(() => {})
+    return () => controller.abort()
+  }, [assetsPrefix, bookLabel, iframeReady])
   latestHtmlRef.current = displayHtml
   sourceHtmlRef.current = html
   sanitizedHtmlRef.current = sanitizedHtml
@@ -424,7 +455,6 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   // anyway because DOMPurify strips the <script> tags before innerHTML
   // injection.) The shared script exposes window.__adtRunAutoFit so
   // injectContent can trigger another pass after content swaps.
-  // eslint-disable-next-line lingui/no-unlocalized-strings
   const autoFitScript = `<script src="${assetsPrefix}/assets/auto-fit.js"></script>`
   const { data: bookFontsData } = useBookFonts(bookLabel)
   // Attached book fonts are injected into the live iframe head by an effect
@@ -467,7 +497,6 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     if (!bodyFontFamily) return ""
     const url = googleFontsCss2Url([primaryFontFamily(bodyFontFamily)])
     const link = url ? `\n  <link href="${url}" rel="stylesheet">` : ""
-    // eslint-disable-next-line lingui/no-unlocalized-strings
     return `${link}\n  <style>\n    body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select { font-family: ${bodyFontFamily}; }\n  </style>`
   }, [bodyFontFamily])
   // Stable shell — loaded once, never changes.
@@ -581,13 +610,21 @@ ${autoFitScript}
     // (script re-insertion doesn't run them) but they keep the DOM
     // structure consistent with what the shell expects.
     const scriptEls = Array.from(doc.body.querySelectorAll("script"))
-    const normalizedHtml = promoteFirstHeadingToH1(newHtml)
+    const currentBookImagePrefix = `${BASE_URL}/books/${encodeURIComponent(bookLabel)}/images/`
+    const normalizedHtml = promoteFirstHeadingToH1(newHtml).replace(
+      /src=(["'])\/api\/books\/[^/"']+\/images\//g,
+      `src=$1${currentBookImagePrefix}`,
+    )
+    const cacheSafeHtml = applyStoryboardImageCachePolicy(normalizedHtml)
     // Mirror the packaged page shell closely: a page-level <main> containing
     // either the existing #content wrapper or a generated one.
-    const hasOwnMain = /^\s*<main\b/.test(normalizedHtml)
-    const hasOwnWrapper = /^\s*<div\b[^>]*\bid="content"/.test(normalizedHtml)
-    const contentHtml = hasOwnWrapper ? normalizedHtml : `<div id="content">${normalizedHtml}</div>`
-    doc.body.innerHTML = hasOwnMain ? normalizedHtml : `<main class="w-full">${contentHtml}</main>`
+    const hasOwnMain = /^\s*<main\b/.test(cacheSafeHtml)
+    const hasOwnWrapper = /^\s*<div\b[^>]*\bid="content"/.test(cacheSafeHtml)
+    const importedClassName = importedContentClasses.join(" ")
+    const contentHtml = hasOwnWrapper
+      ? cacheSafeHtml
+      : `<div id="content"${importedClassName ? ` class="${importedClassName}"` : ""}>${cacheSafeHtml}</div>`
+    doc.body.innerHTML = hasOwnMain ? cacheSafeHtml : `<main class="w-full">${contentHtml}</main>`
     for (const s of scriptEls) {
       doc.body.appendChild(s)
     }
@@ -595,6 +632,7 @@ ${autoFitScript}
     // Inject original LaTeX texts so startEditing can swap MathML → LaTeX
     const textsEl = doc.createElement("script")
     textsEl.id = "adt-original-texts"
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- Executable iframe state, not user-visible copy.
     textsEl.textContent = `window.__origTexts=${JSON.stringify(originalTextsRef.current)};`
     doc.body.appendChild(textsEl)
 
@@ -627,7 +665,6 @@ ${autoFitScript}
     const runFit = () => {
       const w = iframe?.contentWindow as (Window & { __adtRunAutoFit?: () => void }) | null
       if (typeof w?.__adtRunAutoFit !== "function") {
-        // eslint-disable-next-line no-console, lingui/no-unlocalized-strings
         console.warn("[BookPreviewFrame] __adtRunAutoFit is not defined on iframe contentWindow — auto-fit script did not load/execute. assetsPrefix:", assetsPrefix)
         return
       }
@@ -661,7 +698,7 @@ ${autoFitScript}
   // here — collapsing to 800 first causes a layout jump on every commit.
   useEffect(() => {
     if (readyRef.current) injectContent(displayHtml)
-  }, [displayHtml, applyBodyBackground])
+  }, [displayHtml, applyBodyBackground, importedContentClasses])
 
   // Re-stamp the selection attribute after every body rebuild. Must run
   // after the inject effect above (declaration order matters).
@@ -735,7 +772,6 @@ ${autoFitScript}
       styleEl.id = styleId
       doc.head.appendChild(styleEl)
     }
-    // eslint-disable-next-line lingui/no-unlocalized-strings
     styleEl.textContent = `body[data-editable="true"] img[data-id] { z-index: auto; }`
   }, [fixedLayoutSize, iframeReady])
 

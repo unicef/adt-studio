@@ -158,12 +158,92 @@ export interface PartImportPreview {
   coverBase64: string | null
 }
 
-export type AnyImportPreview = ImportPreview | PartImportPreview
+export interface AdtBundleImportPreview {
+  isAdtBundle: true
+  legacyRecovery: boolean
+  label: string
+  title: string
+  coverBase64: string | null
+  sourceLanguage: string
+  outputLanguages: string[]
+  runtimeFeatures: Record<string, boolean>
+  pageCount: number
+  imageCount: number
+  captionedImageCount: number
+  glossaryEntryCount: number
+  tocEntryCount: number
+  translationLanguageCount: number
+  contentChanged: boolean
+  exportComparisonStatus: "unchanged" | "changed" | "unavailable"
+  activityReview: {
+    inventoryVersion: number | null
+    items: Array<{
+      sectionId: string
+      href: string
+      declaredType: string | null
+      detectedType: string | null
+      suggestedType: string
+      kind: "quiz" | "known" | "custom" | "candidate"
+      status: "confirmed" | "needs-review"
+      supportsStudioEditing: boolean
+      reasons: Array<
+        | "missing-declaration"
+        | "missing-marker"
+        | "type-mismatch"
+        | "interactive-unmarked"
+        | "invalid-structure"
+        | "missing-page"
+      >
+      signals: string[]
+      validationErrors: string[]
+      textPreview: string
+      previewHtml: string
+    }>
+    needsReviewCount: number
+    quizCount: number
+    activityCount: number
+    typeOptions: string[]
+  }
+  compatibility: {
+    supported: boolean
+    issues: Array<{
+      code: "missing-content-root" | "multiple-content-roots" | "missing-section"
+        | "multiple-sections" | "missing-section-type" | "missing-data-id"
+        | "duplicate-data-id" | "image-missing-data-id" | "remote-asset"
+        | "unsafe-asset" | "missing-asset" | "missing-editing-contract"
+        | "unsupported-editing-contract"
+        | "nested-page" | "unsupported-stylesheet" | "unsupported-script"
+        | "unsupported-asset-location" | "unexpected-bundle-entry"
+        | "changed-page-structure"
+      pageHref: string
+      detail?: string
+    }>
+  }
+  agentGuide: {
+    status: "current" | "partial" | "outdated" | "missing"
+    currentVersion: number
+    files: {
+      agentsMd: { present: boolean; version: number | null; current: boolean }
+      claudeMd: { present: boolean; version: number | null; current: boolean }
+    }
+    currentGuide: string
+    repairPrompt: string
+    activityPrompt: string | null
+  }
+}
+
+export type AnyImportPreview = ImportPreview | PartImportPreview | AdtBundleImportPreview
 
 export function isPartImportPreview(
   preview: AnyImportPreview,
 ): preview is PartImportPreview {
   return (preview as PartImportPreview).isPart === true
+}
+
+export function isAdtBundleImportPreview(
+  preview: AnyImportPreview,
+): preview is AdtBundleImportPreview {
+  return (preview as AdtBundleImportPreview).isAdtBundle === true
 }
 
 export interface MergePreview {
@@ -1037,6 +1117,19 @@ export const api = {
     const formData = new FormData()
     formData.append("zip", zip)
     return request<BookSummary>("/books/import", {
+      method: "POST",
+      body: formData,
+    })
+  },
+
+  importAdtProject: (
+    zip: File,
+    activityDecisions: Array<{ sectionId: string; type: string | null }> = [],
+  ) => {
+    const formData = new FormData()
+    formData.append("zip", zip)
+    formData.append("activityDecisions", JSON.stringify(activityDecisions))
+    return request<BookSummary>("/books/import-adt", {
       method: "POST",
       body: formData,
     })

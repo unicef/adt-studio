@@ -51,6 +51,7 @@ import {
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
 } from "@adt/pipeline"
+import { getImportedAdtPresentationAssets } from "../services/adt-recovery-session.js"
 
 // ---------------------------------------------------------------------------
 // MIME type helper
@@ -617,6 +618,15 @@ export function createAdtPreviewRoutes(
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
     return c.body(JSON.stringify(previewConfig))
+  })
+
+  // Custom styles from an imported ADT are loaded into the Storyboard iframe
+  // so the normal editor preserves the external design while keeping custom
+  // scripts out of the editing surface.
+  app.get("/books/:label/adt-preview/assets/imported-presentation.json", (c) => {
+    const { safeLabel } = resolveBook(c.req.param("label"))
+    setNoStoreHeaders(c)
+    return c.json(getImportedAdtPresentationAssets(safeLabel, booksDir))
   })
 
   // /assets/* — Static files from webAssetsDir
