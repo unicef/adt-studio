@@ -44,6 +44,27 @@ describe("computeFingerprint", () => {
     expect(b.identityHash).not.toBe(a.identityHash)
   })
 
+  it("changes identityHash when watermark removal changes", () => {
+    const a = computeFingerprint({
+      config: baseConfig({ remove_watermarks: true }),
+      pdfSha256: PDF,
+    })
+    const b = computeFingerprint({ config: baseConfig(), pdfSha256: PDF })
+    expect(b.identityHash).not.toBe(a.identityHash)
+  })
+
+  it("changes identityHash when figure extraction mode changes", () => {
+    const a = computeFingerprint({
+      config: baseConfig({ figure_extraction_mode: "auto" }),
+      pdfSha256: PDF,
+    })
+    const b = computeFingerprint({
+      config: baseConfig({ figure_extraction_mode: "all" }),
+      pdfSha256: PDF,
+    })
+    expect(b.identityHash).not.toBe(a.identityHash)
+  })
+
   it("changes identityHash when the PDF differs", () => {
     const a = computeFingerprint({ config: baseConfig(), pdfSha256: PDF })
     const b = computeFingerprint({ config: baseConfig(), pdfSha256: "b".repeat(64) })

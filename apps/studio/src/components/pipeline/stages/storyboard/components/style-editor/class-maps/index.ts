@@ -36,3 +36,11 @@ export {
   shadowClassMap,
 } from "./appearance"
 export { objectFitClassMap, objectPositionClassMap } from "./image-fit"
+export {
+  positionClassMap,
+  insetClassMap,
+  rotateClassMap,
+  translateXClassMap,
+  translateYClassMap,
+  scaleClassMap,
+} from "./position"

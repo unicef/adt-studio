@@ -6,7 +6,7 @@ export const TocEntry = z.object({
   sectionId: z.string(),
   href: z.string(),
   chapterId: z.string(),
-  level: z.number().int().min(1).max(3),
+  level: z.number().int().min(1).max(6),
 })
 export type TocEntry = z.infer<typeof TocEntry>
 
@@ -21,8 +21,7 @@ export const tocLLMSchema = z.object({
   reasoning: z.string(),
   entries: z.array(z.object({
     title: z.string(),
-    level: z.number().int().min(1).max(3),
+    level: z.number().int().min(1).max(6),
     sectionId: z.string(),
   })),
 })
-

@@ -165,5 +165,17 @@ interface Window {
     windowControls?: ElectronWindowControls
     /** IPC bridge for desktop auto-updater. Undefined in the web build. */
     updates?: ElectronUpdatesApi
+    /** IPC bridge for the first-run onboarding window. Undefined in the web build. */
+    onboarding?: ElectronOnboardingApi
   }
+}
+
+interface ElectronOnboardingApi {
+  /** Whether onboarding has been completed (persisted in the main process). */
+  getStatus: () => Promise<boolean>
+  /**
+   * Mark onboarding complete and hand off to the main app window, which opens
+   * on `startPath` (e.g. "/" or "/books/new").
+   */
+  finish: (startPath: string) => Promise<void>
 }

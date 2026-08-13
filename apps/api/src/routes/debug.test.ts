@@ -26,6 +26,7 @@ describe("Debug routes", () => {
             promptName: "classify-text",
             modelId: "gpt-4o",
             cacheHit: false,
+            success: true,
             durationMs: 1200,
             usage: { inputTokens: 500, outputTokens: 200 },
             validationErrors: [],
@@ -38,6 +39,7 @@ describe("Debug routes", () => {
             promptName: "classify-text",
             modelId: "gpt-4o",
             cacheHit: true,
+            success: true,
             durationMs: 50,
             usage: { inputTokens: 500, outputTokens: 200 },
           },
@@ -49,6 +51,7 @@ describe("Debug routes", () => {
             promptName: "section-page",
             modelId: "gpt-4o",
             cacheHit: false,
+            success: false,
             durationMs: 2000,
             usage: { inputTokens: 1000, outputTokens: 500 },
             validationErrors: ["Invalid section type"],
@@ -61,6 +64,7 @@ describe("Debug routes", () => {
             promptName: "extract-metadata",
             modelId: "gpt-4o",
             cacheHit: false,
+            success: true,
             durationMs: 3000,
             usage: { inputTokens: 2000, outputTokens: 300 },
           },
@@ -253,6 +257,8 @@ describe("Debug routes", () => {
       expect(textStep).toBeDefined()
       expect(textStep.calls).toBe(3)
       expect(textStep.cacheHits).toBe(1)
+      expect(textStep.errorCount).toBe(1)
+      expect(body.totals.errorCount).toBe(1)
     })
 
     it("returns null pipeline run timing", async () => {

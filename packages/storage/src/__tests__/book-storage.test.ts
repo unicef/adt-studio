@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach, vi } from "vitest"
+import { createHash } from "node:crypto"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -315,10 +316,14 @@ describe("createBookStorage", () => {
 
     const db = openBookDb(paths.dbPath)
     const rows = db.all(
-      "SELECT width, height FROM images WHERE image_id = ?",
+      "SELECT hash, width, height FROM images WHERE image_id = ?",
       ["pg001_im001_tr_es"]
-    ) as Array<{ width: number; height: number }>
-    expect(rows).toEqual([{ width: 200, height: 150 }])
+    ) as Array<{ hash: string; width: number; height: number }>
+    const expectedHash = createHash("sha256")
+      .update(Buffer.from("second"))
+      .digest("hex")
+      .slice(0, 16)
+    expect(rows).toEqual([{ hash: expectedHash, width: 200, height: 150 }])
     db.close()
     storage.close()
   })
@@ -542,6 +547,31 @@ describe("putNodeData / getLatestNodeData", () => {
     expect(imgFilt!.data).toEqual({ a: 1 })
     expect(ps!.data).toEqual({ b: 2 })
 
+    storage.close()
+  })
+
+  it("rolls back every write when a transaction fails", () => {
+    const { storage } = createTempStorage()
+    storage.putNodeData("web-rendering", "pg001", { version: "before" })
+    storage.markStepCompleted("web-rendering")
+
+    expect(() =>
+      storage.transaction(() => {
+        storage.putNodeData("web-rendering", "pg001", { version: "after" })
+        storage.putNodeData("page-sectioning", "pg001", { version: "after" })
+        storage.clearStepRuns(["web-rendering"])
+        throw new Error("abort save")
+      })
+    ).toThrow("abort save")
+
+    expect(storage.getLatestNodeData("web-rendering", "pg001")).toEqual({
+      version: 1,
+      data: { version: "before" },
+    })
+    expect(storage.getLatestNodeData("page-sectioning", "pg001")).toBeNull()
+    expect(storage.getStepRuns()).toContainEqual(
+      expect.objectContaining({ step: "web-rendering", status: "done" })
+    )
     storage.close()
   })
 })

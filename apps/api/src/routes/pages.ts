@@ -23,7 +23,12 @@ import {
   IMAGE_SET_CHANGE_CLEAR_STEPS,
   PIPELINE,
   getStageClearOrder,
+  getStageDependents,
   EDITABLE_ACTIVITY_NODE,
+  CoreTtsCatalogOutput,
+  TextCatalogOutput,
+  type TTSOutput,
+  type WordTimestampOutput,
 } from "@adt/types"
 import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
@@ -36,11 +41,21 @@ import {
   type SpreadEdgeSample,
   classifyPageImages,
   buildImageClassifyConfig,
+  deduplicateAutoFigureCandidates,
+  figureExtractionFlags,
   readEditableActivities,
   remapEditableActivities,
+  invalidateCoreTtsForDisplayEntries,
+  resolveFigureExtractionMode,
 } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
+import {
+  getBookStyleguidesDir,
+  getGeneratedStyleguideName,
+  StyleguideWriteError,
+  writeStyleguideFiles,
+} from "../services/styleguide.js"
 import type { TaskService } from "../services/task-service.js"
 import {
   segmentPageImages,
@@ -444,6 +459,7 @@ const RestorableNode = z.enum([
   "glossary",
   "quiz-generation",
   "text-catalog-translation",
+  "core-tts-catalog",
   "easy-read",
   "image-filtering",
   "image-captioning",
@@ -458,7 +474,12 @@ type RestorableNode = z.infer<typeof RestorableNode>
  * leave the book in a mixed state. The policies follow each node's actual
  * catalog, translation, speech, and packaging dependencies.
  */
-function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): void {
+function clearRestoredNodeDependents(
+  storage: Storage,
+  node: RestorableNode,
+  itemId: string,
+  previousData?: unknown,
+): void {
   switch (node) {
     case "image-filtering":
     case "page-sectioning":
@@ -472,6 +493,7 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
       storage.clearNodesByType([
         "text-catalog",
         "text-catalog-translation",
+        "core-tts-catalog",
         "tts",
         "tts-timestamps",
         "accessibility-assessment",
@@ -479,6 +501,7 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
       storage.clearStepRuns([
         "text-catalog",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -490,12 +513,14 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
     case "easy-read":
       storage.clearNodesByType([
         "text-catalog-translation",
+        "core-tts-catalog",
         "tts",
         "tts-timestamps",
         "accessibility-assessment",
       ])
       storage.clearStepRuns([
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -504,8 +529,81 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
       ])
       return
 
-    case "text-catalog-translation":
-      storage.clearNodesByType(["tts", "tts-timestamps", "accessibility-assessment"])
+    case "text-catalog-translation": {
+      const restored = TextCatalogOutput.safeParse(
+        storage.getLatestNodeData("text-catalog-translation", itemId)?.data,
+      )
+      if (restored.success) {
+        invalidateCoreTtsForDisplayEntries({
+          storage,
+          language: itemId,
+          entries: restored.data.entries,
+        })
+      }
+      storage.clearNodesByType(["accessibility-assessment"])
+      storage.clearStepRuns([
+        "core-tts-catalog",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return
+    }
+
+    case "core-tts-catalog": {
+      const previous = CoreTtsCatalogOutput.safeParse(previousData)
+      const restored = CoreTtsCatalogOutput.safeParse(
+        storage.getLatestNodeData("core-tts-catalog", itemId)?.data,
+      )
+      const previousById = new Map(
+        (previous.success ? previous.data.entries : []).map((entry) => [entry.id, entry]),
+      )
+      const restoredById = new Map(
+        (restored.success ? restored.data.entries : []).map((entry) => [entry.id, entry]),
+      )
+      const changedIds = new Set(
+        [...new Set([...previousById.keys(), ...restoredById.keys()])].filter((id) => {
+          const before = previousById.get(id)
+          const after = restoredById.get(id)
+          return before?.speechText !== after?.speechText || before?.status !== after?.status
+        }),
+      )
+      const legacyItemId = itemId.replace("-", "_")
+      const normalizedTts = storage.getLatestNodeData("tts", itemId)
+      const ttsRow = normalizedTts ?? storage.getLatestNodeData("tts", legacyItemId)
+      if (ttsRow && changedIds.size > 0) {
+        const tts = ttsRow.data as TTSOutput
+        storage.putNodeData("tts", normalizedTts ? itemId : legacyItemId, {
+          ...tts,
+          entries: tts.entries.filter(
+            (entry) => entry.provider === "manual" || !changedIds.has(entry.textId),
+          ),
+          failed: tts.failed?.filter((entry) => !changedIds.has(entry.textId)),
+          generatedAt: new Date().toISOString(),
+        } satisfies TTSOutput)
+      }
+      const normalizedTimestamps = storage.getLatestNodeData("tts-timestamps", itemId)
+      const timestampRow =
+        normalizedTimestamps ??
+        storage.getLatestNodeData("tts-timestamps", legacyItemId)
+      if (timestampRow && changedIds.size > 0) {
+        const timestamps = timestampRow.data as WordTimestampOutput
+        const entries = Object.fromEntries(
+          Object.entries(timestamps.entries).filter(([id]) => !changedIds.has(id)),
+        )
+        storage.putNodeData(
+          "tts-timestamps",
+          normalizedTimestamps ? itemId : legacyItemId,
+          {
+            ...timestamps,
+            entries,
+            failed: timestamps.failed?.filter((entry) => !changedIds.has(entry.textId)),
+            generatedAt: new Date().toISOString(),
+          } satisfies WordTimestampOutput,
+        )
+      }
+      storage.clearNodesByType(["accessibility-assessment"])
       storage.clearStepRuns([
         "tts",
         "word-timestamps",
@@ -513,6 +611,7 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
         "accessibility-assessment",
       ])
       return
+    }
 
     case "toc-generation":
       storage.clearNodesByType(["accessibility-assessment"])
@@ -521,8 +620,7 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
 }
 
 /**
- * Mark the storyboard and everything after it as needing a re-run, without
- * deleting any node data.
+ * Mark the storyboard chain as needing a re-run, without deleting any node data.
  *
  * A sectioning edit invalidates the storyboard's rendered HTML, and every later
  * output (text catalog, translations, audio, the packaged book) is re-derived
@@ -530,9 +628,20 @@ function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): vo
  * old text. We clear only `step_runs`: the renderings and their version history
  * survive (so manual storyboard edits elsewhere in the book are not destroyed)
  * and are overwritten only when the user actually re-runs.
+ *
+ * `includeStoryboard: false` keeps the storyboard's own step run, for the case
+ * where the caller wrote a matching `web-rendering` in the same save: the HTML
+ * on disk already reflects the new sectioning, so only the stages *derived* from
+ * it are behind. Marking storyboard stale there would be a lie that also costs
+ * the user their editor — the Storyboard view is gated on the stage status.
  */
-function markStoryboardChainStale(storage: Storage): void {
-  const stages = new Set<string>(getStageClearOrder("storyboard"))
+function markStoryboardChainStale(
+  storage: Storage,
+  { includeStoryboard = true }: { includeStoryboard?: boolean } = {}
+): void {
+  const stages = new Set<string>(
+    includeStoryboard ? getStageClearOrder("storyboard") : getStageDependents("storyboard")
+  )
   storage.clearStepRuns(
     PIPELINE.filter((stage) => stages.has(stage.name)).flatMap((stage) =>
       stage.steps.map((step) => step.name)
@@ -565,7 +674,8 @@ function saveStoryboardNode(
   storage: Storage,
   node: "page-sectioning" | "web-rendering",
   itemId: string,
-  data: unknown
+  data: unknown,
+  { renderingInSync = false }: { renderingInSync?: boolean } = {}
 ): number {
   if (node === "page-sectioning") assertNoActivePipelineRun(storage)
   const version = storage.putNodeData(node, itemId, data)
@@ -575,7 +685,14 @@ function saveStoryboardNode(
   // merge empties both pages, so those sections would silently vanish from the
   // packaged book while the stage still read "done". A `web-rendering` save is
   // itself the storyboard's output, so it must NOT mark storyboard stale.
-  if (node === "page-sectioning") markStoryboardChainStale(storage)
+  //
+  // `renderingInSync` is the Storyboard editor saving a per-section edit whose
+  // HTML it has already mirrored, or has queued a targeted re-render for. The
+  // storyboard is current (or seconds from it) and only its dependents are
+  // behind, so resetting the stage would take the editor away for nothing.
+  if (node === "page-sectioning") {
+    markStoryboardChainStale(storage, { includeStoryboard: !renderingInSync })
+  }
   return version
 }
 
@@ -1201,10 +1318,12 @@ export function createPageRoutes(
     const toRemove = [...currentIds].filter((id) => !desiredIds.has(id))
 
     if (toAdd.length > 0) {
+      const autoFigureMode = resolveFigureExtractionMode(config) === "auto"
       const newPages = await extractPages({
         pdfBuffer,
         groups: toAdd,
-        vectorTextGrouping: config.vector_text_grouping !== false,
+        ...figureExtractionFlags(config),
+        removeWatermarks: config.remove_watermarks === true,
         fixedLayout: isFixedLayoutBook(config),
       })
       const imageClassifyConfig = {
@@ -1218,10 +1337,17 @@ export function createPageRoutes(
         if (page.extractionDebug) {
           storage.putNodeData("extraction-debug", page.pageId, page.extractionDebug)
         }
+        const classified = classifyPageImages(
+          page.pageId,
+          storage.getPageImages(page.pageId),
+          imageClassifyConfig,
+        )
         storage.putNodeData(
           "image-filtering",
           page.pageId,
-          classifyPageImages(page.pageId, storage.getPageImages(page.pageId), imageClassifyConfig),
+          autoFigureMode
+            ? deduplicateAutoFigureCandidates(classified, page.extractionDebug)
+            : classified,
         )
       }
     }
@@ -1427,6 +1553,82 @@ export function createPageRoutes(
     }
   })
 
+  // PUT /books/:label/pages/:pageId/storyboard — one Storyboard editor save.
+  //
+  // Sectioning and rendering are two nodes but one user action, and splitting
+  // them across two requests is what made the editor fragile: the second PUT can
+  // fail (or be rejected by the pipeline-run guard) after the first has already
+  // landed, leaving the HTML and the tree disagreeing with no way back. Writing
+  // both here means the guard runs once, up front, and the pair moves together.
+  //
+  // `renderingInSync` says the stored HTML reflects this sectioning, or will
+  // shortly: the caller either mirrored the edit into the rendering it is
+  // sending, needed no HTML change at all, or has queued a re-render of the one
+  // section it touched. Storyboard editing is incremental by design, so a
+  // per-section edit must not reset the stage for the whole book. It is false
+  // only when the HTML cannot be brought back in sync — no API key, or a custom
+  // activity a re-render would flatten — and false is also the default, so the
+  // Sectioning stage and the structural ops that drop HTML without re-rendering
+  // (split, cross-page merge) keep marking the chain stale.
+  app.put("/books/:label/pages/:pageId/storyboard", async (c) => {
+    const { label, pageId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+
+    const body = await c.req.json()
+    const parsed = z
+      .object({
+        sectioning: PageSectioningOutput.optional(),
+        rendering: WebRenderingOutput.optional(),
+        renderingInSync: z.boolean().default(false),
+      })
+      .safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid storyboard save: ${parsed.error.message}`,
+      })
+    }
+    const { sectioning, rendering, renderingInSync } = parsed.data
+    if (!sectioning && !rendering) {
+      throw new HTTPException(400, {
+        message: "Storyboard save must include sectioning, rendering, or both",
+      })
+    }
+    // The flag only describes a sectioning write; on its own it would silently
+    // do nothing, which is worth a 400 rather than a puzzling no-op.
+    if (renderingInSync && !sectioning) {
+      throw new HTTPException(400, {
+        message: "renderingInSync requires sectioning",
+      })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const pages = storage.getPages()
+      const page = pages.find((p) => p.pageId === pageId)
+      if (!page) {
+        throw new HTTPException(404, { message: `Page not found: ${pageId}` })
+      }
+
+      // Guard before either write, so a rejected save changes nothing at all.
+      if (sectioning) assertNoActivePipelineRun(storage)
+
+      // Rendering, sectioning, downstream invalidations, and step status are a
+      // single editor save. If any statement fails, none of them may survive.
+      const { renderingVersion, sectioningVersion } = storage.transaction(() => ({
+        renderingVersion: rendering
+          ? saveStoryboardNode(storage, "web-rendering", pageId, rendering)
+          : null,
+        sectioningVersion: sectioning
+          ? saveStoryboardNode(storage, "page-sectioning", pageId, sectioning, { renderingInSync })
+          : null,
+      }))
+
+      return c.json({ sectioningVersion, renderingVersion })
+    } finally {
+      storage.close()
+    }
+  })
+
   // POST /books/:label/versions/:node/:itemId/restore — roll an entity back to
   // an existing version by moving its current-version pointer (no new version
   // is created). Supports the nodes exposed by the shared version picker
@@ -1459,13 +1661,14 @@ export function createPageRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      const previousData = storage.getLatestNodeData(node, itemId)?.data
       const ok = storage.setCurrentNodeVersion(node, itemId, version)
       if (!ok) {
         throw new HTTPException(404, {
           message: `Version ${version} not found for ${node}/${itemId}`,
         })
       }
-      clearRestoredNodeDependents(storage, node)
+      clearRestoredNodeDependents(storage, node, itemId, previousData)
       return c.json({ node, itemId, version })
     } finally {
       storage.close()
@@ -1498,6 +1701,7 @@ export function createPageRoutes(
       storage.clearNodesByType([
         "text-catalog",
         "text-catalog-translation",
+        "core-tts-catalog",
         "tts",
         "tts-timestamps",
         "accessibility-assessment",
@@ -1505,6 +1709,7 @@ export function createPageRoutes(
       storage.clearStepRuns([
         "text-catalog",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -1515,6 +1720,112 @@ export function createPageRoutes(
     } finally {
       storage.close()
     }
+  })
+
+  // POST /books/:label/pages/re-render — Re-render a set of pages as one task.
+  // This is used by cross-page edits: the Storyboard step stays running until
+  // every affected page succeeds, and any failure makes the whole stage stale.
+  app.post("/books/:label/pages/re-render", async (c) => {
+    const safeLabel = parseBookLabel(c.req.param("label"))
+    const apiKey = c.req.header("X-OpenAI-Key")
+    if (!apiKey) {
+      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
+    }
+
+    const parsed = z
+      .object({ pageIds: z.array(z.string().min(1)).min(1).max(100) })
+      .safeParse(await c.req.json().catch(() => null))
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid re-render request: ${parsed.error.message}`,
+      })
+    }
+    const pageIds = [...new Set(parsed.data.pageIds)]
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const existingPageIds = new Set(storage.getPages().map((page) => page.pageId))
+      for (const pageId of pageIds) {
+        if (!existingPageIds.has(pageId)) {
+          throw new HTTPException(404, { message: `Page not found: ${pageId}` })
+        }
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
+        if (!sectioningRow) {
+          throw new HTTPException(400, {
+            message: `Page must have page-sectioning data before re-rendering: ${pageId}`,
+          })
+        }
+        if (!PageSectioningOutput.safeParse(sectioningRow.data).success) {
+          throw new HTTPException(400, {
+            message: `Invalid page-sectioning data: ${pageId}`,
+          })
+        }
+      }
+
+      assertNoActivePipelineRun(storage)
+      storage.markStepStarted("web-rendering")
+    } finally {
+      storage.close()
+    }
+
+    const markBatchFailed = () => {
+      const failedStorage = createBookStorage(safeLabel, booksDir)
+      try {
+        markStoryboardChainStale(failedStorage)
+      } finally {
+        failedStorage.close()
+      }
+    }
+
+    const runReRenders = async () => {
+      try {
+        const results = []
+        // reRenderPage temporarily installs the key in process.env, so run the
+        // pages serially rather than letting concurrent calls race that state.
+        for (const pageId of pageIds) {
+          results.push(
+            await reRenderPage({
+              label: safeLabel,
+              pageId,
+              booksDir,
+              promptsDir,
+              webAssetsDir,
+              configPath,
+              apiKey,
+            })
+          )
+        }
+
+        const completedStorage = createBookStorage(safeLabel, booksDir)
+        try {
+          completedStorage.markStepCompleted("web-rendering")
+        } finally {
+          completedStorage.close()
+        }
+        return { results }
+      } catch (err) {
+        markBatchFailed()
+        throw err
+      }
+    }
+
+    if (taskService) {
+      try {
+        const { taskId } = taskService.submitTask(
+          safeLabel,
+          "re-render",
+          `Re-rendering ${pageIds.length} affected page(s)`,
+          runReRenders,
+          { pageId: pageIds[0], url: `/books/${safeLabel}/storyboard/${pageIds[0]}` }
+        )
+        return c.json({ taskId, status: "submitted" })
+      } catch (err) {
+        markBatchFailed()
+        throw err
+      }
+    }
+
+    return c.json(await runReRenders())
   })
 
   // POST /books/:label/pages/:pageId/re-render — Re-render page with current pipeline data
@@ -1582,6 +1893,34 @@ export function createPageRoutes(
       storage.close()
     }
 
+    // An unprune keeps the storyboard marked complete on the promise that this
+    // re-render will supply the section's HTML. When it dies that HTML never
+    // arrives, so take the mark back here — the browser may be long gone by then,
+    // and a stage claiming output it does not have is what #642 set out to fix.
+    const runReRender = async () => {
+      try {
+        return await reRenderPage({
+          label: safeLabel,
+          pageId,
+          sectionIndex,
+          prompt,
+          booksDir,
+          promptsDir,
+          webAssetsDir,
+          configPath,
+          apiKey,
+        })
+      } catch (err) {
+        const storage = createBookStorage(safeLabel, booksDir)
+        try {
+          markStoryboardChainStale(storage)
+        } finally {
+          storage.close()
+        }
+        throw err
+      }
+    }
+
     // Submit as task if TaskService is available
     if (taskService) {
       const desc = sectionIndex !== undefined
@@ -1591,38 +1930,14 @@ export function createPageRoutes(
         safeLabel,
         "re-render",
         desc,
-        async () => {
-          return await reRenderPage({
-            label: safeLabel,
-            pageId,
-            sectionIndex,
-            prompt,
-            booksDir,
-            promptsDir,
-            webAssetsDir,
-            configPath,
-            apiKey,
-          })
-        },
+        runReRender,
         { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
       )
       return c.json({ taskId, status: "submitted" })
     }
 
     // Fallback: run synchronously
-    const result = await reRenderPage({
-      label: safeLabel,
-      pageId,
-      sectionIndex,
-      prompt,
-      booksDir,
-      promptsDir,
-      webAssetsDir,
-      configPath,
-      apiKey,
-    })
-
-    return c.json(result)
+    return c.json(await runReRender())
   })
 
   // POST /books/:label/pages/:pageId/sections/:sectionIndex/ai-edit — AI-edit a section's HTML
@@ -1675,7 +1990,15 @@ export function createPageRoutes(
             if (renderingParsed?.success) {
               const updated = {
                 sections: renderingParsed.data.sections.map((s) =>
-                  s.sectionIndex === idx ? { ...s, html: result.html } : s
+                  s.sectionIndex === idx
+                    ? {
+                        ...s,
+                        html: result.html,
+                        ...(result.activityAnswers
+                          ? { activityAnswers: result.activityAnswers }
+                          : {}),
+                      }
+                    : s
                 ),
               }
               saveStoryboardNode(storage, "web-rendering", pageId, updated)
@@ -1899,7 +2222,17 @@ export function createPageRoutes(
         rewriteRenderingSectionIds(shifted, newSections)
         updatedRendering = { sections: shifted }
       }
-      const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
+      // Cloning rebuilds the rendering to match: indexes shift, the source's HTML
+      // is copied for the clone, and container and section ids are rewritten. No
+      // LLM is involved and nothing is left behind, so the storyboard stays
+      // current — only the stages derived from it need a re-run.
+      const sectioningVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        updatedSectioning,
+        { renderingInSync: updatedRendering !== null }
+      )
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
@@ -2125,6 +2458,9 @@ export function createPageRoutes(
       throw new HTTPException(400, { message: `Invalid direction: ${directionParam}. Must be "next" or "prev"` })
     }
     const direction = directionParam as "next" | "prev"
+    // The Storyboard editor re-renders the merged section straight after, so it
+    // opts out of marking the stage stale. Off by default for every other caller.
+    const renderingInSync = c.req.query("renderingInSync") === "1"
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
@@ -2235,7 +2571,16 @@ export function createPageRoutes(
         updatedRendering = { sections: shifted }
       }
 
-      const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
+      // Merging concatenates the two sections' HTML into the kept entry, so no
+      // section is left without one — the caller's re-render replaces the naive
+      // join with properly combined markup rather than filling a gap.
+      const sectioningVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        updatedSectioning,
+        { renderingInSync: renderingInSync && updatedRendering !== null }
+      )
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
@@ -2282,7 +2627,6 @@ export function createPageRoutes(
       })
     }
     const { direction } = parsedQuery.data
-
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const pages = storage.getPages()
@@ -2368,14 +2712,18 @@ export function createPageRoutes(
       renumberSectionIds(newTgtSections, targetPageId)
 
       // Save updated sectionings
-      const srcVersion = saveStoryboardNode(storage, "page-sectioning", pageId, {
-        ...srcSectioning,
-        sections: newSrcSections,
-      })
-      const tgtVersion = saveStoryboardNode(storage, "page-sectioning", targetPageId, {
-        ...tgtSectioning,
-        sections: newTgtSections,
-      })
+      const srcVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        { ...srcSectioning, sections: newSrcSections }
+      )
+      const tgtVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        targetPageId,
+        { ...tgtSectioning, sections: newTgtSections }
+      )
 
       // Clear rendering for both pages (merged content invalidates existing renders)
       let srcRenderVersion: number | null = null
@@ -2488,7 +2836,17 @@ export function createPageRoutes(
         updatedRendering = { sections: shifted }
       }
 
-      const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
+      // Deleting rebuilds the rendering to match: the section's HTML entry is
+      // dropped, later indexes shift down, and section ids are rewritten. The
+      // surviving sections keep the HTML they already had, so nothing needs
+      // re-rendering and the storyboard stays current.
+      const sectioningVersion = saveStoryboardNode(
+        storage,
+        "page-sectioning",
+        pageId,
+        updatedSectioning,
+        { renderingInSync: updatedRendering !== null }
+      )
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
@@ -3059,13 +3417,23 @@ export function createPageRoutes(
         llmModel
       )
 
-      // Save to assets/styleguides/{label}-generated.md
-      const projectRoot = configPath ? path.dirname(configPath) : path.resolve(booksDir, "..")
-      const styleguidesDir = path.join(projectRoot, "assets", "styleguides")
-      fs.mkdirSync(styleguidesDir, { recursive: true })
-      const sgName = `${safeLabel}-generated`
-      fs.writeFileSync(path.join(styleguidesDir, `${sgName}.md`), result.content, "utf-8")
-      fs.writeFileSync(path.join(styleguidesDir, `${sgName}-preview.html`), result.preview_html, "utf-8")
+      // Generated style guides are book data, so keep them inside the project
+      // directory where export/import and ordinary folder copies preserve them.
+      const styleguidesDir = getBookStyleguidesDir(resolvedBooksDir, safeLabel)
+      const sgName = getGeneratedStyleguideName(safeLabel)
+      try {
+        writeStyleguideFiles({
+          dir: styleguidesDir,
+          name: sgName,
+          content: result.content,
+          previewHtml: result.preview_html,
+        })
+      } catch (err) {
+        if (err instanceof StyleguideWriteError) {
+          throw new HTTPException(500, { message: err.message })
+        }
+        throw err
+      }
 
       return c.json({
         name: sgName,

@@ -207,7 +207,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     return typeMap
   }, [activeConfigData])
 
-  const { data: styleguidesData } = useStyleguides()
+  const { data: styleguidesData } = useStyleguides(bookLabel)
   const { data: templatesData } = useTemplates()
   const availableTemplates = templatesData?.templates ?? []
   const availableStyleguides = styleguidesData?.styleguides ?? []
@@ -248,7 +248,10 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
   // Styleguide preview
   const [styleguidePreviewOpen, setStyleguidePreviewOpen] = useState(false)
   const [previewName, setPreviewName] = useState<string | null>(null)
-  const { data: previewData, isLoading: styleguidePreviewLoading } = useStyleguidePreview(previewName)
+  const { data: previewData, isLoading: styleguidePreviewLoading } = useStyleguidePreview(
+    previewName,
+    bookLabel,
+  )
 
   const openStyleguidePreview = () => {
     if (!styleguide) return

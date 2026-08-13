@@ -1,0 +1,335 @@
+name: Regenerate release assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Unpublished stable draft tag (for example v0.7.5)"
+        required: true
+        type: string
+      regenerate:
+        description: "What to regenerate"
+        required: true
+        default: both
+        type: choice
+        options:
+          - both
+          - notes
+          - image
+      hero_feature:
+        description: "Main feature to emphasize (optional)"
+        required: false
+        type: string
+      cover_palette:
+        description: "ADT + pipeline feature palette"
+        required: true
+        default: auto
+        type: choice
+        options:
+          - auto
+          - random
+          - adt
+          - extract
+          - sectioning
+          - storyboard
+          - captions
+          - quizzes
+          - glossary
+          - toc
+          - easy-read
+          - sign-language
+          - translate
+          - speech
+          - validation
+          - preview
+          - export
+
+permissions:
+  contents: write
+
+concurrency:
+  group: regenerate-release-assets-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    environment: release-ai
+    steps:
+      - name: Validate request
+        env:
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          if [[ "$GITHUB_REF_NAME" != "main" ]]; then
+            echo "::error::Run this workflow from main."
+            exit 1
+          fi
+          if [[ ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::release_tag must be a stable v-prefixed semantic version."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          # Run the trusted generator from the main commit that dispatched this
+          # workflow. The release tag remains the content target and may predate
+          # fixes to the regeneration tooling.
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate unpublished draft
+        id: draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          gh release view "$TAG" --repo "$REPO" \
+            --json databaseId,url,isDraft,isPrerelease,body > draft.json
+          if [[ "$(jq -r '.isDraft' draft.json)" != "true" ]] \
+            || [[ "$(jq -r '.isPrerelease' draft.json)" != "false" ]]; then
+            echo "::error::$TAG is not an unpublished stable draft."
+            exit 1
+          fi
+          RELEASE_ID=$(jq -r '.databaseId' draft.json)
+          jq -r '.body // ""' draft.json > current-release.md
+          BODY_HASH=$(sha256sum current-release.md | awk '{print $1}')
+          PREV_TAG=$(git tag --list 'v*' \
+            | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' \
+            | sort -V \
+            | awk -v target="$TAG" '$0 == target { print previous; exit } { previous=$0 }')
+          if [[ -z "$PREV_TAG" ]]; then
+            echo "::error::Could not resolve the stable tag before $TAG."
+            exit 1
+          fi
+          echo "release_id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
+          echo "body_hash=$BODY_HASH" >> "$GITHUB_OUTPUT"
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
+          echo "release_url=$(jq -r '.url' draft.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Compose factual base notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.release_tag }}
+          PREV_TAG: ${{ steps.draft.outputs.prev_tag }}
+        run: |
+          ARGS=(
+            -X POST "repos/$REPO/releases/generate-notes"
+            -f "tag_name=$TAG"
+            -f "target_commitish=$TAG"
+          )
+          [[ -n "$PREV_TAG" ]] && ARGS+=(-f "previous_tag_name=$PREV_TAG")
+          gh api "${ARGS[@]}" --jq '.body' > release-notes-base.md
+          test -s release-notes-base.md
+
+      - name: Download current AI metadata
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.release_tag }}
+          REGENERATE: ${{ inputs.regenerate }}
+        run: |
+          mkdir -p current-assets
+          gh release download "$TAG" --repo "$REPO" \
+            --pattern release-editorial.json --dir current-assets || true
+          gh release download "$TAG" --repo "$REPO" \
+            --pattern release-i18n.json --dir current-assets || true
+          if [[ "$REGENERATE" != "both" ]]; then
+            if [[ ! -s current-assets/release-editorial.json ]] \
+              || [[ ! -s current-assets/release-i18n.json ]]; then
+              echo "::error::Selective regeneration needs existing editorial and localization metadata. Regenerate both instead."
+              exit 1
+            fi
+          fi
+
+      - name: Regenerate selected assets
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.release_tag }}
+          PREV_TAG: ${{ steps.draft.outputs.prev_tag }}
+          REGENERATE: ${{ inputs.regenerate }}
+          HERO_FEATURE: ${{ inputs.hero_feature }}
+          COVER_PALETTE: ${{ inputs.cover_palette }}
+          COVER_NAME: release-cover-${{ github.run_id }}.png
+        run: |
+          if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+            echo "::error::OPENAI_API_KEY is not configured."
+            exit 1
+          fi
+          COVER_URL="https://release-assets.invalid/$COVER_NAME"
+          ARGS=(
+            --from "$PREV_TAG"
+            --to "$TAG"
+            --tag "$TAG"
+            --repo "$REPO"
+            --hero "${HERO_FEATURE:-}"
+            --palette "${COVER_PALETTE:-auto}"
+            --regenerate "$REGENERATE"
+            --cover-name "$COVER_NAME"
+            --cover-url "$COVER_URL"
+            --output regenerated-assets
+          )
+          ARGS+=(--base-notes-file release-notes-base.md)
+          if [[ "$REGENERATE" != "both" ]] \
+            || grep -q '<!-- adt-ai-notes:start -->' current-release.md \
+            || ! cmp -s current-release.md release-notes-base.md; then
+            ARGS+=(--existing-notes-file current-release.md)
+          fi
+          if [[ "$REGENERATE" == "image" ]]; then
+            ARGS+=(
+              --editorial-file current-assets/release-editorial.json
+              --localizations-file current-assets/release-i18n.json
+            )
+          elif [[ "$REGENERATE" == "notes" ]]; then
+            ARGS+=(--preserve-visuals-from current-assets/release-editorial.json)
+          fi
+          node scripts/generate-ai-release-assets.mjs "${ARGS[@]}"
+
+      - name: Verify draft did not change during generation
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          RELEASE_ID: ${{ steps.draft.outputs.release_id }}
+          EXPECTED_HASH: ${{ steps.draft.outputs.body_hash }}
+        run: |
+          gh api "repos/$REPO/releases/$RELEASE_ID" > draft-current.json
+          if [[ "$(jq -r '.draft' draft-current.json)" != "true" ]]; then
+            echo "::error::The release was published while regeneration was running."
+            exit 1
+          fi
+          jq -r '.body // ""' draft-current.json > body-current.md
+          ACTUAL_HASH=$(sha256sum body-current.md | awk '{print $1}')
+          if [[ "$ACTUAL_HASH" != "$EXPECTED_HASH" ]]; then
+            echo "::error::The draft was edited while regeneration was running. Run regeneration again to avoid overwriting human edits."
+            exit 1
+          fi
+
+      - name: Upload generated assets and update draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.release_tag }}
+          RELEASE_ID: ${{ steps.draft.outputs.release_id }}
+          REGENERATE: ${{ inputs.regenerate }}
+          COVER_NAME: release-cover-${{ github.run_id }}.png
+        run: |
+          if [[ "$REGENERATE" == "image" || "$REGENERATE" == "both" ]]; then
+            for cover in regenerated-assets/release-cover-*.png; do
+              [[ -e "$cover" ]] && gh release upload "$TAG" --repo "$REPO" --clobber \
+                "$cover#Release cover"
+            done
+          fi
+          # Recheck after uploading because publishing and manual edits do not
+          # participate in this workflow's per-tag concurrency lock.
+          gh api "repos/$REPO/releases/$RELEASE_ID" > draft-before-patch.json
+          if [[ "$(jq -r '.draft' draft-before-patch.json)" != "true" ]]; then
+            if [[ "$REGENERATE" == "image" || "$REGENERATE" == "both" ]]; then
+              COVER_PREFIX="${COVER_NAME%.png}-"
+              gh api --paginate "repos/$REPO/releases/$RELEASE_ID/assets?per_page=100" \
+                | jq -r --arg prefix "$COVER_PREFIX" \
+                  '.[] | select(.name | startswith($prefix)) | .id' \
+                | while read -r asset_id; do
+                    gh api --method DELETE "repos/$REPO/releases/assets/$asset_id"
+                  done
+            fi
+            echo "::error::$TAG was published before the notes could be updated."
+            exit 1
+          fi
+          jq -r '.body // ""' draft-before-patch.json > body-before-patch.md
+          BEFORE_HASH=$(sha256sum body-before-patch.md | awk '{print $1}')
+          EXPECTED_HASH=$(sha256sum body-current.md | awk '{print $1}')
+          if [[ "$BEFORE_HASH" != "$EXPECTED_HASH" ]]; then
+            if [[ "$REGENERATE" == "image" || "$REGENERATE" == "both" ]]; then
+              COVER_PREFIX="${COVER_NAME%.png}-"
+              gh api --paginate "repos/$REPO/releases/$RELEASE_ID/assets?per_page=100" \
+                | jq -r --arg prefix "$COVER_PREFIX" \
+                  '.[] | select(.name | startswith($prefix)) | .id' \
+                | while read -r asset_id; do
+                    gh api --method DELETE "repos/$REPO/releases/assets/$asset_id"
+                  done
+            fi
+            echo "::error::The draft changed before update; refusing to overwrite it."
+            exit 1
+          fi
+
+          if [[ "$REGENERATE" == "image" || "$REGENERATE" == "both" ]]; then
+            gh api "repos/$REPO/releases/$RELEASE_ID/assets?per_page=100" \
+              > release-assets.json
+            LIGHT_NAME="${COVER_NAME%.png}-light.png"
+            DARK_NAME="${COVER_NAME%.png}-dark.png"
+            LIGHT_URL=$(jq -r --arg name "$LIGHT_NAME" \
+              '[.[] | select(.name == $name)] | if length == 1 then .[0].browser_download_url else empty end' \
+              release-assets.json)
+            DARK_URL=$(jq -r --arg name "$DARK_NAME" \
+              '[.[] | select(.name == $name)] | if length == 1 then .[0].browser_download_url else empty end' \
+              release-assets.json)
+            if [[ -z "$LIGHT_URL" || -z "$DARK_URL" ]]; then
+              echo "::error::Could not resolve the uploaded draft cover URLs."
+              exit 1
+            fi
+            LIGHT_URL="$LIGHT_URL" DARK_URL="$DARK_URL" node --input-type=module <<'NODE'
+          import { readFile, writeFile } from "node:fs/promises";
+          import { replaceReleaseCoverUrls } from "./scripts/generate-ai-release-assets.mjs";
+
+          const filename = "regenerated-assets/release-notes.md";
+          const body = await readFile(filename, "utf8");
+          await writeFile(filename, replaceReleaseCoverUrls(body, {
+            lightUrl: process.env.LIGHT_URL,
+            darkUrl: process.env.DARK_URL,
+          }));
+          NODE
+          fi
+
+          jq -n --rawfile body regenerated-assets/release-notes.md '{body: $body}' \
+            | gh api --method PATCH "repos/$REPO/releases/$RELEASE_ID" --input - >/dev/null
+
+          gh release upload "$TAG" --repo "$REPO" --clobber \
+            "regenerated-assets/release-context.json#AI release source context" \
+            "regenerated-assets/release-editorial.json#AI release editorial metadata" \
+            "regenerated-assets/release-i18n.json#Localized release metadata"
+          if [[ "$REGENERATE" == "notes" || "$REGENERATE" == "both" ]]; then
+            gh release upload "$TAG" --repo "$REPO" --clobber \
+              "regenerated-assets/release-text-request.json#AI editorial request" \
+              "regenerated-assets/release-translation-request.json#AI translation request"
+          fi
+          if [[ "$REGENERATE" == "image" || "$REGENERATE" == "both" ]]; then
+            gh release upload "$TAG" --repo "$REPO" --clobber \
+              "regenerated-assets/release-image-prompt-light.txt#Light cover prompt" \
+              "regenerated-assets/release-image-prompt-dark.txt#Dark cover edit prompt"
+          fi
+
+          if [[ "$REGENERATE" == "image" || "$REGENERATE" == "both" ]]; then
+            COVER_PREFIX="${COVER_NAME%.png}-"
+            gh api --paginate "repos/$REPO/releases/$RELEASE_ID/assets?per_page=100" \
+              | jq -r --arg prefix "$COVER_PREFIX" \
+                '.[] | select((.name | startswith("release-cover-")) and ((.name | startswith($prefix)) | not)) | .id' \
+              | while read -r asset_id; do
+                  gh api --method DELETE "repos/$REPO/releases/assets/$asset_id"
+                done
+          fi
+
+      - name: Add review links
+        env:
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.release_tag }}
+          REGENERATE: ${{ inputs.regenerate }}
+          COVER_PALETTE: ${{ inputs.cover_palette }}
+          RELEASE_URL: ${{ steps.draft.outputs.release_url }}
+        run: |
+          {
+            echo "### Release assets regenerated"
+            echo "- Updated: \`$REGENERATE\`"
+            echo "- Cover palette: \`${COVER_PALETTE:-auto}\`"
+            echo "- Review draft: $RELEASE_URL"
+            echo "- When satisfied, use GitHub's **Publish release** button."
+          } >> "$GITHUB_STEP_SUMMARY"

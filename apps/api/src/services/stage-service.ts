@@ -58,6 +58,7 @@ export interface StageRunOptions {
   azureSpeechKey?: string
   azureSpeechRegion?: string
   geminiApiKey?: string
+  elevenLabsApiKey?: string
   beforeRun?: () => void
   /** Cancellation signal for the run. Aborts in-flight LLM calls and stops the
    *  runner at the next checkpoint. Set by the service per job. */

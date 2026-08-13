@@ -48,6 +48,7 @@ export type VersionedStep =
   | "glossary"
   | "quiz-generation"
   | "text-catalog-translation"
+  | "core-tts-catalog"
   | "easy-read"
   | "image-filtering"
   | "image-captioning"
@@ -69,6 +70,7 @@ const STEP_STYLING: Record<VersionedStep, StepStyling> = {
   glossary: { variant: "header", triggerClass: HEADER_TRIGGER },
   "quiz-generation": { variant: "header", triggerClass: HEADER_TRIGGER },
   "text-catalog-translation": { variant: "header", triggerClass: HEADER_TRIGGER },
+  "core-tts-catalog": { variant: "header", triggerClass: HEADER_TRIGGER },
   "easy-read": { variant: "header", triggerClass: HEADER_TRIGGER },
   "web-rendering": { variant: "header", triggerClass: HEADER_TRIGGER },
   "image-filtering": { variant: "muted", triggerClass: MUTED_TRIGGER },

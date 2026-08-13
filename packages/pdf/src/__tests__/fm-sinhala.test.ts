@@ -3,6 +3,7 @@ import type { StructuredText } from "mupdf";
 import {
   isFMFont,
   convertFMToUnicode,
+  extractFilteredTextFromStructuredText,
   extractTextFromStructuredText,
 } from "../fm-sinhala.js";
 
@@ -53,6 +54,7 @@ describe("convertFMToUnicode", () => {
 interface MockLine {
   fontName: string;
   text: string;
+  bbox?: { x: number; y: number; w: number; h: number };
 }
 
 function createMockStructuredText(input: {
@@ -71,6 +73,7 @@ function createMockStructuredText(input: {
           lines: block.lines.map((line) => ({
             font: { name: line.fontName },
             text: line.text,
+            bbox: line.bbox,
           })),
         })),
       });
@@ -142,5 +145,24 @@ describe("extractTextFromStructuredText", () => {
     });
 
     expect(extractTextFromStructuredText(stext)).toBe("ශ්‍රී\nChapter 1\nක්‍රා");
+  });
+
+  it("filters lines using normalized JSON geometry", () => {
+    const stext = createMockStructuredText({
+      asText: "",
+      walkFontNames: ["TimesNewRomanPSMT"],
+      blocks: [{
+        type: "text",
+        lines: [
+          { fontName: "TimesNewRomanPSMT", text: "keep", bbox: { x: 10, y: 20, w: 30, h: 10 } },
+          { fontName: "TimesNewRomanPSMT", text: "remove", bbox: { x: 50, y: 60, w: 40, h: 20 } },
+        ],
+      }],
+    });
+
+    expect(extractFilteredTextFromStructuredText(
+      stext,
+      ({ bbox }) => bbox?.[0] === 50 && bbox[2] === 90,
+    )).toBe("keep");
   });
 });

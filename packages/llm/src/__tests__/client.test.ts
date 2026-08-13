@@ -323,3 +323,103 @@ describe("createLLMModel cancellation", () => {
     expect(generateObjectMock).toHaveBeenCalledTimes(2)
   })
 })
+
+describe("createLLMModel validation retries", () => {
+  afterEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it("feeds validation errors back to the model before retrying", async () => {
+    const validationError =
+      "Page mode requires exactly one section, but the response contains 2."
+
+    openaiProviderMock.mockReturnValue({ provider: "openai" })
+    generateObjectMock
+      .mockResolvedValueOnce({
+        object: { sections: [{ id: 1 }, { id: 2 }] },
+        usage: { promptTokens: 1, completionTokens: 1 },
+      })
+      .mockResolvedValueOnce({
+        object: { sections: [{ id: 1 }] },
+        usage: { promptTokens: 1, completionTokens: 1 },
+      })
+
+    const llm = createLLMModel({ modelId: "openai:gpt-4.1" })
+    const result = await llm.generateObject<{ sections: Array<{ id: number }> }>({
+      schema: z.object({ sections: z.array(z.object({ id: z.number() })) }),
+      messages: [{ role: "user", content: "Section this page" }],
+      maxRetries: 1,
+      validate: (value) => {
+        const sections = (value as { sections?: unknown[] }).sections
+        return sections?.length === 1
+          ? { valid: true, errors: [] }
+          : { valid: false, errors: [validationError] }
+      },
+    })
+
+    expect(result.object.sections).toEqual([{ id: 1 }])
+    expect(generateObjectMock).toHaveBeenCalledTimes(2)
+
+    const retryOptions = generateObjectMock.mock.calls[1]?.[0] as {
+      messages?: Array<{ role: string; content: string }>
+    }
+    expect(retryOptions.messages).toEqual([
+      { role: "user", content: "Section this page" },
+      {
+        role: "assistant",
+        content: JSON.stringify({ sections: [{ id: 1 }, { id: 2 }] }, null, 2),
+      },
+      {
+        role: "user",
+        content: expect.stringContaining(validationError),
+      },
+    ])
+  })
+
+  it("logs validation retries as individual attempts without carrying errors or usage forward", async () => {
+    openaiProviderMock.mockReturnValue({ provider: "openai" })
+    generateObjectMock
+      .mockResolvedValueOnce({
+        object: { value: "invalid" },
+        usage: { promptTokens: 10, completionTokens: 2 },
+      })
+      .mockResolvedValueOnce({
+        object: { value: "valid" },
+        usage: { promptTokens: 20, completionTokens: 3 },
+      })
+
+    const onLog = vi.fn()
+    const llm = createLLMModel({
+      modelId: "openai:gpt-4.1",
+      onLog,
+    })
+    const result = await llm.generateObject<{ value: string }>({
+      schema: z.object({ value: z.string() }),
+      messages: [{ role: "user", content: "Return a value" }],
+      maxRetries: 1,
+      validate: (value) =>
+        value.value === "valid"
+          ? { valid: true, errors: [] }
+          : { valid: false, errors: ["Value must be valid."] },
+      log: {
+        taskType: "test-step",
+        promptName: "test-prompt",
+      },
+    })
+
+    expect(result.usage).toEqual({ inputTokens: 30, outputTokens: 5 })
+    expect(onLog).toHaveBeenCalledTimes(2)
+    expect(onLog.mock.calls[0]?.[0]).toMatchObject({
+      success: false,
+      errorCount: 1,
+      validationErrors: ["Value must be valid."],
+      usage: { inputTokens: 10, outputTokens: 2 },
+    })
+    expect(onLog.mock.calls[1]?.[0]).toMatchObject({
+      success: true,
+      errorCount: 0,
+      usage: { inputTokens: 20, outputTokens: 3 },
+    })
+    expect(onLog.mock.calls[1]?.[0].validationErrors).toBeUndefined()
+  })
+})

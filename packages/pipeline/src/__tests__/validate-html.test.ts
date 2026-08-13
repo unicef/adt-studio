@@ -1390,6 +1390,90 @@ describe("writable section types require editable inputs", () => {
     const result = validateSectionHtml(html, ["pg001_gp001"], [])
     expect(result.valid).toBe(true)
   })
+
+  it("enforces source-derived response counts on mixed page-mode sections", () => {
+    const html = `
+      <section data-section-type="text_and_images" data-section-id="pg001_section">
+        <p data-id="q1">Name the first animal.</p>
+        <input aria-label="First animal" data-activity-item="item-1" />
+        <p data-id="q2">Name the second animal.</p>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1", "q2"], [], undefined, {
+      minimumEditableElements: 2,
+    })
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining("at least 2 learner response prompt(s)")
+    )
+  })
+
+  it("accepts one labelled response per source prompt", () => {
+    const html = `
+      <section data-section-type="text_and_images" data-section-id="pg001_section">
+        <p data-id="q1">Name the first animal.</p>
+        <input aria-label="First animal" data-activity-item="item-1" />
+        <p data-id="q2">Name the second animal.</p>
+        <input aria-label="Second animal" data-activity-item="item-2" />
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1", "q2"], [], undefined, {
+      minimumEditableElements: 2,
+    })
+
+    expect(result.valid).toBe(true)
+  })
+
+  it("counts one radio group as one learner response", () => {
+    const html = `
+      <section data-section-type="text_and_images" data-section-id="pg001_section">
+        <fieldset data-id="q1">
+          <legend>Choose the first answer.</legend>
+          <label><input type="radio" name="q1" value="a" /> A</label>
+          <label><input type="radio" name="q1" value="b" /> B</label>
+        </fieldset>
+        <fieldset data-id="q2">
+          <legend>Choose the second answer.</legend>
+          <label><input type="radio" name="q2" value="a" /> A</label>
+          <label><input type="radio" name="q2" value="b" /> B</label>
+        </fieldset>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1", "q2"], [], undefined, {
+      minimumEditableElements: 2,
+    })
+
+    expect(result.valid).toBe(true)
+  })
+
+  it("counts native selects as learner responses", () => {
+    const html = `
+      <section data-section-type="text_and_images" data-section-id="pg001_section">
+        <label data-id="q1">Choose the animal.
+          <select aria-label="Animal"><option>Cat</option></select>
+        </label>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1"], [], undefined, {
+      minimumEditableElements: 1,
+    })
+
+    expect(result.valid).toBe(true)
+  })
+
+  it("accepts a select as the editable control for a writable activity", () => {
+    const html = `
+      <section data-section-type="activity_fill_in_the_blank" data-section-id="pg001_section">
+        <label data-id="q1">Choose the animal.
+          <select aria-label="Animal"><option>Cat</option></select>
+        </label>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["q1"], [])
+
+    expect(result.valid).toBe(true)
+  })
 })
 
 describe("textbook blank placeholders may be omitted when editable element is provided", () => {

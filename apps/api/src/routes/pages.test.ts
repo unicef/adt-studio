@@ -3,9 +3,10 @@ import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
 import { Hono } from "hono"
-import { createBookStorage } from "@adt/storage"
+import { createBookStorage, openBookDb } from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createPageRoutes } from "./pages.js"
+import type { TaskExecutor, TaskService } from "../services/task-service.js"
 
 describe("Page routes", () => {
   let tmpDir: string
@@ -357,6 +358,179 @@ describe("Page routes", () => {
     })
   })
 
+  describe("PUT /api/books/:label/pages/:pageId/storyboard", () => {
+    const seedCompletedChain = () => {
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepCompleted("web-rendering")
+        seed.markStepCompleted("quiz-generation")
+        seed.markStepCompleted("toc-generation")
+      } finally {
+        seed.close()
+      }
+    }
+
+    const save = (body: unknown) =>
+      app.request(`/api/books/${label}/pages/${label}_p1/storyboard`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      })
+
+    it("keeps the storyboard complete when the rendering is saved in sync", async () => {
+      // The Storyboard editor mirrors text/prune/delete edits into the HTML it
+      // sends, so the rendering is not stale and the stage must stay done —
+      // otherwise every save ejects the user from the editor.
+      seedCompletedChain()
+
+      const res = await save({
+        sectioning: { reasoning: "r", sections: [] },
+        rendering: { sections: [] },
+        renderingInSync: true,
+      })
+      expect(res.status).toBe(200)
+      // Both fixtures are at v1, so one save advances each exactly once.
+      expect(await res.json()).toEqual({ sectioningVersion: 2, renderingVersion: 2 })
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        const steps = after.getStepRuns().map((r) => r.step)
+        expect(steps).toContain("web-rendering")
+        // Everything derived from the HTML still has to be re-run.
+        expect(steps).not.toContain("quiz-generation")
+        expect(steps).not.toContain("toc-generation")
+      } finally {
+        after.close()
+      }
+    })
+
+    it("marks the storyboard stale when the change needs an LLM re-render", async () => {
+      seedCompletedChain()
+
+      const res = await save({
+        sectioning: { reasoning: "r", sections: [] },
+        rendering: { sections: [] },
+        renderingInSync: false,
+      })
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        expect(after.getStepRuns().map((r) => r.step)).not.toContain("web-rendering")
+      } finally {
+        after.close()
+      }
+    })
+
+    it("defaults to marking the storyboard stale", async () => {
+      seedCompletedChain()
+
+      const res = await save({ sectioning: { reasoning: "r", sections: [] } })
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        expect(after.getStepRuns().map((r) => r.step)).not.toContain("web-rendering")
+      } finally {
+        after.close()
+      }
+    })
+
+    it("writes neither node when a pipeline step is running", async () => {
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepStarted("quiz-generation")
+      } finally {
+        seed.close()
+      }
+
+      const res = await save({
+        sectioning: { reasoning: "r", sections: [] },
+        rendering: { sections: [] },
+        renderingInSync: true,
+      })
+      expect(res.status).toBe(409)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        // The guard runs before either write, so neither node advanced past
+        // the seeded version — the rejected save is a true no-op.
+        expect(after.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
+        expect(after.getLatestNodeData("page-sectioning", `${label}_p1`)?.version).toBe(1)
+      } finally {
+        after.close()
+      }
+    })
+
+    it("rolls back the rendering when the sectioning write fails", async () => {
+      // Force the second node write to fail after rendering has been inserted.
+      // The route must leave both version histories and pointers unchanged.
+      const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+      db.exec(`
+        CREATE TRIGGER reject_storyboard_sectioning
+        BEFORE INSERT ON node_data
+        WHEN NEW.node = 'page-sectioning'
+        BEGIN
+          SELECT RAISE(ABORT, 'forced sectioning failure');
+        END
+      `)
+      db.close()
+
+      const res = await save({
+        sectioning: { reasoning: "r", sections: [] },
+        rendering: { sections: [] },
+        renderingInSync: true,
+      })
+      expect(res.status).toBe(500)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        expect(after.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
+        expect(after.getLatestNodeData("page-sectioning", `${label}_p1`)?.version).toBe(1)
+      } finally {
+        after.close()
+      }
+    })
+
+    it("keeps the stage complete for a per-section edit that queues a re-render", async () => {
+      // Storyboard editing is incremental: change a section's type or pruning,
+      // re-render that one section, carry on. The rest of the stage must survive
+      // untouched or the editor is taken away for a book that is fine.
+      seedCompletedChain()
+
+      const res = await save({
+        sectioning: { reasoning: "r", sections: [] },
+        renderingInSync: true,
+      })
+      expect(res.status).toBe(200)
+
+      const after = createBookStorage(label, tmpDir)
+      try {
+        const steps = after.getStepRuns().map((r) => r.step)
+        expect(steps).toContain("web-rendering")
+        expect(steps).not.toContain("quiz-generation")
+      } finally {
+        after.close()
+      }
+    })
+
+    it("rejects an empty save and a rendering-only in-sync claim", async () => {
+      expect((await save({})).status).toBe(400)
+      expect(
+        (await save({ rendering: { sections: [] }, renderingInSync: true })).status
+      ).toBe(400)
+    })
+
+    it("returns 404 for nonexistent page", async () => {
+      const res = await app.request(`/api/books/${label}/pages/fake-page/storyboard`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rendering: { sections: [] } }),
+      })
+      expect(res.status).toBe(404)
+    })
+  })
+
   describe("PUT /api/books/:label/pages/:pageId/image-filtering", () => {
     it("saves image classification and returns version", async () => {
       const data = {
@@ -391,6 +565,64 @@ describe("Page routes", () => {
 
       expect(res.status).toBe(400)
     })
+  })
+
+  describe("section ops that rebuild the rendering themselves", () => {
+    // Delete and clone rewrite `web-rendering` in the same request — dropping or
+    // copying the HTML entry, shifting indexes, rewriting section ids. Nothing is
+    // left for the LLM, so invalidating the stage would only cost the user a
+    // full-book re-render for an edit that is already complete. Split and
+    // cross-page merge are the ops that genuinely drop HTML; they still mark it.
+    const seedCompletedChain = () => {
+      const seed = createBookStorage(label, tmpDir)
+      try {
+        seed.markStepCompleted("web-rendering")
+        seed.markStepCompleted("toc-generation")
+      } finally {
+        seed.close()
+      }
+    }
+
+    const stepsAfter = () => {
+      const after = createBookStorage(label, tmpDir)
+      try {
+        return after.getStepRuns().map((r) => r.step)
+      } finally {
+        after.close()
+      }
+    }
+
+    it("keeps the storyboard complete when a section is deleted", async () => {
+      seedCompletedChain()
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0`,
+        { method: "DELETE" }
+      )
+      expect(res.status).toBe(200)
+
+      const steps = stepsAfter()
+      expect(steps).toContain("web-rendering")
+      // Downstream still has to catch up with the removed content.
+      expect(steps).not.toContain("toc-generation")
+    })
+
+    it("keeps the storyboard complete when a section is cloned", async () => {
+      seedCompletedChain()
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+
+      const steps = stepsAfter()
+      expect(steps).toContain("web-rendering")
+      expect(steps).not.toContain("toc-generation")
+    })
+
+    // Split's own staleness is covered by "marks the storyboard chain stale,
+    // since both halves lose their HTML" in the split suite below.
   })
 
   describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/clone", () => {
@@ -1222,6 +1454,89 @@ describe("Page routes", () => {
         verify.close()
       }
     })
+
+    it("cannot claim the Storyboard is complete while both renderings are empty", async () => {
+      seedBothPages()
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.markStepCompleted("web-rendering")
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next&renderingInSync=1`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        expect(verify.getStepRuns().map((run) => run.step)).not.toContain("web-rendering")
+      } finally {
+        verify.close()
+      }
+    })
+  })
+
+  describe("POST /api/books/:label/pages/re-render", () => {
+    it("marks the Storyboard running before submitting one task for all pages", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p2`, {
+          reasoning: "sectioned",
+          sections: [],
+        })
+        storage.markStepCompleted("web-rendering")
+      } finally {
+        storage.close()
+      }
+
+      let submittedExecutor: TaskExecutor | undefined
+      const taskService: TaskService = {
+        submitTask(_label, kind, _description, executor) {
+          expect(kind).toBe("re-render")
+          submittedExecutor = executor
+          return { taskId: "task-batch" }
+        },
+        getActiveTasks: () => [],
+      }
+      const routes = createPageRoutes(tmpDir, tmpDir, tmpDir, undefined, taskService)
+      const taskApp = new Hono()
+      taskApp.onError(errorHandler)
+      taskApp.route("/api", routes)
+
+      const res = await taskApp.request(`/api/books/${label}/pages/re-render`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-OpenAI-Key": "sk-test",
+        },
+        body: JSON.stringify({ pageIds: [`${label}_p1`, `${label}_p2`] }),
+      })
+
+      expect(res.status).toBe(200)
+      expect(await res.json()).toEqual({ taskId: "task-batch", status: "submitted" })
+      expect(submittedExecutor).toBeTypeOf("function")
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        expect(verify.getStepRuns()).toContainEqual(
+          expect.objectContaining({ step: "web-rendering", status: "running" })
+        )
+      } finally {
+        verify.close()
+      }
+    })
+
+    it("requires an API key", async () => {
+      const res = await app.request(`/api/books/${label}/pages/re-render`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pageIds: [`${label}_p1`] }),
+      })
+      expect(res.status).toBe(400)
+    })
   })
 
   describe("POST /api/books/:label/pages/:pageId/re-render", () => {
@@ -1516,6 +1831,11 @@ describe("Page routes", () => {
       s.putNodeData("text-catalog-translation", `${bookLabel}_p1`, {
         locale: "es", entries: [{ id: "t1", text: "Hola" }],
       })
+      s.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
       s.putNodeData("easy-read", "book", {
         blocks: [{
           pageId: `${bookLabel}_p1`,
@@ -1550,6 +1870,7 @@ describe("Page routes", () => {
       s.markStepCompleted("text-catalog")
       s.markStepCompleted("easy-read")
       s.markStepCompleted("catalog-translation")
+      s.markStepCompleted("core-tts-catalog")
       s.markStepCompleted("image-translation")
       s.markStepCompleted("tts")
       s.markStepCompleted("word-timestamps")
@@ -1568,6 +1889,7 @@ describe("Page routes", () => {
       expect(s.getLatestNodeData("image-captioning", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
+      expect(s.getLatestNodeData("core-tts-catalog", "en")).toBeNull()
       expect(s.getLatestNodeData("easy-read", "book")).toBeNull()
       expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
@@ -1579,6 +1901,7 @@ describe("Page routes", () => {
         "text-catalog",
         "easy-read",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -1603,6 +1926,7 @@ describe("Page routes", () => {
       // text-catalog, translations, tts should be gone
       expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
+      expect(s.getLatestNodeData("core-tts-catalog", "en")).toBeNull()
       expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
       expect(s.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
@@ -1613,6 +1937,7 @@ describe("Page routes", () => {
       for (const step of [
         "text-catalog",
         "catalog-translation",
+        "core-tts-catalog",
         "image-translation",
         "tts",
         "word-timestamps",
@@ -1776,6 +2101,76 @@ describe("Page routes", () => {
       expect(check.getLatestNodeData("web-rendering", `${label}_p1`)?.version).toBe(1)
       check.close()
       expectAllDownstreamCleared(tmpDir, label)
+    })
+
+    it("restores Core TTS text while preserving uploaded recordings", async () => {
+      const coreEntry = (id: string, speechText: string) => ({
+        id,
+        displayText: id,
+        speechText,
+        changed: true,
+        transformations: ["language-normalization"],
+        status: "ready",
+        generation: {
+          mode: "generated",
+          generatedAt: "2026-08-05T00:00:00.000Z",
+          enabledTransformations: ["language-normalization"],
+          sourceTextHash: "source",
+          contextHash: "context",
+        },
+      })
+      const storage = createBookStorage(label, tmpDir)
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [coreEntry("pg001_t001", "version one"), coreEntry("pg001_t002", "manual one")],
+        generatedAt: "2026-08-05T00:00:00.000Z",
+      })
+      storage.putNodeData("core-tts-catalog", "en", {
+        language: "en",
+        entries: [coreEntry("pg001_t001", "version two"), coreEntry("pg001_t002", "manual two")],
+        generatedAt: "2026-08-05T01:00:00.000Z",
+      })
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "generated.mp3",
+            voice: "alloy",
+            model: "gpt-4o-mini-tts",
+            cached: false,
+            provider: "openai",
+          },
+          {
+            textId: "pg001_t002",
+            language: "en",
+            fileName: "uploaded.mp3",
+            voice: "uploaded",
+            model: "uploaded",
+            cached: false,
+            provider: "manual",
+          },
+        ],
+        generatedAt: "2026-08-05T01:00:00.000Z",
+      })
+      storage.close()
+
+      const response = await app.request(
+        `/api/books/${label}/versions/core-tts-catalog/en/restore`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ version: 1 }),
+        },
+      )
+      expect(response.status).toBe(200)
+
+      const check = createBookStorage(label, tmpDir)
+      expect(check.getCurrentNodeVersion("core-tts-catalog", "en")).toBe(1)
+      expect(
+        (check.getLatestNodeData("tts", "en")?.data as { entries: Array<{ textId: string }> }).entries,
+      ).toEqual([expect.objectContaining({ textId: "pg001_t002" })])
+      check.close()
     })
 
     it("rejects nodes that are not exposed by the version picker", async () => {

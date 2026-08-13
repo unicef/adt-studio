@@ -53,8 +53,8 @@ describe("stampRasterPlacementsFromOps", () => {
 
     expect(imageA.streamSeqno).toBe(11);
     expect(imageB.streamSeqno).toBe(10);
-    expect(imageA.flipTransform).toEqual({ flipHorizontal: true, flipVertical: false });
-    expect(imageB.flipTransform).toEqual({ flipHorizontal: false, flipVertical: true });
+    expect(imageA.orientationTransform).toBe("flip-horizontal");
+    expect(imageB.orientationTransform).toBe("flip-vertical");
   });
 
   it("falls back to stream order for same-dimension images without digests", () => {
@@ -69,7 +69,18 @@ describe("stampRasterPlacementsFromOps", () => {
 
     expect(first.streamSeqno).toBe(20);
     expect(second.streamSeqno).toBe(21);
-    expect(first.flipTransform).toEqual({ flipHorizontal: true, flipVertical: false });
-    expect(second.flipTransform).toEqual({ flipHorizontal: false, flipVertical: false });
+    expect(first.orientationTransform).toBe("flip-horizontal");
+    expect(second.orientationTransform).toBe("identity");
+  });
+
+  it("does not consume a digest-bearing candidate for a known non-matching op", () => {
+    const survivor = makeRaster("pg001_im002", "digest-b");
+    const filteredOp = makeImageOp(30, "digest-a", [-1, 0, 0, 1, 0, 0]);
+    const survivorOp = makeImageOp(31, "digest-b", [1, 0, 0, 1, 0, 0]);
+
+    _testing.stampRasterPlacementsFromOps([survivor], [filteredOp, survivorOp]);
+
+    expect(survivor.streamSeqno).toBe(31);
+    expect(survivor.orientationTransform).toBe("identity");
   });
 });

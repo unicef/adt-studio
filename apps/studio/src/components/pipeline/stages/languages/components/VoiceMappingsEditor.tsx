@@ -1,73 +1,84 @@
-import { useState, useEffect } from "react"
-import { useNavigate } from "@tanstack/react-router"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Plus, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { api } from "@/api/client"
-import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
-import { useActiveConfig } from "@/hooks/use-debug"
-import { useFloatingSave } from "@/components/pipeline/components/floating-save"
-import { useSettingsRemount } from "@/hooks/use-settings-remount"
-import { useRegisterDirtyTabs } from "@/hooks/use-settings-dirty-tabs"
-import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
-import { useLingui } from "@lingui/react/macro"
+import { useState, useEffect } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { api } from "@/api/client";
+import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config";
+import { useActiveConfig } from "@/hooks/use-debug";
+import { useFloatingSave } from "@/components/pipeline/components/floating-save";
+import { useSettingsRemount } from "@/hooks/use-settings-remount";
+import { useRegisterDirtyTabs } from "@/hooks/use-settings-dirty-tabs";
+import { useBookRun } from "@/hooks/use-book-run";
+import { useApiKey } from "@/hooks/use-api-key";
+import { useLingui } from "@lingui/react/macro";
+import { ElevenLabsVoiceCombobox } from "./ElevenLabsVoiceCombobox";
 
 interface VoiceMappingsEditorProps {
-  bookLabel: string
-  headerTarget?: HTMLDivElement | null
+  bookLabel: string;
+  headerTarget?: HTMLDivElement | null;
 }
 
-const PROVIDER_ORDER = ["openai", "azure", "gemini", "local-hf"] as const
+const PROVIDER_ORDER = [
+  "openai",
+  "azure",
+  "gemini",
+  "elevenlabs",
+  "local-hf",
+] as const;
 
-type VoiceProviderKey = (typeof PROVIDER_ORDER)[number]
+type VoiceProviderKey = (typeof PROVIDER_ORDER)[number];
 
 interface VoiceRow {
-  lang: string
-  openai: string
-  azure: string
-  gemini: string
-  "local-hf": string
+  lang: string;
+  openai: string;
+  azure: string;
+  gemini: string;
+  "local-hf": string;
+  elevenlabs: string;
 }
 
 export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
-  const { t } = useLingui()
-  const queryClient = useQueryClient()
-  const remount = useSettingsRemount()
-  const { queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
-  const navigate = useNavigate()
-  const { data: bookConfigData, isLoading: isBookConfigLoading } = useBookConfig(bookLabel)
-  const { data: activeConfigData } = useActiveConfig(bookLabel)
-  const updateConfig = useUpdateBookConfig()
+  const { t } = useLingui();
+  const queryClient = useQueryClient();
+  const remount = useSettingsRemount();
+  const { queueRun } = useBookRun();
+  const { apiKey, hasApiKey } = useApiKey();
+  const navigate = useNavigate();
+  const { data: bookConfigData, isLoading: isBookConfigLoading } =
+    useBookConfig(bookLabel);
+  const { data: activeConfigData } = useActiveConfig(bookLabel);
+  const updateConfig = useUpdateBookConfig();
   const { data, isLoading } = useQuery({
     queryKey: ["voice-mappings"],
     queryFn: () => api.getVoiceMappings(),
-  })
+  });
 
-  const [rows, setRows] = useState<VoiceRow[]>([])
-  const [defaultVoice, setDefaultVoice] = useState("")
-  const [dirtyMappings, setDirtyMappings] = useState(false)
-  const [dirtyDefaultVoice, setDirtyDefaultVoice] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [newLangKey, setNewLangKey] = useState("")
-  const [showAddLang, setShowAddLang] = useState(false)
+  const [rows, setRows] = useState<VoiceRow[]>([]);
+  const [defaultVoice, setDefaultVoice] = useState("");
+  const [dirtyMappings, setDirtyMappings] = useState(false);
+  const [dirtyDefaultVoice, setDirtyDefaultVoice] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [newLangKey, setNewLangKey] = useState("");
+  const [showAddLang, setShowAddLang] = useState(false);
 
   useEffect(() => {
-    if (!data) return
-    const openai = data.openai ?? {}
-    const azure = data.azure ?? {}
-    const gemini = data.gemini ?? {}
-    const local = data["local-hf"] ?? {}
+    if (!data) return;
+    const openai = data.openai ?? {};
+    const azure = data.azure ?? {};
+    const gemini = data.gemini ?? {};
+    const local = data["local-hf"] ?? {};
+    const elevenlabs = data.elevenlabs ?? {};
     const allLangs = new Set([
       ...Object.keys(openai),
       ...Object.keys(azure),
       ...Object.keys(gemini),
       ...Object.keys(local),
-    ])
-    const built: VoiceRow[] = []
+      ...Object.keys(elevenlabs),
+    ]);
+    const built: VoiceRow[] = [];
     for (const lang of allLangs) {
       built.push({
         lang,
@@ -75,121 +86,141 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
         azure: azure[lang] ?? "",
         gemini: gemini[lang] ?? "",
         "local-hf": local[lang] ?? "",
-      })
+        elevenlabs: elevenlabs[lang] ?? "",
+      });
     }
     // Sort with "default" first, then alphabetical
     built.sort((a, b) => {
-      if (a.lang === "default") return -1
-      if (b.lang === "default") return 1
-      return a.lang.localeCompare(b.lang)
-    })
-    setRows(built)
-  }, [data])
+      if (a.lang === "default") return -1;
+      if (b.lang === "default") return 1;
+      return a.lang.localeCompare(b.lang);
+    });
+    setRows(built);
+  }, [data]);
 
   useEffect(() => {
-    if (dirtyDefaultVoice || !activeConfigData) return
-    const merged = activeConfigData.merged as Record<string, unknown>
-    const speech = merged.speech
+    if (dirtyDefaultVoice || !activeConfigData) return;
+    const merged = activeConfigData.merged as Record<string, unknown>;
+    const speech = merged.speech;
     if (!speech || typeof speech !== "object") {
-      setDefaultVoice("")
-      return
+      setDefaultVoice("");
+      return;
     }
-    const voice = (speech as Record<string, unknown>).voice
-    setDefaultVoice(typeof voice === "string" ? voice : "")
-  }, [activeConfigData, dirtyDefaultVoice])
+    const voice = (speech as Record<string, unknown>).voice;
+    setDefaultVoice(typeof voice === "string" ? voice : "");
+  }, [activeConfigData, dirtyDefaultVoice]);
 
   const updateRow = (index: number, field: VoiceProviderKey, value: string) => {
-    setRows((prev) => prev.map((r, i) => i === index ? { ...r, [field]: value } : r))
-    setDirtyMappings(true)
-  }
+    setRows((prev) =>
+      prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)),
+    );
+    setDirtyMappings(true);
+  };
 
   const removeRow = (index: number) => {
-    setRows((prev) => prev.filter((_, i) => i !== index))
-    setDirtyMappings(true)
-  }
+    setRows((prev) => prev.filter((_, i) => i !== index));
+    setDirtyMappings(true);
+  };
 
   const addLanguage = () => {
-    const key = newLangKey.trim().toLowerCase()
-    if (!key || rows.some((r) => r.lang === key)) return
-    setRows((prev) => [...prev, { lang: key, openai: "", azure: "", gemini: "", "local-hf": "" }])
-    setNewLangKey("")
-    setShowAddLang(false)
-    setDirtyMappings(true)
-  }
+    const key = newLangKey.trim().toLowerCase();
+    if (!key || rows.some((r) => r.lang === key)) return;
+    setRows((prev) => [
+      ...prev,
+      {
+        lang: key,
+        openai: "",
+        azure: "",
+        gemini: "",
+        elevenlabs: "",
+        "local-hf": "",
+      },
+    ]);
+    setNewLangKey("");
+    setShowAddLang(false);
+    setDirtyMappings(true);
+  };
 
   const handleSave = async () => {
-    setSaving(true)
+    setSaving(true);
     try {
-      const saves: Promise<unknown>[] = []
+      const saves: Promise<unknown>[] = [];
 
       if (dirtyMappings) {
-        const nextMappings: Record<string, Record<string, string>> = {}
+        const nextMappings: Record<string, Record<string, string>> = {};
         for (const key of PROVIDER_ORDER) {
-          const values: Record<string, string> = {}
+          const values: Record<string, string> = {};
           for (const row of rows) {
-            const value = row[key].trim()
-            if (value) values[row.lang] = value
+            const value = row[key].trim();
+            if (value) values[row.lang] = value;
           }
           if (Object.keys(values).length > 0) {
-            nextMappings[key] = values
+            nextMappings[key] = values;
           }
         }
-        saves.push(api.updateVoiceMappings(nextMappings))
+        saves.push(api.updateVoiceMappings(nextMappings));
       }
 
       if (dirtyDefaultVoice) {
-        const existingConfig = (bookConfigData?.config ?? {}) as Record<string, unknown>
-        const existingSpeech = existingConfig.speech
-        const speechObject = (existingSpeech && typeof existingSpeech === "object")
-          ? (existingSpeech as Record<string, unknown>)
-          : {}
+        const existingConfig = (bookConfigData?.config ?? {}) as Record<
+          string,
+          unknown
+        >;
+        const existingSpeech = existingConfig.speech;
+        const speechObject =
+          existingSpeech && typeof existingSpeech === "object"
+            ? (existingSpeech as Record<string, unknown>)
+            : {};
         const nextSpeech = {
           ...speechObject,
           voice: defaultVoice.trim() || undefined,
-        }
+        };
         const cleanSpeech = Object.fromEntries(
-          Object.entries(nextSpeech).filter(([, value]) => value !== undefined)
-        )
-        const nextConfig: Record<string, unknown> = { ...existingConfig }
-        if (Object.keys(cleanSpeech).length > 0) nextConfig.speech = cleanSpeech
-        else delete nextConfig.speech
+          Object.entries(nextSpeech).filter(([, value]) => value !== undefined),
+        );
+        const nextConfig: Record<string, unknown> = { ...existingConfig };
+        if (Object.keys(cleanSpeech).length > 0)
+          nextConfig.speech = cleanSpeech;
+        else delete nextConfig.speech;
 
-        saves.push(updateConfig.mutateAsync({ label: bookLabel, config: nextConfig }))
+        saves.push(
+          updateConfig.mutateAsync({ label: bookLabel, config: nextConfig }),
+        );
       }
 
-      if (saves.length > 0) await Promise.all(saves)
+      if (saves.length > 0) await Promise.all(saves);
       if (dirtyMappings) {
-        queryClient.invalidateQueries({ queryKey: ["voice-mappings"] })
+        queryClient.invalidateQueries({ queryKey: ["voice-mappings"] });
       }
-      setDirtyMappings(false)
-      setDirtyDefaultVoice(false)
+      setDirtyMappings(false);
+      setDirtyDefaultVoice(false);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   useRegisterDirtyTabs(
     "settings:voice-mappings",
     "speech",
     dirtyMappings || dirtyDefaultVoice ? ["voices"] : [],
     true,
-  )
+  );
   useFloatingSave({
     id: "settings:voice-mappings",
     dirty: dirtyMappings || dirtyDefaultVoice,
     saving: saving || updateConfig.isPending,
     onSaveAndRerun: async () => {
-      await handleSave()
-      queueRun({ fromStage: "speech", toStage: "speech", apiKey })
+      await handleSave();
+      queueRun({ fromStage: "speech", toStage: "speech", apiKey });
       navigate({
         to: "/books/$label/$step",
         params: { label: bookLabel, step: "speech" },
         ignoreBlocker: true,
-      })
+      });
     },
     onSaveStay: async () => {
-      await handleSave()
-      queueRun({ fromStage: "speech", toStage: "speech", apiKey })
+      await handleSave();
+      queueRun({ fromStage: "speech", toStage: "speech", apiKey });
     },
     onDiscard: remount,
     rerunDisabledReason: !hasApiKey
@@ -197,10 +228,12 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
       : dirtyDefaultVoice && isBookConfigLoading
         ? t`Loading book config…`
         : undefined,
-  })
+  });
 
   if (isLoading) {
-    return <div className="p-4 text-sm text-muted-foreground">{t`Loading voice mappings...`}</div>
+    return (
+      <div className="p-4 text-sm text-muted-foreground">{t`Loading voice mappings...`}</div>
+    );
   }
 
   return (
@@ -212,8 +245,8 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
         <Input
           value={defaultVoice}
           onChange={(e) => {
-            setDefaultVoice(e.target.value)
-            setDirtyDefaultVoice(true)
+            setDefaultVoice(e.target.value);
+            setDirtyDefaultVoice(true);
           }}
           placeholder={t`e.g. alloy`}
           className="w-72 h-8 text-xs"
@@ -260,16 +293,21 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
             variant="ghost"
             size="sm"
             className="h-7 text-xs"
-            onClick={() => { setShowAddLang(false); setNewLangKey("") }}
+            onClick={() => {
+              setShowAddLang(false);
+              setNewLangKey("");
+            }}
           >
             {t`Cancel`}
           </Button>
         </div>
       )}
 
-      {/* Table */}
-      <div className="rounded-md border overflow-hidden">
-        <table className="w-full text-xs">
+      {/* Table. Scrolls horizontally rather than compressing: with six columns
+          a narrow settings pane would otherwise squeeze the voice cells until
+          names like `en-US-JennyNeural` are unreadable. */}
+      <div className="rounded-md border overflow-x-auto">
+        <table className="w-full min-w-[860px] text-xs">
           <thead>
             <tr className="bg-muted/50 border-b">
               <th className="text-left font-medium px-3 py-2 w-28">{t`Language`}</th>
@@ -279,7 +317,9 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
                     ? t`OpenAI Voice`
                     : key === "azure"
                       ? t`Azure Voice`
-                      : t`Gemini Voice`}
+                      : key === "gemini"
+                        ? t`Gemini Voice`
+                        : t`ElevenLabs Voice`}
                 </th>
               ))}
               <th className="w-10 px-2 py-2" />
@@ -287,24 +327,37 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
           </thead>
           <tbody>
             {rows.map((row, i) => (
-              <tr key={row.lang} className="border-b last:border-b-0 hover:bg-muted/30">
+              <tr
+                key={row.lang}
+                className="border-b last:border-b-0 hover:bg-muted/30"
+              >
                 <td className="px-3 py-1.5 font-medium text-muted-foreground">
                   {row.lang}
                 </td>
                 {PROVIDER_ORDER.map((key) => (
                   <td key={key} className="px-3 py-1.5">
-                    <Input
-                      value={row[key]}
-                      onChange={(e) => updateRow(i, key, e.target.value)}
-                      className="h-7 text-xs"
-                      placeholder={
-                        key === "openai"
-                          ? t`e.g. alloy`
-                          : key === "azure"
-                            ? t`e.g. en-US-JennyNeural`
-                            : t`e.g. Kore`
-                      }
-                    />
+                    {/* ElevenLabs voices are opaque IDs, so they get a picker
+                        that resolves names. The other providers use readable
+                        names already (alloy, Kore, en-US-JennyNeural). */}
+                    {key === "elevenlabs" ? (
+                      <ElevenLabsVoiceCombobox
+                        value={row[key]}
+                        onChange={(voiceId) => updateRow(i, key, voiceId)}
+                      />
+                    ) : (
+                      <Input
+                        value={row[key]}
+                        onChange={(e) => updateRow(i, key, e.target.value)}
+                        className="h-7 text-xs"
+                        placeholder={
+                          key === "openai"
+                            ? t`e.g. alloy`
+                            : key === "azure"
+                              ? t`e.g. en-US-JennyNeural`
+                              : t`e.g. Kore`
+                        }
+                      />
+                    )}
                   </td>
                 ))}
                 <td className="px-2 py-1.5">
@@ -323,7 +376,10 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={1 + PROVIDER_ORDER.length + 1} className="px-3 py-4 text-center text-muted-foreground italic">
+                <td
+                  colSpan={1 + PROVIDER_ORDER.length + 1}
+                  className="px-3 py-4 text-center text-muted-foreground italic"
+                >
                   {t`No voice mappings configured.`}
                 </td>
               </tr>
@@ -332,5 +388,5 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
         </table>
       </div>
     </div>
-  )
+  );
 }

@@ -8,6 +8,8 @@ import { SettingExplainer } from "@/components/pipeline/components/SettingExplai
 import { ToggleCard } from "@/components/pipeline/components/ToggleCard"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useBookConfig } from "@/hooks/use-book-config"
+import { usePages } from "@/hooks/use-pages"
+import { useSplitStatus } from "@/hooks/use-parts"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
@@ -16,12 +18,15 @@ import { useLlmAccess } from "@/hooks/use-llm-access"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SectioningModeVisual } from "./components/SectioningModeVisual"
 import { SectioningPreview } from "./components/SectioningPreview"
+import { resolveSectioningStartStage } from "./SectioningLandingPage.helpers"
 
 type SectioningModeKey = "dynamic" | "page"
 
 export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
+  const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
+  const { data: splitStatus, isLoading: splitStatusLoading } = useSplitStatus(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
   const { apiKey } = useApiKey()
@@ -33,6 +38,10 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   // "Covered" = already done, running, or queued — i.e. it will produce its
   // output without us starting it, so we can just queue Sectioning behind it.
   const extractCovered = extractStatus.isCompleted || extractStatus.isRunning
+  const hasExtractedPages = (pages?.length ?? 0) > 0
+  const hasAssembledPages = hasExtractedPages && splitStatus?.hasMergeActivity === true
+  const resolvingStoredState =
+    !extractCovered && (pagesLoading || (hasExtractedPages && splitStatusLoading))
 
   const [sectioningMode, setSectioningMode] = useState<SectioningModeKey>("dynamic")
   // Single flag honored by sectioning + web-rendering (via the `activity_`
@@ -80,11 +89,14 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || status.isRunning) return
+    if (!hasApiKey || status.isRunning || resolvingStoredState) return
     // Cue from here even if Extract hasn't run yet. If Extract is already
     // done/running/queued it will produce its output, so queue Sectioning
     // behind it; only pull Extract into the run when it isn't covered.
-    const fromStage = extractCovered ? "sectioning" : "extract"
+    // An assembled split book already has extracted pages, but its part-local
+    // outline is deliberately stale. Start at Sectioning: the API rebuilds the
+    // authoritative outline from those stored pages without clearing them.
+    const fromStage = resolveSectioningStartStage(extractCovered, hasAssembledPages)
     queueRun({ fromStage, toStage: "sectioning", apiKey, viewAfter: true })
   }
 
@@ -112,7 +124,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey}
+      extraDisabled={!hasApiKey || resolvingStoredState}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Sectioning</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
@@ -135,6 +147,17 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
 
       {extractReady ? (
         <CascadeWarning stageSlug="sectioning" />
+      ) : !extractCovered && hasAssembledPages ? (
+        <LandingPageWarning
+          variant="prereq"
+          title={<Trans>Book hierarchy needs rebuilding</Trans>}
+          description={
+            <Trans>
+              Running Sectioning will rebuild the book-wide outline from the
+              merged pages, then apply it without re-running PDF extraction.
+            </Trans>
+          }
+        />
       ) : !extractCovered ? (
         <LandingPageWarning
           variant="prereq"

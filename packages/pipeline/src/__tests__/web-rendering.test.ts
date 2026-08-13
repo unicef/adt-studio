@@ -779,6 +779,65 @@ describe("renderPage", () => {
     expect(nodes[0].structure).toBe("paragraph")
   })
 
+  it("repairs split-leaf TOC leaders after template rendering", async () => {
+    const fakeTemplateEngine: TemplateEngine = {
+      async render() {
+        return `<section data-section-type="table_of_contents" data-section-id="pg003_sec001">
+          <div class="flex items-baseline">
+            <span data-id="toc-title">Acknowledgements</span>
+            <span data-toc-leader="true" aria-hidden="true">................................</span>
+            <span data-id="toc-page">v</span>
+          </div>
+        </section>`
+      },
+    }
+    const templateConfig = (): RenderConfig => ({
+      renderType: "template",
+      promptName: "",
+      modelId: "",
+      maxRetries: 0,
+      timeoutMs: 0,
+      answerPromptName: "",
+      templateName: "test",
+    })
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>() => {
+        throw new Error("LLM should not be called for template rendering")
+      },
+    }
+
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg003",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [{
+            sectionId: "pg003_sec001",
+            sectionType: "table_of_contents",
+            nodes: [groupNode("toc-row", "list_item", [
+              leafNode("toc-title", "text", "Acknowledgements"),
+              leafNode("toc-page", "text", "v"),
+            ])],
+            backgroundColor: "#ffffff",
+            textColor: "#000000",
+            pageNumber: 3,
+            isPruned: false,
+          }],
+        },
+        images: new Map(),
+      },
+      templateConfig,
+      fakeLlm,
+      fakeTemplateEngine,
+    )
+
+    expect(result.sections[0].html).not.toContain("................................")
+    expect(result.sections[0].html).toContain("border-b-2 border-dotted")
+    expect(result.sections[0].html).toContain('data-id="toc-page" class="shrink-0 text-right tabular-nums"')
+  })
+
   it("throws when template renderType but no template engine", async () => {
     const templateResolveConfig = (): RenderConfig => ({
       renderType: "template",
@@ -985,6 +1044,73 @@ describe("renderPage", () => {
     expect(result.sections).toHaveLength(1)
     expect(result.sections[0].activityReasoning).toBe("answer reasoning")
     expect(result.sections[0].activityAnswers).toEqual({ activity_gen_opt1: "A" })
+  })
+
+  it("derives ordering ranks deterministically without a second LLM call", async () => {
+    const llmCalls: string[] = []
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        llmCalls.push(opts.log?.taskType ?? "unknown")
+        return {
+          object: {
+            reasoning: "ordering reasoning",
+            content: `<div id="content"><section data-section-type="activity_ordering" data-section-id="pg001_sec001" data-correct-order="item-2,item-1,item-3">
+              <p data-id="pg001_gp001_tx001">Arrange the items.</p>
+              <ol data-activity-order-list>
+                <li data-activity-item="item-1"><span data-id="activity_gen_item1">One</span></li>
+                <li data-activity-item="item-2"><span data-id="activity_gen_item2">Two</span></li>
+                <li data-activity-item="item-3"><span data-id="activity_gen_item3">Three</span></li>
+              </ol>
+            </section></div>`,
+          } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "activity_ordering",
+              nodes: [
+                groupNode("pg001_gp001", "activity", [
+                  leafNode("pg001_gp001_tx001", "activity_question", "Arrange the items."),
+                ]),
+              ],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      () => ({
+        renderType: "activity",
+        promptName: "activity_ordering",
+        modelId: "openai:gpt-5.4",
+        maxRetries: 5,
+        timeoutMs: 180000,
+        answerPromptName: "must-not-be-called-for-ordering",
+        templateName: "",
+      }),
+      fakeLlm,
+    )
+
+    expect(llmCalls).toEqual(["activity-rendering"])
+    expect(result.sections[0].activityReasoning).toContain("Derived deterministically")
+    expect(result.sections[0].activityAnswers).toEqual({
+      "item-2": "1",
+      "item-1": "2",
+      "item-3": "3",
+    })
   })
 
   it("skips answer generation when answerPromptName is empty", async () => {

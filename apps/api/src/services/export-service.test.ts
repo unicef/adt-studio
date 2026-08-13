@@ -201,6 +201,12 @@ describe("exportProject", () => {
     addImageFile("full-book", "img-a")
     addImageFile("full-book", "img-b")
     addConfigYaml("full-book")
+    const styleguidesDir = path.join(tmpDir, "full-book", "styleguides")
+    fs.mkdirSync(styleguidesDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(styleguidesDir, "full-book-generated.md"),
+      "# Generated style guide",
+    )
 
     const result = await exportProject("full-book", tmpDir)
     const zipBuffer = await streamToBuffer(result.stream)
@@ -212,6 +218,7 @@ describe("exportProject", () => {
     expect(paths).toContain("config.yaml")
     expect(paths).toContain("images/img-a.png")
     expect(paths).toContain("images/img-b.png")
+    expect(paths).toContain("styleguides/full-book-generated.md")
   })
 })
 

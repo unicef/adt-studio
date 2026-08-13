@@ -126,6 +126,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           : undefined
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const attemptStartedAt = Date.now()
+        const attemptUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
         const hash = computeHash({
           cacheVersion: 2,
           modelId,
@@ -161,6 +163,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                 modelId,
               )
               result = generated.object
+              attemptUsage.inputTokens += generated.usage.inputTokens
+              attemptUsage.outputTokens += generated.usage.outputTokens
               totalUsage.inputTokens += generated.usage.inputTokens
               totalUsage.outputTokens += generated.usage.outputTokens
               lastCacheHit = false
@@ -179,6 +183,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               modelId,
             )
             result = generated.object
+            attemptUsage.inputTokens += generated.usage.inputTokens
+            attemptUsage.outputTokens += generated.usage.outputTokens
             totalUsage.inputTokens += generated.usage.inputTokens
             totalUsage.outputTokens += generated.usage.outputTokens
             lastCacheHit = false
@@ -219,14 +225,14 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                   modelId,
                   cacheHit: lastCacheHit,
                   success: false,
-                  errorCount: allErrors.length,
+                  errorCount: check.errors.length,
                   attempt,
-                  durationMs: Date.now() - t0,
+                  durationMs: Date.now() - attemptStartedAt,
                   usage:
-                    totalUsage.inputTokens > 0 || totalUsage.outputTokens > 0
-                      ? totalUsage
+                    attemptUsage.inputTokens > 0 || attemptUsage.outputTokens > 0
+                      ? attemptUsage
                       : undefined,
-                  validationErrors: allErrors.length > 0 ? allErrors : undefined,
+                  validationErrors: check.errors,
                   messages: sanitizeMessages(
                     buildLogMessages(system, currentMessages, null)
                   ),
@@ -270,14 +276,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               modelId,
               cacheHit: lastCacheHit,
               success: true,
-              errorCount: allErrors.length,
+              errorCount: 0,
               attempt,
-              durationMs: Date.now() - t0,
+              durationMs: Date.now() - attemptStartedAt,
               usage:
-                totalUsage.inputTokens > 0 || totalUsage.outputTokens > 0
-                  ? totalUsage
+                attemptUsage.inputTokens > 0 || attemptUsage.outputTokens > 0
+                  ? attemptUsage
                   : undefined,
-              validationErrors: allErrors.length > 0 ? allErrors : undefined,
               messages: sanitizeMessages(
                 buildLogMessages(system, currentMessages, result)
               ),
@@ -321,14 +326,14 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                 modelId,
                 cacheHit: false,
                 success: false,
-                errorCount: allErrors.length,
+                errorCount: 1,
                 attempt,
-                durationMs: Date.now() - t0,
+                durationMs: Date.now() - attemptStartedAt,
                 usage:
-                  totalUsage.inputTokens > 0 || totalUsage.outputTokens > 0
-                    ? totalUsage
+                  attemptUsage.inputTokens > 0 || attemptUsage.outputTokens > 0
+                    ? attemptUsage
                     : undefined,
-                validationErrors: allErrors,
+                validationErrors: [errMsg],
                 messages: sanitizeMessages(
                   buildLogMessages(system, currentMessages, null)
                 ),
@@ -360,14 +365,14 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               modelId,
               cacheHit: false,
               success: false,
-              errorCount: allErrors.length,
+              errorCount: 1,
               attempt,
-              durationMs: Date.now() - t0,
+              durationMs: Date.now() - attemptStartedAt,
               usage:
-                totalUsage.inputTokens > 0 || totalUsage.outputTokens > 0
-                  ? totalUsage
+                attemptUsage.inputTokens > 0 || attemptUsage.outputTokens > 0
+                  ? attemptUsage
                   : undefined,
-              validationErrors: allErrors,
+              validationErrors: [errMsg],
               messages: sanitizeMessages(
                 buildLogMessages(system, currentMessages, null)
               ),

@@ -4,7 +4,12 @@ export {
   createConsoleProgress,
 } from "./progress.js"
 export { processWithConcurrency } from "./concurrency.js"
-export { extractPDF, type ExtractOptions } from "./pdf-extraction.js"
+export {
+  extractPDF,
+  resolveFigureExtractionMode,
+  figureExtractionFlags,
+  type ExtractOptions,
+} from "./pdf-extraction.js"
 export {
   detectSpreads,
   type SpreadEdgeSample,
@@ -30,7 +35,12 @@ export {
 export {
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
+  addFigureExtractionContext,
+  buildMeaningfulnessImages,
+  deduplicateAutoFigureCandidates,
+  dedupAutoFigureCandidatesInStorage,
   type MeaningfulnessConfig,
+  type MeaningfulnessImageInput,
   type MeaningfulnessPageInput,
 } from "./image-meaningfulness.js"
 export {
@@ -67,6 +77,27 @@ export {
   type BookSummaryPageInput,
 } from "./book-summary.js"
 export {
+  generateBookOutline,
+  buildBookOutlineConfig,
+  readBookOutline,
+  outlineContextForPage,
+  BOOK_OUTLINE_NODE,
+  BOOK_OUTLINE_ITEM,
+  type BookOutlineConfig,
+  type PageOutlineContext,
+} from "./book-outline.js"
+export {
+  buildBookOutlineEvidence,
+  buildHeadingCandidates,
+  buildTocHierarchyEvidence,
+  buildProofSheets,
+  type BookOutlineEvidence,
+  type BookOutlineEvidencePage,
+  type HeadingCandidateEvidence,
+  type BookOutlineProofSheet,
+  type TocHierarchyEntryEvidence,
+} from "./book-outline-evidence.js"
+export {
   renderPage,
   buildRenderStrategyResolver,
   buildRenderContext,
@@ -83,6 +114,12 @@ export {
   type ImageRef,
 } from "./web-rendering.js"
 export { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
+export {
+  inspectOrderingActivityHtml,
+  inspectOrderingSection,
+  type OrderingContract,
+  type OrderingInspection,
+} from "./ordering-contract.js"
 export {
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
   runVisualReviewLoop,
@@ -150,6 +187,7 @@ export {
   type GenerateTocOptions,
 } from "./toc-generation.js"
 export { validateSectionHtml } from "./validate-html.js"
+export { validateRetainedHeadingHierarchy } from "./validate-typography-hierarchy.js"
 export {
   generateQuiz,
   generateAllQuizzes,
@@ -161,6 +199,22 @@ export {
   type QuizPageInput,
 } from "./quiz-generation.js"
 export { buildTextCatalog } from "./text-catalog.js"
+export {
+  buildCoreTtsPreparationConfig,
+  loadCoreTtsProfiles,
+  resolveCoreTtsProfile,
+  getCoreTtsPreparationLocales,
+  prepareCoreTtsCatalog,
+  getCoreTtsCatalog,
+  getReadyCoreTtsEntries,
+  buildCoreTtsSourceContext,
+  invalidateCoreTtsForDisplayEntries,
+  invalidateCoreTtsEntriesById,
+  type CoreTtsProfiles,
+  type ResolvedCoreTtsProfile,
+  type CoreTtsPreparationLocale,
+  type CoreTtsPreparationConfig,
+} from "./core-tts.js"
 export {
   buildEasyReadConfig,
   buildEasyReadSourceBlocks,
@@ -189,6 +243,15 @@ export {
   loadVoicesConfig,
   loadSpeechInstructions,
   computeSpeechCacheKey,
+  findAdjacentSpeechText,
+  buildTtsLogEntry,
+  elevenLabsVoiceSettingsFromConfig,
+  buildElevenLabsTtsLogParams,
+  classifyElevenLabsTtsError,
+  elevenLabsTtsRetryDelayMs,
+  parseElevenLabsErrorStatus,
+  ELEVENLABS_TTS_MAX_CONCURRENCY,
+  ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES,
   generateSpeechFile,
   generatePageSpeechFiles,
   generateWordTimestamps,

@@ -1,4 +1,5 @@
 import { createFormHook, createFormHookContexts } from "@tanstack/react-form"
+import type { FigureExtractionMode } from "@adt/types"
 import type {
   RenderStrategyId,
   WizardPageGrouping,
@@ -29,7 +30,8 @@ export const defaultWizardValues = {
   activitiesGenerator: false,
   imageCropping: false,
   imageSegmentation: false,
-  figureExtraction: false,
+  figureExtraction: "off" as FigureExtractionMode,
+  removeWatermarks: true,
   segmentationMinSide: "",
   imageFilterMinSide: 0,
   imageFilterMaxSide: 5000,

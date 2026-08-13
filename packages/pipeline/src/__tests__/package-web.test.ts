@@ -8,6 +8,7 @@ import {
   buildGlossaryJson,
   injectWebpubStyles,
   packageAdtWeb,
+  pageNeedsActivitiesBundle,
   renderPageHtml,
   resolveReflowableFontChain,
   renderQuizHtml,
@@ -46,6 +47,28 @@ function createMockStorage(
         )
         .sort((a, b) => a.node.localeCompare(b.node) || a.itemId.localeCompare(b.itemId)),
     close: () => {},
+  }
+}
+
+function readyCoreTtsCatalog(...ids: string[]) {
+  return {
+    language: "en",
+    entries: ids.map((id) => ({
+      id,
+      displayText: id,
+      speechText: id,
+      changed: false,
+      transformations: [],
+      status: "ready",
+      generation: {
+        mode: "unchanged",
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        enabledTransformations: [],
+        sourceTextHash: "source",
+        contextHash: "context",
+      },
+    })),
+    generatedAt: "2026-01-01T00:00:00.000Z",
   }
 }
 
@@ -861,6 +884,33 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": {
+        en: {
+          language: "en",
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          entries: ["pg001_t001", "pg001_t002", "pg001_im001"].map((id) => ({
+            id,
+            displayText: id === "pg001_t001" ? "$x^2$" : id,
+            speechText:
+              id === "pg001_im001"
+                ? null
+                : id === "pg001_t001"
+                  ? "x squared"
+                  : id,
+            changed: id === "pg001_t001",
+            transformations: id === "pg001_t001" ? ["latex-to-speech"] : [],
+            status: id === "pg001_im001" ? "failed" : "ready",
+            failureReason: id === "pg001_im001" ? "Raw LaTeX remained" : undefined,
+            generation: {
+              mode: "unchanged",
+              generatedAt: "2026-01-01T00:00:00.000Z",
+              enabledTransformations: [],
+              sourceTextHash: "source",
+              contextHash: "context",
+            },
+          })),
+        },
+      },
       "tts-timestamps": {
         en: {
           entries: {
@@ -986,6 +1036,33 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": {
+        en: {
+          language: "en",
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          entries: ["pg001_t001", "pg001_t002", "pg001_im001"].map((id) => ({
+            id,
+            displayText: id === "pg001_t001" ? "$x^2$" : id,
+            speechText:
+              id === "pg001_im001"
+                ? null
+                : id === "pg001_t001"
+                  ? "x squared"
+                  : id,
+            changed: id === "pg001_t001",
+            transformations: id === "pg001_t001" ? ["latex-to-speech"] : [],
+            status: id === "pg001_im001" ? "failed" : "ready",
+            failureReason: id === "pg001_im001" ? "Raw LaTeX remained" : undefined,
+            generation: {
+              mode: "unchanged",
+              generatedAt: "2026-01-01T00:00:00.000Z",
+              enabledTransformations: [],
+              sourceTextHash: "source",
+              contextHash: "context",
+            },
+          })),
+        },
+      },
       "tts-timestamps": {
         en: {
           entries: {
@@ -1016,6 +1093,14 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "audios.json"), "utf-8"),
     ) as Record<string, string>
     expect(audios).toEqual({ pg001_t001: "pg001_t001.mp3" })
+
+    const speechTexts = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "speech_texts.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(speechTexts).toEqual({
+      pg001_t001: "x squared",
+      pg001_t002: "pg001_t002",
+    })
 
     const bundledAudioDir = path.join(bookDir, "adt", "content", "i18n", "en", "audio")
     expect(fs.existsSync(path.join(bundledAudioDir, "pg001_t001.mp3"))).toBe(true)
@@ -1181,6 +1266,7 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": { en: readyCoreTtsCatalog("pg001_t001") },
     })
 
     await packageAdtWeb(storage, {
@@ -1335,6 +1421,7 @@ describe("packageAdtWeb", () => {
           generatedAt: "2026-01-01T00:00:00.000Z",
         },
       },
+      "core-tts-catalog": { en: readyCoreTtsCatalog("pg001_t001") },
       "tts-timestamps": {
         en: {
           entries: {
@@ -2268,6 +2355,17 @@ describe("injectActivitiesBundle", () => {
     expect(plain).not.toContain("activities.bundle.local.js")
   })
 
+  it("injects the bundle into mixed-content pages with inline word-bank controls", () => {
+    const html = `<html><body><section data-section-type="text_and_images"><button data-word-bank-chip="I">I</button><input data-word-bank-target="true"></section></body></html>`
+    fs.writeFileSync(path.join(tmp, "word-bank.html"), html)
+
+    injectActivitiesBundle(tmp)
+
+    expect(fs.readFileSync(path.join(tmp, "word-bank.html"), "utf-8")).toContain(
+      "./assets/activities.bundle.local.js",
+    )
+  })
+
   it("does not double-inject", () => {
     const html = `<html><body><section data-section-type="activity_sorting"></section></body></html>`
     fs.writeFileSync(path.join(tmp, "a.html"), html)
@@ -2275,6 +2373,19 @@ describe("injectActivitiesBundle", () => {
     injectActivitiesBundle(tmp)
     const out = fs.readFileSync(path.join(tmp, "a.html"), "utf-8")
     expect(out.match(/activities\.bundle\.local\.js/g)).toHaveLength(1)
+  })
+})
+
+describe("pageNeedsActivitiesBundle", () => {
+  it("recognizes dedicated activities and complete inline word banks", () => {
+    expect(pageNeedsActivitiesBundle('<section data-section-type="activity_quiz">')).toBe(true)
+    expect(
+      pageNeedsActivitiesBundle('<button data-word-bank-chip="I"><input data-word-bank-target>'),
+    ).toBe(true)
+  })
+
+  it("does not activate for incomplete word-bank markup", () => {
+    expect(pageNeedsActivitiesBundle('<button data-word-bank-chip="I">')).toBe(false)
   })
 })
 
@@ -2495,6 +2606,9 @@ describe("packageWebpub", () => {
     expect(html).toContain("columns: auto !important")
     expect(html).toContain("flex-direction: column !important")
     expect(html).toContain("max-width: 100% !important")
+    expect(html).toContain("@media (max-width: 1023px)")
+    const forcedColumn = html.slice(html.indexOf("@media (max-width: 1023px)"))
+    expect(forcedColumn).toContain("flex-direction: column !important")
     // The glossref affordance is EPUB-only; webpub must not carry it.
     expect(html).not.toContain(".glossref")
   })
