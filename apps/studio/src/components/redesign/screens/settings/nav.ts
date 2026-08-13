@@ -68,42 +68,6 @@ export const SETTINGS_TAB_BY_KEY = Object.fromEntries(
   SETTINGS_TABS.map((tab) => [tab.key, tab]),
 ) as Record<SettingsSection, SettingsTab>
 
-export type SettingsTabsVariant = "grouped" | "flat" | "regrouped"
-
-export interface SettingsGroupConfig {
-  key: string
-  label?: MessageDescriptor
-  tabs: SettingsTab[]
-}
-
-const tabFor = (key: SettingsSection): SettingsTab => SETTINGS_TAB_BY_KEY[key]
-
-export function settingsGroupsFor(variant: SettingsTabsVariant): SettingsGroupConfig[] {
-  switch (variant) {
-    case "flat":
-      return [{ key: "all", tabs: SETTINGS_TABS }]
-    case "regrouped":
-      return [
-        {
-          key: "general",
-          label: msg`General`,
-          tabs: [tabFor("language"), tabFor("theme"), tabFor("notifications")],
-        },
-        {
-          key: "ai",
-          label: msg`AI`,
-          tabs: [tabFor("providers"), tabFor("models"), tabFor("prompts")],
-        },
-        { key: "about", tabs: [tabFor("about")] },
-      ]
-    case "grouped":
-    default:
-      return SETTINGS_GROUPS
-  }
-}
-
-export const sectionAnchor = (key: SettingsSection) => `settings-section-${key}`
-
 export const SETTINGS_ANCHORS = {
   themeMode: "settings-theme-mode",
   interface: "settings-interface",

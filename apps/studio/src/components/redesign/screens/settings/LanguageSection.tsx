@@ -4,6 +4,7 @@ import { activateLocale, type AppLocale } from "@/i18n/locales"
 import { cn } from "@/lib/utils"
 import { SettingsCard, SettingsHeading, SettingsLead } from "./ui"
 import { LOCALE_OPTIONS } from "./options"
+import { LOCALE_FLAG_SRC } from "./flags"
 import { localeAnchor } from "./nav"
 
 export function LanguageSection() {
@@ -47,11 +48,17 @@ export function LanguageSection() {
               >
                 <span
                   className={cn(
-                    "grid size-9 shrink-0 place-items-center rounded-lg font-mono text-[11px] font-bold tracking-wide transition-colors duration-150",
-                    sel ? "bg-brand-600 text-white" : "bg-muted text-muted-foreground",
+                    "grid h-7 w-9 shrink-0 place-items-center overflow-hidden rounded-md bg-muted ring-1 ring-inset transition-shadow duration-150",
+                    sel ? "ring-brand-600/40" : "ring-black/10 dark:ring-white/15",
                   )}
                 >
-                  {i18n._(l.code)}
+                  <img
+                    src={LOCALE_FLAG_SRC[l.key]}
+                    alt=""
+                    aria-hidden
+                    draggable={false}
+                    className="h-full w-full object-cover"
+                  />
                 </span>
                 <div className="min-w-0 flex-1">
                   <div

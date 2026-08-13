@@ -1,32 +1,23 @@
 import { Link } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
-import { SETTINGS_PATHS, type SettingsGroupConfig, type SettingsSection } from "../nav"
+import { SETTINGS_GROUPS, SETTINGS_PATHS, type SettingsSection } from "../nav"
 
 interface SettingsNavListProps {
-  groups: SettingsGroupConfig[]
   activeKey: SettingsSection
-  tone?: "raised" | "flat"
   className?: string
 }
 
-export function SettingsNavList({
-  groups,
-  activeKey,
-  tone = "raised",
-  className,
-}: SettingsNavListProps) {
+export function SettingsNavList({ activeKey, className }: SettingsNavListProps) {
   const { i18n } = useLingui()
 
   return (
     <div className={cn("flex flex-col gap-5", className)}>
-      {groups.map((group) => (
+      {SETTINGS_GROUPS.map((group) => (
         <div key={group.key} className="flex flex-col gap-0.5">
-          {group.label && (
-            <div className="px-2.5 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.09em] text-muted-foreground">
-              {i18n._(group.label)}
-            </div>
-          )}
+          <div className="px-2.5 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.09em] text-muted-foreground">
+            {i18n._(group.label)}
+          </div>
           {group.tabs.map((tab) => {
             const Icon = tab.icon
             const active = activeKey === tab.key
@@ -37,9 +28,7 @@ export function SettingsNavList({
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors",
                   active
-                    ? tone === "raised"
-                      ? "bg-card font-semibold text-brand-700 shadow-[0_1px_2px_rgba(15,23,42,0.08),0_0_0_1px_rgba(15,23,42,0.05)]"
-                      : "bg-muted font-semibold text-brand-700"
+                    ? "bg-card font-semibold text-brand-700 shadow-[0_1px_2px_rgba(15,23,42,0.08),0_0_0_1px_rgba(15,23,42,0.05)]"
                     : "text-foreground hover:bg-black/5 dark:hover:bg-white/5",
                 )}
               >
