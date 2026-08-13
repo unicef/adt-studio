@@ -11,6 +11,9 @@ export interface PipelineNavigationOptions {
   label: string
   stepSlug: DockSlug | undefined
   settingsSlug: StepSettingsSlug | undefined
+  /** Page the canvas is on. Carried through every other navigation so stepping
+   *  into a plugin, its settings or the preview and coming back lands on it. */
+  pageId: string | undefined
   i18n: I18n
 }
 
@@ -20,6 +23,7 @@ export interface PipelineNavigation {
   openSettings: (slug: string) => void
   closeSettings: () => void
   selectSettingsTab: (nextTab: string) => void
+  selectPage: (pageId: string) => void
   openPreview: (sectionId: string | null) => void
   closePreview: () => void
 }
@@ -28,9 +32,11 @@ export function usePipelineNavigation({
   label,
   stepSlug,
   settingsSlug,
+  pageId,
   i18n,
 }: PipelineNavigationOptions): PipelineNavigation {
   const navigate = useNavigate()
+  const page = pageId ? { page: pageId } : {}
 
   const openStep = (slug: string) => {
     if (!isDockSlug(slug)) return
@@ -39,12 +45,12 @@ export function usePipelineNavigation({
       to: "/redesign/pipeline/$label",
       params: { label },
       search: keepSettings
-        ? { step: slug, settings: slug, tab: defaultStepSettingsTab(slug, i18n) }
-        : { step: slug },
+        ? { step: slug, settings: slug, tab: defaultStepSettingsTab(slug, i18n), ...page }
+        : { step: slug, ...page },
     })
   }
   const closeStep = () => {
-    navigate({ to: "/redesign/pipeline/$label", params: { label }, search: {} })
+    navigate({ to: "/redesign/pipeline/$label", params: { label }, search: { ...page } })
   }
   const openSettings = (slug: string) => {
     if (!isStepSettingsSlug(slug)) return
@@ -55,6 +61,7 @@ export function usePipelineNavigation({
         ...(stepSlug ? { step: stepSlug } : {}),
         settings: slug,
         tab: defaultStepSettingsTab(slug, i18n),
+        ...page,
       },
     })
   }
@@ -62,14 +69,30 @@ export function usePipelineNavigation({
     navigate({
       to: "/redesign/pipeline/$label",
       params: { label },
-      search: stepSlug ? { step: stepSlug } : {},
+      search: { ...(stepSlug ? { step: stepSlug } : {}), ...page },
     })
   }
   const selectSettingsTab = (nextTab: string) => {
     navigate({
       to: "/redesign/pipeline/$label",
       params: { label },
-      search: { ...(stepSlug ? { step: stepSlug } : {}), settings: settingsSlug, tab: nextTab },
+      search: {
+        ...(stepSlug ? { step: stepSlug } : {}),
+        settings: settingsSlug,
+        tab: nextTab,
+        ...page,
+      },
+    })
+  }
+
+  // Replaces rather than pushes: the arrow keys walk the rail one page at a
+  // time, and a history entry per keypress would bury whatever came before.
+  const selectPage = (nextPageId: string) => {
+    navigate({
+      to: "/redesign/pipeline/$label",
+      params: { label },
+      search: { ...(stepSlug ? { step: stepSlug } : {}), page: nextPageId },
+      replace: true,
     })
   }
 
@@ -77,11 +100,11 @@ export function usePipelineNavigation({
     navigate({
       to: "/redesign/pipeline/$label",
       params: { label },
-      search: { preview: true, ...(sectionId ? { previewSection: sectionId } : {}) },
+      search: { preview: true, ...(sectionId ? { previewSection: sectionId } : {}), ...page },
     })
   }
   const closePreview = () => {
-    navigate({ to: "/redesign/pipeline/$label", params: { label }, search: {} })
+    navigate({ to: "/redesign/pipeline/$label", params: { label }, search: { ...page } })
   }
 
   return {
@@ -90,6 +113,7 @@ export function usePipelineNavigation({
     openSettings,
     closeSettings,
     selectSettingsTab,
+    selectPage,
     openPreview,
     closePreview,
   }

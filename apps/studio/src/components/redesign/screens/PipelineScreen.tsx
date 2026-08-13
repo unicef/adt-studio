@@ -22,6 +22,7 @@ export function PipelineScreen() {
     step: stepSlug,
     settings: settingsSlug,
     tab,
+    page: pageId,
     preview,
     previewSection,
   } = route.useSearch()
@@ -43,9 +44,10 @@ export function PipelineScreen() {
     openSettings,
     closeSettings,
     selectSettingsTab,
+    selectPage,
     openPreview,
     closePreview,
-  } = usePipelineNavigation({ label, stepSlug, settingsSlug, i18n })
+  } = usePipelineNavigation({ label, stepSlug, settingsSlug, pageId, i18n })
 
   if (state.isLoading || state.error || !state.book) {
     return <ScreenFallback error={state.error} />
@@ -115,6 +117,8 @@ export function PipelineScreen() {
       sectioningRun={sectioningRun}
       storyboardRun={storyboardRun}
       navigationEnabled={!stepSlug && !settingsSlug && state.hasSections && state.hasRendering}
+      pageId={pageId ?? null}
+      onSelectPage={selectPage}
       onOpenStep={openStep}
       onOpenSettings={openSettings}
       onOpenPreview={openPreview}

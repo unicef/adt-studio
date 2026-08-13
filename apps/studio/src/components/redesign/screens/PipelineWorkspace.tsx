@@ -20,7 +20,11 @@ import type { SectioningRun } from "./pipeline/runs/useSectioningRun"
 import type { StoryboardRun } from "./pipeline/runs/useStoryboardRun"
 import { previewSectionId } from "./pipeline/shared/previewTarget"
 import type { PipelineState } from "./pipeline/shared/usePipelineState"
-import type { Viewport } from "./pipeline/shared/types"
+import {
+  useCanvasViewport,
+  useCanvasZoom,
+  useDockMinimized,
+} from "./pipeline/shared/workspacePrefs"
 
 export interface PipelineWorkspaceProps {
   label: string
@@ -32,6 +36,9 @@ export interface PipelineWorkspaceProps {
   sectioningRun: SectioningRun
   storyboardRun: StoryboardRun
   navigationEnabled: boolean
+  /** Page the canvas shows, straight off the URL. Null falls back to the first page. */
+  pageId: string | null
+  onSelectPage: (pageId: string) => void
   onOpenStep: (slug: string) => void
   onOpenSettings: (slug: string) => void
   /** Opens the packaged book, landing on the section the canvas is showing. */
@@ -48,17 +55,17 @@ export function PipelineWorkspace({
   sectioningRun,
   storyboardRun,
   navigationEnabled,
+  pageId,
+  onSelectPage,
   onOpenStep,
   onOpenSettings,
   onOpenPreview,
 }: PipelineWorkspaceProps) {
   const { t } = useLingui()
-  const [viewport, setViewport] = useState<Viewport>("desktop")
-  const [zoom, setZoom] = useState(1)
+  const [viewport, setViewport] = useCanvasViewport()
+  const [zoom, setZoom] = useCanvasZoom()
+  const [dockMinimized, setDockMinimized] = useDockMinimized()
   const [chromeHidden, setChromeHidden] = useState(false)
-  // The dock collapses on its own — hiding the canvas controls leaves it alone.
-  const [dockMinimized, setDockMinimized] = useState(false)
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
   // A quiz is a storyboard page of its own, so selecting one takes over the canvas.
   const [selectedQuizIndex, setSelectedQuizIndex] = useState<number | null>(null)
   const quizzesQuery = useQuizzes(label)
@@ -69,8 +76,8 @@ export function PipelineWorkspace({
 
   const activePage = useMemo(() => {
     if (state.pages.length === 0) return null
-    return state.pages.find((p) => p.pageId === selectedPageId) ?? state.pages[0]
-  }, [state.pages, selectedPageId])
+    return state.pages.find((p) => p.pageId === pageId) ?? state.pages[0]
+  }, [state.pages, pageId])
 
   const activeQuiz = useMemo(
     () =>
@@ -80,9 +87,9 @@ export function PipelineWorkspace({
     [quizzes, selectedQuizIndex],
   )
 
-  const selectPage = (pageId: string) => {
+  const selectPage = (nextPageId: string) => {
     setSelectedQuizIndex(null)
-    setSelectedPageId(pageId)
+    onSelectPage(nextPageId)
   }
 
   useCanvasNavigation({
@@ -161,7 +168,7 @@ export function PipelineWorkspace({
           )}
         </SideRail>
 
-        <div className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden">
+        <div className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-accent">
           {empty ? (
             <CanvasEmptyPanel
               run={run}

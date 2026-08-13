@@ -9,6 +9,7 @@ import { PluginDock } from "./PluginDock"
 import { SideRail } from "@/components/redesign/screens/pipeline/rail/SideRail"
 import { tint, type DockEntry } from "@/components/redesign/screens/pipeline/shared/plugins"
 import type { DockItem, PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
+import { useDockMinimized } from "../shared/workspacePrefs"
 
 export interface PluginWorkspaceProps {
   label: string
@@ -47,6 +48,7 @@ export function PluginWorkspace({
   onOpenSettings,
 }: PluginWorkspaceProps) {
   const { t } = useLingui()
+    const [dockMinimized, setDockMinimized] = useDockMinimized()
   const name = getStageLabelI18n(plugin.slug)
   // No step reports its own selection upward, so the AI rail falls back to the
   // first page — the same fallback the pipeline screen uses.
@@ -136,10 +138,9 @@ export function PluginWorkspace({
         plugins={plugins}
         activeSlug={plugin.slug}
         onOpenPlugin={onOpenPlugin}
+        minimized={dockMinimized}
+        onMinimize={() => setDockMinimized(true)}
       />
-      {/*<div className="flex h-[76px] shrink-0 items-center justify-center border-t bg-card">
-
-      </div>*/}
     </div>
   )
 }

@@ -9543,6 +9543,9 @@ msgstr "fjali të shkurtra · një ide për rresht"
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Fjali të shkurtra dhe të thjeshta për klasën e parë deri në të pestën."
 
+msgid "Show {label}"
+msgstr "Shfaq {label}"
+
 msgid "Show accessibility summary"
 msgstr "Shfaq përmbledhjen e aksesueshmërisë"
 

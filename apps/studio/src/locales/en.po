@@ -9542,6 +9542,9 @@ msgstr "short sentences · one idea per line"
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Short, simple sentences for kindergarten through 5th grade."
 
+msgid "Show {label}"
+msgstr "Show {label}"
+
 msgid "Show accessibility summary"
 msgstr "Show accessibility summary"
 

@@ -9541,6 +9541,9 @@ msgstr "frases cortas · una idea por línea"
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Oraciones cortas y simples para jardín de infancia hasta 5º grado."
 
+msgid "Show {label}"
+msgstr "Mostrar {label}"
+
 msgid "Show accessibility summary"
 msgstr "Show accessibility summary"
 

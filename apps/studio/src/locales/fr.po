@@ -9543,6 +9543,9 @@ msgstr "phrases courtes · une idée par ligne"
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Phrases courtes et simples pour la maternelle jusqu'à la 5e année."
 
+msgid "Show {label}"
+msgstr "Afficher {label}"
+
 msgid "Show accessibility summary"
 msgstr "Afficher le résumé d'accessibilité"
 
