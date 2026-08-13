@@ -56,6 +56,8 @@ export function PipelineWorkspace({
   const [viewport, setViewport] = useState<Viewport>("desktop")
   const [zoom, setZoom] = useState(1)
   const [chromeHidden, setChromeHidden] = useState(false)
+  // The dock collapses on its own — hiding the canvas controls leaves it alone.
+  const [dockMinimized, setDockMinimized] = useState(false)
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
   // A quiz is a storyboard page of its own, so selecting one takes over the canvas.
   const [selectedQuizIndex, setSelectedQuizIndex] = useState<number | null>(null)
@@ -225,16 +227,15 @@ export function PipelineWorkspace({
         />
       </div>
 
-      {empty || !chromeHidden ? (
-        <PluginDock
-          foundations={state.foundations}
-          plugins={state.plugins}
-          onOpenPlugin={onOpenStep}
-          hint={empty ? <Trans>Plugins unlock once the sections exist</Trans> : undefined}
-        />
-      ) : (
-        <DockHandle onShow={() => setChromeHidden(false)} />
-      )}
+      <PluginDock
+        foundations={state.foundations}
+        plugins={state.plugins}
+        onOpenPlugin={onOpenStep}
+        hint={empty ? <Trans>Plugins unlock once the sections exist</Trans> : undefined}
+        minimized={dockMinimized}
+        onMinimize={() => setDockMinimized(true)}
+      />
+      <DockHandle visible={dockMinimized} onShow={() => setDockMinimized(false)} />
     </div>
   )
 }

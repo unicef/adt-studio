@@ -1,11 +1,11 @@
 export interface ChromeToggleIconProps {
-  /** Dims the chips to mirror the controls being hidden. */
+  /** Dims the chip to mirror the controls being hidden. */
   hidden?: boolean
   className?: string
 }
 
-/** The workspace itself: the canvas frame, the control chip at its top right
- *  and the dock at its bottom — the two things this button toggles. */
+/** The workspace itself: the canvas frame and the control chip at its top right
+ *  — the one thing this button toggles. The dock collapses on its own. */
 export function ChromeToggleIcon({ hidden, className }: ChromeToggleIconProps) {
   return (
     <svg
@@ -20,7 +20,6 @@ export function ChromeToggleIcon({ hidden, className }: ChromeToggleIconProps) {
       <rect x="2.75" y="3.75" width="18.5" height="16.5" rx="2.75" strokeWidth="1.5" />
       <g strokeWidth="2.75" className="transition-opacity duration-200" opacity={hidden ? 0.3 : 1}>
         <path d="M13.5 7.75h4" />
-        <path d="M8.5 16.5h7" />
       </g>
     </svg>
   )

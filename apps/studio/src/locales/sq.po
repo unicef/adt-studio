@@ -6097,6 +6097,9 @@ msgstr "Minimizo"
 msgid "Minimize accessibility summary"
 msgstr "Minimizo përmbledhjen e aksesueshmërisë"
 
+msgid "Minimize the dock"
+msgstr "Minimizo shiritin"
+
 msgid "Minimum image dimension"
 msgstr "Dimensioni minimal i imazhit"
 
@@ -9585,6 +9588,9 @@ msgstr "Shfaq validimin e rishikuesit"
 
 msgid "Show the controls"
 msgstr "Shfaq kontrollet"
+
+msgid "Show the dock"
+msgstr "Shfaq shiritin"
 
 msgid "Show the sidebar"
 msgstr "Shfaq shiritin anÃ«sor"

@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Check, Plus } from "lucide-react"
+import { Check, ChevronDown, Plus } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { getStageLabelI18n, getStageDescriptionI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
@@ -13,6 +13,10 @@ export interface PluginDockProps {
   onOpenPlugin: (slug: string) => void
   /** Shown above the dock while plugins are still locked. */
   hint?: React.ReactNode
+  /** Collapses the dock to its handle. Omitted on screens with no minimized mode. */
+  onMinimize?: () => void
+  /** Slides the dock off the bottom edge. It stays mounted so both directions animate. */
+  minimized?: boolean
 }
 
 function DockDisc({
@@ -88,11 +92,26 @@ export function PluginDock({
   activeSlug,
   onOpenPlugin,
   hint,
+  onMinimize,
+  minimized,
 }: PluginDockProps) {
   const { t } = useLingui()
 
   return (
-    <div className="fixed bottom-6 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2">
+    <div
+      inert={minimized}
+      aria-hidden={minimized}
+      className={cn(
+        // The vertical offset composes with the centring -translate-x-1/2, so the
+        // dock slides straight down past its own `bottom-6` gap. Tailwind v4 drives
+        // both through the `translate` property — transitioning `transform` here
+        // would leave the slide un-animated.
+        "fixed bottom-6 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2 transition-[translate,opacity] duration-300 ease-out motion-reduce:transition-none",
+        minimized
+          ? "pointer-events-none translate-y-[calc(100%+1.5rem)] opacity-0"
+          : "translate-y-0 opacity-100",
+      )}
+    >
       {hint && (
         <div className="rounded-full border bg-card px-3 py-1 text-[10.5px] text-muted-foreground">
           {hint}
@@ -181,6 +200,18 @@ export function PluginDock({
             ))}
           </PopoverContent>
         </Popover>
+
+        {onMinimize && (
+            <button
+              type="button"
+              onClick={onMinimize}
+              title={t`Minimize the dock`}
+              aria-label={t`Minimize the dock`}
+              className="grid size-9 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <ChevronDown className="size-[18px]" />
+            </button>
+        )}
       </div>
     </div>
   )

@@ -6097,6 +6097,9 @@ msgstr "Minimiser"
 msgid "Minimize accessibility summary"
 msgstr "Réduire le résumé d'accessibilité"
 
+msgid "Minimize the dock"
+msgstr "Réduire la barre"
+
 msgid "Minimum image dimension"
 msgstr "Dimension minimale d'image"
 
@@ -9585,6 +9588,9 @@ msgstr "Afficher la validation du réviseur"
 
 msgid "Show the controls"
 msgstr "Afficher les contrÃ´les"
+
+msgid "Show the dock"
+msgstr "Afficher la barre"
 
 msgid "Show the sidebar"
 msgstr "Afficher la barre latÃ©rale"

@@ -47,6 +47,7 @@ export function SideRail({ widthClass, children }: SideRailProps) {
         className={cn(
           "shrink-0 overflow-hidden transition-[width,opacity] duration-300 ease-out motion-reduce:transition-none",
           open ? cn(widthClass, "opacity-100") : "w-0 opacity-0",
+          "bg-black"
         )}
       >
         {children}
