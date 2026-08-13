@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Check } from "lucide-react"
 import { activateLocale, type AppLocale } from "@/i18n/locales"
 import { cn } from "@/lib/utils"
-import { HEADING, LEAD } from "./ui"
+import { SettingsHeading, SettingsLead } from "./ui"
 import { LOCALE_OPTIONS } from "./options"
 import { localeAnchor } from "./nav"
 
@@ -19,12 +19,12 @@ export function LanguageSection() {
 
   return (
     <>
-      <div className={HEADING}>
+      <SettingsHeading>
         <Trans>Language</Trans>
-      </div>
-      <div className={LEAD}>
+      </SettingsHeading>
+      <SettingsLead>
         <Trans>The language ADT Studio's interface is shown in. This does not change a book's output languages.</Trans>
-      </div>
+      </SettingsLead>
       <div className="grid grid-cols-2 gap-3">
         {LOCALE_OPTIONS.map((l) => {
           const sel = i18n.locale === l.key

@@ -1,22 +1,21 @@
 import { useEffect, useState } from "react"
+import type { SettingsTabsVariant } from "./nav"
 
-export type SettingsNavVariant = "A" | "B" | "C"
+const STORAGE_KEY = "adt:settings-tabs"
+const CHANGE_EVENT = "adt:settings-tabs-change"
+const VARIANTS: SettingsTabsVariant[] = ["grouped", "flat", "regrouped"]
 
-const STORAGE_KEY = "adt:settings-nav"
-const CHANGE_EVENT = "adt:settings-nav-change"
-const VARIANTS: SettingsNavVariant[] = ["A", "B", "C"]
-
-function readVariant(): SettingsNavVariant {
-  if (typeof window === "undefined") return "A"
+function readVariant(): SettingsTabsVariant {
+  if (typeof window === "undefined") return "grouped"
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY)
-    return VARIANTS.includes(raw as SettingsNavVariant) ? (raw as SettingsNavVariant) : "A"
+    return VARIANTS.includes(raw as SettingsTabsVariant) ? (raw as SettingsTabsVariant) : "grouped"
   } catch {
-    return "A"
+    return "grouped"
   }
 }
 
-export function setSettingsNavVariant(variant: SettingsNavVariant) {
+export function setSettingsTabsVariant(variant: SettingsTabsVariant) {
   if (typeof window === "undefined") return
   try {
     window.localStorage.setItem(STORAGE_KEY, variant)
@@ -26,8 +25,8 @@ export function setSettingsNavVariant(variant: SettingsNavVariant) {
   window.dispatchEvent(new CustomEvent(CHANGE_EVENT))
 }
 
-export function useSettingsNavVariant(): SettingsNavVariant {
-  const [variant, setVariant] = useState<SettingsNavVariant>(readVariant)
+export function useSettingsTabsVariant(): SettingsTabsVariant {
+  const [variant, setVariant] = useState<SettingsTabsVariant>(readVariant)
 
   useEffect(() => {
     const sync = () => setVariant(readVariant())

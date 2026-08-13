@@ -6,7 +6,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Switch } from "@/components/ui/switch"
 import { useUiVersion } from "@/hooks/use-ui-version"
 import { cn } from "@/lib/utils"
-import { CARD, HEADING, LEAD, SettingRow } from "./ui"
+import { SettingsCard, SettingsHeading, SettingsLead, SettingRow } from "./ui"
 import { THEME_OPTIONS, type ThemeMode } from "./options"
 import { SETTINGS_ANCHORS } from "./nav"
 
@@ -42,12 +42,12 @@ export function ThemeSection() {
 
   return (
     <>
-      <div className={HEADING}>
+      <SettingsHeading>
         <Trans>Theme</Trans>
-      </div>
-      <div className={LEAD}>
+      </SettingsHeading>
+      <SettingsLead>
         <Trans>How ADT Studio looks on this machine.</Trans>
-      </div>
+      </SettingsLead>
       <div id={SETTINGS_ANCHORS.themeMode} className="mb-4 grid scroll-mt-24 grid-cols-3 gap-3.5">
         {THEME_OPTIONS.map((th) => {
           const sel = theme === th.key
@@ -94,7 +94,7 @@ export function ThemeSection() {
           )
         })}
       </div>
-      <div className={CARD}>
+      <SettingsCard>
         <SettingRow
           anchorId={SETTINGS_ANCHORS.interface}
           title={<Trans>Interface</Trans>}
@@ -122,7 +122,7 @@ export function ThemeSection() {
         >
           <Switch checked={motion} onCheckedChange={setMotion} />
         </SettingRow>
-      </div>
+      </SettingsCard>
     </>
   )
 }

@@ -3,7 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Check, Minus, ShieldCheck, Pencil, Plus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { HEADING, LEAD } from "./ui"
+import { SettingsHeading, SettingsLead } from "./ui"
 import { useProviderCards, type ProviderId } from "./providers"
 import { ProviderKeyDialog } from "./ProviderKeyDialog"
 import { providerAnchor } from "./nav"
@@ -15,12 +15,12 @@ export function ProvidersSection() {
 
   return (
     <>
-      <div className={HEADING}>
+      <SettingsHeading>
         <Trans>AI providers</Trans>
-      </div>
-      <div className={LEAD}>
+      </SettingsHeading>
+      <SettingsLead>
         <Trans>API keys for the AI pipeline. Keys are stored locally on this machine and never leave it except to call the provider.</Trans>
-      </div>
+      </SettingsLead>
       <div className="flex flex-col gap-2.5">
         {cards.map((card) => {
           const Icon = card.icon

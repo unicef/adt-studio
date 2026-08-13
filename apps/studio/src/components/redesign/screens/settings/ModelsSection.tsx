@@ -16,7 +16,7 @@ import {
 import { getStepLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { HEADING, LEAD } from "./ui"
+import { SettingsHeading, SettingsLead } from "./ui"
 import { SETTINGS_ANCHORS } from "./nav"
 import {
   DEFAULT_MODEL,
@@ -137,12 +137,12 @@ export function ModelsSection() {
 
   return (
     <>
-      <div className={HEADING}>
+      <SettingsHeading>
         <Trans>Models</Trans>
-      </div>
-      <div className={LEAD}>
+      </SettingsHeading>
+      <SettingsLead>
         <Trans>Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults.</Trans>
-      </div>
+      </SettingsLead>
 
       <section
         id={SETTINGS_ANCHORS.defaultLlm}

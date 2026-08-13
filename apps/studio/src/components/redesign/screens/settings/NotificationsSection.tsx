@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { useNotificationPrefs, type ToastPosition } from "@/hooks/use-notification-prefs"
 import { cn } from "@/lib/utils"
-import { CARD, HEADING, LEAD, SettingRow } from "./ui"
+import { SettingsCard, SettingsHeading, SettingsLead, SettingRow } from "./ui"
 import { SETTINGS_ANCHORS } from "./nav"
 
 const POSITIONS: { key: ToastPosition; label: MessageDescriptor }[] = [
@@ -45,13 +45,13 @@ export function NotificationsSection() {
 
   return (
     <>
-      <div className={HEADING}>
+      <SettingsHeading>
         <Trans>Notifications</Trans>
-      </div>
-      <div className={LEAD}>
+      </SettingsHeading>
+      <SettingsLead>
         <Trans>Toasts appear when a stage finishes, an export is ready, or something needs attention.</Trans>
-      </div>
-      <div className={CARD}>
+      </SettingsLead>
+      <SettingsCard>
         <SettingRow
           alignStart
           anchorId={SETTINGS_ANCHORS.notificationPosition}
@@ -135,7 +135,7 @@ export function NotificationsSection() {
             <Trans>Send test</Trans>
           </Button>
         </SettingRow>
-      </div>
+      </SettingsCard>
     </>
   )
 }

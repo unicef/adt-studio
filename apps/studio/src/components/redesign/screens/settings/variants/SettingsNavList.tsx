@@ -1,24 +1,32 @@
 import { Link } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
-import { SETTINGS_GROUPS, SETTINGS_PATHS, type SettingsSection } from "../nav"
+import { SETTINGS_PATHS, type SettingsGroupConfig, type SettingsSection } from "../nav"
 
 interface SettingsNavListProps {
+  groups: SettingsGroupConfig[]
   activeKey: SettingsSection
   tone?: "raised" | "flat"
   className?: string
 }
 
-export function SettingsNavList({ activeKey, tone = "raised", className }: SettingsNavListProps) {
+export function SettingsNavList({
+  groups,
+  activeKey,
+  tone = "raised",
+  className,
+}: SettingsNavListProps) {
   const { i18n } = useLingui()
 
   return (
     <div className={cn("flex flex-col gap-5", className)}>
-      {SETTINGS_GROUPS.map((group) => (
+      {groups.map((group) => (
         <div key={group.key} className="flex flex-col gap-0.5">
-          <div className="px-2.5 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.09em] text-muted-foreground">
-            {i18n._(group.label)}
-          </div>
+          {group.label && (
+            <div className="px-2.5 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.09em] text-muted-foreground">
+              {i18n._(group.label)}
+            </div>
+          )}
           {group.tabs.map((tab) => {
             const Icon = tab.icon
             const active = activeKey === tab.key

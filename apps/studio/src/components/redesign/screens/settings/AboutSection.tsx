@@ -5,8 +5,7 @@ import { useAppLogo } from "@/hooks/use-app-logo"
 import { useUpdateDialog } from "@/components/updates"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { cn } from "@/lib/utils"
-import { CARD, HEADING, LEAD, SettingRow } from "./ui"
+import { SettingsCard, SettingsHeading, SettingsLead, SettingRow } from "./ui"
 import { SETTINGS_ANCHORS } from "./nav"
 
 export function AboutSection() {
@@ -16,12 +15,12 @@ export function AboutSection() {
 
   return (
     <>
-      <div className={HEADING}>
+      <SettingsHeading>
         <Trans>About</Trans>
-      </div>
-      <div className={LEAD}>
+      </SettingsHeading>
+      <SettingsLead>
         <Trans>ADT Studio turns PDFs into accessible digital textbooks.</Trans>
-      </div>
+      </SettingsLead>
       <div
         id={SETTINGS_ANCHORS.appVersion}
         className="relative mb-3.5 scroll-mt-24 overflow-hidden rounded-2xl border bg-card p-[30px] shadow-sm"
@@ -61,7 +60,7 @@ export function AboutSection() {
           </Button>
         </div>
       </div>
-      <div className={cn(CARD, "relative overflow-hidden")}>
+      <SettingsCard className="relative overflow-hidden">
         <div aria-disabled className="pointer-events-none select-none opacity-50">
           <SettingRow
             anchorId={SETTINGS_ANCHORS.booksFolder}
@@ -90,7 +89,7 @@ export function AboutSection() {
             <Trans>Coming soon</Trans>
           </Badge>
         </div>
-      </div>
+      </SettingsCard>
     </>
   )
 }

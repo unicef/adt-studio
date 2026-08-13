@@ -20,7 +20,7 @@ import {
 import { PromptStatusBadges } from "@/components/pipeline/stages/book/GlobalPromptsSettings/PromptStatusBadges"
 import { PromptVersionHistory } from "@/components/pipeline/stages/book/GlobalPromptsSettings/PromptVersionHistory"
 import { useGlobalPrompts } from "./globalPrompts"
-import { HEADING, LEAD } from "./ui"
+import { SettingsHeading, SettingsLead } from "./ui"
 
 export function PromptsSection() {
   const { t } = useLingui()
@@ -53,16 +53,16 @@ export function PromptsSection() {
   return (
     <>
       <div className="shrink-0">
-        <div className={HEADING}>
+        <SettingsHeading>
           <Trans>Global prompts</Trans>
-        </div>
-        <div className={LEAD}>
+        </SettingsHeading>
+        <SettingsLead>
           <Trans>
             Edit fallback prompts used by every book. Saving creates a global
             prompt version; reset removes the version and returns to the shipped
             default file.
           </Trans>
-        </div>
+        </SettingsLead>
       </div>
 
       <div className="min-h-0 min-w-0 flex-1 overflow-hidden rounded-xl border bg-card">
