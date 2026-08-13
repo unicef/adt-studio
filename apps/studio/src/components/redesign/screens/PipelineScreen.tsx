@@ -1,34 +1,13 @@
-import { useMemo, useState } from "react"
-import { getRouteApi, useNavigate } from "@tanstack/react-router"
-import { Trans, useLingui } from "@lingui/react/macro"
-import { CircleCheck, CircleAlert, Loader2 } from "lucide-react"
+import { getRouteApi } from "@tanstack/react-router"
+import { useLingui } from "@lingui/react/macro"
 import { usePageTitle } from "@/hooks/use-page-title"
-import { useQuizzes } from "@/hooks/use-quizzes"
-import { PreviewViewportToggle } from "@/components/pipeline/components/PreviewViewportToggle"
-import { cn } from "@/lib/utils"
 import { ScreenFallback } from "@/components/redesign/shared/ui/ScreenFallback"
-import { AiEditPanel } from "./pipeline/plugins/AiEditPanel"
-import { ChromeToggleIcon } from "./pipeline/chrome/ChromeToggleIcon"
-import { DockHandle } from "./pipeline/chrome/DockHandle"
-import { PageCanvas } from "./pipeline/canvas/PageCanvas"
-import { PagesRail } from "./pipeline/rail/PagesRail"
-import { PagesRailEmpty } from "./pipeline/rail/PagesRailEmpty"
-import { PipelineTopBar } from "./pipeline/chrome/PipelineTopBar"
-import { QuizCanvas } from "./pipeline/canvas/QuizCanvas"
-import { SideRail } from "./pipeline/rail/SideRail"
-import { PluginDock } from "./pipeline/plugins/PluginDock"
-import { StageRunningPanel } from "./pipeline/runs/StageRunningPanel"
-import { StoryboardEmptyState, type StoryboardPhase } from "./pipeline/canvas/StoryboardEmptyState"
-import { ZoomControl } from "./pipeline/canvas/ZoomControl"
+import { PipelineWorkspace } from "./PipelineWorkspace"
 import { StepSettingsScreen } from "./pipeline/settings/StepSettingsScreen"
-import {
-  defaultStepSettingsTab,
-  isStepSettingsSlug,
-} from "./pipeline/settings/slugs"
+import { defaultStepSettingsTab } from "./pipeline/settings/slugs"
 import { STEP_VIEWS, type StepFrame } from "./pipeline/steps"
 import { findDockEntry, isDockSlug, type DockSlug } from "./pipeline/shared/plugins"
-import type { Viewport } from "./pipeline/shared/types"
-import { useCanvasNavigation } from "./pipeline/canvas/useCanvasNavigation"
+import { usePipelineNavigation } from "./pipeline/shared/usePipelineNavigation"
 import { usePipelineState } from "./pipeline/shared/usePipelineState"
 import { useRunActivity, useStageActivity } from "./pipeline/runs/useRunActivity"
 import { useSectioningRun } from "./pipeline/runs/useSectioningRun"
@@ -36,38 +15,10 @@ import { useStoryboardRun } from "./pipeline/runs/useStoryboardRun"
 
 const route = getRouteApi("/redesign/pipeline/$label")
 
-const PILL_TONES = {
-  ok: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300",
-  warn: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300",
-  running: "border-brand-200 bg-brand-50 text-brand-700",
-} as const
-
-function StatusPill({
-  tone,
-  children,
-}: {
-  tone: keyof typeof PILL_TONES
-  children: React.ReactNode
-}) {
-  const Icon = tone === "ok" ? CircleCheck : tone === "warn" ? CircleAlert : Loader2
-  return (
-    <span
-      className={cn(
-        "flex h-8 items-center gap-2 rounded-lg border px-2.5 text-xs font-semibold",
-        PILL_TONES[tone],
-      )}
-    >
-      <Icon className={cn("size-3.5", tone === "running" && "animate-spin")} />
-      {children}
-    </span>
-  )
-}
-
 export function PipelineScreen() {
   const { label } = route.useParams()
   const { step: stepSlug, settings: settingsSlug, tab } = route.useSearch()
-  const navigate = useNavigate()
-  const { t, i18n } = useLingui()
+  const { i18n } = useLingui()
 
   const state = usePipelineState(label)
   const run = useRunActivity()
@@ -76,88 +27,11 @@ export function PipelineScreen() {
   const storyboardActivity = useStageActivity("storyboard")
   const sectioningRun = useSectioningRun(label)
   const storyboardRun = useStoryboardRun(label)
-  const [viewport, setViewport] = useState<Viewport>("desktop")
-  const [zoom, setZoom] = useState(1)
-  const [chromeHidden, setChromeHidden] = useState(false)
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
-  // A quiz is a storyboard page of its own, so selecting one takes over the canvas.
-  const [selectedQuizIndex, setSelectedQuizIndex] = useState<number | null>(null)
-  const quizzesQuery = useQuizzes(label)
-  const quizzes = useMemo(
-    () => quizzesQuery.data?.quizzes?.quizzes ?? [],
-    [quizzesQuery.data],
-  )
 
   usePageTitle(state.book?.title ?? label)
 
-  const activePage = useMemo(() => {
-    if (state.pages.length === 0) return null
-    return state.pages.find((p) => p.pageId === selectedPageId) ?? state.pages[0]
-  }, [state.pages, selectedPageId])
-
-  const activeQuiz = useMemo(
-    () =>
-      selectedQuizIndex == null
-        ? null
-        : quizzes.find((quiz) => quiz.quizIndex === selectedQuizIndex) ?? null,
-    [quizzes, selectedQuizIndex],
-  )
-
-  const selectPage = (pageId: string) => {
-    setSelectedQuizIndex(null)
-    setSelectedPageId(pageId)
-  }
-
-  useCanvasNavigation({
-    pages: state.pages,
-    quizzes,
-    activePageId: activePage?.pageId ?? null,
-    activeQuizIndex: activeQuiz?.quizIndex ?? null,
-    enabled: !stepSlug && !settingsSlug && state.hasSections && state.hasRendering,
-    onSelectPage: selectPage,
-    onSelectQuiz: setSelectedQuizIndex,
-  })
-
-  const openStep = (slug: string) => {
-    if (!isDockSlug(slug)) return
-    const keepSettings = settingsSlug && isStepSettingsSlug(slug)
-    navigate({
-      to: "/redesign/pipeline/$label",
-      params: { label },
-      search: keepSettings
-        ? { step: slug, settings: slug, tab: defaultStepSettingsTab(slug, i18n) }
-        : { step: slug },
-    })
-  }
-  const closeStep = () => {
-    navigate({ to: "/redesign/pipeline/$label", params: { label }, search: {} })
-  }
-  const openSettings = (slug: string) => {
-    if (!isStepSettingsSlug(slug)) return
-    navigate({
-      to: "/redesign/pipeline/$label",
-      params: { label },
-      search: {
-        ...(stepSlug ? { step: stepSlug } : {}),
-        settings: slug,
-        tab: defaultStepSettingsTab(slug, i18n),
-      },
-    })
-  }
-  const closeSettings = () => {
-    navigate({
-      to: "/redesign/pipeline/$label",
-      params: { label },
-      search: stepSlug ? { step: stepSlug } : {},
-    })
-  }
-  const selectSettingsTab = (nextTab: string) => {
-    navigate({
-      to: "/redesign/pipeline/$label",
-      params: { label },
-      search: { ...(stepSlug ? { step: stepSlug } : {}), settings: settingsSlug, tab: nextTab },
-    })
-  }
+  const { openStep, closeStep, openSettings, closeSettings, selectSettingsTab } =
+    usePipelineNavigation({ label, stepSlug, settingsSlug, i18n })
 
   if (state.isLoading || state.error || !state.book) {
     return <ScreenFallback error={state.error} />
@@ -206,205 +80,19 @@ export function PipelineScreen() {
     )
   }
 
-  const empty = !state.hasSections || !state.hasRendering
-  const phase: StoryboardPhase = state.hasSections ? "render" : "sections"
-  const emptyRun = phase === "render" ? storyboardRun : sectioningRun
-  const runningStage = run.activeStages.find((s) => s.state === "running") ?? run.activeStages[0]
-  const foundationRunning = extractActivity.isActive
-    ? extractActivity
-    : sectioningActivity.isActive
-      ? sectioningActivity
-      : storyboardActivity.isActive
-        ? storyboardActivity
-        : null
-
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
-      <PipelineTopBar
-        label={label}
-        pageLabel={
-          empty
-            ? undefined
-            : activeQuiz
-              ? t`Quiz ${activeQuiz.quizIndex + 1}`
-              : activePage
-                ? t`Page ${activePage.pageNumber}`
-                : undefined
-        }
-        version={
-          empty ? null : activeQuiz ? quizzesQuery.data?.version ?? null : activePage?.renderingVersion ?? null
-        }
-        status={
-          runningStage ? (
-            <StatusPill tone="running">
-              <span className="truncate">
-                {runningStage.state === "queued" ? runningStage.label : runningStage.runningLabel}
-              </span>
-              {runningStage.current?.progress && (
-                <span className="font-mono text-[11px] font-medium tabular-nums">
-                  {runningStage.current.progress}
-                </span>
-              )}
-            </StatusPill>
-          ) : empty ? (
-            <StatusPill tone="ok">
-              {phase === "render"
-                ? t`Sectioning complete · ${state.sectionCount} sections`
-                : t`Extraction complete · ${state.pages.length} pages`}
-            </StatusPill>
-          ) : state.missingCaptions > 0 ? (
-            <StatusPill tone="warn">
-              {t`Review queue · ${state.missingCaptions}`}
-            </StatusPill>
-          ) : (
-            <StatusPill tone="ok">
-              <Trans>Nothing pending review</Trans>
-            </StatusPill>
-          )
-        }
-      />
-
-      <div className="relative flex min-h-0 flex-1">
-        <SideRail widthClass="w-64">
-          {empty ? (
-            <PagesRailEmpty
-              pageCount={state.pages.length}
-              imageCount={state.imageCount}
-              extracting={extractActivity.isActive}
-            />
-          ) : (
-            <PagesRail
-              label={label}
-              pages={state.pages}
-              quizzes={quizzes}
-              activePageId={activePage?.pageId ?? null}
-              activeQuizIndex={activeQuiz?.quizIndex ?? null}
-              onSelect={selectPage}
-              onSelectQuiz={setSelectedQuizIndex}
-              storyboardRunning={storyboardActivity.isActive}
-            />
-          )}
-        </SideRail>
-
-        <div className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden">
-          {empty ? (
-            <div className="flex flex-1 items-center pb-24">
-              {foundationRunning ? (
-                <StageRunningPanel
-                  stage={foundationRunning}
-                  isCancelling={run.isCancelling}
-                  onCancel={run.cancelRun}
-                  outcome={
-                    foundationRunning.slug === "extract"
-                      ? t`Pages and images show up in the left rail as each page is extracted.`
-                      : foundationRunning.slug === "sectioning"
-                        ? t`Sections show up in the left rail as each page is structured.`
-                        : t`Rendered pages replace this panel as each page is built.`
-                  }
-                />
-              ) : (
-                <StoryboardEmptyState
-                  phase={phase}
-                  pageCount={state.pages.length}
-                  sectionCount={state.sectionCount}
-                  onGenerate={emptyRun.run}
-                  onCreateManually={() => {}}
-                  onOpenSettings={() => openSettings("storyboard")}
-                  canGenerate={emptyRun.canRun}
-                  disabledReason={
-                    emptyRun.hasApiKey ? undefined : phase === "render" ? (
-                      <Trans>Add an API key in Book settings to run the storyboard.</Trans>
-                    ) : (
-                      <Trans>Add an API key in Book settings to run sectioning.</Trans>
-                    )
-                  }
-                />
-              )}
-            </div>
-          ) : (
-            (activeQuiz || activePage) && (
-              <>
-                {activeQuiz ? (
-                  <QuizCanvas
-                    label={label}
-                    quiz={activeQuiz}
-                    version={quizzesQuery.data?.version ?? null}
-                    pages={state.pages}
-                    viewport={viewport}
-                    zoom={zoom}
-                    onZoomChange={setZoom}
-                  />
-                ) : (
-                  activePage && (
-                    <PageCanvas
-                      label={label}
-                      page={activePage}
-                      viewport={viewport}
-                      zoom={zoom}
-                      onZoomChange={setZoom}
-                      sectioning={sectioningRun}
-                      storyboardRunning={storyboardActivity.isActive}
-                      onOpenSectioning={() => openStep("sectioning")}
-                    />
-                  )
-                )}
-                <div className="absolute right-4 top-4 z-10 flex items-center gap-1.5">
-                  {!chromeHidden && (
-                    <>
-                      <PreviewViewportToggle
-                        value={viewport}
-                        onChange={setViewport}
-                        variant="surface"
-                        className="h-8 rounded-lg border shadow-sm"
-                      />
-                      <ZoomControl
-                        value={zoom}
-                        onChange={setZoom}
-                        className="bg-card/85 shadow-sm backdrop-blur-sm"
-                      />
-                    </>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setChromeHidden((hidden) => !hidden)}
-                    aria-pressed={chromeHidden}
-                    title={chromeHidden ? t`Show the controls` : t`Hide the controls`}
-                    aria-label={chromeHidden ? t`Show the controls` : t`Hide the controls`}
-                    className="grid size-8 place-items-center rounded-lg border bg-card/85 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-muted"
-                  >
-                    <ChromeToggleIcon hidden={chromeHidden} className="size-4" />
-                  </button>
-                </div>
-              </>
-            )
-          )}
-        </div>
-
-        <AiEditPanel
-          label={label}
-          pageId={activeQuiz ? null : activePage?.pageId ?? null}
-          pageLabel={
-            activeQuiz
-              ? t`quiz ${activeQuiz.quizIndex + 1}`
-              : activePage
-                ? t`page ${activePage.pageNumber}`
-                : undefined
-          }
-          sectionIndex={activePage?.sections[0]?.sectionIndex ?? 0}
-          empty={empty}
-        />
-      </div>
-
-      {empty || !chromeHidden ? (
-        <PluginDock
-          foundations={state.foundations}
-          plugins={state.plugins}
-          onOpenPlugin={openStep}
-          hint={empty ? <Trans>Plugins unlock once the sections exist</Trans> : undefined}
-        />
-      ) : (
-        <DockHandle onShow={() => setChromeHidden(false)} />
-      )}
-    </div>
+    <PipelineWorkspace
+      label={label}
+      state={state}
+      run={run}
+      extractActivity={extractActivity}
+      sectioningActivity={sectioningActivity}
+      storyboardActivity={storyboardActivity}
+      sectioningRun={sectioningRun}
+      storyboardRun={storyboardRun}
+      navigationEnabled={!stepSlug && !settingsSlug && state.hasSections && state.hasRendering}
+      onOpenStep={openStep}
+      onOpenSettings={openSettings}
+    />
   )
 }
