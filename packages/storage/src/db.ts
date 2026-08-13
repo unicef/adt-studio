@@ -238,7 +238,7 @@ function migrateV6toV7(db: sqlite.Database): void {
 
     // Most step names match their node_data node name directly
     const directSteps = [
-      "metadata", "book-summary", "image-filtering", "image-segmentation",
+      "metadata", "book-summary", "book-outline", "image-filtering", "image-segmentation",
       "image-cropping", "page-sectioning",
       "web-rendering", "quiz-generation", "image-captioning", "glossary",
       "text-catalog", "easy-read", "tts",

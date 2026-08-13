@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
+import { CoreTtsConfig } from "./core-tts.js"
 import { ReviewerValidationConfig } from "./reviewer-validation-config.js"
 import { TranslationEvaluationConfig } from "./translation-evaluation.js"
 import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
@@ -13,6 +14,19 @@ export const DEFAULT_ELEVENLABS_TTS_MODEL_ID = "eleven_multilingual_v2"
 // Rachel — a stable ElevenLabs premade voice ID, used when no voice is
 // configured for the elevenlabs provider.
 export const DEFAULT_ELEVENLABS_VOICE_ID = "21m00Tcm4TlvDq8ikWAM"
+
+/**
+ * Controls how selectable PDF text participates in composite figure extraction.
+ *
+ * - `off`: extract raster and vector artwork, but do not merge nearby text into
+ *   composite page crops.
+ * - `auto`: create composite candidates, then let image meaningfulness retain
+ *   only candidates that are better represented as images than semantic HTML.
+ * - `all`: create every composite candidate and leave retention to the normal
+ *   image filters.
+ */
+export const FigureExtractionMode = z.enum(["off", "auto", "all"])
+export type FigureExtractionMode = z.infer<typeof FigureExtractionMode>
 
 /**
  * Display names for the ElevenLabs voice IDs ADT Studio ships (the
@@ -247,6 +261,7 @@ export const AppConfig = z
     translation: StepConfig.optional(),
     metadata: StepConfig.optional(),
     book_summary: StepConfig.optional(),
+    book_outline: StepConfig.optional(),
     quiz_generation: QuizGenerationConfig.optional(),
     easy_read: EasyReadConfig.optional(),
     default_render_strategy: z.string().optional(),
@@ -309,12 +324,24 @@ export const AppConfig = z
      */
     spread_pairs: z.array(z.number().int().min(1)).optional(),
     split_mode: z.boolean().optional(),
+    figure_extraction_mode: FigureExtractionMode.optional(),
+    /**
+     * Legacy figure-extraction switch. New configs use
+     * `figure_extraction_mode`; retained so existing books remain readable.
+     */
     vector_text_grouping: z.boolean().optional(),
+    /**
+     * Detect repeated identical text stamps (e.g. a diagonal "FOR ONLINE
+     * READING ONLY" on every page) and remove them from page renders,
+     * figure crops, reflowable text, and positioned text. Off by default.
+     */
+    remove_watermarks: z.boolean().optional(),
     apply_body_background: z.boolean().optional(),
     generate_activities: z.boolean().optional(),
     start_page: z.number().int().min(1).optional(),
     end_page: z.number().int().min(1).optional(),
     speech: SpeechConfig.optional(),
+    core_tts: CoreTtsConfig.optional(),
     styleguide: z.string().regex(/^[a-zA-Z0-9_-]+$/).optional(),
     default_settings: z
       .object({

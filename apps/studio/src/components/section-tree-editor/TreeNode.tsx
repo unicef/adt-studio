@@ -29,7 +29,7 @@ import {
   Trash2,
 } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
-import type { ContentNodeData } from "@adt/types"
+import { isHeadingRole, type ContentNodeData } from "@adt/types"
 import { BASE_URL } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu"
@@ -121,7 +121,7 @@ function getStructureVisual(structure: string | undefined): Visual {
 function getRoleVisual(role: string | undefined): Visual {
   if (!role) return SLATE
   if (role === "image") return EMERALD(ImageIcon)
-  if (role === "heading") return AMBER(Hash)
+  if (isHeadingRole(role)) return AMBER(Hash)
   if (role === "math") return INDIGO(Sigma)
   if (role === "caption" || role === "label") return { ...SLATE, Icon: Tag }
   if (role === "quote") return { ...SLATE, Icon: Quote }
@@ -241,10 +241,13 @@ function RowMenu({
   items: ActionMenuItem[]
   disabled?: boolean
 }) {
+  const { t } = useLingui()
+
   return (
     <ActionMenu
       trigger={<MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />}
       triggerClassName="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30"
+      triggerAriaLabel={t`Node actions`}
       triggerDisabled={disabled}
       items={items}
       itemsDisabled={disabled}

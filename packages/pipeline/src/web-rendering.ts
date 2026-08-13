@@ -13,6 +13,7 @@ import type { LLMModel } from "@adt/llm"
 import type { BookFontPromptEntry } from "./fonts-bundle.js"
 import { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
 import { renderSectionTemplate, type TemplateEngine } from "./render-template.js"
+import { repairTableOfContentsLayout } from "./toc-layout.js"
 
 export interface VisualRefinementConfig {
   enabled: boolean
@@ -48,6 +49,9 @@ export interface RenderNode {
   structure?: string
   role?: string
   text?: string
+  heading_level?: number
+  outline_entry_id?: string
+  heading_style_cluster_id?: string
   image_id?: string
   image_url?: string
   children?: RenderNode[]
@@ -57,6 +61,9 @@ export interface LeafText {
   text_id: string
   text_type: string
   text: string
+  heading_level?: number
+  outline_entry_id?: string
+  heading_style_cluster_id?: string
 }
 
 export interface ImageRef {
@@ -262,11 +269,21 @@ export function buildRenderContext(
         text_id: node.nodeId,
         text_type: node.role,
         text: node.text ?? "",
+        ...(node.headingLevel !== undefined && { heading_level: node.headingLevel }),
+        ...(node.outlineEntryId !== undefined && { outline_entry_id: node.outlineEntryId }),
+        ...(node.headingStyleClusterId !== undefined && {
+          heading_style_cluster_id: node.headingStyleClusterId,
+        }),
       })
       return {
         node_id: node.nodeId,
         role: node.role,
         text: node.text ?? "",
+        ...(node.headingLevel !== undefined && { heading_level: node.headingLevel }),
+        ...(node.outlineEntryId !== undefined && { outline_entry_id: node.outlineEntryId }),
+        ...(node.headingStyleClusterId !== undefined && {
+          heading_style_cluster_id: node.headingStyleClusterId,
+        }),
       }
     }
 
@@ -375,6 +392,17 @@ export async function renderPage(
         visualRefinement,
         options,
       )
+    }
+
+    // LLM rendering already applies this repair; templates bypass that path.
+    if (
+      config.renderType === "template" &&
+      section.sectionType === "table_of_contents"
+    ) {
+      rendering = {
+        ...rendering,
+        html: repairTableOfContentsLayout(rendering.html, context.leaf_texts),
+      }
     }
 
     throwIfAborted(options.signal)

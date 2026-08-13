@@ -264,4 +264,51 @@ describe("createLLMModel validation retries", () => {
       },
     ])
   })
+
+  it("logs validation retries as individual attempts without carrying errors or usage forward", async () => {
+    openaiProviderMock.mockReturnValue({ provider: "openai" })
+    generateObjectMock
+      .mockResolvedValueOnce({
+        object: { value: "invalid" },
+        usage: { promptTokens: 10, completionTokens: 2 },
+      })
+      .mockResolvedValueOnce({
+        object: { value: "valid" },
+        usage: { promptTokens: 20, completionTokens: 3 },
+      })
+
+    const onLog = vi.fn()
+    const llm = createLLMModel({
+      modelId: "openai:gpt-4.1",
+      onLog,
+    })
+    const result = await llm.generateObject<{ value: string }>({
+      schema: z.object({ value: z.string() }),
+      messages: [{ role: "user", content: "Return a value" }],
+      maxRetries: 1,
+      validate: (value) =>
+        value.value === "valid"
+          ? { valid: true, errors: [] }
+          : { valid: false, errors: ["Value must be valid."] },
+      log: {
+        taskType: "test-step",
+        promptName: "test-prompt",
+      },
+    })
+
+    expect(result.usage).toEqual({ inputTokens: 30, outputTokens: 5 })
+    expect(onLog).toHaveBeenCalledTimes(2)
+    expect(onLog.mock.calls[0]?.[0]).toMatchObject({
+      success: false,
+      errorCount: 1,
+      validationErrors: ["Value must be valid."],
+      usage: { inputTokens: 10, outputTokens: 2 },
+    })
+    expect(onLog.mock.calls[1]?.[0]).toMatchObject({
+      success: true,
+      errorCount: 0,
+      usage: { inputTokens: 20, outputTokens: 3 },
+    })
+    expect(onLog.mock.calls[1]?.[0].validationErrors).toBeUndefined()
+  })
 })

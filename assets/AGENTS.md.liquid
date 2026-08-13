@@ -50,6 +50,7 @@ The `adt/` subdirectory is the self-contained web app. Other top-level files (`.
 │   │   └── i18n/
 │   │       └── {lang}/               # One directory per language: {% for lang in outputLanguages %}{{ lang }}{% unless forloop.last %}, {% endunless %}{% endfor %}
 │   │           ├── texts.json        # All text content (textId → string)
+│   │           ├── speech_texts.json # Prepared read-aloud text (textId → string)
 │   │           ├── audios.json       # Audio mappings (textId → mp3 filename)
 │   │           ├── videos.json       # Video mappings (currently unused)
 │   │           ├── glossary.json     # Glossary entries (word → object)
@@ -88,11 +89,12 @@ Page renders follow the pattern `pg{NNN}_page.png`:
 {% endfor %}
 ## The Text ID System
 
-Every piece of displayable text has a unique, stable **text ID**. This ID is the key that connects everything together. The same ID appears in three places simultaneously:
+Every piece of displayable text has a unique, stable **text ID**. This ID is the key that connects everything together. The same ID can appear in four places:
 
 1. As a `data-id` attribute on HTML elements in page files
 2. As a key in `content/i18n/{lang}/texts.json` (the string value)
-3. As a key in `content/i18n/{lang}/audios.json` (the audio filename)
+3. As a key in `content/i18n/{lang}/speech_texts.json` (the prepared read-aloud wording)
+4. As a key in `content/i18n/{lang}/audios.json` (the audio filename)
 
 ### ID Naming Conventions
 
@@ -141,6 +143,12 @@ A flat `Record<textId, string>` containing every piece of text in the book. Exam
   "{{ sampleQuiz.options[0].expId }}": "{{ sampleQuiz.options[0].expText }}"{% endif %}
 }
 ```
+
+### `content/i18n/{lang}/speech_texts.json` — Prepared Read-Aloud Text
+
+`speech_texts.json` maps the same IDs to the exact wording synthesized for
+read-aloud. It may differ from `texts.json` after LaTeX conversion or
+language-specific normalization; missing IDs are intentionally withheld from TTS.
 
 ### `content/i18n/{lang}/audios.json` — Audio Mappings
 
@@ -216,7 +224,7 @@ Each page is a standalone HTML file at the root of `adt/`. Key structural elemen
 
 Key conventions:
 
-- **`data-id` on text elements** links to `texts.json` and `audios.json` — the runtime replaces inner text with the value from the active language's `texts.json` and wires up audio playback from `audios.json`
+- **`data-id` on text elements** links to `texts.json`, `speech_texts.json`, and `audios.json` — the runtime preserves display text from `texts.json` while using prepared wording for read-aloud
 - **`data-id` on images** links to image description text and audio
 - **Images** use relative paths: `images/{filename}`
 - **`page-section-id`** meta tag is the 1-based numeric index of this page's position in `pages.json` — the runtime uses this for navigation
@@ -249,11 +257,12 @@ Quiz pages use `role="activity"` and embed correct answers in multiple places:
 {% endif %}
 ## How to Edit Text
 
-To change text content for a given language, you must update all three locations that reference the text:
+To change text content for a given language, update the display text independently from its read-aloud wording:
 
 1. **`texts.json`** — Change the value in `content/i18n/{lang}/texts.json` for the text ID.
 2. **The HTML file** — The text also appears inline in the page HTML. Update the inner text of the element with the matching `data-id`. The runtime replaces this on load, but the inline text serves as fallback.
-3. **Audio** (if applicable) — Regenerate the MP3 at `content/i18n/{lang}/audio/{textId}.mp3` and verify `audios.json` maps the text ID to the correct filename.
+3. **Speech text** (if applicable) — Update `speech_texts.json` with the exact wording to synthesize without changing display text.
+4. **Audio** (if applicable) — Regenerate the MP3 at `content/i18n/{lang}/audio/{textId}.mp3` and verify `audios.json` maps the text ID to the correct filename.
 {% if hasQuiz %}
 ### Editing Quiz Text
 
@@ -316,6 +325,7 @@ Update both:
 | Entry point | `adt/index.html` (redirects to first page) |
 | Page images | `adt/images/` |
 | All text content | `adt/content/i18n/{lang}/texts.json` |
+| Prepared read-aloud text | `adt/content/i18n/{lang}/speech_texts.json` |
 | Audio file mappings | `adt/content/i18n/{lang}/audios.json` |
 | Audio MP3 files | `adt/content/i18n/{lang}/audio/` |{% if hasGlossary %}
 | Glossary | `adt/content/i18n/{lang}/glossary.json` |{% endif %}

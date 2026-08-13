@@ -2,8 +2,20 @@
 # speech use their own task-specific defaults; step-level `model` values still
 # override this one. This can also be changed in Studio under Settings > Models.
 default_model: "openai:gpt-5.4"
+
+book_outline:
+  prompt: book_outline
+  timeout: 300
+
 default_image_generation_model: "openai:gpt-image-2"
 default_speech_generation_model: "gpt-4o-mini-tts"
+
+# Provider text is versioned separately from display translations. These two
+# transformations share one structured, cached LLM preparation call.
+core_tts:
+  prompt: core_tts_preparation
+  latex_to_speech: true
+  language_normalization: true
 
 structure_types:
   group: >
@@ -47,7 +59,21 @@ structure_types:
     code samples, ASCII layouts). Children are the text leaves, one per line.
 
 role_types:
-  heading: A heading-level leaf (chapter, section, or subheading text).
+  chapter_title: >
+    The highest heading level in the content hierarchy (H1): a chapter number,
+    chapter title, unit title, or other top-level display heading. Use the same
+    role for visually equivalent top-level headings throughout the book.
+  section_heading: >
+    The second heading level (H2): a major section within the current chapter
+    or unit. Use the same role for headings with the same visual and structural
+    rank throughout the book.
+  subheading: >
+    The third heading level (H3): a subsection, minor heading, callout heading,
+    or activity title nested under a section.
+  heading: >
+    A heading at authoritative level 4, 5, or 6 (set heading_level), or a
+    legacy heading whose hierarchy genuinely cannot be resolved. Levels 1–3
+    should use chapter_title, section_heading, or subheading.
   text: Ordinary prose or narrative text.
   math: A mathematical expression (use LaTeX notation).
   image: >
@@ -67,6 +93,13 @@ role_types:
   footer: A running footer.
   quote: A quoted passage.
   book_metadata: Publisher, copyright, ISBN, edition, or author metadata.
+  watermark: >
+    Decorative, status, or usage-restriction overlay text stamped across the
+    page — e.g. "DRAFT", "SAMPLE", "SPECIMEN", "CONFIDENTIAL", "FOR ONLINE
+    READING ONLY", a copyright/ownership stamp, or a repeated diagonal label.
+    Often faint/semi-transparent, tinted, and rotated diagonally, and may run
+    across or behind the real content (repeating identically on every page).
+    Not part of the reading content.
 
 section_types:
   front_cover: >
@@ -315,6 +348,7 @@ pruned_role_types:
   - header
   - footer
   - page_number
+  - watermark
 
 pruned_section_types:
   - back_cover

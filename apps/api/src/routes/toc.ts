@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { TocGenerationOutput, WebRenderingOutput, parseBookLabel } from "@adt/types"
+import { TocGenerationOutput, WebRenderingOutput, isHeadingRole, parseBookLabel } from "@adt/types"
 import type { ContentNodeData } from "@adt/types"
 import { openBookDb, createBookStorage, readCurrentNodeRow } from "@adt/storage"
 import { getRenderSectioning } from "@adt/pipeline"
@@ -117,7 +117,7 @@ export function createTocRoutes(booksDir: string): Hono {
           while (stack.length > 0) {
             const node = stack.shift()!
             if (node.isPruned) continue
-            if (node.role === "heading" && node.text) return node.text
+            if (isHeadingRole(node.role) && node.text) return node.text
             if (node.children) stack.unshift(...node.children)
           }
           return null

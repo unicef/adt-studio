@@ -7,6 +7,8 @@ import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRa
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
+  figureExtractionFlags,
+  resolveFigureExtractionMode,
   resolveFontsCacheDir,
   buildBookFontsPromptContext,
   readTypography,
@@ -51,6 +53,14 @@ import {
   translateCatalogBatch,
   buildCatalogTranslationConfig,
   getTargetLanguages,
+  buildCoreTtsPreparationConfig,
+  loadCoreTtsProfiles,
+  resolveCoreTtsProfile,
+  getCoreTtsPreparationLocales,
+  prepareCoreTtsCatalog,
+  getCoreTtsCatalog,
+  buildCoreTtsSourceContext,
+  getReadyCoreTtsEntries,
   translateImage,
   buildImageTranslationConfig,
   loadVoicesConfig,
@@ -64,6 +74,7 @@ import {
   computeSpeechCacheKey,
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,
+  buildTtsLogEntry,
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
   ELEVENLABS_TTS_MAX_CONCURRENCY,
@@ -76,9 +87,19 @@ import {
   wavDurationSeconds,
   stripEmojis,
   generateBookSummary,
+  generateBookOutline,
+  buildBookOutlineConfig,
+  buildBookOutlineEvidence,
+  readBookOutline,
+  outlineContextForPage,
+  BOOK_OUTLINE_NODE,
+  BOOK_OUTLINE_ITEM,
+  readTypeScale,
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
+  buildMeaningfulnessImages,
+  dedupAutoFigureCandidatesInStorage,
   cropPageImages,
   applyCrops,
   buildCroppingConfig,
@@ -92,12 +113,12 @@ import {
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
   isFixedLayoutBook,
 } from "@adt/pipeline"
-import type { PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps } from "@adt/pipeline"
+import type { BookOutlineConfig, PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps } from "@adt/pipeline"
 import type { ElevenLabsVoiceSettingsOverrides } from "@adt/llm"
 import { loadStyleguideContent } from "./styleguide.js"
 import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer, createElevenLabsTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
-import { STAGE_ORDER, isTtsExcluded } from "@adt/types"
+import { PIPELINE, STAGE_ORDER, PositionedTextOutput, isTtsExcluded } from "@adt/types"
 import type { PageErrorPolicy, PageErrorAction } from "@adt/types"
 import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
 import type {
@@ -919,6 +940,50 @@ function buildLLMCredentials(options: StageRunOptions) {
   }
 }
 
+async function generateAndStoreBookOutline(
+  label: string,
+  pages: PageData[],
+  storage: Storage,
+  outlineConfig: BookOutlineConfig,
+  outlineModel: LLMModel,
+  progress: StageRunProgress,
+  signal?: AbortSignal,
+): Promise<ReturnType<typeof readBookOutline>> {
+  progress.emit({ type: "step-start", step: "book-outline" })
+  try {
+    if (pages.length === 0) {
+      throw new Error("No extracted pages are available for book-outline generation.")
+    }
+    const evidencePages = pages.map((page) => {
+      const positionedRow = storage.getLatestNodeData("positioned-text", page.pageId)
+      const positioned = PositionedTextOutput.safeParse(positionedRow?.data)
+      return {
+        pageId: page.pageId,
+        pageNumber: page.pageNumber,
+        text: page.text,
+        imageBase64: storage.getPageImageBase64(page.pageId),
+        ...(positioned.success && { positionedText: positioned.data }),
+      }
+    })
+    const evidence = buildBookOutlineEvidence(evidencePages, readTypeScale(storage))
+    const outline = await generateBookOutline(evidence, outlineConfig, outlineModel)
+    storage.putNodeData(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM, outline)
+    progress.emit({
+      type: "step-complete",
+      step: "book-outline",
+      message: `${outline.entries.length} headings`,
+    })
+    console.log(`[stage-run] ${label}: book outline complete (${outline.entries.length} headings)`)
+    return outline
+  } catch (err) {
+    if (isCancellation(err, [signal])) throw err
+    const msg = toErrorMessage(err)
+    console.error(`[stage-run] ${label}: book outline failed: ${msg}`)
+    progress.emit({ type: "step-error", step: "book-outline", error: msg })
+    throw err
+  }
+}
+
 async function runExtractStep(
   label: string,
   options: StageRunOptions,
@@ -941,7 +1006,8 @@ async function runExtractStep(
         endPage: config.end_page,
         spreadMode: config.spread_mode,
         spreadPairs: config.spread_pairs,
-        vectorTextGrouping: config.vector_text_grouping,
+        ...figureExtractionFlags(config),
+        removeWatermarks: config.remove_watermarks === true,
         fixedLayout: isFixedLayoutBook(config),
         fontsCacheDir: resolveFontsCacheDir(booksDir),
       },
@@ -1041,7 +1107,29 @@ async function runExtractStep(
       throw err
     }
 
-    // Step 4: Per-page image classification runs as four sequential passes,
+    // Step 4: Build one book-wide semantic outline before page sectioning.
+    // The configured default is OpenAI; no provider-specific PDF API is used.
+    const outlineConfig = buildBookOutlineConfig(config)
+    const outlineModel = createLLMModel({
+      modelId: outlineConfig.modelId,
+      cacheDir,
+      promptEngine,
+      rateLimiter,
+      onLog: onLlmLog,
+      credentials: llmCredentials,
+      signal: options.signal,
+    })
+    await generateAndStoreBookOutline(
+      label,
+      pages,
+      storage,
+      outlineConfig,
+      outlineModel,
+      progress,
+      options.signal,
+    )
+
+    // Step 5: Per-page image classification runs as four sequential passes,
     // each with its own progress reporting so the UI reflects real timing.
     const imageClassifyConfig = buildStageRunnerImageClassifyConfig(config, storage)
     const meaningfulnessConfig = buildMeaningfulnessConfig(config)
@@ -1111,6 +1199,7 @@ async function runExtractStep(
     if (!stepController.signal.aborted) {
       await runMeaningfulnessPass(
         label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
+        resolveFigureExtractionMode(config) === "auto",
         effectiveConcurrency, pageResults, pageFailureDeps, progress
       )
     }
@@ -1219,6 +1308,48 @@ async function runSectioningStep(
       : null
 
     const pages = storage.getPages()
+    const stepStatus = new Map(storage.getStepRuns().map((run) => [run.step, run.status]))
+    const outlineStepStatus = stepStatus.get("book-outline")
+    const outlineStepComplete = outlineStepStatus === "done" || outlineStepStatus === "skipped"
+    let bookOutline = outlineStepComplete ? readBookOutline(storage) : null
+    // Split/merge projects deliberately discard part-local outlines. Rebuild
+    // the authoritative hierarchy from the assembled stored pages here so a
+    // Sectioning run never has to invoke (and clear data through) Extract.
+    if (!bookOutline) {
+      const extractStage = PIPELINE.find((stage) => stage.name === "extract")
+      const incompletePrerequisites = (extractStage?.steps ?? [])
+        .filter((step) => step.name !== "book-outline")
+        .filter((step) => {
+          const status = stepStatus.get(step.name)
+          return status !== "done" && status !== "skipped"
+        })
+        .map((step) => step.name)
+      if (incompletePrerequisites.length > 0) {
+        throw new Error(
+          "Cannot rebuild the book outline before Extract prerequisites complete: " +
+          incompletePrerequisites.join(", "),
+        )
+      }
+      const outlineConfig = buildBookOutlineConfig(config)
+      const outlineModel = createLLMModel({
+        modelId: outlineConfig.modelId,
+        cacheDir,
+        promptEngine,
+        rateLimiter,
+        onLog: onLlmLog,
+        credentials: llmCredentials,
+        signal: options.signal,
+      })
+      bookOutline = await generateAndStoreBookOutline(
+        label,
+        pages,
+        storage,
+        outlineConfig,
+        outlineModel,
+        progress,
+        options.signal,
+      )
+    }
     const totalPages = pages.length
     const effectiveConcurrency = config.concurrency ?? 32
 
@@ -1260,6 +1391,7 @@ async function runSectioningStep(
               text: page.text,
               imageBase64: storage.getPageImageBase64(page.pageId),
               availableImages,
+              outline: outlineContextForPage(bookOutline, page.pageId),
             },
             pageSectioningConfig,
             structuringModel,
@@ -1328,7 +1460,12 @@ async function runStoryboardStep(
   try {
     const config = loadBookConfig(label, booksDir, configPath)
 
-    const styleguideContent = loadStyleguideContent(config.styleguide, configPath)
+    const styleguideContent = loadStyleguideContent(
+      config.styleguide,
+      configPath,
+      booksDir,
+      label,
+    )
 
     // Render config is always needed
     const resolveRenderConfig = buildRenderStrategyResolver(config)
@@ -2393,7 +2530,75 @@ async function runTranslateStep(
       console.log(`[stage-run] ${label}: catalog translation complete`)
     }
 
-    // ── Step 3: Translate burned-in text in user-selected images ────
+    // ── Step 3: Prepare the independent per-language Core TTS catalogs ──
+    progress.emit({ type: "step-start", step: "core-tts-catalog" })
+    const coreTtsConfig = buildCoreTtsPreparationConfig(config)
+    const coreTtsModel = createLLMModel({
+      modelId: coreTtsConfig.modelId,
+      cacheDir,
+      promptEngine,
+      rateLimiter,
+      onLog: onLlmLog,
+      credentials: llmCredentials,
+      signal: options.signal,
+    })
+    const coreTtsConfigDir = configPath
+      ? path.join(path.dirname(configPath), "config")
+      : path.resolve(process.cwd(), "config")
+    const profiles = loadCoreTtsProfiles(coreTtsConfigDir)
+    const sourceDisplayEntries = [...catalog.entries, ...easyReadEntries]
+    const sourceCoreTts = await prepareCoreTtsCatalog({
+      entries: sourceDisplayEntries,
+      language,
+      config: coreTtsConfig,
+      profile: resolveCoreTtsProfile(language, profiles),
+      llmModel: coreTtsModel,
+      previous: getCoreTtsCatalog(storage, language),
+    })
+    storage.putNodeData("core-tts-catalog", language, sourceCoreTts)
+    const sourceContext = buildCoreTtsSourceContext(
+      sourceDisplayEntries,
+      sourceCoreTts,
+    )
+
+    let preparedLanguages = 1
+    const preparationLocales = getCoreTtsPreparationLocales(
+      outputLanguages,
+      language,
+    )
+    for (const locale of preparationLocales) {
+      const lang = locale.language
+      let targetDisplayEntries = sourceDisplayEntries
+      if (!locale.usesSourceDisplayText) {
+        const legacyLang = lang.replace("-", "_")
+        const translatedRow =
+          storage.getLatestNodeData("text-catalog-translation", lang) ??
+          storage.getLatestNodeData("text-catalog-translation", legacyLang)
+        if (!translatedRow) continue
+        targetDisplayEntries = (translatedRow.data as TextCatalogOutput).entries
+      }
+      const targetCoreTts = await prepareCoreTtsCatalog({
+        entries: targetDisplayEntries,
+        language: lang,
+        config: coreTtsConfig,
+        profile: resolveCoreTtsProfile(lang, profiles),
+        llmModel: coreTtsModel,
+        previous: getCoreTtsCatalog(storage, lang),
+        sourceContext,
+      })
+      storage.putNodeData("core-tts-catalog", lang, targetCoreTts)
+      preparedLanguages++
+      progress.emit({
+        type: "step-progress",
+        step: "core-tts-catalog",
+        message: `${preparedLanguages}/${outputLanguages.length} languages`,
+        page: preparedLanguages,
+        totalPages: outputLanguages.length,
+      })
+    }
+    progress.emit({ type: "step-complete", step: "core-tts-catalog" })
+
+    // ── Step 4: Translate burned-in text in user-selected images ────
     const imageTranslation = buildImageTranslationConfig(config)
     const imageTargetLanguages = getTargetLanguages(outputLanguages, language)
     if (
@@ -2591,21 +2796,15 @@ async function runSpeechStep(
       )
     )
 
-    // Load text catalog from storage (produced by translate stage)
-    const catalogRow = storage.getLatestNodeData("text-catalog", "book")
-    const catalog = catalogRow?.data as TextCatalogOutput | null
-    const easyReadConfig = buildEasyReadConfig(config, language)
-    const easyReadRow = storage.getLatestNodeData("easy-read", "book")
-    // Easy Read audio is generated whenever Easy Read is enabled (all
-    // languages), so include the source-language easy-read entries here too.
-    const sourceEasyReadEntries = easyReadConfig.enabled
-      ? flattenEasyReadEntries(easyReadRow?.data as EasyReadOutput | undefined)
-      : []
-
-    if (!catalog || (catalog.entries.length === 0 && sourceEasyReadEntries.length === 0)) {
+    // Core TTS is the only provider-text source. It already includes Easy Read
+    // entries and deliberately omits failed LaTeX conversions.
+    const hasCoreTtsEntries = outputLanguages.some(
+      (lang) => getReadyCoreTtsEntries(storage, lang).length > 0,
+    )
+    if (!hasCoreTtsEntries) {
       progress.emit({ type: "step-skip", step: "tts" })
       progress.emit({ type: "step-skip", step: "word-timestamps" })
-      console.log(`[stage-run] ${label}: TTS skipped (empty catalog)`)
+      console.log(`[stage-run] ${label}: TTS skipped (empty Core TTS catalog)`)
       return
     }
 
@@ -2671,8 +2870,6 @@ async function runSpeechStep(
       return synth
     }
 
-    const sourceLanguage = language
-
     interface TTSWorkItem {
       textId: string
       text: string
@@ -2708,8 +2905,6 @@ async function runSpeechStep(
     beginSpeechRun(label, ttsResultsByLang, failedByLang)
 
     for (const lang of outputLanguages) {
-      const baseSource = getBaseLanguage(sourceLanguage)
-      const baseLang = getBaseLanguage(lang)
       const existingSpeechEntries = getExistingSpeechEntries(storage, lang)
       const provider = resolveProviderForLanguage(lang, routing)
       const batchThisLanguage =
@@ -2723,20 +2918,10 @@ async function runSpeechStep(
         )
       }
 
-      let entries: TextCatalogEntry[]
-      if (baseLang === baseSource) {
-        entries = [...catalog.entries, ...sourceEasyReadEntries]
-      } else {
-        const legacyLang = lang.replace("-", "_")
-        const translatedRow =
-          storage.getLatestNodeData("text-catalog-translation", lang) ??
-          storage.getLatestNodeData("text-catalog-translation", legacyLang)
-        if (translatedRow) {
-          entries = (translatedRow.data as TextCatalogOutput).entries
-        } else {
-          console.warn(`[stage-run] ${label}: missing translated catalog for ${lang}, skipping TTS for this language`)
-          continue
-        }
+      const entries = getReadyCoreTtsEntries(storage, lang)
+      if (entries.length === 0) {
+        console.warn(`[stage-run] ${label}: no ready Core TTS entries for ${lang}, skipping TTS for this language`)
+        continue
       }
 
       const languageTextMap = new Map<string, string>()
@@ -2886,24 +3071,19 @@ async function runSpeechStep(
           // tracking), mirroring the per-entry path so batched Gemini calls
           // aren't invisible.
           const emitPageLog = (o: { success: boolean; cacheHit: boolean; attempt: number; error?: string }) => {
-            const preview = group.entries.map((e) => e.text).join(" ").slice(0, 300)
-            const logEntry: LlmLogEntry = {
-              requestId: crypto.randomUUID(),
-              timestamp: new Date().toISOString(),
-              taskType: "tts",
-              pageId: group.pageKey,
-              promptName: "tts-gemini",
-              modelId: `gemini/${providerModel}`,
-              cacheHit: o.cacheHit,
-              success: o.success,
-              errorCount: o.success ? 0 : 1,
-              attempt: Math.max(o.attempt, 1),
+            const logEntry = buildTtsLogEntry({
+              textId: group.pageKey,
+              language: group.language,
+              voice: `${voice} (page ${group.pageKey}, ${group.entries.length} entries)`,
+              model: providerModel,
+              provider: "gemini",
+              text: group.entries.map((entry) => entry.text).join(" "),
               durationMs: Date.now() - startMs,
-              messages: [{
-                role: "user",
-                content: [{ type: "text" as const, text: `[${group.language}] voice=${voice} (page ${group.pageKey}, ${group.entries.length} entries)${o.error ? `\nERROR: ${o.error}` : ""}\n${preview}` }],
-              }],
-            }
+              success: o.success,
+              cached: o.cacheHit,
+              attempt: o.attempt,
+              error: o.error,
+            })
             storage.appendLlmLog(logEntry)
             progress.emit({ type: "llm-log", step: "tts", itemId: group.pageKey, promptName: logEntry.promptName, modelId: logEntry.modelId, cacheHit: o.cacheHit, durationMs: logEntry.durationMs })
           }
@@ -3141,24 +3321,19 @@ async function runSpeechStep(
         const durationMs = Date.now() - startMs
         const cached = entry?.cached ?? false
 
-        const logEntry: LlmLogEntry = {
-          requestId: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          taskType: "tts",
-          pageId: item.textId,
-          promptName: `tts-${provider}`,
-          modelId: `${provider}/${providerModel}`,
-          cacheHit: cached,
-          success: true,
-          errorCount: 0,
-          attempt: attemptCount,
+        const logEntry = buildTtsLogEntry({
+          textId: item.textId,
+          language: item.language,
+          voice,
+          model: providerModel,
+          provider,
+          text: item.text,
           durationMs,
-          ...(logParams ? { params: logParams } : {}),
-          messages: [{
-            role: "user",
-            content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\n${item.text.slice(0, 300)}` }],
-          }],
-        }
+          success: true,
+          cached,
+          attempt: attemptCount,
+          params: logParams,
+        })
         storage.appendLlmLog(logEntry)
         progress.emit({
           type: "llm-log",
@@ -3188,24 +3363,20 @@ async function runSpeechStep(
           geminiFailedItems.push(`${item.textId}: ${msg}`)
         }
 
-        const logEntry: LlmLogEntry = {
-          requestId: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          taskType: "tts",
-          pageId: item.textId,
-          promptName: `tts-${provider}`,
-          modelId: `${provider}/${providerModel}`,
-          cacheHit: false,
-          success: false,
-          errorCount: 1,
-          attempt: Math.max(attemptCount, 1),
+        const logEntry = buildTtsLogEntry({
+          textId: item.textId,
+          language: item.language,
+          voice,
+          model: providerModel,
+          provider,
+          text: item.text,
           durationMs,
-          ...(logParams ? { params: logParams } : {}),
-          messages: [{
-            role: "user",
-            content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\nERROR: ${msg}\n\n${item.text.slice(0, 300)}` }],
-          }],
-        }
+          success: false,
+          cached: false,
+          attempt: attemptCount,
+          error: msg,
+          params: logParams,
+        })
         storage.appendLlmLog(logEntry)
         progress.emit({
           type: "llm-log",
@@ -3400,12 +3571,21 @@ async function runMeaningfulnessPass(
   storage: Storage,
   config: MeaningfulnessConfig | null,
   model: ReturnType<typeof createLLMModel> | null,
+  autoDedup: boolean,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
   deps: PageFailureDeps,
   progress: StageRunProgress,
 ): Promise<void> {
   if (!config || !model) {
+    if (autoDedup) {
+      for (const page of pages) {
+        const existing = results.get(page.pageId)
+        if (!existing) continue
+        const updated = dedupAutoFigureCandidatesInStorage(storage, page.pageId, existing)
+        if (updated !== existing) results.set(page.pageId, updated)
+      }
+    }
     progress.emit({ type: "step-skip", step: "image-meaningfulness" })
     return
   }
@@ -3430,24 +3610,14 @@ async function runMeaningfulnessPass(
       return
     }
     try {
-      const images = storage.getPageImages(page.pageId)
-      const unprunedImageIds = new Set(
-        existing.images.filter((img) => !img.isPruned).map((img) => img.imageId)
-      )
-      const unprunedImages = images
-        .filter((img) => unprunedImageIds.has(img.imageId))
-        .map((img) => ({
-          imageId: img.imageId,
-          imageBase64: storage.getImageBase64(img.imageId),
-          width: img.width,
-          height: img.height,
-        }))
+      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing)
 
       if (unprunedImages.length > 0) {
         const updated = await filterPageImageMeaningfulness(
           {
             pageId: page.pageId,
             pageImageBase64: storage.getPageImageBase64(page.pageId),
+            pageText: page.text,
             images: unprunedImages,
           },
           existing,

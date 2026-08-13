@@ -117,7 +117,20 @@ const PROMPT_VARIABLES: Record<string, string[]> = {
     "pages[].text",
     "pages[].imageBase64",
   ],
-  image_meaningfulness: IMAGE_FILTER_VARIABLES,
+  image_meaningfulness: [
+    ...IMAGE_FILTER_VARIABLES,
+    "page_text",
+    "figure_extraction_mode",
+    "images[].renderMethod",
+    "images[].figureContext",
+    "images[].figureContext.hasSelectableText",
+    "images[].figureContext.hasRasterContent",
+    "images[].figureContext.shapeCount",
+    "images[].figureContext.textShapeCount",
+    "images[].figureContext.vectorShapeCount",
+    "images[].figureContext.coveredImageIds",
+    "images[].containedInFigureId",
+  ],
   image_cropping: IMAGE_FILTER_VARIABLES,
   image_segmentation: IMAGE_FILTER_VARIABLES,
   page_sectioning: [
@@ -240,6 +253,7 @@ const PROMPT_VARIABLES: Record<string, string[]> = {
     "nodes",
     "leaf_texts",
     "viewports",
+    "has_merged_content",
   ],
   visual_review_flexible: [
     "page_image_base64",
@@ -248,6 +262,8 @@ const PROMPT_VARIABLES: Record<string, string[]> = {
     "nodes",
     "leaf_texts",
     "viewports",
+    "has_merged_content",
+    "user_instructions",
   ],
   html_edit: [
     "current_html",

@@ -62,7 +62,7 @@ function resolveStyleguide(
     unknown
   >
   const name = typeof config.styleguide === "string" ? config.styleguide : undefined
-  return loadStyleguideContent(name, configPath)
+  return loadStyleguideContent(name, configPath, booksDir, label)
 }
 
 export interface LayoutMirrorServiceOptions extends AgentApiKeys {

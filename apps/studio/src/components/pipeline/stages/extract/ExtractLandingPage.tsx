@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Lock } from "lucide-react"
+import { FigureExtractionMode } from "@adt/types"
 import { useBook } from "@/hooks/use-books"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
@@ -45,13 +46,23 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const [pageRange, setPageRange] = useState<[number, number]>([1, 1])
   const [spreadMode, setSpreadMode] = useState<SpreadModeKey>("single")
-  const [vectorTextGrouping, setVectorTextGrouping] = useState(true)
+  const [figureExtractionMode, setFigureExtractionMode] =
+    useState<FigureExtractionMode>("all")
+  const [removeWatermarks, setRemoveWatermarks] = useState(false)
 
   useEffect(() => {
     if (!bookConfigData) return
     const c = bookConfigData.config
     setSpreadMode(c.spread_mode === true ? "spread" : "single")
-    setVectorTextGrouping(c.vector_text_grouping !== false)
+    setRemoveWatermarks(c.remove_watermarks === true)
+    const explicitFigureMode = FigureExtractionMode.safeParse(c.figure_extraction_mode)
+    setFigureExtractionMode(
+      explicitFigureMode.success
+        ? explicitFigureMode.data
+        : c.vector_text_grouping === false
+          ? "off"
+          : "all",
+    )
     const start = c.start_page != null ? Number(c.start_page) : 1
     const end = c.end_page != null ? Number(c.end_page) : Math.max(start, totalPages || 1)
     setPageRange([start, end])
@@ -67,15 +78,33 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
     persist({ spread_mode: value === "spread" })
   }
 
-  const handleVectorTextChange = (next: boolean) => {
-    setVectorTextGrouping(next)
-    persist({ vector_text_grouping: next })
+  const handleFigureExtractionModeChange = (next: FigureExtractionMode) => {
+    setFigureExtractionMode(next)
+    persist({
+      figure_extraction_mode: next,
+      // Keep the legacy key synchronized for older ADT Studio versions.
+      vector_text_grouping: next !== "off",
+    })
+  }
+
+  const handleRemoveWatermarksChange = (next: boolean) => {
+    setRemoveWatermarks(next)
+    persist({ remove_watermarks: next })
   }
 
   const spreadOptions = useMemo(
     () => [
       { value: "single" as const, label: t`Single` },
       { value: "spread" as const, label: t`Spread` },
+    ],
+    [t],
+  )
+
+  const figureExtractionOptions = useMemo(
+    () => [
+      { value: "off" as const, label: t`Off` },
+      { value: "auto" as const, label: t`Auto` },
+      { value: "all" as const, label: t`All` },
     ],
     [t],
   )
@@ -210,16 +239,38 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
         </SettingsField>
       </SettingsCard>
 
+      <SettingsCard>
+        <SettingsField
+          label={<Trans>Figure Extraction</Trans>}
+          hint={
+            <Trans>
+              Auto preserves charts, labeled images, and complex infographics as
+              single assets while leaving styled headings, callouts, and
+              conventional tables for accessible HTML. All keeps every composite
+              candidate. Off prevents PDF text from being merged into figures.
+            </Trans>
+          }
+        >
+          <SegmentedControl
+            options={figureExtractionOptions}
+            value={figureExtractionMode}
+            onValueChange={handleFigureExtractionModeChange}
+          />
+        </SettingsField>
+      </SettingsCard>
+
       <ToggleCard
-        title={<Trans>Figure Extraction</Trans>}
+        title={<Trans>Remove Watermarks</Trans>}
         description={
           <Trans>
-            Detects complex charts and figures that contain a mix of text,
-            vectors and images and crops them out of the page.
+            Detects text stamped identically across pages — like a diagonal
+            &ldquo;for online reading only&rdquo; notice — and removes it from
+            page renders, extracted figures, and the book text. Turn off to
+            keep pages exactly as printed.
           </Trans>
         }
-        checked={vectorTextGrouping}
-        onCheckedChange={handleVectorTextChange}
+        checked={removeWatermarks}
+        onCheckedChange={handleRemoveWatermarksChange}
       />
     </LandingPageShell>
   )

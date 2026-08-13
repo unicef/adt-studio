@@ -90,6 +90,7 @@ const config = {
       publisherName: [
         "Núcleo de Excelência em Tecnologias Sociais - NEES",
         "UNICEF",
+        "Elias Constantopedos"
       ],
       sign: "./scripts/sign-windows.js",
     },
@@ -127,6 +128,17 @@ const config = {
 
   dmg: {
     artifactName,
+    background: isBeta ? "build/dmg/beta-background.png" : "build/dmg/background.png",
+    iconSize: 120,
+    iconTextSize: 13,
+    window: {
+      width: 720,
+      height: 480,
+    },
+    contents: [
+      { x: 190, y: 290, type: "file" },
+      { x: 530, y: 290, type: "link", path: "/Applications" },
+    ],
   },
 
   linux: {

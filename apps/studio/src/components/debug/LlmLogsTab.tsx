@@ -41,7 +41,12 @@ function formatSeconds(ms: number): string {
 }
 
 function getStatus(entry: LlmLogEntry): RowStatus {
-  if (entry.data.validationErrors && entry.data.validationErrors.length > 0) return "error"
+  if (entry.data.success === false) return "error"
+  if (
+    entry.data.success === undefined &&
+    entry.data.validationErrors &&
+    entry.data.validationErrors.length > 0
+  ) return "error"
   if (entry.data.cacheHit) return "cached"
   return "success"
 }
@@ -231,7 +236,7 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
           </div>
         )}
 
-        {data.validationErrors && data.validationErrors.length > 0 && (
+        {data.success !== true && data.validationErrors && data.validationErrors.length > 0 && (
           <div>
             <div className="font-medium text-destructive mb-1 flex items-center gap-1">
               <AlertTriangle className="h-3 w-3" />
@@ -239,6 +244,18 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
             </div>
             <pre className="bg-red-50 dark:bg-red-950/30 p-3 rounded text-[11px] whitespace-pre-wrap text-destructive">
               {data.validationErrors.join("\n")}
+            </pre>
+          </div>
+        )}
+
+        {data.success === false && data.error && (
+          <div>
+            <div className="font-medium text-destructive mb-1 flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              <Trans>Error</Trans>
+            </div>
+            <pre className="bg-red-50 dark:bg-red-950/30 p-3 rounded text-[11px] whitespace-pre-wrap text-destructive">
+              {data.error}
             </pre>
           </div>
         )}

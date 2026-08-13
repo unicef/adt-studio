@@ -310,7 +310,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
     if (!base) return
     const entry = base.entries.find((e) => e.id === id)
     if (!entry) return
-    const newLevel = Math.max(1, Math.min(3, entry.level + delta))
+    const newLevel = Math.max(1, Math.min(6, entry.level + delta))
     if (newLevel === entry.level) return
     updateEntry(id, { level: newLevel })
   }
@@ -381,7 +381,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
             filteredEntries.map((entry) => (
               <div
                 key={entry.id}
-                style={{ marginLeft: (Math.min(entry.level, 3) - 1) * 28 }}
+                style={{ marginLeft: (Math.min(entry.level, 6) - 1) * 28 }}
                 className="group/row flex items-center gap-2 rounded-xl border border-border/70 bg-card px-3 py-2 transition-all duration-200 hover:shadow-sm hover:border-amber-300/70"
               >
                 <span
@@ -423,7 +423,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
                   <button
                     type="button"
                     onClick={() => changeLevel(entry.id, 1)}
-                    disabled={entry.level >= 3}
+                    disabled={entry.level >= 6}
                     className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-25 disabled:hover:bg-transparent disabled:hover:text-muted-foreground/60 cursor-pointer"
                     title={t`Increase indent`}
                   >

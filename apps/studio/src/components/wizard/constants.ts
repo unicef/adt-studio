@@ -186,7 +186,7 @@ export const PRESETS: PresetConfig[] = [
       activitiesGenerator: true,
       imageCropping: false,
       imageSegmentation: true,
-      figureExtraction: true,
+      figureExtraction: "auto",
     },
     formDefaults: {
       imageFilterMinSide: 50,
@@ -343,8 +343,11 @@ export const PRESETS: PresetConfig[] = [
       // Role keys must match the actual `role_types` the sectioning LLM assigns
       // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
       // suffixed variants never match, so header/footer would leak in unpruned.
-      pruned_role_types: ["header", "footer", "page_number"],
-      pruned_section_types: ["back_cover", "credits", "inside_cover"],
+      pruned_role_types: ["header", "footer", "page_number", "watermark"],
+      // Textbooks keep the cover pages (inside/inner cover, back cover) and the
+      // credits page on by default — they carry publisher/ISBN and
+      // contributor/funding info worth retaining.
+      pruned_section_types: [],
       image_filters: { min_stddev: 2 },
     },
   },
@@ -419,7 +422,7 @@ export const PRESETS: PresetConfig[] = [
       // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
       // suffixed variants never match, so header/footer would leak into the
       // two-column-story layout unpruned.
-      pruned_role_types: ["header", "footer", "page_number"],
+      pruned_role_types: ["header", "footer", "page_number", "watermark"],
       pruned_section_types: [
         "back_cover",
         "credits",
@@ -470,7 +473,7 @@ export const PRESETS: PresetConfig[] = [
       sectioningMode: "page",
       imageCropping: false,
       imageSegmentation: false,
-      figureExtraction: true,
+      figureExtraction: "auto",
     },
     formDefaults: {
       imageFilterMinSide: 100,
@@ -509,7 +512,7 @@ export const PRESETS: PresetConfig[] = [
       // Role keys must match the actual `role_types` the sectioning LLM assigns
       // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
       // suffixed variants never match, so header/footer would leak in unpruned.
-      pruned_role_types: ["header", "footer", "page_number"],
+      pruned_role_types: ["header", "footer", "page_number", "watermark"],
       pruned_section_types: [
         "back_cover",
         "credits",
@@ -601,6 +604,9 @@ const VALUE_LABELS: Record<string, MessageDescriptor> = {
   spread: msg`Spread`,
   page: msg`Per Page`,
   dynamic: msg`Dynamic`,
+  auto: msg`Auto`,
+  all: msg`All`,
+  off: msg`Off`,
 };
 
 function formatDefaultValue(
