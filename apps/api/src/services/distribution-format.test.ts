@@ -66,6 +66,40 @@ describe("detectDistributionFormat", () => {
     expect(detectDistributionFormat(zip)).toBeNull()
   })
 
+  it("returns null for a project backup that still contains leftover epub/ + pnld/ export dirs", () => {
+    // A Project backup excludes only adt/ + webpub/, so epub/ and pnld/ export
+    // dirs ride along. Their markers must NOT be read as a distribution export.
+    const zip = makeZip({
+      "raven.db": "SQLite format 3",
+      "raven.pdf": "%PDF-1.7",
+      "content/pages.json": "[]",
+      "epub/mimetype": "application/epub+zip",
+      "epub/META-INF/container.xml": "<container/>",
+      "epub/OEBPS/content.opf": "<package/>",
+      "pnld/content.opf": "<package/>",
+      "pnld/resources/styles/tailwind_output.css": "",
+    })
+    expect(detectDistributionFormat(zip)).toBeNull()
+  })
+
+  it("detects a Finder-wrapped EPUB (single top-level folder)", () => {
+    const zip = makeZip({
+      "raven-epub/mimetype": "application/epub+zip",
+      "raven-epub/META-INF/container.xml": "<container/>",
+      "raven-epub/OEBPS/content.opf": "<package/>",
+    })
+    expect(detectDistributionFormat(zip)).toBe("epub")
+  })
+
+  it("detects a Finder-wrapped PNLD (single top-level folder)", () => {
+    const zip = makeZip({
+      "raven-pnld/content.opf": "<package/>",
+      "raven-pnld/resources/styles/tailwind_output.css": "",
+      "raven-pnld/content/pg001_sec001.html": "<html></html>",
+    })
+    expect(detectDistributionFormat(zip)).toBe("pnld")
+  })
+
   it("returns null for non-zip data", () => {
     expect(detectDistributionFormat(Buffer.from("this is not a zip archive"))).toBeNull()
   })

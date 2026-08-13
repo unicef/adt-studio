@@ -3634,6 +3634,9 @@ msgstr "EPUB 3"
 msgid "EPUB Export"
 msgstr "Exportar EPUB"
 
+msgid "EPUB, PNLD, and WebPub are read-only distribution formats. Re-import the ADT Web ZIP or a Project backup instead."
+msgstr "EPUB, PNLD y WebPub son formatos de distribución de solo lectura. Vuelve a importar el ZIP web de ADT o una copia de seguridad del proyecto."
+
 msgid "Error"
 msgstr "Error"
 
@@ -9745,6 +9748,9 @@ msgstr "Esta conexión aún no está disponible."
 
 msgid "This export does not include fingerprints that can prove whether its HTML changed. The published HTML becomes the working source, so review generated features after import."
 msgstr "Esta exportación no incluye huellas digitales que puedan demostrar si su HTML cambió. El HTML publicado se convierte en la fuente de trabajo, así que revisa las funcionalidades generadas después de la importación."
+
+msgid "This export format can't be re-imported yet"
+msgstr "Este formato de exportación aún no se puede reimportar"
 
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Esta función no es compatible con Diseño Fijo. Si continúas, podrías obtener resultados no deseados."

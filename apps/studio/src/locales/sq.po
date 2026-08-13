@@ -3636,6 +3636,9 @@ msgstr "EPUB 3"
 msgid "EPUB Export"
 msgstr "Eksport EPUB"
 
+msgid "EPUB, PNLD, and WebPub are read-only distribution formats. Re-import the ADT Web ZIP or a Project backup instead."
+msgstr "EPUB, PNLD dhe WebPub janë formate shpërndarjeje vetëm për lexim. Riimporto ZIP-in web të ADT-së ose një kopje rezervë të projektit."
+
 msgid "Error"
 msgstr "Gabim"
 
@@ -9747,6 +9750,9 @@ msgstr "Kjo lidhje nuk është ende e disponueshme."
 
 msgid "This export does not include fingerprints that can prove whether its HTML changed. The published HTML becomes the working source, so review generated features after import."
 msgstr "Ky eksport nuk përfshin gjurmë që mund të provojnë nëse HTML-ja e tij ka ndryshuar. HTML-ja e publikuar bëhet burimi i punës, prandaj shqyrtoni veçoritë e gjeneruara pas importimit."
+
+msgid "This export format can't be re-imported yet"
+msgstr "Ky format eksporti nuk mund të riimportohet ende"
 
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Kjo veçori nuk është e pajtueshme me Paraqitjen e fiksuar. Nëse vazhdoni, mund të merrni rezultate të padëshiruara."

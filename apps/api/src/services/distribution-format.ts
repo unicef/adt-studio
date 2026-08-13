@@ -31,12 +31,37 @@ function basename(entryPath: string): string {
 }
 
 /**
+ * The archive's content root — a single top-level wrapper directory (e.g. a
+ * folder compressed via Finder) when one contains everything, otherwise `""`.
+ * macOS resource-fork entries are ignored.
+ *
+ * This anchors the marker checks below to the true root. A project backup has
+ * many top-level entries (its own `.db`/`.pdf` plus leftover `epub/`/`pnld/`
+ * export dirs), so its root is `""` and those nested distribution markers do not
+ * match — which is what stops a backup from being misread as a distribution export.
+ */
+function archiveRoot(names: string[]): string {
+  const topLevel = new Set<string>()
+  for (const entry of names) {
+    if (!entry || entry.startsWith("__MACOSX/")) continue
+    topLevel.add(entry.split("/")[0])
+  }
+  if (topLevel.size === 1) {
+    const [only] = [...topLevel]
+    if (names.some((p) => p.startsWith(`${only}/`))) return `${only}/`
+  }
+  return ""
+}
+
+/**
  * Classify an uploaded archive as a WebPub / EPUB / PNLD distribution export, or
  * `null` when it is not one of those (an ADT bundle, project, part, or garbage).
  *
  * Only the small marker files (`mimetype`, `manifest.json`) are decompressed;
  * every entry name is inspected via the unzip filter so large archives are not
- * fully inflated just to classify them.
+ * fully inflated just to classify them. Marker checks are anchored to the archive
+ * root so a project backup that still contains `epub/`/`pnld/` export dirs is not
+ * misclassified.
  */
 export function detectDistributionFormat(zipBuffer: Buffer): DistributionExportFormat | null {
   const names: string[] = []
@@ -52,28 +77,37 @@ export function detectDistributionFormat(zipBuffer: Buffer): DistributionExportF
   } catch {
     return null
   }
+  if (names.length === 0) return null
 
-  const decode = (base: string): string | null => {
-    const key = Object.keys(markers).find((p) => basename(p) === base)
-    return key ? new TextDecoder().decode(markers[key]) : null
+  const root = archiveRoot(names)
+  const atRoot = (relative: string): boolean => names.includes(`${root}${relative}`)
+  const decodeAtRoot = (relative: string): string | null => {
+    const key = `${root}${relative}`
+    return key in markers ? new TextDecoder().decode(markers[key]) : null
   }
 
-  // PNLD (FNDE "Obra Digital"): OPF at the package root (not under OEBPS/) plus a
-  // `resources/` tree. Checked before the generic EPUB test because PNLD is also
-  // EPUB-conformant and would otherwise match it.
-  const hasRootOpf = names.some((p) => /(^|\/)content\.opf$/.test(p) && !p.includes("OEBPS/"))
-  const hasResourcesDir = names.some((p) => /(^|\/)resources\//.test(p))
+  // A project backup carries a root-level `<label>.db` — never a distribution
+  // export. Bail before the marker checks.
+  const isRootEntry = (p: string): boolean =>
+    p.startsWith(root) && !p.slice(root.length).includes("/")
+  if (names.some((p) => isRootEntry(p) && p.endsWith(".db"))) return null
+
+  // PNLD (FNDE "Obra Digital"): OPF plus a `resources/` tree at the package root.
+  // Checked before the generic EPUB test because PNLD is also EPUB-conformant and
+  // would otherwise match it.
+  const hasRootOpf = atRoot("content.opf")
+  const hasResourcesDir = names.some((p) => p.startsWith(`${root}resources/`))
   if (hasRootOpf && hasResourcesDir) return "pnld"
 
-  // EPUB: the canonical mimetype, or the container/OPF layout.
-  const mimetype = decode("mimetype")?.trim()
-  const hasContainerXml = names.some((p) => p.endsWith("META-INF/container.xml"))
-  const hasOebpsOpf = names.some((p) => p.endsWith("OEBPS/content.opf"))
+  // EPUB: the canonical mimetype, or the container/OPF layout, at the root.
+  const mimetype = decodeAtRoot("mimetype")?.trim()
+  const hasContainerXml = atRoot("META-INF/container.xml")
+  const hasOebpsOpf = atRoot("OEBPS/content.opf")
   if (mimetype === "application/epub+zip" || hasContainerXml || hasOebpsOpf) return "epub"
 
-  // WebPub: a Readium manifest.json — a different schema from the ADT
+  // WebPub: a Readium manifest.json at the root — a different schema from the ADT
   // editing-contract manifest.json (which carries `editingContract`/`formatVersion`).
-  const manifestRaw = decode("manifest.json")
+  const manifestRaw = decodeAtRoot("manifest.json")
   if (manifestRaw) {
     try {
       const manifest = JSON.parse(manifestRaw) as Record<string, unknown>
