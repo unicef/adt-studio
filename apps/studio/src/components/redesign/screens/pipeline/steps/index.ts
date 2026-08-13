@@ -1,5 +1,5 @@
 import type { ComponentType } from "react"
-import type { DockSlug } from "../plugins"
+import type { DockSlug } from "@/components/redesign/screens/pipeline/shared/plugins"
 import { CaptionsStep } from "./CaptionsStep"
 import { EasyReadStep } from "./EasyReadStep"
 import { ExtractStep } from "./ExtractStep"
@@ -10,7 +10,7 @@ import { SignLanguageStep } from "./SignLanguageStep"
 import { SpeechStep } from "./SpeechStep"
 import { TocStep } from "./TocStep"
 import { TranslateStep } from "./TranslateStep"
-import type { StepProps } from "./types"
+import type { StepProps } from "./shared/types"
 
 export const STEP_VIEWS: Record<DockSlug, ComponentType<StepProps>> = {
   extract: ExtractStep,
@@ -25,4 +25,4 @@ export const STEP_VIEWS: Record<DockSlug, ComponentType<StepProps>> = {
   "sign-language": SignLanguageStep,
 }
 
-export type { StepProps, StepFrame } from "./types"
+export type { StepProps, StepFrame } from "./shared/types"

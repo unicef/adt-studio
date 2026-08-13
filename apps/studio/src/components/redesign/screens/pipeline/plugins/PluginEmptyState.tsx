@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { getStageDescriptionI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
 import { PLUGIN_COPY } from "./pluginCopy"
-import { tint, type DockEntry, type DockSlug } from "./plugins"
+import { tint, type DockEntry, type DockSlug } from "@/components/redesign/screens/pipeline/shared/plugins"
 
 export type ScopeKey = "book" | "page" | "selection"
 

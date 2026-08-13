@@ -3,8 +3,8 @@ import type { StageName } from "@adt/types"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { useBookRun } from "@/hooks/use-book-run"
 import { usePages } from "@/hooks/use-pages"
-import type { DockSlug } from "./plugins"
-import { STEP_PREREQ, isStepLocked, type StageEvidence } from "./stepPrereq"
+import type { DockSlug } from "@/components/redesign/screens/pipeline/shared/plugins"
+import { STEP_PREREQ, isStepLocked, type StageEvidence } from "@/components/redesign/screens/pipeline/shared/stepPrereq"
 
 export interface StepPrereq {
   /** Upstream stage this step waits on, or null when it never blocks. */

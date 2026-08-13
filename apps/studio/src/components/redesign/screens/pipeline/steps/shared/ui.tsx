@@ -3,8 +3,8 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { Check, Loader2, Pencil, X } from "lucide-react"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { RailCollapseButton } from "../SideRail"
-import { tint } from "../plugins"
+import { RailCollapseButton } from "@/components/redesign/screens/pipeline/rail/SideRail"
+import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
 
 /** Scrolling body for a step, matching the workspace's centred column. */
 export function StepBody({

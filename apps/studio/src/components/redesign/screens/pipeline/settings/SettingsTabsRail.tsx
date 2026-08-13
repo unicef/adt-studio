@@ -2,7 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useDirtyTabsForStage } from "@/hooks/use-settings-dirty-tabs"
 import { cn } from "@/lib/utils"
-import { tint } from "../plugins"
+import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
 import type { StepSettingsSlug, StepSettingsTab } from "./slugs"
 
 export interface SettingsTabsRailProps {

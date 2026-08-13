@@ -6,12 +6,12 @@ import { api, BASE_URL, type PageDetail } from "@/api/client"
 import { useSaveImageClassification } from "@/hooks/use-page-mutations"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
 import { cn } from "@/lib/utils"
-import { tint } from "../plugins"
-import { useRunActivity, useStageActivity } from "../useRunActivity"
-import { StepEmpty, StepLoading, StepRunning, StepShell } from "./StepShell"
-import { RowAction, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./ui"
-import type { StepProps } from "./types"
-import type { PipelinePage } from "../usePipelineState"
+import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
+import { useRunActivity, useStageActivity } from "@/components/redesign/screens/pipeline/runs/useRunActivity"
+import { StepEmpty, StepLoading, StepRunning, StepShell } from "./shared/StepShell"
+import { RowAction, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./shared/ui"
+import type { StepProps } from "./shared/types"
+import type { PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
 
 type ClassifiedImage = NonNullable<PageDetail["imageClassification"]>["images"][number]
 

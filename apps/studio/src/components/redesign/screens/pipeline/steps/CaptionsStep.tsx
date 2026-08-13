@@ -4,10 +4,10 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { EyeOff, Undo2 } from "lucide-react"
 import { api, BASE_URL, type PageDetail } from "@/api/client"
 import { cn } from "@/lib/utils"
-import { useSaveCaptions } from "./mutations"
-import { StepEmpty, StepLoading, StepShell } from "./StepShell"
-import { EditableText, RowAction, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./ui"
-import type { StepProps } from "./types"
+import { useSaveCaptions } from "./shared/mutations"
+import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { EditableText, RowAction, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./shared/ui"
+import type { StepProps } from "./shared/types"
 
 type Caption = NonNullable<PageDetail["imageCaptioning"]>["captions"][number]
 

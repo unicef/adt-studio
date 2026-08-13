@@ -4,11 +4,11 @@ import { Puzzle } from "lucide-react"
 import type { QuizItem } from "@/api/client"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { PageThumb } from "./PageThumb"
+import { PageThumb } from "@/components/redesign/screens/pipeline/canvas/PageThumb"
 import { QuizRailRow } from "./QuizRailRow"
 import { groupQuizzesByPage } from "./railOrder"
 import { RailCollapseButton } from "./SideRail"
-import type { PipelinePage } from "./usePipelineState"
+import type { PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
 
 export interface PagesRailProps {
   label: string

@@ -4,11 +4,11 @@ import { Check, Circle } from "lucide-react"
 import type { QuizItem } from "@/api/client"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { cn } from "@/lib/utils"
-import { tint } from "../plugins"
-import { useSaveQuizzes } from "./mutations"
-import { StepEmpty, StepLoading, StepShell } from "./StepShell"
-import { EditableText, SaveError, StepBody, StepCard, StepEmptyHint, StepRail } from "./ui"
-import type { StepProps } from "./types"
+import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
+import { useSaveQuizzes } from "./shared/mutations"
+import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { EditableText, SaveError, StepBody, StepCard, StepEmptyHint, StepRail } from "./shared/ui"
+import type { StepProps } from "./shared/types"
 
 export function QuizzesStep(props: StepProps) {
   const { label, plugin, pages } = props

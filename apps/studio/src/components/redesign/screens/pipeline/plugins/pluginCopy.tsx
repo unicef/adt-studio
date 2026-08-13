@@ -2,7 +2,7 @@ import { Trans } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Sparkles } from "lucide-react"
-import type { DockSlug } from "./plugins"
+import type { DockSlug } from "@/components/redesign/screens/pipeline/shared/plugins"
 
 export interface PluginCopy {
   /** Headline for the never-run state. */

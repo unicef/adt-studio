@@ -6,9 +6,9 @@ import { NO_DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
 import { AiEditPanel } from "./AiEditPanel"
 import { PluginDock } from "./PluginDock"
-import { SideRail } from "./SideRail"
-import { tint, type DockEntry } from "./plugins"
-import type { DockItem, PipelinePage } from "./usePipelineState"
+import { SideRail } from "@/components/redesign/screens/pipeline/rail/SideRail"
+import { tint, type DockEntry } from "@/components/redesign/screens/pipeline/shared/plugins"
+import type { DockItem, PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
 
 export interface PluginWorkspaceProps {
   label: string

@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { EasyReadSectionBlock } from "@/api/client"
-import { tint } from "../plugins"
-import { useSaveEasyRead } from "./mutations"
-import { useEasyRead } from "./queries"
-import { StepEmpty, StepLoading, StepShell } from "./StepShell"
-import { EditableText, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./ui"
-import type { StepProps } from "./types"
+import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
+import { useSaveEasyRead } from "./shared/mutations"
+import { useEasyRead } from "./shared/queries"
+import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { EditableText, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./shared/ui"
+import type { StepProps } from "./shared/types"
 
 export function EasyReadStep(props: StepProps) {
   const { label, plugin } = props

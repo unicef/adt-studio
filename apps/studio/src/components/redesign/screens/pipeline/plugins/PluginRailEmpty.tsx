@@ -1,7 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Sparkles } from "lucide-react"
-import { RailCollapseButton } from "./SideRail"
-import { tint } from "./plugins"
+import { RailCollapseButton } from "@/components/redesign/screens/pipeline/rail/SideRail"
+import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
 
 export interface PluginRailEmptyProps {
   hex: string

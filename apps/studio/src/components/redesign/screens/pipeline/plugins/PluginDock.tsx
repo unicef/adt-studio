@@ -3,8 +3,8 @@ import { Check, Plus } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { getStageLabelI18n, getStageDescriptionI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
-import { tint } from "./plugins"
-import type { DockItem } from "./usePipelineState"
+import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
+import type { DockItem } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
 
 export interface PluginDockProps {
   foundations: DockItem[]

@@ -16,8 +16,8 @@ import { InteractiveBlock } from "./InteractiveBlock"
 import { PageDeviceFrame } from "./PageDeviceFrame"
 import { PageThumb } from "./PageThumb"
 import { quizPreviewUrl } from "./previewUrls"
-import type { Viewport } from "./types"
-import type { PipelinePage } from "./usePipelineState"
+import type { Viewport } from "@/components/redesign/screens/pipeline/shared/types"
+import type { PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
 
 /** Fallback height until the live render reports how tall it lays out. */
 const QUIZ_FRAME_HEIGHT = 520

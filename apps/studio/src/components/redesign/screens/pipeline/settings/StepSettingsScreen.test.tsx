@@ -55,7 +55,7 @@ vi.mock("@/components/ui/scroll-area", () => ({
   ScrollArea: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }))
 
-vi.mock("../PluginDock", () => ({
+vi.mock("@/components/redesign/screens/pipeline/plugins/PluginDock", () => ({
   PluginDock: ({
     activeSlug,
     onOpenPlugin,

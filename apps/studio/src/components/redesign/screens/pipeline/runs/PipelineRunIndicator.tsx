@@ -3,7 +3,7 @@ import { Loader2, Workflow, X } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { RunStepRows } from "./RunStepRows"
-import { tint } from "./plugins"
+import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
 import { useRunActivity, type RunStageActivity } from "./useRunActivity"
 
 function StageBlock({ stage }: { stage: RunStageActivity }) {

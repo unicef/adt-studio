@@ -1,5 +1,5 @@
-import type { DockEntry, DockSlug } from "../plugins"
-import type { DockItem, PipelinePage } from "../usePipelineState"
+import type { DockEntry, DockSlug } from "@/components/redesign/screens/pipeline/shared/plugins"
+import type { DockItem, PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
 
 /** Everything the workspace frame needs, threaded through unchanged by each step. */
 export interface StepFrame {

@@ -16,9 +16,9 @@ import { InteractiveBlock } from "./InteractiveBlock";
 import { PageDeviceFrame } from "./PageDeviceFrame";
 import { PageEmptyState } from "./PageEmptyState";
 import { sectionPreviewUrl } from "./previewUrls";
-import type { Viewport } from "./types";
-import type { SectioningRun } from "./useSectioningRun";
-import type { PipelinePage } from "./usePipelineState";
+import type { Viewport } from "@/components/redesign/screens/pipeline/shared/types";
+import type { SectioningRun } from "@/components/redesign/screens/pipeline/runs/useSectioningRun";
+import type { PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState";
 
 /** Fallback height until the live render reports how tall it lays out. */
 const SECTION_FRAME_HEIGHT = 640;

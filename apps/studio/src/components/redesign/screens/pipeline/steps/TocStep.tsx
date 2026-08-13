@@ -2,11 +2,11 @@ import { useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { TocEntry } from "@/api/client"
 import { useToc } from "@/hooks/use-toc"
-import { tint } from "../plugins"
-import { useSaveToc } from "./mutations"
-import { StepEmpty, StepLoading, StepShell } from "./StepShell"
-import { EditableText, SaveError, StepBody, StepEmptyHint, StepRail } from "./ui"
-import type { StepProps } from "./types"
+import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
+import { useSaveToc } from "./shared/mutations"
+import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { EditableText, SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
+import type { StepProps } from "./shared/types"
 
 export function TocStep(props: StepProps) {
   const { label, plugin } = props

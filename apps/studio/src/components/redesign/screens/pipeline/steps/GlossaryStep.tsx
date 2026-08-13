@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useGlossary } from "@/hooks/use-glossary"
 import { cn } from "@/lib/utils"
-import { useSaveGlossary } from "./mutations"
-import { StepEmpty, StepLoading, StepShell } from "./StepShell"
-import { EditableText, RowAction, SaveError, StepBody, StepCard, StepEmptyHint, StepRail } from "./ui"
-import type { StepProps } from "./types"
+import { useSaveGlossary } from "./shared/mutations"
+import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { EditableText, RowAction, SaveError, StepBody, StepCard, StepEmptyHint, StepRail } from "./shared/ui"
+import type { StepProps } from "./shared/types"
 
 export function GlossaryStep(props: StepProps) {
   const { label, plugin } = props

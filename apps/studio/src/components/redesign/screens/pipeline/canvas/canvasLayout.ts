@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useState, type RefObject } from "react"
-import type { Viewport } from "./types"
+import type { Viewport } from "@/components/redesign/screens/pipeline/shared/types"
 import { zoomBy } from "./zoom"
 
 /** Widths the sections are rendered and captured at (`SCREENSHOT_VIEWPORTS`).

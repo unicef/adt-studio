@@ -1,8 +1,8 @@
 import { useMemo } from "react"
 import { useHotkey } from "@tanstack/react-hotkeys"
 import type { QuizItem } from "@/api/client"
-import { buildRailOrder } from "./railOrder"
-import type { PipelinePage } from "./usePipelineState"
+import { buildRailOrder } from "@/components/redesign/screens/pipeline/rail/railOrder"
+import type { PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
 
 export interface CanvasNavigationOptions {
   pages: PipelinePage[]

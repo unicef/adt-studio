@@ -1,5 +1,5 @@
 import type { QuizItem } from "@/api/client"
-import type { PipelinePage } from "./usePipelineState"
+import type { PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
 
 export type RailItem =
   | { kind: "page"; pageId: string }

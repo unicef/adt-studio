@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { PipelineScreen } from "@/components/redesign/screens/PipelineScreen"
-import { isDockSlug, type DockSlug } from "@/components/redesign/screens/pipeline/plugins"
+import { isDockSlug, type DockSlug } from "@/components/redesign/screens/pipeline/shared/plugins"
 import {
   isStepSettingsSlug,
   type StepSettingsSlug,

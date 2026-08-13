@@ -4,7 +4,7 @@ import { ArrowLeft, Settings } from "lucide-react"
 import { TitleBarControls } from "@/components/title-bar/title-bar-controls"
 import { NO_DRAG_REGION } from "@/constants"
 import { REDESIGN_PATHS } from "@/components/redesign/shared/nav"
-import { PipelineRunIndicator } from "./PipelineRunIndicator"
+import { PipelineRunIndicator } from "@/components/redesign/screens/pipeline/runs/PipelineRunIndicator"
 
 export interface PipelineTopBarProps {
   label: string

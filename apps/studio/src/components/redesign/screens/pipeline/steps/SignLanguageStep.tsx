@@ -8,10 +8,10 @@ import {
   useUploadSignLanguageVideo,
   useDeleteSignLanguageVideo,
 } from "@/hooks/use-sign-language-videos"
-import { tint } from "../plugins"
-import { StepEmpty, StepLoading, StepShell } from "./StepShell"
-import { RowAction, SaveError, StepBody, StepCard, StepRail } from "./ui"
-import type { StepProps } from "./types"
+import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
+import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { RowAction, SaveError, StepBody, StepCard, StepRail } from "./shared/ui"
+import type { StepProps } from "./shared/types"
 
 /** `""` shows every video; `null` shows only the unassigned ones. */
 type VideoFilter = string | null
