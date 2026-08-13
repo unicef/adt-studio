@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowLeft, Settings } from "lucide-react"
+import { ArrowLeft, Eye, Settings } from "lucide-react"
 import { TitleBarControls } from "@/components/title-bar/title-bar-controls"
 import { NO_DRAG_REGION } from "@/constants"
 import { REDESIGN_PATHS } from "@/components/redesign/shared/nav"
@@ -13,12 +13,18 @@ export interface PipelineTopBarProps {
   version?: number | null
   /** Right-hand status pill: review queue, extraction summary, … */
   status?: React.ReactNode
+  /** Opens the packaged book preview on the page the canvas is showing. */
+  onPreview?: () => void
+  /** Nothing is rendered yet, so there is no page to preview. */
+  previewDisabled?: boolean
 }
 export function PipelineTopBar({
   label,
   pageLabel,
   version,
   status,
+  onPreview,
+  previewDisabled,
 }: PipelineTopBarProps) {
   const { t } = useLingui()
 
@@ -60,6 +66,18 @@ export function PipelineTopBar({
       {status}
 
       <div style={NO_DRAG_REGION} className="flex items-center gap-1.5">
+        {onPreview && (
+          <button
+            type="button"
+            onClick={onPreview}
+            disabled={previewDisabled}
+            title={t`Preview the book`}
+            className="flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[13px] font-medium text-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
+          >
+            <Eye className="size-3.5" />
+            <Trans>Preview</Trans>
+          </button>
+        )}
         <PipelineRunIndicator />
         <button
           type="button"

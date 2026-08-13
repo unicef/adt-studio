@@ -1213,20 +1213,24 @@ export interface RenderPageOptions {
 }
 
 /**
- * Add `opacity-0` to the first `<div id="content">` element's class list.
- * Used when the LLM-generated content already provides its own wrapper div so
- * we don't add a duplicate — but still need the fade-in class for the ADT animation.
+ * Add classes to the first `<div id="content">` element's class list, skipping
+ * any it already carries. Used when the LLM-generated content already provides
+ * its own wrapper div so we don't add a duplicate — but still need the page
+ * classes the ADT shell relies on.
  */
-function injectOpacityClass(html: string): string {
+function injectContentClasses(html: string, classes: string[]): string {
   return html.replace(
     /(<div\b[^>]*\bid="content"[^>]*)>/,
     (_, opening) => {
-      if (/\bopacity-0\b/.test(opening)) return opening + ">"
+      const missing = classes.filter(
+        (name) => !new RegExp(`\\b${name}\\b`).test(opening),
+      )
+      if (missing.length === 0) return opening + ">"
       const hasClass = /\bclass="/.test(opening)
       if (hasClass) {
-        return opening.replace(/\bclass="([^"]*)"/, 'class="$1 opacity-0"') + ">"
+        return opening.replace(/\bclass="([^"]*)"/, `class="$1 ${missing.join(" ")}"`) + ">"
       }
-      return opening + ' class="opacity-0">'
+      return `${opening} class="${missing.join(" ")}">`
     }
   )
 }
@@ -1298,11 +1302,15 @@ export function renderPageHtml(opts: RenderPageOptions): string {
   const contentAlreadyWrapped = /^\s*<div\b[^>]*\bid="content"/.test(normalizedContent)
   const skipOpacity = opts.embed || opts.fixedViewport
 
+  // `mx-auto` is not optional: the render templates wrap pages in
+  // `<div id="content" class="container">`, and Tailwind's `container` only sets
+  // a max-width — it never centers. Without the auto margins the page hugs the
+  // left edge on any viewport wider than that max-width (visible from 1536px up).
   const contentBlock = opts.skipContentWrapper
     ? `      ${normalizedContent}`
     : contentAlreadyWrapped
-      ? `      ${!skipOpacity ? injectOpacityClass(normalizedContent) : normalizedContent}`
-      : `      <div id="content"${skipOpacity ? "" : ` class="opacity-0"`}>
+      ? `      ${injectContentClasses(normalizedContent, skipOpacity ? ["mx-auto"] : ["mx-auto", "opacity-0"])}`
+      : `      <div id="content" class="mx-auto${skipOpacity ? "" : " opacity-0"}">
         ${normalizedContent}
       </div>`
 

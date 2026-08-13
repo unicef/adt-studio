@@ -12,16 +12,21 @@ export interface PipelineSearch {
   step?: DockSlug
   settings?: StepSettingsSlug
   tab?: string
+  /** Reading the packaged book; carries the section the storyboard was showing. */
+  preview?: boolean
+  previewSection?: string
 }
 
 export const Route = createFileRoute("/redesign/pipeline/$label")({
   component: PipelineRoute,
   validateSearch: (search: Record<string, unknown>): PipelineSearch => {
-    const { step, settings, tab } = search
+    const { step, settings, tab, preview, previewSection } = search
     return {
       ...(typeof step === "string" && isDockSlug(step) ? { step } : {}),
       ...(typeof settings === "string" && isStepSettingsSlug(settings) ? { settings } : {}),
       ...(typeof tab === "string" ? { tab } : {}),
+      ...(preview === true || preview === "true" ? { preview: true } : {}),
+      ...(typeof previewSection === "string" ? { previewSection } : {}),
     }
   },
 })

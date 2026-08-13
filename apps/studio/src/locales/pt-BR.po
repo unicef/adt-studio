@@ -1,4 +1,3 @@
-# Portuguese (Brazil)
 msgid ""
 msgstr ""
 "Project-Id-Version: \n"
@@ -510,8 +509,8 @@ msgstr "{mergedCount} {mergedCount, plural, one {spread} other {spreads}} mescla
 msgid "{mins}m ago"
 msgstr "há {mins}min"
 
-msgid "{missing} alt-text pending"
-msgstr "{missing} texto alternativo pendente"
+#~ msgid "{missing} alt-text pending"
+#~ msgstr "{missing} texto alternativo pendente"
 
 #~ msgid "{missing} pages pending"
 #~ msgstr "{missing} páginas pendentes"
@@ -2110,6 +2109,9 @@ msgstr "Estrutura do livro"
 msgid "Book package ready"
 msgstr "Pacote do livro pronto"
 
+#~ msgid "Book pages"
+#~ msgstr "Páginas do livro"
+
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Páginas do livro. Role horizontalmente para ver mais."
 
@@ -2227,6 +2229,9 @@ msgstr "Construa um índice navegável para o livro. Decida se as entradas espel
 msgid "Build commit"
 msgstr "Commit de build"
 
+msgid "Build the preview again"
+msgstr "Gerar a pré-visualização novamente"
+
 msgid "Build the storyboard first"
 msgstr "Construa o storyboard primeiro"
 
@@ -2238,6 +2243,9 @@ msgstr "Construindo pré-visualização..."
 
 msgid "Building Storyboard..."
 msgstr "Construindo storyboard..."
+
+msgid "Building the preview"
+msgstr "Gerando a pré-visualização"
 
 msgid "Building this page"
 msgstr "Construindo esta pÃ¡gina"
@@ -7306,6 +7314,9 @@ msgstr "Packaging failed"
 msgid "Packaging preview..."
 msgstr "Empacotando pré-visualização..."
 
+msgid "Packaging the book so the preview shows exactly what the reader gets."
+msgstr "Empacotando o livro para que a pré-visualização mostre exatamente o que o leitor recebe."
+
 msgid "Packaging validation results..."
 msgstr "Packaging validation results..."
 
@@ -7333,6 +7344,11 @@ msgstr "Página {0}"
 #. placeholder {1}: i + 1
 msgid "Page {0} — Section {1}"
 msgstr "Página {0} — Seção {1}"
+
+#. placeholder {0}: entry.pageNumber
+#. placeholder {1}: entry.sectionIndex + 1
+#~ msgid "Page {0} · section {1}"
+#~ msgstr "Página {0} · seção {1}"
 
 #. placeholder {0}: block.pageNumber
 #. placeholder {1}: block.sectionIndex + 1
@@ -7869,6 +7885,9 @@ msgstr "Anterior"
 msgid "Preview"
 msgstr "Pré-visualização"
 
+msgid "Preview could not be built"
+msgstr "Não foi possível gerar a pré-visualização"
+
 msgid "Preview linked page"
 msgstr "Visualizar página vinculada"
 
@@ -7878,6 +7897,9 @@ msgstr "Visualizar página vinculada"
 
 msgid "Preview of the HTML/CSS patterns used for LLM-generated pages."
 msgstr "Pré-visualização dos padrões HTML/CSS usados para páginas geradas por LLM."
+
+msgid "Preview the book"
+msgstr "Visualizar o livro"
 
 msgid "Preview: per-sentence"
 msgstr "Pré-visualização: por frase"
@@ -8277,6 +8299,9 @@ msgstr "Falha ao reconstruir"
 
 msgid "Rebuild from page"
 msgstr "Reconstruir a partir da página"
+
+msgid "Rebuild the preview"
+msgstr "Regenerar a pré-visualização"
 
 msgid "Rebuild the steps from the page's current content"
 msgstr "Reconstruir as etapas a partir do conteúdo atual da página"

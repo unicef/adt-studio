@@ -20,6 +20,8 @@ export interface PipelineNavigation {
   openSettings: (slug: string) => void
   closeSettings: () => void
   selectSettingsTab: (nextTab: string) => void
+  openPreview: (sectionId: string | null) => void
+  closePreview: () => void
 }
 
 export function usePipelineNavigation({
@@ -71,5 +73,24 @@ export function usePipelineNavigation({
     })
   }
 
-  return { openStep, closeStep, openSettings, closeSettings, selectSettingsTab }
+  const openPreview = (sectionId: string | null) => {
+    navigate({
+      to: "/redesign/pipeline/$label",
+      params: { label },
+      search: { preview: true, ...(sectionId ? { previewSection: sectionId } : {}) },
+    })
+  }
+  const closePreview = () => {
+    navigate({ to: "/redesign/pipeline/$label", params: { label }, search: {} })
+  }
+
+  return {
+    openStep,
+    closeStep,
+    openSettings,
+    closeSettings,
+    selectSettingsTab,
+    openPreview,
+    closePreview,
+  }
 }

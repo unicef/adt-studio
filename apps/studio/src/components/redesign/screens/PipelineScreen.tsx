@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react/macro"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { ScreenFallback } from "@/components/redesign/shared/ui/ScreenFallback"
 import { PipelineWorkspace } from "./PipelineWorkspace"
+import { PreviewScreen } from "./pipeline/preview/PreviewScreen"
 import { StepSettingsScreen } from "./pipeline/settings/StepSettingsScreen"
 import { defaultStepSettingsTab } from "./pipeline/settings/slugs"
 import { STEP_VIEWS, type StepFrame } from "./pipeline/steps"
@@ -17,7 +18,13 @@ const route = getRouteApi("/redesign/pipeline/$label")
 
 export function PipelineScreen() {
   const { label } = route.useParams()
-  const { step: stepSlug, settings: settingsSlug, tab } = route.useSearch()
+  const {
+    step: stepSlug,
+    settings: settingsSlug,
+    tab,
+    preview,
+    previewSection,
+  } = route.useSearch()
   const { i18n } = useLingui()
 
   const state = usePipelineState(label)
@@ -30,11 +37,28 @@ export function PipelineScreen() {
 
   usePageTitle(state.book?.title ?? label)
 
-  const { openStep, closeStep, openSettings, closeSettings, selectSettingsTab } =
-    usePipelineNavigation({ label, stepSlug, settingsSlug, i18n })
+  const {
+    openStep,
+    closeStep,
+    openSettings,
+    closeSettings,
+    selectSettingsTab,
+    openPreview,
+    closePreview,
+  } = usePipelineNavigation({ label, stepSlug, settingsSlug, i18n })
 
   if (state.isLoading || state.error || !state.book) {
     return <ScreenFallback error={state.error} />
+  }
+
+  if (preview) {
+    return (
+      <PreviewScreen
+        label={label}
+        targetSectionId={previewSection ?? null}
+        onBack={closePreview}
+      />
+    )
   }
 
   if (settingsSlug) {
@@ -93,6 +117,7 @@ export function PipelineScreen() {
       navigationEnabled={!stepSlug && !settingsSlug && state.hasSections && state.hasRendering}
       onOpenStep={openStep}
       onOpenSettings={openSettings}
+      onOpenPreview={openPreview}
     />
   )
 }

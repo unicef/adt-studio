@@ -286,6 +286,15 @@ export interface PageSummarySection {
   textPreview: string
 }
 
+/** An entry of the packaged ADT `content/pages.json` manifest. The first page of
+ *  the book is written as `index.html`, so a section's href can only be resolved
+ *  through this manifest — never derived from the section id. */
+export interface AdtPageEntry {
+  section_id: string
+  href: string
+  page_number?: number
+}
+
 export interface PageSummaryItem {
   pageId: string
   pageNumber: number
@@ -1837,6 +1846,9 @@ export const api = {
     request<{ label: string; hasAdt: boolean; version?: string }>(
       `/books/${label}/package-adt/status`
     ),
+
+  getAdtPages: (label: string) =>
+    request<AdtPageEntry[]>(`/books/${label}/adt/content/pages.json`),
 
   getTemplates: () =>
     request<{ templates: string[] }>(`/templates`),

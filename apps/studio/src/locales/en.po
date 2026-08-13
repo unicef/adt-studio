@@ -510,8 +510,8 @@ msgstr "{mergedCount} {mergedCount, plural, one {spread} other {spreads}} merged
 msgid "{mins}m ago"
 msgstr "{mins}m ago"
 
-msgid "{missing} alt-text pending"
-msgstr "{missing} alt-text pending"
+#~ msgid "{missing} alt-text pending"
+#~ msgstr "{missing} alt-text pending"
 
 #~ msgid "{missing} pages pending"
 #~ msgstr "{missing} pages pending"
@@ -2110,6 +2110,9 @@ msgstr "Book Outline"
 msgid "Book package ready"
 msgstr "Book package ready"
 
+#~ msgid "Book pages"
+#~ msgstr "Book pages"
+
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Book pages. Scroll horizontally to see more."
 
@@ -2227,6 +2230,9 @@ msgstr "Build a navigable table of contents for the book. Decide whether entries
 msgid "Build commit"
 msgstr "Build commit"
 
+msgid "Build the preview again"
+msgstr "Build the preview again"
+
 msgid "Build the storyboard first"
 msgstr "Build the storyboard first"
 
@@ -2238,6 +2244,9 @@ msgstr "Building Preview..."
 
 msgid "Building Storyboard..."
 msgstr "Building Storyboard..."
+
+msgid "Building the preview"
+msgstr "Building the preview"
 
 msgid "Building this page"
 msgstr "Building this page"
@@ -7306,6 +7315,9 @@ msgstr "Packaging failed"
 msgid "Packaging preview..."
 msgstr "Packaging preview..."
 
+msgid "Packaging the book so the preview shows exactly what the reader gets."
+msgstr "Packaging the book so the preview shows exactly what the reader gets."
+
 msgid "Packaging validation results..."
 msgstr "Packaging validation results..."
 
@@ -7333,6 +7345,11 @@ msgstr "Page {0}"
 #. placeholder {1}: i + 1
 msgid "Page {0} — Section {1}"
 msgstr "Page {0} — Section {1}"
+
+#. placeholder {0}: entry.pageNumber
+#. placeholder {1}: entry.sectionIndex + 1
+#~ msgid "Page {0} · section {1}"
+#~ msgstr "Page {0} · section {1}"
 
 #. placeholder {0}: block.pageNumber
 #. placeholder {1}: block.sectionIndex + 1
@@ -7869,6 +7886,9 @@ msgstr "Prev"
 msgid "Preview"
 msgstr "Preview"
 
+msgid "Preview could not be built"
+msgstr "Preview could not be built"
+
 msgid "Preview linked page"
 msgstr "Preview linked page"
 
@@ -7878,6 +7898,9 @@ msgstr "Preview linked page"
 
 msgid "Preview of the HTML/CSS patterns used for LLM-generated pages."
 msgstr "Preview of the HTML/CSS patterns used for LLM-generated pages."
+
+msgid "Preview the book"
+msgstr "Preview the book"
 
 msgid "Preview: per-sentence"
 msgstr "Preview: per-sentence"
@@ -8277,6 +8300,9 @@ msgstr "Rebuild failed"
 
 msgid "Rebuild from page"
 msgstr "Rebuild from page"
+
+msgid "Rebuild the preview"
+msgstr "Rebuild the preview"
 
 msgid "Rebuild the steps from the page's current content"
 msgstr "Rebuild the steps from the page's current content"

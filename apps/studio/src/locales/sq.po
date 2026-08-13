@@ -511,8 +511,8 @@ msgstr "{mergedCount} {mergedCount, plural, one {faqe e përbashkët} other {faq
 msgid "{mins}m ago"
 msgstr "{mins} min më parë"
 
-msgid "{missing} alt-text pending"
-msgstr "{missing} tekst alternativ në pritje"
+#~ msgid "{missing} alt-text pending"
+#~ msgstr "{missing} tekst alternativ në pritje"
 
 #~ msgid "{missing} pages pending"
 #~ msgstr "{missing} faqe në pritje"
@@ -2111,6 +2111,9 @@ msgstr "Struktura e librit"
 msgid "Book package ready"
 msgstr "Paketa e librit gati"
 
+#~ msgid "Book pages"
+#~ msgstr "Faqet e librit"
+
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Faqet e librit. Lëviz horizontalisht për të parë më shumë."
 
@@ -2228,6 +2231,9 @@ msgstr "Ndërto një tabelë përmbajtjeje të navigueshme për librin. Vendosni
 msgid "Build commit"
 msgstr "Commit-i i ndërtimit"
 
+msgid "Build the preview again"
+msgstr "Ndërto sërish pamjen paraprake"
+
 msgid "Build the storyboard first"
 msgstr "Ndërtoni fillimisht storyboard-in"
 
@@ -2239,6 +2245,9 @@ msgstr "Duke ndërtuar pamjen paraprake..."
 
 msgid "Building Storyboard..."
 msgstr "Duke ndërtuar Storyboard-in..."
+
+msgid "Building the preview"
+msgstr "Po ndërtohet pamja paraprake"
 
 msgid "Building this page"
 msgstr "Po ndÃ«rtohet kjo faqe"
@@ -7307,6 +7316,9 @@ msgstr "Paketimi dështoi"
 msgid "Packaging preview..."
 msgstr "Pamje paraprake e paketimit..."
 
+msgid "Packaging the book so the preview shows exactly what the reader gets."
+msgstr "Po paketohet libri që pamja paraprake të shfaqë saktësisht atë që merr lexuesi."
+
 msgid "Packaging validation results..."
 msgstr "Rezultatet e vërtetimit të paketimit..."
 
@@ -7334,6 +7346,11 @@ msgstr "Faqja {0}"
 #. placeholder {1}: i + 1
 msgid "Page {0} — Section {1}"
 msgstr "Faqja {0} — Seksioni {1}"
+
+#. placeholder {0}: entry.pageNumber
+#. placeholder {1}: entry.sectionIndex + 1
+#~ msgid "Page {0} · section {1}"
+#~ msgstr "Faqja {0} · seksioni {1}"
 
 #. placeholder {0}: block.pageNumber
 #. placeholder {1}: block.sectionIndex + 1
@@ -7870,6 +7887,9 @@ msgstr "Para"
 msgid "Preview"
 msgstr "Pamje paraprake"
 
+msgid "Preview could not be built"
+msgstr "Pamja paraprake nuk u ndërtua dot"
+
 msgid "Preview linked page"
 msgstr "Shiko faqen e lidhur"
 
@@ -7879,6 +7899,9 @@ msgstr "Shiko faqen e lidhur"
 
 msgid "Preview of the HTML/CSS patterns used for LLM-generated pages."
 msgstr "Pamje paraprake e modeleve HTML/CSS të përdorura për faqet e gjeneruara nga LLM."
+
+msgid "Preview the book"
+msgstr "Shiko pamjen paraprake të librit"
 
 msgid "Preview: per-sentence"
 msgstr "Pamje paraprake: për-fjali"
@@ -8278,6 +8301,9 @@ msgstr "Rindërtimi dështoi"
 
 msgid "Rebuild from page"
 msgstr "Rindërto nga faqja"
+
+msgid "Rebuild the preview"
+msgstr "Rindërto pamjen paraprake"
 
 msgid "Rebuild the steps from the page's current content"
 msgstr "Rindërto hapat nga përmbajtja aktuale e faqes"

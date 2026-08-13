@@ -18,6 +18,7 @@ import { useCanvasNavigation } from "./pipeline/canvas/useCanvasNavigation"
 import type { RunActivity, RunStageActivity } from "./pipeline/runs/useRunActivity"
 import type { SectioningRun } from "./pipeline/runs/useSectioningRun"
 import type { StoryboardRun } from "./pipeline/runs/useStoryboardRun"
+import { previewSectionId } from "./pipeline/shared/previewTarget"
 import type { PipelineState } from "./pipeline/shared/usePipelineState"
 import type { Viewport } from "./pipeline/shared/types"
 
@@ -33,6 +34,8 @@ export interface PipelineWorkspaceProps {
   navigationEnabled: boolean
   onOpenStep: (slug: string) => void
   onOpenSettings: (slug: string) => void
+  /** Opens the packaged book, landing on the section the canvas is showing. */
+  onOpenPreview: (sectionId: string | null) => void
 }
 
 export function PipelineWorkspace({
@@ -47,6 +50,7 @@ export function PipelineWorkspace({
   navigationEnabled,
   onOpenStep,
   onOpenSettings,
+  onOpenPreview,
 }: PipelineWorkspaceProps) {
   const { t } = useLingui()
   const [viewport, setViewport] = useState<Viewport>("desktop")
@@ -125,6 +129,12 @@ export function PipelineWorkspace({
             phase={phase}
           />
         }
+        onPreview={() =>
+          onOpenPreview(
+            previewSectionId(activePage?.sections, activeQuiz?.quizIndex ?? null),
+          )
+        }
+        previewDisabled={empty}
       />
 
       <div className="relative flex min-h-0 flex-1">
