@@ -1,17 +1,17 @@
 import type { ReactNode } from "react"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
 import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus } from "lucide-react"
+import { CORE_STAGE_ORDER } from "@adt/types"
 import { STAGES } from "@/components/pipeline/stage-config"
+import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
 import { BookCover } from "../../../BookCover"
 import type { BookVM } from "../../../data"
 
 export interface HomeVariantProps {
   books: BookVM[]
-  /** Labels of user-pinned books (surfaced first on the shelf). */
   pinnedLabels?: Set<string>
   onOpen: (label: string) => void
-  /** Resume/continue a book directly (skips the detail dialog). Falls back to onOpen. */
   onContinue?: (label: string) => void
   onAddBook: () => void
   onOpenLibrary: () => void
@@ -19,7 +19,6 @@ export interface HomeVariantProps {
 
 export type ViewMode = "grid" | "list"
 
-/** Grid ⇄ list segmented toggle. */
 export function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v: ViewMode) => void }) {
   const { t } = useLingui()
   const opt = (v: ViewMode, Icon: typeof LayoutGrid, label: string) => (
@@ -44,18 +43,13 @@ export function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v:
   )
 }
 
-/**
- * Shared progress vocabulary. The pipeline is NOT linear: Extract → Sectioning →
- * Storyboard is the required base; every stage after is optional. So we show a
- * 3-step base track plus dots for whichever optional outputs a book has, and the
- * named "frontier" only applies while the base is still being built.
- */
-
 type StageDef = (typeof STAGES)[number]
 
-const BASE_SLUGS = ["extract", "sectioning", "storyboard"] as const
-const BASE: StageDef[] = BASE_SLUGS.map((slug) => STAGES.find((s) => s.slug === slug)!)
-const OPTIONAL: StageDef[] = STAGES.filter((s) => s.slug !== "book" && !(BASE_SLUGS as readonly string[]).includes(s.slug))
+const CORE_STAGE_SET = new Set<string>(CORE_STAGE_ORDER)
+const BASE: StageDef[] = CORE_STAGE_ORDER.map((slug) => STAGES.find((stage) => stage.slug === slug)!)
+const OPTIONAL: StageDef[] = STAGES.filter(
+  (stage) => stage.slug !== "book" && !CORE_STAGE_SET.has(stage.slug),
+)
 
 export type Status = "new" | "in-progress" | "ready" | "rebuild"
 
@@ -79,16 +73,10 @@ export function progressFor(vm: BookVM): Progress {
   return { status, baseSteps, baseFrontier, baseComplete, optional, optionalDone }
 }
 
-/** Books that still need work: base being built, or flagged for rebuild. */
 export function isActive(vm: BookVM): boolean {
   return ["in-progress", "rebuild"].includes(progressFor(vm).status)
 }
 
-/**
- * The book to anchor "pick up where you left off" on: the most-recent book with
- * real progress, never a just-added / not-started one. Falls back to any
- * non-new book, then to the most recent.
- */
 export function pickResume(sortedByRecency: BookVM[]): BookVM | undefined {
   return (
     sortedByRecency.find((b) => isActive(b)) ??
@@ -97,9 +85,44 @@ export function pickResume(sortedByRecency: BookVM[]): BookVM | undefined {
   )
 }
 
-/** Base track (3 required steps, colored as they complete) + dots for the optional outputs a book has. */
+function StageIconCircle({ stage, faded }: { stage: StageDef; faded?: boolean }) {
+  const Icon = stage.icon
+  return (
+    <span
+      title={getStageLabelI18n(stage.slug)}
+      className={cn("grid size-5 place-items-center rounded-full", faded && "bg-muted text-muted-foreground/40")}
+      style={faded ? undefined : { background: `${stage.hex}1a`, color: stage.hex }}
+    >
+      <Icon className="size-3" strokeWidth={2} />
+    </span>
+  )
+}
+
 export function StageBar({ vm, labels = false, className }: { vm: BookVM; labels?: boolean; className?: string }) {
+  const { t } = useLingui()
   const p = progressFor(vm)
+
+  if (!labels) {
+    const max = 4
+    const extra = Math.max(0, p.optionalDone.length - max)
+    return (
+      <div className={cn("flex items-center gap-1", className)}>
+        {p.baseComplete ? (
+          <span title={t`Base ready`} className="grid size-5 place-items-center rounded-full bg-stage-validation/12 text-stage-validation">
+            <Check className="size-3" strokeWidth={2.5} />
+          </span>
+        ) : (
+          p.baseSteps.map(({ stage, done }) => <StageIconCircle key={stage.slug} stage={stage} faded={!done} />)
+        )}
+        {p.optionalDone.length > 0 && <span aria-hidden className="mx-0.5 h-3.5 w-px bg-border" />}
+        {p.optionalDone.slice(0, max).map(({ stage }) => (
+          <StageIconCircle key={stage.slug} stage={stage} />
+        ))}
+        {extra > 0 && <span className="text-[10px] font-medium tabular-nums text-muted-foreground">+{extra}</span>}
+      </div>
+    )
+  }
+
   const baseDone = p.baseSteps.filter((s) => s.done).length
   const extra = Math.max(0, p.optionalDone.length - 7)
   return (
@@ -111,7 +134,7 @@ export function StageBar({ vm, labels = false, className }: { vm: BookVM; labels
             return (
               <span
                 key={stage.slug}
-                title={stage.label}
+                title={getStageLabelI18n(stage.slug)}
                 className={cn(
                   "h-1.5 w-6 rounded-full transition-colors",
                   !done && "bg-muted",
@@ -127,37 +150,34 @@ export function StageBar({ vm, labels = false, className }: { vm: BookVM; labels
             <span aria-hidden className="h-3 w-px bg-border" />
             <div className="flex items-center gap-1">
               {p.optionalDone.slice(0, 7).map(({ stage }) => (
-                <span key={stage.slug} title={stage.label} className="size-2 rounded-full" style={{ background: stage.hex }} />
+                <span key={stage.slug} title={getStageLabelI18n(stage.slug)} className="size-2 rounded-full" style={{ background: stage.hex }} />
               ))}
               {extra > 0 && <span className="text-[10px] font-medium tabular-nums text-muted-foreground">+{extra}</span>}
             </div>
           </>
         )}
       </div>
-      {labels && (
-        <div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
-          {p.baseComplete ? (
-            <span className="inline-flex items-center gap-1 font-medium text-stage-storyboard">
-              <Check className="size-3" />
-              <Trans>Base ready</Trans>
-            </span>
-          ) : (
-            <span>
-              <Trans>Base {baseDone}/3</Trans>
-            </span>
-          )}
-          {p.optionalDone.length > 0 && (
-            <span>
-              · <Plural value={p.optionalDone.length} one="# output" other="# outputs" />
-            </span>
-          )}
-        </div>
-      )}
+      <div className="mt-1.5 flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
+        {p.baseComplete ? (
+          <span className="inline-flex items-center gap-1 font-medium text-stage-storyboard">
+            <Check className="size-3" />
+            <Trans>Base ready</Trans>
+          </span>
+        ) : (
+          <span>
+            <Trans>Base</Trans> {baseDone}/{BASE.length}
+          </span>
+        )}
+        {p.optionalDone.length > 0 && (
+          <span>
+            · <Plural value={p.optionalDone.length} one="# output" other="# outputs" />
+          </span>
+        )}
+      </div>
     </div>
   )
 }
 
-/** One chip that names the single next thing about the book. */
 export function FrontierChip({ vm, className }: { vm: BookVM; className?: string }) {
   const p = progressFor(vm)
   const base = "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
@@ -189,7 +209,7 @@ export function FrontierChip({ vm, className }: { vm: BookVM; className?: string
     <span className={cn(base, "bg-card ring-1 ring-border", className)}>
       <Icon className="size-3.5" style={{ color: p.baseFrontier!.hex }} />
       <span className="text-foreground">
-        <NextLabel label={p.baseFrontier!.label} />
+        <NextLabel label={getStageLabelI18n(p.baseFrontier!.slug)} />
       </span>
     </span>
   )
@@ -204,7 +224,6 @@ function NextLabel({ label }: { label: string }) {
   )
 }
 
-/** Editorial cover card for the wrapping library grid. */
 export function GridCard({
   vm,
   onOpen,
@@ -247,7 +266,6 @@ export function GridCard({
   )
 }
 
-/** Honest resume label: names the target so the jump is predictable. */
 export function ContinueLabel({ vm }: { vm: BookVM }) {
   const { t } = useLingui()
   const p = progressFor(vm)
@@ -256,7 +274,7 @@ export function ContinueLabel({ vm }: { vm: BookVM }) {
   if (p.status === "rebuild") return <Trans>Rebuild</Trans>
   return (
     <>
-      {t`Continue`} <span className="opacity-70">· {p.baseFrontier!.label}</span>
+      {t`Continue`} <span className="opacity-70">· {getStageLabelI18n(p.baseFrontier!.slug)}</span>
     </>
   )
 }
@@ -274,7 +292,6 @@ export function filterBooks(books: BookVM[], f: Filter): BookVM[] {
   return books.filter((vm) => matchesFilter(vm, f))
 }
 
-/** Status priority for the unified board: rebuild → setup → new → production → exported, then recency. */
 export function sortByStatus(books: BookVM[]): BookVM[] {
   const rank = (vm: BookVM) => {
     const s = progressFor(vm).status
@@ -285,7 +302,6 @@ export function sortByStatus(books: BookVM[]): BookVM[] {
   )
 }
 
-/** Filter chips with live counts — row (top) or column (left facet) layout. */
 export function FilterChips({
   books,
   value,
@@ -329,7 +345,6 @@ export function FilterChips({
   )
 }
 
-/** Calm shelf tile for the Home: cover + title (+ author). `elevated` marks the resume tile. */
 export function ShelfCard({
   vm,
   onOpen,
@@ -355,19 +370,15 @@ export function ShelfCard({
     >
       <div
         className={cn(
-          "relative aspect-[3/4] overflow-hidden rounded-xl shadow-sm ring-1 ring-black/5 transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:-translate-y-1 group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-brand-500",
+          "relative aspect-[3/4] overflow-hidden rounded-xl shadow-sm ring-1 ring-black/5 transition-shadow duration-200 group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-brand-500 [&_img]:transition-transform [&_img]:duration-500 [&_img]:ease-[cubic-bezier(0.23,1,0.32,1)] motion-safe:group-hover:[&_img]:scale-[1.05]",
           elevated && "ring-2 ring-brand-500",
         )}
       >
-        <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} />
+        <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} fit="cover" />
         {badge && <div className="absolute left-2 top-2 z-10">{badge}</div>}
-        {elevated ? (
+        {elevated && (
           <span className="absolute inset-x-2 bottom-2 inline-flex items-center justify-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10.5px] font-semibold text-white backdrop-blur-sm">
             <ContinueLabel vm={vm} />
-          </span>
-        ) : (
-          <span className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-end bg-gradient-to-t from-black/55 to-transparent px-2.5 pb-2 pt-6 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-            <ArrowUpRight className="size-4 text-white" />
           </span>
         )}
       </div>
@@ -376,19 +387,13 @@ export function ShelfCard({
         <div className="min-w-0">
           <div className="truncate text-[13px] font-semibold leading-tight">{vm.displayTitle}</div>
           {showAuthor && <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>}
-          {(elevated || progress) && (
-            <>
-              <StageBar vm={vm} className="mt-2.5" />
-              {progress && <StatusLabel vm={vm} className="mt-2 block" />}
-            </>
-          )}
+          {(elevated || progress) && <StageBar vm={vm} className="mt-2.5" />}
         </div>
       </div>
     </button>
   )
 }
 
-/** Primary "New book" action, shared across the Home iterations. */
 export function NewBookButton({ onClick, className }: { onClick: () => void; className?: string }) {
   return (
     <button
@@ -405,7 +410,6 @@ export function NewBookButton({ onClick, className }: { onClick: () => void; cla
   )
 }
 
-/** Dashed, cover-shaped "Add new book" tile for the shelf. */
 export function AddBookTile({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="group block text-left focus-visible:outline-none">
@@ -419,7 +423,6 @@ export function AddBookTile({ onClick }: { onClick: () => void }) {
   )
 }
 
-/** Plain-text status: names the one thing about a book (calmer than a pill on a shelf). */
 export function StatusLabel({ vm, className }: { vm: BookVM; className?: string }) {
   const { t } = useLingui()
   const p = progressFor(vm)
@@ -435,13 +438,12 @@ export function StatusLabel({ vm, className }: { vm: BookVM; className?: string 
     text = t`Ready`
     color = "text-stage-validation"
   } else {
-    text = `${t`Next`} · ${p.baseFrontier!.label}`
+    text = `${t`Next`} · ${getStageLabelI18n(p.baseFrontier!.slug)}`
     color = "text-foreground"
   }
   return <span className={cn("text-[11px] font-medium", color, className)}>{text}</span>
 }
 
-/** "What's inside" — the generated optional outputs, with accent icons + labels. */
 export function OutputsPanel({ vm, className }: { vm: BookVM; className?: string }) {
   const p = progressFor(vm)
   return (
@@ -462,7 +464,7 @@ export function OutputsPanel({ vm, className }: { vm: BookVM; className?: string
                 <span className="grid size-6 shrink-0 place-items-center rounded-md" style={{ backgroundColor: `${stage.hex}1a`, color: stage.hex }}>
                   <Icon className="size-3.5" />
                 </span>
-                <span className="truncate text-foreground">{stage.label}</span>
+                <span className="truncate text-foreground">{getStageLabelI18n(stage.slug)}</span>
               </li>
             )
           })}
@@ -472,7 +474,6 @@ export function OutputsPanel({ vm, className }: { vm: BookVM; className?: string
   )
 }
 
-/** "All N books in Library →" link, shared across the Home iterations. */
 export function LibraryLink({ count, onClick }: { count: number; onClick: () => void }) {
   return (
     <button
@@ -488,7 +489,6 @@ export function LibraryLink({ count, onClick }: { count: number; onClick: () => 
 
 const CELL = "px-4 py-3 align-middle"
 
-/** Dense library table (list view / producer's table). */
 export function LibraryTable({ books, onOpen }: { books: BookVM[]; onOpen: (label: string) => void }) {
   return (
     <div className="overflow-hidden rounded-xl border">
@@ -516,13 +516,18 @@ export function LibraryTable({ books, onOpen }: { books: BookVM[]; onOpen: (labe
           {books.map((vm) => (
             <tr
               key={vm.label}
-              tabIndex={0}
               onClick={() => onOpen(vm.label)}
-              onKeyDown={(e) => (e.key === "Enter" ? onOpen(vm.label) : undefined)}
-              className="group cursor-pointer border-b last:border-0 transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:bg-muted/50"
+              className="group cursor-pointer border-b last:border-0 transition-colors hover:bg-muted/40"
             >
               <td className={CELL}>
-                <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onOpen(vm.label)
+                  }}
+                  className="flex w-full items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                >
                   <div className="h-11 w-8 shrink-0 overflow-hidden rounded shadow-sm ring-1 ring-black/5">
                     <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} />
                   </div>
@@ -530,7 +535,7 @@ export function LibraryTable({ books, onOpen }: { books: BookVM[]; onOpen: (labe
                     <div className="truncate font-semibold leading-tight">{vm.displayTitle}</div>
                     <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>
                   </div>
-                </div>
+                </button>
               </td>
               <td className={CELL}>
                 <div className="flex items-center gap-2.5">

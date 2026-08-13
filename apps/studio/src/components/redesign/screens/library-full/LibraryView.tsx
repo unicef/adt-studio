@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { ActionMenu } from "@/components/ui/action-menu"
 import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
-import { StageBar, StatusLabel, ShelfCard, ViewToggle, type ViewMode } from "../home/home-full/kit"
+import { StageBar, ShelfCard, ViewToggle, type ViewMode } from "../home/home-full/kit"
 
 export interface LibBook extends BookVM {
   hasError?: boolean
@@ -266,9 +266,6 @@ function TableBody({
               <Trans>Progress</Trans>
             </th>
             <th className={CELL}>
-              <Trans>Status</Trans>
-            </th>
-            <th className={CELL}>
               <Trans>Pages</Trans>
             </th>
             <th className={CELL}>
@@ -293,7 +290,7 @@ function TableGroup({ attention, items, onOpen }: { attention: Attention; items:
   return (
     <>
       <tr>
-        <td colSpan={6} className="border-b bg-muted/30 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
+        <td colSpan={5} className="border-b bg-muted/30 px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
           <span className={cn("mr-2", attention === "none" ? "text-muted-foreground" : "text-foreground")}>
             <AttentionName attention={attention} />
           </span>
@@ -310,30 +307,29 @@ function TableGroup({ attention, items, onOpen }: { attention: Attention; items:
 function Row({ vm, onOpen }: { vm: LibBook; onOpen: (label: string) => void }) {
   return (
     <tr
-      tabIndex={0}
       onClick={() => onOpen(vm.label)}
-      onKeyDown={(e) => (e.key === "Enter" ? onOpen(vm.label) : undefined)}
-      className="group cursor-pointer border-b last:border-0 transition-colors hover:bg-muted/40 focus-visible:bg-muted/50 focus-visible:outline-none"
+      className="group cursor-pointer border-b last:border-0 transition-colors hover:bg-muted/40"
     >
       <td className={CELL}>
-        <div className="flex items-center gap-3">
-          <div className="h-11 w-8 shrink-0 overflow-hidden rounded shadow-sm ring-1 ring-black/5">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            onOpen(vm.label)
+          }}
+          className="flex w-full items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        >
+          <div className="h-14 w-[42px] shrink-0 overflow-hidden rounded-md shadow-sm ring-1 ring-black/5">
             <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} fit="cover" />
           </div>
           <div className="min-w-0">
             <div className="truncate font-semibold leading-tight">{vm.displayTitle}</div>
             <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>
           </div>
-        </div>
+        </button>
       </td>
       <td className={CELL}>
         <StageBar vm={vm} className="min-w-[120px]" />
-      </td>
-      <td className={CELL}>
-        <div className="flex flex-col items-start gap-1.5">
-          <StatusLabel vm={vm} />
-          {attentionOf(vm) !== "none" && <AttentionBadge book={vm} />}
-        </div>
       </td>
       <td className={cn(CELL, "tabular-nums text-muted-foreground")}>{vm.pagesText}</td>
       <td className={cn(CELL, "font-mono text-[11.5px] text-muted-foreground")}>{vm.lang}</td>
