@@ -152,7 +152,7 @@ function ImportStatus({
       {rawError ? (
         <Dialog open={showDetails} onOpenChange={setShowDetails}>
           <DialogContent className="max-w-xl">
-            <DialogHeader>
+            <DialogHeader className="space-y-3">
               <DialogTitle><Trans>Error details</Trans></DialogTitle>
               <DialogDescription>{error.hint}</DialogDescription>
             </DialogHeader>
@@ -463,7 +463,7 @@ export function ImportProject() {
             />
           </header>
 
-          <main className="min-h-0 px-6 pb-4 pt-2">
+          <main className="min-h-0 px-6 pb-6 pt-2">
             <div className="w-full">
               {zipFile ? (
                 <SelectedArchiveBar
@@ -506,7 +506,7 @@ export function ImportProject() {
                     }}
                     aria-label={t`Upload ZIP or drag and drop`}
                     className={cn(
-                      "group relative flex min-h-[460px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed bg-white px-8 text-center shadow-sm transition-[border-color,background-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                      "group relative flex min-h-[300px] w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed bg-white px-8 py-10 text-center shadow-sm transition-[border-color,background-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
                       friendlyPreviewError
                         ? "border-red-300 bg-red-50/30 hover:border-red-400 hover:bg-red-50/50"
                         : "border-slate-300 hover:border-primary/60 hover:bg-primary/[0.025] hover:shadow-md",
