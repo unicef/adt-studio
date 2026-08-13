@@ -49,6 +49,10 @@ import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
+import {
+  assertKidsInterfaceLanguageParity,
+  readKidsInterfaceOverrides,
+} from "../kids-interface-translation.js"
 import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
@@ -72,6 +76,8 @@ export interface PackageAdtWebOptions {
     readAloud?: boolean
     quizzes?: boolean
     signLanguage?: boolean
+    kidsMode?: boolean
+    kidsBuddies?: string[]
   }
   defaultSettings?: {
     dockLayout?: {
@@ -240,6 +246,17 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   const videoEntries = collectDirectoryFingerprint(videosDir).sort((a, b) => a[0].localeCompare(b[0]))
   hash.update(JSON.stringify(videoEntries))
 
+  // 8. Kids-mode generated assets — voice packs and per-book interface
+  // translation overrides are merged into the bundle at packaging time, so
+  // regenerating them must bust the cache or the packaged book keeps stale audio/text.
+  const kidsVoiceDir = path.join(options.bookDir, "kids-voice")
+  const kidsVoiceEntries = collectDirectoryFingerprint(kidsVoiceDir).sort((a, b) => a[0].localeCompare(b[0]))
+  hash.update(JSON.stringify(kidsVoiceEntries))
+
+  const kidsI18nDir = path.join(options.bookDir, "kids-i18n")
+  const kidsI18nEntries = collectDirectoryFingerprint(kidsI18nDir).sort((a, b) => a[0].localeCompare(b[0]))
+  hash.update(JSON.stringify(kidsI18nEntries))
+
   return hash.digest("hex")
 }
 
@@ -282,6 +299,13 @@ export async function packageAdtWeb(
   } = options
   const language = normalizeLocale(rawLanguage)
   const outputLanguages = Array.from(new Set(rawOutputLanguages.map((code) => normalizeLocale(code))))
+  if (features?.kidsMode === true) {
+    assertKidsInterfaceLanguageParity({
+      bookDir,
+      webAssetsDir,
+      languages: outputLanguages,
+    })
+  }
   // Reflowable base font (serif/sans default from the detected profile, or an
   // explicit override). undefined for fixed-layout / Merriweather-default.
   const bodyFontFamily = resolveReflowableFontChain(storage, { fixedLayout, reflowableFont })
@@ -787,6 +811,16 @@ export async function packageAdtWeb(
     }
   }
 
+  // kids-voice/ — pre-generated buddy voice clips + per-language manifests.
+  // Copied wholesale; the runtime resolves ./content/kids-voice/<lang>/ and
+  // degrades to text-only bubbles when a language has no pack.
+  if (features?.kidsMode === true) {
+    const kidsVoiceSrc = path.join(bookDir, "kids-voice")
+    if (fs.existsSync(kidsVoiceSrc)) {
+      copyDirRecursive(kidsVoiceSrc, path.join(contentDir, "kids-voice"))
+    }
+  }
+
   // ------------------------------------------------------------------
   // config.json
   // ------------------------------------------------------------------
@@ -821,6 +855,11 @@ export async function packageAdtWeb(
       characterDisplay: false,
       highlight: highlightEnabled,
       activities: hasQuiz || hasActivitySections,
+      // Author-time opt-in from Studio (kids-mode.json); readers never toggle.
+      kidsMode: features?.kidsMode === true,
+      ...(features?.kidsMode === true && features?.kidsBuddies?.length
+        ? { kidsBuddies: features.kidsBuddies }
+        : {}),
     },
     analytics: {
       enabled: false,
@@ -845,7 +884,11 @@ export async function packageAdtWeb(
   progress.emit({ type: "step-progress", step, message: "Copying web assets..." })
 
   const assetsDir = path.join(adtDir, "assets")
-  copyDirRecursive(webAssetsDir, assetsDir, new Set(["interface_translations"]))
+  copyDirRecursive(
+    webAssetsDir,
+    assetsDir,
+    new Set(["interface_translations", "kids-buddies"]),
+  )
 
   // Copy only required interface translations
   const itSrc = path.join(webAssetsDir, "interface_translations")
@@ -859,6 +902,35 @@ export async function packageAdtWeb(
       if (src) {
         copyDirRecursive(src, path.join(itDest, lang))
       }
+      // Merge the book's translated kids UI strings (generated in Studio) on
+      // top of the shared catalog so a non-English kids book's runtime UI is
+      // localized. No-op when the book has none.
+      const kidsOverrides = readKidsInterfaceOverrides(bookDir, lang)
+      if (Object.keys(kidsOverrides).length > 0) {
+        const catalogPath = path.join(
+          itDest,
+          lang,
+          "interface_translations.json",
+        )
+        const base = fs.existsSync(catalogPath)
+          ? (JSON.parse(fs.readFileSync(catalogPath, "utf8")) as Record<
+              string,
+              string
+            >)
+          : {}
+        fs.mkdirSync(path.join(itDest, lang), { recursive: true })
+        writeJson(catalogPath, { ...base, ...kidsOverrides })
+      }
+    }
+  }
+
+  // kids-buddies/ — PNG buddy expression sets. The runtime references them
+  // book-relative (./assets/kids-buddies/<id>/<id>_<n>.png) instead of baking
+  // them into the shared bundle, so they only ship with kids books.
+  if (features?.kidsMode === true) {
+    const buddiesSrc = path.join(webAssetsDir, "kids-buddies")
+    if (fs.existsSync(buddiesSrc)) {
+      copyDirRecursive(buddiesSrc, path.join(assetsDir, "kids-buddies"))
     }
   }
 

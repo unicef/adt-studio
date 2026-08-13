@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import type { AccessibilityFinding } from "@adt/types"
-import { Trans } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
+import { useKidsInterfaceStatus, useKidsMode } from "@/hooks/use-kids-mode"
 import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
 import { useAllPagesPruned } from "@/hooks/use-all-pages-pruned"
@@ -22,6 +23,8 @@ import { createPortal } from "react-dom"
 import { useStepHeader } from "@/components/pipeline/components/StepViewRouter"
 import { PreviewAccessibilityCard } from "./PreviewAccessibilityCard"
 import { PreviewValidationCard } from "./PreviewValidationCard"
+import { KidsPreviewLanguageGate } from "./KidsPreviewLanguageGate"
+import { KidsPreviewToggle } from "./KidsPreviewToggle"
 import { useDeviceView, DEVICE_WIDTHS } from "./storyboard/components/style-editor/device-breakpoint"
 import { getDeviceFrame, getTargetVisibleWidth } from "./storyboard/components/style-editor/device-chrome"
 import { ViewportToggle } from "./storyboard/components/style-editor/ViewportToggle"
@@ -34,6 +37,7 @@ const HIGHLIGHT_SEVERITY_ATTR = "data-adt-a11y-hover-severity"
 const HIGHLIGHT_PAGE_ATTR = "data-adt-a11y-hover-page"
 
 export function PreviewView({ bookLabel }: { bookLabel: string }) {
+  const { t } = useLingui()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { previewHref?: string }
@@ -64,6 +68,14 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }>({ sectionId: null, href: null, title: null, hasImages: false, hasActivity: false, signLanguageEnabled: false })
   const [accessibilityCardExpanded, setAccessibilityCardExpanded] = useState(false)
   const [validationCardExpanded, setValidationCardExpanded] = useState(false)
+  // Author-facing preview override: a configured Kids book can temporarily
+  // show regular chrome without touching the saved Kids Mode decision.
+  // null = follow the book decision. The runtime honors `kidsMode=on|off`
+  // only in the dev/authoring preview context.
+  const [kidsPreview, setKidsPreview] = useState<"off" | null>(null)
+  const { data: kidsModeConfig } = useKidsMode(bookLabel)
+  const { data: kidsInterfaceStatus } = useKidsInterfaceStatus(bookLabel)
+  const packedKidsMode = kidsModeConfig?.enabled
   const { data, isLoading: assessmentLoading, error: assessmentError } = useAccessibilityAssessment(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel, {
     refetchInterval: pendingVersion && !ready ? 1_000 : false,
@@ -163,10 +175,10 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
       setPendingVersion(null)
       setIsSubmittingPackage(false)
       if (!ready) {
-        setError(task.error ?? "Packaging failed")
+        setError(task.error ?? t`Packaging failed`)
       }
     }
-  }, [pendingTaskId, getTask, bookLabel, queryClient, ready])
+  }, [pendingTaskId, getTask, bookLabel, queryClient, ready, t])
 
   useEffect(() => {
     if (!pendingVersion || ready) return
@@ -203,10 +215,10 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         setReady(true)
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Packaging failed")
+      setError(e instanceof Error ? e.message : t`Packaging failed`)
       setIsSubmittingPackage(false)
     }
-  }, [bookLabel, queryClient])
+  }, [bookLabel, queryClient, t])
 
   // Only trigger packaging when storyboard is done
   useEffect(() => {
@@ -221,6 +233,14 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     window.addEventListener("adt:repackage", handler)
     return () => window.removeEventListener("adt:repackage", handler)
   }, [runPackage, storyboardDone])
+
+  const toggleKidsPreview = useCallback(() => {
+    setKidsPreview((current) => (current === "off" ? null : "off"))
+  }, [])
+
+  useEffect(() => {
+    if (packedKidsMode === false) setKidsPreview(null)
+  }, [packedKidsMode])
 
   const navigatePreviewToHref = useCallback((href: string) => {
     const iframe = iframeRef.current
@@ -286,6 +306,22 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }
 
   if (error) {
+    const isKidsLanguageGate =
+      error.includes(
+        "Kids Mode requires complete interface translations for every book language",
+      ) ||
+      (kidsModeConfig?.enabled === true && kidsInterfaceStatus?.ready === false)
+
+    if (isKidsLanguageGate) {
+      return (
+        <KidsPreviewLanguageGate
+          bookLabel={bookLabel}
+          error={error}
+          status={kidsInterfaceStatus}
+        />
+      )
+    }
+
     return (
       <div className="p-4 max-w-xl">
         <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2">
@@ -296,7 +332,21 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }
 
   if (ready) {
-    const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/`
+    // `kidsMode=on|off` drives the runtime's preview-only chrome override
+    // (dev/authoring context only — a shipped book ignores it). The runtime
+    // persists the override in tab-scoped sessionStorage so it survives page
+    // turns (each is a full page load that drops the query string). Because
+    // of that persistence, the "follow the book" state sends the packed
+    // decision explicitly (once known) instead of omitting the param — a
+    // bare URL would let a stale override from an earlier toggle leak across
+    // preview remounts.
+    const kidsParam =
+      kidsPreview ??
+      (packedKidsMode === undefined ? null : packedKidsMode ? "on" : "off")
+    const previewParams = new URLSearchParams()
+    if (kidsParam) previewParams.set("kidsMode", kidsParam)
+    const previewSearch = previewParams.toString()
+    const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/${previewSearch ? `?${previewSearch}` : ""}`
     const isDesktop = deviceView === "desktop"
     const frame = getDeviceFrame(deviceView, DEVICE_WIDTHS[deviceView])
     const cap = getTargetVisibleWidth(deviceView) / frame.chromeWidth
@@ -348,6 +398,13 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
             </div>
           )}
         </div>
+
+        <KidsPreviewToggle
+          enabled={packedKidsMode === true}
+          showingRegular={kidsPreview === "off"}
+          hidden={accessibilityCardExpanded}
+          onToggle={toggleKidsPreview}
+        />
 
         {headerSlotEl &&
           createPortal(

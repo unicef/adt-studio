@@ -12,12 +12,22 @@ import type {
   EditableActivity,
   FontAssignmentOutput,
   ExtractionWarning,
+  GenerateKidsVoiceRequest,
+  KidsBuddyVoiceOverride,
+  KidsModeConfig,
+  KidsInterfaceStatus,
+  KidsVoiceGenerationSummary,
+  KidsVoiceOverrideRequest,
+  KidsVoiceStatus,
+  KidsVoicesResponse,
   ReviewerPageValidationRecord,
   ReviewerValidationIdentificationField,
   ReviewerValidationInstruction,
   ReviewerValidationSection,
   ReviewerValidationSession,
   TranslationEvaluationResult,
+  TranslateKidsInterfaceRequest,
+  TranslateKidsInterfaceResponse,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 
@@ -40,6 +50,15 @@ export const BASE_URL =
 
 export function getAdtUrl(label: string): string {
   return `${BASE_URL}/books/${label}/adt`
+}
+
+export function getKidsVoiceClipUrl(
+  label: string,
+  language: string,
+  buddyId: string,
+  lineKey: string,
+): string {
+  return `${BASE_URL}/books/${label}/adt-preview/content/kids-voice/${language}/${buddyId}/${lineKey}.mp3`
 }
 
 export function getAudioUrl(
@@ -225,6 +244,14 @@ export interface RunStagesOptions {
   /** How to react when a page fails inside a per-page step. The Studio sends
    *  "ask" so page errors surface an interactive skip/stop dialog. */
   pageErrorPolicy?: "ask" | "stop"
+}
+
+export type {
+  KidsBuddyVoiceOverride,
+  KidsModeConfig,
+  KidsVoiceGenerationSummary,
+  KidsVoiceStatus,
+  KidsVoicesResponse,
 }
 
 function buildApiHeaders(
@@ -863,6 +890,64 @@ export const api = {
         body: JSON.stringify(data),
       },
     ),
+
+  getKidsMode: (label: string) =>
+    request<KidsModeConfig>(`/books/${label}/kids-mode`),
+
+  updateKidsMode: (label: string, config: KidsModeConfig) =>
+    request<KidsModeConfig>(`/books/${label}/kids-mode`, {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
+
+  getKidsVoiceStatus: (label: string) =>
+    request<KidsVoiceStatus>(`/books/${label}/kids-voice`),
+
+  getKidsInterfaceStatus: (label: string) =>
+    request<KidsInterfaceStatus>(`/books/${label}/kids-interface/status`),
+
+  generateKidsVoice: (
+    label: string,
+    body: GenerateKidsVoiceRequest,
+    apiKey?: string,
+  ) =>
+    request<KidsVoiceGenerationSummary>(`/books/${label}/kids-voice/generate`, {
+      method: "POST",
+      headers: apiKey ? { "X-OpenAI-Key": apiKey } : undefined,
+      body: JSON.stringify(body),
+    }),
+
+  translateKidsInterface: (
+    label: string,
+    body: TranslateKidsInterfaceRequest,
+    apiKey?: string,
+  ) =>
+    request<TranslateKidsInterfaceResponse>(
+      `/books/${label}/kids-interface/translate`,
+      {
+        method: "POST",
+        headers: apiKey ? { "X-OpenAI-Key": apiKey } : undefined,
+        body: JSON.stringify(body),
+      },
+    ),
+
+  getKidsVoices: (label: string) =>
+    request<KidsVoicesResponse>(`/books/${label}/kids-voices`),
+
+  updateKidsBuddyVoice: (
+    label: string,
+    buddyId: string,
+    body: KidsVoiceOverrideRequest,
+  ) =>
+    request<KidsBuddyVoiceOverride>(`/books/${label}/kids-voices/${buddyId}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
+  resetKidsBuddyVoice: (label: string, buddyId: string) =>
+    request<KidsBuddyVoiceOverride>(`/books/${label}/kids-voices/${buddyId}`, {
+      method: "DELETE",
+    }),
 
   regenerateBookSummary: (label: string, apiKey: string) =>
     request<{ taskId?: string; status?: string; version?: number }>(
@@ -1963,7 +2048,7 @@ export const api = {
   prepareExport: (
     label: string,
     format: ExportFormat = "project",
-    features?: { glossary?: boolean; readAloud?: boolean; quizzes?: boolean; signLanguage?: boolean; languages?: string[] },
+    features?: { glossary?: boolean; readAloud?: boolean; quizzes?: boolean; signLanguage?: boolean; kidsMode?: boolean; languages?: string[] },
     defaultSettings?: {
       dockLayout?: { width?: "compact" | "full"; position?: "top" | "bottom"; align?: "center" | "spread" }
       theme?: "light" | "dark" | "system"

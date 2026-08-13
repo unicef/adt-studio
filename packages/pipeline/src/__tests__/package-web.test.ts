@@ -90,6 +90,15 @@ function createWebAssets(webAssetsDir: string): void {
     path.join(webAssetsDir, "tailwind_css.css"),
     "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n",
   )
+  const interfaceDir = path.join(webAssetsDir, "interface_translations", "en")
+  fs.mkdirSync(interfaceDir, { recursive: true })
+  fs.writeFileSync(
+    path.join(interfaceDir, "interface_translations.json"),
+    JSON.stringify({
+      "kids-buddy-greet": "Hello!",
+      "kids-comfort-title": "Make it comfy",
+    }),
+  )
 }
 
 function createMinimalStorage(): Storage {
@@ -641,6 +650,94 @@ describe("packageAdtWeb", () => {
     const manifest = fs.readFileSync(manifestPath, "utf-8")
     expect(manifest).toContain("ADL SCORM")
     expect(manifest).toContain("index.html")
+  })
+
+  it("copies kids-buddies art into the book only for kids books", async () => {
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    createWebAssets(webAssetsDir)
+    // Buddy art lives in the shared web assets dir; the runtime references it
+    // book-relative rather than baking it into the bundle.
+    const buddyPng = path.join(webAssetsDir, "kids-buddies", "dino", "dino_1.png")
+    fs.mkdirSync(path.dirname(buddyPng), { recursive: true })
+    fs.writeFileSync(buddyPng, "PNG")
+
+    const packagedBuddyPath = (bookDir: string) =>
+      path.join(bookDir, "adt", "assets", "kids-buddies", "dino", "dino_1.png")
+
+    // Kids book → buddy art is copied in.
+    const kidsBook = path.join(tmpDir, "kids-book")
+    fs.mkdirSync(kidsBook, { recursive: true })
+    await packageAdtWeb(createMinimalStorage(), {
+      bookDir: kidsBook,
+      label: "kids",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Kids Book",
+      webAssetsDir,
+      features: { kidsMode: true },
+    })
+    expect(fs.existsSync(packagedBuddyPath(kidsBook))).toBe(true)
+    // Never baked into the wholesale copy either — it is gated by kidsMode.
+    expect(
+      fs.existsSync(path.join(kidsBook, "adt", "assets", "kids-buddies")),
+    ).toBe(true)
+
+    // Non-kids book → buddy art is omitted.
+    const plainBook = path.join(tmpDir, "plain-book")
+    fs.mkdirSync(plainBook, { recursive: true })
+    await packageAdtWeb(createMinimalStorage(), {
+      bookDir: plainBook,
+      label: "plain",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Plain Book",
+      webAssetsDir,
+    })
+    expect(
+      fs.existsSync(path.join(plainBook, "adt", "assets", "kids-buddies")),
+    ).toBe(false)
+  })
+
+  it("refuses to package Kids Mode until every book language has a complete UI", async () => {
+    const bookDir = path.join(tmpDir, "kids-parity-book")
+    const webAssetsDir = path.join(tmpDir, "kids-parity-assets")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    await expect(
+      packageAdtWeb(createMinimalStorage(), {
+        bookDir,
+        label: "kids-parity",
+        language: "en",
+        outputLanguages: ["en", "es"],
+        title: "Kids Parity",
+        webAssetsDir,
+        features: { kidsMode: true },
+      }),
+    ).rejects.toThrow(/es \(2 missing\)/)
+    expect(fs.existsSync(path.join(bookDir, "adt"))).toBe(false)
+
+    const overrideDir = path.join(bookDir, "kids-i18n")
+    fs.mkdirSync(overrideDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(overrideDir, "es.json"),
+      JSON.stringify({
+        "kids-buddy-greet": "¡Hola!",
+        "kids-comfort-title": "Ponte cómodo",
+      }),
+    )
+
+    await expect(
+      packageAdtWeb(createMinimalStorage(), {
+        bookDir,
+        label: "kids-parity",
+        language: "en",
+        outputLanguages: ["en", "es"],
+        title: "Kids Parity",
+        webAssetsDir,
+        features: { kidsMode: true },
+      }),
+    ).resolves.toBeUndefined()
   })
 
   it("packages persisted Easy Read entries for the source language", async () => {

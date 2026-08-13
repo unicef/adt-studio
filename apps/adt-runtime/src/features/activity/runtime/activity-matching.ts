@@ -8,6 +8,7 @@ import { translationsAtom } from "@/features/language/state/language.atoms"
 import { pagesAtom, currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
 import {
   confettiTriggerAtom,
+  emitActivityResult,
   skipEnabledAtom,
   skipHandlerAtom,
   submitEnabledAtom,
@@ -392,6 +393,7 @@ export function initializeMatchingActivity(): (() => void) | null {
     validated = true
 
     playActivitySound(allCorrect ? "success" : "error")
+    emitActivityResult(allCorrect)
 
     showActivityProgressToast(
       { total, correct, unfilled: unplaced },

@@ -73,6 +73,20 @@ msgstr "(modèle)"
 msgid "(this section)"
 msgstr "(cette section)"
 
+#. placeholder {0}: readiness.buddyCount
+msgid "{0, plural, one {# buddy} other {# buddies}}"
+msgstr "{0, plural, one {# compagnon} other {# compagnons}}"
+
+#. placeholder {0}: language.missingKeys.length
+msgid "{0, plural, one {# message missing} other {# messages missing}}"
+msgstr "{0, plural, one {# message manquant} other {# messages manquants}}"
+
+#. placeholder {0}: buddies.length
+#. placeholder {1}: KIDS_BUDDIES.length
+#. placeholder {2}: KIDS_BUDDIES.length
+msgid "{0, plural, one {# of {1} shipping} other {# of {2} shipping}}"
+msgstr "{0, plural, one {# sur {1} inclus} other {# sur {2} inclus}}"
+
 #. placeholder {0}: preview.addedPageNumbers.length
 #. placeholder {0}: result.addedPages
 msgid "{0, plural, one {# page added} other {# pages added}}"
@@ -236,6 +250,11 @@ msgstr "{0} sur {1} éléments"
 msgid "{0} of {1} pages had no extracted text"
 msgstr "{0} pages sur {1} n'ont aucun texte extrait"
 
+#. placeholder {0}: readiness.readyVoiceLanguageCount
+#. placeholder {1}: readiness.languageCount
+msgid "{0} of {1} voice languages ready"
+msgstr "Voix prêtes pour {0} langue(s) sur {1}"
+
 #. placeholder {0}: String(displayPages.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
@@ -264,6 +283,10 @@ msgstr "{0} images sélectionnées ne figurent plus dans le storyboard."
 #~ msgid "{0} series"
 #~ msgstr "Série {0}"
 
+#. placeholder {0}: selectedBuddy.defaultNameFallback
+msgid "{0} ships with this book"
+msgstr "{0} est inclus avec ce livre"
+
 #. placeholder {0}: String(visibleCount)
 msgid "{0} terms"
 msgstr "{0} termes"
@@ -278,6 +301,10 @@ msgstr "{0} traductions"
 
 #~ msgid "{0} versions"
 #~ msgstr "{0} versions"
+
+#. placeholder {0}: selectedBuddy.defaultNameFallback
+msgid "{0}'s voice pack"
+msgstr "Pack de voix de {0}"
 
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
@@ -321,6 +348,9 @@ msgstr "il y a {0} min"
 #. placeholder {0}: String(Math.floor(diff / 1000))
 msgid "{0}s ago"
 msgstr "il y a {0} s"
+
+#~ msgid "{buddyCount, plural, one {# buddy} other {# buddies}}"
+#~ msgstr "{buddyCount, plural, one {# compagnon} other {# compagnons}}"
 
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} {confirmCount, plural, one {double page possible détectée} other {doubles pages possibles détectées}}"
@@ -402,8 +432,14 @@ msgstr "{missingForCurrentStage} entrée(s) sans audio. Relancez pour générer 
 msgid "{missingForCurrentStage} entry/entries are missing translations. Re-run to fill the missing items."
 msgstr "{missingForCurrentStage} entrée(s) sans traduction. Relancez pour compléter les éléments manquants."
 
+msgid "{name}'s expressions"
+msgstr "Expressions de {name}"
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} signalés"
+
+#~ msgid "{packCount, plural, one {# voice pack} other {# voice packs}}"
+#~ msgstr "{packCount, plural, one {# pack de voix} other {# packs de voix}}"
 
 msgid "{pageCount} {pageCount, plural, one {page} other {pages}}"
 msgstr "{pageCount} {pageCount, plural, one {page} other {pages}}"
@@ -578,6 +614,9 @@ msgstr "Une figure de style qui décrit une chose comme si c'était une autre po
 msgid "A fill-in-the-blank activity."
 msgstr "Une activité à compléter."
 
+msgid "A friendly character fronts every reading tool, from text-to-speech to font size."
+msgstr "Un personnage sympathique incarne chaque outil de lecture, de la synthèse vocale à la taille de la police."
+
 msgid "A glossary term with this word already exists."
 msgstr "Un terme du glossaire avec ce mot existe déjà."
 
@@ -721,6 +760,12 @@ msgstr "La vérification d'accessibilité a échoué pour cette page"
 
 msgid "Accessibility Findings"
 msgstr "Accessibilité Résultats"
+
+msgid "Accessibility notice: the character creator is not accessible yet."
+msgstr "Note d’accessibilité : le créateur de personnage n’est pas encore accessible."
+
+#~ msgid "Accessibility notice: the character creator supports keyboard controls, but its visual choices do not yet have complete screen-reader descriptions."
+#~ msgstr "Note d’accessibilité : le créateur de personnage est utilisable au clavier, mais ses choix visuels ne disposent pas encore de descriptions complètes pour les lecteurs d’écran."
 
 msgid "Accessibility results are temporarily unavailable."
 msgstr "Les résultats d'accessibilité sont temporairement indisponibles."
@@ -978,6 +1023,9 @@ msgstr "Ajouter langue"
 msgid "Add Language"
 msgstr "Ajouter une langue"
 
+msgid "Add languages to the book to generate voice packs."
+msgstr "Ajoutez des langues au livre pour générer des packs de voix."
+
 msgid "Add languages to translate the book content into."
 msgstr "Ajoutez des langues pour traduire le contenu du livre."
 
@@ -1061,6 +1109,15 @@ msgstr "Ajoutez votre premier terme"
 
 msgid "Add your OpenAI API key first"
 msgstr "Ajoutez d'abord votre clé API OpenAI"
+
+msgid "Add your OpenAI key in Settings to generate voices."
+msgstr "Ajoutez votre clé OpenAI dans Paramètres pour générer des voix."
+
+msgid "Add your OpenAI key in Settings to generate."
+msgstr "Ajoutez votre clé OpenAI dans Paramètres pour générer."
+
+msgid "Add your own buddy"
+msgstr "Ajoutez votre propre compagnon"
 
 msgid "added"
 msgstr "ajouté"
@@ -1242,6 +1299,9 @@ msgstr "Toutes les catégories"
 msgid "All changes saved"
 msgstr "Toutes les modifications sont enregistrées"
 
+msgid "All expressions"
+msgstr "Toutes les expressions"
+
 msgid "All issues and manual review items"
 msgstr "Tous les problèmes et éléments de révision manuelle"
 
@@ -1414,6 +1474,12 @@ msgstr "S'applique à toutes les langues dirigées vers ElevenLabs."
 msgid "Applies to every language routed to Gemini."
 msgstr "S'applique à toutes les langues dirigées vers Gemini."
 
+#~ msgid "Applies to the live preview and every exported format — readers can't turn it off."
+#~ msgstr "S'applique à l'aperçu en direct et à tous les formats exportés — les lecteurs ne peuvent pas le désactiver."
+
+#~ msgid "Applies to the live preview and web book exports — readers can't turn it off."
+#~ msgstr "S'applique à l'aperçu en direct et aux exportations de livres web — les lecteurs ne peuvent pas le désactiver."
+
 msgid "Apply"
 msgstr "Appliquer"
 
@@ -1529,6 +1595,12 @@ msgstr "Narration audio (impact majeur sur la taille du fichier)"
 msgid "Audio Player"
 msgstr "Lecteur audio"
 
+msgid "Audition"
+msgstr "Aperçu"
+
+msgid "Audition language"
+msgstr "Langue de l'aperçu"
+
 msgid "Author"
 msgstr "Auteur"
 
@@ -1611,6 +1683,9 @@ msgstr "Quatrième de couverture"
 msgid "Back to beta versions"
 msgstr "Retour aux versions bêta"
 
+msgid "Back to book"
+msgstr "Retour au livre"
+
 msgid "Back to books"
 msgstr "Retour aux livres"
 
@@ -1620,8 +1695,17 @@ msgstr "Revenir à l'activité classique"
 #~ msgid "Back to Editor"
 #~ msgstr "Retour à l'éditeur"
 
+msgid "Back to export"
+msgstr "Retour à l’exportation"
+
+msgid "Back to kids UI"
+msgstr "Retour à l'interface enfants"
+
 msgid "Back to preview"
 msgstr "Retour à l'aperçu"
+
+#~ msgid "Back to regular UI"
+#~ msgstr "Retour à l'interface normale"
 
 msgid "Back to Speech overview"
 msgstr "Retour à l'aperçu de la parole"
@@ -1638,6 +1722,9 @@ msgstr "Background: {0}"
 
 msgid "Badge"
 msgstr "Badge"
+
+#~ msgid "Baked into the book"
+#~ msgstr "Intégré au livre"
 
 msgid "Balanced"
 msgstr "Équilibré"
@@ -1852,6 +1939,15 @@ msgstr "Parcourez et modifiez les modèles Liquid utilisés pour les stratégies
 
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Parcourez chaque section du Storyboard et téléchargez, remplacez ou supprimez sa vidéo en langue des signes."
+
+msgid "Buddies"
+msgstr "Compagnons"
+
+msgid "Buddy stage view"
+msgstr "Vue de la scène du compagnon"
+
+msgid "Buddy-guided interface"
+msgstr "Interface guidée par un compagnon"
 
 msgid "Build"
 msgstr "Build"
@@ -2086,14 +2182,23 @@ msgstr "Chapitre un"
 msgid "Chapter title"
 msgstr "Titre de chapitre"
 
+msgid "Character art"
+msgstr "Illustration du personnage"
+
 msgid "Chart / Graph"
 msgstr "Graphique / Diagramme"
 
 #~ msgid "Check for updates"
 #~ msgstr "Vérifier les mises à jour"
 
+msgid "Check plan"
+msgstr "Vérifier le plan"
+
 msgid "Checked"
 msgstr "Vérifié"
+
+msgid "Checking"
+msgstr "Vérification"
 
 msgid "Checking accessibility"
 msgstr "Checking accessibilité"
@@ -2146,8 +2251,14 @@ msgstr "Choisissez comment le contenu doit être formaté."
 msgid "Choose images..."
 msgstr "Choisir des images..."
 
+msgid "Choose it at export"
+msgstr "Choisir lors de l’exportation"
+
 msgid "Choose Provider"
 msgstr "Choisir le fournisseur"
+
+msgid "Choose the interface readers will receive in this export. Your Kids Mode setup is preserved either way."
+msgstr "Choisissez l’interface que les lecteurs recevront dans cette exportation. La configuration du mode Enfants est conservée dans les deux cas."
 
 #~ msgid "Choose the model used when a pipeline step does not specify its own model."
 #~ msgstr "Choisissez le modèle utilisé lorsqu’une étape du pipeline ne spécifie pas son propre modèle."
@@ -2310,6 +2421,10 @@ msgstr "Comparer les versions"
 
 msgid "Compared with fallback prompt."
 msgstr "Comparé au prompt de repli."
+
+#. placeholder {0}: readiness.missingInterfaceLanguages.length > 0 ? `: ${readiness.missingInterfaceLanguages.join(", ").toUpperCase()}` : ""
+msgid "Complete interface translations{0}."
+msgstr "Terminez les traductions de l’interface{0}."
 
 msgid "Completed"
 msgstr "Terminé"
@@ -2702,6 +2817,9 @@ msgstr "Version actuelle (v{currentVersion})"
 msgid "Custom"
 msgstr "Personnalisé"
 
+msgid "Custom buddies are coming soon"
+msgstr "Les compagnons personnalisés arrivent bientôt"
+
 msgid "Custom Instructions"
 msgstr "Instructions personnalisées"
 
@@ -3072,6 +3190,12 @@ msgstr "Terminé"
 #~ msgid "DONE"
 #~ msgstr "TERMINÉ"
 
+#. placeholder {0}: lastRun.total
+#. placeholder {1}: lastRun.generated
+#. placeholder {2}: lastRun.cachedHits
+msgid "Done: {0} clips ready — {1} newly generated, {2} from cache."
+msgstr "Terminé : {0} clips prêts — {1} nouvellement générés, {2} depuis le cache."
+
 #~ msgid "Downgrade"
 #~ msgstr "Rétrogradation"
 
@@ -3228,6 +3352,9 @@ msgstr "ex., Rendre l'arrière-plan plus lumineux, ajouter plus d'arbres..."
 msgid "Each block was simplified by AI. Edit any Easy Read text to refine it against the original, then Save. Changes are stored as a new version, so you can always roll back or regenerate."
 msgstr "Chaque bloc a été simplifié par l'IA. Modifiez tout texte en lecture facile pour le peaufiner par rapport à l'original, puis enregistrez. Les modifications sont enregistrées comme une nouvelle version, vous pouvez donc toujours revenir en arrière ou régénérer."
 
+msgid "Each buddy talks in the reader's language, generated once per language and cached for offline use."
+msgstr "Chaque compagnon parle dans la langue du lecteur, généré une fois par langue et mis en cache pour une utilisation hors ligne."
+
 msgid "Each glossary page collects the terms used since the previous one."
 msgstr "Chaque page de glossaire rassemble les termes utilisés depuis la précédente."
 
@@ -3352,6 +3479,9 @@ msgstr "Modifié manuellement"
 msgid "Editing"
 msgstr "Modification"
 
+msgid "Editing character art is coming soon"
+msgstr "La modification de l'illustration du personnage arrive bientôt"
+
 msgid "Editing is disabled while the storyboard is running"
 msgstr "La modification est désactivée pendant l'exécution du scénarimage"
 
@@ -3440,6 +3570,9 @@ msgstr "Activé"
 
 msgid "Enabled axe tags"
 msgstr "Tags axe activés"
+
+msgid "Encouraging"
+msgstr "Encourageant"
 
 msgid "End"
 msgstr "Fin"
@@ -3564,6 +3697,9 @@ msgstr "tout le monde."
 msgid "Example Books"
 msgstr "Exemple Livres"
 
+msgid "Excited"
+msgstr "Excité"
+
 msgid "Exclude from read-aloud"
 msgstr "Exclure de la lecture à voix haute"
 
@@ -3606,6 +3742,9 @@ msgstr "Exporter une partie"
 
 msgid "Export is not blocked by the stages below. As soon as Storyboard is done, you can ship a bundle. Enhancements, Localization, and Validation are optional ways to enrich the book — you can export again anytime later."
 msgstr "L'exportation n'est pas bloquée par les étapes ci-dessous. Dès que Storyboard est terminé, vous pouvez livrer un bundle. Améliorations, Localisation et Validation sont des moyens facultatifs d'enrichir le livre — vous pouvez exporter à nouveau à tout moment."
+
+msgid "Export Kids Mode book"
+msgstr "Exporter le livre en mode Enfants"
 
 msgid "Export Options"
 msgstr "Options d'exportation"
@@ -3820,6 +3959,15 @@ msgstr "Filtre les images décoratives ou non pertinentes sur chaque page."
 msgid "Final Page"
 msgstr "Page finale"
 
+msgid "Finish Kids Mode setup"
+msgstr "Terminer la configuration du mode Enfants"
+
+msgid "Finish Kids Mode setup before exporting."
+msgstr "Terminez la configuration du mode Enfants avant l’exportation."
+
+msgid "Finish translating Kids Mode"
+msgstr "Terminer la traduction du mode enfant"
+
 msgid "First images from the deep-field telescope."
 msgstr "Premières images du télescope à champ profond."
 
@@ -4033,6 +4181,12 @@ msgstr "Générez un seul quiz à partir de pages spécifiques et placez-le à l
 msgid "Generate activity"
 msgstr "Générer une activité"
 
+msgid "Generate all buddy voices"
+msgstr "Générer toutes les voix des compagnons"
+
+msgid "Generate all languages"
+msgstr "Générer toutes les langues"
+
 msgid "Generate an open-ended reflection question about this page."
 msgstr "Générer une question ouverte de réflexion sur cette page."
 
@@ -4047,6 +4201,10 @@ msgstr "Générez une narration audio pour chaque page du livre. Choisissez un f
 
 msgid "Generate audio narration for the book content."
 msgstr "Générez la narration audio pour le contenu du livre."
+
+#. placeholder {0}: readiness.missingVoiceLanguages.length > 0 ? `: ${readiness.missingVoiceLanguages.join(", ").toUpperCase()}` : ""
+msgid "Generate complete buddy voices{0}."
+msgstr "Générez toutes les voix des compagnons{0}."
 
 msgid "Generate comprehension quizzes and activities based on the book content."
 msgstr "Générez des quiz de compréhension et des activités basés sur le contenu du livre."
@@ -4084,6 +4242,9 @@ msgstr "Générer un guide de style à partir des pages"
 msgid "Generate suggested replacement translations for flagged entries"
 msgstr "Générer des traductions de remplacement suggérées pour les entrées signalées"
 
+msgid "Generate voices to preview lines"
+msgstr "Générez des voix pour prévisualiser les répliques"
+
 msgid "Generate with AI"
 msgstr "Générer avec l'IA"
 
@@ -4110,6 +4271,9 @@ msgstr "Génère des questions de compréhension et des activités à partir du 
 
 msgid "Generates descriptive alt-text for images so screen readers can describe them."
 msgstr "Génère du texte alternatif descriptif pour les images afin que les lecteurs d'écran puissent les décrire."
+
+msgid "Generates every shipped buddy in every book language."
+msgstr "Génère chaque compagnon inclus dans chaque langue du livre."
 
 msgid "Generates the interactive HTML for this activity type."
 msgstr "Génère le HTML interactif pour ce type d'activité."
@@ -4212,6 +4376,9 @@ msgstr "Aller à l'accueil"
 msgid "Go to Home"
 msgstr "Aller à l'accueil"
 
+msgid "Go to Kids Mode"
+msgstr "Accéder au mode enfant"
+
 msgid "Go to latest"
 msgstr "Aller à la dernière"
 
@@ -4260,6 +4427,9 @@ msgstr "Consignes pour ce livre"
 msgid "Hand out page-range parts and merge them back later."
 msgstr "Distribuez des parties par plage de pages et fusionnez-les plus tard."
 
+msgid "Happy"
+msgstr "Content"
+
 msgid "Hard terms become tappable — a clear, age-appropriate definition appears inline, without leaving the page."
 msgstr "Les termes difficiles deviennent cliquables — une définition claire et adaptée à l'âge s'affiche dans la page, sans la quitter."
 
@@ -4307,6 +4477,9 @@ msgstr "Masquer la clé API"
 
 msgid "Hide error details"
 msgstr "Masquer les détails de l'erreur"
+
+msgid "Hide Kids Mode details"
+msgstr "Masquer les détails du Mode Enfants"
 
 msgid "High"
 msgstr "Élevé"
@@ -4800,6 +4973,24 @@ msgstr "Les clés sont stockées localement dans ce navigateur ou cette session 
 msgid "Keys are stored locally on this device — never sent anywhere else."
 msgstr "Les clés sont stockées localement sur cet appareil — jamais envoyées ailleurs."
 
+msgid "Kids Mode"
+msgstr "Mode Enfants"
+
+msgid "Kids Mode reading experience"
+msgstr "Expérience de lecture du mode Enfants"
+
+msgid "Kids Mode setup"
+msgstr "Configuration du mode enfant"
+
+#~ msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
+#~ msgstr "Le Mode Enfants remplace les menus de lecture standards par une expérience conviviale guidée par un compagnon : le lecteur choisit un compagnon de lecture qui incarne chaque fonctionnalité d'accessibilité. C'est une décision d'auteur intégrée à l'aperçu en direct et à chaque export — les lecteurs ne peuvent ni la désactiver ni changer de compagnon eux-mêmes."
+
+#~ msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setting is baked into the live preview and web book exports, so readers can't turn Kids Mode off."
+#~ msgstr "Le Mode Enfants remplace les menus de lecture standards par une expérience conviviale guidée par un compagnon. L'auteur choisit les compagnons inclus avec le livre, et le lecteur en choisit un pendant l'accueil. Ce réglage est intégré à l'aperçu en direct et aux exportations de livres web, de sorte que les lecteurs ne peuvent pas désactiver le Mode Enfants."
+
+msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience. The author chooses which buddies ship with the book, and the reader picks one during onboarding. The setup powers the live preview and stays saved when you choose Standard or Kids Mode during export."
+msgstr "Le mode Enfants remplace les menus de lecture standard par une expérience conviviale guidée par un compagnon. L’auteur choisit les compagnons inclus avec le livre et le lecteur en sélectionne un pendant l’accueil. La configuration alimente l’aperçu et reste enregistrée lorsque vous choisissez Standard ou mode Enfants à l’exportation."
+
 #. placeholder {0}: afterPage.pageNumber
 msgid "Knowledge check generated from the source pages, after page {0}."
 msgstr "Vérification des connaissances générée à partir des pages source, après la page {0}."
@@ -4834,6 +5025,9 @@ msgstr "Langue-Specific Invites"
 
 msgid "Languages"
 msgstr "Langues"
+
+msgid "Languages to finish"
+msgstr "Langues à terminer"
 
 msgid "Large"
 msgstr "Grand"
@@ -4945,6 +5139,9 @@ msgstr "Lila errait entre les grands pins, sa lampe de poche captant des éclats
 
 msgid "lines"
 msgstr "lignes"
+
+msgid "Lines"
+msgstr "Répliques"
 
 msgid "Língua Portuguesa - 3° Ano"
 msgstr "Língua Portuguesa - 3° Ano"
@@ -5182,6 +5379,9 @@ msgstr "Les valeurs plus basses produisent un style plus cohérent entre les pag
 
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Assurez-vous de télécharger un fichier .zip exporté depuis ADT Studio."
+
+#~ msgid "Make this a kids book: pick the reading buddies and generate their voices."
+#~ msgstr "Faites-en un livre pour enfants : choisissez les compagnons de lecture et générez leurs voix."
 
 msgid "Manage all sections"
 msgstr "Gérer toutes les sections"
@@ -5698,6 +5898,9 @@ msgstr "Aucun plan du livre n’a encore été extrait."
 msgid "No books match your search"
 msgstr "Aucun livre ne correspond à votre recherche"
 
+msgid "No buddy voices generated yet — check the plan to see cost before generating."
+msgstr "Aucune voix de compagnon générée pour l'instant — consultez le plan pour connaître le coût avant de générer."
+
 msgid "No caption (decorative)"
 msgstr "Aucune légende (décorative)"
 
@@ -6067,6 +6270,9 @@ msgstr "Non révisé"
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Non exécuté lors de la dernière exécution — probablement parce que ses entrées n'étaient pas prêtes ou que les paramètres de son étape l'ont désactivé."
 
+msgid "Not set up"
+msgstr "Non configuré"
+
 msgid "Not split yet"
 msgstr "Pas encore divisé"
 
@@ -6090,6 +6296,9 @@ msgstr "Rien à modifier pour l'instant"
 
 msgid "Nothing to show"
 msgstr "Rien à afficher"
+
+msgid "Nothing to translate — the book has no other languages."
+msgstr "Rien à traduire — le livre n'a pas d'autres langues."
 
 msgid "Now click the end page."
 msgstr "Cliquez maintenant sur la page de fin."
@@ -6118,6 +6327,9 @@ msgstr "sur"
 msgid "Off"
 msgstr "Désactivé"
 
+#~ msgid "Off by default"
+#~ msgstr "Désactivé par défaut"
+
 msgid "Offset"
 msgstr "Décalage"
 
@@ -6132,6 +6344,9 @@ msgstr "Omission ou ajout"
 
 msgid "On"
 msgstr "Activé"
+
+#~ msgid "On for this book"
+#~ msgstr "Activé pour ce livre"
 
 msgid "On v{currentVersion} · latest is v{latestVersion}"
 msgstr "Sur v{currentVersion} · la dernière est v{latestVersion}"
@@ -6768,6 +6983,9 @@ msgstr "Choisissez les langues vers lesquelles vous souhaitez traduire. La langu
 msgid "Pick which voice each language uses for narration, including regional accents."
 msgstr "Choisissez quelle voix chaque langue utilise pour la narration, y compris les accents régionaux."
 
+msgid "Picking phrases"
+msgstr "Phrases de choix"
+
 msgid "Picture books and early readers"
 msgstr "Albums illustrés et premières lectures"
 
@@ -6807,6 +7025,15 @@ msgstr "Tâches du pipeline utilisant {savedModel}"
 msgid "Pixel Art"
 msgstr "Pixel Art"
 
+#. placeholder {0}: lastRun.total
+#. placeholder {1}: lastRun.languages.length
+#. placeholder {2}: lastRun.characters.length
+#. placeholder {3}: lastRun.cachedHits
+#. placeholder {4}: lastRun.total - lastRun.cachedHits
+#. placeholder {5}: lastRun.model
+msgid "Plan: {0} clips across {1} language(s) × {2} buddies — {3} already cached, {4} would call the API (model {5})."
+msgstr "Plan : {0} clips sur {1} langue(s) × {2} compagnons — {3} déjà en cache, {4} appelleraient l'API (modèle {5})."
+
 #~ msgid "Plants create sugar via <0>photosynthesis</0>, divide by <1>mitosis</1>, and absorb water by <2>osmosis</2>."
 #~ msgstr "Les plantes fabriquent du sucre par <0>photosynthèse</0>, se divisent par <1>mitose</1>, et absorbent l'eau par <2>osmose</2>."
 
@@ -6824,6 +7051,9 @@ msgstr "Valeur par défaut de la plateforme : {platformSpeechModel}"
 
 #~ msgid "Play"
 #~ msgstr "Lire"
+
+msgid "Play this line"
+msgstr "Lire cette réplique"
 
 msgid "Play video"
 msgstr "Lire la vidéo"
@@ -6890,6 +7120,15 @@ msgstr "Privilégiez les termes centraux au sujet du livre. Évitez le vocabulai
 msgid "Preparation resolves an exact locale first, then its base language, then this default. Guidance is included in the cached, inspectable LLM call."
 msgstr "La préparation recherche d’abord la locale exacte, puis sa langue de base et enfin cette valeur par défaut. Les consignes sont incluses dans l’appel au LLM mis en cache et consultable."
 
+msgid "Prepare a buddy-guided reading experience, then choose it when you export."
+msgstr "Préparez une expérience de lecture guidée par un compagnon, puis choisissez-la lors de l’exportation."
+
+msgid "Prepare Kids Mode"
+msgstr "Préparer le mode Enfants"
+
+msgid "Prepare Kids Mode for this book"
+msgstr "Préparer le mode Enfants pour ce livre"
+
 #~ msgid "Prepare numbers, dates, abbreviations, and other ambiguous text for natural speech in each language."
 #~ msgstr "Préparer les nombres, les dates, les abréviations et les autres textes ambigus pour une diction naturelle dans chaque langue."
 
@@ -6923,11 +7162,17 @@ msgstr "Préc."
 msgid "Preview"
 msgstr "Aperçu"
 
+#~ msgid "Preview kids UI"
+#~ msgstr "Aperçu de l'interface enfants"
+
 msgid "Preview linked page"
 msgstr "Aperçu de la page liée"
 
 msgid "Preview of the HTML/CSS patterns used for LLM-generated pages."
 msgstr "Aperçu des modèles HTML/CSS utilisés pour les pages générées par le LLM."
+
+msgid "Preview regular UI"
+msgstr "Aperçu de l'interface normale"
 
 msgid "Preview: per-sentence"
 msgstr "Aperçu : par phrase"
@@ -7266,6 +7511,9 @@ msgstr "Les lecteurs passent du texte original au texte simplifié avec le bouto
 msgid "Reading archive..."
 msgstr "Lecture de l'archive..."
 
+msgid "Reading experience"
+msgstr "Expérience de lecture"
+
 msgid "Reading PDF..."
 msgstr "Lecture du PDF..."
 
@@ -7286,6 +7534,14 @@ msgstr "Livre numérique compatible Readium"
 
 msgid "Reads in"
 msgstr "Lit en"
+
+msgid "Ready"
+msgstr "Prêt"
+
+#. placeholder {0}: readiness.buddyCount
+#. placeholder {1}: readiness.languageCount
+msgid "Ready for export: {0} buddies and {1} languages."
+msgstr "Prêt pour l’exportation : {0} compagnons et {1} langues."
 
 msgid "Real books processed with this preset — before and after."
 msgstr "De vrais livres traités avec ce préréglage — avant et après."
@@ -7543,6 +7799,9 @@ msgstr "Réinitialiser les polices"
 
 msgid "Reset fonts to default?"
 msgstr "Réinitialiser les polices par défaut ?"
+
+msgid "Reset to default"
+msgstr "Réinitialiser à la valeur par défaut"
 
 msgid "Reset to defaults"
 msgstr "Réinitialiser aux valeurs par défaut"
@@ -7943,6 +8202,9 @@ msgstr "Enregistrer le texte vocal"
 
 msgid "Save text sizes"
 msgstr "Enregistrer les tailles de texte"
+
+msgid "Save voice"
+msgstr "Enregistrer la voix"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Enregistrez d'abord votre travail si vous souhaitez conserver ces modifications."
@@ -8382,6 +8644,15 @@ msgstr "Les paramètres pour cette étape ne sont pas encore disponibles."
 msgid "Settings navigation"
 msgstr "Navigation des paramètres"
 
+msgid "Setup active"
+msgstr "Configuration active"
+
+msgid "Setup needed"
+msgstr "Configuration requise"
+
+msgid "Setup stays saved, so every export can use Standard or Kids Mode without repeating this work."
+msgstr "La configuration reste enregistrée afin que chaque exportation puisse utiliser le mode Standard ou Enfants sans répéter ce travail."
+
 msgid "Shadow"
 msgstr "Ombre"
 
@@ -8390,6 +8661,9 @@ msgstr "Versions partagées des prompts"
 
 msgid "Ship"
 msgstr "Livrer"
+
+msgid "Ships with this book"
+msgstr "Inclus avec ce livre"
 
 msgid "Short answer"
 msgstr "Réponse courte"
@@ -8427,6 +8701,9 @@ msgstr "Afficher les détails de l'erreur"
 
 msgid "Show fewer"
 msgstr "Afficher moins"
+
+msgid "Show Kids Mode details"
+msgstr "Afficher les détails du Mode Enfants"
 
 msgid "Show only entries missing audio"
 msgstr "Afficher uniquement les entrées sans audio"
@@ -8475,6 +8752,9 @@ msgstr "Superpositions vidéo en langue des signes pour chaque page"
 
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Les vidéos en langue des signes offrent un accès aux lecteurs sourds et malentendants qui peuvent ne pas être à l'aise avec la langue écrite."
+
+msgid "Signature"
+msgstr "Signature"
 
 msgid "Similarity"
 msgstr "Ressemblance"
@@ -8697,6 +8977,9 @@ msgstr "Diviser la fusion {left}–{right} en pages simples"
 msgid "split this section"
 msgstr "diviser cette section"
 
+msgid "Spoken buddy voices"
+msgstr "Voix parlées du compagnon"
+
 msgid "Spread"
 msgstr "Double page"
 
@@ -8735,6 +9018,9 @@ msgstr "Fichier EPUB 3 standard pour liseuses, applications de lecture et outils
 
 msgid "Standard EPUB glossary — tapping a term shows its definition. Needs reader support (not Apple Books)."
 msgstr "Glossaire EPUB standard — toucher un terme affiche sa définition. Nécessite la prise en charge du lecteur (pas Apple Books)."
+
+msgid "Standing"
+msgstr "Debout"
 
 msgid "Start"
 msgstr "Démarrer"
@@ -8873,6 +9159,9 @@ msgstr "Guide de style"
 msgid "Style Guide"
 msgstr "Guide de style"
 
+msgid "Style instructions"
+msgstr "Instructions de style"
+
 msgid "Style quizzes to match the book's fonts, text sizes, and colors. Turn off for the generic quiz style."
 msgstr "Applique aux quiz les polices, tailles de texte et couleurs du livre. Désactivez pour utiliser le style de quiz générique."
 
@@ -8944,6 +9233,9 @@ msgstr "Résumé Invite"
 
 msgid "Sun"
 msgstr "Sun"
+
+msgid "Surprised"
+msgstr "Surpris"
 
 #~ msgid "SW"
 #~ msgstr "SW"
@@ -9202,6 +9494,10 @@ msgstr "L'instruction TTS par défaut appliquée à chaque langue sauf si elle e
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "La page entière est traitée comme une seule section — tout le texte et les images restent ensemble en une seule unité. Idéal pour les livres d'histoires, les ouvrages de référence et tout contenu où chaque page est autonome."
 
+#. placeholder {0}: selectedBuddy.defaultNameFallback
+msgid "The expression set {0} uses across the reading experience"
+msgstr "L'ensemble d'expressions que {0} utilise dans l'expérience de lecture"
+
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "Le fichier peut être endommagé ou incomplet. Essayez de le télécharger à nouveau depuis la source."
 
@@ -9225,6 +9521,12 @@ msgstr "Le choix idéal pour les romans, axé sur une expérience de lecture flu
 
 msgid "The inside cover of the book."
 msgstr "La page de garde du livre."
+
+msgid "The Kids interface is ready in every book language."
+msgstr "L’interface enfant est prête dans toutes les langues du livre."
+
+msgid "The Kids interface source catalog is unavailable."
+msgstr "Le catalogue source de l’interface enfant est indisponible."
 
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "La dernière révision de traduction a échoué avant de produire des résultats fiables par élément. Relancez Réviser pour les traductions visibles."
@@ -9358,6 +9660,12 @@ msgstr "Elles produisent des fleurs pour attirer les pollinisateurs."
 msgid "They release oxygen directly into the air."
 msgstr "Elles libèrent de l'oxygène directement dans l'air."
 
+msgid "Things {name} says"
+msgstr "Ce que dit {name}"
+
+msgid "Thinking"
+msgstr "Pensif"
+
 msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
 msgstr "Cette activité ne contient aucun texte ni aucune réponse adressable. Régénérez-la ou utilisez \"Modifier la mise en page\" pour modifier directement la page."
 
@@ -9408,6 +9716,9 @@ msgstr "La licence de cette police n'est pas open source et restreint l'intégra
 msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "La licence de cette police restreint l'incorporation — la distribuer dans le paquet du livre peut être illégal."
 
+msgid "This format uses its own reader controls. Choose Web Export to include the Kids Mode interface."
+msgstr "Ce format utilise les commandes de son propre lecteur. Choisissez Exportation Web pour inclure l’interface Mode Enfants."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Cette image est décorative. Les lecteurs d'écran l'ignoreront et aucune légende n'est nécessaire."
 
@@ -9416,6 +9727,9 @@ msgstr "Cette image est marquée comme décorative — cliquez pour désélectio
 
 #~ msgid "This is <0>ADT Studio</0>."
 #~ msgstr "Voici <0>ADT Studio</0>."
+
+#~ msgid "This is a kids book"
+#~ msgstr "Ceci est un livre pour enfants"
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Ceci est un aperçu des options que vous avez sélectionnées pour votre livre. Chaque option affecte l'aperçu de manière différente."
@@ -9664,6 +9978,9 @@ msgctxt "CSS transform"
 msgid "Translate"
 msgstr "Translation"
 
+msgid "Translate interface"
+msgstr "Traduire l'interface"
+
 msgid "Translate text in images"
 msgstr "Traduire le texte dans les images"
 
@@ -9676,6 +9993,17 @@ msgstr "Traduisez le livre dans des langues supplémentaires. Chaque langue est 
 msgid "Translate the book into other languages and generate narration. These stages are optional — skip them if your book doesn't need multilingual or audio output."
 msgstr "Traduisez le livre dans d'autres langues et générez la narration. Ces étapes sont facultatives — ignorez-les si votre livre n'a pas besoin de sortie multilingue ou audio."
 
+msgid "Translate the interface there, then return to rebuild the preview."
+msgstr "Traduisez-y l’interface, puis revenez reconstruire l’aperçu."
+
+#. placeholder {0}: missingInterfaceLanguages .map((language) => language.language.toUpperCase()) .join(", ")
+msgid "Translate the Kids interface before enabling Kids Mode. Missing: {0}."
+msgstr "Traduisez l’interface enfant avant d’activer le mode enfant. Langues manquantes : {0}."
+
+#. placeholder {0}: translateInterface.data?.languages.length
+msgid "Translated the kids interface into {0} language(s)."
+msgstr "Interface enfants traduite en {0} langue(s)."
+
 msgid "Translated to PT"
 msgstr "Traduit en PT"
 
@@ -9687,6 +10015,9 @@ msgstr "Traduit le texte intégré dans les images — étiquettes, légendes, p
 
 msgid "Translates the catalog into each target language."
 msgstr "Traduit le catalogue dans chaque langue cible."
+
+msgid "Translates the kids onboarding and menu into the book's other languages. Run this before generating voices so clips speak the translated text."
+msgstr "Traduit l'accueil et le menu enfants dans les autres langues du livre. À lancer avant de générer les voix pour que les clips disent le texte traduit."
 
 msgid "Translating languages..."
 msgstr "Traduction des langues..."
@@ -9783,6 +10114,12 @@ msgstr "Transformez n'importe quel PDF éducatif en un ensemble d'apprentissage 
 
 msgid "Turn any textbook into an accessible edition — every step of the pipeline, built in."
 msgstr "Transformez n'importe quel manuel en une édition accessible — chaque étape du pipeline, intégrée."
+
+msgid "Turn on Kids Mode setup for this book."
+msgstr "Activez la configuration du mode Enfants pour ce livre."
+
+msgid "Turn on kids mode to configure buddies and voices."
+msgstr "Activez le mode enfants pour configurer les compagnons et les voix."
 
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Activez cette option pour afficher la carte de révision Validation dans l'Aperçu et l'onglet Validation du réviseur dans l'étape Validation."
@@ -10051,6 +10388,9 @@ msgstr "Utiliser comme actuelle"
 msgid "Use as template"
 msgstr "Utiliser comme modèle"
 
+msgid "Use buddy-guided onboarding and reading controls."
+msgstr "Utilisez un accueil et des commandes de lecture guidés par un compagnon."
+
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Utilisez la syntaxe Liquid pour interpoler des variables, parcourir des tableaux et inclure des instructions conditionnelles dans ce prompt."
 
@@ -10066,6 +10406,9 @@ msgstr "Utilisez l'étalement pour les livres imprimés avec des mises en page e
 
 msgid "Use the + between pages to place the quiz"
 msgstr "Utilisez le + entre les pages pour placer le quiz"
+
+msgid "Use the familiar reader menus and controls."
+msgstr "Utilisez les menus et commandes de lecture habituels."
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Utilisez la barre latérale à gauche pour ouvrir n'importe quelle étape du pipeline. Chaque étape a sa propre page où vous pouvez examiner son contenu, configurer ses paramètres et lancer une exécution. Les cartes ci-dessous reflètent cette navigation — cliquez sur une carte pour accéder directement à la page de cette étape."
@@ -10220,6 +10563,9 @@ msgstr "Voir la page {pageNum} en grand"
 #~ msgid "View release details"
 #~ msgstr "Voir les détails de la version"
 
+msgid "View technical details"
+msgstr "Afficher les détails techniques"
+
 msgid "Visible page entries"
 msgstr "Entrées visibles de la page"
 
@@ -10246,6 +10592,9 @@ msgstr "Voix"
 
 msgid "Voice Mappings"
 msgstr "Correspondances de voix"
+
+msgid "Voice preset"
+msgstr "Préréglage de voix"
 
 msgid "Voice tuning (advanced)"
 msgstr "Réglage de la voix (avancé)"
@@ -10313,6 +10662,9 @@ msgstr "Nous avons rencontré un problème lors du chargement de cette vue. Vous
 
 msgid "Web Export"
 msgstr "Exportation Web"
+
+msgid "Web Export only"
+msgstr "Exportation Web uniquement"
 
 msgid "Web Package"
 msgstr "Package web"
@@ -10516,6 +10868,9 @@ msgstr "Votre IA, vos clés."
 
 msgid "Your book"
 msgstr "Votre livre"
+
+msgid "Your book is ready, but its child-friendly controls are missing translations in some book languages. Complete them so the book and Kids Mode always speak the same language."
+msgstr "Votre livre est prêt, mais les commandes adaptées aux enfants ne sont pas encore traduites dans certaines langues du livre. Complétez-les pour que le livre et le mode enfant utilisent toujours la même langue."
 
 msgid "Your Books"
 msgstr "Vos livres"

@@ -4,6 +4,11 @@ import { FileDown, Globe, GraduationCap, BookText, Landmark } from "lucide-react
 
 export type ExportFormat = "project" | "webpub" | "scorm" | "adt" | "epub" | "pnld"
 
+/** Only Web Export has completed Kids Mode compatibility validation. */
+export function supportsKidsModeExport(format: ExportFormat): boolean {
+  return format === "adt"
+}
+
 export interface FormatConfig {
   icon: LucideIcon
   label: string

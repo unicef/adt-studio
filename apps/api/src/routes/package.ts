@@ -16,6 +16,7 @@ import {
 } from "@adt/pipeline"
 import type { Storage } from "@adt/storage"
 import type { TaskService } from "../services/task-service.js"
+import { readKidsModeConfig } from "../services/kids-mode-service.js"
 
 const PACKAGE_VERSION_LENGTH = 16
 
@@ -62,6 +63,22 @@ function readStoredBuildVersion(bookDir: string): string | null {
   return version.length > 0 ? version : null
 }
 
+/**
+ * Everything hashed as "book config" for packaging-input change detection.
+ * The kids-mode decision lives outside config.yaml (kids-mode.json) but is
+ * baked into the packaged config.json, so it must bust the hash too. Used by
+ * BOTH the cache pre-check and runPackaging — keep them identical.
+ */
+function packagingConfigForHash(
+  bookDir: string,
+  config: ReturnType<typeof loadBookConfig>,
+): Record<string, unknown> {
+  return {
+    ...(config as unknown as Record<string, unknown>),
+    __kidsMode: readKidsModeConfig(bookDir),
+  }
+}
+
 function getPackagingCacheState(
   storage: Storage,
   safeLabel: string,
@@ -77,7 +94,7 @@ function getPackagingCacheState(
   const hash = computePackagingInputHash({
     storage, bookDir, label: safeLabel, language, outputLanguages, title,
     webAssetsDir, applyBodyBackground: config.apply_body_background,
-    config: config as unknown as Record<string, unknown>,
+    config: packagingConfigForHash(bookDir, config),
   })
   const cached = fs.existsSync(hashPath) && fs.readFileSync(hashPath, "utf-8").trim() === hash
   return {
@@ -237,7 +254,7 @@ async function runPackaging(
       storage, safeLabel, booksDir, configPath,
     )
 
-    // Check build cache — skip if all inputs are unchanged
+    // Check build cache — skip if all inputs are unchanged.
     const hashOptions = {
       storage,
       bookDir,
@@ -247,7 +264,7 @@ async function runPackaging(
       title,
       webAssetsDir,
       applyBodyBackground: config.apply_body_background,
-      config: config as unknown as Record<string, unknown>,
+      config: packagingConfigForHash(bookDir, config),
     }
     const hashPath = getBuildHashPath(bookDir)
     const versionPath = getBuildVersionPath(bookDir)
@@ -257,6 +274,11 @@ async function runPackaging(
       return { version: readBuildVersion(bookDir, preHash) }
     }
 
+    // Kids mode is author-time book state — stamp it into the preview
+    // package exactly like export-service does for exports, so the baked
+    // config matches kids-mode.json (the /adt/* route additionally patches
+    // config.json live between repackages).
+    const kidsConfig = readKidsModeConfig(bookDir)
     await packageAdtWeb(storage, {
       bookDir,
       label: safeLabel,
@@ -267,6 +289,12 @@ async function runPackaging(
       bundleVersion,
       applyBodyBackground: config.apply_body_background,
       speechConfig: config.speech,
+      features: {
+        kidsMode: kidsConfig.enabled,
+        ...(kidsConfig.enabled && kidsConfig.buddies.length > 0
+          ? { kidsBuddies: kidsConfig.buddies }
+          : {}),
+      },
       fixedLayout: isFixedLayoutBook(config),
       reflowableFont: config.reflowable_font,
       quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,

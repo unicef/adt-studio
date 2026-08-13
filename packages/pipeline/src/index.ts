@@ -278,6 +278,19 @@ export {
   type CatalogTranslationConfig,
 } from "./catalog-translation.js"
 export {
+  translateKidsInterface,
+  assertKidsInterfaceLanguageParity,
+  getKidsInterfaceParityStatus,
+  readKidsInterfaceOverrides,
+  readKidsInterfaceSource,
+  KIDS_I18N_DIR,
+  type TranslateKidsInterfaceOptions,
+  type TranslateKidsInterfaceResult,
+  type KidsInterfaceLanguageStatus,
+  type KidsInterfaceParityStatus,
+  type KidsInterfaceParityOptions,
+} from "./kids-interface-translation.js"
+export {
   translateImage,
   buildImageTranslationConfig,
   type TranslateImageOptions,
@@ -429,3 +442,11 @@ export {
   generateActivityFeedback,
   type ActivityFeedbackConfig,
 } from "./activity-feedback.js"
+export {
+  generateKidsVoicePack,
+  resolveKidsLineText,
+  resolveKidsVoiceCacheDir,
+  type GenerateKidsVoicePackOptions,
+  type KidsVoiceClipPlan,
+  type KidsVoiceGenerationResult,
+} from "./kids-voice.js"

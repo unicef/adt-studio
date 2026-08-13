@@ -81,6 +81,10 @@ RUN --mount=type=cache,target=/root/.npm \
 # --with-deps installs required system libraries (libatk, libcups, etc.) in one step.
 RUN cd apps/api/dist && npx playwright install --with-deps chromium
 
+# The Studio imports buddy artwork through the @kids-buddies Vite alias, so
+# those source assets must exist before Vite resolves and bundles them.
+COPY assets/adt/kids-buddies/ ./assets/adt/kids-buddies/
+
 # Build the studio SPA (Vite)
 RUN pnpm --filter @adt/studio build
 

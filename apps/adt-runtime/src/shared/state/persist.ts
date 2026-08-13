@@ -107,6 +107,22 @@ function syncStorageFor<T>(): SyncJsonStorage<T> {
 // synchronously at atom creation, so consumers see a plain T (not T | Promise<T>).
 const STORAGE_OPTS = { getOnInit: true } as const
 
+/**
+ * Carry a value over from a key we used to write, so a rename does not reset
+ * settings for anyone already using the reader. Copies once — the old key is
+ * left in place, since another build may still read it.
+ */
+export function migratePersistedKey(legacyKey: string, key: string): void {
+  try {
+    if (adapter.getItem(key) !== null) return
+    const legacy = adapter.getItem(legacyKey)
+    if (legacy === null) return
+    adapter.setItem(key, legacy)
+  } catch {
+    // Storage refusal just means the default applies.
+  }
+}
+
 /** Boolean toggle that survives page navigation. */
 export function persistedBoolAtom(key: string, defaultValue: boolean) {
   return atomWithStorage<boolean>(key, defaultValue, syncStorageFor<boolean>(), STORAGE_OPTS)

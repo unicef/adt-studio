@@ -6,6 +6,7 @@ export interface ExportFeatureToggles {
   readAloud: boolean
   quizzes: boolean
   signLanguage: boolean
+  kidsMode?: boolean
   languages?: string[]
 }
 

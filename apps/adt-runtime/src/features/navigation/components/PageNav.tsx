@@ -4,41 +4,15 @@ import {
   currentPageNumberAtom,
   currentSectionIdAtom,
   pagesAtom,
-  type PageEntry,
 } from "@/features/navigation/state/nav.atoms";
 import { dockMenuValueAtom } from "@/shared/state/ui.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { DockIconButton } from "@/features/dock/components/DockIconButton";
-
-/**
- * Section IDs encode their page range, e.g.:
- *   pg001_sec001    → page 1
- *   pg004005_sec001 → pages 4-5
- *   pg010_sec001    → page 10
- * 6-digit prefix = start (first 3) + end (last 3); 3-digit prefix = single page.
- * Returns `[start, end]` or `null` if the id doesn't match the convention.
- */
-function pageRangeFromSectionId(id: string): [number, number] | null {
-  const match = id.match(/^pg(\d+)/);
-  if (!match) return null;
-  const digits = match[1];
-  if (digits.length === 6) {
-    const start = Number.parseInt(digits.slice(0, 3), 10);
-    const end = Number.parseInt(digits.slice(3, 6), 10);
-    if (Number.isFinite(start) && Number.isFinite(end)) return [start, end];
-  }
-  const n = Number.parseInt(digits, 10);
-  return Number.isFinite(n) ? [n, n] : null;
-}
-
-function pageRangeForEntry(entry: PageEntry): [number, number] | null {
-  const fromId = pageRangeFromSectionId(entry.section_id);
-  if (fromId) return fromId;
-  if (typeof entry.page_number === "number") {
-    return [entry.page_number, entry.page_number];
-  }
-  return null;
-}
+import {
+  getAdjacentPages,
+  navigateToHref,
+  pageRangeForEntry,
+} from "@/features/navigation/lib/page-navigation";
 
 /**
  * Prev / "N / total" / next page navigation block in the dock. Each click
@@ -53,11 +27,11 @@ export function PageNav() {
   const setDockMenuValue = useSetAtom(dockMenuValueAtom);
   const { t } = useTranslation();
 
-  const idx = pages.findIndex((p) => p.section_id === currentSectionId);
-  const prev = idx > 0 ? pages[idx - 1] : undefined;
-  const next = idx >= 0 && idx < pages.length - 1 ? pages[idx + 1] : undefined;
+  const { current: currentEntry, prev, next } = getAdjacentPages(
+    pages,
+    currentSectionId,
+  );
 
-  const currentEntry = idx >= 0 ? pages[idx] : undefined;
   const currentRange = currentEntry ? pageRangeForEntry(currentEntry) : null;
   const pageNumber = currentPageFromMeta ?? currentRange?.[0] ?? null;
 
@@ -70,7 +44,7 @@ export function PageNav() {
     // rather than re-opening. Playback resumes independently via the
     // persisted `isPlaying` flag, so audio keeps reading the new page.
     if (dockMenuValue === "audio") setDockMenuValue("");
-    window.location.href = href;
+    navigateToHref(href);
   };
 
   return (
