@@ -3,6 +3,10 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import {
+  extractReleaseSourceBlock,
+  stripFactualReleaseNotes,
+} from "./release-source-notes.mjs";
 
 const API_BASE = "https://api.openai.com/v1";
 const COVER_START = "<!-- adt-ai-cover:start -->";
@@ -1036,6 +1040,14 @@ export function updateReleaseBody({
     throw new Error("regenerate must be notes, image, or both");
   }
   let body = existingBody;
+  let releaseSource = "";
+  if (regenerate === "notes" || regenerate === "both") {
+    const extracted = extractReleaseSourceBlock(
+      stripFactualReleaseNotes(body),
+    );
+    body = extracted.body;
+    releaseSource = extracted.source;
+  }
   if (regenerate === "image" || regenerate === "both") {
     const cover =
       coverLightUrl && coverDarkUrl
@@ -1058,6 +1070,10 @@ export function updateReleaseBody({
       notesContent(editorial, { from, tag, repo }),
       "end",
     );
+    if (releaseSource) {
+      body = body.replace(LOCALIZATION_PATTERN, "").trim();
+      body = `${body}\n\n${releaseSource}`;
+    }
     body = replaceLocalizationBlock(body, localizations);
   }
   if (releaseNotice) body = applyReleaseNotice(body, releaseNotice);

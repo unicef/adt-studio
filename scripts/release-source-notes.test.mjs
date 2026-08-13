@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  extractReleaseSourceBlock,
   formatReleaseSourceSection,
   parseReleasePresentation,
   parseReleaseSourceSection,
+  stripFactualReleaseNotes,
   stripReleaseSourceSection,
+  wrapFactualReleaseNotes,
 } from "./release-source-notes.mjs";
 
 const source = {
@@ -40,6 +43,51 @@ const source = {
 };
 
 describe("release source notes", () => {
+  it("marks factual fallback notes so AI enrichment can replace them", () => {
+    const factual = [
+      "## What's Changed",
+      "",
+      "* Fix exports by @author in #123",
+      "",
+      "**Full Changelog**: https://github.com/unicef/adt-studio/compare/a...b",
+    ].join("\n");
+    const wrapped = wrapFactualReleaseNotes(factual);
+
+    expect(wrapped).toContain("<!-- adt-factual-notes:start -->");
+    expect(wrapped).toContain(factual);
+    expect(stripFactualReleaseNotes(`Manual notice\n\n${wrapped}`)).toBe(
+      "Manual notice",
+    );
+  });
+
+  it("removes legacy GitHub notes while retaining surrounding manual text", () => {
+    const legacy = [
+      "Manual notice",
+      "",
+      "## What's Changed",
+      "",
+      "* Fix exports by @author in https://github.com/org/repo/pull/123",
+      "",
+      "**Full Changelog**: https://github.com/org/repo/compare/a...b",
+      "",
+      "Manual footer",
+    ].join("\n");
+
+    expect(stripFactualReleaseNotes(legacy)).toBe(
+      "Manual notice\n\nManual footer",
+    );
+  });
+
+  it("extracts the source block without consuming following metadata", () => {
+    const releaseSource = formatReleaseSourceSection(source);
+    const body = `Manual notice\n\n${releaseSource}\n\n<!-- metadata -->`;
+
+    expect(extractReleaseSourceBlock(body)).toEqual({
+      body: "Manual notice\n\n<!-- metadata -->",
+      source: releaseSource,
+    });
+  });
+
   it("round-trips every supported field", () => {
     const section = formatReleaseSourceSection(source);
     const parsed = parseReleaseSourceSection(`Changes\n\n${section}`);

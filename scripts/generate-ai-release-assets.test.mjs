@@ -437,6 +437,80 @@ describe("AI release assets", () => {
     expect(imageOnly).toContain('"pt-BR"');
   });
 
+  it("replaces factual fallback notes but keeps manual text and release provenance", () => {
+    const releaseSource = [
+      "### Release source",
+      "",
+      "- Branch: `develop`",
+      "- Compare: [v0.7.5-beta.1...v0.7.5-beta.2](https://github.com/unicef/adt-studio/compare/v0.7.5-beta.1...v0.7.5-beta.2)",
+    ].join("\n");
+    const body = [
+      "Manual beta warning",
+      "",
+      "<!-- adt-factual-notes:start -->",
+      "## What's Changed",
+      "",
+      "* Factual fallback entry",
+      "",
+      "**Full Changelog**: https://github.com/unicef/adt-studio/compare/a...b",
+      "<!-- adt-factual-notes:end -->",
+      "",
+      releaseSource,
+    ].join("\n");
+
+    const enriched = updateReleaseBody({
+      existingBody: body,
+      editorial,
+      localizations: releaseLocalizations,
+      from: "v0.7.5-beta.1",
+      tag: "v0.7.5-beta.2",
+      repo: "unicef/adt-studio",
+      regenerate: "notes",
+    });
+
+    expect(enriched).toContain("Manual beta warning");
+    expect(enriched).not.toContain("Factual fallback entry");
+    expect(enriched).not.toContain("adt-factual-notes");
+    expect(enriched).toContain("Books That Travel");
+    expect(enriched).toContain(releaseSource);
+    expect(enriched.indexOf("<!-- adt-ai-notes:end -->")).toBeLessThan(
+      enriched.indexOf("### Release source"),
+    );
+    expect(enriched.indexOf("### Release source")).toBeLessThan(
+      enriched.indexOf("<!-- adt-release-i18n"),
+    );
+  });
+
+  it("upgrades legacy unmarked GitHub notes without losing manual text", () => {
+    const legacyBody = [
+      "Manual beta warning",
+      "",
+      "## What's Changed",
+      "",
+      "* Legacy factual entry",
+      "",
+      "**Full Changelog**: https://github.com/unicef/adt-studio/compare/a...b",
+      "",
+      "### Release source",
+      "",
+      "- Branch: `feature/test`",
+    ].join("\n");
+
+    const enriched = updateReleaseBody({
+      existingBody: legacyBody,
+      editorial,
+      localizations: releaseLocalizations,
+      from: "v0.7.5-beta.2",
+      tag: "0.7.6-beta-pr-803",
+      repo: "unicef/adt-studio",
+      regenerate: "notes",
+    });
+
+    expect(enriched).toContain("Manual beta warning");
+    expect(enriched).not.toContain("Legacy factual entry");
+    expect(enriched).toContain("- Branch: `feature/test`");
+  });
+
   it("keeps an exact release notice as the first visible line", () => {
     const notice =
       "Windows users: reinstall this release because automatic updates will not work.";

@@ -1,4 +1,6 @@
 const HEADING = "### Release source";
+const FACTUAL_START = "<!-- adt-factual-notes:start -->";
+const FACTUAL_END = "<!-- adt-factual-notes:end -->";
 const GITHUB_URL_PREFIX = "https://github.com/";
 const COVER_URL_PREFIXES = [
   "https://github.com/user-attachments/",
@@ -11,6 +13,39 @@ const GENERIC_RELEASE_TITLES = new Set([
   "changelog",
   "release notes",
 ]);
+
+export function wrapFactualReleaseNotes(notes) {
+  const content = typeof notes === "string" ? notes.trim() : "";
+  return content ? `${FACTUAL_START}\n${content}\n${FACTUAL_END}` : "";
+}
+
+export function stripFactualReleaseNotes(body = "") {
+  let result = String(body);
+  const start = result.indexOf(FACTUAL_START);
+  const end = result.indexOf(FACTUAL_END);
+  if (start >= 0 && end > start) {
+    result = `${result.slice(0, start)}${result.slice(end + FACTUAL_END.length)}`;
+  }
+  return result
+    .replace(
+      /^#{1,3}[ \t]+What's Changed[ \t]*\r?\n[\s\S]*?^\*\*Full Changelog\*\*:[^\r\n]*(?:\r?\n[ \t]*)*/im,
+      "",
+    )
+    .trim();
+}
+
+export function extractReleaseSourceBlock(body = "") {
+  const pattern =
+    /^### Release source[ \t]*\r?\n(?:[ \t]*\r?\n)*(?:- [^\r\n]*(?:\r?\n|$))+(?:[ \t]*\r?\n)*/m;
+  const match = String(body).match(pattern);
+  if (!match || match.index == null) {
+    return { body: String(body), source: "" };
+  }
+  return {
+    body: `${body.slice(0, match.index)}${body.slice(match.index + match[0].length)}`.trim(),
+    source: match[0].trim(),
+  };
+}
 
 function githubUrl(value) {
   return typeof value === "string" && value.startsWith(GITHUB_URL_PREFIX);

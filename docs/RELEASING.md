@@ -345,6 +345,13 @@ unchanged. Notes-only regeneration reads the existing English title and cover
 alt text from the localization embedded in the release body, so the unchanged
 cover remains aligned without a separate editorial metadata attachment.
 
+Beta and staging releases initially keep GitHub's factual generated notes as a
+fallback. A successful `notes` or `both` regeneration replaces that fallback
+with the AI editorial notes instead of displaying both versions. Manual notices
+and the `### Release source` provenance section remain intact. Numbered beta and
+staging generation compares against the newest applicable numbered beta, with
+the preceding stable release used only when no beta is available.
+
 Numbered beta and staging covers match the app's fallback beta banner: a deep
 violet/navy background with magenta radial glows, bright typography, a
 `BETA RELEASE` eyebrow, and a luminous `BETA` capsule integrated into the
@@ -424,10 +431,11 @@ fallback. The PR list is capped, while the Compare link covers the complete
 range.
 
 Do not edit `### Release source` by hand. It is a parsing contract and must
-remain the last section of the release body. Newer apps remove it from the
-ordinary release notes and show its fields in the Beta versions source card;
-older apps display it as normal Markdown. The updater also strips the HTML form
-rendered by GitHub's feed before showing update notes.
+remain the last visible section of the release body (hidden localization
+metadata may follow it). Newer apps remove it from the ordinary release notes
+and show its fields in the Beta versions source card; older apps display it as
+normal Markdown. The updater also strips the HTML form rendered by GitHub's
+feed before showing update notes.
 
 If composition or provenance lookup fails, the workflow discards the temporary
 file and lets `gh release create --generate-notes` produce the release normally.

@@ -172,9 +172,18 @@ describe("resolvePreviousReleaseTag", () => {
     expect(resolvePreviousReleaseTag(releaseTags, "v0.7.5")).toBe("v0.7.4");
   });
 
-  it("uses the preceding stable release for a staging release", () => {
+  it("uses the latest preceding beta for a staging release", () => {
     expect(
       resolvePreviousReleaseTag(releaseTags, "0.7.6-beta-pr-803"),
+    ).toBe("v0.7.5-beta.2");
+  });
+
+  it("falls back to the preceding stable when no beta exists", () => {
+    expect(
+      resolvePreviousReleaseTag(
+        ["v0.7.4", "v0.7.5"],
+        "0.7.6-beta-pr-803",
+      ),
     ).toBe("v0.7.5");
   });
 

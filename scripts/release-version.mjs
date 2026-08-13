@@ -117,7 +117,9 @@ export function resolvePreviousReleaseTag(tags, targetTag) {
       }
       if (targetIsStaging) {
         return (
-          version.prerelease == null && compareCore(version, target) < 0
+          (betaNumberOf(version) != null &&
+            compareCore(version, target) <= 0) ||
+          (version.prerelease == null && compareCore(version, target) < 0)
         );
       }
 
@@ -129,9 +131,14 @@ export function resolvePreviousReleaseTag(tags, targetTag) {
         (version.prerelease == null && compareCore(version, target) < 0)
       );
     })
-    .sort((left, right) =>
-      compareReleaseVersions(left.version, right.version),
-    );
+    .sort((left, right) => {
+      if (targetIsStaging) {
+        const leftIsBeta = betaNumberOf(left.version) != null;
+        const rightIsBeta = betaNumberOf(right.version) != null;
+        if (leftIsBeta !== rightIsBeta) return leftIsBeta ? 1 : -1;
+      }
+      return compareReleaseVersions(left.version, right.version);
+    });
 
   return candidates.at(-1)?.tag ?? null;
 }
