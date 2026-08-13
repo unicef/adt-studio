@@ -168,10 +168,13 @@ export interface AdtBundleImportPreview {
   outputLanguages: string[]
   runtimeFeatures: Record<string, boolean>
   pageCount: number
+  imageCount: number
+  captionedImageCount: number
   glossaryEntryCount: number
   tocEntryCount: number
   translationLanguageCount: number
   contentChanged: boolean
+  exportComparisonStatus: "unchanged" | "changed" | "unavailable"
   activityReview: {
     inventoryVersion: number | null
     items: Array<{

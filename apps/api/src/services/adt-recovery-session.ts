@@ -92,10 +92,13 @@ export interface AdtRecoveryImportPreview {
   outputLanguages: string[]
   runtimeFeatures: Record<string, boolean>
   pageCount: number
+  imageCount: number
+  captionedImageCount: number
   glossaryEntryCount: number
   tocEntryCount: number
   translationLanguageCount: number
   contentChanged: boolean
+  exportComparisonStatus: "unchanged" | "changed" | "unavailable"
   activityReview: AdtImportedActivityReview
   compatibility: AdtImportCompatibility
   agentGuide: AdtAgentGuideReview
@@ -344,7 +347,7 @@ export function previewAdtRecoveryImport(
   if (!sourceTexts) {
     throw new AdtRecoverySessionError("The ADT bundle does not contain its source text catalog")
   }
-  const { catalog } = createRecoveredCatalog(
+  const { catalog, imageCount, captionedImageCount } = createRecoveredCatalog(
     sourceTexts,
     bundle.pages,
     bundle.pageHtml,
@@ -377,15 +380,15 @@ export function previewAdtRecoveryImport(
     outputLanguages,
     runtimeFeatures: bundle.runtimeFeatures,
     pageCount: recoveredPageCount(bundle.pages),
+    imageCount,
+    captionedImageCount,
     glossaryEntryCount: Object.keys(bundle.glossaries[bundle.manifest.languages.source] ?? {}).length,
     tocEntryCount: bundle.toc.length,
     translationLanguageCount: outputLanguages.filter((language) => (
       bundle.texts[language] || bundle.texts[language.replace("-", "_")]
     )).length,
-    contentChanged: recoveredCatalogChanged(catalog, sourceTexts)
-      || bundle.ignoredEdits.sourceTextsChanged
-      || bundle.ignoredEdits.pageHtmlChanged.length > 0
-      || bundle.ignoredEdits.pageHtmlMissing.length > 0,
+    contentChanged: hasSourceChanges(bundle, catalog, sourceTexts),
+    exportComparisonStatus: compareWithExportBaseline(bundle),
     activityReview,
     compatibility,
     agentGuide: createAdtImportRepairGuide(bundle, compatibility, template, activityReview),
@@ -458,10 +461,18 @@ function createRecoveredCatalog(
   pages: Array<{ section_id: string; href: string; page_number?: number }>,
   pageHtml: Record<string, string>,
   legacyRecovery = false,
-): { catalog: TextCatalogOutput; htmlEntryCount: number; ignoredHtmlEntryCount: number } {
+): {
+  catalog: TextCatalogOutput
+  htmlEntryCount: number
+  ignoredHtmlEntryCount: number
+  imageCount: number
+  captionedImageCount: number
+} {
   const recovered = new Map<string, string>()
   const recoveredPageIds = new Set<string>()
   const sourceImageIds = new Set<string>()
+  let imageCount = 0
+  let captionedImageCount = 0
   pages.forEach((page, index) => {
     const html = pageHtml[page.href]
     if (!html) return
@@ -474,6 +485,10 @@ function createRecoveredCatalog(
       undefined,
       { repairLegacyIds: legacyRecovery },
     )
+    imageCount += projection.images.length
+    captionedImageCount += projection.images.filter((image) => (
+      Boolean(sourceTexts[image.imageId]) || image.alt.length > 0 || image.decorative
+    )).length
     projection.images.forEach((image) => sourceImageIds.add(image.imageId))
     const entries = legacyRecovery
       ? [
@@ -525,6 +540,8 @@ function createRecoveredCatalog(
     }),
     htmlEntryCount: recovered.size,
     ignoredHtmlEntryCount: 0,
+    imageCount,
+    captionedImageCount,
   }
 }
 
@@ -534,6 +551,41 @@ function recoveredCatalogChanged(
 ): boolean {
   if (catalog.entries.length !== Object.keys(sourceTexts).length) return true
   return catalog.entries.some((entry) => sourceTexts[entry.id] !== entry.text)
+}
+
+function hasSourceChanges(
+  bundle: ReturnType<typeof readAdtBundle>,
+  catalog: TextCatalogOutput,
+  sourceTexts: Record<string, string>,
+): boolean {
+  return recoveredCatalogChanged(catalog, sourceTexts)
+    || bundle.ignoredEdits.sourceTextsChanged
+    || bundle.ignoredEdits.pageHtmlChanged.length > 0
+    || bundle.ignoredEdits.pageHtmlMissing.length > 0
+}
+
+function compareWithExportBaseline(
+  bundle: ReturnType<typeof readAdtBundle>,
+): AdtRecoveryImportPreview["exportComparisonStatus"] {
+  const frozen = bundle.manifest.frozen
+  const baselinePageHrefs = Object.keys(frozen?.pageHtmlFingerprints ?? {})
+  const currentPageHrefs = [...new Set(bundle.pages.map((page) => page.href))]
+  const pageSetChanged = baselinePageHrefs.length > 0 && (
+    baselinePageHrefs.some((href) => !currentPageHrefs.includes(href))
+    || currentPageHrefs.some((href) => !baselinePageHrefs.includes(href))
+  )
+  const verifiedMismatch = bundle.ignoredEdits.sourceTextsChanged
+    || bundle.ignoredEdits.pageHtmlChanged.length > 0
+    || bundle.ignoredEdits.pageHtmlMissing.length > 0
+    || pageSetChanged
+
+  if (verifiedMismatch) return "changed"
+
+  const completeBaseline = Boolean(frozen?.sourceTextsFingerprint)
+    && baselinePageHrefs.length > 0
+    && currentPageHrefs.every((href) => baselinePageHrefs.includes(href))
+    && baselinePageHrefs.every((href) => currentPageHrefs.includes(href))
+  return completeBaseline ? "unchanged" : "unavailable"
 }
 
 function seedPages(
@@ -1067,10 +1119,7 @@ function describeAdtRecoverySession(
   const readAloud = generatedSpeech || (
     !everyLanguageHasGeneratedVersion && Boolean(bundle.runtimeFeatures.readAloud)
   )
-  const contentChanged = recoveredCatalogChanged(catalog, sourceTexts)
-    || bundle.ignoredEdits.sourceTextsChanged
-    || bundle.ignoredEdits.pageHtmlChanged.length > 0
-    || bundle.ignoredEdits.pageHtmlMissing.length > 0
+  const contentChanged = hasSourceChanges(bundle, catalog, sourceTexts)
   return {
     label,
     title: bundle.title,
@@ -1171,10 +1220,7 @@ export function createAdtRecoverySession(
       .map((language) => normalizeLocale(language))
       .filter((language) => language !== sourceLanguage),
   )]
-  const sourceContentChanged = recoveredCatalogChanged(catalog, sourceTexts)
-    || bundle.ignoredEdits.sourceTextsChanged
-    || bundle.ignoredEdits.pageHtmlChanged.length > 0
-    || bundle.ignoredEdits.pageHtmlMissing.length > 0
+  const sourceContentChanged = hasSourceChanges(bundle, catalog, sourceTexts)
 
   const label = createSessionLabel(bundle.manifest.book.label, booksDir)
   const bookDir = path.join(path.resolve(booksDir), label)
@@ -1188,7 +1234,7 @@ export function createAdtRecoverySession(
         publisher: null,
         language_code: sourceLanguage,
         cover_page_number: null,
-        reasoning: "Recovered from an edited ADT output bundle.",
+        reasoning: "Imported from an exported ADT bundle using its HTML as the source.",
       })
       storage.putNodeData("metadata", "book", metadata)
       storage.putNodeData("text-catalog", "book", catalog)
@@ -1203,7 +1249,7 @@ export function createAdtRecoverySession(
           generatedAt: createdAt,
         }))
       }
-      storage.markStepCompleted("text-catalog", "Recovered from edited ADT HTML")
+      storage.markStepCompleted("text-catalog", "Imported from exported ADT HTML")
       storage.markStepCompleted("catalog-translation", "Recovered from ADT language catalogs")
       storage.markStepSkipped("image-translation")
     } finally {
@@ -1700,9 +1746,9 @@ function escapePresentationAttribute(value: string): string {
     .replaceAll(">", "&gt;")
 }
 
-/** Restore custom CSS, scripts, and their dependent files after the normal
- * pipeline packager has rebuilt an imported ADT. Generated manifests and
- * runtime files always win; only missing source assets are copied. */
+/** Restore supported presentation assets and custom activity registrations
+ * after the normal pipeline packager has rebuilt an imported ADT. Generated
+ * manifests and runtime files always win; only missing source assets are copied. */
 export function restoreImportedAdtPresentation(label: string, booksDir: string): boolean {
   const safeLabel = parseBookLabel(label)
   const bookDir = path.join(path.resolve(booksDir), safeLabel)

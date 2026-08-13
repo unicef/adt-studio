@@ -1,11 +1,22 @@
 import { useEffect, useMemo, useState } from "react"
 import {
+  ArrowDownAZ,
   ArrowLeft,
   ArrowRight,
+  Ban,
   Check,
+  CircleHelp,
   CircleAlert,
   FileText,
+  Link2,
+  ListChecks,
+  MessageSquareText,
   Puzzle,
+  Table2,
+  ToggleLeft,
+  Type,
+  Underline,
+  type LucideIcon,
 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 
@@ -73,6 +84,66 @@ function useActivityReasonLabel() {
   }
 }
 
+function activityTypeVisual(type: string | null): {
+  icon: LucideIcon
+  tileClassName: string
+} {
+  if (type === null) return { icon: Ban, tileClassName: "bg-slate-100 text-slate-600" }
+  if (type === "activity_quiz") {
+    return { icon: CircleHelp, tileClassName: "bg-orange-50 text-orange-700" }
+  }
+  if (type === "activity_multiple_choice" || type === "activity_multi_select") {
+    return { icon: ListChecks, tileClassName: "bg-violet-50 text-violet-700" }
+  }
+  if (type === "activity_true_false") {
+    return { icon: ToggleLeft, tileClassName: "bg-violet-50 text-violet-700" }
+  }
+  if (type === "activity_fill_in_the_blank") {
+    return { icon: Type, tileClassName: "bg-violet-50 text-violet-700" }
+  }
+  if (type === "activity_fill_in_a_table") {
+    return { icon: Table2, tileClassName: "bg-violet-50 text-violet-700" }
+  }
+  if (type === "activity_open_ended_answer") {
+    return { icon: MessageSquareText, tileClassName: "bg-violet-50 text-violet-700" }
+  }
+  if (type === "activity_underline_text") {
+    return { icon: Underline, tileClassName: "bg-violet-50 text-violet-700" }
+  }
+  if (type === "activity_matching") {
+    return { icon: Link2, tileClassName: "bg-violet-50 text-violet-700" }
+  }
+  if (type === "activity_sorting") {
+    return { icon: ArrowDownAZ, tileClassName: "bg-violet-50 text-violet-700" }
+  }
+  return { icon: Puzzle, tileClassName: "bg-violet-50 text-violet-700" }
+}
+
+function ClassificationOption({
+  type,
+  label,
+  compact = false,
+}: {
+  type: string | null
+  label: string
+  compact?: boolean
+}) {
+  const visual = activityTypeVisual(type)
+  const Icon = visual.icon
+  return (
+    <span className="flex min-w-0 items-center gap-2">
+      <span className={cn(
+        "flex shrink-0 items-center justify-center rounded-md",
+        compact ? "size-5" : "size-6",
+        visual.tileClassName,
+      )}>
+        <Icon aria-hidden="true" className={compact ? "size-3" : "size-3.5"} />
+      </span>
+      <span className="truncate">{label}</span>
+    </span>
+  )
+}
+
 function ActivityClassificationSelect({
   item,
   options,
@@ -90,6 +161,13 @@ function ActivityClassificationSelect({
   const activityTypeLabel = useActivityTypeLabel()
   const notAnActivityValue = JSON.stringify(null)
   const selectedValue = hasSelection ? value ?? notAnActivityValue : ""
+  const selectedLabel = hasSelection
+    ? value === null
+      ? t`Not an activity`
+      : value
+        ? activityTypeLabel(value)
+        : undefined
+    : undefined
 
   return (
     <Select
@@ -100,26 +178,42 @@ function ActivityClassificationSelect({
     >
       <SelectTrigger
         aria-label={t`Classification for ${item.href}`}
-        className="h-9 w-full text-xs"
+        className={cn(
+          "h-10 w-full rounded-lg border-slate-300 bg-white text-sm shadow-sm hover:border-primary/40 data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/15",
+          hasSelection && value === "activity_quiz" && "text-orange-700",
+          hasSelection && value !== null && value !== undefined && value !== "activity_quiz" && "text-violet-800",
+        )}
       >
-        <SelectValue placeholder={t`Choose classification`} />
+        <SelectValue placeholder={t`Choose classification`}>
+          {selectedLabel !== undefined ? (
+            <ClassificationOption type={value ?? null} label={selectedLabel} compact />
+          ) : null}
+        </SelectValue>
       </SelectTrigger>
-      <SelectContent position="item-aligned" className="max-h-72">
+      <SelectContent
+        position="popper"
+        align="end"
+        sideOffset={6}
+        collisionPadding={12}
+        className="max-h-80 w-[var(--radix-select-trigger-width)] rounded-lg"
+      >
         {options.map((type) => (
           <SelectItem
             key={type}
             value={type}
             className={cn(
-              "text-xs",
-              type === "activity_quiz" ? "text-orange-700" : "text-violet-800",
+              "py-2.5 text-sm",
+              type === "activity_quiz"
+                ? "text-orange-700 focus:bg-orange-50 focus:text-orange-800"
+                : "text-violet-800 focus:bg-violet-50 focus:text-violet-900",
             )}
           >
-            {activityTypeLabel(type)}
+            <ClassificationOption type={type} label={activityTypeLabel(type)} />
           </SelectItem>
         ))}
         <SelectSeparator />
-        <SelectItem value={notAnActivityValue} className="text-xs text-slate-700">
-          <Trans>Not an activity</Trans>
+        <SelectItem value={notAnActivityValue} className="py-2.5 text-sm text-slate-700 focus:bg-slate-100">
+          <ClassificationOption type={null} label={t`Not an activity`} />
         </SelectItem>
       </SelectContent>
     </Select>
@@ -195,7 +289,7 @@ export function ActivityClassificationDialog({
               className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100"
             >
               <div
-                className="h-full rounded-full bg-violet-600 transition-[width] duration-300 motion-reduce:transition-none"
+                className="h-full rounded-full bg-primary transition-[width] duration-300 motion-reduce:transition-none"
                 style={{ width: `${items.length > 0 ? (classifiedCount / items.length) * 100 : 100}%` }}
               />
             </div>
@@ -227,7 +321,7 @@ export function ActivityClassificationDialog({
                       className={cn(
                         "h-auto w-full justify-start whitespace-normal rounded-lg border px-3 py-2.5 text-left shadow-none",
                         selected
-                          ? "border-violet-200 bg-violet-50 text-violet-950 hover:bg-violet-50"
+                          ? "border-primary/30 bg-primary/5 text-slate-950 hover:bg-primary/5"
                           : "border-transparent bg-transparent text-slate-700 hover:border-slate-200 hover:bg-white",
                       )}
                     >
@@ -344,7 +438,7 @@ export function ActivityClassificationDialog({
             size="sm"
             disabled={!allClassified}
             onClick={() => onOpenChange(false)}
-            className="bg-violet-700 text-white hover:bg-violet-800"
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Check className="h-4 w-4" />
             {allClassified ? <Trans>Finish review</Trans> : <Trans>Classify every page</Trans>}

@@ -179,8 +179,8 @@ msgstr "{0} img"
 
 #. placeholder {0}: activityReview.activityCount
 #. placeholder {1}: activityReview.quizCount
-msgid "{0} in-page activities and {1} quizzes detected."
-msgstr "U zbuluan {0} aktivitete brenda faqes dhe {1} kuize."
+#~ msgid "{0} in-page activities and {1} quizzes detected."
+#~ msgstr "U zbuluan {0} aktivitete brenda faqes dhe {1} kuize."
 
 #. placeholder {0}: reviewCounts.needsAttention
 msgid "{0} issue/issues"
@@ -282,8 +282,8 @@ msgid "{0} texts"
 msgstr "{0} tekste"
 
 #. placeholder {0}: reviewItems.length - classifiedActivityCount
-msgid "{0} to review"
-msgstr "{0} për t’u shqyrtuar"
+#~ msgid "{0} to review"
+#~ msgstr "{0} për t’u shqyrtuar"
 
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
@@ -292,6 +292,10 @@ msgstr "{0} përkthime"
 #. placeholder {0}: versions.length
 #~ msgid "{0} versions"
 #~ msgstr "{0} versione"
+
+#. placeholder {0}: preview.videoCount
+msgid "{0} videos"
+msgstr "{0} video"
 
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
@@ -340,8 +344,8 @@ msgstr "{0}s më parë"
 #~ msgstr "{actionLabel} {label}"
 
 #. placeholder {0}: reviewItems.length
-msgid "{classifiedActivityCount} of {0} pages classified"
-msgstr "{classifiedActivityCount} nga {0} faqe të klasifikuara"
+#~ msgid "{classifiedActivityCount} of {0} pages classified"
+#~ msgstr "{classifiedActivityCount} nga {0} faqe të klasifikuara"
 
 #. placeholder {0}: items.length
 msgid "{classifiedCount} of {0} classified"
@@ -663,8 +667,8 @@ msgstr "Një pyetje që vlen të bëhet"
 msgid "A quiz already sits here — add another after it or replace it"
 msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zëvendësojeni"
 
-msgid "A referenced local asset is missing from the bundle."
-msgstr "Një burim lokal i referuar mungon në paketë."
+#~ msgid "A referenced local asset is missing from the bundle."
+#~ msgstr "Një burim lokal i referuar mungon në paketë."
 
 msgid "A scenic view at dusk."
 msgstr "Një pamje piktoreske në muzg."
@@ -686,6 +690,9 @@ msgstr "Një seksion me tekst në një kuti të theksuar."
 
 msgid "A select-all-that-apply activity where the learner can choose more than one option per question."
 msgstr "Një aktivitet zgjidh-të-gjitha-që-zbatohen ku nxënësi mund të zgjedhë më shumë se një opsion për pyetje."
+
+msgid "A separate project will be created"
+msgstr "Një projekt i veçantë do të krijohet"
 
 msgid "A separate project will be created."
 msgstr "Do të krijohet një projekt i veçantë."
@@ -858,8 +865,8 @@ msgstr "Gjenerimi i aktivitetit dështoi"
 msgid "Activity Rendering"
 msgstr "Renderimi i Aktivitetit"
 
-msgid "Activity review complete"
-msgstr "Shqyrtimi i aktiviteteve përfundoi"
+#~ msgid "Activity review complete"
+#~ msgstr "Shqyrtimi i aktiviteteve përfundoi"
 
 msgid "Activity saved"
 msgstr "Aktiviteti u ruajt"
@@ -939,6 +946,9 @@ msgstr "Shto një figurë të re nga disku yt"
 
 msgid "Add a quiz"
 msgstr "Shto një kuiz"
+
+#~ msgid "Add accessible descriptions to the book images."
+#~ msgstr "Shto përshkrime të aksesueshme për imazhet e librit."
 
 msgid "Add after"
 msgstr "Shto pas"
@@ -1075,6 +1085,12 @@ msgstr "Shto seksion"
 msgid "Add sign language video"
 msgstr "Shto video në gjuhën e shenjave"
 
+#~ msgid "Add sign language videos to book pages."
+#~ msgstr "Shto video me gjuhën e shenjave në faqet e librit."
+
+#~ msgid "Add simplified text for the Easy Read view."
+#~ msgstr "Shto tekst të thjeshtuar për pamjen Easy Read."
+
 msgid "Add sizing field"
 msgstr "Shto fushë madhësie"
 
@@ -1150,6 +1166,9 @@ msgstr "Gjuhë Shtesë"
 msgid "Additional terminology may be introduced in later sections. All terms are listed in the glossary appendix at the end of this document for quick reference."
 msgstr "Terminologji shtesë mund të prezantohet në seksionet e mëvonshme. Të gjithë termat janë listuar në shtojcën e fjalorëzimit në fund të këtij dokumenti për referencë të shpejtë."
 
+#~ msgid "Additional validation issues"
+#~ msgstr "Probleme shtesë të vlefshmërisë"
+
 msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
 msgstr "Shton faqe glosari në libër. Termat lidhen me zërin e tyre dhe çdo zë të kthen te teksti. Funksionon në çdo lexues."
 
@@ -1175,17 +1194,29 @@ msgstr "Paketë ADT"
 msgid "ADT Studio accepts ZIP archives up to 512 MiB compressed. Choose a smaller bundle and try again."
 msgstr "ADT Studio pranon arkiva ZIP të kompresuara deri në 512 MiB. Zgjidhni një paketë më të vogël dhe provoni përsëri."
 
+msgid "ADT Studio found the book, but its HTML or files do not follow the round-trip structure."
+msgstr "ADT Studio gjeti librin, por HTML ose skedarët e tij nuk ndjekin strukturën e qarkullimit."
+
+#~ msgid "ADT Studio found the book, but some files are not arranged in the format required for import. Follow the steps below, then select the repaired ZIP."
+#~ msgstr "ADT Studio e gjeti librin, por disa skedarë nuk janë organizuar në formatin e kërkuar për importim. Ndiq hapat më poshtë, pastaj zgjidh ZIP-in e riparuar."
+
+#~ msgid "ADT Studio found the publication, but its files must follow the supported import structure before a project can be created."
+#~ msgstr "ADT Studio e gjeti botimin, por skedarët e tij duhet të ndjekin strukturën e mbështetur të importimit para se të krijohet një projekt."
+
 msgid "ADT Studio recognized the publication, but required book files are missing or inconsistent. Open the error details to see what must be repaired."
 msgstr "ADT Studio e njohu publikimin, por skedarët e domosdoshëm të librit mungojnë ose nuk përputhen. Hapni hollësitë e gabimit për të parë çfarë duhet riparuar."
 
 msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
 msgstr "ADT Studio përdor çelësat tuaj API për të ekzekutuar pipeline-in. Çelësat ruhen lokalisht në këtë pajisje dhe nuk dërgohen asnjëherë askund tjetër."
 
-msgid "ADT Studio will recover a new project from the published HTML. The original PDF and extraction history are not available, but the storyboard can be edited and features can be generated again."
-msgstr "ADT Studio do të rikuperojë një projekt të ri nga HTML-ja e publikuar. PDF-ja origjinale dhe historiku i nxjerrjes nuk janë të disponueshëm, por storyboard-i mund të redaktohet dhe veçoritë mund të gjenerohen përsëri."
+#~ msgid "ADT Studio will recover a new project from the published HTML. The original PDF and extraction history are not available, but the storyboard can be edited and features can be generated again."
+#~ msgstr "ADT Studio do të rikuperojë një projekt të ri nga HTML-ja e publikuar. PDF-ja origjinale dhe historiku i nxjerrjes nuk janë të disponueshëm, por storyboard-i mund të redaktohet dhe veçoritë mund të gjenerohen përsëri."
 
 msgid "ADT Studio will restart to finish installing."
 msgstr "ADT Studio do të riniset për të përfunduar instalimin."
+
+#~ msgid "ADT Studio will validate the replacement again before creating a project."
+#~ msgstr "ADT Studio do ta verifikojë përsëri skedarin zëvendësues para se të krijojë një projekt."
 
 #~ msgid "ADT workspace"
 #~ msgstr "Hapësira e punës ADT"
@@ -1271,6 +1302,9 @@ msgstr "Mbivendosje AI"
 
 msgid "AI Rendering"
 msgstr "Renderim me AI"
+
+msgid "AI repair guide"
+msgstr "Udhëzues për riparimin me AI"
 
 msgid "AI sees the current image and modifies it"
 msgstr "AI sheh imazhin aktual dhe e modifikon atë"
@@ -1523,6 +1557,9 @@ msgstr "AR"
 msgid "Archive contents"
 msgstr "Arkivo përmbajtjen"
 
+#~ msgid "Archive details"
+#~ msgstr "Hollësitë e arkivit"
+
 msgid "Archive ready to review"
 msgstr "Arkivi është gati për shqyrtim"
 
@@ -1581,11 +1618,11 @@ msgstr "I caktuar"
 msgid "Assignment evidence"
 msgstr "Dëshmitë e caktimit"
 
-msgid "Assistant guides are missing"
-msgstr "Udhëzuesit e asistentit mungojnë"
+#~ msgid "Assistant guides are missing"
+#~ msgstr "Udhëzuesit e asistentit mungojnë"
 
-msgid "Assistant guides are outdated"
-msgstr "Udhëzuesit e asistentit janë të vjetruar"
+#~ msgid "Assistant guides are outdated"
+#~ msgstr "Udhëzuesit e asistentit janë të vjetruar"
 
 msgid "At the river's edge"
 msgstr "Në buzë të lumit"
@@ -1620,6 +1657,9 @@ msgstr "Autor"
 msgid "Author name"
 msgstr "Emri i autorit"
 
+msgid "Author not listed"
+msgstr "Autori nuk është i listuar"
+
 msgid "Authored by {authorsList}."
 msgstr "Autorë: {authorsList}."
 
@@ -1643,6 +1683,9 @@ msgstr "Përshtaton automatikisht paraqitjen bazuar në përmbajtjen e çdo faqe
 
 msgid "Automatically create quizzes across the whole book at a set frequency."
 msgstr "Krijo automatikisht teste në të gjithë librin me një frekuencë të caktuar."
+
+msgid "Available"
+msgstr "I disponueshëm"
 
 #~ msgid "Available beta versions"
 #~ msgstr "Versionet beta të disponueshme"
@@ -1799,6 +1842,9 @@ msgstr "Teksti kryesor përdor këtë font sot. Bashkëngjitni një font më pos
 msgid "Book"
 msgstr "Libër"
 
+msgid "Book cover"
+msgstr "Kopertina e librit"
+
 msgid "Book coverage"
 msgstr "Mbulimi i librit"
 
@@ -1823,8 +1869,11 @@ msgstr "Hierarkia e librit duhet të rindërtohet"
 msgid "Book images"
 msgstr "Figurat e librit"
 
-msgid "Book info"
-msgstr "Info libri"
+msgid "Book import details"
+msgstr "Detajet e importimit të librit"
+
+#~ msgid "Book info"
+#~ msgstr "Info libri"
 
 msgid "Book Language"
 msgstr "Gjuha e librit"
@@ -1853,8 +1902,8 @@ msgstr "Paketa e librit gati"
 msgid "Book pages. Scroll horizontally to see more."
 msgstr "Faqet e librit. Lëviz horizontalisht për të parë më shumë."
 
-msgid "Book part"
-msgstr "Pjesë e librit"
+#~ msgid "Book part"
+#~ msgstr "Pjesë e librit"
 
 msgid "Book preview"
 msgstr "Pamje paraprake e librit"
@@ -1936,6 +1985,9 @@ msgstr "Ndërto një tabelë përmbajtjeje të navigueshme për librin. Vendosni
 
 msgid "Build commit"
 msgstr "Commit-i i ndërtimit"
+
+#~ msgid "Build definitions for important terms in the book."
+#~ msgstr "Ndërto përkufizime për termat e rëndësishëm në libër."
 
 msgid "Build the storyboard first"
 msgstr "Ndërtoni fillimisht storyboard-in"
@@ -2116,6 +2168,9 @@ msgstr "U zbuluan ndryshime"
 #~ msgid "Changes made after export were detected. Generated features may need review."
 #~ msgstr "U zbuluan ndryshime të bëra pas eksportimit. Veçoritë e krijuara mund të kenë nevojë për rishikim."
 
+msgid "Changes since export detected"
+msgstr "Ndryshime që nga eksporti i zbuluar"
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Ndryshimi i fonteve ndikon në mënyrën se si shfaqen faqet — riekzekutoni Storyboard dhe Eksportin për të zbatuar fontet e reja."
 
@@ -2173,8 +2228,8 @@ msgstr "Po kontrollohet aksesueshmëria"
 msgid "Checking for updates…"
 msgstr "Po kontrollohet për përditësime…"
 
-msgid "Checking its format, publication details, and compatibility."
-msgstr "Po kontrollohen formati, detajet e publikimit dhe përputhshmëria."
+#~ msgid "Checking its format, publication details, and compatibility."
+#~ msgstr "Po kontrollohen formati, detajet e publikimit dhe përputhshmëria."
 
 #~ msgid "Checking its format, publication details, and possible project matches."
 #~ msgstr "Po kontrollohen formati, hollësitë e publikimit dhe përputhjet e mundshme me projektet."
@@ -2206,8 +2261,8 @@ msgstr "Zgjidh një video të ngarkuar më parë ose ngarko një të re."
 msgid "Choose a Web Export ZIP created by a current version of ADT Studio."
 msgstr "Zgjidhni një ZIP të eksportit në ueb, të krijuar nga një version aktual i ADT Studio."
 
-msgid "Choose an archive to begin"
-msgstr "Zgjidhni një arkiv për të filluar"
+#~ msgid "Choose an archive to begin"
+#~ msgstr "Zgjidhni një arkiv për të filluar"
 
 msgid "Choose an existing image from this project"
 msgstr "Zgjidhni një imazh ekzistues nga ky projekt"
@@ -2233,8 +2288,8 @@ msgstr "Zgjidhni një arkiv tjetër"
 #~ msgid "Choose another destination or create a new project."
 #~ msgstr "Zgjidhni një destinacion tjetër ose krijoni një projekt të ri."
 
-msgid "Choose another file"
-msgstr "Zgjidhni skedar tjetër"
+#~ msgid "Choose another file"
+#~ msgstr "Zgjidhni skedar tjetër"
 
 #~ msgid "Choose any available beta version to install."
 #~ msgstr "Zgjidhni çdo version beta të disponueshëm për ta instaluar."
@@ -2242,8 +2297,8 @@ msgstr "Zgjidhni skedar tjetër"
 msgid "Choose classification"
 msgstr "Zgjidh klasifikimin"
 
-msgid "Choose corrected ZIP"
-msgstr "Zgjidh ZIP-in e korrigjuar"
+#~ msgid "Choose corrected ZIP"
+#~ msgstr "Zgjidh ZIP-in e korrigjuar"
 
 msgid "Choose features to include in this export"
 msgstr "Zgjidhni funksionet për t'i përfshirë në këtë eksportim"
@@ -2260,6 +2315,9 @@ msgstr "Zgjidhni imazhe..."
 msgid "Choose Provider"
 msgstr "Zgjidhni Ofruesin"
 
+msgid "Choose repaired ZIP"
+msgstr "Zgjidh ZIP-in e riparuar"
+
 #~ msgid "Choose the model used when a pipeline step does not specify its own model."
 #~ msgstr "Zgjidhni modelin që përdoret kur një hap i pipeline-it nuk përcakton modelin e vet."
 
@@ -2271,6 +2329,12 @@ msgstr "Zgjidhni skedarin e pjesës që ju është ndarë, ose eksportojeni për
 
 #~ msgid "Choose the recommended project, or create a new project instead."
 #~ msgstr "Zgjidhni projektin e rekomanduar ose krijoni një projekt të ri."
+
+#~ msgid "Choose the repaired ZIP"
+#~ msgstr "Zgjidh ZIP-in e riparuar"
+
+msgid "Choose the repaired ZIP to run this check again."
+msgstr "Zgjidh ZIP-in e riparuar për të kryer këtë kontroll përsëri."
 
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Zgjidhni faqet burimore dhe ku vendoset testi në redaktorin e faqeve."
@@ -2300,8 +2364,8 @@ msgstr "Klasifikimi për {0}"
 msgid "Classify every page"
 msgstr "Klasifikoni çdo faqe"
 
-msgid "Classify with an AI assistant"
-msgstr "Klasifiko me një asistent IA"
+#~ msgid "Classify with an AI assistant"
+#~ msgstr "Klasifiko me një asistent IA"
 
 msgid "Classifying images…"
 msgstr "Po klasifikohen imazhet…"
@@ -2507,8 +2571,14 @@ msgstr "Konfiguro kredencialet e ofruesve që përdoren kur ADT Studio ekzekuton
 msgid "Configure voices and accents"
 msgstr "Konfiguroni zërat dhe thekset"
 
+msgid "Confirm each activity type so ADT Studio knows how it should behave in the recovered project."
+msgstr "Konfirmo çdo lloj aktiviteti që ADT Studio të dijë si duhet të sillet në projektin e rikuperuar."
+
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
+
+msgid "Confirm that this is the publication you want to import."
+msgstr "Konfirmo që kjo është publikimi që dëshiron të importosh."
 
 #~ msgid "Confirm where it should be imported and review what ADT Studio detected."
 #~ msgstr "Konfirmoni ku duhet të importohet dhe shqyrtoni çfarë zbuloi ADT Studio."
@@ -2639,8 +2709,14 @@ msgstr "Kopjo daljen e gabimit"
 msgid "Copy failed"
 msgstr "Kopjimi dështoi"
 
+msgid "Copy instructions"
+msgstr "Kopjo udhëzimet"
+
 msgid "Copy repair request"
 msgstr "Kopjo kërkesën për riparim"
+
+#~ msgid "Copy the repair instructions"
+#~ msgstr "Kopjo udhëzimet e riparimit"
 
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Rifet koraliere mbulojnë më pak se 1% të dyshemesë së oqeanit, por mbështesin rreth 25% të të gjitha specieve detare. Shpesh të quajtura 'pyjet e shiut të detit', këto ekosisteme nënujore ndërtohen nga kafshë të vogla të quajtura polipe korali."
@@ -2758,6 +2834,9 @@ msgstr "Krijoni një sesion rishikuesi për këtë libër."
 msgid "Create ADT"
 msgstr "Krijo ADT"
 
+#~ msgid "Create comprehension quizzes and learning activities."
+#~ msgstr "Krijo kuize të kuptimit dhe aktivitete mësimore."
+
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Krijoni përshkrime përshkruese për imazhet për të përmirësuar aksesueshmërinë."
 
@@ -2782,11 +2861,17 @@ msgstr "Krijo skedar prompti nga shablloni"
 msgid "Create session"
 msgstr "Krijo sesion"
 
+#~ msgid "Create the navigation structure for the publication."
+#~ msgstr "Krijo strukturën e navigimit për publikimin."
+
 msgid "Created {created} prompt files for {normalizedTargetModel}."
 msgstr "U krijuan {created} skedarë prompti për {normalizedTargetModel}."
 
 msgid "Created {createdLabel}"
 msgstr "Krijuar {createdLabel}"
+
+msgid "Created from an exported ADT publication. Imported HTML is the working source; PDF extraction and sectioning are not available."
+msgstr "Krijuar nga një botim ADT i eksportuar. HTML-ja e importuar është burimi i punës; nxjerrja nga PDF-ja dhe ndarja në seksione nuk janë të disponueshme."
 
 msgid "Creates a ZIP archive of the full project — database, source PDF, and all pipeline outputs. Use it to back up or transfer the project to another machine."
 msgstr "Krijon një arkiv ZIP të projektit të plotë — bazën e të dhënave, PDF-in burimor dhe të gjitha rezultatet e pipeline-it. Përdore për të rezervuar ose transferuar projektin në një makinë tjetër."
@@ -2842,8 +2927,11 @@ msgstr "Aktual"
 msgid "Current (v{currentVersion})"
 msgstr "Aktual (v{currentVersion})"
 
-msgid "Current assistant guides found"
-msgstr "U gjetën udhëzuesit aktualë të asistentit"
+#~ msgid "Current AI repair instructions are already included in this archive."
+#~ msgstr "Udhëzimet aktuale për riparim me AI janë përfshirë tashmë në këtë arkiv."
+
+#~ msgid "Current assistant guides found"
+#~ msgstr "U gjetën udhëzuesit aktualë të asistentit"
 
 msgid "Current book font"
 msgstr "Fonti aktual i librit"
@@ -2878,14 +2966,14 @@ msgstr "Version i personalizuar i promptit"
 msgid "Custom range"
 msgstr "Interval i personalizuar"
 
-msgid "Custom script files are not supported in a re-importable ADT."
-msgstr "Skedarët e personalizuar të skripteve nuk mbështeten në një ADT që mund të riimportohet."
+#~ msgid "Custom script files are not supported in a re-importable ADT."
+#~ msgstr "Skedarët e personalizuar të skripteve nuk mbështeten në një ADT që mund të riimportohet."
 
 msgid "Custom section {index}"
 msgstr "Seksion i personalizuar {index}"
 
-msgid "Custom stylesheets are not supported. Use the bundled Tailwind classes or inline styles."
-msgstr "Fletët e personalizuara të stileve nuk mbështeten. Përdorni klasat e përfshira Tailwind ose stilet inline."
+#~ msgid "Custom stylesheets are not supported. Use the bundled Tailwind classes or inline styles."
+#~ msgstr "Fletët e personalizuara të stileve nuk mbështeten. Përdorni klasat e përfshira Tailwind ose stilet inline."
 
 msgid "Cut a region out of any page"
 msgstr "Prit një zonë nga çdo faqe"
@@ -3143,8 +3231,8 @@ msgstr "Detajet"
 msgid "Detected {left}–{right}"
 msgstr "U zbuluan {left}–{right}"
 
-msgid "Detected features"
-msgstr "Veçoritë e zbuluara"
+#~ msgid "Detected features"
+#~ msgstr "Veçoritë e zbuluara"
 
 msgid "Detected Font"
 msgstr "Fonti i zbuluar"
@@ -3481,14 +3569,17 @@ msgstr "Redakto Prompt-in"
 msgid "Edit Prompts"
 msgstr "Redakto Prompt-et"
 
-msgid "Edit review"
-msgstr "Ndrysho shqyrtimin"
+#~ msgid "Edit review"
+#~ msgstr "Ndrysho shqyrtimin"
 
 msgid "Edit speech text"
 msgstr "Redakto tekstin e të folurit"
 
 msgid "Edit spreads"
 msgstr "Redakto faqet e përbashkëta"
+
+#~ msgid "Edit the book pages, sections, and layouts."
+#~ msgstr "Redakto faqet e librit, seksionet dhe paraqitjet."
 
 #~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
 #~ msgstr "Redaktoni shabllonin Liquid/HTML më poshtë. Ndryshimet ruhen kur klikoni Ruaj dhe Riekzekuto."
@@ -3502,8 +3593,8 @@ msgstr "Redakto këtë imazh"
 msgid "Edit this section"
 msgstr "Redakto këtë seksion"
 
-msgid "Editable content has missing or duplicate data-id values."
-msgstr "Përmbajtja e redaktueshme ka vlera data-id që mungojnë ose përsëriten."
+#~ msgid "Editable content has missing or duplicate data-id values."
+#~ msgstr "Përmbajtja e redaktueshme ka vlera data-id që mungojnë ose përsëriten."
 
 msgid "Editable per block"
 msgstr "I redaktueshëm për çdo bllok"
@@ -3687,6 +3778,9 @@ msgstr "Eksport EPUB"
 msgid "Error"
 msgstr "Gabim"
 
+msgid "Error details"
+msgstr "Detajet e gabimit"
+
 msgid "Error output"
 msgstr "Rezultat i gabimit"
 
@@ -3741,8 +3835,11 @@ msgstr "Përjashto nga leximi me zë"
 msgid "Exclude from render"
 msgstr "Përjashto nga renderimi"
 
-msgid "Existing projects stay unchanged. The imported HTML becomes the working source."
-msgstr "Projektet ekzistuese mbeten të pandryshuara. HTML-ja e importuar bëhet burimi i punës."
+msgid "Existing projects stay unchanged."
+msgstr "Projektet ekzistuese mbeten të pandryshuara."
+
+#~ msgid "Existing projects stay unchanged. The imported HTML becomes the working source."
+#~ msgstr "Projektet ekzistuese mbeten të pandryshuara. HTML-ja e importuar bëhet burimi i punës."
 
 msgid "Existing reviewer sessions keep their own checklist snapshot. New checklist changes apply to newly created sessions."
 msgstr "Seancat ekzistuese të rishikuesit ruajnë fotografinë e tyre të listës së kontrollit. Ndryshimet e reja të listës zbatohen për seancat e krijuara rishtazi."
@@ -3777,6 +3874,9 @@ msgstr "Eksporto {0}"
 
 msgid "Export a part"
 msgstr "Eksporto një pjesë"
+
+msgid "Export baseline unavailable"
+msgstr "Eksporti bazë i padisponueshëm"
 
 #~ msgid "Export enhanced ZIP"
 #~ msgstr "Eksporto ZIP-in e përmirësuar"
@@ -3823,8 +3923,8 @@ msgstr "Duke eksportuar"
 msgid "Exporting..."
 msgstr "Duke eksportuar..."
 
-msgid "External edits detected"
-msgstr "U zbuluan redaktime të jashtme"
+#~ msgid "External edits detected"
+#~ msgstr "U zbuluan redaktime të jashtme"
 
 msgid "Extract"
 msgstr "Nxjerr"
@@ -3834,6 +3934,9 @@ msgstr "Nxjerrja nuk është ekzekutuar ende"
 
 msgid "Extract Preview"
 msgstr "Pamje paraprake e nxjerrjes"
+
+msgid "Extract starts from a source PDF"
+msgstr "Nxjerrja fillon nga një PDF burimor"
 
 msgid "Extract text and images from each page of the PDF using AI-powered analysis."
 msgstr "Nxirrni tekst dhe imazhe nga çdo faqe e PDF-it duke përdorur analizë të bazuar në AI."
@@ -3946,11 +4049,17 @@ msgstr "Rezultate të shpejta dhe konsistente pa kosto AI"
 #~ msgid "Feature is updating"
 #~ msgstr "Veçoria po përditësohet"
 
-#~ msgid "Features"
-#~ msgstr "Veçoritë"
+msgid "Features"
+msgstr "Veçoritë"
 
 #~ msgid "Features currently detected in the imported book."
 #~ msgstr "Veçoritë e zbuluara aktualisht në librin e importuar."
+
+#~ msgid "Features detected"
+#~ msgstr "Veçori të zbuluara"
+
+msgid "Features found in the archive remain available after import. Missing features can be generated from the working book."
+msgstr "Karakteristikat e gjetura në arkiv mbeten të disponueshme pas importimit. Karakteristikat që mungojnë mund të gjenerohen nga libri i punës."
 
 msgid "Feedback"
 msgstr "Reagimi"
@@ -4270,6 +4379,9 @@ msgstr "Gjenero kuize me zgjedhje të shumëfishta nga përmbajtja e librit. Kri
 msgid "Generate new"
 msgstr "Gjenero të ri"
 
+#~ msgid "Generate or regenerate narrated audio."
+#~ msgstr "Gjenero ose rigjenero audio të rrëfyer."
+
 msgid "Generate Prompt"
 msgstr "Gjenero Prompt"
 
@@ -4359,6 +4471,9 @@ msgstr "Prompt Gjenerimi"
 msgid "Get started"
 msgstr "Filloni"
 
+msgid "Give the repair request to your AI assistant."
+msgstr "Jepi kërkesën për riparim asistentit tënd AI."
+
 msgid "Global prompt reset to default."
 msgstr "Prompti global u resetua në parazgjedhje."
 
@@ -4447,8 +4562,8 @@ msgid "Guidance for this book"
 msgstr "Udhëzime për këtë libër"
 
 #. placeholder {0}: agentGuide.currentVersion
-msgid "Guide version {0}"
-msgstr "Versioni i udhëzuesit {0}"
+#~ msgid "Guide version {0}"
+#~ msgstr "Versioni i udhëzuesit {0}"
 
 msgid "Hand out page-range parts and merge them back later."
 msgstr "Shpërndani pjesë sipas intervalit të faqeve dhe bashkojini më vonë."
@@ -4495,11 +4610,14 @@ msgstr "Fshih historikun e editimeve të AI"
 msgid "Hide API key"
 msgstr "Fshih çelësin API"
 
-msgid "Hide current guide"
-msgstr "Fshih udhëzuesin aktual"
+#~ msgid "Hide current guide"
+#~ msgstr "Fshih udhëzuesin aktual"
 
 msgid "Hide error details"
 msgstr "Fshih detajet e gabimit"
+
+#~ msgid "Hide repair details"
+#~ msgstr "Fshih hollësitë e riparimit"
 
 msgid "High"
 msgstr "I lartë"
@@ -4783,8 +4901,8 @@ msgstr "Projekt ADT i importuar"
 msgid "Imported HTML already provides this stage's output"
 msgstr "HTML-ja e importuar e ofron tashmë rezultatin e kësaj faze"
 
-msgid "Imported HTML already provides this stage's output. Continue from Storyboard or choose any enhancement."
-msgstr "HTML-ja e importuar e ofron tashmë rezultatin e kësaj faze. Vazhdoni nga Storyboard ose zgjidhni cilindo përmirësim."
+#~ msgid "Imported HTML already provides this stage's output. Continue from Storyboard or choose any enhancement."
+#~ msgstr "HTML-ja e importuar e ofron tashmë rezultatin e kësaj faze. Vazhdoni nga Storyboard ose zgjidhni cilindo përmirësim."
 
 msgid "Imported HTML already provides this stage's output. Open it to learn more."
 msgstr "HTML-ja e importuar e ofron tashmë rezultatin e kësaj faze. Hapeni për të mësuar më shumë."
@@ -4797,17 +4915,20 @@ msgstr "HTML-ja e importuar e ofron tashmë rezultatin e kësaj faze. Hapeni pë
 msgid "Imported part · pages {0}–{1}"
 msgstr "Pjesë e importuar · faqet {0}–{1}"
 
+msgid "Imported publication"
+msgstr "Botim i importuar"
+
 msgid "Imported:"
 msgstr "Importuar:"
 
-msgid "Importing creates a new book limited to {windowSize} pages. Run the per-page stages, then export it as a project to merge back into the full book."
-msgstr "Importimi krijon një libër të ri të kufizuar në {windowSize} faqe. Ekzekuto fazat për çdo faqe, pastaj eksportoje si projekt për ta bashkuar përsëri në librin e plotë."
+#~ msgid "Importing creates a new book limited to {windowSize} pages. Run the per-page stages, then export it as a project to merge back into the full book."
+#~ msgstr "Importimi krijon një libër të ri të kufizuar në {windowSize} faqe. Ekzekuto fazat për çdo faqe, pastaj eksportoje si projekt për ta bashkuar përsëri në librin e plotë."
 
 #~ msgid "Importing creates a separate project. Existing local projects will not be changed."
 #~ msgstr "Importimi krijon një projekt të veçantë. Projektet lokale ekzistuese nuk do të ndryshohen."
 
-msgid "Importing the project"
-msgstr "Po importohet projekti"
+#~ msgid "Importing the project"
+#~ msgstr "Po importohet projekti"
 
 msgid "Importing..."
 msgstr "Duke importuar..."
@@ -4839,8 +4960,8 @@ msgstr "Përfshi në leximin me zë"
 msgid "Include in render"
 msgstr "Përfshi në paraqitje"
 
-#~ msgid "Included"
-#~ msgstr "E përfshirë"
+msgid "Included"
+msgstr "E përfshirë"
 
 msgid "Includes:"
 msgstr "Përfshin:"
@@ -4947,6 +5068,9 @@ msgstr "Llojet e çështjeve për të kontrolluar"
 msgid "Issues"
 msgstr "Probleme"
 
+#~ msgid "Issues found: {issueCount}"
+#~ msgstr "Probleme të gjetura: {issueCount}"
+
 msgid "Issues only"
 msgstr "Vetëm problemet"
 
@@ -4984,8 +5108,8 @@ msgstr "gjuhën e saj origjinale"
 #~ msgid "Its page structure no longer matches the selected project. Choose Create a new project to import it separately."
 #~ msgstr "Struktura e faqeve nuk përputhet më me projektin e zgjedhur. Zgjidhni Krijo një projekt të ri për ta importuar veçmas."
 
-msgid "Its published HTML and metadata do not follow the current ADT Studio round-trip structure."
-msgstr "HTML-ja e publikuar dhe metadatat e tij nuk ndjekin strukturën aktuale të rikthimit në ADT Studio."
+#~ msgid "Its published HTML and metadata do not follow the current ADT Studio round-trip structure."
+#~ msgstr "HTML-ja e publikuar dhe metadatat e tij nuk ndjekin strukturën aktuale të rikthimit në ADT Studio."
 
 msgid "Jane Reviewer"
 msgstr "Jane Rishikuese"
@@ -5013,6 +5137,9 @@ msgstr "Mbaji të pandryshuara skemat e daljes dhe ID-të kur redakton promptet.
 
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të ndryshme aktivitetesh në të njëjtën faqe."
+
+msgid "Keep the book content, then create a new ZIP."
+msgstr "Mbaj përmbajtjen e librit, pastaj krijo një ZIP të ri."
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërkojnë ndarje."
@@ -5139,8 +5266,8 @@ msgstr "Lëreni të papërcaktuar për të ruajtur ritmin e vetë ElevenLabs. Vl
 msgid "Leave without finishing?"
 msgstr "Dil pa përfunduar?"
 
-msgid "Legacy ADT export detected"
-msgstr "U zbulua një eksport i vjetër ADT"
+#~ msgid "Legacy ADT export detected"
+#~ msgstr "U zbulua një eksport i vjetër ADT"
 
 msgid "Legal and compliance manuals"
 msgstr "Manuale ligjore dhe të pajtueshmërisë"
@@ -5156,6 +5283,9 @@ msgstr "I butë"
 
 msgid "Let the agent choose"
 msgstr "Lëre agjentin të zgjedhë"
+
+#~ msgid "Let the assistant correct the file structure without changing the book content, then create a new ZIP."
+#~ msgstr "Lëre asistentin të korrigjojë strukturën e skedarëve pa ndryshuar përmbajtjen e librit, pastaj krijo një ZIP të ri."
 
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Lëre modelin të shkruajë tituj përshkrues kapitujsh bazuar në përmbajtjen e çdo seksioni. Më i miri për libra tregimesh ose kur titujt mungojnë."
@@ -5427,8 +5557,8 @@ msgstr "Menaxho çelësat API"
 msgid "Manage sign-language videos"
 msgstr "Menaxho videot e gjuhës së shenjave"
 
-msgid "manifest.json is missing current ADT Studio round-trip metadata."
-msgstr "manifest.json nuk përmban metadatat aktuale të rikthimit në ADT Studio."
+#~ msgid "manifest.json is missing current ADT Studio round-trip metadata."
+#~ msgstr "manifest.json nuk përmban metadatat aktuale të rikthimit në ADT Studio."
 
 msgid "Manual only"
 msgstr "Vetëm manual"
@@ -5896,6 +6026,9 @@ msgstr "Nuk është gjeneruar ende vlerësimi i aksesueshmërisë. Pako rezultat
 msgid "No accessibility findings were reported for this page."
 msgstr "Nuk u raportuan gjetje aksesueshmërie për këtë faqe."
 
+msgid "No action needed"
+msgstr "Nuk nevojitet veprim"
+
 #~ msgid "No ADT features were detected in this book."
 #~ msgstr "Nuk u zbuluan veçori ADT në këtë libër."
 
@@ -6030,8 +6163,8 @@ msgstr "Nuk u gjet asnjë font"
 msgid "No fonts match your search."
 msgstr "Asnjë font nuk përputhet me kërkimin tuaj."
 
-msgid "No generated features detected"
-msgstr "Nuk u zbuluan veçori të gjeneruara"
+#~ msgid "No generated features detected"
+#~ msgstr "Nuk u zbuluan veçori të gjeneruara"
 
 #~ msgid "No generation errors detected."
 #~ msgstr "Nuk u zbuluan gabime gjenerimi."
@@ -6303,6 +6436,9 @@ msgstr "Normalizuar"
 msgid "Not an activity"
 msgstr "Nuk është aktivitet"
 
+msgid "Not available"
+msgstr "Nuk është i disponueshëm"
+
 #~ msgid "Not available for this import"
 #~ msgstr "Nuk disponohet për këtë import"
 
@@ -6323,6 +6459,9 @@ msgstr "Nuk u gjenerua"
 
 msgid "Not needed"
 msgstr "Nuk nevojitet"
+
+msgid "Not needed for this source"
+msgstr "Nuk nevojitet për këtë burim"
 
 msgid "Not rendered yet"
 msgstr "Nuk u gjenerua ende"
@@ -6408,8 +6547,8 @@ msgstr "Aktiv"
 msgid "On v{currentVersion} · latest is v{latestVersion}"
 msgstr "Në v{currentVersion} · më i fundit është v{latestVersion}"
 
-msgid "One assistant guide needs an update"
-msgstr "Një udhëzues i asistentit duhet përditësuar"
+#~ msgid "One assistant guide needs an update"
+#~ msgstr "Një udhëzues i asistentit duhet përditësuar"
 
 msgid "One Column"
 msgstr "Një kolonë"
@@ -6516,8 +6655,17 @@ msgstr "Hap pull request-in {0}"
 msgid "Open source PDF in a new tab"
 msgstr "Hapni PDF-in burimor në një skedë të re"
 
+msgid "Open Storyboard"
+msgstr "Hap Storyboard-in"
+
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Hapni fazën Kuizet për të redaktuar këtë kuiz"
+
+msgid "Open the unzipped archive in an AI coding assistant and use the current ADT Studio editing rules."
+msgstr "Hap arkivin e zhbllokuar në një asistent kodimi AI dhe përdor rregullat aktuale të redaktimit të ADT Studio."
+
+#~ msgid "Open the unzipped archive in your AI coding assistant, then paste these instructions."
+#~ msgstr "Hape arkivin e çkompresuar në asistentin tënd të kodimit me AI, pastaj ngjit këto udhëzime."
 
 msgid "Open this section to tune the model, judge prompt, retry behavior, and exact review thresholds."
 msgstr "Hapni këtë seksion për të rregulluar modelin, nxitjen e gjykatësit, sjelljen e riprovimit dhe pragjet e sakta të rishikimit."
@@ -6620,6 +6768,9 @@ msgstr "ose kliko për të shfletuar — TTF, OTF, WOFF, WOFF2 (maks. 15 MB)"
 
 msgid "Original"
 msgstr "Origjinal"
+
+msgid "Original book"
+msgstr "Libri origjinal"
 
 msgid "Original language"
 msgstr "Gjuha origjinale"
@@ -6814,11 +6965,11 @@ msgstr "Grupimi i faqeve"
 msgid "Page Grouping Mode"
 msgstr "Mënyra e grupimit të faqeve"
 
-msgid "Page HTML and the bundle indexes disagree. Update pages.json, pageOrder, and pageDataIds together."
-msgstr "HTML-ja e faqeve dhe indekset e paketës nuk përputhen. Përditësoni së bashku pages.json, pageOrder dhe pageDataIds."
+#~ msgid "Page HTML and the bundle indexes disagree. Update pages.json, pageOrder, and pageDataIds together."
+#~ msgstr "HTML-ja e faqeve dhe indekset e paketës nuk përputhen. Përditësoni së bashku pages.json, pageOrder dhe pageDataIds."
 
-msgid "Page HTML files must stay at the bundle root."
-msgstr "Skedarët HTML të faqeve duhet të mbeten në rrënjën e paketës."
+#~ msgid "Page HTML files must stay at the bundle root."
+#~ msgstr "Skedarët HTML të faqeve duhet të mbeten në rrënjën e paketës."
 
 msgid "Page image"
 msgstr "Imazhi i faqes"
@@ -6826,8 +6977,8 @@ msgstr "Imazhi i faqes"
 msgid "Page image as background with positioned text overlay. Preserves the original page composition; ideal for illustrated storybooks."
 msgstr "Imazhi i faqes si sfond me tekst të pozicionuar sipër. Ruan kompozimin origjinal të faqes; ideal për libra me ilustrime."
 
-msgid "Page media must be stored in the canonical images folder."
-msgstr "Mediat e faqeve duhet të ruhen në dosjen standarde images."
+#~ msgid "Page media must be stored in the canonical images folder."
+#~ msgstr "Mediat e faqeve duhet të ruhen në dosjen standarde images."
 
 msgid "Page Mode"
 msgstr "Modaliteti i Faqes"
@@ -6891,11 +7042,14 @@ msgstr "Faqet {0}–{1}"
 #. placeholder {0}: preview.range.startPage
 #. placeholder {1}: preview.range.endPage
 #. placeholder {2}: preview.pageCount
-msgid "Pages {0}–{1} of {2}"
-msgstr "Faqet {0}–{1} nga {2}"
+#~ msgid "Pages {0}–{1} of {2}"
+#~ msgstr "Faqet {0}–{1} nga {2}"
 
 msgid "pages {shownStr}"
 msgstr "faqet {shownStr}"
+
+msgid "Pages in part"
+msgstr "Faqet pjesërisht"
 
 msgid "Pages in the selected range"
 msgstr "Faqet në intervalin e zgjedhur"
@@ -6942,8 +7096,8 @@ msgstr "Pjesa · faqet {0}–{1}"
 msgid "Part {0}"
 msgstr "Pjesa {0}"
 
-msgid "Part info"
-msgstr "Informacion mbi pjesën"
+#~ msgid "Part info"
+#~ msgstr "Informacion mbi pjesën"
 
 #. placeholder {0}: book.part.sourceLabel
 msgid "Part of {0}"
@@ -7565,8 +7719,8 @@ msgstr "Lexuesit kalojnë midis tekstit origjinal dhe të thjeshtëzuar me buton
 msgid "Reading PDF..."
 msgstr "Duke lexuar PDF-in..."
 
-msgid "Reading the archive"
-msgstr "Po lexohet arkivi"
+#~ msgid "Reading the archive"
+#~ msgstr "Po lexohet arkivi"
 
 msgid "Readium Web"
 msgstr "Readium Web"
@@ -7585,6 +7739,12 @@ msgstr "Lexohet në"
 
 #~ msgid "Ready to add"
 #~ msgstr "Gati për t’u shtuar"
+
+msgid "Ready to become a new project"
+msgstr "Gati për t'u bërë një projekt i ri"
+
+msgid "Ready to import"
+msgstr "Gati për importim"
 
 msgid "Real books processed with this preset — before and after."
 msgstr "Libra të vërtetë të procesuar me këtë paracaktim — para dhe pas."
@@ -7628,6 +7788,9 @@ msgstr "I rekomanduar për {0}"
 
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Regjistroni gjetjet e rishikuesit për faqen aktuale dhe ruajini në sesionin aktiv të validimit."
+
+#~ msgid "Recovered from a legacy export"
+#~ msgstr "Rikuperuar nga një eksport i trashëguar"
 
 msgid "Recrop from page"
 msgstr "Rirritjo nga faqja"
@@ -7792,11 +7955,23 @@ msgstr "Renderimi i aktiviteteve nga një shabllon i fiksuar për stil të qënd
 msgid "Renders each page into the storyboard layout used by the web reader."
 msgstr "Renderimi i çdo faqeje në paraqitjen e storyboard-it të përdorur nga lexuesi web."
 
-msgid "Repair with an AI assistant"
-msgstr "Riparo me një asistent IA"
+msgid "Repair and re-zip"
+msgstr "Riparo dhe ri-zip"
+
+#~ msgid "Repair and re-zip the archive"
+#~ msgstr "Riparoje dhe kompresoje sërish arkivin"
+
+#~ msgid "Repair required"
+#~ msgstr "Kërkohet riparim"
+
+#~ msgid "Repair with an AI assistant"
+#~ msgstr "Riparo me një asistent IA"
 
 msgid "Replace"
 msgstr "Zëvendëso"
+
+msgid "Replace archive"
+msgstr "Zëvendëso arkivin"
 
 msgid "Replace from book"
 msgstr "Zëvendëso nga libri"
@@ -7937,6 +8112,9 @@ msgstr "Rishiko"
 msgid "Review {unresolvedActivityCount} activities"
 msgstr "Shqyrto {unresolvedActivityCount} aktivitete"
 
+msgid "Review {unresolvedActivityCount} activities before import"
+msgstr "Rishiko {unresolvedActivityCount} aktivitete para importimit"
+
 msgid "Review activities"
 msgstr "Shqyrto aktivitetet"
 
@@ -8002,14 +8180,17 @@ msgstr "Stili i rishikimit"
 #~ msgid "Review the archive details below and confirm the import."
 #~ msgstr "Shqyrtoni detajet e arkivit më poshtë dhe konfirmoni importimin."
 
-msgid "Review the highlighted pages before importing."
-msgstr "Shqyrtoni faqet e theksuara para importimit."
+#~ msgid "Review the highlighted pages before importing."
+#~ msgstr "Shqyrtoni faqet e theksuara para importimit."
 
 #~ msgid "Review the project details below and confirm the import."
 #~ msgstr "Rishikoni detajet e projektit më poshtë dhe konfirmoni importimin."
 
 msgid "Review the source PDF details below and continue to configure how your book will be converted into an Accessible Digital Textbook."
 msgstr "Rishikoni detajet e PDF-it burimor më poshtë dhe vazhdoni të konfiguroni se si libri juaj do të konvertohet në një Tekst Dixhital të Aksesueshëm."
+
+msgid "Review the validation message, correct the archive, and try again."
+msgstr "Rishiko mesazhin e vlefshmërisë, korrigjo arkivin dhe provo përsëri."
 
 #~ msgid "Review this beta release and its notes before installing."
 #~ msgstr "Shqyrtoni këtë version beta dhe shënimet e tij para instalimit."
@@ -8150,8 +8331,8 @@ msgstr "Ekzekuto Storyboard-in së pari — përkthimi ka nevojë për seksionet
 msgid "Run Storyboard to generate sections you can match sign-language videos to."
 msgstr "Ekzekuto Storyboard-in për të gjeneruar seksione me të cilat mund të lidhni video të gjuhës së shenjave."
 
-msgid "Run the instructions in the unzipped book, create a new ZIP, then choose that corrected file here."
-msgstr "Zbatoni udhëzimet në librin e çkompresuar, krijoni një ZIP të ri dhe më pas zgjidhni këtu skedarin e korrigjuar."
+#~ msgid "Run the instructions in the unzipped book, create a new ZIP, then choose that corrected file here."
+#~ msgstr "Zbatoni udhëzimet në librin e çkompresuar, krijoni një ZIP të ri dhe më pas zgjidhni këtu skedarin e korrigjuar."
 
 msgid "Run the pipeline"
 msgstr "Ekzekuto pipeline-in"
@@ -8312,8 +8493,8 @@ msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
 #~ msgid "Saving local workspace…"
 #~ msgstr "Po ruhet hapësira lokale e punës…"
 
-msgid "Saving the archive and preparing the book workspace. Keep this window open."
-msgstr "Po ruhet arkivi dhe po përgatitet hapësira e punës së librit. Mbajeni këtë dritare të hapur."
+#~ msgid "Saving the archive and preparing the book workspace. Keep this window open."
+#~ msgstr "Po ruhet arkivi dhe po përgatitet hapësira e punës së librit. Mbajeni këtë dritare të hapur."
 
 msgid "Saving..."
 msgstr "Duke ruajtur..."
@@ -8353,6 +8534,9 @@ msgstr "Lëviz për më shumë faqe"
 
 msgid "Scroll to previous pages"
 msgstr "Lëviz te faqet e mëparshme"
+
+msgid "Scroll to see all features"
+msgstr "Rrëshqit për të parë të gjitha veçoritë"
 
 msgid "Search beta versions"
 msgstr "Kërko versionet beta"
@@ -8516,6 +8700,9 @@ msgstr "Prompt i Seksionimit"
 
 msgid "Sectioning Reasoning"
 msgstr "Arsyetimi i Seksionimit"
+
+msgid "Sectioning starts from extracted PDF pages"
+msgstr "Ndarja në seksione fillon nga faqet e nxjerra prej PDF-së"
 
 msgid "sections"
 msgstr "seksione"
@@ -9404,6 +9591,9 @@ msgstr "Detyrat po Ekzekutohen"
 msgid "Teaching the pixels new tricks..."
 msgstr "Duke i mësuar pikselëve truke të reja..."
 
+#~ msgid "Technical details"
+#~ msgstr "Hollësitë teknike"
+
 msgid "Technical documentation"
 msgstr "Dokumentacion teknik"
 
@@ -9525,8 +9715,8 @@ msgstr "AI do të ruajë stilin origjinal ndërkohë që aplikon ndryshimet tuaj
 msgid "The application ran into an unexpected error. You can try reloading — your work in progress is saved on disk."
 msgstr "Aplikacioni ndeshi një gabim të papritur. Mund të provosh të ringarkosh — puna juaj në vazhdim është ruajtur në disk."
 
-msgid "The archive already has the latest instructions. The repair request adds the exact validation errors for the AI to fix."
-msgstr "Arkivi i ka tashmë udhëzimet më të fundit. Kërkesa për riparim shton gabimet e sakta të validimit që duhet t’i rregullojë IA-ja."
+#~ msgid "The archive already has the latest instructions. The repair request adds the exact validation errors for the AI to fix."
+#~ msgstr "Arkivi i ka tashmë udhëzimet më të fundit. Kërkesa për riparim shton gabimet e sakta të validimit që duhet t’i rregullojë IA-ja."
 
 msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
 msgstr "Arkivi duhet të përmbajë një bazë të dhënash projekti dhe PDF-në e tij. Eksportojeni përsëri nga ADT Studio."
@@ -9555,11 +9745,11 @@ msgstr "Titulli dhe të dhënat e librit vijnë me pjesën që përmban faqen 1 
 msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
 msgstr "Prompt-et e integruara janë optimizuar për {DEFAULT_MODEL}. E ndryshuat LLM-në e parazgjedhur në <0>{savedModel}</0>, ndaj rekomandojmë të gjeneroni skedarë të rinj prompt-esh globale të përshtatur për të. Mund të vazhdoni edhe me prompt-et ekzistuese."
 
-msgid "The bundle contains a folder outside the canonical ADT structure."
-msgstr "Paketa përmban një dosje jashtë strukturës standarde të ADT-së."
+#~ msgid "The bundle contains a folder outside the canonical ADT structure."
+#~ msgstr "Paketa përmban një dosje jashtë strukturës standarde të ADT-së."
 
-msgid "The canonical #content page root is missing or duplicated."
-msgstr "Rrënja standarde e faqes #content mungon ose është përsëritur."
+#~ msgid "The canonical #content page root is missing or duplicated."
+#~ msgstr "Rrënja standarde e faqes #content mungon ose është përsëritur."
 
 msgid "The combined section will be re-rendered."
 msgstr "Seksioni i kombinuar do të ri-renderizohet."
@@ -9572,6 +9762,9 @@ msgstr "Fazat e përfunduara më poshtë do të resetohen dhe duhet të ekzekuto
 
 msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
 msgstr "Fazat e përfunduara më poshtë do të rivendosen dhe duhet të ekzekutohen përsëri që të përdorin gjuhën e re. Seksionet e faqes suaj ruhen."
+
+#~ msgid "The copied repair instructions include the latest ADT Studio editing guide."
+#~ msgstr "Udhëzimet e kopjuara të riparimit përfshijnë udhëzuesin më të fundit të redaktimit të ADT Studio."
 
 msgid "The credits page."
 msgstr "Faqja e krediteve."
@@ -9588,8 +9781,8 @@ msgstr "Udhëzimi i parazgjedhur i TTS-së i aplikuar për çdo gjuhë, përveç
 #~ msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it."
 #~ msgstr "Udhëzimi i parazgjedhur i TTS që zbatohet për çdo gjuhë, përveçse kur anashkalohet më poshtë. OpenAI e përdor si udhëzim zëri dhe Gemini si drejtim theksi brenda kërkesës; Azure e shpërfill."
 
-msgid "The edited HTML becomes the working source. Review generated features such as Speech after import."
-msgstr "HTML-ja e redaktuar bëhet burimi i punës. Shqyrtoni veçoritë e gjeneruara, si Narracioni, pas importimit."
+#~ msgid "The edited HTML becomes the working source. Review generated features such as Speech after import."
+#~ msgstr "HTML-ja e redaktuar bëhet burimi i punës. Shqyrtoni veçoritë e gjeneruara, si Narracioni, pas importimit."
 
 #~ msgid "The edited HTML is the current storyboard source, so PDF extraction and page sectioning are preserved but not run again."
 #~ msgstr "HTML-ja e redaktuar është burimi aktual i skenarit vizual, ndaj nxjerrja nga PDF-ja dhe ndarja e faqeve ruhen, por nuk ekzekutohen përsëri."
@@ -9621,6 +9814,12 @@ msgstr "Fjalori skanon seksionet e shtypura që Storyboard vendos në faqe. Për
 msgid "The ideal choice for novels, focused on a clean and continuous reading experience."
 msgstr "Zgjedhja ideale për romane, e fokusuar në një përvojë leximi të pastër dhe të vazhdueshme."
 
+#~ msgid "The imported HTML becomes the working source and existing projects stay unchanged."
+#~ msgstr "HTML i importuar bëhet burimi i punës dhe projektet ekzistuese mbeten të pandryshuara."
+
+msgid "The imported HTML becomes the working source for editing and feature generation."
+msgstr "HTML-ja e importuar bëhet burimi i punës për redaktim dhe gjenerimin e veçorive."
+
 #~ msgid "The imported HTML is now the source of truth. Speech can be regenerated now; the remaining features stay visible and will be enabled as their archive projection is implemented."
 #~ msgstr "HTML-ja e importuar tani është burimi i së vërtetës. Zëri mund të rigjenerohet tani; veçoritë e tjera mbeten të dukshme dhe do të aktivizohen kur të zbatohet projektimi i tyre në arkiv."
 
@@ -9651,14 +9850,14 @@ msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të
 #~ msgid "The original project was found on this device."
 #~ msgstr "Projekti origjinal u gjet në këtë pajisje."
 
-msgid "The page references a remote or unsafe asset."
-msgstr "Faqja i referohet një burimi në largësi ose të pasigurt."
+#~ msgid "The page references a remote or unsafe asset."
+#~ msgstr "Faqja i referohet një burimi në largësi ose të pasigurt."
 
-msgid "The page section does not match content/pages.json."
-msgstr "Seksioni i faqes nuk përputhet me content/pages.json."
+#~ msgid "The page section does not match content/pages.json."
+#~ msgstr "Seksioni i faqes nuk përputhet me content/pages.json."
 
-msgid "The page section is missing data-section-type."
-msgstr "Seksionit të faqes i mungon data-section-type."
+#~ msgid "The page section is missing data-section-type."
+#~ msgstr "Seksionit të faqes i mungon data-section-type."
 
 #~ msgid "The preview reflects the latest generated features."
 #~ msgstr "Pamja paraprake pasqyron veçoritë më të fundit të gjeneruara."
@@ -9699,6 +9898,9 @@ msgstr "Modeli i udhëzimit i përdorur për të përkthyer hyrjet e katalogut t
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "Udhëzimi i përdorur nga kalimi i rishikuesit për të inspektuar dhe korrigjuar një pemë seksionimi kandidate. Ndan modelin dhe cilësimet e riprovimit të udhëzimit të seksionimit."
 
+#~ msgid "The published HTML becomes the working source. The original PDF and extraction history are not available."
+#~ msgstr "HTML i publikuar bëhet burimi i punës. PDF origjinal dhe historia e nxjerrjes nuk janë të disponueshme."
+
 msgid "The quick brown fox jumps over the lazy dog 0123456789"
 msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin përtac 0123456789"
 
@@ -9708,8 +9910,8 @@ msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin dembel."
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "Strategjia e renderimit e përdorur për seksionet pa një hartëzim eksplicit."
 
-msgid "The repair request includes the latest guide and these validation errors. Save the guide as both AGENTS.md and CLAUDE.md at the archive root."
-msgstr "Kërkesa për riparim përfshin udhëzuesin më të fundit dhe këto gabime validimi. Ruajeni udhëzuesin si AGENTS.md dhe CLAUDE.md në rrënjën e arkivit."
+#~ msgid "The repair request includes the latest guide and these validation errors. Save the guide as both AGENTS.md and CLAUDE.md at the archive root."
+#~ msgstr "Kërkesa për riparim përfshin udhëzuesin më të fundit dhe këto gabime validimi. Ruajeni udhëzuesin si AGENTS.md dhe CLAUDE.md në rrënjën e arkivit."
 
 msgid "The river meets the sea"
 msgstr "Lumi takon detin"
@@ -9813,6 +10015,21 @@ msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"
 msgid "This archive is too large"
 msgstr "Ky arkiv është shumë i madh"
 
+#~ msgid "This archive needs a structural repair"
+#~ msgstr "Ky arkiv ka nevojë për riparim strukturor"
+
+msgid "This archive needs repair before import"
+msgstr "Ky arkiv ka nevojë për riparim para importimit"
+
+#~ msgid "This archive needs to be repaired"
+#~ msgstr "Ky arkiv duhet të riparohet"
+
+msgid "This archive passed the checks required for import."
+msgstr "Ky arkiv kaloi kontrollet e kërkuara për importim."
+
+msgid "This book differs from its ADT Studio export baseline. The imported HTML becomes the working source, so review generated features such as Speech after import."
+msgstr "Ky libër ndryshon nga baza e eksportit të ADT Studio. HTML i importuar bëhet burimi i punës, prandaj rishikoni veçoritë e gjeneruara si Fjalimi pas importit."
+
 msgid "This book has {pageCount} pages."
 msgstr "Ky libër ka {pageCount} faqe."
 
@@ -9839,8 +10056,8 @@ msgstr "Ky libër ka titullin \"{0}\"."
 msgid "This book isn't fully assembled yet — pages <0>{0}</0> haven't been merged back. Anything you run here covers only the merged pages, so the result will be incomplete until every part is merged."
 msgstr "Ky libër ende nuk është plotësuar — faqet <0>{0}</0> nuk janë bashkuar. Çdo gjë që ekzekutoni këtu mbulon vetëm faqet e bashkuara, ndaj rezultati do të jetë i paplotë derisa të bashkohen të gjitha pjesët."
 
-msgid "This book needs repair before import"
-msgstr "Ky libër duhet riparuar para importimit"
+#~ msgid "This book needs repair before import"
+#~ msgstr "Ky libër duhet riparuar para importimit"
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinale të PDF-së. Fontet e bashkëngjitura gjithsesi udhëzojnë IA-në për aktivitetet dhe faqet e gjeneruara."
@@ -9848,8 +10065,11 @@ msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinal
 #~ msgid "This bundle uses a newer ADT Studio editing contract."
 #~ msgstr "Kjo paketë përdor një kontratë më të re redaktimi të ADT Studio."
 
-msgid "This bundle uses an editing contract that this version of ADT Studio cannot import."
-msgstr "Kjo paketë përdor një kontratë redaktimi që ky version i ADT Studio nuk mund ta importojë."
+#~ msgid "This bundle uses an editing contract that this version of ADT Studio cannot import."
+#~ msgstr "Kjo paketë përdor një kontratë redaktimi që ky version i ADT Studio nuk mund ta importojë."
+
+msgid "This export does not include fingerprints that can prove whether its HTML changed. The published HTML becomes the working source, so review generated features after import."
+msgstr "Ky eksport nuk përfshin gjurmë që mund të provojnë nëse HTML-ja e tij ka ndryshuar. HTML-ja e publikuar bëhet burimi i punës, prandaj rishikoni veçoritë e gjeneruara pas importit."
 
 #~ msgid "This feature cannot be regenerated from imported HTML yet. The imported output remains preserved in the book preview and export."
 #~ msgstr "Kjo veçori ende nuk mund të rigjenerohet nga HTML-ja e importuar. Rezultati i importuar ruhet në pamjen paraprake dhe eksportin e librit."
@@ -9977,8 +10197,17 @@ msgstr "Kjo pozicion tashmë ka {occupiedCount} teste. Shto një tjetër pas tyr
 msgid "This position already has a quiz. Add another right after it, or replace it."
 msgstr "Kjo pozicion tashmë ka një test. Shto një tjetër menjëherë pas tij ose zëvendëso atë."
 
+msgid "This project cannot be imported yet"
+msgstr "Ky projekt nuk mund të importohet ende"
+
 msgid "This project is busy"
 msgstr "Ky projekt është i zënë"
+
+msgid "This project uses the published HTML as its page structure. The original PDF sections and extraction history are not available to rerun."
+msgstr "Ky projekt përdor HTML-në e publikuar si strukturë të faqeve. Seksionet origjinale të PDF-së dhe historiku i nxjerrjes nuk janë të disponueshme për t’u ekzekutuar sërish."
+
+msgid "This project was created from an exported ADT publication, so it does not include the source PDF. The imported HTML already contains the book content."
+msgstr "Ky projekt u krijua nga një botim ADT i eksportuar, prandaj nuk përfshin PDF-në burimore. HTML-ja e importuar e përmban tashmë përmbajtjen e librit."
 
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundrejt faqes origjinale. Zgjedhja më lart kontrollon cilin shabllon përdoret."
@@ -9989,8 +10218,8 @@ msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundr
 #~ msgid "This publication can't be added as a revision"
 #~ msgstr "Ky publikim nuk mund të shtohet si rishikim"
 
-msgid "This publication cannot be imported because its HTML does not follow the ADT Studio round-trip pattern."
-msgstr "Ky publikim nuk mund të importohet sepse HTML-ja e tij nuk ndjek modelin e rikthimit të ADT Studio."
+#~ msgid "This publication cannot be imported because its HTML does not follow the ADT Studio round-trip pattern."
+#~ msgstr "Ky publikim nuk mund të importohet sepse HTML-ja e tij nuk ndjek modelin e rikthimit të ADT Studio."
 
 #~ msgid "This publication doesn't match the selected project"
 #~ msgstr "Ky publikim nuk përputhet me projektin e zgjedhur"
@@ -10028,8 +10257,8 @@ msgstr "Ky seksion është prerë dhe nuk renderizohet."
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrollit të rishikuesit. Cilësimet e reja të listës do të zbatohen vetëm për sesionet e rishikuesit të krijuara rishtazi."
 
-msgid "This stage is not needed for an imported ADT"
-msgstr "Kjo fazë nuk nevojitet për një ADT të importuar"
+#~ msgid "This stage is not needed for an imported ADT"
+#~ msgstr "Kjo fazë nuk nevojitet për një ADT të importuar"
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ky tekst perceptohet vetëm nga teknologjitë ndihmëse."
@@ -10167,6 +10396,9 @@ msgstr "Përkthe librin në gjuhë shtesë. Çdo gjuhë gjenerohet bashkë me or
 msgid "Translate the book into other languages and generate narration. These stages are optional — skip them if your book doesn't need multilingual or audio output."
 msgstr "Përkthe librin në gjuhë të tjera dhe gjenerо tregimin. Këto faza janë opsionale — anashkaloi nëse libri juaj nuk ka nevojë për dalje shumëgjuhëshe ose audio."
 
+#~ msgid "Translate the publication into additional languages."
+#~ msgstr "Përkthe publikimin në gjuhë të tjera."
+
 msgid "Translates extracted page text into the target languages."
 msgstr "Përkthe tekstin e nxjerrë të faqes në gjuhët e synuara."
 
@@ -10250,6 +10482,9 @@ msgstr "Provo një skedar tjetër"
 
 msgid "Try another title, version, or description."
 msgstr "Provoni një titull, version ose përshkrim tjetër."
+
+msgid "Try import again"
+msgstr "Provo ta importosh sërish"
 
 msgid "Try the practice problem"
 msgstr "Provo problemin praktik"
@@ -10413,8 +10648,8 @@ msgstr "Rikthe imazhin"
 msgid "Unsaved changes"
 msgstr "Ndryshime të paruajtura"
 
-msgid "Unsupported ADT structure"
-msgstr "Strukturë ADT e pambështetur"
+#~ msgid "Unsupported ADT structure"
+#~ msgstr "Strukturë ADT e pambështetur"
 
 msgid "Untangling nested divs with care..."
 msgstr "Po zgjidhen divët e mbivendosur me kujdes..."
@@ -10533,8 +10768,8 @@ msgstr "Ngarko ZIP ose tërhiq dhe lësho"
 msgid "Uploading..."
 msgstr "Po ngarkohet..."
 
-msgid "Use a project ZIP, a completed book part, or an exported ADT Web ZIP."
-msgstr "Përdorni një ZIP projekti, një pjesë të përfunduar të librit ose një ZIP Web ADT të eksportuar."
+#~ msgid "Use a project ZIP, a completed book part, or an exported ADT Web ZIP."
+#~ msgstr "Përdorni një ZIP projekti, një pjesë të përfunduar të librit ose një ZIP Web ADT të eksportuar."
 
 msgid "Use adjacent text as context"
 msgstr "Përdor tekstin ngjitur si kontekst"
@@ -10572,6 +10807,9 @@ msgstr "Përdor + ndërmjet faqeve për të vendosur kuizin"
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Përdor shiritin anësor majtas për të hapur çdo fazë të linjës. Çdo fazë ka faqen e saj ku mund të shqyrtosh përmbajtjen, të konfigurosh cilësimet dhe të nisësh një ekzekutim. Kartat më poshtë pasqyrojnë atë navigim — kliko një kartë për të kaluar direkt te faqja e asaj faze."
+
+msgid "Use these file paths and issue codes when repairing the archive."
+msgstr "Përdor këto shtigje skedarësh dhe kode problemesh kur riparon arkivin."
 
 msgid "Use these names inside double braces or Liquid tags. Nested fields use dot notation."
 msgstr "Përdor këta emra brenda kllapave të dyfishta ose tag-eve Liquid. Fushat e ndërthurura përdorin notacion me pikë."
@@ -10636,6 +10874,9 @@ msgstr "Po përdoret fallback"
 msgid "v{hovered} preview"
 msgstr "Pamja paraprake e v{hovered}"
 
+msgid "Validate again"
+msgstr "Vlefshmëro përsëri"
+
 msgid "Validated"
 msgstr "I verifikuar"
 
@@ -10644,6 +10885,9 @@ msgstr "Validohet në VALIDE Desktop — lexuesi zyrtar i PNLD-së"
 
 msgid "Validation"
 msgstr "Vërtetim"
+
+msgid "Validation details"
+msgstr "Detajet e vlefshmërisë"
 
 #. placeholder {0}: data.validationErrors.length
 msgid "Validation Errors ({0})"
@@ -10684,11 +10928,11 @@ msgstr "Me version"
 msgid "Versions"
 msgstr "Versione"
 
-msgid "video"
-msgstr "video"
+#~ msgid "video"
+#~ msgstr "video"
 
-msgid "videos"
-msgstr "video"
+#~ msgid "videos"
+#~ msgstr "video"
 
 msgid "Videos"
 msgstr "Video"
@@ -10699,8 +10943,8 @@ msgstr "Shiko"
 #~ msgid "View all changes"
 #~ msgstr "Shiko të gjitha ndryshimet"
 
-msgid "View current guide"
-msgstr "Shfaq udhëzuesin aktual"
+#~ msgid "View current guide"
+#~ msgstr "Shfaq udhëzuesin aktual"
 
 msgid "View details"
 msgstr "Shiko detajet"
@@ -10713,6 +10957,9 @@ msgstr "Shiko imazhin"
 
 msgid "View in storyboard"
 msgstr "Shiko në Storyboard"
+
+#~ msgid "View issues and repair details"
+#~ msgstr "Shiko problemet dhe hollësitë e riparimit"
 
 msgid "View license"
 msgstr "Shiko licencën"
@@ -10949,6 +11196,12 @@ msgstr "Theksim në nivel fjale"
 msgid "words"
 msgstr "fjalë"
 
+msgid "Work on these pages independently, then export the project to merge it back into the full book."
+msgstr "Puno në këto faqe në mënyrë të pavarur, pastaj eksporto projektin për ta bashkuar përsëri në librin e plotë."
+
+msgid "Working source: imported HTML"
+msgstr "Burimi i punës: HTML i importuar"
+
 msgid "Wrap in group"
 msgstr "Mbështjell në grup"
 
@@ -11031,6 +11284,9 @@ msgstr "Fontet e tua"
 
 msgid "Z → A"
 msgstr "Z → A"
+
+msgid "ZIP archive · Maximum 512 MiB"
+msgstr "Arkiv ZIP · Maksimumi 512 MiB"
 
 msgid "Zoom in"
 msgstr "Zmadhim"

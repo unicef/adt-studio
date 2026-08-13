@@ -1,24 +1,21 @@
 import { useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { Check, Copy } from "lucide-react"
-import { Trans } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
+import { toast } from "@/components/ui/sonner"
 
 type CopyState = "idle" | "copied" | "error"
 
 export function CopyTextButton({
   value,
   children,
-  tone = "red",
-  primary = false,
 }: {
   value: string
   children: ReactNode
-  tone?: "red" | "amber"
-  primary?: boolean
 }) {
+  const { t } = useLingui()
   const [state, setState] = useState<CopyState>("idle")
   const timeoutRef = useRef<number | null>(null)
 
@@ -30,8 +27,10 @@ export function CopyTextButton({
     try {
       await navigator.clipboard.writeText(value)
       setState("copied")
+      toast.success(t`Copied`)
     } catch {
       setState("error")
+      toast.error(t`Copy failed`)
     }
     if (timeoutRef.current !== null) window.clearTimeout(timeoutRef.current)
     timeoutRef.current = window.setTimeout(() => setState("idle"), 1800)
@@ -41,14 +40,9 @@ export function CopyTextButton({
     <Button
       type="button"
       size="sm"
-      variant={primary ? "default" : "outline"}
+      variant="outline"
       onClick={copy}
-      className={cn(
-        "h-8 text-xs",
-        primary && tone === "red" && "border-0 bg-red-700 text-white hover:bg-red-800",
-        !primary && tone === "red" && "border-red-200 bg-white text-red-800 hover:bg-red-50",
-        tone === "amber" && "border-amber-300 bg-white text-amber-900 hover:bg-amber-100",
-      )}
+      className="h-8 border-primary/30 bg-white text-xs text-primary hover:bg-primary/5"
     >
       {state === "copied" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
       <span className="grid place-items-center">

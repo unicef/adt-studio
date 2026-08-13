@@ -433,7 +433,6 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   // anyway because DOMPurify strips the <script> tags before innerHTML
   // injection.) The shared script exposes window.__adtRunAutoFit so
   // injectContent can trigger another pass after content swaps.
-  // eslint-disable-next-line lingui/no-unlocalized-strings
   const autoFitScript = `<script src="${assetsPrefix}/assets/auto-fit.js"></script>`
   const { data: bookFontsData } = useBookFonts(bookLabel)
   // Attached book fonts are injected into the live iframe head by an effect
@@ -476,7 +475,6 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     if (!bodyFontFamily) return ""
     const url = googleFontsCss2Url([primaryFontFamily(bodyFontFamily)])
     const link = url ? `\n  <link href="${url}" rel="stylesheet">` : ""
-    // eslint-disable-next-line lingui/no-unlocalized-strings
     return `${link}\n  <style>\n    body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select { font-family: ${bodyFontFamily}; }\n  </style>`
   }, [bodyFontFamily])
   // Stable shell — loaded once, never changes.
@@ -645,7 +643,6 @@ ${autoFitScript}
     const runFit = () => {
       const w = iframe?.contentWindow as (Window & { __adtRunAutoFit?: () => void }) | null
       if (typeof w?.__adtRunAutoFit !== "function") {
-        // eslint-disable-next-line no-console, lingui/no-unlocalized-strings
         console.warn("[BookPreviewFrame] __adtRunAutoFit is not defined on iframe contentWindow — auto-fit script did not load/execute. assetsPrefix:", assetsPrefix)
         return
       }
@@ -753,7 +750,6 @@ ${autoFitScript}
       styleEl.id = styleId
       doc.head.appendChild(styleEl)
     }
-    // eslint-disable-next-line lingui/no-unlocalized-strings
     styleEl.textContent = `body[data-editable="true"] img[data-id] { z-index: auto; }`
   }, [fixedLayoutSize, iframeReady])
 

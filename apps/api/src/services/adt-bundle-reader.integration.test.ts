@@ -3,11 +3,11 @@ import os from "node:os"
 import path from "node:path"
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
-import { zipSync } from "fflate"
+import { strFromU8, strToU8, unzipSync, zipSync } from "fflate"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import { packageAdtWeb } from "@adt/pipeline"
 import { readAdtBundle } from "./adt-bundle-reader.js"
-import { assessAdtImportCompatibility } from "./adt-recovery-session.js"
+import { assessAdtImportCompatibility, previewAdtRecoveryImport } from "./adt-recovery-session.js"
 
 let tmpDir: string
 
@@ -151,6 +151,35 @@ describe("readAdtBundle with a real packageAdtWeb archive", () => {
     expect(assessAdtImportCompatibility(archive, bundle)).toEqual({
       supported: true,
       issues: [],
+    })
+    expect(previewAdtRecoveryImport(archive)).toMatchObject({
+      contentChanged: false,
+      exportComparisonStatus: "unchanged",
+    })
+
+    const editedFiles = unzipSync(archive)
+    editedFiles["index.html"] = strToU8(
+      strFromU8(editedFiles["index.html"]).replace("Hello", "Edited externally"),
+    )
+    const editedTexts = JSON.parse(
+      strFromU8(editedFiles["content/i18n/en/texts.json"]),
+    ) as Record<string, string>
+    editedTexts.pg001_t001 = "Edited externally"
+    editedFiles["content/i18n/en/texts.json"] = strToU8(JSON.stringify(editedTexts))
+    expect(previewAdtRecoveryImport(Buffer.from(zipSync(editedFiles)))).toMatchObject({
+      contentChanged: true,
+      exportComparisonStatus: "changed",
+    })
+
+    const unverifiableFiles = unzipSync(archive)
+    const unverifiableManifest = JSON.parse(
+      strFromU8(unverifiableFiles["manifest.json"]),
+    ) as Record<string, unknown>
+    delete unverifiableManifest.frozen
+    unverifiableFiles["manifest.json"] = strToU8(JSON.stringify(unverifiableManifest))
+    expect(previewAdtRecoveryImport(Buffer.from(zipSync(unverifiableFiles)))).toMatchObject({
+      contentChanged: false,
+      exportComparisonStatus: "unavailable",
     })
   })
 })

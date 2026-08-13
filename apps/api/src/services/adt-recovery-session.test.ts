@@ -254,10 +254,22 @@ afterEach(() => {
 })
 
 describe("ADT recovery workspace", () => {
+  it("keeps safety invalidation separate from unverified edit attribution", () => {
+    expect(previewAdtRecoveryImport(makeBundle())).toMatchObject({
+      legacyRecovery: true,
+      contentChanged: true,
+      exportComparisonStatus: "unavailable",
+    })
+  })
+
   it("reports recovered storyboard pages rather than section entries", () => {
     const bundle = makeBundleWithTwoSectionsOnOnePage()
 
-    expect(previewAdtRecoveryImport(bundle).pageCount).toBe(1)
+    expect(previewAdtRecoveryImport(bundle)).toMatchObject({
+      pageCount: 1,
+      imageCount: 1,
+      captionedImageCount: 1,
+    })
 
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-page-count-"))
     temporaryRoots.push(booksDir)

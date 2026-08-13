@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import { Link } from "@tanstack/react-router";
-import { FileArchive, Settings } from "lucide-react";
+import { ArrowRight, FileArchive, Settings } from "lucide-react";
 import { STAGES, isImportedAdtStageAvailable, toCamelLabel } from "../stage-config";
 import { getStageLabelI18n } from "../pipeline-i18n";
 import { SETTINGS_STAGE_SLUGS } from "../settings-routing";
@@ -167,18 +167,59 @@ export function StepViewRouter({
 
         {/* Step content */}
         {unavailableForImportedHtml ? (
-          <div className="flex flex-1 items-center justify-center overflow-auto p-8">
-            <div className="max-w-lg rounded-2xl border border-indigo-200 bg-indigo-50/50 px-6 py-7 text-center">
-              <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-100 text-indigo-700">
-                <FileArchive className="h-5 w-5" />
-              </span>
-              <h3 className="mt-4 text-base font-semibold text-slate-900">
-                <Trans>This stage is not needed for an imported ADT</Trans>
-              </h3>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                <Trans>Imported HTML already provides this stage's output. Continue from Storyboard or choose any enhancement.</Trans>
-              </p>
-            </div>
+          <div className="flex flex-1 items-center justify-center overflow-auto bg-slate-50/40 p-6 sm:p-10">
+            <section className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="px-6 py-6 sm:px-7 sm:py-7">
+                <div className="flex items-start gap-4">
+                  <span className={cn(
+                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
+                    stepConfig.bgLight,
+                    stepConfig.textColor,
+                  )}>
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className={cn(
+                      "inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold",
+                      stepConfig.bgLight,
+                      stepConfig.borderColor,
+                      stepConfig.textColor,
+                    )}>
+                      <Trans>Not needed for this source</Trans>
+                    </span>
+                    <h3 className="mt-2.5 text-lg font-semibold tracking-tight text-slate-950">
+                      {step === "extract" ? (
+                        <Trans>Extract starts from a source PDF</Trans>
+                      ) : (
+                        <Trans>Sectioning starts from extracted PDF pages</Trans>
+                      )}
+                    </h3>
+                    <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                      {step === "extract" ? (
+                        <Trans>This project was created from an exported ADT publication, so it does not include the source PDF. The imported HTML already contains the book content.</Trans>
+                      ) : (
+                        <Trans>This project uses the published HTML as its page structure. The original PDF sections and extraction history are not available to rerun.</Trans>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3 border-t border-slate-200 bg-slate-50/70 px-6 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+                <div className="flex items-center gap-2 text-xs text-slate-600">
+                  <FileArchive className={cn("h-4 w-4", stepConfig.textColor)} />
+                  <span><Trans>Working source: imported HTML</Trans></span>
+                </div>
+                <Link
+                  to="/books/$label/$step"
+                  params={{ label: bookLabel, step: "storyboard" }}
+                  className="inline-flex h-8 items-center justify-center gap-1.5 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                >
+                  <Trans>Open Storyboard</Trans>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </div>
+            </section>
           </div>
         ) : entry.fullHeight ? (
           <div className="flex flex-1 flex-col min-h-0 overflow-auto">
