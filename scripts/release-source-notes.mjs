@@ -164,10 +164,10 @@ export function parseReleaseSourceSection(body) {
     return { notes: typeof body === "string" ? body : "", source: undefined };
   }
 
-  const headingIndex = lastHeadingIndex(body);
-  if (headingIndex < 0) return { notes: body, source: undefined };
+  const extracted = extractReleaseSourceBlock(body);
+  if (!extracted.source) return { notes: body, source: undefined };
 
-  const section = body.slice(headingIndex).replace(/\r\n/g, "\n");
+  const section = extracted.source.replace(/\r\n/g, "\n");
   const lines = section.split("\n").slice(1);
   const source = { prs: [] };
   let recognized = 0;
@@ -237,7 +237,7 @@ export function parseReleaseSourceSection(body) {
 
   if (!recognized) return { notes: body, source: undefined };
   return {
-    notes: body.slice(0, headingIndex).trimEnd(),
+    notes: extracted.body,
     source,
   };
 }

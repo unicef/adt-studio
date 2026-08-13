@@ -95,6 +95,26 @@ describe("release source notes", () => {
     expect(parsed.source).toEqual(source);
   });
 
+  it("preserves localization metadata after a legacy source section", () => {
+    const localization = [
+      "<!-- adt-release-i18n",
+      '{"schemaVersion":1,"defaultLocale":"en","locales":{}}',
+      "-->",
+    ].join("\n");
+    const body = [
+      "English notes",
+      "",
+      formatReleaseSourceSection(source),
+      "",
+      localization,
+    ].join("\n");
+
+    const parsed = parseReleaseSourceSection(body);
+
+    expect(parsed.notes).toBe(`English notes\n\n${localization}`);
+    expect(parsed.source).toEqual(source);
+  });
+
   it("supports CRLF and unknown bullets", () => {
     const section = formatReleaseSourceSection(source).replace(/\n/g, "\r\n");
     const body = `${section}\r\n- Future field: value`;
