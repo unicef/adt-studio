@@ -385,6 +385,9 @@ importers:
       '@tanstack/react-form':
         specifier: ^1.28.5
         version: 1.28.6(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      '@tanstack/react-hotkeys':
+        specifier: ^0.10.0
+        version: 0.10.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@tanstack/react-query':
         specifier: ^5.0.0
         version: 5.90.20(react@19.2.4)

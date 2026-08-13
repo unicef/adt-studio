@@ -198,6 +198,9 @@ export default [
             // --- TanStack Form (field paths are identifiers, not UI copy) ---
             "*.setFieldValue",
 
+            // --- Hotkey bindings (key identifiers, not UI copy) ---
+            "useHotkey",
+
             // --- CSS class composition utilities ---
             "cn",
             "cva",

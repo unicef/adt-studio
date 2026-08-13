@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Puzzle } from "lucide-react"
 import type { QuizItem } from "@/api/client"
@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { PageThumb } from "./PageThumb"
 import { QuizRailRow } from "./QuizRailRow"
+import { groupQuizzesByPage } from "./railOrder"
 import { RailCollapseButton } from "./SideRail"
 import type { PipelinePage } from "./usePipelineState"
 
@@ -49,15 +50,16 @@ export function PagesRail({
   storyboardRunning,
 }: PagesRailProps) {
   const { t } = useLingui()
-  const quizzesByPage = useMemo(() => {
-    const byPage = new Map<string, QuizItem[]>()
-    for (const quiz of quizzes) {
-      const list = byPage.get(quiz.afterPageId) ?? []
-      list.push(quiz)
-      byPage.set(quiz.afterPageId, list)
-    }
-    return byPage
-  }, [quizzes])
+  const quizzesByPage = useMemo(() => groupQuizzesByPage(quizzes), [quizzes])
+
+  // The arrow keys move the selection without touching the rail, so the active
+  // row — page or quiz, both marked `aria-current` — brings itself into view.
+  const listRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    listRef.current
+      ?.querySelector("[aria-current='page']")
+      ?.scrollIntoView({ block: "nearest" })
+  }, [activePageId, activeQuizIndex])
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-card">
@@ -70,7 +72,7 @@ export function PagesRail({
       </div>
 
       <ScrollArea className="min-h-0 flex-1">
-        <div className="flex flex-col gap-1.5 px-2.5 pb-2.5">
+        <div ref={listRef} className="flex flex-col gap-1.5 px-2.5 pb-2.5">
           {pages.map((page) => {
             const active = activeQuizIndex == null && page.pageId === activePageId
             const missing = page.missingCaptions

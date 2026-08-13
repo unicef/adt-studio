@@ -27,6 +27,7 @@ import {
 import { STEP_VIEWS, type StepFrame } from "./pipeline/steps"
 import { findDockEntry, isDockSlug, type DockSlug } from "./pipeline/plugins"
 import type { Viewport } from "./pipeline/types"
+import { useCanvasNavigation } from "./pipeline/useCanvasNavigation"
 import { usePipelineState } from "./pipeline/usePipelineState"
 import { useRunActivity, useStageActivity } from "./pipeline/useRunActivity"
 import { useSectioningRun } from "./pipeline/useSectioningRun"
@@ -105,6 +106,16 @@ export function PipelineScreen() {
     setSelectedQuizIndex(null)
     setSelectedPageId(pageId)
   }
+
+  useCanvasNavigation({
+    pages: state.pages,
+    quizzes,
+    activePageId: activePage?.pageId ?? null,
+    activeQuizIndex: activeQuiz?.quizIndex ?? null,
+    enabled: !stepSlug && !settingsSlug && state.hasSections && state.hasRendering,
+    onSelectPage: selectPage,
+    onSelectQuiz: setSelectedQuizIndex,
+  })
 
   const openStep = (slug: string) => {
     if (!isDockSlug(slug)) return

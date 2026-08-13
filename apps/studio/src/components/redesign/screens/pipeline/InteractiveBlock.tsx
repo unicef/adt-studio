@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { cn } from "@/lib/utils"
+import { bridgeIframeKeys } from "./iframeKeyBridge"
 import { SectionSkeleton } from "./PageSkeleton"
 
 export interface InteractiveBlockProps {
@@ -86,6 +87,11 @@ export function InteractiveBlock({
   const revealTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => () => clearTimeout(revealTimeout.current), [])
 
+  // The preview replaces its document on every load, so the bridge is rebuilt
+  // each time rather than once on mount.
+  const unbridge = useRef<() => void>(undefined)
+  useEffect(() => () => unbridge.current?.(), [])
+
   return (
     <div className={cn("relative overflow-hidden bg-card", className)}>
       <div
@@ -96,9 +102,11 @@ export function InteractiveBlock({
           ref={frameRef}
           src={src}
           title={frameTitle}
-          onLoad={() => {
+          onLoad={(event) => {
             clearTimeout(revealTimeout.current)
             revealTimeout.current = setTimeout(() => setReady(true), REVEAL_TIMEOUT_MS)
+            unbridge.current?.()
+            unbridge.current = bridgeIframeKeys(event.currentTarget)
           }}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           style={{
