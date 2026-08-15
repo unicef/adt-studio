@@ -1,24 +1,5 @@
 /* eslint-disable lingui/no-unlocalized-strings -- Manifest copy mirrors server-localized provider data (LocalizedText from /providers), not app UI strings. */
-import {
-  Sparkles,
-  Sparkle,
-  SquareTerminal,
-  Terminal,
-  Gem,
-  Server,
-  Cpu,
-  AudioLines,
-  AudioWaveform,
-  Volume2,
-  type LucideIcon,
-} from "lucide-react"
 import type { AiModality, ProviderDescriptor } from "./contract"
-
-export interface ProviderUiMeta {
-  icon: LucideIcon
-  tile: string
-  accent: string
-}
 
 export interface RoleGroup {
   key: string
@@ -68,32 +49,6 @@ export const PROVIDER_CARDS: Record<string, ProviderCardDef> = {
   azure: { key: "azure", displayName: "Azure Speech", uiId: "azure", apiKeyProviderId: "azure" },
   elevenlabs: { key: "elevenlabs", displayName: "ElevenLabs", uiId: "elevenlabs", apiKeyProviderId: "elevenlabs" },
   gemini: { key: "gemini", displayName: "Gemini Speech", uiId: "gemini", apiKeyProviderId: "gemini" },
-}
-
-export const PROVIDER_UI: Record<string, ProviderUiMeta> = {
-  openai: { icon: Sparkles, tile: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400", accent: "emerald" },
-  anthropic: { icon: Sparkle, tile: "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400", accent: "amber" },
-  "claude-agent": { icon: SquareTerminal, tile: "bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400", accent: "orange" },
-  codex: { icon: Terminal, tile: "bg-zinc-100 text-zinc-700 dark:bg-zinc-500/15 dark:text-zinc-300", accent: "zinc" },
-  google: { icon: Gem, tile: "bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400", accent: "blue" },
-  custom: { icon: Server, tile: "bg-muted text-muted-foreground", accent: "slate" },
-  ollama: { icon: Cpu, tile: "bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-400", accent: "teal" },
-  azure: { icon: AudioLines, tile: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400", accent: "indigo" },
-  elevenlabs: { icon: AudioWaveform, tile: "bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400", accent: "violet" },
-  gemini: { icon: Volume2, tile: "bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400", accent: "sky" },
-}
-
-export const ACCENT_DOT: Record<string, string> = {
-  emerald: "bg-emerald-500",
-  amber: "bg-amber-500",
-  orange: "bg-orange-500",
-  zinc: "bg-zinc-400",
-  blue: "bg-blue-500",
-  slate: "bg-slate-400",
-  teal: "bg-teal-500",
-  indigo: "bg-indigo-500",
-  violet: "bg-violet-500",
-  sky: "bg-sky-500",
 }
 
 const LABEL_API_KEY = { en: "API key" }

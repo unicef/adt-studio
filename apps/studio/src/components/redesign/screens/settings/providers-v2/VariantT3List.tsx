@@ -6,7 +6,7 @@ import { Switch } from "@/components/ui/switch"
 import { StepperInput } from "@/components/ui/stepper-input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { PROVIDER_CARDS, ROLE_GROUPS } from "./data"
-import { AuthLineFromHealth, EASE, HealthDotMark, ProviderTile, SoonPin, useCardHealth } from "./shared"
+import { AuthLineFromHealth, ComingBadge, EASE, HealthDotMark, ProviderTile, SoonPin, isCardAvailable, useCardHealth } from "./shared"
 import { ProviderCard } from "./ProviderEditor"
 import { useProvidersV2 } from "./useProvidersV2"
 import { GroupHeading } from "./GroupHeading"
@@ -14,33 +14,38 @@ import { GroupHeading } from "./GroupHeading"
 function Row({ cardKey, open, onToggle, store, refreshToken }: { cardKey: string; open: boolean; onToggle: () => void; store: ReturnType<typeof useProvidersV2>; refreshToken: number }) {
   const { t } = useLingui()
   const card = PROVIDER_CARDS[cardKey]
+  const available = isCardAvailable(cardKey)
   const health = useCardHealth(cardKey, store, refreshToken)
 
   return (
-    <div>
+    <div className={cn(!available && "opacity-75")}>
       <div className={cn("flex items-center gap-3.5 px-4 py-3.5 transition-colors duration-150", EASE, open && "bg-muted/40")}>
         <div className="relative shrink-0">
           <ProviderTile id={card.uiId} className="size-9" />
           <span className="absolute -left-0.5 -top-0.5">
-            <HealthDotMark {...health} />
+            {available ? <HealthDotMark {...health} /> : <span className="size-2.5 rounded-full bg-amber-400/70 ring-2 ring-card" />}
           </span>
         </div>
 
         <button type="button" onClick={onToggle} aria-expanded={open} className="min-w-0 flex-1 text-left">
           <span className="flex items-center gap-2">
             <span className="truncate text-[14px] font-semibold leading-tight">{card.displayName}</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                {/* eslint-disable-next-line lingui/no-unlocalized-strings -- pinned version placeholder glyph, not UI copy */}
-                <span className="font-mono text-[11px] text-muted-foreground/40">v—</span>
-              </TooltipTrigger>
-              <TooltipContent>
-                <Trans>Provider version — available after the backend merge.</Trans>
-              </TooltipContent>
-            </Tooltip>
+            {available ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* eslint-disable-next-line lingui/no-unlocalized-strings -- pinned version placeholder glyph, not UI copy */}
+                  <span className="font-mono text-[11px] text-muted-foreground/40">v—</span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <Trans>Provider version — available after the backend merge.</Trans>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <ComingBadge />
+            )}
           </span>
           <span className="mt-0.5 block truncate text-[12.5px] text-muted-foreground">
-            <AuthLineFromHealth {...health} />
+            {available ? <AuthLineFromHealth {...health} /> : <Trans>Available with the AI-agnostic update</Trans>}
           </span>
         </button>
 
@@ -54,10 +59,7 @@ function Row({ cardKey, open, onToggle, store, refreshToken }: { cardKey: string
           <ChevronDown className={cn("size-4 transition-transform duration-300", EASE, open && "rotate-180")} />
         </button>
 
-        <span className="inline-flex items-center gap-1.5">
-          <Switch checked disabled aria-label={t`Enable provider`} className="opacity-70" />
-          <SoonPin />
-        </span>
+        <Switch checked={available} disabled aria-label={t`Enable provider`} className="opacity-80" />
       </div>
 
       <div className={cn("grid transition-[grid-template-rows] duration-300 motion-reduce:transition-none", EASE)} style={{ gridTemplateRows: open ? "1fr" : "0fr" }}>

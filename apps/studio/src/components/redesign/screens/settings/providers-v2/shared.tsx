@@ -23,7 +23,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/sonner"
 import type { AiModality, LocalizedText, ProviderDescriptor, ProviderHealthCode, ProviderHealthResponse } from "./contract"
-import { ACCENT_DOT, PROVIDER_CARDS, PROVIDER_DESCRIPTORS, PROVIDER_UI } from "./data"
+import { PROVIDER_CARDS, PROVIDER_DESCRIPTORS } from "./data"
+import { PROVIDER_BRAND } from "./providerLogos"
 import { authKind, mask, requiredFieldsFilled, useProviderHealthMock, type ProvidersV2 } from "./useProvidersV2"
 
 export const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -65,30 +66,6 @@ function toneOf(code: ProviderHealthCode): Tone {
   }
 }
 
-function ShortLabel({ code }: { code: ProviderHealthCode }) {
-  switch (code) {
-    case "ok":
-    case "local-login":
-      return <Trans>Connected</Trans>
-    case "configured":
-      return <Trans>Configured</Trans>
-    case "missing-credential":
-      return <Trans>Not set</Trans>
-    case "not-logged-in":
-      return <Trans>Not logged in</Trans>
-    case "cli-not-found":
-      return <Trans>CLI not found</Trans>
-    case "invalid-credential":
-      return <Trans>Rejected</Trans>
-    case "unreachable":
-      return <Trans>Unreachable</Trans>
-    case "invalid-response":
-      return <Trans>Error</Trans>
-    default:
-      return <Trans>No check</Trans>
-  }
-}
-
 function LongMessage({ health }: { health: ProviderHealthResponse }) {
   switch (health.code) {
     case "ok":
@@ -116,45 +93,6 @@ function LongMessage({ health }: { health: ProviderHealthResponse }) {
     default:
       return <Trans>This provider has no automatic connection check.</Trans>
   }
-}
-
-/** Compact status dot + short label, for rails and collapsed rows. */
-export function HealthDot({
-  health,
-  isFetching,
-  fallbackConfigured,
-}: {
-  health: ProviderHealthResponse | null
-  isFetching?: boolean
-  fallbackConfigured?: boolean
-}) {
-  if (isFetching && !health) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[12px] text-muted-foreground">
-        <Loader2 className="size-3 animate-spin motion-reduce:animate-none" />
-        <Trans>Checking…</Trans>
-      </span>
-    )
-  }
-  if (!health) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[12px]">
-        <span className={cn("size-1.5 rounded-full", fallbackConfigured ? "bg-emerald-500" : "bg-muted-foreground/40")} />
-        <span className={fallbackConfigured ? "text-foreground" : "text-muted-foreground"}>
-          {fallbackConfigured ? <Trans>Configured</Trans> : <Trans>Not set</Trans>}
-        </span>
-      </span>
-    )
-  }
-  const tone = toneOf(health.code)
-  return (
-    <span className="inline-flex items-center gap-1.5 text-[12px]">
-      <span className={cn("size-1.5 rounded-full", TONE_DOT[tone])} />
-      <span className={tone === "muted" ? "text-muted-foreground" : "text-foreground"}>
-        <ShortLabel code={health.code} />
-      </span>
-    </span>
-  )
 }
 
 /** Full status line with icon, message, detail, and a Refresh button. */
@@ -204,17 +142,31 @@ export function HealthLine({
 }
 
 export function ProviderTile({ id, className }: { id: string; className?: string }) {
-  const ui = PROVIDER_UI[id]
-  const Icon = ui.icon
+  const brand = PROVIDER_BRAND[id] ?? PROVIDER_BRAND.custom
+  const Icon = brand.icon
   return (
-    <span className={cn("grid shrink-0 place-items-center rounded-xl", ui.tile, className)}>
-      <Icon className="size-[18px]" />
+    <span className={cn("grid shrink-0 place-items-center rounded-xl", brand.tile, brand.glyph, className)}>
+      {brand.logo ? (
+        <span
+          aria-hidden
+          className="size-[58%]"
+          style={{
+            backgroundColor: "currentColor",
+            WebkitMaskImage: `url(${brand.logo})`,
+            maskImage: `url(${brand.logo})`,
+            WebkitMaskRepeat: "no-repeat",
+            maskRepeat: "no-repeat",
+            WebkitMaskSize: "contain",
+            maskSize: "contain",
+            WebkitMaskPosition: "center",
+            maskPosition: "center",
+          }}
+        />
+      ) : Icon ? (
+        <Icon className="size-[52%]" />
+      ) : null}
     </span>
   )
-}
-
-export function AccentDot({ id }: { id: string }) {
-  return <span className={cn("size-1.5 rounded-full", ACCENT_DOT[PROVIDER_UI[id].accent])} />
 }
 
 // ---- inline credential editing ----
@@ -325,14 +277,16 @@ export function AuthModeToggle({
   mode,
   onChange,
   cliLabel,
+  cliSoon,
 }: {
   mode: "cli" | "api-key"
   onChange: (mode: "cli" | "api-key") => void
   cliLabel?: ReactNode
+  cliSoon?: boolean
 }) {
   const options = [
-    { id: "cli" as const, label: cliLabel ?? <Trans>CLI</Trans>, Icon: Terminal },
-    { id: "api-key" as const, label: <Trans>API key</Trans>, Icon: KeyRound },
+    { id: "cli" as const, label: cliLabel ?? <Trans>CLI</Trans>, Icon: Terminal, soon: cliSoon },
+    { id: "api-key" as const, label: <Trans>API key</Trans>, Icon: KeyRound, soon: false },
   ]
   const activeIndex = mode === "cli" ? 0 : 1
   return (
@@ -342,7 +296,7 @@ export function AuthModeToggle({
         className={cn("absolute inset-y-1 w-[calc(50%-2px)] rounded-lg bg-card shadow-sm transition-transform duration-300 motion-reduce:transition-none", EASE)}
         style={{ transform: `translateX(${activeIndex * 100}%)` }}
       />
-      {options.map(({ id, label, Icon }) => (
+      {options.map(({ id, label, Icon, soon }) => (
         <button
           key={id}
           type="button"
@@ -354,7 +308,10 @@ export function AuthModeToggle({
           )}
         >
           <Icon className="size-4" />
-          {label}
+          <span className="flex items-center gap-1.5">
+            {label}
+            {soon && <SoonPin />}
+          </span>
         </button>
       ))}
     </div>
@@ -500,6 +457,7 @@ export function ModalityBadges({ modalities }: { modalities: AiModality[] }) {
 export function defaultCardMode(cardKey: string, store: ProvidersV2): "api-key" | "cli" {
   const card = PROVIDER_CARDS[cardKey]
   if (!card.apiKeyProviderId || !card.cliProviderId) return "api-key"
+  if (!isProviderAvailable(card.cliProviderId)) return "api-key"
   const apiDesc = descriptorById(card.apiKeyProviderId)
   return requiredFieldsFilled(apiDesc, store.credentials[card.apiKeyProviderId] ?? {}) ? "api-key" : "cli"
 }
@@ -535,11 +493,6 @@ export function useCardHealth(cardKey: string, store: ProvidersV2, refreshToken 
 
   const health = useProviderHealthMock(probeId, store.credentials[probeId] ?? {}, enabled, refreshToken)
   return { data: enabled ? health.data : null, isFetching: enabled && health.isFetching, fallbackConfigured }
-}
-
-export function CardRailStatus({ cardKey, store }: { cardKey: string; store: ProvidersV2 }) {
-  const { data, isFetching, fallbackConfigured } = useCardHealth(cardKey, store)
-  return <HealthDot health={data} isFetching={isFetching} fallbackConfigured={fallbackConfigured} />
 }
 
 /** Dot-only status mark, sized to sit on a provider icon (T3-Code style). */
@@ -604,6 +557,42 @@ export function SoonPin({ className }: { className?: string }) {
         <Trans>Designed, not wired yet — enabled once the AI-agnostic backend and the new provider UI merge.</Trans>
       </TooltipContent>
     </Tooltip>
+  )
+}
+
+/**
+ * Providers the shipping app already supports (this branch's `useApiKey`: OpenAI, Anthropic,
+ * Google, Custom, Azure, Gemini, ElevenLabs). Only the new CLI backends (codex, claude-agent)
+ * and local ollama arrive with `feature/ai-agnostic`; those are shown but marked "Coming soon".
+ */
+export const AVAILABLE_PROVIDERS = new Set(["openai", "anthropic", "google", "custom", "azure", "gemini", "elevenlabs"])
+
+export function isProviderAvailable(providerId: string): boolean {
+  return AVAILABLE_PROVIDERS.has(providerId)
+}
+
+/** A card is available when its primary (API-key or local) backend already ships. */
+export function isCardAvailable(cardKey: string): boolean {
+  const card = PROVIDER_CARDS[cardKey]
+  const primary = card.apiKeyProviderId ?? card.localProviderId
+  return primary ? isProviderAvailable(primary) : false
+}
+
+export function ComingBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/50 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+      <Clock className="size-2.5" />
+      <Trans>Coming soon</Trans>
+    </span>
+  )
+}
+
+export function ComingBanner({ children }: { children?: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-dashed border-amber-400/50 bg-amber-500/5 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-300">
+      <Clock className="size-3.5 shrink-0" />
+      <span>{children ?? <Trans>Previewed here — enabled once the AI-agnostic update ships.</Trans>}</span>
+    </div>
   )
 }
 

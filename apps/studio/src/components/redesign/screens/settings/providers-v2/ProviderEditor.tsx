@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
@@ -8,6 +8,7 @@ import { PROVIDER_CARDS } from "./data"
 import {
   AuthModeToggle,
   CliGuidance,
+  ComingBanner,
   CredentialFields,
   DocsLink,
   EASE,
@@ -17,6 +18,8 @@ import {
   authKind,
   defaultCardMode,
   descriptorById,
+  isCardAvailable,
+  isProviderAvailable,
   localize,
   useDraft,
 } from "./shared"
@@ -88,10 +91,22 @@ function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescripto
   )
 }
 
+/** Dims a backend that's designed but not yet shipping, with a "coming" banner above it. */
+function ComingWrap({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-3">
+      <ComingBanner />
+      <div className="pointer-events-none select-none opacity-60">{children}</div>
+    </div>
+  )
+}
+
 /**
  * A vendor. Vendors offering both an API and a local CLI (OpenAI→Codex, Anthropic→Claude
  * Agent) show a CLI ↔ API-key toggle that swaps which backend you configure; each mode keeps
- * its own modalities and connection state. Single-backend vendors render one panel.
+ * its own modalities and connection state. Single-backend vendors render one panel. Backends
+ * that don't ship yet (the CLI ones, and the new speech/local providers) are previewed dimmed
+ * behind a "coming" banner.
  */
 export function ProviderCard({ cardKey, store, active }: { cardKey: string; store: ProvidersV2; active: boolean }) {
   const card = PROVIDER_CARDS[cardKey]
@@ -101,27 +116,34 @@ export function ProviderCard({ cardKey, store, active }: { cardKey: string; stor
   if (dual) {
     const apiDesc = descriptorById(card.apiKeyProviderId!)
     const cliDesc = descriptorById(card.cliProviderId!)
+    const cliAvailable = isProviderAvailable(card.cliProviderId!)
     return (
       <div className="flex flex-col gap-4">
         <div>
           <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
             <Trans>Authentication</Trans>
           </div>
-          <AuthModeToggle mode={mode} onChange={setMode} cliLabel={card.cliLabel} />
+          <AuthModeToggle mode={mode} onChange={setMode} cliLabel={card.cliLabel} cliSoon={!cliAvailable} />
         </div>
         {mode === "api-key" ? (
           <ApiKeyPanel descriptor={apiDesc} store={store} active={active} />
-        ) : (
+        ) : cliAvailable ? (
           <CliPanel descriptor={cliDesc} store={store} active={active} />
+        ) : (
+          <ComingWrap>
+            <CliPanel descriptor={cliDesc} store={store} active={false} />
+          </ComingWrap>
         )}
       </div>
     )
   }
 
   const only = descriptorById(card.apiKeyProviderId ?? card.localProviderId!)
-  return authKind(only) === "cli" ? (
-    <CliPanel descriptor={only} store={store} active={active} />
-  ) : (
-    <ApiKeyPanel descriptor={only} store={store} active={active} />
-  )
+  const panel =
+    authKind(only) === "cli" ? (
+      <CliPanel descriptor={only} store={store} active={isCardAvailable(cardKey) && active} />
+    ) : (
+      <ApiKeyPanel descriptor={only} store={store} active={isCardAvailable(cardKey) && active} />
+    )
+  return isCardAvailable(cardKey) ? panel : <ComingWrap>{panel}</ComingWrap>
 }
