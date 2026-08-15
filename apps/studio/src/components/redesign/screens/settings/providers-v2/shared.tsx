@@ -12,6 +12,7 @@ import {
   Check,
   ExternalLink,
   Terminal,
+  KeyRound,
   Trash2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -19,8 +20,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/sonner"
-import type { LocalizedText, ProviderDescriptor, ProviderHealthCode, ProviderHealthResponse } from "./contract"
-import { ACCENT_DOT, PROVIDER_UI } from "./data"
+import type { AiModality, LocalizedText, ProviderDescriptor, ProviderHealthCode, ProviderHealthResponse } from "./contract"
+import { ACCENT_DOT, PROVIDER_CARDS, PROVIDER_DESCRIPTORS, PROVIDER_UI } from "./data"
 import { authKind, mask, requiredFieldsFilled, useProviderHealthMock, type ProvidersV2 } from "./useProvidersV2"
 
 export const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -321,13 +322,15 @@ export function CredentialFields({ draft, onSubmit }: { draft: Draft; onSubmit?:
 export function AuthModeToggle({
   mode,
   onChange,
+  cliLabel,
 }: {
   mode: "cli" | "api-key"
   onChange: (mode: "cli" | "api-key") => void
+  cliLabel?: ReactNode
 }) {
   const options = [
-    { id: "cli" as const, label: <Trans>CLI</Trans>, Icon: Terminal },
-    { id: "api-key" as const, label: <Trans>API key</Trans>, Icon: Eye },
+    { id: "cli" as const, label: cliLabel ?? <Trans>CLI</Trans>, Icon: Terminal },
+    { id: "api-key" as const, label: <Trans>API key</Trans>, Icon: KeyRound },
   ]
   const activeIndex = mode === "cli" ? 0 : 1
   return (
@@ -456,18 +459,73 @@ export function MaskedSummary({ draft }: { draft: Draft }): ReactNode {
   return null
 }
 
+export function descriptorById(id: string): ProviderDescriptor {
+  return PROVIDER_DESCRIPTORS.find((d) => d.manifest.id === id)!
+}
+
+function ModalityLabel({ modality }: { modality: AiModality }) {
+  switch (modality) {
+    case "structured-text":
+      return <Trans>Text</Trans>
+    case "agent":
+      return <Trans>Agent</Trans>
+    case "image":
+      return <Trans>Image</Trans>
+    case "tts":
+      return <Trans>Speech</Trans>
+    default:
+      return <Trans>Transcription</Trans>
+  }
+}
+
+/** What a given backend can actually do — makes the CLI mode's reduced reach visible. */
+export function ModalityBadges({ modalities }: { modalities: AiModality[] }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {modalities.map((modality) => (
+        <span
+          key={modality}
+          className="inline-flex items-center rounded-full border bg-background px-2 py-0.5 text-[10.5px] font-medium text-muted-foreground"
+        >
+          <ModalityLabel modality={modality} />
+        </span>
+      ))}
+    </div>
+  )
+}
+
+/** Which mode a vendor card opens on: its API-key backend if that's configured, else CLI. */
+export function defaultCardMode(cardKey: string, store: ProvidersV2): "api-key" | "cli" {
+  const card = PROVIDER_CARDS[cardKey]
+  if (!card.apiKeyProviderId || !card.cliProviderId) return "api-key"
+  const apiDesc = descriptorById(card.apiKeyProviderId)
+  return requiredFieldsFilled(apiDesc, store.credentials[card.apiKeyProviderId] ?? {}) ? "api-key" : "cli"
+}
+
 /**
- * Collapsed-row / rail indicator. API-key providers show a cheap local badge (no probe);
- * CLI/local providers run a live probe so `local-login` vs `not-logged-in` is truthful.
+ * Vendor-card rail indicator. Prefers the configured API key (cheap local badge); if the
+ * vendor has no key but a CLI backend, probes that so a live CLI login still reads "Connected".
  */
-export function RailStatus({ descriptor, store }: { descriptor: ProviderDescriptor; store: ProvidersV2 }) {
-  const id = descriptor.manifest.id
-  const kind = authKind(descriptor)
-  const storedCreds = store.credentials[id] ?? {}
-  const probe = kind !== "api-key"
-  const health = useProviderHealthMock(id, storedCreds, probe)
-  const configured = requiredFieldsFilled(descriptor, storedCreds)
-  return <HealthDot health={probe ? health.data : null} isFetching={probe && health.isFetching} fallbackConfigured={configured} />
+export function CardRailStatus({ cardKey, store }: { cardKey: string; store: ProvidersV2 }) {
+  const card = PROVIDER_CARDS[cardKey]
+  const apiDesc = card.apiKeyProviderId ? descriptorById(card.apiKeyProviderId) : undefined
+  const apiConfigured = apiDesc ? requiredFieldsFilled(apiDesc, store.credentials[apiDesc.manifest.id] ?? {}) : false
+
+  let probeId = card.apiKeyProviderId ?? card.cliProviderId ?? card.localProviderId!
+  let enabled = false
+  let fallbackConfigured = false
+  if (card.localProviderId) {
+    probeId = card.localProviderId
+    enabled = true
+  } else if (apiConfigured) {
+    fallbackConfigured = true
+  } else if (card.cliProviderId) {
+    probeId = card.cliProviderId
+    enabled = true
+  }
+
+  const health = useProviderHealthMock(probeId, store.credentials[probeId] ?? {}, enabled)
+  return <HealthDot health={enabled ? health.data : null} isFetching={enabled && health.isFetching} fallbackConfigured={fallbackConfigured} />
 }
 
 export { authKind, requiredFieldsFilled }

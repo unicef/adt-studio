@@ -24,7 +24,8 @@ export interface RoleGroup {
   key: string
   label: string
   hint: string
-  ids: string[]
+  /** Card keys (see PROVIDER_CARDS), not raw provider ids. */
+  cards: string[]
 }
 
 export const ROLE_GROUPS: RoleGroup[] = [
@@ -32,15 +33,42 @@ export const ROLE_GROUPS: RoleGroup[] = [
     key: "reasoning",
     label: "Models & reasoning",
     hint: "Which engine runs the extraction and generation pipeline.",
-    ids: ["openai", "anthropic", "claude-agent", "codex", "google", "custom", "ollama"],
+    cards: ["openai", "anthropic", "google", "custom", "ollama"],
   },
   {
     key: "speech",
     label: "Speech & voices",
     hint: "Text-to-speech engines that narrate the finished book.",
-    ids: ["azure", "elevenlabs", "gemini"],
+    cards: ["azure", "elevenlabs", "gemini"],
   },
 ]
+
+/**
+ * A card is a vendor, not a backend. Vendors that offer both an API and a local CLI
+ * (OpenAI → Codex, Anthropic → Claude Agent) collapse into one card whose CLI ↔ API-key
+ * toggle selects which underlying provider you configure. Each mode keeps its own
+ * modalities, credentials and connection state; model assignment stays in Settings → Models.
+ */
+export interface ProviderCardDef {
+  key: string
+  displayName: string
+  uiId: string
+  apiKeyProviderId?: string
+  cliProviderId?: string
+  localProviderId?: string
+  cliLabel?: string
+}
+
+export const PROVIDER_CARDS: Record<string, ProviderCardDef> = {
+  openai: { key: "openai", displayName: "OpenAI", uiId: "openai", apiKeyProviderId: "openai", cliProviderId: "codex", cliLabel: "Codex CLI" },
+  anthropic: { key: "anthropic", displayName: "Anthropic", uiId: "anthropic", apiKeyProviderId: "anthropic", cliProviderId: "claude-agent", cliLabel: "Claude Code" },
+  google: { key: "google", displayName: "Google", uiId: "google", apiKeyProviderId: "google" },
+  custom: { key: "custom", displayName: "Custom (OpenAI-compatible)", uiId: "custom", apiKeyProviderId: "custom" },
+  ollama: { key: "ollama", displayName: "Ollama", uiId: "ollama", localProviderId: "ollama" },
+  azure: { key: "azure", displayName: "Azure Speech", uiId: "azure", apiKeyProviderId: "azure" },
+  elevenlabs: { key: "elevenlabs", displayName: "ElevenLabs", uiId: "elevenlabs", apiKeyProviderId: "elevenlabs" },
+  gemini: { key: "gemini", displayName: "Gemini Speech", uiId: "gemini", apiKeyProviderId: "gemini" },
+}
 
 export const PROVIDER_UI: Record<string, ProviderUiMeta> = {
   openai: { icon: Sparkles, tile: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400", accent: "emerald" },
