@@ -1,20 +1,8 @@
-import { useCallback, useMemo } from "react"
 import { Sparkles, Server, AudioLines, type LucideIcon } from "lucide-react"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
-import { useApiKey } from "@/hooks/use-api-key"
 
 export type ProviderId = "openai" | "anthropic" | "google" | "custom" | "azure"
-
-export interface ProviderField {
-  id: string
-  label: MessageDescriptor
-  placeholder: MessageDescriptor
-  secret: boolean
-  value: string
-  save: (value: string) => void
-  validate?: (value: string) => MessageDescriptor | null
-}
 
 export interface ProviderMeta {
   name: string
@@ -22,16 +10,6 @@ export interface ProviderMeta {
   hint?: MessageDescriptor
   icon: LucideIcon
   tile: string
-  accent: string
-  models: string[]
-  docsUrl?: string
-}
-
-export interface ProviderCard extends ProviderMeta {
-  id: ProviderId
-  connected: boolean
-  summary: string
-  fields: ProviderField[]
 }
 
 export const PROVIDER_IDS = ["openai", "anthropic", "google", "custom", "azure"] as const satisfies readonly ProviderId[]
@@ -42,9 +20,6 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     desc: msg`GPT models for pipeline tasks.`,
     icon: Sparkles,
     tile: "bg-emerald-50 text-emerald-600",
-    accent: "emerald",
-    models: ["GPT-4o", "GPT-4o mini", "o3", "GPT Image", "TTS"],
-    docsUrl: "https://platform.openai.com/api-keys",
   },
   anthropic: {
     name: "Anthropic",
@@ -52,9 +27,6 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     hint: msg`Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)`,
     icon: Sparkles,
     tile: "bg-amber-50 text-amber-600",
-    accent: "amber",
-    models: ["Claude Opus", "Claude Sonnet", "Claude Haiku"],
-    docsUrl: "https://console.anthropic.com/settings/keys",
   },
   google: {
     name: "Google AI",
@@ -62,9 +34,6 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     hint: msg`Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)`,
     icon: Sparkles,
     tile: "bg-blue-50 text-blue-600",
-    accent: "blue",
-    models: ["Gemini 2.5 Pro", "Gemini Flash", "Gemini TTS"],
-    docsUrl: "https://aistudio.google.com/app/apikey",
   },
   custom: {
     name: "Custom (OpenAI-compatible)",
@@ -72,8 +41,6 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     hint: msg`Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the "custom:" prefix when selecting models, e.g. custom:llama3.`,
     icon: Server,
     tile: "bg-muted text-muted-foreground",
-    accent: "slate",
-    models: ["Ollama", "vLLM", "Together AI"],
   },
   azure: {
     name: "Azure Speech",
@@ -81,167 +48,5 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     hint: msg`Used for Azure Speech TTS provider.`,
     icon: AudioLines,
     tile: "bg-indigo-50 text-indigo-600",
-    accent: "indigo",
-    models: ["Neural TTS"],
-    docsUrl: "https://portal.azure.com/",
   },
-}
-
-export function mask(key: string): string {
-  if (!key) return ""
-  const tail = key.slice(-4)
-  const head = key.startsWith("sk-ant") ? "sk-ant-" : key.startsWith("sk-") ? "sk-" : ""
-  return `${head}••••${tail}`
-}
-
-function validateOpenAIKey(value: string): MessageDescriptor | null {
-  const trimmed = value.trim()
-  if (trimmed.length === 0 || trimmed.startsWith("sk-")) return null
-  return msg`Key must start with "sk-"`
-}
-
-export function useProviderCards(): ProviderCard[] {
-  const {
-    apiKey,
-    setApiKey,
-    anthropicKey,
-    setAnthropicKey,
-    googleKey,
-    setGoogleKey,
-    setGeminiKey,
-    customBaseUrl,
-    setCustomBaseUrl,
-    customApiKey,
-    setCustomApiKey,
-    azureKey,
-    setAzureKey,
-    azureRegion,
-    setAzureRegion,
-  } = useApiKey()
-
-  const saveGoogleKey = useCallback(
-    (key: string) => {
-      setGoogleKey(key)
-      setGeminiKey(key)
-    },
-    [setGoogleKey, setGeminiKey],
-  )
-
-  return useMemo(
-    () => [
-      {
-        id: "openai",
-        ...PROVIDER_META.openai,
-        connected: apiKey.length > 0,
-        summary: mask(apiKey),
-        fields: [
-          {
-            id: "openai-key-input",
-            label: msg`OpenAI API Key`,
-            placeholder: msg`sk-...`,
-            secret: true,
-            value: apiKey,
-            save: setApiKey,
-            validate: validateOpenAIKey,
-          },
-        ],
-      },
-      {
-        id: "anthropic",
-        ...PROVIDER_META.anthropic,
-        connected: anthropicKey.length > 0,
-        summary: mask(anthropicKey),
-        fields: [
-          {
-            id: "anthropic-key-input",
-            label: msg`Anthropic API Key`,
-            placeholder: msg`sk-ant-...`,
-            secret: true,
-            value: anthropicKey,
-            save: setAnthropicKey,
-          },
-        ],
-      },
-      {
-        id: "google",
-        ...PROVIDER_META.google,
-        connected: googleKey.length > 0,
-        summary: mask(googleKey),
-        fields: [
-          {
-            id: "google-key-input",
-            label: msg`Google AI API Key`,
-            placeholder: msg`AIza...`,
-            secret: true,
-            value: googleKey,
-            save: saveGoogleKey,
-          },
-        ],
-      },
-      {
-        id: "custom",
-        ...PROVIDER_META.custom,
-        connected: customBaseUrl.length > 0 || customApiKey.length > 0,
-        summary: customBaseUrl,
-        fields: [
-          {
-            id: "custom-base-url-input",
-            label: msg`Base URL`,
-            placeholder: msg`e.g. http://localhost:11434/v1`,
-            secret: false,
-            value: customBaseUrl,
-            save: setCustomBaseUrl,
-          },
-          {
-            id: "custom-api-key-input",
-            label: msg`API Key (optional)`,
-            placeholder: msg`Leave empty if not required`,
-            secret: true,
-            value: customApiKey,
-            save: setCustomApiKey,
-          },
-        ],
-      },
-      {
-        id: "azure",
-        ...PROVIDER_META.azure,
-        connected: azureKey.length > 0,
-        summary: mask(azureKey),
-        fields: [
-          {
-            id: "azure-key-input",
-            label: msg`Azure Speech Subscription Key`,
-            placeholder: msg`Azure Speech subscription key`,
-            secret: true,
-            value: azureKey,
-            save: setAzureKey,
-          },
-          {
-            id: "azure-region-input",
-            label: msg`Region`,
-            placeholder: msg`e.g. eastus, westeurope`,
-            secret: false,
-            value: azureRegion,
-            save: setAzureRegion,
-          },
-        ],
-      },
-    ],
-    [
-      apiKey,
-      setApiKey,
-      anthropicKey,
-      setAnthropicKey,
-      googleKey,
-      saveGoogleKey,
-      customBaseUrl,
-      setCustomBaseUrl,
-      customApiKey,
-      setCustomApiKey,
-      azureKey,
-      setAzureKey,
-      azureRegion,
-      setAzureRegion,
-    ],
-  )
 }

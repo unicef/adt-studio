@@ -3,33 +3,29 @@ import { Trans } from "@lingui/react/macro"
 import { ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SettingsHeading, SettingsLead } from "./ui"
-import { ProvidersConductor } from "./ProvidersConductor"
-import { ProvidersT3 } from "./ProvidersT3"
+import { VariantAccordion } from "./providers-v2/VariantAccordion"
+import { VariantCards } from "./providers-v2/VariantCards"
+import { VariantMasterDetail } from "./providers-v2/VariantMasterDetail"
 
-type ProvidersVariant = "conductor" | "t3"
+type ProvidersVariant = "accordion" | "cards" | "master-detail"
 
-const VARIANT_KEY = "adt:providers-variant"
+const VARIANT_KEY = "adt:providers-variant-v2"
 const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
 
 const VARIANTS: { id: ProvidersVariant; label: string }[] = [
-  { id: "conductor", label: "Conductor" },
-  { id: "t3", label: "T3 Chat" },
+  { id: "accordion", label: "Accordion" },
+  { id: "cards", label: "Cards" },
+  { id: "master-detail", label: "Master · detail" },
 ]
 
-function VariantSwitch({
-  value,
-  onChange,
-}: {
-  value: ProvidersVariant
-  onChange: (value: ProvidersVariant) => void
-}) {
+function VariantSwitch({ value, onChange }: { value: ProvidersVariant; onChange: (value: ProvidersVariant) => void }) {
   const activeIndex = VARIANTS.findIndex((v) => v.id === value)
   return (
-    <div className="relative inline-grid grid-cols-2 gap-1 rounded-lg border bg-muted/50 p-1">
+    <div className="relative grid grid-cols-3 gap-1 rounded-lg border bg-muted/50 p-1">
       <span
         aria-hidden
-        className={cn("absolute inset-y-1 w-[calc(50%-2px)] rounded-md bg-card shadow-sm transition-transform duration-300 motion-reduce:transition-none", EASE)}
-        style={{ transform: `translateX(${activeIndex * 100}%)` }}
+        className={cn("absolute inset-y-1 w-[calc(33.333%-3px)] rounded-md bg-card shadow-sm transition-transform duration-300 motion-reduce:transition-none", EASE)}
+        style={{ transform: `translateX(calc(${activeIndex} * (100% + 4px)))` }}
       />
       {VARIANTS.map((variant) => (
         <button
@@ -37,7 +33,7 @@ function VariantSwitch({
           type="button"
           onClick={() => onChange(variant.id)}
           className={cn(
-            "relative z-10 rounded-md px-3 py-1 text-[12px] font-medium transition-colors duration-150",
+            "relative z-10 whitespace-nowrap rounded-md px-3 py-1 text-[12px] font-medium transition-colors duration-150",
             EASE,
             value === variant.id ? "text-foreground" : "text-muted-foreground hover:text-foreground",
           )}
@@ -52,7 +48,7 @@ function VariantSwitch({
 export function ProvidersSection() {
   const [variant, setVariant] = useState<ProvidersVariant>(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem(VARIANT_KEY) : null
-    return stored === "t3" ? "t3" : "conductor"
+    return stored === "cards" || stored === "master-detail" ? stored : "accordion"
   })
 
   useEffect(() => {
@@ -68,16 +64,16 @@ export function ProvidersSection() {
         <VariantSwitch value={variant} onChange={setVariant} />
       </div>
       <SettingsLead>
-        <Trans>API keys for the AI pipeline. Keys are stored locally on this machine and never leave it except to call the provider.</Trans>
+        <Trans>Connect the engines that run the pipeline and narrate books. Keys stay on this machine; CLI providers reuse the login already on it.</Trans>
       </SettingsLead>
 
       <div key={variant} className={cn("transition-opacity duration-300 starting:opacity-0 motion-reduce:transition-none", EASE)}>
-        {variant === "conductor" ? <ProvidersConductor /> : <ProvidersT3 />}
+        {variant === "accordion" ? <VariantAccordion /> : variant === "cards" ? <VariantCards /> : <VariantMasterDetail />}
       </div>
 
-      <div className="mt-3.5 flex items-center gap-2 text-xs text-muted-foreground">
+      <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
         <ShieldCheck className="size-3.5 text-emerald-600" />
-        <Trans>Keys are kept in this machine's local storage. Custom uses any OpenAI-compatible endpoint; Azure powers Speech TTS.</Trans>
+        <Trans>Credentials are kept in this machine&apos;s local storage and sent only to the provider you configure.</Trans>
       </div>
     </>
   )

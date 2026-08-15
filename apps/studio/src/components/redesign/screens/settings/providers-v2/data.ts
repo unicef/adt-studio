@@ -1,0 +1,289 @@
+/* eslint-disable lingui/no-unlocalized-strings -- Manifest copy mirrors server-localized provider data (LocalizedText from /providers), not app UI strings. */
+import {
+  Sparkles,
+  Sparkle,
+  SquareTerminal,
+  Terminal,
+  Gem,
+  Server,
+  Cpu,
+  AudioLines,
+  AudioWaveform,
+  Volume2,
+  type LucideIcon,
+} from "lucide-react"
+import type { AiModality, ProviderDescriptor } from "./contract"
+
+export interface ProviderUiMeta {
+  icon: LucideIcon
+  tile: string
+  accent: string
+}
+
+export interface RoleGroup {
+  key: string
+  label: string
+  hint: string
+  ids: string[]
+}
+
+export const ROLE_GROUPS: RoleGroup[] = [
+  {
+    key: "reasoning",
+    label: "Models & reasoning",
+    hint: "Which engine runs the extraction and generation pipeline.",
+    ids: ["openai", "anthropic", "claude-agent", "codex", "google", "custom", "ollama"],
+  },
+  {
+    key: "speech",
+    label: "Speech & voices",
+    hint: "Text-to-speech engines that narrate the finished book.",
+    ids: ["azure", "elevenlabs", "gemini"],
+  },
+]
+
+export const PROVIDER_UI: Record<string, ProviderUiMeta> = {
+  openai: { icon: Sparkles, tile: "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400", accent: "emerald" },
+  anthropic: { icon: Sparkle, tile: "bg-amber-50 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400", accent: "amber" },
+  "claude-agent": { icon: SquareTerminal, tile: "bg-orange-50 text-orange-600 dark:bg-orange-500/15 dark:text-orange-400", accent: "orange" },
+  codex: { icon: Terminal, tile: "bg-zinc-100 text-zinc-700 dark:bg-zinc-500/15 dark:text-zinc-300", accent: "zinc" },
+  google: { icon: Gem, tile: "bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-400", accent: "blue" },
+  custom: { icon: Server, tile: "bg-muted text-muted-foreground", accent: "slate" },
+  ollama: { icon: Cpu, tile: "bg-teal-50 text-teal-600 dark:bg-teal-500/15 dark:text-teal-400", accent: "teal" },
+  azure: { icon: AudioLines, tile: "bg-indigo-50 text-indigo-600 dark:bg-indigo-500/15 dark:text-indigo-400", accent: "indigo" },
+  elevenlabs: { icon: AudioWaveform, tile: "bg-violet-50 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400", accent: "violet" },
+  gemini: { icon: Volume2, tile: "bg-sky-50 text-sky-600 dark:bg-sky-500/15 dark:text-sky-400", accent: "sky" },
+}
+
+export const ACCENT_DOT: Record<string, string> = {
+  emerald: "bg-emerald-500",
+  amber: "bg-amber-500",
+  orange: "bg-orange-500",
+  zinc: "bg-zinc-400",
+  blue: "bg-blue-500",
+  slate: "bg-slate-400",
+  teal: "bg-teal-500",
+  indigo: "bg-indigo-500",
+  violet: "bg-violet-500",
+  sky: "bg-sky-500",
+}
+
+const LABEL_API_KEY = { en: "API key" }
+const LABEL_BASE_URL = { en: "Base URL" }
+const HELP_OPTIONAL_API_KEY = { en: "Optional. Leave empty for servers that do not require authentication." }
+
+export const PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
+  {
+    manifest: {
+      id: "openai",
+      displayName: "OpenAI",
+      modalities: ["structured-text", "agent", "image", "tts", "stt"],
+      defaultModels: { "structured-text": "gpt-5.4", agent: "gpt-5.4", image: "gpt-image-2", tts: "gpt-4o-mini-tts", stt: "whisper-1" },
+      docsUrl: "https://platform.openai.com/api-keys",
+      credentialFields: [
+        { key: "apiKey", kind: "secret", label: LABEL_API_KEY, required: true, header: "X-OpenAI-Key", storageKey: "adt-studio-openai-key", placeholder: "sk-..." },
+      ],
+    },
+    configuredOnServer: false,
+    fieldStatus: [{ key: "apiKey", configuredOnServer: false }],
+  },
+  {
+    manifest: {
+      id: "anthropic",
+      displayName: "Anthropic",
+      modalities: ["structured-text", "agent"],
+      defaultModels: { "structured-text": "claude-opus-4", agent: "claude-opus-4" },
+      docsUrl: "https://console.anthropic.com/settings/keys",
+      credentialFields: [
+        { key: "apiKey", kind: "secret", label: LABEL_API_KEY, required: true, header: "X-Anthropic-API-Key", storageKey: "adt-studio-anthropic-key", placeholder: "sk-ant-..." },
+      ],
+    },
+    configuredOnServer: false,
+    fieldStatus: [{ key: "apiKey", configuredOnServer: false }],
+  },
+  {
+    manifest: {
+      id: "claude-agent",
+      displayName: "Claude Agent",
+      modalities: ["structured-text"],
+      defaultModels: { "structured-text": "claude-sonnet-4-5" },
+      docsUrl: "https://code.claude.com/docs/agent-sdk",
+      localizedHelp: {
+        en: "Runs prompts through the Claude Agent SDK on this machine instead of calling the Anthropic API directly, reusing the Claude Code login when no API key is set. Tools, session files and local settings are disabled so results stay reproducible.",
+      },
+      credentialFields: [
+        {
+          key: "apiKey",
+          kind: "secret",
+          label: LABEL_API_KEY,
+          required: false,
+          header: "X-ADT-Provider-Claude-Agent-Key",
+          storageKey: "adt-studio-claude-agent-key",
+          placeholder: "sk-ant-...",
+          help: { en: "Optional. Leave empty to use the Claude Code login already on this machine. When filled, requests are billed to this Anthropic API key instead." },
+        },
+      ],
+    },
+    configuredOnServer: false,
+    fieldStatus: [{ key: "apiKey", configuredOnServer: false }],
+  },
+  {
+    manifest: {
+      id: "codex",
+      displayName: "OpenAI Codex",
+      modalities: ["structured-text"],
+      defaultModels: { "structured-text": "gpt-5.1" },
+      docsUrl: "https://developers.openai.com/codex/cli",
+      localizedHelp: {
+        en: "Runs prompts through the Codex CLI installed on this machine, reusing its login when no API key is set. Requires `codex` on PATH (or CODEX_EXECUTABLE) and a `codex login`. The sandbox is read-only.",
+      },
+      credentialFields: [
+        {
+          key: "apiKey",
+          kind: "secret",
+          label: LABEL_API_KEY,
+          required: false,
+          header: "X-ADT-Provider-Codex-Key",
+          storageKey: "adt-studio-codex-key",
+          placeholder: "sk-...",
+          help: { en: "Optional. Leave empty to use the Codex CLI login already on this machine. When filled, requests are billed to this OpenAI API key instead." },
+        },
+      ],
+    },
+    configuredOnServer: false,
+    fieldStatus: [{ key: "apiKey", configuredOnServer: false }],
+  },
+  {
+    manifest: {
+      id: "google",
+      displayName: "Google",
+      modalities: ["structured-text", "agent"],
+      defaultModels: { "structured-text": "gemini-2.5-pro", agent: "gemini-2.5-pro" },
+      docsUrl: "https://aistudio.google.com/app/apikey",
+      credentialFields: [
+        { key: "apiKey", kind: "secret", label: LABEL_API_KEY, required: true, header: "X-Google-API-Key", storageKey: "adt-studio-google-key" },
+      ],
+    },
+    configuredOnServer: false,
+    fieldStatus: [{ key: "apiKey", configuredOnServer: false }],
+  },
+  {
+    manifest: {
+      id: "custom",
+      displayName: "Custom (OpenAI-compatible)",
+      modalities: ["structured-text", "agent"],
+      defaultModels: {},
+      localizedHelp: { en: "Any OpenAI-compatible endpoint — LM Studio, vLLM, llama.cpp, Together AI." },
+      credentialFields: [
+        { key: "baseUrl", kind: "url", label: LABEL_BASE_URL, required: true, header: "X-Custom-Base-URL", storageKey: "adt-studio-custom-base-url", placeholder: "http://localhost:1234/v1" },
+        { key: "apiKey", kind: "secret", label: LABEL_API_KEY, required: false, header: "X-Custom-API-Key", storageKey: "adt-studio-custom-api-key", help: HELP_OPTIONAL_API_KEY },
+      ],
+    },
+    configuredOnServer: false,
+    fieldStatus: [
+      { key: "baseUrl", configuredOnServer: false },
+      { key: "apiKey", configuredOnServer: false },
+    ],
+  },
+  {
+    manifest: {
+      id: "ollama",
+      displayName: "Ollama",
+      modalities: ["structured-text", "agent"],
+      defaultModels: {},
+      localizedHelp: { en: "Runs models locally with no API key. Point at the Ollama server on this machine." },
+      credentialFields: [
+        { key: "baseUrl", kind: "url", label: LABEL_BASE_URL, required: false, header: "X-ADT-Provider-Ollama-Base-URL", storageKey: "adt-studio-ollama-base-url", placeholder: "http://127.0.0.1:11434/v1" },
+      ],
+    },
+    configuredOnServer: false,
+    fieldStatus: [{ key: "baseUrl", configuredOnServer: false }],
+  },
+  {
+    manifest: {
+      id: "azure",
+      displayName: "Azure Speech",
+      modalities: ["tts"],
+      defaultModels: {},
+      credentialFields: [
+        { key: "apiKey", kind: "secret", label: { en: "Subscription key" }, required: true, header: "X-Azure-Speech-Key", storageKey: "adt-studio-azure-key" },
+        { key: "region", kind: "text", label: { en: "Region" }, required: true, header: "X-Azure-Speech-Region", storageKey: "adt-studio-azure-region", placeholder: "brazilsouth", maxLength: 64 },
+      ],
+    },
+    configuredOnServer: false,
+    fieldStatus: [
+      { key: "apiKey", configuredOnServer: false },
+      { key: "region", configuredOnServer: false },
+    ],
+  },
+  {
+    manifest: {
+      id: "elevenlabs",
+      displayName: "ElevenLabs",
+      modalities: ["tts"],
+      defaultModels: { tts: "eleven_multilingual_v2" },
+      docsUrl: "https://elevenlabs.io/app/settings/api-keys",
+      credentialFields: [
+        { key: "apiKey", kind: "secret", label: LABEL_API_KEY, required: true, header: "X-ElevenLabs-API-Key", storageKey: "adt-studio-elevenlabs-key" },
+      ],
+    },
+    configuredOnServer: false,
+    fieldStatus: [{ key: "apiKey", configuredOnServer: false }],
+  },
+  {
+    manifest: {
+      id: "gemini",
+      displayName: "Gemini Speech",
+      modalities: ["tts"],
+      defaultModels: {},
+      docsUrl: "https://aistudio.google.com/app/apikey",
+      credentialFields: [
+        { key: "apiKey", kind: "secret", label: LABEL_API_KEY, required: true, header: "X-Gemini-API-Key", storageKey: "adt-studio-gemini-key", placeholder: "AIza..." },
+      ],
+    },
+    configuredOnServer: false,
+    fieldStatus: [{ key: "apiKey", configuredOnServer: false }],
+  },
+]
+
+export const DEFAULT_MODELS: Record<AiModality, string> = {
+  "structured-text": "openai:gpt-5.4",
+  agent: "openai:gpt-5.4",
+  image: "openai:gpt-image-2",
+  tts: "openai:gpt-4o-mini-tts",
+  stt: "openai:whisper-1",
+}
+
+/**
+ * Simulated machine environment for the mock health probe — stands in for what the
+ * real `checkProviderConnection` detects (local CLI logins, reachable local servers).
+ * Seeded to show a spread of states across the variants for design review.
+ */
+export interface SimEnv {
+  cliInstalled?: boolean
+  cliLoggedIn?: boolean
+  loginLabel?: string
+  reachable?: boolean
+  rejectsKey?: boolean
+  modelCount?: number
+}
+
+export const SIM_ENV: Record<string, SimEnv> = {
+  openai: { modelCount: 62 },
+  anthropic: { modelCount: 9 },
+  "claude-agent": { cliInstalled: true, cliLoggedIn: true, loginLabel: "Claude Team account", modelCount: 7 },
+  codex: { cliInstalled: true, cliLoggedIn: false, loginLabel: "ChatGPT account" },
+  google: { modelCount: 48 },
+  custom: { reachable: false },
+  ollama: { reachable: true, modelCount: 11 },
+  azure: {},
+  elevenlabs: { rejectsKey: true },
+  gemini: {},
+}
+
+/** Credentials seeded on first load so the review shows connected states, not an empty screen. */
+export const SEED_CREDENTIALS: Record<string, Record<string, string>> = {
+  openai: { apiKey: "sk-proto-demo-openai-key-000" },
+  ollama: { baseUrl: "http://127.0.0.1:11434/v1" },
+  elevenlabs: { apiKey: "sk-proto-bad-key" },
+}
