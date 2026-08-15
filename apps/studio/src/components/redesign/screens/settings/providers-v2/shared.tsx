@@ -14,10 +14,12 @@ import {
   Terminal,
   KeyRound,
   Trash2,
+  Clock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/sonner"
 import type { AiModality, LocalizedText, ProviderDescriptor, ProviderHealthCode, ProviderHealthResponse } from "./contract"
@@ -502,11 +504,18 @@ export function defaultCardMode(cardKey: string, store: ProvidersV2): "api-key" 
   return requiredFieldsFilled(apiDesc, store.credentials[card.apiKeyProviderId] ?? {}) ? "api-key" : "cli"
 }
 
+interface CardHealth {
+  data: ProviderHealthResponse | null
+  isFetching: boolean
+  fallbackConfigured: boolean
+}
+
 /**
- * Vendor-card rail indicator. Prefers the configured API key (cheap local badge); if the
- * vendor has no key but a CLI backend, probes that so a live CLI login still reads "Connected".
+ * Resolve a vendor card to a single connection status: prefer the configured API key (cheap
+ * local badge, no probe); if the vendor has no key but a CLI/local backend, probe that so a
+ * live login still reads "Connected". Backs both the rail dot and the auth line from one probe.
  */
-export function CardRailStatus({ cardKey, store }: { cardKey: string; store: ProvidersV2 }) {
+export function useCardHealth(cardKey: string, store: ProvidersV2, refreshToken = 0): CardHealth {
   const card = PROVIDER_CARDS[cardKey]
   const apiDesc = card.apiKeyProviderId ? descriptorById(card.apiKeyProviderId) : undefined
   const apiConfigured = apiDesc ? requiredFieldsFilled(apiDesc, store.credentials[apiDesc.manifest.id] ?? {}) : false
@@ -524,8 +533,78 @@ export function CardRailStatus({ cardKey, store }: { cardKey: string; store: Pro
     enabled = true
   }
 
-  const health = useProviderHealthMock(probeId, store.credentials[probeId] ?? {}, enabled)
-  return <HealthDot health={enabled ? health.data : null} isFetching={enabled && health.isFetching} fallbackConfigured={fallbackConfigured} />
+  const health = useProviderHealthMock(probeId, store.credentials[probeId] ?? {}, enabled, refreshToken)
+  return { data: enabled ? health.data : null, isFetching: enabled && health.isFetching, fallbackConfigured }
+}
+
+export function CardRailStatus({ cardKey, store }: { cardKey: string; store: ProvidersV2 }) {
+  const { data, isFetching, fallbackConfigured } = useCardHealth(cardKey, store)
+  return <HealthDot health={data} isFetching={isFetching} fallbackConfigured={fallbackConfigured} />
+}
+
+/** Dot-only status mark, sized to sit on a provider icon (T3-Code style). */
+export function HealthDotMark({ data, isFetching, fallbackConfigured }: CardHealth) {
+  const tone: Tone = data ? toneOf(data.code) : fallbackConfigured ? "ok" : "muted"
+  return (
+    <span
+      className={cn(
+        "size-2.5 rounded-full ring-2 ring-card",
+        isFetching && !data ? "bg-muted-foreground/40" : TONE_DOT[tone],
+      )}
+    />
+  )
+}
+
+/** Pure auth-line text from a resolved CardHealth (no probe of its own). */
+export function AuthLineFromHealth({ data, isFetching, fallbackConfigured }: CardHealth) {
+  if (isFetching) return <Trans>Checking connection…</Trans>
+  if (fallbackConfigured) return <Trans>Authenticated · API key</Trans>
+  if (!data) return <Trans>Not configured</Trans>
+  switch (data.code) {
+    case "ok":
+      return data.detail ? <Trans>Authenticated · {data.detail}</Trans> : <Trans>Authenticated</Trans>
+    case "local-login":
+      return data.detail ? <Trans>Authenticated · {data.detail}</Trans> : <Trans>Authenticated · local login</Trans>
+    case "configured":
+      return <Trans>Credentials set</Trans>
+    case "not-logged-in":
+      return <Trans>Not signed in</Trans>
+    case "cli-not-found":
+      return <Trans>CLI not found</Trans>
+    case "missing-credential":
+      return <Trans>API key required</Trans>
+    case "invalid-credential":
+      return <Trans>Credentials rejected</Trans>
+    case "unreachable":
+      return <Trans>Unreachable</Trans>
+    default:
+      return <Trans>Not checked</Trans>
+  }
+}
+
+/**
+ * Marks a feature that's designed but not yet backed — enabled once `feature/ai-agnostic`
+ * and the provider UI merge. See `.context/ai-agnostic-providers-ui/BACKEND_GAPS.md`.
+ */
+export function SoonPin({ className }: { className?: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span
+          className={cn(
+            "inline-flex items-center gap-1 rounded-full border border-dashed border-amber-400/60 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400",
+            className,
+          )}
+        >
+          <Clock className="size-2.5" />
+          <Trans>Soon</Trans>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-[240px] text-center">
+        <Trans>Designed, not wired yet — enabled once the AI-agnostic backend and the new provider UI merge.</Trans>
+      </TooltipContent>
+    </Tooltip>
+  )
 }
 
 export { authKind, requiredFieldsFilled }

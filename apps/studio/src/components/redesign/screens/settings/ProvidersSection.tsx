@@ -3,16 +3,18 @@ import { Trans } from "@lingui/react/macro"
 import { ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SettingsHeading, SettingsLead } from "./ui"
+import { VariantT3List } from "./providers-v2/VariantT3List"
 import { VariantAccordion } from "./providers-v2/VariantAccordion"
 import { VariantCards } from "./providers-v2/VariantCards"
 import { VariantMasterDetail } from "./providers-v2/VariantMasterDetail"
 
-type ProvidersVariant = "accordion" | "cards" | "master-detail"
+type ProvidersVariant = "t3list" | "accordion" | "cards" | "master-detail"
 
-const VARIANT_KEY = "adt:providers-variant-v2"
+const VARIANT_KEY = "adt:providers-variant-v3"
 const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
 
 const VARIANTS: { id: ProvidersVariant; label: string }[] = [
+  { id: "t3list", label: "T3 Code" },
   { id: "accordion", label: "Accordion" },
   { id: "cards", label: "Cards" },
   { id: "master-detail", label: "Master · detail" },
@@ -21,10 +23,10 @@ const VARIANTS: { id: ProvidersVariant; label: string }[] = [
 function VariantSwitch({ value, onChange }: { value: ProvidersVariant; onChange: (value: ProvidersVariant) => void }) {
   const activeIndex = VARIANTS.findIndex((v) => v.id === value)
   return (
-    <div className="relative grid grid-cols-3 gap-1 rounded-lg border bg-muted/50 p-1">
+    <div className="relative grid grid-cols-4 gap-1 rounded-lg border bg-muted/50 p-1">
       <span
         aria-hidden
-        className={cn("absolute inset-y-1 w-[calc(33.333%-3px)] rounded-md bg-card shadow-sm transition-transform duration-300 motion-reduce:transition-none", EASE)}
+        className={cn("absolute inset-y-1 w-[calc(25%-3px)] rounded-md bg-card shadow-sm transition-transform duration-300 motion-reduce:transition-none", EASE)}
         style={{ transform: `translateX(calc(${activeIndex} * (100% + 4px)))` }}
       />
       {VARIANTS.map((variant) => (
@@ -48,7 +50,7 @@ function VariantSwitch({ value, onChange }: { value: ProvidersVariant; onChange:
 export function ProvidersSection() {
   const [variant, setVariant] = useState<ProvidersVariant>(() => {
     const stored = typeof window !== "undefined" ? window.localStorage.getItem(VARIANT_KEY) : null
-    return stored === "cards" || stored === "master-detail" ? stored : "accordion"
+    return stored === "accordion" || stored === "cards" || stored === "master-detail" ? stored : "t3list"
   })
 
   useEffect(() => {
@@ -68,7 +70,15 @@ export function ProvidersSection() {
       </SettingsLead>
 
       <div key={variant} className={cn("transition-opacity duration-300 starting:opacity-0 motion-reduce:transition-none", EASE)}>
-        {variant === "accordion" ? <VariantAccordion /> : variant === "cards" ? <VariantCards /> : <VariantMasterDetail />}
+        {variant === "t3list" ? (
+          <VariantT3List />
+        ) : variant === "accordion" ? (
+          <VariantAccordion />
+        ) : variant === "cards" ? (
+          <VariantCards />
+        ) : (
+          <VariantMasterDetail />
+        )}
       </div>
 
       <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">

@@ -146,6 +146,7 @@ export function useProviderHealthMock(
   providerId: string,
   draftCreds: Record<string, string>,
   enabled: boolean,
+  refreshToken = 0,
 ): HealthState {
   const [data, setData] = useState<ProviderHealthResponse | null>(null)
   const [isFetching, setIsFetching] = useState(false)
@@ -169,6 +170,10 @@ export function useProviderHealthMock(
       run()
     }
   }, [enabled, run])
+
+  useEffect(() => {
+    if (enabled && ranRef.current) run()
+  }, [enabled, refreshToken, run])
 
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current)
