@@ -1,69 +1,84 @@
-import { useState } from "react"
-import { Trans, useLingui } from "@lingui/react/macro"
-import { Check, Minus, ShieldCheck, Pencil, Plus } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from "react"
+import { Trans } from "@lingui/react/macro"
+import { ShieldCheck } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SettingsHeading, SettingsLead } from "./ui"
-import { useProviderCards, type ProviderId } from "./providers"
-import { ProviderKeyDialog } from "./ProviderKeyDialog"
-import { providerAnchor } from "./nav"
+import { ProvidersConductor } from "./ProvidersConductor"
+import { ProvidersT3 } from "./ProvidersT3"
+
+type ProvidersVariant = "conductor" | "t3"
+
+const VARIANT_KEY = "adt:providers-variant"
+const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
+
+const VARIANTS: { id: ProvidersVariant; label: string }[] = [
+  { id: "conductor", label: "Conductor" },
+  { id: "t3", label: "T3 Chat" },
+]
+
+function VariantSwitch({
+  value,
+  onChange,
+}: {
+  value: ProvidersVariant
+  onChange: (value: ProvidersVariant) => void
+}) {
+  const activeIndex = VARIANTS.findIndex((v) => v.id === value)
+  return (
+    <div className="relative inline-grid grid-cols-2 gap-1 rounded-lg border bg-muted/50 p-1">
+      <span
+        aria-hidden
+        className={cn("absolute inset-y-1 w-[calc(50%-2px)] rounded-md bg-card shadow-sm transition-transform duration-300 motion-reduce:transition-none", EASE)}
+        style={{ transform: `translateX(${activeIndex * 100}%)` }}
+      />
+      {VARIANTS.map((variant) => (
+        <button
+          key={variant.id}
+          type="button"
+          onClick={() => onChange(variant.id)}
+          className={cn(
+            "relative z-10 rounded-md px-3 py-1 text-[12px] font-medium transition-colors duration-150",
+            EASE,
+            value === variant.id ? "text-foreground" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          {variant.label}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 export function ProvidersSection() {
-  const { i18n } = useLingui()
-  const cards = useProviderCards()
-  const [editing, setEditing] = useState<ProviderId | null>(null)
+  const [variant, setVariant] = useState<ProvidersVariant>(() => {
+    const stored = typeof window !== "undefined" ? window.localStorage.getItem(VARIANT_KEY) : null
+    return stored === "t3" ? "t3" : "conductor"
+  })
+
+  useEffect(() => {
+    window.localStorage.setItem(VARIANT_KEY, variant)
+  }, [variant])
 
   return (
     <>
-      <SettingsHeading>
-        <Trans>AI providers</Trans>
-      </SettingsHeading>
+      <div className="mb-1 flex items-start justify-between gap-4">
+        <SettingsHeading>
+          <Trans>AI providers</Trans>
+        </SettingsHeading>
+        <VariantSwitch value={variant} onChange={setVariant} />
+      </div>
       <SettingsLead>
         <Trans>API keys for the AI pipeline. Keys are stored locally on this machine and never leave it except to call the provider.</Trans>
       </SettingsLead>
-      <div className="flex flex-col gap-2.5">
-        {cards.map((card) => {
-          const Icon = card.icon
-          return (
-            <button
-              key={card.id}
-              id={providerAnchor(card.id)}
-              type="button"
-              onClick={() => setEditing(card.id)}
-              className="flex scroll-mt-24 items-center gap-3.5 rounded-xl border bg-card px-[18px] py-[15px] text-left shadow-sm transition-colors hover:border-brand-300 hover:bg-accent/40"
-            >
-              <span className={cn("grid size-10 shrink-0 place-items-center rounded-[11px]", card.tile)}>
-                <Icon className="size-[19px]" />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-2">
-                  <span className="text-sm font-semibold">{card.name}</span>
-                  <Badge variant={card.connected ? "success" : "secondary"} className="gap-1 px-2 text-[10.5px]">
-                    {card.connected ? <Check className="size-3" /> : <Minus className="size-3" />}
-                    {card.connected ? <Trans>Connected</Trans> : <Trans>Not set</Trans>}
-                  </Badge>
-                </span>
-                <span className="mt-0.5 block text-xs text-muted-foreground">{i18n._(card.desc)}</span>
-              </span>
-              {card.summary && (
-                <span className="max-w-[220px] truncate font-mono text-[12.5px] text-muted-foreground">{card.summary}</span>
-              )}
-              <span className="flex h-8 shrink-0 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium">
-                {card.connected ? <Pencil className="size-3.5" /> : <Plus className="size-3.5" />}
-                {card.connected ? <Trans>Update</Trans> : <Trans>Add key</Trans>}
-              </span>
-            </button>
-          )
-        })}
+
+      <div key={variant} className={cn("transition-opacity duration-300 starting:opacity-0 motion-reduce:transition-none", EASE)}>
+        {variant === "conductor" ? <ProvidersConductor /> : <ProvidersT3 />}
       </div>
+
       <div className="mt-3.5 flex items-center gap-2 text-xs text-muted-foreground">
         <ShieldCheck className="size-3.5 text-emerald-600" />
         <Trans>Keys are kept in this machine's local storage. Custom uses any OpenAI-compatible endpoint; Azure powers Speech TTS.</Trans>
       </div>
-      <ProviderKeyDialog
-        card={cards.find((card) => card.id === editing) ?? null}
-        onClose={() => setEditing(null)}
-      />
     </>
   )
 }

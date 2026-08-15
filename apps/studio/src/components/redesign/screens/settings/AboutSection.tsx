@@ -54,9 +54,23 @@ export function AboutSection() {
               )}
             </div>
           </div>
-          <Button variant="outline" size="sm" className="ml-auto shrink-0" onClick={openUpdateDialog}>
-            <RotateCcw className="size-3.5" />
-            <Trans>Check for updates</Trans>
+          <Button
+            variant={hasPendingUpdate ? "default" : "outline"}
+            size="sm"
+            className="ml-auto shrink-0 transition-transform duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] motion-safe:active:scale-[0.97]"
+            onClick={openUpdateDialog}
+          >
+            {hasPendingUpdate ? (
+              <>
+                <Download className="size-3.5" />
+                <Trans>Install update</Trans>
+              </>
+            ) : (
+              <>
+                <RotateCcw className="size-3.5" />
+                <Trans>Check for updates</Trans>
+              </>
+            )}
           </Button>
         </div>
       </div>

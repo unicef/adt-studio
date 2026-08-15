@@ -22,6 +22,9 @@ export interface ProviderMeta {
   hint?: MessageDescriptor
   icon: LucideIcon
   tile: string
+  accent: string
+  models: string[]
+  docsUrl?: string
 }
 
 export interface ProviderCard extends ProviderMeta {
@@ -39,6 +42,9 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     desc: msg`GPT models for pipeline tasks.`,
     icon: Sparkles,
     tile: "bg-emerald-50 text-emerald-600",
+    accent: "emerald",
+    models: ["GPT-4o", "GPT-4o mini", "o3", "GPT Image", "TTS"],
+    docsUrl: "https://platform.openai.com/api-keys",
   },
   anthropic: {
     name: "Anthropic",
@@ -46,6 +52,9 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     hint: msg`Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)`,
     icon: Sparkles,
     tile: "bg-amber-50 text-amber-600",
+    accent: "amber",
+    models: ["Claude Opus", "Claude Sonnet", "Claude Haiku"],
+    docsUrl: "https://console.anthropic.com/settings/keys",
   },
   google: {
     name: "Google AI",
@@ -53,6 +62,9 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     hint: msg`Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)`,
     icon: Sparkles,
     tile: "bg-blue-50 text-blue-600",
+    accent: "blue",
+    models: ["Gemini 2.5 Pro", "Gemini Flash", "Gemini TTS"],
+    docsUrl: "https://aistudio.google.com/app/apikey",
   },
   custom: {
     name: "Custom (OpenAI-compatible)",
@@ -60,6 +72,8 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     hint: msg`Any OpenAI-compatible endpoint (Ollama, vLLM, Together AI, etc.). Use the "custom:" prefix when selecting models, e.g. custom:llama3.`,
     icon: Server,
     tile: "bg-muted text-muted-foreground",
+    accent: "slate",
+    models: ["Ollama", "vLLM", "Together AI"],
   },
   azure: {
     name: "Azure Speech",
@@ -67,6 +81,9 @@ export const PROVIDER_META: Record<ProviderId, ProviderMeta> = {
     hint: msg`Used for Azure Speech TTS provider.`,
     icon: AudioLines,
     tile: "bg-indigo-50 text-indigo-600",
+    accent: "indigo",
+    models: ["Neural TTS"],
+    docsUrl: "https://portal.azure.com/",
   },
 }
 
