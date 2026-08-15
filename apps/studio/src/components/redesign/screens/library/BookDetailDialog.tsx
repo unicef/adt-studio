@@ -70,13 +70,13 @@ function BookDetail({
 
   return (
     <>
-      <div className="relative h-[184px] shrink-0 overflow-hidden">
+      <div className="relative z-10 h-[212px] shrink-0 overflow-hidden shadow-[0_14px_30px_-14px_rgba(0,0,0,0.5)]">
         {book.cover.src ? (
-          <img src={book.cover.src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl brightness-[0.55]" />
+          <img src={book.cover.src} alt="" aria-hidden className="absolute inset-0 h-full w-full scale-125 object-cover blur-xl brightness-[0.72]" />
         ) : (
           <div aria-hidden className="absolute inset-0" style={{ background: book.cover.bg }} />
         )}
-        <div aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,.4), rgba(0,0,0,.72))" }} />
+        <div aria-hidden className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,.14) 0%, rgba(0,0,0,.34) 48%, rgba(0,0,0,.74) 100%)" }} />
 
         <DialogPrimitive.Close asChild>
           <button type="button" className={cn("absolute right-3.5 top-3.5 z-20 grid size-8 place-items-center rounded-full bg-white/15 text-white transition-colors hover:bg-white/25", PRESS)}>
@@ -88,7 +88,7 @@ function BookDetail({
         </DialogPrimitive.Close>
 
         <div className="relative flex h-full items-end gap-4 p-6 text-white">
-          <div className="h-[134px] w-[96px] shrink-0 overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/25">
+          <div className="h-[150px] w-[106px] shrink-0 overflow-hidden rounded-xl shadow-2xl ring-1 ring-white/25">
             <BookCover title={book.displayTitle} author={book.authors} cover={book.cover} fit="cover" />
           </div>
           <div className="min-w-0 flex-1 pb-1 pr-8">
