@@ -5,7 +5,8 @@ import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { NO_DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
 import { AiEditPanel } from "./AiEditPanel"
-import { PluginDock } from "./PluginDock"
+import { DockHandle } from "@/components/redesign/screens/pipeline/chrome/DockHandle"
+import { PluginDockPills as PluginDock } from "./PluginDockPills"
 import { SideRail } from "@/components/redesign/screens/pipeline/rail/SideRail"
 import { tint, type DockEntry } from "@/components/redesign/screens/pipeline/shared/plugins"
 import type { DockItem, PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
@@ -48,7 +49,7 @@ export function PluginWorkspace({
   onOpenSettings,
 }: PluginWorkspaceProps) {
   const { t } = useLingui()
-    const [dockMinimized, setDockMinimized] = useDockMinimized()
+  const [dockMinimized, setDockMinimized] = useDockMinimized()
   const name = getStageLabelI18n(plugin.slug)
   // No step reports its own selection upward, so the AI rail falls back to the
   // first page — the same fallback the pipeline screen uses.
@@ -113,8 +114,7 @@ export function PluginWorkspace({
       <div className="relative flex min-h-0 flex-1">
         <SideRail widthClass="w-56">
           <aside
-            className="flex h-full w-56 shrink-0 flex-col gap-2.5 border-r bg-card p-3"
-            style={{ backgroundColor: tint(plugin.hex, 0.03) }}
+            className="flex h-full w-56 shrink-0 flex-col gap-2.5 border-r p-3"
           >
             {rail}
           </aside>
@@ -141,6 +141,7 @@ export function PluginWorkspace({
         minimized={dockMinimized}
         onMinimize={() => setDockMinimized(true)}
       />
+      <DockHandle visible={dockMinimized} onShow={() => setDockMinimized(false)} />
     </div>
   )
 }

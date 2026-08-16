@@ -10,8 +10,10 @@ import { NO_DRAG_REGION } from "@/constants"
 import { SettingsDirtyTabsProvider } from "@/hooks/use-settings-dirty-tabs"
 import { SettingsRemountProvider } from "@/hooks/use-settings-remount"
 import { SettingsReturnProvider } from "@/hooks/use-settings-return"
-import { PluginDock } from "@/components/redesign/screens/pipeline/plugins/PluginDock"
+import { DockHandle } from "@/components/redesign/screens/pipeline/chrome/DockHandle"
+import { PluginDockPills as PluginDock } from "@/components/redesign/screens/pipeline/plugins/PluginDockPills"
 import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
+import { useDockMinimized } from "@/components/redesign/screens/pipeline/shared/workspacePrefs"
 import type { DockItem } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
 import { SettingsTabsRail } from "./SettingsTabsRail"
 import { StepSettingsBody } from "./StepSettingsBody"
@@ -53,6 +55,7 @@ function StepSettingsFrame({
 }: StepSettingsScreenProps) {
   const { t, i18n } = useLingui()
   const [discardNonce, setDiscardNonce] = useState(0)
+  const [dockMinimized, setDockMinimized] = useDockMinimized()
 
   const stage = STAGES.find((s) => s.slug === slug)
   const hex = stage?.hex ?? "#4b5563"
@@ -127,7 +130,10 @@ function StepSettingsFrame({
         plugins={plugins}
         activeSlug={slug}
         onOpenPlugin={onOpenPlugin}
+        minimized={dockMinimized}
+        onMinimize={() => setDockMinimized(true)}
       />
+      <DockHandle visible={dockMinimized} onShow={() => setDockMinimized(false)} />
     </div>
   )
 }
