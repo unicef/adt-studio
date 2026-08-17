@@ -146,21 +146,11 @@ export function ProviderTile({ id, className }: { id: string; className?: string
   const Icon = brand.icon
   return (
     <span className={cn("grid shrink-0 place-items-center rounded-xl", brand.tile, brand.glyph, className)}>
-      {brand.logo ? (
+      {brand.logoSvg ? (
         <span
           aria-hidden
-          className="size-[58%]"
-          style={{
-            backgroundColor: "currentColor",
-            WebkitMaskImage: `url(${brand.logo})`,
-            maskImage: `url(${brand.logo})`,
-            WebkitMaskRepeat: "no-repeat",
-            maskRepeat: "no-repeat",
-            WebkitMaskSize: "contain",
-            maskSize: "contain",
-            WebkitMaskPosition: "center",
-            maskPosition: "center",
-          }}
+          className="grid size-[56%] place-items-center [&>svg]:size-full [&>svg]:fill-current"
+          dangerouslySetInnerHTML={{ __html: brand.logoSvg }}
         />
       ) : Icon ? (
         <Icon className="size-[52%]" />
