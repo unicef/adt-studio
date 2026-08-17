@@ -25,7 +25,7 @@ import { toast } from "@/components/ui/sonner"
 import type { AiModality, LocalizedText, ProviderDescriptor, ProviderHealthCode, ProviderHealthResponse } from "./contract"
 import { PROVIDER_CARDS, PROVIDER_DESCRIPTORS } from "./data"
 import { PROVIDER_BRAND } from "./providerLogos"
-import { authKind, mask, requiredFieldsFilled, useProviderHealthMock, type ProvidersV2 } from "./useProvidersV2"
+import { authKind, requiredFieldsFilled, useProviderHealthMock, type ProvidersV2 } from "./useProvidersV2"
 
 export const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
 
@@ -400,14 +400,6 @@ export function SaveRow({ draft }: { draft: Draft }) {
   )
 }
 
-export function MaskedSummary({ draft }: { draft: Draft }): ReactNode {
-  const secret = draft.descriptor.manifest.credentialFields.find((f) => f.kind === "secret")
-  const url = draft.descriptor.manifest.credentialFields.find((f) => f.kind === "url")
-  if (url && (draft.values[url.key] ?? "").length > 0) return <span className="font-mono">{draft.values[url.key]}</span>
-  if (secret && (draft.values[secret.key] ?? "").length > 0) return <span className="font-mono">{mask(draft.values[secret.key])}</span>
-  return null
-}
-
 export function descriptorById(id: string): ProviderDescriptor {
   return PROVIDER_DESCRIPTORS.find((d) => d.manifest.id === id)!
 }
@@ -476,7 +468,7 @@ export function useCardHealth(cardKey: string, store: ProvidersV2, refreshToken 
     enabled = true
   } else if (apiConfigured) {
     fallbackConfigured = true
-  } else if (card.cliProviderId) {
+  } else if (card.cliProviderId && isProviderAvailable(card.cliProviderId)) {
     probeId = card.cliProviderId
     enabled = true
   }
@@ -555,7 +547,7 @@ export function SoonPin({ className }: { className?: string }) {
  * Google, Custom, Azure, Gemini, ElevenLabs). Only the new CLI backends (codex, claude-agent)
  * and local ollama arrive with `feature/ai-agnostic`; those are shown but marked "Coming soon".
  */
-export const AVAILABLE_PROVIDERS = new Set(["openai", "anthropic", "google", "custom", "azure", "gemini", "elevenlabs"])
+const AVAILABLE_PROVIDERS = new Set(["openai", "anthropic", "google", "custom", "azure", "gemini", "elevenlabs"])
 
 export function isProviderAvailable(providerId: string): boolean {
   return AVAILABLE_PROVIDERS.has(providerId)
@@ -586,4 +578,4 @@ export function ComingBanner({ children }: { children?: ReactNode }) {
   )
 }
 
-export { authKind, requiredFieldsFilled }
+export { authKind }

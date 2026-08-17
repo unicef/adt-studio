@@ -27,7 +27,7 @@ function Row({ cardKey, open, onToggle, store, refreshToken }: { cardKey: string
           </span>
         </div>
 
-        <button type="button" onClick={onToggle} aria-expanded={open} className="min-w-0 flex-1 text-left">
+        <button type="button" onClick={onToggle} aria-expanded={open} aria-controls={`prov-panel-${cardKey}`} className="min-w-0 flex-1 text-left">
           <span className="flex items-center gap-2">
             <span className="truncate text-[14px] font-semibold leading-tight">{card.displayName}</span>
             {available ? (
@@ -59,10 +59,20 @@ function Row({ cardKey, open, onToggle, store, refreshToken }: { cardKey: string
           <ChevronDown className={cn("size-4 transition-transform duration-300", EASE, open && "rotate-180")} />
         </button>
 
-        <Switch checked={available} disabled aria-label={t`Enable provider`} className="opacity-80" />
+        <Switch
+          checked={available}
+          disabled
+          aria-label={available ? t`Provider available` : t`Provider coming soon`}
+          className="opacity-80"
+        />
       </div>
 
-      <div className={cn("grid transition-[grid-template-rows] duration-300 motion-reduce:transition-none", EASE)} style={{ gridTemplateRows: open ? "1fr" : "0fr" }}>
+      <div
+        id={`prov-panel-${cardKey}`}
+        role="region"
+        className={cn("grid transition-[grid-template-rows] duration-300 motion-reduce:transition-none", EASE)}
+        style={{ gridTemplateRows: open ? "1fr" : "0fr" }}
+      >
         <div className="overflow-hidden">
           <div className={cn("border-t bg-muted/20 px-4 py-4 transition-opacity duration-300 motion-reduce:transition-none", open ? "opacity-100" : "opacity-0")}>
             <ProviderCard cardKey={cardKey} store={store} active={open} />

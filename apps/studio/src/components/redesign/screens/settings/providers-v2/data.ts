@@ -1,10 +1,12 @@
 /* eslint-disable lingui/no-unlocalized-strings -- Manifest copy mirrors server-localized provider data (LocalizedText from /providers), not app UI strings. */
+import { msg } from "@lingui/core/macro"
+import type { MessageDescriptor } from "@lingui/core"
 import type { AiModality, ProviderDescriptor } from "./contract"
 
 export interface RoleGroup {
   key: string
-  label: string
-  hint: string
+  label: MessageDescriptor
+  hint: MessageDescriptor
   /** Card keys (see PROVIDER_CARDS), not raw provider ids. */
   cards: string[]
 }
@@ -12,14 +14,14 @@ export interface RoleGroup {
 export const ROLE_GROUPS: RoleGroup[] = [
   {
     key: "reasoning",
-    label: "Models & reasoning",
-    hint: "Which engine runs the extraction and generation pipeline.",
+    label: msg`Models & reasoning`,
+    hint: msg`Which engine runs the extraction and generation pipeline.`,
     cards: ["openai", "anthropic", "google", "custom", "ollama"],
   },
   {
     key: "speech",
-    label: "Speech & voices",
-    hint: "Text-to-speech engines that narrate the finished book.",
+    label: msg`Speech & voices`,
+    hint: msg`Text-to-speech engines that narrate the finished book.`,
     cards: ["azure", "elevenlabs", "gemini"],
   },
 ]
