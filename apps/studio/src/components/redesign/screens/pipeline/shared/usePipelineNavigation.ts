@@ -28,6 +28,8 @@ export interface PipelineNavigation {
   /** Opens the preview straight on a bundle page the caller already resolved. */
   openPreviewHref: (href: string) => void
   closePreview: () => void
+  openBookInfo: () => void
+  closeBookInfo: () => void
 }
 
 export function usePipelineNavigation({
@@ -116,6 +118,21 @@ export function usePipelineNavigation({
     navigate({ to: "/redesign/pipeline/$label", params: { label }, search: { ...page } })
   }
 
+  const openBookInfo = () => {
+    navigate({
+      to: "/redesign/pipeline/$label",
+      params: { label },
+      search: { ...(stepSlug ? { step: stepSlug } : {}), info: true, ...page },
+    })
+  }
+  const closeBookInfo = () => {
+    navigate({
+      to: "/redesign/pipeline/$label",
+      params: { label },
+      search: { ...(stepSlug ? { step: stepSlug } : {}), ...page },
+    })
+  }
+
   return {
     openStep,
     closeStep,
@@ -126,5 +143,7 @@ export function usePipelineNavigation({
     openPreview,
     openPreviewHref,
     closePreview,
+    openBookInfo,
+    closeBookInfo,
   }
 }

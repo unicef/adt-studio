@@ -17,6 +17,8 @@ export interface PipelineTopBarProps {
   onPreview?: () => void
   /** Nothing is rendered yet, so there is no page to preview. */
   previewDisabled?: boolean
+  /** Opens the book's cover and metadata. */
+  onOpenBookInfo: () => void
 }
 export function PipelineTopBar({
   label,
@@ -25,6 +27,7 @@ export function PipelineTopBar({
   status,
   onPreview,
   previewDisabled,
+  onOpenBookInfo,
 }: PipelineTopBarProps) {
   const { t } = useLingui()
 
@@ -81,8 +84,9 @@ export function PipelineTopBar({
         <PipelineRunIndicator />
         <button
           type="button"
-          title={t`Book settings`}
-          aria-label={t`Book settings`}
+          onClick={onOpenBookInfo}
+          title={t`Book information`}
+          aria-label={t`Book information`}
           className="grid size-8 place-items-center rounded-lg border text-foreground transition-colors hover:bg-muted"
         >
           <Settings className="size-3.5" />

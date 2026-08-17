@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react/macro"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { ScreenFallback } from "@/components/redesign/shared/ui/ScreenFallback"
 import { PipelineWorkspace } from "./PipelineWorkspace"
+import { BookInfoScreen } from "./pipeline/info/BookInfoScreen"
 import { PreviewScreen } from "./pipeline/preview/PreviewScreen"
 import { StepSettingsScreen } from "./pipeline/settings/StepSettingsScreen"
 import { defaultStepSettingsTab } from "./pipeline/settings/slugs"
@@ -26,6 +27,7 @@ export function PipelineScreen() {
     preview,
     previewSection,
     previewHref,
+    info,
   } = route.useSearch()
   const { i18n } = useLingui()
 
@@ -49,10 +51,16 @@ export function PipelineScreen() {
     openPreview,
     openPreviewHref,
     closePreview,
+    openBookInfo,
+    closeBookInfo,
   } = usePipelineNavigation({ label, stepSlug, settingsSlug, pageId, i18n })
 
   if (state.isLoading || state.error || !state.book) {
     return <ScreenFallback error={state.error} />
+  }
+
+  if (info) {
+    return <BookInfoScreen label={label} onBack={closeBookInfo} />
   }
 
   if (preview) {
@@ -127,6 +135,7 @@ export function PipelineScreen() {
       onOpenStep={openStep}
       onOpenSettings={openSettings}
       onOpenPreview={openPreview}
+      onOpenBookInfo={openBookInfo}
     />
   )
 }

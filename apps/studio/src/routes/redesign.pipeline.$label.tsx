@@ -20,12 +20,14 @@ export interface PipelineSearch {
   /** Bundle-relative page to open, when the caller already knows the file
    *  (validation findings link straight to the page they were found on). */
   previewHref?: string
+  /** The book's cover and metadata, opened from the top bar. */
+  info?: boolean
 }
 
 export const Route = createFileRoute("/redesign/pipeline/$label")({
   component: PipelineRoute,
   validateSearch: (search: Record<string, unknown>): PipelineSearch => {
-    const { step, settings, tab, page, preview, previewSection, previewHref } = search
+    const { step, settings, tab, page, preview, previewSection, previewHref, info } = search
     return {
       ...(typeof step === "string" && isDockSlug(step) ? { step } : {}),
       ...(typeof settings === "string" && isStepSettingsSlug(settings) ? { settings } : {}),
@@ -34,6 +36,7 @@ export const Route = createFileRoute("/redesign/pipeline/$label")({
       ...(preview === true || preview === "true" ? { preview: true } : {}),
       ...(typeof previewSection === "string" ? { previewSection } : {}),
       ...(typeof previewHref === "string" && previewHref ? { previewHref } : {}),
+      ...(info === true || info === "true" ? { info: true } : {}),
     }
   },
 })

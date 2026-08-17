@@ -2,7 +2,9 @@ import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { PluginEmptyState, type Prerequisite, type ScopeKey } from "@/components/redesign/screens/pipeline/plugins/PluginEmptyState"
+import { PreRunChecklist } from "@/components/redesign/screens/pipeline/plugins/PreRunChecklist"
 import { PluginRailEmpty } from "@/components/redesign/screens/pipeline/plugins/PluginRailEmpty"
+import { StepLanding, hasStepLanding } from "./StepLanding"
 import { PluginWorkspace } from "@/components/redesign/screens/pipeline/plugins/PluginWorkspace"
 import { StageRunningPanel } from "@/components/redesign/screens/pipeline/runs/StageRunningPanel"
 import { useOptionalStageActivity, useRunActivity, type RunStageActivity } from "@/components/redesign/screens/pipeline/runs/useRunActivity"
@@ -116,19 +118,69 @@ export function StepEmpty({
     )
   }
 
+  const checklist =
+    prerequisites ?? [
+      ...(prereq.upstream
+        ? [
+            {
+              key: "upstream",
+              met: prereq.isMet,
+              label: prereq.upstreamInFlight
+                ? t`${prereq.upstreamLabel} in progress — this stage waits its turn`
+                : t`${prereq.upstreamLabel} finished`,
+            },
+          ]
+        : []),
+      {
+        key: "sections",
+        met: frame.hasSections,
+        label: t`Sections generated — ${frame.sectionCount} sections across ${pages.length} pages`,
+      },
+      ...(stageRun.isRunnable
+        ? [
+            {
+              key: "api-key",
+              met: stageRun.hasApiKey,
+              label: t`API key set in Book settings`,
+            },
+          ]
+        : []),
+    ]
+
+  const rail = (
+    <PluginRailEmpty
+      hex={plugin.hex}
+      title={getStageLabelI18n(plugin.slug)}
+      pageCount={pages.length}
+      sectionCount={frame.sectionCount}
+    />
+  )
+
+  // The stage's own landing owns its run gating and the settings that drive its
+  // preview, so it replaces the generic empty state wherever one exists.
+  if (hasStepLanding(plugin.slug)) {
+    return (
+      <StepShell
+        {...props}
+        chips={[t`Never run`, t`${pages.length} pages ready`]}
+        canApply={false}
+        rail={rail}
+      >
+        <StepLanding
+          label={label}
+          slug={plugin.slug}
+          beforeRun={<PreRunChecklist items={checklist} />}
+        />
+      </StepShell>
+    )
+  }
+
   return (
     <StepShell
       {...props}
       chips={[t`Never run`, t`${pages.length} pages ready`]}
       canApply={false}
-      rail={
-        <PluginRailEmpty
-          hex={plugin.hex}
-          title={getStageLabelI18n(plugin.slug)}
-          pageCount={pages.length}
-          sectionCount={frame.sectionCount}
-        />
-      }
+      rail={rail}
     >
       <PluginEmptyState
         plugin={plugin}
@@ -139,35 +191,7 @@ export function StepEmpty({
         onImport={onImport}
         canRun={effectiveCanRun}
         runDisabledReason={effectiveReason}
-        prerequisites={
-          prerequisites ?? [
-            ...(prereq.upstream
-              ? [
-                  {
-                    key: "upstream",
-                    met: prereq.isMet,
-                    label: prereq.upstreamInFlight
-                      ? t`${prereq.upstreamLabel} in progress — this stage waits its turn`
-                      : t`${prereq.upstreamLabel} finished`,
-                  },
-                ]
-              : []),
-            {
-              key: "sections",
-              met: frame.hasSections,
-              label: t`Sections generated — ${frame.sectionCount} sections across ${pages.length} pages`,
-            },
-            ...(stageRun.isRunnable
-              ? [
-                  {
-                    key: "api-key",
-                    met: stageRun.hasApiKey,
-                    label: t`API key set in Book settings`,
-                  },
-                ]
-              : []),
-          ]
-        }
+        prerequisites={checklist}
       />
     </StepShell>
   )

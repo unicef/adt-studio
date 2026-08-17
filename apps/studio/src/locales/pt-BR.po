@@ -2099,8 +2099,8 @@ msgstr "Imagens do livro"
 msgid "Book info"
 msgstr "Informações do livro"
 
-#~ msgid "Book information"
-#~ msgstr "Informações do livro"
+msgid "Book information"
+msgstr "Informações do livro"
 
 msgid "Book Language"
 msgstr "Idioma do livro"
@@ -2141,8 +2141,8 @@ msgstr "Pré-visualização do livro"
 msgid "Book Preview"
 msgstr "Pré-visualização do Livro"
 
-msgid "Book settings"
-msgstr "Configurações do livro"
+#~ msgid "Book settings"
+#~ msgstr "Configurações do livro"
 
 msgid "Book setup"
 msgstr "Configuração do livro"
@@ -2647,8 +2647,8 @@ msgstr "Close"
 msgid "Close {name} settings"
 msgstr "Fechar as configurações de {name}"
 
-#~ msgid "Close book information"
-#~ msgstr "Fechar informações do livro"
+msgid "Close book information"
+msgstr "Fechar informações do livro"
 
 msgid "Close edit panel"
 msgstr "Fechar painel de edição"
@@ -3051,8 +3051,8 @@ msgstr "Criar arquivo de prompt a partir do template"
 msgid "Create session"
 msgstr "Create session"
 
-#~ msgid "Created"
-#~ msgstr "Criado em"
+msgid "Created"
+msgstr "Criado em"
 
 msgid "Created {created} prompt files for {normalizedTargetModel}."
 msgstr "Criados {created} arquivos de prompt para {normalizedTargetModel}."
@@ -5008,8 +5008,8 @@ msgstr "Entendo que a parte foi processada com prompts/modelos diferentes e quer
 msgid "I'll start later"
 msgstr "Começarei mais tarde"
 
-#~ msgid "Identifier"
-#~ msgstr "Identificador"
+msgid "Identifier"
+msgstr "Identificador"
 
 msgid "Identify the key idea"
 msgstr "Identificar a ideia principal"

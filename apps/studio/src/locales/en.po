@@ -2100,8 +2100,8 @@ msgstr "Book images"
 msgid "Book info"
 msgstr "Book info"
 
-#~ msgid "Book information"
-#~ msgstr "Book information"
+msgid "Book information"
+msgstr "Book information"
 
 msgid "Book Language"
 msgstr "Book Language"
@@ -2142,8 +2142,8 @@ msgstr "Book preview"
 msgid "Book Preview"
 msgstr "Book Preview"
 
-msgid "Book settings"
-msgstr "Book settings"
+#~ msgid "Book settings"
+#~ msgstr "Book settings"
 
 msgid "Book setup"
 msgstr "Book setup"
@@ -2648,8 +2648,8 @@ msgstr "Close"
 msgid "Close {name} settings"
 msgstr "Close {name} settings"
 
-#~ msgid "Close book information"
-#~ msgstr "Close book information"
+msgid "Close book information"
+msgstr "Close book information"
 
 msgid "Close edit panel"
 msgstr "Close edit panel"
@@ -3052,8 +3052,8 @@ msgstr "Create prompt file from template"
 msgid "Create session"
 msgstr "Create session"
 
-#~ msgid "Created"
-#~ msgstr "Created"
+msgid "Created"
+msgstr "Created"
 
 msgid "Created {created} prompt files for {normalizedTargetModel}."
 msgstr "Created {created} prompt files for {normalizedTargetModel}."
@@ -5009,8 +5009,8 @@ msgstr "I understand the part was processed with different prompts/models and wa
 msgid "I'll start later"
 msgstr "I'll start later"
 
-#~ msgid "Identifier"
-#~ msgstr "Identifier"
+msgid "Identifier"
+msgstr "Identifier"
 
 msgid "Identify the key idea"
 msgstr "Identify the key idea"

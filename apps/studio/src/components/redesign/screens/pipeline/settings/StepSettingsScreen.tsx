@@ -7,6 +7,7 @@ import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { TitleBarControls } from "@/components/title-bar/title-bar-controls"
 import { NO_DRAG_REGION } from "@/constants"
+import { useBookRun } from "@/hooks/use-book-run"
 import { SettingsDirtyTabsProvider } from "@/hooks/use-settings-dirty-tabs"
 import { SettingsRemountProvider } from "@/hooks/use-settings-remount"
 import { SettingsReturnProvider } from "@/hooks/use-settings-return"
@@ -15,6 +16,7 @@ import { PluginDockPills as PluginDock } from "@/components/redesign/screens/pip
 import { tint } from "@/components/redesign/screens/pipeline/shared/plugins"
 import { useDockMinimized } from "@/components/redesign/screens/pipeline/shared/workspacePrefs"
 import type { DockItem } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
+import { hasStepLanding } from "@/components/redesign/screens/pipeline/steps/shared/StepLanding"
 import { SettingsTabsRail } from "./SettingsTabsRail"
 import { StepSettingsBody } from "./StepSettingsBody"
 import { stepSettingsTabs, type StepSettingsSlug } from "./slugs"
@@ -56,12 +58,19 @@ function StepSettingsFrame({
   const { t, i18n } = useLingui()
   const [discardNonce, setDiscardNonce] = useState(0)
   const [dockMinimized, setDockMinimized] = useDockMinimized()
+  const { stageState } = useBookRun()
+  const runState = stageState(slug)
+  const landingReachable =
+    runState === "done" || runState === "running" || runState === "queued"
 
   const stage = STAGES.find((s) => s.slug === slug)
   const hex = stage?.hex ?? "#4b5563"
   const StageIcon = stage?.icon ?? Settings
   const name = getStageLabelI18n(slug)
-  const tabs = stepSettingsTabs(slug, i18n)
+  // Overview is the stage's landing page. It only earns a tab once the stage has
+  // output to re-run against — before that the step view itself is the landing.
+  const showOverview = hasStepLanding(slug) && landingReachable
+  const tabs = stepSettingsTabs(slug, i18n, showOverview)
   const activeTab = tabs.some((entry) => entry.key === tab) ? tab : (tabs[0]?.key ?? "general")
 
   return (
@@ -101,7 +110,7 @@ function StepSettingsFrame({
           </button>
         </div>
 
-        <TitleBarControls className="-my-px -mr-3.5 h-12.5" />
+        <TitleBarControls darkMode className="-my-px -mr-3.5 h-12.5" />
       </header>
 
       <div className="relative flex min-h-0 flex-1">

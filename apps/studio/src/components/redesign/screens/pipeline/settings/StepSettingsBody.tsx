@@ -10,6 +10,8 @@ import { SpeechSettings } from "@/components/pipeline/stages/speech/SpeechSettin
 import { StoryboardSettings } from "@/components/pipeline/stages/storyboard/StoryboardSettings"
 import { TocSettings } from "@/components/pipeline/stages/toc/TocSettings"
 import { ValidationSettings } from "@/components/pipeline/stages/ValidationSettings"
+import { StepLanding, hasStepLanding } from "@/components/redesign/screens/pipeline/steps/shared/StepLanding"
+import type { DockSlug } from "@/components/redesign/screens/pipeline/shared/plugins"
 import type { StepSettingsSlug } from "./slugs"
 
 export interface StepSettingsBodyProps {
@@ -19,6 +21,12 @@ export interface StepSettingsBodyProps {
 }
 
 export function StepSettingsBody({ label, slug, tab }: StepSettingsBodyProps) {
+  // Overview is the stage's landing page, the same surface the step view shows
+  // before the stage has ever run.
+  if (tab === "overview" && hasStepLanding(slug)) {
+    return <StepLanding label={label} slug={slug as DockSlug} />
+  }
+
   switch (slug) {
     case "extract":
       return <ExtractSettings bookLabel={label} tab={tab} />

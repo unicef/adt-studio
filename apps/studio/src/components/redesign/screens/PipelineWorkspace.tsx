@@ -43,6 +43,8 @@ export interface PipelineWorkspaceProps {
   onOpenSettings: (slug: string) => void
   /** Opens the packaged book, landing on the section the canvas is showing. */
   onOpenPreview: (sectionId: string | null) => void
+  /** Opens the book's cover and metadata. */
+  onOpenBookInfo: () => void
 }
 
 export function PipelineWorkspace({
@@ -60,6 +62,7 @@ export function PipelineWorkspace({
   onOpenStep,
   onOpenSettings,
   onOpenPreview,
+  onOpenBookInfo,
 }: PipelineWorkspaceProps) {
   const { t } = useLingui()
   const [viewport, setViewport] = useCanvasViewport()
@@ -144,6 +147,7 @@ export function PipelineWorkspace({
           )
         }
         previewDisabled={empty}
+        onOpenBookInfo={onOpenBookInfo}
       />
 
       <div className="relative flex min-h-0 flex-1">

@@ -28,10 +28,15 @@ export interface StepSettingsTab {
   label: string
 }
 
-export function stepSettingsTabs(slug: StepSettingsSlug, i18n: I18n): StepSettingsTab[] {
-  return getSettingsTabs(slug, i18n, false) ?? []
+export function stepSettingsTabs(
+  slug: StepSettingsSlug,
+  i18n: I18n,
+  showOverview = false,
+): StepSettingsTab[] {
+  return getSettingsTabs(slug, i18n, showOverview) ?? []
 }
 
+/** Opening settings never lands on Overview — the gear means "configure". */
 export function defaultStepSettingsTab(slug: StepSettingsSlug, i18n: I18n): string {
   return stepSettingsTabs(slug, i18n)[0]?.key ?? "general"
 }

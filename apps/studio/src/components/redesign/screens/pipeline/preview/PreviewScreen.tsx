@@ -86,7 +86,7 @@ export function PreviewScreen({ label, targetSectionId, targetHref, onBack }: Pr
           </button>
         </div>
 
-        <TitleBarControls className="-my-px -mr-3.5 h-12.5" />
+        <TitleBarControls darkMode className="-my-px -mr-3.5 h-12.5" />
       </header>
 
       <div className="relative flex min-h-0 flex-1">

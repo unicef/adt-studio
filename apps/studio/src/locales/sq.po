@@ -2101,8 +2101,8 @@ msgstr "Figurat e librit"
 msgid "Book info"
 msgstr "Info libri"
 
-#~ msgid "Book information"
-#~ msgstr "Informacione për librin"
+msgid "Book information"
+msgstr "Informacione për librin"
 
 msgid "Book Language"
 msgstr "Gjuha e librit"
@@ -2143,8 +2143,8 @@ msgstr "Pamje paraprake e librit"
 msgid "Book Preview"
 msgstr "Pamje paraprake e librit"
 
-msgid "Book settings"
-msgstr "Cilësimet e librit"
+#~ msgid "Book settings"
+#~ msgstr "Cilësimet e librit"
 
 msgid "Book setup"
 msgstr "Konfigurimi i librit"
@@ -2649,8 +2649,8 @@ msgstr "Mbyll"
 msgid "Close {name} settings"
 msgstr "Mbyll cilësimet e {name}"
 
-#~ msgid "Close book information"
-#~ msgstr "Mbyll informacionet e librit"
+msgid "Close book information"
+msgstr "Mbyll informacionet e librit"
 
 msgid "Close edit panel"
 msgstr "Mbyll panelin e redaktimit"
@@ -3053,8 +3053,8 @@ msgstr "Krijo skedar prompti nga shablloni"
 msgid "Create session"
 msgstr "Krijo sesion"
 
-#~ msgid "Created"
-#~ msgstr "Krijuar më"
+msgid "Created"
+msgstr "Krijuar më"
 
 msgid "Created {created} prompt files for {normalizedTargetModel}."
 msgstr "U krijuan {created} skedarë prompti për {normalizedTargetModel}."
@@ -5010,8 +5010,8 @@ msgstr "E kuptoj se pjesa u përpunua me prompte/modele të ndryshme dhe dua ta 
 msgid "I'll start later"
 msgstr "Do të filloj më vonë"
 
-#~ msgid "Identifier"
-#~ msgstr "Identifikuesi"
+msgid "Identifier"
+msgstr "Identifikuesi"
 
 msgid "Identify the key idea"
 msgstr "Identifiko idenë kryesore"

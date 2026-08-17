@@ -19,28 +19,28 @@ import {
 import type { DockItem } from "@/components/redesign/screens/pipeline/shared/usePipelineState";
 import type { PluginDockProps } from "./PluginDock";
 
-const BADGE =
-  "absolute right-0 top-0 grid size-3.5 place-items-center rounded-full border-2 border-card text-white";
+const badgeClassName =
+  "absolute right-0 -top-1 grid size-5 place-items-center rounded-full border-2 border-card text-white";
 
 function StateBadge({ state }: { state: DockItem["state"] }) {
   const { t } = useLingui();
   switch (state) {
     case "running":
       return (
-        <span className={cn(BADGE, "bg-sky-500")} title={t`Running`}>
-          <Loader2 className="size-1.5 animate-spin motion-reduce:animate-none" strokeWidth={5} />
+        <span className={cn(badgeClassName, "bg-sky-500")} title={t`Running`}>
+          <Loader2 className="size-3 animate-spin motion-reduce:animate-none" strokeWidth={3} />
         </span>
       );
     case "queued":
       return (
-        <span className={cn(BADGE, "bg-amber-500")} title={t`Queued`}>
-          <Clock className="size-1.5" strokeWidth={5} />
+        <span className={cn(badgeClassName, "bg-amber-500")} title={t`Queued`}>
+          <Clock className="size-3" strokeWidth={3} />
         </span>
       );
     case "error":
       return (
-        <span className={cn(BADGE, "bg-destructive")} title={t`Failed`}>
-          <TriangleAlert className="size-1.5" strokeWidth={5} />
+        <span className={cn(badgeClassName, "bg-destructive")} title={t`Failed`}>
+          <TriangleAlert className="size-3" strokeWidth={3} />
         </span>
       );
     default:
@@ -102,7 +102,7 @@ function DockPill({
         </span>
       )}
       {isDone && item.pending === 0 && (
-        <span className={cn(BADGE, "bg-emerald-500")}>
+        <span className={cn(badgeClassName, "bg-emerald-500")}>
           <Check className="size-1.5" strokeWidth={5} />
         </span>
       )}

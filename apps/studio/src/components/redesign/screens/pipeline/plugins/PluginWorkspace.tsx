@@ -11,6 +11,7 @@ import { SideRail } from "@/components/redesign/screens/pipeline/rail/SideRail"
 import { tint, type DockEntry } from "@/components/redesign/screens/pipeline/shared/plugins"
 import type { DockItem, PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
 import { useDockMinimized } from "../shared/workspacePrefs"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export interface PluginWorkspaceProps {
   label: string
@@ -32,12 +33,10 @@ export interface PluginWorkspaceProps {
   onOpenSettings?: () => void
 }
 
-/** Full-screen frame for a plugin's long editing session (design 4a). */
 export function PluginWorkspace({
   label,
   plugin,
   chips,
-  canApply,
   rail,
   children,
   pages,
@@ -51,8 +50,6 @@ export function PluginWorkspace({
   const { t } = useLingui()
   const [dockMinimized, setDockMinimized] = useDockMinimized()
   const name = getStageLabelI18n(plugin.slug)
-  // No step reports its own selection upward, so the AI rail falls back to the
-  // first page — the same fallback the pipeline screen uses.
   const chatPage = pages[0] ?? null
 
   return (
@@ -77,7 +74,7 @@ export function PluginWorkspace({
 
         <span className="text-sm font-semibold">{name}</span>
 
-        <div className="flex flex-1 items-center justify-center gap-1.5">
+        <div className="flex flex-1 items-center justify-center gap-1.5 drag-region">
           {chips.map((chip) => (
             <span key={chip} className="rounded-full bg-white/18 px-2.5 py-0.5 text-[11px]">
               {chip}
@@ -85,7 +82,7 @@ export function PluginWorkspace({
           ))}
         </div>
 
-        <div style={NO_DRAG_REGION} className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
           {onOpenSettings && (
             <button
               type="button"
@@ -99,10 +96,10 @@ export function PluginWorkspace({
           )}
         </div>
 
-        <TitleBarControls className="-my-px -mr-3.5 h-12.5" />
+        <TitleBarControls darkMode className="-my-px -mr-3.5 h-12.5" />
       </header>
 
-      <div className="relative flex min-h-0 flex-1">
+      <div className="relative flex min-h-0 flex-1 ">
         <SideRail widthClass="w-56">
           <aside
             className="flex h-full w-56 shrink-0 flex-col gap-2.5 border-r p-3"
@@ -111,9 +108,9 @@ export function PluginWorkspace({
           </aside>
         </SideRail>
 
-        <div className="flex min-w-0 flex-1 items-center justify-center overflow-auto px-6">
+        <ScrollArea className="flex min-w-0 flex-1 items-center justify-center px-6">
           {children}
-        </div>
+        </ScrollArea>
 
         <AiEditPanel
           label={label}
