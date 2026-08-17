@@ -53,7 +53,7 @@ function SaveButton({
     <Button
       type="button"
       size="sm"
-      className="h-9 shrink-0 transition-transform duration-150 ease-out motion-safe:active:scale-[0.97]"
+      className="h-9 shrink-0"
       disabled={disabled}
       onClick={onClick}
     >
@@ -118,7 +118,7 @@ function SpecializedCard({
         prefixProvider={prefixProvider}
       />
       <div className="mt-4 border-t pt-3.5">
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        <div className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           <Plural value={steps.length} one="Used by # task" other="Used by # tasks" />
         </div>
         <TaskChips steps={steps} />
@@ -218,7 +218,7 @@ export function ModelsSection() {
         )}
 
         <div className="border-t bg-muted/30 px-[18px] py-4">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
             <Plural
               value={llmSteps.length}
               one="# task inherits this model"

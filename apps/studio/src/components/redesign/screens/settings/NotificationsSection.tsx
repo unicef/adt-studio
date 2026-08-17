@@ -250,7 +250,7 @@ export function NotificationsSection() {
           <Button
             size="sm"
             onClick={sendTestToast}
-            className={cn("w-full transition-transform duration-150 motion-safe:active:scale-[0.97]", EASE)}
+            className="w-full"
           >
             <Bell className="size-3.5" />
             <Trans>Send test</Trans>

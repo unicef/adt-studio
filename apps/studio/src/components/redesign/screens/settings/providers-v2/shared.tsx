@@ -131,7 +131,7 @@ export function HealthLine({
         size="sm"
         onClick={onRefresh}
         disabled={isFetching}
-        className={cn("h-7 shrink-0 gap-1.5 px-2 text-[12px] transition-transform duration-150 motion-safe:active:scale-[0.97]", EASE)}
+        className="h-7 shrink-0 gap-1.5 px-2 text-[12px]"
       >
         <RefreshCw className={cn("size-3.5", isFetching && "animate-spin motion-reduce:animate-none")} />
         <Trans>Refresh</Trans>
@@ -317,7 +317,7 @@ function CopyCommand({ command }: { command: string }) {
         type="button"
         variant="ghost"
         size="sm"
-        className={cn("h-7 shrink-0 gap-1.5 px-2 text-[12px] transition-transform duration-150 motion-safe:active:scale-[0.97]", EASE)}
+        className="h-7 shrink-0 gap-1.5 px-2 text-[12px]"
         onClick={() => {
           try {
             void navigator.clipboard?.writeText(command)
@@ -389,7 +389,7 @@ export function SaveRow({ draft }: { draft: Draft }) {
       <Button
         type="button"
         size="sm"
-        className={cn("ml-auto transition-transform duration-150 motion-safe:active:scale-[0.97]", EASE)}
+        className="ml-auto"
         disabled={!draft.canSave}
         onClick={draft.save}
       >
@@ -464,7 +464,7 @@ export function useCardHealth(cardKey: string, store: ProvidersV2, refreshToken 
   let fallbackConfigured = false
   if (card.localProviderId) {
     probeId = card.localProviderId
-    enabled = true
+    enabled = isProviderAvailable(card.localProviderId)
   } else if (apiConfigured) {
     fallbackConfigured = true
   } else if (card.cliProviderId && isProviderAvailable(card.cliProviderId)) {

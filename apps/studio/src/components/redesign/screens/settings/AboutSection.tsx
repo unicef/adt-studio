@@ -12,8 +12,6 @@ import { cn } from "@/lib/utils"
 import { ComingSoon, SettingsHeading, SettingsLead } from "./ui"
 import { SETTINGS_ANCHORS } from "./nav"
 
-const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
-
 /* eslint-disable-next-line lingui/no-unlocalized-strings -- OS brand names, not translatable */
 const OS_LABEL = { macos: "macOS", windows: "Windows", linux: "Linux" }
 
@@ -96,7 +94,7 @@ export function AboutSection() {
           <Button
             variant={hasPendingUpdate ? "default" : "outline"}
             size="sm"
-            className={cn("ml-auto shrink-0 transition-transform duration-150 motion-safe:active:scale-[0.97]", EASE)}
+            className="ml-auto shrink-0"
             onClick={openUpdateDialog}
           >
             {hasPendingUpdate ? (
@@ -130,7 +128,7 @@ export function AboutSection() {
             variant="outline"
             size="sm"
             onClick={() => navigate({ to: "/onboarding" })}
-            className={cn("mt-3 transition-transform duration-150 motion-safe:active:scale-[0.97]", EASE)}
+            className="mt-3"
           >
             <RotateCcw className="size-3.5" />
             <Trans>Restart tour</Trans>

@@ -122,7 +122,7 @@ export function PromptsSection() {
             <section className="flex h-full w-full min-w-0 flex-col">
               <div className="flex shrink-0 flex-wrap items-center gap-3 border-b px-4 py-[11px]">
                 <div className="min-w-[260px] flex-1">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <div className="text-[11.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                     <Trans>Selected file</Trans>
                   </div>
                   {prompts.isPromptFilesLoading ? (

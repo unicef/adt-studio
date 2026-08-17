@@ -118,7 +118,7 @@ export function AppearanceSection() {
         <Trans>How ADT Studio looks on this machine.</Trans>
       </SettingsLead>
 
-      <div className="mb-2 text-[11.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
+      <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
         <Trans>Theme</Trans>
       </div>
       <div id={SETTINGS_ANCHORS.themeMode} className="mb-6 grid scroll-mt-24 grid-cols-3 gap-3.5">
