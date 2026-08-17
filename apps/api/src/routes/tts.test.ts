@@ -722,6 +722,52 @@ speech:
     expect(readLatestLogParams(label)).toMatchObject({ outputFormat: "mp3_22050_32" })
   })
 
+  // Regression: this route used to construct the Azure synthesizer without
+  // audio options, silently falling back to 24 kHz / 48 kbitrate while a full
+  // Speech run correctly honored the book configuration.
+  it("honors speech.sample_rate/bit_rate for a single Azure regeneration", async () => {
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: azure
+  sample_rate: 48000
+  bit_rate: "192kbitrate"
+  providers:
+    azure:
+      languages:
+        - en
+`
+    )
+    const label = "azure-audio-options"
+    seedBook(label)
+
+    fetchMock.mockResolvedValueOnce(
+      new Response(new Uint8Array([53, 54]), {
+        status: 200,
+        headers: { "Content-Type": "audio/mpeg" },
+      })
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Azure-Speech-Key": "az-test",
+        "X-Azure-Speech-Region": "eastus",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+    expect(res.status).toBe(200)
+
+    const headers = fetchMock.mock.calls[0]?.[1]?.headers as Record<string, string>
+    expect(headers["X-Microsoft-OutputFormat"]).toBe("audio-48khz-192kbitrate-mono-mp3")
+  })
+
   // Regression: ElevenLabs throttles on concurrent requests, so a 429 here used
   // to fail the entry outright — the only retry path was gated on Gemini's "did
   // not include audio data" message.

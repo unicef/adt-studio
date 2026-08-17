@@ -45,7 +45,7 @@ import {
 } from "@/components/pipeline/pipeline-i18n"
 import type { BookSummary } from "@/api/client"
 import { getBookCoverUrl } from "@/api/client"
-import { cn } from "@/lib/utils"
+import { cn, isElectron } from "@/lib/utils"
 
 type BookSortKey = "modified" | "created" | "alphabetical"
 
@@ -139,7 +139,7 @@ function useFlipList<T>(
 export const Route = createFileRoute("/")({
   beforeLoad: () => {
     if (typeof window === "undefined") return
-    if (!hasCompletedOnboarding()) {
+    if (isElectron() && !hasCompletedOnboarding()) {
       throw redirect({ to: "/onboarding" })
     }
     if (getUiVersion() === "new") {

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { extractPdf } from "../extract.js";
+import { PNG } from "pngjs";
+import { _testing, extractPdf, type ExtractedImage } from "../extract.js";
 import { createRasterOnlyTestPdf } from "./create-test-pdf.js";
 
 describe("extractPdf — per-image bounds", () => {
@@ -23,5 +24,36 @@ describe("extractPdf — per-image bounds", () => {
     expect(raster!.bounds!.y).toBeCloseTo(292, 0);
     expect(raster!.bounds!.width).toBeCloseTo(200, 0);
     expect(raster!.bounds!.height).toBeCloseTo(200, 0);
+  });
+
+  it("maps alpha content bounds through the image orientation", () => {
+    const png = new PNG({ width: 8, height: 6 });
+    png.data.fill(0);
+    for (let y = 2; y <= 3; y++) {
+      for (let x = 1; x <= 2; x++) {
+        const offset = (y * png.width + x) * 4;
+        png.data[offset] = 20;
+        png.data[offset + 1] = 40;
+        png.data[offset + 2] = 60;
+        png.data[offset + 3] = 255;
+      }
+    }
+
+    const buffer = PNG.sync.write(png);
+    const image: ExtractedImage = {
+      imageId: "pg001_im001",
+      pageId: "pg001",
+      buffer,
+      format: "png",
+      width: 8,
+      height: 6,
+      hash: "test",
+      bounds: { x: 100, y: 200, width: 60, height: 80 },
+      orientationTransform: "rotate-90-clockwise",
+    };
+
+    // The one-pixel guard expands the source extent to [0,1,4,5]. A 90°
+    // clockwise turn maps that to [1,0,5,4] in the 6x8 oriented image.
+    expect(_testing.rasterContentBboxOnPage(image)).toEqual([110, 200, 150, 240]);
   });
 });

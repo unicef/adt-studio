@@ -195,14 +195,42 @@ describe("web rendering reading-order prompts", () => {
     const messages = await promptEngine.renderPrompt("web_generation_html", {
       ...generationContext(),
       section_type: "table_of_contents",
-      nodes: [{ node_id: "toc_1", role: "text", text: "Digestive system1" }],
+      nodes: [
+        { node_id: "toc_1", role: "text", text: "Digestive system1" },
+        { node_id: "toc_2", role: "text", text: "Vocabulary........43" },
+      ],
     })
     const prompt = messages.map(messageText).join("\n")
 
     expect(prompt).toContain("page number flush right")
-    expect(prompt).toContain("dotted leader filling the space between")
+    expect(prompt).toContain("flexible dotted leader filling ALL remaining space")
+    expect(prompt).toContain("every consecutive TOC page")
+    expect(prompt).toContain("continuation pages without a repeated heading")
+    expect(prompt).toContain("border-b-2 border-dotted")
+    expect(prompt).toContain("title and page number as SEPARATE leaves")
+    expect(prompt).toContain("Never fill it with a finite visible string")
+    expect(prompt).toContain("EXACT ORIGINAL DOT RUN")
     expect(prompt).toContain("Never put the leader after the page number")
+    expect(prompt).toContain("one shared vertical right edge")
+    expect(prompt).toContain("never row margin (`ml-*`)")
     expect(prompt).toContain('text id=toc_1 "Digestive system1"')
+    expect(prompt).toContain('text id=toc_2 "Vocabulary........43"')
+  })
+
+  it("gives the overlay renderer the same deterministic TOC contract", async () => {
+    const messages = await promptEngine.renderPrompt("web_generation_html_overlay", {
+      ...generationContext(),
+      section_type: "table_of_contents",
+      nodes: [{ node_id: "toc_1", role: "text", text: "Digestive system1" }],
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("TABLE OF CONTENTS LAYOUT")
+    expect(prompt).toContain("title and page number are separate leaves")
+    expect(prompt).toContain("EMPTY flexible dotted-border leader")
+    expect(prompt).toContain("Never use a finite visible string of periods")
+    expect(prompt).toContain("share one vertical right edge")
+    expect(prompt).toContain("EXCEPT a `table_of_contents` entry")
   })
 
   it("does not add TOC-only layout rules to normal content pages", async () => {
@@ -226,7 +254,29 @@ describe("web rendering reading-order prompts", () => {
 
     expect(prompt).toContain("TABLE OF CONTENTS REVIEW")
     expect(prompt).toContain("page number at the far right")
+    expect(prompt).toContain("including continuation pages")
+    expect(prompt).toContain("leader is missing or short")
+    expect(prompt).toContain("finite visible string")
+    expect(prompt).toContain("title and page number are separate leaves")
     expect(prompt).toContain("Do not remove a correct dotted-leader row")
+    expect(prompt).toContain("share one vertical right edge")
+  })
+
+  it("keeps TOC safeguards during user-directed visual review", async () => {
+    const messages = await promptEngine.renderPrompt("visual_review_flexible", {
+      nodes: [{ node_id: "toc_1", role: "text", text: "Digestive system1" }],
+      section_type: "table_of_contents",
+      has_merged_content: false,
+      user_instructions: "Use a blue background",
+      viewports: [{ label: "Desktop", width: 1280, tailwind_prefix: "" }],
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("TABLE OF CONTENTS REVIEW")
+    expect(prompt).toContain("User styling instructions never override")
+    expect(prompt).toContain("finite visible dot string")
+    expect(prompt).toContain("sole exception is a `table_of_contents` leaf")
+    expect(prompt).toContain("share one vertical right edge")
   })
 
   for (const promptName of ["web_generation_html", "web_generation_html_overlay"]) {

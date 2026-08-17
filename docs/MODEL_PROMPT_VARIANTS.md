@@ -183,7 +183,7 @@ introduce new required variables without a matching pipeline code change.
 | Prompt | Variables supplied by the runtime |
 | --- | --- |
 | `metadata_extraction` | `pages`, `pages[].pageNumber`, `pages[].text`, `pages[].imageBase64` |
-| `image_meaningfulness` | `page_image_base64`, `images`, `images[].imageId`, `images[].imageBase64`, `images[].width`, `images[].height` |
+| `image_meaningfulness` | `page_image_base64`, `page_text`, `figure_extraction_mode`, `images`, `images[].imageId`, `images[].imageBase64`, `images[].width`, `images[].height`, `images[].renderMethod`, `images[].figureContext`, `images[].figureContext.coveredImageIds`, `images[].containedInFigureId` |
 | `image_cropping` | `page_image_base64`, `images`, `images[].imageId`, `images[].imageBase64`, `images[].width`, `images[].height` |
 | `image_segmentation` | `page_image_base64`, `images`, `images[].imageId`, `images[].imageBase64`, `images[].width`, `images[].height` |
 | `page_sectioning` | `page`, `page.pageNumber`, `page.text`, `page.imageBase64`, `images`, `images[].image_id`, `images[].imageBase64`, `structure_types`, `role_types`, `section_types`, `mode` |
