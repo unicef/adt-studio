@@ -50,7 +50,7 @@ export function CommentsBannerAvatars({ comments, onReview }: { comments: Review
           <Plural value={reviewers} one="from # reviewer" other="from # reviewers" />
         </div>
       </div>
-      <Button size="sm" onClick={onReview} className={cn(PRESS, "shrink-0 bg-brand-600 text-white hover:bg-brand-700")}>
+      <Button size="sm" onClick={onReview} className={cn(PRESS, "shrink-0 bg-brand-600 text-primary-foreground hover:bg-brand-700")}>
         <Trans>Review</Trans>
         <ArrowRight className="size-3.5" />
       </Button>

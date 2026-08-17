@@ -111,7 +111,7 @@ function BookDetail({
           <BaseStages book={book} />
         </div>
         <div className="flex items-center gap-2.5">
-          <Button className={cn(PRESS, "flex-1 bg-brand-600 text-white hover:bg-brand-700")} onClick={() => onEdit(book.label)}>
+          <Button className={cn(PRESS, "flex-1 bg-brand-600 text-primary-foreground hover:bg-brand-700")} onClick={() => onEdit(book.label)}>
             <ArrowRight className="size-3.5" />
             {p.status === "new" ? <Trans>Start</Trans> : <Trans>Continue</Trans>}
           </Button>

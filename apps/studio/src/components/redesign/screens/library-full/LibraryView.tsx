@@ -105,7 +105,7 @@ export function LibraryView({ books, onOpen, onAddBook, initialGroup = "attentio
             )}
           </div>
         </div>
-        <Button onClick={onAddBook} className="bg-brand-600 text-white transition-transform hover:bg-brand-700 active:scale-[0.97]">
+        <Button onClick={onAddBook} className="bg-brand-600 text-primary-foreground transition-transform hover:bg-brand-700 active:scale-[0.97]">
           <Plus className="size-4" />
           <Trans>Add book</Trans>
         </Button>
@@ -175,14 +175,14 @@ function AttentionBadge({ book }: { book: LibBook }) {
   const a = attentionOf(book)
   if (a === "errors")
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-stage-toc px-2 py-0.5 text-[10.5px] font-semibold text-white shadow-sm">
+      <span className="inline-flex items-center gap-1 rounded-full bg-stage-toc px-2 py-0.5 text-[10.5px] font-semibold text-primary-foreground shadow-sm">
         <TriangleAlert className="size-3" />
         <Trans>Needs fixing</Trans>
       </span>
     )
   if (a === "feedback")
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10.5px] font-semibold text-white shadow-sm">
+      <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10.5px] font-semibold text-primary-foreground shadow-sm">
         <MessageSquare className="size-3" />
         <Plural value={book.pendingComments ?? 0} one="# comment" other="# comments" />
       </span>

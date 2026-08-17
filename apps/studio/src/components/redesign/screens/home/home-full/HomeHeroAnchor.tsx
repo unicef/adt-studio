@@ -100,7 +100,7 @@ export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onContinue, onAddB
                   e.stopPropagation()
                   continueBook(resume.label)
                 }}
-                className="relative z-20 mt-7 inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-brand-600 px-6 py-3 text-[14px] font-semibold text-white transition-[background-color,transform] [&>svg]:transition-transform hover:bg-brand-700 hover:[&>svg]:translate-x-0.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+                className="relative z-20 mt-7 inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-brand-600 px-6 py-3 text-[14px] font-semibold text-primary-foreground transition-[background-color,transform] [&>svg]:transition-transform hover:bg-brand-700 hover:[&>svg]:translate-x-0.5 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
               >
                 <ContinueLabel vm={resume} />
                 <ArrowRight className="size-4" />

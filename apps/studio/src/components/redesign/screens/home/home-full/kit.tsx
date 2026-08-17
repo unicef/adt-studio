@@ -246,7 +246,7 @@ export function GridCard({
         <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} />
         {badge && <div className="absolute left-2 top-2">{badge}</div>}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-3 pb-2.5 pt-8 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          <span className="truncate text-[11.5px] font-semibold text-white">
+          <span className="truncate text-[11.5px] font-semibold text-primary-foreground">
             <ContinueLabel vm={vm} />
           </span>
           <ArrowRight className="size-3.5 shrink-0 text-white" />
@@ -377,7 +377,7 @@ export function ShelfCard({
         <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} fit="cover" />
         {badge && <div className="absolute left-2 top-2 z-10">{badge}</div>}
         {elevated && (
-          <span className="absolute inset-x-2 bottom-2 inline-flex items-center justify-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10.5px] font-semibold text-white backdrop-blur-sm">
+          <span className="absolute inset-x-2 bottom-2 inline-flex items-center justify-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10.5px] font-semibold text-primary-foreground backdrop-blur-sm">
             <ContinueLabel vm={vm} />
           </span>
         )}
@@ -400,7 +400,7 @@ export function NewBookButton({ onClick, className }: { onClick: () => void; cla
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-2 text-[13px] font-semibold text-white transition-colors duration-200 hover:bg-brand-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-2 text-[13px] font-semibold text-primary-foreground transition-colors duration-200 hover:bg-brand-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className,
       )}
     >

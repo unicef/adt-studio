@@ -41,7 +41,7 @@ export function SecondRowChecklist() {
                 <span
                   className={cn(
                     "grid size-9 shrink-0 place-items-center rounded-full text-[13px] font-bold",
-                    active ? "bg-brand-600 text-white" : "bg-muted text-muted-foreground",
+                    active ? "bg-brand-600 text-primary-foreground" : "bg-muted text-muted-foreground",
                   )}
                 >
                   {active ? <Icon className="size-4" /> : i + 1}

@@ -28,7 +28,7 @@ export function EmptyState({ icon, illustration, title, description, children, b
       <div className="relative">
         {illustration ??
           (icon && (
-            <div className="mx-auto mb-4 grid size-[70px] place-items-center rounded-[20px] bg-brand-600 text-white shadow-[0_30px_60px_-20px_rgba(43,127,255,0.25),0_4px_14px_rgba(0,0,0,0.08)] [&_svg]:size-[34px]">
+            <div className="mx-auto mb-4 grid size-[70px] place-items-center rounded-[20px] bg-brand-600 text-primary-foreground shadow-[0_30px_60px_-20px_rgba(43,127,255,0.25),0_4px_14px_rgba(0,0,0,0.08)] [&_svg]:size-[34px]">
               {icon}
             </div>
           ))}

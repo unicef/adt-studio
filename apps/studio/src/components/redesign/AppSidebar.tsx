@@ -177,7 +177,7 @@ export function AppSidebar({
               onClick={() => setHelpOpen(false)}
               className="flex w-full items-center gap-2.5 rounded-lg bg-brand-50 px-2.5 py-2.5 text-left transition-colors hover:bg-brand-100"
             >
-              <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand-600 text-white">
+              <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand-600 text-primary-foreground">
                 <BookOpen className="size-[15px]" />
               </span>
               <div className="min-w-0 flex-1">
