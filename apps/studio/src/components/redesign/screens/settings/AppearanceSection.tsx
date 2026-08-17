@@ -1,7 +1,7 @@
 import { useState, type CSSProperties } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Check } from "lucide-react"
+import { Check, Clock } from "lucide-react"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Switch } from "@/components/ui/switch"
 import { useUiVersion } from "@/hooks/use-ui-version"
@@ -103,11 +103,24 @@ function ThemeCard({ th, selected, onSelect, index }: { th: ThemeOption; selecte
   )
 }
 
+/** Marks a designed-but-unbuilt setting so we remember to wire it later. */
+function SoonBadge() {
+  const { t } = useLingui()
+  return (
+    <span
+      title={t`Coming soon — not wired up yet.`}
+      className="inline-flex items-center gap-1 rounded-full border border-dashed border-amber-400/60 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400"
+    >
+      <Clock className="size-2.5" />
+      <Trans>Soon</Trans>
+    </span>
+  )
+}
+
 export function AppearanceSection() {
   const { t } = useLingui()
   const navigate = useNavigate()
   const [theme, setTheme] = useState<ThemeMode>(storedTheme)
-  const [motion, setMotion] = useState(false)
   const [uiVersion, setUiVersion] = useUiVersion()
 
   return (
@@ -160,10 +173,15 @@ export function AppearanceSection() {
         </SettingRow>
         <SettingRow
           anchorId={SETTINGS_ANCHORS.reduceMotion}
-          title={<Trans>Reduce motion</Trans>}
+          title={
+            <span className="inline-flex items-center gap-2">
+              <Trans>Reduce motion</Trans>
+              <SoonBadge />
+            </span>
+          }
           subtitle={<Trans>Minimise onboarding and list-reorder animations.</Trans>}
         >
-          <Switch checked={motion} onCheckedChange={setMotion} />
+          <Switch checked={false} disabled aria-label={t`Reduce motion`} />
         </SettingRow>
       </SettingsCard>
     </>
