@@ -42,7 +42,7 @@ export const SETTINGS_GROUPS: SettingsGroup[] = [
     label: msg`Preferences`,
     tabs: [
       { key: "language", label: msg`Language`, icon: Languages },
-      { key: "theme", label: msg`Theme`, icon: Palette },
+      { key: "theme", label: msg`Appearance`, icon: Palette },
       { key: "notifications", label: msg`Notifications`, icon: Bell },
     ],
   },
