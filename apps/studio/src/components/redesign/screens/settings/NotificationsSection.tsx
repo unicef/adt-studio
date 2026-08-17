@@ -4,7 +4,7 @@ import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Bell, CheckCircle2, Volume2, Timer, X } from "lucide-react"
 import { SegmentedControl } from "@/components/ui/segmented-control"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { useNotificationPrefs, type ToastPosition } from "@/hooks/use-notification-prefs"
@@ -33,23 +33,23 @@ const POS_CLASS: Record<ToastPosition, string> = {
   "bottom-center": "bottom-3 left-1/2 -translate-x-1/2",
   "bottom-right": "bottom-3 right-3",
 }
-const DOT_POS: Record<ToastPosition, string> = {
-  "top-left": "top-[2.5px] left-[2.5px]",
+const BAR_POS: Record<ToastPosition, string> = {
+  "top-left": "top-[2.5px] left-[2px]",
   "top-center": "top-[2.5px] left-1/2 -translate-x-1/2",
-  "top-right": "top-[2.5px] right-[2.5px]",
-  "bottom-left": "bottom-[2.5px] left-[2.5px]",
+  "top-right": "top-[2.5px] right-[2px]",
+  "bottom-left": "bottom-[2.5px] left-[2px]",
   "bottom-center": "bottom-[2.5px] left-1/2 -translate-x-1/2",
-  "bottom-right": "bottom-[2.5px] right-[2.5px]",
+  "bottom-right": "bottom-[2.5px] right-[2px]",
 }
 /* eslint-enable lingui/no-unlocalized-strings */
 
 const isTop = (p: ToastPosition) => p.startsWith("top")
 
-/** Mini-screen glyph with a dot in the corresponding corner — indicates the toast position. */
+/** Mini-screen glyph with a little toast bar in the corresponding corner. */
 function PositionGlyph({ position }: { position: ToastPosition }) {
   return (
-    <span className="relative inline-block size-[15px] shrink-0 rounded-[3px] border border-current opacity-80">
-      <span className={cn("absolute size-[4px] rounded-full bg-current", DOT_POS[position])} />
+    <span className="relative inline-block size-[16px] shrink-0 rounded-[3px] border border-muted-foreground/40">
+      <span className={cn("absolute h-[3px] w-[7px] rounded-full bg-brand-600", BAR_POS[position])} />
     </span>
   )
 }
@@ -175,14 +175,19 @@ export function NotificationsSection() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end">
-              {POSITIONS.map((p) => (
-                <SelectItem key={p.key} value={p.key}>
-                  <span className="flex items-center gap-2">
-                    <PositionGlyph position={p.key} />
-                    {i18n._(p.label)}
-                  </span>
-                </SelectItem>
-              ))}
+              <SelectGroup>
+                <SelectLabel>
+                  <Trans>Toast position</Trans>
+                </SelectLabel>
+                {POSITIONS.map((p) => (
+                  <SelectItem key={p.key} value={p.key}>
+                    <span className="flex items-center gap-2">
+                      <PositionGlyph position={p.key} />
+                      {i18n._(p.label)}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectGroup>
             </SelectContent>
           </Select>
         </div>
