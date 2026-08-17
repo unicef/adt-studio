@@ -5,6 +5,7 @@ import { createLogger, type LogLevel } from "./logger.js"
 import type { LlmLogEntry, LlmLogMessage } from "./log.js"
 import type { ResolvedCredentials } from "./credentials.js"
 import { getDefaultProviderRegistry } from "./providers/index.js"
+import { toJsonSchema } from "./providers/shared/json-schema.js"
 import type { ProviderRegistry } from "./registry.js"
 import type {
   AgentMessage,
@@ -18,7 +19,7 @@ import type {
 } from "./ports/index.js"
 
 const DEFAULT_MAX_STEPS = 20
-const AGENT_CACHE_VERSION = 1
+const AGENT_CACHE_VERSION = 2
 
 export interface AgentLogContext {
   taskType: string
@@ -71,6 +72,10 @@ export async function runAgentLoop(
       parameters: tool.parameters,
     }),
   )
+  const cacheToolDefinitions = toolDefinitions.map((tool) => ({
+    ...tool,
+    parameters: toJsonSchema(tool.parameters, `Agent tool "${tool.name}"`),
+  }))
 
   const maxSteps = options.maxSteps ?? DEFAULT_MAX_STEPS
   const correlationId = options.log?.correlationId ?? randomUUID()
@@ -91,7 +96,7 @@ export async function runAgentLoop(
       fingerprint: resolved.fingerprint,
       system: options.system,
       messages,
-      tools: toolDefinitions,
+      tools: cacheToolDefinitions,
       temperature: options.temperature,
       maxTokens: options.maxTokens,
     })

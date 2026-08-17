@@ -32,6 +32,7 @@ interface FakeProviderOptions {
   temperature?: boolean
   requiredCredential?: boolean
   fingerprint?: CacheFingerprint
+  minimumRequestTimeoutMs?: number
 }
 
 function makeManifest(options: FakeProviderOptions): ProviderManifest {
@@ -61,6 +62,7 @@ function makeManifest(options: FakeProviderOptions): ProviderManifest {
       },
     },
     defaultModels: { "structured-text": "fake-1" },
+    minimumRequestTimeoutMs: options.minimumRequestTimeoutMs,
   }
 }
 
@@ -139,6 +141,24 @@ describe("createLLMModel provider resolution", () => {
     await llm.generateObject({ schema, messages })
 
     expect(contexts[0]?.credentials).toEqual({ apiKey: "ak-anthropic" })
+  })
+
+  it("applies a timeout floor declared by the provider manifest", async () => {
+    const { registry, requests } = makeRegistry({ minimumRequestTimeoutMs: 600_000 })
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+
+    await llm.generateObject({ schema, messages, timeoutMs: 120_000 })
+
+    expect(requests[0]?.timeoutMs).toBe(600_000)
+  })
+
+  it("preserves a requested timeout above the provider manifest floor", async () => {
+    const { registry, requests } = makeRegistry({ minimumRequestTimeoutMs: 600_000 })
+    const llm = createLLMModel({ modelId: "fake:fake-1", registry, logLevel: "silent" })
+
+    await llm.generateObject({ schema, messages, timeoutMs: 900_000 })
+
+    expect(requests[0]?.timeoutMs).toBe(900_000)
   })
 
   it("merges manifest-driven credentials over the legacy struct", async () => {

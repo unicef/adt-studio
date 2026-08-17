@@ -168,7 +168,9 @@ describe("checkProviderConnection", () => {
     const registry = registryWith(
       makeModule({
         listModels: async () => {
-          throw AiProviderError.invalidCredential("fake", "malformed")
+          throw AiProviderError.invalidCredential("fake", [
+            { path: ["apiKey"], code: "custom" },
+          ])
         },
       }),
     )
@@ -176,6 +178,25 @@ describe("checkProviderConnection", () => {
       credentials: CREDENTIALS,
     })
     expect(result.code).toBe("invalid-credential")
+  })
+
+  it("does not expose a rejected credential value in health details", async () => {
+    const received = "credential-value-that-must-not-leak"
+    const registry = registryWith(
+      makeModule({
+        credentialSchema: z.object({ apiKey: z.enum(["expected-value"]) }),
+      }),
+    )
+
+    const result = await checkProviderConnection(registry, "fake", {
+      credentials: { fake: { apiKey: received } },
+    })
+
+    expect(result).toMatchObject({
+      code: "invalid-credential",
+      detail: expect.stringContaining("apiKey: invalid_enum_value"),
+    })
+    expect(result.detail).not.toContain(received)
   })
 
   it("prefers checkConnection over discovery", async () => {

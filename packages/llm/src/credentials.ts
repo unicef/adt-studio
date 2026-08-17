@@ -83,9 +83,7 @@ export function validateProviderCredentials<C extends ProviderCredentialValues>(
   if (!parsed.success) {
     throw AiProviderError.invalidCredential(
       module.manifest.id,
-      parsed.error.issues
-        .map((issue) => `${issue.path.join(".") || "credentials"}: ${issue.message}`)
-        .join("; "),
+      parsed.error.issues,
     )
   }
   return parsed.data as C

@@ -66,6 +66,7 @@ export const ollamaManifest: ProviderManifest = {
     agent: { tools: false, streaming: false },
   },
   defaultModels: {},
+  minimumRequestTimeoutMs: 600_000,
   localizedHelp: {
     en: "Runs models locally with no API key. Structured output falls back to client-side parsing when a model has no reliable JSON mode.",
     "pt-BR":

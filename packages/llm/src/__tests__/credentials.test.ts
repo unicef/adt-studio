@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+import { z } from "zod"
 import {
   describeCredentialPresence,
   extractCredentialsFromHeaders,
@@ -202,6 +203,24 @@ describe("validateProviderCredentials", () => {
         region: "brazil south",
       }),
     ).toThrow(AiProviderError)
+  })
+
+  it("reports only the path and issue code for an invalid credential", () => {
+    const received = "credential-value-that-must-not-leak"
+    const module = {
+      ...registry.get("custom"),
+      credentialSchema: z.object({
+        baseUrl: z.enum(["https://allowed.example/v1"]),
+      }),
+    }
+
+    try {
+      validateProviderCredentials(module, { baseUrl: received })
+      expect.unreachable("should have thrown")
+    } catch (error) {
+      expect((error as AiProviderError).message).toContain("baseUrl: invalid_enum_value")
+      expect((error as AiProviderError).message).not.toContain(received)
+    }
   })
 })
 

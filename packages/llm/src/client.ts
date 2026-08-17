@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto"
-import type { StructuredOutputStrategy, StructuredTextCapabilities } from "@adt/types"
+import type {
+  ProviderManifest,
+  StructuredOutputStrategy,
+  StructuredTextCapabilities,
+} from "@adt/types"
 import type {
   LLMModel,
   GenerateObjectOptions,
@@ -27,30 +31,18 @@ import {
   toResolvedCredentials,
   type LLMProviderCredentials,
 } from "./legacy-credentials.js"
-import {
-  CLAUDE_AGENT_PROVIDER_ID,
-  CODEX_PROVIDER_ID,
-  getDefaultProviderRegistry,
-  OLLAMA_PROVIDER_ID,
-} from "./providers/index.js"
+import { getDefaultProviderRegistry } from "./providers/index.js"
 import type { ProviderRegistry, ResolvedBackend } from "./registry.js"
 import type { StructuredTextBackend } from "./ports/index.js"
 
 export type { LLMProviderCredentials }
 
-const LOCAL_PROVIDER_MIN_TIMEOUT_MS = 600_000
-const LOCAL_PROVIDER_IDS = new Set<string>([
-  OLLAMA_PROVIDER_ID,
-  CLAUDE_AGENT_PROVIDER_ID,
-  CODEX_PROVIDER_ID,
-])
-
 function resolveEffectiveTimeoutMs(
-  providerId: string,
+  manifest: ProviderManifest,
   requestedTimeoutMs: number | undefined,
 ): number | undefined {
-  if (!LOCAL_PROVIDER_IDS.has(providerId)) return requestedTimeoutMs
-  return Math.max(requestedTimeoutMs ?? 0, LOCAL_PROVIDER_MIN_TIMEOUT_MS)
+  if (manifest.minimumRequestTimeoutMs === undefined) return requestedTimeoutMs
+  return Math.max(requestedTimeoutMs ?? 0, manifest.minimumRequestTimeoutMs)
 }
 
 export interface CreateLLMModelOptions {
@@ -192,7 +184,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       }
       const effectiveTemperature = supportsTemperature ? opts.temperature : undefined
       const effectiveTimeoutMs = resolveEffectiveTimeoutMs(
-        resolved.providerId,
+        registry.get(resolved.providerId).manifest,
         opts.timeoutMs,
       )
       const legacyReadable = isLegacyCacheReadable(resolved.fingerprint)

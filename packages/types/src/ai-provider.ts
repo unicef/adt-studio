@@ -165,6 +165,8 @@ export const ProviderManifest = z
     credentialFields: z.array(CredentialFieldManifest).default([]),
     capabilities: PublicProviderCapabilities,
     defaultModels: ProviderDefaultModels.default({}),
+    /** Provider-declared floor for long-running inference requests. */
+    minimumRequestTimeoutMs: z.number().int().positive().optional(),
     localizedHelp: LocalizedText.optional(),
     docsUrl: z.string().url().optional(),
   })

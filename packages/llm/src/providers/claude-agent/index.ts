@@ -69,6 +69,7 @@ export const claudeAgentManifest: ProviderManifest = {
   defaultModels: {
     "structured-text": "claude-sonnet-4-5",
   },
+  minimumRequestTimeoutMs: 600_000,
   localizedHelp: LOCALIZED_HELP,
   docsUrl: "https://code.claude.com/docs/en/agent-sdk/overview",
 }

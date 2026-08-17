@@ -273,6 +273,14 @@ describe("built-in provider registry", () => {
     expect(registry.providersFor("image").map((m) => m.manifest.id)).toEqual(["openai"])
   })
 
+  it("declares the long-running request timeout floor in provider manifests", () => {
+    const registry = createDefaultProviderRegistry()
+    for (const providerId of ["claude-agent", "codex", "custom", "ollama"]) {
+      expect(registry.get(providerId).manifest.minimumRequestTimeoutMs).toBe(600_000)
+    }
+    expect(registry.get("openai").manifest.minimumRequestTimeoutMs).toBeUndefined()
+  })
+
   it("produces a descriptor payload that validates and carries no secrets", () => {
     const registry = createDefaultProviderRegistry()
     const payload = {

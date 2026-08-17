@@ -1,5 +1,10 @@
 import type { AiModality, AiProviderErrorCode } from "@adt/types"
 
+export interface CredentialValidationIssue {
+  path: readonly (string | number)[]
+  code: string
+}
+
 export interface AiProviderErrorDetails {
   providerId?: string
   modelId?: string
@@ -69,7 +74,13 @@ export class AiProviderError extends Error {
     )
   }
 
-  static invalidCredential(providerId: string, reason: string): AiProviderError {
+  static invalidCredential(
+    providerId: string,
+    issues: readonly CredentialValidationIssue[],
+  ): AiProviderError {
+    const reason = issues
+      .map((issue) => `${issue.path.join(".") || "credentials"}: ${issue.code}`)
+      .join("; ")
     return new AiProviderError(
       "invalid-credential",
       `Invalid credentials for provider "${providerId}": ${reason}`,

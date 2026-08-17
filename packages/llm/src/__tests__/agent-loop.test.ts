@@ -331,6 +331,45 @@ describe("runAgentLoop caching", () => {
 
     expect(second.turnCount()).toBe(1)
   })
+
+  it("does not reuse a cached turn when only a tool schema changes", async () => {
+    const base = {
+      modelId: "fake:fake-1",
+      system: "sys",
+      prompt: "go",
+      cacheDir: tmpDir,
+      logLevel: "silent" as const,
+    }
+
+    const first = makeRegistry([textTurn("first")])
+    await runAgentLoop({
+      ...base,
+      tools: {
+        lookup: {
+          description: "lookup",
+          parameters: z.object({ query: z.string() }),
+          execute: async () => ({}),
+        },
+      },
+      registry: first.registry,
+    })
+
+    const second = makeRegistry([textTurn("second")])
+    const result = await runAgentLoop({
+      ...base,
+      tools: {
+        lookup: {
+          description: "lookup",
+          parameters: z.object({ query: z.number() }),
+          execute: async () => ({}),
+        },
+      },
+      registry: second.registry,
+    })
+
+    expect(second.turnCount()).toBe(1)
+    expect(result.text).toBe("second")
+  })
 })
 
 describe("runAgentLoop transparency", () => {

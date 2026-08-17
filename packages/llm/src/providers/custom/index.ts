@@ -60,6 +60,7 @@ export const customManifest: ProviderManifest = {
     agent: { tools: false, streaming: false },
   },
   defaultModels: {},
+  minimumRequestTimeoutMs: 600_000,
   localizedHelp: {
     en: "Any OpenAI-compatible server (LM Studio, vLLM, llama.cpp). Image, speech and transcription endpoints are not assumed to exist.",
     "pt-BR":

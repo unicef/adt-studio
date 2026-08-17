@@ -1,4 +1,8 @@
-export { AiProviderError, type AiProviderErrorDetails } from "./errors.js"
+export {
+  AiProviderError,
+  type AiProviderErrorDetails,
+  type CredentialValidationIssue,
+} from "./errors.js"
 
 export type {
   BackendContext,

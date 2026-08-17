@@ -66,6 +66,7 @@ export const codexManifest: ProviderManifest = {
   defaultModels: {
     "structured-text": "gpt-5.1",
   },
+  minimumRequestTimeoutMs: 600_000,
   localizedHelp: LOCALIZED_HELP,
   docsUrl: "https://developers.openai.com/codex/cli/",
 }
