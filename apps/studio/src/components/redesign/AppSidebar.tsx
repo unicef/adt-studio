@@ -12,7 +12,6 @@ import {
   Split,
   Settings,
   CircleHelp,
-  ChevronRight,
   BookOpen,
   Library,
   Keyboard,
@@ -151,21 +150,29 @@ export function AppSidebar({
 
       <div className="min-h-3.5 flex-1" />
 
-      <div className="flex flex-col gap-0.5 pt-1.5">
+      <div className="flex items-center gap-1.5 pt-1.5">
+        <Link
+          to={REDESIGN_PATHS.settings}
+          className="flex flex-1 items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+        >
+          <Settings className="size-[17px]" />
+          <span className="flex-1 text-left">
+            <Trans>Settings</Trans>
+          </span>
+        </Link>
+
         <Popover open={helpOpen} onOpenChange={setHelpOpen}>
           <PopoverTrigger asChild>
             <button
               type="button"
-              className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+              aria-label={t`Help`}
+              title={t`Help`}
+              className="grid size-9 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/5"
             >
               <CircleHelp className="size-[17px]" />
-              <span className="flex-1 text-left">
-                <Trans>Help</Trans>
-              </span>
-              <ChevronRight className="size-[15px] text-muted-foreground" />
             </button>
           </PopoverTrigger>
-          <PopoverContent side="top" align="start" className="w-[262px] p-1.5">
+          <PopoverContent side="top" align="end" className="w-[262px] p-1.5">
             <button
               type="button"
               onClick={() => setHelpOpen(false)}
@@ -243,16 +250,6 @@ export function AppSidebar({
             </MenuRow>
           </PopoverContent>
         </Popover>
-
-        <Link
-          to={REDESIGN_PATHS.settings}
-          className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
-        >
-          <Settings className="size-[17px]" />
-          <span className="flex-1 text-left">
-            <Trans>Settings</Trans>
-          </span>
-        </Link>
       </div>
     </div>
   )
