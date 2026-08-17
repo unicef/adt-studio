@@ -19,12 +19,15 @@ export interface PreviewScreenProps {
   label: string
   /** Section the storyboard was showing — the preview opens on its page. */
   targetSectionId: string | null
+  /** Bundle-relative page, when the caller already resolved it. Wins over
+   *  `targetSectionId` and skips the manifest lookup entirely. */
+  targetHref?: string | null
   onBack: () => void
 }
 
 /** The packaged book, read inside the pipeline shell. Only the top bar frames
  *  it — the dock stays out so the book reads exactly as the reader gets it. */
-export function PreviewScreen({ label, targetSectionId, onBack }: PreviewScreenProps) {
+export function PreviewScreen({ label, targetSectionId, targetHref, onBack }: PreviewScreenProps) {
   const { t } = useLingui()
   const [viewport, setViewport] = useState<Viewport>("desktop")
 
@@ -34,10 +37,10 @@ export function PreviewScreen({ label, targetSectionId, onBack }: PreviewScreenP
   // Only the manifest knows which file a section became — the book's first page
   // is written as index.html. Without a target there is nothing to look up, and
   // the bundle root already redirects to the first page.
-  const manifestQuery = useAdtPages(label, { enabled: packaged && !!targetSectionId })
-  const targetResolved =
-    !targetSectionId || manifestQuery.isSuccess || manifestQuery.isError
-  const href = previewHrefForSection(targetSectionId, manifestQuery.data) ?? ""
+  const needsManifest = !targetHref && !!targetSectionId
+  const manifestQuery = useAdtPages(label, { enabled: packaged && needsManifest })
+  const targetResolved = !needsManifest || manifestQuery.isSuccess || manifestQuery.isError
+  const href = targetHref ?? previewHrefForSection(targetSectionId, manifestQuery.data) ?? ""
 
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">

@@ -3,10 +3,12 @@ import type { BookSummary, PageSummaryItem } from "@/api/client"
 import { useBooks } from "@/hooks/use-books"
 import { useBookRun } from "@/hooks/use-book-run"
 import { usePages } from "@/hooks/use-pages"
+import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
+import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { FOUNDATIONS, PLUGINS, type DockEntry, type DockSlug } from "./plugins"
 import { STEP_PREREQ, isStepLocked, type StageEvidence } from "./stepPrereq"
 
-export type DockState = "done" | "ready" | "locked"
+export type DockState = "done" | "running" | "queued" | "error" | "ready" | "locked"
 
 export interface DockItem extends DockEntry {
   state: DockState
@@ -45,6 +47,18 @@ export function usePipelineState(label: string): PipelineState {
   const booksQuery = useBooks()
   const pagesQuery = usePages(label)
   const { stageState } = useBookRun()
+  const signLanguageQuery = useSignLanguageVideos(label)
+
+  // Sign Language has no `PIPELINE` stage, so it never lands in `completedStages`
+  // and `stageState` always reads idle. Its own artifact is the completion signal,
+  // exactly as the old sidebar's completion override read it.
+  const signLanguageDone =
+    signLanguageQuery.data?.videos?.some((v) => v.sectionId !== null) ?? false
+
+  // Validation is likewise absent from `PIPELINE` — packaging the ADT is what
+  // produces its assessment, so that artifact is its completion signal.
+  const assessmentQuery = useAccessibilityAssessment(label)
+  const validationDone = Boolean(assessmentQuery.data?.assessment)
 
   const book = useMemo(
     () => booksQuery.data?.find((b) => b.label === label),
@@ -82,12 +96,28 @@ export function usePipelineState(label: string): PipelineState {
     }
     const isLocked = (slug: DockSlug) => isStepLocked(slug, evidence)
 
-    const toItem = (item: DockEntry, locked: boolean): DockItem => ({
-      ...item,
-      state: done.has(item.slug) ? "done" : locked ? "locked" : "ready",
-      pending: done.has(item.slug) ? pendingFor(item.slug) : 0,
-      lockedBy: locked ? STEP_PREREQ[item.slug] ?? undefined : undefined,
-    })
+    // Same precedence as the old sidebar: a stage's own completion signal wins,
+    // then the live run state, and only an idle stage can read as locked.
+    // `completedStages` is deliberately not consulted here — it is a snapshot of
+    // step_runs with no notion of running or queued, so a re-run of a finished
+    // stage kept showing it as done.
+    const resolveState = (slug: DockSlug, locked: boolean): DockState => {
+      if (slug === "sign-language" && signLanguageDone) return "done"
+      if (slug === "validation" && validationDone) return "done"
+      const run = stageState(slug)
+      if (run === "done" || run === "running" || run === "queued" || run === "error") return run
+      return locked ? "locked" : "ready"
+    }
+
+    const toItem = (item: DockEntry, locked: boolean): DockItem => {
+      const state = resolveState(item.slug, locked)
+      return {
+        ...item,
+        state,
+        pending: state === "done" ? pendingFor(item.slug) : 0,
+        lockedBy: locked ? STEP_PREREQ[item.slug] ?? undefined : undefined,
+      }
+    }
 
     return {
       book,
@@ -106,5 +136,5 @@ export function usePipelineState(label: string): PipelineState {
       foundations: FOUNDATIONS.map((item) => toItem(item, isLocked(item.slug))),
       plugins: PLUGINS.map((item) => toItem(item, isLocked(item.slug))),
     }
-  }, [book, pagesQuery.data, booksQuery.isLoading, pagesQuery.isLoading, booksQuery.error, pagesQuery.error, stageState])
+  }, [book, pagesQuery.data, booksQuery.isLoading, pagesQuery.isLoading, booksQuery.error, pagesQuery.error, stageState, signLanguageDone, validationDone])
 }

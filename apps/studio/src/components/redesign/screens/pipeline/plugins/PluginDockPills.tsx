@@ -1,6 +1,6 @@
 import { Fragment } from "react";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Check, ChevronDown, Plus } from "lucide-react";
+import { Check, ChevronDown, Clock, Loader2, Plus, TriangleAlert } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -19,6 +19,35 @@ import {
 import type { DockItem } from "@/components/redesign/screens/pipeline/shared/usePipelineState";
 import type { PluginDockProps } from "./PluginDock";
 
+const BADGE =
+  "absolute right-0 top-0 grid size-3.5 place-items-center rounded-full border-2 border-card text-white";
+
+function StateBadge({ state }: { state: DockItem["state"] }) {
+  const { t } = useLingui();
+  switch (state) {
+    case "running":
+      return (
+        <span className={cn(BADGE, "bg-sky-500")} title={t`Running`}>
+          <Loader2 className="size-1.5 animate-spin motion-reduce:animate-none" strokeWidth={5} />
+        </span>
+      );
+    case "queued":
+      return (
+        <span className={cn(BADGE, "bg-amber-500")} title={t`Queued`}>
+          <Clock className="size-1.5" strokeWidth={5} />
+        </span>
+      );
+    case "error":
+      return (
+        <span className={cn(BADGE, "bg-destructive")} title={t`Failed`}>
+          <TriangleAlert className="size-1.5" strokeWidth={5} />
+        </span>
+      );
+    default:
+      return null;
+  }
+}
+
 function DockPill({
   item,
   active,
@@ -31,7 +60,7 @@ function DockPill({
   onClick: () => void;
 }) {
   const { t } = useLingui();
-  const locked = item.state === "locked";
+  const isDone = item.state === "done";
   const name = getStageLabelI18n(item.slug);
   const blockedHint = item.lockedBy
     ? t`Run ${getStageLabelI18n(item.lockedBy)} first`
@@ -44,12 +73,13 @@ function DockPill({
       title={blockedHint ?? getStageDescriptionI18n(item.slug) ?? name}
       aria-current={active ? "true" : undefined}
       className={cn(
-        "relative flex h-10 shrink-0 cursor-pointer items-center rounded-full px-2.5 text-white hover:brightness-110",
+        "relative flex h-10 shrink-0 cursor-pointer items-center rounded-full px-2.5 text-white outline-border outline",
         active ? "w-36" : "w-10",
+        !isDone ? "text-muted-foreground" : undefined,
+        isDone && "outline-none",
       )}
       style={{
-        background: locked ? "var(--muted)" : item.hex,
-        color: locked ? "var(--muted-foreground)" : undefined,
+        background: !isDone ? "var(--muted)" : item.hex,
       }}
     >
       {linked && (
@@ -59,20 +89,24 @@ function DockPill({
         />
       )}
       <span className="grid size-5 shrink-0 place-items-center">
-        <item.icon className="size-[18px]" strokeWidth={2.4} />
+        <item.icon
+          className="size-[18px] text-current"
+          strokeWidth={2.4}
+        />
       </span>
       {active && (
         <span className="min-w-0 flex-1 overflow-hidden">
-          <span className="block truncate px-1 text-center text-[13px] font-semibold">
+          <span className="block truncate px-1 text-center text-[13px] font-semibold text-current">
             {name}
           </span>
         </span>
       )}
-      {item.state === "done" && item.pending === 0 && (
-        <span className="absolute right-0 top-0 grid size-3.5 place-items-center rounded-full border-2 border-card bg-emerald-500 text-white">
+      {isDone && item.pending === 0 && (
+        <span className={cn(BADGE, "bg-emerald-500")}>
           <Check className="size-1.5" strokeWidth={5} />
         </span>
       )}
+      {item.pending === 0 && <StateBadge state={item.state} />}
       {item.pending > 0 && (
         <span className="absolute -right-0.5 -top-0.5 grid h-[18px] min-w-[18px] place-items-center rounded-full border-2 border-card bg-foreground px-1 text-[10px] font-bold text-background">
           {item.pending}
@@ -112,7 +146,7 @@ export function PluginDockPills({
       )}
       <div
         className={cn(
-          "flex px-2.5 items-center gap-2.5 rounded-full border bg-card/92 py-2 shadow-[0_16px_40px_-18px_rgba(0,0,0,0.35)] backdrop-blur-md",
+          "flex px-2.5 items-center gap-2.5 rounded-full border bg-card py-2 shadow-[0_16px_40px_-18px_rgba(0,0,0,0.35)] backdrop-blur-md",
         )}
       >
         {groups.map((group, groupIndex) => (
@@ -173,6 +207,21 @@ export function PluginDockPills({
                     {item.state === "done" && (
                       <span className="shrink-0 text-[10px] font-medium text-emerald-600">
                         <Trans>done</Trans>
+                      </span>
+                    )}
+                    {item.state === "running" && (
+                      <span className="shrink-0 text-[10px] font-medium text-sky-600">
+                        <Trans>running</Trans>
+                      </span>
+                    )}
+                    {item.state === "queued" && (
+                      <span className="shrink-0 text-[10px] font-medium text-amber-600">
+                        <Trans>queued</Trans>
+                      </span>
+                    )}
+                    {item.state === "error" && (
+                      <span className="shrink-0 text-[10px] font-medium text-destructive">
+                        <Trans>failed</Trans>
                       </span>
                     )}
                     {item.state === "locked" && (

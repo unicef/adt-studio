@@ -234,6 +234,7 @@ msgid "{0} issue/issues"
 msgstr "{0} issue/issues"
 
 #. placeholder {0}: String(view.issues)
+#. placeholder {0}: summary.violationCount
 msgid "{0} issues"
 msgstr "{0} issues"
 
@@ -307,6 +308,10 @@ msgstr "{0} pages"
 #. placeholder {1}: split.exportedParts
 msgid "{0} pages · {1, plural, one {# part} other {# parts}}"
 msgstr "{0} pages · {1, plural, one {# part} other {# parts}}"
+
+#. placeholder {0}: summary.pageCount
+msgid "{0} pages checked"
+msgstr "{0} pages checked"
 
 #. placeholder {0}: pages.length
 msgid "{0} pages ready"
@@ -674,8 +679,14 @@ msgstr "1 hour"
 msgid "1 image selected"
 msgstr "1 image selected"
 
+msgid "1 issue"
+msgstr "1 issue"
+
 msgid "1 item needs changes on this page"
 msgstr "1 item needs changes on this page"
+
+msgid "1 page checked"
+msgstr "1 page checked"
 
 msgid "1 quiz / {frequency} pages"
 msgstr "1 quiz / {frequency} pages"
@@ -1747,8 +1758,8 @@ msgstr "Apply suggestion"
 msgid "Apply to all errors in this run"
 msgstr "Apply to all errors in this run"
 
-msgid "Apply to book"
-msgstr "Apply to book"
+#~ msgid "Apply to book"
+#~ msgstr "Apply to book"
 
 #~ msgid "Applying…"
 #~ msgstr "Applying…"
@@ -1909,6 +1920,9 @@ msgstr "Awaiting return"
 
 msgid "Axe could not fully evaluate these checks in preview. Verify them in-browser or by inspection."
 msgstr "Axe could not fully evaluate these checks in preview. Verify them in-browser or by inspection."
+
+msgid "axe-core · not AI-generated"
+msgstr "axe-core · not AI-generated"
 
 msgid "Azure"
 msgstr "Azure"
@@ -2085,6 +2099,9 @@ msgstr "Book images"
 
 msgid "Book info"
 msgstr "Book info"
+
+#~ msgid "Book information"
+#~ msgstr "Book information"
 
 msgid "Book Language"
 msgstr "Book Language"
@@ -2478,6 +2495,12 @@ msgstr "Checking for updates…"
 msgid "Checklist item"
 msgstr "Checklist item"
 
+msgid "Checks"
+msgstr "Checks"
+
+msgid "Checks run over the packaged book, so they see exactly what a reader gets."
+msgstr "Checks run over the packaged book, so they see exactly what a reader gets."
+
 msgid "choice"
 msgstr "choice"
 
@@ -2624,6 +2647,9 @@ msgstr "Close"
 
 msgid "Close {name} settings"
 msgstr "Close {name} settings"
+
+#~ msgid "Close book information"
+#~ msgstr "Close book information"
 
 msgid "Close edit panel"
 msgstr "Close edit panel"
@@ -3025,6 +3051,9 @@ msgstr "Create prompt file from template"
 
 msgid "Create session"
 msgstr "Create session"
+
+#~ msgid "Created"
+#~ msgstr "Created"
 
 msgid "Created {created} prompt files for {normalizedTargetModel}."
 msgstr "Created {created} prompt files for {normalizedTargetModel}."
@@ -4980,6 +5009,9 @@ msgstr "I understand the part was processed with different prompts/models and wa
 msgid "I'll start later"
 msgstr "I'll start later"
 
+#~ msgid "Identifier"
+#~ msgstr "Identifier"
+
 msgid "Identify the key idea"
 msgstr "Identify the key idea"
 
@@ -5117,6 +5149,9 @@ msgstr "Images"
 
 msgid "Images by page"
 msgstr "Images by page"
+
+msgid "Images must have alternate text"
+msgstr "Images must have alternate text"
 
 msgid "Images only"
 msgstr "Images only"
@@ -6788,6 +6823,9 @@ msgstr "No translations yet"
 msgid "No unassigned videos are available."
 msgstr "No unassigned videos are available."
 
+msgid "No validation run yet"
+msgstr "No validation run yet"
+
 msgid "No variables detected in the current template."
 msgstr "No variables detected in the current template."
 
@@ -7293,6 +7331,9 @@ msgstr "p. 7"
 #. placeholder {0}: pageMatch[1]
 msgid "p{0}"
 msgstr "p{0}"
+
+msgid "Package and check the book"
+msgstr "Package and check the book"
 
 msgid "Package and preview the final ADT web application."
 msgstr "Package and preview the final ADT web application."
@@ -8699,6 +8740,9 @@ msgstr "Review each heading’s level, page, confidence, style cluster, and stor
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Review one session at a time to inspect page coverage and flagged findings."
 
+msgid "Review pages in Preview"
+msgstr "Review pages in Preview"
+
 msgid "Review progress"
 msgstr "Review progress"
 
@@ -8750,6 +8794,9 @@ msgstr "Reviewer checklist reviews are currently disabled."
 
 msgid "Reviewer checklist settings saved."
 msgstr "Reviewer checklist settings saved."
+
+msgid "Reviewer findings"
+msgstr "Reviewer findings"
 
 msgid "Reviewer guidance"
 msgstr "Reviewer guidance"
@@ -8897,6 +8944,9 @@ msgstr "Run whole-book validation checks and configure accessibility assessment 
 
 msgid "Run-only tags"
 msgstr "Run-only tags"
+
+msgid "running"
+msgstr "running"
 
 msgid "Running"
 msgstr "Running"
@@ -9277,6 +9327,10 @@ msgid "Sections by page"
 msgstr "Sections by page"
 
 #. placeholder {0}: frame.sectionCount
+msgid "Sections generated — {0} sections"
+msgstr "Sections generated — {0} sections"
+
+#. placeholder {0}: frame.sectionCount
 #. placeholder {1}: pages.length
 msgid "Sections generated — {0} sections across {1} pages"
 msgstr "Sections generated — {0} sections across {1} pages"
@@ -9481,6 +9535,9 @@ msgstr "serious"
 
 msgid "Serious"
 msgstr "Serious"
+
+msgid "Serious · found on 4 pages, each linked back to the page it came from."
+msgstr "Serious · found on 4 pages, each linked back to the page it came from."
 
 msgid "Session comments"
 msgstr "Session comments"
@@ -11489,6 +11546,9 @@ msgstr "Validates in VALIDE Desktop — the official PNLD reader"
 msgid "Validation"
 msgstr "Validation"
 
+msgid "Validation checks the packaged book Storyboard produces. Finish Storyboard before running this stage."
+msgstr "Validation checks the packaged book Storyboard produces. Finish Storyboard before running this stage."
+
 #. placeholder {0}: data.validationErrors.length
 msgid "Validation Errors ({0})"
 msgstr "Validation Errors ({0})"
@@ -11706,6 +11766,9 @@ msgstr "Welcome"
 msgid "Welcome to ADT Studio"
 msgstr "Welcome to ADT Studio"
 
+msgid "What a check reports"
+msgstr "What a check reports"
+
 msgid "What a video looks like here"
 msgstr "What a video looks like here"
 
@@ -11786,6 +11849,9 @@ msgstr "Whole outline"
 
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
+
+msgid "Whole-book checks on the packaged output, plus reviewer findings captured from Preview."
+msgstr "Whole-book checks on the packaged output, plus reviewer findings captured from Preview."
 
 msgid "Why does the tram stop?"
 msgstr "Why does the tram stop?"

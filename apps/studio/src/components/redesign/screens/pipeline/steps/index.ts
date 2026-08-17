@@ -10,6 +10,7 @@ import { SignLanguageStep } from "./SignLanguageStep"
 import { SpeechStep } from "./SpeechStep"
 import { TocStep } from "./TocStep"
 import { TranslateStep } from "./TranslateStep"
+import { ValidationStep } from "./ValidationStep"
 import type { StepProps } from "./shared/types"
 
 export const STEP_VIEWS: Record<DockSlug, ComponentType<StepProps>> = {
@@ -23,6 +24,7 @@ export const STEP_VIEWS: Record<DockSlug, ComponentType<StepProps>> = {
   translate: TranslateStep,
   speech: SpeechStep,
   "sign-language": SignLanguageStep,
+  validation: ValidationStep,
 }
 
 export type { StepProps, StepFrame } from "./shared/types"

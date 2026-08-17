@@ -25,6 +25,7 @@ export function PipelineScreen() {
     page: pageId,
     preview,
     previewSection,
+    previewHref,
   } = route.useSearch()
   const { i18n } = useLingui()
 
@@ -46,6 +47,7 @@ export function PipelineScreen() {
     selectSettingsTab,
     selectPage,
     openPreview,
+    openPreviewHref,
     closePreview,
   } = usePipelineNavigation({ label, stepSlug, settingsSlug, pageId, i18n })
 
@@ -58,6 +60,7 @@ export function PipelineScreen() {
       <PreviewScreen
         label={label}
         targetSectionId={previewSection ?? null}
+        targetHref={previewHref ?? null}
         onBack={closePreview}
       />
     )
@@ -89,6 +92,8 @@ export function PipelineScreen() {
       onBack: closeStep,
       onOpenPlugin: openStep,
       onOpenSettings: openSettings,
+      onOpenPreview: openPreview,
+      onOpenPreviewHref: openPreviewHref,
       extractDone: state.extractDone,
       hasSections: state.hasSections,
       sectionCount: state.sectionCount,

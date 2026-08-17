@@ -27,6 +27,7 @@ export const STEP_PREREQ: Record<DockSlug, StageName | null> = {
   translate: "storyboard",
   speech: "translate",
   "sign-language": "storyboard",
+  validation: "storyboard",
 }
 
 /** What we know about a book's progress, from the run status and its artifacts. */
@@ -72,4 +73,5 @@ export const STEP_PREREQ_REASON: Partial<Record<DockSlug, MessageDescriptor>> = 
   translate: msg`Translation runs on the typed sections placed by Storyboard. Finish Storyboard before running this stage.`,
   speech: msg`Speech narrates the translated text Language produces. Finish Language before running this stage.`,
   "sign-language": msg`Sign Language assigns one video per Storyboard section. Finish Storyboard first so you have sections to match against.`,
+  validation: msg`Validation checks the packaged book Storyboard produces. Finish Storyboard before running this stage.`,
 }

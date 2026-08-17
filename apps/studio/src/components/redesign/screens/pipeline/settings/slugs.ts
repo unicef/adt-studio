@@ -12,6 +12,7 @@ export const STEP_SETTINGS_SLUGS = [
   "easy-read",
   "translate",
   "speech",
+  "validation",
 ] as const
 
 export type StepSettingsSlug = (typeof STEP_SETTINGS_SLUGS)[number]

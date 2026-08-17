@@ -235,6 +235,7 @@ msgid "{0} issue/issues"
 msgstr "{0} çështje/çështje"
 
 #. placeholder {0}: String(view.issues)
+#. placeholder {0}: summary.violationCount
 msgid "{0} issues"
 msgstr "{0} probleme"
 
@@ -308,6 +309,10 @@ msgstr "{0} faqe"
 #. placeholder {1}: split.exportedParts
 msgid "{0} pages · {1, plural, one {# part} other {# parts}}"
 msgstr "{0} faqe · {1, plural, one {# pjesë} other {# pjesë}}"
+
+#. placeholder {0}: summary.pageCount
+msgid "{0} pages checked"
+msgstr "{0} faqe të kontrolluara"
 
 #. placeholder {0}: pages.length
 msgid "{0} pages ready"
@@ -675,8 +680,14 @@ msgstr "1 orë"
 msgid "1 image selected"
 msgstr "1 imazh i zgjedhur"
 
+msgid "1 issue"
+msgstr "1 problem"
+
 msgid "1 item needs changes on this page"
 msgstr "1 element kërkon ndryshime në këtë faqe"
+
+msgid "1 page checked"
+msgstr "1 faqe e kontrolluar"
 
 msgid "1 quiz / {frequency} pages"
 msgstr "1 kuiz / {frequency} faqe"
@@ -1748,8 +1759,8 @@ msgstr "Zbato sugjerimin"
 msgid "Apply to all errors in this run"
 msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
 
-msgid "Apply to book"
-msgstr "Zbato te libri"
+#~ msgid "Apply to book"
+#~ msgstr "Zbato te libri"
 
 #~ msgid "Applying…"
 #~ msgstr "Duke aplikuar…"
@@ -1910,6 +1921,9 @@ msgstr "Në pritje të kthimit"
 
 msgid "Axe could not fully evaluate these checks in preview. Verify them in-browser or by inspection."
 msgstr "Axe nuk mund t'i vlerësonte plotësisht këto kontrolle në pamje paraprake. Verifikojini në shfletues ose me inspektim."
+
+msgid "axe-core · not AI-generated"
+msgstr "axe-core · jo i gjeneruar nga IA"
 
 msgid "Azure"
 msgstr "Azure"
@@ -2086,6 +2100,9 @@ msgstr "Figurat e librit"
 
 msgid "Book info"
 msgstr "Info libri"
+
+#~ msgid "Book information"
+#~ msgstr "Informacione për librin"
 
 msgid "Book Language"
 msgstr "Gjuha e librit"
@@ -2479,6 +2496,12 @@ msgstr "Po kontrollohet për përditësime…"
 msgid "Checklist item"
 msgstr "Artikull liste kontrolli"
 
+msgid "Checks"
+msgstr "Kontrollet"
+
+msgid "Checks run over the packaged book, so they see exactly what a reader gets."
+msgstr "Kontrollet kryhen mbi librin e paketuar, kështu që shohin pikërisht atë që merr lexuesi."
+
 msgid "choice"
 msgstr "zgjedhje"
 
@@ -2625,6 +2648,9 @@ msgstr "Mbyll"
 
 msgid "Close {name} settings"
 msgstr "Mbyll cilësimet e {name}"
+
+#~ msgid "Close book information"
+#~ msgstr "Mbyll informacionet e librit"
 
 msgid "Close edit panel"
 msgstr "Mbyll panelin e redaktimit"
@@ -3026,6 +3052,9 @@ msgstr "Krijo skedar prompti nga shablloni"
 
 msgid "Create session"
 msgstr "Krijo sesion"
+
+#~ msgid "Created"
+#~ msgstr "Krijuar më"
 
 msgid "Created {created} prompt files for {normalizedTargetModel}."
 msgstr "U krijuan {created} skedarë prompti për {normalizedTargetModel}."
@@ -4981,6 +5010,9 @@ msgstr "E kuptoj se pjesa u përpunua me prompte/modele të ndryshme dhe dua ta 
 msgid "I'll start later"
 msgstr "Do të filloj më vonë"
 
+#~ msgid "Identifier"
+#~ msgstr "Identifikuesi"
+
 msgid "Identify the key idea"
 msgstr "Identifiko idenë kryesore"
 
@@ -5118,6 +5150,9 @@ msgstr "Imazhe"
 
 msgid "Images by page"
 msgstr "Imazhe sipas faqes"
+
+msgid "Images must have alternate text"
+msgstr "Imazhet duhet të kenë tekst alternativ"
 
 msgid "Images only"
 msgstr "Vetëm imazhe"
@@ -6789,6 +6824,9 @@ msgstr "Ende nuk ka përkthime"
 msgid "No unassigned videos are available."
 msgstr "Nuk ka video të pacaktuara të disponueshme."
 
+msgid "No validation run yet"
+msgstr "Ende nuk është kryer asnjë validim"
+
 msgid "No variables detected in the current template."
 msgstr "Nuk u zbuluan variabla në template-in aktual."
 
@@ -7294,6 +7332,9 @@ msgstr "f. 7"
 #. placeholder {0}: pageMatch[1]
 msgid "p{0}"
 msgstr "f{0}"
+
+msgid "Package and check the book"
+msgstr "Paketo dhe kontrollo librin"
 
 msgid "Package and preview the final ADT web application."
 msgstr "Paketoni dhe shikoni paraprakisht aplikacionin web përfundimtar ADT."
@@ -8700,6 +8741,9 @@ msgstr "Rishikoni nivelin, faqen, besueshmërinë, grupin e stileve dhe caktimin
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Rishikoni një sesion në të njëjtën kohë për të inspektuar mbulimin e faqeve dhe gjetjet e shënuara."
 
+msgid "Review pages in Preview"
+msgstr "Rishiko faqet në Pamjen paraprake"
+
 msgid "Review progress"
 msgstr "Progresi i rishikimit"
 
@@ -8751,6 +8795,9 @@ msgstr "Rishikimet e listës kontrolluese të rishikuesit janë aktualisht të �
 
 msgid "Reviewer checklist settings saved."
 msgstr "Cilësimet e listës kontrolluese të rishikuesit u ruajtën."
+
+msgid "Reviewer findings"
+msgstr "Gjetjet e rishikuesit"
 
 msgid "Reviewer guidance"
 msgstr "Udhëzimi i rishikuesit"
@@ -8898,6 +8945,9 @@ msgstr "Ekzekutoni kontrollet e validimit të librit të plotë dhe konfiguroni 
 
 msgid "Run-only tags"
 msgstr "Etiketa vetëm-ekzekutimi"
+
+msgid "running"
+msgstr "në ekzekutim"
 
 msgid "Running"
 msgstr "Duke ekzekutuar"
@@ -9278,6 +9328,10 @@ msgid "Sections by page"
 msgstr "Seksione sipas faqes"
 
 #. placeholder {0}: frame.sectionCount
+msgid "Sections generated — {0} sections"
+msgstr "Seksione të gjeneruara — {0} seksione"
+
+#. placeholder {0}: frame.sectionCount
 #. placeholder {1}: pages.length
 msgid "Sections generated — {0} sections across {1} pages"
 msgstr "Seksione të gjeneruara — {0} seksione në {1} faqe"
@@ -9482,6 +9536,9 @@ msgstr "serioz"
 
 msgid "Serious"
 msgstr "Serioz"
+
+msgid "Serious · found on 4 pages, each linked back to the page it came from."
+msgstr "Serioze · gjetur në 4 faqe, secila e lidhur me faqen e origjinës."
 
 msgid "Session comments"
 msgstr "Komente sesioni"
@@ -11490,6 +11547,9 @@ msgstr "Validohet në VALIDE Desktop — lexuesi zyrtar i PNLD-së"
 msgid "Validation"
 msgstr "Vërtetim"
 
+msgid "Validation checks the packaged book Storyboard produces. Finish Storyboard before running this stage."
+msgstr "Validimi kontrollon librin e paketuar që prodhon Storyboard. Përfundo Storyboard-in para se ta ekzekutosh këtë fazë."
+
 #. placeholder {0}: data.validationErrors.length
 msgid "Validation Errors ({0})"
 msgstr "Gabime vërtetimi ({0})"
@@ -11707,6 +11767,9 @@ msgstr "Mirë se vini"
 msgid "Welcome to ADT Studio"
 msgstr "Mirë se vini në ADT Studio"
 
+msgid "What a check reports"
+msgstr "Çfarë raporton një kontroll"
+
 msgid "What a video looks like here"
 msgstr "Si duket një video këtu"
 
@@ -11787,6 +11850,9 @@ msgstr "E gjithë struktura"
 
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Kontrolle për të gjithë librin për dalje të paketuara ADT, plus gjetjet e rishikuesve të kaptura nga Parapamja."
+
+msgid "Whole-book checks on the packaged output, plus reviewer findings captured from Preview."
+msgstr "Kontrolle të gjithë librit mbi daljen e paketuar, plus gjetjet e rishikuesit të regjistruara në Pamjen paraprake."
 
 msgid "Why does the tram stop?"
 msgstr "Pse ndalon tramvaji?"

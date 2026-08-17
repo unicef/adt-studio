@@ -276,4 +276,28 @@ export const PLUGIN_COPY: Record<DockSlug, PluginCopy> = {
       <Trans>Videos are recorded by an interpreter and uploaded here, then assigned to a section.</Trans>
     ),
   },
+  validation: {
+    emptyTitle: msg`No validation run yet`,
+    runVerb: msg`Package and check the book`,
+    manualVerb: msg`Review pages in Preview`,
+    sampleTitle: msg`What a check reports`,
+    sample: (
+      <SampleCard>
+        <SampleHead>
+          <span className="text-sm font-bold">
+            <Trans>Images must have alternate text</Trans>
+          </span>
+        </SampleHead>
+        <p className="text-[12.5px] leading-relaxed text-foreground">
+          <Trans>Serious · found on 4 pages, each linked back to the page it came from.</Trans>
+        </p>
+        <p className="font-mono text-[10px] text-muted-foreground">
+          <Trans>axe-core · not AI-generated</Trans>
+        </p>
+      </SampleCard>
+    ),
+    sampleNote: (
+      <Trans>Checks run over the packaged book, so they see exactly what a reader gets.</Trans>
+    ),
+  },
 }

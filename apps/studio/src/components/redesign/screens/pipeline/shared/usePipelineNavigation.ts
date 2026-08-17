@@ -25,6 +25,8 @@ export interface PipelineNavigation {
   selectSettingsTab: (nextTab: string) => void
   selectPage: (pageId: string) => void
   openPreview: (sectionId: string | null) => void
+  /** Opens the preview straight on a bundle page the caller already resolved. */
+  openPreviewHref: (href: string) => void
   closePreview: () => void
 }
 
@@ -103,6 +105,13 @@ export function usePipelineNavigation({
       search: { preview: true, ...(sectionId ? { previewSection: sectionId } : {}), ...page },
     })
   }
+  const openPreviewHref = (href: string) => {
+    navigate({
+      to: "/redesign/pipeline/$label",
+      params: { label },
+      search: { preview: true, previewHref: href, ...page },
+    })
+  }
   const closePreview = () => {
     navigate({ to: "/redesign/pipeline/$label", params: { label }, search: { ...page } })
   }
@@ -115,6 +124,7 @@ export function usePipelineNavigation({
     selectSettingsTab,
     selectPage,
     openPreview,
+    openPreviewHref,
     closePreview,
   }
 }

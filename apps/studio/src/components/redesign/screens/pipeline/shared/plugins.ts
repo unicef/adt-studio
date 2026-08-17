@@ -15,6 +15,7 @@ export const PLUGIN_SLUGS = [
   "translate",
   "speech",
   "sign-language",
+  "validation",
 ] as const
 
 export type FoundationSlug = (typeof FOUNDATION_SLUGS)[number]

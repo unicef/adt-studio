@@ -74,6 +74,7 @@ export function PluginWorkspace({
         <span className="grid size-6.5 place-items-center rounded-full bg-white/20">
           <plugin.icon className="size-3.5" strokeWidth={2.4} />
         </span>
+
         <span className="text-sm font-semibold">{name}</span>
 
         <div className="flex flex-1 items-center justify-center gap-1.5">
@@ -85,16 +86,6 @@ export function PluginWorkspace({
         </div>
 
         <div style={NO_DRAG_REGION} className="flex items-center gap-2">
-          <button
-            type="button"
-            disabled={!canApply}
-            className={cn(
-              "h-7 rounded-lg border border-white/25 px-2.5 text-xs font-medium transition-colors",
-              canApply ? "hover:bg-white/16" : "opacity-50",
-            )}
-          >
-            <Trans>Apply to book</Trans>
-          </button>
           {onOpenSettings && (
             <button
               type="button"

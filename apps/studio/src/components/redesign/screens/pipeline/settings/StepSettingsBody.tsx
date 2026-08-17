@@ -9,6 +9,7 @@ import { SectioningSettings } from "@/components/pipeline/stages/sectioning/Sect
 import { SpeechSettings } from "@/components/pipeline/stages/speech/SpeechSettings"
 import { StoryboardSettings } from "@/components/pipeline/stages/storyboard/StoryboardSettings"
 import { TocSettings } from "@/components/pipeline/stages/toc/TocSettings"
+import { ValidationSettings } from "@/components/pipeline/stages/ValidationSettings"
 import type { StepSettingsSlug } from "./slugs"
 
 export interface StepSettingsBodyProps {
@@ -39,6 +40,8 @@ export function StepSettingsBody({ label, slug, tab }: StepSettingsBodyProps) {
       return <LanguageSettings bookLabel={label} tab={tab} stageSlug="translate" />
     case "speech":
       return <SpeechSettings bookLabel={label} tab={tab} />
+    case "validation":
+      return <ValidationSettings bookLabel={label} tab={tab} />
     default:
       return (
         <p className="p-4 text-sm text-muted-foreground">

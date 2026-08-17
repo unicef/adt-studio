@@ -17,6 +17,9 @@ import { cn } from "@/lib/utils"
 
 interface AccessibilityTabProps {
   label: string
+  /** Overrides where a finding's page link goes. The redesign pipeline passes
+   *  its own preview route so the link does not escape into the legacy UI. */
+  onOpenPage?: (href: string) => void
 }
 
 const SEVERITY_ORDER: AccessibilitySeverity[] = ["critical", "serious", "moderate", "minor", "unknown"]
@@ -278,7 +281,7 @@ function FrequentFindingCard({
 
 
 
-export function AccessibilityOverviewTab({ label }: AccessibilityTabProps) {
+export function AccessibilityOverviewTab({ label, onOpenPage }: AccessibilityTabProps) {
   const { t, i18n } = useLingui()
   const navigate = useNavigate()
   const { data, isLoading, error } = useAccessibilityAssessment(label)
@@ -338,13 +341,15 @@ export function AccessibilityOverviewTab({ label }: AccessibilityTabProps) {
 
   const hasActiveFilter = severityFilter !== null || categoryFilter !== null
 
-  const openPreviewToPage = (href: string) => {
-    void navigate({
-      to: "/books/$label/$step",
-      params: { label, step: "preview" },
-      search: { previewHref: href },
+  const openPreviewToPage =
+    onOpenPage ??
+    ((href: string) => {
+      void navigate({
+        to: "/books/$label/$step",
+        params: { label, step: "preview" },
+        search: { previewHref: href },
+      })
     })
-  }
 
   const activeSeverityLabel = severityFilter ? <SeverityLabel severity={severityFilter} /> : null
   const activeCategoryLabel = categoryFilter

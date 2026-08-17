@@ -233,6 +233,7 @@ msgid "{0} issue/issues"
 msgstr "{0} incidencia(s)"
 
 #. placeholder {0}: String(view.issues)
+#. placeholder {0}: summary.violationCount
 msgid "{0} issues"
 msgstr "{0} problemas"
 
@@ -306,6 +307,10 @@ msgstr "{0} páginas"
 #. placeholder {1}: split.exportedParts
 msgid "{0} pages · {1, plural, one {# part} other {# parts}}"
 msgstr "{0} páginas · {1, plural, one {# parte} other {# partes}}"
+
+#. placeholder {0}: summary.pageCount
+msgid "{0} pages checked"
+msgstr "{0} páginas verificadas"
 
 #. placeholder {0}: pages.length
 msgid "{0} pages ready"
@@ -673,8 +678,14 @@ msgstr "1 hora"
 msgid "1 image selected"
 msgstr "1 imagen seleccionada"
 
+msgid "1 issue"
+msgstr "1 problema"
+
 msgid "1 item needs changes on this page"
 msgstr "1 item needs changes on this page"
+
+msgid "1 page checked"
+msgstr "1 página verificada"
 
 msgid "1 quiz / {frequency} pages"
 msgstr "1 cuestionario / {frequency} páginas"
@@ -1746,8 +1757,8 @@ msgstr "Aplicar sugerencia"
 msgid "Apply to all errors in this run"
 msgstr "Aplicar a todos los errores de esta ejecución"
 
-msgid "Apply to book"
-msgstr "Aplicar al libro"
+#~ msgid "Apply to book"
+#~ msgstr "Aplicar al libro"
 
 #~ msgid "Applying…"
 #~ msgstr "Aplicando…"
@@ -1908,6 +1919,9 @@ msgstr "Esperando devolución"
 
 msgid "Axe could not fully evaluate these checks in preview. Verify them in-browser or by inspection."
 msgstr "Axe no pudo evaluar completamente estas verificaciones en la vista previa. Verifícalas en el navegador o mediante inspección."
+
+msgid "axe-core · not AI-generated"
+msgstr "axe-core · no generado por IA"
 
 msgid "Azure"
 msgstr "Azure"
@@ -2084,6 +2098,9 @@ msgstr "Imágenes del libro"
 
 msgid "Book info"
 msgstr "Información del libro"
+
+#~ msgid "Book information"
+#~ msgstr "Información del libro"
 
 msgid "Book Language"
 msgstr "Idioma del libro"
@@ -2477,6 +2494,12 @@ msgstr "Buscando actualizaciones…"
 msgid "Checklist item"
 msgstr "Checklist item"
 
+msgid "Checks"
+msgstr "Comprobaciones"
+
+msgid "Checks run over the packaged book, so they see exactly what a reader gets."
+msgstr "Las comprobaciones se ejecutan sobre el libro empaquetado, así que ven exactamente lo que recibe el lector."
+
 msgid "choice"
 msgstr "opción"
 
@@ -2623,6 +2646,9 @@ msgstr "Close"
 
 msgid "Close {name} settings"
 msgstr "Cerrar los ajustes de {name}"
+
+#~ msgid "Close book information"
+#~ msgstr "Cerrar información del libro"
 
 msgid "Close edit panel"
 msgstr "Cerrar panel de edición"
@@ -3024,6 +3050,9 @@ msgstr "Crear archivo de prompt desde plantilla"
 
 msgid "Create session"
 msgstr "Create session"
+
+#~ msgid "Created"
+#~ msgstr "Creado"
 
 msgid "Created {created} prompt files for {normalizedTargetModel}."
 msgstr "Se crearon {created} archivos de prompt para {normalizedTargetModel}."
@@ -4979,6 +5008,9 @@ msgstr "Entiendo que la parte se procesó con distintos prompts/modelos y quiero
 msgid "I'll start later"
 msgstr "Empezaré más tarde"
 
+#~ msgid "Identifier"
+#~ msgstr "Identificador"
+
 msgid "Identify the key idea"
 msgstr "Identificar la idea clave"
 
@@ -5116,6 +5148,9 @@ msgstr "Imágenes"
 
 msgid "Images by page"
 msgstr "Imágenes por página"
+
+msgid "Images must have alternate text"
+msgstr "Las imágenes deben tener texto alternativo"
 
 msgid "Images only"
 msgstr "Solo imágenes"
@@ -6787,6 +6822,9 @@ msgstr "Aún no hay traducciones"
 msgid "No unassigned videos are available."
 msgstr "No hay videos sin asignar disponibles."
 
+msgid "No validation run yet"
+msgstr "Aún no se ha ejecutado ninguna validación"
+
 msgid "No variables detected in the current template."
 msgstr "No se detectaron variables en la plantilla actual."
 
@@ -7292,6 +7330,9 @@ msgstr "p. 7"
 #. placeholder {0}: pageMatch[1]
 msgid "p{0}"
 msgstr "p{0}"
+
+msgid "Package and check the book"
+msgstr "Empaquetar y comprobar el libro"
 
 msgid "Package and preview the final ADT web application."
 msgstr "Empaqueta y previsualiza la aplicación web ADT final."
@@ -8698,6 +8739,9 @@ msgstr "Revisa el nivel, la página, la confianza, el grupo de estilos y la asig
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Review one session at a time to inspect page coverage and flagged findings."
 
+msgid "Review pages in Preview"
+msgstr "Revisar páginas en la Vista previa"
+
 msgid "Review progress"
 msgstr "Review progress"
 
@@ -8749,6 +8793,9 @@ msgstr "Reviewer checklist reviews are currently disabled."
 
 msgid "Reviewer checklist settings saved."
 msgstr "Reviewer checklist settings saved."
+
+msgid "Reviewer findings"
+msgstr "Hallazgos del revisor"
 
 msgid "Reviewer guidance"
 msgstr "Reviewer guidance"
@@ -8896,6 +8943,9 @@ msgstr "Run whole-book validation checks and configure accessibility assessment 
 
 msgid "Run-only tags"
 msgstr "Run-only tags"
+
+msgid "running"
+msgstr "en ejecución"
 
 msgid "Running"
 msgstr "En ejecución"
@@ -9276,6 +9326,10 @@ msgid "Sections by page"
 msgstr "Secciones por página"
 
 #. placeholder {0}: frame.sectionCount
+msgid "Sections generated — {0} sections"
+msgstr "Secciones generadas — {0} secciones"
+
+#. placeholder {0}: frame.sectionCount
 #. placeholder {1}: pages.length
 msgid "Sections generated — {0} sections across {1} pages"
 msgstr "Secciones generadas: {0} secciones en {1} páginas"
@@ -9480,6 +9534,9 @@ msgstr "serious"
 
 msgid "Serious"
 msgstr "Serious"
+
+msgid "Serious · found on 4 pages, each linked back to the page it came from."
+msgstr "Grave · encontrado en 4 páginas, cada una enlazada a la página de origen."
 
 msgid "Session comments"
 msgstr "Session comments"
@@ -11488,6 +11545,9 @@ msgstr "Se valida en VALIDE Desktop, el lector oficial del PNLD"
 msgid "Validation"
 msgstr "Validation"
 
+msgid "Validation checks the packaged book Storyboard produces. Finish Storyboard before running this stage."
+msgstr "La Validación comprueba el libro empaquetado que produce Storyboard. Termina Storyboard antes de ejecutar esta etapa."
+
 #. placeholder {0}: data.validationErrors.length
 msgid "Validation Errors ({0})"
 msgstr "Errores de validación ({0})"
@@ -11705,6 +11765,9 @@ msgstr "Bienvenido"
 msgid "Welcome to ADT Studio"
 msgstr "Te damos la bienvenida a ADT Studio"
 
+msgid "What a check reports"
+msgstr "Qué informa una comprobación"
+
 msgid "What a video looks like here"
 msgstr "Cómo se ve un vídeo aquí"
 
@@ -11785,6 +11848,9 @@ msgstr "Esquema completo"
 
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
+
+msgid "Whole-book checks on the packaged output, plus reviewer findings captured from Preview."
+msgstr "Comprobaciones de todo el libro sobre la salida empaquetada, más los hallazgos del revisor capturados en la Vista previa."
 
 msgid "Why does the tram stop?"
 msgstr "¿Por qué se detiene el tranvía?"

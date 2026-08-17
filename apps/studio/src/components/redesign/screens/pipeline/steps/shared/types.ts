@@ -8,6 +8,8 @@ export interface StepFrame {
   onBack: () => void
   onOpenPlugin: (slug: string) => void
   onOpenSettings: (slug: DockSlug) => void
+  onOpenPreview: (sectionId: string | null) => void
+  onOpenPreviewHref: (href: string) => void
   extractDone: boolean
   hasSections: boolean
   sectionCount: number
