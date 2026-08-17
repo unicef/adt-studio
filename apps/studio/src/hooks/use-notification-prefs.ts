@@ -23,7 +23,7 @@ export interface NotificationPrefs {
 const STORAGE_KEY = "adt.notifications"
 
 const DEFAULTS: NotificationPrefs = {
-  position: "top-center",
+  position: "bottom-right",
   sound: true,
   autoDismiss: true,
   autoDelay: 4,
