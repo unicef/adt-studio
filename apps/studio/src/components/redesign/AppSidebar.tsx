@@ -16,7 +16,6 @@ import {
   Library,
   Keyboard,
   Sparkles,
-  RotateCcw,
   Bug,
   Info,
   ArrowUpRight,
@@ -218,15 +217,6 @@ export function AppSidebar({
               }}
             >
               <Trans>What&apos;s new</Trans>
-            </MenuRow>
-            <MenuRow
-              icon={RotateCcw}
-              onClick={() => {
-                setHelpOpen(false)
-                navigate({ to: "/onboarding" })
-              }}
-            >
-              <Trans>Restart onboarding tour</Trans>
             </MenuRow>
             <div className="mx-1.5 my-1.5 h-px bg-border" />
             <MenuRow

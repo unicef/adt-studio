@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
-import { Check, RotateCcw, Folder, FileDown, Clock, Download, Laptop } from "lucide-react"
+import { useNavigate } from "@tanstack/react-router"
+import { Check, RotateCcw, Folder, FileDown, Clock, Download, Laptop, Compass } from "lucide-react"
 import { useAppVersion } from "@/hooks/use-app-version"
 import { useAppLogo } from "@/hooks/use-app-logo"
 import { usePlatform } from "@/hooks/use-platform"
@@ -56,6 +57,7 @@ export function AboutSection() {
   const version = useAppVersion()
   const logoSrc = useAppLogo()
   const os = usePlatform()
+  const navigate = useNavigate()
   const { openUpdateDialog, hasPendingUpdate } = useUpdateDialog()
 
   return (
@@ -121,12 +123,27 @@ export function AboutSection() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <DetailTile icon={Laptop} title={<Trans>Platform</Trans>}>
           <div className="text-[15px] font-semibold">{OS_LABEL[os]}</div>
           <p className="mt-0.5 text-[12px] text-muted-foreground">
             <Trans>Running on this machine.</Trans>
           </p>
+        </DetailTile>
+
+        <DetailTile icon={Compass} title={<Trans>Onboarding tour</Trans>}>
+          <p className="text-[12px] leading-normal text-muted-foreground">
+            <Trans>Replay the guided introduction to ADT Studio.</Trans>
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate({ to: "/onboarding" })}
+            className={cn("mt-3 transition-transform duration-150 motion-safe:active:scale-[0.97]", EASE)}
+          >
+            <RotateCcw className="size-3.5" />
+            <Trans>Restart tour</Trans>
+          </Button>
         </DetailTile>
 
         <DetailTile icon={Folder} title={<Trans>Books folder</Trans>} soon anchorId={SETTINGS_ANCHORS.booksFolder}>
