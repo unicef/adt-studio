@@ -1,5 +1,109 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { createElevenLabsTTSSynthesizer, createGeminiTTSSynthesizer, transcribeWithWhisper } from "../speech.js"
+import {
+  createAzureTTSSynthesizer,
+  createElevenLabsTTSSynthesizer,
+  createGeminiTTSSynthesizer,
+  createTTSSynthesizer,
+  transcribeWithWhisper,
+} from "../speech.js"
+
+describe("createAzureTTSSynthesizer", () => {
+  const fetchMock = vi.fn<typeof fetch>()
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+    vi.stubGlobal("fetch", fetchMock)
+    vi.spyOn(console, "log").mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.restoreAllMocks()
+  })
+
+  it("escapes XML metacharacters in the voice name and the text", async () => {
+    fetchMock.mockResolvedValue(new Response(new Uint8Array([1, 2]), { status: 200 }))
+
+    const synth = createAzureTTSSynthesizer({
+      subscriptionKey: "az-test",
+      region: "brazilsouth",
+    })
+    await synth.synthesize({
+      model: "azure-tts",
+      voice: "pt-BR-<Francisca>&'Neural'",
+      input: "Tom & Jerry <3",
+      responseFormat: "mp3",
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe("https://brazilsouth.tts.speech.microsoft.com/cognitiveservices/v1")
+    expect(String(init?.body)).toBe(
+      "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'>" +
+        "<voice name='pt-BR-&lt;Francisca&gt;&amp;&apos;Neural&apos;'>" +
+        "Tom &amp; Jerry &lt;3</voice></speak>"
+    )
+  })
+
+  it("does not log the text content of the request", async () => {
+    fetchMock.mockResolvedValue(new Response(new Uint8Array([1, 2]), { status: 200 }))
+    const logSpy = vi.mocked(console.log)
+
+    const synth = createAzureTTSSynthesizer({
+      subscriptionKey: "az-test",
+      region: "brazilsouth",
+    })
+    await synth.synthesize({
+      model: "azure-tts",
+      voice: "pt-BR-FranciscaNeural",
+      input: "a very private sentence",
+      responseFormat: "mp3",
+    })
+
+    const logged = logSpy.mock.calls.map((call) => call.join(" ")).join("\n")
+    expect(logged).toContain("[azure-tts] POST")
+    expect(logged).not.toContain("a very private sentence")
+  })
+})
+
+describe("createTTSSynthesizer", () => {
+  const fetchMock = vi.fn<typeof fetch>()
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+    vi.stubGlobal("fetch", fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it("posts to the default OpenAI endpoint", async () => {
+    fetchMock.mockResolvedValue(new Response(new Uint8Array([1]), { status: 200 }))
+
+    await createTTSSynthesizer("sk-test").synthesize({
+      model: "gpt-4o-mini-tts",
+      voice: "alloy",
+      input: "Hello",
+      responseFormat: "mp3",
+    })
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.openai.com/v1/audio/speech")
+  })
+
+  it("honors a custom base URL, trimming a trailing slash", async () => {
+    fetchMock.mockResolvedValue(new Response(new Uint8Array([1]), { status: 200 }))
+
+    await createTTSSynthesizer("sk-test", "https://proxy.example.com/v1/").synthesize({
+      model: "gpt-4o-mini-tts",
+      voice: "alloy",
+      input: "Hello",
+      responseFormat: "mp3",
+    })
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://proxy.example.com/v1/audio/speech")
+  })
+})
 
 describe("createGeminiTTSSynthesizer", () => {
   const fetchMock = vi.fn<typeof fetch>()

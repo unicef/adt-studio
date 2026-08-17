@@ -1,5 +1,6 @@
 import type { SttCapabilities, TtsCapabilities } from "@adt/types"
 import { AiProviderError } from "../../../ports/errors.js"
+import { createTTSSynthesizer } from "../../../speech.js"
 import type {
   SpeechResult,
   SpeechSynthesisRequest,
@@ -46,48 +47,30 @@ export interface OpenAiSpeechOptions {
   capabilities: TtsCapabilities
 }
 
+/**
+ * Adapts the legacy `TTSSynthesizer` the speech pipeline still constructs
+ * directly, so the OpenAI speech REST call lives in exactly one place.
+ */
 export function createOpenAiSpeechSynthesizer(
   options: OpenAiSpeechOptions,
 ): SpeechSynthesizer {
   return {
     async synthesize(request: SpeechSynthesisRequest): Promise<SpeechResult> {
-      assertFormatSupported(
-        options.providerId,
-        options.modelId,
-        request.format,
-        options.capabilities,
-      )
+      const format = request.format.toLowerCase()
+      assertFormatSupported(options.providerId, options.modelId, format, options.capabilities)
 
-      const response = await fetch(`${trimSlash(options.baseUrl)}/audio/speech`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${options.apiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: options.modelId,
-          voice: request.voice,
-          input: request.text,
-          response_format: request.format,
-          ...(options.capabilities.instructions && request.instructions
-            ? { instructions: request.instructions }
-            : {}),
-        }),
-        signal: request.signal,
+      const audio = await createTTSSynthesizer(options.apiKey, options.baseUrl).synthesize({
+        model: options.modelId,
+        voice: request.voice,
+        input: request.text,
+        responseFormat: format,
+        ...(options.capabilities.instructions && request.instructions
+          ? { instructions: request.instructions }
+          : {}),
+        ...(request.signal ? { signal: request.signal } : {}),
       })
 
-      if (!response.ok) {
-        const message = await response.text()
-        throw new Error(
-          `TTS request failed (${response.status}): ${message || response.statusText}`,
-        )
-      }
-
-      return {
-        audio: new Uint8Array(await response.arrayBuffer()),
-        format: request.format,
-        mimeType: audioMimeType(request.format),
-      }
+      return { audio, format, mimeType: audioMimeType(format) }
     },
   }
 }

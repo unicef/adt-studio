@@ -9,6 +9,7 @@ import {
   codexExecutable,
   readCodexTurn,
   runCodexCli,
+  spawnCodexCommand,
   type CodexCliRequest,
   type CodexCliTurn,
   type CodexProcessResult,
@@ -266,7 +267,7 @@ describe("createCodexStructuredTextBackend", () => {
 })
 
 describe("buildCodexArgs", () => {
-  const args = buildCodexArgs({ model: "gpt-5.1", prompt: "Do it", workDir: "/tmp/work" })
+  const args = buildCodexArgs({ model: "gpt-5.1", workDir: "/tmp/work" })
 
   it("runs isolated: read-only sandbox, no web search, no approvals, no user config", () => {
     expect(args.slice(0, 2)).toEqual(["exec", "--json"])
@@ -279,10 +280,10 @@ describe("buildCodexArgs", () => {
     expect(args).toContain("tools.web_search=false")
   })
 
-  it("pins the working directory and the model, and puts the prompt last", () => {
+  it("pins the working directory and the model, and reads the prompt from stdin", () => {
     expect(args[args.indexOf("--cd") + 1]).toBe("/tmp/work")
     expect(args[args.indexOf("--model") + 1]).toBe("gpt-5.1")
-    expect(args.at(-1)).toBe("Do it")
+    expect(args.at(-1)).toBe("-")
   })
 
   it("adds the output schema file only when one was written", () => {
@@ -290,7 +291,6 @@ describe("buildCodexArgs", () => {
 
     const withSchema = buildCodexArgs({
       model: "gpt-5.1",
-      prompt: "Do it",
       workDir: "/tmp/work",
       schemaPath: "/tmp/work/output-schema.json",
     })
@@ -298,7 +298,42 @@ describe("buildCodexArgs", () => {
     expect(withSchema[withSchema.indexOf("--output-schema") + 1]).toBe(
       "/tmp/work/output-schema.json",
     )
-    expect(withSchema.at(-1)).toBe("Do it")
+    expect(withSchema.at(-1)).toBe("-")
+  })
+})
+
+describe("spawnCodexCommand", () => {
+  const env = { ...process.env } as Record<string, string>
+
+  it("round-trips a prompt above 40,000 chars through stdin without putting it in args", async () => {
+    const prompt = "p".repeat(40_500)
+    const echoStdin =
+      'let d="";process.stdin.setEncoding("utf-8");process.stdin.on("data",(c)=>{d+=c});process.stdin.on("end",()=>{process.stdout.write(d)})'
+    const args = ["-e", echoStdin]
+
+    const result = await spawnCodexCommand(
+      process.execPath,
+      args,
+      env,
+      AbortSignal.timeout(15_000),
+      prompt,
+    )
+
+    expect(args.join(" ")).not.toContain(prompt)
+    expect(result.exitCode).toBe(0)
+    expect(result.stdout).toBe(prompt)
+  })
+
+  it("still reports the exit code when the child quits before reading stdin", async () => {
+    const result = await spawnCodexCommand(
+      process.execPath,
+      ["-e", "process.exit(3)"],
+      env,
+      AbortSignal.timeout(15_000),
+      "x".repeat(40_500),
+    )
+
+    expect(result.exitCode).toBe(3)
   })
 })
 

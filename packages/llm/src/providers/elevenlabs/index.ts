@@ -6,7 +6,10 @@ import type {
   SpeechSynthesisRequest,
   SpeechSynthesizer,
 } from "../../ports/index.js"
-import { createElevenLabsTTSSynthesizer } from "../../speech.js"
+import {
+  createElevenLabsTTSSynthesizer,
+  type SynthesizeSpeechOptions,
+} from "../../speech.js"
 import {
   assertFormatSupported,
   audioMimeType,
@@ -62,6 +65,67 @@ export const elevenLabsManifest: ProviderManifest = {
   docsUrl: "https://elevenlabs.io/docs/api-reference/text-to-speech/convert",
 }
 
+function pickNumber(
+  options: Record<string, unknown> | undefined,
+  key: string,
+): number | undefined {
+  const value = options?.[key]
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined
+}
+
+function pickBoolean(
+  options: Record<string, unknown> | undefined,
+  key: string,
+): boolean | undefined {
+  const value = options?.[key]
+  return typeof value === "boolean" ? value : undefined
+}
+
+function pickString(
+  options: Record<string, unknown> | undefined,
+  key: string,
+): string | undefined {
+  const value = options?.[key]
+  return typeof value === "string" && value.length > 0 ? value : undefined
+}
+
+function pickTextNormalization(
+  options: Record<string, unknown> | undefined,
+): "auto" | "on" | "off" | undefined {
+  const value = options?.applyTextNormalization
+  return value === "auto" || value === "on" || value === "off" ? value : undefined
+}
+
+/**
+ * Map the port's opaque `providerOptions` onto the legacy synthesizer's
+ * ElevenLabs voice-steering fields. Known keys are picked with type checks;
+ * unknown or mistyped keys are ignored so a stale caller can never crash a
+ * synthesis run.
+ */
+function voiceSteeringOptions(
+  providerOptions: Record<string, unknown> | undefined,
+): Partial<SynthesizeSpeechOptions> {
+  const stability = pickNumber(providerOptions, "stability")
+  const similarityBoost = pickNumber(providerOptions, "similarityBoost")
+  const style = pickNumber(providerOptions, "style")
+  const useSpeakerBoost = pickBoolean(providerOptions, "useSpeakerBoost")
+  const speed = pickNumber(providerOptions, "speed")
+  const previousText = pickString(providerOptions, "previousText")
+  const nextText = pickString(providerOptions, "nextText")
+  const applyTextNormalization = pickTextNormalization(providerOptions)
+
+  return {
+    ...(stability !== undefined ? { elevenLabsStability: stability } : {}),
+    ...(similarityBoost !== undefined ? { elevenLabsSimilarityBoost: similarityBoost } : {}),
+    ...(style !== undefined ? { elevenLabsStyle: style } : {}),
+    ...(useSpeakerBoost !== undefined ? { elevenLabsUseSpeakerBoost: useSpeakerBoost } : {}),
+    ...(speed !== undefined ? { elevenLabsSpeed: speed } : {}),
+    ...(previousText !== undefined ? { elevenLabsPreviousText: previousText } : {}),
+    ...(nextText !== undefined ? { elevenLabsNextText: nextText } : {}),
+    ...(applyTextNormalization !== undefined ? { elevenLabsApplyTextNormalization: applyTextNormalization } : {}),
+  }
+}
+
 /**
  * Adapts the legacy `TTSSynthesizer` the speech pipeline still constructs
  * directly, so the REST call, the output-format snapping tables and the voice
@@ -92,6 +156,7 @@ function createElevenLabsSpeechSynthesizer(
         voice: request.voice,
         input: request.text,
         responseFormat: format,
+        ...voiceSteeringOptions(request.providerOptions),
         ...(request.signal ? { signal: request.signal } : {}),
       })
 

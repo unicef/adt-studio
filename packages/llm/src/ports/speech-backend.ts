@@ -9,6 +9,12 @@ export interface SpeechSynthesisRequest {
   seed?: number
   sampleRate?: number
   bitRate?: string
+  /**
+   * Provider-specific steering options (e.g. ElevenLabs voice settings).
+   * Forwarded opaquely by the registry; each adapter picks the keys it
+   * understands (validating their types) and ignores the rest.
+   */
+  providerOptions?: Record<string, unknown>
   signal?: AbortSignal
 }
 

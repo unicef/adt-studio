@@ -4,6 +4,7 @@ import type {
   StructuredTextRequest,
   StructuredTextResult,
 } from "../../../ports/index.js"
+import { asZodLike, toJsonSchema } from "../json-schema.js"
 import { toCoreMessages } from "./messages.js"
 
 export interface AiSdkModelOptions {
@@ -90,16 +91,6 @@ function buildAbortSignal(request: StructuredTextRequest): AbortSignal {
   return request.signal ? AbortSignal.any([timeout, request.signal]) : timeout
 }
 
-interface ZodLike {
-  safeParse: (input: unknown) => { success: boolean; data?: unknown; error?: unknown }
-}
-
-function asZodLike(schema: unknown): ZodLike | null {
-  return schema && typeof (schema as ZodLike).safeParse === "function"
-    ? (schema as ZodLike)
-    : null
-}
-
 async function generateWithParseRepair<T>(
   model: LanguageModel,
   request: StructuredTextRequest,
@@ -107,8 +98,10 @@ async function generateWithParseRepair<T>(
   abortSignal: AbortSignal,
 ): Promise<StructuredTextResult<T>> {
   const zod = asZodLike(request.schema)
-  const instruction =
-    "Respond with a single JSON object and nothing else. No markdown fences, no prose."
+  const schemaJson = serializeSchema(request.schema)
+  const instruction = schemaJson
+    ? `Reply with a single JSON object that validates against this JSON Schema. Emit no prose, no explanation and no code fences.\n\n${schemaJson}`
+    : "Respond with a single JSON object and nothing else. No markdown fences, no prose."
   const system = request.system ? `${request.system}\n\n${instruction}` : instruction
 
   let usage = { inputTokens: 0, outputTokens: 0 }
@@ -148,8 +141,9 @@ async function generateWithParseRepair<T>(
           { role: "assistant", content: generated.text },
           {
             role: "user",
-            content:
-              "That JSON did not match the required schema. Return corrected JSON only.",
+            content: schemaJson
+              ? `That JSON did not match the required schema. Return corrected JSON only, validating against this JSON Schema.\n\n${schemaJson}`
+              : "That JSON did not match the required schema. Return corrected JSON only.",
           },
         ]
         continue
@@ -169,6 +163,11 @@ async function generateWithParseRepair<T>(
   }
 
   throw new Error("Model did not return schema-valid JSON")
+}
+
+function serializeSchema(schema: unknown): string | undefined {
+  if (!schema || typeof schema !== "object") return undefined
+  return JSON.stringify(toJsonSchema(schema, "Structured output"))
 }
 
 export function extractJsonObject(text: string): unknown | null {

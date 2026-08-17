@@ -41,7 +41,6 @@ export function codexExecutable(env: NodeJS.ProcessEnv = process.env): string {
 
 export interface CodexArgsOptions {
   model: string
-  prompt: string
   workDir: string
   schemaPath?: string
 }
@@ -68,7 +67,7 @@ export function buildCodexArgs(options: CodexArgsOptions): string[] {
   ]
 
   if (options.schemaPath) args.push("--output-schema", options.schemaPath)
-  args.push(options.prompt)
+  args.push("-")
   return args
 }
 
@@ -85,12 +84,17 @@ export const runCodexCli: CodexCliRunner = async (request) => {
 
     const args = buildCodexArgs({
       model: request.model,
-      prompt: request.prompt,
       workDir,
       ...(schemaPath ? { schemaPath } : {}),
     })
 
-    const outcome = await spawnCodexCommand(executable, args, request.env, request.signal)
+    const outcome = await spawnCodexCommand(
+      executable,
+      args,
+      request.env,
+      request.signal,
+      request.prompt,
+    )
     return readCodexTurn(outcome)
   } finally {
     await rm(workDir, { recursive: true, force: true })
@@ -108,15 +112,20 @@ export function spawnCodexCommand(
   args: string[],
   env: Record<string, string>,
   signal: AbortSignal,
+  stdinData?: string,
 ): Promise<CodexProcessResult> {
   return new Promise((resolve, reject) => {
-    /** `exec` reads the prompt from stdin when it stays open, so it is closed here. */
+    /** The prompt travels via stdin (`-` positional) to dodge the Windows 32k argv cap. */
     const child = spawn(executable, args, {
       env,
       signal,
-      stdio: ["ignore", "pipe", "pipe"],
+      stdio: ["pipe", "pipe", "pipe"],
       windowsHide: true,
     })
+
+    child.stdin.on("error", () => {})
+    if (stdinData !== undefined) child.stdin.write(stdinData)
+    child.stdin.end()
 
     let stdout = ""
     let stderr = ""

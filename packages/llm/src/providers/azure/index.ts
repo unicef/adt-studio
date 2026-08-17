@@ -6,7 +6,11 @@ import type {
   SpeechSynthesisRequest,
   SpeechSynthesizer,
 } from "../../ports/index.js"
-import { AiProviderError } from "../../ports/errors.js"
+import { createAzureTTSSynthesizer } from "../../speech.js"
+import {
+  assertFormatSupported,
+  audioMimeType,
+} from "../shared/openai-rest/speech.js"
 import { LABEL_API_KEY, LABEL_REGION } from "../shared/i18n.js"
 
 export const AZURE_PROVIDER_ID = "azure"
@@ -78,79 +82,36 @@ export const azureManifest: ProviderManifest = {
     "https://learn.microsoft.com/azure/ai-services/speech-service/rest-text-to-speech",
 }
 
-const MIME_TYPES: Record<string, string> = {
-  mp3: "audio/mpeg",
-  opus: "audio/ogg",
-}
-
-function buildOutputFormat(
-  format: string,
-  sampleRate?: number,
-  bitRate?: string,
-): string {
-  const srKhz = Math.round((sampleRate ?? 24000) / 1000)
-  if (format === "opus") return `ogg-${srKhz}khz-16bit-mono-opus`
-  return `audio-${srKhz}khz-${bitRate ?? "48kbitrate"}-mono-mp3`
-}
-
-function escapeXml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;")
-}
-
-function buildSSML(voice: string, text: string): string {
-  return `<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xml:lang='en-US'><voice name='${escapeXml(voice)}'>${escapeXml(text)}</voice></speak>`
-}
-
-function assertFormat(modelId: string, format: string, capabilities: TtsCapabilities): void {
-  if (!capabilities.formats.includes(format)) {
-    throw AiProviderError.unsupportedCapability(
-      AZURE_PROVIDER_ID,
-      "tts",
-      `format:${format}`,
-      modelId,
-    )
-  }
-}
-
+/**
+ * Adapts the legacy `TTSSynthesizer` the speech pipeline still constructs
+ * directly, so the SSML construction (voice/text escaping) and the Azure REST
+ * call live in exactly one place.
+ */
 function createAzureSpeechSynthesizer(
   modelId: string,
   credentials: AzureCredentials,
   capabilities: TtsCapabilities,
 ): SpeechSynthesizer {
-  const endpoint = `https://${credentials.region}.tts.speech.microsoft.com/cognitiveservices/v1`
-
   return {
     async synthesize(request: SpeechSynthesisRequest): Promise<SpeechResult> {
       const format = request.format.toLowerCase()
-      assertFormat(modelId, format, capabilities)
+      assertFormatSupported(AZURE_PROVIDER_ID, modelId, format, capabilities)
 
-      const outputFormat = buildOutputFormat(format, request.sampleRate, request.bitRate)
-
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: {
-          "Ocp-Apim-Subscription-Key": credentials.apiKey,
-          "Content-Type": "application/ssml+xml",
-          "X-Microsoft-OutputFormat": outputFormat,
+      const audio = await createAzureTTSSynthesizer(
+        { subscriptionKey: credentials.apiKey, region: credentials.region },
+        {
+          ...(request.sampleRate !== undefined ? { sampleRate: request.sampleRate } : {}),
+          ...(request.bitRate !== undefined ? { bitRate: request.bitRate } : {}),
         },
-        body: buildSSML(request.voice, request.text),
-        signal: request.signal,
+      ).synthesize({
+        model: modelId,
+        voice: request.voice,
+        input: request.text,
+        responseFormat: format,
+        ...(request.signal ? { signal: request.signal } : {}),
       })
 
-      if (!response.ok) {
-        const message = await response.text()
-        throw new Error(
-          `Azure TTS request failed (${response.status}): ${message || response.statusText}`,
-        )
-      }
-
-      const audio = new Uint8Array(await response.arrayBuffer())
-      return { audio, format, mimeType: MIME_TYPES[format] ?? "application/octet-stream" }
+      return { audio, format, mimeType: audioMimeType(format) }
     },
   }
 }
