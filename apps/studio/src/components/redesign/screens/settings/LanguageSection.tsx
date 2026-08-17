@@ -64,7 +64,7 @@ export function LanguageSection() {
                   <div
                     className={cn(
                       "truncate text-[13.5px] font-medium leading-tight",
-                      sel ? "text-brand-800 dark:text-brand-100" : "text-foreground",
+                      sel ? "text-brand-800" : "text-foreground",
                     )}
                   >
                     {i18n._(l.native)}
@@ -83,7 +83,7 @@ export function LanguageSection() {
                 >
                   <Check
                     className={cn(
-                      "size-3 text-white transition-[opacity,transform] duration-150 ease-out",
+                      "size-3 text-primary-foreground transition-[opacity,transform] duration-150 ease-out",
                       sel ? "scale-100 opacity-100" : "scale-50 opacity-0",
                     )}
                   />
