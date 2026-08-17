@@ -6,8 +6,8 @@ import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   SettingsCard,
   SettingsField,
-} from "@/components/pipeline/components/SettingsCard"
-import { SettingExplainer } from "@/components/pipeline/components/SettingExplainer"
+} from "./ui/SettingsCard"
+import { SettingExplainer } from "./ui/SettingExplainer"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
@@ -91,10 +91,10 @@ export function TocLanding({ bookLabel, beforeRun }: { bookLabel: string; before
       preview={<TocPreview mode={tocMode} />}
     >
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
           <Trans>Table of Contents</Trans>
         </h1>
-        <p className="text-[14px] text-[#737373] leading-relaxed">
+        <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
             Build a navigable table of contents for the book. Decide whether
             entries mirror the typed section headings exactly or whether the

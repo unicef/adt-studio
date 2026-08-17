@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo , type ReactNode } from "react"
 import { BookOpen, GraduationCap, Sprout } from "lucide-react"
-import { CustomInstructionsField } from "@/components/pipeline/components/CustomInstructionsField"
+import { CustomInstructionsField } from "./ui/CustomInstructionsField"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { i18n as linguiI18n } from "@lingui/core"
@@ -10,7 +10,7 @@ import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   SettingsCard,
   SettingsField,
-} from "@/components/pipeline/components/SettingsCard"
+} from "./ui/SettingsCard"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
@@ -123,10 +123,10 @@ export function CaptionsLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       preview={<CaptionsPreview grade={gradeLevel} />}
     >
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
           <Trans>Image Captions</Trans>
         </h1>
-        <p className="text-[14px] text-[#737373] leading-relaxed">
+        <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
             Generate descriptive captions for every image in the book. Pick a
             reading level so captions match your audience, and add custom

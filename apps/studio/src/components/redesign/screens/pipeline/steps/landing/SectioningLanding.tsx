@@ -3,9 +3,9 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { StepLandingShell } from "./StepLandingShell"
 import { CascadeWarning } from "@/components/pipeline/components/CascadeWarning"
 import { LandingPageWarning } from "@/components/pipeline/components/LandingPageWarning"
-import { SettingsCard, SettingsField } from "@/components/pipeline/components/SettingsCard"
-import { SettingExplainer } from "@/components/pipeline/components/SettingExplainer"
-import { ToggleCard } from "@/components/pipeline/components/ToggleCard"
+import { SettingsCard, SettingsField } from "./ui/SettingsCard"
+import { SettingExplainer } from "./ui/SettingExplainer"
+import { ToggleCard } from "./ui/ToggleCard"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePages } from "@/hooks/use-pages"
@@ -128,10 +128,10 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
       preview={<SectioningPreview />}
     >
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
           <Trans>Sectioning</Trans>
         </h1>
-        <p className="text-[14px] text-[#737373] leading-relaxed">
+        <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
             Group each page's text and images into typed sections with a
             structured content tree. Sections drive how downstream stages

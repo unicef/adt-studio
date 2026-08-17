@@ -5,10 +5,10 @@ import { useBook } from "@/hooks/use-books"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
 import { StepLandingShell } from "./StepLandingShell"
 import { CascadeWarning } from "@/components/pipeline/components/CascadeWarning"
-import { SettingsCard, SettingsField } from "@/components/pipeline/components/SettingsCard"
-import { SettingExplainer } from "@/components/pipeline/components/SettingExplainer"
-import { HelpHint } from "@/components/pipeline/components/HelpHint"
-import { ToggleCard } from "@/components/pipeline/components/ToggleCard"
+import { SettingsCard, SettingsField } from "./ui/SettingsCard"
+import { SettingExplainer } from "./ui/SettingExplainer"
+import { HelpHint } from "./ui/HelpHint"
+import { ToggleCard } from "./ui/ToggleCard"
 import { RangeSlider } from "@/components/ui/range-slider"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import {
@@ -114,10 +114,10 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
       }
     >
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
           <Trans>Extract</Trans>
         </h1>
-        <p className="text-[14px] text-[#737373] leading-relaxed">
+        <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
             Pull structured content from the source PDF. Extraction identifies
             headings, paragraphs, lists, and images so downstream stages work
@@ -138,7 +138,7 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
                   <span
                     tabIndex={0}
                     aria-label={t`Page range locked`}
-                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-[#a3a3a3] transition-colors hover:text-[#737373] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
+                    className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background"
                   >
                     <Lock className="h-3 w-3" strokeWidth={2} />
                   </span>

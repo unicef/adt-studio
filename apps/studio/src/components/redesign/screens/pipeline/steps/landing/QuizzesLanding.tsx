@@ -12,7 +12,7 @@ import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   SettingsCard,
   SettingsField,
-} from "@/components/pipeline/components/SettingsCard"
+} from "./ui/SettingsCard"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { useStageStatus } from "@/hooks/use-stage-status"
@@ -110,10 +110,10 @@ export function QuizzesLanding({ bookLabel, beforeRun }: { bookLabel: string; be
       preview={<QuizzesPreview pagesPerQuiz={Number(pagesPerQuiz)} mode={mode} />}
     >
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
           <Trans>Quizzes</Trans>
         </h1>
-        <p className="text-[14px] text-[#737373] leading-relaxed">
+        <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
             Generate multiple-choice comprehension quizzes from the book's
             content. Create them automatically across the whole book, or add a
@@ -177,7 +177,7 @@ export function QuizzesLanding({ bookLabel, beforeRun }: { bookLabel: string; be
                 onBlur={handleFrequencyBlur}
                 className="w-24 h-9"
               />
-              <span className="text-[13px] text-[#737373]">
+              <span className="text-[13px] text-muted-foreground">
                 <Trans>pages per quiz</Trans>
               </span>
             </div>
@@ -201,7 +201,7 @@ export function QuizzesLanding({ bookLabel, beforeRun }: { bookLabel: string; be
               <Trans>Add a quiz</Trans>
             </Button>
             {disabledReason && (
-              <p className="text-xs text-[#737373] leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 {disabledReason}
               </p>
             )}

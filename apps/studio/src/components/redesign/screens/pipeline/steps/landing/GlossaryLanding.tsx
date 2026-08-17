@@ -4,13 +4,13 @@ import { Button } from "@/components/ui/button"
 import { AddGlossaryDialog } from "@/components/pipeline/stages/glossary/AddGlossaryDialog"
 import type { GlossaryItem } from "@/api/client"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { CustomInstructionsField } from "@/components/pipeline/components/CustomInstructionsField"
+import { CustomInstructionsField } from "./ui/CustomInstructionsField"
 import { StepLandingShell } from "./StepLandingShell"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   SettingsCard,
   SettingsField,
-} from "@/components/pipeline/components/SettingsCard"
+} from "./ui/SettingsCard"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
@@ -112,10 +112,10 @@ export function GlossaryLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       preview={<GlossaryPreview amount={amount} />}
     >
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
           <Trans>Glossary</Trans>
         </h1>
-        <p className="text-[14px] text-[#737373] leading-relaxed">
+        <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
             Build a glossary of key terms found in the book. Choose how much
             ground to cover, and add custom instructions to steer term
@@ -159,7 +159,7 @@ export function GlossaryLanding({ bookLabel, beforeRun }: { bookLabel: string; b
               variant="ghost"
               size="sm"
               onClick={() => setShowAddDialog(true)}
-              className="h-7 gap-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-[#737373] hover:text-[var(--accent-color,#525252)]"
+              className="h-7 gap-1 px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-[var(--accent-color,#525252)]"
             >
               <Plus className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
               <Trans>Add term</Trans>
@@ -176,7 +176,7 @@ export function GlossaryLanding({ bookLabel, beforeRun }: { bookLabel: string; b
             <button
               type="button"
               onClick={() => setShowAddDialog(true)}
-              className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-[#e5e5e5] bg-[#fafafa] px-3 py-3 text-[12px] font-medium text-[#737373] transition-colors hover:border-[#d4d4d4] hover:bg-[#f5f5f5] hover:text-[#525252] focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1"
+              className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border bg-muted px-3 py-3 text-[12px] font-medium text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-1"
             >
               <Plus className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
               <Trans>Add your first term</Trans>

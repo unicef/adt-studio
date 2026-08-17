@@ -4,7 +4,7 @@ import { Trans } from "@lingui/react/macro"
 import { BOOK_LEVEL_STAGES, type StageName } from "@adt/types"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { PreviewShell } from "@/components/wizard/shared/PreviewShell"
+import { LandingPreviewShell } from "./ui/LandingPreviewShell"
 import { PartialMergeNotice } from "@/components/parts/PartialMergeNotice"
 import { CascadeResetDialog } from "@/components/pipeline/components/CascadeResetDialog"
 import { RunWarningDialog } from "@/components/pipeline/components/RunWarningDialog"
@@ -171,13 +171,13 @@ export function StepLandingShell({
 
         <div className="flex min-w-0 flex-1 justify-center">
           <div className="aspect-[650/812] w-full max-w-[500px] @[900px]/landing:max-w-none">
-            <PreviewShell
+            <LandingPreviewShell
               label={previewLabel}
               className="h-full w-full"
               bodyClassName={previewBodyClassName ?? ""}
             >
               {preview}
-            </PreviewShell>
+            </LandingPreviewShell>
           </div>
         </div>
       </div>

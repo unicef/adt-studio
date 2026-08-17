@@ -50,7 +50,7 @@ export function WordHighlightPreview({ enabled }: { enabled: boolean }) {
         </p>
       ) : (
         <p className="text-sm leading-relaxed">
-          <span className="rounded-lg outline outline-2 outline-blue-300 bg-blue-100/30 text-black px-1 -mx-1">
+          <span className="rounded-lg outline outline-2 outline-blue-300 bg-blue-100/30 text-foreground px-1 -mx-1">
             {sentence}
           </span>
         </p>

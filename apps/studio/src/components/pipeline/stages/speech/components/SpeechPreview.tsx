@@ -13,7 +13,7 @@ export function SpeechPreview({ wordHighlighting }: { wordHighlighting: boolean 
   const activeWord = 3
 
   return (
-    <div className="relative flex flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-rose-50/40 via-white to-white">
+    <div className="relative flex flex-1 min-h-0 overflow-hidden ">
       <div className="flex w-full h-full flex-col gap-4 px-5 py-5 min-h-0">
         <div className="flex items-center justify-between shrink-0">
           <div className="flex items-center gap-1.5">
@@ -27,7 +27,7 @@ export function SpeechPreview({ wordHighlighting }: { wordHighlighting: boolean 
           </span>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-rose-100 bg-white p-4 shadow-sm flex flex-col gap-2">
+        <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-border bg-background p-4 shadow-sm flex flex-col gap-2">
           <div className="flex items-center gap-1.5">
             <Play
               className="h-2.5 w-2.5 text-rose-500"
@@ -53,8 +53,8 @@ export function SpeechPreview({ wordHighlighting }: { wordHighlighting: boolean 
                     className={cn(
                       "transition-colors duration-200",
                       !wordHighlighting && sentenceIsActive &&
-                        "rounded-md px-1.5 py-0.5 ring-1 ring-rose-400 text-[#0a0a0a]",
-                      !wordHighlighting && sentenceIsPast && "text-[#0a0a0a]",
+                        "rounded-md px-1.5 py-0.5 ring-1 ring-rose-400 text-foreground",
+                        !wordHighlighting && sentenceIsPast && "text-foreground",
                     )}
                   >
                     {sentenceWords.map((w, wIdx) => {
@@ -71,7 +71,7 @@ export function SpeechPreview({ wordHighlighting }: { wordHighlighting: boolean 
                               "transition-colors duration-200",
                               wordIsActive &&
                                 "rounded-sm bg-rose-200/70 px-0.5 font-semibold text-rose-900",
-                              wordIsPast && "text-[#0a0a0a]",
+                              wordIsPast && "text-foreground",
                             )}
                           >
                             {w}
@@ -88,12 +88,12 @@ export function SpeechPreview({ wordHighlighting }: { wordHighlighting: boolean 
           </p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-3 rounded-lg border border-[#e5e5e5] bg-white px-3 py-2.5 shadow-sm">
+        <div className="flex shrink-0 items-center gap-3 rounded-lg border border-border bg-background px-3 py-2.5 shadow-sm">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-rose-600 text-white">
             <Play className="h-3.5 w-3.5 ml-0.5" strokeWidth={2.5} aria-hidden />
           </span>
           <div className="flex flex-1 flex-col gap-1">
-            <div className="relative h-1 w-full overflow-hidden rounded-full bg-rose-100">
+            <div className="relative h-1 w-full overflow-hidden rounded-full bg-muted">
               <span
                 className="absolute left-0 top-0 h-full rounded-full bg-rose-600"
                 style={{ width: "38%" }}

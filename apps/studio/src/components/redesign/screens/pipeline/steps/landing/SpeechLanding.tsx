@@ -10,7 +10,7 @@ import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   SettingsCard,
   SettingsField,
-} from "@/components/pipeline/components/SettingsCard"
+} from "./ui/SettingsCard"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
@@ -187,10 +187,10 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
       preview={<SpeechPreview wordHighlighting={wordHighlighting} />}
     >
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
           <Trans>Speech</Trans>
         </h1>
-        <p className="text-[14px] text-[#737373] leading-relaxed">
+        <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
             Generate audio narration for every page of the book. Pick a
             provider and choose whether to highlight each word as it's read
@@ -298,16 +298,16 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
               to="/books/$label/$step/settings"
               params={{ label: bookLabel, step: "speech" }}
               search={{ tab: "general" }}
-              className="group flex w-full items-center gap-3 rounded-md border border-[#e5e5e5] bg-white px-3 py-2.5 text-left transition-colors hover:border-[#d4d4d4] hover:bg-[#fafafa] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring/40"
+              className="group flex w-full items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-left transition-colors hover:border-border hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring/40"
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-rose-100 text-rose-700">
                 <Settings2 className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
               </span>
-              <span className="flex-1 text-[13px] font-medium text-[#0a0a0a]">
+              <span className="flex-1 text-[13px] font-medium text-foreground">
                 <Trans>Configure voices and accents</Trans>
               </span>
               <Pencil
-                className="h-3.5 w-3.5 text-[#a3a3a3] transition-colors group-hover:text-[#525252]"
+                className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-foreground"
                 strokeWidth={2}
                 aria-hidden
               />

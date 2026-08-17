@@ -53,10 +53,10 @@ export function EasyReadLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       <FixedLayoutWarningBanner show={isFixedLayout} />
 
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
           <Trans>Easy Read</Trans>
         </h1>
-        <p className="text-[14px] text-[#737373] leading-relaxed">
+        <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
             Generate a simplified, easier-to-read version of every text block in
             the book. Readers turn it on with the Easy Read toggle in the ADT;
@@ -94,7 +94,7 @@ export function EasyReadLanding({ bookLabel, beforeRun }: { bookLabel: string; b
         />
       </div>
 
-      <p className="text-[13px] text-[#737373] leading-relaxed">
+      <p className="text-[13px] text-muted-foreground leading-relaxed">
         <Trans>
           Tune how text is simplified in the Easy Read Prompt settings. After
           running, each block becomes editable here in the Easy Read step.
@@ -114,13 +114,13 @@ function FeatureRow({
   body: React.ReactNode
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-fuchsia-100 bg-fuchsia-50/40 px-3.5 py-3 transition-colors duration-200 hover:border-fuchsia-200 hover:bg-fuchsia-50">
+    <div className="flex items-start gap-3 rounded-lg border border-fuchsia-100 bg-fuchsia-50/40 px-3.5 py-3 transition-colors duration-200 hover:border-border hover:bg-fuchsia-50">
       <span className="mt-0.5 inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-fuchsia-100 text-fuchsia-700">
         {icon}
       </span>
       <div className="flex min-w-0 flex-col gap-0.5">
-        <span className="text-[13px] font-semibold text-[#0a0a0a]">{title}</span>
-        <p className="text-[12px] leading-relaxed text-[#737373]">{body}</p>
+        <span className="text-[13px] font-semibold text-foreground">{title}</span>
+        <p className="text-[12px] leading-relaxed text-muted-foreground">{body}</p>
       </div>
     </div>
   )
@@ -131,7 +131,7 @@ function EasyReadPreview() {
   return (
     <div className="flex h-full flex-col gap-3 p-5 text-left">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-[#a3a3a3]">
+        <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           <Trans>Easy Read</Trans>
         </span>
         <span className="inline-flex items-center gap-1.5 rounded-full bg-fuchsia-100 px-2 py-0.5 text-[10px] font-medium text-fuchsia-700">
@@ -140,11 +140,11 @@ function EasyReadPreview() {
         </span>
       </div>
 
-      <div className="rounded-md border border-[#e5e5e5] bg-[#fafafa] p-3">
-        <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-[#a3a3a3]">
+      <div className="rounded-md border border-border bg-muted p-3">
+        <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           <Trans>Original</Trans>
         </p>
-        <p className="text-[12px] leading-relaxed text-[#525252]">
+        <p className="text-[12px] leading-relaxed text-foreground">
           <Trans>
             Despite the inclement weather, the expedition pressed on toward the
             summit, undeterred by the mounting obstacles in their path.
@@ -156,11 +156,11 @@ function EasyReadPreview() {
         <ArrowDown className="h-4 w-4" />
       </div>
 
-      <div className="rounded-md border border-fuchsia-200 bg-fuchsia-50 p-3">
+      <div className="rounded-md border border-border bg-fuchsia-50 p-3">
         <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-fuchsia-700">
           <Trans>Easy Read</Trans>
         </p>
-        <div className="flex flex-col gap-1 text-[13px] leading-relaxed text-[#0a0a0a]">
+        <div className="flex flex-col gap-1 text-[13px] leading-relaxed text-black">
           <span><Trans>The weather was very bad.</Trans></span>
           <span><Trans>But the team kept walking up the mountain.</Trans></span>
           <span><Trans>They did not give up.</Trans></span>

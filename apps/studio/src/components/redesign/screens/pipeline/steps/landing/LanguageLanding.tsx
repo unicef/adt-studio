@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef , type ReactNode } from "react"
 import { flushSync } from "react-dom"
 import { AlertCircle, Images, Pencil, X } from "lucide-react"
-import { SettingExplainer } from "@/components/pipeline/components/SettingExplainer"
+import { SettingExplainer } from "./ui/SettingExplainer"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { StepLandingShell } from "./StepLandingShell"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
@@ -13,7 +13,7 @@ import {
 import {
   SettingsCard,
   SettingsField,
-} from "@/components/pipeline/components/SettingsCard"
+} from "./ui/SettingsCard"
 import { LanguagePicker } from "@/components/LanguagePicker"
 import { Switch } from "@/components/ui/switch"
 import { useActiveConfig } from "@/hooks/use-debug"
@@ -224,10 +224,10 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
       }
     >
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
           <Trans>Language</Trans>
         </h1>
-        <p className="text-[14px] text-[#737373] leading-relaxed">
+        <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
             Translate the book into additional languages. Each language is
             generated alongside the original, ready for narration, captions,
@@ -304,7 +304,7 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
             >
               <Trans>Text normalization</Trans>
             </label>
-            <p className="text-xs leading-relaxed text-[#737373]">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               <Trans>
                 Prepare numbers, dates, and abbreviations for natural speech.
                 Math and LaTeX are handled separately.
@@ -348,19 +348,19 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
                   type="button"
                   onClick={() => setImageDialogOpen(true)}
                   disabled={!captionsReady}
-                  className="group flex w-full items-center gap-3 rounded-md border border-[#e5e5e5] bg-white px-3 py-2.5 text-left transition-colors hover:border-[#d4d4d4] hover:bg-[#fafafa] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="group flex w-full items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-left transition-colors hover:border-border hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-pink-100 text-pink-700">
                     <Images className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
                   </span>
-                  <span className="flex-1 text-[13px] font-medium text-[#0a0a0a]">
+                  <span className="flex-1 text-[13px] font-medium text-foreground">
                     <Trans>
                       {selectedImageIds.length} image
                       {selectedImageIds.length === 1 ? "" : "s"} selected
                     </Trans>
                   </span>
                   <Pencil
-                    className="h-3.5 w-3.5 text-[#a3a3a3] transition-colors group-hover:text-[#525252]"
+                    className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-foreground"
                     strokeWidth={2}
                     aria-hidden
                   />
@@ -370,7 +370,7 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
                   type="button"
                   onClick={() => setImageDialogOpen(true)}
                   disabled={!captionsReady}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-[#e5e5e5] bg-[#fafafa] px-3 py-3 text-[12px] font-medium text-[#737373] transition-colors hover:border-[#d4d4d4] hover:bg-[#f5f5f5] hover:text-[#525252] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex w-full items-center justify-center gap-1.5 rounded-md border border-dashed border-border bg-muted px-3 py-3 text-[12px] font-medium text-muted-foreground transition-colors hover:border-border hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Images
                     className="h-3.5 w-3.5"

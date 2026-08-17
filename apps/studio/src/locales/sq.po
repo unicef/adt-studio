@@ -686,6 +686,9 @@ msgstr "1 problem"
 msgid "1 item needs changes on this page"
 msgstr "1 element kërkon ndryshime në këtë faqe"
 
+msgid "1 page"
+msgstr "1 faqe"
+
 msgid "1 page checked"
 msgstr "1 faqe e kontrolluar"
 
@@ -715,6 +718,9 @@ msgstr "1.2 Shtrirja"
 
 msgid "1× in the book · page 12"
 msgstr "1× në libër · faqja 12"
+
+msgid "11 pages"
+msgstr "11 faqe"
 
 msgid "112 words · 1 image · 2 fonts"
 msgstr "112 fjalë · 1 imazh · 2 shkronja"
@@ -760,6 +766,9 @@ msgstr "3.2.1 — Metodat e Autentifikimit"
 
 msgid "36 spreads"
 msgstr "36 shpërndarje"
+
+msgid "4 pages"
+msgstr "4 faqe"
 
 msgid "42 figs"
 msgstr "42 figura"
@@ -3681,6 +3690,9 @@ msgstr "p.sh., Bëje sfondin më të ndritshëm, shto më shumë pemë..."
 msgid "Each block was simplified by AI. Edit any Easy Read text to refine it against the original, then Save. Changes are stored as a new version, so you can always roll back or regenerate."
 msgstr "Çdo bllok u thjeshtua nga AI. Redakto çdo tekst Easy Read për ta rafinuar ndaj origjinalit, pastaj Ruaje. Ndryshimet ruhen si version i ri, kështu që mund të kthehesh gjithmonë ose të rigjenerohet."
 
+msgid "each finding links to the page it came from"
+msgstr "çdo gjetje të çon te faqja e origjinës"
+
 msgid "Each glossary page collects the terms used since the previous one."
 msgstr "Çdo faqe glosari mbledh termat e përdorur që nga faqja e mëparshme."
 
@@ -4363,6 +4375,9 @@ msgstr "Filtron imazhet dekorative ose pa përmbajtje nga çdo faqe."
 msgid "Final Page"
 msgstr "Faqja e fundit"
 
+msgid "Finish Storyboard first — validation checks the packaged book."
+msgstr "Përfundo Storyboard-in së pari — validimi kontrollon librin e paketuar."
+
 msgid "First images from the deep-field telescope."
 msgstr "Imazhet e para nga teleskopi i fushës së thellë."
 
@@ -4464,6 +4479,10 @@ msgstr "Formatimi dhe mbajtësit e vendit janë ruajtur"
 
 msgid "Forms & controls"
 msgstr "Formularë dhe kontrolle"
+
+#. placeholder {0}: finding.pages
+msgid "found on {0}"
+msgstr "gjetur në {0}"
 
 msgid "FR"
 msgstr "FR"
@@ -5141,6 +5160,9 @@ msgstr "Imazhi nuk është i disponueshëm"
 
 msgid "Image upload failed"
 msgstr "Ngarkimi i imazhit dështoi"
+
+msgid "image-alt"
+msgstr "image-alt"
 
 msgid "images"
 msgstr "imazhe"
@@ -7300,6 +7322,9 @@ msgstr "Mbivendosni LLM-në e parazgjedhur dhe modelet e specializuara për kët
 msgid "Overview"
 msgstr "Përmbledhje"
 
+msgid "p-as-heading"
+msgstr "p-as-heading"
+
 msgid "p. 1"
 msgstr "f. 1"
 
@@ -7333,6 +7358,9 @@ msgstr "f. 7"
 msgid "p{0}"
 msgstr "f{0}"
 
+msgid "Package and check"
+msgstr "Paketo dhe kontrollo"
+
 msgid "Package and check the book"
 msgstr "Paketo dhe kontrollo librin"
 
@@ -7345,11 +7373,17 @@ msgstr "Pamje paraprake e paketës për gjenerimin e rezultateve"
 msgid "Package structure"
 msgstr "Struktura e paketës"
 
+msgid "Package the book and run whole-book accessibility checks over the result, so the findings describe exactly what a reader gets. Reviewer notes captured in Preview show up here too."
+msgstr "Paketon librin dhe kryen kontrolle aksesueshmërie mbi rezultatin, që gjetjet të përshkruajnë pikërisht atë që merr lexuesi. Shënimet e rishikuesit të regjistruara në Pamjen paraprake shfaqen gjithashtu këtu."
+
 msgid "Package the book for distribution. Pick a format, choose what content goes in, and we'll bundle everything into a downloadable archive."
 msgstr "Paketoni librin për shpërndarje. Zgjidhni një format, vendosni çfarë përmbajtje do të përfshihet dhe ne do të grumbullojmë gjithçka në një arkiv të shkarkueshëm."
 
 msgid "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
 msgstr "Paketoni librin e përfunduar me të gjitha veçoritë e aksesueshmërisë të integruara — gati për t'u hapur, dëgjuar dhe lexuar nga një fëmijë."
+
+msgid "Packaged Book"
+msgstr "Libri i paketuar"
 
 msgid "Packaging"
 msgstr "Paketimi"
@@ -8217,6 +8251,9 @@ msgstr "Citat"
 msgid "Radius"
 msgstr "Rrezja"
 
+msgid "Re-check"
+msgstr "Rikontrollo"
+
 msgid "Re-enable type"
 msgstr "Ri-aktivizo tipin"
 
@@ -8249,6 +8286,10 @@ msgstr "Po ri-renderizohet..."
 
 msgid "Re-run"
 msgstr "Ri-ekzekuto"
+
+#. placeholder {0}: getStageLabelI18n(stageSlug)
+msgid "Re-run {0}?"
+msgstr "Ta rikryesh {0}?"
 
 msgid "Re-run {stageLabel}"
 msgstr "Ri-ekzekuto {stageLabel}"
@@ -8702,6 +8743,9 @@ msgstr "Kthe ndryshimin e gjuhës"
 
 msgid "Revert to {originalLanguageName}"
 msgstr "Kthehu te {originalLanguageName}"
+
+msgid "review"
+msgstr "rishikim"
 
 msgid "Review"
 msgstr "Rishiko"
@@ -10069,6 +10113,9 @@ msgstr "Storyboard"
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Storyboard-i është ekzekutuar tashmë. Ndryshimet e bëra këtu nuk do të hyjnë në fuqi derisa storyboard-i të ri-ekzekutohet."
 
+msgid "Storyboard hasn't run yet"
+msgstr "Storyboard ende nuk është ekzekutuar"
+
 msgid "Storyboard nodes:"
 msgstr "Nyjet e storyboard-it:"
 
@@ -10645,6 +10692,9 @@ msgstr "Tema"
 
 msgid "theme appearance dark light colors interface"
 msgstr "tema pamja e errët e çelët ngjyra ndërfaqe"
+
+msgid "There are no rendered pages to package, so there is nothing to check yet. Run Storyboard first."
+msgstr "Nuk ka faqe të renderuara për të paketuar, ndaj ende nuk ka çfarë të kontrollohet. Ekzekuto fillimisht Storyboard-in."
 
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Këto ndryshime nuk janë zbatuar ende. Nëse del, do të humbasin — ose ruaji dhe ri-ekzekuto për t'i zbatuar. Ekzekutimi vazhdon në sfond ndërsa ti punon."
@@ -11553,6 +11603,9 @@ msgstr "Validimi kontrollon librin e paketuar që prodhon Storyboard. Përfundo 
 #. placeholder {0}: data.validationErrors.length
 msgid "Validation Errors ({0})"
 msgstr "Gabime vërtetimi ({0})"
+
+msgid "Validation Preview"
+msgstr "Pamje paraprake e validimit"
 
 msgid "Variables"
 msgstr "Variabla"

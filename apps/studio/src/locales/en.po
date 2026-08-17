@@ -685,6 +685,9 @@ msgstr "1 issue"
 msgid "1 item needs changes on this page"
 msgstr "1 item needs changes on this page"
 
+msgid "1 page"
+msgstr "1 page"
+
 msgid "1 page checked"
 msgstr "1 page checked"
 
@@ -714,6 +717,9 @@ msgstr "1.2 Scope"
 
 msgid "1× in the book · page 12"
 msgstr "1× in the book · page 12"
+
+msgid "11 pages"
+msgstr "11 pages"
 
 msgid "112 words · 1 image · 2 fonts"
 msgstr "112 words · 1 image · 2 fonts"
@@ -759,6 +765,9 @@ msgstr "3.2.1 — Authentication Methods"
 
 msgid "36 spreads"
 msgstr "36 spreads"
+
+msgid "4 pages"
+msgstr "4 pages"
 
 msgid "42 figs"
 msgstr "42 figs"
@@ -3680,6 +3689,9 @@ msgstr "e.g., Make the background brighter, add more trees..."
 msgid "Each block was simplified by AI. Edit any Easy Read text to refine it against the original, then Save. Changes are stored as a new version, so you can always roll back or regenerate."
 msgstr "Each block was simplified by AI. Edit any Easy Read text to refine it against the original, then Save. Changes are stored as a new version, so you can always roll back or regenerate."
 
+msgid "each finding links to the page it came from"
+msgstr "each finding links to the page it came from"
+
 msgid "Each glossary page collects the terms used since the previous one."
 msgstr "Each glossary page collects the terms used since the previous one."
 
@@ -4362,6 +4374,9 @@ msgstr "Filters out decorative or non-content images on each page."
 msgid "Final Page"
 msgstr "Final Page"
 
+msgid "Finish Storyboard first — validation checks the packaged book."
+msgstr "Finish Storyboard first — validation checks the packaged book."
+
 msgid "First images from the deep-field telescope."
 msgstr "First images from the deep-field telescope."
 
@@ -4463,6 +4478,10 @@ msgstr "Formatting and placeholders are preserved"
 
 msgid "Forms & controls"
 msgstr "Forms & controls"
+
+#. placeholder {0}: finding.pages
+msgid "found on {0}"
+msgstr "found on {0}"
 
 msgid "FR"
 msgstr "FR"
@@ -5140,6 +5159,9 @@ msgstr "Image unavailable"
 
 msgid "Image upload failed"
 msgstr "Image upload failed"
+
+msgid "image-alt"
+msgstr "image-alt"
 
 msgid "images"
 msgstr "images"
@@ -7299,6 +7321,9 @@ msgstr "Override the default LLM and specialized models for this book. Empty fie
 msgid "Overview"
 msgstr "Overview"
 
+msgid "p-as-heading"
+msgstr "p-as-heading"
+
 msgid "p. 1"
 msgstr "p. 1"
 
@@ -7332,6 +7357,9 @@ msgstr "p. 7"
 msgid "p{0}"
 msgstr "p{0}"
 
+msgid "Package and check"
+msgstr "Package and check"
+
 msgid "Package and check the book"
 msgstr "Package and check the book"
 
@@ -7344,11 +7372,17 @@ msgstr "Package preview to generate results"
 msgid "Package structure"
 msgstr "Package structure"
 
+msgid "Package the book and run whole-book accessibility checks over the result, so the findings describe exactly what a reader gets. Reviewer notes captured in Preview show up here too."
+msgstr "Package the book and run whole-book accessibility checks over the result, so the findings describe exactly what a reader gets. Reviewer notes captured in Preview show up here too."
+
 msgid "Package the book for distribution. Pick a format, choose what content goes in, and we'll bundle everything into a downloadable archive."
 msgstr "Package the book for distribution. Pick a format, choose what content goes in, and we'll bundle everything into a downloadable archive."
 
 msgid "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
 msgstr "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
+
+msgid "Packaged Book"
+msgstr "Packaged Book"
 
 msgid "Packaging"
 msgstr "Packaging"
@@ -8216,6 +8250,9 @@ msgstr "Quote"
 msgid "Radius"
 msgstr "Radius"
 
+msgid "Re-check"
+msgstr "Re-check"
+
 msgid "Re-enable type"
 msgstr "Re-enable type"
 
@@ -8248,6 +8285,10 @@ msgstr "Re-rendering..."
 
 msgid "Re-run"
 msgstr "Re-run"
+
+#. placeholder {0}: getStageLabelI18n(stageSlug)
+msgid "Re-run {0}?"
+msgstr "Re-run {0}?"
 
 msgid "Re-run {stageLabel}"
 msgstr "Re-run {stageLabel}"
@@ -8701,6 +8742,9 @@ msgstr "Revert language change"
 
 msgid "Revert to {originalLanguageName}"
 msgstr "Revert to {originalLanguageName}"
+
+msgid "review"
+msgstr "review"
 
 msgid "Review"
 msgstr "Review"
@@ -10068,6 +10112,9 @@ msgstr "Storyboard"
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 
+msgid "Storyboard hasn't run yet"
+msgstr "Storyboard hasn't run yet"
+
 msgid "Storyboard nodes:"
 msgstr "Storyboard nodes:"
 
@@ -10644,6 +10691,9 @@ msgstr "Theme"
 
 msgid "theme appearance dark light colors interface"
 msgstr "theme appearance dark light colors interface"
+
+msgid "There are no rendered pages to package, so there is nothing to check yet. Run Storyboard first."
+msgstr "There are no rendered pages to package, so there is nothing to check yet. Run Storyboard first."
 
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
@@ -11552,6 +11602,9 @@ msgstr "Validation checks the packaged book Storyboard produces. Finish Storyboa
 #. placeholder {0}: data.validationErrors.length
 msgid "Validation Errors ({0})"
 msgstr "Validation Errors ({0})"
+
+msgid "Validation Preview"
+msgstr "Validation Preview"
 
 msgid "Variables"
 msgstr "Variables"

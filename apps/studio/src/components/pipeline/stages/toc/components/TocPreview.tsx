@@ -45,7 +45,7 @@ export function TocPreview({ mode }: { mode: TocModeKey }) {
   const entries = mode === "extract" ? extractEntries : dynamicEntries
 
   return (
-    <div className="relative flex flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-amber-50/40 via-white to-white">
+    <div className="relative flex flex-1 min-h-0 overflow-hidden ">
       <div className="flex w-full h-full flex-col gap-3 px-5 py-5 min-h-0">
         <div className="flex items-center justify-between shrink-0">
           <div className="flex items-center gap-1.5">
@@ -59,10 +59,10 @@ export function TocPreview({ mode }: { mode: TocModeKey }) {
           </span>
         </div>
 
-        <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-amber-100 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 border-b border-amber-100 pb-2.5">
+        <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-border bg-background p-4 shadow-sm">
+          <div className="flex items-center gap-2 border-b border-border pb-2.5">
             <BookOpen className="h-3.5 w-3.5 text-amber-600" strokeWidth={2} aria-hidden />
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-[#525252]">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
               <Trans>Contents</Trans>
             </span>
             <span
@@ -70,7 +70,7 @@ export function TocPreview({ mode }: { mode: TocModeKey }) {
                 "ml-auto rounded-full px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider transition-colors",
                 mode === "extract"
                   ? "bg-amber-100 text-amber-800"
-                  : "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
+                  : "bg-amber-50 text-amber-700 ring-1 ring-border",
               )}
               style={{ viewTransitionName: "toc-mode-badge" }}
             >
@@ -97,8 +97,8 @@ export function TocPreview({ mode }: { mode: TocModeKey }) {
                   className={cn(
                     "flex-1 truncate transition-colors",
                     entry.level === 1
-                      ? "text-[12.5px] font-medium text-[#0a0a0a]"
-                      : "text-[11.5px] text-[#525252]",
+                      ? "text-[12.5px] font-medium text-foreground"
+                      : "text-[11.5px] text-muted-foreground",
                     mode === "dynamic" && "italic",
                   )}
                   style={{ viewTransitionName: `toc-entry-${i}` }}
@@ -118,7 +118,7 @@ export function TocPreview({ mode }: { mode: TocModeKey }) {
           </ul>
         </div>
 
-        <div className="flex shrink-0 items-center gap-2 rounded-md bg-amber-50 px-2.5 py-1.5 text-[10.5px] text-amber-800">
+        <div className="flex shrink-0 items-center gap-2 rounded-md bg-amber-50  dark:bg-background dark:text-amber-500 px-2.5 py-1.5 text-[10.5px] text-amber-800">
           {mode === "extract" ? (
             <Hash className="h-3 w-3 shrink-0" strokeWidth={2.25} aria-hidden />
           ) : (

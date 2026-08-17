@@ -12,7 +12,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { StepLandingShell } from "./StepLandingShell"
 import { LandingPageWarning } from "@/components/pipeline/components/LandingPageWarning"
-import { SettingsCard } from "@/components/pipeline/components/SettingsCard"
+import { SettingsCard } from "./ui/SettingsCard"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import {
   Dialog,
@@ -199,10 +199,10 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
       />
 
       <div className="flex flex-col gap-2">
-        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-foreground">
           <Trans>Sign Language</Trans>
         </h1>
-        <p className="text-[14px] text-[#737373] leading-relaxed">
+        <p className="text-[14px] text-muted-foreground leading-relaxed">
           <Trans>
             Upload sign-language videos for each section of the book. The
             reader shows the matching video in a small player as the user
@@ -229,7 +229,7 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                 <span className="text-sm font-semibold text-foreground">
                   <Trans>Coverage</Trans>
                 </span>
-                <span className="text-[12px] font-medium text-[#737373]">
+                <span className="text-[12px] font-medium text-muted-foreground">
                   {totalSections === 0 ? (
                     <Trans>No sections yet</Trans>
                   ) : (
@@ -260,7 +260,7 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                       type="button"
                       onClick={() => setConfirmDeleteAll(true)}
                       disabled={deletingAll}
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-medium text-[#737373] transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
                     >
                       <Trash2 className="h-3 w-3" aria-hidden />
                       <Trans>Remove all</Trans>
@@ -297,7 +297,7 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                     {unassignedVideos.map((video) => (
                       <li
                         key={video.videoId}
-                        className="flex items-center gap-2 rounded-md bg-white px-2 py-1.5 ring-1 ring-cyan-100"
+                        className="flex items-center gap-2 rounded-md bg-card px-2 py-1.5 ring-1 ring-cyan-100"
                       >
                         <button
                           type="button"
@@ -313,7 +313,7 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                           />
                         </button>
                         <span
-                          className="min-w-0 flex-1 truncate text-[11.5px] font-medium text-[#0a0a0a]"
+                          className="min-w-0 flex-1 truncate text-[11.5px] font-medium text-foreground"
                           title={video.originalName}
                         >
                           {video.originalName}
@@ -347,7 +347,7 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                           onClick={() => handleDelete(video.videoId)}
                           disabled={pendingDeleteId === video.videoId}
                           aria-label={t`Delete video`}
-                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-[#a3a3a3] transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
+                          className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
                         >
                           {pendingDeleteId === video.videoId ? (
                             <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
@@ -363,7 +363,7 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
 
               {/* Section list */}
               {sectionEntries.length === 0 ? (
-                <div className="rounded-md border border-dashed border-[#e5e5e5] bg-[#fafafa] px-3 py-4 text-center text-[12px] text-[#737373]">
+                <div className="rounded-md border border-dashed border-border bg-muted px-3 py-4 text-center text-[12px] text-muted-foreground">
                   <Trans>
                     No storyboard sections found. Run Storyboard to generate
                     sections you can match videos to.
@@ -390,7 +390,7 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-cyan-700">
                           <Trans>Next missing section</Trans>
                         </span>
-                        <span className="truncate text-[13px] font-semibold text-[#0a0a0a]">
+                        <span className="truncate text-[13px] font-semibold text-foreground">
                           {nextMissing.sectionLabel}
                         </span>
                       </span>
@@ -420,19 +420,19 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                   <button
                     type="button"
                     onClick={() => setManageOpen(true)}
-                    className="group inline-flex items-center justify-between gap-2 rounded-md border border-[#e5e5e5] bg-white px-3 py-2 text-left transition-colors hover:border-[#d4d4d4] hover:bg-[#fafafa] focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40"
+                    className="group inline-flex items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2 text-left transition-colors hover:border-border hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/40"
                   >
                     <span className="inline-flex items-center gap-2">
                       <ListTree
-                        className="h-3.5 w-3.5 text-[#737373]"
+                        className="h-3.5 w-3.5 text-muted-foreground"
                         strokeWidth={2}
                         aria-hidden
                       />
-                      <span className="text-[12.5px] font-medium text-[#0a0a0a]">
+                      <span className="text-[12.5px] font-medium text-foreground">
                         <Trans>Manage all sections</Trans>
                       </span>
                     </span>
-                    <span className="text-[11px] tabular-nums text-[#737373]">
+                    <span className="text-[11px] tabular-nums text-muted-foreground">
                       <Trans>
                         {coveredSections} / {totalSections}
                       </Trans>
@@ -506,7 +506,7 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                 setDeleteAllError(null)
               }}
               disabled={deletingAll}
-              className="rounded-md px-3 py-1.5 text-[12px] font-medium text-[#737373] transition-colors hover:bg-[#f5f5f5] disabled:opacity-50"
+              className="rounded-md px-3 py-1.5 text-[12px] font-medium text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
             >
               <Trans>Cancel</Trans>
             </button>

@@ -9,6 +9,7 @@ import { SectioningLanding } from "../landing/SectioningLanding"
 import { SignLanguageLanding } from "../landing/SignLanguageLanding"
 import { SpeechLanding } from "../landing/SpeechLanding"
 import { TocLanding } from "../landing/TocLanding"
+import { ValidationLanding } from "../landing/ValidationLanding"
 import type { DockSlug } from "@/components/redesign/screens/pipeline/shared/plugins"
 
 /**
@@ -16,7 +17,6 @@ import type { DockSlug } from "@/components/redesign/screens/pipeline/shared/plu
  * gating and the settings that drive its preview.
  *
  * Storyboard is deliberately absent — it keeps the redesign's own empty state.
- * Validation has no landing at all.
  */
 const LANDINGS: Partial<Record<DockSlug, ComponentType<LandingProps>>> = {
   extract: ExtractLanding,
@@ -29,6 +29,7 @@ const LANDINGS: Partial<Record<DockSlug, ComponentType<LandingProps>>> = {
   translate: LanguageLanding,
   speech: SpeechLanding,
   "sign-language": SignLanguageLanding,
+  validation: ValidationLanding,
 }
 
 interface LandingProps {

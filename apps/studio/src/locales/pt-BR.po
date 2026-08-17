@@ -684,6 +684,9 @@ msgstr "1 problema"
 msgid "1 item needs changes on this page"
 msgstr "1 item needs changes on this page"
 
+msgid "1 page"
+msgstr "1 página"
+
 msgid "1 page checked"
 msgstr "1 página verificada"
 
@@ -713,6 +716,9 @@ msgstr "1.2 Escopo"
 
 msgid "1× in the book · page 12"
 msgstr "1× no livro · página 12"
+
+msgid "11 pages"
+msgstr "11 páginas"
 
 msgid "112 words · 1 image · 2 fonts"
 msgstr "112 palavras · 1 imagem · 2 fontes"
@@ -758,6 +764,9 @@ msgstr "3.2.1 — Métodos de Autenticação"
 
 msgid "36 spreads"
 msgstr "36 páginas duplas"
+
+msgid "4 pages"
+msgstr "4 páginas"
 
 msgid "42 figs"
 msgstr "42 figs"
@@ -3679,6 +3688,9 @@ msgstr "ex.: Deixe o fundo mais claro, adicione mais árvores..."
 msgid "Each block was simplified by AI. Edit any Easy Read text to refine it against the original, then Save. Changes are stored as a new version, so you can always roll back or regenerate."
 msgstr "Cada bloco foi simplificado por IA. Edite qualquer texto de Leitura Fácil para refiná-lo em relação ao original e depois Salve. As alterações são armazenadas como uma nova versão, para que você sempre possa reverter ou regenerar."
 
+msgid "each finding links to the page it came from"
+msgstr "cada achado leva à página de origem"
+
 msgid "Each glossary page collects the terms used since the previous one."
 msgstr "Cada página de glossário reúne os termos usados desde a anterior."
 
@@ -4361,6 +4373,9 @@ msgstr "Filtra imagens decorativas ou sem conteúdo em cada página."
 msgid "Final Page"
 msgstr "Página Final"
 
+msgid "Finish Storyboard first — validation checks the packaged book."
+msgstr "Conclua o Storyboard primeiro — a validação verifica o livro empacotado."
+
 msgid "First images from the deep-field telescope."
 msgstr "Primeiras imagens do telescópio de campo profundo."
 
@@ -4462,6 +4477,10 @@ msgstr "A formatação e os espaços reservados são preservados"
 
 msgid "Forms & controls"
 msgstr "Forms & controls"
+
+#. placeholder {0}: finding.pages
+msgid "found on {0}"
+msgstr "encontrado em {0}"
 
 msgid "FR"
 msgstr "FR"
@@ -5139,6 +5158,9 @@ msgstr "Imagem indisponível"
 
 msgid "Image upload failed"
 msgstr "Image upload failed"
+
+msgid "image-alt"
+msgstr "image-alt"
 
 msgid "images"
 msgstr "imagens"
@@ -7298,6 +7320,9 @@ msgstr "Substitua o LLM padrão e os modelos especializados para este livro. Cam
 msgid "Overview"
 msgstr "Visão geral"
 
+msgid "p-as-heading"
+msgstr "p-as-heading"
+
 msgid "p. 1"
 msgstr "p. 1"
 
@@ -7331,6 +7356,9 @@ msgstr "p. 7"
 msgid "p{0}"
 msgstr "p{0}"
 
+msgid "Package and check"
+msgstr "Empacotar e verificar"
+
 msgid "Package and check the book"
 msgstr "Empacotar e verificar o livro"
 
@@ -7343,11 +7371,17 @@ msgstr "Package preview to generate results"
 msgid "Package structure"
 msgstr "Estrutura do pacote"
 
+msgid "Package the book and run whole-book accessibility checks over the result, so the findings describe exactly what a reader gets. Reviewer notes captured in Preview show up here too."
+msgstr "Empacota o livro e roda verificações de acessibilidade sobre o resultado, para que os achados descrevam exatamente o que o leitor recebe. Notas de revisão capturadas na Pré-visualização também aparecem aqui."
+
 msgid "Package the book for distribution. Pick a format, choose what content goes in, and we'll bundle everything into a downloadable archive."
 msgstr "Empacote o livro para distribuição. Escolha um formato, decida o que vai dentro e nós agruparemos tudo em um arquivo para download."
 
 msgid "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
 msgstr "Empacote o livro pronto com todos os recursos de acessibilidade integrados — pronto para uma criança abrir, ouvir e acompanhar a leitura."
+
+msgid "Packaged Book"
+msgstr "Livro empacotado"
 
 msgid "Packaging"
 msgstr "Empacotando"
@@ -8215,6 +8249,9 @@ msgstr "Citação"
 msgid "Radius"
 msgstr "Raio"
 
+msgid "Re-check"
+msgstr "Verificar de novo"
+
 msgid "Re-enable type"
 msgstr "Reativar tipo"
 
@@ -8247,6 +8284,10 @@ msgstr "Renderizando novamente..."
 
 msgid "Re-run"
 msgstr "Reexecutar"
+
+#. placeholder {0}: getStageLabelI18n(stageSlug)
+msgid "Re-run {0}?"
+msgstr "Executar {0} de novo?"
 
 msgid "Re-run {stageLabel}"
 msgstr "Reexecutar {0}"
@@ -8700,6 +8741,9 @@ msgstr "Reverter alteração de idioma"
 
 msgid "Revert to {originalLanguageName}"
 msgstr "Reverter para {originalLanguageName}"
+
+msgid "review"
+msgstr "revisão"
 
 msgid "Review"
 msgstr "Revisar"
@@ -10067,6 +10111,9 @@ msgstr "Storyboard"
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "O storyboard já foi executado. As alterações feitas aqui não terão efeito até que o storyboard seja executado novamente."
 
+msgid "Storyboard hasn't run yet"
+msgstr "O Storyboard ainda não rodou"
+
 msgid "Storyboard nodes:"
 msgstr "Nós do storyboard:"
 
@@ -10643,6 +10690,9 @@ msgstr "Tema"
 
 msgid "theme appearance dark light colors interface"
 msgstr "tema aparência escuro claro cores interface"
+
+msgid "There are no rendered pages to package, so there is nothing to check yet. Run Storyboard first."
+msgstr "Não há páginas renderizadas para empacotar, então ainda não há o que verificar. Rode o Storyboard primeiro."
 
 msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
 msgstr "Estas alterações ainda não foram aplicadas. Se você sair, serão perdidas — ou salve e reexecute para aplicá-las. A execução continua em segundo plano enquanto você trabalha."
@@ -11551,6 +11601,9 @@ msgstr "A Validação verifica o livro empacotado que o Storyboard produz. Concl
 #. placeholder {0}: data.validationErrors.length
 msgid "Validation Errors ({0})"
 msgstr "Erros de validação ({0})"
+
+msgid "Validation Preview"
+msgstr "Prévia da validação"
 
 msgid "Variables"
 msgstr "Variáveis"
