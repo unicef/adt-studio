@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
 import { useNavigate } from "@tanstack/react-router"
-import { Check, RotateCcw, Folder, FileDown, Clock, Download, Laptop, Compass } from "lucide-react"
+import { Check, RotateCcw, Folder, FileDown, Download, Laptop, Compass } from "lucide-react"
 import { useAppVersion } from "@/hooks/use-app-version"
 import { useAppLogo } from "@/hooks/use-app-logo"
 import { usePlatform } from "@/hooks/use-platform"
@@ -9,22 +9,13 @@ import { useUpdateDialog } from "@/components/updates"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { SettingsHeading, SettingsLead } from "./ui"
+import { ComingSoon, SettingsHeading, SettingsLead } from "./ui"
 import { SETTINGS_ANCHORS } from "./nav"
 
 const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
 
 /* eslint-disable-next-line lingui/no-unlocalized-strings -- OS brand names, not translatable */
 const OS_LABEL = { macos: "macOS", windows: "Windows", linux: "Linux" }
-
-function SoonBadge() {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-amber-400/60 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
-      <Clock className="size-2.5" />
-      <Trans>Soon</Trans>
-    </span>
-  )
-}
 
 function DetailTile({
   icon: Icon,
@@ -46,7 +37,7 @@ function DetailTile({
           <Icon className="size-[17px]" />
         </span>
         <div className="text-[13px] font-semibold">{title}</div>
-        {soon && <SoonBadge />}
+        {soon && <ComingSoon />}
       </div>
       <div className="mt-3">{children}</div>
     </div>

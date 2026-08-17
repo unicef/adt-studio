@@ -58,7 +58,7 @@ export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onContinue, onAddB
     <div className="flex h-full flex-col overflow-y-auto px-10 pb-8 pt-5">
       <div className="mx-auto flex w-full max-w-[1600px] flex-1 flex-col pb-4">
         <div>
-          <h2 className="text-[26px] font-bold tracking-[-0.02em]">{greeting}</h2>
+          <h1 className="text-[26px] font-bold tracking-[-0.02em]">{greeting}</h1>
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 text-[13.5px] text-muted-foreground">
             <span>
               <Plural value={books.length} one="# book in your library" other="# books in your library" />
@@ -91,7 +91,7 @@ export function HomeHeroAnchor({ books, pinnedLabels, onOpen, onContinue, onAddB
               <div className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 <Trans>Pick up where you left off · {resume.modified}</Trans>
               </div>
-              <h1 className="mt-2.5 truncate text-[42px] font-bold leading-[1.05] tracking-[-0.025em]">{resume.displayTitle}</h1>
+              <h2 className="mt-2.5 truncate text-[42px] font-bold leading-[1.05] tracking-[-0.025em]">{resume.displayTitle}</h2>
               <div className="mt-1.5 text-[14.5px] text-muted-foreground">{resume.authors}</div>
               <ResumeMeta vm={resume} locale={i18n.locale} />
               <button

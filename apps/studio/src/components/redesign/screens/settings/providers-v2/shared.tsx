@@ -14,18 +14,17 @@ import {
   Terminal,
   KeyRound,
   Trash2,
-  Clock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { toast } from "@/components/ui/sonner"
 import type { AiModality, LocalizedText, ProviderDescriptor, ProviderHealthCode, ProviderHealthResponse } from "./contract"
 import { PROVIDER_CARDS, PROVIDER_DESCRIPTORS } from "./data"
 import { PROVIDER_BRAND } from "./providerLogos"
 import { authKind, requiredFieldsFilled, useProviderHealthMock, type ProvidersV2 } from "./useProvidersV2"
+import { ComingSoon } from "../ui"
 
 export const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
 
@@ -300,7 +299,7 @@ export function AuthModeToggle({
           <Icon className="size-4" />
           <span className="flex items-center gap-1.5">
             {label}
-            {soon && <SoonPin />}
+            {soon && <ComingSoon />}
           </span>
         </button>
       ))}
@@ -518,31 +517,6 @@ export function AuthLineFromHealth({ data, isFetching, fallbackConfigured }: Car
 }
 
 /**
- * Marks a feature that's designed but not yet backed — enabled once `feature/ai-agnostic`
- * and the provider UI merge. See `.context/ai-agnostic-providers-ui/BACKEND_GAPS.md`.
- */
-export function SoonPin({ className }: { className?: string }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span
-          className={cn(
-            "inline-flex items-center gap-1 rounded-full border border-dashed border-amber-400/60 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400",
-            className,
-          )}
-        >
-          <Clock className="size-2.5" />
-          <Trans>Soon</Trans>
-        </span>
-      </TooltipTrigger>
-      <TooltipContent className="max-w-[240px] text-center">
-        <Trans>Designed, not wired yet — enabled once the AI-agnostic backend and the new provider UI merge.</Trans>
-      </TooltipContent>
-    </Tooltip>
-  )
-}
-
-/**
  * Providers the shipping app already supports (this branch's `useApiKey`: OpenAI, Anthropic,
  * Google, Custom, Azure, Gemini, ElevenLabs). Only the new CLI backends (codex, claude-agent)
  * and local ollama arrive with `feature/ai-agnostic`; those are shown but marked "Coming soon".
@@ -558,24 +532,6 @@ export function isCardAvailable(cardKey: string): boolean {
   const card = PROVIDER_CARDS[cardKey]
   const primary = card.apiKeyProviderId ?? card.localProviderId
   return primary ? isProviderAvailable(primary) : false
-}
-
-export function ComingBadge() {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/50 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-      <Clock className="size-2.5" />
-      <Trans>Coming soon</Trans>
-    </span>
-  )
-}
-
-export function ComingBanner({ children }: { children?: ReactNode }) {
-  return (
-    <div className="flex items-center gap-2 rounded-lg border border-dashed border-amber-400/50 bg-amber-500/5 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-300">
-      <Clock className="size-3.5 shrink-0" />
-      <span>{children ?? <Trans>Previewed here — enabled once the AI-agnostic update ships.</Trans>}</span>
-    </div>
-  )
 }
 
 export { authKind }

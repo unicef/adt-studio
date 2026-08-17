@@ -1,5 +1,36 @@
 import type { ReactNode } from "react"
+import { Trans } from "@lingui/react/macro"
+import { Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+/**
+ * The single "not built yet" affordance. Inline amber pill (default label "Soon");
+ * pass `label` for a longer variant (e.g. "Coming soon") and `title` for a native tooltip.
+ */
+export function ComingSoon({ label, title, className }: { label?: ReactNode; title?: string; className?: string }) {
+  return (
+    <span
+      title={title}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full border border-dashed border-amber-400/60 px-1.5 py-0.5 text-[9.5px] font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400",
+        className,
+      )}
+    >
+      <Clock className="size-2.5" />
+      {label ?? <Trans>Soon</Trans>}
+    </span>
+  )
+}
+
+/** Banner form of {@link ComingSoon}, for a whole panel that's previewed but not wired. */
+export function ComingSoonBanner({ children }: { children?: ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-dashed border-amber-400/50 bg-amber-500/5 px-3 py-2 text-[12px] text-amber-700 dark:text-amber-300">
+      <Clock className="size-3.5 shrink-0" />
+      <span>{children ?? <Trans>Previewed here — enabled once the AI-agnostic update ships.</Trans>}</span>
+    </div>
+  )
+}
 
 export function SettingsCard({ children, className }: { children: ReactNode; className?: string }) {
   return (

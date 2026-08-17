@@ -13,12 +13,6 @@ export function authKind(descriptor: ProviderDescriptor): AuthKind {
   return "api-key"
 }
 
-export function mask(value: string): string {
-  if (!value) return ""
-  const tail = value.slice(-4)
-  const head = value.startsWith("sk-ant") ? "sk-ant-" : value.startsWith("sk-") ? "sk-" : ""
-  return `${head}••••${tail}`
-}
 
 export function requiredFieldsFilled(descriptor: ProviderDescriptor, creds: Record<string, string>): boolean {
   return descriptor.manifest.credentialFields

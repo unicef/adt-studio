@@ -231,14 +231,6 @@ export const PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
   },
 ]
 
-export const DEFAULT_MODELS: Record<AiModality, string> = {
-  "structured-text": "openai:gpt-5.4",
-  agent: "openai:gpt-5.4",
-  image: "openai:gpt-image-2",
-  tts: "openai:gpt-4o-mini-tts",
-  stt: "openai:whisper-1",
-}
-
 /**
  * Simulated machine environment for the mock health probe — stands in for what the
  * real `checkProviderConnection` detects (local CLI logins, reachable local servers).

@@ -8,7 +8,6 @@ import { PROVIDER_CARDS } from "./data"
 import {
   AuthModeToggle,
   CliGuidance,
-  ComingBanner,
   CredentialFields,
   DocsLink,
   EASE,
@@ -23,6 +22,7 @@ import {
   localize,
   useDraft,
 } from "./shared"
+import { ComingSoonBanner } from "../ui"
 import { useProviderHealthMock, type ProvidersV2 } from "./useProvidersV2"
 
 function Handles({ descriptor }: { descriptor: ProviderDescriptor }) {
@@ -95,7 +95,7 @@ function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescripto
 function ComingWrap({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col gap-3">
-      <ComingBanner />
+      <ComingSoonBanner />
       <div className="pointer-events-none select-none opacity-60">{children}</div>
     </div>
   )

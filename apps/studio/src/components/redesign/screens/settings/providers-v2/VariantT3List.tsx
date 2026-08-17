@@ -6,7 +6,8 @@ import { Switch } from "@/components/ui/switch"
 import { StepperInput } from "@/components/ui/stepper-input"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { PROVIDER_CARDS, ROLE_GROUPS } from "./data"
-import { AuthLineFromHealth, ComingBadge, EASE, HealthDotMark, ProviderTile, SoonPin, isCardAvailable, useCardHealth } from "./shared"
+import { AuthLineFromHealth, EASE, HealthDotMark, ProviderTile, isCardAvailable, useCardHealth } from "./shared"
+import { ComingSoon } from "../ui"
 import { ProviderCard } from "./ProviderEditor"
 import { useProvidersV2 } from "./useProvidersV2"
 import { GroupHeading } from "./GroupHeading"
@@ -41,7 +42,7 @@ function Row({ cardKey, open, onToggle, store, refreshToken }: { cardKey: string
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <ComingBadge />
+              <ComingSoon label={<Trans>Coming soon</Trans>} />
             )}
           </span>
           <span className="mt-0.5 block truncate text-[12.5px] text-muted-foreground">
@@ -112,7 +113,7 @@ export function VariantT3List() {
             <button type="button" disabled className="grid size-7 place-items-center rounded-md opacity-40" aria-label={t`Add provider`}>
               <Plus className="size-4" />
             </button>
-            <SoonPin />
+            <ComingSoon />
           </span>
         </div>
 
@@ -131,7 +132,7 @@ export function VariantT3List() {
                     <Trans>Background polling cadence for provider availability and auth state.</Trans>
                   </TooltipContent>
                 </Tooltip>
-                <SoonPin />
+                <ComingSoon />
               </div>
               <p className="mt-1 max-w-[520px] text-[12.5px] leading-normal text-muted-foreground">
                 <Trans>Refresh provider availability, versions, auth state and model metadata in the background. Set to 0 seconds to rely on manual refreshes.</Trans>
