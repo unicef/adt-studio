@@ -25,12 +25,12 @@ const POSITIONS: { key: ToastPosition; label: MessageDescriptor }[] = [
 
 /* eslint-disable lingui/no-unlocalized-strings -- Tailwind position utilities, not user-visible text */
 const POS_CLASS: Record<ToastPosition, string> = {
-  "top-left": "top-9 left-4",
+  "top-left": "top-9 left-3",
   "top-center": "top-9 left-1/2 -translate-x-1/2",
-  "top-right": "top-9 right-4",
-  "bottom-left": "bottom-4 left-4",
-  "bottom-center": "bottom-4 left-1/2 -translate-x-1/2",
-  "bottom-right": "bottom-4 right-4",
+  "top-right": "top-9 right-3",
+  "bottom-left": "bottom-3 left-3",
+  "bottom-center": "bottom-3 left-1/2 -translate-x-1/2",
+  "bottom-right": "bottom-3 right-3",
 }
 /* eslint-enable lingui/no-unlocalized-strings */
 
@@ -70,7 +70,7 @@ function PreviewToast({ position, sound, autoDismiss, autoDelay }: { position: T
     <div
       key={position}
       className={cn(
-        "pointer-events-none absolute z-10 w-[210px] overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-lg shadow-black/10 transition-[opacity,transform] duration-300 motion-reduce:transition-none starting:opacity-0",
+        "pointer-events-none absolute z-10 w-[30%] min-w-[128px] overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg shadow-black/10 transition-[opacity,transform] duration-300 motion-reduce:transition-none starting:opacity-0",
         EASE,
         POS_CLASS[position],
         isTop(position) ? "starting:-translate-y-2" : "starting:translate-y-2",
@@ -155,24 +155,24 @@ export function NotificationsSection() {
           </div>
         </div>
 
-        <div className="relative h-[320px] w-full overflow-hidden rounded-2xl border bg-muted/40 shadow-sm">
+        <div className="relative flex h-[340px] w-full items-center justify-center overflow-hidden rounded-2xl border bg-muted/40 shadow-sm">
           <div className="absolute inset-0 bg-gradient-to-b from-brand-500/[0.07] to-transparent" />
 
-          <div className="absolute inset-6 overflow-hidden rounded-xl border bg-background shadow-md ring-1 ring-black/5">
+          <div className="relative aspect-[16/10] h-[288px] overflow-hidden rounded-xl border bg-background shadow-xl ring-1 ring-black/5">
             <WindowChrome os={os} />
             <div className="flex h-[calc(100%-1.75rem)]">
-              <div className="flex w-[26%] max-w-[180px] flex-col gap-2.5 border-r bg-muted/30 px-3 py-3.5">
-                <div className="size-5 rounded-md bg-brand-600/80" />
-                <div className="h-2 w-[78%] rounded-full bg-muted-foreground/25" />
-                <div className="h-2 w-[62%] rounded-full bg-muted-foreground/15" />
-                <div className="h-2 w-[70%] rounded-full bg-muted-foreground/15" />
-                <div className="h-2 w-[55%] rounded-full bg-muted-foreground/15" />
+              <div className="flex w-[23%] flex-col gap-2 border-r bg-muted/30 px-2.5 py-3">
+                <div className="size-4 rounded-md bg-brand-600/80" />
+                <div className="h-1.5 w-[80%] rounded-full bg-muted-foreground/25" />
+                <div className="h-1.5 w-[64%] rounded-full bg-muted-foreground/15" />
+                <div className="h-1.5 w-[72%] rounded-full bg-muted-foreground/15" />
+                <div className="h-1.5 w-[58%] rounded-full bg-muted-foreground/15" />
               </div>
-              <div className="flex-1 space-y-2.5 px-4 py-4">
-                <div className="h-2.5 w-[40%] rounded-full bg-muted-foreground/25" />
-                <div className="h-2 w-[82%] rounded-full bg-muted-foreground/15" />
-                <div className="h-2 w-[68%] rounded-full bg-muted-foreground/15" />
-                <div className="h-2 w-[74%] rounded-full bg-muted-foreground/15" />
+              <div className="flex-1 space-y-2.5 px-3.5 py-3.5">
+                <div className="h-2 w-[42%] rounded-full bg-muted-foreground/25" />
+                <div className="h-1.5 w-[84%] rounded-full bg-muted-foreground/15" />
+                <div className="h-1.5 w-[70%] rounded-full bg-muted-foreground/15" />
+                <div className="h-1.5 w-[76%] rounded-full bg-muted-foreground/15" />
               </div>
             </div>
 
@@ -186,12 +186,12 @@ export function NotificationsSection() {
                   aria-pressed={selected}
                   onClick={() => setPrefs({ position: p.key })}
                   className={cn(
-                    "absolute z-[5] flex h-[46px] w-[210px] items-center justify-center rounded-xl transition-all duration-200 motion-reduce:transition-none",
+                    "absolute z-[5] flex h-[42px] w-[30%] min-w-[128px] items-center justify-center rounded-lg transition-all duration-200 motion-reduce:transition-none",
                     EASE,
                     POS_CLASS[p.key],
                     selected
                       ? "pointer-events-none opacity-0"
-                      : "border border-dashed border-muted-foreground/30 bg-muted/10 text-[10.5px] font-medium text-muted-foreground/70 hover:border-brand-400 hover:bg-brand-500/[0.07] hover:text-brand-600 motion-safe:active:scale-[0.97]",
+                      : "border border-dashed border-muted-foreground/30 bg-muted/10 text-[10px] font-medium text-muted-foreground/70 hover:border-brand-400 hover:bg-brand-500/[0.07] hover:text-brand-600 motion-safe:active:scale-[0.97]",
                   )}
                 >
                   {!selected && <Trans>Place here</Trans>}
