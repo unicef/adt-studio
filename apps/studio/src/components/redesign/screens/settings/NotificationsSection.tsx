@@ -2,12 +2,12 @@ import type { ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
-import { Bell, CheckCircle2, Volume2, Timer } from "lucide-react"
-import { Switch } from "@/components/ui/switch"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Bell, CheckCircle2, Volume2, Timer, X } from "lucide-react"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { useNotificationPrefs, type ToastPosition } from "@/hooks/use-notification-prefs"
+import { usePlatform, type DesktopOS } from "@/hooks/use-platform"
 import { cn } from "@/lib/utils"
 import { SettingsHeading, SettingsLead } from "./ui"
 import { SETTINGS_ANCHORS } from "./nav"
@@ -35,6 +35,35 @@ const POS_CLASS: Record<ToastPosition, string> = {
 /* eslint-enable lingui/no-unlocalized-strings */
 
 const isTop = (p: ToastPosition) => p.startsWith("top")
+
+/** Titlebar that mirrors the host OS so the preview reads as native. */
+function WindowChrome({ os }: { os: DesktopOS }) {
+  if (os === "windows") {
+    return (
+      <div className="flex h-7 items-center border-b bg-muted/60 pl-3">
+        <span className="size-3 rounded-[3px] bg-brand-600/70" />
+        <div className="ml-auto flex h-full items-stretch text-muted-foreground/70">
+          <span className="flex w-9 items-center justify-center">
+            <span className="h-px w-2.5 bg-current" />
+          </span>
+          <span className="flex w-9 items-center justify-center">
+            <span className="size-2 rounded-[1px] border border-current" />
+          </span>
+          <span className="flex w-9 items-center justify-center">
+            <X className="size-2.5" />
+          </span>
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className="flex h-7 items-center gap-1.5 border-b bg-muted/60 px-3">
+      <span className="size-2 rounded-full bg-[#ff5f57]" />
+      <span className="size-2 rounded-full bg-[#febc2e]" />
+      <span className="size-2 rounded-full bg-[#28c840]" />
+    </div>
+  )
+}
 
 function PreviewToast({ position, sound, autoDismiss, autoDelay }: { position: ToastPosition; sound: boolean; autoDismiss: boolean; autoDelay: number }) {
   return (
@@ -94,6 +123,7 @@ function ControlTile({
 
 export function NotificationsSection() {
   const { i18n, t } = useLingui()
+  const os = usePlatform()
   const [prefs, setPrefs] = useNotificationPrefs()
 
   const posLabel = i18n._(POSITIONS.find((p) => p.key === prefs.position)?.label ?? msg`Top center`)
@@ -114,15 +144,22 @@ export function NotificationsSection() {
       </SettingsLead>
 
       <section id={SETTINGS_ANCHORS.notificationPosition} className="scroll-mt-24">
+        <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+          <div className="text-sm font-semibold">
+            <Trans>Position</Trans>
+          </div>
+          <div className="text-[12.5px] text-muted-foreground">
+            <Trans>
+              Pick a corner — toasts appear <b className="font-semibold text-foreground">{posLabel}</b>
+            </Trans>
+          </div>
+        </div>
+
         <div className="relative h-[320px] w-full overflow-hidden rounded-2xl border bg-muted/40 shadow-sm">
           <div className="absolute inset-0 bg-gradient-to-b from-brand-500/[0.07] to-transparent" />
 
           <div className="absolute inset-6 overflow-hidden rounded-xl border bg-background shadow-md ring-1 ring-black/5">
-            <div className="flex h-7 items-center gap-1.5 border-b bg-muted/60 px-3">
-              <span className="size-2 rounded-full bg-[#ff5f57]" />
-              <span className="size-2 rounded-full bg-[#febc2e]" />
-              <span className="size-2 rounded-full bg-[#28c840]" />
-            </div>
+            <WindowChrome os={os} />
             <div className="flex h-[calc(100%-1.75rem)]">
               <div className="flex w-[26%] max-w-[180px] flex-col gap-2.5 border-r bg-muted/30 px-3 py-3.5">
                 <div className="size-5 rounded-md bg-brand-600/80" />
@@ -139,31 +176,30 @@ export function NotificationsSection() {
               </div>
             </div>
 
-            {POSITIONS.map((p) => (
-              <button
-                key={p.key}
-                type="button"
-                aria-label={i18n._(p.label)}
-                aria-pressed={prefs.position === p.key}
-                onClick={() => setPrefs({ position: p.key })}
-                className={cn(
-                  "absolute z-[5] h-[46px] w-[210px] rounded-xl border border-dashed border-transparent transition-colors duration-200 motion-reduce:transition-none",
-                  EASE,
-                  prefs.position === p.key ? "pointer-events-none" : "hover:border-brand-400/60 hover:bg-brand-500/[0.06]",
-                  POS_CLASS[p.key],
-                )}
-              />
-            ))}
+            {POSITIONS.map((p) => {
+              const selected = prefs.position === p.key
+              return (
+                <button
+                  key={p.key}
+                  type="button"
+                  aria-label={i18n._(p.label)}
+                  aria-pressed={selected}
+                  onClick={() => setPrefs({ position: p.key })}
+                  className={cn(
+                    "absolute z-[5] flex h-[46px] w-[210px] items-center justify-center rounded-xl transition-all duration-200 motion-reduce:transition-none",
+                    EASE,
+                    POS_CLASS[p.key],
+                    selected
+                      ? "pointer-events-none opacity-0"
+                      : "border border-dashed border-muted-foreground/30 bg-muted/10 text-[10.5px] font-medium text-muted-foreground/70 hover:border-brand-400 hover:bg-brand-500/[0.07] hover:text-brand-600 motion-safe:active:scale-[0.97]",
+                  )}
+                >
+                  {!selected && <Trans>Place here</Trans>}
+                </button>
+              )
+            })}
 
             <PreviewToast position={prefs.position} sound={prefs.sound} autoDismiss={prefs.autoDismiss} autoDelay={prefs.autoDelay} />
-          </div>
-
-          <div className="pointer-events-none absolute inset-x-0 bottom-2.5 flex justify-center">
-            <span className="rounded-full bg-background/80 px-3 py-1 text-[11.5px] text-muted-foreground shadow-sm backdrop-blur">
-              <Trans>
-                Click a corner — toasts show <b className="font-semibold text-foreground">{posLabel}</b>
-              </Trans>
-            </span>
           </div>
         </div>
       </section>
@@ -175,38 +211,34 @@ export function NotificationsSection() {
           title={<Trans>Play a sound</Trans>}
           description={<Trans>A soft chime when a long task completes.</Trans>}
         >
-          <Switch checked={prefs.sound} onCheckedChange={(sound) => setPrefs({ sound })} aria-label={t`Play a sound`} />
+          <SegmentedControl
+            className="w-full"
+            options={[
+              { value: "off", label: t`Off` },
+              { value: "on", label: t`On` },
+            ]}
+            value={prefs.sound ? "on" : "off"}
+            onValueChange={(v) => setPrefs({ sound: v === "on" })}
+          />
         </ControlTile>
 
         <ControlTile
           icon={Timer}
           anchorId={SETTINGS_ANCHORS.notificationAutoDismiss}
           title={<Trans>Auto-dismiss</Trans>}
-          description={<Trans>Hide toasts automatically after a delay.</Trans>}
+          description={<Trans>Hide toasts automatically, or keep them until dismissed.</Trans>}
         >
-          <div className="flex items-center gap-2.5">
-            <Select
-              value={String(prefs.autoDelay)}
-              onValueChange={(value) => setPrefs({ autoDelay: Number(value) })}
-              disabled={!prefs.autoDismiss}
-            >
-              <SelectTrigger className="h-9 flex-1">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="start">
-                <SelectItem value="4">
-                  <Trans>after 4s</Trans>
-                </SelectItem>
-                <SelectItem value="6">
-                  <Trans>after 6s</Trans>
-                </SelectItem>
-                <SelectItem value="10">
-                  <Trans>after 10s</Trans>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <Switch checked={prefs.autoDismiss} onCheckedChange={(autoDismiss) => setPrefs({ autoDismiss })} aria-label={t`Auto-dismiss`} />
-          </div>
+          <SegmentedControl
+            className="w-full"
+            options={[
+              { value: "off", label: t`Off` },
+              { value: "4", label: t`4s` },
+              { value: "6", label: t`6s` },
+              { value: "10", label: t`10s` },
+            ]}
+            value={prefs.autoDismiss ? String(prefs.autoDelay) : "off"}
+            onValueChange={(v) => (v === "off" ? setPrefs({ autoDismiss: false }) : setPrefs({ autoDismiss: true, autoDelay: Number(v) }))}
+          />
         </ControlTile>
 
         <ControlTile
