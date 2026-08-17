@@ -171,7 +171,7 @@ export function AppSidebar({
               <CircleHelp className="size-[17px]" />
             </button>
           </PopoverTrigger>
-          <PopoverContent side="right" align="end" sideOffset={30} className="w-[262px] p-1.5">
+          <PopoverContent side="right" align="end" sideOffset={20} className="w-[262px] p-1.5">
             <button
               type="button"
               onClick={() => setHelpOpen(false)}
