@@ -70,7 +70,7 @@ function PreviewToast({ position, sound, autoDismiss, autoDelay }: { position: T
     <div
       key={position}
       className={cn(
-        "pointer-events-none absolute z-10 w-[30%] min-w-[128px] overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg shadow-black/10 transition-[opacity,transform] duration-300 motion-reduce:transition-none starting:opacity-0",
+        "pointer-events-none absolute z-10 w-[28%] overflow-hidden rounded-lg border bg-popover text-popover-foreground shadow-lg shadow-black/10 transition-[opacity,transform] duration-300 motion-reduce:transition-none starting:opacity-0",
         EASE,
         POS_CLASS[position],
         isTop(position) ? "starting:-translate-y-2" : "starting:translate-y-2",
@@ -155,52 +155,52 @@ export function NotificationsSection() {
           </div>
         </div>
 
-        <div className="relative flex h-[340px] w-full items-center justify-center overflow-hidden rounded-2xl border bg-muted/40 shadow-sm">
-          <div className="absolute inset-0 bg-gradient-to-b from-brand-500/[0.07] to-transparent" />
-
-          <div className="relative aspect-[16/10] h-[288px] overflow-hidden rounded-xl border bg-background shadow-xl ring-1 ring-black/5">
-            <WindowChrome os={os} />
-            <div className="flex h-[calc(100%-1.75rem)]">
-              <div className="flex w-[23%] flex-col gap-2 border-r bg-muted/30 px-2.5 py-3">
-                <div className="size-4 rounded-md bg-brand-600/80" />
-                <div className="h-1.5 w-[80%] rounded-full bg-muted-foreground/25" />
-                <div className="h-1.5 w-[64%] rounded-full bg-muted-foreground/15" />
-                <div className="h-1.5 w-[72%] rounded-full bg-muted-foreground/15" />
-                <div className="h-1.5 w-[58%] rounded-full bg-muted-foreground/15" />
-              </div>
-              <div className="flex-1 space-y-2.5 px-3.5 py-3.5">
-                <div className="h-2 w-[42%] rounded-full bg-muted-foreground/25" />
-                <div className="h-1.5 w-[84%] rounded-full bg-muted-foreground/15" />
-                <div className="h-1.5 w-[70%] rounded-full bg-muted-foreground/15" />
-                <div className="h-1.5 w-[76%] rounded-full bg-muted-foreground/15" />
-              </div>
+        <div className="relative mx-auto aspect-[16/10] w-full max-w-[740px] overflow-hidden rounded-xl border bg-background shadow-xl ring-1 ring-black/5">
+          <WindowChrome os={os} />
+          <div className="flex h-[calc(100%-1.75rem)]">
+            <div className="flex w-[22%] flex-col gap-2.5 border-r bg-muted/30 px-3 py-4">
+              <div className="size-5 rounded-md bg-brand-600/80" />
+              <div className="h-2 w-[80%] rounded-full bg-muted-foreground/25" />
+              <div className="h-2 w-[64%] rounded-full bg-muted-foreground/15" />
+              <div className="h-2 w-[72%] rounded-full bg-muted-foreground/15" />
+              <div className="h-2 w-[58%] rounded-full bg-muted-foreground/15" />
             </div>
-
-            {POSITIONS.map((p) => {
-              const selected = prefs.position === p.key
-              return (
-                <button
-                  key={p.key}
-                  type="button"
-                  aria-label={i18n._(p.label)}
-                  aria-pressed={selected}
-                  onClick={() => setPrefs({ position: p.key })}
-                  className={cn(
-                    "absolute z-[5] flex h-[42px] w-[30%] min-w-[128px] items-center justify-center rounded-lg transition-all duration-200 motion-reduce:transition-none",
-                    EASE,
-                    POS_CLASS[p.key],
-                    selected
-                      ? "pointer-events-none opacity-0"
-                      : "border border-dashed border-muted-foreground/30 bg-muted/10 text-[10px] font-medium text-muted-foreground/70 hover:border-brand-400 hover:bg-brand-500/[0.07] hover:text-brand-600 motion-safe:active:scale-[0.97]",
-                  )}
-                >
-                  {!selected && <Trans>Place here</Trans>}
-                </button>
-              )
-            })}
-
-            <PreviewToast position={prefs.position} sound={prefs.sound} autoDismiss={prefs.autoDismiss} autoDelay={prefs.autoDelay} />
+            <div className="flex-1 space-y-3 px-5 py-5">
+              <div className="h-2.5 w-[38%] rounded-full bg-muted-foreground/25" />
+              <div className="h-2 w-[84%] rounded-full bg-muted-foreground/15" />
+              <div className="h-2 w-[70%] rounded-full bg-muted-foreground/15" />
+              <div className="h-2 w-[76%] rounded-full bg-muted-foreground/15" />
+            </div>
           </div>
+
+          {POSITIONS.map((p) => {
+            const selected = prefs.position === p.key
+            return (
+              <button
+                key={p.key}
+                type="button"
+                aria-label={i18n._(p.label)}
+                aria-pressed={selected}
+                onClick={() => setPrefs({ position: p.key })}
+                className={cn(
+                  "group absolute z-[5] flex h-[44px] w-[28%] items-center justify-center rounded-lg transition-all duration-200 motion-reduce:transition-none",
+                  EASE,
+                  POS_CLASS[p.key],
+                  selected
+                    ? "pointer-events-none opacity-0"
+                    : "border border-dashed border-muted-foreground/25 bg-muted/5 hover:border-brand-400 hover:bg-brand-500/[0.07] motion-safe:active:scale-[0.97]",
+                )}
+              >
+                {!selected && (
+                  <span className="text-[10.5px] font-medium text-muted-foreground/70 opacity-0 transition-opacity duration-150 group-hover:text-brand-600 group-hover:opacity-100">
+                    <Trans>Place here</Trans>
+                  </span>
+                )}
+              </button>
+            )
+          })}
+
+          <PreviewToast position={prefs.position} sound={prefs.sound} autoDismiss={prefs.autoDismiss} autoDelay={prefs.autoDelay} />
         </div>
       </section>
 
