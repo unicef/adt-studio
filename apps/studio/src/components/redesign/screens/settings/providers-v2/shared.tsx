@@ -283,7 +283,7 @@ export function AuthModeToggle({
     <div className="relative grid grid-cols-2 gap-1 rounded-xl border bg-muted/40 p-1">
       <span
         aria-hidden
-        className={cn("absolute inset-y-1 w-[calc(50%-2px)] rounded-lg bg-card shadow-sm transition-transform duration-300 motion-reduce:transition-none", EASE)}
+        className={cn("absolute inset-y-1 w-[calc(50%-2px)] rounded-lg bg-card ring-1 ring-border shadow-sm transition-transform duration-300 motion-reduce:transition-none dark:bg-accent", EASE)}
         style={{ transform: `translateX(${activeIndex * 100}%)` }}
       />
       {options.map(({ id, label, Icon, soon }) => (

@@ -515,8 +515,11 @@
   --accent-foreground: oklch(0.93 0.01 250);
   --destructive: oklch(0.645 0.203 25.5);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.28 0.03 250);
-  --input: oklch(0.25 0.03 250);
+  --border: oklch(0.34 0.03 250);
+  --input: oklch(0.32 0.03 250);
+  /* Stage glyphs that fail 3:1 on the dark card footer — lightened for dark only. */
+  --color-stage-storyboard: #a78bfa;
+  --color-stage-export: #818cf8;
   --ring: oklch(0.72 0.189 260);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);

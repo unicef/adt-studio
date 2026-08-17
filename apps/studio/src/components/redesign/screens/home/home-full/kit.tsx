@@ -29,7 +29,7 @@ export function ViewToggle({ value, onChange }: { value: ViewMode; onChange: (v:
       onClick={() => onChange(v)}
       className={cn(
         "grid size-7 place-items-center rounded-md transition-colors",
-        value === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+        value === v ? "bg-card text-foreground ring-1 ring-border shadow-sm dark:bg-accent" : "text-muted-foreground hover:text-foreground",
       )}
     >
       <Icon className="size-4" />

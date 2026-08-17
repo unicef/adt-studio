@@ -28,7 +28,7 @@ export function SettingsNavList({ activeKey, className }: SettingsNavListProps) 
                 className={cn(
                   "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors",
                   active
-                    ? "bg-card font-semibold text-brand-700 shadow-[0_1px_2px_rgba(15,23,42,0.08),0_0_0_1px_rgba(15,23,42,0.05)]"
+                    ? "bg-card font-semibold text-brand-700 ring-1 ring-border shadow-sm"
                     : "text-foreground hover:bg-black/5 dark:hover:bg-white/5",
                 )}
               >
