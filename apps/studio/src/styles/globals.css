@@ -73,6 +73,12 @@
   --animate-onboarding-drift-b: onboarding-drift-b 28s ease-in-out infinite;
   --animate-onboarding-icon-float: onboarding-icon-float 5s ease-in-out infinite;
   --animate-onboarding-shimmer: onboarding-shimmer 2.8s ease-in-out infinite;
+  --animate-onboarding-eq: onboarding-eq 0.85s ease-in-out infinite;
+  --animate-onboarding-gradient: onboarding-gradient 6s ease-in-out infinite;
+  --animate-finale-rise: finale-rise 0.95s cubic-bezier(0.19, 1, 0.22, 1) both;
+  --animate-finale-aurora-in: finale-aurora-in 1.4s cubic-bezier(0.19, 1, 0.22, 1) both;
+  --animate-finale-sheen: finale-sheen 1.15s cubic-bezier(0.4, 0, 0.2, 1) 0.85s both;
+  --animate-finale-glow: finale-glow 4.5s ease-in-out infinite;
 }
 
 @keyframes accordion-down {
@@ -263,6 +269,110 @@
   50% {
     opacity: 0.7;
     transform: scale(1.04);
+  }
+}
+
+@keyframes onboarding-eq {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes finale-rise {
+  from {
+    transform: translateY(118%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes finale-aurora-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes finale-sheen {
+  from {
+    transform: translateX(-160%) skewX(-14deg);
+  }
+  to {
+    transform: translateX(280%) skewX(-14deg);
+  }
+}
+
+@keyframes finale-glow {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-finale-rise,
+  .animate-finale-aurora-in,
+  .animate-finale-sheen,
+  .animate-finale-glow {
+    animation: none;
+  }
+}
+
+/* Onboarding surface tokens — flip with the app `.dark` class. Feature-panel
+   gradients and white-on-panel text stay vibrant in both themes. */
+.ob-root {
+  --ob-page: radial-gradient(120% 120% at 50% -10%, var(--ob-accent-wash) 0%, #eef0f5 55%, #e7e9ef 100%);
+  --ob-bg: #ffffff;
+  --ob-surface: #ffffff;
+  --ob-surface-2: #fbfbfc;
+  --ob-row: #f6f7f9;
+  --ob-track: #eef0f4;
+  --ob-fg: #0a0a0a;
+  --ob-muted: #737373;
+  --ob-faint: #9aa0aa;
+  --ob-border: rgba(0, 0, 0, 0.08);
+  --ob-border-strong: rgba(0, 0, 0, 0.15);
+  --ob-card-shadow: 0 40px 120px -24px rgba(20, 32, 80, 0.45);
+  --ob-sheen: rgba(255, 255, 255, 0.7);
+}
+
+.dark .ob-root {
+  --ob-page: radial-gradient(120% 120% at 50% -10%, #131a2b 0%, #0c1017 55%, #080b12 100%);
+  --ob-bg: #0e1320;
+  --ob-surface: #161c2b;
+  --ob-surface-2: #1b2333;
+  --ob-row: rgba(255, 255, 255, 0.045);
+  --ob-track: rgba(255, 255, 255, 0.09);
+  --ob-fg: #f1f4fb;
+  --ob-muted: #9aa4b6;
+  --ob-faint: #6c7688;
+  --ob-border: rgba(255, 255, 255, 0.1);
+  --ob-border-strong: rgba(255, 255, 255, 0.2);
+  --ob-card-shadow: 0 40px 120px -24px rgba(0, 0, 0, 0.7);
+  --ob-sheen: rgba(255, 255, 255, 0);
+}
+
+@keyframes onboarding-gradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
   }
 }
 

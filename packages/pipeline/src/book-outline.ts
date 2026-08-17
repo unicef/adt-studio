@@ -221,6 +221,108 @@ function finalizeBookOutlineProposal(
   return (validation.cleaned as BookOutlineOutput | undefined) ?? converted.outline
 }
 
+/**
+ * Deterministically reconcile the cosmetic style-cluster bookkeeping so an
+ * otherwise-valid whole-book hierarchy is never rejected over it. Each entry
+ * carries an opaque style label plus its authoritative semantic level, and
+ * downstream stages only need the label to be defined and to agree with the
+ * entry's level. Rather than fail the book on duplicate cluster ids, undeclared
+ * references, or level mismatches — mistakes the model cannot reliably avoid on
+ * a large book — rebuild the cluster set from how entries actually use it. A
+ * single visual style reused at multiple levels is split into one cluster per
+ * level, exactly the representation the schema requires. Returns whether any
+ * declaration or entry label was changed.
+ */
+function reconcileStyleClusters(output: BookOutlineOutput): boolean {
+  const declared = new Map<string, BookOutlineStyleCluster>()
+  for (const cluster of output.styleClusters) {
+    if (!declared.has(cluster.styleClusterId)) declared.set(cluster.styleClusterId, cluster)
+  }
+
+  // Distinct (id, level) usages in first-seen order keep the rebuild stable.
+  const levelsById = new Map<string, Set<number>>()
+  const usageOrder: Array<{ id: string; level: number }> = []
+  const usageSeen = new Set<string>()
+  for (const entry of output.entries) {
+    const key = `${entry.styleClusterId}::${entry.level}`
+    if (!usageSeen.has(key)) {
+      usageSeen.add(key)
+      usageOrder.push({ id: entry.styleClusterId, level: entry.level })
+    }
+    const levels = levelsById.get(entry.styleClusterId) ?? new Set<number>()
+    levels.add(entry.level)
+    levelsById.set(entry.styleClusterId, levels)
+  }
+
+  // The primary level keeps the original cluster id. Prefer the model's
+  // declared level when an entry actually uses it, else the lowest used level.
+  const primaryLevel = new Map<string, number>()
+  for (const [id, levels] of levelsById) {
+    const declaredLevel = declared.get(id)?.level
+    primaryLevel.set(
+      id,
+      declaredLevel !== undefined && levels.has(declaredLevel)
+        ? declaredLevel
+        : Math.min(...levels),
+    )
+  }
+
+  // Reserve every primary id before allocating variants so an existing style
+  // is never renamed or merged with a derived id that happens to match it.
+  const claimedIds = new Set(primaryLevel.keys())
+  const claimVariant = (baseId: string): string => {
+    let candidate = baseId
+    let suffix = 2
+    while (claimedIds.has(candidate)) {
+      candidate = `${baseId}-${suffix++}`
+    }
+    claimedIds.add(candidate)
+    return candidate
+  }
+
+  const rebuilt: BookOutlineStyleCluster[] = []
+  const rebuiltIds = new Set<string>()
+  const finalIdByUsage = new Map<string, string>()
+  for (const { id, level } of usageOrder) {
+    const baseDescription = declared.get(id)?.description ?? `Headings styled as ${id}`
+    const isPrimary = level === primaryLevel.get(id)
+    const finalId = isPrimary ? id : claimVariant(`${id}-level-${level}`)
+    finalIdByUsage.set(`${id}::${level}`, finalId)
+    if (!rebuiltIds.has(finalId)) {
+      rebuiltIds.add(finalId)
+      rebuilt.push({
+        styleClusterId: finalId,
+        description: isPrimary
+          ? baseDescription
+          : `${baseDescription} (level ${level} variant)`,
+        level,
+      })
+    }
+  }
+
+  let changed = false
+  for (const entry of output.entries) {
+    const mapped = finalIdByUsage.get(`${entry.styleClusterId}::${entry.level}`)
+    if (mapped && mapped !== entry.styleClusterId) {
+      entry.styleClusterId = mapped
+      changed = true
+    }
+  }
+  const declarationsChanged =
+    output.styleClusters.length !== rebuilt.length ||
+    rebuilt.some((cluster, index) => {
+      const original = output.styleClusters[index]
+      return (
+        !original ||
+        original.styleClusterId !== cluster.styleClusterId ||
+        original.level !== cluster.level ||
+        original.description !== cluster.description
+      )
+    })
+  output.styleClusters = rebuilt
+  return changed || declarationsChanged
+}
+
 function validateBookOutline(
   raw: unknown,
   evidence: BookOutlineEvidence,
@@ -234,77 +336,26 @@ function validateBookOutline(
   }
 
   const errors: string[] = []
-  let cleaned = false
   const output: BookOutlineOutput = {
     ...parsed.data,
     entries: parsed.data.entries.map((entry) => ({ ...entry })),
     styleClusters: parsed.data.styleClusters.map((cluster) => ({ ...cluster })),
   }
+
+  // Style clusters are cosmetic bookkeeping, not a structural invariant. Repair
+  // them deterministically (dedupe ids, synthesize undeclared references, split
+  // a style reused across levels) so the whole book is never blocked on them.
+  // Every check below is a genuine invariant that cannot be auto-repaired.
+  let cleaned = reconcileStyleClusters(output)
+
   const pages = new Map(evidence.pages.map((page) => [page.pageId, page]))
   const candidates = new Map(evidence.candidates.map((candidate) => [candidate.candidateId, candidate]))
   const candidateOrder = new Map(
     evidence.candidates.map((candidate, index) => [candidate.candidateId, index]),
   )
-  const clusters = new Map<string, BookOutlineStyleCluster>()
   const entryIds = new Set<string>()
   const usedCandidates = new Set<string>()
   let previousPageNumber = 0
-
-  for (const cluster of output.styleClusters) {
-    if (clusters.has(cluster.styleClusterId)) {
-      errors.push(`Duplicate styleClusterId "${cluster.styleClusterId}".`)
-    }
-    clusters.set(cluster.styleClusterId, cluster)
-  }
-
-  // A cluster/entry level mismatch does not require another semantic pass.
-  // Preserve the model's hierarchy and split a reused visual style into one
-  // cluster per semantic level, which is exactly the representation the
-  // schema requires. If every use agrees on a level other than the cluster's
-  // declared level, simply correct the unused declaration.
-  if (clusters.size === output.styleClusters.length) {
-    const usedLevels = new Map<string, Set<number>>()
-    for (const entry of output.entries) {
-      if (!clusters.has(entry.styleClusterId)) continue
-      const levels = usedLevels.get(entry.styleClusterId) ?? new Set<number>()
-      levels.add(entry.level)
-      usedLevels.set(entry.styleClusterId, levels)
-    }
-
-    for (const [clusterId, levels] of usedLevels) {
-      const cluster = clusters.get(clusterId)!
-      if (!levels.has(cluster.level)) {
-        cluster.level = levels.values().next().value!
-        cleaned = true
-      }
-      if (levels.size === 1) {
-        const [usedLevel] = levels
-        cluster.level = usedLevel
-        continue
-      }
-
-      for (const level of levels) {
-        if (level === cluster.level) continue
-        const baseId = `${clusterId}-level-${level}`
-        let derivedId = baseId
-        let suffix = 2
-        while (clusters.has(derivedId)) derivedId = `${baseId}-${suffix++}`
-        const derived: BookOutlineStyleCluster = {
-          styleClusterId: derivedId,
-          description: `${cluster.description} (level ${level} variant)`,
-          level,
-        }
-        output.styleClusters.push(derived)
-        clusters.set(derivedId, derived)
-        for (const entry of output.entries) {
-          if (entry.styleClusterId === clusterId && entry.level === level) {
-            entry.styleClusterId = derivedId
-          }
-        }
-        cleaned = true
-      }
-    }
-  }
 
   for (const entry of output.entries) {
     if (entryIds.has(entry.outlineId)) {
@@ -375,18 +426,6 @@ function validateBookOutline(
           )
         }
       }
-    }
-
-    const cluster = clusters.get(entry.styleClusterId)
-    if (!cluster) {
-      errors.push(
-        `Outline entry "${entry.outlineId}" references unknown style cluster "${entry.styleClusterId}".`,
-      )
-    } else if (cluster.level !== entry.level) {
-      errors.push(
-        `Style cluster "${entry.styleClusterId}" is level ${cluster.level}, ` +
-          `but "${entry.outlineId}" is level ${entry.level}.`,
-      )
     }
 
     entryIds.add(entry.outlineId)

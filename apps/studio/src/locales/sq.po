@@ -1,17 +1,18 @@
+#
 msgid ""
 msgstr ""
-"POT-Creation-Date: 2026-06-02 03:47-0300\n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"X-Generator: @lingui/cli\n"
-"Language: sq\n"
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-02 03:47-0300\n"
 "PO-Revision-Date: \n"
 "Last-Translator: \n"
 "Language-Team: \n"
+"Language: sq\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: \n"
+"X-Generator: @lingui/cli\n"
 
 msgid " · {needsChanges} need changes"
 msgstr " · {needsChanges} kërkojnë ndryshime"
@@ -260,7 +261,6 @@ msgstr "{0} seksione"
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} imazhe të zgjedhura nuk janë më në storyboard."
 
-#. placeholder {0}: formatVersion(group.series)
 #~ msgid "{0} series"
 #~ msgstr "Seria {0}"
 
@@ -276,7 +276,6 @@ msgstr "{0} tekste"
 msgid "{0} translations"
 msgstr "{0} përkthime"
 
-#. placeholder {0}: versions.length
 #~ msgid "{0} versions"
 #~ msgstr "{0} versione"
 
@@ -477,8 +476,8 @@ msgstr "×4"
 msgid "="
 msgstr "="
 
-msgid "● LIVE"
-msgstr "● DREJTPËRDREJTË"
+#~ msgid "● LIVE"
+#~ msgstr "● DREJTPËRDREJTË"
 
 msgid "🌿"
 msgstr "🌿"
@@ -516,14 +515,14 @@ msgstr "1.1 Sfondi"
 msgid "1.2 Scope"
 msgstr "1.2 Shtrirja"
 
-msgid "14.2 kB"
-msgstr "14.2 kB"
+#~ msgid "14.2 kB"
+#~ msgstr "14.2 kB"
 
-msgid "14.2 MB"
-msgstr "14.2 MB"
+#~ msgid "14.2 MB"
+#~ msgstr "14.2 MB"
 
-msgid "18 scenes"
-msgstr "18 skena"
+#~ msgid "18 scenes"
+#~ msgstr "18 skena"
 
 msgid "2.1 Data collection"
 msgstr "2.1 Mbledhja e të dhënave"
@@ -534,11 +533,11 @@ msgstr "2.2 Analiza"
 msgid "22 words"
 msgstr "22 fjalë"
 
-msgid "238 pages · 14.2 MB"
-msgstr "238 faqe · 14.2 MB"
+#~ msgid "238 pages · 14.2 MB"
+#~ msgstr "238 faqe · 14.2 MB"
 
-msgid "238 pp"
-msgstr "238 ff"
+#~ msgid "238 pp"
+#~ msgstr "238 ff"
 
 msgid "3 items"
 msgstr "3 elemente"
@@ -549,14 +548,14 @@ msgstr "3 nga 5 module"
 msgid "3.2.1 — Authentication Methods"
 msgstr "3.2.1 — Metodat e Autentifikimit"
 
-msgid "36 spreads"
-msgstr "36 shpërndarje"
+#~ msgid "36 spreads"
+#~ msgstr "36 shpërndarje"
 
-msgid "42 figs"
-msgstr "42 figura"
+#~ msgid "42 figs"
+#~ msgstr "42 figura"
 
-msgid "72 panels"
-msgstr "72 panele"
+#~ msgid "72 panels"
+#~ msgstr "72 panele"
 
 msgid "A → Z"
 msgstr "A → Z"
@@ -615,8 +614,8 @@ msgstr "Një kuiz ekziston tashmë këtu — shtoni një tjetër pas tij ose zë
 msgid "A required credential is missing."
 msgstr "Mungon një kredencial i detyrueshëm."
 
-msgid "A scenic view at dusk."
-msgstr "Një pamje piktoreske në muzg."
+#~ msgid "A scenic view at dusk."
+#~ msgstr "Një pamje piktoreske në muzg."
 
 msgid "A section containing only images."
 msgstr "Një seksion që përmban vetëm imazhe."
@@ -732,14 +731,20 @@ msgstr "Rezultatet e aksesueshmërisë janë përkohësisht të padisponueshme."
 msgid "Accessibility Summary"
 msgstr "Përmbledhja e Aksesueshmërisë"
 
-msgid "Accessibility, from the first <0>page.</0>"
-msgstr "Aksesueshmëria, që nga <0>faqja e parë.</0>"
+#~ msgid "Accessibility, from the first <0>page.</0>"
+#~ msgstr "Aksesueshmëria, që nga <0>faqja e parë.</0>"
 
-msgid "Accessible book"
-msgstr "Libër i aksesueshëm"
+#~ msgid "Accessible book"
+#~ msgstr "Libër i aksesueshëm"
+
+msgid "Accessible image captions and storyboards."
+msgstr "Përshkrime të arritshme imazhesh dhe storyboard-e."
 
 msgid "Accessible sizes"
 msgstr "Madhësi të aksesueshme"
+
+msgid "Accessible textbooks"
+msgstr "Tekste shkollore të arritshme"
 
 msgid "Actions disabled while storyboard is running"
 msgstr "Veprimet janë çaktivizuara ndërsa storyboard-i është në ekzekutim"
@@ -928,6 +933,9 @@ msgstr "Shto të paktën një gjuhë dalëse për të ekzekutuar përkthimin."
 msgid "Add author"
 msgstr "Shto autor"
 
+msgid "Add book"
+msgstr "Shto libër"
+
 msgid "Add Book"
 msgstr "Shto Libër"
 
@@ -1048,6 +1056,9 @@ msgstr "Shto video"
 msgid "Add your first book"
 msgstr "Shto librin tuaj të parë"
 
+msgid "Add your first book and ADT Studio takes care of the rest."
+msgstr "Shto librin tënd të parë dhe ADT Studio kujdeset për pjesën tjetër."
+
 msgid "Add your first term"
 msgstr "Shto termin tuaj të parë"
 
@@ -1084,8 +1095,8 @@ msgstr "Shton faqe glosari në libër. Termat lidhen me zërin e tyre dhe çdo z
 msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
 msgstr "Shton udhëzime për Dizajnin Universal për të Nxënit (gjuhë e thjeshtë, alternativë me tastierë + klikim për tërheqjen, vlerësim aria-live, pa reagime vetëm me ngjyra). Çaktivizoje për të krahasuar rezultatin pa këto udhëzime."
 
-msgid "ADT"
-msgstr "ADT"
+#~ msgid "ADT"
+#~ msgstr "ADT"
 
 msgid "ADT Book"
 msgstr "Libër ADT"
@@ -1100,8 +1111,8 @@ msgstr "Paketë ADT"
 #~ msgid "ADT Studio"
 #~ msgstr "ADT Studio"
 
-msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
-msgstr "ADT Studio përdor çelësat tuaj API për të ekzekutuar pipeline-in. Çelësat ruhen lokalisht në këtë pajisje dhe nuk dërgohen asnjëherë askund tjetër."
+#~ msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
+#~ msgstr "ADT Studio përdor çelësat tuaj API për të ekzekutuar pipeline-in. Çelësat ruhen lokalisht në këtë pajisje dhe nuk dërgohen asnjëherë askund tjetër."
 
 msgid "ADT Studio will restart to finish installing."
 msgstr "ADT Studio do të riniset për të përfunduar instalimin."
@@ -1146,8 +1157,8 @@ msgstr "Pas faqes {placement}"
 msgid "after pg {0}"
 msgstr "pas f. {0}"
 
-msgid "age 8"
-msgstr "mosha 8"
+#~ msgid "age 8"
+#~ msgstr "mosha 8"
 
 msgid "Agent task failed"
 msgstr "Detyra e agjentit dështoi"
@@ -1273,8 +1284,8 @@ msgstr "Alfabetik"
 msgid "Already handed out"
 msgstr "Tashmë të shpërndara"
 
-msgid "Alt"
-msgstr "Alt"
+#~ msgid "Alt"
+#~ msgstr "Alt"
 
 msgid "Among the Stars"
 msgstr "Mes yjeve"
@@ -1360,6 +1371,9 @@ msgstr "Çdo gjë që gjykatësi duhet të mbajë parasysh për këtë libër."
 msgid "API"
 msgstr "API"
 
+msgid "API key"
+msgstr "Çelësi i API"
+
 msgid "API Key"
 msgstr "Çelës API"
 
@@ -1433,8 +1447,8 @@ msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
 #~ msgid "Applying…"
 #~ msgstr "Duke aplikuar…"
 
-msgid "AR"
-msgstr "AR"
+#~ msgid "AR"
+#~ msgstr "AR"
 
 msgid "Archive contents"
 msgstr "Arkivo përmbajtjen"
@@ -1479,8 +1493,8 @@ msgstr "Kërko nga AI të redaktojë..."
 msgid "Asking the AI to put on its creative hat..."
 msgstr "Duke i kërkuar AI të bëhet kreativ..."
 
-msgid "ASL"
-msgstr "ASL"
+#~ msgid "ASL"
+#~ msgstr "ASL"
 
 msgid "Asset"
 msgstr "Burim"
@@ -1494,8 +1508,8 @@ msgstr "I caktuar"
 msgid "Assignment evidence"
 msgstr "Dëshmitë e caktimit"
 
-msgid "At the river's edge"
-msgstr "Në buzë të lumit"
+#~ msgid "At the river's edge"
+#~ msgstr "Në buzë të lumit"
 
 msgid "Attach an image variable"
 msgstr "Bashkëngjit një variabël imazhi"
@@ -1509,11 +1523,11 @@ msgstr "Fontet e bashkëngjitura"
 msgid "Audience or reading level"
 msgstr "Audienca ose niveli i leximit"
 
-msgid "Audio"
-msgstr "Audio"
+#~ msgid "Audio"
+#~ msgstr "Audio"
 
-msgid "Audio narration"
-msgstr "Tregim audio"
+#~ msgid "Audio narration"
+#~ msgstr "Tregim audio"
 
 msgid "Audio narration (largest impact on file size)"
 msgstr "Tregim audio (ndikimi më i madh në madhësinë e skedarit)"
@@ -1535,6 +1549,25 @@ msgstr "Autorët"
 
 msgid "Auto"
 msgstr "Automatik"
+
+msgid "Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML."
+msgstr "Modaliteti Auto i mban së bashku grafikët, imazhet me etiketa dhe infografikat komplekse, ndërsa titujt, kutitë e veçuara dhe tabelat e zakonshme i lë për HTML të qasshme."
+
+msgid "Auto preserves charts, labeled images, and complex infographics as single assets while leaving styled headings, callouts, and conventional tables for accessible HTML. All keeps every composite candidate. Off prevents PDF text from being merged into figures."
+msgstr "Modaliteti Auto i ruan grafikët, imazhet me etiketa dhe infografikat komplekse si elemente të vetme, ndërsa titujt e stilizuar, kutitë e veçuara dhe tabelat e zakonshme i lë për HTML të qasshme. Modaliteti Të gjitha e mban çdo kandidat të përbërë. Modaliteti Joaktiv parandalon bashkimin e tekstit të PDF-së me figurat."
+
+msgid "Auto recommended"
+msgstr "Rekomandohet Auto"
+
+#. placeholder {0}: i18n._(presetLabel)
+msgid "Auto recommended for {0}"
+msgstr "Auto rekomandohet për {0}"
+
+msgid "Auto-build assessments and key-term lists."
+msgstr "Ndërto automatikisht vlerësime dhe lista termash kyç."
+
+msgid "Auto-built quizzes and exercises readers can actually answer — with instant feedback, right inside the page."
+msgstr "Kuize dhe ushtrime të ndërtuara automatikisht që lexuesi mund t'u përgjigjet vërtet, me përgjigje të menjëhershme, brenda vetë faqes."
 
 msgid "Auto-detected · {detectedLabel}"
 msgstr "Zbuluar automatikisht · {detectedLabel}"
@@ -1624,8 +1657,8 @@ msgstr "bazë"
 msgid "Base Language"
 msgstr "Gjuha bazë"
 
-#~ msgid "Base URL"
-#~ msgstr "URL bazë"
+msgid "Base URL"
+msgstr "URL bazë"
 
 msgid "Basic Information"
 msgstr "Informacion bazë"
@@ -1667,6 +1700,15 @@ msgstr "Më i mirë për presetin tuaj"
 msgid "Beta"
 msgstr "Beta"
 
+msgid "Beta channel"
+msgstr "Kanali beta"
+
+msgid "Beta library"
+msgstr "Biblioteka beta"
+
+msgid "Beta preview"
+msgstr "Pamje paraprake beta"
+
 msgid "Beta release"
 msgstr "Version beta"
 
@@ -1703,8 +1745,8 @@ msgstr "Libër"
 msgid "Book coverage"
 msgstr "Mbulimi i librit"
 
-msgid "Book creation stages"
-msgstr "Fazat e krijimit të librit"
+#~ msgid "Book creation stages"
+#~ msgstr "Fazat e krijimit të librit"
 
 msgid "Book data is outdated and must be rebuilt."
 msgstr "Të dhënat e librit janë të vjetruara dhe duhet të rindërtohen."
@@ -1847,6 +1889,9 @@ msgstr "Ndërton një glosar me termat kryesorë dhe përkufizimet e gjetura në
 msgid "Builds the table of contents from the book's sections."
 msgstr "Ndërton tabelën e përmbajtjes nga seksionet e librit."
 
+msgid "Built for every reader"
+msgstr "Ndërtuar për çdo lexues"
+
 #~ msgid "Built from"
 #~ msgstr "Ndërtuar nga"
 
@@ -1978,8 +2023,8 @@ msgstr "Përkthim Katalogu"
 msgid "Category"
 msgstr "Kategoria"
 
-msgid "Cell division producing two identical cells."
-msgstr "Ndarja qelizore që prodhon dy qeliza identike."
+#~ msgid "Cell division producing two identical cells."
+#~ msgstr "Ndarja qelizore që prodhon dy qeliza identike."
 
 msgid "Center"
 msgstr "Qendër"
@@ -2019,6 +2064,9 @@ msgstr "Kapitull"
 
 msgid "Chapter 1: Introduction"
 msgstr "Kapitulli 1: Hyrje"
+
+msgid "Chapter 2 · Plants"
+msgstr "Kapitulli 2 · Bimët"
 
 msgid "Chapter 2: Methods"
 msgstr "Kapitulli 2: Metodat"
@@ -2077,8 +2125,8 @@ msgstr "Zgjidh një figurë për këtë term"
 msgid "Choose a Preset"
 msgstr "Zgjidhni një Preset"
 
-msgid "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
-msgstr "Zgjidhni një preset që përputhet me përmbajtjen tuaj — tekst shkollor, storyboard, referencë ose i personalizuar — dhe ADT Studio përshtat procesin në përputhje me rrethanat."
+#~ msgid "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
+#~ msgstr "Zgjidhni një preset që përputhet me përmbajtjen tuaj — tekst shkollor, storyboard, referencë ose i personalizuar — dhe ADT Studio përshtat procesin në përputhje me rrethanat."
 
 msgid "Choose a previously uploaded video or upload a new one."
 msgstr "Zgjidh një video të ngarkuar më parë ose ngarko një të re."
@@ -2131,6 +2179,9 @@ msgstr "Zgjidhni cilat lloje të tekstit në ekran lexohen me zë. Llojet e çak
 msgid "Choose which per-page validation items reviewers must check, customize the wording and guidance, and add your own checklist items for this document."
 msgstr "Zgjidhni cilat artikuj validimi për faqe duhet të kontrollojnë rishikuesit, personalizoni formulimin dhe udhëzimet dhe shtoni artikujt tuaj të listës së kontrollit për këtë dokument."
 
+msgid "Choose your AI provider"
+msgstr "Zgjidhni ofruesin tuaj të IA-së"
+
 msgid "Ciências da Natureza - Ensino Fundamental"
 msgstr "Ciências da Natureza - Ensino Fundamental"
 
@@ -2139,6 +2190,9 @@ msgstr "Libër Klasik Tregimesh"
 
 msgid "Classifying images…"
 msgstr "Po klasifikohen imazhet…"
+
+msgid "Claude Opus & Sonnet."
+msgstr "Claude Opus dhe Sonnet."
 
 msgid "Clean & focused"
 msgstr "I pastër dhe i fokusuar"
@@ -2317,8 +2371,8 @@ msgstr "Konfiguroni zbulimin e aktivitetit dhe opsionet e përpunimit të imazhe
 msgid "Configure basic document information and file paths"
 msgstr "Konfiguroni informacionin bazë të dokumentit dhe shtigjet e skedarëve"
 
-msgid "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
-msgstr "Konfiguroni çdo fazë — ekstraktim, storyboard, faqosje — pastaj lëreni ADT Studio të ndërtojë librin. Rishikoni rezultatin, korrigjoni çdo gjë që kërkon prekjen e njeriut."
+#~ msgid "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
+#~ msgstr "Konfiguroni çdo fazë — ekstraktim, storyboard, faqosje — pastaj lëreni ADT Studio të ndërtojë librin. Rishikoni rezultatin, korrigjoni çdo gjë që kërkon prekjen e njeriut."
 
 msgid "Configure features to include in the export"
 msgstr "Konfiguroni funksionet për t'i përfshirë në eksportim"
@@ -2344,8 +2398,11 @@ msgstr "Konfiguruar në server"
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
 
-msgid "Connect an AI provider"
-msgstr "Lidheni një ofrues AI"
+#~ msgid "Connect an AI provider"
+#~ msgstr "Lidheni një ofrues AI"
+
+msgid "Connected — key saved"
+msgstr "I lidhur — çelësi u ruajt"
 
 #. placeholder {0}: health.modelCount
 msgid "Connected successfully — {0} models available."
@@ -2438,14 +2495,14 @@ msgstr "Kontrollon nëse ElevenLabs zgjeron shkurtimet, numrat dhe simbolet në 
 msgid "Conversion failed"
 msgstr "Konvertimi dështoi"
 
-msgid "Conversion of light into chemical energy."
-msgstr "Shndërrimi i dritës në energji kimike."
+#~ msgid "Conversion of light into chemical energy."
+#~ msgstr "Shndërrimi i dritës në energji kimike."
 
 msgid "Convert a PDF"
 msgstr "Konverto një PDF"
 
-msgid "Convert any textbook into an accessible digital edition — audio, structured layouts, translations, and sign-language, built in from the very first page."
-msgstr "Konverto çdo tekst shkollor në një botim dixhital të aksesueshëm — audio, faqosje të strukturuara, përkthime dhe gjuhë shenjash, të integruara që nga faqja e parë."
+#~ msgid "Convert any textbook into an accessible digital edition — audio, structured layouts, translations, and sign-language, built in from the very first page."
+#~ msgstr "Konverto çdo tekst shkollor në një botim dixhital të aksesueshëm — audio, faqosje të strukturuara, përkthime dhe gjuhë shenjash, të integruara që nga faqja e parë."
 
 msgid "Convert to step-by-step"
 msgstr "Konverto në hap pas hapi"
@@ -2479,6 +2536,9 @@ msgstr "Zinxhiri Kryesor"
 
 #~ msgid "Core TTS Profiles"
 #~ msgstr "Profilet kryesore TTS"
+
+msgid "Correct"
+msgstr "Saktë"
 
 msgid "Correct answer"
 msgstr "Përgjigje e saktë"
@@ -2709,6 +2769,9 @@ msgstr "Zvogëlo {label}"
 msgid "Decrease indent"
 msgstr "Zvogëlo dhëmbëzimin"
 
+msgid "DeepSeek-V3 & R1 reasoning."
+msgstr "Arsyetim DeepSeek-V3 dhe R1."
+
 msgid "default"
 msgstr "parazgjedhje"
 
@@ -2829,6 +2892,9 @@ msgstr "Përkufizimi për {0}"
 msgid "Definitions and Terminology"
 msgstr "Përkufizime dhe Terminologji"
 
+msgid "Definitions, one tap away."
+msgstr "Përkufizime, me një prekje."
+
 msgid "Delete"
 msgstr "Fshi"
 
@@ -2890,8 +2956,8 @@ msgstr "Po fshihet..."
 msgid "Deleting…"
 msgstr "Po fshihet…"
 
-msgid "Delivered"
-msgstr "Dorëzuar"
+#~ msgid "Delivered"
+#~ msgstr "Dorëzuar"
 
 msgid "Dense text, tables, glossaries. Best for technical material and documentation."
 msgstr "Tekst i dendur, tabela, glosare. Më i mirë për materiale teknike dhe dokumentacion."
@@ -2938,6 +3004,9 @@ msgstr "Tituj të detajuar dhe teknikë për lexues të universitetit dhe të rr
 msgid "Details"
 msgstr "Detajet"
 
+msgid "Detect chapters, headings and learning units."
+msgstr "Zbulo kapituj, tituj dhe njësi mësimore."
+
 #~ msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
 #~ msgstr "U zbuluan {confirmCount} {confirmCount, plural, one {faqe e përbashkët} other {faqe të përbashkëta}} të mundshme — konfirmoni cilat të bashkohen"
 
@@ -2950,8 +3019,8 @@ msgstr "Fonti i zbuluar"
 msgid "Detected in current template"
 msgstr "Të zbuluara në template-in aktual"
 
-msgid "Detecting figures"
-msgstr "Po zbulohen figurat"
+#~ msgid "Detecting figures"
+#~ msgstr "Po zbulohen figurat"
 
 msgid "Detects activities already present in the book and transforms them into interactive HTML elements like radio buttons and text inputs."
 msgstr "Zbulon aktivitetet që gjenden tashmë në libër dhe i transformon ato në elementë HTML interaktivë si butonat radio dhe fushat e tekstit."
@@ -2959,11 +3028,14 @@ msgstr "Zbulon aktivitetet që gjenden tashmë në libër dhe i transformon ato 
 msgid "Detects and splits composited illustrations into separate regions so each asset can be placed and refined on its own."
 msgstr "Zbulon dhe ndan ilustrimet e kompozuara në rajone të veçanta që çdo element të mund të vendoset dhe rafinohet më vete."
 
-msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
-msgstr "Zbulon grafikë dhe figura komplekse që përmbajnë kombinim teksti, vektorësh dhe imazhesh dhe i pret nga faqja."
+#~ msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
+#~ msgstr "Zbulon grafikë dhe figura komplekse që përmbajnë kombinim teksti, vektorësh dhe imazhesh dhe i pret nga faqja."
 
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Zbulon ushtrimet dhe kuizet e ngulura në libër dhe i klasifikon si seksionet e tyre që të mund të renderohën si elementë interaktivë."
+
+msgid "Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed."
+msgstr "Zbulon tekstin e vulosur në mënyrë identike në të gjitha faqet — si një njoftim diagonal “vetëm për lexim në internet” — dhe e heq atë nga faqet e renderuara, figurat e nxjerra dhe teksti i librit. Çaktivizojeni për t’i ruajtur faqet saktësisht siç janë shtypur."
 
 msgid "Diagram"
 msgstr "Diagram"
@@ -3031,8 +3103,8 @@ msgstr "u krye"
 msgid "Done"
 msgstr "U krye"
 
-msgid "DONE"
-msgstr "KRYER"
+#~ msgid "DONE"
+#~ msgstr "KRYER"
 
 #~ msgid "Downgrade"
 #~ msgstr "Kthim në version më të vjetër"
@@ -3091,14 +3163,17 @@ msgstr "Nxjerrë nga"
 msgid "Drop a part <0>.zip</0> here, or browse"
 msgstr "Lëshoni një pjesë <0>.zip</0> këtu, ose shfletoni"
 
-msgid "Drop a PDF to get started"
-msgstr "Hidh një PDF për të filluar"
+#~ msgid "Drop a PDF to get started"
+#~ msgstr "Hidh një PDF për të filluar"
 
-msgid "Drop in a PDF and watch it flow through every stage — from raw pages to an accessible reader."
-msgstr "Hidh një PDF dhe shiko si kalon nëpër çdo fazë — nga faqet e papërpunuara deri te një lexues i aksesueshëm."
+#~ msgid "Drop in a PDF and watch it flow through every stage — from raw pages to an accessible reader."
+#~ msgstr "Hidh një PDF dhe shiko si kalon nëpër çdo fazë — nga faqet e papërpunuara deri te një lexues i aksesueshëm."
 
-msgid "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
-msgstr "Hidh një PDF për të filluar. ADT Studio e organizon atë në një projekt të ri libri që të mos fillosh nga zeroja."
+#~ msgid "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
+#~ msgstr "Hidh një PDF për të filluar. ADT Studio e organizon atë në një projekt të ri libri që të mos fillosh nga zeroja."
+
+msgid "Drop in a textbook PDF and we'll extract pages, generate accessible captions, build storyboards, and assemble quizzes — every step inspectable, every result versioned."
+msgstr "Ngarko një PDF të një teksti shkollor dhe ne do të nxjerrim faqet, do të gjenerojmë përshkrime të arritshme, do të ndërtojmë storyboard-e dhe do të montojmë kuize — çdo hap i inspektueshëm, çdo rezultat i versionuar."
 
 msgid "Drop PDF here"
 msgstr "Hidh PDF-in këtu"
@@ -3205,6 +3280,9 @@ msgstr "Çdo udhëzim zbatohet te ofruesi te i cili drejtohet gjuha e tij — p�
 msgid "Each section introduces a new theme with worked examples, followed by short practice activities at the end of the page."
 msgstr "Çdo seksion prezanton një temë të re me shembuj të zgjidhur, të ndjekur nga aktivitete të shkurtra praktike në fund të faqes."
 
+msgid "Each stage runs in your library — fully transparent, easy to rerun."
+msgstr "Çdo fazë ekzekutohet në bibliotekën tënde — plotësisht transparente dhe e lehtë për t'u ripërsëritur."
+
 msgid "Earlier"
 msgstr "Më i hershëm"
 
@@ -3239,8 +3317,8 @@ msgstr "Redakto"
 msgid "Edit {0}"
 msgstr "Redakto {0}"
 
-msgid "Edit & enrich"
-msgstr "Redakto dhe pasuro"
+#~ msgid "Edit & enrich"
+#~ msgstr "Redakto dhe pasuro"
 
 msgid "Edit activity"
 msgstr "Modifiko aktivitetin"
@@ -3371,8 +3449,8 @@ msgstr "Seksion bosh — shtoni një kontejner më poshtë për të filluar"
 msgid "en"
 msgstr "en"
 
-msgid "EN"
-msgstr "EN"
+#~ msgid "EN"
+#~ msgstr "EN"
 
 #. placeholder {0}: criterion.label
 #. placeholder {0}: section.label
@@ -3475,8 +3553,8 @@ msgstr "Gabime"
 msgid "Eruptions reshape entire regions in mere days."
 msgstr "Shpërthimet riformësojnë rajone të tëra brenda vetëm disa ditësh."
 
-msgid "ES"
-msgstr "ES"
+#~ msgid "ES"
+#~ msgstr "ES"
 
 msgid "Est. Cost"
 msgstr "Kosto e vlerësuar"
@@ -3502,14 +3580,23 @@ msgstr "Çdo faqe në këtë libër ka të gjitha seksionet të shkurtuara. Nuk 
 msgid "Every page is pruned"
 msgstr "Çdo faqe është shkurtuar"
 
-msgid "Every reader opens the same book, with the features they need on tap."
-msgstr "Çdo lexues hap të njëjtin libër, me veçoritë që i nevojiten të gatshme."
+msgid "Every page translated and kept in sync — Portuguese, Spanish, French and more, without losing the layout."
+msgstr "Çdo faqe e përkthyer dhe e mbajtur në sinkron — portugalisht, spanjisht, frëngjisht e më shumë, pa humbur strukturën."
+
+msgid "Every page, read aloud."
+msgstr "Çdo faqe, e lexuar me zë."
+
+#~ msgid "Every reader opens the same book, with the features they need on tap."
+#~ msgstr "Çdo lexues hap të njëjtin libër, me veçoritë që i nevojiten të gatshme."
 
 msgid "Every section has a video"
 msgstr "Çdo seksion ka një video"
 
 msgid "Every Storyboard section has a sign-language video assigned. You can switch to Covered or All to review or replace them."
 msgstr "Çdo seksion i Storyboard-it ka një video të gjuhës së shenjave të caktuar. Mund të kaloni te Të mbuluara ose Të gjitha për t'i rishikuar ose zëvendësuar."
+
+msgid "everyone."
+msgstr "të gjithë."
 
 msgid "Example Books"
 msgstr "Libra shembull"
@@ -3572,8 +3659,8 @@ msgstr "Eksportoni pjesën e përfunduar nga hapi i saj i Eksportimit, pastaj ng
 msgid "Export the packaged book and related artifacts for delivery."
 msgstr "Eksportoni librin e paketuar dhe artefaktet përkatëse për dorëzim."
 
-msgid "Export to a reader"
-msgstr "Eksporto tek një lexues"
+#~ msgid "Export to a reader"
+#~ msgstr "Eksporto tek një lexues"
 
 msgid "Exported"
 msgstr "Eksportuar"
@@ -3589,6 +3676,9 @@ msgstr "Duke eksportuar..."
 
 msgid "Extract"
 msgstr "Nxjerr"
+
+msgid "Extract & filter"
+msgstr "Nxirr dhe filtro"
 
 msgid "Extract hasn't run yet"
 msgstr "Nxjerrja nuk është ekzekutuar ende"
@@ -3713,8 +3803,8 @@ msgstr "Reagimi u gjenerua — rishikojeni dhe ruajeni"
 msgid "Feedback generation failed"
 msgstr "Gjenerimi i reagimit dështoi"
 
-msgid "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
-msgstr "Fig 3.1 — Cikli i ujit: avullim, kondensim, reshje."
+#~ msgid "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
+#~ msgstr "Fig 3.1 — Cikli i ujit: avullim, kondensim, reshje."
 
 msgid "figure"
 msgstr "figurë"
@@ -3846,6 +3936,9 @@ msgstr "Fontet u rivendosën në parazgjedhje."
 msgid "Fonts successfully uploaded."
 msgstr "Fontet u ngarkuan me sukses."
 
+msgid "for"
+msgstr "për"
+
 #. placeholder {0}: i18n._(preset.title)
 #. placeholder {1}: recommendedOption.label
 msgid "For {0}, we recommend {1}."
@@ -3869,8 +3962,8 @@ msgstr "Formatimi dhe mbajtësit e vendit janë ruajtur"
 msgid "Forms & controls"
 msgstr "Formularë dhe kontrolle"
 
-msgid "FR"
-msgstr "FR"
+#~ msgid "FR"
+#~ msgstr "FR"
 
 msgid "Free rectangle — resize without skewing"
 msgstr "Drejtkëndësh i lirë — ripërmaso pa shtrembëruar"
@@ -3931,6 +4024,9 @@ msgstr "Çelësi API i Gemini është i nevojshëm për të gjeneruar audio."
 
 msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
 msgstr "Gemini e gjeneron çdo fjali në kërkesën e vet, prandaj toni mund të ndryshojë nga një fjali te tjetra. Vendos një temperaturë më të ulët (p.sh. 0.4) për ta zvogëluar këtë variacion dhe një farë të fiksuar për ta bërë leximin të riprodhueshëm; lëri të dyja bosh për t'i çaktivizuar dhe për të përdorur vlerat e paracaktuara të Gemini-t. Prek vetëm gjuhët e drejtuara te Gemini — OpenAI dhe Azure i shpërfillin. Ndryshimi i secilës vlerë e rigjeneron audion e Gemini në ekzekutimin e ardhshëm."
+
+msgid "Gemini models + TTS voices."
+msgstr "Modele Gemini + zëra TTS."
 
 #~ msgid "Gemini page batching"
 #~ msgstr "Grumbullimi i faqeve në Gemini"
@@ -4072,8 +4168,8 @@ msgstr "Duke gjeneruar Glosarin..."
 msgid "Generating image..."
 msgstr "Duke gjeneruar imazhin..."
 
-msgid "Generating panels"
-msgstr "Duke gjeneruar panelet"
+#~ msgid "Generating panels"
+#~ msgstr "Duke gjeneruar panelet"
 
 msgid "Generating Quizzes..."
 msgstr "Duke gjeneruar Kuizet..."
@@ -4098,6 +4194,9 @@ msgstr "Gjenerimi dështoi. Ju lutemi provoni përsëri."
 
 msgid "Generation Prompt"
 msgstr "Prompt Gjenerimi"
+
+msgid "Get a key"
+msgstr "Merrni një çelës"
 
 msgid "Get started"
 msgstr "Filloni"
@@ -4147,6 +4246,9 @@ msgstr "Shko te libri"
 msgid "Go to home"
 msgstr "Shko te kryefaqja"
 
+msgid "Go to Home"
+msgstr "Shko te Ballina"
+
 msgid "Go to latest"
 msgstr "Shko te më i fundit"
 
@@ -4171,6 +4273,9 @@ msgstr "Zërat e Google me intonacion të fortë për përmbajtje narrative."
 msgid "Got it"
 msgstr "Në rregull"
 
+msgid "GPT-5, GPT-4o & the Responses API."
+msgstr "GPT-5, GPT-4o dhe Responses API."
+
 msgid "Grade Level"
 msgstr "Niveli Shkollor"
 
@@ -4180,8 +4285,8 @@ msgstr "Gramatika dhe rrjedhshmëria"
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Grupo tekstin dhe imazhet e çdo faqeje në seksione të tipizuara me një pemë të strukturuar përmbajtjeje. Seksionet drejtojnë mënyrën se si fazat pasuese renderojnë, përkthejnë dhe lexojnë librin me zë."
 
-msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
-msgstr "Grupimi i përmbajtjes sipas qëllimit, pastaj vendosja e çdo seksioni si HTML i rishikueshëm."
+#~ msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
+#~ msgstr "Grupimi i përmbajtjes sipas qëllimit, pastaj vendosja e çdo seksioni si HTML i rishikueshëm."
 
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Grupon rajonet e imazheve në ilustrime të veçanta në çdo faqe."
@@ -4191,6 +4296,9 @@ msgstr "Udhëzime për këtë libër"
 
 msgid "Hand out page-range parts and merge them back later."
 msgstr "Shpërndani pjesë sipas intervalit të faqeve dhe bashkojini më vonë."
+
+msgid "Hard terms become tappable — a clear, age-appropriate definition appears inline, without leaving the page."
+msgstr "Termat e vështirë bëhen të prekshëm — një përkufizim i qartë dhe i përshtatshëm për moshën shfaqet brenda faqes, pa e lënë atë."
 
 msgid "Header"
 msgstr "Titull"
@@ -4279,6 +4387,9 @@ msgstr "História e Sociedade - Vol. 1"
 msgid "Hit"
 msgstr "Goditje"
 
+msgid "Home"
+msgstr "Ballina"
+
 msgid "Home / Chapter 1"
 msgstr "Kryefaqja / Kapitulli 1"
 
@@ -4315,6 +4426,9 @@ msgstr "Sa nga ky libër dëshironi të përpunoni?"
 msgid "How quizzes work"
 msgstr "Si funksionojnë kuizet"
 
+msgid "How the beta works"
+msgstr "Si funksionon beta"
+
 msgid "How the glossary works"
 msgstr "Si funksionon glosariumi"
 
@@ -4333,8 +4447,8 @@ msgstr "HTML5 + EPUB"
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "E kuptoj se pjesa u përpunua me prompte/modele të ndryshme dhe dua ta bashkoj gjithsesi."
 
-msgid "I'll start later"
-msgstr "Do të filloj më vonë"
+#~ msgid "I'll start later"
+#~ msgstr "Do të filloj më vonë"
 
 msgid "Identify the key idea"
 msgstr "Identifiko idenë kryesore"
@@ -4486,6 +4600,9 @@ msgstr "Importo"
 msgid "Import a Project"
 msgstr "Importo një projekt"
 
+msgid "Import existing project"
+msgstr "Importo projekt ekzistues"
+
 msgid "Import project"
 msgstr "Importo projektin"
 
@@ -4568,6 +4685,9 @@ msgstr "Vendos kuizin këtu"
 
 msgid "Inside Cover"
 msgstr "Kapaku i brendshëm"
+
+msgid "Install"
+msgstr "Instalo"
 
 msgid "Install an older beta?"
 msgstr "Të instalohet një beta më e vjetër?"
@@ -4711,11 +4831,17 @@ msgstr "Mbajtur"
 #~ msgid "Key must start with sk-"
 #~ msgstr "Çelësi duhet të fillojë me sk-"
 
+msgid "Key terms"
+msgstr "Termat kyç"
+
 msgid "Keyboard & navigation"
 msgstr "Tastierë dhe navigim"
 
 msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
 msgstr "Çelësat ruhen lokalisht në këtë shfletues ose sesion desktop dhe dërgohen vetëm me kërkesat e ekzekutimit."
+
+msgid "Keys are stored locally on this device — never sent anywhere else."
+msgstr "Çelësat ruhen lokalisht në këtë pajisje — nuk dërgohen kurrë diku tjetër."
 
 #. placeholder {0}: afterPage.pageNumber
 msgid "Knowledge check generated from the source pages, after page {0}."
@@ -4779,11 +4905,11 @@ msgstr "LaTeX i konvertuar"
 msgid "Launch the app with"
 msgstr "Hap aplikacionin me"
 
-msgid "Layer on translations, text-to-speech, and a glossary — all inspectable, cacheable, reversible."
-msgstr "Shtro përkthimet, tekst-në-fjalim dhe një glosar — të gjitha të inspektueshme, të ruajtura në memorie, të kthyeshme."
+#~ msgid "Layer on translations, text-to-speech, and a glossary — all inspectable, cacheable, reversible."
+#~ msgstr "Shtro përkthimet, tekst-në-fjalim dhe një glosar — të gjitha të inspektueshme, të ruajtura në memorie, të kthyeshme."
 
-msgid "Laying out spreads"
-msgstr "Duke paraqitur faqet e dyfishta"
+#~ msgid "Laying out spreads"
+#~ msgstr "Duke paraqitur faqet e dyfishta"
 
 msgid "Layout"
 msgstr "Paraqitje"
@@ -4796,6 +4922,9 @@ msgstr "Struktura u pasqyrua në këtë seksion"
 
 msgid "Leading"
 msgstr "Hapësira ndër-rreshta"
+
+msgid "Learn by doing."
+msgstr "Mëso duke bërë."
 
 msgid "Least used"
 msgstr "Më pak i përdorur"
@@ -4838,6 +4967,12 @@ msgstr "Lëre agjentin të zgjedhë"
 
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Lëre modelin të shkruajë tituj përshkrues kapitujsh bazuar në përmbajtjen e çdo seksioni. Më i miri për libra tregimesh ose kur titujt mungojnë."
+
+msgid "Let's start"
+msgstr "Le të fillojmë"
+
+msgid "Library"
+msgstr "Biblioteka"
 
 msgid "Library apps"
 msgstr "Aplikacione biblioteke"
@@ -5381,11 +5516,11 @@ msgstr "Përmbajtje e munguar ose e shtuar"
 msgid "Missing:"
 msgstr "Mungojnë:"
 
-msgid "Mission 01"
-msgstr "Misioni 01"
+#~ msgid "Mission 01"
+#~ msgstr "Misioni 01"
 
-msgid "mitosis"
-msgstr "mitozë"
+#~ msgid "mitosis"
+#~ msgstr "mitozë"
 
 msgid "Mixed Content Project"
 msgstr "Projekt me Përmbajtje të Përzier"
@@ -5447,6 +5582,9 @@ msgstr "Zhvendos lart"
 msgid "Multi-format publications"
 msgstr "Botime me shumë formate"
 
+msgid "Multilingual"
+msgstr "Shumëgjuhësh"
+
 msgid "multiple choice"
 msgstr "me zgjedhje të shumëfishta"
 
@@ -5473,6 +5611,12 @@ msgstr "N/A"
 
 msgid "Names and terms are consistent"
 msgstr "Emrat dhe termat janë të qëndrueshëm"
+
+msgid "Narration"
+msgstr "Narracion"
+
+msgid "Natural narration for any book — students listen while they follow along, at their own pace."
+msgstr "Narracion i natyrshëm për çdo libër — nxënësit dëgjojnë ndërsa ndjekin tekstin, me ritmin e tyre."
 
 msgid "Natural, expressive voices. Best general-purpose default."
 msgstr "Zëra natyralë dhe shprehës. Parazgjedhja më e mirë për qëllime të përgjithshme."
@@ -5501,11 +5645,17 @@ msgstr "Kurrë"
 msgid "New"
 msgstr "E re"
 
+msgid "New builds land here first — from our <0>develop</0> staging branch, and from individual pull requests we stage so you can try a change and share your take before it's merged. It's a preview, so your books stay on this device and every result stays versioned."
+msgstr "Versionet e reja mbërrijnë këtu të parat — nga dega jonë e testimit <0>develop</0> dhe nga pull request-e individuale që i përgatisim që ju të provoni një ndryshim dhe të ndani mendimin tuaj para se të bashkohet. Është një pamje paraprake, ndaj librat tuaj mbeten në këtë pajisje dhe çdo rezultat mbetet i versionuar."
+
 msgid "New checklist item"
 msgstr "Element i ri i listës kontrolluese"
 
 msgid "New Entry"
 msgstr "Hyrje e re"
+
+msgid "New here?"
+msgstr "I ri këtu?"
 
 msgid "New session"
 msgstr "Sesion i ri"
@@ -5931,6 +6081,9 @@ msgstr "Nuk ka vendosje zëri të konfiguruara."
 msgid "No voices found"
 msgstr "Nuk u gjet asnjë zë"
 
+msgid "Node actions"
+msgstr "Veprimet e nyjës"
+
 msgid "Nodes"
 msgstr "Nyje"
 
@@ -6003,14 +6156,14 @@ msgstr "Numri i faqeve të përmbajtjes që do të përfshihen për çdo pyetje 
 msgid "Number of refinement iterations performed after the initial sectioning pass."
 msgstr "Numri i iteracioneve të rafinimit të kryera pas kalimit fillestar të seksionimit."
 
-msgid "O ciclo da água descreve o movimento contínuo da água."
-msgstr "O ciclo da água descreve o movimento contínuo da água."
+#~ msgid "O ciclo da água descreve o movimento contínuo da água."
+#~ msgstr "O ciclo da água descreve o movimento contínuo da água."
 
 msgid "OAuth 2.0"
 msgstr "OAuth 2.0"
 
-msgid "OCR & cleanup"
-msgstr "OCR dhe pastrim"
+#~ msgid "OCR & cleanup"
+#~ msgstr "OCR dhe pastrim"
 
 msgid "of"
 msgstr "nga"
@@ -6023,6 +6176,9 @@ msgstr "Zhvendosje"
 
 #~ msgid "Older"
 #~ msgstr "Më i vjetër"
+
+msgid "Ollama, vLLM, Together — any endpoint."
+msgstr "Ollama, vLLM, Together — çdo endpoint."
 
 msgid "Omission or addition"
 msgstr "Mungesë ose shtesë"
@@ -6241,8 +6397,8 @@ msgstr "PDF origjinal"
 msgid "Original PDF - {0}"
 msgstr "PDF origjinal - {0}"
 
-msgid "osmosis"
-msgstr "osmozë"
+#~ msgid "osmosis"
+#~ msgstr "osmozë"
 
 msgid "Other"
 msgstr "Tjetër"
@@ -6301,8 +6457,8 @@ msgstr "f. 12"
 msgid "p. 14"
 msgstr "f. 14"
 
-msgid "p. 15"
-msgstr "f. 15"
+#~ msgid "p. 15"
+#~ msgstr "f. 15"
 
 msgid "p. 21"
 msgstr "f. 21"
@@ -6337,8 +6493,8 @@ msgstr "Struktura e paketës"
 msgid "Package the book for distribution. Pick a format, choose what content goes in, and we'll bundle everything into a downloadable archive."
 msgstr "Paketoni librin për shpërndarje. Zgjidhni një format, vendosni çfarë përmbajtje do të përfshihet dhe ne do të grumbullojmë gjithçka në një arkiv të shkarkueshëm."
 
-msgid "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
-msgstr "Paketoni librin e përfunduar me të gjitha veçoritë e aksesueshmërisë të integruara — gati për t'u hapur, dëgjuar dhe lexuar nga një fëmijë."
+#~ msgid "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
+#~ msgstr "Paketoni librin e përfunduar me të gjitha veçoritë e aksesueshmërisë të integruara — gati për t'u hapur, dëgjuar dhe lexuar nga një fëmijë."
 
 msgid "Packaging"
 msgstr "Paketimi"
@@ -6511,11 +6667,11 @@ msgstr "Paragraf"
 msgid "Parent:"
 msgstr "Prindi:"
 
-msgid "Parsing pages"
-msgstr "Analizimi i faqeve"
+#~ msgid "Parsing pages"
+#~ msgstr "Analizimi i faqeve"
 
-msgid "Parsing pages into text, figures, and layout boxes — cached by content hash."
-msgstr "Analizimi i faqeve në tekst, figura dhe kuti paraqitjeje — memorizuar sipas hash-it të përmbajtjes."
+#~ msgid "Parsing pages into text, figures, and layout boxes — cached by content hash."
+#~ msgstr "Analizimi i faqeve në tekst, figura dhe kuti paraqitjeje — memorizuar sipas hash-it të përmbajtjes."
 
 msgid "Part"
 msgstr "Pjesa"
@@ -6548,11 +6704,17 @@ msgstr "Kalon"
 msgid "Passed"
 msgstr "Kaloi"
 
+msgid "Paste"
+msgstr "Ngjit"
+
+msgid "Paste your key to connect this provider."
+msgstr "Ngjitni çelësin tuaj për të lidhur këtë ofrues."
+
 msgid "Patterns in the noise"
 msgstr "Modele në zhurmë"
 
-msgid "Pause"
-msgstr "Pauzë"
+#~ msgid "Pause"
+#~ msgstr "Pauzë"
 
 msgid "Payload"
 msgstr "Ngarkesa"
@@ -6608,8 +6770,8 @@ msgstr "Faza {phaseNumber}"
 msgid "Photograph"
 msgstr "Fotografi"
 
-msgid "photosynthesis"
-msgstr "fotosinteza"
+#~ msgid "photosynthesis"
+#~ msgstr "fotosinteza"
 
 msgid "Photosynthesis"
 msgstr "Fotosinteza"
@@ -6623,8 +6785,11 @@ msgstr "Zgjidhni një familje për ta bashkëngjitur në libër. Ajo shkarkohet 
 msgid "Pick a page to see its sections."
 msgstr "Zgjidhni një faqe për të parë seksionet e saj."
 
-msgid "Pick a preset"
-msgstr "Zgjidhni një konfigurim paraprak"
+#~ msgid "Pick a preset"
+#~ msgstr "Zgjidhni një konfigurim paraprak"
+
+msgid "Pick a provider to connect — or skip and add one later."
+msgstr "Zgjidhni një ofrues për ta lidhur — ose kaloni dhe shtoni një më vonë."
 
 msgid "Pick a source section. Its layout will be applied to this section while keeping this section's content and data-ids."
 msgstr "Zgjidhni një seksion burimor. Struktura e tij do të zbatohet në këtë seksion duke ruajtur përmbajtjen dhe data-id-të e këtij seksioni."
@@ -6668,11 +6833,11 @@ msgstr "E fiksuar"
 msgid "Pinned to one element — press Esc to release it and go back to previewing on hover."
 msgstr "I fiksuar te një element — shtypni Esc për ta liruar dhe për t'u kthyer te pamja paraprake me kalimin e kursorit."
 
-msgid "Pipeline · extract"
-msgstr "Pipeline · nxjerrje"
+#~ msgid "Pipeline · extract"
+#~ msgstr "Pipeline · nxjerrje"
 
-msgid "Pipeline · storyboard"
-msgstr "Pipeline · storyboard"
+#~ msgid "Pipeline · storyboard"
+#~ msgstr "Pipeline · storyboard"
 
 #~ msgid "Pipeline default"
 #~ msgstr "Parazgjedhja e pipeline-it"
@@ -6695,8 +6860,8 @@ msgstr "Detyrat e rrjedhës së punës që përdorin {savedModel}"
 msgid "Pixel Art"
 msgstr "Pixel Art"
 
-msgid "Plants create sugar via <0>photosynthesis</0>, divide by <1>mitosis</1>, and absorb water by <2>osmosis</2>."
-msgstr "Bimët krijojnë sheqer nëpërmjet <0>fotosintezës</0>, ndahen me <1>mitozë</1>, dhe thithin ujë me <2>osmozë</2>."
+#~ msgid "Plants create sugar via <0>photosynthesis</0>, divide by <1>mitosis</1>, and absorb water by <2>osmosis</2>."
+#~ msgstr "Bimët krijojnë sheqer nëpërmjet <0>fotosintezës</0>, ndahen me <1>mitozë</1>, dhe thithin ujë me <2>osmozë</2>."
 
 msgid "Platform default"
 msgstr "Parazgjedhja e platformës"
@@ -6710,8 +6875,8 @@ msgstr "Parazgjedhja e platformës: {platformLlmModel}"
 msgid "Platform default: {platformSpeechModel}"
 msgstr "Parazgjedhja e platformës: {platformSpeechModel}"
 
-msgid "Play"
-msgstr "Luaj"
+#~ msgid "Play"
+#~ msgstr "Luaj"
 
 msgid "Play video"
 msgstr "Luaj videon"
@@ -6758,6 +6923,10 @@ msgstr "Pozicioni"
 #. placeholder {3}: Math.round(bounds.height)
 msgid "Position {0}, {1} → {2}×{3} pt"
 msgstr "Pozicioni {0}, {1} → {2}×{3} pt"
+
+#. placeholder {0}: b.pr
+msgid "PR #{0}"
+msgstr "PR #{0}"
 
 msgid "Práticas de Alfabetização e de Matemática"
 msgstr "Práticas de Alfabetização e de Matemática"
@@ -6945,8 +7114,8 @@ msgstr "Imazhe të Shkurtuara"
 msgid "Pruned: {reason}"
 msgstr "Shkurtuar: {reason}"
 
-msgid "PT"
-msgstr "PT"
+#~ msgid "PT"
+#~ msgstr "PT"
 
 msgid "published in"
 msgstr "botuar në"
@@ -6959,6 +7128,9 @@ msgstr "Pull request-e"
 
 msgid "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
 msgstr "Nxirrni përmbajtje të strukturuar nga PDF-ja burimore. Nxjerrja identifikon titujt, paragrafet, listat dhe imazhet, kështu që fazat pasuese punojnë me përmbajtje të pastër dhe të tipizuar në vend të PDF-së bruto."
+
+msgid "Pull text, images, and structure from any PDF."
+msgstr "Nxirr tekst, imazhe dhe strukturë nga çdo PDF."
 
 msgid "Pulls the book's metadata — title, author, language — from the PDF."
 msgstr "Nxjerr metadatat e librit — titullin, autorin, gjuhën — nga PDF-ja."
@@ -7048,6 +7220,9 @@ msgstr "kuize"
 msgid "Quizzes"
 msgstr "Kuizet"
 
+msgid "Quizzes & glossary"
+msgstr "Kuize dhe fjalorth"
+
 msgid "Quizzes are generating. Wait for the run to finish before adding a quiz."
 msgstr "Kuizet po gjenerohen. Prisni të përfundojë ekzekutimi para se të shtoni një kuiz."
 
@@ -7056,6 +7231,9 @@ msgstr "Kuizet janë të lidhura me faqe të tjera në këtë libër"
 
 msgid "Quizzes are written from the content that Storyboard places into pages. Finish Storyboard before running this stage."
 msgstr "Kuizet shkruhen nga përmbajtja që Storyboard vendos në faqe. Përfundoni Storyboard-in para se të ekzekutoni këtë fazë."
+
+msgid "Quizzes that check themselves."
+msgstr "Kuize që korrigjohen vetë."
 
 msgid "Quizzes were generated by AI from your book's pages. Click any question, option, or explanation to edit it, and delete any quiz you don't need. Click a source page to zoom. Changes are saved as a new version, so you can always roll back."
 msgstr "Kuizet u gjeneruan nga AI nga faqet e librit tuaj. Klikoni çdo pyetje, opsion ose shpjegim për ta redaktuar, dhe fshini çdo kuiz që nuk ju nevojitet. Klikoni një faqe burimore për ta zmadhuar. Ndryshimet ruhen si version i ri, kështu që gjithmonë mund të ktheheni."
@@ -7117,8 +7295,20 @@ msgstr "Ri-ekzekuto përkthimin"
 msgid "Re-running clears later stages"
 msgstr "Ri-ekzekutimi fshin fazat e mëvonshme"
 
+msgid "Read it in their language."
+msgstr "Lexoje në gjuhën e tyre."
+
+msgid "Read the docs"
+msgstr "Lexo dokumentacionin"
+
+msgid "Read the docs ↗"
+msgstr "Lexo dokumentacionin ↗"
+
 msgid "Read the prompt aloud"
 msgstr "Lexo kërkesën me zë"
+
+msgid "Read-aloud"
+msgstr "Lexim me zë"
 
 msgid "Read-Aloud Content"
 msgstr "Përmbajtja e leximit me zë"
@@ -7149,6 +7339,9 @@ msgstr "Duke lexuar arkivin..."
 
 msgid "Reading PDF..."
 msgstr "Duke lexuar PDF-in..."
+
+msgid "Reading,"
+msgstr "Lexim,"
 
 msgid "Readium Web"
 msgstr "Readium Web"
@@ -7268,8 +7461,8 @@ msgstr "Publikim"
 msgid "Release notes"
 msgstr "Shënimet e versionit"
 
-msgid "Release to upload"
-msgstr "Lëshoni për të ngarkuar"
+#~ msgid "Release to upload"
+#~ msgstr "Lëshoni për të ngarkuar"
 
 msgid "Reload app"
 msgstr "Rinis aplikacionin"
@@ -7340,6 +7533,9 @@ msgstr "Hiq këtë bllok"
 
 msgid "Remove type"
 msgstr "Hiq tipin"
+
+msgid "Remove Watermarks"
+msgstr "Hiq filigranët"
 
 msgid "removed"
 msgstr "hequr"
@@ -7442,6 +7638,9 @@ msgstr "Ripërmasoni panelin"
 
 msgid "Resolving source language..."
 msgstr "Duke zgjidhur gjuhën burimore..."
+
+msgid "Respiration"
+msgstr "Frymëmarrja"
 
 msgid "Restart and install"
 msgstr "Rinis dhe instalo"
@@ -7690,8 +7889,8 @@ msgstr "Ekzekuto Storyboard-in së pari — përkthimi ka nevojë për seksionet
 msgid "Run Storyboard to generate sections you can match sign-language videos to."
 msgstr "Ekzekuto Storyboard-in për të gjeneruar seksione me të cilat mund të lidhni video të gjuhës së shenjave."
 
-msgid "Run the pipeline"
-msgstr "Ekzekuto pipeline-in"
+#~ msgid "Run the pipeline"
+#~ msgstr "Ekzekuto pipeline-in"
 
 msgid "Run the pipeline to extract content"
 msgstr "Ekzekuto pipeline-in për të ekstraktuar përmbajtjen"
@@ -7711,8 +7910,8 @@ msgstr "Etiketa vetëm-ekzekutimi"
 msgid "Running"
 msgstr "Duke ekzekutuar"
 
-msgid "RUNNING"
-msgstr "NË EKZEKUTIM"
+#~ msgid "RUNNING"
+#~ msgstr "NË EKZEKUTIM"
 
 #~ msgid "Running {stageLabel}"
 #~ msgstr "Duke ekzekutuar {stageLabel}"
@@ -7831,8 +8030,8 @@ msgstr "Po ruhet…"
 msgid "Scale"
 msgstr "Shkallë"
 
-msgid "Scene 04"
-msgstr "Skena 04"
+#~ msgid "Scene 04"
+#~ msgstr "Skena 04"
 
 msgid "School textbooks and workbooks"
 msgstr "Tekste shkollore dhe fletore pune"
@@ -7869,6 +8068,9 @@ msgstr "Kërko libra"
 
 msgid "Search books..."
 msgstr "Kërko libra..."
+
+msgid "Search books…"
+msgstr "Kërko libra…"
 
 msgid "Search by title, version, or description…"
 msgstr "Kërko sipas titullit, versionit ose përshkrimit…"
@@ -7979,6 +8181,9 @@ msgstr "Seksioni 3 · Përmbledhje"
 msgid "Section 3.2"
 msgstr "Seksioni 3.2"
 
+msgid "Section actions"
+msgstr "Veprimet e seksionit"
+
 msgid "Section heading"
 msgstr "Titull seksioni"
 
@@ -8069,8 +8274,8 @@ msgstr "Prompt i Segmentimit"
 msgid "Segmentation runs"
 msgstr "Ekzekutime segmentimi"
 
-msgid "Segmenting scenes"
-msgstr "Po segmentohen skenat"
+#~ msgid "Segmenting scenes"
+#~ msgstr "Po segmentohen skenat"
 
 msgid "Segmenting..."
 msgstr "Po segmentohet..."
@@ -8327,8 +8532,8 @@ msgstr "Imazh dhe narrativë krah për krah."
 msgid "Sign"
 msgstr "Shenjë"
 
-msgid "Sign language"
-msgstr "Gjuhë shenjash"
+#~ msgid "Sign language"
+#~ msgstr "Gjuhë shenjash"
 
 msgid "Sign Language"
 msgstr "Gjuha e Shenjave"
@@ -8387,8 +8592,8 @@ msgstr "Dimensionimi"
 msgid "Skip for now"
 msgstr "Kalo tani"
 
-msgid "Skip intro"
-msgstr "Kalo hyrjen"
+#~ msgid "Skip intro"
+#~ msgstr "Kalo hyrjen"
 
 msgid "Skip page and continue"
 msgstr "Kapërce faqen dhe vazhdo"
@@ -8435,6 +8640,9 @@ msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua
 
 msgid "Something went wrong"
 msgstr "Diçka shkoi keq"
+
+msgid "Soon"
+msgstr "Së shpejti"
 
 msgid "Sort"
 msgstr "Rendit"
@@ -8504,6 +8712,9 @@ msgstr "Prompte të të Folurit"
 
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
+
+msgid "Speech, translations, quizzes and a glossary — built into every book, so every learner can read, listen and understand."
+msgstr "Të folur, përkthime, kuize dhe një fjalorth — të integruara në çdo libër, që çdo nxënës të mund të lexojë, dëgjojë dhe kuptojë."
 
 msgid "Speed"
 msgstr "Shpejtësia"
@@ -8605,8 +8816,8 @@ msgstr "Fillo"
 msgid "Start a reviewer session"
 msgstr "Fillo një sesion rishikimi"
 
-msgid "Start from a PDF"
-msgstr "Fillo nga një PDF"
+#~ msgid "Start from a PDF"
+#~ msgstr "Fillo nga një PDF"
 
 msgid "Start of an equal-split window"
 msgstr "Fillimi i një dritareje me ndarje të barabartë"
@@ -8620,8 +8831,8 @@ msgstr "Fillo validimin e rishikuesit"
 msgid "Start typing to see words from the book…"
 msgstr "Fillo të shkruash për të parë fjalë nga libri…"
 
-msgid "Start with a PDF"
-msgstr "Fillo me një PDF"
+#~ msgid "Start with a PDF"
+#~ msgstr "Fillo me një PDF"
 
 msgid "Starting…"
 msgstr "Po fillon…"
@@ -8679,6 +8890,9 @@ msgstr "Pasqyrë e Storyboard-it"
 msgid "Storyboard Preview"
 msgstr "Parashikim i Storyboard-it"
 
+msgid "Storyboards & captions"
+msgstr "Storyboard-e dhe përshkrime"
+
 msgid "Storybook"
 msgstr "Storybook"
 
@@ -8706,8 +8920,8 @@ msgstr "Strukturo çdo faqe në një pemë përmbajtjeje me seksione dhe nyje p�
 msgid "Structured chapters, exercises. Best for educational content with complex layouts."
 msgstr "Kapituj dhe ushtrime të strukturuara. Më i miri për përmbajtje edukative me paraqitje komplekse."
 
-msgid "Structured HTML"
-msgstr "HTML i Strukturuar"
+#~ msgid "Structured HTML"
+#~ msgstr "HTML i Strukturuar"
 
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Strukturon çdo faqe në një pemë seksionesh dhe nyjesh."
@@ -8772,8 +8986,8 @@ msgstr "Nënseksion"
 msgid "Success"
 msgstr "Sukses"
 
-msgid "Successfully uploaded"
-msgstr "Ngarkuar me sukses"
+#~ msgid "Successfully uploaded"
+#~ msgstr "Ngarkuar me sukses"
 
 msgid "Suggest improved translations when an entry needs attention"
 msgstr "Sugjero përkthime të përmirësuara kur një hyrje kërkon vëmendje"
@@ -8805,8 +9019,11 @@ msgstr "Prompt Përmbledhjeje"
 msgid "Sun"
 msgstr "Diell"
 
-msgid "SW"
-msgstr "JP"
+#~ msgid "SW"
+#~ msgstr "JP"
+
+msgid "Switch languages in a tap."
+msgstr "Ndërro gjuhë me një prekje."
 
 msgid "Switching presentation failed"
 msgstr "Ndryshimi i prezantimit dështoi"
@@ -8843,6 +9060,12 @@ msgstr "Klasa Tailwind"
 
 msgid "Takes liberties and produces something similar."
 msgstr "Merr liri dhe prodhon diçka të ngjashme."
+
+msgid "Tap any word you don't know."
+msgstr "Prekni çdo fjalë që nuk e njihni."
+
+msgid "Tap play — the page speaks."
+msgstr "Prekni luaj — faqja flet."
 
 msgid "Tap the words that should be underlined"
 msgstr "Trokit fjalët që duhen nënvizuar"
@@ -9149,8 +9372,8 @@ msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin dembel."
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "Strategjia e renderimit e përdorur për seksionet pa një hartëzim eksplicit."
 
-msgid "The river meets the sea"
-msgstr "Lumi takon detin"
+#~ msgid "The river meets the sea"
+#~ msgstr "Lumi takon detin"
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "Rishikimi i ruajtur i përkthimit është i vjetëruar. Ekzekutoni Rishikimin përsëri për përkthimet e dukshme."
@@ -9262,6 +9485,9 @@ msgstr "Ky libër ende nuk është plotësuar — faqet <0>{0}</0> nuk janë bas
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinale të PDF-së. Fontet e bashkëngjitura gjithsesi udhëzojnë IA-në për aktivitetet dhe faqet e gjeneruara."
 
+msgid "This connection isn't available yet."
+msgstr "Kjo lidhje nuk është ende e disponueshme."
+
 msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Kjo veçori nuk është e pajtueshme me Paraqitjen e fiksuar. Nëse vazhdoni, mund të merrni rezultate të padëshiruara."
 
@@ -9280,8 +9506,8 @@ msgstr "Ky imazh është dekorativ. Lexuesit e ekranit do ta anashkalojnë dhe n
 msgid "This image is marked decorative — click to un-mark"
 msgstr "Ky imazh është shënuar si dekorativ — kliko për ta hequr shënimin"
 
-msgid "This is <0>ADT Studio</0>."
-msgstr "Ky është <0>ADT Studio</0>."
+#~ msgid "This is <0>ADT Studio</0>."
+#~ msgstr "Ky është <0>ADT Studio</0>."
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Ky është një paraparim i opsioneve të zgjedhura për librin tuaj, çdo opsion ndikon paraparimimin në mënyra të ndryshme."
@@ -9554,6 +9780,9 @@ msgstr "Përkthe librin në gjuhë shtesë. Çdo gjuhë gjenerohet bashkë me or
 msgid "Translate the book into other languages and generate narration. These stages are optional — skip them if your book doesn't need multilingual or audio output."
 msgstr "Përkthe librin në gjuhë të tjera dhe gjenerо tregimin. Këto faza janë opsionale — anashkaloi nëse libri juaj nuk ka nevojë për dalje shumëgjuhëshe ose audio."
 
+msgid "Translated to PT"
+msgstr "Përkthyer në PT"
+
 msgid "Translates extracted page text into the target languages."
 msgstr "Përkthe tekstin e nxjerrë të faqes në gjuhët e synuara."
 
@@ -9599,8 +9828,8 @@ msgstr "Përkthimi tingëllon natyrshëm"
 msgid "translations"
 msgstr "përkthime"
 
-msgid "Translations"
-msgstr "Përkthimet"
+#~ msgid "Translations"
+#~ msgstr "Përkthimet"
 
 msgid "Transparent"
 msgstr "Transparent"
@@ -9635,6 +9864,9 @@ msgstr "Provo një skedar tjetër"
 msgid "Try another title, version, or description."
 msgstr "Provoni një titull, version ose përshkrim tjetër."
 
+msgid "Try any build — even an open PR — then roll back anytime."
+msgstr "Provoni çdo version — madje edhe një PR të hapur — pastaj kthehuni pas në çdo kohë."
+
 msgid "Try the practice problem"
 msgstr "Provo problemin praktik"
 
@@ -9647,8 +9879,14 @@ msgstr "Normalizimi TTS"
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Rregullo se si thjeshtohet teksti në cilësimet e Udhëzimit Easy Read. Pas ekzekutimit, çdo bllok bëhet i redaktueshëm këtu në hapin Easy Read."
 
-msgid "Turn any PDF into a fully accessible book — audio, translations, structured HTML layouts — all generated from your source file, <0>all editable</0>, <1>all yours</1>."
-msgstr "Ktheje çdo PDF në një libër plotësisht të aksesueshëm — audio, përkthime, paraqitje HTML të strukturuara — të gjitha të gjeneruara nga skedari juaj burim, <0>të gjitha të redaktueshme</0>, <1>të gjitha tuajat</1>."
+msgid "Turn any educational PDF into an accessible, interactive learning bundle — extracted, captioned, and quiz-ready."
+msgstr "Shndërro çdo PDF edukativ në një paketë mësimore të arritshme dhe interaktive — të nxjerrë, me përshkrime dhe gati për kuize."
+
+#~ msgid "Turn any PDF into a fully accessible book — audio, translations, structured HTML layouts — all generated from your source file, <0>all editable</0>, <1>all yours</1>."
+#~ msgstr "Ktheje çdo PDF në një libër plotësisht të aksesueshëm — audio, përkthime, paraqitje HTML të strukturuara — të gjitha të gjeneruara nga skedari juaj burim, <0>të gjitha të redaktueshme</0>, <1>të gjitha tuajat</1>."
+
+msgid "Turn any textbook into an accessible edition — every step of the pipeline, built in."
+msgstr "Kthejeni çdo tekst shkollor në një botim të aksesueshëm — çdo hap i procesit, i integruar."
 
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Aktivizo këtë për të shfaqur kartën e rishikimit të Validimit në Paraparimim dhe skedën e Validimit të Rishikuesit në hapin e Validimit."
@@ -10131,8 +10369,8 @@ msgstr "Prit të përfundojë gjenerimi i glosariumit"
 msgid "Wait for storyboard to complete"
 msgstr "Prit të përfundojë storyboard-i"
 
-msgid "WAITING"
-msgstr "DUKE PRITUR"
+#~ msgid "WAITING"
+#~ msgstr "DUKE PRITUR"
 
 msgid "Waiting for API output…"
 msgstr "Duke pritur daljen e API-t…"
@@ -10155,11 +10393,14 @@ msgstr "Uji është gjithmonë në lëvizje. Udhëton nga oqeanet në qiell, bie
 msgid "Water moves continuously through evaporation, condensation, and precipitation. Most vapor returns to the oceans, while some falls on land as rain or snow before flowing back to the sea."
 msgstr "Uji lëviz vazhdimisht nëpërmjet avullimit, kondensimit dhe reshjeve. Shumica e avullit kthehet në oqeane, ndërsa një pjesë bie në tokë si shi ose borë para se të kthehet në det."
 
-msgid "Water moving through a membrane."
-msgstr "Uji lëviz nëpër një membranë."
+#~ msgid "Water moving through a membrane."
+#~ msgstr "Uji lëviz nëpër një membranë."
 
 msgid "Watercolor"
 msgstr "Akuarel"
+
+msgid "Watermarks"
+msgstr "Filigranët"
 
 msgid "wcag2a\n"
 "wcag2aa\n"
@@ -10204,11 +10445,17 @@ msgstr "Mirë se vini"
 msgid "Welcome to ADT Studio"
 msgstr "Mirë se vini në ADT Studio"
 
+msgid "Welcome to the ADT Studio beta"
+msgstr "Mirë se vini në beta-n e ADT Studio"
+
+msgid "What ADT Studio does"
+msgstr "Çfarë bën ADT Studio"
+
 msgid "What is the main role of a plant's roots?"
 msgstr "Cili është roli kryesor i rrënjëve të një bime?"
 
-msgid "What it does"
-msgstr "Çfarë bën"
+#~ msgid "What it does"
+#~ msgstr "Çfarë bën"
 
 msgid "What should the AI change?"
 msgstr "Çfarë duhet të ndryshojë AI-ja?"
@@ -10254,6 +10501,9 @@ msgstr "Kur PDF-i yt nuk është ndërtuar rreth faqeve ballë për ballë, moda
 
 msgid "Where it all begins"
 msgstr "Ku fillon gjithçka"
+
+msgid "Which process releases oxygen?"
+msgstr "Cili proces çliron oksigjen?"
 
 msgid "While editing"
 msgstr "Gjatë redaktimit"
@@ -10347,14 +10597,23 @@ msgstr "Je gati"
 msgid "You're now running ADT Studio {label}"
 msgstr "Tani po përdor ADT Studio {label}"
 
+msgid "You're one of the first to try it. Turn any textbook into an accessible edition — every step of the pipeline, built in."
+msgstr "Ju jeni ndër të parët që e provoni. Kthejeni çdo tekst shkollor në një botim të aksesueshëm — çdo hap i procesit, i integruar."
+
 msgid "You're partway through setting up a book. There's nothing to save yet — leaving now discards your progress and you'll start over."
 msgstr "Je duke konfiguruar një libër dhe ende s'ka asgjë për të ruajtur — nëse del tani, progresi yt humbet dhe do të fillosh nga e para."
 
 msgid "You're running the latest version of ADT Studio."
 msgstr "Po përdor versionin më të fundit të ADT Studio."
 
+msgid "You're testing an early build."
+msgstr "Po testoni një version të hershëm."
+
 msgid "Young adult fiction"
 msgstr "Fiksion për të rinj"
+
+msgid "Your AI, your keys."
+msgstr "IA-ja juaj, çelësat tuaj."
 
 #~ msgid "Your app is up to date. There's nothing to do."
 #~ msgstr "Aplikacioni yt është i përditësuar. Nuk ka asgjë për të bërë."
@@ -10365,8 +10624,8 @@ msgstr "Libri yt"
 msgid "Your Books"
 msgstr "Librat tuaj"
 
-msgid "Your first ADT <0>starts here.</0>"
-msgstr "ADT-ja juaj e parë <0>fillon këtu.</0>"
+#~ msgid "Your first ADT <0>starts here.</0>"
+#~ msgstr "ADT-ja juaj e parë <0>fillon këtu.</0>"
 
 msgid "Your font has been applied to captions."
 msgstr "Fonti juaj u zbatua te përshkrimet."

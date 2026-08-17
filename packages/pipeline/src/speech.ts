@@ -15,6 +15,7 @@ import {
 } from "@adt/types"
 import type {
   ElevenLabsVoiceSettingsOverrides,
+  LlmLogEntry,
   RateLimiter,
   TTSSynthesizer,
   WhisperTranscriptionResult,
@@ -48,6 +49,49 @@ const GEMINI_AUDIO_FORMAT = "wav"
 export function stripEmojis(text: string): string {
   if (!text) return text
   return text.replace(EMOJI_RE, "")
+}
+
+/**
+ * Build the common debug-log record for a TTS request. Keeping this next to
+ * the generation helpers prevents the API runner, the one-item route, and the
+ * CLI/DAG executor from drifting in their representation of the same call.
+ */
+export function buildTtsLogEntry(options: {
+  textId: string
+  language: string
+  voice: string
+  model: string
+  provider: string
+  text: string
+  durationMs: number
+  success: boolean
+  cached: boolean
+  attempt: number
+  error?: string
+  params?: Record<string, unknown>
+}): LlmLogEntry {
+  return {
+    requestId: crypto.randomUUID(),
+    timestamp: new Date().toISOString(),
+    taskType: "tts",
+    pageId: options.textId,
+    promptName: `tts-${options.provider}`,
+    modelId: `${options.provider}/${options.model}`,
+    cacheHit: options.cached,
+    success: options.success,
+    errorCount: options.success ? 0 : 1,
+    attempt: Math.max(options.attempt, 1),
+    durationMs: options.durationMs,
+    ...(options.error ? { error: options.error } : {}),
+    ...(options.params ? { params: options.params } : {}),
+    messages: [{
+      role: "user",
+      content: [{
+        type: "text",
+        text: `[${options.language}] voice=${options.voice}\n${options.text}`,
+      }],
+    }],
+  }
 }
 
 // ---------------------------------------------------------------------------

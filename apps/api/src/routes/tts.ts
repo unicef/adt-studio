@@ -1,4 +1,3 @@
-import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -23,7 +22,6 @@ import {
   createGeminiTTSSynthesizer,
   createElevenLabsTTSSynthesizer,
   createTTSSynthesizer,
-  type LlmLogEntry,
   type ResolvedCredentials,
 } from "@adt/llm"
 import {
@@ -42,6 +40,7 @@ import {
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
   findAdjacentSpeechText,
+  buildTtsLogEntry,
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,
   classifyElevenLabsTtsError,
@@ -418,32 +417,15 @@ function appendSingleTtsLog(
     durationMs: number
     success: boolean
     cached: boolean
+    attempt: number
     error?: string
     /** Resolved provider request parameters, for the debug panel. */
     params?: Record<string, unknown>
   }
 ): void {
-  const logEntry: LlmLogEntry = {
-    requestId: crypto.randomUUID(),
-    timestamp: new Date().toISOString(),
-    taskType: "tts",
-    pageId: options.textId,
-    promptName: `tts-${options.provider}`,
-    modelId: `${options.provider}/${options.model}`,
-    cacheHit: options.cached,
-    success: options.success,
-    errorCount: options.success ? 0 : 1,
-    attempt: 1,
-    durationMs: options.durationMs,
-    ...(options.params ? { params: options.params } : {}),
-    messages: [{
-      role: "user",
-      content: [{
-        type: "text" as const,
-        text: `[${options.language}] voice=${options.voice}\n${options.error ? `ERROR: ${options.error}\n\n` : ""}${options.text.slice(0, 300)}`,
-      }],
-    }],
-  }
+  const logEntry = buildTtsLogEntry({
+    ...options,
+  })
 
   storage.appendLlmLog(logEntry)
 }
@@ -919,10 +901,16 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
             options.targetProvider === "gemini"
               ? createGeminiTTSSynthesizer({ apiKey: geminiApiKey })
               : options.targetProvider === "azure"
-                ? createAzureTTSSynthesizer({
-                    subscriptionKey: azureSpeechKey!,
-                    region: azureSpeechRegion!,
-                  })
+                ? createAzureTTSSynthesizer(
+                    {
+                      subscriptionKey: azureSpeechKey!,
+                      region: azureSpeechRegion!,
+                    },
+                    {
+                      sampleRate: config.speech?.sample_rate,
+                      bitRate: config.speech?.bit_rate,
+                    },
+                  )
                 : options.targetProvider === "elevenlabs"
                   ? createElevenLabsTTSSynthesizer(
                       { apiKey: elevenLabsApiKey! },
@@ -973,12 +961,14 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
        * timeout. Wrapping here rather than at the call sites covers the fallback
        * attempts too.
        */
+      let synthesisAttempts = 0
       const generateEntry = async (options: {
         targetProvider: string
         targetModel: string
         targetVoice: string
       }): Promise<Awaited<ReturnType<typeof synthesizeEntry>>> => {
         for (let attemptCount = 1; ; attemptCount++) {
+          synthesisAttempts++
           try {
             return await synthesizeEntry(options)
           } catch (err) {
@@ -1048,6 +1038,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           durationMs: Date.now() - startMs,
           success: true,
           cached: entry.cached,
+          attempt: synthesisAttempts,
           params: logParamsFor(usedProvider, usedModel, usedVoice),
         })
 
@@ -1095,6 +1086,9 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
         const message = err instanceof Error ? err.message : String(err)
         let fallbackFailureMessage = message
+        let failedProvider = provider
+        let failedModel = model
+        let failedVoice = voice
 
         if (/did not include audio data/i.test(message)) {
           for (const attempt of fallbackAttempts) {
@@ -1124,6 +1118,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 durationMs: Date.now() - startMs,
                 success: true,
                 cached: entry.cached,
+                attempt: synthesisAttempts,
                 params: logParamsFor(attempt.provider, attempt.model, attempt.voice),
               })
 
@@ -1171,6 +1166,9 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
               const fallbackMessage =
                 fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)
               fallbackFailureMessage = `${message}. Fallback ${attempt.provider} failed: ${fallbackMessage}`
+              failedProvider = attempt.provider
+              failedModel = attempt.model
+              failedVoice = attempt.voice
             }
           }
         }
@@ -1178,15 +1176,16 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         appendSingleTtsLog(storage, {
           textId: textEntry.id,
           language: normalizedLanguage,
-          voice,
-          model,
-          provider,
+          voice: failedVoice,
+          model: failedModel,
+          provider: failedProvider,
           text: textEntry.text,
           durationMs: Date.now() - startMs,
           success: false,
           cached: false,
+          attempt: synthesisAttempts,
           error: fallbackFailureMessage,
-          params: logParamsFor(provider, model, voice),
+          params: logParamsFor(failedProvider, failedModel, failedVoice),
         })
         storage.recordStepError(
           "tts",

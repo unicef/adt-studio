@@ -700,6 +700,130 @@ describe("book outline generation", () => {
     })
   })
 
+  it("keeps an existing cluster distinct from a colliding derived id", async () => {
+    const parentEvidence = buildBookOutlineEvidence(
+      [{
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "Chapter\nFirst section\nSecond section",
+        imageBase64: pngBase64(),
+      }],
+      null,
+    )
+    const compact: BookOutlineProposalOutput = {
+      reasoning: "Two level-two headings use distinct visual styles.",
+      styleClusters: [
+        { styleClusterId: "display", description: "Display heading", level: 1 },
+        {
+          styleClusterId: "display-level-2",
+          description: "Independent section style",
+          level: 2,
+        },
+      ],
+      entries: [
+        { level: 1, kind: "chapter" as const, styleClusterId: "display" },
+        { level: 2, kind: "section" as const, styleClusterId: "display" },
+        { level: 2, kind: "section" as const, styleClusterId: "display-level-2" },
+      ].map((entry, index) => ({
+        sourceCandidateIds: [`pg001_hc${String(index + 1).padStart(3, "0")}`],
+        level: entry.level,
+        kind: entry.kind,
+        styleClusterId: entry.styleClusterId,
+        confidence: 0.9,
+      })),
+    }
+    const llm: LLMModel = {
+      generateObject: async <T>(options: GenerateObjectOptions) => {
+        expect(options.validate?.(compact, options.context ?? {})).toEqual({
+          valid: true,
+          errors: [],
+        })
+        return { object: compact as T }
+      },
+    }
+
+    const result = await generateBookOutline(
+      parentEvidence,
+      buildBookOutlineConfig({ structure_types: {}, role_types: {} }),
+      llm,
+    )
+
+    expect(result.entries.map((entry) => entry.styleClusterId)).toEqual([
+      "display",
+      "display-level-2-2",
+      "display-level-2",
+    ])
+    expect(result.styleClusters).toContainEqual({
+      styleClusterId: "display-level-2",
+      description: "Independent section style",
+      level: 2,
+    })
+  })
+
+  it("repairs undeclared, duplicate, and mismatched style clusters instead of failing the book", async () => {
+    const parentEvidence = buildBookOutlineEvidence(
+      [{
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "Chapter\nSection\nSubsection\nActivity",
+        imageBase64: pngBase64(),
+      }],
+      null,
+    )
+    const compact: BookOutlineProposalOutput = {
+      reasoning: "A real book reuses ids and forgets to declare a cluster.",
+      styleClusters: [
+        { styleClusterId: "sc_blue", description: "Blue heading", level: 1 },
+        // Duplicate id — must not fail validation.
+        { styleClusterId: "sc_blue", description: "Blue heading again", level: 2 },
+      ],
+      entries: [
+        // Reuses sc_blue at level 2 (mismatch vs. its level-1 declaration).
+        { level: 1, kind: "chapter" as const, styleClusterId: "sc_blue" },
+        { level: 2, kind: "section" as const, styleClusterId: "sc_blue" },
+        // References a cluster that was never declared.
+        { level: 3, kind: "subsection" as const, styleClusterId: "sc_undeclared" },
+        { level: 3, kind: "activity" as const, styleClusterId: "sc_undeclared" },
+      ].map((entry, index) => ({
+        sourceCandidateIds: [`pg001_hc${String(index + 1).padStart(3, "0")}`],
+        level: entry.level,
+        kind: entry.kind,
+        styleClusterId: entry.styleClusterId,
+        confidence: 0.9,
+      })),
+    }
+    const llm: LLMModel = {
+      generateObject: async <T>(options: GenerateObjectOptions) => {
+        expect(options.validate?.(compact, options.context ?? {})).toEqual({
+          valid: true,
+          errors: [],
+        })
+        return { object: compact as T }
+      },
+    }
+
+    const result = await generateBookOutline(
+      parentEvidence,
+      buildBookOutlineConfig({ structure_types: {}, role_types: {} }),
+      llm,
+    )
+
+    // Every entry ends up pointing at a defined cluster whose level matches.
+    const byId = new Map(
+      result.styleClusters.map((cluster) => [cluster.styleClusterId, cluster]),
+    )
+    expect(new Set(result.styleClusters.map((c) => c.styleClusterId)).size).toBe(
+      result.styleClusters.length,
+    )
+    for (const entry of result.entries) {
+      const cluster = byId.get(entry.styleClusterId)
+      expect(cluster).toBeDefined()
+      expect(cluster?.level).toBe(entry.level)
+    }
+    expect(result.entries[1].styleClusterId).toBe("sc_blue-level-2")
+    expect(result.entries.map((entry) => entry.level)).toEqual([1, 2, 3, 3])
+  })
+
   it("corrects a cluster declaration when all entries agree on another level", async () => {
     const llm: LLMModel = {
       generateObject: async <T>(options: GenerateObjectOptions) => {
