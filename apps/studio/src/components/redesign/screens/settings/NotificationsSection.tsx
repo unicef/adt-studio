@@ -4,6 +4,7 @@ import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Bell, CheckCircle2, Volume2, Timer, X } from "lucide-react"
 import { SegmentedControl } from "@/components/ui/segmented-control"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { useNotificationPrefs, type ToastPosition } from "@/hooks/use-notification-prefs"
@@ -126,7 +127,6 @@ export function NotificationsSection() {
   const os = usePlatform()
   const [prefs, setPrefs] = useNotificationPrefs()
 
-  const posLabel = i18n._(POSITIONS.find((p) => p.key === prefs.position)?.label ?? msg`Top center`)
 
   const sendTestToast = () => {
     toast.success(t`Test notification`, {
@@ -144,15 +144,27 @@ export function NotificationsSection() {
       </SettingsLead>
 
       <section id={SETTINGS_ANCHORS.notificationPosition} className="scroll-mt-24">
-        <div className="mb-2.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-          <div className="text-sm font-semibold">
-            <Trans>Position</Trans>
+        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+          <div>
+            <div className="text-sm font-semibold">
+              <Trans>Position</Trans>
+            </div>
+            <div className="text-[12.5px] text-muted-foreground">
+              <Trans>Where toasts appear on screen.</Trans>
+            </div>
           </div>
-          <div className="text-[12.5px] text-muted-foreground">
-            <Trans>
-              Pick a corner — toasts appear <b className="font-semibold text-foreground">{posLabel}</b>
-            </Trans>
-          </div>
+          <Select value={prefs.position} onValueChange={(value) => setPrefs({ position: value as ToastPosition })}>
+            <SelectTrigger className="h-9 w-[172px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="end">
+              {POSITIONS.map((p) => (
+                <SelectItem key={p.key} value={p.key}>
+                  {i18n._(p.label)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="relative mx-auto aspect-[16/10] w-full max-w-[740px] overflow-hidden rounded-xl border bg-background shadow-xl ring-1 ring-black/5">
@@ -172,33 +184,6 @@ export function NotificationsSection() {
               <div className="h-2 w-[76%] rounded-full bg-muted-foreground/15" />
             </div>
           </div>
-
-          {POSITIONS.map((p) => {
-            const selected = prefs.position === p.key
-            return (
-              <button
-                key={p.key}
-                type="button"
-                aria-label={i18n._(p.label)}
-                aria-pressed={selected}
-                onClick={() => setPrefs({ position: p.key })}
-                className={cn(
-                  "group absolute z-[5] flex h-[44px] w-[28%] items-center justify-center rounded-lg transition-all duration-200 motion-reduce:transition-none",
-                  EASE,
-                  POS_CLASS[p.key],
-                  selected
-                    ? "pointer-events-none opacity-0"
-                    : "border border-dashed border-muted-foreground/25 bg-muted/5 hover:border-brand-400 hover:bg-brand-500/[0.07] motion-safe:active:scale-[0.97]",
-                )}
-              >
-                {!selected && (
-                  <span className="text-[10.5px] font-medium text-muted-foreground/70 opacity-0 transition-opacity duration-150 group-hover:text-brand-600 group-hover:opacity-100">
-                    <Trans>Place here</Trans>
-                  </span>
-                )}
-              </button>
-            )
-          })}
 
           <PreviewToast position={prefs.position} sound={prefs.sound} autoDismiss={prefs.autoDismiss} autoDelay={prefs.autoDelay} />
         </div>
