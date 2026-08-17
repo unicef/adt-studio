@@ -33,9 +33,26 @@ const POS_CLASS: Record<ToastPosition, string> = {
   "bottom-center": "bottom-3 left-1/2 -translate-x-1/2",
   "bottom-right": "bottom-3 right-3",
 }
+const DOT_POS: Record<ToastPosition, string> = {
+  "top-left": "top-[2.5px] left-[2.5px]",
+  "top-center": "top-[2.5px] left-1/2 -translate-x-1/2",
+  "top-right": "top-[2.5px] right-[2.5px]",
+  "bottom-left": "bottom-[2.5px] left-[2.5px]",
+  "bottom-center": "bottom-[2.5px] left-1/2 -translate-x-1/2",
+  "bottom-right": "bottom-[2.5px] right-[2.5px]",
+}
 /* eslint-enable lingui/no-unlocalized-strings */
 
 const isTop = (p: ToastPosition) => p.startsWith("top")
+
+/** Mini-screen glyph with a dot in the corresponding corner — indicates the toast position. */
+function PositionGlyph({ position }: { position: ToastPosition }) {
+  return (
+    <span className="relative inline-block size-[15px] shrink-0 rounded-[3px] border border-current opacity-80">
+      <span className={cn("absolute size-[4px] rounded-full bg-current", DOT_POS[position])} />
+    </span>
+  )
+}
 
 /** Titlebar that mirrors the host OS so the preview reads as native. */
 function WindowChrome({ os }: { os: DesktopOS }) {
@@ -160,14 +177,17 @@ export function NotificationsSection() {
             <SelectContent align="end">
               {POSITIONS.map((p) => (
                 <SelectItem key={p.key} value={p.key}>
-                  {i18n._(p.label)}
+                  <span className="flex items-center gap-2">
+                    <PositionGlyph position={p.key} />
+                    {i18n._(p.label)}
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
 
-        <div className="relative mx-auto aspect-[16/10] w-full max-w-[740px] overflow-hidden rounded-xl border bg-background shadow-xl ring-1 ring-black/5">
+        <div className="relative aspect-[16/10] w-full overflow-hidden rounded-xl border bg-background shadow-xl ring-1 ring-black/5">
           <WindowChrome os={os} />
           <div className="flex h-[calc(100%-1.75rem)]">
             <div className="flex w-[22%] flex-col gap-2.5 border-r bg-muted/30 px-3 py-4">
