@@ -1,5 +1,18 @@
 ﻿import { useCallback } from "react"
 import { useProviderCredentials } from "./use-provider-credentials"
+import { useEffectiveDefaultModel } from "./use-effective-default-model"
+
+/**
+ * Structured-text availability resolved against the book's effective default
+ * model — the model a run of this book actually uses — instead of the global
+ * default the bare `hasStructuredTextProvider` flag checks. Prefer this in any
+ * component with a book in scope.
+ */
+export function useBookStructuredTextAvailability(bookLabel: string): boolean {
+  const { isAvailable } = useProviderCredentials()
+  const effectiveModel = useEffectiveDefaultModel(bookLabel)
+  return isAvailable("structured-text", effectiveModel)
+}
 
 /**
  * Hook to manage API keys in localStorage.

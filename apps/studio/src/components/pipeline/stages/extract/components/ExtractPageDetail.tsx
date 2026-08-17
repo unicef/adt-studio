@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { usePage, usePageImage } from "@/hooks/use-pages"
 import { api, BASE_URL } from "@/api/client"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -121,7 +121,8 @@ export function ExtractPageDetail({
   const { data: page, isLoading } = usePage(bookLabel, pageId)
   const { data: imageData } = usePageImage(bookLabel, pageId)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const [pageImageDims, setPageImageDims] = useState<{ w: number; h: number } | null>(null)
   const { stageState, stepState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"

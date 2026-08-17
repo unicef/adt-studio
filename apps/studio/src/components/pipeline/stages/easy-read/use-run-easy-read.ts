@@ -1,5 +1,5 @@
 ﻿import { useCallback } from "react"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useBookRun } from "@/hooks/use-book-run"
 
@@ -13,7 +13,8 @@ import { useBookRun } from "@/hooks/use-book-run"
  * languages, editing language, …) would be wiped.
  */
 export function useRunEasyRead(bookLabel: string) {
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { isRunning, queueRun } = useBookRun()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()

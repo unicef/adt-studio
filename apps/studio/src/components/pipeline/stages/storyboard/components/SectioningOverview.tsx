@@ -19,7 +19,7 @@ import { SectionEditToolbar } from "./SectionEditToolbar"
 import { ImageCropDialog, pageBoundsToCropRect } from "./ImageCropDialog"
 import { AiImageDialog } from "./AiImageDialog"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -37,7 +37,8 @@ interface SectioningOverviewProps {
 export function SectioningOverview({ bookLabel, pages, onNavigateToSection }: SectioningOverviewProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null)

@@ -15,7 +15,7 @@ import { LoadingState } from "../../components/LoadingState"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageEmptyState } from "../../components/StageEmptyState"
 import { useVirtualizer } from "@tanstack/react-virtual"
@@ -289,7 +289,6 @@ export function LanguageView({
   const { isTaskRunning, tasks } = useBookTasks(bookLabel);
   const {
     apiKey,
-    hasStructuredTextProvider,
     hasSpeechProvider,
     hasTranscriber,
     isAvailable,
@@ -302,6 +301,7 @@ export function LanguageView({
     customBaseUrl,
     customApiKey,
   } = useApiKey();
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel);
   // Resolve opaque ElevenLabs voice IDs to names for the speech summary chip.
   const { describeVoice: describeElevenLabsVoice } = useElevenLabsVoices();
   const translateState = stageState("translate");

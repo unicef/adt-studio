@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 
 type BookWord = {
   display: string
@@ -127,7 +127,8 @@ export function AddGlossaryDialog({
 }) {
   const { t } = useLingui()
   const wordIndex = useBookWords(bookLabel)
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
 
   const [word, setWord] = useState("")
   const [definition, setDefinition] = useState("")

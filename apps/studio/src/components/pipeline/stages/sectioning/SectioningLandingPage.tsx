@@ -13,7 +13,7 @@ import { useSplitStatus } from "@/hooks/use-parts"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SectioningModeVisual } from "./components/SectioningModeVisual"
 import { SectioningPreview } from "./components/SectioningPreview"
@@ -28,7 +28,8 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: splitStatus, isLoading: splitStatusLoading } = useSplitStatus(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { queueRun } = useBookRun()
   const status = useStageStatus("sectioning")
   const extractStatus = useStageStatus("extract")

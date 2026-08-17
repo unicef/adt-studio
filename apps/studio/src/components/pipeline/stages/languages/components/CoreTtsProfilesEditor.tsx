@@ -7,7 +7,7 @@ import { api } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
 import { useRegisterDirtyTabs } from "@/hooks/use-settings-dirty-tabs"
@@ -19,7 +19,8 @@ export function CoreTtsProfilesEditor({ bookLabel }: { bookLabel: string }) {
   const navigate = useNavigate()
   const remount = useSettingsRemount()
   const { queueRun } = useBookRun()
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { data, isLoading } = useQuery({
     queryKey: ["core-tts-profiles"],
     queryFn: () => api.getCoreTtsProfiles(),

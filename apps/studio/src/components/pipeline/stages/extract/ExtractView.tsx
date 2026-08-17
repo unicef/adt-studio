@@ -4,7 +4,7 @@ import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { ExtractPageDetail } from "./components/ExtractPageDetail"
 import { SpreadReview } from "./components/SpreadReview"
 import { BookHeader } from "./BookHeader"
@@ -123,7 +123,8 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   const { t } = useLingui()
   const { data: pages, isLoading } = usePages(bookLabel)
   const { stageState, stepState, queueRun } = useBookRun()
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const selectedPageId = selectedPageIdProp ?? null
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()

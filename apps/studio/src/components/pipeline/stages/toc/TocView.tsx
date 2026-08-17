@@ -1,13 +1,13 @@
 ﻿import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { Check, ChevronDown, ChevronRight, ChevronLeft, ExternalLink, List, Loader2, Plus, Search, Trash2, X } from "lucide-react"
+import { ChevronDown, ChevronRight, ChevronLeft, ExternalLink, List, Plus, Search, Trash2, X } from "lucide-react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
 import { api } from "@/api/client"
-import type { TocGenerationOutput, TocEntry, TocSection, VersionEntry } from "@/api/client"
+import type { TocGenerationOutput, TocEntry, TocSection } from "@/api/client"
 import { useToc } from "@/hooks/use-toc"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageContentGuard } from "../../components/StageContentGuard"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -129,7 +129,8 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
   const { data, isLoading } = useToc(bookLabel)
   const { setExtra } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const tocState = stageState("toc")
   const tocDone = tocState === "done"
   const tocRunning = tocState === "running" || tocState === "queued"

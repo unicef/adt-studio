@@ -5,7 +5,7 @@ import { api } from "@/api/client"
 import { usePages } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageContentGuard } from "../../components/StageContentGuard"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -25,7 +25,8 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
   const { data: pages, isLoading } = usePages(bookLabel)
   const { setExtra } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const captionsState = stageState("captions")
   const captionsDone = captionsState === "done"
   const captionsRunning = captionsState === "running" || captionsState === "queued"

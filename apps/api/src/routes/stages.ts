@@ -5,7 +5,9 @@ import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody } from "@adt/types"
+import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody, DEFAULT_LLM_MODEL_ID } from "@adt/types"
+import { assertModelCredentials } from "@adt/llm"
+import { loadBookConfig } from "@adt/pipeline"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
@@ -90,6 +92,14 @@ export function createStageRoutes(
 
     const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
     const credentials = readProviderCredentials(c)
+
+    // Fail before beforeRun clears any stage data: a run that cannot make a
+    // single LLM call must not wipe the book. Keyless providers pass through.
+    assertModelCredentials(
+      "structured-text",
+      loadBookConfig(label, booksDir, configPath).default_model ?? DEFAULT_LLM_MODEL_ID,
+      credentials,
+    )
 
     console.log(
       `[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} ` +

@@ -6,6 +6,11 @@ export interface LLMProviderCredentials {
   googleApiKey?: string
   customBaseUrl?: string
   customApiKey?: string
+  /** Every legacy field is a flat string. This index signature makes the
+   *  manifest-keyed `ResolvedCredentials` shape (nested records) a compile
+   *  error here — that shape belongs in `providerCredentials`, and passing it
+   *  to this slot silently drops every key. */
+  [legacyField: string]: string | undefined
 }
 
 const LEGACY_FIELD_MAP: ReadonlyArray<

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
@@ -33,7 +33,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const queryClient = useQueryClient()
-  const { hasStructuredTextProvider } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const quizzesStatus = useStageStatus("quizzes")
   const [showAddQuiz, setShowAddQuiz] = useState(false)
 

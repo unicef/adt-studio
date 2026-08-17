@@ -427,6 +427,45 @@ describe("createLLMModel cache v2", () => {
     expect(readCache(cacheDir, v2Hash)).toEqual({ ok: false })
   })
 
+  it("promotes a legacy v1 hit written without a mode when the provider's default strategy is tool-call", async () => {
+    const fingerprint: CacheFingerprint = {
+      adapterVersion: "anthropic-1",
+      origin: "https://api.anthropic.com",
+    }
+    const { registry, generate } = makeRegistry({
+      id: "anthropic",
+      strategies: ["tool-call", "json-mode"],
+      fingerprint,
+    })
+    const cacheDir = tmpCacheDir()
+
+    const legacyHash = computeHash({ modelId: "anthropic:claude-sonnet-4-5", messages, schema })
+    writeCache(cacheDir, legacyHash, { ok: false })
+
+    const llm = createLLMModel({
+      modelId: "anthropic:claude-sonnet-4-5",
+      registry,
+      cacheDir,
+      logLevel: "silent",
+    })
+    const result = await llm.generateObject<{ ok: boolean }>({ schema, messages })
+
+    expect(result.cached).toBe(true)
+    expect(result.object).toEqual({ ok: false })
+    expect(generate).not.toHaveBeenCalled()
+
+    const v2Hash = computeCacheKeyV2({
+      providerId: "anthropic",
+      modelId: "claude-sonnet-4-5",
+      fingerprint,
+      operation: "structured-text",
+      messages,
+      schema,
+      structuredOutputStrategy: "tool-call",
+    })
+    expect(readCache(cacheDir, v2Hash)).toEqual({ ok: false })
+  })
+
   it("never reads a legacy entry for a configurable-origin provider", async () => {
     const { registry, generate } = makeRegistry({
       id: "custom",

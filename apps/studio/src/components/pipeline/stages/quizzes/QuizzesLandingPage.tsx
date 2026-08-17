@@ -17,7 +17,7 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { QuizzesPreview } from "./components/QuizzesPreview"
 import { AddQuizDialog } from "./AddQuizDialog"
@@ -31,7 +31,8 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { queueRun } = useBookRun()
   const status = useStageStatus("quizzes")
   const storyboardStatus = useStageStatus("storyboard")

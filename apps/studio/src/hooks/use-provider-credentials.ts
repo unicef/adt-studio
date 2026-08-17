@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { useQuery } from "@tanstack/react-query"
+import type { ProvidersResponse } from "@adt/types"
 import { getProviders } from "@/api/client"
 import {
   browserCredentialStorage,
@@ -9,6 +10,12 @@ import {
 } from "@/api/provider-credentials"
 
 const CREDENTIALS_CHANGED_EVENT = "adt-provider-credentials-changed"
+
+// Stable fallbacks: a fresh `?? []` per render would give `credentials` a new
+// identity on every render while /providers is pending or errored, and any
+// effect keyed on it (ApiKeyDialog's draft sync) would loop.
+const EMPTY_PROVIDERS: ProvidersResponse["providers"] = []
+const EMPTY_DEFAULTS: ProvidersResponse["defaults"] = {}
 
 export function useProviderCredentials() {
   const providersQuery = useQuery({
@@ -28,7 +35,8 @@ export function useProviderCredentials() {
     }
   }, [])
 
-  const providers = providersQuery.data?.providers ?? []
+  const providers = providersQuery.data?.providers ?? EMPTY_PROVIDERS
+  const defaults = providersQuery.data?.defaults ?? EMPTY_DEFAULTS
   const credentials = useMemo(
     () => readProviderCredentialsFromStorage(providers, browserCredentialStorage),
     [providers, storageRevision],
@@ -56,16 +64,16 @@ export function useProviderCredentials() {
       isAiOperationAvailable(
         providers,
         credentials,
-        providersQuery.data?.defaults ?? {},
+        defaults,
         modality,
         modelId,
       ),
-    [providers, credentials, providersQuery.data?.defaults],
+    [providers, credentials, defaults],
   )
 
   return {
     providers,
-    defaults: providersQuery.data?.defaults ?? {},
+    defaults,
     credentials,
     credentialValue,
     isAvailable,

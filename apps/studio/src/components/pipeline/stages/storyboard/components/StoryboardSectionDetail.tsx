@@ -44,7 +44,7 @@ import {
   setLeafRole,
   toggleNodePruned,
 } from "@adt/types"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { usePage } from "@/hooks/use-pages"
 import { useBookTasks } from "@/hooks/use-book-tasks"
@@ -437,12 +437,12 @@ export function StoryboardSectionDetail({
   const queryClient = useQueryClient()
   const {
     apiKey,
-    hasStructuredTextProvider,
     hasAgentProvider,
     hasImageProvider,
     anthropicKey,
     googleKey,
   } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { headerSlotEl } = useStepHeader()
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"

@@ -38,7 +38,7 @@ import { QuizzesHintBanner } from "./components/QuizzesHintBanner";
 import { QuizJumper, type QuizJumperEntry } from "./components/QuizJumper";
 import { PageLightbox } from "../../components/PageLightbox";
 import { AddQuizDialog } from "./AddQuizDialog";
-import { useApiKey } from "@/hooks/use-api-key";
+import { useBookStructuredTextAvailability } from "@/hooks/use-api-key";
 import { useStageStatus } from "@/hooks/use-stage-status";
 import { useLingui } from "@lingui/react/macro";
 
@@ -133,7 +133,7 @@ export function QuizzesView({
   const { data, isLoading } = useQuizzes(bookLabel);
   const { data: pages } = usePages(bookLabel);
   const { setExtra } = useStepHeader();
-  const { hasStructuredTextProvider } = useApiKey();
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel);
   const quizzesStatus = useStageStatus("quizzes");
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);

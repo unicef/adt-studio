@@ -3,7 +3,7 @@ import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Scissors, Combine, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, ArrowRight, FileArchive, X, Info } from "lucide-react"
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
 import { usePartInfo, usePreviewMerge, useMergePart, useSplitStatus } from "../../hooks/use-parts"
-import { useApiKey } from "../../hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "../../hooks/use-api-key"
 import { useActiveConfig } from "../../hooks/use-debug"
 import { useSourcePdfInfo } from "../../hooks/use-source-pdf-info"
 import { type MergePreview, type MergeResult, type SplitStatus } from "../../api/client"
@@ -244,7 +244,8 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
   const previewMutation = usePreviewMerge(bookLabel)
   const mergeMutation = useMergePart(bookLabel)
   const regenerateSummary = useRegenerateBookSummary()
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
 
   const reset = () => {
     setFile(null)

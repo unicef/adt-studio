@@ -132,7 +132,7 @@ export async function mirrorLayout(
     modelId,
     cacheDir: path.join(path.resolve(opts.booksDir), opts.bookLabel, ".cache"),
     onLog: (entry) => storage.appendLlmLog(entry),
-    credentials,
+    providerCredentials: credentials,
   })
   // One correlationId groups every target's call under a single mirror run.
   const correlationId = randomUUID()

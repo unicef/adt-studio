@@ -230,18 +230,23 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         })
         // Reproduce the exact v1 key so a legacy entry from an unambiguous
         // backend still counts as a hit; configurable-origin providers skip it.
-        // The v1 key recorded the deprecated `mode`, so a call site that now
-        // declares a trait must map its effective strategy back to that value.
-        const legacyHash = legacyReadable
-          ? computeHash({
-              modelId,
-              mode: legacyModeForStrategy(strategy),
-              system,
-              messages: currentMessages,
-              schema: opts.schema,
-              temperature: opts.temperature,
-            })
-          : null
+        // The v1 key recorded the caller's deprecated `mode` verbatim — omitted
+        // when none was passed, even for providers whose default strategy maps
+        // to one (e.g. anthropic's tool-call) — so probe the raw value and the
+        // strategy's mapping, which differ for migrated call sites.
+        const legacyModes = legacyReadable
+          ? [...new Set([opts.mode, legacyModeForStrategy(strategy)])]
+          : []
+        const legacyHashes = legacyModes.map((mode) =>
+          computeHash({
+            modelId,
+            mode,
+            system,
+            messages: currentMessages,
+            schema: opts.schema,
+            temperature: opts.temperature,
+          }),
+        )
 
         try {
           let result: T
@@ -249,8 +254,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           // Check cache
           if (cacheDir) {
             const cached = readCache<T>(cacheDir, hash)
-            const legacyCached =
-              cached === null && legacyHash ? readCache<T>(cacheDir, legacyHash) : null
+            let legacyCached: T | null = null
+            if (cached === null) {
+              for (const legacyHash of legacyHashes) {
+                legacyCached = readCache<T>(cacheDir, legacyHash)
+                if (legacyCached !== null) break
+              }
+            }
             if (cached !== null) {
               result = cached
               lastCacheHit = true
@@ -288,7 +298,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               allErrors.push(...check.errors)
               if (cacheDir) {
                 bustCache(cacheDir, hash)
-                if (legacyHash) bustCache(cacheDir, legacyHash)
+                for (const legacyHash of legacyHashes) bustCache(cacheDir, legacyHash)
               }
               currentMessages = appendValidationFeedback(
                 currentMessages,
@@ -378,7 +388,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           allErrors.push(errMsg)
           if (cacheDir) {
             bustCache(cacheDir, hash)
-            if (legacyHash) bustCache(cacheDir, legacyHash)
+            for (const legacyHash of legacyHashes) bustCache(cacheDir, legacyHash)
           }
 
           // A deliberate external cancel never retries — detected by the signal,

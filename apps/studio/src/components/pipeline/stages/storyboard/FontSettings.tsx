@@ -16,7 +16,7 @@ import {
   useApplyBookFont,
   useBookFonts,
 } from "@/hooks/use-book-fonts"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { useLingui } from "@lingui/react/macro"
 import { Trans } from "@lingui/react/macro"
 import { FontPreviewStyles, GooglePreviewLink } from "./fonts/FontPreviewAssets"
@@ -30,7 +30,8 @@ const ANALYZE_POLL_MS = 3000
 export function FontSettings({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const navigate = useNavigate()
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
 
   const [analyzing, setAnalyzing] = useState(false)
   const [addOpen, setAddOpen] = useState(false)

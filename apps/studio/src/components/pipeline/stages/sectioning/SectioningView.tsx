@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, LayoutGrid, Table2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { LoadingState } from "../../components/LoadingState"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -20,7 +20,8 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const [overviewMode, setOverviewMode] = useState(false)
   const { setExtra, setOnLabelClick } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const sectioningState = stageState("sectioning")
   const sectioningDone = sectioningState === "done"
   const sectioningRunning = sectioningState === "running" || sectioningState === "queued"

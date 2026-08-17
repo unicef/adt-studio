@@ -15,7 +15,7 @@ import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
+import { useApiKey, useBookStructuredTextAvailability } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { useComposeBookContext } from "@/hooks/use-compose-book-context"
 import {
@@ -33,7 +33,8 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasStructuredTextProvider } = useApiKey()
+  const { apiKey } = useApiKey()
+  const hasStructuredTextProvider = useBookStructuredTextAvailability(bookLabel)
   const { queueRun } = useBookRun()
   const status = useStageStatus("captions")
   const storyboardStatus = useStageStatus("storyboard")

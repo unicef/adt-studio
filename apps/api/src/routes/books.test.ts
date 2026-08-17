@@ -15,6 +15,7 @@ import { createBookEventBus } from "../services/book-event-bus.js"
 import { createPageErrorDecisions } from "../services/page-error-decisions.js"
 import { createBookRoutes } from "./books.js"
 import { createStageRoutes } from "./stages.js"
+import { errorHandler } from "../middleware/error-handler.js"
 
 const mockEventBus = createBookEventBus()
 const mockDecisions = createPageErrorDecisions(mockEventBus)
@@ -703,9 +704,13 @@ function addExtractNodes(label: string, count: number, includeSummary = true): v
 }
 
 describe("POST /books/:label/stages/run", () => {
-  it("starts without an OpenAI key and preserves page sectioning data for storyboard reruns", async () => {
+  it("starts without an API key when the default model's provider is keyless and preserves page sectioning data for storyboard reruns", async () => {
     const label = "render-only-route"
     createTestBook(label)
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      'default_model: "ollama:llama3"\n',
+    )
     const storage = createBookStorage(label, tmpDir)
     try {
       storage.putNodeData("page-sectioning", "pg001", {
@@ -758,6 +763,63 @@ describe("POST /books/:label/stages/run", () => {
       expect(runs.has("web-rendering")).toBe(false)
     } finally {
       verifyStorage.close()
+    }
+  })
+
+  it("rejects a keyless run for a credentialed default model before clearing any data", async () => {
+    const label = "missing-credential-run"
+    createTestBook(label)
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      'default_model: "openai:gpt-4o"\n',
+    )
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("web-rendering", "pg001", {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>x</p>" }],
+      })
+      storage.markStepCompleted("web-rendering")
+    } finally {
+      storage.close()
+    }
+
+    const savedKey = process.env.OPENAI_API_KEY
+    delete process.env.OPENAI_API_KEY
+    try {
+      let started = false
+      const stageService: StageService = {
+        getStatus: () => ({ active: null, queue: [] }),
+        getQueuedStages: () => [],
+
+        startStageRun: () => {
+          started = true
+          return { status: "started" as const, id: "run-reject" }
+        },
+      }
+
+      const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "")
+      app.onError(errorHandler)
+      const res = await app.request(`/books/${label}/stages/run`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fromStage: "storyboard", toStage: "storyboard" }),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.code).toBe("missing-credential")
+      expect(started).toBe(false)
+
+      const verifyStorage = createBookStorage(label, tmpDir)
+      try {
+        expect(verifyStorage.getLatestNodeData("web-rendering", "pg001")).not.toBeNull()
+        const runs = new Map(verifyStorage.getStepRuns().map((r) => [r.step, r.status]))
+        expect(runs.get("web-rendering")).toBe("done")
+      } finally {
+        verifyStorage.close()
+      }
+    } finally {
+      if (savedKey !== undefined) process.env.OPENAI_API_KEY = savedKey
     }
   })
 

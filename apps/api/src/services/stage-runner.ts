@@ -2568,7 +2568,7 @@ async function runTranslateStep(
       promptEngine,
       rateLimiter,
       onLog: onLlmLog,
-      credentials: llmCredentials,
+      providerCredentials: llmCredentials,
       signal: options.signal,
     })
     const coreTtsConfigDir = configPath
