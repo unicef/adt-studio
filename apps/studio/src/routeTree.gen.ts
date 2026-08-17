@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as SettingsRouteImport } from "./routes/settings"
 import { Route as RedesignWelcomeRouteImport } from "./routes/redesign-welcome"
-import { Route as RedesignReviewRouteImport } from "./routes/redesign-review"
 import { Route as RedesignRouteImport } from "./routes/redesign"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
 import { Route as IndexRouteImport } from "./routes/index"
@@ -46,11 +45,6 @@ const SettingsRoute = SettingsRouteImport.update({
 const RedesignWelcomeRoute = RedesignWelcomeRouteImport.update({
   id: "/redesign-welcome",
   path: "/redesign-welcome",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RedesignReviewRoute = RedesignReviewRouteImport.update({
-  id: "/redesign-review",
-  path: "/redesign-review",
   getParentRoute: () => rootRouteImport,
 } as any)
 const RedesignRoute = RedesignRouteImport.update({
@@ -186,7 +180,6 @@ export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
   "/redesign": typeof RedesignRouteWithChildren
-  "/redesign-review": typeof RedesignReviewRoute
   "/redesign-welcome": typeof RedesignWelcomeRoute
   "/settings": typeof SettingsRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
@@ -215,7 +208,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
-  "/redesign-review": typeof RedesignReviewRoute
   "/redesign-welcome": typeof RedesignWelcomeRoute
   "/settings": typeof SettingsRoute
   "/books/import": typeof BooksImportRoute
@@ -243,7 +235,6 @@ export interface FileRoutesById {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
   "/redesign": typeof RedesignRouteWithChildren
-  "/redesign-review": typeof RedesignReviewRoute
   "/redesign-welcome": typeof RedesignWelcomeRoute
   "/settings": typeof SettingsRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
@@ -275,7 +266,6 @@ export interface FileRouteTypes {
     | "/"
     | "/onboarding"
     | "/redesign"
-    | "/redesign-review"
     | "/redesign-welcome"
     | "/settings"
     | "/books/$label"
@@ -304,7 +294,6 @@ export interface FileRouteTypes {
   to:
     | "/"
     | "/onboarding"
-    | "/redesign-review"
     | "/redesign-welcome"
     | "/settings"
     | "/books/import"
@@ -331,7 +320,6 @@ export interface FileRouteTypes {
     | "/"
     | "/onboarding"
     | "/redesign"
-    | "/redesign-review"
     | "/redesign-welcome"
     | "/settings"
     | "/books/$label"
@@ -362,7 +350,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OnboardingRoute: typeof OnboardingRoute
   RedesignRoute: typeof RedesignRouteWithChildren
-  RedesignReviewRoute: typeof RedesignReviewRoute
   RedesignWelcomeRoute: typeof RedesignWelcomeRoute
   SettingsRoute: typeof SettingsRoute
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
@@ -385,13 +372,6 @@ declare module "@tanstack/react-router" {
       path: "/redesign-welcome"
       fullPath: "/redesign-welcome"
       preLoaderRoute: typeof RedesignWelcomeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/redesign-review": {
-      id: "/redesign-review"
-      path: "/redesign-review"
-      fullPath: "/redesign-review"
-      preLoaderRoute: typeof RedesignReviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/redesign": {
@@ -651,7 +631,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OnboardingRoute: OnboardingRoute,
   RedesignRoute: RedesignRouteWithChildren,
-  RedesignReviewRoute: RedesignReviewRoute,
   RedesignWelcomeRoute: RedesignWelcomeRoute,
   SettingsRoute: SettingsRoute,
   BooksLabelRoute: BooksLabelRouteWithChildren,
