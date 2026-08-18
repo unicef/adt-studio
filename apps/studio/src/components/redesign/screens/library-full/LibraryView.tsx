@@ -8,15 +8,16 @@ import { cn } from "@/lib/utils"
 import { ActionMenu } from "@/components/ui/action-menu"
 import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
-import { StageBar, ShelfCard, ViewToggle, type ViewMode } from "../home/home-full/kit"
+import { StageBar, ShelfCard, ViewToggle } from "../home/home-full/kit"
+import { useLibraryPrefs, type LibrarySort, type LibraryGroup } from "@/hooks/use-library-prefs"
 
 export interface LibBook extends BookVM {
   hasError?: boolean
   pendingComments?: number
 }
 
-type SortKey = "recent" | "title" | "progress" | "pages" | "created"
-type Group = "none" | "attention"
+type SortKey = LibrarySort
+type Group = LibraryGroup
 type Attention = "errors" | "feedback" | "none"
 
 const ATTENTION_ORDER: Attention[] = ["errors", "feedback", "none"]
@@ -49,16 +50,13 @@ export interface LibraryViewProps {
   books: LibBook[]
   onOpen: (label: string) => void
   onAddBook: () => void
-  initialGroup?: Group
 }
 
-export function LibraryView({ books, onOpen, onAddBook, initialGroup = "attention" }: LibraryViewProps) {
+export function LibraryView({ books, onOpen, onAddBook }: LibraryViewProps) {
   const { t } = useLingui()
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
-  const [sort, setSort] = useState<SortKey>("recent")
-  const [group, setGroup] = useState<Group>(initialGroup)
-  const [view, setView] = useState<ViewMode>("grid")
+  const [{ sort, group, view }, setPrefs] = useLibraryPrefs()
 
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search), 180)
@@ -133,12 +131,12 @@ export function LibraryView({ books, onOpen, onAddBook, initialGroup = "attentio
             items={SORTS.map((s) => ({
               icon: sort === s.key ? Check : undefined,
               label: s.label,
-              onClick: () => setSort(s.key),
+              onClick: () => setPrefs({ sort: s.key }),
             }))}
           />
           <button
             type="button"
-            onClick={() => setGroup((g) => (g === "attention" ? "none" : "attention"))}
+            onClick={() => setPrefs({ group: group === "attention" ? "none" : "attention" })}
             aria-pressed={group === "attention"}
             title={t`Group by attention`}
             className={cn(menuBtn, group === "attention" && "border-brand-500 bg-brand-50 text-brand-700")}
@@ -146,7 +144,7 @@ export function LibraryView({ books, onOpen, onAddBook, initialGroup = "attentio
             <Layers className="size-3.5" />
             <Trans>Group</Trans>
           </button>
-          <ViewToggle value={view} onChange={setView} />
+          <ViewToggle value={view} onChange={(v) => setPrefs({ view: v })} />
         </div>
       </div>
 

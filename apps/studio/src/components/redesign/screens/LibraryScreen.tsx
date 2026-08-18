@@ -36,7 +36,7 @@ export function LibraryScreen() {
             <LibraryEmptyState onOpenAdd={openAdd} />
           </div>
         ) : (
-          <LibraryView books={vms} onOpen={setDetailLabel} onAddBook={openAdd} initialGroup="none" />
+          <LibraryView books={vms} onOpen={setDetailLabel} onAddBook={openAdd} />
         )}
       </div>
 
