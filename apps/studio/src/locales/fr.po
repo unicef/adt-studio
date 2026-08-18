@@ -80,7 +80,6 @@ msgstr "(cette section)"
 msgid "{0, plural, one {# book in your library} other {# books in your library}}"
 msgstr ""
 
-#. placeholder {0}: active.length
 #. placeholder {0}: books.length
 msgid "{0, plural, one {# book} other {# books}}"
 msgstr ""
@@ -112,7 +111,6 @@ msgstr "{0, plural, one {# page remplacée} other {# pages remplacées}}"
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# page} other {# pages}}"
 
-#. placeholder {0}: book.stageCount
 #. placeholder {0}: discs.length
 msgid "{0, plural, one {# stage} other {# stages}}"
 msgstr ""
@@ -454,8 +452,8 @@ msgstr "Taille de {label} sur mobile"
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 sur {total} pages fusionnées} one {# sur {total} pages fusionnées} other {# sur {total} pages fusionnées}}"
 
-msgid "{merged} of {split} pages merged back"
-msgstr ""
+#~ msgid "{merged} of {split} pages merged back"
+#~ msgstr ""
 
 msgid "{merged} of {total} parts merged back"
 msgstr ""
@@ -3283,7 +3281,6 @@ msgstr "Des définitions à portée de doigt."
 msgid "Delete"
 msgstr "Supprimer"
 
-#. placeholder {0}: book.displayTitle
 #. placeholder {0}: book.title ?? book.label
 msgid "Delete {0}"
 msgstr "Supprimer {0}"
@@ -3735,7 +3732,6 @@ msgstr "Écosystème"
 msgid "Edit"
 msgstr "Modifier"
 
-#. placeholder {0}: book.displayTitle
 #. placeholder {0}: book.title ?? book.label
 msgid "Edit {0}"
 msgstr "Modifier {0}"
@@ -6414,8 +6410,8 @@ msgstr "Aucune évaluation d'accessibilité n'a encore été générée. Empaque
 msgid "No accessibility findings were reported for this page."
 msgstr "Aucun résultat d'accessibilité n'a été signalé pour cette page."
 
-msgid "No active splits"
-msgstr ""
+#~ msgid "No active splits"
+#~ msgstr ""
 
 msgid "No AI edits yet for this section."
 msgstr "Aucune modification IA pour cette section pour l'instant."
@@ -6862,8 +6858,8 @@ msgstr "non démarré"
 msgid "Not started"
 msgstr ""
 
-msgid "Not started — add a PDF to begin"
-msgstr ""
+#~ msgid "Not started — add a PDF to begin"
+#~ msgstr ""
 
 msgid "Not started yet"
 msgstr "Pas encore commencé"
@@ -9791,8 +9787,8 @@ msgstr ""
 msgid "Split a book into page-range parts to process on lighter machines or share with collaborators. Work a part here, or export it as a <0>.zip</0> — then merge every part back into the source book."
 msgstr ""
 
-msgid "Split a book to hand parts to collaborators."
-msgstr ""
+#~ msgid "Split a book to hand parts to collaborators."
+#~ msgstr ""
 
 msgid "Split a book to share parts with collaborators — or import a part someone sent you to work on and return."
 msgstr ""
@@ -9849,8 +9845,8 @@ msgstr "diviser cette section"
 msgid "Splits"
 msgstr ""
 
-msgid "Splits in progress"
-msgstr ""
+#~ msgid "Splits in progress"
+#~ msgstr ""
 
 msgid "Spread"
 msgstr "Double page"

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react"
 import type { CredentialFieldManifest, ProviderDescriptor, ProviderHealthResponse } from "./contract"
-import { PROVIDER_DESCRIPTORS, SEED_CREDENTIALS, SIM_ENV, type SimEnv } from "./data"
+import { PROVIDER_DESCRIPTORS, SIM_ENV, type SimEnv } from "./data"
 
 export type AuthKind = "api-key" | "cli" | "local"
 
@@ -41,14 +41,6 @@ function readStorage(): Creds {
         stored = window.localStorage.getItem(field.storageKey)
       } catch {
         stored = null
-      }
-      if (stored === null && SEED_CREDENTIALS[descriptor.manifest.id]?.[field.key] !== undefined) {
-        stored = SEED_CREDENTIALS[descriptor.manifest.id][field.key]
-        try {
-          window.localStorage.setItem(field.storageKey, stored)
-        } catch {
-          /* ignore private-mode failures */
-        }
       }
       if (stored) values[field.key] = stored
     }

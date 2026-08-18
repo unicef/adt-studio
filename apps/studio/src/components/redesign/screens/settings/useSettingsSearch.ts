@@ -52,7 +52,7 @@ export function useSettingsSearch({
         }
       },
     }))
-  }, [query, i18n, navigate, clearOnSelect])
+  }, [query, i18n, i18n.locale, navigate, clearOnSelect])
 
   const hasQuery = query.trim().length > 0
 

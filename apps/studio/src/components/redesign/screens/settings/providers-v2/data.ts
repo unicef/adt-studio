@@ -257,10 +257,3 @@ export const SIM_ENV: Record<string, SimEnv> = {
   elevenlabs: { rejectsKey: true },
   gemini: {},
 }
-
-/** Credentials seeded on first load so the review shows connected states, not an empty screen. */
-export const SEED_CREDENTIALS: Record<string, Record<string, string>> = {
-  openai: { apiKey: "sk-proto-demo-openai-key-000" },
-  ollama: { baseUrl: "http://127.0.0.1:11434/v1" },
-  elevenlabs: { apiKey: "sk-proto-bad-key" },
-}

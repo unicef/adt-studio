@@ -78,7 +78,6 @@ msgstr "(this section)"
 msgid "{0, plural, one {# book in your library} other {# books in your library}}"
 msgstr "{0, plural, one {# book in your library} other {# books in your library}}"
 
-#. placeholder {0}: active.length
 #. placeholder {0}: books.length
 msgid "{0, plural, one {# book} other {# books}}"
 msgstr "{0, plural, one {# book} other {# books}}"
@@ -110,7 +109,6 @@ msgstr "{0, plural, one {# page replaced} other {# pages replaced}}"
 msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# page} other {# pages}}"
 
-#. placeholder {0}: book.stageCount
 #. placeholder {0}: discs.length
 msgid "{0, plural, one {# stage} other {# stages}}"
 msgstr "{0, plural, one {# stage} other {# stages}}"
@@ -454,8 +452,8 @@ msgstr "{label} mobile size"
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 
-msgid "{merged} of {split} pages merged back"
-msgstr "{merged} of {split} pages merged back"
+#~ msgid "{merged} of {split} pages merged back"
+#~ msgstr "{merged} of {split} pages merged back"
 
 msgid "{merged} of {total} parts merged back"
 msgstr "{merged} of {total} parts merged back"
@@ -3283,7 +3281,6 @@ msgstr "Definitions, one tap away."
 msgid "Delete"
 msgstr "Delete"
 
-#. placeholder {0}: book.displayTitle
 #. placeholder {0}: book.title ?? book.label
 msgid "Delete {0}"
 msgstr "Delete {0}"
@@ -3735,7 +3732,6 @@ msgstr "Ecosystem"
 msgid "Edit"
 msgstr "Edit"
 
-#. placeholder {0}: book.displayTitle
 #. placeholder {0}: book.title ?? book.label
 msgid "Edit {0}"
 msgstr "Edit {0}"
@@ -6414,8 +6410,8 @@ msgstr "No accessibility assessment has been generated yet. Package the ADT outp
 msgid "No accessibility findings were reported for this page."
 msgstr "No accessibility findings were reported for this page."
 
-msgid "No active splits"
-msgstr "No active splits"
+#~ msgid "No active splits"
+#~ msgstr "No active splits"
 
 msgid "No AI edits yet for this section."
 msgstr "No AI edits yet for this section."
@@ -6862,8 +6858,8 @@ msgstr "not started"
 msgid "Not started"
 msgstr "Not started"
 
-msgid "Not started — add a PDF to begin"
-msgstr "Not started — add a PDF to begin"
+#~ msgid "Not started — add a PDF to begin"
+#~ msgstr "Not started — add a PDF to begin"
 
 msgid "Not started yet"
 msgstr "Not started yet"
@@ -9791,8 +9787,8 @@ msgstr "Split a book into page-range parts to process on a lighter machine, or h
 msgid "Split a book into page-range parts to process on lighter machines or share with collaborators. Work a part here, or export it as a <0>.zip</0> — then merge every part back into the source book."
 msgstr "Split a book into page-range parts to process on lighter machines or share with collaborators. Work a part here, or export it as a <0>.zip</0> — then merge every part back into the source book."
 
-msgid "Split a book to hand parts to collaborators."
-msgstr "Split a book to hand parts to collaborators."
+#~ msgid "Split a book to hand parts to collaborators."
+#~ msgstr "Split a book to hand parts to collaborators."
 
 msgid "Split a book to share parts with collaborators — or import a part someone sent you to work on and return."
 msgstr "Split a book to share parts with collaborators — or import a part someone sent you to work on and return."
@@ -9849,8 +9845,8 @@ msgstr "split this section"
 msgid "Splits"
 msgstr "Splits"
 
-msgid "Splits in progress"
-msgstr "Splits in progress"
+#~ msgid "Splits in progress"
+#~ msgstr "Splits in progress"
 
 msgid "Spread"
 msgstr "Spread"
