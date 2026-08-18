@@ -4,32 +4,30 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { AddBookDialog } from "@/components/redesign/AddBookDialog"
 import { WelcomeHero } from "@/components/redesign/screens/home/WelcomeHero"
-import { SecondRowSample } from "@/components/redesign/screens/home/welcome-variants/SecondRowSample"
-import { SecondRowSampleHero } from "@/components/redesign/screens/home/welcome-variants/SecondRowSampleHero"
-import { SecondRowSampleTransform } from "@/components/redesign/screens/home/welcome-variants/SecondRowSampleTransform"
-import { SecondRowSampleWalkthrough } from "@/components/redesign/screens/home/welcome-variants/SecondRowSampleWalkthrough"
-import { SecondRowSampleGallery } from "@/components/redesign/screens/home/welcome-variants/SecondRowSampleGallery"
+import { FeatureTour } from "@/components/redesign/screens/home/FeatureTour"
+import { PipelineStrip } from "@/components/redesign/screens/home/PipelineStrip"
+import { SecondRowChecklist } from "@/components/redesign/screens/home/welcome-variants/SecondRowChecklist"
+import { SecondRowGrouped } from "@/components/redesign/screens/home/welcome-variants/SecondRowGrouped"
 
 type Option = { id: string; name: ReactNode; desc: ReactNode; Comp: () => ReactNode }
 
 const OPTIONS: Option[] = [
-  { id: "A", name: <Trans>Sample book (original)</Trans>, desc: <Trans>Split panel — animated preview beside an "open a sample" CTA.</Trans>, Comp: SecondRowSample },
-  { id: "A1", name: <Trans>Before → After</Trans>, desc: <Trans>Plain PDF transforms into the finished accessible edition.</Trans>, Comp: SecondRowSampleTransform },
-  { id: "A2", name: <Trans>Sample walkthrough</Trans>, desc: <Trans>One book, four facets (Listen / See / Understand / Check); auto-plays.</Trans>, Comp: SecondRowSampleWalkthrough },
-  { id: "A3", name: <Trans>Immersive hero</Trans>, desc: <Trans>Centred, spotlit preview with one prominent CTA.</Trans>, Comp: SecondRowSampleHero },
-  { id: "A4", name: <Trans>Sample gallery</Trans>, desc: <Trans>Pick from a few finished books by subject and grade.</Trans>, Comp: SecondRowSampleGallery },
+  { id: "1", name: <Trans>Feature cards (current)</Trans>, desc: <Trans>Four-card "What ADT Studio does" grid.</Trans>, Comp: FeatureTour },
+  { id: "2", name: <Trans>Pipeline strip</Trans>, desc: <Trans>The PDF→bundle pipeline as one horizontal strip.</Trans>, Comp: PipelineStrip },
+  { id: "3", name: <Trans>Get-started checklist</Trans>, desc: <Trans>Four numbered steps with the first-book CTA inline.</Trans>, Comp: SecondRowChecklist },
+  { id: "4", name: <Trans>Capabilities by phase</Trans>, desc: <Trans>Convert / Enhance / Localize / Validate columns.</Trans>, Comp: SecondRowGrouped },
 ]
 
-function WelcomeSecondRowPreview() {
+function WelcomeBottomPreview() {
   const [addOpen, setAddOpen] = useState(false)
   return (
     <div className="min-h-dvh overflow-auto bg-muted/40 p-8 text-foreground">
       <div className="mx-auto max-w-[1120px]">
         <h1 className="text-2xl font-bold tracking-[-0.02em]">
-          <Trans>Home welcome — second-row options</Trans>
+          <Trans>Home welcome — bottom-row options</Trans>
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          <Trans>Each frame is a regular screen height — the banner stays the same, only the row beneath it changes. Buttons are live.</Trans>
+          <Trans>The banner stays the same; only the row beneath it changes. Buttons are live.</Trans>
         </p>
 
         <div className="mt-6 flex flex-col gap-8">
@@ -42,8 +40,8 @@ function WelcomeSecondRowPreview() {
                   <span className="text-[15px] font-semibold">{o.name}</span>
                   <span className="text-[12.5px] text-muted-foreground">{o.desc}</span>
                 </div>
-                <div className="h-[720px] overflow-hidden rounded-2xl border bg-background shadow-lg">
-                  <div className="h-full overflow-auto px-[34px] py-7">
+                <div className="overflow-hidden rounded-2xl border bg-background shadow-lg">
+                  <div className="px-[34px] py-7">
                     <WelcomeHero onOpenAdd={() => setAddOpen(true)} />
                     <Second />
                   </div>
@@ -59,5 +57,5 @@ function WelcomeSecondRowPreview() {
 }
 
 export const Route = createFileRoute("/redesign-welcome")({
-  component: WelcomeSecondRowPreview,
+  component: WelcomeBottomPreview,
 })
