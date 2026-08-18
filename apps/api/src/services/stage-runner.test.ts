@@ -1505,6 +1505,145 @@ speech:
     } finally {
       db.close()
     }
+
+    // The Speech view is driven by step-error, not by the rejection: assert the
+    // step goes red carrying the provider message, so the user sees one
+    // actionable error rather than a bare run failure with no step highlighted.
+    const ttsErrors = events.filter(
+      (event) => event.type === "step-error" && event.step === "tts"
+    )
+    expect(ttsErrors).toHaveLength(1)
+    expect((ttsErrors[0] as { error: string }).error).toMatch(
+      /ElevenLabs API key is required/
+    )
+  })
+
+  it("fails before any page-batched synthesis when the Gemini credential is missing", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    // batch_by_page routes page-scoped Gemini entries into pageGroups, which
+    // deliberately skip the per-entry reuse check — so this is the path that
+    // reaches the pre-flight via the pageGroups half of its provider set.
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: gemini
+  batch_by_page: true
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-batched-missing-key")
+    vi.stubEnv("GEMINI_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await expect(
+      runner.run(
+        "gemini-batched-missing-key",
+        {
+          booksDir,
+          apiKey: "sk-test",
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "speech",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    ).rejects.toThrow(/Gemini API key is required/)
+
+    const db = openBookDb(
+      path.join(booksDir, "gemini-batched-missing-key", "gemini-batched-missing-key.db")
+    )
+    try {
+      expect(db.all("SELECT request_id FROM llm_log WHERE step = 'tts'")).toHaveLength(0)
+    } finally {
+      db.close()
+    }
+    expect(transcribeWithWhisperMock).not.toHaveBeenCalled()
+  })
+
+  it("does not require a credential when every entry is reused and there is no work", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+speech:
+  default_provider: elevenlabs
+  providers:
+    elevenlabs:
+      languages:
+        - en
+`
+    )
+    const label = "elevenlabs-tts-all-reused"
+    seedTextAndSpeechBook(booksDir, label)
+
+    // A manual recording with its audio file present is reusable outright, so
+    // the entry never becomes a work item. With nothing to generate, the
+    // pre-flight's provider set is empty and no synthesizer is built — a run
+    // that needs no credential must not be failed by the fail-fast check.
+    const bookDir = path.join(booksDir, label)
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), Buffer.from("fake-audio"))
+    const storage = createBookStorage(label, booksDir)
+    try {
+      storage.putNodeData("tts", "en", {
+        entries: [
+          {
+            textId: "pg001_t001",
+            language: "en",
+            fileName: "pg001_t001.mp3",
+            voice: "manual",
+            model: "manual",
+            cached: true,
+            provider: "manual",
+          },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      storage.close()
+    }
+    vi.stubEnv("ELEVENLABS_API_KEY", "")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      label,
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    expect(generateSpeechFileMock).not.toHaveBeenCalled()
+    expect(
+      events.filter((event) => event.type === "step-error" && event.step === "tts")
+    ).toHaveLength(0)
   })
 
   it("stops admitting TTS items and unwinds without step errors when the run is cancelled", async () => {
