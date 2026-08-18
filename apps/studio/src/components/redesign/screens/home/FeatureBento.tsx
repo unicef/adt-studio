@@ -12,6 +12,7 @@ import {
   List,
   ShieldCheck,
   ArrowUpRight,
+  RefreshCw,
   type LucideIcon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -32,6 +33,8 @@ const EXTRAS: { icon: LucideIcon; tint: string; title: ReactNode; blurb: ReactNo
   { icon: ShieldCheck, tint: "bg-stage-validation/10 text-stage-validation", title: <Trans>WCAG validated</Trans>, blurb: <Trans>Checked before every export.</Trans> },
 ]
 
+const FADE_UP = "motion-safe:animate-[onboarding-fade-up_380ms_cubic-bezier(0.22,1,0.36,1)_both]"
+
 /** Home first-run bottom row: a bento highlighting the reader-facing accessibility modes. */
 export function FeatureBento() {
   const navigate = useNavigate()
@@ -49,7 +52,7 @@ export function FeatureBento() {
         <button
           type="button"
           onClick={() => navigate({ to: "/onboarding" })}
-          className="ml-auto inline-flex items-center gap-1.5 text-[12.5px] font-medium text-brand-700 hover:underline"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-md px-1 text-[12.5px] font-medium text-brand-700 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50"
         >
           <Trans>Read the docs</Trans>
           <ArrowUpRight className="size-3" />
@@ -57,16 +60,19 @@ export function FeatureBento() {
       </div>
 
       <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-3">
-        <div className="relative overflow-hidden rounded-2xl border bg-card p-5 lg:col-span-2">
+        <div className="relative flex flex-col justify-center overflow-hidden rounded-2xl border bg-card p-6 lg:col-span-2">
           <div
             aria-hidden
             className="pointer-events-none absolute -right-16 -top-16 size-52 rounded-full opacity-[0.14] blur-2xl"
             style={{ background: "radial-gradient(circle, var(--brand-500) 0%, transparent 70%)" }}
           />
-          <div className="text-[13px] font-semibold text-muted-foreground">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-600">
+            <Trans>The reader experience</Trans>
+          </div>
+          <div className="mt-1.5 text-[19px] font-bold tracking-[-0.01em]">
             <Trans>Read it your way</Trans>
           </div>
-          <p className="mt-1.5 max-w-[40ch] text-[13px] leading-relaxed text-foreground/80">
+          <p className="mt-1.5 max-w-[42ch] text-[13px] leading-relaxed text-muted-foreground">
             <Trans>Every page can be listened to, simplified, translated, signed, or captioned — switchable as the reader goes.</Trans>
           </p>
           <div className="mt-5 flex flex-wrap gap-2.5">
@@ -75,7 +81,11 @@ export function FeatureBento() {
               return (
                 <span
                   key={i}
-                  className="inline-flex items-center gap-2 rounded-full border bg-background py-1.5 pl-1.5 pr-3.5 text-[12.5px] font-semibold shadow-sm"
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-full border bg-background py-1.5 pl-1.5 pr-3.5 text-[12.5px] font-semibold shadow-sm",
+                    FADE_UP,
+                  )}
+                  style={{ animationDelay: `${120 + i * 55}ms` }}
                 >
                   <span className={cn("grid size-6 place-items-center rounded-full", m.tint)}>
                     <Icon className="size-3.5" />
@@ -85,13 +95,20 @@ export function FeatureBento() {
               )
             })}
           </div>
+          <div className="mt-6 flex items-center gap-1.5 border-t pt-4 text-[11.5px] text-muted-foreground">
+            <RefreshCw className="size-3.5 shrink-0" />
+            <Trans>Generate once — every mode stays in sync across new versions.</Trans>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3.5">
           {EXTRAS.map((e, i) => {
             const Icon = e.icon
             return (
-              <div key={i} className="rounded-2xl border bg-card p-3.5">
+              <div
+                key={i}
+                className="rounded-2xl border bg-card p-3.5 transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] motion-safe:hover:-translate-y-0.5 hover:shadow-md"
+              >
                 <div className={cn("mb-2 grid size-8 place-items-center rounded-lg", e.tint)}>
                   <Icon className="size-[17px]" />
                 </div>
