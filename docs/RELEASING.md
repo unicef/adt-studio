@@ -286,7 +286,7 @@ small post-publication URL update job:
 3. `docker` builds and publishes the combined application image to GHCR.
 4. `finalize` commits release metadata and creates the tag. Beta releases are
    published immediately; stable releases are first saved as factual drafts.
-5. `enrich-stable-release` optionally adds localized AI notes and light/dark
+5. `enrich-stable-release` optionally adds English AI notes and light/dark
    covers to a stable draft without delaying or affecting beta releases.
 6. `canonicalize-stable-release-covers` runs when a stable draft is published
    and replaces its temporary draft asset links with permanent tag-based URLs.
@@ -309,13 +309,11 @@ factual draft is created before OpenAI is called. If the secret is absent or an
 API call fails, that draft remains intact and can be enriched later with the
 regeneration workflow. Beta releases never enter this environment.
 
-The visible GitHub notes remain English. The generator also creates
-`release-i18n.json` for `en`, `pt-BR`, `es`, `fr`, and `sq`, embeds the same data
-in a hidden `adt-release-i18n` Markdown comment, and attaches it to the draft for
-the landing page and app. Only that localization file and the light/dark covers
-are attached to the release. Generation context, requests, prompts, and other
-diagnostics are retained with the workflow run for three days instead of
-cluttering the public release downloads.
+The generated notes remain English. Only the light/dark covers are attached to
+the release. Generation context, requests, prompts, and other diagnostics are
+retained with the workflow run for three days instead of cluttering the public
+release downloads. Regenerating an older release removes its legacy translation
+metadata from both the release body and attached assets.
 
 Draft releases use GitHub's internal `untagged-*` URL until publication. The
 workflow records the draft's release ID and actual review URL, uploads the cover
@@ -340,12 +338,8 @@ blocks are wrapped in hidden
 Markdown markers so image-only regeneration keeps the notes unchanged,
 notes-only regeneration keeps the cover unchanged, and human text outside
 those blocks is preserved. Image-only regeneration makes a fresh editorial
-pass for the new visual concept while leaving the existing notes and translated
-editorial copy unchanged. When localization metadata exists, it refreshes only
-the translated cover alt text so accessibility copy continues to describe the
-new artwork. Notes-only regeneration reads the existing English title and cover
-alt text from the localization embedded in the release body, so the unchanged
-cover remains aligned without a separate editorial metadata attachment.
+pass for the new visual concept while leaving the existing notes unchanged.
+Notes-only regeneration preserves the existing cover and its English alt text.
 
 Beta and staging releases initially keep GitHub's factual generated notes as a
 fallback. A successful `notes` or `both` regeneration replaces that fallback
@@ -403,7 +397,7 @@ pipeline's established stage accents.
 
 The generated Markdown uses a `<picture>` element to select
 `release-cover-dark.png` or `release-cover-light.png` from the viewer's GitHub
-theme. It also writes `release-i18n.json` beside the English Markdown.
+theme.
 
 Add `--no-image` for a text-only preview or `--dry-run` to write the collected
 context and OpenAI request without making any API calls. Preview files live
@@ -433,11 +427,9 @@ fallback. The PR list is capped, while the Compare link covers the complete
 range.
 
 Do not edit `### Release source` by hand. It is a parsing contract and must
-remain the final section of the release body. Hidden localization metadata is
-placed immediately before it so the updater can remove provenance without
-discarding translations. Newer apps show its fields in the Beta versions source
-card; older apps display it as normal Markdown. The updater also strips the HTML
-form rendered by GitHub's feed before showing update notes.
+remain the final section of the release body. Newer apps show its fields in the
+Beta versions source card; older apps display it as normal Markdown. The updater
+also strips the HTML form rendered by GitHub's feed before showing update notes.
 
 If composition or provenance lookup fails, the workflow discards the temporary
 file and lets `gh release create --generate-notes` produce the release normally.

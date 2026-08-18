@@ -95,23 +95,19 @@ describe("release source notes", () => {
     expect(parsed.source).toEqual(source);
   });
 
-  it("preserves localization metadata after a legacy source section", () => {
-    const localization = [
-      "<!-- adt-release-i18n",
-      '{"schemaVersion":1,"defaultLocale":"en","locales":{}}',
-      "-->",
-    ].join("\n");
+  it("preserves English AI notes after a legacy source section", () => {
+    const generatedNotes = "## What changed\n\nA clearer release summary.";
     const body = [
-      "English notes",
+      "Manual notice",
       "",
       formatReleaseSourceSection(source),
       "",
-      localization,
+      generatedNotes,
     ].join("\n");
 
     const parsed = parseReleaseSourceSection(body);
 
-    expect(parsed.notes).toBe(`English notes\n\n${localization}`);
+    expect(parsed.notes).toBe(`Manual notice\n\n${generatedNotes}`);
     expect(parsed.source).toEqual(source);
   });
 

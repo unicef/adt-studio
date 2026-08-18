@@ -707,7 +707,7 @@ jobs:
           echo "release_id=$(jq -r '.id' draft.json)" >> "$GITHUB_OUTPUT"
           echo "body_hash=$(sha256sum factual-release-notes.md | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
-      - name: Generate localized notes and theme covers
+      - name: Generate English notes and theme covers
         id: generate
         continue-on-error: true
         env:
@@ -834,14 +834,10 @@ jobs:
           jq -n --rawfile body release-assets/release-notes.md '{body: $body}' \
             | gh api --method PATCH "repos/$REPO/releases/$RELEASE_ID" --input - >/dev/null
 
-          gh release upload "$TAG" --repo "$REPO" \
-            "release-assets/release-i18n.json#Localized release metadata"
-
           {
             echo "### Stable release AI enrichment ready"
             echo "- Review draft: $RELEASE_URL"
-            echo "- Notes include en, pt-BR, es, fr, and sq localization data."
-            echo "- Light/dark covers and localization data are attached for review."
+            echo "- English release notes and light/dark covers are ready for review."
             echo "- Generation diagnostics are retained in this run's artifact for three days."
           } >> "$GITHUB_STEP_SUMMARY"
 

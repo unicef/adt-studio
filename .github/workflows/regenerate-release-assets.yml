@@ -375,16 +375,11 @@ jobs:
 
           jq -n --rawfile body regenerated-assets/release-notes.md '{body: $body}' \
             | gh api --method PATCH "repos/$REPO/releases/$RELEASE_ID" --input - >/dev/null
-          # The body now references this cover pair. Keep it if a later metadata
-          # upload fails; a rerun can safely replace the metadata.
+          # The body now references this cover pair, so keep the uploaded assets.
           trap - ERR
 
-          if [[ -s regenerated-assets/release-i18n.json ]]; then
-            gh release upload "$TAG" --repo "$REPO" --clobber \
-              "regenerated-assets/release-i18n.json#Localized release metadata"
-          fi
-
           LEGACY_AI_ASSETS='[
+            "release-i18n.json",
             "release-context.json",
             "release-editorial.json",
             "release-text-request.json",
