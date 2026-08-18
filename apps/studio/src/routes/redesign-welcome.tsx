@@ -7,33 +7,26 @@ import { TopBar } from "@/components/title-bar/TopBar"
 import { AppSidebar } from "@/components/redesign/AppSidebar"
 import { AddBookDialog } from "@/components/redesign/AddBookDialog"
 import { WelcomeHero } from "@/components/redesign/screens/home/WelcomeHero"
-import { PipelineStrip } from "@/components/redesign/screens/home/PipelineStrip"
-import { SecondRowGrouped } from "@/components/redesign/screens/home/welcome-variants/SecondRowGrouped"
+import { FeatureShowcase } from "@/components/redesign/screens/home/FeatureShowcase"
+import { FeatureBento } from "@/components/redesign/screens/home/FeatureBento"
 
 type Placement = "top" | "center"
 type Option = { id: string; name: ReactNode; desc: ReactNode; placement: Placement; bottom: () => ReactNode }
 
 const OPTIONS: Option[] = [
   {
-    id: "A",
-    name: <Trans>Pipeline · top-anchored</Trans>,
-    desc: <Trans>Banner + pipeline strip pinned to the top (leaves the lower area open).</Trans>,
-    placement: "top",
-    bottom: PipelineStrip,
+    id: "D",
+    name: <Trans>Feature tiles + chips</Trans>,
+    desc: <Trans>Marquee accessibility features (listen, easy-read, translate, sign) as tiles; the rest as chips.</Trans>,
+    placement: "center",
+    bottom: FeatureShowcase,
   },
   {
-    id: "B",
-    name: <Trans>Pipeline · centered</Trans>,
-    desc: <Trans>Same content, vertically centered so the empty area reads as calm, not unfinished.</Trans>,
+    id: "E",
+    name: <Trans>Reader-modes bento</Trans>,
+    desc: <Trans>A hero showing the ways a reader can take in each page, plus the extras alongside.</Trans>,
     placement: "center",
-    bottom: PipelineStrip,
-  },
-  {
-    id: "C",
-    name: <Trans>Capabilities · centered</Trans>,
-    desc: <Trans>Banner + the full "what every book gets" breakdown, centered.</Trans>,
-    placement: "center",
-    bottom: SecondRowGrouped,
+    bottom: FeatureBento,
   },
 ]
 
