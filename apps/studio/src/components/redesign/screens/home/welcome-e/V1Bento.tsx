@@ -9,12 +9,12 @@ export function V1Bento() {
   const [hero, ...rest] = MODES
   const HeroIcon = hero.icon
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col">
       <SectionHeading
         title={<Trans>Every edition, fully accessible</Trans>}
         subtitle={<Trans>Readers choose how they take in each page — you generate it once.</Trans>}
       />
-      <div className="grid grid-cols-4 gap-3">
+      <div className="grid flex-1 auto-rows-fr grid-cols-4 gap-3">
         <div className={cn("relative col-span-2 row-span-2 flex flex-col justify-between overflow-hidden rounded-2xl p-5", hero.solid)}>
           <div className="flex items-center justify-between">
             <span className="grid size-10 place-items-center rounded-xl bg-white/15">
@@ -24,7 +24,7 @@ export function V1Bento() {
               <Trans>Flagship</Trans>
             </span>
           </div>
-          <div className="flex h-9 items-end gap-1" aria-hidden>
+          <div className="flex h-10 items-end gap-1" aria-hidden>
             {BARS.map((h, i) => (
               <span
                 key={i}
@@ -34,19 +34,22 @@ export function V1Bento() {
             ))}
           </div>
           <div>
-            <div className="text-[17px] font-bold">{hero.label}</div>
-            <div className="mt-0.5 text-[12px] leading-relaxed text-white/80">{hero.blurb}</div>
+            <div className="text-[18px] font-bold">{hero.label}</div>
+            <div className="mt-0.5 text-[12.5px] leading-relaxed text-white/80">{hero.blurb}</div>
           </div>
         </div>
 
         {rest.map((m) => {
           const Icon = m.icon
           return (
-            <div key={m.key} className="col-span-1 flex flex-col rounded-2xl border bg-card p-3.5">
-              <div className={cn("mb-2 grid size-8 place-items-center rounded-lg", m.soft)}>
-                <Icon className="size-[17px]" />
+            <div key={m.key} className="col-span-1 flex flex-col justify-between rounded-2xl border bg-card p-4">
+              <div className={cn("grid size-9 place-items-center rounded-lg", m.soft)}>
+                <Icon className="size-[18px]" />
               </div>
-              <div className="text-[13px] font-semibold">{m.label}</div>
+              <div>
+                <div className="text-[13.5px] font-semibold">{m.label}</div>
+                <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{m.blurb}</div>
+              </div>
             </div>
           )
         })}
@@ -63,6 +66,6 @@ export function V1Bento() {
           )
         })}
       </div>
-    </>
+    </div>
   )
 }

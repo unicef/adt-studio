@@ -39,7 +39,7 @@ function ShellFrame({ bottom: Bottom, onOpenAdd }: { bottom: () => ReactNode; on
       <div className="relative min-h-0 min-w-0 flex-1">
         <TopBar className="absolute top-0 drag-region" />
         <div className="pointer-events-none absolute -top-[120px] right-[-80px] size-[440px] animate-hero-drift rounded-full bg-[radial-gradient(circle,rgba(43,127,255,.12),transparent_70%)]" />
-        <div className="flex h-full flex-col justify-center overflow-auto px-8 pb-10 pt-14">
+        <div className="flex h-full flex-col overflow-auto px-8 pb-8 pt-14">
           <WelcomeHero onOpenAdd={onOpenAdd} />
           <Bottom />
         </div>

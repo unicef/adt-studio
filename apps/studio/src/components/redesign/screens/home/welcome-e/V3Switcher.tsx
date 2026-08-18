@@ -9,12 +9,12 @@ export function V3Switcher() {
   const mode = MODES[active]
   const Icon = mode.icon
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col">
       <SectionHeading
         title={<Trans>Every edition, fully accessible</Trans>}
         subtitle={<Trans>One book, five ways to read it — pick one to preview.</Trans>}
       />
-      <div className="rounded-2xl border bg-card p-2">
+      <div className="flex flex-1 flex-col rounded-2xl border bg-card p-2">
         <div className="flex flex-wrap gap-1.5 rounded-xl bg-muted/60 p-1.5">
           {MODES.map((m, i) => {
             const MIcon = m.icon
@@ -39,13 +39,17 @@ export function V3Switcher() {
           })}
         </div>
 
-        <div key={mode.key} className="flex items-center gap-4 p-5 motion-safe:animate-content-in">
-          <span className={cn("grid size-14 shrink-0 place-items-center rounded-2xl", mode.solid)}>
-            <Icon className="size-7" />
+        <div key={mode.key} className="relative flex flex-1 items-center gap-5 overflow-hidden p-6 motion-safe:animate-content-in">
+          <span
+            aria-hidden
+            className={cn("pointer-events-none absolute -right-10 -top-10 size-56 rounded-full opacity-[0.08] blur-2xl", mode.solid)}
+          />
+          <span className={cn("grid size-16 shrink-0 place-items-center rounded-2xl", mode.solid)}>
+            <Icon className="size-8" />
           </span>
           <div>
-            <div className="text-[16px] font-bold">{mode.label}</div>
-            <div className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">{mode.blurb}</div>
+            <div className="text-[18px] font-bold">{mode.label}</div>
+            <div className="mt-1 max-w-[46ch] text-[13.5px] leading-relaxed text-muted-foreground">{mode.blurb}</div>
           </div>
         </div>
       </div>
@@ -64,6 +68,6 @@ export function V3Switcher() {
           )
         })}
       </div>
-    </>
+    </div>
   )
 }

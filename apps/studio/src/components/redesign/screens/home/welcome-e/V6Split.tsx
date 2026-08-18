@@ -5,7 +5,7 @@ import { ALL_FEATURES } from "./data"
 
 export function V6Split() {
   return (
-    <div className="mt-[26px] grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+    <div className="mt-[26px] grid min-h-0 flex-1 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
       <div className="flex flex-col justify-center">
         <div className="text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-600">
           <Trans>The reader experience</Trans>
@@ -25,17 +25,17 @@ export function V6Split() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-x-6 gap-y-3.5 sm:grid-cols-2">
+      <div className="grid grid-cols-1 content-between gap-x-8 gap-y-4 sm:grid-cols-2">
         {ALL_FEATURES.map((f) => {
           const Icon = f.icon
           return (
             <div key={f.key} className="flex items-start gap-3">
-              <span className={cn("grid size-8 shrink-0 place-items-center rounded-lg", f.soft)}>
-                <Icon className="size-4" />
+              <span className={cn("grid size-9 shrink-0 place-items-center rounded-xl", f.soft)}>
+                <Icon className="size-[18px]" />
               </span>
               <div className="min-w-0">
-                <div className="text-[13px] font-semibold">{f.label}</div>
-                <div className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{f.blurb}</div>
+                <div className="text-[13.5px] font-semibold">{f.label}</div>
+                <div className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">{f.blurb}</div>
               </div>
             </div>
           )
