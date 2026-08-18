@@ -90,6 +90,8 @@ import {
   resolveSpeechModel,
   resolveSpeechFormat,
   generateSpeechFile,
+  buildTtsLogEntry,
+  buildElevenLabsTtsLogParams,
   findAdjacentSpeechText,
   elevenLabsVoiceSettingsFromConfig,
   classifyElevenLabsTtsError,
@@ -1112,6 +1114,7 @@ export async function runFullPipeline(
       const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(config.speech)
 
       const runTtsItem = async (item: TTSWorkItem) => {
+        const startedAt = Date.now()
         const provider = resolveProviderForLanguage(item.language, routing)
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
@@ -1123,9 +1126,25 @@ export async function runFullPipeline(
           provider === "openai" || provider === "gemini"
             ? resolveInstructions(item.language, instructionsMap)
             : ""
-        const ttsSynthesizer = getSynthesizer(provider)
-        const generate = () =>
-          generateSpeechFile({
+        const logParams = provider === "elevenlabs"
+          ? buildElevenLabsTtsLogParams({
+              model: providerModel,
+              voice,
+              language: item.language,
+              format: outputFormat,
+              sampleRate: config.speech?.sample_rate,
+              bitRate: config.speech?.bit_rate,
+              applyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+              previousText: item.previousText,
+              nextText: item.nextText,
+              ...elevenLabsVoiceSettings,
+            })
+          : undefined
+        let attemptCount = 0
+        const generate = () => {
+          attemptCount++
+          const ttsSynthesizer = getSynthesizer(provider)
+          return generateSpeechFile({
             textId: item.textId,
             text: item.text,
             language: item.language,
@@ -1144,36 +1163,52 @@ export async function runFullPipeline(
             elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
             ...elevenLabsVoiceSettings,
           })
+        }
 
         // ElevenLabs throttles on concurrent requests, so a burst returns 429s
         // that would otherwise fail the entry outright. Retry 429/5xx with the
         // same backoff the API stage-runner uses.
         let entry: Awaited<ReturnType<typeof generateSpeechFile>>
-        if (provider === "elevenlabs") {
-          for (let attemptCount = 1; ; attemptCount++) {
-            try {
-              entry = await generate()
-              break
-            } catch (err) {
-              const message = err instanceof Error ? err.message : String(err)
-              if (
-                classifyElevenLabsTtsError(message) === "permanent" ||
-                attemptCount > ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES
-              ) {
-                throw err
+        try {
+          if (provider === "elevenlabs") {
+            for (let retryCount = 1; ; retryCount++) {
+              try {
+                entry = await generate()
+                break
+              } catch (err) {
+                const message = err instanceof Error ? err.message : String(err)
+                if (
+                  classifyElevenLabsTtsError(message) === "permanent" ||
+                  retryCount > ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES
+                ) throw err
+                const delayMs = elevenLabsTtsRetryDelayMs(retryCount)
+                console.warn(
+                  `[pipeline] ElevenLabs TTS failed for ${item.textId} (${item.language}); retrying ${retryCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${delayMs}ms: ${message}`
+                )
+                await new Promise((resolve) => setTimeout(resolve, delayMs))
               }
-              const delayMs = elevenLabsTtsRetryDelayMs(attemptCount)
-              console.warn(
-                `[pipeline] ElevenLabs TTS failed for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${delayMs}ms: ${message}`
-              )
-              await new Promise((resolve) => setTimeout(resolve, delayMs))
             }
+          } else {
+            entry = await generate()
           }
-        } else {
-          entry = await generate()
+        } catch (cause) {
+          const error = cause instanceof Error ? cause.message : String(cause)
+          onLlmLog(buildTtsLogEntry({
+            textId: item.textId, language: item.language, voice, model: providerModel,
+            provider, text: item.text, durationMs: Date.now() - startedAt,
+            success: false, cached: false, attempt: attemptCount, error, params: logParams,
+          }))
+          throw cause
         }
 
-        if (entry) resultsByLang.get(item.language)!.push(entry)
+        onLlmLog(buildTtsLogEntry({
+          textId: item.textId, language: item.language, voice, model: providerModel,
+          provider, text: item.text, durationMs: Date.now() - startedAt,
+          success: true, cached: entry?.cached ?? false, attempt: attemptCount, params: logParams,
+        }))
+        if (entry) {
+          resultsByLang.get(item.language)!.push(entry)
+        }
         completedItems++
         p.emit({
           type: "step-progress",
