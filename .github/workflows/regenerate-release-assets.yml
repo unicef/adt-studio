@@ -273,9 +273,9 @@ jobs:
             ( "$IS_DRAFT" != "true" || "$IS_PRERELEASE" != "false" ) ]]; then
             echo "::error::The stable draft changed state while regeneration was running."
             exit 1
-          elif [[ "$CHANNEL" == "beta" && \
+          elif [[ ( "$CHANNEL" == "beta" || "$CHANNEL" == "staging" ) && \
             ( "$IS_DRAFT" != "false" || "$IS_PRERELEASE" != "true" ) ]]; then
-            echo "::error::The beta release changed state while regeneration was running."
+            echo "::error::The prerelease changed state while regeneration was running."
             exit 1
           fi
           jq -r '.body // ""' draft-current.json > body-current.md
@@ -327,7 +327,7 @@ jobs:
           if [[ "$CHANNEL" == "stable" && \
             ( "$IS_DRAFT" != "true" || "$IS_PRERELEASE" != "false" ) ]]; then
             STATE_CHANGED=true
-          elif [[ "$CHANNEL" == "beta" && \
+          elif [[ ( "$CHANNEL" == "beta" || "$CHANNEL" == "staging" ) && \
             ( "$IS_DRAFT" != "false" || "$IS_PRERELEASE" != "true" ) ]]; then
             STATE_CHANGED=true
           fi
