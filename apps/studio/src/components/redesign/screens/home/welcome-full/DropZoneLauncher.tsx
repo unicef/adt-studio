@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { FileUp, BookOpen, FolderInput, BookText, Loader2, TriangleAlert } from "lucide-react"
+import { FileUp, FolderInput, BookText, Loader2, TriangleAlert } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export interface WelcomeVariantProps {
@@ -14,7 +14,7 @@ type Zone = "idle" | "over" | "committing" | "error"
 
 const CMD_O = ["⌘", "O"].join("")
 
-export function DropZoneLauncher({ onAddBook, onOpenSample, onImport, onOpenDocs }: WelcomeVariantProps) {
+export function DropZoneLauncher({ onAddBook, onImport, onOpenDocs }: WelcomeVariantProps) {
   const { t } = useLingui()
   const [zone, setZone] = useState<Zone>("idle")
   const depth = useRef(0)
@@ -156,10 +156,6 @@ export function DropZoneLauncher({ onAddBook, onOpenSample, onImport, onOpenDocs
       </button>
 
       <div className="absolute bottom-9 left-1/2 flex -translate-x-1/2 items-center gap-1 text-[13px] text-muted-foreground">
-        <SecondaryLink icon={<BookOpen className="size-3.5" />} onClick={onOpenSample}>
-          <Trans>Open the sample book</Trans>
-        </SecondaryLink>
-        <span aria-hidden className="text-border">·</span>
         <SecondaryLink icon={<FolderInput className="size-3.5" />} onClick={onImport}>
           <Trans>Import an existing project</Trans>
         </SecondaryLink>

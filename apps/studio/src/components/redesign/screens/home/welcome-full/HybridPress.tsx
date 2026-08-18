@@ -82,7 +82,7 @@ function useMiniSpreads() {
   ]
 }
 
-export function HybridPress({ onAddBook, onOpenSample, onOpenDocs }: WelcomeVariantProps) {
+export function HybridPress({ onAddBook, onOpenDocs }: WelcomeVariantProps) {
   const { t } = useLingui()
   const spreads = useMiniSpreads()
   const [i, setI] = useState(0)
@@ -163,13 +163,6 @@ export function HybridPress({ onAddBook, onOpenSample, onOpenDocs }: WelcomeVari
             </button>
             <button
               type="button"
-              onClick={onOpenSample}
-              className="text-[13.5px] font-medium text-muted-foreground underline decoration-border underline-offset-[5px] transition-colors hover:text-foreground hover:decoration-brand-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50"
-            >
-              <Trans>read the sample edition</Trans>
-            </button>
-            <button
-              type="button"
               onClick={onOpenDocs}
               className="inline-flex items-center gap-1.5 text-[13.5px] font-medium text-brand-700 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50"
             >
@@ -186,7 +179,7 @@ export function HybridPress({ onAddBook, onOpenSample, onOpenDocs }: WelcomeVari
               <button
                 key={s.key}
                 type="button"
-                aria-label={t`Show ${String(s.key)} page`}
+                aria-label={t`Show preview ${idx + 1}`}
                 aria-current={idx === i}
                 onClick={() => setI(idx)}
                 className={cn(
@@ -197,7 +190,7 @@ export function HybridPress({ onAddBook, onOpenSample, onOpenDocs }: WelcomeVari
             ))}
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            <Trans>Sample edition · generated from a 42-page PDF</Trans>
+            <Trans>Illustrative preview of a finished edition</Trans>
           </p>
         </div>
       </div>
