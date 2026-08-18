@@ -17,6 +17,7 @@ import {
   generateLocalizations,
   inferPipelineStage,
   isBetaReleaseTag,
+  mergeLocalizedCoverAlt,
   pairedCoverAssets,
   replaceReleaseCoverUrls,
   resolveCoverPalette,
@@ -232,6 +233,41 @@ describe("AI release assets", () => {
       fetchImpl,
     });
     expect(result.locales.sq.sections.fixed.items).toHaveLength(1);
+  });
+
+  it("updates only localized cover alt text during image regeneration", () => {
+    const translatedCoverAlt = {
+      ...releaseLocalizations,
+      locales: Object.fromEntries(
+        Object.entries(releaseLocalizations.locales).map(([locale, value]) => [
+          locale,
+          { ...value, coverAlt: `New cover description ${locale}` },
+        ]),
+      ),
+    };
+    const merged = mergeLocalizedCoverAlt(
+      releaseLocalizations,
+      translatedCoverAlt,
+    );
+
+    expect(merged.locales.fr.coverAlt).toBe("New cover description fr");
+    expect(merged.locales.fr.title).toBe(
+      releaseLocalizations.locales.fr.title,
+    );
+    expect(merged.locales.fr.sections).toEqual(
+      releaseLocalizations.locales.fr.sections,
+    );
+
+    const body = updateReleaseBody({
+      existingBody: `Existing notes\n\n<!-- adt-release-i18n\n${JSON.stringify(releaseLocalizations)}\n-->`,
+      editorial,
+      localizations: merged,
+      coverLightUrl: "https://example.test/new-light.png",
+      coverDarkUrl: "https://example.test/new-dark.png",
+      regenerate: "image",
+    });
+    expect(body).toContain("New cover description fr");
+    expect(body).toContain("Existing notes");
   });
 
   it("retries localization output that fails application validation", async () => {

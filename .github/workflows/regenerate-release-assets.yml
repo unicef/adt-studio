@@ -379,7 +379,7 @@ jobs:
           # upload fails; a rerun can safely replace the metadata.
           trap - ERR
 
-          if [[ "$REGENERATE" == "notes" || "$REGENERATE" == "both" ]]; then
+          if [[ -s regenerated-assets/release-i18n.json ]]; then
             gh release upload "$TAG" --repo "$REPO" --clobber \
               "regenerated-assets/release-i18n.json#Localized release metadata"
           fi

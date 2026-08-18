@@ -1006,6 +1006,34 @@ export function extractEmbeddedReleaseLocalizations(body = "") {
   }
 }
 
+export function mergeLocalizedCoverAlt(existing, translated) {
+  if (!existing || !translated) return existing;
+  return {
+    ...existing,
+    locales: Object.fromEntries(
+      RELEASE_LOCALES.map((locale) => [
+        locale,
+        {
+          ...existing.locales[locale],
+          coverAlt: translated.locales[locale].coverAlt,
+        },
+      ]),
+    ),
+  };
+}
+
+function coverAltTranslationEditorial(existing, editorial) {
+  const english = existing.locales.en;
+  return {
+    ...editorial,
+    title: english.title,
+    summary: english.summary,
+    added: english.sections.added.items,
+    improved: english.sections.improved.items,
+    fixed: english.sections.fixed.items,
+  };
+}
+
 function category(title, bullets) {
   return bullets.length
     ? `### ${title}\n\n${bullets.map((item) => `- ${item}`).join("\n")}`
@@ -1068,6 +1096,9 @@ export function updateReleaseBody({
 </picture>`
         : `![${editorial.imageAlt}](${coverUrl})`;
     body = replaceMarkerBlock(body, COVER_START, COVER_END, cover, "start");
+  }
+  if (regenerate === "image" && localizations) {
+    body = replaceLocalizationBlock(body, localizations);
   }
   if (regenerate === "notes" || regenerate === "both") {
     if (!localizations) {
@@ -1325,10 +1356,15 @@ export async function runCli(argv = process.argv.slice(2)) {
   const shouldGenerateNotes = regenerate === "notes" || regenerate === "both";
   const shouldGenerateImage =
     !options["no-image"] && (regenerate === "image" || regenerate === "both");
+  const existingLocalizations =
+    regenerate === "image"
+      ? extractEmbeddedReleaseLocalizations(existingBody)
+      : undefined;
+  const needsGeneratedLocalizations =
+    (shouldGenerateNotes || Boolean(existingLocalizations)) &&
+    !localizationsFile;
   const apiKey =
-    !editorialFile ||
-    (shouldGenerateNotes && !localizationsFile) ||
-    shouldGenerateImage
+    !editorialFile || needsGeneratedLocalizations || shouldGenerateImage
       ? requireValue(process.env.OPENAI_API_KEY, "OPENAI_API_KEY")
       : "";
   const preservedMetadata = preserveVisualsFile
@@ -1349,9 +1385,9 @@ export async function runCli(argv = process.argv.slice(2)) {
       imagePrompt: preservedEditorial.imagePrompt,
     };
   } else if (regenerate === "notes") {
-    const existingLocalizations =
+    const embeddedLocalizations =
       extractEmbeddedReleaseLocalizations(existingBody);
-    const existingEnglish = existingLocalizations?.locales.en;
+    const existingEnglish = embeddedLocalizations?.locales.en;
     if (existingEnglish) {
       editorial = {
         ...editorial,
@@ -1361,8 +1397,16 @@ export async function runCli(argv = process.argv.slice(2)) {
     }
   }
 
-  const translationRequest = shouldGenerateNotes
-    ? buildTranslationRequest({ editorial, model: textModel })
+  const translationEditorial = shouldGenerateNotes
+    ? editorial
+    : existingLocalizations
+      ? coverAltTranslationEditorial(existingLocalizations, editorial)
+      : undefined;
+  const translationRequest = translationEditorial
+    ? buildTranslationRequest({
+        editorial: translationEditorial,
+        model: textModel,
+      })
     : undefined;
   if (translationRequest) {
     await atomicWrite(
@@ -1370,18 +1414,22 @@ export async function runCli(argv = process.argv.slice(2)) {
       `${JSON.stringify(translationRequest, null, 2)}\n`,
     );
   }
-  const localizations = localizationsFile
+  const generatedLocalizations = localizationsFile
     ? validateReleaseLocalizations(
         JSON.parse(await readFile(localizationsFile, "utf8")),
-        editorial,
+        translationEditorial ?? editorial,
       )
     : translationRequest
       ? await generateLocalizations({
           request: translationRequest,
-          editorial,
+          editorial: translationEditorial,
           apiKey,
         })
       : undefined;
+  const localizations =
+    regenerate === "image" && existingLocalizations && generatedLocalizations
+      ? mergeLocalizedCoverAlt(existingLocalizations, generatedLocalizations)
+      : generatedLocalizations;
   let imagePrompt = "";
   let darkThemePrompt = "";
   if (shouldGenerateImage) {

@@ -339,9 +339,11 @@ beta `vX.Y.Z-beta.N`, or a PR staging `X.Y.Z-beta-pr-N` prerelease. Generated
 blocks are wrapped in hidden
 Markdown markers so image-only regeneration keeps the notes unchanged,
 notes-only regeneration keeps the cover unchanged, and human text outside
-those blocks is preserved. Image-only regeneration makes a fresh editorial pass
-for the new visual concept while leaving the existing notes and translations
-unchanged. Notes-only regeneration reads the existing English title and cover
+those blocks is preserved. Image-only regeneration makes a fresh editorial
+pass for the new visual concept while leaving the existing notes and translated
+editorial copy unchanged. When localization metadata exists, it refreshes only
+the translated cover alt text so accessibility copy continues to describe the
+new artwork. Notes-only regeneration reads the existing English title and cover
 alt text from the localization embedded in the release body, so the unchanged
 cover remains aligned without a separate editorial metadata attachment.
 
