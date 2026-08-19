@@ -440,9 +440,8 @@ export function ImportProject() {
         />
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-slate-50/40">
-        <div className="flex min-h-full flex-col items-center justify-center px-4 py-8">
-          <div className="flex w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-slate-50/40 p-4 sm:p-6">
+        <div className="flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <header className="shrink-0 px-6 pt-8 pb-3 text-center">
             <h1 className="text-2xl font-semibold tracking-[-0.5px] text-slate-950 sm:text-[28px]">
               <Trans>Import a book</Trans>
@@ -463,7 +462,7 @@ export function ImportProject() {
             />
           </header>
 
-          <main className="min-h-0 px-6 pb-6 pt-2">
+          <main className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6 pt-2">
             <div className="w-full">
               {zipFile ? (
                 <SelectedArchiveBar
@@ -597,7 +596,6 @@ export function ImportProject() {
               </Button>
             </div>
           </footer>
-          </div>
         </div>
       </div>
     </>
