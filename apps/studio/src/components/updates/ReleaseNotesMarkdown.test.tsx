@@ -44,25 +44,36 @@ Full Changelog: https://github.com/unicef/adt-studio/compare/v0.7.4-beta.3...v0.
     )
   })
 
-  it("hides release metadata comments while keeping the visible notice", () => {
+  it("does not display release automation markers", () => {
     render(
       <ReleaseNotesMarkdown>{`
-<!-- adt-release-notice:start -->
-**Windows users: reinstall this release manually.**
-<!-- adt-release-notice:end -->
-
-## Improvements
-
-<!-- adt-release-i18n
-{"schemaVersion":1}
--->
+<!-- adt-ai-notes:start -->
+Visible release note.
+<!-- adt-ai-notes:end -->
       `}</ReleaseNotesMarkdown>,
     )
 
-    expect(
-      screen.getByText("Windows users: reinstall this release manually."),
-    ).toBeTruthy()
-    expect(screen.getByText("Improvements")).toBeTruthy()
-    expect(screen.queryByText(/adt-release|schemaVersion/)).toBeNull()
+    expect(screen.getByText("Visible release note.")).toBeTruthy()
+    expect(screen.queryByText(/adt-ai-notes/)).toBeNull()
+  })
+
+  it("keeps light and dark release covers tied to the app theme", () => {
+    const { container } = render(
+      <ReleaseNotesMarkdown>{`
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/unicef/adt-studio/releases/download/v0.8.0/dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/unicef/adt-studio/releases/download/v0.8.0/light.png">
+  <img alt="English accessible cover" src="https://github.com/unicef/adt-studio/releases/download/v0.8.0/light.png">
+</picture>
+      `}</ReleaseNotesMarkdown>,
+    )
+
+    const images = container.querySelectorAll("img")
+    expect(images).toHaveLength(2)
+    expect(images[0].getAttribute("src")).toContain("light.png")
+    expect(images[0].className).toContain("dark:hidden")
+    expect(images[1].getAttribute("src")).toContain("dark.png")
+    expect(images[1].className).toContain("dark:block")
+    expect(images[0].getAttribute("alt")).toBe("English accessible cover")
   })
 })

@@ -1896,6 +1896,9 @@ msgstr "Pero el equipo siguió subiendo la montaña."
 msgid "Button"
 msgstr "Botón"
 
+msgid "By"
+msgstr "Por"
+
 msgid "By Page"
 msgstr "Por página"
 

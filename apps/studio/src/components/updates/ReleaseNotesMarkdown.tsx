@@ -11,7 +11,7 @@ type Block =
   | { type: "heading"; text: string }
   | { type: "paragraph"; text: string }
   | { type: "list"; items: string[] }
-  | { type: "image"; src: string; alt: string }
+  | { type: "image"; src: string; darkSrc?: string; alt: string }
   | { type: "rule" }
 
 export function ReleaseNotesMarkdown({
@@ -54,16 +54,31 @@ export function ReleaseNotesMarkdown({
 
         if (block.type === "image") {
           return (
-            <img
+            <div
               key={index}
-              src={block.src}
-              alt={block.alt}
-              loading="lazy"
               className={cn(
-                "w-full rounded-lg border bg-muted/30 object-cover",
+                "relative w-full overflow-hidden rounded-lg border bg-muted/30",
                 RELEASE_BANNER_ASPECT,
               )}
-            />
+            >
+              <img
+                src={block.src}
+                alt={block.alt}
+                loading="lazy"
+                className={cn(
+                  "size-full object-contain",
+                  block.darkSrc && "dark:hidden",
+                )}
+              />
+              {block.darkSrc && (
+                <img
+                  src={block.darkSrc}
+                  alt={block.alt}
+                  loading="lazy"
+                  className="hidden size-full object-contain dark:block"
+                />
+              )}
+            </div>
           )
         }
 
@@ -74,7 +89,8 @@ export function ReleaseNotesMarkdown({
 }
 
 function parseBlocks(markdown: string): Block[] {
-  const lines = normalizeImages(markdown).split(/\r?\n/)
+  const normalized = normalizeImages(markdown)
+  const lines = normalized.markdown.split(/\r?\n/)
   const blocks: Block[] = []
   let paragraph: string[] = []
   let list: string[] = []
@@ -97,6 +113,15 @@ function parseBlocks(markdown: string): Block[] {
     if (!line) {
       flushParagraph()
       flushList()
+      continue
+    }
+
+    const picture = line.match(/^@@adt-release-picture:(\d+)@@$/)
+    if (picture) {
+      flushParagraph()
+      flushList()
+      const image = normalized.pictures[Number(picture[1])]
+      if (image) blocks.push(image)
       continue
     }
 
@@ -140,17 +165,47 @@ function parseBlocks(markdown: string): Block[] {
   return blocks
 }
 
-function normalizeImages(markdown: string): string {
-  return markdown
+function normalizeImages(markdown: string): {
+  markdown: string
+  pictures: Extract<Block, { type: "image" }>[]
+} {
+  const pictures: Extract<Block, { type: "image" }>[] = []
+  const normalized = markdown
     .replace(/<!--[\s\S]*?-->/g, "\n")
     .replace(/<picture[\s\S]*?<\/picture>/gi, (match) => {
-      const src = firstHtmlImage(match)
-      return src ? `\n![](${src})\n` : "\n"
+      const picture = htmlPicture(match)
+      if (!picture) return "\n"
+      const index = pictures.push(picture) - 1
+      return `\n@@adt-release-picture:${index}@@\n`
     })
     .replace(/<img[^>]*>/gi, (match) => {
       const src = firstHtmlImage(match)
       return src ? `\n![](${src})\n` : "\n"
     })
+  return { markdown: normalized, pictures }
+}
+
+function htmlPicture(
+  html: string,
+): Extract<Block, { type: "image" }> | undefined {
+  const sources = html.match(/<source\b[^>]*>/gi) ?? []
+  const image = html.match(/<img\b[^>]*>/i)?.[0] ?? ""
+  const lightSource = sources.find((source) =>
+    attribute(source, "media")?.includes("prefers-color-scheme: light"),
+  )
+  const darkSource = sources.find((source) =>
+    attribute(source, "media")?.includes("prefers-color-scheme: dark"),
+  )
+  const src = trustedAssetUrl(
+    attribute(lightSource ?? "", "srcset") ?? attribute(image, "src"),
+  )
+  if (!src) return undefined
+  return {
+    type: "image",
+    src,
+    darkSrc: trustedAssetUrl(attribute(darkSource ?? "", "srcset")),
+    alt: decodeHtmlAttribute(attribute(image, "alt")) ?? "",
+  }
 }
 
 function firstHtmlImage(html: string): string | undefined {
@@ -159,6 +214,21 @@ function firstHtmlImage(html: string): string | undefined {
   const img = html.match(/<img[^>]*\ssrc=["']([^"']+)["'][^>]*>/i)
   return img?.[1]
 }
+
+/* eslint-disable lingui/no-unlocalized-strings -- HTML attribute syntax and entity names are parser tokens, not UI copy. */
+function attribute(tag: string, name: string): string | undefined {
+  return tag.match(new RegExp(`\\s${name}=(["'])(.*?)\\1`, "i"))?.[2]
+}
+
+function decodeHtmlAttribute(value?: string): string | undefined {
+  return value
+    ?.replaceAll("&quot;", '"')
+    .replaceAll("&#39;", "'")
+    .replaceAll("&lt;", "<")
+    .replaceAll("&gt;", ">")
+    .replaceAll("&amp;", "&")
+}
+/* eslint-enable lingui/no-unlocalized-strings */
 
 function stripInlineMarkdown(value: string): string {
   return value
