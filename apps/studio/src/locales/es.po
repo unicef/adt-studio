@@ -1322,9 +1322,6 @@ msgstr "Todas las páginas"
 msgid "All pages are pruned"
 msgstr "Todas las páginas están podadas"
 
-msgid "All parts merged"
-msgstr "Todas las partes combinadas"
-
 msgid "All parts merged — book assembled"
 msgstr "Todas las partes fusionadas — libro ensamblado"
 
@@ -1607,9 +1604,6 @@ msgstr "Autenticado · inicio de sesión local"
 msgid "Authentication"
 msgstr "Autenticación"
 
-msgid "Author"
-msgstr "Autor"
-
 msgid "Author name"
 msgstr "Nombre del autor"
 
@@ -1828,9 +1822,6 @@ msgstr "Libro"
 
 msgid "Book coverage"
 msgstr "Cobertura del libro"
-
-msgid "Book data is outdated and must be rebuilt."
-msgstr "Los datos del libro están desactualizados y deben reconstruirse."
 
 msgid "Book Fonts"
 msgstr "Fuentes del libro"
@@ -2274,9 +2265,6 @@ msgstr "Elige tu proveedor de IA"
 
 msgid "Ciências da Natureza - Ensino Fundamental"
 msgstr "Ciencias de la Naturaleza - Educación Primaria"
-
-msgid "Classic"
-msgstr "Clásico"
 
 msgid "Classic Storybook"
 msgstr "Libro infantil clásico"
@@ -2742,9 +2730,6 @@ msgstr "Create session"
 msgid "Created {created} prompt files for {normalizedTargetModel}."
 msgstr "Se crearon {created} archivos de prompt para {normalizedTargetModel}."
 
-msgid "Created {createdLabel}"
-msgstr "Creado el {createdLabel}"
-
 msgid "Creates a ZIP archive of the full project — database, source PDF, and all pipeline outputs. Use it to back up or transfer the project to another machine."
 msgstr "Crea un archivo ZIP del proyecto completo — base de datos, PDF de origen y todas las salidas del pipeline. Úselo para hacer una copia de seguridad o transferir el proyecto a otra máquina."
 
@@ -2987,10 +2972,6 @@ msgstr "Definiciones a un toque."
 
 msgid "Delete"
 msgstr "Eliminar"
-
-#. placeholder {0}: book.title ?? book.label
-msgid "Delete {0}"
-msgstr "Eliminar {0}"
 
 msgid "Delete all speech"
 msgstr "Eliminar todo el audio"
@@ -3375,10 +3356,6 @@ msgstr "Ecosistema"
 
 msgid "Edit"
 msgstr "Editar"
-
-#. placeholder {0}: book.title ?? book.label
-msgid "Edit {0}"
-msgstr "Editar {0}"
 
 msgid "Edit activity"
 msgstr "Editar actividad"
@@ -3814,10 +3791,6 @@ msgstr "Failed to load accessibility results: {0}"
 
 msgid "Failed to load books:"
 msgstr "Error al cargar libros:"
-
-#. placeholder {0}: error.message
-msgid "Failed to load books: {0}"
-msgstr "Error al cargar libros: {0}"
 
 msgid "Failed to load images."
 msgstr "Error al cargar imágenes."
@@ -4264,9 +4237,6 @@ msgstr "Prompt de generación"
 
 msgid "Get a key"
 msgstr "Obtener una clave"
-
-msgid "Get started"
-msgstr "Comenzar"
 
 msgid "Global prompt reset to default."
 msgstr "Prompt global restablecido al valor predeterminado."
@@ -4852,14 +4822,8 @@ msgstr "Página interactiva: conversión por IA del PDF original."
 msgid "Interactive step-by-step activity."
 msgstr "Actividad interactiva paso a paso."
 
-msgid "Interface"
-msgstr "Interfaz"
-
 msgid "Interface language"
 msgstr "Idioma de la interfaz"
-
-msgid "interface new classic layout"
-msgstr "interfaz nuevo diseño clásico"
 
 msgid "Intro"
 msgstr "Introducción"
@@ -5031,9 +4995,6 @@ msgstr "Último cambio"
 
 msgid "Last edited"
 msgstr "Última edición"
-
-msgid "Last modified"
-msgstr "Última modificación"
 
 msgid "LaTeX converted"
 msgstr "LaTeX convertido"
@@ -5220,9 +5181,6 @@ msgstr "Cargando el esquema del libro..."
 
 msgid "Loading Book..."
 msgstr "Cargando libro..."
-
-msgid "Loading books..."
-msgstr "Cargando libros..."
 
 msgid "Loading catalog..."
 msgstr "Cargando catálogo..."
@@ -5541,11 +5499,6 @@ msgstr "fusionado"
 msgid "Merged"
 msgstr "Fusionado"
 
-#. placeholder {0}: book.split.mergedPages
-#. placeholder {1}: book.split.totalPages
-msgid "Merged · {0}/{1}"
-msgstr "Combinadas · {0}/{1}"
-
 msgid "Merged {left}–{right}"
 msgstr "Fusionadas {left}–{right}"
 
@@ -5681,9 +5634,6 @@ msgstr "moderate"
 msgid "Moderate"
 msgstr "Moderate"
 
-msgid "Modified {modifiedLabel}"
-msgstr "Modificado el {modifiedLabel}"
-
 msgid "Monospace"
 msgstr "Monoespaciada"
 
@@ -5812,9 +5762,6 @@ msgstr "nuevo_tipo"
 
 msgid "Newest"
 msgstr "Más recientes"
-
-msgid "Newest first"
-msgstr "Más recientes primero"
 
 msgid "Next"
 msgstr "Siguiente"
@@ -6039,9 +5986,6 @@ msgstr "No hay cuestionarios coincidentes"
 msgid "No matching sections"
 msgstr "No hay secciones coincidentes"
 
-msgid "No metadata yet — run the pipeline to extract book details"
-msgstr "Aún no hay metadatos — ejecuta el pipeline para extraer los detalles del libro"
-
 msgid "No open-source license detected. Make sure you have the right to embed and distribute this font."
 msgstr "No se detectó una licencia open source. Asegúrate de tener derecho a incrustar y distribuir esta fuente."
 
@@ -6068,9 +6012,6 @@ msgstr "Este libro aún no tiene páginas."
 
 msgid "No parts shared with you"
 msgstr "No hay partes compartidas contigo"
-
-msgid "No PDF"
-msgstr "Sin PDF"
 
 msgid "No pending items"
 msgstr "No hay elementos pendientes"
@@ -6840,11 +6781,6 @@ msgstr "Elemento superior:"
 msgid "Part"
 msgstr "Parte"
 
-#. placeholder {0}: book.part.range.startPage
-#. placeholder {1}: book.part.range.endPage
-msgid "Part · pages {0}–{1}"
-msgstr "Parte · páginas {0}–{1}"
-
 #. placeholder {0}: planStart.index + 1
 msgid "Part {0}"
 msgstr "Parte {0}"
@@ -6852,7 +6788,6 @@ msgstr "Parte {0}"
 msgid "Part info"
 msgstr "Información de la parte"
 
-#. placeholder {0}: book.part.sourceLabel
 #. placeholder {0}: part.sourceLabel
 msgid "Part of {0}"
 msgstr "Parte de {0}"
@@ -7012,9 +6947,6 @@ msgstr "Características del pipeline"
 
 msgid "Pipeline stages"
 msgstr "Etapas del flujo"
-
-msgid "Pipeline Stages"
-msgstr "Etapas del pipeline"
 
 msgid "Pipeline tasks using {savedModel}"
 msgstr "Tareas del flujo de trabajo que usan {savedModel}"
@@ -8249,14 +8181,8 @@ msgstr "Desplázate a páginas anteriores"
 msgid "Search beta versions"
 msgstr "Buscar versiones beta"
 
-msgid "Search books"
-msgstr "Buscar libros"
-
 msgid "Search books, actions and settings…"
 msgstr "Buscar libros, acciones y configuraciones…"
-
-msgid "Search books..."
-msgstr "Buscar libros..."
 
 msgid "Search books…"
 msgstr "Buscar libros…"
@@ -8836,9 +8762,6 @@ msgstr "Pronto"
 msgid "Sort"
 msgstr "Ordenar"
 
-msgid "Sort books"
-msgstr "Ordenar libros"
-
 msgid "Sort by"
 msgstr "Ordenar por"
 
@@ -8914,11 +8837,6 @@ msgstr "Velocidad"
 msgid "Split"
 msgstr "Dividir"
 
-#. placeholder {0}: book.split.splitPages
-#. placeholder {1}: book.split.totalPages
-msgid "Split · {0}/{1}"
-msgstr "Dividido · {0}/{1}"
-
 msgid "Split & merge"
 msgstr "Dividir y fusionar"
 
@@ -8942,14 +8860,6 @@ msgstr "Dividir el grupo aquí"
 
 msgid "Split into"
 msgstr "Dividir en"
-
-#. placeholder {0}: book.split.exportedParts
-#. placeholder {1}: book.split.splitPages
-#. placeholder {2}: book.split.totalPages
-#. placeholder {3}: book.split.mergedPages
-#. placeholder {4}: book.split.totalPages
-msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
-msgstr "Dividido en {0} parte(s) · {1}/{2} páginas separadas · {3}/{4} fusionadas"
 
 msgid "Split into new section"
 msgstr "Dividir en una nueva sección"
@@ -9227,9 +9137,6 @@ msgstr "Indicación de resumen"
 
 msgid "Sun"
 msgstr "Sol"
-
-msgid "Switch between the new and the classic ADT Studio interface."
-msgstr "Cambia entre la nueva y la clásica interfaz de ADT Studio."
 
 msgid "Switch languages in a tap."
 msgstr "Cambia de idioma con un toque."
@@ -10241,9 +10148,6 @@ msgstr "Sube un nuevo archivo de imagen desde tu computadora"
 msgid "Upload a PDF to continue"
 msgstr "Sube un PDF para continuar"
 
-msgid "Upload a PDF to get started"
-msgstr "Sube un PDF para comenzar"
-
 msgid "Upload a PDF to get started. Everything you create lands here, ready for the pipeline."
 msgstr "Sube un PDF para comenzar. Todo lo que crees se guarda aquí, listo para la tubería."
 
@@ -10772,9 +10676,6 @@ msgstr "Tu IA, tus claves."
 
 msgid "Your book"
 msgstr "Tu libro"
-
-msgid "Your Books"
-msgstr "Tus libros"
 
 msgid "Your font has been applied to captions."
 msgstr "Tu fuente se ha aplicado a los subtítulos."

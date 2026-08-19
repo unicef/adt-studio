@@ -1,10 +1,7 @@
 import { useState, type CSSProperties } from "react"
-import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Check } from "lucide-react"
-import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Switch } from "@/components/ui/switch"
-import { useUiVersion } from "@/hooks/use-ui-version"
 import { cn } from "@/lib/utils"
 import { ComingSoon, SettingsCard, SettingsHeading, SettingsLead, SettingRow } from "./ui"
 import { THEME_OPTIONS, type ThemeMode, type ThemeOption } from "./options"
@@ -105,9 +102,7 @@ function ThemeCard({ th, selected, onSelect, index }: { th: ThemeOption; selecte
 
 export function AppearanceSection() {
   const { t } = useLingui()
-  const navigate = useNavigate()
   const [theme, setTheme] = useState<ThemeMode>(storedTheme)
-  const [uiVersion, setUiVersion] = useUiVersion()
 
   return (
     <>
@@ -137,26 +132,6 @@ export function AppearanceSection() {
       </div>
 
       <SettingsCard>
-        <SettingRow
-          anchorId={SETTINGS_ANCHORS.interface}
-          title={<Trans>Interface</Trans>}
-          subtitle={<Trans>Switch between the new and the classic ADT Studio interface.</Trans>}
-        >
-          <SegmentedControl
-            className="w-52"
-            options={[
-              { value: "new", label: t`New` },
-              { value: "old", label: t`Classic` },
-            ]}
-            value={uiVersion}
-            onValueChange={(version) => {
-              setUiVersion(version)
-              if (version === "old") {
-                void navigate({ to: "/settings", search: { section: "default-model" } })
-              }
-            }}
-          />
-        </SettingRow>
         <SettingRow
           anchorId={SETTINGS_ANCHORS.reduceMotion}
           title={

@@ -1,8 +1,6 @@
 import { Bot, FileText, KeyRound } from "lucide-react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { SegmentedControl } from "@/components/ui/segmented-control";
-import { useUiVersion } from "@/hooks/use-ui-version";
 import { cn } from "@/lib/utils";
 import type { SettingsSection } from "./settingsSections";
 
@@ -12,8 +10,6 @@ export function SettingsNavigation({
   activeSection: SettingsSection;
 }) {
   const { t } = useLingui();
-  const navigate = useNavigate();
-  const [uiVersion, setUiVersion] = useUiVersion();
   const items = [
     {
       section: "default-model" as const,
@@ -40,24 +36,6 @@ export function SettingsNavigation({
 
   return (
     <aside className="shrink-0 border-b bg-muted/20 md:w-64 md:border-b-0 md:border-r">
-      <div className="border-t p-3 md:mx-3 md:px-0">
-        <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-          <Trans>Interface</Trans>
-        </div>
-        <SegmentedControl
-          options={[
-            { value: "new", label: t`New` },
-            { value: "old", label: t`Classic` },
-          ]}
-          value={uiVersion}
-          onValueChange={(version) => {
-            setUiVersion(version);
-            if (version === "new") {
-              void navigate({ to: "/redesign/settings/theme" });
-            }
-          }}
-        />
-      </div>
       <nav
         aria-label={t`Settings navigation`}
         className="grid grid-cols-3 gap-1 p-2 md:flex md:flex-col md:px-3"

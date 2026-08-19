@@ -98,15 +98,6 @@ const THEME_ENTRIES: SettingsSearchEntry[] = [
     icon: theme.icon,
   })),
   {
-    id: "settings-theme-interface",
-    kind: "option",
-    section: "theme",
-    label: msg`Interface`,
-    hint: msg`Switch between the new and the classic ADT Studio interface.`,
-    keywords: msg`interface new classic layout`,
-    anchor: SETTINGS_ANCHORS.interface,
-  },
-  {
     id: "settings-theme-reduce-motion",
     kind: "option",
     section: "theme",

@@ -1324,9 +1324,6 @@ msgstr "Të gjitha faqet"
 msgid "All pages are pruned"
 msgstr "Të gjitha faqet janë prerë"
 
-msgid "All parts merged"
-msgstr "Të gjitha pjesët u bashkuan"
-
 msgid "All parts merged — book assembled"
 msgstr "Të gjitha pjesët e bashkuara — libri i montuar"
 
@@ -1609,9 +1606,6 @@ msgstr "I autentikuar · hyrje lokale"
 msgid "Authentication"
 msgstr "Autentikimi"
 
-msgid "Author"
-msgstr "Autor"
-
 msgid "Author name"
 msgstr "Emri i autorit"
 
@@ -1830,9 +1824,6 @@ msgstr "Libër"
 
 msgid "Book coverage"
 msgstr "Mbulimi i librit"
-
-msgid "Book data is outdated and must be rebuilt."
-msgstr "Të dhënat e librit janë të vjetruara dhe duhet të rindërtohen."
 
 msgid "Book Fonts"
 msgstr "Fontet e librit"
@@ -2276,9 +2267,6 @@ msgstr "Zgjidhni ofruesin tuaj të IA-së"
 
 msgid "Ciências da Natureza - Ensino Fundamental"
 msgstr "Ciências da Natureza - Ensino Fundamental"
-
-msgid "Classic"
-msgstr "Klasik"
 
 msgid "Classic Storybook"
 msgstr "Libër Klasik Tregimesh"
@@ -2744,9 +2732,6 @@ msgstr "Krijo sesion"
 msgid "Created {created} prompt files for {normalizedTargetModel}."
 msgstr "U krijuan {created} skedarë prompti për {normalizedTargetModel}."
 
-msgid "Created {createdLabel}"
-msgstr "Krijuar {createdLabel}"
-
 msgid "Creates a ZIP archive of the full project — database, source PDF, and all pipeline outputs. Use it to back up or transfer the project to another machine."
 msgstr "Krijon një arkiv ZIP të projektit të plotë — bazën e të dhënave, PDF-in burimor dhe të gjitha rezultatet e pipeline-it. Përdore për të rezervuar ose transferuar projektin në një makinë tjetër."
 
@@ -2989,10 +2974,6 @@ msgstr "Përkufizime, me një prekje."
 
 msgid "Delete"
 msgstr "Fshi"
-
-#. placeholder {0}: book.title ?? book.label
-msgid "Delete {0}"
-msgstr "Fshi {0}"
 
 msgid "Delete all speech"
 msgstr "Fshi të gjitha fjalët"
@@ -3377,10 +3358,6 @@ msgstr "Ekosistem"
 
 msgid "Edit"
 msgstr "Redakto"
-
-#. placeholder {0}: book.title ?? book.label
-msgid "Edit {0}"
-msgstr "Redakto {0}"
 
 msgid "Edit activity"
 msgstr "Modifiko aktivitetin"
@@ -3816,10 +3793,6 @@ msgstr "Dështoi ngarkimi i rezultateve të aksesueshmërisë: {0}"
 
 msgid "Failed to load books:"
 msgstr "Dështoi ngarkimi i librave:"
-
-#. placeholder {0}: error.message
-msgid "Failed to load books: {0}"
-msgstr "Dështoi ngarkimi i librave: {0}"
 
 msgid "Failed to load images."
 msgstr "Dështoi ngarkimi i imazheve."
@@ -4266,9 +4239,6 @@ msgstr "Prompt Gjenerimi"
 
 msgid "Get a key"
 msgstr "Merrni një çelës"
-
-msgid "Get started"
-msgstr "Filloni"
 
 msgid "Global prompt reset to default."
 msgstr "Prompti global u resetua në parazgjedhje."
@@ -4854,14 +4824,8 @@ msgstr "Faqe interaktive: konvertim me AI nga PDF origjinal."
 msgid "Interactive step-by-step activity."
 msgstr "Aktivitet interaktiv hap pas hapi."
 
-msgid "Interface"
-msgstr "Ndërfaqe"
-
 msgid "Interface language"
 msgstr "Gjuha e ndërfaqes"
-
-msgid "interface new classic layout"
-msgstr "ndërfaqe e re klasike"
 
 msgid "Intro"
 msgstr "Hyrje"
@@ -5033,9 +4997,6 @@ msgstr "Ndryshimi i fundit"
 
 msgid "Last edited"
 msgstr "Redaktuar së fundmi"
-
-msgid "Last modified"
-msgstr "Modifikuar së fundmi"
 
 msgid "LaTeX converted"
 msgstr "LaTeX i konvertuar"
@@ -5222,9 +5183,6 @@ msgstr "Duke ngarkuar strukturën e librit..."
 
 msgid "Loading Book..."
 msgstr "Duke ngarkuar librin..."
-
-msgid "Loading books..."
-msgstr "Duke ngarkuar librat..."
 
 msgid "Loading catalog..."
 msgstr "Duke ngarkuar katalogun..."
@@ -5543,11 +5501,6 @@ msgstr "i bashkuar"
 msgid "Merged"
 msgstr "U bashkua"
 
-#. placeholder {0}: book.split.mergedPages
-#. placeholder {1}: book.split.totalPages
-msgid "Merged · {0}/{1}"
-msgstr "Bashkuar · {0}/{1}"
-
 msgid "Merged {left}–{right}"
 msgstr "Të bashkuara {left}–{right}"
 
@@ -5683,9 +5636,6 @@ msgstr "i moderuar"
 msgid "Moderate"
 msgstr "I moderuar"
 
-msgid "Modified {modifiedLabel}"
-msgstr "Modifikuar {modifiedLabel}"
-
 msgid "Monospace"
 msgstr "Monospace"
 
@@ -5814,9 +5764,6 @@ msgstr "new_type_key"
 
 msgid "Newest"
 msgstr "Më të rejat"
-
-msgid "Newest first"
-msgstr "Më i riu i pari"
 
 msgid "Next"
 msgstr "Tjetër"
@@ -6041,9 +5988,6 @@ msgstr "Nuk ka kuize përputhëse"
 msgid "No matching sections"
 msgstr "Nuk ka seksione përputhëse"
 
-msgid "No metadata yet — run the pipeline to extract book details"
-msgstr "Nuk ka metadatë ende — ekzekuto zinxhirin e procesimit për të nxjerrë detajet e librit"
-
 msgid "No open-source license detected. Make sure you have the right to embed and distribute this font."
 msgstr "Nuk u zbulua licencë open-source. Sigurohuni që keni të drejtën të përfshini dhe shpërndani këtë font."
 
@@ -6070,9 +6014,6 @@ msgstr "Ky libër ende nuk ka faqe."
 
 msgid "No parts shared with you"
 msgstr "Asnjë pjesë nuk është ndarë me ju"
-
-msgid "No PDF"
-msgstr "Nuk ka PDF"
 
 msgid "No pending items"
 msgstr "Asnjë artikull në pritje"
@@ -6842,11 +6783,6 @@ msgstr "Prindi:"
 msgid "Part"
 msgstr "Pjesa"
 
-#. placeholder {0}: book.part.range.startPage
-#. placeholder {1}: book.part.range.endPage
-msgid "Part · pages {0}–{1}"
-msgstr "Pjesa · faqet {0}–{1}"
-
 #. placeholder {0}: planStart.index + 1
 msgid "Part {0}"
 msgstr "Pjesa {0}"
@@ -6854,7 +6790,6 @@ msgstr "Pjesa {0}"
 msgid "Part info"
 msgstr "Informacion mbi pjesën"
 
-#. placeholder {0}: book.part.sourceLabel
 #. placeholder {0}: part.sourceLabel
 msgid "Part of {0}"
 msgstr "Pjesë e {0}"
@@ -7014,9 +6949,6 @@ msgstr "Veçoritë e Pipeline"
 
 msgid "Pipeline stages"
 msgstr "Fazat e procesit"
-
-msgid "Pipeline Stages"
-msgstr "Fazat e Pipeline"
 
 msgid "Pipeline tasks using {savedModel}"
 msgstr "Detyrat e rrjedhës së punës që përdorin {savedModel}"
@@ -8251,14 +8183,8 @@ msgstr "Lëviz te faqet e mëparshme"
 msgid "Search beta versions"
 msgstr "Kërko versionet beta"
 
-msgid "Search books"
-msgstr "Kërko libra"
-
 msgid "Search books, actions and settings…"
 msgstr "Kërko libra, veprime dhe cilësime…"
-
-msgid "Search books..."
-msgstr "Kërko libra..."
 
 msgid "Search books…"
 msgstr "Kërko libra…"
@@ -8838,9 +8764,6 @@ msgstr "Së shpejti"
 msgid "Sort"
 msgstr "Rendit"
 
-msgid "Sort books"
-msgstr "Rendit librat"
-
 msgid "Sort by"
 msgstr "Rendit sipas"
 
@@ -8916,11 +8839,6 @@ msgstr "Shpejtësia"
 msgid "Split"
 msgstr "Ndaj"
 
-#. placeholder {0}: book.split.splitPages
-#. placeholder {1}: book.split.totalPages
-msgid "Split · {0}/{1}"
-msgstr "Ndarë · {0}/{1}"
-
 msgid "Split & merge"
 msgstr "Ndaj dhe bashko"
 
@@ -8944,14 +8862,6 @@ msgstr "Ndaje grupin këtu"
 
 msgid "Split into"
 msgstr "Ndaje në"
-
-#. placeholder {0}: book.split.exportedParts
-#. placeholder {1}: book.split.splitPages
-#. placeholder {2}: book.split.totalPages
-#. placeholder {3}: book.split.mergedPages
-#. placeholder {4}: book.split.totalPages
-msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
-msgstr "I ndarë në {0} pjesë · {1}/{2} faqe të ndara · {3}/{4} të bashkuara"
 
 msgid "Split into new section"
 msgstr "Ndaje në një seksion të ri"
@@ -9229,9 +9139,6 @@ msgstr "Prompt Përmbledhjeje"
 
 msgid "Sun"
 msgstr "Diell"
-
-msgid "Switch between the new and the classic ADT Studio interface."
-msgstr "Ndërro ndërmjet ndërfaqes së re dhe klasike të ADT Studio."
 
 msgid "Switch languages in a tap."
 msgstr "Ndërro gjuhë me një prekje."
@@ -10243,9 +10150,6 @@ msgstr "Ngarko një skedar imazhi të ri nga kompjuteri yt"
 msgid "Upload a PDF to continue"
 msgstr "Ngarko një PDF për të vazhduar"
 
-msgid "Upload a PDF to get started"
-msgstr "Ngarko një PDF për të filluar"
-
 msgid "Upload a PDF to get started. Everything you create lands here, ready for the pipeline."
 msgstr "Ngarko një PDF për të filluar. Gjithçka që krijoni vendoset këtu, gati për linjën."
 
@@ -10774,9 +10678,6 @@ msgstr "IA-ja juaj, çelësat tuaj."
 
 msgid "Your book"
 msgstr "Libri yt"
-
-msgid "Your Books"
-msgstr "Librat tuaj"
 
 msgid "Your font has been applied to captions."
 msgstr "Fonti juaj u zbatua te përshkrimet."
