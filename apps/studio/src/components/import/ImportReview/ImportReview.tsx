@@ -100,7 +100,7 @@ function PreviewCover({ preview }: { preview: AnyImportPreview }) {
   const cover = previewCover(preview)
 
   return (
-    <aside className="flex min-h-[390px] flex-col items-center justify-center border-t border-slate-200 bg-slate-50/80 p-6 md:border-l md:border-t-0">
+    <aside className="flex min-h-[390px] flex-col items-center justify-center border-t border-slate-200 bg-slate-50/80 p-6 md:sticky md:top-0 md:self-start md:border-l md:border-t-0">
       <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
         <Trans>Book cover</Trans>
       </p>
