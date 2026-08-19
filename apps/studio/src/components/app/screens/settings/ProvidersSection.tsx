@@ -1,7 +1,7 @@
 import { Trans } from "@lingui/react/macro"
 import { ShieldCheck } from "lucide-react"
 import { SettingsHeading, SettingsLead } from "./ui"
-import { ProvidersList } from "./providers-v2/ProvidersList"
+import { ProvidersList } from "./providers/ProvidersList"
 
 export function ProvidersSection() {
   return (

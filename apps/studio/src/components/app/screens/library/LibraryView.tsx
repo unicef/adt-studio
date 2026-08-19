@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 import { ActionMenu } from "@/components/ui/action-menu"
 import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
-import { StageBar, ShelfCard, ViewToggle } from "../home/home-full/kit"
+import { StageBar, ShelfCard, ViewToggle } from "../shared/kit"
 import { useLibraryPrefs, type LibrarySort, type LibraryGroup } from "@/hooks/use-library-prefs"
 
 export interface LibBook extends BookVM {

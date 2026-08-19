@@ -2,7 +2,7 @@ import { msg } from "@lingui/core/macro"
 import type { I18n, MessageDescriptor } from "@lingui/core"
 import { AudioLines, Brain, ImageIcon, type LucideIcon } from "lucide-react"
 import { LOCALE_OPTIONS, THEME_OPTIONS } from "./options"
-import { PROVIDER_IDS, PROVIDER_META } from "./providers"
+import { PROVIDER_IDS, PROVIDER_META } from "./providerSearchMeta"
 import {
   SETTINGS_ANCHORS,
   SETTINGS_GROUPS,

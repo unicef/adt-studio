@@ -23,7 +23,7 @@ import {
   useDraft,
 } from "./shared"
 import { ComingSoonBanner } from "../ui"
-import { useProviderHealthMock, type ProvidersV2 } from "./useProvidersV2"
+import { useProviderHealthMock, type Providers } from "./useProviders"
 
 function Handles({ descriptor }: { descriptor: ProviderDescriptor }) {
   return (
@@ -61,7 +61,7 @@ function HelpText({ descriptor }: { descriptor: ProviderDescriptor }) {
 }
 
 /** API-key (and local base-URL) backend: editable credential form + status. */
-function ApiKeyPanel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: ProvidersV2; active: boolean }) {
+function ApiKeyPanel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: Providers; active: boolean }) {
   const draft = useDraft(descriptor, store)
   const health = useProviderHealthMock(descriptor.manifest.id, draft.values, active)
   return (
@@ -77,7 +77,7 @@ function ApiKeyPanel({ descriptor, store, active }: { descriptor: ProviderDescri
 }
 
 /** CLI/SDK backend: login is detected, not entered — status + guidance, no key field. */
-function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: ProvidersV2; active: boolean }) {
+function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: Providers; active: boolean }) {
   const health = useProviderHealthMock(descriptor.manifest.id, store.credentials[descriptor.manifest.id] ?? {}, active)
   const deadEnd = health.data && (health.data.code === "not-logged-in" || health.data.code === "cli-not-found")
   return (
@@ -108,7 +108,7 @@ function ComingWrap({ children }: { children: ReactNode }) {
  * that don't ship yet (the CLI ones, and the new speech/local providers) are previewed dimmed
  * behind a "coming" banner.
  */
-export function ProviderCard({ cardKey, store, active }: { cardKey: string; store: ProvidersV2; active: boolean }) {
+export function ProviderCard({ cardKey, store, active }: { cardKey: string; store: Providers; active: boolean }) {
   const card = PROVIDER_CARDS[cardKey]
   const dual = Boolean(card.apiKeyProviderId && card.cliProviderId)
   const [mode, setMode] = useState<"api-key" | "cli">(() => defaultCardMode(cardKey, store))

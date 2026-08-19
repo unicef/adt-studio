@@ -1,9 +1,9 @@
 import { Fragment, useMemo, type ReactNode } from "react"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
 import { ArrowRight } from "lucide-react"
-import { BookCover } from "../../../BookCover"
-import { formatRelative, type BookVM } from "../../../data"
-import { ContinueLabel, ShelfCard, AddBookTile, LibraryLink, OutputsPanel, pickResume, isActive, type HomeVariantProps } from "./kit"
+import { BookCover } from "../../BookCover"
+import { formatRelative, type BookVM } from "../../data"
+import { ContinueLabel, ShelfCard, AddBookTile, LibraryLink, OutputsPanel, pickResume, isActive, type HomeVariantProps } from "../shared/kit"
 
 function languageName(code: string | null | undefined, locale: string): string {
   if (!code) return ""

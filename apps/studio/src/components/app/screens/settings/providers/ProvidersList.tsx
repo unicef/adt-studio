@@ -9,10 +9,10 @@ import { PROVIDER_CARDS, ROLE_GROUPS } from "./data"
 import { AuthLineFromHealth, EASE, HealthDotMark, ProviderTile, isCardAvailable, useCardHealth } from "./shared"
 import { ComingSoon } from "../ui"
 import { ProviderCard } from "./ProviderEditor"
-import { useProvidersV2 } from "./useProvidersV2"
+import { useProviders } from "./useProviders"
 import { GroupHeading } from "./GroupHeading"
 
-function Row({ cardKey, open, onToggle, store, refreshToken }: { cardKey: string; open: boolean; onToggle: () => void; store: ReturnType<typeof useProvidersV2>; refreshToken: number }) {
+function Row({ cardKey, open, onToggle, store, refreshToken }: { cardKey: string; open: boolean; onToggle: () => void; store: ReturnType<typeof useProviders>; refreshToken: number }) {
   const { t } = useLingui()
   const card = PROVIDER_CARDS[cardKey]
   const available = isCardAvailable(cardKey)
@@ -86,7 +86,7 @@ function Row({ cardKey, open, onToggle, store, refreshToken }: { cardKey: string
 
 export function ProvidersList() {
   const { t } = useLingui()
-  const store = useProvidersV2()
+  const store = useProviders()
   const [openId, setOpenId] = useState<string | null>(null)
   const [refreshToken, setRefreshToken] = useState(0)
   const [checked, setChecked] = useState(false)

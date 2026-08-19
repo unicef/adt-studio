@@ -23,7 +23,7 @@ import { toast } from "@/components/ui/sonner"
 import type { AiModality, LocalizedText, ProviderDescriptor, ProviderHealthCode, ProviderHealthResponse } from "./contract"
 import { PROVIDER_CARDS, PROVIDER_DESCRIPTORS } from "./data"
 import { PROVIDER_BRAND } from "./providerLogos"
-import { authKind, requiredFieldsFilled, useProviderHealthMock, type ProvidersV2 } from "./useProvidersV2"
+import { authKind, requiredFieldsFilled, useProviderHealthMock, type Providers } from "./useProviders"
 import { ComingSoon } from "../ui"
 
 export const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -173,7 +173,7 @@ export interface Draft {
   remove: () => void
 }
 
-export function useDraft(descriptor: ProviderDescriptor, store: ProvidersV2, onSaved?: () => void): Draft {
+export function useDraft(descriptor: ProviderDescriptor, store: Providers, onSaved?: () => void): Draft {
   const { t } = useLingui()
   const id = descriptor.manifest.id
   const stored = useMemo(
@@ -435,7 +435,7 @@ export function ModalityBadges({ modalities }: { modalities: AiModality[] }) {
 }
 
 /** Which mode a vendor card opens on: its API-key backend if that's configured, else CLI. */
-export function defaultCardMode(cardKey: string, store: ProvidersV2): "api-key" | "cli" {
+export function defaultCardMode(cardKey: string, store: Providers): "api-key" | "cli" {
   const card = PROVIDER_CARDS[cardKey]
   if (!card.apiKeyProviderId || !card.cliProviderId) return "api-key"
   if (!isProviderAvailable(card.cliProviderId)) return "api-key"
@@ -454,7 +454,7 @@ interface CardHealth {
  * local badge, no probe); if the vendor has no key but a CLI/local backend, probe that so a
  * live login still reads "Connected". Backs both the rail dot and the auth line from one probe.
  */
-export function useCardHealth(cardKey: string, store: ProvidersV2, refreshToken = 0): CardHealth {
+export function useCardHealth(cardKey: string, store: Providers, refreshToken = 0): CardHealth {
   const card = PROVIDER_CARDS[cardKey]
   const apiDesc = card.apiKeyProviderId ? descriptorById(card.apiKeyProviderId) : undefined
   const apiConfigured = apiDesc ? requiredFieldsFilled(apiDesc, store.credentials[apiDesc.manifest.id] ?? {}) : false

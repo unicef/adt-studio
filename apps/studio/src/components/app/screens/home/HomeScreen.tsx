@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
-import { WelcomeHero } from "./home/WelcomeHero"
-import { V6Split } from "./home/welcome-e/V6Split"
-import { HomeHeroAnchor } from "./home/home-full/HomeHeroAnchor"
-import { BookDetailDialog } from "./library/BookDetailDialog"
-import { ScreenFallback } from "../ui/ScreenFallback"
-import { toBookVM } from "../data"
-import { APP_PATHS } from "../nav"
-import { useAppBooks } from "../use-app-books"
-import { useAppShell } from "../AppShellContext"
+import { WelcomeHero } from "./WelcomeHero"
+import { WelcomeFeatures } from "./WelcomeFeatures"
+import { HomeHeroAnchor } from "./HomeHeroAnchor"
+import { BookDetailDialog } from "../library/BookDetailDialog"
+import { ScreenFallback } from "../../ui/ScreenFallback"
+import { toBookVM } from "../../data"
+import { APP_PATHS } from "../../nav"
+import { useAppBooks } from "../../use-app-books"
+import { useAppShell } from "../../AppShellContext"
 import { TopBar } from "@/components/title-bar/TopBar"
 
 export function HomeScreen() {
@@ -48,7 +48,7 @@ export function HomeScreen() {
       ) : (
         <div className="relative flex min-h-0 flex-1 flex-col overflow-auto px-11 pb-11 pt-16">
           <WelcomeHero onOpenAdd={openAdd} />
-          <V6Split />
+          <WelcomeFeatures />
         </div>
       )}
 

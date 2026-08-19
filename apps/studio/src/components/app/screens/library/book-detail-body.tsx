@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { formatRelative } from "../../data"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
-import { progressFor } from "../home/home-full/kit"
+import { progressFor } from "../shared/kit"
 import { CommentsBannerAvatars } from "./CommentsBanner"
 import type { DetailBook } from "./BookDetailDialog"
 

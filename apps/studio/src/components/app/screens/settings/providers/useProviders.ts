@@ -77,14 +77,14 @@ function writeCredential(providerId: string, fieldKey: string, value: string): v
   for (const listener of listeners) listener()
 }
 
-export interface ProvidersV2 {
+export interface Providers {
   descriptors: ProviderDescriptor[]
   credentials: Creds
   credentialValue: (providerId: string, fieldKey: string) => string
   setCredential: (providerId: string, fieldKey: string, value: string) => void
 }
 
-export function useProvidersV2(): ProvidersV2 {
+export function useProviders(): Providers {
   const credentials = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
   const credentialValue = useCallback(
     (providerId: string, fieldKey: string) => credentials[providerId]?.[fieldKey] ?? "",

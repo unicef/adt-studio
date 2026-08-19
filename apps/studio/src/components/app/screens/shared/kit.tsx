@@ -5,8 +5,8 @@ import { CORE_STAGE_ORDER } from "@adt/types"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
-import { BookCover } from "../../../BookCover"
-import type { BookVM } from "../../../data"
+import { BookCover } from "../../BookCover"
+import type { BookVM } from "../../data"
 
 export interface HomeVariantProps {
   books: BookVM[]
