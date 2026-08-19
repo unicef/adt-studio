@@ -10,8 +10,6 @@
 
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as SettingsRouteImport } from "./routes/settings"
-import { Route as RedesignWelcomeFullRouteImport } from "./routes/redesign-welcome-full"
-import { Route as RedesignWelcomeRouteImport } from "./routes/redesign-welcome"
 import { Route as RedesignRouteImport } from "./routes/redesign"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
 import { Route as IndexRouteImport } from "./routes/index"
@@ -41,16 +39,6 @@ import { Route as BooksLabelStepPageIdRouteImport } from "./routes/books.$label.
 const SettingsRoute = SettingsRouteImport.update({
   id: "/settings",
   path: "/settings",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RedesignWelcomeFullRoute = RedesignWelcomeFullRouteImport.update({
-  id: "/redesign-welcome-full",
-  path: "/redesign-welcome-full",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RedesignWelcomeRoute = RedesignWelcomeRouteImport.update({
-  id: "/redesign-welcome",
-  path: "/redesign-welcome",
   getParentRoute: () => rootRouteImport,
 } as any)
 const RedesignRoute = RedesignRouteImport.update({
@@ -186,8 +174,6 @@ export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
   "/redesign": typeof RedesignRouteWithChildren
-  "/redesign-welcome": typeof RedesignWelcomeRoute
-  "/redesign-welcome-full": typeof RedesignWelcomeFullRoute
   "/settings": typeof SettingsRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
@@ -215,8 +201,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
-  "/redesign-welcome": typeof RedesignWelcomeRoute
-  "/redesign-welcome-full": typeof RedesignWelcomeFullRoute
   "/settings": typeof SettingsRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
@@ -243,8 +227,6 @@ export interface FileRoutesById {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
   "/redesign": typeof RedesignRouteWithChildren
-  "/redesign-welcome": typeof RedesignWelcomeRoute
-  "/redesign-welcome-full": typeof RedesignWelcomeFullRoute
   "/settings": typeof SettingsRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
@@ -275,8 +257,6 @@ export interface FileRouteTypes {
     | "/"
     | "/onboarding"
     | "/redesign"
-    | "/redesign-welcome"
-    | "/redesign-welcome-full"
     | "/settings"
     | "/books/$label"
     | "/books/import"
@@ -304,8 +284,6 @@ export interface FileRouteTypes {
   to:
     | "/"
     | "/onboarding"
-    | "/redesign-welcome"
-    | "/redesign-welcome-full"
     | "/settings"
     | "/books/import"
     | "/books/new"
@@ -331,8 +309,6 @@ export interface FileRouteTypes {
     | "/"
     | "/onboarding"
     | "/redesign"
-    | "/redesign-welcome"
-    | "/redesign-welcome-full"
     | "/settings"
     | "/books/$label"
     | "/books/import"
@@ -362,8 +338,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OnboardingRoute: typeof OnboardingRoute
   RedesignRoute: typeof RedesignRouteWithChildren
-  RedesignWelcomeRoute: typeof RedesignWelcomeRoute
-  RedesignWelcomeFullRoute: typeof RedesignWelcomeFullRoute
   SettingsRoute: typeof SettingsRoute
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
@@ -378,20 +352,6 @@ declare module "@tanstack/react-router" {
       path: "/settings"
       fullPath: "/settings"
       preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/redesign-welcome-full": {
-      id: "/redesign-welcome-full"
-      path: "/redesign-welcome-full"
-      fullPath: "/redesign-welcome-full"
-      preLoaderRoute: typeof RedesignWelcomeFullRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/redesign-welcome": {
-      id: "/redesign-welcome"
-      path: "/redesign-welcome"
-      fullPath: "/redesign-welcome"
-      preLoaderRoute: typeof RedesignWelcomeRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/redesign": {
@@ -651,8 +611,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OnboardingRoute: OnboardingRoute,
   RedesignRoute: RedesignRouteWithChildren,
-  RedesignWelcomeRoute: RedesignWelcomeRoute,
-  RedesignWelcomeFullRoute: RedesignWelcomeFullRoute,
   SettingsRoute: SettingsRoute,
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,

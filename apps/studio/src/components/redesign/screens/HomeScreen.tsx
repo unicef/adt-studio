@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { WelcomeHero } from "./home/WelcomeHero"
-import { FeatureTour } from "./home/FeatureTour"
+import { V6Split } from "./home/welcome-e/V6Split"
 import { HomeHeroAnchor } from "./home/home-full/HomeHeroAnchor"
 import { BookDetailDialog } from "./library/BookDetailDialog"
 import { ScreenFallback } from "../ui/ScreenFallback"
@@ -46,9 +46,9 @@ export function HomeScreen() {
           />
         </div>
       ) : (
-        <div className="relative px-8 pb-6 pt-8">
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-auto px-11 pb-11 pt-16">
           <WelcomeHero onOpenAdd={openAdd} />
-          <FeatureTour />
+          <V6Split />
         </div>
       )}
 
