@@ -36,7 +36,6 @@ import {
 import { usePdfPreviewPages } from "@/components/wizard/shared/usePdfPreviewPages"
 
 const CARD_HEIGHT = "h-[340px]"
-const CMD_O = ["⌘", "O"].join("")
 
 function isPdfFile(f: File) {
   return f.type === "application/pdf" || f.name.toLowerCase().endsWith(".pdf")
@@ -409,11 +408,8 @@ export function StepUpload() {
                     <span className="text-[15px] font-semibold text-foreground">
                       {hasError ? <Trans>Try another file</Trans> : <Trans>Drop a PDF here</Trans>}
                     </span>
-                    <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-[13px] font-semibold text-background transition-transform duration-200 group-hover:scale-[1.02] group-active:scale-95">
-                      <Trans>Choose a PDF</Trans>
-                      <kbd className="ml-0.5 hidden rounded bg-background/20 px-1.5 py-0.5 font-mono text-[10px] font-medium tracking-wide sm:inline-block">
-                        {CMD_O}
-                      </kbd>
+                    <span className="mt-1.5 text-[12.5px] text-muted-foreground">
+                      <Trans>or click to browse your files</Trans>
                     </span>
                   </div>
                 </div>

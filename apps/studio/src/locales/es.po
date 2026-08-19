@@ -6564,6 +6564,9 @@ msgstr "O"
 msgid "or click to browse — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
 msgstr "o haz clic para explorar — TTF, OTF, WOFF, WOFF2 (máx. 15 MB)"
 
+msgid "or click to browse your files"
+msgstr "o haz clic para explorar tus archivos"
+
 msgid "Original"
 msgstr "Original"
 

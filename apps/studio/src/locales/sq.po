@@ -6566,6 +6566,9 @@ msgstr "Ose"
 msgid "or click to browse — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
 msgstr "ose kliko për të shfletuar — TTF, OTF, WOFF, WOFF2 (maks. 15 MB)"
 
+msgid "or click to browse your files"
+msgstr "ose kliko për të shfletuar skedarët"
+
 msgid "Original"
 msgstr "Origjinal"
 
