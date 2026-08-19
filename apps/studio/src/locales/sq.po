@@ -1898,6 +1898,9 @@ msgstr "Por ekipi vazhdoi të ngjitej në mal."
 msgid "Button"
 msgstr "Buton"
 
+msgid "By"
+msgstr "Nga"
+
 msgid "By Page"
 msgstr "Sipas faqes"
 
