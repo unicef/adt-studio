@@ -2464,9 +2464,6 @@ msgstr "Configure basic document information and file paths"
 msgid "Configure features to include in the export"
 msgstr "Configure features to include in the export"
 
-msgid "Configure provider credentials used by AI pipeline features on this machine."
-msgstr "Configure provider credentials used by AI pipeline features on this machine."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 
@@ -6939,17 +6936,11 @@ msgstr "Pinned"
 msgid "Pinned to one element — press Esc to release it and go back to previewing on hover."
 msgstr "Pinned to one element — press Esc to release it and go back to previewing on hover."
 
-msgid "Pipeline fallback model"
-msgstr "Pipeline fallback model"
-
 msgid "Pipeline features"
 msgstr "Pipeline features"
 
 msgid "Pipeline stages"
 msgstr "Pipeline stages"
-
-msgid "Pipeline tasks using {savedModel}"
-msgstr "Pipeline tasks using {savedModel}"
 
 msgid "Pixel Art"
 msgstr "Pixel Art"
@@ -8553,17 +8544,11 @@ msgstr "Settings for this step are not yet available."
 msgid "Settings guide"
 msgstr "Settings guide"
 
-msgid "Settings navigation"
-msgstr "Settings navigation"
-
 msgid "Shadow"
 msgstr "Shadow"
 
 msgid "Shared"
 msgstr "Shared"
-
-msgid "Shared prompt versions"
-msgstr "Shared prompt versions"
 
 msgid "Ship"
 msgstr "Ship"
@@ -10272,9 +10257,6 @@ msgstr "Use video"
 msgid "Used for"
 msgstr "Used for"
 
-msgid "Used for AI image generation, editing, and these pipeline tasks:"
-msgstr "Used for AI image generation, editing, and these pipeline tasks:"
-
 msgid "Used for Azure Speech TTS provider."
 msgstr "Used for Azure Speech TTS provider."
 
@@ -10283,9 +10265,6 @@ msgstr "Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)"
 
 msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
 msgstr "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
-
-msgid "Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:"
-msgstr "Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:"
 
 msgid "Used for the ElevenLabs TTS provider."
 msgstr "Used for the ElevenLabs TTS provider."

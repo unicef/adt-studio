@@ -2466,9 +2466,6 @@ msgstr "Configurez les informations de base du document et les chemins de fichie
 msgid "Configure features to include in the export"
 msgstr "Configurer les fonctionnalités à inclure dans l'exportation"
 
-msgid "Configure provider credentials used by AI pipeline features on this machine."
-msgstr "Configurez les identifiants des fournisseurs utilisés par les fonctionnalités du pipeline d’IA sur cette machine."
-
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configurez les identifiants des fournisseurs utilisés quand ADT Studio exécute les étapes du pipeline d'IA sur cette machine."
 
@@ -6941,17 +6938,11 @@ msgstr "Épinglée"
 msgid "Pinned to one element — press Esc to release it and go back to previewing on hover."
 msgstr "Épinglé à un élément : appuyez sur Échap pour le libérer et revenir à l'aperçu au survol."
 
-msgid "Pipeline fallback model"
-msgstr "Modèle de secours du pipeline"
-
 msgid "Pipeline features"
 msgstr "Fonctionnalités du pipeline"
 
 msgid "Pipeline stages"
 msgstr "Étapes du pipeline"
-
-msgid "Pipeline tasks using {savedModel}"
-msgstr "Tâches du pipeline utilisant {savedModel}"
 
 msgid "Pixel Art"
 msgstr "Pixel Art"
@@ -8555,17 +8546,11 @@ msgstr "Les paramètres pour cette étape ne sont pas encore disponibles."
 msgid "Settings guide"
 msgstr "Guide des paramètres"
 
-msgid "Settings navigation"
-msgstr "Navigation des paramètres"
-
 msgid "Shadow"
 msgstr "Ombre"
 
 msgid "Shared"
 msgstr "Partagé"
-
-msgid "Shared prompt versions"
-msgstr "Versions partagées des prompts"
 
 msgid "Ship"
 msgstr "Livrer"
@@ -10274,9 +10259,6 @@ msgstr "Utiliser la vidéo"
 msgid "Used for"
 msgstr "Utilisée pour"
 
-msgid "Used for AI image generation, editing, and these pipeline tasks:"
-msgstr "Utilisé pour la génération et la retouche d’images par IA, ainsi que pour ces tâches du pipeline :"
-
 msgid "Used for Azure Speech TTS provider."
 msgstr "Utilisé pour le fournisseur TTS Azure Speech."
 
@@ -10285,9 +10267,6 @@ msgstr "Utilisé pour les modèles Claude (claude-opus-4-6, claude-sonnet-4-6, e
 
 msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
 msgstr "Utilisé pour les modèles Gemini — LLM (gemini-2.5-pro, etc.) et TTS (gemini-2.5-pro-preview-tts, etc.)"
-
-msgid "Used for OpenAI, Azure, Gemini, and ElevenLabs text-to-speech in these pipeline tasks:"
-msgstr "Utilisé pour la synthèse vocale OpenAI, Azure, Gemini et ElevenLabs dans ces tâches du pipeline :"
 
 msgid "Used for the ElevenLabs TTS provider."
 msgstr "Utilisé pour le fournisseur TTS ElevenLabs."
