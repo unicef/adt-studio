@@ -18,6 +18,10 @@ import { useCanvasNavigation } from "./pipeline/canvas/useCanvasNavigation"
 import type { RunActivity, RunStageActivity } from "./pipeline/runs/useRunActivity"
 import type { SectioningRun } from "./pipeline/runs/useSectioningRun"
 import type { StoryboardRun } from "./pipeline/runs/useStoryboardRun"
+import { StageRerunButton } from "./pipeline/runs/StageRerunButton"
+import { useStoryboardRerun } from "./pipeline/runs/useStoryboardRerun"
+import { useStoryboardStaleness } from "./pipeline/runs/useStoryboardStaleness"
+import { StoryboardStaleBanner } from "./pipeline/canvas/StoryboardStaleBanner"
 import { previewSectionId } from "./pipeline/shared/previewTarget"
 import type { PipelineState } from "./pipeline/shared/usePipelineState"
 import {
@@ -68,6 +72,8 @@ export function PipelineWorkspace({
   const [viewport, setViewport] = useCanvasViewport()
   const [zoom, setZoom] = useCanvasZoom()
   const [dockMinimized, setDockMinimized] = useDockMinimized()
+  const storyboardRerun = useStoryboardRerun(label)
+  const staleness = useStoryboardStaleness(state.pages)
   const [chromeHidden, setChromeHidden] = useState(false)
   // A quiz is a storyboard page of its own, so selecting one takes over the canvas.
   const [selectedQuizIndex, setSelectedQuizIndex] = useState<number | null>(null)
@@ -133,12 +139,14 @@ export function PipelineWorkspace({
         version={
           empty ? null : activeQuiz ? quizzesQuery.data?.version ?? null : activePage?.renderingVersion ?? null
         }
+        rerun={<StageRerunButton slug="storyboard" rerun={storyboardRerun} variant="topbar" />}
         status={
           <PipelineStatus
             state={state}
             runningStage={runningStage}
             empty={empty}
             phase={phase}
+            outdatedCount={staleness.outdatedCount}
           />
         }
         onPreview={() =>
@@ -168,11 +176,18 @@ export function PipelineWorkspace({
               onSelect={selectPage}
               onSelectQuiz={setSelectedQuizIndex}
               storyboardRunning={storyboardActivity.isActive}
+              outdatedPageIds={staleness.outdatedPageIds}
             />
           )}
         </SideRail>
 
         <div className="relative flex min-w-0 flex-1 flex-col items-center overflow-hidden bg-accent">
+          {staleness.isStale && (
+            <StoryboardStaleBanner
+              rerun={storyboardRerun}
+              outdatedCount={staleness.outdatedCount}
+            />
+          )}
           {empty ? (
             <CanvasEmptyPanel
               run={run}

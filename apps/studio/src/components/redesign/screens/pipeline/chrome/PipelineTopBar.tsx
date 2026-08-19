@@ -13,6 +13,8 @@ export interface PipelineTopBarProps {
   version?: number | null
   /** Right-hand status pill: review queue, extraction summary, … */
   status?: React.ReactNode
+  /** Re-runs the storyboard — omitted while nothing is rendered yet. */
+  rerun?: React.ReactNode
   /** Opens the packaged book preview on the page the canvas is showing. */
   onPreview?: () => void
   /** Nothing is rendered yet, so there is no page to preview. */
@@ -25,6 +27,7 @@ export function PipelineTopBar({
   pageLabel,
   version,
   status,
+  rerun,
   onPreview,
   previewDisabled,
   onOpenBookInfo,
@@ -69,6 +72,7 @@ export function PipelineTopBar({
       {status}
 
       <div style={NO_DRAG_REGION} className="flex items-center gap-1.5">
+        {rerun}
         {onPreview && (
           <button
             type="button"

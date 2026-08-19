@@ -543,6 +543,9 @@ msgstr "Paramètres de {name}"
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} signalés"
 
+msgid "{outdatedCount, plural, one {# page out of date} other {# pages out of date}}"
+msgstr "{outdatedCount, plural, one {# page obsolète} other {# pages obsolètes}}"
+
 msgid "{pageCount} {pageCount, plural, one {page} other {pages}}"
 msgstr "{pageCount} {pageCount, plural, one {page} other {pages}}"
 
@@ -1146,6 +1149,9 @@ msgstr "Ajoutez une clé API dans les paramètres du livre pour générer du con
 
 msgid "Add an API key in Book settings to generate quizzes."
 msgstr "Ajoutez une clé d'API dans les paramètres du livre pour générer des quiz."
+
+msgid "Add an API key in Book settings to re-run {name}."
+msgstr "Ajoutez une clé d'API dans les paramètres du livre pour relancer {name}."
 
 msgid "Add an API key in Book settings to run {name}."
 msgstr "Ajoutez une clé d'API dans les paramètres du livre pour exécuter {name}."
@@ -2343,6 +2349,9 @@ msgstr "Annuler le téléchargement"
 
 msgid "Cancel run"
 msgstr "Annuler l’exécution"
+
+msgid "Cancel the {name} run"
+msgstr "Annuler l’exécution de {name}"
 
 msgid "Cancelling {stageLabel}"
 msgstr "Annulation de {stageLabel}"
@@ -6672,6 +6681,12 @@ msgstr "Aucune page trouvée"
 msgid "No pages in this book yet."
 msgstr "Ce livre ne contient pas encore de pages."
 
+#~ msgid "No pages yet. Every page of the PDF shows up in this list as it is extracted."
+#~ msgstr "Aucune page pour le moment. Chaque page du PDF apparaît dans cette liste au fur et à mesure de l’extraction."
+
+msgid "No pages yet. The pages the reader sees show up in this list once the storyboard renders them."
+msgstr "Aucune page pour le moment. Les pages que le lecteur verra apparaissent dans cette liste dès que le storyboard les génère."
+
 msgid "No PDF"
 msgstr "Aucun PDF"
 
@@ -6771,8 +6786,8 @@ msgstr "Pas encore de sections"
 msgid "No sections yet — run the storyboard stage to generate pages."
 msgstr "Aucune section pour l'instant — lancez l'étape storyboard pour générer des pages."
 
-msgid "No sections yet. Each PDF page becomes one or more sections — they show up in this list once generated."
-msgstr "Pas encore de sections. Chaque page du PDF devient une ou plusieurs sections : elles apparaîtront dans cette liste une fois générées."
+#~ msgid "No sections yet. Each PDF page becomes one or more sections — they show up in this list once generated."
+#~ msgstr "Pas encore de sections. Chaque page du PDF devient une ou plusieurs sections : elles apparaîtront dans cette liste une fois générées."
 
 msgid "No segmentation needed for this image"
 msgstr "Aucune segmentation nécessaire pour cette image"
@@ -8291,6 +8306,15 @@ msgstr "Relancer"
 msgid "Re-run {0}?"
 msgstr "Relancer {0} ?"
 
+msgid "Re-run {name}"
+msgstr "Relancer {name}"
+
+msgid "Re-run {name} — {resetCount, plural, one {# completed stage will be reset} other {# completed stages will be reset}}"
+msgstr "Relancer {name} — {resetCount, plural, one {# étape terminée sera réinitialisée} other {# étapes terminées seront réinitialisées}}"
+
+msgid "Re-run {name}?"
+msgstr "Relancer {name} ?"
+
 msgid "Re-run {stageLabel}"
 msgstr "Re-exécuter {stageLabel}"
 
@@ -8899,6 +8923,7 @@ msgstr "Ligne inversée"
 msgid "Run {0} first"
 msgstr "Exécutez d'abord {0}"
 
+#. placeholder {0}: getStageLabelI18n("sectioning")
 #. placeholder {0}: prereq.upstreamLabel
 msgid "Run {0} first."
 msgstr "Exécutez d'abord {0}."

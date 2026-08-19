@@ -216,7 +216,7 @@ export function StepRunning({
   return (
     <StepShell
       {...props}
-      chips={[stage.state === "queued" ? stage.label : stage.runningLabel]}
+      chips={[]}
       canApply={false}
       rail={
         <PluginRailEmpty

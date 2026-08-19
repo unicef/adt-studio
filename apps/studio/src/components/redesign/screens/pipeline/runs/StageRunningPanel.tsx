@@ -21,12 +21,11 @@ export function StageRunningPanel({
   className,
 }: StageRunningPanelProps) {
   const { t } = useLingui()
-  const progress = stage.steps.length > 0 ? (stage.doneCount / stage.steps.length) * 100 : 0
 
   return (
     <div
       className={cn(
-        "w-[440px] overflow-hidden rounded-2xl border bg-card shadow-[0_24px_60px_-30px_rgba(0,0,0,0.35)]",
+        "w-[440px] mx-auto overflow-hidden rounded-2xl border bg-card shadow-[0_24px_60px_-30px_rgba(0,0,0,0.35)]",
         className,
       )}
       style={{ borderColor: tint(stage.hex, 0.35) }}
@@ -81,11 +80,18 @@ export function StageRunningPanel({
         )}
       </div>
 
-      <div className="h-1 w-full bg-muted">
-        <div
-          className="h-full rounded-r-full transition-[width] duration-500"
-          style={{ width: `${progress}%`, background: stage.hex }}
-        />
+      <div className="relative h-1 w-full overflow-hidden bg-muted">
+        {stage.isDeterminate ? (
+          <div
+            className="h-full rounded-r-full transition-[width] duration-500 ease-out motion-reduce:transition-none"
+            style={{ width: `${stage.fraction * 100}%`, background: stage.hex }}
+          />
+        ) : (
+          <div
+            className="absolute inset-y-0 left-0 w-2/5 rounded-full motion-safe:animate-indeterminate"
+            style={{ background: stage.hex }}
+          />
+        )}
       </div>
 
       <div className="px-4 py-3.5">

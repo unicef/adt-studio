@@ -1,4 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro"
+import { plural } from "@lingui/core/macro"
 import type { StoryboardPhase } from "@/components/redesign/screens/pipeline/canvas/StoryboardEmptyState"
 import type { RunStageActivity } from "@/components/redesign/screens/pipeline/runs/useRunActivity"
 import type { PipelineState } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
@@ -9,9 +10,17 @@ export interface PipelineStatusProps {
   runningStage: RunStageActivity | undefined
   empty: boolean
   phase: StoryboardPhase
+  /** Pages whose render is behind the sections it was built from. */
+  outdatedCount: number
 }
 
-export function PipelineStatus({ state, runningStage, empty, phase }: PipelineStatusProps) {
+export function PipelineStatus({
+  state,
+  runningStage,
+  empty,
+  phase,
+  outdatedCount,
+}: PipelineStatusProps) {
   const { t } = useLingui()
 
   if (runningStage) {
@@ -35,6 +44,17 @@ export function PipelineStatus({ state, runningStage, empty, phase }: PipelineSt
         {phase === "render"
           ? t`Sectioning complete · ${state.sectionCount} sections`
           : t`Extraction complete · ${state.pages.length} pages`}
+      </StatusPill>
+    )
+  }
+
+  if (outdatedCount > 0) {
+    return (
+      <StatusPill tone="warn">
+        {t`${plural(outdatedCount, {
+          one: "# page out of date",
+          other: "# pages out of date",
+        })}`}
       </StatusPill>
     )
   }

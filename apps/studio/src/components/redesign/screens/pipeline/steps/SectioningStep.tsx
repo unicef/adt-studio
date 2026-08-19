@@ -194,7 +194,6 @@ export function SectioningStep(props: StepProps) {
     <StepShell
       {...props}
       chips={[
-        ...(sectioning.isActive ? [sectioning.runningLabel] : []),
         t`${total} sections`,
         pruned > 0 ? t`${pruned} dropped` : t`All kept`,
       ]}

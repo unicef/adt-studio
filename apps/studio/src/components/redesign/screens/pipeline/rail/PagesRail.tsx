@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Puzzle } from "lucide-react"
+import { AlertTriangle, Puzzle } from "lucide-react"
 import type { QuizItem } from "@/api/client"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -21,6 +21,8 @@ export interface PagesRailProps {
   onSelectQuiz: (quizIndex: number) => void
   /** Storyboard stage in flight — pages it has not reached yet show a spinner. */
   storyboardRunning?: boolean
+  /** Pages whose render is behind the sections it was built from. */
+  outdatedPageIds?: ReadonlySet<string>
 }
 
 export function PagesRail({
@@ -32,6 +34,7 @@ export function PagesRail({
   onSelect,
   onSelectQuiz,
   storyboardRunning,
+  outdatedPageIds,
 }: PagesRailProps) {
   const { t } = useLingui()
   const quizzesByPage = useMemo(() => groupQuizzesByPage(quizzes), [quizzes])
@@ -61,6 +64,7 @@ export function PagesRail({
             const active = activeQuizIndex == null && page.pageId === activePageId
             const pending = !!storyboardRunning && !page.hasRendering && !page.isDiscarded
             const hasActivity = page.sections.some((s) => s.isActivity && !s.isPruned)
+            const outdated = outdatedPageIds?.has(page.pageId) ?? false
             return (
               <div key={page.pageId} className="flex flex-col gap-1.5">
                 <button
@@ -93,6 +97,14 @@ export function PagesRail({
                       pending={pending}
                       className="h-[70px] w-[52px]"
                     />
+                    {outdated && (
+                      <span
+                        title={t`Out of date`}
+                        className="absolute -bottom-1 -right-1 grid size-4 place-items-center rounded-full bg-amber-500 text-white ring-1 ring-background"
+                      >
+                        <AlertTriangle className="size-2.5" />
+                      </span>
+                    )}
                     {hasActivity && (
                       <span
                         title={t`This page has an interactive activity`}

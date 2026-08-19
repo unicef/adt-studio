@@ -20,6 +20,8 @@ export interface RunStepActivity {
   label: string
   state: StepState
   progress?: string
+  /** 0–1 from the step's page counter, absent for steps that don't report one. */
+  fraction?: number
   error?: string
 }
 
@@ -34,6 +36,14 @@ export interface RunStageActivity {
   steps: RunStepActivity[]
   runningCount: number
   doneCount: number
+  /** 0–1 across the whole stage, crediting the running step's page counter. */
+  fraction: number
+  /**
+   * False while nothing has landed and no step reports pages — single-step
+   * stages like Captions or Glossary have no measurable middle, so their bars
+   * must run indeterminate instead of sitting at zero for minutes.
+   */
+  isDeterminate: boolean
   current?: RunStepActivity
 }
 
@@ -62,6 +72,11 @@ function toProgressLabel(progress: StepProgress | undefined): string | undefined
   return progress.message?.trim() || pageLabel
 }
 
+function toFraction(progress: StepProgress | undefined): number | undefined {
+  if (!progress?.page || !progress.totalPages || progress.totalPages <= 0) return undefined
+  return Math.min(1, Math.max(0, progress.page / progress.totalPages))
+}
+
 function spinFirstPendingStep(steps: RunStepActivity[], isActive: boolean): RunStepActivity[] {
   if (!isActive || steps.some((step) => step.state === "running")) return steps
   const firstPending = steps.find((step) => !isStepComplete(step.state) && step.state !== "error")
@@ -76,17 +91,23 @@ function buildStageActivity(def: StageDef, run: BookRunContextValue): RunStageAc
   const isActive = state === "running" || state === "queued"
 
   const steps = spinFirstPendingStep(
-    def.steps.map((step) => ({
-      name: step.name,
-      label: getStepLabelI18n(step.name),
-      state: run.stepState(step.name),
-      progress: toProgressLabel(run.stepProgress(step.name)),
-      error: run.stepError(step.name),
-    })),
+    def.steps.map((step) => {
+      const progress = run.stepProgress(step.name)
+      return {
+        name: step.name,
+        label: getStepLabelI18n(step.name),
+        state: run.stepState(step.name),
+        progress: toProgressLabel(progress),
+        fraction: toFraction(progress),
+        error: run.stepError(step.name),
+      }
+    }),
     isActive,
   )
 
   const running = steps.filter((step) => step.state === "running")
+  const doneCount = steps.filter((step) => isStepComplete(step.state)).length
+  const runningCredit = running.reduce((sum, step) => sum + (step.fraction ?? 0), 0)
 
   return {
     slug: def.name,
@@ -97,7 +118,10 @@ function buildStageActivity(def: StageDef, run: BookRunContextValue): RunStageAc
     isActive,
     steps,
     runningCount: running.length,
-    doneCount: steps.filter((step) => isStepComplete(step.state)).length,
+    doneCount,
+    fraction:
+      steps.length > 0 ? Math.min(1, (doneCount + runningCredit) / steps.length) : 0,
+    isDeterminate: doneCount > 0 || runningCredit > 0,
     current: running.find((step) => step.progress) ?? running[0],
   }
 }

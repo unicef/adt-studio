@@ -1,5 +1,4 @@
 import { Trans, useLingui } from "@lingui/react/macro"
-import { ArrowRight } from "lucide-react"
 import { RailCollapseButton } from "./SideRail"
 
 export interface PagesRailEmptyProps {
@@ -8,16 +7,28 @@ export interface PagesRailEmptyProps {
   extracting?: boolean
 }
 
-function GhostLine({ width, tone = "muted" }: { width: string; tone?: "muted" | "brand" }) {
+function GhostLine({ width }: { width: string }) {
+  return <span className="block h-1 rounded-full bg-border" style={{ width }} />
+}
+
+function GhostPage() {
   return (
-    <span
-      className={tone === "brand" ? "block h-1 rounded-full bg-brand-200" : "block h-1 rounded-full bg-border"}
-      style={{ width }}
-    />
+    <span className="flex w-[52px] flex-col gap-1 rounded-[5px] border border-dashed bg-card p-2">
+      <GhostLine width="100%" />
+      <GhostLine width="76%" />
+      <span className="block h-4 rounded-[3px] bg-muted" />
+      <GhostLine width="88%" />
+      <GhostLine width="60%" />
+    </span>
   )
 }
 
-/** Left rail before any section exists — explains what will land in this list. */
+/**
+ * Left rail before the storyboard is rendered. The extracted PDF pages are not
+ * book pages yet — nothing in them can be opened, reordered or previewed — so
+ * the rail counts what it can list, which is nothing, and the footer carries the
+ * extraction numbers instead.
+ */
 export function PagesRailEmpty({ pageCount, imageCount, extracting }: PagesRailEmptyProps) {
   const { t } = useLingui()
 
@@ -25,47 +36,31 @@ export function PagesRailEmpty({ pageCount, imageCount, extracting }: PagesRailE
     <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-card">
       <div className="flex items-center gap-2 px-3.5 pb-2 pt-3.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-          <Trans>Sections</Trans>
+          <Trans>Pages</Trans>
         </span>
         <span className="ml-auto font-mono text-[11px] text-muted-foreground/60">0</span>
         <RailCollapseButton className="-mr-1" />
       </div>
 
       <div className="flex flex-1 flex-col justify-center gap-2.5 px-3 pb-3">
-        <div aria-hidden className="flex items-center gap-2">
-          <span className="flex w-[58px] flex-col gap-1 rounded-[5px] border bg-card p-2 shadow-[0_4px_10px_-6px_rgba(0,0,0,0.25)]">
-            <GhostLine width="100%" />
-            <GhostLine width="76%" />
-            <span className="block h-4 rounded-[3px] bg-muted" />
-            <GhostLine width="88%" />
-            <GhostLine width="60%" />
-          </span>
-          <ArrowRight className="size-3.5 shrink-0 text-brand-200" />
-          <span className="flex flex-1 flex-col gap-1.5">
-            <span className="flex flex-col gap-1 rounded-md border-[1.5px] border-dashed border-brand-200 bg-brand-50 p-1.5">
-              <GhostLine width="70%" tone="brand" />
-              <GhostLine width="92%" tone="brand" />
-            </span>
-            <span className="flex flex-col gap-1 rounded-md border-[1.5px] border-dashed p-1.5">
-              <GhostLine width="56%" />
-              <GhostLine width="80%" />
-            </span>
-          </span>
+        <div aria-hidden className="flex items-end justify-center gap-2">
+          <GhostPage />
+          <GhostPage />
+          <GhostPage />
         </div>
-
         <p className="text-[10.5px] leading-relaxed text-muted-foreground">
           <Trans>
-            No sections yet. Each PDF page becomes one or more sections — they show up in this list once
-            generated.
+            No pages yet. The pages the reader sees show up in this list once the storyboard
+            renders them.
           </Trans>
         </p>
-
-        <p className="border-t pt-2.5 text-[10px] leading-relaxed text-muted-foreground">
-          {extracting
-            ? t`Extracting the PDF: ${pageCount} pages so far`
-            : t`PDF extracted: ${pageCount} pages · ${imageCount} images`}
-        </p>
       </div>
+
+      <p className="mx-3 border-t py-2.5 text-[10px] leading-relaxed text-muted-foreground">
+        {extracting
+          ? t`Extracting the PDF: ${pageCount} pages so far`
+          : t`PDF extracted: ${pageCount} pages · ${imageCount} images`}
+      </p>
     </aside>
   )
 }

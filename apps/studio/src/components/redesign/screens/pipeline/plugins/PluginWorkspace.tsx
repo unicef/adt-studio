@@ -5,10 +5,12 @@ import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { NO_DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
 import { AiEditPanel } from "./AiEditPanel"
+import { WorkspaceRunButton } from "./WorkspaceRunButton"
 import { DockHandle } from "@/components/redesign/screens/pipeline/chrome/DockHandle"
 import { PluginDockPills as PluginDock } from "./PluginDockPills"
+import { useOptionalStageActivity } from "@/components/redesign/screens/pipeline/runs/useRunActivity"
 import { SideRail } from "@/components/redesign/screens/pipeline/rail/SideRail"
-import { tint, type DockEntry } from "@/components/redesign/screens/pipeline/shared/plugins"
+import { type DockEntry } from "@/components/redesign/screens/pipeline/shared/plugins"
 import type { DockItem, PipelinePage } from "@/components/redesign/screens/pipeline/shared/usePipelineState"
 import { useDockMinimized } from "../shared/workspacePrefs"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -52,10 +54,27 @@ export function PluginWorkspace({
   const name = getStageLabelI18n(plugin.slug)
   const chatPage = pages[0] ?? null
 
+  const activity = useOptionalStageActivity(plugin.slug)
+  const isActive = activity?.isActive ?? false
+  const runChips = !isActive || !activity
+    ? []
+    : activity.state === "queued"
+      ? [t`Queued`]
+      : [
+          activity.runningLabel,
+          ...(activity.current
+            ? [
+                activity.current.progress
+                  ? `${activity.current.label} · ${activity.current.progress}`
+                  : activity.current.label,
+              ]
+            : []),
+        ]
+
   return (
     <div className="flex h-full w-full flex-col overflow-hidden bg-background text-foreground">
       <header
-        className="drag-region flex h-12.5 shrink-0 items-center gap-3 px-3.5 text-white"
+        className="drag-region relative flex h-12.5 shrink-0 items-center gap-3 px-3.5 text-white"
         style={{ background: plugin.hex }}
       >
         <button
@@ -75,14 +94,19 @@ export function PluginWorkspace({
         <span className="text-sm font-semibold">{name}</span>
 
         <div className="flex flex-1 items-center justify-center gap-1.5 drag-region">
-          {chips.map((chip) => (
-            <span key={chip} className="rounded-full bg-white/18 px-2.5 py-0.5 text-[11px]">
+          {[...runChips, ...chips].map((chip, index) => (
+            <span
+              key={`${index}-${chip}`}
+              className="max-w-[220px] truncate rounded-full bg-white/18 px-2.5 py-0.5 text-[11px] tabular-nums"
+              title={chip}
+            >
               {chip}
             </span>
           ))}
         </div>
 
         <div className="flex items-center gap-2">
+          <WorkspaceRunButton label={label} slug={plugin.slug} />
           {onOpenSettings && (
             <button
               type="button"
@@ -97,6 +121,22 @@ export function PluginWorkspace({
         </div>
 
         <TitleBarControls darkMode className="-my-px -mr-3.5 h-12.5" />
+
+        {isActive && activity && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] overflow-hidden bg-black/15"
+          >
+            {activity.isDeterminate ? (
+              <span
+                className="block h-full bg-white/90 transition-[width] duration-500 ease-out motion-reduce:transition-none"
+                style={{ width: `${activity.fraction * 100}%` }}
+              />
+            ) : (
+              <span className="absolute inset-y-0 left-0 w-2/5 bg-white/90 motion-safe:animate-indeterminate" />
+            )}
+          </span>
+        )}
       </header>
 
       <div className="relative flex min-h-0 flex-1 ">
@@ -108,7 +148,14 @@ export function PluginWorkspace({
           </aside>
         </SideRail>
 
-        <ScrollArea className="flex min-w-0 flex-1 items-center justify-center px-6">
+        <ScrollArea
+          horizontal
+          className={cn(
+            "min-w-0 flex-1 transition-opacity duration-300 ease-out motion-reduce:transition-none",
+            isActive && "opacity-60",
+          )}
+          viewportClassName="flex px-6 [&>div]:m-auto"
+        >
           {children}
         </ScrollArea>
 

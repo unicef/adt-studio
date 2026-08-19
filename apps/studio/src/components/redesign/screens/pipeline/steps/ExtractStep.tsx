@@ -185,7 +185,6 @@ export function ExtractStep(props: StepProps) {
     <StepShell
       {...props}
       chips={[
-        ...(extract.isActive ? [extract.runningLabel] : []),
         t`${pages.length} pages`,
         withWarnings > 0 ? t`${withWarnings} recovered from images` : t`Text layer on every page`,
       ]}
