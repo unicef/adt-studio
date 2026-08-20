@@ -1,0 +1,1417 @@
+{
+  "schemaVersion": 1,
+  "suite": {
+    "id": "momo-gpt54-vs-gemma-e4b",
+    "title": "Momo: GPT-5.4 versus local Gemma E4B",
+    "seed": 20260804
+  },
+  "generatedAt": "2026-08-04T11:07:05.554Z",
+  "methodology": {
+    "rankingRule": "Hard gates first; then transparent weighted profiles. Quality confidence intervals bootstrap reviewed rubric items.",
+    "dimensions": {
+      "fidelity": "40% lexical source-text preservation and 60% reviewed caption fidelity.",
+      "completeness": "Minimum expected page sectioning/rendering coverage across repetitions.",
+      "accessibility": "100 minus 10 per axe violation, 2 per incomplete check, and 5 per disabled rule.",
+      "reliability": "Completed package with zero LLM errors, invalid audio files, missing assets, or browser runtime failures.",
+      "latency": "Linear utility between the configured target and maximum, using median end-to-end wall time.",
+      "cost": "Linear utility between the configured target and maximum, using mean cost per completed ADT."
+    },
+    "gates": {
+      "maxLlmErrors": 0,
+      "maxAccessibilityViolations": 0,
+      "maxAccessibilityIncomplete": 0,
+      "minimumPageCoverage": 1,
+      "minimumReviewCoverage": 1,
+      "minimumReviewers": 1,
+      "minimumCaptionScore": 70,
+      "requireBrowserSmoke": true
+    },
+    "utilityAnchors": {
+      "latencyTargetMs": 120000,
+      "latencyMaxMs": 600000,
+      "costTargetUsd": 0,
+      "costMaxUsd": 2
+    },
+    "profiles": {
+      "quality": {
+        "fidelity": 0.55,
+        "completeness": 0.15,
+        "accessibility": 0.15,
+        "reliability": 0.15
+      },
+      "balanced": {
+        "fidelity": 0.44,
+        "completeness": 0.12,
+        "accessibility": 0.12,
+        "reliability": 0.12,
+        "latency": 0.1,
+        "cost": 0.1
+      }
+    },
+    "provisional": true,
+    "warnings": [
+      "At least one required human review was not blinded; rankings are provisional.",
+      "Fewer than two independent reviewers scored at least one candidate.",
+      "The corpus has fewer than five documents; do not generalize this ranking beyond the represented document type."
+    ]
+  },
+  "candidates": [
+    {
+      "id": "gpt-5.4",
+      "runId": "gpt-5.4",
+      "displayName": "GPT-5.4",
+      "model": "openai:gpt-5.4",
+      "local": false,
+      "documentId": "momo-grade1",
+      "sourcePdfSha256": "3d4e589013715ee89ee0e9ac1e7419daf4e4afd8bbdc9a85eaa4b34dd82c6468",
+      "runDurationMs": 91736,
+      "costUsd": 1.485287,
+      "run": {
+        "label": "momo-benchmark-openai-gpt54",
+        "pipelineComplete": true,
+        "llmCalls": 224,
+        "llmErrors": 0,
+        "inputTokens": 465926,
+        "outputTokens": 13090
+      },
+      "metrics": {
+        "pageCount": 20,
+        "expectedPages": 20,
+        "sectionedPages": 20,
+        "renderedPages": 20,
+        "pageCoverage": 1,
+        "sourceTextRecall": 1,
+        "captionCount": 16,
+        "accessibility": {
+          "assessedPages": 21,
+          "violations": 0,
+          "incomplete": 0,
+          "disabledRules": [
+            "color-contrast"
+          ]
+        },
+        "export": {
+          "htmlFiles": 22,
+          "mediaFiles": 152,
+          "emptyMediaFiles": 0,
+          "audioDecodeErrors": 0,
+          "missingAssets": [],
+          "browserSmoke": {
+            "passed": true,
+            "htmlFiles": 21,
+            "successfulPages": 21,
+            "errors": []
+          }
+        }
+      },
+      "samples": {
+        "captions": [
+          {
+            "itemId": "pg001",
+            "imageId": "pg001_im001_crop_v1",
+            "caption": "A baby monkey sleeps on a tree branch at night while a leopard watches from below and an owl sits above under the moon and stars.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg005",
+            "imageId": "pg005_im001_crop_v1",
+            "caption": "Three monkeys sleep on long branches high in a tree at night while an owl watches nearby under the moon and stars.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg006",
+            "imageId": "pg006_im001",
+            "caption": "At night, a mother leopard stands under a tree while two monkeys rest high on its branches, with a rabbit hiding beside a rock below.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg007",
+            "imageId": "pg007_im001_crop_v1",
+            "caption": "Mother leopard climbs quietly up a tree at dusk while a small rabbit sits on the ground below.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg008",
+            "imageId": "pg008_im001",
+            "caption": "A leopard creeps quietly along a tree branch toward sleeping Momo, the baby monkey, under the moon and stars.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg009",
+            "imageId": "pg009_im001_crop_v1",
+            "caption": "A leopard climbs close to Momo on a tree branch at night, and the frightened little monkey throws up his hands.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg010",
+            "imageId": "pg010_im001",
+            "caption": "Four monkeys in a tree shout and throw sticks as a leopard jumps down and runs away into the forest at night.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg011",
+            "imageId": "pg011_im001",
+            "caption": "Mother leopard and her small cub walk together across a moonlit field under the stars, while a rabbit hides beside blue flowers.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg012",
+            "imageId": "pg012_im001_crop_v1",
+            "caption": "At night, a baby leopard quietly climbs a tree while an adult leopard stands below and sleeping monkeys lie on the branches overhead.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg013",
+            "imageId": "pg013_im001",
+            "caption": "At night, Momo the baby monkey sleeps at the end of a long tree branch while a baby leopard creeps quietly toward him and another leopard watches from below.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg014",
+            "imageId": "pg014_im001_crop_v1",
+            "caption": "At night, Momo the monkey clings to a high branch while a baby leopard hangs upside down below him on the shaking branch, with an owl, moon, and stars in the tree.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg015",
+            "imageId": "pg015_im001_crop_v1",
+            "caption": "Momo crouches on a higher tree branch while a baby leopard leaps up from below and cannot reach him under the starry night sky.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg016",
+            "imageId": "pg016_im001_crop_v1",
+            "caption": "A baby leopard tumbles upside down from a tree branch at night under the moon and stars.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg017",
+            "imageId": "pg017_im001_crop_v1",
+            "caption": "A baby leopard falls from a tree and lands on its mother under the moonlit night sky.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg018",
+            "imageId": "pg018_im001_crop_v1",
+            "caption": "Two monkeys in tree branches throw sticks at two leopards below, chasing them away at night.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg020",
+            "imageId": "pg020_im001",
+            "caption": "Blue-bordered box with the heading “VISION” in red above the statement: “An education and enlightened society of GNH, built and sustained on the unique Bhutanese values of Tha Dam-Tsig Ley Gju-Drey.”",
+            "decorative": false
+          }
+        ],
+        "quizzes": [
+          {
+            "quizIndex": 0,
+            "afterPageId": "pg007",
+            "pageIds": [
+              "pg005",
+              "pg006",
+              "pg007"
+            ],
+            "question": "Why do the monkeys sleep in the tree?",
+            "options": [
+              {
+                "text": "1) To play games",
+                "explanation": "❌ Not this one. The story says they climb the tree at night to sleep safely."
+              },
+              {
+                "text": "2) To stay safe",
+                "explanation": "✅ Correct! The monkeys sleep on long branches in the tree where other animals cannot get them easily."
+              },
+              {
+                "text": "3) To eat leaves",
+                "explanation": "❌ Not quite. The pages say the monkeys climb the tree to sleep, not to eat leaves."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The pages focus on a simple main idea: monkeys sleep in trees at night because it keeps them safe, and a leopard quietly climbs the tree. A good comprehension question for this reading level should test the key safety idea using simple language and short answer choices."
+          },
+          {
+            "quizIndex": 1,
+            "afterPageId": "pg010",
+            "pageIds": [
+              "pg008",
+              "pg009",
+              "pg010"
+            ],
+            "question": "Why did Momo wake up?",
+            "options": [
+              {
+                "text": "1) He fell down",
+                "explanation": "❌ Not quite. Momo did not fall down. He woke up because the branch shook."
+              },
+              {
+                "text": "2) The branch shook",
+                "explanation": "✅ Correct! Momo woke up because the branch shook when the leopard came near."
+              },
+              {
+                "text": "3) He heard rain",
+                "explanation": "❌ Not quite. The story does not say it was raining. Momo woke up when the branch shook."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The pages tell a simple story about a leopard trying to sneak up on baby monkey Momo, but the branch shook, waking Momo and leading the monkeys to scare the leopard away. A good comprehension question for this reading level should focus on the main event and outcome using simple language."
+          },
+          {
+            "quizIndex": 2,
+            "afterPageId": "pg013",
+            "pageIds": [
+              "pg011",
+              "pg012",
+              "pg013"
+            ],
+            "question": "Who climbed the tree very quietly?",
+            "options": [
+              {
+                "text": "1) Momo",
+                "explanation": "❌ Not quite. Momo was sleeping on the branch, not climbing the tree."
+              },
+              {
+                "text": "2) baby leopard",
+                "explanation": "✅ Correct! The baby leopard climbed the tree very, very quietly."
+              },
+              {
+                "text": "3) mother leopard",
+                "explanation": "❌ Not this one. The story says the baby leopard climbed the tree quietly."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The pages describe a simple sequence: a baby leopard comes at night, climbs a tree quietly, and sees Momo sleeping on a branch while the monkeys are asleep. A good comprehension question for this reading level should focus on a main action from the story using simple language and short answer choices."
+          },
+          {
+            "quizIndex": 3,
+            "afterPageId": "pg016",
+            "pageIds": [
+              "pg014",
+              "pg015",
+              "pg016"
+            ],
+            "question": "What happened to the baby leopard at the end?",
+            "options": [
+              {
+                "text": "1) He got Momo.",
+                "explanation": "❌ Not quite. The story says he could not get Momo."
+              },
+              {
+                "text": "2) He went to sleep.",
+                "explanation": "❌ Not quite. Momo woke up, but the baby leopard did not go to sleep."
+              },
+              {
+                "text": "3) He fell down.",
+                "explanation": "✅ Correct! At the end, the baby leopard went down."
+              }
+            ],
+            "answerIndex": 2,
+            "reasoning": "The pages show a simple action sequence: the branch shook, Momo woke up, jumped to a bigger branch, and the baby leopard fell down. A good comprehension question for this reading level should focus on the main event and use very simple language."
+          },
+          {
+            "quizIndex": 4,
+            "afterPageId": "pg018",
+            "pageIds": [
+              "pg017",
+              "pg018"
+            ],
+            "question": "What made the leopards run into the forest?",
+            "options": [
+              {
+                "text": "1) Rain",
+                "explanation": "❌ Not quite. The pages do not say rain made the leopards leave."
+              },
+              {
+                "text": "2) Sticks",
+                "explanation": "✅ Correct! They shouted and threw sticks, and the leopards ran into the forest."
+              },
+              {
+                "text": "3) Fire",
+                "explanation": "❌ Not this time. The story says people threw sticks, not fire."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The pages describe people shouting and throwing sticks to scare away leopards, which saved the monkeys. A good comprehension question should check understanding of what made the leopards leave, using simple language and short answer choices."
+          }
+        ],
+        "glossary": [
+          {
+            "word": "animal",
+            "definition": "a living creature like a monkey or a leopard",
+            "variations": [
+              "animal",
+              "animals"
+            ],
+            "emojis": [
+              "🐾",
+              "🐒"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "baby",
+            "definition": "a very young child or animal",
+            "variations": [
+              "baby",
+              "babies"
+            ],
+            "emojis": [
+              "👶",
+              "🐾"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "bigger",
+            "definition": "larger in size",
+            "variations": [
+              "big",
+              "bigger",
+              "biggest"
+            ],
+            "emojis": [
+              "📏",
+              "⬆️"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "branch",
+            "definition": "a part of a tree that grows out from the trunk",
+            "variations": [
+              "branch",
+              "branches"
+            ],
+            "emojis": [
+              "🌳",
+              "🪵"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "climb",
+            "definition": "to go up something like a tree or a hill",
+            "variations": [
+              "climb",
+              "climbed",
+              "climbing",
+              "climbs"
+            ],
+            "emojis": [
+              "🧗",
+              "🌳"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "dinner",
+            "definition": "the main meal eaten later in the day",
+            "variations": [
+              "dinner",
+              "dinners"
+            ],
+            "emojis": [
+              "🍽️",
+              "🌙"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "forest",
+            "definition": "a large area filled with many trees",
+            "variations": [
+              "forest",
+              "forests"
+            ],
+            "emojis": [
+              "🌲",
+              "🌳"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "ground",
+            "definition": "the land or surface you walk on outside",
+            "variations": [
+              "ground"
+            ],
+            "emojis": [
+              "🌍",
+              "🟫"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "jump",
+            "definition": "to push yourself off the ground and go into the air",
+            "variations": [
+              "jump",
+              "jumped",
+              "jumping",
+              "jumps"
+            ],
+            "emojis": [
+              "🤾",
+              "⬆️"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "jumped",
+            "definition": "pushed off the ground or from a place and went into the air",
+            "variations": [
+              "jump",
+              "jumps",
+              "jumped",
+              "jumping"
+            ],
+            "emojis": [
+              "🦘",
+              "⬆️"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "leopard",
+            "definition": "a large wild cat with spots",
+            "variations": [
+              "leopard",
+              "leopards"
+            ],
+            "emojis": [
+              "🐆"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "monkey",
+            "definition": "an animal that can climb trees and has a long tail",
+            "variations": [
+              "monkey",
+              "monkeys"
+            ],
+            "emojis": [
+              "🐒"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "mother",
+            "definition": "a female parent",
+            "variations": [
+              "mother",
+              "mothers"
+            ],
+            "emojis": [
+              "👩",
+              "❤️"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "point",
+            "definition": "to show something with a finger",
+            "variations": [
+              "point",
+              "pointed",
+              "pointing",
+              "points"
+            ],
+            "emojis": [
+              "👉"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "quietly",
+            "definition": "in a way that makes little or no sound",
+            "variations": [
+              "quietly"
+            ],
+            "emojis": [
+              "🤫",
+              "👣"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "run",
+            "definition": "to move quickly on your feet",
+            "variations": [
+              "run",
+              "ran",
+              "running",
+              "runs"
+            ],
+            "emojis": [
+              "🏃"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shook",
+            "definition": "moved quickly back and forth",
+            "variations": [
+              "shake",
+              "shakes",
+              "shook",
+              "shaken",
+              "shaking"
+            ],
+            "emojis": [
+              "😮",
+              "🌿"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shout",
+            "definition": "to speak very loudly",
+            "variations": [
+              "shout",
+              "shouted",
+              "shouting",
+              "shouts"
+            ],
+            "emojis": [
+              "🗣️",
+              "📣"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shouted",
+            "definition": "said something very loudly",
+            "variations": [
+              "shout",
+              "shouts",
+              "shouted",
+              "shouting"
+            ],
+            "emojis": [
+              "📣",
+              "😮"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "sleep",
+            "definition": "to rest with your eyes closed",
+            "variations": [
+              "sleep",
+              "sleeping",
+              "sleeps"
+            ],
+            "emojis": [
+              "😴",
+              "🛌"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "small",
+            "definition": "little in size",
+            "variations": [
+              "small",
+              "smaller",
+              "smallest"
+            ],
+            "emojis": [
+              "🤏"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "stick",
+            "definition": "a small thin piece of wood",
+            "variations": [
+              "stick",
+              "sticks"
+            ],
+            "emojis": [
+              "🪵"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "sticks",
+            "definition": "small thin pieces of wood from a tree",
+            "variations": [
+              "stick",
+              "sticks"
+            ],
+            "emojis": [
+              "🪵",
+              "🌳"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "threw",
+            "definition": "sent something through the air with the hand",
+            "variations": [
+              "throw",
+              "throws",
+              "threw",
+              "thrown",
+              "throwing"
+            ],
+            "emojis": [
+              "✋",
+              "🪵"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "throw",
+            "definition": "to send something through the air with your hand",
+            "variations": [
+              "throw",
+              "threw",
+              "throwing",
+              "throws"
+            ],
+            "emojis": [
+              "🪵",
+              "✋"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "wake up",
+            "definition": "to stop sleeping",
+            "variations": [
+              "wake up",
+              "woke up",
+              "wakes up",
+              "waking up"
+            ],
+            "emojis": [
+              "😴",
+              "👀"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "woke",
+            "definition": "stopped sleeping",
+            "variations": [
+              "wake",
+              "wakes",
+              "woke",
+              "woken",
+              "waking"
+            ],
+            "emojis": [
+              "😴",
+              "👀"
+            ],
+            "source": "ai"
+          }
+        ],
+        "toc": [
+          {
+            "id": "toc_001",
+            "title": "Momo and the Leopards",
+            "sectionId": "pg001_sec001",
+            "href": "pg001_sec001.html",
+            "chapterId": "pg001_n0002",
+            "level": 1
+          },
+          {
+            "id": "toc_002",
+            "title": "VISION",
+            "sectionId": "pg020_sec001",
+            "href": "pg020_sec001.html",
+            "chapterId": "pg020_n0002",
+            "level": 1
+          }
+        ]
+      },
+      "repetitions": 1,
+      "runSummaries": [
+        {
+          "runId": "gpt-5.4",
+          "runDurationMs": 91736
+        }
+      ],
+      "scores": {
+        "dimensions": {
+          "fidelity": 100,
+          "completeness": 100,
+          "accessibility": 95,
+          "reliability": 100,
+          "latency": 100,
+          "cost": 25.73565
+        },
+        "review": {
+          "score": 1,
+          "itemScores": [
+            {
+              "itemId": "pg001",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg005",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg006",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg007",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg008",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg009",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg010",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg011",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg012",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg013",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg014",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg015",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg016",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg017",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg018",
+              "score": 1,
+              "reviews": 1
+            }
+          ],
+          "requiredItems": 15,
+          "reviewedItems": 15,
+          "coverage": 1,
+          "reviewers": 1,
+          "humanReviewers": 1,
+          "blinded": false
+        },
+        "leaderboards": {
+          "quality": 99.25,
+          "balanced": 91.974
+        },
+        "qualityInterval": {
+          "low": 99.25,
+          "high": 99.25
+        },
+        "eligible": true,
+        "gateFailures": []
+      }
+    },
+    {
+      "id": "gemma-e4b",
+      "runId": "gemma-e4b",
+      "displayName": "Gemma E4B + Mac Fast",
+      "model": "local:gemma4-e4b",
+      "local": true,
+      "documentId": "momo-grade1",
+      "sourcePdfSha256": "3d4e589013715ee89ee0e9ac1e7419daf4e4afd8bbdc9a85eaa4b34dd82c6468",
+      "runDurationMs": 157746,
+      "costUsd": 0,
+      "run": {
+        "label": "momo-benchmark-gemma-e4b-system-1",
+        "pipelineComplete": true,
+        "llmCalls": 141,
+        "llmErrors": 0,
+        "inputTokens": 26912,
+        "outputTokens": 4042
+      },
+      "metrics": {
+        "pageCount": 20,
+        "expectedPages": 20,
+        "sectionedPages": 20,
+        "renderedPages": 20,
+        "pageCoverage": 1,
+        "sourceTextRecall": 1,
+        "captionCount": 15,
+        "accessibility": {
+          "assessedPages": 22,
+          "violations": 0,
+          "incomplete": 0,
+          "disabledRules": [
+            "color-contrast"
+          ]
+        },
+        "export": {
+          "htmlFiles": 23,
+          "mediaFiles": 122,
+          "emptyMediaFiles": 0,
+          "audioDecodeErrors": 0,
+          "missingAssets": [],
+          "browserSmoke": {
+            "passed": true,
+            "htmlFiles": 22,
+            "successfulPages": 22,
+            "errors": []
+          }
+        }
+      },
+      "samples": {
+        "captions": [
+          {
+            "itemId": "pg001",
+            "imageId": "pg001_im001",
+            "caption": "Momo sits on a branch under the night sky while a leopard watches from nearby.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg005",
+            "imageId": "pg005_im001",
+            "caption": "Monkeys sleep on long branches of a tree at night.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg006",
+            "imageId": "pg006_im001",
+            "caption": "A mother leopard walks toward a tree where monkeys are located.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg007",
+            "imageId": "pg007_im001",
+            "caption": "Mother leopard climbed the tree very quietly.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg008",
+            "imageId": "pg008_im001",
+            "caption": "A leopard watches Momo, a baby monkey, sitting on a tree branch at night.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg009",
+            "imageId": "pg009_im001",
+            "caption": "A leopard comes near Momo, and the branch shakes as Momo wakes up and sees the leopard in front of him.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg010",
+            "imageId": "pg010_im001",
+            "caption": "Monkeys shout and throw sticks at the leopard, which has jumped to the ground.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg011",
+            "imageId": "pg011_im001",
+            "caption": "Mother leopard and baby leopard walk through the the ground at night.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg012",
+            "imageId": "pg012_im001",
+            "caption": "The baby leopard climbed the tree quietly while the monkeys slept in the branches.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg013",
+            "imageId": "pg013_im001",
+            "caption": "Momo sleeps on a long branch as the baby leopard quietly climbs onto the branch.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg014",
+            "imageId": "pg014_im001",
+            "caption": "A baby leopard approaches Momo as Momo hangs from a branch.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg015",
+            "imageId": "pg015_im001",
+            "caption": "Momo jumped onto a bigger branch while the baby leopard jumped but could not get Momo.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg016",
+            "imageId": "pg016_im001",
+            "caption": "A baby leopard hangs from a tree branch at night.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg017",
+            "imageId": "pg017_im001",
+            "caption": "A leopard falls down onto its mother.",
+            "decorative": false
+          },
+          {
+            "itemId": "pg018",
+            "imageId": "pg018_im001",
+            "caption": "Monkeys shout and throw sticks as leopards retreat from the branch.",
+            "decorative": false
+          }
+        ],
+        "quizzes": [
+          {
+            "quizIndex": 0,
+            "afterPageId": "pg007",
+            "pageIds": [
+              "pg005",
+              "pg006",
+              "pg007"
+            ],
+            "question": "What did the mother leopard do to get to the monkeys' tree?",
+            "options": [
+              {
+                "text": "1) She flew through the branches.",
+                "explanation": "❌ The text mentions she climbed the tree, not that she flew through it."
+              },
+              {
+                "text": "2) She climbed quietly.",
+                "explanation": "✅ This is correct! The text states she climbed the tree very, very quietly."
+              },
+              {
+                "text": "3) She jumped from the ground.",
+                "explanation": "❌ The text says she climbed the tree, not that she jumped from the ground."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The text describes monkeys sleeping safely in a tree, and then a mother leopard comes and climbs the tree quietly. The question should test the reader's understanding of the leopard's action in relation to the monkeys' safety."
+          },
+          {
+            "quizIndex": 1,
+            "afterPageId": "pg010",
+            "pageIds": [
+              "pg008",
+              "pg009",
+              "pg010"
+            ],
+            "question": "What did the monkeys do when Momo saw the leopard?",
+            "options": [
+              {
+                "text": "1) They ran away quickly.",
+                "explanation": "❌ The monkeys did not run away; they reacted to the leopard."
+              },
+              {
+                "text": "2) They threw sticks at it.",
+                "explanation": "✅ The monkeys shouted and threw sticks at the leopard to scare it."
+              },
+              {
+                "text": "3) They climbed higher up.",
+                "explanation": "❌ The monkeys reacted by shouting and throwing things, not just climbing higher."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The text describes a sequence of events: a girl sees a baby monkey (Momo), tries to approach quietly, but a branch shakes, waking Momo. Momo alerts other monkeys, and they react to the leopard by throwing sticks, causing the leopard to flee."
+          },
+          {
+            "quizIndex": 2,
+            "afterPageId": "pg013",
+            "pageIds": [
+              "pg011",
+              "pg012",
+              "pg013"
+            ],
+            "question": "How did the baby leopard move when it climbed the tree?",
+            "options": [
+              {
+                "text": "1) Fast",
+                "explanation": "❌ While it moved, the text emphasizes that it moved quietly, not just fast."
+              },
+              {
+                "text": "2) Loudly",
+                "explanation": "❌ The text says the baby leopard climbed very quietly, not loudly."
+              },
+              {
+                "text": "3) Quietly",
+                "explanation": "✅ The text states that the baby leopard climbed very, very quietly."
+              }
+            ],
+            "answerIndex": 2,
+            "reasoning": "The text describes a baby leopard climbing a tree quietly at night to reach a sleeping monkey named Momo. The question should test the understanding of the baby leopard's action and its manner of movement."
+          },
+          {
+            "quizIndex": 3,
+            "afterPageId": "pg016",
+            "pageIds": [
+              "pg014",
+              "pg015",
+              "pg016"
+            ],
+            "question": "What happened to the baby leopard after he tried to reach Momo on the bigger branch?",
+            "options": [
+              {
+                "text": "1) He stayed on the branch.",
+                "explanation": "❌ This is incorrect because the text says the baby leopard went down."
+              },
+              {
+                "text": "2) He jumped away.",
+                "explanation": "❌ This is incorrect because the text shows he could not get Momo and went down."
+              },
+              {
+                "text": "3) He went down.",
+                "explanation": "✅ This is correct because the text states, 'Down went the baby leopard.'"
+              }
+            ],
+            "answerIndex": 2,
+            "reasoning": "The text describes a sequence of events: a baby leopard approaches Momo on a long branch, the branch shakes, waking Momo up. Momo moves to a bigger branch, and the baby leopard fails to reach him, eventually falling. The question should test the understanding of the baby leopard's final action or outcome."
+          },
+          {
+            "quizIndex": 4,
+            "afterPageId": "pg018",
+            "pageIds": [
+              "pg017",
+              "pg018"
+            ],
+            "question": "What happened to the leopards after the monkeys shouted and threw sticks?",
+            "options": [
+              {
+                "text": "1) They stayed in the open.",
+                "explanation": "❌ The text says the leopards ran into the forest, so they did not stay in the open."
+              },
+              {
+                "text": "2) They ran away.",
+                "explanation": "✅ The text states that the leopards ran into the forest because of the monkeys."
+              },
+              {
+                "text": "3) They found food.",
+                "explanation": "❌ The text says they did not have a monkey for dinner, meaning they did not find food that night."
+              }
+            ],
+            "answerIndex": 1,
+            "reasoning": "The text describes an event where monkeys woke up, shouted, and threw sticks, causing leopards to run away. The question should test the reader's understanding of the outcome of the monkeys' actions."
+          }
+        ],
+        "glossary": [
+          {
+            "word": "branch",
+            "definition": "A woody part growing from a tree.",
+            "variations": [
+              "branches"
+            ],
+            "emojis": [
+              "🌳",
+              "🌿",
+              "🍃"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "climb",
+            "definition": "To go up or over something, usually by using hands and feet.",
+            "variations": [
+              "climbs",
+              "climbing"
+            ],
+            "emojis": [
+              "🐒",
+              "🌳",
+              "🧗"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "forest",
+            "definition": "A large area covered with many trees.",
+            "variations": [
+              "forest's"
+            ],
+            "emojis": [
+              "🌲",
+              "🌳",
+              "🏞️"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "jumped",
+            "definition": "To push oneself off the ground into the air by using one's legs.",
+            "variations": [
+              "jump",
+              "jumping"
+            ],
+            "emojis": [
+              "🤸",
+              "⬆️",
+              "🐇"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "leopard",
+            "definition": "A large, spotted wild cat.",
+            "variations": [
+              "leopards"
+            ],
+            "emojis": [
+              "🐆",
+              "🐾",
+              "🐅"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "quietly",
+            "definition": "In a way that makes very little noise.",
+            "variations": [
+              "quiet"
+            ],
+            "emojis": [
+              "🤫",
+              "🧘",
+              "🔇"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shook",
+            "definition": "To move quickly back and forth, causing a trembling feeling.",
+            "variations": [
+              "shake",
+              "shaking"
+            ],
+            "emojis": [
+              "〰️",
+              "😨",
+              "💨"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shout",
+            "definition": "To cry out loudly in a sudden, loud voice.",
+            "variations": [
+              "shouting"
+            ],
+            "emojis": [
+              "🗣️",
+              "📢",
+              "📣"
+            ],
+            "source": "ai"
+          },
+          {
+            "word": "shouted",
+            "definition": "To cry out loudly in a loud voice.",
+            "variations": [
+              "shout",
+              "shouting"
+            ],
+            "emojis": [
+              "🗣️",
+              "📢",
+              "📣"
+            ],
+            "source": "ai"
+          }
+        ],
+        "toc": [
+          {
+            "id": "toc_001",
+            "title": "Momo and the Leopards",
+            "sectionId": "pg001_sec001",
+            "href": "pg001_sec001.html",
+            "chapterId": "pg001_n0002",
+            "level": 1
+          },
+          {
+            "id": "toc_002",
+            "title": "Momo and the Leopards",
+            "sectionId": "pg003_sec001",
+            "href": "pg003_sec001.html",
+            "chapterId": "pg003_n0002",
+            "level": 1
+          },
+          {
+            "id": "toc_003",
+            "title": "VISION",
+            "sectionId": "pg020_sec001",
+            "href": "pg020_sec001.html",
+            "chapterId": "pg020_n0002",
+            "level": 1
+          }
+        ]
+      },
+      "repetitions": 1,
+      "runSummaries": [
+        {
+          "runId": "gemma-e4b",
+          "runDurationMs": 157746
+        }
+      ],
+      "scores": {
+        "dimensions": {
+          "fidelity": 84,
+          "completeness": 100,
+          "accessibility": 95,
+          "reliability": 100,
+          "latency": 92.13625,
+          "cost": 100
+        },
+        "review": {
+          "score": 0.7333333333333333,
+          "itemScores": [
+            {
+              "itemId": "pg001",
+              "score": 0,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg005",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg006",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg007",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg008",
+              "score": 0,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg009",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg010",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg011",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg012",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg013",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg014",
+              "score": 0,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg015",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg016",
+              "score": 0,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg017",
+              "score": 1,
+              "reviews": 1
+            },
+            {
+              "itemId": "pg018",
+              "score": 1,
+              "reviews": 1
+            }
+          ],
+          "requiredItems": 15,
+          "reviewedItems": 15,
+          "coverage": 1,
+          "reviewers": 1,
+          "humanReviewers": 1,
+          "blinded": false
+        },
+        "leaderboards": {
+          "quality": 90.45,
+          "balanced": 91.574
+        },
+        "qualityInterval": {
+          "low": 81.65,
+          "high": 97.05
+        },
+        "eligible": true,
+        "gateFailures": []
+      }
+    }
+  ],
+  "rankings": {
+    "quality": [
+      {
+        "rank": 1,
+        "candidateId": "gpt-5.4",
+        "eligible": true,
+        "score": 99.25
+      },
+      {
+        "rank": 2,
+        "candidateId": "gemma-e4b",
+        "eligible": true,
+        "score": 90.45
+      }
+    ],
+    "balanced": [
+      {
+        "rank": 1,
+        "candidateId": "gpt-5.4",
+        "eligible": true,
+        "score": 91.974
+      },
+      {
+        "rank": 2,
+        "candidateId": "gemma-e4b",
+        "eligible": true,
+        "score": 91.574
+      }
+    ]
+  },
+  "pairwiseRanking": null,
+  "paretoFrontier": [
+    "gpt-5.4",
+    "gemma-e4b"
+  ]
+}

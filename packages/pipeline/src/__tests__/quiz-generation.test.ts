@@ -8,6 +8,7 @@ import type {
 import {
   extractTextFromHtml,
   isContentPage,
+  isQuizEndMatter,
   batchPages,
   buildQuizGenerationConfig,
   generateQuiz,
@@ -232,6 +233,26 @@ describe("batchPages", () => {
     ]
 
     expect(batchPages(pages, 2, [])).toEqual([])
+  })
+
+  it("excludes institutional vision and copyright end matter", () => {
+    const vision = makePageInput(
+      "pg020",
+      "<h1>VISION</h1><p>An enlightened society built on Bhutanese values and GNH.</p>",
+    )
+    const copyright = makePageInput(
+      "pg002",
+      "<p>Copyright 2026. All rights reserved. ISBN 123.</p>",
+    )
+    const lesson = makePageInput(
+      "pg003",
+      "<h1>Vision</h1><p>Light enters the eye and helps us see.</p>",
+    )
+
+    expect(isQuizEndMatter(vision)).toBe(true)
+    expect(isQuizEndMatter(copyright)).toBe(true)
+    expect(isQuizEndMatter(lesson)).toBe(false)
+    expect(batchPages([vision, copyright, lesson], 3)).toEqual([[lesson]])
   })
 })
 

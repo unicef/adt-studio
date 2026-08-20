@@ -6,6 +6,7 @@ import { usePages } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useLlmAccess } from "@/hooks/use-llm-access"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageContentGuard } from "../../components/StageContentGuard"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -25,7 +26,8 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
   const { data: pages, isLoading } = usePages(bookLabel)
   const { setExtra } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const { hasLlmAccess: hasApiKey } = useLlmAccess(bookLabel)
   const captionsState = stageState("captions")
   const captionsDone = captionsState === "done"
   const captionsRunning = captionsState === "running" || captionsState === "queued"

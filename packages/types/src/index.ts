@@ -250,6 +250,7 @@ export {
   ImageCaption,
   ImageCaptioningOutput,
   imageCaptioningLLMSchema,
+  imageCaptioningLocalLLMSchema,
 } from "./image-captioning.js"
 
 export {
@@ -317,6 +318,10 @@ export {
 } from "./easy-read.js"
 
 export {
+  LocalTTSAdapter,
+  LocalTTSDtype,
+  LocalTTSDevice,
+  LocalTTSModelManifest,
   TTSProviderConfig,
   TTSRateLimitConfig,
   SpeechConfig,

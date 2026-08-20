@@ -33,9 +33,19 @@ const extraResources = [
     from: "../../assets",
     to: "assets",
   },
+  {
+    from: ".runtime/llama",
+    to: "llama",
+  },
+  {
+    from: ".runtime/kokoro",
+    to: "kokoro",
+  },
 ];
 
-const version = process.env.APP_VERSION || require("./package.json").version;
+const packageJson = require("./package.json");
+const version = process.env.APP_VERSION || packageJson.version;
+const electronVersion = packageJson.devDependencies.electron;
 
 const skipTargets = new Set(
   (process.env.SKIP_NOTARIZE || "")
@@ -71,7 +81,7 @@ const artifactName = `${productName}-\${version}.\${ext}`
 const config = {
   appId,
   productName,
-  electronVersion: "41.1.1",
+  electronVersion,
   directories: {
     buildResources: "build",
     output: "release",
@@ -113,7 +123,6 @@ const config = {
     entitlementsInherit: "build/entitlements.mac.plist",
     identity: skipMac ? null : "Developer ID Application",
     ...(skipMac ? { notarize: false } : {}),
-    extraResources,
     extendInfo: {
       NSCameraUsageDescription:
         "Application requests access to the device's camera.",

@@ -1,0 +1,159 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/unicef/adt-studio/evals/schema/adt-eval-suite.schema.json",
+  "title": "ADT model evaluation suite",
+  "type": "object",
+  "required": ["schemaVersion", "id", "candidates"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "title": { "type": "string" },
+    "seed": { "type": "integer" },
+    "documentFiles": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "documents": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/document" }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/candidate" }
+    },
+    "reviewFiles": { "type": "array", "items": { "type": "string" } },
+    "recommendationPolicy": {
+      "type": "object",
+      "properties": {
+        "minimumDocuments": { "type": "integer", "minimum": 2 },
+        "minimumDocumentsPerStratum": { "type": "integer", "minimum": 2 },
+        "minimumPracticalDifference": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "judgePolicy": {
+      "type": "object",
+      "properties": {
+        "humanReviewerIds": { "type": "array", "items": { "type": "string" } },
+        "minimumHumanReviewers": { "type": "integer", "minimum": 1 },
+        "minimumMetaExamples": { "type": "integer", "minimum": 1 },
+        "minimumMacroF1": { "type": "number", "minimum": 0, "maximum": 1 },
+        "minimumKappa": { "type": "number", "minimum": -1, "maximum": 1 },
+        "minimumCoverage": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "gates": {
+      "type": "object",
+      "properties": {
+        "maxLlmErrors": { "type": "integer", "minimum": 0 },
+        "maxAccessibilityViolations": { "type": "integer", "minimum": 0 },
+        "maxAccessibilityIncomplete": { "type": "integer", "minimum": 0 },
+        "minimumPageCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "minimumReviewCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "minimumReviewers": { "type": "integer", "minimum": 0 },
+        "minimumHumanReviewers": { "type": "integer", "minimum": 0 },
+        "minimumAtomicDecisionCoverage": { "type": "number", "minimum": 0, "maximum": 1 },
+        "minimumCaptionScore": { "type": "number", "minimum": 0, "maximum": 100 }
+        ,"requireBrowserSmoke": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "utilityAnchors": {
+      "type": "object",
+      "properties": {
+        "latencyTargetMs": { "type": "number", "minimum": 0 },
+        "latencyMaxMs": { "type": "number", "exclusiveMinimum": 0 },
+        "costTargetUsd": { "type": "number", "minimum": 0 },
+        "costMaxUsd": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": { "enum": ["fidelity", "completeness", "accessibility", "reliability", "latency", "cost"] },
+        "additionalProperties": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    }
+  },
+  "$defs": {
+    "captionRubric": {
+      "type": "object",
+      "required": ["itemId", "criterion"],
+      "properties": {
+        "itemId": { "type": "string", "pattern": "^pg[0-9]{3}$" },
+        "criterion": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "document": {
+      "type": "object",
+      "required": ["id", "expectedPages"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string" },
+        "language": { "type": "string" },
+        "strata": {
+          "type": "object",
+          "properties": {
+            "language": { "type": "string" },
+            "domain": { "type": "string" },
+            "contentType": { "type": "string" },
+            "audience": { "type": "string" },
+            "layoutComplexity": { "type": "string" },
+            "sourceQuality": { "type": "string" },
+            "riskLevel": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "expectedPages": { "type": "integer", "minimum": 1 },
+        "sourcePdf": { "type": "string" },
+        "sourcePdfSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "limitations": { "type": "string" },
+        "rubric": {
+          "type": "object",
+          "properties": { "captions": { "type": "array", "items": { "$ref": "#/$defs/captionRubric" } } },
+          "additionalProperties": false
+        }
+      }
+    },
+    "run": {
+      "type": "object",
+      "required": ["runFile", "bookDir"],
+      "properties": {
+        "id": { "type": "string" },
+        "runFile": { "type": "string", "minLength": 1 },
+        "bookDir": { "type": "string", "minLength": 1 },
+        "smokeFile": { "type": "string", "minLength": 1 },
+        "costUsd": { "type": "number", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "candidate": {
+      "type": "object",
+      "required": ["id", "model", "documentId"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "displayName": { "type": "string" },
+        "systemId": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "local": { "type": "boolean" },
+        "documentId": { "type": "string", "minLength": 1 },
+        "runFile": { "type": "string" },
+        "bookDir": { "type": "string" },
+        "smokeFile": { "type": "string" },
+        "costUsd": { "type": "number", "minimum": 0 },
+        "pricing": {
+          "type": "object",
+          "properties": {
+            "inputPerMillionUsd": { "type": "number", "minimum": 0 },
+            "outputPerMillionUsd": { "type": "number", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "runs": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/run" } }
+      }
+    }
+  }
+}

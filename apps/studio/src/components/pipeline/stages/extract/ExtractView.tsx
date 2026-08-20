@@ -5,6 +5,7 @@ import { useLingui } from "@lingui/react/macro"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useLlmAccess } from "@/hooks/use-llm-access"
 import { ExtractPageDetail } from "./components/ExtractPageDetail"
 import { SpreadReview } from "./components/SpreadReview"
 import { BookHeader } from "./BookHeader"
@@ -123,7 +124,8 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   const { t } = useLingui()
   const { data: pages, isLoading } = usePages(bookLabel)
   const { stageState, stepState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const { hasLlmAccess: hasApiKey } = useLlmAccess(bookLabel)
   const selectedPageId = selectedPageIdProp ?? null
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()

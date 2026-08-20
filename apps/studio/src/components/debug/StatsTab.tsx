@@ -1,6 +1,8 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import { usePipelineStats } from "@/hooks/use-debug"
 import { Badge } from "@/components/ui/badge"
+import { useQuery } from "@tanstack/react-query"
+import { api } from "@/api/client"
 
 interface StatsTabProps {
   label: string
@@ -20,6 +22,11 @@ function formatTokens(n: number, locale: string): string {
   }).format(n)
 }
 
+function formatGigabytes(bytes: number): string {
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- SI-style unit abbreviation, not interface copy.
+  return `${(bytes / 1024 ** 3).toFixed(1)} GB`
+}
+
 function estimateCost(inputTokens: number, outputTokens: number): string {
   const cost = (inputTokens * 2.5 + outputTokens * 10) / 1_000_000
   return `$${cost.toFixed(4)}`
@@ -29,6 +36,11 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
   const { i18n } = useLingui()
   const { data, isLoading, error } = usePipelineStats(label, {
     refetchInterval: isRunning ? 3000 : false,
+  })
+  const localAI = useQuery({
+    queryKey: ["local-ai", "status"],
+    queryFn: api.getLocalAIStatus,
+    refetchInterval: isRunning ? 3000 : 10_000,
   })
 
   if (isLoading) {
@@ -53,9 +65,37 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
   const cacheHitRate = totals.calls > 0
     ? ((totals.cacheHits / totals.calls) * 100).toFixed(1)
     : "0"
+  const localCompute = localAI.data?.state === "ready"
+    ? [localAI.data.backend, localAI.data.deviceMemoryBytes ? formatGigabytes(localAI.data.deviceMemoryBytes) : null]
+        .filter(Boolean)
+        .join(" · ")
+    : localAI.data?.state
 
   return (
     <div className="p-6 space-y-6 text-sm">
+      {localAI.data && (
+        <div className="rounded-lg border bg-card p-4">
+          <div className="mb-3 text-xs font-medium text-muted-foreground">
+            <Trans>Local AI runtime</Trans>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div><div className="text-xs text-muted-foreground"><Trans>Model</Trans></div><div className="mt-1 font-mono text-xs">{localAI.data.loadedModelId ?? "-"}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Compute</Trans></div><div className="mt-1">{localCompute}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Context</Trans></div><div className="mt-1 tabular-nums">{localAI.data.contextSize.toLocaleString(i18n.locale)} tokens</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Parallel slots</Trans></div><div className="mt-1 tabular-nums">{localAI.data.parallelSlots}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Last request</Trans></div><div className="mt-1 tabular-nums">{localAI.data.lastRequestMs == null ? "-" : formatDuration(localAI.data.lastRequestMs)}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Prompt speed</Trans></div><div className="mt-1 tabular-nums">{localAI.data.promptTokensPerSecond == null ? "-" : `${localAI.data.promptTokensPerSecond.toFixed(1)} tok/s`}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Generation speed</Trans></div><div className="mt-1 tabular-nums">{localAI.data.generatedTokensPerSecond == null ? "-" : `${localAI.data.generatedTokensPerSecond.toFixed(1)} tok/s`}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Runtime</Trans></div><div className="mt-1 font-mono text-xs">llama.cpp {localAI.data.runtimeVersion ?? "-"}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Requests</Trans></div><div className="mt-1 tabular-nums">{localAI.data.requests}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>GPU layers</Trans></div><div className="mt-1 tabular-nums">{localAI.data.gpuLayersLoaded == null ? "-" : localAI.data.gpuLayersLoaded}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Model on GPU</Trans></div><div className="mt-1 tabular-nums">{localAI.data.modelGpuMemoryBytes == null ? "-" : formatGigabytes(localAI.data.modelGpuMemoryBytes)}</div></div>
+            <div><div className="text-xs text-muted-foreground"><Trans>Process</Trans></div><div className="mt-1 tabular-nums">{localAI.data.processId ?? "-"}</div></div>
+          </div>
+          {localAI.data.device && <p className="mt-3 text-xs text-muted-foreground">{localAI.data.device}</p>}
+          {localAI.data.error && <p className="mt-3 text-xs text-destructive">{localAI.data.error}</p>}
+        </div>
+      )}
       <div className="grid grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="rounded-lg border bg-card p-4">
           <div className="text-xs text-muted-foreground mb-1">

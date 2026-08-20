@@ -31,9 +31,7 @@ import { useFriendlyArchiveError, type FriendlyError } from "@/hooks/use-archive
 import { api, isPartImportPreview } from "@/api/client"
 import type { AnyImportPreview, ImportPreview, PartImportPreview } from "@/api/client"
 
-/* eslint-disable-next-line lingui/no-unlocalized-strings */
 const DROP_ZONE_HEIGHT = "h-[334px]"
-
 
 const FEATURE_STAGES: {
   name: string
@@ -250,7 +248,6 @@ function PartPreviewCard({ preview, fileName, fileSize }: { preview: PartImportP
     </div>
   )
 }
-
 
 export function ImportProject() {
   const { t } = useLingui()

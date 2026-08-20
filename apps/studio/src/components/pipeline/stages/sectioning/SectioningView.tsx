@@ -4,6 +4,7 @@ import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useLlmAccess } from "@/hooks/use-llm-access"
 import { StageRunCard } from "../../components/StageRunCard"
 import { LoadingState } from "../../components/LoadingState"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -20,7 +21,8 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const [overviewMode, setOverviewMode] = useState(false)
   const { setExtra, setOnLabelClick } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const { hasLlmAccess: hasApiKey } = useLlmAccess(bookLabel)
   const sectioningState = stageState("sectioning")
   const sectioningDone = sectioningState === "done"
   const sectioningRunning = sectioningState === "running" || sectioningState === "queued"

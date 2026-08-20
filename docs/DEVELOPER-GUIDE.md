@@ -312,7 +312,7 @@ HTML layout templates used by template-based render strategies (e.g., `two_colum
 
 ## 7. Developer Setup (Local)
 
-**Prerequisites**: [Node.js](https://nodejs.org/) >= 22, [pnpm](https://pnpm.io/) 10.32.1 (via `corepack enable && corepack prepare pnpm@10.32.1 --activate`), and Playwright Chromium.
+**Prerequisites**: [Node.js](https://nodejs.org/) >= 22.13, [pnpm](https://pnpm.io/) 10.32.1 (via `corepack enable && corepack prepare pnpm@10.32.1 --activate`), and Playwright Chromium.
 
 ```bash
 git clone git@github.com:unicef/adt-studio.git

@@ -18,6 +18,7 @@ export const { useAppForm, useTypedAppFormContext } = createFormHook({
 
 export const defaultWizardValues = {
   selectedPreset: null as string | null,
+  generationModel: "",
   label: "",
   file: null as File | null,
   startPage: "",

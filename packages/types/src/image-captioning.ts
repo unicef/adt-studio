@@ -42,3 +42,16 @@ export const imageCaptioningLLMSchema = z.object({
     })
   ),
 })
+
+/** Small local models often omit an optional-looking boolean. Default it
+ * locally; cloud strict-output schemas continue using the required variant. */
+export const imageCaptioningLocalLLMSchema = z.object({
+  captions: z.array(
+    z.object({
+      image_id: z.string(),
+      reasoning: z.string(),
+      caption: z.string(),
+      decorative: z.boolean().default(false),
+    })
+  ),
+})

@@ -9,6 +9,7 @@ import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNod
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
+import { loadBookConfig } from "@adt/pipeline"
 
 const StageRunBody = z
   .object({
@@ -72,13 +73,11 @@ export function createStageRoutes(
   // POST /books/:label/stages/run — Start or queue a stage-scoped run
   app.post("/books/:label/stages/run", async (c) => {
     const { label } = c.req.param()
-    const apiKey = c.req.header("X-OpenAI-Key")
-
-    if (!apiKey) {
-      throw new HTTPException(400, {
-        message: "API key required. Set X-OpenAI-Key header.",
-      })
-    }
+    const apiKey = c.req.header("X-OpenAI-Key") || undefined
+    const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
+    const googleApiKey = c.req.header("X-Google-API-Key") || undefined
+    const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
+    const customApiKey = c.req.header("X-Custom-API-Key") || undefined
 
     let body: unknown
     try {
@@ -96,10 +95,14 @@ export function createStageRoutes(
 
     const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
 
-    const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
-    const googleApiKey = c.req.header("X-Google-API-Key") || undefined
-    const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
-    const customApiKey = c.req.header("X-Custom-API-Key") || undefined
+    const config = loadBookConfig(label, booksDir, configPath)
+    const serializedConfig = JSON.stringify(config)
+    const hasLocalModel = serializedConfig.includes('"local:') || serializedConfig.includes('"ollama:')
+    if (!apiKey && !anthropicApiKey && !googleApiKey && !customBaseUrl && !hasLocalModel) {
+      throw new HTTPException(400, {
+        message: "No usable AI provider configured. Select a local model or provide the matching cloud credential.",
+      })
+    }
     const azureSpeechKey = c.req.header("X-Azure-Speech-Key") || undefined
     const azureSpeechRegion = c.req.header("X-Azure-Speech-Region") || undefined
     const geminiApiKey = c.req.header("X-Gemini-API-Key") || undefined
@@ -111,7 +114,7 @@ export function createStageRoutes(
 
     const result = stageService.startStageRun(label, {
       booksDir,
-      apiKey,
+      apiKey: apiKey ?? "",
       anthropicApiKey,
       googleApiKey,
       customBaseUrl,

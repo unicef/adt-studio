@@ -196,8 +196,16 @@ export function buildMeaningfulnessConfig(
 ): MeaningfulnessConfig | null {
   if (appConfig.image_filters?.meaningfulness === false) return null
 
-  const model = appConfig.image_meaningfulness?.model ?? appConfig.default_model
+  const explicitModel = appConfig.image_meaningfulness?.model
+  const model = explicitModel ?? appConfig.default_model
   if (!model) return null
+  // Embedded multimodal models can occasionally echo the schema for this
+  // optional refinement. Preserve the deterministic filter result by default;
+  // an advanced config can opt in explicitly.
+  if (
+    model.startsWith("local:") &&
+    !explicitModel
+  ) return null
 
   return {
     promptName: appConfig.image_meaningfulness?.prompt ?? "image_meaningfulness",
@@ -245,6 +253,9 @@ export async function filterPageImageMeaningfulness(
     images: Array<{ image_id: string; reasoning: string; is_meaningful: boolean }>
   }>({
     schema: imageMeaningfulnessLLMSchema,
+    // This schema is non-recursive, so llama.cpp can constrain generation
+    // directly instead of asking Gemma to reproduce it from prompt text.
+    mode: "auto",
     prompt: config.promptName,
     context: {
       page_image_base64: input.pageImageBase64,
@@ -273,7 +284,9 @@ export async function filterPageImageMeaningfulness(
       return { valid: errors.length === 0, errors }
     },
     maxRetries: config.maxRetries,
-    maxTokens: 4096,
+    // This response is a short bounded array. Scale the ceiling with the
+    // expected objects so malformed local schema echoes fail fast.
+    maxTokens: Math.min(1024, Math.max(256, input.images.length * 192)),
     log: {
       taskType: "image-meaningfulness",
       pageId: input.pageId,

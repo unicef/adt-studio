@@ -14,6 +14,7 @@ import {
   flattenTreeToText,
   runValidator,
   sectionPage,
+  trySectionPageDeterministically,
   type PageSectioningConfig,
   type PageSectioningInput,
 } from "../page-sectioning.js"
@@ -81,6 +82,7 @@ function makeConfig(
     maxRetries: 5,
     maxRefinements: 0,
     mode: "dynamic",
+    strategy: "llm",
     ...overrides,
   }
 }
@@ -223,6 +225,72 @@ describe("buildPageSectioningConfig", () => {
       page_sectioning: { mode: "page" },
     }
     expect(buildPageSectioningConfig(appConfig).mode).toBe("page")
+  })
+
+  it("uses deterministic auto routing for local models", () => {
+    const config = buildPageSectioningConfig({
+      role_types: { text: "Body" },
+      structure_types: { paragraph: "Paragraph" },
+      default_model: "local:gemma4-e2b",
+    })
+    expect(config.strategy).toBe("auto")
+  })
+})
+
+describe("deterministic sectioning", () => {
+  const deterministicConfig = makeConfig({
+    strategy: "auto",
+    structureTypes: [
+      { key: "group", description: "Group" },
+      { key: "image_group", description: "Image with text" },
+    ],
+    roleTypes: [
+      { key: "text", description: "Body" },
+      { key: "image", description: "Image" },
+      { key: "page_number", description: "Page number" },
+      { key: "footer", description: "Footer" },
+    ],
+    sectionTypes: [{ key: "text_and_single_image", description: "Story page" }],
+    prunedRoleTypes: ["page_number", "footer"],
+  })
+
+  it("structures a high-confidence story page without an LLM", () => {
+    const result = trySectionPageDeterministically(makeInput({
+      pageId: "pg005",
+      pageNumber: 5,
+      availableImages: [{ imageId: "pg005_im001", imageBase64: "image" }],
+      positionedText: {
+        pageWidth: 600,
+        pageHeight: 800,
+        renderWidth: 1200,
+        renderHeight: 1600,
+        drawItems: [
+          { kind: "image", imageId: "pg005_im001", bounds: { x: 50, y: 80, width: 500, height: 600 } },
+          { kind: "paragraph", textId: "p1", top: 500, left: 90, lineHeight: 24, text: "The monkeys climbed the tree.", segments: [] },
+          { kind: "paragraph", textId: "p2", top: 650, left: 290, lineHeight: 24, text: "5", segments: [] },
+          { kind: "paragraph", textId: "p3", top: 680, left: 460, lineHeight: 8, text: "Reprint 2023", segments: [] },
+        ],
+      },
+    }), deterministicConfig)
+
+    expect(result?.sections[0].sectionType).toBe("text_and_single_image")
+    expect(flattenTreeToText(result!)).toBe("The monkeys climbed the tree.")
+    expect(result?.sections[0].nodes[1]).toMatchObject({ role: "page_number", isPruned: true })
+    expect(result?.sections[0].nodes[2]).toMatchObject({ role: "footer", isPruned: true })
+  })
+
+  it("falls back when geometry is ambiguous", () => {
+    const result = trySectionPageDeterministically(makeInput({
+      availableImages: [{ imageId: "image", imageBase64: "image" }],
+      positionedText: {
+        pageWidth: 600,
+        pageHeight: 800,
+        renderWidth: 1200,
+        renderHeight: 1600,
+        drawItems: [{ kind: "image", imageId: "image", bounds: { x: 0, y: 0, width: 80, height: 80 } }],
+      },
+    }), deterministicConfig)
+    expect(result).toBeNull()
   })
 })
 

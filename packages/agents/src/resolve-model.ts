@@ -2,6 +2,7 @@ import { createOpenAI, openai } from "@ai-sdk/openai"
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic"
 import { createGoogleGenerativeAI, google } from "@ai-sdk/google"
 import type { LanguageModel } from "ai"
+import { localLlmOpenAIBaseUrl, ollamaOpenAIBaseUrl, resolveOllamaModelName } from "@adt/llm"
 
 export interface AgentCredentials {
   openaiApiKey?: string
@@ -45,6 +46,20 @@ export function resolveAgentModel(
       const client = credentials?.googleApiKey
         ? createGoogleGenerativeAI({ apiKey: credentials.googleApiKey })
         : google
+      return client(model)
+    }
+    case "ollama": {
+      const client = createOpenAI({
+        baseURL: ollamaOpenAIBaseUrl(),
+        apiKey: "ollama",
+      })
+      return client(resolveOllamaModelName(model))
+    }
+    case "local": {
+      const client = createOpenAI({
+        baseURL: localLlmOpenAIBaseUrl(),
+        apiKey: "local",
+      })
       return client(model)
     }
     default:

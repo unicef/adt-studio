@@ -5,6 +5,7 @@ import { useSettingsRemount } from "./use-settings-remount"
 import { useRegisterDirtyTabs } from "./use-settings-dirty-tabs"
 import { useBookRun } from "./use-book-run"
 import { useApiKey } from "./use-api-key"
+import { useLlmAccess } from "./use-llm-access"
 import { useLingui } from "@lingui/react/macro"
 
 export function useStageSettingsBar({
@@ -27,7 +28,8 @@ export function useStageSettingsBar({
   const { t } = useLingui()
   const remount = useSettingsRemount()
   const { queueRun } = useBookRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const { hasLlmAccess } = useLlmAccess(bookLabel)
   const navigate = useNavigate()
 
   useRegisterDirtyTabs(`settings:${stage}`, stage, dirtyTabs)
@@ -51,6 +53,6 @@ export function useStageSettingsBar({
       queueRun({ fromStage: stage, toStage: stage, apiKey })
     },
     onDiscard: remount,
-    rerunDisabledReason: hasApiKey ? undefined : t`Add an API key to re-run`,
+    rerunDisabledReason: hasLlmAccess ? undefined : t`Configure an AI provider to re-run`,
   })
 }

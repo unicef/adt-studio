@@ -109,7 +109,9 @@ import { nullProgress, type Progress } from "./progress.js"
 import { processWithConcurrency } from "./concurrency.js"
 import { runPipelineDAG, type StepExecutor, type PipelineDAGResult } from "./dag.js"
 
-const DEFAULT_METADATA_PAGES = 3
+// Keep CLI and desktop metadata sampling identical. Early front matter often
+// has publisher names but no representative narrative language.
+const DEFAULT_METADATA_PAGES = 5
 
 /**
  * Wrap a Progress so only step-progress and llm-log events pass through.
@@ -771,7 +773,14 @@ export async function runFullPipeline(
           }))
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
           const result = await captionPageImages(
-            { pageId: page.pageId, pageImageBase64, images, language, bookSummary },
+            {
+              pageId: page.pageId,
+              pageImageBase64,
+              pageText: page.text,
+              images,
+              language,
+              bookSummary,
+            },
             captionConfig,
             model,
           )
@@ -1019,6 +1028,17 @@ export async function runFullPipeline(
       const defaultProvider = config.speech?.default_provider ?? "openai"
       const providerConfigs = config.speech?.providers ?? {}
       const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
+
+      // Local-first book creation must remain usable without a cloud speech
+      // account. Speech is optional and can be generated later after a cloud
+      // TTS provider is configured.
+      if (
+        (config.default_model?.startsWith("local:") || config.default_model?.startsWith("ollama:")) &&
+        defaultProvider === "openai" &&
+        !process.env.OPENAI_API_KEY?.trim()
+      ) {
+        return
+      }
 
       const synthesizers = new Map<string, TTSSynthesizer>()
       function getSynthesizer(providerName: string): TTSSynthesizer {

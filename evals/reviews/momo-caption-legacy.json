@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "reviews": [
+    {
+      "reviewerId": "legacy-manual-review",
+      "blinded": false,
+      "candidateId": "gpt-5.4",
+      "dimension": "captionFidelity",
+      "items": [
+        { "itemId": "pg001", "score": 1 },
+        { "itemId": "pg005", "score": 1 },
+        { "itemId": "pg006", "score": 1 },
+        { "itemId": "pg007", "score": 1 },
+        { "itemId": "pg008", "score": 1 },
+        { "itemId": "pg009", "score": 1 },
+        { "itemId": "pg010", "score": 1 },
+        { "itemId": "pg011", "score": 1 },
+        { "itemId": "pg012", "score": 1 },
+        { "itemId": "pg013", "score": 1 },
+        { "itemId": "pg014", "score": 1 },
+        { "itemId": "pg015", "score": 1 },
+        { "itemId": "pg016", "score": 1 },
+        { "itemId": "pg017", "score": 1 },
+        { "itemId": "pg018", "score": 1 }
+      ]
+    },
+    {
+      "reviewerId": "legacy-manual-review",
+      "blinded": false,
+      "candidateId": "gemma-e4b",
+      "dimension": "captionFidelity",
+      "items": [
+        { "itemId": "pg001", "score": 0 },
+        { "itemId": "pg005", "score": 1 },
+        { "itemId": "pg006", "score": 1 },
+        { "itemId": "pg007", "score": 1 },
+        { "itemId": "pg008", "score": 0 },
+        { "itemId": "pg009", "score": 1 },
+        { "itemId": "pg010", "score": 1 },
+        { "itemId": "pg011", "score": 1 },
+        { "itemId": "pg012", "score": 1 },
+        { "itemId": "pg013", "score": 1 },
+        { "itemId": "pg014", "score": 0 },
+        { "itemId": "pg015", "score": 1 },
+        { "itemId": "pg016", "score": 0 },
+        { "itemId": "pg017", "score": 1 },
+        { "itemId": "pg018", "score": 1 }
+      ]
+    }
+  ]
+}

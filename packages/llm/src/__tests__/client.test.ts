@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
 import { z } from "zod"
 import { createLLMModel } from "../client.js"
 
@@ -46,6 +49,7 @@ vi.mock("@ai-sdk/google", () => ({
 describe("createLLMModel credentials", () => {
   afterEach(() => {
     vi.clearAllMocks()
+    delete process.env.LOCAL_LLM_OPENAI_BASE_URL
   })
 
   it("uses a request-scoped OpenAI client when openaiApiKey is provided", async () => {
@@ -140,6 +144,113 @@ describe("createLLMModel credentials", () => {
       2,
       expect.objectContaining({ model: googleModel }),
     )
+  })
+
+  it("maps stable Gemma aliases to the local Ollama OpenAI endpoint", async () => {
+    const ollamaModel = { provider: "ollama" }
+    const ollamaProvider = vi.fn(() => ollamaModel)
+    createOpenAIMock.mockReturnValue(ollamaProvider)
+    generateObjectMock.mockResolvedValue({
+      object: { ok: true },
+      usage: { promptTokens: 1, completionTokens: 2 },
+    })
+
+    const llm = createLLMModel({ modelId: "ollama:gemma4-26b" })
+    await llm.generateObject({
+      schema: z.object({ ok: z.boolean() }),
+      messages: [{ role: "user", content: "hello" }],
+    })
+
+    expect(createOpenAIMock).toHaveBeenCalledWith({
+      baseURL: "http://127.0.0.1:11434/v1",
+      apiKey: "ollama",
+    })
+    expect(ollamaProvider).toHaveBeenCalledWith("gemma4:26b", { structuredOutputs: false })
+    expect(generateObjectMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: ollamaModel,
+        mode: "json",
+        providerOptions: { openai: { reasoningEffort: "none" } },
+      }),
+    )
+  })
+
+  it("enables provider-enforced schemas for local auto mode", async () => {
+    process.env.LOCAL_LLM_OPENAI_BASE_URL = "http://127.0.0.1:3133/api/local-ai/openai/v1"
+    const localModel = { provider: "local" }
+    const localProvider = vi.fn(() => localModel)
+    createOpenAIMock.mockReturnValue(localProvider)
+    generateObjectMock.mockResolvedValue({
+      object: { ok: true },
+      usage: { promptTokens: 1, completionTokens: 2 },
+    })
+
+    const llm = createLLMModel({ modelId: "local:gemma4-12b" })
+    await llm.generateObject({
+      schema: z.object({ ok: z.boolean() }),
+      mode: "auto",
+      messages: [{ role: "user", content: "hello" }],
+    })
+
+    expect(localProvider).toHaveBeenCalledWith("gemma4-12b", {
+      structuredOutputs: true,
+    })
+  })
+
+  it("schema-validates recovered local JSON before custom validation", async () => {
+    const ollamaModel = { provider: "ollama" }
+    createOpenAIMock.mockReturnValue(vi.fn(() => ollamaModel))
+    generateObjectMock
+      .mockResolvedValueOnce({
+        object: { type: "object", properties: {} },
+        usage: { promptTokens: 1, completionTokens: 2 },
+      })
+      .mockResolvedValueOnce({
+        object: { images: [] },
+        usage: { promptTokens: 1, completionTokens: 2 },
+      })
+
+    const customValidate = vi.fn(() => ({ valid: true, errors: [] }))
+    const llm = createLLMModel({ modelId: "ollama:gemma4-26b" })
+    const result = await llm.generateObject<{ images: unknown[] }>({
+      schema: z.object({ images: z.array(z.unknown()) }),
+      messages: [{ role: "user", content: "hello" }],
+      validate: customValidate,
+      maxRetries: 1,
+    })
+
+    expect(result.object).toEqual({ images: [] })
+    expect(generateObjectMock).toHaveBeenCalledTimes(2)
+    expect(customValidate).toHaveBeenCalledTimes(1)
+  })
+
+  it("caches the accepted retry under the original request", async () => {
+    const cacheDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-llm-retry-cache-"))
+    try {
+      openaiProviderMock.mockReturnValue({ provider: "openai" })
+      generateObjectMock
+        .mockResolvedValueOnce({
+          object: { wrong: true },
+          usage: { promptTokens: 1, completionTokens: 1 },
+        })
+        .mockResolvedValueOnce({
+          object: { ok: true },
+          usage: { promptTokens: 1, completionTokens: 1 },
+        })
+
+      const llm = createLLMModel({ modelId: "openai:gpt-4.1", cacheDir })
+      const request = {
+        schema: z.object({ ok: z.boolean() }),
+        messages: [{ role: "user" as const, content: "hello" }],
+        maxRetries: 1,
+      }
+
+      expect((await llm.generateObject(request)).object).toEqual({ ok: true })
+      expect((await llm.generateObject(request)).object).toEqual({ ok: true })
+      expect(generateObjectMock).toHaveBeenCalledTimes(2)
+    } finally {
+      fs.rmSync(cacheDir, { recursive: true, force: true })
+    }
   })
 })
 

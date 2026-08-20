@@ -1,32 +1,78 @@
-import { useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent } from "react"
-import { createPortal } from "react-dom"
-import { Link } from "@tanstack/react-router"
-import { AudioLines, Check, ChevronDown, ChevronRight, ChevronUp, CircleStop, Languages, Loader2, Play, Pause, Plus, RotateCcw, Save, Settings, Trash2, TriangleAlert, Type, Upload, Volume2, VolumeX, WandSparkles, X } from "lucide-react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { DEFAULT_OPENAI_TTS_MODEL_ID, DEFAULT_ELEVENLABS_TTS_MODEL_ID, DEFAULT_ELEVENLABS_VOICE_ID } from "@adt/types"
-import { api, getAudioUrl, BASE_URL } from "@/api/client"
-import type { CoreTtsCatalogEntry, TextCatalogEntry, TranslationEvaluationStatusResponse, WordTimestamp, WordTimestampEntry } from "@/api/client"
-import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
-import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
-import { useActiveConfig } from "@/hooks/use-debug"
-import { useBook } from "@/hooks/use-books"
-import { useStepHeader } from "../../components/StepViewRouter"
-import { LoadingState } from "../../components/LoadingState"
-import { useBookRun } from "@/hooks/use-book-run"
-import { useBookTasks } from "@/hooks/use-book-tasks"
-import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
-import { useApiKey } from "@/hooks/use-api-key"
-import { StageRunCard } from "../../components/StageRunCard"
-import { StageEmptyState } from "../../components/StageEmptyState"
-import { useVirtualizer } from "@tanstack/react-virtual"
-import { cn } from "@/lib/utils"
-import { normalizeLocale } from "@/lib/languages"
-import { languageUsesSpeechProvider, resolveSpeechProviderForLanguage } from "@/lib/speech-routing"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { isTranslationEvaluationEnabled, resolveTranslationLanguageState } from "./lib/translations-view-state"
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  type ChangeEvent,
+} from "react";
+import { createPortal } from "react-dom";
+import { Link } from "@tanstack/react-router";
+import {
+  AudioLines,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  CircleStop,
+  Languages,
+  Loader2,
+  Play,
+  Pause,
+  Plus,
+  RotateCcw,
+  Save,
+  Settings,
+  Trash2,
+  TriangleAlert,
+  Type,
+  Upload,
+  Volume2,
+  VolumeX,
+  WandSparkles,
+  X,
+} from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  DEFAULT_OPENAI_TTS_MODEL_ID,
+  DEFAULT_ELEVENLABS_TTS_MODEL_ID,
+  DEFAULT_ELEVENLABS_VOICE_ID,
+} from "@adt/types";
+import { api, getAudioUrl, BASE_URL } from "@/api/client";
+import type {
+  CoreTtsCatalogEntry,
+  TextCatalogEntry,
+  TranslationEvaluationStatusResponse,
+  WordTimestamp,
+  WordTimestampEntry,
+} from "@/api/client";
+import { VersionPicker } from "@/components/pipeline/components/VersionPicker";
+import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config";
+import { useActiveConfig } from "@/hooks/use-debug";
+import { useBook } from "@/hooks/use-books";
+import { useStepHeader } from "../../components/StepViewRouter";
+import { LoadingState } from "../../components/LoadingState";
+import { useBookRun } from "@/hooks/use-book-run";
+import { useBookTasks } from "@/hooks/use-book-tasks";
+import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts";
+import { useApiKey } from "@/hooks/use-api-key";
+import { StageRunCard } from "../../components/StageRunCard";
+import { StageEmptyState } from "../../components/StageEmptyState";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import { cn } from "@/lib/utils";
+import { normalizeLocale } from "@/lib/languages";
+import {
+  languageUsesSpeechProvider,
+  resolveSpeechProviderForLanguage,
+} from "@/lib/speech-routing";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  isTranslationEvaluationEnabled,
+  resolveTranslationLanguageState,
+} from "./lib/translations-view-state";
 import {
   type CatalogCategory,
   getEntryCategory,
@@ -37,18 +83,23 @@ import {
   isImageEntry,
 } from "./lib/catalog-entries";
 import { displayLang } from "./lib/display-lang";
-import { PROVIDER_LABELS } from "./lib/provider-labels"
-import { useElevenLabsVoices } from "@/hooks/use-elevenlabs-voices"
+import { PROVIDER_LABELS } from "./lib/provider-labels";
+import { useElevenLabsVoices } from "@/hooks/use-elevenlabs-voices";
 import { ImageLightbox } from "./components/ImageLightbox";
 import { WordHighlightPreview } from "./components/WordHighlightPreview";
-import { CoreTtsBadges, CoreTtsSpeechEditor } from "./components/CoreTtsSpeechEditor";
+import {
+  CoreTtsBadges,
+  CoreTtsSpeechEditor,
+} from "./components/CoreTtsSpeechEditor";
 import { SpeechHighlightedText } from "./components/SpeechHighlightedText";
 import { usePendingChanges } from "../../components/change-summary";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 
 type TranslationEvaluationItem = NonNullable<
-  NonNullable<TranslationEvaluationStatusResponse["evaluation"]>["items"][number]
+  NonNullable<
+    TranslationEvaluationStatusResponse["evaluation"]
+  >["items"][number]
 >;
 type ReviewFilter =
   | "all"
@@ -123,7 +174,9 @@ function TranslationReviewInline({
         {open ? (
           <div className="mt-1 rounded-md border border-emerald-200 bg-emerald-50/60 p-2 text-xs text-emerald-950">
             <div className="font-medium text-emerald-800">{t`Acceptable`}</div>
-            <p className="mt-1 whitespace-pre-wrap leading-relaxed">{item.rationale}</p>
+            <p className="mt-1 whitespace-pre-wrap leading-relaxed">
+              {item.rationale}
+            </p>
           </div>
         ) : null}
       </div>
@@ -160,7 +213,9 @@ function TranslationReviewInline({
           <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-600" />
           <div className="min-w-0">
             <div className="font-medium text-orange-800">{t`Needs attention`}</div>
-            <p className="mt-1 whitespace-pre-wrap leading-relaxed">{item.rationale}</p>
+            <p className="mt-1 whitespace-pre-wrap leading-relaxed">
+              {item.rationale}
+            </p>
           </div>
         </div>
         <button
@@ -202,7 +257,9 @@ function TranslationReviewInline({
                   </span>
                 ) : null}
               </div>
-              <p className="whitespace-pre-wrap leading-relaxed">{item.suggested_text}</p>
+              <p className="whitespace-pre-wrap leading-relaxed">
+                {item.suggested_text}
+              </p>
             </div>
           ) : null}
 
@@ -255,9 +312,24 @@ function TranslationReviewInline({
 // pinned one. Mirrors resolveVoice()/resolveSpeechModel() in @adt/pipeline (and
 // config/voices.yaml) so we never show an OpenAI voice/model for a Gemini/Azure provider.
 // Values are voice/model identifiers, not user-facing copy — display only.
-// eslint-disable-next-line lingui/no-unlocalized-strings -- voice identifiers
-const DEFAULT_TTS_VOICE: Record<string, string> = { openai: "alloy", azure: "en-US-JennyNeural", gemini: "Kore", elevenlabs: DEFAULT_ELEVENLABS_VOICE_ID }
-const DEFAULT_TTS_MODEL: Record<string, string> = { openai: DEFAULT_OPENAI_TTS_MODEL_ID, azure: "azure-tts", gemini: "gemini-2.5-pro-preview-tts", elevenlabs: DEFAULT_ELEVENLABS_TTS_MODEL_ID }
+/* eslint-disable lingui/no-unlocalized-strings -- model and voice identifiers, not interface copy. */
+const DEFAULT_TTS_VOICE: Record<string, string> = {
+  openai: "alloy",
+  azure: "en-US-JennyNeural",
+  gemini: "Kore",
+  elevenlabs: DEFAULT_ELEVENLABS_VOICE_ID,
+  "local-hf": "af_heart",
+  "local-system": "Samantha",
+};
+const DEFAULT_TTS_MODEL: Record<string, string> = {
+  openai: DEFAULT_OPENAI_TTS_MODEL_ID,
+  azure: "azure-tts",
+  gemini: "gemini-2.5-pro-preview-tts",
+  elevenlabs: DEFAULT_ELEVENLABS_TTS_MODEL_ID,
+  "local-hf": "onnx-community/Kokoro-82M-v1.0-ONNX",
+  "local-system": "apple-speech",
+};
+/* eslint-enable lingui/no-unlocalized-strings */
 
 export function LanguageView({
   bookLabel,
@@ -363,7 +435,8 @@ export function LanguageView({
   });
 
   const merged = activeConfigData?.merged as
-    Record<string, unknown> | undefined;
+    | Record<string, unknown>
+    | undefined;
   const speechConfig = merged?.speech;
   const speechConfigRecord =
     speechConfig && typeof speechConfig === "object"
@@ -415,7 +488,8 @@ export function LanguageView({
   const bookLanguage =
     book?.languageCode ?? book?.metadata?.language_code ?? null;
   const configuredEditingLanguage = merged?.editing_language as
-    string | undefined;
+    | string
+    | undefined;
 
   const hasExplicitOutputLanguages = outputLanguages.length > 0;
 
@@ -819,7 +893,8 @@ export function LanguageView({
       hasTranslationEvaluationRunFailure
     )
       return map;
-    const selectedIds = evaluationStatus.evaluation.metadata?.selected_entry_ids;
+    const selectedIds =
+      evaluationStatus.evaluation.metadata?.selected_entry_ids;
     const visibleIds = new Set(reviewEntryIds);
     const matchesVisibleScope = selectedIds
       ? selectedIds.some((entryId) => visibleIds.has(entryId))
@@ -829,7 +904,10 @@ export function LanguageView({
       if (!visibleIds.has(item.entry_id)) continue;
       const currentSourceText = sourceEntriesById.get(item.entry_id);
       const currentTranslatedText = translatedMap.get(item.entry_id);
-      if (item.source_text !== undefined && item.source_text !== currentSourceText)
+      if (
+        item.source_text !== undefined &&
+        item.source_text !== currentSourceText
+      )
         continue;
       if (
         item.translated_text !== undefined &&
@@ -925,8 +1003,9 @@ export function LanguageView({
             task.kind === "translation-evaluation" &&
             (task.status === "running" || task.status === "queued"),
         )
-        .sort((left, right) => (right.startedAt ?? 0) - (left.startedAt ?? 0))[0] ??
-      null
+        .sort(
+          (left, right) => (right.startedAt ?? 0) - (left.startedAt ?? 0),
+        )[0] ?? null
     );
   }, [tasks, translationEvaluationEnabled]);
   const runTranslationReview = useMutation({
@@ -964,7 +1043,9 @@ export function LanguageView({
       await queryClient.invalidateQueries({
         queryKey: ["evaluations", "translations", bookLabel],
       });
-      await queryClient.invalidateQueries({ queryKey: translationEvaluationKey });
+      await queryClient.invalidateQueries({
+        queryKey: translationEvaluationKey,
+      });
     },
   });
   const acceptAnyway = useMutation({
@@ -981,7 +1062,9 @@ export function LanguageView({
       await queryClient.invalidateQueries({
         queryKey: ["evaluations", "translations", bookLabel],
       });
-      await queryClient.invalidateQueries({ queryKey: translationEvaluationKey });
+      await queryClient.invalidateQueries({
+        queryKey: translationEvaluationKey,
+      });
     },
   });
   const canReviewVisibleTranslations =
@@ -1332,26 +1415,29 @@ export function LanguageView({
     const provider =
       (speechConfig && typeof speechConfig === "object"
         ? ((speechConfig as Record<string, unknown>).default_provider as string)
-        : undefined) ?? "openai"
-    const defaultVoice = DEFAULT_TTS_VOICE[provider] ?? DEFAULT_TTS_VOICE.openai
+        : undefined) ?? "openai";
+    const defaultVoice =
+      DEFAULT_TTS_VOICE[provider] ?? DEFAULT_TTS_VOICE.openai;
     const configuredOpenAIDefault =
       typeof merged?.default_speech_generation_model === "string"
         ? merged.default_speech_generation_model
-        : DEFAULT_TTS_MODEL.openai
+        : DEFAULT_TTS_MODEL.openai;
     const defaultModel =
       provider === "openai"
         ? configuredOpenAIDefault
-        : DEFAULT_TTS_MODEL[provider] ?? configuredOpenAIDefault
+        : (DEFAULT_TTS_MODEL[provider] ?? configuredOpenAIDefault);
     if (!speechConfig || typeof speechConfig !== "object") {
       return { provider, voice: defaultVoice, model: defaultModel };
     }
-    const sc = speechConfig as Record<string, unknown>
-    const voice = (sc.voice as string) ?? defaultVoice
-    const model = (sc.model as string) ?? undefined
-    const providers = sc.providers as Record<string, Record<string, unknown>> | undefined
-    const providerModel = providers?.[provider]?.model as string | undefined
-    return { provider, voice, model: providerModel ?? model ?? defaultModel }
-  }, [merged?.default_speech_generation_model, speechConfig])
+    const sc = speechConfig as Record<string, unknown>;
+    const voice = (sc.voice as string) ?? defaultVoice;
+    const model = (sc.model as string) ?? undefined;
+    const providers = sc.providers as
+      | Record<string, Record<string, unknown>>
+      | undefined;
+    const providerModel = providers?.[provider]?.model as string | undefined;
+    return { provider, voice, model: providerModel ?? model ?? defaultModel };
+  }, [merged?.default_speech_generation_model, speechConfig]);
 
   const headerControls = catalog ? (
     <div className="flex items-center gap-1.5 ml-auto">
@@ -1421,7 +1507,8 @@ export function LanguageView({
               setAppliedSuggestionEntryIds(new Set());
             }}
             diff={{
-              items: (d) => (d as { entries?: TextCatalogEntry[] } | null)?.entries ?? [],
+              items: (d) =>
+                (d as { entries?: TextCatalogEntry[] } | null)?.entries ?? [],
               keyOf: (it) => (it as TextCatalogEntry).id,
               diffText: (it) => (it as TextCatalogEntry).text ?? "",
               searchText: (it) => {
@@ -1450,13 +1537,20 @@ export function LanguageView({
                 return (
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">
-                      <span className="rounded bg-muted px-1 py-0.5 font-semibold" title={e.id}>
+                      <span
+                        className="rounded bg-muted px-1 py-0.5 font-semibold"
+                        title={e.id}
+                      >
                         {catLabel}
                       </span>
-                      {pageRef ? <span className="tabular-nums">{pageRef}</span> : null}
+                      {pageRef ? (
+                        <span className="tabular-nums">{pageRef}</span>
+                      ) : null}
                     </span>
                     {source && source !== e.text ? (
-                      <span className="line-clamp-2 text-[11px] text-muted-foreground">{source}</span>
+                      <span className="line-clamp-2 text-[11px] text-muted-foreground">
+                        {source}
+                      </span>
                     ) : null}
                     {ctx?.diff ? (
                       <span className="text-foreground">{ctx.diff}</span>
@@ -1481,7 +1575,8 @@ export function LanguageView({
           onDiscard={() => undefined}
           diff={{
             items: (data) =>
-              (data as { entries?: CoreTtsCatalogEntry[] } | null)?.entries ?? [],
+              (data as { entries?: CoreTtsCatalogEntry[] } | null)?.entries ??
+              [],
             keyOf: (item) => (item as CoreTtsCatalogEntry).id,
             diffText: (item) => {
               const speech = item as CoreTtsCatalogEntry;
@@ -1499,7 +1594,13 @@ export function LanguageView({
                   <span className="line-clamp-1 text-[11px] text-muted-foreground">
                     {speech.displayText}
                   </span>
-                  <span className={speech.status === "failed" ? "text-red-700" : "text-foreground"}>
+                  <span
+                    className={
+                      speech.status === "failed"
+                        ? "text-red-700"
+                        : "text-foreground"
+                    }
+                  >
                     {context?.diff ?? speech.speechText ?? speech.failureReason}
                   </span>
                 </span>
@@ -1699,7 +1800,10 @@ export function LanguageView({
                 <div>
                   <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{t`Voice`}</p>
                   <p className="text-sm mt-0.5">
-                    <span>{PROVIDER_LABELS[speechSummary.provider] ?? speechSummary.provider}</span>
+                    <span>
+                      {PROVIDER_LABELS[speechSummary.provider] ??
+                        speechSummary.provider}
+                    </span>
                     {" · "}
                     {/* ElevenLabs voices are opaque IDs — resolve to a name
                         when the account's voice list is available. */}
@@ -1955,83 +2059,83 @@ export function LanguageView({
               aria-live="polite"
               className="rounded-md border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-950"
             >
-                <div className="flex flex-wrap items-center gap-2">
-                  <Check className="h-3.5 w-3.5 shrink-0 text-emerald-700" />
-                  <span className="font-medium text-emerald-900">
-                    {reviewCounts.needsAttention > 0
-                      ? reviewCounts.pendingSave > 0
-                        ? t`Review complete: ${reviewCounts.acceptable} acceptable, ${reviewCounts.needsAttention} need attention, ${reviewCounts.pendingSave} pending save.`
-                        : t`Review complete: ${reviewCounts.acceptable} acceptable, ${reviewCounts.needsAttention} need attention.`
-                      : reviewCounts.pendingSave > 0
-                        ? t`Review complete: ${reviewCounts.acceptable} acceptable, ${reviewCounts.pendingSave} pending save.`
-                        : t`Review complete: all ${reviewCounts.total} reviewed translations are acceptable.`}
+              <div className="flex flex-wrap items-center gap-2">
+                <Check className="h-3.5 w-3.5 shrink-0 text-emerald-700" />
+                <span className="font-medium text-emerald-900">
+                  {reviewCounts.needsAttention > 0
+                    ? reviewCounts.pendingSave > 0
+                      ? t`Review complete: ${reviewCounts.acceptable} acceptable, ${reviewCounts.needsAttention} need attention, ${reviewCounts.pendingSave} pending save.`
+                      : t`Review complete: ${reviewCounts.acceptable} acceptable, ${reviewCounts.needsAttention} need attention.`
+                    : reviewCounts.pendingSave > 0
+                      ? t`Review complete: ${reviewCounts.acceptable} acceptable, ${reviewCounts.pendingSave} pending save.`
+                      : t`Review complete: all ${reviewCounts.total} reviewed translations are acceptable.`}
+                </span>
+                {reviewCounts.pendingSave > 0 && (
+                  <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 ring-1 ring-emerald-200">
+                    {t`${reviewCounts.pendingSave} pending save`}
                   </span>
-                  {reviewCounts.pendingSave > 0 && (
-                    <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 ring-1 ring-emerald-200">
-                      {t`${reviewCounts.pendingSave} pending save`}
-                    </span>
-                  )}
-                  {reviewCounts.acceptedAnyway > 0 && (
-                    <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 ring-1 ring-emerald-200">
-                      {t`${reviewCounts.acceptedAnyway} accepted anyway`}
-                    </span>
-                  )}
-                  <div className="ml-auto flex flex-wrap items-center gap-1">
-                    {(
+                )}
+                {reviewCounts.acceptedAnyway > 0 && (
+                  <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 ring-1 ring-emerald-200">
+                    {t`${reviewCounts.acceptedAnyway} accepted anyway`}
+                  </span>
+                )}
+                <div className="ml-auto flex flex-wrap items-center gap-1">
+                  {(
+                    [
+                      ["all", t`All`, reviewCounts.total],
                       [
-                        ["all", t`All`, reviewCounts.total],
-                        [
-                          "needs-attention",
-                          t`Needs attention`,
-                          reviewCounts.needsAttention,
-                        ],
-                        [
-                          "pending-save",
-                          t`Pending save`,
-                          reviewCounts.pendingSave,
-                        ],
-                        ["acceptable", t`Acceptable`, reviewCounts.acceptable],
-                        [
-                          "accepted-anyway",
-                          t`Accepted anyway`,
-                          reviewCounts.acceptedAnyway,
-                        ],
-                      ] as const
-                    ).map(([filter, label, count]) => {
-                      if (filter !== "all" && count === 0) return null;
-                      return (
-                        <button
-                          key={filter}
-                          type="button"
-                          onClick={() => showReviewFilter(filter)}
-                          aria-pressed={reviewFilter === filter}
-                          className={cn(
-                            "h-6 rounded px-2 text-[11px] font-medium transition-colors",
-                            reviewFilter === filter
-                              ? "bg-emerald-700 text-white"
-                              : "bg-white/80 text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-100",
-                          )}
-                        >
-                          {label}
-                          <span className="ml-1 opacity-70 tabular-nums">
-                            {count}
-                          </span>
-                        </button>
-                      );
-                    })}
-                    {reviewCounts.needsAttention > 0 && (
+                        "needs-attention",
+                        t`Needs attention`,
+                        reviewCounts.needsAttention,
+                      ],
+                      [
+                        "pending-save",
+                        t`Pending save`,
+                        reviewCounts.pendingSave,
+                      ],
+                      ["acceptable", t`Acceptable`, reviewCounts.acceptable],
+                      [
+                        "accepted-anyway",
+                        t`Accepted anyway`,
+                        reviewCounts.acceptedAnyway,
+                      ],
+                    ] as const
+                  ).map(([filter, label, count]) => {
+                    if (filter !== "all" && count === 0) return null;
+                    return (
                       <button
+                        key={filter}
                         type="button"
-                        onClick={() => showReviewFilter("needs-attention", true)}
-                        className="h-6 rounded bg-orange-100 px-2 text-[11px] font-medium text-orange-800 ring-1 ring-orange-200 hover:bg-orange-200"
+                        onClick={() => showReviewFilter(filter)}
+                        aria-pressed={reviewFilter === filter}
+                        className={cn(
+                          "h-6 rounded px-2 text-[11px] font-medium transition-colors",
+                          reviewFilter === filter
+                            ? "bg-emerald-700 text-white"
+                            : "bg-white/80 text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-100",
+                        )}
                       >
-                        {t`Next issue`}
+                        {label}
+                        <span className="ml-1 opacity-70 tabular-nums">
+                          {count}
+                        </span>
                       </button>
-                    )}
-                  </div>
+                    );
+                  })}
+                  {reviewCounts.needsAttention > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => showReviewFilter("needs-attention", true)}
+                      className="h-6 rounded bg-orange-100 px-2 text-[11px] font-medium text-orange-800 ring-1 ring-orange-200 hover:bg-orange-200"
+                    >
+                      {t`Next issue`}
+                    </button>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
           {!isSourceLang && !isSpeechStage && activeEvaluationTask && (
             <div
@@ -2039,18 +2143,18 @@ export function LanguageView({
               aria-live="polite"
               className="flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800"
             >
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>
-                  {activeEvaluationTask.progressMessage ??
-                    t`Translation review is running.`}
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>
+                {activeEvaluationTask.progressMessage ??
+                  t`Translation review is running.`}
+              </span>
+              {typeof activeEvaluationTask.progressPercent === "number" && (
+                <span className="ml-auto tabular-nums">
+                  {Math.round(activeEvaluationTask.progressPercent)}%
                 </span>
-                {typeof activeEvaluationTask.progressPercent === "number" && (
-                  <span className="ml-auto tabular-nums">
-                    {Math.round(activeEvaluationTask.progressPercent)}%
-                  </span>
-                )}
-              </div>
-            )}
+              )}
+            </div>
+          )}
 
           {!isSourceLang && !isSpeechStage && evaluationStatus?.isStale && (
             <div
@@ -2306,7 +2410,9 @@ export function LanguageView({
                               <SpeechHighlightedText
                                 text={entry.text}
                                 timestamps={
-                                  isSpeechStage ? timestampMap[entry.id] : undefined
+                                  isSpeechStage
+                                    ? timestampMap[entry.id]
+                                    : undefined
                                 }
                                 currentTime={
                                   playingEntryId === entry.id ? playbackTime : 0
@@ -2523,20 +2629,20 @@ export function LanguageView({
                                     </>
                                   ) : (
                                     <>
-                                    <textarea
-                                      value={translated ?? ""}
-                                      onChange={(e) =>
-                                        updateEntry(entry.id, e.target.value)
-                                      }
-                                      placeholder={t`Pending...`}
-                                      className="w-full text-sm leading-relaxed mt-0.5 resize-none rounded border border-transparent bg-transparent p-1.5 -ml-1.5 hover:border-border hover:bg-muted/30 focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors placeholder:text-muted-foreground placeholder:italic"
-                                      style={
-                                        {
-                                          fieldSizing: "content",
-                                        } as React.CSSProperties
-                                      }
-                                      rows={1}
-                                    />
+                                      <textarea
+                                        value={translated ?? ""}
+                                        onChange={(e) =>
+                                          updateEntry(entry.id, e.target.value)
+                                        }
+                                        placeholder={t`Pending...`}
+                                        className="w-full text-sm leading-relaxed mt-0.5 resize-none rounded border border-transparent bg-transparent p-1.5 -ml-1.5 hover:border-border hover:bg-muted/30 focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors placeholder:text-muted-foreground placeholder:italic"
+                                        style={
+                                          {
+                                            fieldSizing: "content",
+                                          } as React.CSSProperties
+                                        }
+                                        rows={1}
+                                      />
                                       {audioLang ? (
                                         <CoreTtsSpeechEditor
                                           bookLabel={bookLabel}

@@ -864,6 +864,101 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 
 ---
 
+## 024: Native ONNX Runtime for Local Desktop Speech
+
+**Status**: Decided
+**Date**: 2026-08-02
+
+### Decision
+
+Run downloaded Kokoro models through `onnxruntime-node` on the CPU. Keep the package external to esbuild and copy only the current build platform/architecture into Electron and server distributions. Never bundle model weights; download them into Electron user data on demand.
+
+### Context
+
+`onnxruntime-web` worked in standalone Node but failed every fresh inference inside Electron's utility process because no WebAssembly backend could initialize. Cached audio hid the failure until a complete cache-miss run. Native ONNX produced all 118 Momo narration files successfully in the actual packaged macOS app.
+
+This is a documented exception to Decision 001. Local speech correctness is more important than preserving a WASM-only rule when the WASM runtime is not functional in the target desktop process.
+
+### Controls
+
+- Pin the runtime version and package only the target platform binding.
+- Validate the binding during desktop/server builds.
+- Keep Kokoro repositories revision-pinned with size/checksum validation.
+- Test macOS arm64 now; gate Intel macOS and Windows releases on packaged-app synthesis tests.
+- Keep the adapter replaceable so a reliable WASM/Core ML/DirectML implementation can supersede it later.
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|----------|---------|
+| `onnxruntime-web` WASM | Fresh inference failed inside packaged Electron utility processes |
+| Python sidecar | Larger runtime and distribution/security surface for the initial English adapter |
+| Bundle generated audio only | Does not let authors generate or regenerate speech locally |
+
+---
+
+## 025: Apple MLX Acceleration for Kokoro
+
+**Status**: Decided
+**Date**: 2026-08-04
+
+### Decision
+
+Use a small Swift/MLX sidecar on Apple Silicon and keep one persistent Kokoro
+model worker. Download the model and selected voices from a
+verified, immutable Hugging Face archive only when the user selects MLX. Keep
+native ONNX as the fallback for other platforms.
+
+### Context
+
+The ONNX Momo speech stage took 152.8 seconds. ONNX Core ML was slower because
+only 1,312 of 3,615 graph nodes were assigned to Core ML. The first Swift
+wrapper was also slower because its upstream convenience function reloaded the
+model for every asset. Retaining the engine in memory removed that reload. A
+two-worker 30-entry sample looked faster (24.7 to 16.0 seconds), but the full
+Momo run regressed from 167.6 to 219.6 seconds because sustained Metal
+contention dominated. The two-worker design was rejected.
+
+### Controls
+
+- Vendor the 208 KB engine source snapshot with its upstream commit and license notice.
+- Pin MLX and utility dependencies; package no model weights.
+- Stage the signed runtime beside the downloaded `mlx.metallib` in writable user data.
+- Keep one bounded worker, preserve cancellation/timeouts, and clean temporary WAVs.
+- Gate Windows and Intel macOS on separate measured runtimes; never silently use MLX where unavailable.
+
+---
+
+## 026: macOS System Speech Fast Path
+
+**Status**: Decided
+**Date**: 2026-08-04
+
+### Decision
+
+Offer macOS system voices as an optional zero-download local speech provider.
+Export mono 24 kHz PCM16 WAV during authoring and bundle only those files in the
+ADT. Keep Kokoro as the portable, higher-quality local model tier.
+
+### Context
+
+Gemma E4B with two llama.cpp slots and Kokoro ONNX completed Momo in 264.2
+seconds; speech alone took 167.8 seconds. The same full pipeline with macOS
+system speech completed in 157.7 seconds, including 116 valid audio files in
+56.3 seconds. This is 1.72x the 91.7-second GPT-5.4 baseline and satisfies the
+2.5x target. Background Kokoro/Gemma overlap and two MLX workers were rejected
+after full-book regressions.
+
+### Controls
+
+- Spawn the system synthesizer with an argument array, never a shell.
+- Bound speed/concurrency, propagate cancellation, and clean temporary files.
+- Include provider, platform, voice, and speed in cache inputs.
+- Disable outside macOS; use Kokoro or another tested adapter there.
+- Require human listening before publication; faster is not a quality claim.
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -891,3 +986,6 @@ The first implementation stored screenshots in a SQLite `debug_images` table. Th
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
 | 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |
+| 024 | Local speech inference | Target-specific native ONNX Runtime | Broken Electron WASM backend, Python sidecar |
+| 025 | Apple Kokoro acceleration | One persistent Swift/MLX worker | Reload-per-call MLX, partial Core ML graph, two-worker contention |
+| 026 | macOS speech fast path | Optional system voice WAV export | Making slower Kokoro the only offline choice |

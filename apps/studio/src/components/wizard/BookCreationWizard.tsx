@@ -8,6 +8,7 @@ import { useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { api } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
+import { hasCredentialForModel } from "@/hooks/use-llm-access"
 import { useBooks, useCreateBook } from "@/hooks/use-books"
 import { useWizard } from "./index"
 import { useWizardForm } from "./wizardForm"
@@ -208,7 +209,7 @@ export function BookCreationWizard() {
   const { phase, currentStep, setCurrentStep, stepDirection, previewFocus } = useWizard()
   const form = useWizardForm()
   const createMutation = useCreateBook()
-  const { apiKey, hasApiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
+  const { apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
   const { data: books, isPending: booksLoading } = useBooks()
   const [previewOpen, setPreviewOpen] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -217,6 +218,12 @@ export function BookCreationWizard() {
 
   const values = useStore(form.store, (s) => s.values)
   const { file, renderStrategy, editingLanguage, outputLanguages, styleguide } = values
+  const hasSelectedLlmAccess = hasCredentialForModel(values.generationModel, {
+    apiKey,
+    anthropicKey,
+    googleKey,
+    customBaseUrl,
+  })
   const accent = getPresetAccent(values.selectedPreset)
   const stepIndex = currentStep - 1
   const existingBookLabels = booksLoading ? undefined : books?.map((b: { label: string }) => b.label)
@@ -258,7 +265,6 @@ export function BookCreationWizard() {
     const el = document.getElementById(fieldId)
     if (!el) return
     el.scrollIntoView({ behavior: "smooth", block: "center" })
-    // eslint-disable-next-line lingui/no-unlocalized-strings
     const focusable = el.matches("input,button,select,textarea,[tabindex]")
       ? el
       : el.querySelector<HTMLElement>("input,button,select,textarea,[tabindex]")
@@ -308,7 +314,7 @@ export function BookCreationWizard() {
       // scope we skip it: each contributor extracts their own page-range part,
       // so extracting the full book on this machine would be the very cost the
       // split feature avoids.
-      if (values.scope !== "split" && hasApiKey) {
+      if (values.scope !== "split" && hasSelectedLlmAccess) {
         // Seed the run status the book page reads, so it paints "Extract
         // queued" on first render. Without this the page mounts with a cold
         // cache and shows an idle pipeline until its own step-status fetch
@@ -424,7 +430,6 @@ export function BookCreationWizard() {
               </div>
             </div>
           </div>
-
 
           {(submitError || createMutation.isError) && (
             <p className="px-6 pb-3 text-sm text-center text-[#ef4444] animate-btn-label-enter">

@@ -39,6 +39,7 @@ import { QuizJumper, type QuizJumperEntry } from "./components/QuizJumper";
 import { PageLightbox } from "../../components/PageLightbox";
 import { AddQuizDialog } from "./AddQuizDialog";
 import { useApiKey } from "@/hooks/use-api-key";
+import { useLlmAccess } from "@/hooks/use-llm-access";
 import { useStageStatus } from "@/hooks/use-stage-status";
 import { useLingui } from "@lingui/react/macro";
 
@@ -133,7 +134,7 @@ export function QuizzesView({
   const { data, isLoading } = useQuizzes(bookLabel);
   const { data: pages } = usePages(bookLabel);
   const { setExtra } = useStepHeader();
-  const { hasApiKey } = useApiKey();
+  const { hasLlmAccess: hasApiKey } = useLlmAccess(bookLabel);
   const quizzesStatus = useStageStatus("quizzes");
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);

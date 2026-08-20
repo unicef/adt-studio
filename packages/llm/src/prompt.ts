@@ -175,16 +175,19 @@ function findModelPromptTemplate(
   modelId: string,
   variantName: string,
 ): string | null {
-  const modelFolder = promptModelFolderName(modelId)
+  const modelFolders = [promptModelFolderName(modelId)]
+  if (/^(?:local|ollama):gemma4-/i.test(modelId)) modelFolders.push("gemma4")
   for (const root of roots) {
     const versionedPath = latestVersionedPromptPath(root, variantName)
     if (versionedPath) {
       return versionedPath
     }
 
-    const folderPath = path.join(root, modelFolder, `${templateName}.liquid`)
-    if (fs.existsSync(folderPath)) {
-      return folderPath
+    for (const modelFolder of modelFolders) {
+      const folderPath = path.join(root, modelFolder, `${templateName}.liquid`)
+      if (fs.existsSync(folderPath)) {
+        return folderPath
+      }
     }
 
     const legacyFlatPath = path.join(root, `${variantName}.liquid`)
@@ -325,7 +328,9 @@ function parseContentParts(body: string): ContentPart[] {
     if (textBefore.trim()) {
       parts.push({ type: "text", text: textBefore.trim() })
     }
-    parts.push({ type: "image", image: match[1] })
+    const image = match[1]
+    const mimeType = detectImageMimeType(image)
+    parts.push({ type: "image", image, ...(mimeType ? { mimeType } : {}) })
     lastIndex = match.index + match[0].length
   }
 
@@ -335,6 +340,26 @@ function parseContentParts(body: string): ContentPart[] {
   }
 
   return parts
+}
+
+/** Detect the formats accepted by the current extraction pipeline from base64 magic bytes. */
+export function detectImageMimeType(base64: string): string | undefined {
+  try {
+    const bytes = Buffer.from(base64.slice(0, 24), "base64")
+    if (
+      bytes.length >= 8
+      && bytes[0] === 0x89
+      && bytes[1] === 0x50
+      && bytes[2] === 0x4e
+      && bytes[3] === 0x47
+    ) return "image/png"
+    if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) {
+      return "image/jpeg"
+    }
+  } catch {
+    // Leave unknown input untyped; the provider can apply its normal fallback.
+  }
+  return undefined
 }
 
 function escapeRegex(s: string): string {

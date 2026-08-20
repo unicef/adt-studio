@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "label": "momo-benchmark-openai-gpt54",
+  "mode": "openai",
+  "model": "openai:gpt-5.4",
+  "speechProvider": "openai",
+  "sourcePdf": "/Users/amoghbanta/Downloads/UNICEF/momograde1.pdf",
+  "createdAt": "2026-08-03T19:01:02.918Z",
+  "createDurationMs": 13,
+  "runDurationMs": 91736,
+  "transitions": [
+    {
+      "at": "2026-08-03T18:59:33.346Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "running",
+        "sectioning": "queued",
+        "storyboard": "queued",
+        "quizzes": "queued",
+        "captions": "queued",
+        "glossary": "queued",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T19:00:04.167Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "running",
+        "storyboard": "queued",
+        "quizzes": "queued",
+        "captions": "queued",
+        "glossary": "queued",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T19:00:12.203Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "running",
+        "quizzes": "queued",
+        "captions": "queued",
+        "glossary": "queued",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T19:00:14.210Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "running",
+        "captions": "queued",
+        "glossary": "queued",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T19:00:18.360Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "running",
+        "glossary": "queued",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T19:00:30.472Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "done",
+        "glossary": "running",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T19:00:40.509Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "done",
+        "glossary": "done",
+        "toc": "running",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T19:00:42.514Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "done",
+        "glossary": "done",
+        "toc": "done",
+        "easy-read": "done",
+        "translate": "done",
+        "speech": "running",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T19:00:54.900Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "done",
+        "glossary": "done",
+        "toc": "done",
+        "easy-read": "done",
+        "translate": "done",
+        "speech": "done",
+        "package": "running",
+        "preview": "done"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T19:01:02.918Z",
+      "runStatus": "idle",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "done",
+        "glossary": "done",
+        "toc": "done",
+        "easy-read": "done",
+        "translate": "done",
+        "speech": "done",
+        "package": "done",
+        "preview": "done"
+      },
+      "error": null
+    }
+  ],
+  "finalStatus": {
+    "stages": {
+      "extract": "done",
+      "sectioning": "done",
+      "storyboard": "done",
+      "quizzes": "done",
+      "captions": "done",
+      "glossary": "done",
+      "toc": "done",
+      "easy-read": "done",
+      "translate": "done",
+      "speech": "done",
+      "package": "done",
+      "preview": "done"
+    },
+    "steps": {
+      "extract": "done",
+      "metadata": "done",
+      "book-summary": "done",
+      "image-filtering": "done",
+      "image-segmentation": "skipped",
+      "image-meaningfulness": "done",
+      "image-cropping": "done",
+      "page-sectioning": "done",
+      "translation": "skipped",
+      "web-rendering": "done",
+      "quiz-generation": "done",
+      "image-captioning": "done",
+      "glossary": "done",
+      "toc-generation": "done",
+      "text-catalog": "done",
+      "easy-read": "skipped",
+      "catalog-translation": "skipped",
+      "image-translation": "skipped",
+      "tts": "done",
+      "word-timestamps": "skipped",
+      "package-web": "done",
+      "accessibility-assessment": "done"
+    },
+    "error": null,
+    "stepErrors": null,
+    "stepMessages": {
+      "extract": "page 20/20",
+      "image-filtering": "20/20",
+      "image-meaningfulness": "20/20",
+      "image-cropping": "20/20",
+      "page-sectioning": "20/20",
+      "web-rendering": "20/20",
+      "quiz-generation": "5 quizzes from 20 pages",
+      "image-captioning": "20/20",
+      "glossary": "27 terms from 15 pages",
+      "toc-generation": "2 entries",
+      "text-catalog": "146 entries",
+      "tts": "146/146 audio entries"
+    },
+    "runStatus": "idle",
+    "pendingDecisions": []
+  }
+}

@@ -12,6 +12,12 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
+      "@root/scripts/release-version.mjs": [
+        "../../scripts/release-version.d.mts"
+      ],
+      "@root/scripts/release-source-notes.mjs": [
+        "../../scripts/release-source-notes.d.mts"
+      ],
       "@renderer/*": [
         "src/renderer/src/*"
       ]

@@ -16,6 +16,7 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useLlmAccess } from "@/hooks/use-llm-access"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { useComposeBookContext } from "@/hooks/use-compose-book-context"
 import {
@@ -33,7 +34,8 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const { hasLlmAccess: hasApiKey } = useLlmAccess(bookLabel)
   const { queueRun } = useBookRun()
   const status = useStageStatus("captions")
   const storyboardStatus = useStageStatus("storyboard")
@@ -186,4 +188,3 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
     </LandingPageShell>
   )
 }
-

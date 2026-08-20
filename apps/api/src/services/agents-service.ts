@@ -22,6 +22,8 @@ export interface AgentApiKeys {
   googleApiKey?: string
 }
 
+const DEFAULT_AGENT_MODEL = "openai:gpt-5.5"
+
 function toCredentials(keys: AgentApiKeys): AgentCredentials {
   return {
     ...(keys.openaiApiKey ? { openaiApiKey: keys.openaiApiKey } : {}),
@@ -30,13 +32,9 @@ function toCredentials(keys: AgentApiKeys): AgentCredentials {
   }
 }
 
-/** Model the agent prompts are tuned for. Used when a book sets no override. */
-const DEFAULT_AGENT_MODEL = "openai:gpt-5.5"
-
 /**
- * Resolve the model id for the agents from book config, falling back to a
- * sensible default. Mirrors how page-edit-service derives the editing model
- * from page_sectioning config — both are "thoughtful" LLM tasks.
+ * Resolve the model id for the agents from book config, inheriting the global
+ * default when there is no agent-specific override.
  */
 function resolveAgentModelId(
   label: string,
@@ -46,10 +44,8 @@ function resolveAgentModelId(
   const config = loadBookConfig(label, booksDir, configPath)
   // Override per-book by setting `agents.model` in the book's config.yaml —
   // e.g. `openai:gpt-4o`, `anthropic:claude-sonnet-4-6`, or
-  // `google:gemini-2.5-pro`. The matching provider key must be sent with the
-  // request (X-OpenAI-Key / X-Anthropic-API-Key / X-Google-API-Key) or the
-  // call fails to authenticate.
-  return config.agents?.model ?? DEFAULT_AGENT_MODEL
+  // `google:gemini-2.5-pro` or `ollama:gemma4-12b`.
+  return config.agents?.model ?? config.default_model ?? DEFAULT_AGENT_MODEL
 }
 
 function resolveStyleguide(

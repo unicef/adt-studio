@@ -14,12 +14,15 @@ function stableReplacer(key: string, value: unknown): unknown {
 }
 
 export function computeHash(data: {
+  cacheVersion?: number
   modelId: string
+  providerIdentity?: string
   mode?: string
   system?: string
   messages: Message[]
   schema: unknown
   temperature?: number
+  maxTokens?: number
 }): string {
   const json = JSON.stringify(data, stableReplacer)
   return crypto.createHash("sha256").update(json).digest("hex")
@@ -42,7 +45,16 @@ export function writeCache(
 ): void {
   fs.mkdirSync(cacheDir, { recursive: true })
   const cacheFile = path.join(cacheDir, `${hash}.json`)
-  fs.writeFileSync(cacheFile, JSON.stringify(result, null, 2) + "\n")
+  const temporaryFile = path.join(
+    cacheDir,
+    `.${hash}.${process.pid}.${crypto.randomBytes(6).toString("hex")}.tmp`,
+  )
+  try {
+    fs.writeFileSync(temporaryFile, JSON.stringify(result, null, 2) + "\n")
+    fs.renameSync(temporaryFile, cacheFile)
+  } finally {
+    try { fs.unlinkSync(temporaryFile) } catch {}
+  }
 }
 
 export function bustCache(cacheDir: string, hash: string): void {

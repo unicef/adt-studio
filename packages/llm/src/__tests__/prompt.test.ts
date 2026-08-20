@@ -64,6 +64,20 @@ describe("createPromptEngine", () => {
     expect(content[1]).toEqual({ type: "image", image: "abc123" })
   })
 
+  it("detects PNG image media types for multimodal providers", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "image.liquid"),
+      `{% chat role: "user" %}{% image png %}{% endchat %}`,
+    )
+    const png = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB"
+    const messages = await createPromptEngine(dir).renderPrompt("image", { png })
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "image", image: png, mimeType: "image/png" }],
+    })
+  })
+
   it("skips image tags whose value is missing or empty", async () => {
     const dir = tmpDir()
     fs.writeFileSync(
@@ -157,6 +171,21 @@ After.{% endchat %}`
     })
     expect(engine.resolvePrompt("section", { modelId: "openai:gpt-5.5" }).resolvedName)
       .toBe("section__openai_gpt_5_5")
+  })
+
+  it("uses the shared Gemma 4 prompt family for embedded models", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(path.join(dir, "caption.liquid"), `{% chat role: "user" %}Base{% endchat %}`)
+    fs.mkdirSync(path.join(dir, "gemma4"))
+    fs.writeFileSync(path.join(dir, "gemma4", "caption.liquid"), `{% chat role: "user" %}Gemma{% endchat %}`)
+
+    const engine = createPromptEngine(dir)
+    const messages = await engine.renderPrompt("caption", {}, { modelId: "local:gemma4-e2b" })
+
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Gemma" }],
+    })
   })
 
   it("uses prompt files from model folders before legacy flat variants", async () => {

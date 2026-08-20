@@ -14,6 +14,7 @@ import {
   getGlossaryItemTextId,
   mergeGeneratedGlossaryWithManualItems,
   regenerateGlossaryPreservingEdits,
+  validateGlossaryEmojiEncoding,
 } from "../glossary.js"
 
 describe("stripHtml", () => {
@@ -41,6 +42,21 @@ describe("stripHtml", () => {
     expect(
       stripHtml('<div class="x"><span>text</span></div>')
     ).toBe("text")
+  })
+})
+
+describe("validateGlossaryEmojiEncoding", () => {
+  it("decodes valid model byte escapes and accepts Unicode emoji", () => {
+    const encoded = validateGlossaryEmojiEncoding({
+      items: [{ word: "shake", emojis: ["<0xF0><0x9F><0xAB><0xA8>"] }],
+    })
+    expect(encoded.valid).toBe(true)
+    expect(encoded.cleaned).toEqual({
+      items: [{ word: "shake", emojis: ["🫨"] }],
+    })
+    expect(validateGlossaryEmojiEncoding({
+      items: [{ word: "shake", emojis: ["🫨"] }],
+    }).valid).toBe(true)
   })
 })
 
@@ -159,6 +175,32 @@ describe("collectPageTexts", () => {
 
     const result = collectPageTexts(storage, pages)
     expect(result).toHaveLength(0)
+  })
+
+  it("excludes institutional vision and copyright matter", () => {
+    const renderings: Record<string, WebRenderingOutput> = {
+      pg001: {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: "<h1>VISION</h1><p>An enlightened society built on Bhutanese values and GNH.</p>" }],
+      },
+      pg002: {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>Copyright 2026. All rights reserved.</p>" }],
+      },
+      pg003: {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>The leopard climbed the tree.</p>" }],
+      },
+    }
+    const storage = {
+      getLatestNodeData: (node: string, itemId: string) =>
+        node === "web-rendering" ? { version: 1, data: renderings[itemId] } : null,
+    } as Storage
+
+    const result = collectPageTexts(storage, [
+      { pageId: "pg001", pageNumber: 1, text: "" },
+      { pageId: "pg002", pageNumber: 2, text: "" },
+      { pageId: "pg003", pageNumber: 3, text: "" },
+    ])
+
+    expect(result).toEqual([{ pageNumber: 3, text: "The leopard climbed the tree." }])
   })
 })
 

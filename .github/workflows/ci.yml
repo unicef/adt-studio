@@ -11,6 +11,20 @@ permissions:
   contents: read
 
 jobs:
+  local-ai-runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node apps/desktop/scripts/prepare-llama-runtime.mjs
+      - run: node apps/desktop/scripts/verify-llama-runtime.mjs
+
   test:
     runs-on: ubuntu-latest
     steps:

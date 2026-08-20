@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-08-03T20:02:23.596Z",
+  "booksRoot": "/Users/amoghbanta/Library/Application Support/@adt/desktop/books",
+  "curatedListPath": "/Users/amoghbanta/Downloads/UNICEF/ADT-studio/scripts/curated-a11y-books.txt",
+  "selectedLabels": [
+    "momo-benchmark-gemma-before",
+    "momo-benchmark-gemma-grounded",
+    "momo-benchmark-openai-gpt54"
+  ],
+  "missingLabels": [],
+  "fullPageRuleIds": [
+    "color-contrast"
+  ],
+  "results": [
+    {
+      "label": "momo-benchmark-gemma-before",
+      "pageCount": 22,
+      "baseIncompleteCount": 0,
+      "basePagesWithIncomplete": 0,
+      "browserRecheckedPages": 22,
+      "browserRuleIds": [
+        "color-contrast"
+      ],
+      "confirmedIssuesFromIncomplete": 0,
+      "resolvedIncompleteItems": 0,
+      "residualManualReviewItems": 0,
+      "browserViolationCount": 0,
+      "browserIncompleteCount": 0,
+      "contrastViolationCount": 0,
+      "topBrowserViolations": [],
+      "topBrowserIncomplete": []
+    },
+    {
+      "label": "momo-benchmark-gemma-grounded",
+      "pageCount": 22,
+      "baseIncompleteCount": 0,
+      "basePagesWithIncomplete": 0,
+      "browserRecheckedPages": 22,
+      "browserRuleIds": [
+        "color-contrast"
+      ],
+      "confirmedIssuesFromIncomplete": 0,
+      "resolvedIncompleteItems": 0,
+      "residualManualReviewItems": 0,
+      "browserViolationCount": 0,
+      "browserIncompleteCount": 0,
+      "contrastViolationCount": 0,
+      "topBrowserViolations": [],
+      "topBrowserIncomplete": []
+    },
+    {
+      "label": "momo-benchmark-openai-gpt54",
+      "pageCount": 21,
+      "baseIncompleteCount": 0,
+      "basePagesWithIncomplete": 0,
+      "browserRecheckedPages": 21,
+      "browserRuleIds": [
+        "color-contrast"
+      ],
+      "confirmedIssuesFromIncomplete": 0,
+      "resolvedIncompleteItems": 0,
+      "residualManualReviewItems": 0,
+      "browserViolationCount": 0,
+      "browserIncompleteCount": 0,
+      "contrastViolationCount": 0,
+      "topBrowserViolations": [],
+      "topBrowserIncomplete": []
+    }
+  ]
+}

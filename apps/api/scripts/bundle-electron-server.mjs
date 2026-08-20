@@ -2,11 +2,13 @@ import { build } from 'esbuild';
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { createRequire } from "node:module"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, "..")
 const monorepoRoot = path.resolve(root, "../..")
 const outDir = path.join(root, "dist-electron")
+const require = createRequire(import.meta.url)
 
 await build({
     entryPoints: [path.join(root, "src/index.ts")],
@@ -26,6 +28,7 @@ await build({
         "@tailwindcss/oxide",
         "lightningcss",
         "postcss",
+        "onnxruntime-node",
     ],
     banner: {
       js: [
@@ -79,6 +82,31 @@ await build({
     "mupdf": "mupdf-wasm.wasm",
     "@resvg/resvg-wasm": "index_bg.wasm",
   }
+
+  // Keep the native ONNX binding external to the esbuild bundle. Copy only
+  // the current platform/architecture so desktop builds do not carry every
+  // macOS, Windows, and Linux binary shipped by onnxruntime-node.
+  const resolveFromLlm = { paths: [path.join(monorepoRoot, "packages", "llm")] }
+  const ortPackageDir = path.dirname(require.resolve("onnxruntime-node/package.json", resolveFromLlm))
+  const ortCommonDir = path.resolve(
+    path.dirname(require.resolve("onnxruntime-common", { paths: [ortPackageDir] })),
+    "../..",
+  )
+  const modulesDir = path.join(outDir, "node_modules")
+  const ortTargetDir = path.join(modulesDir, "onnxruntime-node")
+  const ortCommonTargetDir = path.join(modulesDir, "onnxruntime-common")
+  fs.rmSync(ortTargetDir, { recursive: true, force: true })
+  fs.rmSync(ortCommonTargetDir, { recursive: true, force: true })
+  fs.mkdirSync(ortTargetDir, { recursive: true })
+  fs.copyFileSync(path.join(ortPackageDir, "package.json"), path.join(ortTargetDir, "package.json"))
+  fs.cpSync(path.join(ortPackageDir, "dist"), path.join(ortTargetDir, "dist"), { recursive: true })
+  fs.cpSync(
+    path.join(ortPackageDir, "bin", "napi-v3", process.platform, process.arch),
+    path.join(ortTargetDir, "bin", "napi-v3", process.platform, process.arch),
+    { recursive: true },
+  )
+  fs.cpSync(ortCommonDir, ortCommonTargetDir, { recursive: true })
+  console.log(`  Copied onnxruntime-node for ${process.platform}/${process.arch}`)
   
   for (const [pkg, filename] of Object.entries(EXPECTED_WASM)) {
     if (!fs.existsSync(path.join(outDir, filename))) {

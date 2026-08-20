@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "momo-gpt54-vs-gemma-e4b",
+  "title": "Momo: GPT-5.4 versus local Gemma E4B",
+  "seed": 20260804,
+  "documentFiles": ["../corpora/momo-grade1.json"],
+  "candidates": [
+    {
+      "id": "gpt-5.4",
+      "systemId": "gpt-5.4",
+      "displayName": "GPT-5.4",
+      "model": "openai:gpt-5.4",
+      "local": false,
+      "documentId": "momo-grade1",
+      "runFile": "../../docs/benchmarks/momo/openai-gpt54-run.json",
+      "bookDir": "${HOME}/Library/Application Support/@adt/desktop/books/momo-benchmark-openai-gpt54",
+      "smokeFile": "../../docs/benchmarks/momo/export-smoke-gpt54-eval-v1.json",
+      "costUsd": 1.485287
+    },
+    {
+      "id": "gemma-e4b",
+      "systemId": "gemma-e4b",
+      "displayName": "Gemma E4B + Mac Fast",
+      "model": "local:gemma4-e4b",
+      "local": true,
+      "documentId": "momo-grade1",
+      "runFile": "../../docs/benchmarks/momo/gemma-e4b-system-final.json",
+      "bookDir": "../../books/momo-benchmark-gemma-e4b-system-1",
+      "smokeFile": "../../docs/benchmarks/momo/export-smoke-gemma-e4b-eval-v1.json",
+      "costUsd": 0
+    }
+  ],
+  "reviewFiles": ["../reviews/momo-caption-legacy.json"],
+  "recommendationPolicy": {
+    "minimumDocuments": 30,
+    "minimumDocumentsPerStratum": 3,
+    "minimumPracticalDifference": 2
+  },
+  "judgePolicy": {
+    "minimumHumanReviewers": 2,
+    "minimumMetaExamples": 50,
+    "minimumMacroF1": 0.8,
+    "minimumKappa": 0.6,
+    "minimumCoverage": 0.9
+  },
+  "gates": {
+    "maxLlmErrors": 0,
+    "maxAccessibilityViolations": 0,
+    "maxAccessibilityIncomplete": 0,
+    "minimumPageCoverage": 1,
+    "minimumReviewCoverage": 1,
+    "minimumReviewers": 1,
+    "minimumHumanReviewers": 2,
+    "minimumAtomicDecisionCoverage": 0.9,
+    "minimumCaptionScore": 70,
+    "requireBrowserSmoke": true
+  },
+  "utilityAnchors": {
+    "latencyTargetMs": 120000,
+    "latencyMaxMs": 600000,
+    "costTargetUsd": 0,
+    "costMaxUsd": 2
+  },
+  "profiles": {
+    "quality": { "fidelity": 0.55, "completeness": 0.15, "accessibility": 0.15, "reliability": 0.15 },
+    "balanced": { "fidelity": 0.44, "completeness": 0.12, "accessibility": 0.12, "reliability": 0.12, "latency": 0.1, "cost": 0.1 }
+  }
+}

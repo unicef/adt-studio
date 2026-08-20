@@ -1,40 +1,56 @@
-import { useState, useEffect } from "react"
-import { Link } from "@tanstack/react-router"
-import { Lock, ArrowLeft, ChevronDown } from "lucide-react"
-import { Trans } from "@lingui/react/macro"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { DEFAULT_IMAGE_GENERATION_MODEL_ID, type StageName } from "@adt/types"
-import { DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL } from "@adt/types"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Switch } from "@/components/ui/switch"
-import { ModelSelect, OPENAI_TTS_MODELS, AZURE_TTS_MODELS, GEMINI_TTS_MODELS, ELEVENLABS_TTS_MODELS, IMAGE_MODEL_GROUPS, LLM_MODEL_GROUPS } from "@/components/pipeline/components/ModelSelect"
-import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
-import { useActiveConfig } from "@/hooks/use-debug"
-import { api } from "@/api/client"
-import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
-import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
-import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
-import { LanguagePicker } from "@/components/LanguagePicker"
-import { useBook } from "@/hooks/use-books"
-import { useStepConfig } from "@/hooks/use-step-config"
-import { getBaseLanguage, normalizeLocale } from "@/lib/languages"
-import { resolveLocaleMapping, resolveSpeechProviderForLanguage } from "@/lib/speech-routing"
-import { SpeechPromptsEditor } from "./components/SpeechPromptsEditor"
-import { CoreTtsProfilesEditor } from "./components/CoreTtsProfilesEditor"
-import { VoiceMappingsEditor } from "./components/VoiceMappingsEditor"
-import { SelectImagesDialog } from "./components/SelectImagesDialog"
-import { WordHighlightPreview } from "./components/WordHighlightPreview"
-import { useLingui } from "@lingui/react/macro"
-import { displayLang } from "./lib/display-lang"
-import { tabContainerClass } from "./lib/tab-container-class"
-import { PROVIDER_LABELS } from "./lib/provider-labels"
-import { useElevenLabsVoices } from "@/hooks/use-elevenlabs-voices"
-import { ElevenLabsVoiceTuning } from "./components/ElevenLabsVoiceTuning"
+import { useState, useEffect } from "react";
+import { Link } from "@tanstack/react-router";
+import { Lock, ArrowLeft, ChevronDown } from "lucide-react";
+import { Trans } from "@lingui/react/macro";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { DEFAULT_IMAGE_GENERATION_MODEL_ID, type StageName } from "@adt/types";
+import { DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL } from "@adt/types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import {
+  ModelSelect,
+  OPENAI_TTS_MODELS,
+  AZURE_TTS_MODELS,
+  GEMINI_TTS_MODELS,
+  ELEVENLABS_TTS_MODELS,
+  IMAGE_MODEL_GROUPS,
+  LLM_MODEL_GROUPS,
+} from "@/components/pipeline/components/ModelSelect";
+import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config";
+import { useActiveConfig } from "@/hooks/use-debug";
+import { api } from "@/api/client";
+import {
+  PromptViewer,
+  savePromptDraft,
+  toPromptDraft,
+  type PromptDraft,
+} from "@/components/pipeline/components/PromptViewer";
+import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar";
+import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs";
+import { LanguagePicker } from "@/components/LanguagePicker";
+import { useBook } from "@/hooks/use-books";
+import { useStepConfig } from "@/hooks/use-step-config";
+import { getBaseLanguage, normalizeLocale } from "@/lib/languages";
+import {
+  resolveLocaleMapping,
+  resolveSpeechProviderForLanguage,
+} from "@/lib/speech-routing";
+import { SpeechPromptsEditor } from "./components/SpeechPromptsEditor";
+import { CoreTtsProfilesEditor } from "./components/CoreTtsProfilesEditor";
+import { VoiceMappingsEditor } from "./components/VoiceMappingsEditor";
+import { SelectImagesDialog } from "./components/SelectImagesDialog";
+import { WordHighlightPreview } from "./components/WordHighlightPreview";
+import { useLingui } from "@lingui/react/macro";
+import { displayLang } from "./lib/display-lang";
+import { tabContainerClass } from "./lib/tab-container-class";
+import { PROVIDER_LABELS } from "./lib/provider-labels";
+import { useElevenLabsVoices } from "@/hooks/use-elevenlabs-voices";
+import { ElevenLabsVoiceTuning } from "./components/ElevenLabsVoiceTuning";
 
-const PROMPT_TABS = ["prompt", "image-translation"]
+const PROMPT_TABS = ["prompt", "image-translation"];
 
 type TranslationEvaluationIssueType =
   | "meaning"
@@ -43,13 +59,14 @@ type TranslationEvaluationIssueType =
   | "omission-or-addition"
   | "formatting"
   | "context"
-  | "other"
-type TranslationEvaluationSeverity = "low" | "medium" | "high"
-type TranslationReviewStyle = "light" | "standard" | "detailed" | "custom"
+  | "other";
+type TranslationEvaluationSeverity = "low" | "medium" | "high";
+type TranslationReviewStyle = "light" | "standard" | "detailed" | "custom";
 
-const DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES = 3
-const DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE = 0
-const DEFAULT_TRANSLATION_EVALUATION_SEVERITY_THRESHOLD: TranslationEvaluationSeverity = "medium"
+const DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES = 3;
+const DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE = 0;
+const DEFAULT_TRANSLATION_EVALUATION_SEVERITY_THRESHOLD: TranslationEvaluationSeverity =
+  "medium";
 // eslint-disable-next-line lingui/no-unlocalized-strings -- LLM judge prompt instructions, not interface copy.
 const DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS = `
 Review the translated text-catalog entries against the source entries.
@@ -72,7 +89,7 @@ Treat existing translations on the page as local terminology memory. Repeated so
 For terminology-only fixes, preserve the current translation's structure, role order, punctuation, and wording as much as possible.
 Do not fix one issue by omitting, weakening, or changing another part of the source meaning.
 Only return suggested_text if you would mark that suggested replacement acceptable under the same review criteria.
-`.trim()
+`.trim();
 
 const TRANSLATION_REVIEW_ISSUE_TYPES: TranslationEvaluationIssueType[] = [
   "meaning",
@@ -82,338 +99,540 @@ const TRANSLATION_REVIEW_ISSUE_TYPES: TranslationEvaluationIssueType[] = [
   "formatting",
   "context",
   "other",
-]
+];
 
-const VISIBLE_TRANSLATION_REVIEW_ISSUE_TYPES: TranslationEvaluationIssueType[] = TRANSLATION_REVIEW_ISSUE_TYPES.filter((issueType) => issueType !== "other")
-const DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES = TRANSLATION_REVIEW_ISSUE_TYPES
-const TRANSLATION_REVIEW_SEVERITIES: TranslationEvaluationSeverity[] = ["low", "medium", "high"]
-const TRANSLATION_REVIEW_STYLES: Exclude<TranslationReviewStyle, "custom">[] = ["light", "standard", "detailed"]
-const TRANSLATION_REVIEW_STYLE_SETTINGS: Record<Exclude<TranslationReviewStyle, "custom">, {
-  strictness: "lenient" | "balanced" | "strict"
-  severity: TranslationEvaluationSeverity
-}> = {
+const VISIBLE_TRANSLATION_REVIEW_ISSUE_TYPES: TranslationEvaluationIssueType[] =
+  TRANSLATION_REVIEW_ISSUE_TYPES.filter((issueType) => issueType !== "other");
+const DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES =
+  TRANSLATION_REVIEW_ISSUE_TYPES;
+const TRANSLATION_REVIEW_SEVERITIES: TranslationEvaluationSeverity[] = [
+  "low",
+  "medium",
+  "high",
+];
+const TRANSLATION_REVIEW_STYLES: Exclude<TranslationReviewStyle, "custom">[] = [
+  "light",
+  "standard",
+  "detailed",
+];
+const TRANSLATION_REVIEW_STYLE_SETTINGS: Record<
+  Exclude<TranslationReviewStyle, "custom">,
+  {
+    strictness: "lenient" | "balanced" | "strict";
+    severity: TranslationEvaluationSeverity;
+  }
+> = {
   light: { strictness: "lenient", severity: "medium" },
   standard: { strictness: "balanced", severity: "medium" },
   detailed: { strictness: "strict", severity: "low" },
-}
+};
 const DEFAULT_TRANSLATION_EVALUATION_CONTEXT_OPTIONS = {
   book_metadata: true,
   visible_page_entries: true,
   source_language: true,
   target_language: true,
-}
+};
 
 const resolveTranslationReviewStyle = (
   strictness: "lenient" | "balanced" | "strict",
   severity: TranslationEvaluationSeverity,
 ): TranslationReviewStyle => {
   const match = TRANSLATION_REVIEW_STYLES.find((style) => {
-    const settings = TRANSLATION_REVIEW_STYLE_SETTINGS[style]
-    return settings.strictness === strictness && settings.severity === severity
-  })
-  return match ?? "custom"
-}
+    const settings = TRANSLATION_REVIEW_STYLE_SETTINGS[style];
+    return settings.strictness === strictness && settings.severity === severity;
+  });
+  return match ?? "custom";
+};
 
-export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "translate" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string; stageSlug?: string }) {
-  const isSpeechStage = stageSlug === "speech"
+export function LanguageSettings({
+  bookLabel,
+  tab = "general",
+  stageSlug = "translate",
+}: {
+  bookLabel: string;
+  headerTarget?: HTMLDivElement | null;
+  tab?: string;
+  stageSlug?: string;
+}) {
+  const isSpeechStage = stageSlug === "speech";
   const captionedImagesQuery = useQuery({
     queryKey: ["books", bookLabel, "captioned-images"],
     queryFn: () => api.listCaptionedImages(bookLabel),
     enabled: !isSpeechStage,
-  })
-  const { t } = useLingui()
-  const { data: book } = useBook(bookLabel)
-  const { data: bookConfigData } = useBookConfig(bookLabel)
-  const { data: activeConfigData } = useActiveConfig(bookLabel)
-  const updateConfig = useUpdateBookConfig()
-  const queryClient = useQueryClient()
+  });
+  const { t } = useLingui();
+  const { data: book } = useBook(bookLabel);
+  const { data: bookConfigData } = useBookConfig(bookLabel);
+  const { data: activeConfigData } = useActiveConfig(bookLabel);
+  const updateConfig = useUpdateBookConfig();
+  const queryClient = useQueryClient();
 
-  const [outputLanguages, setOutputLanguages] = useState<Set<string>>(new Set())
-  const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null)
+  const [outputLanguages, setOutputLanguages] = useState<Set<string>>(
+    new Set(),
+  );
+  const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null);
 
   // Translation review settings
-  const [reviewEnabled, setReviewEnabled] = useState(true)
-  const [reviewModel, setReviewModel] = useState(DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL)
-  const [reviewRetries, setReviewRetries] = useState(String(DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES))
-  const [reviewTemperature, setReviewTemperature] = useState(String(DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE))
-  const [reviewStrictness, setReviewStrictness] = useState<"lenient" | "balanced" | "strict">("balanced")
-  const [reviewSeverityThreshold, setReviewSeverityThreshold] = useState<TranslationEvaluationSeverity>(DEFAULT_TRANSLATION_EVALUATION_SEVERITY_THRESHOLD)
-  const [reviewIssueTypes, setReviewIssueTypes] = useState<Set<TranslationEvaluationIssueType>>(
-    () => new Set(DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES),
-  )
-  const [reviewGenerateSuggestions, setReviewGenerateSuggestions] = useState(true)
-  const [reviewOnlySuggestWhenConfident, setReviewOnlySuggestWhenConfident] = useState(true)
-  const [reviewIncludeBookMetadata, setReviewIncludeBookMetadata] = useState(DEFAULT_TRANSLATION_EVALUATION_CONTEXT_OPTIONS.book_metadata)
-  const [reviewIncludeSourceLanguage, setReviewIncludeSourceLanguage] = useState(DEFAULT_TRANSLATION_EVALUATION_CONTEXT_OPTIONS.source_language)
-  const [reviewIncludeTargetLanguage, setReviewIncludeTargetLanguage] = useState(DEFAULT_TRANSLATION_EVALUATION_CONTEXT_OPTIONS.target_language)
-  const [reviewTargetAudience, setReviewTargetAudience] = useState("")
-  const [reviewStyleGuidance, setReviewStyleGuidance] = useState("")
-  const [reviewTerminologyGuidance, setReviewTerminologyGuidance] = useState("")
-  const [reviewAdditionalGuidance, setReviewAdditionalGuidance] = useState("")
-  const [reviewJudgeInstructions, setReviewJudgeInstructions] = useState(DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS)
-  const [advancedReviewOpen, setAdvancedReviewOpen] = useState(false)
+  const [reviewEnabled, setReviewEnabled] = useState(true);
+  const [reviewModel, setReviewModel] = useState(
+    DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL,
+  );
+  const [reviewRetries, setReviewRetries] = useState(
+    String(DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES),
+  );
+  const [reviewTemperature, setReviewTemperature] = useState(
+    String(DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE),
+  );
+  const [reviewStrictness, setReviewStrictness] = useState<
+    "lenient" | "balanced" | "strict"
+  >("balanced");
+  const [reviewSeverityThreshold, setReviewSeverityThreshold] =
+    useState<TranslationEvaluationSeverity>(
+      DEFAULT_TRANSLATION_EVALUATION_SEVERITY_THRESHOLD,
+    );
+  const [reviewIssueTypes, setReviewIssueTypes] = useState<
+    Set<TranslationEvaluationIssueType>
+  >(() => new Set(DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES));
+  const [reviewGenerateSuggestions, setReviewGenerateSuggestions] =
+    useState(true);
+  const [reviewOnlySuggestWhenConfident, setReviewOnlySuggestWhenConfident] =
+    useState(true);
+  const [reviewIncludeBookMetadata, setReviewIncludeBookMetadata] = useState(
+    DEFAULT_TRANSLATION_EVALUATION_CONTEXT_OPTIONS.book_metadata,
+  );
+  const [reviewIncludeSourceLanguage, setReviewIncludeSourceLanguage] =
+    useState(DEFAULT_TRANSLATION_EVALUATION_CONTEXT_OPTIONS.source_language);
+  const [reviewIncludeTargetLanguage, setReviewIncludeTargetLanguage] =
+    useState(DEFAULT_TRANSLATION_EVALUATION_CONTEXT_OPTIONS.target_language);
+  const [reviewTargetAudience, setReviewTargetAudience] = useState("");
+  const [reviewStyleGuidance, setReviewStyleGuidance] = useState("");
+  const [reviewTerminologyGuidance, setReviewTerminologyGuidance] =
+    useState("");
+  const [reviewAdditionalGuidance, setReviewAdditionalGuidance] = useState("");
+  const [reviewJudgeInstructions, setReviewJudgeInstructions] = useState(
+    DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS,
+  );
+  const [advancedReviewOpen, setAdvancedReviewOpen] = useState(false);
 
   // Image translation
-  const [imageTranslationEnabled, setImageTranslationEnabled] = useState(false)
-  const [imageModel, setImageModel] = useState("")
-  const [selectedImageIds, setSelectedImageIds] = useState<string[]>([])
-  const [imagePromptDraft, setImagePromptDraft] = useState<PromptDraft | null>(null)
-  const [showImagePicker, setShowImagePicker] = useState(false)
+  const [imageTranslationEnabled, setImageTranslationEnabled] = useState(false);
+  const [imageModel, setImageModel] = useState("");
+  const [selectedImageIds, setSelectedImageIds] = useState<string[]>([]);
+  const [imagePromptDraft, setImagePromptDraft] = useState<PromptDraft | null>(
+    null,
+  );
+  const [showImagePicker, setShowImagePicker] = useState(false);
 
   // Speech settings
-  const [speechModel, setSpeechModel] = useState("")
-  const [format, setFormat] = useState("")
-  const [defaultProvider, setDefaultProvider] = useState("openai")
-  const [openaiModel, setOpenaiModel] = useState("")
-  const [openaiLanguages, setOpenaiLanguages] = useState("")
-  const [azureModel, setAzureModel] = useState("")
-  const [azureLanguages, setAzureLanguages] = useState("")
-  const [geminiModel, setGeminiModel] = useState("")
-  const [geminiLanguages, setGeminiLanguages] = useState("")
-  const [elevenLabsModel, setElevenLabsModel] = useState("")
-  const [elevenLabsLanguages, setElevenLabsLanguages] = useState("")
-  const [bitRate, setBitRate] = useState("")
-  const [sampleRate, setSampleRate] = useState("")
-  const [geminiTemperature, setGeminiTemperature] = useState("")
-  const [geminiSeed, setGeminiSeed] = useState("")
-  const [elevenLabsUseContext, setElevenLabsUseContext] = useState(false)
-  const [elevenLabsApplyTextNormalization, setElevenLabsApplyTextNormalization] = useState("")
+  const [speechModel, setSpeechModel] = useState("");
+  const [format, setFormat] = useState("");
+  const [defaultProvider, setDefaultProvider] = useState("openai");
+  const [openaiModel, setOpenaiModel] = useState("");
+  const [openaiLanguages, setOpenaiLanguages] = useState("");
+  const [azureModel, setAzureModel] = useState("");
+  const [azureLanguages, setAzureLanguages] = useState("");
+  const [geminiModel, setGeminiModel] = useState("");
+  const [geminiLanguages, setGeminiLanguages] = useState("");
+  const [localModel, setLocalModel] = useState(
+    "onnx-community/Kokoro-82M-v1.0-ONNX",
+  );
+  const [localLanguages, setLocalLanguages] = useState("");
+  const [elevenLabsModel, setElevenLabsModel] = useState("");
+  const [elevenLabsLanguages, setElevenLabsLanguages] = useState("");
+  const [bitRate, setBitRate] = useState("");
+  const [sampleRate, setSampleRate] = useState("");
+  const [geminiTemperature, setGeminiTemperature] = useState("");
+  const [geminiSeed, setGeminiSeed] = useState("");
+  const [elevenLabsUseContext, setElevenLabsUseContext] = useState(false);
+  const [
+    elevenLabsApplyTextNormalization,
+    setElevenLabsApplyTextNormalization,
+  ] = useState("");
   // Voice-tuning values are strings so "" can mean "unset → use the default",
   // matching the Gemini temperature/seed inputs in the same panel.
-  const [elevenLabsStability, setElevenLabsStability] = useState("")
-  const [elevenLabsSimilarityBoost, setElevenLabsSimilarityBoost] = useState("")
-  const [elevenLabsStyle, setElevenLabsStyle] = useState("")
-  const [elevenLabsUseSpeakerBoost, setElevenLabsUseSpeakerBoost] = useState("")
-  const [elevenLabsSpeed, setElevenLabsSpeed] = useState("")
-  const [batchByPage, setBatchByPage] = useState(false)
-  const [wordHighlighting, setWordHighlighting] = useState(false)
-  const [easyReadTts, setEasyReadTts] = useState(false)
-  const [excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set())
+  const [elevenLabsStability, setElevenLabsStability] = useState("");
+  const [elevenLabsSimilarityBoost, setElevenLabsSimilarityBoost] =
+    useState("");
+  const [elevenLabsStyle, setElevenLabsStyle] = useState("");
+  const [elevenLabsUseSpeakerBoost, setElevenLabsUseSpeakerBoost] =
+    useState("");
+  const [elevenLabsSpeed, setElevenLabsSpeed] = useState("");
+  const [batchByPage, setBatchByPage] = useState(false);
+  const [wordHighlighting, setWordHighlighting] = useState(false);
+  const [easyReadTts, setEasyReadTts] = useState(false);
+  const [excludedCategories, setExcludedCategories] = useState<Set<string>>(
+    new Set(),
+  );
 
-  const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker()
-  const [dirty, setDirty] = useState<Record<string, boolean>>({})
+  const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker();
+  const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const markDirty = (field: string) => {
-    setDirty((prev) => ({ ...prev, [field]: true }))
-    markTab(tab)
-  }
+    setDirty((prev) => ({ ...prev, [field]: true }));
+    markTab(tab);
+  };
 
-  const merged = activeConfigData?.merged as Record<string, unknown> | undefined
+  const merged = activeConfigData?.merged as
+    | Record<string, unknown>
+    | undefined;
   const defaultImageGenerationModel =
     typeof merged?.default_image_generation_model === "string"
       ? merged.default_image_generation_model
-      : DEFAULT_IMAGE_GENERATION_MODEL_ID
-  const translation = useStepConfig(merged, "translation", markDirty)
-  const imageTranslation = useStepConfig(merged, "image_translation", markDirty)
+      : DEFAULT_IMAGE_GENERATION_MODEL_ID;
+  const translation = useStepConfig(merged, "translation", markDirty);
+  const imageTranslation = useStepConfig(
+    merged,
+    "image_translation",
+    markDirty,
+  );
 
-  const configuredEditingLanguage = merged?.editing_language as string | undefined
-  const bookLanguage = book?.languageCode ?? book?.metadata?.language_code ?? null
-  const baseLanguage = normalizeLocale(configuredEditingLanguage ?? bookLanguage ?? "en")
+  const configuredEditingLanguage = merged?.editing_language as
+    | string
+    | undefined;
+  const bookLanguage =
+    book?.languageCode ?? book?.metadata?.language_code ?? null;
+  const baseLanguage = normalizeLocale(
+    configuredEditingLanguage ?? bookLanguage ?? "en",
+  );
 
   useEffect(() => {
-    if (!activeConfigData) return
-    const m = activeConfigData.merged as Record<string, unknown>
+    if (!activeConfigData) return;
+    const m = activeConfigData.merged as Record<string, unknown>;
     if (Array.isArray(m.output_languages)) {
-      const normalized = (m.output_languages as string[]).map((code) => normalizeLocale(code))
-      setOutputLanguages(new Set(normalized))
+      const normalized = (m.output_languages as string[]).map((code) =>
+        normalizeLocale(code),
+      );
+      setOutputLanguages(new Set(normalized));
     }
     if (m.image_translation && typeof m.image_translation === "object") {
-      const it = m.image_translation as Record<string, unknown>
-      setImageTranslationEnabled(it.enabled === true)
-      setImageModel(typeof it.image_model === "string" ? it.image_model : "")
-      setSelectedImageIds(Array.isArray(it.selected_image_ids) ? (it.selected_image_ids as string[]) : [])
+      const it = m.image_translation as Record<string, unknown>;
+      setImageTranslationEnabled(it.enabled === true);
+      setImageModel(typeof it.image_model === "string" ? it.image_model : "");
+      setSelectedImageIds(
+        Array.isArray(it.selected_image_ids)
+          ? (it.selected_image_ids as string[])
+          : [],
+      );
     } else {
-      setImageTranslationEnabled(false)
-      setImageModel("")
-      setSelectedImageIds([])
+      setImageTranslationEnabled(false);
+      setImageModel("");
+      setSelectedImageIds([]);
     }
-    if (m.translation_evaluation && typeof m.translation_evaluation === "object") {
-      const te = m.translation_evaluation as Record<string, unknown>
-      setReviewEnabled(te.enable_translation_evaluation !== false)
-      setReviewModel(typeof te.judge_model === "string" ? te.judge_model : DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL)
-      setReviewRetries(typeof te.max_retries === "number" ? String(te.max_retries) : String(DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES))
-      setReviewTemperature(typeof te.temperature === "number" ? String(te.temperature) : String(DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE))
-      setReviewStrictness(te.strictness === "lenient" || te.strictness === "strict" ? te.strictness : "balanced")
+    if (
+      m.translation_evaluation &&
+      typeof m.translation_evaluation === "object"
+    ) {
+      const te = m.translation_evaluation as Record<string, unknown>;
+      setReviewEnabled(te.enable_translation_evaluation !== false);
+      setReviewModel(
+        typeof te.judge_model === "string"
+          ? te.judge_model
+          : DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL,
+      );
+      setReviewRetries(
+        typeof te.max_retries === "number"
+          ? String(te.max_retries)
+          : String(DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES),
+      );
+      setReviewTemperature(
+        typeof te.temperature === "number"
+          ? String(te.temperature)
+          : String(DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE),
+      );
+      setReviewStrictness(
+        te.strictness === "lenient" || te.strictness === "strict"
+          ? te.strictness
+          : "balanced",
+      );
       setReviewSeverityThreshold(
-        te.severity_threshold === "low" || te.severity_threshold === "high" ? te.severity_threshold : DEFAULT_TRANSLATION_EVALUATION_SEVERITY_THRESHOLD,
-      )
-      setReviewIssueTypes(new Set(
-        Array.isArray(te.issue_types)
-          ? (te.issue_types as string[]).filter((issueType): issueType is TranslationEvaluationIssueType =>
-            TRANSLATION_REVIEW_ISSUE_TYPES.includes(issueType as TranslationEvaluationIssueType),
-          )
-          : DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES,
-      ))
-      setReviewGenerateSuggestions(te.generate_suggestions !== false)
-      setReviewOnlySuggestWhenConfident(te.only_suggest_when_confident !== false)
-      const context = te.context && typeof te.context === "object" ? te.context as Record<string, unknown> : {}
-      setReviewIncludeBookMetadata(context.book_metadata !== false)
-      setReviewIncludeSourceLanguage(context.source_language !== false)
-      setReviewIncludeTargetLanguage(context.target_language !== false)
-      setReviewTargetAudience(typeof te.target_audience === "string" ? te.target_audience : "")
-      setReviewStyleGuidance(typeof te.style_guidance === "string" ? te.style_guidance : "")
-      setReviewTerminologyGuidance(typeof te.terminology_guidance === "string" ? te.terminology_guidance : "")
-      setReviewAdditionalGuidance(typeof te.additional_guidance === "string" ? te.additional_guidance : "")
-      setReviewJudgeInstructions(typeof te.judge_instructions === "string" ? te.judge_instructions : DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS)
+        te.severity_threshold === "low" || te.severity_threshold === "high"
+          ? te.severity_threshold
+          : DEFAULT_TRANSLATION_EVALUATION_SEVERITY_THRESHOLD,
+      );
+      setReviewIssueTypes(
+        new Set(
+          Array.isArray(te.issue_types)
+            ? (te.issue_types as string[]).filter(
+                (issueType): issueType is TranslationEvaluationIssueType =>
+                  TRANSLATION_REVIEW_ISSUE_TYPES.includes(
+                    issueType as TranslationEvaluationIssueType,
+                  ),
+              )
+            : DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES,
+        ),
+      );
+      setReviewGenerateSuggestions(te.generate_suggestions !== false);
+      setReviewOnlySuggestWhenConfident(
+        te.only_suggest_when_confident !== false,
+      );
+      const context =
+        te.context && typeof te.context === "object"
+          ? (te.context as Record<string, unknown>)
+          : {};
+      setReviewIncludeBookMetadata(context.book_metadata !== false);
+      setReviewIncludeSourceLanguage(context.source_language !== false);
+      setReviewIncludeTargetLanguage(context.target_language !== false);
+      setReviewTargetAudience(
+        typeof te.target_audience === "string" ? te.target_audience : "",
+      );
+      setReviewStyleGuidance(
+        typeof te.style_guidance === "string" ? te.style_guidance : "",
+      );
+      setReviewTerminologyGuidance(
+        typeof te.terminology_guidance === "string"
+          ? te.terminology_guidance
+          : "",
+      );
+      setReviewAdditionalGuidance(
+        typeof te.additional_guidance === "string"
+          ? te.additional_guidance
+          : "",
+      );
+      setReviewJudgeInstructions(
+        typeof te.judge_instructions === "string"
+          ? te.judge_instructions
+          : DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS,
+      );
     } else {
-      setReviewEnabled(true)
-      setReviewModel(DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL)
-      setReviewRetries(String(DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES))
-      setReviewTemperature(String(DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE))
-      setReviewStrictness("balanced")
-      setReviewSeverityThreshold(DEFAULT_TRANSLATION_EVALUATION_SEVERITY_THRESHOLD)
-      setReviewIssueTypes(new Set(DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES))
-      setReviewGenerateSuggestions(true)
-      setReviewOnlySuggestWhenConfident(true)
-      setReviewIncludeBookMetadata(true)
-      setReviewIncludeSourceLanguage(true)
-      setReviewIncludeTargetLanguage(true)
-      setReviewTargetAudience("")
-      setReviewStyleGuidance("")
-      setReviewTerminologyGuidance("")
-      setReviewAdditionalGuidance("")
-      setReviewJudgeInstructions(DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS)
+      setReviewEnabled(true);
+      setReviewModel(DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL);
+      setReviewRetries(String(DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES));
+      setReviewTemperature(String(DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE));
+      setReviewStrictness("balanced");
+      setReviewSeverityThreshold(
+        DEFAULT_TRANSLATION_EVALUATION_SEVERITY_THRESHOLD,
+      );
+      setReviewIssueTypes(new Set(DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES));
+      setReviewGenerateSuggestions(true);
+      setReviewOnlySuggestWhenConfident(true);
+      setReviewIncludeBookMetadata(true);
+      setReviewIncludeSourceLanguage(true);
+      setReviewIncludeTargetLanguage(true);
+      setReviewTargetAudience("");
+      setReviewStyleGuidance("");
+      setReviewTerminologyGuidance("");
+      setReviewAdditionalGuidance("");
+      setReviewJudgeInstructions(
+        DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS,
+      );
     }
     const speech =
       m.speech && typeof m.speech === "object"
         ? (m.speech as Record<string, unknown>)
-        : null
+        : null;
     setGeminiTemperature(
-      typeof speech?.temperature === "number" ? String(speech.temperature) : ""
-    )
-    setGeminiSeed(typeof speech?.seed === "number" ? String(speech.seed) : "")
-    setBatchByPage(speech?.batch_by_page === true)
-    setElevenLabsUseContext(speech?.elevenlabs_use_context === true)
+      typeof speech?.temperature === "number" ? String(speech.temperature) : "",
+    );
+    setGeminiSeed(typeof speech?.seed === "number" ? String(speech.seed) : "");
+    setBatchByPage(speech?.batch_by_page === true);
+    setElevenLabsUseContext(speech?.elevenlabs_use_context === true);
     setElevenLabsApplyTextNormalization(
       typeof speech?.elevenlabs_apply_text_normalization === "string"
         ? speech.elevenlabs_apply_text_normalization
-        : ""
-    )
+        : "",
+    );
     const numericOrBlank = (value: unknown) =>
-      typeof value === "number" ? String(value) : ""
-    setElevenLabsStability(numericOrBlank(speech?.elevenlabs_stability))
-    setElevenLabsSimilarityBoost(numericOrBlank(speech?.elevenlabs_similarity_boost))
-    setElevenLabsStyle(numericOrBlank(speech?.elevenlabs_style))
-    setElevenLabsSpeed(numericOrBlank(speech?.elevenlabs_speed))
+      typeof value === "number" ? String(value) : "";
+    setElevenLabsStability(numericOrBlank(speech?.elevenlabs_stability));
+    setElevenLabsSimilarityBoost(
+      numericOrBlank(speech?.elevenlabs_similarity_boost),
+    );
+    setElevenLabsStyle(numericOrBlank(speech?.elevenlabs_style));
+    setElevenLabsSpeed(numericOrBlank(speech?.elevenlabs_speed));
     setElevenLabsUseSpeakerBoost(
       typeof speech?.elevenlabs_use_speaker_boost === "boolean"
         ? String(speech.elevenlabs_use_speaker_boost)
-        : ""
-    )
+        : "",
+    );
     if (speech) {
-      const s = speech
-      if (s.model) setSpeechModel(String(s.model))
-      if (s.format) setFormat(String(s.format))
-      if (s.default_provider) setDefaultProvider(String(s.default_provider))
-      if (s.bit_rate) setBitRate(String(s.bit_rate))
-      if (s.sample_rate) setSampleRate(String(s.sample_rate))
-      setWordHighlighting(s.word_highlighting === true)
+      const s = speech;
+      if (s.model) setSpeechModel(String(s.model));
+      if (s.format) setFormat(String(s.format));
+      if (s.default_provider) setDefaultProvider(String(s.default_provider));
+      if (s.bit_rate) setBitRate(String(s.bit_rate));
+      if (s.sample_rate) setSampleRate(String(s.sample_rate));
+      setWordHighlighting(s.word_highlighting === true);
       setExcludedCategories(
-        new Set(Array.isArray(s.excluded_categories) ? (s.excluded_categories as string[]) : [])
-      )
+        new Set(
+          Array.isArray(s.excluded_categories)
+            ? (s.excluded_categories as string[])
+            : [],
+        ),
+      );
       if (s.providers && typeof s.providers === "object") {
-        const providers = s.providers as Record<string, Record<string, unknown>>
+        const providers = s.providers as Record<
+          string,
+          Record<string, unknown>
+        >;
         if (providers.openai) {
-          if (providers.openai.model) setOpenaiModel(String(providers.openai.model))
-          if (Array.isArray(providers.openai.languages)) setOpenaiLanguages((providers.openai.languages as string[]).join(", "))
+          if (providers.openai.model)
+            setOpenaiModel(String(providers.openai.model));
+          if (Array.isArray(providers.openai.languages))
+            setOpenaiLanguages(
+              (providers.openai.languages as string[]).join(", "),
+            );
         }
         if (providers.azure) {
-          if (providers.azure.model) setAzureModel(String(providers.azure.model))
-          if (Array.isArray(providers.azure.languages)) setAzureLanguages((providers.azure.languages as string[]).join(", "))
+          if (providers.azure.model)
+            setAzureModel(String(providers.azure.model));
+          if (Array.isArray(providers.azure.languages))
+            setAzureLanguages(
+              (providers.azure.languages as string[]).join(", "),
+            );
         }
         if (providers.gemini) {
-          if (providers.gemini.model) setGeminiModel(String(providers.gemini.model))
-          if (Array.isArray(providers.gemini.languages)) setGeminiLanguages((providers.gemini.languages as string[]).join(", "))
+          if (providers.gemini.model)
+            setGeminiModel(String(providers.gemini.model));
+          if (Array.isArray(providers.gemini.languages))
+            setGeminiLanguages(
+              (providers.gemini.languages as string[]).join(", "),
+            );
+        }
+        if (providers["local-hf"]) {
+          if (providers["local-hf"].model)
+            setLocalModel(String(providers["local-hf"].model));
+          if (Array.isArray(providers["local-hf"].languages))
+            setLocalLanguages(
+              (providers["local-hf"].languages as string[]).join(", "),
+            );
         }
         if (providers.elevenlabs) {
-          if (providers.elevenlabs.model) setElevenLabsModel(String(providers.elevenlabs.model))
-          if (Array.isArray(providers.elevenlabs.languages)) setElevenLabsLanguages((providers.elevenlabs.languages as string[]).join(", "))
+          if (providers.elevenlabs.model)
+            setElevenLabsModel(String(providers.elevenlabs.model));
+          if (Array.isArray(providers.elevenlabs.languages))
+            setElevenLabsLanguages(
+              (providers.elevenlabs.languages as string[]).join(", "),
+            );
         }
       }
     }
-  }, [activeConfigData])
+  }, [activeConfigData]);
 
   const shouldWrite = (field: string) =>
-    dirty[field] || (bookConfigData?.config && field in bookConfigData.config)
+    dirty[field] || (bookConfigData?.config && field in bookConfigData.config);
 
   const parseNonNegativeInt = (value: string, fallback: number) => {
-    const parsed = Number.parseInt(value, 10)
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback
-  }
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+  };
 
   const parseTemperature = (value: string) => {
-    const parsed = Number.parseFloat(value)
-    if (!Number.isFinite(parsed)) return DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE
-    return Math.min(2, Math.max(0, parsed))
-  }
+    const parsed = Number.parseFloat(value);
+    if (!Number.isFinite(parsed))
+      return DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE;
+    return Math.min(2, Math.max(0, parsed));
+  };
 
   const buildOverrides = () => {
-    const overrides: Record<string, unknown> = {}
-    if (bookConfigData?.config) Object.assign(overrides, bookConfigData.config)
+    const overrides: Record<string, unknown> = {};
+    if (bookConfigData?.config) Object.assign(overrides, bookConfigData.config);
 
     if (shouldWrite("translation")) {
-      const existing = (bookConfigData?.config?.translation ?? {}) as Record<string, unknown>
-      overrides.translation = { ...existing, ...translation.configOverrides }
+      const existing = (bookConfigData?.config?.translation ?? {}) as Record<
+        string,
+        unknown
+      >;
+      overrides.translation = { ...existing, ...translation.configOverrides };
     }
     if (shouldWrite("output_languages")) {
-      const normalized = Array.from(outputLanguages).map((code) => normalizeLocale(code))
-      overrides.output_languages = normalized.length > 0 ? normalized : undefined
+      const normalized = Array.from(outputLanguages).map((code) =>
+        normalizeLocale(code),
+      );
+      overrides.output_languages =
+        normalized.length > 0 ? normalized : undefined;
     }
     if (shouldWrite("image_translation")) {
-      const existing = (bookConfigData?.config?.image_translation ?? {}) as Record<string, unknown>
+      const existing = (bookConfigData?.config?.image_translation ??
+        {}) as Record<string, unknown>;
       overrides.image_translation = {
         ...existing,
         ...imageTranslation.configOverrides,
         enabled: imageTranslationEnabled,
         image_model: imageModel.trim() || undefined,
-        selected_image_ids: selectedImageIds.length > 0 ? selectedImageIds : undefined,
-      }
+        selected_image_ids:
+          selectedImageIds.length > 0 ? selectedImageIds : undefined,
+      };
     }
     if (shouldWrite("speech")) {
-      const existing = (bookConfigData?.config?.speech ?? {}) as Record<string, unknown>
-      const openaiLangs = openaiLanguages.split(",").map((s) => s.trim()).filter(Boolean)
-      const azureLangs = azureLanguages.split(",").map((s) => s.trim()).filter(Boolean)
-      const geminiLangs = geminiLanguages.split(",").map((s) => s.trim()).filter(Boolean)
-      const elevenLabsLangs = elevenLabsLanguages.split(",").map((s) => s.trim()).filter(Boolean)
-      const providers: Record<string, unknown> = {}
+      const existing = (bookConfigData?.config?.speech ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const openaiLangs = openaiLanguages
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const azureLangs = azureLanguages
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const geminiLangs = geminiLanguages
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const localLangs = localLanguages
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const providers: Record<string, unknown> = {
+        ...((existing.providers ?? {}) as Record<string, unknown>),
+      };
+      const elevenLabsLangs = elevenLabsLanguages
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (openaiModel.trim() || openaiLangs.length > 0) {
         providers.openai = {
           model: openaiModel.trim() || undefined,
           languages: openaiLangs.length > 0 ? openaiLangs : undefined,
-        }
+        };
       }
       if (azureModel.trim() || azureLangs.length > 0) {
         providers.azure = {
           model: azureModel.trim() || undefined,
           languages: azureLangs.length > 0 ? azureLangs : undefined,
-        }
+        };
       }
       if (geminiModel.trim() || geminiLangs.length > 0) {
         providers.gemini = {
           model: geminiModel.trim() || undefined,
           languages: geminiLangs.length > 0 ? geminiLangs : undefined,
-        }
+        };
+      }
+      if (
+        localModel.trim() ||
+        localLangs.length > 0 ||
+        defaultProvider === "local-hf"
+      ) {
+        providers["local-hf"] = {
+          adapter: "kokoro",
+          model: localModel.trim() || "onnx-community/Kokoro-82M-v1.0-ONNX",
+          voice: "af_heart",
+          dtype: "q8",
+          device: "auto",
+          languages: localLangs.length > 0 ? localLangs : undefined,
+        };
       }
       if (elevenLabsModel.trim() || elevenLabsLangs.length > 0) {
         providers.elevenlabs = {
           model: elevenLabsModel.trim() || undefined,
           languages: elevenLabsLangs.length > 0 ? elevenLabsLangs : undefined,
-        }
+        };
       }
       // Guard the Gemini sampling inputs against values the SpeechConfig schema
       // rejects — an out-of-range value would be written to config.yaml and then
       // make AppConfig.parse throw on the next load, breaking the book. Clamp
       // temperature to the schema's [0, 2]; seed must be a finite integer.
       // Invalid/blank → omit, which disables that param (Gemini's own default).
-      const tempRaw = Number(geminiTemperature.trim())
-      const seedRaw = Number(geminiSeed.trim())
+      const tempRaw = Number(geminiTemperature.trim());
+      const seedRaw = Number(geminiSeed.trim());
       // Same guard for the ElevenLabs voice_settings sliders: clamp into the
       // schema's range so a stray value can't break AppConfig.parse. Blank →
       // omit, which falls back to DEFAULT_ELEVENLABS_VOICE_SETTINGS.
       const clampedOrUndefined = (raw: string, min: number, max: number) => {
-        const value = Number(raw.trim())
-        if (!raw.trim() || !Number.isFinite(value)) return undefined
-        return Math.min(max, Math.max(min, value))
-      }
+        const value = Number(raw.trim());
+        if (!raw.trim() || !Number.isFinite(value)) return undefined;
+        return Math.min(max, Math.max(min, value));
+      };
       overrides.speech = {
         ...existing,
         model: speechModel.trim() || undefined,
@@ -422,42 +641,66 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         providers: Object.keys(providers).length > 0 ? providers : undefined,
         bit_rate: bitRate.trim() || undefined,
         sample_rate: sampleRate.trim() ? Number(sampleRate.trim()) : undefined,
-        temperature: geminiTemperature.trim() && Number.isFinite(tempRaw) ? Math.min(2, Math.max(0, tempRaw)) : undefined,
-        seed: geminiSeed.trim() && Number.isFinite(seedRaw) ? Math.trunc(seedRaw) : undefined,
+        temperature:
+          geminiTemperature.trim() && Number.isFinite(tempRaw)
+            ? Math.min(2, Math.max(0, tempRaw))
+            : undefined,
+        seed:
+          geminiSeed.trim() && Number.isFinite(seedRaw)
+            ? Math.trunc(seedRaw)
+            : undefined,
         batch_by_page: batchByPage || undefined,
         word_highlighting: wordHighlighting,
         excluded_categories: Array.from(excludedCategories),
         elevenlabs_use_context: elevenLabsUseContext || undefined,
         elevenlabs_apply_text_normalization:
-          elevenLabsApplyTextNormalization === "auto" || elevenLabsApplyTextNormalization === "on" || elevenLabsApplyTextNormalization === "off"
+          elevenLabsApplyTextNormalization === "auto" ||
+          elevenLabsApplyTextNormalization === "on" ||
+          elevenLabsApplyTextNormalization === "off"
             ? elevenLabsApplyTextNormalization
             : undefined,
         elevenlabs_stability: clampedOrUndefined(elevenLabsStability, 0, 1),
-        elevenlabs_similarity_boost: clampedOrUndefined(elevenLabsSimilarityBoost, 0, 1),
+        elevenlabs_similarity_boost: clampedOrUndefined(
+          elevenLabsSimilarityBoost,
+          0,
+          1,
+        ),
         elevenlabs_style: clampedOrUndefined(elevenLabsStyle, 0, 1),
         elevenlabs_speed: clampedOrUndefined(elevenLabsSpeed, 0.7, 1.2),
         elevenlabs_use_speaker_boost:
-          elevenLabsUseSpeakerBoost === "" ? undefined : elevenLabsUseSpeakerBoost === "true",
-      }
+          elevenLabsUseSpeakerBoost === ""
+            ? undefined
+            : elevenLabsUseSpeakerBoost === "true",
+      };
     }
     if (shouldWrite("translation_evaluation")) {
       const existing = {
-        ...((bookConfigData?.config?.translation_evaluation ?? {}) as Record<string, unknown>),
-      }
-      delete existing.batch_size
-      const selectedIssueTypes = Array.from(reviewIssueTypes)
+        ...((bookConfigData?.config?.translation_evaluation ?? {}) as Record<
+          string,
+          unknown
+        >),
+      };
+      delete existing.batch_size;
+      const selectedIssueTypes = Array.from(reviewIssueTypes);
       const issueTypes = selectedIssueTypes.includes("other")
         ? selectedIssueTypes
-        : [...selectedIssueTypes, "other" as const]
+        : [...selectedIssueTypes, "other" as const];
       overrides.translation_evaluation = {
         ...existing,
         enable_translation_evaluation: reviewEnabled,
-        judge_model: reviewModel.trim() || DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL,
-        max_retries: parseNonNegativeInt(reviewRetries, DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES),
+        judge_model:
+          reviewModel.trim() || DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL,
+        max_retries: parseNonNegativeInt(
+          reviewRetries,
+          DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES,
+        ),
         temperature: parseTemperature(reviewTemperature),
         strictness: reviewStrictness,
         severity_threshold: reviewSeverityThreshold,
-        issue_types: issueTypes.length > 0 ? issueTypes : DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES,
+        issue_types:
+          issueTypes.length > 0
+            ? issueTypes
+            : DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES,
         generate_suggestions: reviewGenerateSuggestions,
         only_suggest_when_confident: reviewOnlySuggestWhenConfident,
         context: {
@@ -466,65 +709,82 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           source_language: reviewIncludeSourceLanguage,
           target_language: reviewIncludeTargetLanguage,
         },
-        judge_instructions: reviewJudgeInstructions.trim() || DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS,
+        judge_instructions:
+          reviewJudgeInstructions.trim() ||
+          DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS,
         additional_guidance: reviewAdditionalGuidance.trim() || undefined,
         target_audience: reviewTargetAudience.trim() || undefined,
         style_guidance: reviewStyleGuidance.trim() || undefined,
         terminology_guidance: reviewTerminologyGuidance.trim() || undefined,
-      }
+      };
     }
-    return overrides
-  }
+    return overrides;
+  };
 
   const toggleLanguage = (code: string) => {
-    const normalizedCode = normalizeLocale(code)
+    const normalizedCode = normalizeLocale(code);
     // Don't add the base language — it's always included implicitly
-    if (normalizedCode === baseLanguage) return
+    if (normalizedCode === baseLanguage) return;
     setOutputLanguages((prev) => {
-      const next = new Set(prev)
-      if (next.has(normalizedCode)) next.delete(normalizedCode)
-      else next.add(normalizedCode)
-      return next
-    })
-    markDirty("output_languages")
-  }
+      const next = new Set(prev);
+      if (next.has(normalizedCode)) next.delete(normalizedCode);
+      else next.add(normalizedCode);
+      return next;
+    });
+    markDirty("output_languages");
+  };
 
   const save = async () => {
-    const promptSaves: Promise<unknown>[] = []
+    const promptSaves: Promise<unknown>[] = [];
     if (promptDraft != null) {
-      promptSaves.push(savePromptDraft(queryClient, "translation", bookLabel, promptDraft))
+      promptSaves.push(
+        savePromptDraft(queryClient, "translation", bookLabel, promptDraft),
+      );
     }
     if (imagePromptDraft != null) {
-      promptSaves.push(savePromptDraft(queryClient, "image_translation", bookLabel, imagePromptDraft))
+      promptSaves.push(
+        savePromptDraft(
+          queryClient,
+          "image_translation",
+          bookLabel,
+          imagePromptDraft,
+        ),
+      );
     }
-    if (promptSaves.length > 0) await Promise.all(promptSaves)
+    if (promptSaves.length > 0) await Promise.all(promptSaves);
 
-    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
-    setDirty({})
-    setPromptDraft(null)
-    setImagePromptDraft(null)
-    resetMarkedTabs()
-  }
+    await updateConfig.mutateAsync({
+      label: bookLabel,
+      config: buildOverrides(),
+    });
+    setDirty({});
+    setPromptDraft(null);
+    setImagePromptDraft(null);
+    resetMarkedTabs();
+  };
 
-  const reviewStyle = resolveTranslationReviewStyle(reviewStrictness, reviewSeverityThreshold)
+  const reviewStyle = resolveTranslationReviewStyle(
+    reviewStrictness,
+    reviewSeverityThreshold,
+  );
   const setReviewStyle = (style: Exclude<TranslationReviewStyle, "custom">) => {
-    const settings = TRANSLATION_REVIEW_STYLE_SETTINGS[style]
-    setReviewStrictness(settings.strictness)
-    setReviewSeverityThreshold(settings.severity)
-    markDirty("translation_evaluation")
-  }
+    const settings = TRANSLATION_REVIEW_STYLE_SETTINGS[style];
+    setReviewStrictness(settings.strictness);
+    setReviewSeverityThreshold(settings.severity);
+    markDirty("translation_evaluation");
+  };
 
   const mainSaveTab =
     tab === "general" ||
     tab === "prompt" ||
     tab === "speech" ||
     tab === "image-translation" ||
-    tab === "translation-review"
+    tab === "translation-review";
   const dirtyTabs = [
     ...markedTabs,
     ...(promptDraft != null ? ["prompt"] : []),
     ...(imagePromptDraft != null ? ["image-translation"] : []),
-  ].filter((tabKey, i, all) => all.indexOf(tabKey) === i)
+  ].filter((tabKey, i, all) => all.indexOf(tabKey) === i);
   useStageSettingsBar({
     stage: stageSlug as StageName,
     bookLabel,
@@ -533,7 +793,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
     saving: updateConfig.isPending,
     save,
     showSaveOnly: PROMPT_TABS.includes(tab),
-  })
+  });
 
   return (
     <div className={tabContainerClass(tab)}>
@@ -543,7 +803,10 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           <div>
             <Label className="text-xs">{t`Base Language`}</Label>
             <div className="mt-1.5">
-              <Badge variant="secondary" className="gap-1.5 text-xs font-normal">
+              <Badge
+                variant="secondary"
+                className="gap-1.5 text-xs font-normal"
+              >
                 <Lock className="h-3 w-3 text-muted-foreground" />
                 {displayLang(baseLanguage)}
                 <span className="text-muted-foreground">({baseLanguage})</span>
@@ -573,7 +836,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           onModelChange={translation.onModelChange}
           maxRetries={translation.maxRetries}
           onMaxRetriesChange={translation.onMaxRetriesChange}
-          onContentChange={(content, modelId) => setPromptDraft(toPromptDraft(content, modelId))}
+          onContentChange={(content, modelId) =>
+            setPromptDraft(toPromptDraft(content, modelId))
+          }
           enabled={tab === "prompt"}
         />
       )}
@@ -592,8 +857,8 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               type="checkbox"
               checked={reviewEnabled}
               onChange={(e) => {
-                setReviewEnabled(e.target.checked)
-                markDirty("translation_evaluation")
+                setReviewEnabled(e.target.checked);
+                markDirty("translation_evaluation");
               }}
               className="mt-0.5 h-4 w-4 rounded border-input"
             />
@@ -628,9 +893,15 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
                     }`}
                   >
                     <span className="block text-sm font-semibold">
-                      {style === "light" ? t`Light` : style === "standard" ? t`Standard` : t`Detailed`}
+                      {style === "light"
+                        ? t`Light`
+                        : style === "standard"
+                          ? t`Standard`
+                          : t`Detailed`}
                     </span>
-                    <span className={`mt-1 block text-xs leading-relaxed ${reviewStyle === style ? "text-white/80" : "text-muted-foreground"}`}>
+                    <span
+                      className={`mt-1 block text-xs leading-relaxed ${reviewStyle === style ? "text-white/80" : "text-muted-foreground"}`}
+                    >
                       {style === "light"
                         ? t`Flags clear meaning, missing-content, and formatting problems.`
                         : style === "standard"
@@ -651,18 +922,21 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               <Label className="text-xs">{t`What should the review focus on?`}</Label>
               <div className="grid gap-2 sm:grid-cols-2">
                 {VISIBLE_TRANSLATION_REVIEW_ISSUE_TYPES.map((issueType) => (
-                  <label key={issueType} className="flex items-center gap-2 text-sm">
+                  <label
+                    key={issueType}
+                    className="flex items-center gap-2 text-sm"
+                  >
                     <input
                       type="checkbox"
                       checked={reviewIssueTypes.has(issueType)}
                       onChange={(e) => {
                         setReviewIssueTypes((current) => {
-                          const next = new Set(current)
-                          if (e.target.checked) next.add(issueType)
-                          else next.delete(issueType)
-                          return next
-                        })
-                        markDirty("translation_evaluation")
+                          const next = new Set(current);
+                          if (e.target.checked) next.add(issueType);
+                          else next.delete(issueType);
+                          return next;
+                        });
+                        markDirty("translation_evaluation");
                       }}
                       className="h-4 w-4 rounded border-input"
                     />
@@ -689,8 +963,8 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
                 type="checkbox"
                 checked={reviewGenerateSuggestions}
                 onChange={(e) => {
-                  setReviewGenerateSuggestions(e.target.checked)
-                  markDirty("translation_evaluation")
+                  setReviewGenerateSuggestions(e.target.checked);
+                  markDirty("translation_evaluation");
                 }}
                 className="mt-0.5 h-4 w-4 rounded border-input"
               />
@@ -698,13 +972,16 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
             </label>
 
             <div className="space-y-1.5">
-              <Label htmlFor="translation-review-audience" className="text-xs">{t`Audience or reading level`}</Label>
+              <Label
+                htmlFor="translation-review-audience"
+                className="text-xs"
+              >{t`Audience or reading level`}</Label>
               <Input
                 id="translation-review-audience"
                 value={reviewTargetAudience}
                 onChange={(e) => {
-                  setReviewTargetAudience(e.target.value)
-                  markDirty("translation_evaluation")
+                  setReviewTargetAudience(e.target.value);
+                  markDirty("translation_evaluation");
                 }}
                 placeholder={t`e.g. early readers`}
                 className="h-9 text-sm"
@@ -712,13 +989,16 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="translation-review-guidance" className="text-xs">{t`Guidance for this book`}</Label>
+              <Label
+                htmlFor="translation-review-guidance"
+                className="text-xs"
+              >{t`Guidance for this book`}</Label>
               <textarea
                 id="translation-review-guidance"
                 value={reviewAdditionalGuidance}
                 onChange={(e) => {
-                  setReviewAdditionalGuidance(e.target.value)
-                  markDirty("translation_evaluation")
+                  setReviewAdditionalGuidance(e.target.value);
+                  markDirty("translation_evaluation");
                 }}
                 className="min-h-20 w-full rounded-md border border-input bg-background p-3 text-sm leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring"
                 placeholder={t`Anything the judge should keep in mind for this book.`}
@@ -747,253 +1027,307 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
 
             {advancedReviewOpen && (
               <div className="mt-5 space-y-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label className="text-xs">{t`Judge model`}</Label>
+                    <ModelSelect
+                      value={reviewModel}
+                      onChange={(value) => {
+                        setReviewModel(value);
+                        markDirty("translation_evaluation");
+                      }}
+                      placeholder={DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL}
+                      groups={LLM_MODEL_GROUPS}
+                      prefixProvider
+                      className="max-w-md"
+                      inputClassName="h-9 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="translation-review-retries"
+                      className="text-xs"
+                    >{t`Retries`}</Label>
+                    <Input
+                      id="translation-review-retries"
+                      type="number"
+                      min={0}
+                      value={reviewRetries}
+                      onChange={(e) => {
+                        setReviewRetries(e.target.value);
+                        markDirty("translation_evaluation");
+                      }}
+                      className="h-9 max-w-32 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label
+                      htmlFor="translation-review-temperature"
+                      className="text-xs"
+                    >{t`Temperature`}</Label>
+                    <Input
+                      id="translation-review-temperature"
+                      type="number"
+                      min={0}
+                      max={2}
+                      step={0.1}
+                      value={reviewTemperature}
+                      onChange={(e) => {
+                        setReviewTemperature(e.target.value);
+                        markDirty("translation_evaluation");
+                      }}
+                      className="h-9 max-w-32 text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs">{t`Flag severity threshold`}</Label>
+                    <div className="flex flex-wrap gap-1">
+                      {TRANSLATION_REVIEW_SEVERITIES.map((severity) => (
+                        <button
+                          key={severity}
+                          type="button"
+                          onClick={() => {
+                            setReviewSeverityThreshold(severity);
+                            markDirty("translation_evaluation");
+                          }}
+                          className={`h-8 rounded px-2 text-xs font-medium ring-1 ${
+                            reviewSeverityThreshold === severity
+                              ? "bg-black text-white ring-black"
+                              : "bg-white text-muted-foreground ring-border hover:bg-muted"
+                          }`}
+                        >
+                          {severity === "low"
+                            ? t`Low`
+                            : severity === "medium"
+                              ? t`Medium`
+                              : t`High`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-1.5 sm:col-span-2">
-              <Label className="text-xs">{t`Judge model`}</Label>
-              <ModelSelect
-                value={reviewModel}
-                onChange={(value) => {
-                  setReviewModel(value)
-                  markDirty("translation_evaluation")
-                }}
-                placeholder={DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL}
-                groups={LLM_MODEL_GROUPS}
-                prefixProvider
-                className="max-w-md"
-                inputClassName="h-9 text-sm"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="translation-review-retries" className="text-xs">{t`Retries`}</Label>
-              <Input
-                id="translation-review-retries"
-                type="number"
-                min={0}
-                value={reviewRetries}
-                onChange={(e) => {
-                  setReviewRetries(e.target.value)
-                  markDirty("translation_evaluation")
-                }}
-                className="h-9 max-w-32 text-sm"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="translation-review-temperature" className="text-xs">{t`Temperature`}</Label>
-              <Input
-                id="translation-review-temperature"
-                type="number"
-                min={0}
-                max={2}
-                step={0.1}
-                value={reviewTemperature}
-                onChange={(e) => {
-                  setReviewTemperature(e.target.value)
-                  markDirty("translation_evaluation")
-                }}
-                className="h-9 max-w-32 text-sm"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">{t`Flag severity threshold`}</Label>
-              <div className="flex flex-wrap gap-1">
-                {TRANSLATION_REVIEW_SEVERITIES.map((severity) => (
-                  <button
-                    key={severity}
-                    type="button"
-                    onClick={() => {
-                      setReviewSeverityThreshold(severity)
-                      markDirty("translation_evaluation")
-                    }}
-                    className={`h-8 rounded px-2 text-xs font-medium ring-1 ${
-                      reviewSeverityThreshold === severity
-                        ? "bg-black text-white ring-black"
-                        : "bg-white text-muted-foreground ring-border hover:bg-muted"
-                    }`}
-                  >
-                    {severity === "low" ? t`Low` : severity === "medium" ? t`Medium` : t`High`}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{t`Review strictness`}</Label>
+                  <div className="flex flex-wrap gap-1">
+                    {(["lenient", "balanced", "strict"] as const).map(
+                      (strictness) => (
+                        <button
+                          key={strictness}
+                          type="button"
+                          onClick={() => {
+                            setReviewStrictness(strictness);
+                            markDirty("translation_evaluation");
+                          }}
+                          className={`h-8 rounded px-2 text-xs font-medium ring-1 ${
+                            reviewStrictness === strictness
+                              ? "bg-black text-white ring-black"
+                              : "bg-white text-muted-foreground ring-border hover:bg-muted"
+                          }`}
+                        >
+                          {strictness === "lenient"
+                            ? t`Lenient`
+                            : strictness === "balanced"
+                              ? t`Balanced`
+                              : t`Strict`}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {t`Strictness controls how aggressively the judge flags tone, fluency, terminology, and style concerns.`}
+                  </p>
+                </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">{t`Review strictness`}</Label>
-            <div className="flex flex-wrap gap-1">
-              {(["lenient", "balanced", "strict"] as const).map((strictness) => (
-                <button
-                  key={strictness}
-                  type="button"
-                  onClick={() => {
-                    setReviewStrictness(strictness)
-                    markDirty("translation_evaluation")
-                  }}
-                  className={`h-8 rounded px-2 text-xs font-medium ring-1 ${
-                    reviewStrictness === strictness
-                      ? "bg-black text-white ring-black"
-                      : "bg-white text-muted-foreground ring-border hover:bg-muted"
-                  }`}
-                >
-                  {strictness === "lenient" ? t`Lenient` : strictness === "balanced" ? t`Balanced` : t`Strict`}
-                </button>
-              ))}
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              {t`Strictness controls how aggressively the judge flags tone, fluency, terminology, and style concerns.`}
-            </p>
-          </div>
+                <div className="space-y-2">
+                  <Label className="text-xs">{t`Issue types to check`}</Label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {TRANSLATION_REVIEW_ISSUE_TYPES.map((issueType) => (
+                      <label
+                        key={issueType}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={reviewIssueTypes.has(issueType)}
+                          onChange={(e) => {
+                            setReviewIssueTypes((current) => {
+                              const next = new Set(current);
+                              if (e.target.checked) next.add(issueType);
+                              else next.delete(issueType);
+                              return next;
+                            });
+                            markDirty("translation_evaluation");
+                          }}
+                          className="h-4 w-4 rounded border-input"
+                        />
+                        <span>
+                          {issueType === "meaning"
+                            ? t`Meaning changed`
+                            : issueType === "fluency"
+                              ? t`Grammar and fluency`
+                              : issueType === "terminology"
+                                ? t`Terminology`
+                                : issueType === "omission-or-addition"
+                                  ? t`Missing or added content`
+                                  : issueType === "formatting"
+                                    ? t`Formatting and placeholders`
+                                    : issueType === "context"
+                                      ? t`Page context`
+                                      : t`Other`}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs">{t`Issue types to check`}</Label>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {TRANSLATION_REVIEW_ISSUE_TYPES.map((issueType) => (
-                <label key={issueType} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={reviewIssueTypes.has(issueType)}
+                <div className="space-y-2">
+                  <Label className="text-xs">{t`Suggestion behavior`}</Label>
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={reviewGenerateSuggestions}
+                      onChange={(e) => {
+                        setReviewGenerateSuggestions(e.target.checked);
+                        markDirty("translation_evaluation");
+                      }}
+                      className="mt-0.5 h-4 w-4 rounded border-input"
+                    />
+                    <span>{t`Generate suggested replacement translations for flagged entries`}</span>
+                  </label>
+                  <label className="flex items-start gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={reviewOnlySuggestWhenConfident}
+                      onChange={(e) => {
+                        setReviewOnlySuggestWhenConfident(e.target.checked);
+                        markDirty("translation_evaluation");
+                      }}
+                      disabled={!reviewGenerateSuggestions}
+                      className="mt-0.5 h-4 w-4 rounded border-input disabled:opacity-50"
+                    />
+                    <span>{t`Only suggest replacements when the correction is high confidence`}</span>
+                  </label>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs">{t`Context included`}</Label>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {(
+                      [
+                        [
+                          "book_metadata",
+                          reviewIncludeBookMetadata,
+                          setReviewIncludeBookMetadata,
+                          t`Book metadata`,
+                        ],
+                        [
+                          "source_language",
+                          reviewIncludeSourceLanguage,
+                          setReviewIncludeSourceLanguage,
+                          t`Source language`,
+                        ],
+                        [
+                          "target_language",
+                          reviewIncludeTargetLanguage,
+                          setReviewIncludeTargetLanguage,
+                          t`Target language`,
+                        ],
+                      ] as const
+                    ).map(([key, checked, setter, label]) => (
+                      <label
+                        key={key}
+                        className="flex items-center gap-2 text-sm"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => {
+                            setter(e.target.checked);
+                            markDirty("translation_evaluation");
+                          }}
+                          className="h-4 w-4 rounded border-input"
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked
+                        readOnly
+                        className="h-4 w-4 rounded border-input"
+                      />
+                      <span>{t`Visible page entries`}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="translation-review-style"
+                    className="text-xs"
+                  >{t`Style guidance`}</Label>
+                  <Input
+                    id="translation-review-style"
+                    value={reviewStyleGuidance}
                     onChange={(e) => {
-                      setReviewIssueTypes((current) => {
-                        const next = new Set(current)
-                        if (e.target.checked) next.add(issueType)
-                        else next.delete(issueType)
-                        return next
-                      })
-                      markDirty("translation_evaluation")
+                      setReviewStyleGuidance(e.target.value);
+                      markDirty("translation_evaluation");
                     }}
-                    className="h-4 w-4 rounded border-input"
+                    placeholder={t`e.g. keep a warm children's-book tone`}
+                    className="h-9 text-sm"
                   />
-                  <span>
-                    {issueType === "meaning"
-                      ? t`Meaning changed`
-                      : issueType === "fluency"
-                        ? t`Grammar and fluency`
-                        : issueType === "terminology"
-                          ? t`Terminology`
-                          : issueType === "omission-or-addition"
-                            ? t`Missing or added content`
-                            : issueType === "formatting"
-                              ? t`Formatting and placeholders`
-                              : issueType === "context"
-                                ? t`Page context`
-                                : t`Other`}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
+                </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs">{t`Suggestion behavior`}</Label>
-            <label className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={reviewGenerateSuggestions}
-                onChange={(e) => {
-                  setReviewGenerateSuggestions(e.target.checked)
-                  markDirty("translation_evaluation")
-                }}
-                className="mt-0.5 h-4 w-4 rounded border-input"
-              />
-              <span>{t`Generate suggested replacement translations for flagged entries`}</span>
-            </label>
-            <label className="flex items-start gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={reviewOnlySuggestWhenConfident}
-                onChange={(e) => {
-                  setReviewOnlySuggestWhenConfident(e.target.checked)
-                  markDirty("translation_evaluation")
-                }}
-                disabled={!reviewGenerateSuggestions}
-                className="mt-0.5 h-4 w-4 rounded border-input disabled:opacity-50"
-              />
-              <span>{t`Only suggest replacements when the correction is high confidence`}</span>
-            </label>
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs">{t`Context included`}</Label>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {([
-                ["book_metadata", reviewIncludeBookMetadata, setReviewIncludeBookMetadata, t`Book metadata`],
-                ["source_language", reviewIncludeSourceLanguage, setReviewIncludeSourceLanguage, t`Source language`],
-                ["target_language", reviewIncludeTargetLanguage, setReviewIncludeTargetLanguage, t`Target language`],
-              ] as const).map(([key, checked, setter, label]) => (
-                <label key={key} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={checked}
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="translation-review-terminology"
+                    className="text-xs"
+                  >{t`Terminology guidance`}</Label>
+                  <textarea
+                    id="translation-review-terminology"
+                    value={reviewTerminologyGuidance}
                     onChange={(e) => {
-                      setter(e.target.checked)
-                      markDirty("translation_evaluation")
+                      setReviewTerminologyGuidance(e.target.value);
+                      markDirty("translation_evaluation");
                     }}
-                    className="h-4 w-4 rounded border-input"
+                    className="min-h-20 w-full rounded-md border border-input bg-background p-3 font-mono text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring"
+                    placeholder={t`Terms, character names, or phrases the judge should preserve or prefer.`}
                   />
-                  <span>{label}</span>
-                </label>
-              ))}
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <input type="checkbox" checked readOnly className="h-4 w-4 rounded border-input" />
-                <span>{t`Visible page entries`}</span>
-              </div>
-            </div>
-          </div>
+                </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="translation-review-style" className="text-xs">{t`Style guidance`}</Label>
-            <Input
-              id="translation-review-style"
-              value={reviewStyleGuidance}
-              onChange={(e) => {
-                setReviewStyleGuidance(e.target.value)
-                markDirty("translation_evaluation")
-              }}
-              placeholder={t`e.g. keep a warm children's-book tone`}
-              className="h-9 text-sm"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="translation-review-terminology" className="text-xs">{t`Terminology guidance`}</Label>
-            <textarea
-              id="translation-review-terminology"
-              value={reviewTerminologyGuidance}
-              onChange={(e) => {
-                setReviewTerminologyGuidance(e.target.value)
-                markDirty("translation_evaluation")
-              }}
-              className="min-h-20 w-full rounded-md border border-input bg-background p-3 font-mono text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring"
-              placeholder={t`Terms, character names, or phrases the judge should preserve or prefer.`}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between gap-3">
-              <Label htmlFor="translation-review-instructions" className="text-xs">{t`Judge instructions`}</Label>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-xs"
-                onClick={() => {
-                  setReviewJudgeInstructions(DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS)
-                  markDirty("translation_evaluation")
-                }}
-              >
-                {t`Reset default`}
-              </Button>
-            </div>
-            <textarea
-              id="translation-review-instructions"
-              value={reviewJudgeInstructions}
-              onChange={(e) => {
-                setReviewJudgeInstructions(e.target.value)
-                markDirty("translation_evaluation")
-              }}
-              className="min-h-56 w-full rounded-md border border-input bg-background p-3 font-mono text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </div>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <Label
+                      htmlFor="translation-review-instructions"
+                      className="text-xs"
+                    >{t`Judge instructions`}</Label>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => {
+                        setReviewJudgeInstructions(
+                          DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS,
+                        );
+                        markDirty("translation_evaluation");
+                      }}
+                    >
+                      {t`Reset default`}
+                    </Button>
+                  </div>
+                  <textarea
+                    id="translation-review-instructions"
+                    value={reviewJudgeInstructions}
+                    onChange={(e) => {
+                      setReviewJudgeInstructions(e.target.value);
+                      markDirty("translation_evaluation");
+                    }}
+                    className="min-h-56 w-full rounded-md border border-input bg-background p-3 font-mono text-xs leading-relaxed focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -1009,52 +1343,86 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               search={{ tab: "overview" }}
               className="inline-flex items-center gap-1.5 text-xs font-medium text-[#737373] transition-colors hover:text-rose-700 focus:outline-none focus-visible:underline"
             >
-              <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.25} aria-hidden />
+              <ArrowLeft
+                className="h-3.5 w-3.5"
+                strokeWidth={2.25}
+                aria-hidden
+              />
               <Trans>Back to Speech overview</Trans>
             </Link>
           )}
-        <SpeechLanguageCards
-          bookLabel={bookLabel}
-          baseLanguage={baseLanguage}
-          outputLanguages={outputLanguages}
-          speechModel={speechModel} setSpeechModel={setSpeechModel}
-          format={format} setFormat={setFormat}
-          defaultProvider={defaultProvider} setDefaultProvider={setDefaultProvider}
-          openaiModel={openaiModel} setOpenaiModel={setOpenaiModel}
-          openaiLanguages={openaiLanguages} setOpenaiLanguages={setOpenaiLanguages}
-          azureModel={azureModel} setAzureModel={setAzureModel}
-          azureLanguages={azureLanguages} setAzureLanguages={setAzureLanguages}
-          geminiModel={geminiModel} setGeminiModel={setGeminiModel}
-          geminiLanguages={geminiLanguages} setGeminiLanguages={setGeminiLanguages}
-          elevenLabsModel={elevenLabsModel} setElevenLabsModel={setElevenLabsModel}
-          elevenLabsLanguages={elevenLabsLanguages} setElevenLabsLanguages={setElevenLabsLanguages}
-          bitRate={bitRate} setBitRate={setBitRate}
-          sampleRate={sampleRate} setSampleRate={setSampleRate}
-          geminiTemperature={geminiTemperature} setGeminiTemperature={setGeminiTemperature}
-          geminiSeed={geminiSeed} setGeminiSeed={setGeminiSeed}
-          elevenLabsUseContext={elevenLabsUseContext} setElevenLabsUseContext={setElevenLabsUseContext}
-          elevenLabsApplyTextNormalization={elevenLabsApplyTextNormalization} setElevenLabsApplyTextNormalization={setElevenLabsApplyTextNormalization}
-          elevenLabsStability={elevenLabsStability} setElevenLabsStability={setElevenLabsStability}
-          elevenLabsSimilarityBoost={elevenLabsSimilarityBoost} setElevenLabsSimilarityBoost={setElevenLabsSimilarityBoost}
-          elevenLabsStyle={elevenLabsStyle} setElevenLabsStyle={setElevenLabsStyle}
-          elevenLabsUseSpeakerBoost={elevenLabsUseSpeakerBoost} setElevenLabsUseSpeakerBoost={setElevenLabsUseSpeakerBoost}
-          elevenLabsSpeed={elevenLabsSpeed} setElevenLabsSpeed={setElevenLabsSpeed}
-          batchByPage={batchByPage} setBatchByPage={setBatchByPage}
-          wordHighlighting={wordHighlighting} setWordHighlighting={setWordHighlighting}
-          markDirty={markDirty}
-        />
-        <ReadAloudContentSection
-          excludedCategories={excludedCategories}
-          onToggle={(category, readAloud) => {
-            setExcludedCategories((prev) => {
-              const next = new Set(prev)
-              if (readAloud) next.delete(category)
-              else next.add(category)
-              return next
-            })
-            markDirty("speech")
-          }}
-        />
+          <SpeechLanguageCards
+            bookLabel={bookLabel}
+            baseLanguage={baseLanguage}
+            outputLanguages={outputLanguages}
+            speechModel={speechModel}
+            setSpeechModel={setSpeechModel}
+            format={format}
+            setFormat={setFormat}
+            defaultProvider={defaultProvider}
+            setDefaultProvider={setDefaultProvider}
+            openaiModel={openaiModel}
+            setOpenaiModel={setOpenaiModel}
+            openaiLanguages={openaiLanguages}
+            setOpenaiLanguages={setOpenaiLanguages}
+            azureModel={azureModel}
+            setAzureModel={setAzureModel}
+            azureLanguages={azureLanguages}
+            setAzureLanguages={setAzureLanguages}
+            geminiModel={geminiModel}
+            setGeminiModel={setGeminiModel}
+            geminiLanguages={geminiLanguages}
+            setGeminiLanguages={setGeminiLanguages}
+            localModel={localModel}
+            setLocalModel={setLocalModel}
+            localLanguages={localLanguages}
+            setLocalLanguages={setLocalLanguages}
+            elevenLabsModel={elevenLabsModel}
+            setElevenLabsModel={setElevenLabsModel}
+            elevenLabsLanguages={elevenLabsLanguages}
+            setElevenLabsLanguages={setElevenLabsLanguages}
+            bitRate={bitRate}
+            setBitRate={setBitRate}
+            sampleRate={sampleRate}
+            setSampleRate={setSampleRate}
+            geminiTemperature={geminiTemperature}
+            setGeminiTemperature={setGeminiTemperature}
+            geminiSeed={geminiSeed}
+            setGeminiSeed={setGeminiSeed}
+            elevenLabsUseContext={elevenLabsUseContext}
+            setElevenLabsUseContext={setElevenLabsUseContext}
+            elevenLabsApplyTextNormalization={elevenLabsApplyTextNormalization}
+            setElevenLabsApplyTextNormalization={
+              setElevenLabsApplyTextNormalization
+            }
+            elevenLabsStability={elevenLabsStability}
+            setElevenLabsStability={setElevenLabsStability}
+            elevenLabsSimilarityBoost={elevenLabsSimilarityBoost}
+            setElevenLabsSimilarityBoost={setElevenLabsSimilarityBoost}
+            elevenLabsStyle={elevenLabsStyle}
+            setElevenLabsStyle={setElevenLabsStyle}
+            elevenLabsUseSpeakerBoost={elevenLabsUseSpeakerBoost}
+            setElevenLabsUseSpeakerBoost={setElevenLabsUseSpeakerBoost}
+            elevenLabsSpeed={elevenLabsSpeed}
+            setElevenLabsSpeed={setElevenLabsSpeed}
+            batchByPage={batchByPage}
+            setBatchByPage={setBatchByPage}
+            wordHighlighting={wordHighlighting}
+            setWordHighlighting={setWordHighlighting}
+            markDirty={markDirty}
+          />
+          <ReadAloudContentSection
+            excludedCategories={excludedCategories}
+            onToggle={(category, readAloud) => {
+              setExcludedCategories((prev) => {
+                const next = new Set(prev);
+                if (readAloud) next.delete(category);
+                else next.add(category);
+                return next;
+              });
+              markDirty("speech");
+            }}
+          />
         </>
       )}
 
@@ -1073,8 +1441,8 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               type="checkbox"
               checked={imageTranslationEnabled}
               onChange={(e) => {
-                setImageTranslationEnabled(e.target.checked)
-                markDirty("image_translation")
+                setImageTranslationEnabled(e.target.checked);
+                markDirty("image_translation");
               }}
               className="mt-0.5 h-4 w-4 rounded border-input"
             />
@@ -1091,7 +1459,10 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
             <Label className="text-xs">{t`Image model`}</Label>
             <ModelSelect
               value={imageModel}
-              onChange={(v) => { setImageModel(v); markDirty("image_translation") }}
+              onChange={(v) => {
+                setImageModel(v);
+                markDirty("image_translation");
+              }}
               placeholder={defaultImageGenerationModel}
               groups={IMAGE_MODEL_GROUPS}
               prefixProvider
@@ -1126,8 +1497,8 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
                   variant="ghost"
                   className="h-8 text-xs text-muted-foreground"
                   onClick={() => {
-                    setSelectedImageIds([])
-                    markDirty("image_translation")
+                    setSelectedImageIds([]);
+                    markDirty("image_translation");
                   }}
                 >
                   {t`Clear`}
@@ -1135,11 +1506,13 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               )}
             </div>
             {(() => {
-              const available = captionedImagesQuery.data?.images
-              if (!available || selectedImageIds.length === 0) return null
-              const availableIds = new Set(available.map((img) => img.imageId))
-              const stale = selectedImageIds.filter((id) => !availableIds.has(id))
-              if (stale.length === 0) return null
+              const available = captionedImagesQuery.data?.images;
+              if (!available || selectedImageIds.length === 0) return null;
+              const availableIds = new Set(available.map((img) => img.imageId));
+              const stale = selectedImageIds.filter(
+                (id) => !availableIds.has(id),
+              );
+              if (stale.length === 0) return null;
               return (
                 <div className="flex items-center gap-3 text-[11px] text-amber-600 dark:text-amber-400">
                   <span>
@@ -1152,14 +1525,16 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
                     variant="ghost"
                     className="h-6 text-[11px] underline"
                     onClick={() => {
-                      setSelectedImageIds((prev) => prev.filter((id) => availableIds.has(id)))
-                      markDirty("image_translation")
+                      setSelectedImageIds((prev) =>
+                        prev.filter((id) => availableIds.has(id)),
+                      );
+                      markDirty("image_translation");
                     }}
                   >
                     {t`Remove`}
                   </Button>
                 </div>
-              )
+              );
             })()}
             <p className="text-[11px] text-muted-foreground">
               {t`Only images that appear in the storyboard (have captions) can be selected.`}
@@ -1178,7 +1553,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               onModelChange={imageTranslation.onModelChange}
               maxRetries={imageTranslation.maxRetries}
               onMaxRetriesChange={imageTranslation.onMaxRetriesChange}
-              onContentChange={(content, modelId) => setImagePromptDraft(toPromptDraft(content, modelId))}
+              onContentChange={(content, modelId) =>
+                setImagePromptDraft(toPromptDraft(content, modelId))
+              }
               enabled={tab === "image-translation"}
             />
           </div>
@@ -1190,9 +1567,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           bookLabel={bookLabel}
           initialSelected={selectedImageIds}
           onConfirm={(ids) => {
-            setSelectedImageIds(ids)
-            markDirty("image_translation")
-            setShowImagePicker(false)
+            setSelectedImageIds(ids);
+            markDirty("image_translation");
+            setShowImagePicker(false);
           }}
           onClose={() => setShowImagePicker(false)}
         />
@@ -1205,11 +1582,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         <CoreTtsProfilesEditor bookLabel={bookLabel} />
       )}
 
-      {tab === "voices" && (
-        <VoiceMappingsEditor bookLabel={bookLabel} />
-      )}
+      {tab === "voices" && <VoiceMappingsEditor bookLabel={bookLabel} />}
     </div>
-  )
+  );
 }
 
 /* ---------- Read-aloud content types ---------- */
@@ -1218,18 +1593,38 @@ function ReadAloudContentSection({
   excludedCategories,
   onToggle,
 }: {
-  excludedCategories: Set<string>
-  onToggle: (category: string, readAloud: boolean) => void
+  excludedCategories: Set<string>;
+  onToggle: (category: string, readAloud: boolean) => void;
 }) {
-  const { t } = useLingui()
+  const { t } = useLingui();
 
   const rows: Array<{ key: string; label: string; hint: string }> = [
-    { key: "text", label: t`Text`, hint: t`Page text, headings, and quiz content.` },
-    { key: "captions", label: t`Image captions`, hint: t`Descriptions spoken for images.` },
-    { key: "answers", label: t`Activity answers`, hint: t`Answers revealed in activities.` },
-    { key: "glossary", label: t`Glossary`, hint: t`Glossary words and their definitions.` },
-    { key: "easy-read", label: t`Easy Read`, hint: t`Simplified Easy Read text variants.` },
-  ]
+    {
+      key: "text",
+      label: t`Text`,
+      hint: t`Page text, headings, and quiz content.`,
+    },
+    {
+      key: "captions",
+      label: t`Image captions`,
+      hint: t`Descriptions spoken for images.`,
+    },
+    {
+      key: "answers",
+      label: t`Activity answers`,
+      hint: t`Answers revealed in activities.`,
+    },
+    {
+      key: "glossary",
+      label: t`Glossary`,
+      hint: t`Glossary words and their definitions.`,
+    },
+    {
+      key: "easy-read",
+      label: t`Easy Read`,
+      hint: t`Simplified Easy Read text variants.`,
+    },
+  ];
 
   return (
     <div className="space-y-3">
@@ -1241,9 +1636,15 @@ function ReadAloudContentSection({
       </div>
       <div className="rounded-lg border divide-y">
         {rows.map((row) => (
-          <div key={row.key} className="flex items-center justify-between gap-3 px-4 py-2.5">
+          <div
+            key={row.key}
+            className="flex items-center justify-between gap-3 px-4 py-2.5"
+          >
             <div className="space-y-0.5 pr-3">
-              <Label htmlFor={`read-aloud-${row.key}`} className="text-xs cursor-pointer">
+              <Label
+                htmlFor={`read-aloud-${row.key}`}
+                className="text-xs cursor-pointer"
+              >
                 {row.label}
               </Label>
               <p className="text-[11px] text-muted-foreground">{row.hint}</p>
@@ -1257,7 +1658,7 @@ function ReadAloudContentSection({
         ))}
       </div>
     </div>
-  )
+  );
 }
 
 /* ---------- Speech per-language cards ---------- */
@@ -1268,140 +1669,245 @@ function ReadAloudContentSection({
 const ELEVENLABS_ENTERPRISE_NORMALIZATION_MODELS = new Set([
   "eleven_turbo_v2_5",
   "eleven_flash_v2_5",
-])
+]);
 
 // The generic `speech.format` values ElevenLabs can produce. Mirrors
 // `buildElevenLabsOutputFormat` in @adt/llm, which throws for anything else.
-const ELEVENLABS_SUPPORTED_FORMATS = new Set(["mp3", "opus", "wav", "pcm"])
+const ELEVENLABS_SUPPORTED_FORMATS = new Set(["mp3", "opus", "wav", "pcm"]);
 
 const MODEL_GROUPS_BY_PROVIDER: Record<string, typeof OPENAI_TTS_MODELS> = {
   openai: OPENAI_TTS_MODELS,
   azure: AZURE_TTS_MODELS,
   gemini: GEMINI_TTS_MODELS,
+  "local-hf": [],
+  "local-system": [],
   elevenlabs: ELEVENLABS_TTS_MODELS,
-}
+};
 
 function SpeechLanguageCards({
   bookLabel,
   baseLanguage,
   outputLanguages,
-  speechModel, setSpeechModel,
-  format, setFormat,
-  defaultProvider, setDefaultProvider,
-  openaiModel, setOpenaiModel,
-  openaiLanguages, setOpenaiLanguages,
-  azureModel, setAzureModel,
-  azureLanguages, setAzureLanguages,
-  geminiModel, setGeminiModel,
-  geminiLanguages, setGeminiLanguages,
-  elevenLabsModel, setElevenLabsModel,
-  elevenLabsLanguages, setElevenLabsLanguages,
-  bitRate, setBitRate,
-  sampleRate, setSampleRate,
-  geminiTemperature, setGeminiTemperature,
-  geminiSeed, setGeminiSeed,
-  elevenLabsUseContext, setElevenLabsUseContext,
-  elevenLabsApplyTextNormalization, setElevenLabsApplyTextNormalization,
-  elevenLabsStability, setElevenLabsStability,
-  elevenLabsSimilarityBoost, setElevenLabsSimilarityBoost,
-  elevenLabsStyle, setElevenLabsStyle,
-  elevenLabsUseSpeakerBoost, setElevenLabsUseSpeakerBoost,
-  elevenLabsSpeed, setElevenLabsSpeed,
-  batchByPage, setBatchByPage,
-  wordHighlighting, setWordHighlighting,
+  speechModel,
+  setSpeechModel,
+  format,
+  setFormat,
+  defaultProvider,
+  setDefaultProvider,
+  openaiModel,
+  setOpenaiModel,
+  openaiLanguages,
+  setOpenaiLanguages,
+  azureModel,
+  setAzureModel,
+  azureLanguages,
+  setAzureLanguages,
+  geminiModel,
+  setGeminiModel,
+  geminiLanguages,
+  setGeminiLanguages,
+  localModel,
+  setLocalModel,
+  localLanguages,
+  setLocalLanguages,
+  elevenLabsModel,
+  setElevenLabsModel,
+  elevenLabsLanguages,
+  setElevenLabsLanguages,
+  bitRate,
+  setBitRate,
+  sampleRate,
+  setSampleRate,
+  geminiTemperature,
+  setGeminiTemperature,
+  geminiSeed,
+  setGeminiSeed,
+  elevenLabsUseContext,
+  setElevenLabsUseContext,
+  elevenLabsApplyTextNormalization,
+  setElevenLabsApplyTextNormalization,
+  elevenLabsStability,
+  setElevenLabsStability,
+  elevenLabsSimilarityBoost,
+  setElevenLabsSimilarityBoost,
+  elevenLabsStyle,
+  setElevenLabsStyle,
+  elevenLabsUseSpeakerBoost,
+  setElevenLabsUseSpeakerBoost,
+  elevenLabsSpeed,
+  setElevenLabsSpeed,
+  batchByPage,
+  setBatchByPage,
+  wordHighlighting,
+  setWordHighlighting,
   markDirty,
 }: {
-  bookLabel: string
-  baseLanguage: string
-  outputLanguages: Set<string>
-  speechModel: string; setSpeechModel: (v: string) => void
-  format: string; setFormat: (v: string) => void
-  defaultProvider: string; setDefaultProvider: (v: string) => void
-  openaiModel: string; setOpenaiModel: (v: string) => void
-  openaiLanguages: string; setOpenaiLanguages: (v: string) => void
-  azureModel: string; setAzureModel: (v: string) => void
-  azureLanguages: string; setAzureLanguages: (v: string) => void
-  geminiModel: string; setGeminiModel: (v: string) => void
-  geminiLanguages: string; setGeminiLanguages: (v: string) => void
-  elevenLabsModel: string; setElevenLabsModel: (v: string) => void
-  elevenLabsLanguages: string; setElevenLabsLanguages: (v: string) => void
-  bitRate: string; setBitRate: (v: string) => void
-  sampleRate: string; setSampleRate: (v: string) => void
-  geminiTemperature: string; setGeminiTemperature: (v: string) => void
-  geminiSeed: string; setGeminiSeed: (v: string) => void
-  elevenLabsUseContext: boolean; setElevenLabsUseContext: (v: boolean) => void
-  elevenLabsApplyTextNormalization: string; setElevenLabsApplyTextNormalization: (v: string) => void
-  elevenLabsStability: string; setElevenLabsStability: (v: string) => void
-  elevenLabsSimilarityBoost: string; setElevenLabsSimilarityBoost: (v: string) => void
-  elevenLabsStyle: string; setElevenLabsStyle: (v: string) => void
-  elevenLabsUseSpeakerBoost: string; setElevenLabsUseSpeakerBoost: (v: string) => void
-  elevenLabsSpeed: string; setElevenLabsSpeed: (v: string) => void
-  batchByPage: boolean; setBatchByPage: (v: boolean) => void
-  wordHighlighting: boolean; setWordHighlighting: (v: boolean) => void
-  markDirty: (field: string) => void
+  bookLabel: string;
+  baseLanguage: string;
+  outputLanguages: Set<string>;
+  speechModel: string;
+  setSpeechModel: (v: string) => void;
+  format: string;
+  setFormat: (v: string) => void;
+  defaultProvider: string;
+  setDefaultProvider: (v: string) => void;
+  openaiModel: string;
+  setOpenaiModel: (v: string) => void;
+  openaiLanguages: string;
+  setOpenaiLanguages: (v: string) => void;
+  azureModel: string;
+  setAzureModel: (v: string) => void;
+  azureLanguages: string;
+  setAzureLanguages: (v: string) => void;
+  geminiModel: string;
+  setGeminiModel: (v: string) => void;
+  geminiLanguages: string;
+  setGeminiLanguages: (v: string) => void;
+  localModel: string;
+  setLocalModel: (v: string) => void;
+  localLanguages: string;
+  setLocalLanguages: (v: string) => void;
+  elevenLabsModel: string;
+  setElevenLabsModel: (v: string) => void;
+  elevenLabsLanguages: string;
+  setElevenLabsLanguages: (v: string) => void;
+  bitRate: string;
+  setBitRate: (v: string) => void;
+  sampleRate: string;
+  setSampleRate: (v: string) => void;
+  geminiTemperature: string;
+  setGeminiTemperature: (v: string) => void;
+  geminiSeed: string;
+  setGeminiSeed: (v: string) => void;
+  elevenLabsUseContext: boolean;
+  setElevenLabsUseContext: (v: boolean) => void;
+  elevenLabsApplyTextNormalization: string;
+  setElevenLabsApplyTextNormalization: (v: string) => void;
+  elevenLabsStability: string;
+  setElevenLabsStability: (v: string) => void;
+  elevenLabsSimilarityBoost: string;
+  setElevenLabsSimilarityBoost: (v: string) => void;
+  elevenLabsStyle: string;
+  setElevenLabsStyle: (v: string) => void;
+  elevenLabsUseSpeakerBoost: string;
+  setElevenLabsUseSpeakerBoost: (v: string) => void;
+  elevenLabsSpeed: string;
+  setElevenLabsSpeed: (v: string) => void;
+  batchByPage: boolean;
+  setBatchByPage: (v: boolean) => void;
+  wordHighlighting: boolean;
+  setWordHighlighting: (v: boolean) => void;
+  markDirty: (field: string) => void;
 }) {
-  const { t } = useLingui()
+  const { t } = useLingui();
 
   // Load voice mappings + speech instructions
   const { data: voiceMappings } = useQuery({
     queryKey: ["voice-mappings"],
     queryFn: () => api.getVoiceMappings(),
-  })
+  });
   const { data: speechInstructions } = useQuery({
     queryKey: ["speech-instructions"],
     queryFn: () => api.getSpeechInstructions(),
-  })
+  });
 
   // ElevenLabs voice IDs are opaque (`21m00Tcm4TlvDq8ikWAM`), so resolve them to
   // names for display.
-  const { describeVoice: describeElevenLabsVoice } = useElevenLabsVoices()
+  const { describeVoice: describeElevenLabsVoice } = useElevenLabsVoices();
 
   // Build a live speech config object to resolve providers
   const speechConfig = {
     model: speechModel || undefined,
     default_provider: defaultProvider || undefined,
     providers: {
-      ...(openaiModel || openaiLanguages ? {
-        openai: {
-          model: openaiModel || undefined,
-          languages: openaiLanguages.split(",").map((s) => s.trim()).filter(Boolean),
-        },
-      } : {}),
-      ...(azureModel || azureLanguages ? {
-        azure: {
-          model: azureModel || undefined,
-          languages: azureLanguages.split(",").map((s) => s.trim()).filter(Boolean),
-        },
-      } : {}),
-      ...(geminiModel || geminiLanguages ? {
-        gemini: {
-          model: geminiModel || undefined,
-          languages: geminiLanguages.split(",").map((s) => s.trim()).filter(Boolean),
-        },
-      } : {}),
-      ...(elevenLabsModel || elevenLabsLanguages ? {
-        elevenlabs: {
-          model: elevenLabsModel || undefined,
-          languages: elevenLabsLanguages.split(",").map((s) => s.trim()).filter(Boolean),
-        },
-      } : {}),
+      ...(openaiModel || openaiLanguages
+        ? {
+            openai: {
+              model: openaiModel || undefined,
+              languages: openaiLanguages
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            },
+          }
+        : {}),
+      ...(azureModel || azureLanguages
+        ? {
+            azure: {
+              model: azureModel || undefined,
+              languages: azureLanguages
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            },
+          }
+        : {}),
+      ...(geminiModel || geminiLanguages
+        ? {
+            gemini: {
+              model: geminiModel || undefined,
+              languages: geminiLanguages
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            },
+          }
+        : {}),
+      ...(localModel || localLanguages
+        ? {
+            "local-hf": {
+              model: localModel || "onnx-community/Kokoro-82M-v1.0-ONNX",
+              languages: localLanguages
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            },
+          }
+        : {}),
+      ...(defaultProvider === "local-system"
+        ? {
+            "local-system": {
+              model: "apple-speech",
+              // eslint-disable-next-line lingui/no-unlocalized-strings -- macOS voice identifier, not interface copy.
+              voice: "Samantha",
+              speed: 1,
+            },
+          }
+        : {}),
+      ...(elevenLabsModel || elevenLabsLanguages
+        ? {
+            elevenlabs: {
+              model: elevenLabsModel || undefined,
+              languages: elevenLabsLanguages
+                .split(",")
+                .map((s) => s.trim())
+                .filter(Boolean),
+            },
+          }
+        : {}),
     },
-  }
+  };
 
-  const allLanguages = [baseLanguage, ...Array.from(outputLanguages).filter((l) => l !== baseLanguage)]
+  const allLanguages = [
+    baseLanguage,
+    ...Array.from(outputLanguages).filter((l) => l !== baseLanguage),
+  ];
 
   // Which providers any language is actually routed to — drives whether the
   // provider-specific settings sections below are shown at all.
   const providersInUse = new Set(
-    allLanguages.map((lang) => resolveSpeechProviderForLanguage(lang, speechConfig)),
-  )
+    allLanguages.map((lang) =>
+      resolveSpeechProviderForLanguage(lang, speechConfig),
+    ),
+  );
 
   // ElevenLabs disables text normalization by default on the v2.5 models to keep
   // latency low, and enabling it there needs an Enterprise plan — so this
   // combination 400s for most accounts.
   const normalizationNeedsEnterprise =
-    (elevenLabsApplyTextNormalization === "on" || elevenLabsApplyTextNormalization === "auto") &&
-    ELEVENLABS_ENTERPRISE_NORMALIZATION_MODELS.has(elevenLabsModel)
+    (elevenLabsApplyTextNormalization === "on" ||
+      elevenLabsApplyTextNormalization === "auto") &&
+    ELEVENLABS_ENTERPRISE_NORMALIZATION_MODELS.has(elevenLabsModel);
 
   // `speech.format` is a free-text, book-wide value while providers are routed
   // per language, so a format that only some providers accept (e.g. `ogg`, which
@@ -1409,41 +1915,47 @@ function SpeechLanguageCards({
   // produces this fixed set, and the synthesizer throws rather than silently
   // writing mp3 bytes into an `.ogg` file — warn here so it surfaces at edit
   // time instead of part-way through a run.
-  const normalizedFormat = format.trim().toLowerCase()
+  const normalizedFormat = format.trim().toLowerCase();
   const formatUnsupportedByElevenLabs =
-    normalizedFormat !== "" && !ELEVENLABS_SUPPORTED_FORMATS.has(normalizedFormat)
+    normalizedFormat !== "" &&
+    !ELEVENLABS_SUPPORTED_FORMATS.has(normalizedFormat);
 
   const getProviderModel = (provider: string): string => {
-    if (provider === "openai") return openaiModel
-    if (provider === "azure") return azureModel
-    if (provider === "gemini") return geminiModel
-    if (provider === "elevenlabs") return elevenLabsModel
-    return ""
-  }
+    if (provider === "openai") return openaiModel;
+    if (provider === "azure") return azureModel;
+    if (provider === "gemini") return geminiModel;
+    if (provider === "local-hf") return localModel;
+    if (provider === "local-system") return "apple-speech";
+    if (provider === "elevenlabs") return elevenLabsModel;
+    return "";
+  };
 
   const setProviderModel = (provider: string, value: string) => {
-    if (provider === "openai") setOpenaiModel(value)
-    else if (provider === "azure") setAzureModel(value)
-    else if (provider === "gemini") setGeminiModel(value)
-    else if (provider === "elevenlabs") setElevenLabsModel(value)
-    markDirty("speech")
-  }
+    if (provider === "openai") setOpenaiModel(value);
+    else if (provider === "azure") setAzureModel(value);
+    else if (provider === "gemini") setGeminiModel(value);
+    else if (provider === "local-hf") setLocalModel(value);
+    else if (provider === "elevenlabs") setElevenLabsModel(value);
+    markDirty("speech");
+  };
 
   const getProviderLanguages = (provider: string): string => {
-    if (provider === "openai") return openaiLanguages
-    if (provider === "azure") return azureLanguages
-    if (provider === "gemini") return geminiLanguages
-    if (provider === "elevenlabs") return elevenLabsLanguages
-    return ""
-  }
+    if (provider === "openai") return openaiLanguages;
+    if (provider === "azure") return azureLanguages;
+    if (provider === "gemini") return geminiLanguages;
+    if (provider === "local-hf") return localLanguages;
+    if (provider === "elevenlabs") return elevenLabsLanguages;
+    return "";
+  };
 
   const setProviderLanguages = (provider: string, value: string) => {
-    if (provider === "openai") setOpenaiLanguages(value)
-    else if (provider === "azure") setAzureLanguages(value)
-    else if (provider === "gemini") setGeminiLanguages(value)
-    else if (provider === "elevenlabs") setElevenLabsLanguages(value)
-    markDirty("speech")
-  }
+    if (provider === "openai") setOpenaiLanguages(value);
+    else if (provider === "azure") setAzureLanguages(value);
+    else if (provider === "gemini") setGeminiLanguages(value);
+    else if (provider === "local-hf") setLocalLanguages(value);
+    else if (provider === "elevenlabs") setElevenLabsLanguages(value);
+    markDirty("speech");
+  };
 
   // Both of these mirror the pipeline's own resolution (exact locale → base
   // language → `default`) via resolveLocaleMapping. Doing it by hand here used to
@@ -1452,10 +1964,10 @@ function SpeechLanguageCards({
   // region (`es-UY`) — so the screen showed the global default voice and prompt
   // for a language the pipeline would narrate with its own.
   const resolveVoice = (lang: string, provider: string): string =>
-    resolveLocaleMapping(voiceMappings?.[provider], lang).value
+    resolveLocaleMapping(voiceMappings?.[provider], lang).value;
 
   const resolveInstruction = (lang: string): string =>
-    resolveLocaleMapping(speechInstructions, lang).value
+    resolveLocaleMapping(speechInstructions, lang).value;
 
   // ADT ships only a global `default` for ElevenLabs (an English voice) plus a
   // single `es-uy` mapping, where azure/gemini carry per-locale maps. So a
@@ -1464,32 +1976,53 @@ function SpeechLanguageCards({
   // and only when the voice genuinely came from `default` rather than from a
   // mapping for this locale or its base language.
   const usesEnglishDefaultVoice = (lang: string, provider: string): boolean => {
-    if (provider !== "elevenlabs" || getBaseLanguage(normalizeLocale(lang)) === "en") return false
-    return resolveLocaleMapping(voiceMappings?.[provider], lang).source === "default"
-  }
+    if (
+      provider !== "elevenlabs" ||
+      getBaseLanguage(normalizeLocale(lang)) === "en"
+    )
+      return false;
+    return (
+      resolveLocaleMapping(voiceMappings?.[provider], lang).source === "default"
+    );
+  };
 
   // Route a language to a different provider
   const routeLanguageTo = (lang: string, newProvider: string) => {
     // Remove from all providers' language lists
-    for (const p of ["openai", "azure", "gemini", "elevenlabs"]) {
-      const current = getProviderLanguages(p)
-      const langs = current.split(",").map((s) => s.trim()).filter(Boolean)
-      const filtered = langs.filter((l) => normalizeLocale(l) !== normalizeLocale(lang))
+    for (const p of [
+      "openai",
+      "azure",
+      "gemini",
+      "elevenlabs",
+      "local-hf",
+      "local-system",
+    ]) {
+      const current = getProviderLanguages(p);
+      const langs = current
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+      const filtered = langs.filter(
+        (l) => normalizeLocale(l) !== normalizeLocale(lang),
+      );
       if (filtered.length !== langs.length) {
-        setProviderLanguages(p, filtered.join(", "))
+        setProviderLanguages(p, filtered.join(", "));
       }
     }
     // If the new provider isn't the default, add to its language list
     if (newProvider !== defaultProvider) {
-      const current = getProviderLanguages(newProvider)
-      const langs = current.split(",").map((s) => s.trim()).filter(Boolean)
+      const current = getProviderLanguages(newProvider);
+      const langs = current
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
       if (!langs.some((l) => normalizeLocale(l) === normalizeLocale(lang))) {
-        langs.push(lang)
-        setProviderLanguages(newProvider, langs.join(", "))
+        langs.push(lang);
+        setProviderLanguages(newProvider, langs.join(", "));
       }
     }
-    markDirty("speech")
-  }
+    markDirty("speech");
+  };
 
   return (
     <div className="space-y-6">
@@ -1501,20 +2034,28 @@ function SpeechLanguageCards({
             <Label className="text-xs">{t`Default Provider`}</Label>
             <select
               value={defaultProvider}
-              onChange={(e) => { setDefaultProvider(e.target.value); markDirty("speech") }}
+              onChange={(e) => {
+                setDefaultProvider(e.target.value);
+                markDirty("speech");
+              }}
               className="flex h-8 w-40 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm"
             >
               <option value="openai">{t`OpenAI`}</option>
               <option value="azure">{t`Azure`}</option>
               <option value="gemini">{t`Gemini`}</option>
               <option value="elevenlabs">{t`ElevenLabs`}</option>
+              <option value="local-hf">{t`Local Kokoro`}</option>
+              <option value="local-system">{t`macOS System`}</option>
             </select>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">{t`Format`}</Label>
             <Input
               value={format}
-              onChange={(e) => { setFormat(e.target.value); markDirty("speech") }}
+              onChange={(e) => {
+                setFormat(e.target.value);
+                markDirty("speech");
+              }}
               placeholder="mp3"
               className="w-24 h-8 text-xs"
             />
@@ -1523,7 +2064,10 @@ function SpeechLanguageCards({
             <Label className="text-xs">{t`Bit Rate`}</Label>
             <Input
               value={bitRate}
-              onChange={(e) => { setBitRate(e.target.value); markDirty("speech") }}
+              onChange={(e) => {
+                setBitRate(e.target.value);
+                markDirty("speech");
+              }}
               placeholder="64k"
               className="w-24 h-8 text-xs"
             />
@@ -1532,7 +2076,10 @@ function SpeechLanguageCards({
             <Label className="text-xs">{t`Sample Rate`}</Label>
             <Input
               value={sampleRate}
-              onChange={(e) => { setSampleRate(e.target.value); markDirty("speech") }}
+              onChange={(e) => {
+                setSampleRate(e.target.value);
+                markDirty("speech");
+              }}
               placeholder="24000"
               className="w-24 h-8 text-xs"
             />
@@ -1549,7 +2096,10 @@ function SpeechLanguageCards({
               <Label className="text-xs">{t`Temperature`}</Label>
               <Input
                 value={geminiTemperature}
-                onChange={(e) => { setGeminiTemperature(e.target.value); markDirty("speech") }}
+                onChange={(e) => {
+                  setGeminiTemperature(e.target.value);
+                  markDirty("speech");
+                }}
                 placeholder="0.4"
                 inputMode="decimal"
                 className="w-24 h-8 text-xs"
@@ -1559,7 +2109,10 @@ function SpeechLanguageCards({
               <Label className="text-xs">{t`Seed`}</Label>
               <Input
                 value={geminiSeed}
-                onChange={(e) => { setGeminiSeed(e.target.value); markDirty("speech") }}
+                onChange={(e) => {
+                  setGeminiSeed(e.target.value);
+                  markDirty("speech");
+                }}
                 placeholder="42"
                 inputMode="numeric"
                 className="w-24 h-8 text-xs"
@@ -1574,10 +2127,16 @@ function SpeechLanguageCards({
           <Switch
             id="word-highlighting"
             checked={wordHighlighting}
-            onCheckedChange={(v) => { setWordHighlighting(v); markDirty("speech") }}
+            onCheckedChange={(v) => {
+              setWordHighlighting(v);
+              markDirty("speech");
+            }}
           />
           <div className="space-y-2 flex-1">
-            <Label htmlFor="word-highlighting" className="text-xs">{t`Word-level highlighting`}</Label>
+            <Label
+              htmlFor="word-highlighting"
+              className="text-xs"
+            >{t`Word-level highlighting`}</Label>
             <p className="text-[11px] text-muted-foreground">
               {t`When enabled, word-level timestamps are calculated automatically during speech generation so the reader can highlight words as they're spoken. When disabled, you can still calculate timestamps manually from the speech view.`}
             </p>
@@ -1590,20 +2149,25 @@ function SpeechLanguageCards({
       <div className="space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t`Languages`}</h3>
         {allLanguages.map((lang) => {
-          const provider = resolveSpeechProviderForLanguage(lang, speechConfig)
-          const model = getProviderModel(provider)
-          const voice = resolveVoice(lang, provider)
-          const instruction = resolveInstruction(lang)
-          const isBase = lang === baseLanguage
+          const provider = resolveSpeechProviderForLanguage(lang, speechConfig);
+          const model = getProviderModel(provider);
+          const voice = resolveVoice(lang, provider);
+          const instruction = resolveInstruction(lang);
+          const isBase = lang === baseLanguage;
 
           return (
             <div key={lang} className="rounded-lg border p-4 space-y-3">
               {/* Language header */}
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold">{displayLang(lang)}</span>
+                <span className="text-sm font-semibold">
+                  {displayLang(lang)}
+                </span>
                 <span className="text-xs text-muted-foreground">{lang}</span>
                 {isBase && (
-                  <Badge variant="secondary" className="text-[10px] h-5 px-1.5 font-normal">
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] h-5 px-1.5 font-normal"
+                  >
                     {t`base`}
                   </Badge>
                 )}
@@ -1618,9 +2182,17 @@ function SpeechLanguageCards({
                     onChange={(e) => routeLanguageTo(lang, e.target.value)}
                     className="flex h-8 w-36 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm"
                   >
-                    {["openai", "azure", "gemini", "elevenlabs"].map((p) => (
+                    {[
+                      "openai",
+                      "azure",
+                      "gemini",
+                      "elevenlabs",
+                      "local-hf",
+                      "local-system",
+                    ].map((p) => (
                       <option key={p} value={p}>
-                        {PROVIDER_LABELS[p]}{p === defaultProvider ? ` (${t`default`})` : ""}
+                        {PROVIDER_LABELS[p]}
+                        {p === defaultProvider ? ` (${t`default`})` : ""}
                       </option>
                     ))}
                   </select>
@@ -1631,7 +2203,9 @@ function SpeechLanguageCards({
                     value={model}
                     onChange={(v) => setProviderModel(provider, v)}
                     placeholder={t`Default model`}
-                    groups={MODEL_GROUPS_BY_PROVIDER[provider] ?? OPENAI_TTS_MODELS}
+                    groups={
+                      MODEL_GROUPS_BY_PROVIDER[provider] ?? OPENAI_TTS_MODELS
+                    }
                     prefixProvider={false}
                     className="w-full"
                     inputClassName="h-8 text-xs"
@@ -1666,9 +2240,8 @@ function SpeechLanguageCards({
                   </p>
                 </div>
               )}
-
             </div>
-          )
+          );
         })}
 
         {allLanguages.length === 0 && (
@@ -1697,10 +2270,16 @@ function SpeechLanguageCards({
             <Switch
               id="batch-by-page"
               checked={batchByPage}
-              onCheckedChange={(v) => { setBatchByPage(v); markDirty("speech") }}
+              onCheckedChange={(v) => {
+                setBatchByPage(v);
+                markDirty("speech");
+              }}
             />
             <div className="space-y-1 flex-1">
-              <Label htmlFor="batch-by-page" className="text-xs">{t`Batch a whole page per request (experimental)`}</Label>
+              <Label
+                htmlFor="batch-by-page"
+                className="text-xs"
+              >{t`Batch a whole page per request (experimental)`}</Label>
               <p className="text-[11px] text-muted-foreground">
                 {t`Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Chinese and Thai remain per-entry.`}
               </p>
@@ -1728,10 +2307,16 @@ function SpeechLanguageCards({
             <Switch
               id="elevenlabs-use-context"
               checked={elevenLabsUseContext}
-              onCheckedChange={(v) => { setElevenLabsUseContext(v); markDirty("speech") }}
+              onCheckedChange={(v) => {
+                setElevenLabsUseContext(v);
+                markDirty("speech");
+              }}
             />
             <div className="space-y-1 flex-1">
-              <Label htmlFor="elevenlabs-use-context" className="text-xs">{t`Use adjacent text as context`}</Label>
+              <Label
+                htmlFor="elevenlabs-use-context"
+                className="text-xs"
+              >{t`Use adjacent text as context`}</Label>
               <p className="text-[11px] text-muted-foreground">
                 {t`Send the neighboring sentence's text alongside each request so ElevenLabs can carry intonation across sentence boundaries. Changing this regenerates ElevenLabs audio on the next run.`}
               </p>
@@ -1742,7 +2327,10 @@ function SpeechLanguageCards({
             <Label className="text-[10px] text-muted-foreground pt-2 block">{t`Text Normalization`}</Label>
             <select
               value={elevenLabsApplyTextNormalization}
-              onChange={(e) => { setElevenLabsApplyTextNormalization(e.target.value); markDirty("speech") }}
+              onChange={(e) => {
+                setElevenLabsApplyTextNormalization(e.target.value);
+                markDirty("speech");
+              }}
               className="flex h-8 w-40 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm"
             >
               <option value="">{t`Default`}</option>
@@ -1764,15 +2352,20 @@ function SpeechLanguageCards({
           </div>
 
           <ElevenLabsVoiceTuning
-            stability={elevenLabsStability} setStability={setElevenLabsStability}
-            similarityBoost={elevenLabsSimilarityBoost} setSimilarityBoost={setElevenLabsSimilarityBoost}
-            style={elevenLabsStyle} setStyle={setElevenLabsStyle}
-            useSpeakerBoost={elevenLabsUseSpeakerBoost} setUseSpeakerBoost={setElevenLabsUseSpeakerBoost}
-            speed={elevenLabsSpeed} setSpeed={setElevenLabsSpeed}
+            stability={elevenLabsStability}
+            setStability={setElevenLabsStability}
+            similarityBoost={elevenLabsSimilarityBoost}
+            setSimilarityBoost={setElevenLabsSimilarityBoost}
+            style={elevenLabsStyle}
+            setStyle={setElevenLabsStyle}
+            useSpeakerBoost={elevenLabsUseSpeakerBoost}
+            setUseSpeakerBoost={setElevenLabsUseSpeakerBoost}
+            speed={elevenLabsSpeed}
+            setSpeed={setElevenLabsSpeed}
             markDirty={markDirty}
           />
         </div>
       )}
     </div>
-  )
+  );
 }

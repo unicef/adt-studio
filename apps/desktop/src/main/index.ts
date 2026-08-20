@@ -39,134 +39,150 @@ import { checkForUpdates } from "./services/auto-updater";
 import { initPostUpdateDetection } from "./services/update-state";
 import { setStartupError } from "./services/debug-info";
 
-protocol.registerSchemesAsPrivileged([
-  STUDIO_APP_SCHEME_PRIVILEGES,
-  HTML_RENDER_SCHEME_PRIVILEGES,
-]);
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
 
-app.whenReady().then(async () => {
-  const isBeta = app.getVersion().includes("-beta");
-  electronApp.setAppUserModelId(
-    isBeta ? "com.nees.adt-studio.beta" : "com.nees.adt-studio",
-  );
+if (!hasSingleInstanceLock) {
+  app.quit();
+} else {
+  protocol.registerSchemesAsPrivileged([
+    STUDIO_APP_SCHEME_PRIVILEGES,
+    HTML_RENDER_SCHEME_PRIVILEGES,
+  ]);
 
-  registerAppInfoIpc();
-  registerSplashIpc();
-  registerUpdatesIpc();
-  initPostUpdateDetection();
-
-  const splashWindow = createSplashWindow();
-
-  registerStudioAppProtocol(join(__dirname, "../renderer"));
-  registerHtmlRenderProtocol();
-  registerTitleBarIpc();
-  registerWindowCloseIpc();
-  registerFileDialogIpc();
-
-  let apiProcess: Electron.UtilityProcess;
-
-  try {
-    apiProcess = (await startApiServer()).apiProcess;
-  } catch (err) {
-    setStartupError(err);
-    throw err;
-  }
-
-  app.on("browser-window-created", (_, window) => {
-    optimizer.watchWindowShortcuts(window);
+  app.on("second-instance", () => {
+    const window = BrowserWindow.getAllWindows().find(
+      (candidate) => !candidate.isDestroyed(),
+    );
+    if (!window) return;
+    if (window.isMinimized()) window.restore();
+    window.show();
+    window.focus();
   });
 
-  apiProcess.on("message", handleScreenshotMessages(apiProcess));
-  apiProcess.on("message", handleAccessibilityAuditMessages(apiProcess));
+  app.whenReady().then(async () => {
+    const isBeta = app.getVersion().includes("-beta");
+    electronApp.setAppUserModelId(
+      isBeta ? "com.nees.adt-studio.beta" : "com.nees.adt-studio",
+    );
 
-  app.on("activate", function () {
-    if (BrowserWindow.getAllWindows().length === 0) openMainWindow();
-  });
+    registerAppInfoIpc();
+    registerSplashIpc();
+    registerUpdatesIpc();
+    initPostUpdateDetection();
 
-  ipcMain.handle("api-debug-mode", () => isApiDebugMode);
-  ipcMain.on("api-port", (event) => {
-    event.returnValue = apiPort;
-  });
+    const splashWindow = createSplashWindow();
 
-  if (isApiDebugMode) {
-    setLogForwarder((entry) => {
-      BrowserWindow.getAllWindows().forEach((win) => {
-        win.webContents.send("api-log", entry);
-      });
-    });
-  }
+    registerStudioAppProtocol(join(__dirname, "../renderer"));
+    registerHtmlRenderProtocol();
+    registerTitleBarIpc();
+    registerWindowCloseIpc();
+    registerFileDialogIpc();
 
-  let mainWindow: BrowserWindow | null = null;
+    let apiProcess: Electron.UtilityProcess;
 
-  const openMainWindow = (
-    startPath = "/",
-    closeAfter?: BrowserWindow | null,
-  ): BrowserWindow => {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.focus();
-      if (closeAfter && !closeAfter.isDestroyed()) closeAfter.destroy();
-      return mainWindow;
+    try {
+      apiProcess = (await startApiServer()).apiProcess;
+    } catch (err) {
+      setStartupError(err);
+      throw err;
     }
 
-    const win = createMainWindow(startPath);
-    mainWindow = win;
-    win.on("closed", () => {
-      if (mainWindow === win) mainWindow = null;
+    app.on("browser-window-created", (_, window) => {
+      optimizer.watchWindowShortcuts(window);
     });
 
-    win.once("ready-to-show", () => {
-      if (!splashWindow.isDestroyed()) splashWindow.destroy();
-      if (closeAfter && !closeAfter.isDestroyed()) closeAfter.destroy();
-      checkForUpdates().catch(() => {});
+    apiProcess.on("message", handleScreenshotMessages(apiProcess));
+    apiProcess.on("message", handleAccessibilityAuditMessages(apiProcess));
+
+    app.on("activate", function () {
+      if (BrowserWindow.getAllWindows().length === 0) openMainWindow();
     });
 
-    return win;
-  };
+    ipcMain.handle("api-debug-mode", () => isApiDebugMode);
+    ipcMain.on("api-port", (event) => {
+      event.returnValue = apiPort;
+    });
 
-  registerOnboardingIpc(({ startPath, window }) => {
-    openMainWindow(startPath, window);
-  });
+    if (isApiDebugMode) {
+      setLogForwarder((entry) => {
+        BrowserWindow.getAllWindows().forEach((win) => {
+          win.webContents.send("api-log", entry);
+        });
+      });
+    }
 
-  if (hasCompletedOnboarding()) {
-    openMainWindow();
-  } else {
-    const onboardingWindow = createOnboardingWindow();
+    let mainWindow: BrowserWindow | null = null;
 
-    // The onboarding window is transparent + frameless and only reveals itself
-    // on `ready-to-show`. If the renderer never loads (e.g. the dev server isn't
-    // up yet, or a packaged asset fails), that event never fires and the user is
-    // stranded on the splash with an invisible window. Fall back to the main app
-    // window so first-run is always recoverable; onboarding stays unmarked and
-    // shows again on the next launch.
-    let recovered = false;
-    const fallbackToMainWindow = () => {
-      if (recovered) return;
-      recovered = true;
-      clearTimeout(readyGuard);
-      if (!onboardingWindow.isDestroyed()) onboardingWindow.destroy();
-      openMainWindow();
+    const openMainWindow = (
+      startPath = "/",
+      closeAfter?: BrowserWindow | null,
+    ): BrowserWindow => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.focus();
+        if (closeAfter && !closeAfter.isDestroyed()) closeAfter.destroy();
+        return mainWindow;
+      }
+
+      const win = createMainWindow(startPath);
+      mainWindow = win;
+      win.on("closed", () => {
+        if (mainWindow === win) mainWindow = null;
+      });
+
+      win.once("ready-to-show", () => {
+        if (!splashWindow.isDestroyed()) splashWindow.destroy();
+        if (closeAfter && !closeAfter.isDestroyed()) closeAfter.destroy();
+        checkForUpdates().catch(() => {});
+      });
+
+      return win;
     };
 
-    const readyGuard = setTimeout(() => {
-      if (!onboardingWindow.isDestroyed() && !onboardingWindow.isVisible()) {
-        fallbackToMainWindow();
-      }
-    }, 15000);
-
-    onboardingWindow.once("ready-to-show", () => {
-      clearTimeout(readyGuard);
-      if (!splashWindow.isDestroyed()) splashWindow.destroy();
+    registerOnboardingIpc(({ startPath, window }) => {
+      openMainWindow(startPath, window);
     });
 
-    onboardingWindow.webContents.on(
-      "did-fail-load",
-      (_event, errorCode, _desc, _url, isMainFrame) => {
-        // -3 (ERR_ABORTED) fires for superseded navigations, not real failures.
-        if (isMainFrame && errorCode !== -3) fallbackToMainWindow();
-      },
-    );
-  }
-});
+    if (hasCompletedOnboarding()) {
+      openMainWindow();
+    } else {
+      const onboardingWindow = createOnboardingWindow();
+
+      // The onboarding window is transparent + frameless and only reveals itself
+      // on `ready-to-show`. If the renderer never loads (e.g. the dev server isn't
+      // up yet, or a packaged asset fails), that event never fires and the user is
+      // stranded on the splash with an invisible window. Fall back to the main app
+      // window so first-run is always recoverable; onboarding stays unmarked and
+      // shows again on the next launch.
+      let recovered = false;
+      const fallbackToMainWindow = () => {
+        if (recovered) return;
+        recovered = true;
+        clearTimeout(readyGuard);
+        if (!onboardingWindow.isDestroyed()) onboardingWindow.destroy();
+        openMainWindow();
+      };
+
+      const readyGuard = setTimeout(() => {
+        if (!onboardingWindow.isDestroyed() && !onboardingWindow.isVisible()) {
+          fallbackToMainWindow();
+        }
+      }, 15000);
+
+      onboardingWindow.once("ready-to-show", () => {
+        clearTimeout(readyGuard);
+        if (!splashWindow.isDestroyed()) splashWindow.destroy();
+      });
+
+      onboardingWindow.webContents.on(
+        "did-fail-load",
+        (_event, errorCode, _desc, _url, isMainFrame) => {
+          // -3 (ERR_ABORTED) fires for superseded navigations, not real failures.
+          if (isMainFrame && errorCode !== -3) fallbackToMainWindow();
+        },
+      );
+    }
+  });
+}
 
 app.on("will-quit", () => {
   stopApiServer();
@@ -174,9 +190,7 @@ app.on("will-quit", () => {
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
-
     app.quit();
     stopApiServer();
-
   }
 });

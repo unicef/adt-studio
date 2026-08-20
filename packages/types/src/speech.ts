@@ -1,5 +1,5 @@
-import { z } from "zod"
-import { TextCatalogCategory, getTextCatalogCategory } from "./text-catalog.js"
+import { z } from "zod";
+import { TextCatalogCategory, getTextCatalogCategory } from "./text-catalog.js";
 
 export const TTSRateLimitConfig = z.object({
   /**
@@ -15,12 +15,53 @@ export const TTSRateLimitConfig = z.object({
   min_requests_per_minute: z.number().int().min(1).optional(),
   /** Ceiling the adaptive limiter may recover to (overrides the per-model default). */
   max_requests_per_minute: z.number().int().min(1).optional(),
-})
-export type TTSRateLimitConfig = z.infer<typeof TTSRateLimitConfig>
+});
+export type TTSRateLimitConfig = z.infer<typeof TTSRateLimitConfig>;
+
+export const LocalTTSAdapter = z.enum(["kokoro"]);
+export type LocalTTSAdapter = z.infer<typeof LocalTTSAdapter>;
+
+export const LocalTTSDtype = z.enum(["q8", "q4", "fp32", "fp16", "q4f16"]);
+export type LocalTTSDtype = z.infer<typeof LocalTTSDtype>;
+
+/** `wasm` remains valid so existing book configs migrate without breaking. */
+export const LocalTTSDevice = z.enum(["auto", "cpu", "coreml", "mlx", "wasm"]);
+export type LocalTTSDevice = z.infer<typeof LocalTTSDevice>;
+
+export const LocalTTSRuntime = z.enum(["onnx", "mlx"]);
+export type LocalTTSRuntime = z.infer<typeof LocalTTSRuntime>;
+
+export const LocalTTSModelManifest = z.object({
+  adapter: LocalTTSAdapter,
+  repository: z
+    .string()
+    .regex(/^[A-Za-z0-9][A-Za-z0-9._-]*\/[A-Za-z0-9][A-Za-z0-9._-]*$/),
+  revision: z.string().regex(/^[a-f0-9]{40}$/i),
+  dtype: LocalTTSDtype,
+  runtime: LocalTTSRuntime.default("onnx"),
+  modelFile: z
+    .string()
+    .regex(/^(?:onnx\/[A-Za-z0-9._-]+\.onnx|mlx\/kokoro-v1_0\.safetensors)$/),
+  voices: z.array(z.string().regex(/^[ab][fm]_[a-z0-9_]+$/)).min(1),
+  installedAt: z.string().datetime(),
+});
+export type LocalTTSModelManifest = z.infer<typeof LocalTTSModelManifest>;
 
 export const TTSProviderConfig = z.object({
   model: z.string().optional(),
   languages: z.array(z.string()).optional(),
+  /** Local-HF runtime adapter. Omitted for cloud providers. */
+  adapter: LocalTTSAdapter.optional(),
+  /** Provider-specific default voice. Per-language voice mappings still win. */
+  voice: z.string().optional(),
+  /** Quantization used by local-HF adapters. */
+  dtype: LocalTTSDtype.optional(),
+  /** Local execution provider. `auto` selects the fastest verified backend for this model. */
+  device: LocalTTSDevice.optional(),
+  /** Local synthesis speed multiplier. */
+  speed: z.number().min(0.5).max(2).optional(),
+  /** Maximum concurrent local inference calls. Auto-sized when omitted. */
+  parallelism: z.number().int().min(1).max(8).optional(),
   /**
    * Adaptive RPM limiter config — currently only read for the `gemini`
    * provider (see `resolveGeminiTtsRateLimit`/`stage-runner.ts`). It parses
@@ -31,8 +72,8 @@ export const TTSProviderConfig = z.object({
    * limiter at all.
    */
   rate_limit: TTSRateLimitConfig.optional(),
-})
-export type TTSProviderConfig = z.infer<typeof TTSProviderConfig>
+});
+export type TTSProviderConfig = z.infer<typeof TTSProviderConfig>;
 
 export const SpeechConfig = z.object({
   model: z.string().optional(),
@@ -100,23 +141,23 @@ export const SpeechConfig = z.object({
   excluded_categories: z.array(TextCatalogCategory).optional(),
   /** Individual text ids excluded from read-aloud; also mutes their `_easy_read` variants */
   excluded_text_ids: z.array(z.string()).optional(),
-})
-export type SpeechConfig = z.infer<typeof SpeechConfig>
+});
+export type SpeechConfig = z.infer<typeof SpeechConfig>;
 
 export function isSpeechWordHighlightingEnabled(
   config?: Pick<SpeechConfig, "word_highlighting"> | null,
 ): boolean {
-  return config?.word_highlighting === true
+  return config?.word_highlighting === true;
 }
 
 /** Accepts plain string arrays so callers can pass unvalidated config data;
  * unknown category values simply never match. */
 export interface TtsExclusionConfig {
-  excluded_categories?: string[]
-  excluded_text_ids?: string[]
+  excluded_categories?: string[];
+  excluded_text_ids?: string[];
 }
 
-const EASY_READ_SUFFIX_RE = /_easy_read$/
+const EASY_READ_SUFFIX_RE = /_easy_read$/;
 
 /**
  * Whether a text catalog entry is excluded from read-aloud, either by its
@@ -128,15 +169,17 @@ export function isTtsExcluded(
   textId: string,
   config?: TtsExclusionConfig | null,
 ): boolean {
-  if (!config) return false
-  const baseId = textId.replace(EASY_READ_SUFFIX_RE, "")
+  if (!config) return false;
+  const baseId = textId.replace(EASY_READ_SUFFIX_RE, "");
   if (config.excluded_text_ids?.some((id) => id === textId || id === baseId)) {
-    return true
+    return true;
   }
-  const categories = config.excluded_categories
-  if (!categories || categories.length === 0) return false
-  if (categories.includes(getTextCatalogCategory(textId))) return true
-  return baseId !== textId && categories.includes(getTextCatalogCategory(baseId))
+  const categories = config.excluded_categories;
+  if (!categories || categories.length === 0) return false;
+  if (categories.includes(getTextCatalogCategory(textId))) return true;
+  return (
+    baseId !== textId && categories.includes(getTextCatalogCategory(baseId))
+  );
 }
 
 export const SpeechFileEntry = z.object({
@@ -147,15 +190,15 @@ export const SpeechFileEntry = z.object({
   model: z.string(),
   cached: z.boolean(),
   provider: z.string().optional(),
-})
-export type SpeechFileEntry = z.infer<typeof SpeechFileEntry>
+});
+export type SpeechFileEntry = z.infer<typeof SpeechFileEntry>;
 
 /** A catalog entry whose speech generation failed during the last run. */
 export const SpeechFailedEntry = z.object({
   textId: z.string(),
   error: z.string(),
-})
-export type SpeechFailedEntry = z.infer<typeof SpeechFailedEntry>
+});
+export type SpeechFailedEntry = z.infer<typeof SpeechFailedEntry>;
 
 export const TTSOutput = z.object({
   entries: z.array(SpeechFileEntry),
@@ -163,23 +206,23 @@ export const TTSOutput = z.object({
   /** Per-item failures from the run that produced this output, so the UI can
    * mark them without re-running. Cleared by the next successful run. */
   failed: z.array(SpeechFailedEntry).optional(),
-})
-export type TTSOutput = z.infer<typeof TTSOutput>
+});
+export type TTSOutput = z.infer<typeof TTSOutput>;
 
 export const WordTimestamp = z.object({
   word: z.string(),
   start: z.number(),
   end: z.number(),
-})
-export type WordTimestamp = z.infer<typeof WordTimestamp>
+});
+export type WordTimestamp = z.infer<typeof WordTimestamp>;
 
 export const WordTimestampEntry = z.object({
   textId: z.string(),
   language: z.string(),
   words: z.array(WordTimestamp),
   duration: z.number(),
-})
-export type WordTimestampEntry = z.infer<typeof WordTimestampEntry>
+});
+export type WordTimestampEntry = z.infer<typeof WordTimestampEntry>;
 
 export const WordTimestampOutput = z.object({
   entries: z.record(z.string(), WordTimestampEntry),
@@ -189,5 +232,5 @@ export const WordTimestampOutput = z.object({
    * (mirrors {@link TTSOutput.failed}). Cleared for an item on a successful
    * re-transcription and reset by the next full speech run. */
   failed: z.array(SpeechFailedEntry).optional(),
-})
-export type WordTimestampOutput = z.infer<typeof WordTimestampOutput>
+});
+export type WordTimestampOutput = z.infer<typeof WordTimestampOutput>;

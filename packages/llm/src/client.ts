@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto"
+import os from "node:os"
 import { generateObject, APICallError, NoObjectGeneratedError, type LanguageModel, type CoreMessage } from "ai"
 import { createOpenAI, openai } from "@ai-sdk/openai"
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic"
@@ -9,12 +10,15 @@ import type {
   GenerateObjectResult,
   Message,
   TokenUsage,
+  ValidationResult,
 } from "./types.js"
 import type { PromptEngine } from "./prompt.js"
 import type { RateLimiter } from "./rate-limiter.js"
 import { computeHash, readCache, writeCache, bustCache } from "./cache.js"
 import { sanitizeMessages, type LlmLogEntry } from "./log.js"
 import { createLogger, type LogLevel } from "./logger.js"
+import { ollamaOpenAIBaseUrl, resolveOllamaModelName } from "./ollama.js"
+import { isLocalModelId, localLlmOpenAIBaseUrl } from "./local.js"
 
 export interface LLMProviderCredentials {
   openaiApiKey?: string
@@ -101,6 +105,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       let allErrors: string[] = []
       let lastCacheHit = false
       let totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
+      let canonicalHash: string | undefined
 
       const label = opts.log
         ? `${opts.log.taskType}${opts.log.pageId ? ` ${opts.log.pageId}` : ""}`
@@ -111,17 +116,30 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           ? opts.log.promptName
           : opts.log?.requestedPromptName
 
+      const effectiveMode = isLocalModelId(modelId)
+        ? opts.mode ?? "json"
+        : opts.mode
+      const structuredOutputs = effectiveMode === "json"
+        ? false
+        : isLocalModelId(modelId)
+          ? true
+          : undefined
+
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         const attemptStartedAt = Date.now()
         const attemptUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
         const hash = computeHash({
+          cacheVersion: 2,
           modelId,
-          mode: opts.mode,
+          providerIdentity: providerCacheIdentity(modelId, credentials),
+          mode: effectiveMode,
           system,
           messages: currentMessages,
           schema: opts.schema,
           temperature: opts.temperature,
+          maxTokens: opts.maxTokens,
         })
+        canonicalHash ??= hash
 
         try {
           let result: T
@@ -136,12 +154,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               if (rateLimiter) await rateLimiter.acquire()
               const generated = await callLLM<T>(
                 resolveModel(modelId, credentials, {
-                  structuredOutputs: opts.mode === "json" ? false : undefined,
+                  structuredOutputs,
                 }),
-                opts,
+                { ...opts, mode: effectiveMode },
                 system,
                 currentMessages,
-                externalSignal
+                externalSignal,
+                modelId,
               )
               result = generated.object
               attemptUsage.inputTokens += generated.usage.inputTokens
@@ -155,12 +174,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             if (rateLimiter) await rateLimiter.acquire()
             const generated = await callLLM<T>(
               resolveModel(modelId, credentials, {
-                structuredOutputs: opts.mode === "json" ? false : undefined,
+                structuredOutputs,
               }),
-              opts,
+              { ...opts, mode: effectiveMode },
               system,
               currentMessages,
-              externalSignal
+              externalSignal,
+              modelId,
             )
             result = generated.object
             attemptUsage.inputTokens += generated.usage.inputTokens
@@ -170,9 +190,17 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             lastCacheHit = false
           }
 
-          // Validate if validator provided
-          if (opts.validate) {
-            const check = opts.validate(result, context)
+          // The AI SDK validates normal responses, but Ollama recovery can
+          // return the raw JSON candidate after the SDK rejects it. Re-run the
+          // schema here so custom validators never receive a malformed shape.
+          const schemaCheck = validateAgainstSchema(opts.schema, result)
+          if (schemaCheck?.valid && schemaCheck.cleaned !== undefined) {
+            result = schemaCheck.cleaned as T
+          }
+          const check = schemaCheck && !schemaCheck.valid
+            ? schemaCheck
+            : opts.validate?.(result, context)
+          if (check) {
             if (!check.valid) {
               allErrors.push(...check.errors)
               if (cacheDir) bustCache(cacheDir, hash)
@@ -215,6 +243,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             if (check.cleaned !== undefined) {
               result = check.cleaned as T
             }
+          }
+
+          // Retry feedback changes the request hash. Persist the accepted,
+          // cleaned result under the original request too, otherwise every
+          // future run repeats the same corrective retry.
+          if (cacheDir && !lastCacheHit && canonicalHash) {
+            writeCache(cacheDir, canonicalHash, result)
           }
 
           const durationMs = Date.now() - t0
@@ -354,6 +389,38 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
   }
 }
 
+function validateAgainstSchema(
+  schema: unknown,
+  value: unknown,
+): ValidationResult | undefined {
+  if (
+    typeof schema !== "object" ||
+    schema === null ||
+    !("safeParse" in schema) ||
+    typeof schema.safeParse !== "function"
+  ) {
+    return undefined
+  }
+
+  const parsed = schema.safeParse(value) as {
+    success: boolean
+    data?: unknown
+    error?: { issues?: Array<{ path?: PropertyKey[]; message?: string }> }
+  }
+  if (parsed.success) {
+    return { valid: true, errors: [], cleaned: parsed.data }
+  }
+
+  const issues = parsed.error?.issues ?? []
+  const errors = issues.length > 0
+    ? issues.map((issue) => {
+        const path = issue.path?.map(String).join(".")
+        return `Schema validation failed${path ? ` at ${path}` : ""}: ${issue.message ?? "invalid value"}`
+      })
+    : ["Schema validation failed: invalid response shape"]
+  return { valid: false, errors }
+}
+
 function resolveModel(
   modelId: string,
   credentials?: LLMProviderCredentials,
@@ -394,9 +461,46 @@ function resolveModel(
       const custom = createOpenAI({ baseURL, apiKey: apiKey || "dummy" })
       return custom(model, options.structuredOutputs !== undefined ? { structuredOutputs: options.structuredOutputs } : undefined)
     }
+    case "ollama": {
+      const ollama = createOpenAI({
+        baseURL: ollamaOpenAIBaseUrl(),
+        apiKey: "ollama",
+      })
+      return ollama(
+        resolveOllamaModelName(model),
+        options.structuredOutputs !== undefined
+          ? { structuredOutputs: options.structuredOutputs }
+          : undefined,
+      )
+    }
+    case "local": {
+      const local = createOpenAI({
+        baseURL: localLlmOpenAIBaseUrl(),
+        apiKey: "local",
+      })
+      return local(
+        model,
+        options.structuredOutputs !== undefined
+          ? { structuredOutputs: options.structuredOutputs }
+          : undefined,
+      )
+    }
     default:
       throw new Error(`Unsupported LLM provider: ${provider}`)
   }
+}
+
+function providerCacheIdentity(
+  modelId: string,
+  credentials?: LLMProviderCredentials,
+): string {
+  const provider = modelId.includes(":") ? modelId.slice(0, modelId.indexOf(":")) : "openai"
+  if (provider === "ollama") return ollamaOpenAIBaseUrl()
+  if (provider === "local") return localLlmOpenAIBaseUrl()
+  if (provider === "custom") {
+    return credentials?.customBaseUrl ?? process.env.CUSTOM_OPENAI_BASE_URL ?? "custom:unconfigured"
+  }
+  return provider
 }
 
 function formatError(err: unknown): string {
@@ -448,14 +552,17 @@ async function callLLM<T>(
   opts: GenerateObjectOptions,
   system: string | undefined,
   messages: Message[],
-  externalSignal?: AbortSignal
+  externalSignal?: AbortSignal,
+  modelId?: string,
 ): Promise<{ object: T; usage: TokenUsage }> {
   const coreMessages = convertMessages(messages)
   // Combine the internal request timeout with the caller's cancellation signal.
   // Requires Node 20.3+ (see the "engines" field). The timeout rejects with a
   // TimeoutError (still a retryable failure); the external signal aborts with an
   // AbortError (a deliberate cancel — the retry loop stops on it).
-  const timeoutSignal = AbortSignal.timeout(opts.timeoutMs ?? 90_000)
+  const timeoutSignal = AbortSignal.timeout(
+    opts.timeoutMs ?? (isLocalModelId(modelId) ? 5 * 60_000 : 90_000),
+  )
   const abortSignal = externalSignal
     ? AbortSignal.any([timeoutSignal, externalSignal])
     : timeoutSignal
@@ -476,9 +583,38 @@ async function callLLM<T>(
   if (opts.temperature !== undefined) {
     generateOpts.temperature = opts.temperature
   }
-  const generated = await (generateObject as Function)(
-    generateOpts
-  ) as Awaited<ReturnType<typeof generateObject>>
+  if (isLocalModelId(modelId)) {
+    generateOpts.providerOptions = {
+      openai: { reasoningEffort: "none" },
+    }
+  }
+  const invoke = () => (generateObject as Function)(generateOpts) as Promise<Awaited<ReturnType<typeof generateObject>>>
+  let generated: Awaited<ReturnType<typeof generateObject>>
+  try {
+    generated = isLocalModelId(modelId)
+      ? await withLocalModelSlot(invoke, externalSignal)
+      : await invoke()
+  } catch (error) {
+    // Ollama models sometimes echo the JSON schema into an otherwise usable
+    // JSON response. The AI SDK rejects it before our domain validator can
+    // provide precise retry feedback. Recover the raw object only when a
+    // caller supplied that validator; it will accept, clean, or reject it.
+    if (
+      isLocalModelId(modelId) &&
+      opts.validate &&
+      NoObjectGeneratedError.isInstance(error) &&
+      error.text
+    ) {
+      const candidate = parseJSONCandidate(error.text)
+      if (candidate !== undefined) {
+        return {
+          object: candidate as T,
+          usage: { inputTokens: 0, outputTokens: 0 },
+        }
+      }
+    }
+    throw error
+  }
 
   return {
     object: generated.object as T,
@@ -486,6 +622,71 @@ async function callLLM<T>(
       inputTokens: generated.usage.promptTokens,
       outputTokens: generated.usage.completionTokens,
     },
+  }
+}
+
+function parseJSONCandidate(text: string): unknown | undefined {
+  const trimmed = text.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "")
+  try {
+    return JSON.parse(trimmed)
+  } catch {
+    const start = trimmed.indexOf("{")
+    const end = trimmed.lastIndexOf("}")
+    if (start < 0 || end <= start) return undefined
+    try {
+      return JSON.parse(trimmed.slice(start, end + 1))
+    } catch {
+      return undefined
+    }
+  }
+}
+
+const configuredLocalParallelism = Number.parseInt(process.env.LOCAL_LLM_PARALLEL ?? "", 10)
+const adaptiveLocalParallelism = os.availableParallelism() >= 10 && os.totalmem() >= 24 * 1024 ** 3 ? 2 : 1
+const localModelParallelism = Number.isInteger(configuredLocalParallelism) && configuredLocalParallelism > 0
+  ? Math.min(configuredLocalParallelism, 8)
+  : adaptiveLocalParallelism
+let activeLocalModelCalls = 0
+const localModelWaiters: Array<() => void> = []
+
+async function acquireLocalModelSlot(signal?: AbortSignal): Promise<() => void> {
+  if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError")
+  if (activeLocalModelCalls < localModelParallelism) {
+    activeLocalModelCalls++
+    return releaseLocalModelSlot
+  }
+  await new Promise<void>((resolve, reject) => {
+    const onAbort = () => {
+      const index = localModelWaiters.indexOf(onReady)
+      if (index >= 0) localModelWaiters.splice(index, 1)
+      reject(new DOMException("The operation was aborted", "AbortError"))
+    }
+    const onReady = () => {
+      signal?.removeEventListener("abort", onAbort)
+      resolve()
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+    localModelWaiters.push(onReady)
+  })
+  // The releasing caller transfers its occupied slot directly to this waiter.
+  // Incrementing here would allow a newly arriving call to steal the slot and
+  // temporarily exceed the configured concurrency limit.
+  return releaseLocalModelSlot
+}
+
+function releaseLocalModelSlot(): void {
+  const next = localModelWaiters.shift()
+  if (next) next()
+  else activeLocalModelCalls--
+}
+
+async function withLocalModelSlot<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  const release = await acquireLocalModelSlot(signal)
+  try {
+    if (signal?.aborted) throw new DOMException("The operation was aborted", "AbortError")
+    return await task()
+  } finally {
+    release()
   }
 }
 
@@ -508,7 +709,11 @@ function convertMessages(messages: Message[]): CoreMessage[] {
         if (p.type === "text") {
           return { type: "text" as const, text: p.text }
         }
-        return { type: "image" as const, image: p.image }
+        return {
+          type: "image" as const,
+          image: p.image,
+          ...(p.mimeType ? { mimeType: p.mimeType } : {}),
+        }
       })
       result.push({ role: "user", content: parts })
     } else {

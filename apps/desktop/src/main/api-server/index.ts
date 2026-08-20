@@ -29,6 +29,10 @@ async function startApiServer(): Promise<{
     "Books dir": paths.booksDir,
     "Prompts dir": paths.promptsDir,
     "Config path": paths.configPath,
+    "Local TTS models": paths.localTtsModelsDir,
+    "Local TTS runtime": paths.localTtsRuntimeDir,
+    "Local LLM models": paths.localLlmModelsDir,
+    "Local LLM runtime": paths.localLlmRuntimeDir,
     "Debug mode": isApiDebugMode ? "true" : "false",
   });
 
@@ -46,10 +50,15 @@ async function startApiServer(): Promise<{
       BOOKS_DIR: paths.booksDir,
       PROMPTS_DIR: paths.promptsDir,
       CONFIG_PATH: paths.configPath,
+      CONFIG_FOLDER_PATH: paths.configFolderPath,
       PROJECT_ROOT: paths.root,
       ADT_RESOURCES_ZIP: paths.adtResourcesZip,
       WEB_ASSETS_DIR: paths.webAssetsDir,
       ADT_ENVIRONMENT: "electron",
+      LOCAL_TTS_MODELS_DIR: paths.localTtsModelsDir,
+      LOCAL_TTS_RUNTIME_DIR: paths.localTtsRuntimeDir,
+      LOCAL_LLM_MODELS_DIR: paths.localLlmModelsDir,
+      LOCAL_LLM_RUNTIME_DIR: paths.localLlmRuntimeDir,
     },
   });
 

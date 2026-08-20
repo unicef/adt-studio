@@ -1,5 +1,4 @@
 import { z } from "zod"
-import { parseDocument, DomUtils } from "htmlparser2"
 import type {
   AppConfig,
   WebRenderingOutput,
@@ -11,6 +10,10 @@ import { quizLLMSchema, DEFAULT_LLM_MAX_RETRIES } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { processWithConcurrency } from "./concurrency.js"
 import { buildLanguageContext, normalizeLocale } from "./language-context.js"
+import {
+  extractTextFromHtml,
+  isInstitutionalEndMatter,
+} from "./content-filtering.js"
 
 export interface QuizConfig {
   language: string
@@ -86,14 +89,7 @@ export function buildQuizGenerationConfig(
   }
 }
 
-/**
- * Extract plain text from rendered HTML by stripping tags.
- * Uses htmlparser2 (already an @adt/pipeline dependency).
- */
-export function extractTextFromHtml(html: string): string {
-  const doc = parseDocument(html)
-  return DomUtils.textContent(doc).trim()
-}
+export { extractTextFromHtml } from "./content-filtering.js"
 
 /**
  * Determine if a page has at least one non-pruned section.
@@ -112,6 +108,13 @@ export function isContentPage(
   })
 }
 
+/** Exclude publishing/institutional end matter that is not lesson content. */
+export function isQuizEndMatter(page: QuizPageInput): boolean {
+  return isInstitutionalEndMatter(
+    page.rendering.sections.map((section) => section.html).join("\n"),
+  )
+}
+
 /**
  * Batch content pages into groups of N for quiz generation.
  * Non-content pages (all sections pruned) are skipped.
@@ -122,7 +125,9 @@ export function batchPages(
   pagesPerQuiz: number,
   quizSectionTypes?: string[]
 ): QuizPageInput[][] {
-  const contentPages = pages.filter((p) => isContentPage(p.sectioning, quizSectionTypes))
+  const contentPages = pages.filter(
+    (p) => isContentPage(p.sectioning, quizSectionTypes) && !isQuizEndMatter(p),
+  )
   const batches: QuizPageInput[][] = []
   for (let i = 0; i < contentPages.length; i += pagesPerQuiz) {
     batches.push(contentPages.slice(i, i + pagesPerQuiz))

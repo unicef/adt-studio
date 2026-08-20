@@ -262,6 +262,16 @@ export const LLM_MODEL_GROUPS: ModelGroup[] = [
     ],
   },
   {
+    provider: "ollama",
+    models: [
+      "gemma4-e2b",
+      "gemma4-e4b",
+      "gemma4-12b",
+      "gemma4-26b",
+      "gemma4-31b",
+    ],
+  },
+  {
     provider: "custom",
     models: [
       "your-model-name",

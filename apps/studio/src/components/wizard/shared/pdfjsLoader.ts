@@ -3,7 +3,7 @@ import { installCollectionMethodPolyfills } from "@/lib/pdfjs-dist-polyfill"
 
 let pdfjsModule: Promise<typeof import("pdfjs-dist")> | null = null
 
-// pdfjs-dist 5.x loads its JPEG 2000 (OpenJPEG) and JBIG2 WASM decoders from
+// pdfjs-dist 6.x loads its JPEG 2000 (OpenJPEG) and JBIG2 WASM decoders from
 // this directory at runtime. Without it, JPEG 2000 cover images fail to decode
 // and silently render blank. The files are served here by the `pdfjsWasmAssets`
 // Vite plugin (trailing slash is required by pdfjs).

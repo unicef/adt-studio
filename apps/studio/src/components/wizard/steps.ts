@@ -29,14 +29,16 @@ export const STEPS: StepDef[] = [
     description: msg`Configure basic document information and file paths`,
     component: Step1,
     hasRequiredFields: true,
-    isValid: (v, ctx) => ctx?.existingBookLabels !== undefined && isStep1BasicInfoValid(v, ctx.existingBookLabels),
+    isValid: (v, ctx) => v.generationModel.trim().length > 0 && ctx?.existingBookLabels !== undefined && isStep1BasicInfoValid(v, ctx.existingBookLabels),
     scrollToFirstInvalid: (v, ctx) => {
       if (!v.file) return "wizard-pdf-upload"
+      if (!v.generationModel.trim()) return "wizard-generation-method"
       if (!isStep1BasicInfoValid(v, ctx?.existingBookLabels ?? [])) return "wizard-project-name"
       return null
     },
     hint: (v, ctx) => {
       if (!v.file) return msg`Upload a PDF to continue`
+      if (!v.generationModel.trim()) return msg`Choose local or cloud generation to continue`
       if (!isStep1BasicInfoValid(v, ctx?.existingBookLabels ?? [])) return msg`Enter a valid project name`
       return null
     },

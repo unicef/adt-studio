@@ -136,6 +136,8 @@ export type EasyReadConfig = z.infer<typeof EasyReadConfig>
 export const PageSectioningConfig = StepConfig.extend({
   max_refinements: z.number().int().min(0).optional(),
   mode: z.enum(["page", "dynamic"]).catch("dynamic").optional(),
+  /** `auto` uses deterministic high-confidence layouts before falling back to the LLM. */
+  strategy: z.enum(["auto", "llm"]).optional(),
 })
 export type PageSectioningConfig = z.infer<typeof PageSectioningConfig>
 
@@ -313,7 +315,10 @@ export const AppConfig = z
     image_segmentation: StepConfig.extend({
       min_side: z.number().int().min(0).optional(),
     }).optional(),
-    image_cropping: StepConfig.optional(),
+    image_cropping: StepConfig.extend({
+      /** Local models default to off because destructive crop mistakes cannot be repaired later. */
+      strategy: z.enum(["auto", "llm", "off"]).optional(),
+    }).optional(),
     layout_type: LayoutType.optional(),
     spread_mode: z.boolean().optional(),
     /**

@@ -31,7 +31,6 @@ interface BoxInputProps {
 }
 
 const SIDE_LABELS: Record<BoxInputVariant, [string, string, string, string]> = {
-  // eslint-disable-next-line lingui/no-unlocalized-strings -- universal direction abbreviations
   sides: ["T", "R", "B", "L"],
   // eslint-disable-next-line lingui/no-unlocalized-strings -- universal corner abbreviations
   corners: ["TL", "TR", "BR", "BL"],

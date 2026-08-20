@@ -62,6 +62,10 @@ function readStoredBuildVersion(bookDir: string): string | null {
   return version.length > 0 ? version : null
 }
 
+function hasStoredAccessibilityAssessment(storage: Storage): boolean {
+  return storage.getLatestNodeData("accessibility-assessment", "book") !== null
+}
+
 function getPackagingCacheState(
   storage: Storage,
   safeLabel: string,
@@ -79,7 +83,9 @@ function getPackagingCacheState(
     webAssetsDir, applyBodyBackground: config.apply_body_background,
     config: config as unknown as Record<string, unknown>,
   })
-  const cached = fs.existsSync(hashPath) && fs.readFileSync(hashPath, "utf-8").trim() === hash
+  const cached = fs.existsSync(hashPath)
+    && fs.readFileSync(hashPath, "utf-8").trim() === hash
+    && hasStoredAccessibilityAssessment(storage)
   return {
     cached,
     version: cached ? readBuildVersion(bookDir, hash) : packageVersionFromHash(hash),
@@ -224,12 +230,13 @@ export function createPackageRoutes(
   return app
 }
 
-async function runPackaging(
+export async function runPackaging(
   safeLabel: string,
   booksDir: string,
   bookDir: string,
   webAssetsDir: string,
   configPath?: string,
+  onPackageBuilt?: () => void,
 ): Promise<PackagingResult> {
   const storage = createBookStorage(safeLabel, booksDir)
   try {
@@ -253,7 +260,12 @@ async function runPackaging(
     const versionPath = getBuildVersionPath(bookDir)
     const preHash = computePackagingInputHash(hashOptions)
     const bundleVersion = packageVersionFromHash(preHash)
-    if (fs.existsSync(hashPath) && fs.readFileSync(hashPath, "utf-8").trim() === preHash) {
+    if (
+      fs.existsSync(hashPath)
+      && fs.readFileSync(hashPath, "utf-8").trim() === preHash
+      && hasStoredAccessibilityAssessment(storage)
+    ) {
+      onPackageBuilt?.()
       return { version: readBuildVersion(bookDir, preHash) }
     }
 
@@ -272,6 +284,7 @@ async function runPackaging(
       quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
     })
     fs.writeFileSync(versionPath, bundleVersion, "utf-8")
+    onPackageBuilt?.()
 
     const baseAccessibility = await runAccessibilityAssessment({
       bookDir,

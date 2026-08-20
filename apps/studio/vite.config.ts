@@ -9,7 +9,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import babel from "@rolldown/plugin-babel";
 
-// pdfjs-dist 5.x decodes JPEG 2000 (JPXDecode), JBIG2, and ICC color via WASM
+// pdfjs-dist 6.x decodes JPEG 2000 (JPXDecode), JBIG2, and ICC color via WASM
 // modules shipped in `pdfjs-dist/wasm/`. They must be reachable at a stable URL
 // (with their original filenames) so pdfjs can fetch them at runtime; otherwise
 // JPEG 2000 images silently fail to decode. We expose them under `/pdfjs-wasm/`

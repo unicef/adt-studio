@@ -4,72 +4,77 @@ import {
   type PageSectioningOutput,
   type PageSectioningSection,
   type TypeDef,
+  type PositionedTextOutput,
   DEFAULT_LLM_MAX_RETRIES,
   DEFAULT_LLM_MODEL_ID,
   buildPageSectioningLLMSchema,
   buildPageSectioningRefinementLLMSchema,
-} from "@adt/types"
-import type { LLMModel, ValidationResult } from "@adt/llm"
-import type { PageOutlineContext } from "./book-outline.js"
+} from "@adt/types";
+import type { LLMModel, ValidationResult } from "@adt/llm";
+import type { PageOutlineContext } from "./book-outline.js";
 
 // ── Types ───────────────────────────────────────────────────────
 
 export interface PageSectioningConfig {
-  structureTypes: TypeDef[]
-  roleTypes: TypeDef[]
-  sectionTypes: TypeDef[]
-  prunedRoleTypes: string[]
-  prunedSectionTypes: string[]
-  disabledSectionTypes: string[]
-  promptName: string
-  refinementPromptName: string
-  modelId: string
-  maxRetries: number
-  maxRefinements: number
-  mode: "page" | "dynamic"
+  structureTypes: TypeDef[];
+  roleTypes: TypeDef[];
+  sectionTypes: TypeDef[];
+  prunedRoleTypes: string[];
+  prunedSectionTypes: string[];
+  disabledSectionTypes: string[];
+  promptName: string;
+  refinementPromptName: string;
+  modelId: string;
+  maxRetries: number;
+  maxRefinements: number;
+  mode: "page" | "dynamic";
+  strategy: "auto" | "llm";
 }
 
 export interface PageSectioningInput {
-  pageId: string
-  pageNumber: number
-  text: string
-  imageBase64: string
+  pageId: string;
+  pageNumber: number;
+  text: string;
+  imageBase64: string;
   /** All images available to place in the tree. Callers filter pruned images out. */
-  availableImages: Array<{ imageId: string; imageBase64: string }>
+  availableImages: Array<{ imageId: string; imageBase64: string }>;
+  positionedText?: PositionedTextOutput;
+  /** Extracted book title, used only to confirm an early title-page fast path. */
+  bookTitle?: string;
   /** Authoritative book-level hierarchy slice for this page, when available. */
-  outline?: PageOutlineContext | null
+  outline?: PageOutlineContext | null;
 }
 
 // ── LLM-facing shape (snake_case matching the prompt + schema) ──
 
 interface LLMNode {
-  structure?: string | null
-  role?: string | null
-  text?: string | null
-  image_id?: string | null
-  heading_level?: number | null
-  outline_entry_id?: string | null
-  heading_style_cluster_id?: string | null
-  children?: LLMNode[] | null
+  structure?: string | null;
+  role?: string | null;
+  text?: string | null;
+  image_id?: string | null;
+  heading_level?: number | null;
+  outline_entry_id?: string | null;
+  heading_style_cluster_id?: string | null;
+  children?: LLMNode[] | null;
 }
 
 interface LLMSection {
-  section_type: string
-  background_color: string
-  text_color: string
-  page_number: number | null
-  nodes: LLMNode[]
+  section_type: string;
+  background_color: string;
+  text_color: string;
+  page_number: number | null;
+  nodes: LLMNode[];
 }
 
 interface LLMStructuringResult {
-  reasoning: string
-  sections: LLMSection[]
+  reasoning: string;
+  sections: LLMSection[];
 }
 
 interface LLMRefinementResult {
-  approved: boolean
-  reasoning: string
-  nodes_and_sections: LLMStructuringResult | null
+  approved: boolean;
+  reasoning: string;
+  nodes_and_sections: LLMStructuringResult | null;
 }
 
 // ── Entry point ─────────────────────────────────────────────────
@@ -82,16 +87,21 @@ interface LLMRefinementResult {
 export async function sectionPage(
   input: PageSectioningInput,
   config: PageSectioningConfig,
-  llmModel: LLMModel
+  llmModel: LLMModel,
 ): Promise<PageSectioningOutput> {
   if (config.structureTypes.length === 0) {
-    throw new Error("No structure types configured")
+    throw new Error("No structure types configured");
   }
   if (config.roleTypes.length === 0) {
-    throw new Error("No role types configured")
+    throw new Error("No role types configured");
   }
   if (config.sectionTypes.length === 0) {
-    throw new Error("No section types configured")
+    throw new Error("No section types configured");
+  }
+
+  if (config.strategy === "auto") {
+    const deterministic = trySectionPageDeterministically(input, config);
+    if (deterministic) return deterministic;
   }
 
   const validatorContext: ValidatorContext = {
@@ -103,15 +113,20 @@ export async function sectionPage(
       (input.outline?.entries ?? []).map((entry) => [entry.outlineId, entry]),
     ),
     mode: config.mode,
-  }
+  };
 
   // Initial generation (with built-in validation retry).
-  const initial = await generateInitial(input, config, validatorContext, llmModel)
-  let candidate = initial
-  applyAutoRepairs(candidate)
+  const initial = await generateInitial(
+    input,
+    config,
+    validatorContext,
+    llmModel,
+  );
+  let candidate = initial;
+  applyAutoRepairs(candidate);
 
   // Refinement loop — up to maxRefinements reviewer passes.
-  const priorNotes: string[] = []
+  const priorNotes: string[] = [];
   for (let iteration = 1; iteration <= config.maxRefinements; iteration++) {
     const review = await generateReview(
       input,
@@ -119,29 +134,348 @@ export async function sectionPage(
       candidate,
       iteration,
       priorNotes,
-      llmModel
-    )
-    if (review.approved) break
+      llmModel,
+    );
+    if (review.approved) break;
 
     // The reviewer proposed a replacement. Validate it before adopting.
     if (review.nodes_and_sections) {
-      applyAutoRepairs(review.nodes_and_sections)
-      const err = runValidator(review.nodes_and_sections, validatorContext)
+      applyAutoRepairs(review.nodes_and_sections);
+      const err = runValidator(review.nodes_and_sections, validatorContext);
       if (err.valid) {
-        candidate = review.nodes_and_sections
+        candidate = review.nodes_and_sections;
       }
     }
-    if (review.reasoning) priorNotes.push(review.reasoning)
+    if (review.reasoning) priorNotes.push(review.reasoning);
   }
 
-  return finalizePageSectioning(candidate, input, config)
+  return finalizePageSectioning(candidate, input, config);
+}
+
+/**
+ * Resolve only layouts where geometry makes the answer unambiguous. This
+ * removes expensive multimodal calls without guessing; all other pages fall
+ * through to the LLM.
+ */
+export function trySectionPageDeterministically(
+  input: PageSectioningInput,
+  config: PageSectioningConfig,
+): PageSectioningOutput | null {
+  const positioned = input.positionedText;
+  if (!positioned) return null;
+  const paragraphs = positioned.drawItems.filter(
+    (item) => item.kind === "paragraph",
+  );
+  const hasSection = (key: string) =>
+    config.sectionTypes.some((type) => type.key === key);
+  const hasRole = (key: string) =>
+    config.roleTypes.some((type) => type.key === key);
+  const hasStructure = (key: string) =>
+    config.structureTypes.some((type) => type.key === key);
+
+  if (
+    paragraphs.length === 0 &&
+    input.availableImages.length === 0 &&
+    hasSection("text_only")
+  ) {
+    return finalizePageSectioning(
+      {
+        reasoning: "Deterministic layout: the extracted page is blank.",
+        sections: [
+          {
+            section_type: "text_only",
+            background_color: "#ffffff",
+            text_color: "#000000",
+            page_number: input.pageNumber,
+            nodes: [],
+          },
+        ],
+      },
+      input,
+      config,
+    );
+  }
+
+  const merged = new Map<
+    string,
+    { text: string; top: number; lineHeight: number }
+  >();
+  for (const paragraph of paragraphs) {
+    const key =
+      paragraph.mergedParagraphId ?? paragraph.blockId ?? paragraph.textId;
+    const existing = merged.get(key);
+    if (existing)
+      existing.text = `${existing.text} ${paragraph.text}`
+        .replace(/\s+/g, " ")
+        .trim();
+    else
+      merged.set(key, {
+        text: paragraph.text.trim(),
+        top: paragraph.top,
+        lineHeight: paragraph.lineHeight,
+      });
+  }
+  const blocks = [...merged.values()].filter((block) => block.text.length > 0);
+  const pageNumberBlock = blocks.find(
+    (block) =>
+      /^\d{1,4}$/.test(block.text) && block.top >= positioned.pageHeight * 0.7,
+  );
+  const footerBlocks = blocks.filter(
+    (block) =>
+      block !== pageNumberBlock &&
+      block.top >= positioned.pageHeight * 0.75 &&
+      (block.lineHeight <= 12 ||
+        /^(?:reprint|copyright|isbn)\b/i.test(block.text)),
+  );
+  const excluded = new Set([pageNumberBlock, ...footerBlocks].filter(Boolean));
+  const bodyBlocks = blocks.filter((block) => !excluded.has(block));
+  const bodyText = bodyBlocks.map((block) => block.text).join(" ");
+  const wordCount = bodyText.split(/\s+/).filter(Boolean).length;
+
+  const imageItem = positioned.drawItems.find((item) => item.kind === "image");
+  const imageCoverage = imageItem
+    ? (imageItem.bounds.width * imageItem.bounds.height) /
+      (positioned.pageWidth * positioned.pageHeight)
+    : 0;
+  const coverLayout =
+    input.pageNumber === 1 &&
+    input.availableImages.length === 1 &&
+    bodyBlocks.length >= 1 &&
+    bodyBlocks.length <= 4 &&
+    wordCount <= 30 &&
+    hasSection("front_cover") &&
+    hasRole("image") &&
+    hasRole("heading") &&
+    hasStructure("group");
+  if (coverLayout) {
+    return finalizePageSectioning(
+      {
+        reasoning:
+          "Deterministic high-confidence front-cover layout from page position and geometry.",
+        sections: [
+          {
+            section_type: "front_cover",
+            background_color: "#ffffff",
+            text_color: "#000000",
+            page_number: null,
+            nodes: [
+              {
+                structure: "group",
+                children: bodyBlocks.map((block) => ({
+                  role: "heading",
+                  text: block.text,
+                })),
+              },
+              { role: "image", image_id: input.availableImages[0].imageId },
+            ],
+          },
+        ],
+      },
+      input,
+      config,
+    );
+  }
+
+  const normalizedTitle = input.bookTitle
+    ?.replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+  const titlePageLayout =
+    input.pageNumber <= 5 &&
+    input.availableImages.length === 0 &&
+    !!normalizedTitle &&
+    bodyBlocks.some(
+      (block) =>
+        block.text.replace(/\s+/g, " ").trim().toLowerCase() ===
+        normalizedTitle,
+    ) &&
+    bodyBlocks.length >= 2 &&
+    bodyBlocks.length <= 12 &&
+    hasSection("front_cover") &&
+    hasRole("heading") &&
+    hasRole("text") &&
+    hasStructure("group");
+  if (titlePageLayout) {
+    return finalizePageSectioning(
+      {
+        reasoning:
+          "Deterministic high-confidence title-page layout matched to extracted book metadata.",
+        sections: [
+          {
+            section_type: "front_cover",
+            background_color: "#ffffff",
+            text_color: "#000000",
+            page_number: null,
+            nodes: [
+              {
+                structure: "group",
+                children: bodyBlocks
+                  .slice(0, 2)
+                  .map((block) => ({ role: "heading", text: block.text })),
+              },
+              {
+                structure: "group",
+                children: bodyBlocks
+                  .slice(2)
+                  .map((block) => ({ role: "text", text: block.text })),
+              },
+            ],
+          },
+        ],
+      },
+      input,
+      config,
+    );
+  }
+
+  const insideCoverLayout =
+    input.pageNumber <= 6 &&
+    input.availableImages.length === 0 &&
+    /\b(?:copyright|all rights reserved|isbn|published by)\b/i.test(bodyText) &&
+    hasSection("inside_cover") &&
+    hasRole("text") &&
+    hasStructure("group");
+  if (insideCoverLayout) {
+    return finalizePageSectioning(
+      {
+        reasoning: "Deterministic high-confidence publication/copyright page.",
+        sections: [
+          {
+            section_type: "inside_cover",
+            background_color: "#ffffff",
+            text_color: "#000000",
+            page_number: null,
+            nodes: [
+              {
+                structure: "group",
+                children: bodyBlocks.map((block) => ({
+                  role: "text",
+                  text: block.text,
+                })),
+              },
+            ],
+          },
+        ],
+      },
+      input,
+      config,
+    );
+  }
+
+  const firstBlock = bodyBlocks[0];
+  const boxedTextLayout =
+    input.availableImages.length === 1 &&
+    imageCoverage > 0.01 &&
+    imageCoverage < 0.2 &&
+    bodyBlocks.length >= 2 &&
+    bodyBlocks.length <= 4 &&
+    wordCount <= 60 &&
+    !!firstBlock &&
+    firstBlock.text.length <= 60 &&
+    firstBlock.text === firstBlock.text.toUpperCase() &&
+    hasSection("boxed_text") &&
+    hasRole("heading") &&
+    hasRole("quote") &&
+    hasStructure("group");
+  if (boxedTextLayout) {
+    return finalizePageSectioning(
+      {
+        reasoning:
+          "Deterministic high-confidence boxed callout from compact centered geometry.",
+        sections: [
+          {
+            section_type: "boxed_text",
+            background_color: "#ffffff",
+            text_color: "#000000",
+            page_number: input.pageNumber,
+            nodes: [
+              {
+                structure: "group",
+                children: [
+                  { role: "heading", text: firstBlock.text },
+                  {
+                    role: "quote",
+                    text: bodyBlocks
+                      .slice(1)
+                      .map((block) => block.text)
+                      .join(" "),
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      input,
+      config,
+    );
+  }
+
+  const storyLayout =
+    input.availableImages.length === 1 &&
+    imageCoverage >= 0.25 &&
+    !!pageNumberBlock &&
+    bodyBlocks.length >= 1 &&
+    bodyBlocks.length <= 8 &&
+    wordCount >= 5 &&
+    wordCount <= 150 &&
+    hasSection("text_and_single_image") &&
+    hasRole("image") &&
+    hasRole("text") &&
+    hasStructure("image_group") &&
+    hasStructure("group");
+
+  if (storyLayout) {
+    const nodes: LLMNode[] = [
+      {
+        structure: "image_group",
+        children: [
+          { role: "image", image_id: input.availableImages[0].imageId },
+          {
+            structure: "group",
+            children: bodyBlocks.map((block) => ({
+              role: "text",
+              text: block.text,
+            })),
+          },
+        ],
+      },
+    ];
+    if (pageNumberBlock && hasRole("page_number"))
+      nodes.push({ role: "page_number", text: pageNumberBlock.text });
+    if (hasRole("footer"))
+      nodes.push(
+        ...footerBlocks.map((block) => ({ role: "footer", text: block.text })),
+      );
+    return finalizePageSectioning(
+      {
+        reasoning:
+          "Deterministic high-confidence storybook layout from extracted geometry.",
+        sections: [
+          {
+            section_type: "text_and_single_image",
+            background_color: "#ffffff",
+            text_color: "#000000",
+            page_number: pageNumberBlock
+              ? Number(pageNumberBlock.text)
+              : input.pageNumber,
+            nodes,
+          },
+        ],
+      },
+      input,
+      config,
+    );
+  }
+
+  return null;
 }
 
 async function generateInitial(
   input: PageSectioningInput,
   config: PageSectioningConfig,
   validatorContext: ValidatorContext,
-  llmModel: LLMModel
+  llmModel: LLMModel,
 ): Promise<LLMStructuringResult> {
   const result = await llmModel.generateObject<LLMStructuringResult>({
     schema: buildPageSectioningLLMSchema(),
@@ -164,8 +498,8 @@ async function generateInitial(
       book_outline: input.outline ?? null,
     },
     validate: (raw) => {
-      applyAutoRepairs(raw as LLMStructuringResult | null)
-      return runValidator(raw, validatorContext)
+      applyAutoRepairs(raw as LLMStructuringResult | null);
+      return runValidator(raw, validatorContext);
     },
     maxRetries: config.maxRetries,
     maxTokens: 16384,
@@ -174,8 +508,8 @@ async function generateInitial(
       pageId: input.pageId,
       promptName: config.promptName,
     },
-  })
-  return result.object
+  });
+  return result.object;
 }
 
 async function generateReview(
@@ -184,7 +518,7 @@ async function generateReview(
   candidate: LLMStructuringResult,
   iteration: number,
   priorNotes: string[],
-  llmModel: LLMModel
+  llmModel: LLMModel,
 ): Promise<LLMRefinementResult> {
   const result = await llmModel.generateObject<LLMRefinementResult>({
     schema: buildPageSectioningRefinementLLMSchema(),
@@ -220,8 +554,8 @@ async function generateReview(
       pageId: input.pageId,
       promptName: config.refinementPromptName,
     },
-  })
-  return result.object
+  });
+  return result.object;
 }
 
 // ── Auto-repair ─────────────────────────────────────────────────
@@ -242,16 +576,18 @@ async function generateReview(
  *  4. A leaf whose text is a row of single-letter tokens separated by spaces
  *     (crossword/letter-grid pattern) → split into one leaf per letter.
  */
-export function applyAutoRepairs(raw: LLMStructuringResult | null | undefined): void {
-  if (!raw || !Array.isArray(raw.sections)) return
+export function applyAutoRepairs(
+  raw: LLMStructuringResult | null | undefined,
+): void {
+  if (!raw || !Array.isArray(raw.sections)) return;
   for (const section of raw.sections) {
     if (Array.isArray(section.nodes)) {
-      section.nodes = repairChildren(section.nodes)
+      section.nodes = repairChildren(section.nodes);
     }
   }
 }
 
-const SINGLE_LETTER_ROW = /^[A-Za-zÀ-ÿ](\s+[A-Za-zÀ-ÿ])+$/
+const SINGLE_LETTER_ROW = /^[A-Za-zÀ-ÿ](\s+[A-Za-zÀ-ÿ])+$/;
 
 // Canonicalize structure values the model reliably invents but that aren't in
 // the allowed `structure_types`. The model frequently emits "boxed_text" for a
@@ -260,20 +596,20 @@ const SINGLE_LETTER_ROW = /^[A-Za-zÀ-ÿ](\s+[A-Za-zÀ-ÿ])+$/
 // value valid AND flows into the stored tree, avoiding a wasted retry.
 const STRUCTURE_ALIASES: Record<string, string> = {
   boxed_text: "panel",
-}
+};
 
 function repairChildren(children: LLMNode[]): LLMNode[] {
-  const out: LLMNode[] = []
+  const out: LLMNode[] = [];
   for (const original of children) {
     if (!original || typeof original !== "object") {
-      out.push(original)
-      continue
+      out.push(original);
+      continue;
     }
-    let child = original
+    let child = original;
 
     // Recurse first so deeper repairs propagate up.
     if (Array.isArray(child.children)) {
-      child.children = repairChildren(child.children)
+      child.children = repairChildren(child.children);
     }
 
     // Canonicalize known invented structure synonyms (e.g. "boxed_text" → "panel")
@@ -282,13 +618,13 @@ function repairChildren(children: LLMNode[]): LLMNode[] {
       typeof child.structure === "string" &&
       STRUCTURE_ALIASES[child.structure] !== undefined
     ) {
-      child.structure = STRUCTURE_ALIASES[child.structure]
+      child.structure = STRUCTURE_ALIASES[child.structure];
     }
 
     // Repair (3) — run before image_group repairs so reordering can still
     // place the image first if a text leaf gets prepended here.
     const isContainer =
-      typeof child.structure === "string" && child.structure.length > 0
+      typeof child.structure === "string" && child.structure.length > 0;
     if (
       isContainer &&
       typeof child.text === "string" &&
@@ -296,9 +632,9 @@ function repairChildren(children: LLMNode[]): LLMNode[] {
       Array.isArray(child.children) &&
       child.children.length > 0
     ) {
-      const textLeaf: LLMNode = { role: "text", text: child.text }
-      child.children = [textLeaf, ...child.children]
-      child.text = null
+      const textLeaf: LLMNode = { role: "text", text: child.text };
+      child.children = [textLeaf, ...child.children];
+      child.text = null;
     }
 
     // Repair (1) + (2): image_group child arrangement.
@@ -308,54 +644,51 @@ function repairChildren(children: LLMNode[]): LLMNode[] {
       child.children.length > 0
     ) {
       const imageChildren = child.children.filter(
-        (c): c is LLMNode => !!c && c.role === "image"
-      )
+        (c): c is LLMNode => !!c && c.role === "image",
+      );
       if (child.children.length === 1 && imageChildren.length === 1) {
         // Unwrap: lone image inside image_group → bare image leaf.
-        out.push(imageChildren[0])
-        continue
+        out.push(imageChildren[0]);
+        continue;
       }
-      if (
-        imageChildren.length === 1 &&
-        child.children[0]?.role !== "image"
-      ) {
-        const image = imageChildren[0]
-        const rest = child.children.filter((c) => c !== image)
-        child.children = [image, ...rest]
+      if (imageChildren.length === 1 && child.children[0]?.role !== "image") {
+        const image = imageChildren[0];
+        const rest = child.children.filter((c) => c !== image);
+        child.children = [image, ...rest];
       }
     }
 
     // Repair (4): split single-letter-row leaves into one leaf per letter.
-    const isLeaf = typeof child.role === "string" && child.role.length > 0
+    const isLeaf = typeof child.role === "string" && child.role.length > 0;
     if (
       isLeaf &&
       typeof child.text === "string" &&
       SINGLE_LETTER_ROW.test(child.text.trim())
     ) {
-      const letters = child.text.trim().split(/\s+/)
+      const letters = child.text.trim().split(/\s+/);
       for (const letter of letters) {
-        out.push({ ...child, text: letter })
+        out.push({ ...child, text: letter });
       }
-      continue
+      continue;
     }
 
-    out.push(child)
+    out.push(child);
   }
-  return out
+  return out;
 }
 
 // ── Validator ───────────────────────────────────────────────────
 
 interface ValidatorContext {
-  structureKeys: Set<string>
-  roleKeys: Set<string>
-  sectionTypeKeys: Set<string>
-  availableImageIds: Set<string>
+  structureKeys: Set<string>;
+  roleKeys: Set<string>;
+  sectionTypeKeys: Set<string>;
+  availableImageIds: Set<string>;
   outlineEntries?: Map<
     string,
     { outlineId: string; level: number; styleClusterId: string; title: string }
-  >
-  mode?: "page" | "dynamic"
+  >;
+  mode?: "page" | "dynamic";
 }
 
 /**
@@ -365,37 +698,40 @@ interface ValidatorContext {
  */
 export function runValidator(
   raw: unknown,
-  ctx: ValidatorContext
+  ctx: ValidatorContext,
 ): ValidationResult {
-  const errors: string[] = []
-  const result = raw as LLMStructuringResult | null
+  const errors: string[] = [];
+  const result = raw as LLMStructuringResult | null;
   if (!result || !Array.isArray(result.sections)) {
-    return { valid: false, errors: ["Response is missing a `sections` array."] }
+    return {
+      valid: false,
+      errors: ["Response is missing a `sections` array."],
+    };
   }
 
   if (ctx.mode === "page" && result.sections.length !== 1) {
     errors.push(
-      `Page mode requires exactly one section, but the response contains ${result.sections.length}. Merge all page content into one section.`
-    )
+      `Page mode requires exactly one section, but the response contains ${result.sections.length}. Merge all page content into one section.`,
+    );
   }
 
-  const usedImageIds = new Set<string>()
-  const usedOutlineIds = new Set<string>()
-  const outlineEntries = ctx.outlineEntries ?? new Map()
+  const usedImageIds = new Set<string>();
+  const usedOutlineIds = new Set<string>();
+  const outlineEntries = ctx.outlineEntries ?? new Map();
   for (let sIdx = 0; sIdx < result.sections.length; sIdx++) {
-    const section = result.sections[sIdx]
-    const path = `sections[${sIdx}]`
+    const section = result.sections[sIdx];
+    const path = `sections[${sIdx}]`;
 
     if (!ctx.sectionTypeKeys.has(section.section_type)) {
       errors.push(
         `${path}: invalid section_type "${section.section_type}". ` +
-          `Must be one of: ${[...ctx.sectionTypeKeys].join(", ")}`
-      )
+          `Must be one of: ${[...ctx.sectionTypeKeys].join(", ")}`,
+      );
     }
 
     if (!Array.isArray(section.nodes)) {
-      errors.push(`${path}.nodes: expected an array of top-level nodes`)
-      continue
+      errors.push(`${path}.nodes: expected an array of top-level nodes`);
+      continue;
     }
 
     for (let nIdx = 0; nIdx < section.nodes.length; nIdx++) {
@@ -406,7 +742,7 @@ export function runValidator(
         usedImageIds,
         usedOutlineIds,
         errors,
-      )
+      );
     }
   }
 
@@ -417,11 +753,13 @@ export function runValidator(
 
   for (const outlineId of outlineEntries.keys()) {
     if (!usedOutlineIds.has(outlineId)) {
-      errors.push(`Book-outline heading "${outlineId}" is missing from the page tree.`)
+      errors.push(
+        `Book-outline heading "${outlineId}" is missing from the page tree.`,
+      );
     }
   }
 
-  return { valid: errors.length === 0, errors }
+  return { valid: errors.length === 0, errors };
 }
 
 function validateNode(
@@ -430,32 +768,32 @@ function validateNode(
   ctx: ValidatorContext,
   usedImageIds: Set<string>,
   usedOutlineIds: Set<string>,
-  errors: string[]
+  errors: string[],
 ): void {
   if (!node || typeof node !== "object") {
-    errors.push(`${path}: expected a node object`)
-    return
+    errors.push(`${path}: expected a node object`);
+    return;
   }
 
   const hasStructure =
-    typeof node.structure === "string" && node.structure.length > 0
-  const hasRole = typeof node.role === "string" && node.role.length > 0
-  const hasText = typeof node.text === "string" && node.text.length > 0
+    typeof node.structure === "string" && node.structure.length > 0;
+  const hasRole = typeof node.role === "string" && node.role.length > 0;
+  const hasText = typeof node.text === "string" && node.text.length > 0;
   const hasImageId =
-    typeof node.image_id === "string" && node.image_id.length > 0
-  const children = Array.isArray(node.children) ? node.children : null
-  const hasChildren = children !== null && children.length > 0
+    typeof node.image_id === "string" && node.image_id.length > 0;
+  const children = Array.isArray(node.children) ? node.children : null;
+  const hasChildren = children !== null && children.length > 0;
 
   if (hasStructure && hasRole) {
     errors.push(
-      `${path}: a node cannot set both "structure" and "role". Use a container OR a leaf.`
-    )
+      `${path}: a node cannot set both "structure" and "role". Use a container OR a leaf.`,
+    );
   }
   if (!hasStructure && !hasRole) {
     errors.push(
-      `${path}: every node must have either "structure" (container) or "role" (leaf).`
-    )
-    return
+      `${path}: every node must have either "structure" (container) or "role" (leaf).`,
+    );
+    return;
   }
 
   if (hasStructure) {
@@ -463,42 +801,42 @@ function validateNode(
     if (!ctx.structureKeys.has(node.structure!)) {
       errors.push(
         `${path}.structure: invalid value "${node.structure}". ` +
-          `Must be one of: ${[...ctx.structureKeys].join(", ")}`
-      )
+          `Must be one of: ${[...ctx.structureKeys].join(", ")}`,
+      );
     }
 
     if (hasText) {
       errors.push(
-        `${path}: a container node must not carry "text". Move the text into a child leaf.`
-      )
+        `${path}: a container node must not carry "text". Move the text into a child leaf.`,
+      );
     }
 
     if (hasImageId) {
       errors.push(
-        `${path}: "image_id" is only valid on role:"image" leaves, not on containers.`
-      )
+        `${path}: "image_id" is only valid on role:"image" leaves, not on containers.`,
+      );
     }
 
-    const allowsEmpty = node.structure === "table_cell"
+    const allowsEmpty = node.structure === "table_cell";
     if (!hasChildren && !allowsEmpty) {
       errors.push(
         `${path}: container "${node.structure}" must have children. ` +
-          `Only "table_cell" may be empty.`
-      )
+          `Only "table_cell" may be empty.`,
+      );
     }
 
     if (node.structure === "image_group") {
-      const firstChild = children && children.length > 0 ? children[0] : null
-      const firstIsImage = firstChild && firstChild.role === "image"
+      const firstChild = children && children.length > 0 ? children[0] : null;
+      const firstIsImage = firstChild && firstChild.role === "image";
       if (!firstIsImage) {
         errors.push(
-          `${path}: image_group's first child must be a leaf with role "image".`
-        )
+          `${path}: image_group's first child must be a leaf with role "image".`,
+        );
       }
       if (children && children.length < 2) {
         errors.push(
-          `${path}: image_group must contain the image leaf plus at least one associated content leaf (caption/label/overlay). A standalone image with no associated content should be emitted as a bare \`role: "image"\` leaf, not wrapped in image_group.`
-        )
+          `${path}: image_group must contain the image leaf plus at least one associated content leaf (caption/label/overlay). A standalone image with no associated content should be emitted as a bare \`role: "image"\` leaf, not wrapped in image_group.`,
+        );
       }
     }
 
@@ -511,18 +849,18 @@ function validateNode(
           usedImageIds,
           usedOutlineIds,
           errors,
-        )
+        );
       }
     }
-    return
+    return;
   }
 
   // Leaf node.
   if (!ctx.roleKeys.has(node.role!)) {
     errors.push(
       `${path}.role: invalid value "${node.role}". ` +
-        `Must be one of: ${[...ctx.roleKeys].join(", ")}`
-    )
+        `Must be one of: ${[...ctx.roleKeys].join(", ")}`,
+    );
   }
 
   const roleLevel =
@@ -532,34 +870,47 @@ function validateNode(
         ? 2
         : node.role === "subheading"
           ? 3
-          : null
+          : null;
   const headingLevel =
-    typeof node.heading_level === "number" ? node.heading_level : roleLevel
+    typeof node.heading_level === "number" ? node.heading_level : roleLevel;
   if (
     node.heading_level != null &&
-    (!Number.isInteger(node.heading_level) || node.heading_level < 1 || node.heading_level > 6)
+    (!Number.isInteger(node.heading_level) ||
+      node.heading_level < 1 ||
+      node.heading_level > 6)
   ) {
-    errors.push(`${path}.heading_level: expected an integer from 1 through 6.`)
+    errors.push(`${path}.heading_level: expected an integer from 1 through 6.`);
   }
-  if (roleLevel !== null && node.heading_level != null && node.heading_level !== roleLevel) {
+  if (
+    roleLevel !== null &&
+    node.heading_level != null &&
+    node.heading_level !== roleLevel
+  ) {
     errors.push(
       `${path}.heading_level: role "${node.role}" requires heading level ${roleLevel}.`,
-    )
+    );
   }
 
-  if (typeof node.outline_entry_id === "string" && node.outline_entry_id.length > 0) {
-    const outlineEntry = ctx.outlineEntries?.get(node.outline_entry_id)
+  if (
+    typeof node.outline_entry_id === "string" &&
+    node.outline_entry_id.length > 0
+  ) {
+    const outlineEntry = ctx.outlineEntries?.get(node.outline_entry_id);
     if (!outlineEntry) {
-      errors.push(`${path}.outline_entry_id: unknown outline entry "${node.outline_entry_id}".`)
+      errors.push(
+        `${path}.outline_entry_id: unknown outline entry "${node.outline_entry_id}".`,
+      );
     } else {
-      usedOutlineIds.add(node.outline_entry_id)
+      usedOutlineIds.add(node.outline_entry_id);
       if (node.heading_level == null) {
-        errors.push(`${path}: an outline-linked heading must include heading_level.`)
+        errors.push(
+          `${path}: an outline-linked heading must include heading_level.`,
+        );
       }
       if (headingLevel !== outlineEntry.level) {
         errors.push(
           `${path}: outline entry "${node.outline_entry_id}" requires heading level ${outlineEntry.level}.`,
-        )
+        );
       }
       const expectedRole =
         outlineEntry.level === 1
@@ -568,11 +919,11 @@ function validateNode(
             ? "section_heading"
             : outlineEntry.level === 3
               ? "subheading"
-              : "heading"
+              : "heading";
       if (node.role !== expectedRole) {
         errors.push(
           `${path}: outline level ${outlineEntry.level} requires role "${expectedRole}".`,
-        )
+        );
       }
       if (
         node.heading_style_cluster_id != null &&
@@ -581,55 +932,62 @@ function validateNode(
         errors.push(
           `${path}: outline entry "${node.outline_entry_id}" requires style cluster ` +
             `"${outlineEntry.styleClusterId}".`,
-        )
+        );
       }
       if (!node.heading_style_cluster_id) {
-        errors.push(`${path}: an outline-linked heading must include heading_style_cluster_id.`)
+        errors.push(
+          `${path}: an outline-linked heading must include heading_style_cluster_id.`,
+        );
       }
     }
     if (roleLevel === null && node.role !== "heading") {
-      errors.push(`${path}: an outline-linked node must use a heading role.`)
+      errors.push(`${path}: an outline-linked node must use a heading role.`);
     }
-  } else if (node.heading_level != null || node.heading_style_cluster_id != null) {
+  } else if (
+    node.heading_level != null ||
+    node.heading_style_cluster_id != null
+  ) {
     if (roleLevel === null && node.role !== "heading") {
-      errors.push(`${path}: heading metadata is only valid on heading-role leaves.`)
+      errors.push(
+        `${path}: heading metadata is only valid on heading-role leaves.`,
+      );
     }
   }
 
   if (node.role === "image") {
     if (hasText) {
-      errors.push(`${path}: image leaves must not carry "text".`)
+      errors.push(`${path}: image leaves must not carry "text".`);
     }
     if (!hasImageId) {
-      errors.push(`${path}: image leaf must carry "image_id".`)
+      errors.push(`${path}: image leaf must carry "image_id".`);
     } else {
       if (!ctx.availableImageIds.has(node.image_id!)) {
         errors.push(
-          `${path}.image_id: "${node.image_id}" is not one of the available image IDs (${[...ctx.availableImageIds].join(", ") || "none"}).`
-        )
+          `${path}.image_id: "${node.image_id}" is not one of the available image IDs (${[...ctx.availableImageIds].join(", ") || "none"}).`,
+        );
       }
       if (usedImageIds.has(node.image_id!)) {
         errors.push(
-          `${path}.image_id: image "${node.image_id}" is already placed elsewhere. Every image must appear exactly once.`
-        )
+          `${path}.image_id: image "${node.image_id}" is already placed elsewhere. Every image must appear exactly once.`,
+        );
       }
-      usedImageIds.add(node.image_id!)
+      usedImageIds.add(node.image_id!);
     }
   } else {
     if (!hasText) {
-      errors.push(`${path}: leaf node with role "${node.role}" must have "text".`)
+      errors.push(
+        `${path}: leaf node with role "${node.role}" must have "text".`,
+      );
     }
     if (hasImageId) {
-      errors.push(
-        `${path}: "image_id" is only valid on role:"image" leaves.`
-      )
+      errors.push(`${path}: "image_id" is only valid on role:"image" leaves.`);
     }
   }
 
   if (hasChildren) {
     errors.push(
-      `${path}: a leaf node must not have "children". Use a container (structure) instead.`
-    )
+      `${path}: a leaf node must not have "children". Use a container (structure) instead.`,
+    );
   }
 }
 
@@ -642,87 +1000,97 @@ function validateNode(
 export function finalizePageSectioning(
   raw: LLMStructuringResult,
   input: PageSectioningInput,
-  config: PageSectioningConfig
+  config: PageSectioningConfig,
 ): PageSectioningOutput {
-  const prunedRoles = new Set(config.prunedRoleTypes)
-  const prunedSectionTypes = new Set(config.prunedSectionTypes)
-  const counter = { n: 0 }
+  const prunedRoles = new Set(config.prunedRoleTypes);
+  const prunedSectionTypes = new Set(config.prunedSectionTypes);
+  const counter = { n: 0 };
 
-  const sections: PageSectioningSection[] = raw.sections.map((section, sIdx) => {
-    const sectionId = `${input.pageId}_sec${String(sIdx + 1).padStart(3, "0")}`
-    const nodes = section.nodes.map((node) =>
-      toContentNode(node, input.pageId, counter, prunedRoles)
-    )
-    return {
-      sectionId,
-      sectionType: section.section_type,
-      backgroundColor: section.background_color,
-      textColor: section.text_color,
-      pageNumber: section.page_number,
-      isPruned: prunedSectionTypes.has(section.section_type),
-      nodes,
-    }
-  })
+  const sections: PageSectioningSection[] = raw.sections.map(
+    (section, sIdx) => {
+      const sectionId = `${input.pageId}_sec${String(sIdx + 1).padStart(3, "0")}`;
+      const nodes = section.nodes.map((node) =>
+        toContentNode(node, input.pageId, counter, prunedRoles),
+      );
+      return {
+        sectionId,
+        sectionType: section.section_type,
+        backgroundColor: section.background_color,
+        textColor: section.text_color,
+        pageNumber: section.page_number,
+        isPruned: prunedSectionTypes.has(section.section_type),
+        nodes,
+      };
+    },
+  );
 
   return {
     reasoning: raw.reasoning,
     sections,
-  }
+  };
 }
 
 function toContentNode(
   node: LLMNode,
   pageId: string,
   counter: { n: number },
-  prunedRoles: Set<string>
+  prunedRoles: Set<string>,
 ): ContentNodeData {
   const hasStructure =
-    typeof node.structure === "string" && node.structure.length > 0
+    typeof node.structure === "string" && node.structure.length > 0;
 
   if (hasStructure) {
-    counter.n += 1
-    const nodeId = `${pageId}_n${String(counter.n).padStart(4, "0")}`
+    counter.n += 1;
+    const nodeId = `${pageId}_n${String(counter.n).padStart(4, "0")}`;
     const out: ContentNodeData = {
       nodeId,
       isPruned: false,
       structure: node.structure!,
-    }
-    const children = Array.isArray(node.children) ? node.children : null
+    };
+    const children = Array.isArray(node.children) ? node.children : null;
     if (children && children.length > 0) {
       out.children = children.map((c) =>
-        toContentNode(c, pageId, counter, prunedRoles)
-      )
+        toContentNode(c, pageId, counter, prunedRoles),
+      );
     }
-    return out
+    return out;
   }
 
-  const role = typeof node.role === "string" ? node.role : ""
+  const role = typeof node.role === "string" ? node.role : "";
 
   // Image leaves carry image_id from the LLM — use it as the nodeId so the
   // leaf's data-id equals the image file's id.
-  if (role === "image" && typeof node.image_id === "string" && node.image_id.length > 0) {
+  if (
+    role === "image" &&
+    typeof node.image_id === "string" &&
+    node.image_id.length > 0
+  ) {
     return {
       nodeId: node.image_id,
       isPruned: prunedRoles.has(role),
       role,
-    }
+    };
   }
 
-  counter.n += 1
-  const nodeId = `${pageId}_n${String(counter.n).padStart(4, "0")}`
+  counter.n += 1;
+  const nodeId = `${pageId}_n${String(counter.n).padStart(4, "0")}`;
   return {
     nodeId,
     isPruned: prunedRoles.has(role),
     role,
     text: typeof node.text === "string" ? node.text : "",
-    ...(typeof node.heading_level === "number" && { headingLevel: node.heading_level }),
+    ...(typeof node.heading_level === "number" && {
+      headingLevel: node.heading_level,
+    }),
     ...(typeof node.outline_entry_id === "string" &&
-      node.outline_entry_id.length > 0 && { outlineEntryId: node.outline_entry_id }),
+      node.outline_entry_id.length > 0 && {
+        outlineEntryId: node.outline_entry_id,
+      }),
     ...(typeof node.heading_style_cluster_id === "string" &&
       node.heading_style_cluster_id.length > 0 && {
         headingStyleClusterId: node.heading_style_cluster_id,
       }),
-  }
+  };
 }
 
 // ── Helpers ─────────────────────────────────────────────────────
@@ -733,24 +1101,24 @@ function toContentNode(
  * a page-level text representation.
  */
 export function flattenTreeToText(output: PageSectioningOutput): string {
-  const parts: string[] = []
+  const parts: string[] = [];
   for (const section of output.sections) {
-    if (section.isPruned) continue
+    if (section.isPruned) continue;
     for (const node of section.nodes) {
-      collectNodeText(node, parts)
+      collectNodeText(node, parts);
     }
   }
-  return parts.join(" ").replace(/\s+/g, " ").trim()
+  return parts.join(" ").replace(/\s+/g, " ").trim();
 }
 
 function collectNodeText(node: ContentNodeData, out: string[]): void {
-  if (node.isPruned) return
+  if (node.isPruned) return;
   if (node.text && node.text.length > 0) {
-    out.push(node.text)
+    out.push(node.text);
   }
   if (node.children) {
     for (const child of node.children) {
-      collectNodeText(child, out)
+      collectNodeText(child, out);
     }
   }
 }
@@ -764,32 +1132,32 @@ function collectNodeText(node: ContentNodeData, out: string[]): void {
  */
 export function mapLeafTexts(
   output: PageSectioningOutput,
-  mapText: (text: string, index: number) => string
+  mapText: (text: string, index: number) => string,
 ): PageSectioningOutput {
-  const counter = { n: 0 }
+  const counter = { n: 0 };
   return {
     reasoning: output.reasoning,
     sections: output.sections.map((section) => ({
       ...section,
       nodes: section.nodes.map((node) => mapNode(node, counter, mapText)),
     })),
-  }
+  };
 }
 
 function mapNode(
   node: ContentNodeData,
   counter: { n: number },
-  mapText: (text: string, index: number) => string
+  mapText: (text: string, index: number) => string,
 ): ContentNodeData {
-  const out: ContentNodeData = { ...node }
+  const out: ContentNodeData = { ...node };
   if (typeof node.text === "string") {
-    out.text = mapText(node.text, counter.n)
-    counter.n += 1
+    out.text = mapText(node.text, counter.n);
+    counter.n += 1;
   }
   if (node.children) {
-    out.children = node.children.map((c) => mapNode(c, counter, mapText))
+    out.children = node.children.map((c) => mapNode(c, counter, mapText));
   }
-  return out
+  return out;
 }
 
 /**
@@ -797,44 +1165,52 @@ function mapNode(
  * as mapLeafTexts walks.
  */
 export function countLeafTexts(output: PageSectioningOutput): number {
-  let n = 0
+  let n = 0;
   for (const section of output.sections) {
     for (const node of section.nodes) {
-      n += countNode(node)
+      n += countNode(node);
     }
   }
-  return n
+  return n;
 }
 
 function countNode(node: ContentNodeData): number {
-  let n = 0
-  if (typeof node.text === "string") n += 1
+  let n = 0;
+  if (typeof node.text === "string") n += 1;
   if (node.children) {
-    for (const c of node.children) n += countNode(c)
+    for (const c of node.children) n += countNode(c);
   }
-  return n
+  return n;
 }
 
 // ── Config ──────────────────────────────────────────────────────
 
 export function buildPageSectioningConfig(
-  appConfig: AppConfig
+  appConfig: AppConfig,
 ): PageSectioningConfig {
-  const structureTypes: TypeDef[] = Object.entries(appConfig.structure_types).map(
-    ([key, description]) => ({ key, description })
-  )
+  const structureTypes: TypeDef[] = Object.entries(
+    appConfig.structure_types,
+  ).map(([key, description]) => ({ key, description }));
   const roleTypes: TypeDef[] = Object.entries(appConfig.role_types).map(
-    ([key, description]) => ({ key, description })
-  )
-  const disabledSet = new Set(appConfig.disabled_section_types ?? [])
+    ([key, description]) => ({ key, description }),
+  );
+  const disabledSet = new Set(appConfig.disabled_section_types ?? []);
   // `generate_activities: false` disables every activity section type by the
   // `activity_` prefix convention (the same rule web-rendering uses). This is
   // the single source of truth for the activities on/off choice, so it can't
   // drift from a hand-maintained list (e.g. missing `activity_other`).
-  const activitiesOff = appConfig.generate_activities === false
+  const activitiesOff = appConfig.generate_activities === false;
   const sectionTypes: TypeDef[] = Object.entries(appConfig.section_types ?? {})
-    .filter(([key]) => !disabledSet.has(key) && !(activitiesOff && key.startsWith("activity_")))
-    .map(([key, description]) => ({ key, description }))
+    .filter(
+      ([key]) =>
+        !disabledSet.has(key) &&
+        !(activitiesOff && key.startsWith("activity_")),
+    )
+    .map(([key, description]) => ({ key, description }));
+  const modelId =
+    appConfig.page_sectioning?.model ??
+    appConfig.default_model ??
+    DEFAULT_LLM_MODEL_ID;
 
   return {
     structureTypes,
@@ -845,10 +1221,13 @@ export function buildPageSectioningConfig(
     disabledSectionTypes: [...disabledSet],
     promptName: appConfig.page_sectioning?.prompt ?? "page_sectioning",
     refinementPromptName: "page_sectioning_refinement",
-    modelId: appConfig.page_sectioning?.model ?? appConfig.default_model ?? DEFAULT_LLM_MODEL_ID,
+    modelId,
     maxRetries:
       appConfig.page_sectioning?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     maxRefinements: appConfig.page_sectioning?.max_refinements ?? 0,
     mode: appConfig.page_sectioning?.mode ?? "dynamic",
-  }
+    strategy:
+      appConfig.page_sectioning?.strategy ??
+      (modelId.startsWith("local:") ? "auto" : "llm"),
+  };
 }

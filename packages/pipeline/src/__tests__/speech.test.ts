@@ -421,8 +421,12 @@ describe("generateSpeechFile", () => {
       model: "gpt-4o-mini-tts",
       voice: "alloy",
       input: "Hello world",
+      language: "en",
       responseFormat: "mp3",
       instructions: "Speak cheerfully.",
+      temperature: undefined,
+      seed: undefined,
+      signal: undefined,
     })
   })
 

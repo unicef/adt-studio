@@ -79,7 +79,6 @@ interface FileDropOverlayProps {
   accent?: "amber" | "blue"
 }
 
-/* eslint-disable lingui/no-unlocalized-strings */
 const accentMap = {
   amber: {
     border: "border-amber-400/60",
@@ -92,7 +91,6 @@ const accentMap = {
     text: "text-[#2b7fff]",
   },
 } as const
-/* eslint-enable lingui/no-unlocalized-strings */
 
 export function FileDropOverlay({
   overlay,

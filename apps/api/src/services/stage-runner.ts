@@ -1,10 +1,19 @@
-import crypto from "node:crypto"
-import fs from "node:fs"
-import path from "node:path"
-import { createBookStorage } from "@adt/storage"
-import type { Storage } from "@adt/storage"
-import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate } from "@adt/llm"
-import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
+import crypto from "node:crypto";
+import fs from "node:fs";
+import path from "node:path";
+import { createBookStorage } from "@adt/storage";
+import type { Storage } from "@adt/storage";
+import {
+  createLLMModel,
+  createPromptEngine,
+  createRateLimiter,
+  createAdaptiveRateLimiter,
+  renderLiquidTemplate,
+  createLocalHfTTSSynthesizer,
+  createMacSystemTTSSynthesizer,
+  readLocalHfManifest,
+} from "@adt/llm";
+import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm";
 import {
   extractPDF,
   figureExtractionFlags,
@@ -112,15 +121,36 @@ import {
   createScreenshotRenderer,
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
   isFixedLayoutBook,
-} from "@adt/pipeline"
-import type { BookOutlineConfig, PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps } from "@adt/pipeline"
-import type { ElevenLabsVoiceSettingsOverrides } from "@adt/llm"
-import { loadStyleguideContent } from "./styleguide.js"
-import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer, createElevenLabsTTSSynthesizer } from "@adt/llm"
-import type { TTSSynthesizer } from "@adt/llm"
-import { PIPELINE, STAGE_ORDER, PositionedTextOutput, isTtsExcluded } from "@adt/types"
-import type { PageErrorPolicy, PageErrorAction } from "@adt/types"
-import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
+} from "@adt/pipeline";
+import type {
+  BookOutlineConfig,
+  PageSectioningConfig,
+  TranslationConfig,
+  QuizPageInput,
+  ProviderRouting,
+  MeaningfulnessConfig,
+  CroppingConfig,
+  SegmentationConfig,
+  VisualRefinementDeps,
+} from "@adt/pipeline";
+import type { ElevenLabsVoiceSettingsOverrides } from "@adt/llm";
+import { loadStyleguideContent } from "./styleguide.js";
+import {
+  createTTSSynthesizer,
+  createAzureTTSSynthesizer,
+  createGeminiTTSSynthesizer,
+  createElevenLabsTTSSynthesizer,
+} from "@adt/llm";
+import type { TTSSynthesizer } from "@adt/llm";
+import {
+  PIPELINE,
+  STAGE_ORDER,
+  PositionedTextOutput,
+  isTtsExcluded,
+} from "@adt/types";
+import type { PageErrorPolicy, PageErrorAction } from "@adt/types";
+import { beginSpeechRun, endSpeechRun } from "./speech-progress.js";
+import { runPackaging } from "../routes/package.js";
 import type {
   AppConfig,
   ImageClassificationOutput,
@@ -139,51 +169,53 @@ import type {
   StageName,
   BookSummaryOutput,
   GlossaryOutput,
-} from "@adt/types"
-import type { LLMModel } from "@adt/llm"
-import type { PageData } from "@adt/storage"
+} from "@adt/types";
+import type { LLMModel } from "@adt/llm";
+import type { PageData } from "@adt/storage";
 import type {
   StageRunner,
   StageRunProgress,
   StageRunOptions,
-} from "./stage-service.js"
+} from "./stage-service.js";
 
-const DEFAULT_METADATA_PAGES = 3
+// Covers/title/copyright pages often contain no narrative text. Five pages
+// gives language detection a representative sample without a large vision cost.
+const DEFAULT_METADATA_PAGES = 5;
 // Per-item retry budget for a 429/quota response. Higher than a plain fixed
 // limiter would need, because the adaptive limiter starts optimistically high
 // and takes a few back-off steps to converge on the account's real quota.
-const GEMINI_TTS_MAX_RATE_LIMIT_RETRIES = 4
-const GEMINI_TTS_DEFAULT_RETRY_DELAY_MS = 6_000
-const GEMINI_TTS_MAX_RETRY_DELAY_MS = 20_000
+const GEMINI_TTS_MAX_RATE_LIMIT_RETRIES = 4;
+const GEMINI_TTS_DEFAULT_RETRY_DELAY_MS = 6_000;
+const GEMINI_TTS_MAX_RETRY_DELAY_MS = 20_000;
 // Backoff for transient server errors (500/empty audio). These clear quickly
 // and aren't a rate signal, so they get a shorter delay than a 429 and do not
 // throttle the shared limiter.
-const GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS = 1_500
+const GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS = 1_500;
 
 // ElevenLabs concurrency cap and retry policy live in @adt/pipeline
 // (ELEVENLABS_TTS_MAX_CONCURRENCY, classifyElevenLabsTtsError, …) so the
 // CLI/`runFullPipeline` DAG executor applies exactly the same limits.
 
 class StepError extends Error {
-  readonly step: StepName
+  readonly step: StepName;
 
   constructor(step: StepName, message: string) {
-    super(message)
-    this.name = "StepError"
-    this.step = step
+    super(message);
+    this.name = "StepError";
+    this.step = step;
   }
 }
 
 function toErrorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err)
+  return err instanceof Error ? err.message : String(err);
 }
 
 /** Thrown at a cancellation checkpoint. Distinguished from real errors so the
  *  general catch neither records step errors nor emits step-error on cancel. */
 export class RunCancelledError extends Error {
   constructor(message = "Run cancelled") {
-    super(message)
-    this.name = "RunCancelledError"
+    super(message);
+    this.name = "RunCancelledError";
   }
 }
 
@@ -194,111 +226,113 @@ export class RunCancelledError extends Error {
  *  normal page failure and returns false here. */
 function isCancellation(
   err: unknown,
-  signals: Array<AbortSignal | undefined>
+  signals: Array<AbortSignal | undefined>,
 ): boolean {
-  if (err instanceof RunCancelledError) return true
-  return signals.some((s) => s?.aborted === true)
+  if (err instanceof RunCancelledError) return true;
+  return signals.some((s) => s?.aborted === true);
 }
 
 interface FailedPage {
-  pageId: string
-  step: StepName
-  msg: string
+  pageId: string;
+  step: StepName;
+  msg: string;
 }
 
 /** One-shot admission gate for processWithConcurrency. Closed while a page-error
  *  decision is pending (interactive mode) so no new items start; in-flight work
  *  continues. Opened again once the decision resolves. */
 class AdmissionGate {
-  private closed = false
-  private waiters: Array<() => void> = []
+  private closed = false;
+  private waiters: Array<() => void> = [];
   close(): void {
-    this.closed = true
+    this.closed = true;
   }
   open(): void {
-    this.closed = false
-    const waiters = this.waiters
-    this.waiters = []
-    for (const w of waiters) w()
+    this.closed = false;
+    const waiters = this.waiters;
+    this.waiters = [];
+    for (const w of waiters) w();
   }
   wait(): Promise<void> {
-    if (!this.closed) return Promise.resolve()
-    return new Promise((resolve) => this.waiters.push(resolve))
+    if (!this.closed) return Promise.resolve();
+    return new Promise((resolve) => this.waiters.push(resolve));
   }
 }
 
 interface PageFailureContext {
-  step: StepName
-  pageId: string
-  err: unknown
-  failedPages: FailedPage[]
+  step: StepName;
+  pageId: string;
+  err: unknown;
+  failedPages: FailedPage[];
   /** step name → set of pageIds skipped by user decision (interactive mode). */
-  skippedByStep: Map<string, Set<string>>
-  progress: StageRunProgress
-  runSignal?: AbortSignal
+  skippedByStep: Map<string, Set<string>>;
+  progress: StageRunProgress;
+  runSignal?: AbortSignal;
   /** Aborts the current step when the user chooses "stop". */
-  stepController: AbortController
-  gate: AdmissionGate
-  policy: PageErrorPolicy
+  stepController: AbortController;
+  gate: AdmissionGate;
+  policy: PageErrorPolicy;
   requestDecision?: (input: {
-    step: StepName
-    pageId: string
-    error: string
-  }) => Promise<PageErrorAction>
+    step: StepName;
+    pageId: string;
+    error: string;
+  }) => Promise<PageErrorAction>;
 }
 
 /** Shared handling for a page failure inside a per-page step. Covers all six
  *  emission points. Returns after recording/handling; throws only to unwind a
  *  run cancel (an aborted page is not a failure — it re-runs cheaply via cache). */
 async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
-  const { runSignal, stepController } = ctx
+  const { runSignal, stepController } = ctx;
 
   // 1. Run cancel — re-throw so the run tears down at once.
   if (isCancellation(ctx.err, [runSignal])) {
-    throw ctx.err instanceof RunCancelledError ? ctx.err : new RunCancelledError()
+    throw ctx.err instanceof RunCancelledError
+      ? ctx.err
+      : new RunCancelledError();
   }
   // 2. Step already stopping (a prior "stop" decision aborted in-flight work) —
   //    swallow quietly; the step throws its own StepError after the loop.
-  if (stepController.signal.aborted) return
+  if (stepController.signal.aborted) return;
 
-  const msg = toErrorMessage(ctx.err)
+  const msg = toErrorMessage(ctx.err);
   // Emit step-error as before (per-page). In interactive mode this briefly paints
   // the step red until the decision resolves; the step-complete hygiene clears it.
   ctx.progress.emit({
     type: "step-error",
     step: ctx.step,
     error: `${ctx.pageId} failed: ${msg}`,
-  })
+  });
 
   if (ctx.policy === "ask" && ctx.requestDecision) {
-    ctx.gate.close()
-    let action: PageErrorAction
+    ctx.gate.close();
+    let action: PageErrorAction;
     try {
       action = await ctx.requestDecision({
         step: ctx.step,
         pageId: ctx.pageId,
         error: msg,
-      })
+      });
     } finally {
-      ctx.gate.open()
+      ctx.gate.open();
     }
     if (action === "skip") {
-      let set = ctx.skippedByStep.get(ctx.step)
+      let set = ctx.skippedByStep.get(ctx.step);
       if (!set) {
-        set = new Set()
-        ctx.skippedByStep.set(ctx.step, set)
+        set = new Set();
+        ctx.skippedByStep.set(ctx.step, set);
       }
-      set.add(ctx.pageId)
-      return
+      set.add(ctx.pageId);
+      return;
     }
     // "stop": abort the step. processWithConcurrency stops admitting new items;
     // the step then throws a StepError so it's marked error and later stages halt.
-    stepController.abort()
-    return
+    stepController.abort();
+    return;
   }
 
   // Default "stop" policy: accumulate and fail the step at the end.
-  ctx.failedPages.push({ pageId: ctx.pageId, step: ctx.step, msg })
+  ctx.failedPages.push({ pageId: ctx.pageId, step: ctx.step, msg });
 }
 
 /** Per-step failure-handling dependencies, built once per page-processing step
@@ -307,24 +341,24 @@ async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
 type PageFailureDeps = Omit<
   PageFailureContext,
   "step" | "pageId" | "err" | "progress"
->
+>;
 
 /** Build the per-step failure deps from run options. */
 function buildPageFailureDeps(
   options: StageRunOptions,
   shared: {
-    failedPages: FailedPage[]
-    skippedByStep: Map<string, Set<string>>
-    gate: AdmissionGate
-    stepController: AbortController
-  }
+    failedPages: FailedPage[];
+    skippedByStep: Map<string, Set<string>>;
+    gate: AdmissionGate;
+    stepController: AbortController;
+  },
 ): PageFailureDeps {
   return {
     ...shared,
     runSignal: options.signal,
     policy: options.pageErrorPolicy ?? "stop",
     requestDecision: options.requestPageDecision,
-  }
+  };
 }
 
 function reportPageFailure(
@@ -332,18 +366,18 @@ function reportPageFailure(
   progress: StageRunProgress,
   step: StepName,
   pageId: string,
-  err: unknown
+  err: unknown,
 ): Promise<void> {
-  return handlePageFailure({ ...deps, progress, step, pageId, err })
+  return handlePageFailure({ ...deps, progress, step, pageId, err });
 }
 
 /** Compose the "Completed — N page(s) skipped" message, or undefined if none. */
 function skipMessage(
   skippedByStep: Map<string, Set<string>>,
-  step: StepName
+  step: StepName,
 ): string | undefined {
-  const n = skippedByStep.get(step)?.size ?? 0
-  return n > 0 ? `Completed — ${n} page(s) skipped` : undefined
+  const n = skippedByStep.get(step)?.size ?? 0;
+  return n > 0 ? `Completed — ${n} page(s) skipped` : undefined;
 }
 
 /** Finalize one page-processing step: throw if it accumulated real failures
@@ -352,22 +386,22 @@ function skipMessage(
 function finishPageStep(
   progress: StageRunProgress,
   step: StepName,
-  deps: Pick<PageFailureDeps, "failedPages" | "skippedByStep">
+  deps: Pick<PageFailureDeps, "failedPages" | "skippedByStep">,
 ): void {
-  const failures = deps.failedPages.filter((f) => f.step === step)
+  const failures = deps.failedPages.filter((f) => f.step === step);
   if (failures.length > 0) {
     throw new StepError(
       step,
       `${failures.length} page(s) failed:\n${failures
         .map((f) => `${f.pageId}: ${f.msg}`)
-        .join("\n")}`
-    )
+        .join("\n")}`,
+    );
   }
   progress.emit({
     type: "step-complete",
     step,
     message: skipMessage(deps.skippedByStep, step),
-  })
+  });
 }
 
 /**
@@ -376,20 +410,23 @@ function finishPageStep(
  */
 function textCatalogsEqual(
   a: TextCatalogOutput | undefined,
-  b: TextCatalogOutput
+  b: TextCatalogOutput,
 ): boolean {
-  if (!a) return false
-  if (a.entries.length !== b.entries.length) return false
+  if (!a) return false;
+  if (a.entries.length !== b.entries.length) return false;
   for (let i = 0; i < a.entries.length; i++) {
-    if (a.entries[i].id !== b.entries[i].id || a.entries[i].text !== b.entries[i].text) {
-      return false
+    if (
+      a.entries[i].id !== b.entries[i].id ||
+      a.entries[i].text !== b.entries[i].text
+    ) {
+      return false;
     }
   }
-  return true
+  return true;
 }
 
 function isGeminiTtsRateLimitMessage(message: string): boolean {
-  return /\(429\)|quota exceeded|rate limit|too many requests/i.test(message)
+  return /\(429\)|quota exceeded|rate limit|too many requests/i.test(message);
 }
 
 // Transient Gemini server-side failures that typically clear on a plain retry
@@ -397,19 +434,19 @@ function isGeminiTtsRateLimitMessage(message: string): boolean {
 // rate signal, so they must not penalize the adaptive limiter.
 function isGeminiTtsTransientError(message: string): boolean {
   return /\(50\d\)|internal error|did not include audio|overloaded|unavailable|try again/i.test(
-    message
-  )
+    message,
+  );
 }
 
 function parseGeminiRetryDelayMs(message: string): number | null {
-  const match = message.match(/retry in ([\d.]+)s/i)
-  if (!match) return null
+  const match = message.match(/retry in ([\d.]+)s/i);
+  if (!match) return null;
 
-  const seconds = Number.parseFloat(match[1])
-  if (!Number.isFinite(seconds) || seconds < 0) return null
+  const seconds = Number.parseFloat(match[1]);
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
 
-  const baseMs = Math.ceil(seconds * 1000)
-  return Math.min(baseMs > 0 ? baseMs + 250 : 0, GEMINI_TTS_MAX_RETRY_DELAY_MS)
+  const baseMs = Math.ceil(seconds * 1000);
+  return Math.min(baseMs > 0 ? baseMs + 250 : 0, GEMINI_TTS_MAX_RETRY_DELAY_MS);
 }
 
 /** Resolves early (never rejects) when the signal aborts, so retry backoffs
@@ -417,47 +454,47 @@ function parseGeminiRetryDelayMs(message: string): number | null {
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve) => {
     if (signal?.aborted) {
-      resolve()
-      return
+      resolve();
+      return;
     }
     const timer = setTimeout(() => {
-      signal?.removeEventListener("abort", onAbort)
-      resolve()
-    }, ms)
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
     const onAbort = () => {
-      clearTimeout(timer)
-      resolve()
-    }
-    signal?.addEventListener("abort", onAbort, { once: true })
-  })
+      clearTimeout(timer);
+      resolve();
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 function wrapStepError(step: StepName, err: unknown): never {
-  if (err instanceof StepError) throw err
-  throw new StepError(step, toErrorMessage(err))
+  if (err instanceof StepError) throw err;
+  throw new StepError(step, toErrorMessage(err));
 }
 
 export function buildStageRunnerImageClassifyConfig(
   config: AppConfig,
-  storage: Pick<Storage, "getImageBase64">
+  storage: Pick<Storage, "getImageBase64">,
 ): ReturnType<typeof buildImageClassifyConfig> {
   return {
     ...buildImageClassifyConfig(config),
     getImageBytes: (imageId: string) =>
       Buffer.from(storage.getImageBase64(imageId), "base64"),
-  }
+  };
 }
 
 interface ConcurrencyControls {
   /** Run cancel — never start remaining items; throw RunCancelledError. */
-  runSignal?: AbortSignal
+  runSignal?: AbortSignal;
   /** Step "stop" — stop admitting new items (in-flight ones finish). */
-  stopSignal?: AbortSignal
+  stopSignal?: AbortSignal;
   /** Pause admission while a page-error decision is pending. */
-  gate?: AdmissionGate
+  gate?: AdmissionGate;
   /** Delay between launches while filling the first wave (see LAUNCH_RAMP_MS).
    *  Set to 0 to disable the ramp. Defaults to LAUNCH_RAMP_MS. */
-  rampMs?: number
+  rampMs?: number;
 }
 
 /** Stagger between the first `concurrency` launches of a page-level step.
@@ -468,48 +505,49 @@ interface ConcurrencyControls {
  *  the pool is full, completions pace new launches so steady-state throughput is
  *  unchanged. ~100ms × concurrency adds a few seconds once per step — far less
  *  than the many multi-second failed-request retries it avoids. */
-const LAUNCH_RAMP_MS = 100
+const LAUNCH_RAMP_MS = 100;
 
 export async function processWithConcurrency<T>(
   items: T[],
   concurrency: number,
   fn: (item: T) => Promise<void>,
-  controls?: ConcurrencyControls
+  controls?: ConcurrencyControls,
 ): Promise<void> {
-  const executing = new Set<Promise<void>>()
-  const rampMs = controls?.rampMs ?? LAUNCH_RAMP_MS
-  let launched = 0
+  const executing = new Set<Promise<void>>();
+  const rampMs = controls?.rampMs ?? LAUNCH_RAMP_MS;
+  let launched = 0;
   try {
     for (const item of items) {
-      if (controls?.runSignal?.aborted) throw new RunCancelledError()
-      if (controls?.gate) await controls.gate.wait()
+      if (controls?.runSignal?.aborted) throw new RunCancelledError();
+      if (controls?.gate) await controls.gate.wait();
       // Re-check after the gate: a cancel or "stop" may have arrived while paused.
-      if (controls?.runSignal?.aborted) throw new RunCancelledError()
-      if (controls?.stopSignal?.aborted) break
+      if (controls?.runSignal?.aborted) throw new RunCancelledError();
+      if (controls?.stopSignal?.aborted) break;
       // Space out only the opening wave (the cold-start connection burst). Once
       // `concurrency` items are in flight, completions pace the rest, so no ramp.
       if (rampMs > 0 && launched > 0 && launched < concurrency) {
-        await sleep(rampMs, controls?.runSignal)
-        if (controls?.runSignal?.aborted) throw new RunCancelledError()
-        if (controls?.stopSignal?.aborted) break
+        await sleep(rampMs, controls?.runSignal);
+        if (controls?.runSignal?.aborted) throw new RunCancelledError();
+        if (controls?.stopSignal?.aborted) break;
       }
       const p = fn(item).finally(() => {
-        executing.delete(p)
-      })
-      executing.add(p)
-      launched++
+        executing.delete(p);
+      });
+      executing.add(p);
+      launched++;
       if (executing.size >= concurrency) {
-        await Promise.race(executing)
+        await Promise.race(executing);
       }
     }
-    await Promise.all(executing)
+    await Promise.all(executing);
   } catch (err) {
     // Drain any still-running items so none are orphaned (which would surface as
     // unhandled rejections when they later abort). On cancel their rejections are
     // expected; swallow them and re-throw a single RunCancelledError.
-    await Promise.allSettled(executing)
-    if (isCancellation(err, [controls?.runSignal])) throw new RunCancelledError()
-    throw err
+    await Promise.allSettled(executing);
+    if (isCancellation(err, [controls?.runSignal]))
+      throw new RunCancelledError();
+    throw err;
   }
 }
 
@@ -520,15 +558,15 @@ function emitSpeechStepProgress(
   audioFailures: number,
   reusedTotal = 0,
 ): void {
-  const reusedSuffix = reusedTotal > 0 ? ` (${reusedTotal} reused)` : ""
-  const failureSuffix = audioFailures > 0 ? ` (${audioFailures} failed)` : ""
+  const reusedSuffix = reusedTotal > 0 ? ` (${reusedTotal} reused)` : "";
+  const failureSuffix = audioFailures > 0 ? ` (${audioFailures} failed)` : "";
   progress.emit({
     type: "step-progress",
     step: "tts",
     message: `${audioCompleted}/${audioTotal} audio entries${reusedSuffix}${failureSuffix}`,
     page: audioCompleted,
     totalPages: audioTotal,
-  })
+  });
 }
 
 function emitWordTimestampStepProgress(
@@ -543,7 +581,7 @@ function emitWordTimestampStepProgress(
     message: `${completed}/${total} entries${failures > 0 ? ` (${failures} failed)` : ""}`,
     page: completed,
     totalPages: total,
-  })
+  });
 }
 
 function resolveSpeechAudioPath(
@@ -551,20 +589,20 @@ function resolveSpeechAudioPath(
   language: string,
   fileName: string,
 ): string | null {
-  const audioRoot = path.resolve(bookDir, "audio")
-  const normalizedLanguage = normalizeLocale(language)
+  const audioRoot = path.resolve(bookDir, "audio");
+  const normalizedLanguage = normalizeLocale(language);
   const candidateDirs = [
     path.resolve(audioRoot, normalizedLanguage),
     path.resolve(audioRoot, normalizedLanguage.replace("-", "_")),
-  ]
+  ];
 
   for (const dir of candidateDirs) {
-    const resolved = path.resolve(dir, fileName)
-    if (!resolved.startsWith(dir + path.sep)) continue
-    if (fs.existsSync(resolved)) return resolved
+    const resolved = path.resolve(dir, fileName);
+    if (!resolved.startsWith(dir + path.sep)) continue;
+    if (fs.existsSync(resolved)) return resolved;
   }
 
-  return null
+  return null;
 }
 
 function resolveSpeechOutputPath(
@@ -572,20 +610,20 @@ function resolveSpeechOutputPath(
   language: string,
   fileName: string,
 ): string | null {
-  if (!/^[A-Za-z0-9_.-]+$/.test(fileName)) return null
+  if (!/^[A-Za-z0-9_.-]+$/.test(fileName)) return null;
 
-  const audioRoot = path.resolve(bookDir, "audio")
-  const audioDir = path.resolve(audioRoot, normalizeLocale(language))
-  const outputPath = path.resolve(audioDir, fileName)
+  const audioRoot = path.resolve(bookDir, "audio");
+  const audioDir = path.resolve(audioRoot, normalizeLocale(language));
+  const outputPath = path.resolve(audioDir, fileName);
 
   if (audioDir !== audioRoot && !audioDir.startsWith(audioRoot + path.sep)) {
-    return null
+    return null;
   }
   if (!outputPath.startsWith(audioDir + path.sep)) {
-    return null
+    return null;
   }
 
-  return outputPath
+  return outputPath;
 }
 
 function resolveSpeechCachePath(
@@ -593,29 +631,29 @@ function resolveSpeechCachePath(
   cacheKey: string,
   format: string,
 ): string | null {
-  if (!/^[a-f0-9]{64}$/.test(cacheKey)) return null
-  if (!/^[a-z0-9]+$/.test(format)) return null
+  if (!/^[a-f0-9]{64}$/.test(cacheKey)) return null;
+  if (!/^[a-z0-9]+$/.test(format)) return null;
 
-  const cacheRoot = path.resolve(cacheDir, "tts")
-  const cachePath = path.resolve(cacheRoot, `${cacheKey}.${format}`)
+  const cacheRoot = path.resolve(cacheDir, "tts");
+  const cachePath = path.resolve(cacheRoot, `${cacheKey}.${format}`);
   if (!cachePath.startsWith(cacheRoot + path.sep)) {
-    return null
+    return null;
   }
 
-  return cachePath
+  return cachePath;
 }
 
 function getExistingSpeechEntries(
   storage: Storage,
   language: string,
 ): Map<string, SpeechFileEntry> {
-  const normalizedLanguage = normalizeLocale(language)
-  const legacyLanguage = normalizedLanguage.replace("-", "_")
+  const normalizedLanguage = normalizeLocale(language);
+  const legacyLanguage = normalizedLanguage.replace("-", "_");
   const row =
     storage.getLatestNodeData("tts", normalizedLanguage) ??
-    storage.getLatestNodeData("tts", legacyLanguage)
-  const entries = (row?.data as TTSOutput | undefined)?.entries ?? []
-  return new Map(entries.map((entry) => [entry.textId, entry]))
+    storage.getLatestNodeData("tts", legacyLanguage);
+  const entries = (row?.data as TTSOutput | undefined)?.entries ?? [];
+  return new Map(entries.map((entry) => [entry.textId, entry]));
 }
 
 /**
@@ -625,51 +663,58 @@ function getExistingSpeechEntries(
  * group entries for page-batched TTS.
  */
 function batchPageKeyOf(textId: string): string | null {
-  const base = textId.replace(/_easy_read$/, "")
-  const m = /^(pg\d+)/.exec(base)
-  return m ? m[1] : null
+  const base = textId.replace(/_easy_read$/, "");
+  const m = /^(pg\d+)/.exec(base);
+  return m ? m[1] : null;
 }
 
 /** Whether an entry participates in page-batched TTS: page-scoped and not an
  *  easy-read alternate (easy-read tracks stay per-entry). */
 function isBatchableSpeechEntry(textId: string): boolean {
-  return !textId.endsWith("_easy_read") && batchPageKeyOf(textId) !== null
+  return !textId.endsWith("_easy_read") && batchPageKeyOf(textId) !== null;
 }
 
 function canReuseSpeechEntry(
   entry: SpeechFileEntry | undefined,
   options: {
-    bookDir: string
-    cacheDir: string
-    language: string
-    text: string
-    provider: string
-    model: string
-    voice: string
-    instructions: string
-    format: string
-    geminiTemperature?: number
-    geminiSeed?: number
-    elevenLabsPreviousText?: string
-    elevenLabsNextText?: string
-    elevenLabsApplyTextNormalization?: "auto" | "on" | "off"
+    bookDir: string;
+    cacheDir: string;
+    language: string;
+    text: string;
+    provider: string;
+    model: string;
+    voice: string;
+    instructions: string;
+    format: string;
+    geminiTemperature?: number;
+    geminiSeed?: number;
+    providerVariant?: string;
+    elevenLabsPreviousText?: string;
+    elevenLabsNextText?: string;
+    elevenLabsApplyTextNormalization?: "auto" | "on" | "off";
   } & ElevenLabsVoiceSettingsOverrides,
 ): entry is SpeechFileEntry {
-  if (!entry) return false
+  if (!entry) return false;
 
   if (entry.provider === "manual") {
-    return resolveSpeechAudioPath(options.bookDir, options.language, entry.fileName) !== null
+    return (
+      resolveSpeechAudioPath(
+        options.bookDir,
+        options.language,
+        entry.fileName,
+      ) !== null
+    );
   }
 
-  const entryProvider = entry.provider ?? "openai"
-  if (entryProvider !== options.provider) return false
-  if (entry.model !== options.model) return false
-  if (entry.voice !== options.voice) return false
+  const entryProvider = entry.provider ?? "openai";
+  if (entryProvider !== options.provider) return false;
+  if (entry.model !== options.model) return false;
+  if (entry.voice !== options.voice) return false;
 
-  const expectedExt = `.${options.format.toLowerCase()}`
-  if (path.extname(entry.fileName).toLowerCase() !== expectedExt) return false
+  const expectedExt = `.${options.format.toLowerCase()}`;
+  if (path.extname(entry.fileName).toLowerCase() !== expectedExt) return false;
 
-  const sanitized = stripEmojis(options.text).trim()
+  const sanitized = stripEmojis(options.text).trim();
   const cacheKey = computeSpeechCacheKey({
     text: sanitized,
     voice: options.voice,
@@ -678,6 +723,7 @@ function canReuseSpeechEntry(
     provider: options.provider,
     geminiTemperature: options.geminiTemperature,
     geminiSeed: options.geminiSeed,
+    providerVariant: options.providerVariant,
     elevenLabsPreviousText: options.elevenLabsPreviousText,
     elevenLabsNextText: options.elevenLabsNextText,
     elevenLabsApplyTextNormalization: options.elevenLabsApplyTextNormalization,
@@ -686,41 +732,49 @@ function canReuseSpeechEntry(
     elevenLabsStyle: options.elevenLabsStyle,
     elevenLabsUseSpeakerBoost: options.elevenLabsUseSpeakerBoost,
     elevenLabsSpeed: options.elevenLabsSpeed,
-  })
-  const cachePath = resolveSpeechCachePath(options.cacheDir, cacheKey, options.format.toLowerCase())
-  if (!cachePath || !fs.existsSync(cachePath)) return false
+  });
+  const cachePath = resolveSpeechCachePath(
+    options.cacheDir,
+    cacheKey,
+    options.format.toLowerCase(),
+  );
+  if (!cachePath || !fs.existsSync(cachePath)) return false;
 
-  const outputPath = resolveSpeechOutputPath(options.bookDir, options.language, entry.fileName)
-  if (!outputPath) return false
+  const outputPath = resolveSpeechOutputPath(
+    options.bookDir,
+    options.language,
+    entry.fileName,
+  );
+  if (!outputPath) return false;
 
-  fs.mkdirSync(path.dirname(outputPath), { recursive: true })
-  fs.copyFileSync(cachePath, outputPath)
-  return true
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.copyFileSync(cachePath, outputPath);
+  return true;
 }
 
 interface GenerateSpeechWordTimestampsOptions {
-  label: string
-  bookDir: string
-  cacheDir: string
-  apiKey?: string
-  outputLanguages: string[]
-  ttsResultsByLang: Map<string, SpeechFileEntry[]>
-  textByLanguage: Map<string, Map<string, string>>
-  concurrency: number
-  progress: StageRunProgress
+  label: string;
+  bookDir: string;
+  cacheDir: string;
+  apiKey?: string;
+  outputLanguages: string[];
+  ttsResultsByLang: Map<string, SpeechFileEntry[]>;
+  textByLanguage: Map<string, Map<string, string>>;
+  concurrency: number;
+  progress: StageRunProgress;
   /** Run cancel — stops admitting new transcription items. */
-  signal?: AbortSignal
+  signal?: AbortSignal;
 }
 
 /** Whisper rejects audio shorter than ~0.1s; an empty page slice is 0s. */
-const MIN_TRANSCRIBABLE_SECONDS = 0.1
+const MIN_TRANSCRIBABLE_SECONDS = 0.1;
 
 async function generateSpeechWordTimestamps(
   options: GenerateSpeechWordTimestampsOptions,
 ): Promise<{
-  entriesByLanguage: Map<string, Record<string, WordTimestampEntry>>
+  entriesByLanguage: Map<string, Record<string, WordTimestampEntry>>;
   /** Per-language failures (textId + message) so the Speech view can mark them. */
-  failedByLanguage: Map<string, SpeechFailedEntry[]>
+  failedByLanguage: Map<string, SpeechFailedEntry[]>;
 }> {
   const {
     label,
@@ -733,18 +787,23 @@ async function generateSpeechWordTimestamps(
     concurrency,
     progress,
     signal,
-  } = options
+  } = options;
 
-  const entriesByLanguage = new Map<string, Record<string, WordTimestampEntry>>()
-  const failedByLanguage = new Map<string, SpeechFailedEntry[]>()
+  const entriesByLanguage = new Map<
+    string,
+    Record<string, WordTimestampEntry>
+  >();
+  const failedByLanguage = new Map<string, SpeechFailedEntry[]>();
   for (const language of outputLanguages) {
-    entriesByLanguage.set(language, {})
-    failedByLanguage.set(language, [])
+    entriesByLanguage.set(language, {});
+    failedByLanguage.set(language, []);
   }
 
   if (!apiKey?.trim()) {
-    console.warn(`[stage-run] ${label}: skipping word timestamp generation because no OpenAI key was provided`)
-    return { entriesByLanguage, failedByLanguage }
+    console.warn(
+      `[stage-run] ${label}: skipping word timestamp generation because no OpenAI key was provided`,
+    );
+    return { entriesByLanguage, failedByLanguage };
   }
 
   const workItems = outputLanguages.flatMap((language) =>
@@ -752,29 +811,33 @@ async function generateSpeechWordTimestamps(
       language,
       entry,
       prompt: textByLanguage.get(language)?.get(entry.textId),
-    }))
-  )
+    })),
+  );
 
   if (workItems.length === 0) {
-    return { entriesByLanguage, failedByLanguage }
+    return { entriesByLanguage, failedByLanguage };
   }
 
-  let completed = 0
-  let failedCount = 0
+  let completed = 0;
+  let failedCount = 0;
 
-  emitWordTimestampStepProgress(progress, 0, workItems.length, 0)
+  emitWordTimestampStepProgress(progress, 0, workItems.length, 0);
 
   await processWithConcurrency(
     workItems,
     Math.max(1, Math.min(concurrency, 4)),
     async ({ language, entry, prompt }) => {
       try {
-        const audioPath = resolveSpeechAudioPath(bookDir, language, entry.fileName)
+        const audioPath = resolveSpeechAudioPath(
+          bookDir,
+          language,
+          entry.fileName,
+        );
         if (!audioPath) {
-          throw new Error(`Audio file not found: ${entry.fileName}`)
+          throw new Error(`Audio file not found: ${entry.fileName}`);
         }
 
-        const audioBuffer = Buffer.from(fs.readFileSync(audioPath))
+        const audioBuffer = Buffer.from(fs.readFileSync(audioPath));
 
         // Page-batched slicing can leave an entry with an empty slice when it
         // isn't spoken distinctly at the page's start (typically a bare page
@@ -782,16 +845,16 @@ async function generateSpeechWordTimestamps(
         // Whisper rejects empty/too-short audio, so detect it up front and
         // report an actionable failure instead of making a doomed API call.
         if (entry.fileName.toLowerCase().endsWith(".wav")) {
-          let seconds = Number.NaN
+          let seconds = Number.NaN;
           try {
-            seconds = wavDurationSeconds(audioBuffer)
+            seconds = wavDurationSeconds(audioBuffer);
           } catch {
-            seconds = Number.NaN
+            seconds = Number.NaN;
           }
           if (Number.isFinite(seconds) && seconds < MIN_TRANSCRIBABLE_SECONDS) {
             throw new Error(
               `Audio is empty (${seconds.toFixed(2)}s) — in page-batched mode this line (often a bare page number) may not have been spoken separately. Prune it or regenerate its audio.`,
-            )
+            );
           }
         }
 
@@ -802,9 +865,11 @@ async function generateSpeechWordTimestamps(
           language: getBaseLanguage(language),
           prompt,
           cacheDir,
-        })
+        });
         if (result.cached) {
-          console.log(`[stage-run] ${label}: word timestamps cache hit for ${entry.textId} (${language})`)
+          console.log(
+            `[stage-run] ${label}: word timestamps cache hit for ${entry.textId} (${language})`,
+          );
         }
 
         entriesByLanguage.get(language)![entry.textId] = {
@@ -812,39 +877,79 @@ async function generateSpeechWordTimestamps(
           language,
           words: result.words,
           duration: result.duration,
-        }
+        };
       } catch (err) {
-        const message = toErrorMessage(err)
-        failedByLanguage.get(language)!.push({ textId: entry.textId, error: message })
-        failedCount++
+        const message = toErrorMessage(err);
+        failedByLanguage
+          .get(language)!
+          .push({ textId: entry.textId, error: message });
+        failedCount++;
         console.warn(
           `[stage-run] ${label}: word timestamp generation failed for ${entry.textId} (${language}): ${message}`,
-        )
+        );
       } finally {
-        completed++
-        emitWordTimestampStepProgress(progress, completed, workItems.length, failedCount)
+        completed++;
+        emitWordTimestampStepProgress(
+          progress,
+          completed,
+          workItems.length,
+          failedCount,
+        );
       }
     },
     { runSignal: signal },
-  )
+  );
 
-  return { entriesByLanguage, failedByLanguage }
+  return { entriesByLanguage, failedByLanguage };
 }
 
-type RunFn = (label: string, options: StageRunOptions, progress: StageRunProgress) => Promise<void>
+type RunFn = (
+  label: string,
+  options: StageRunOptions,
+  progress: StageRunProgress,
+) => Promise<void>;
 
 const STAGE_RUNNERS: Record<StageName, RunFn> = {
-  "extract": runExtractStep,
-  "sectioning": runSectioningStep,
-  "storyboard": runStoryboardStep,
-  "quizzes": runQuizzesStep,
-  "captions": runCaptionsStep,
-  "glossary": runGlossaryStep,
-  "toc": runTocStep,
+  extract: runExtractStep,
+  sectioning: runSectioningStep,
+  storyboard: runStoryboardStep,
+  quizzes: runQuizzesStep,
+  captions: runCaptionsStep,
+  glossary: runGlossaryStep,
+  toc: runTocStep,
   "easy-read": runEasyReadStep,
-  "translate": runTranslateStep,
-  "speech": runSpeechStep,
-  "package": async () => { /* packaging handled separately */ },
+  translate: runTranslateStep,
+  speech: runSpeechStep,
+  package: runPackageStep,
+};
+
+async function runPackageStep(
+  label: string,
+  options: StageRunOptions,
+  progress: StageRunProgress,
+): Promise<void> {
+  if (!options.webAssetsDir)
+    throw new Error("Web assets directory is required for packaging");
+  const bookDir = path.join(path.resolve(options.booksDir), label);
+  let packageMarked = false;
+  const markPackageBuilt = () => {
+    if (packageMarked) return;
+    packageMarked = true;
+    progress.emit({ type: "step-complete", step: "package-web" });
+    progress.emit({ type: "step-start", step: "accessibility-assessment" });
+  };
+
+  progress.emit({ type: "step-start", step: "package-web" });
+  await runPackaging(
+    label,
+    options.booksDir,
+    bookDir,
+    options.webAssetsDir,
+    options.configPath,
+    markPackageBuilt,
+  );
+  markPackageBuilt();
+  progress.emit({ type: "step-complete", step: "accessibility-assessment" });
 }
 
 /**
@@ -857,52 +962,52 @@ export function createStageRunner(): StageRunner {
     async run(
       label: string,
       options: StageRunOptions,
-      progress: StageRunProgress
+      progress: StageRunProgress,
     ): Promise<void> {
-      const { fromStage, toStage, booksDir } = options
-      console.log(`[stage-run] ${label}: starting ${fromStage}→${toStage}`)
+      const { fromStage, toStage, booksDir } = options;
+      console.log(`[stage-run] ${label}: starting ${fromStage}→${toStage}`);
 
-      const fromIndex = STAGE_ORDER.indexOf(fromStage as StageName)
-      const toIndex = STAGE_ORDER.indexOf(toStage as StageName)
+      const fromIndex = STAGE_ORDER.indexOf(fromStage as StageName);
+      const toIndex = STAGE_ORDER.indexOf(toStage as StageName);
 
       if (fromIndex === -1 || toIndex === -1 || fromIndex > toIndex) {
-        throw new Error(`Invalid stage range "${fromStage}" to "${toStage}"`)
+        throw new Error(`Invalid stage range "${fromStage}" to "${toStage}"`);
       }
 
       // Wrap progress to persist step lifecycle to the DB.
       // This is the single place where step state transitions are recorded,
       // so the step-status endpoint can read from step_runs.
-      const completionStorage = createBookStorage(label, booksDir)
-      const runningSteps = new Set<StepName>()
+      const completionStorage = createBookStorage(label, booksDir);
+      const runningSteps = new Set<StepName>();
       try {
         const trackingProgress: StageRunProgress = {
           emit(event) {
             if (event.type === "step-start") {
               // Cancellation checkpoint before every step: a cancel that lands
               // between steps stops the run here, before the step is recorded.
-              if (options.signal?.aborted) throw new RunCancelledError()
-              runningSteps.add(event.step)
-              completionStorage.markStepStarted(event.step)
+              if (options.signal?.aborted) throw new RunCancelledError();
+              runningSteps.add(event.step);
+              completionStorage.markStepStarted(event.step);
             } else if (event.type === "step-complete") {
-              runningSteps.delete(event.step)
-              completionStorage.markStepCompleted(event.step, event.message)
+              runningSteps.delete(event.step);
+              completionStorage.markStepCompleted(event.step, event.message);
             } else if (event.type === "step-skip") {
-              runningSteps.delete(event.step)
-              completionStorage.markStepSkipped(event.step)
+              runningSteps.delete(event.step);
+              completionStorage.markStepSkipped(event.step);
             } else if (event.type === "step-error") {
-              runningSteps.delete(event.step)
-              completionStorage.recordStepError(event.step, event.error)
+              runningSteps.delete(event.step);
+              completionStorage.recordStepError(event.step, event.error);
             } else if (event.type === "step-progress" && event.message) {
-              completionStorage.updateStepMessage(event.step, event.message)
+              completionStorage.updateStepMessage(event.step, event.message);
             }
-            progress.emit(event)
+            progress.emit(event);
           },
-        }
+        };
 
         for (let i = fromIndex; i <= toIndex; i++) {
-          if (options.signal?.aborted) throw new RunCancelledError()
-          const stage = STAGE_ORDER[i]
-          await STAGE_RUNNERS[stage](label, options, trackingProgress)
+          if (options.signal?.aborted) throw new RunCancelledError();
+          const stage = STAGE_ORDER[i];
+          await STAGE_RUNNERS[stage](label, options, trackingProgress);
         }
       } catch (err) {
         // A cancel is a deliberate action, not a failure: don't record step
@@ -910,21 +1015,21 @@ export function createStageRunner(): StageRunner {
         // the error toast/sound, beep on cancel). Just re-throw — executeJob's
         // abort branch handles persistence cleanup.
         if (isCancellation(err, [options.signal])) {
-          throw err
+          throw err;
         }
-        const message = toErrorMessage(err)
+        const message = toErrorMessage(err);
         for (const step of runningSteps) {
-          completionStorage.recordStepError(step, message)
-          progress.emit({ type: "step-error", step, error: message })
+          completionStorage.recordStepError(step, message);
+          progress.emit({ type: "step-error", step, error: message });
         }
-        throw err
+        throw err;
       } finally {
-        completionStorage.close()
+        completionStorage.close();
       }
 
-      console.log(`[stage-run] ${label}: completed ${fromStage}→${toStage}`)
+      console.log(`[stage-run] ${label}: completed ${fromStage}→${toStage}`);
     },
-  }
+  };
 }
 
 /**
@@ -937,7 +1042,7 @@ function buildLLMCredentials(options: StageRunOptions) {
     googleApiKey: options.googleApiKey,
     customBaseUrl: options.customBaseUrl,
     customApiKey: options.customApiKey,
-  }
+  };
 }
 
 async function generateAndStoreBookOutline(
@@ -949,56 +1054,70 @@ async function generateAndStoreBookOutline(
   progress: StageRunProgress,
   signal?: AbortSignal,
 ): Promise<ReturnType<typeof readBookOutline>> {
-  progress.emit({ type: "step-start", step: "book-outline" })
+  progress.emit({ type: "step-start", step: "book-outline" });
   try {
     if (pages.length === 0) {
-      throw new Error("No extracted pages are available for book-outline generation.")
+      throw new Error(
+        "No extracted pages are available for book-outline generation.",
+      );
     }
     const evidencePages = pages.map((page) => {
-      const positionedRow = storage.getLatestNodeData("positioned-text", page.pageId)
-      const positioned = PositionedTextOutput.safeParse(positionedRow?.data)
+      const positionedRow = storage.getLatestNodeData(
+        "positioned-text",
+        page.pageId,
+      );
+      const positioned = PositionedTextOutput.safeParse(positionedRow?.data);
       return {
         pageId: page.pageId,
         pageNumber: page.pageNumber,
         text: page.text,
         imageBase64: storage.getPageImageBase64(page.pageId),
         ...(positioned.success && { positionedText: positioned.data }),
-      }
-    })
-    const evidence = buildBookOutlineEvidence(evidencePages, readTypeScale(storage))
-    const outline = await generateBookOutline(evidence, outlineConfig, outlineModel)
-    storage.putNodeData(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM, outline)
+      };
+    });
+    const evidence = buildBookOutlineEvidence(
+      evidencePages,
+      readTypeScale(storage),
+    );
+    const outline = await generateBookOutline(
+      evidence,
+      outlineConfig,
+      outlineModel,
+    );
+    storage.putNodeData(BOOK_OUTLINE_NODE, BOOK_OUTLINE_ITEM, outline);
     progress.emit({
       type: "step-complete",
       step: "book-outline",
       message: `${outline.entries.length} headings`,
-    })
-    console.log(`[stage-run] ${label}: book outline complete (${outline.entries.length} headings)`)
-    return outline
+    });
+    console.log(
+      `[stage-run] ${label}: book outline complete (${outline.entries.length} headings)`,
+    );
+    return outline;
   } catch (err) {
-    if (isCancellation(err, [signal])) throw err
-    const msg = toErrorMessage(err)
-    console.error(`[stage-run] ${label}: book outline failed: ${msg}`)
-    progress.emit({ type: "step-error", step: "book-outline", error: msg })
-    throw err
+    if (isCancellation(err, [signal])) throw err;
+    const msg = toErrorMessage(err);
+    console.error(`[stage-run] ${label}: book outline failed: ${msg}`);
+    progress.emit({ type: "step-error", step: "book-outline", error: msg });
+    throw err;
   }
 }
 
 async function runExtractStep(
   label: string,
   options: StageRunOptions,
-  progress: StageRunProgress
+  progress: StageRunProgress,
 ): Promise<void> {
-  const { booksDir, promptsDir, configPath } = options
+  const { booksDir, promptsDir, configPath } = options;
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = createBookStorage(label, booksDir);
 
   try {
-    const pdfPath = path.join(path.resolve(booksDir), label, `${label}.pdf`)
-    const config = loadBookConfig(label, booksDir, configPath)
+    const pdfPath = path.join(path.resolve(booksDir), label, `${label}.pdf`);
+    const config = loadBookConfig(label, booksDir, configPath);
 
     // Step 1: Extract PDF
-    console.log(`[stage-run] ${label}: extracting PDF from ${pdfPath}`)
+    console.log(`[stage-run] ${label}: extracting PDF from ${pdfPath}`);
     await extractPDF(
       {
         pdfPath,
@@ -1012,23 +1131,23 @@ async function runExtractStep(
         fontsCacheDir: resolveFontsCacheDir(booksDir),
       },
       storage,
-      progress
-    )
-    console.log(`[stage-run] ${label}: PDF extraction complete`)
+      progress,
+    );
+    console.log(`[stage-run] ${label}: PDF extraction complete`);
 
     // Step 2: Extract Metadata
-    const metadataConfig = buildMetadataConfig(config)
-    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const metadataConfig = buildMetadataConfig(config);
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache");
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts");
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir]);
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
-      : undefined
-    const llmCredentials = buildLLMCredentials(options)
+      : undefined;
+    const llmCredentials = buildLLMCredentials(options);
 
     const onLlmLog = (entry: LlmLogEntry) => {
-      storage.appendLlmLog(entry)
-      const step = entry.taskType as StepName
+      storage.appendLlmLog(entry);
+      const step = entry.taskType as StepName;
       progress.emit({
         type: "llm-log",
         step,
@@ -1040,8 +1159,8 @@ async function runExtractStep(
         inputTokens: entry.usage?.inputTokens,
         outputTokens: entry.usage?.outputTokens,
         validationErrors: entry.validationErrors,
-      })
-    }
+      });
+    };
 
     const metadataModel = createLLMModel({
       modelId: metadataConfig.modelId,
@@ -1051,35 +1170,39 @@ async function runExtractStep(
       onLog: onLlmLog,
       credentials: llmCredentials,
       signal: options.signal,
-    })
+    });
 
-    const pages = storage.getPages()
-    const metadataPages = pages.slice(0, DEFAULT_METADATA_PAGES)
+    const pages = storage.getPages();
+    const metadataPages = pages.slice(0, DEFAULT_METADATA_PAGES);
     const pageInputs = metadataPages.map((page) => ({
       pageNumber: page.pageNumber,
       text: page.text,
       imageBase64: storage.getPageImageBase64(page.pageId),
-    }))
+    }));
 
-    console.log(`[stage-run] ${label}: extracting metadata from ${metadataPages.length} pages`)
-    progress.emit({ type: "step-start", step: "metadata" })
+    console.log(
+      `[stage-run] ${label}: extracting metadata from ${metadataPages.length} pages`,
+    );
+    progress.emit({ type: "step-start", step: "metadata" });
     const metadataResult = await extractMetadata(
       pageInputs,
       metadataConfig,
-      metadataModel
-    )
-    storage.putNodeData("metadata", "book", metadataResult)
-    progress.emit({ type: "step-complete", step: "metadata" })
-    console.log(`[stage-run] ${label}: metadata complete (lang=${metadataResult.language_code})`)
+      metadataModel,
+    );
+    storage.putNodeData("metadata", "book", metadataResult);
+    progress.emit({ type: "step-complete", step: "metadata" });
+    console.log(
+      `[stage-run] ${label}: metadata complete (lang=${metadataResult.language_code})`,
+    );
 
     // Step 3: Book summary from raw page text (no sectioning required). Written
     // in the book's detected language (just extracted above), not English.
-    progress.emit({ type: "step-start", step: "book-summary" })
+    progress.emit({ type: "step-start", step: "book-summary" });
     try {
       const summaryLanguage = normalizeLocale(
-        config.editing_language ?? metadataResult.language_code ?? "en"
-      )
-      const bookSummaryConfig = buildBookSummaryConfig(config, summaryLanguage)
+        config.editing_language ?? metadataResult.language_code ?? "en",
+      );
+      const bookSummaryConfig = buildBookSummaryConfig(config, summaryLanguage);
       const summaryModel = createLLMModel({
         modelId: bookSummaryConfig.modelId,
         cacheDir,
@@ -1088,28 +1211,32 @@ async function runExtractStep(
         onLog: onLlmLog,
         credentials: llmCredentials,
         signal: options.signal,
-      })
+      });
       const summaryPages = pages.map((page) => ({
         pageNumber: page.pageNumber,
         text: page.text,
-      }))
-      const summaryResult = await generateBookSummary(summaryPages, bookSummaryConfig, summaryModel)
-      storage.putNodeData("book-summary", "book", summaryResult)
-      progress.emit({ type: "step-complete", step: "book-summary" })
-      console.log(`[stage-run] ${label}: book summary complete`)
+      }));
+      const summaryResult = await generateBookSummary(
+        summaryPages,
+        bookSummaryConfig,
+        summaryModel,
+      );
+      storage.putNodeData("book-summary", "book", summaryResult);
+      progress.emit({ type: "step-complete", step: "book-summary" });
+      console.log(`[stage-run] ${label}: book summary complete`);
     } catch (err) {
       // A cancel aborts the summary LLM call — re-throw without emitting
       // step-error so the run tears down cleanly rather than showing a failure.
-      if (isCancellation(err, [options.signal])) throw err
-      const msg = toErrorMessage(err)
-      console.error(`[stage-run] ${label}: book summary failed: ${msg}`)
-      progress.emit({ type: "step-error", step: "book-summary", error: msg })
-      throw err
+      if (isCancellation(err, [options.signal])) throw err;
+      const msg = toErrorMessage(err);
+      console.error(`[stage-run] ${label}: book summary failed: ${msg}`);
+      progress.emit({ type: "step-error", step: "book-summary", error: msg });
+      throw err;
     }
 
     // Step 4: Build one book-wide semantic outline before page sectioning.
     // The configured default is OpenAI; no provider-specific PDF API is used.
-    const outlineConfig = buildBookOutlineConfig(config)
+    const outlineConfig = buildBookOutlineConfig(config);
     const outlineModel = createLLMModel({
       modelId: outlineConfig.modelId,
       cacheDir,
@@ -1118,7 +1245,7 @@ async function runExtractStep(
       onLog: onLlmLog,
       credentials: llmCredentials,
       signal: options.signal,
-    })
+    });
     await generateAndStoreBookOutline(
       label,
       pages,
@@ -1127,14 +1254,17 @@ async function runExtractStep(
       outlineModel,
       progress,
       options.signal,
-    )
+    );
 
     // Step 5: Per-page image classification runs as four sequential passes,
     // each with its own progress reporting so the UI reflects real timing.
-    const imageClassifyConfig = buildStageRunnerImageClassifyConfig(config, storage)
-    const meaningfulnessConfig = buildMeaningfulnessConfig(config)
-    const segmentationConfig = buildSegmentationConfig(config)
-    const croppingConfig = buildCroppingConfig(config)
+    const imageClassifyConfig = buildStageRunnerImageClassifyConfig(
+      config,
+      storage,
+    );
+    const meaningfulnessConfig = buildMeaningfulnessConfig(config);
+    const segmentationConfig = buildSegmentationConfig(config);
+    const croppingConfig = buildCroppingConfig(config);
 
     const meaningfulnessModel = meaningfulnessConfig
       ? createLLMModel({
@@ -1146,7 +1276,7 @@ async function runExtractStep(
           credentials: llmCredentials,
           signal: options.signal,
         })
-      : null
+      : null;
 
     const segmentationModel = segmentationConfig
       ? createLLMModel({
@@ -1158,7 +1288,7 @@ async function runExtractStep(
           credentials: llmCredentials,
           signal: options.signal,
         })
-      : null
+      : null;
 
     const croppingModel = croppingConfig
       ? createLLMModel({
@@ -1170,58 +1300,87 @@ async function runExtractStep(
           credentials: llmCredentials,
           signal: options.signal,
         })
-      : null
+      : null;
 
-    const effectiveConcurrency = config.concurrency ?? 32
-    const totalPages = pages.length
-    console.log(`[stage-run] ${label}: classifying images for ${totalPages} pages (concurrency=${effectiveConcurrency})`)
+    const effectiveConcurrency = config.concurrency ?? 32;
+    const totalPages = pages.length;
+    console.log(
+      `[stage-run] ${label}: classifying images for ${totalPages} pages (concurrency=${effectiveConcurrency})`,
+    );
 
-    const pageResults = new Map<string, ImageClassificationOutput>()
+    const pageResults = new Map<string, ImageClassificationOutput>();
     // The four classification passes share one failure/skip/gate/step-controller
     // context: a "stop" decision in any pass halts the whole classification phase,
     // and the end-of-stage throw considers real (non-skipped) failures per step.
-    const failedPages: FailedPage[] = []
-    const skippedByStep = new Map<string, Set<string>>()
-    const gate = new AdmissionGate()
-    const stepController = new AbortController()
+    const failedPages: FailedPage[] = [];
+    const skippedByStep = new Map<string, Set<string>>();
+    const gate = new AdmissionGate();
+    const stepController = new AbortController();
     const pageFailureDeps = buildPageFailureDeps(options, {
       failedPages,
       skippedByStep,
       gate,
       stepController,
-    })
+    });
 
     await runFilterPass(
-      label, pages, storage, imageClassifyConfig,
-      effectiveConcurrency, pageResults, pageFailureDeps, progress
-    )
+      label,
+      pages,
+      storage,
+      imageClassifyConfig,
+      effectiveConcurrency,
+      pageResults,
+      pageFailureDeps,
+      progress,
+    );
 
     if (!stepController.signal.aborted) {
       await runMeaningfulnessPass(
-        label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
+        label,
+        pages,
+        storage,
+        meaningfulnessConfig,
+        meaningfulnessModel,
         resolveFigureExtractionMode(config) === "auto",
-        effectiveConcurrency, pageResults, pageFailureDeps, progress
-      )
+        effectiveConcurrency,
+        pageResults,
+        pageFailureDeps,
+        progress,
+      );
     }
 
     if (!stepController.signal.aborted) {
       await runSegmentationPass(
-        label, pages, storage, segmentationConfig, segmentationModel,
-        effectiveConcurrency, pageResults, progress, options.signal
-      )
+        label,
+        pages,
+        storage,
+        segmentationConfig,
+        segmentationModel,
+        effectiveConcurrency,
+        pageResults,
+        progress,
+        options.signal,
+      );
     }
 
     if (!stepController.signal.aborted) {
       await runCroppingPass(
-        label, pages, storage, croppingConfig, croppingModel,
-        effectiveConcurrency, pageResults, progress, options.signal
-      )
+        label,
+        pages,
+        storage,
+        croppingConfig,
+        croppingModel,
+        effectiveConcurrency,
+        pageResults,
+        progress,
+        options.signal,
+      );
     }
 
     // A "stop" decision aborts the classification phase; the failing step is
     // already recorded as error via its per-page step-error.
     if (stepController.signal.aborted) {
-      throw new Error("Stopped by a page-error decision")
+      throw new Error("Stopped by a page-error decision");
     }
 
     // Only real (non-skipped) failures fail the stage — matches the per-pass
@@ -1230,11 +1389,11 @@ async function runExtractStep(
       throw new Error(
         `${failedPages.length} page(s) failed:\n${failedPages
           .map((f) => `${f.pageId} [${f.step}]: ${f.msg}`)
-          .join("\n")}`
-      )
+          .join("\n")}`,
+      );
     }
   } finally {
-    storage.close()
+    storage.close();
   }
 }
 
@@ -1245,25 +1404,25 @@ async function runExtractStep(
 async function runSectioningStep(
   label: string,
   options: StageRunOptions,
-  progress: StageRunProgress
+  progress: StageRunProgress,
 ): Promise<void> {
-  const { booksDir, promptsDir, configPath } = options
+  const { booksDir, promptsDir, configPath } = options;
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = createBookStorage(label, booksDir);
 
   try {
-    const config = loadBookConfig(label, booksDir, configPath)
-    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const config = loadBookConfig(label, booksDir, configPath);
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache");
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts");
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir]);
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
-      : undefined
-    const llmCredentials = buildLLMCredentials(options)
+      : undefined;
+    const llmCredentials = buildLLMCredentials(options);
 
     const onLlmLog = (entry: LlmLogEntry) => {
-      storage.appendLlmLog(entry)
-      const step = entry.taskType as StepName
+      storage.appendLlmLog(entry);
+      const step = entry.taskType as StepName;
       progress.emit({
         type: "llm-log",
         step,
@@ -1275,15 +1434,17 @@ async function runSectioningStep(
         inputTokens: entry.usage?.inputTokens,
         outputTokens: entry.usage?.outputTokens,
         validationErrors: entry.validationErrors,
-      })
-    }
+      });
+    };
 
-    const metadataRow = storage.getLatestNodeData("metadata", "book")
-    const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const sourceLanguage = metadata?.language_code ?? null
+    const metadataRow = storage.getLatestNodeData("metadata", "book");
+    const metadata = metadataRow?.data as {
+      language_code?: string | null;
+    } | null;
+    const sourceLanguage = metadata?.language_code ?? null;
 
-    const pageSectioningConfig = buildPageSectioningConfig(config)
-    const translationConfig = buildTranslationConfig(config, sourceLanguage)
+    const pageSectioningConfig = buildPageSectioningConfig(config);
+    const translationConfig = buildTranslationConfig(config, sourceLanguage);
 
     const structuringModel = createLLMModel({
       modelId: pageSectioningConfig.modelId,
@@ -1293,7 +1454,7 @@ async function runSectioningStep(
       onLog: onLlmLog,
       credentials: llmCredentials,
       signal: options.signal,
-    })
+    });
 
     const translationModel = translationConfig
       ? createLLMModel({
@@ -1305,32 +1466,37 @@ async function runSectioningStep(
           credentials: llmCredentials,
           signal: options.signal,
         })
-      : null
+      : null;
 
-    const pages = storage.getPages()
-    const stepStatus = new Map(storage.getStepRuns().map((run) => [run.step, run.status]))
-    const outlineStepStatus = stepStatus.get("book-outline")
-    const outlineStepComplete = outlineStepStatus === "done" || outlineStepStatus === "skipped"
-    let bookOutline = outlineStepComplete ? readBookOutline(storage) : null
+    const pages = storage.getPages();
+    const sectioningMetadata = storage.getLatestNodeData("metadata", "book")
+      ?.data as { title?: string } | undefined;
+    const stepStatus = new Map(
+      storage.getStepRuns().map((run) => [run.step, run.status]),
+    );
+    const outlineStepStatus = stepStatus.get("book-outline");
+    const outlineStepComplete =
+      outlineStepStatus === "done" || outlineStepStatus === "skipped";
+    let bookOutline = outlineStepComplete ? readBookOutline(storage) : null;
     // Split/merge projects deliberately discard part-local outlines. Rebuild
     // the authoritative hierarchy from the assembled stored pages here so a
     // Sectioning run never has to invoke (and clear data through) Extract.
     if (!bookOutline) {
-      const extractStage = PIPELINE.find((stage) => stage.name === "extract")
+      const extractStage = PIPELINE.find((stage) => stage.name === "extract");
       const incompletePrerequisites = (extractStage?.steps ?? [])
         .filter((step) => step.name !== "book-outline")
         .filter((step) => {
-          const status = stepStatus.get(step.name)
-          return status !== "done" && status !== "skipped"
+          const status = stepStatus.get(step.name);
+          return status !== "done" && status !== "skipped";
         })
-        .map((step) => step.name)
+        .map((step) => step.name);
       if (incompletePrerequisites.length > 0) {
         throw new Error(
           "Cannot rebuild the book outline before Extract prerequisites complete: " +
-          incompletePrerequisites.join(", "),
-        )
+            incompletePrerequisites.join(", "),
+        );
       }
-      const outlineConfig = buildBookOutlineConfig(config)
+      const outlineConfig = buildBookOutlineConfig(config);
       const outlineModel = createLLMModel({
         modelId: outlineConfig.modelId,
         cacheDir,
@@ -1339,7 +1505,7 @@ async function runSectioningStep(
         onLog: onLlmLog,
         credentials: llmCredentials,
         signal: options.signal,
-      })
+      });
       bookOutline = await generateAndStoreBookOutline(
         label,
         pages,
@@ -1348,41 +1514,51 @@ async function runSectioningStep(
         outlineModel,
         progress,
         options.signal,
-      )
+      );
     }
-    const totalPages = pages.length
-    const effectiveConcurrency = config.concurrency ?? 32
+    const totalPages = pages.length;
+    const effectiveConcurrency = config.concurrency ?? 32;
 
     // Step 1: page-sectioning per page
-    console.log(`[stage-run] ${label}: sectioning ${totalPages} pages (concurrency=${effectiveConcurrency})`)
-    progress.emit({ type: "step-start", step: "page-sectioning" })
-    let completedStructuring = 0
-    let completedTranslation = 0
-    const failedPages: FailedPage[] = []
-    const skippedByStep = new Map<string, Set<string>>()
-    const gate = new AdmissionGate()
-    const stepController = new AbortController()
+    console.log(
+      `[stage-run] ${label}: sectioning ${totalPages} pages (concurrency=${effectiveConcurrency})`,
+    );
+    progress.emit({ type: "step-start", step: "page-sectioning" });
+    let completedStructuring = 0;
+    let completedTranslation = 0;
+    const failedPages: FailedPage[] = [];
+    const skippedByStep = new Map<string, Set<string>>();
+    const gate = new AdmissionGate();
+    const stepController = new AbortController();
     const pageFailureDeps = buildPageFailureDeps(options, {
       failedPages,
       skippedByStep,
       gate,
       stepController,
-    })
+    });
 
     await processWithConcurrency(
       pages,
       effectiveConcurrency,
       async (page: PageData) => {
         try {
-          const imageClassRow = storage.getLatestNodeData("image-filtering", page.pageId)
-          const imageClassification = (imageClassRow?.data as ImageClassificationOutput) ?? { images: [] }
+          const imageClassRow = storage.getLatestNodeData(
+            "image-filtering",
+            page.pageId,
+          );
+          const imageClassification =
+            (imageClassRow?.data as ImageClassificationOutput) ?? {
+              images: [],
+            };
           const unprunedImageIds = imageClassRow
-            ? imageClassification.images.filter((img) => !img.isPruned).map((img) => img.imageId)
-            : storage.getPageImages(page.pageId).map((img) => img.imageId)
+            ? imageClassification.images
+                .filter((img) => !img.isPruned)
+                .map((img) => img.imageId)
+            : storage.getPageImages(page.pageId).map((img) => img.imageId);
           const availableImages = unprunedImageIds.map((imageId) => ({
             imageId,
             imageBase64: storage.getImageBase64(imageId),
-          }))
+          }));
 
           const structuringResult = await sectionPage(
             {
@@ -1391,20 +1567,29 @@ async function runSectioningStep(
               text: page.text,
               imageBase64: storage.getPageImageBase64(page.pageId),
               availableImages,
+              positionedText: storage.getLatestNodeData(
+                "positioned-text",
+                page.pageId,
+              )?.data as PositionedTextOutput | undefined,
+              bookTitle: sectioningMetadata?.title,
               outline: outlineContextForPage(bookOutline, page.pageId),
             },
             pageSectioningConfig,
             structuringModel,
-          )
-          storage.putNodeData("page-sectioning", page.pageId, structuringResult)
-          completedStructuring++
+          );
+          storage.putNodeData(
+            "page-sectioning",
+            page.pageId,
+            structuringResult,
+          );
+          completedStructuring++;
           progress.emit({
             type: "step-progress",
             step: "page-sectioning",
             message: `${completedStructuring}/${totalPages}`,
             page: completedStructuring,
             totalPages,
-          })
+          });
 
           if (translationConfig && translationModel) {
             const translated = await translatePageTree(
@@ -1412,76 +1597,87 @@ async function runSectioningStep(
               structuringResult,
               translationConfig,
               translationModel,
-            )
-            storage.putNodeData("page-sectioning", page.pageId, translated)
-            completedTranslation++
+            );
+            storage.putNodeData("page-sectioning", page.pageId, translated);
+            completedTranslation++;
             progress.emit({
               type: "step-progress",
               step: "translation",
               message: `${completedTranslation}/${totalPages}`,
               page: completedTranslation,
               totalPages,
-            })
+            });
           }
         } catch (err) {
-          const step = err instanceof StepError ? err.step : "page-sectioning"
-          console.error(`[stage-run] ${label}: ${page.pageId} failed at ${step}: ${toErrorMessage(err)}`)
-          await reportPageFailure(pageFailureDeps, progress, step, page.pageId, err)
+          const step = err instanceof StepError ? err.step : "page-sectioning";
+          console.error(
+            `[stage-run] ${label}: ${page.pageId} failed at ${step}: ${toErrorMessage(err)}`,
+          );
+          await reportPageFailure(
+            pageFailureDeps,
+            progress,
+            step,
+            page.pageId,
+            err,
+          );
         }
       },
       { runSignal: options.signal, stopSignal: stepController.signal, gate },
-    )
+    );
 
     if (stepController.signal.aborted) {
-      throw new StepError("page-sectioning", "Stopped by a page-error decision")
+      throw new StepError(
+        "page-sectioning",
+        "Stopped by a page-error decision",
+      );
     }
 
-    finishPageStep(progress, "page-sectioning", pageFailureDeps)
+    finishPageStep(progress, "page-sectioning", pageFailureDeps);
     if (translationConfig) {
-      finishPageStep(progress, "translation", pageFailureDeps)
+      finishPageStep(progress, "translation", pageFailureDeps);
     } else {
-      progress.emit({ type: "step-skip", step: "translation" })
+      progress.emit({ type: "step-skip", step: "translation" });
     }
   } finally {
-    storage.close()
+    storage.close();
   }
 }
 
 async function runStoryboardStep(
   label: string,
   options: StageRunOptions,
-  progress: StageRunProgress
+  progress: StageRunProgress,
 ): Promise<void> {
-  const { booksDir, promptsDir, webAssetsDir, configPath } = options
+  const { booksDir, promptsDir, webAssetsDir, configPath } = options;
 
-  const storage = createBookStorage(label, booksDir)
-  let visualRefinement: VisualRefinementDeps | undefined
+  const storage = createBookStorage(label, booksDir);
+  let visualRefinement: VisualRefinementDeps | undefined;
 
   try {
-    const config = loadBookConfig(label, booksDir, configPath)
+    const config = loadBookConfig(label, booksDir, configPath);
 
     const styleguideContent = loadStyleguideContent(
       config.styleguide,
       configPath,
       booksDir,
       label,
-    )
+    );
 
     // Render config is always needed
-    const resolveRenderConfig = buildRenderStrategyResolver(config)
+    const resolveRenderConfig = buildRenderStrategyResolver(config);
 
     // Shared infrastructure for LLM calls
-    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache");
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts");
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir]);
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
-      : undefined
-    const llmCredentials = buildLLMCredentials(options)
+      : undefined;
+    const llmCredentials = buildLLMCredentials(options);
 
     const onLlmLog = (entry: LlmLogEntry) => {
-      storage.appendLlmLog(entry)
-      const step = entry.taskType as StepName
+      storage.appendLlmLog(entry);
+      const step = entry.taskType as StepName;
       progress.emit({
         type: "llm-log",
         step,
@@ -1493,18 +1689,18 @@ async function runStoryboardStep(
         inputTokens: entry.usage?.inputTokens,
         outputTokens: entry.usage?.outputTokens,
         validationErrors: entry.validationErrors,
-      })
-    }
+      });
+    };
 
     // Create template engine
-    const templatesDir = path.join(path.dirname(promptsDir), "templates")
-    const templateEngine = createTemplateEngine(templatesDir)
+    const templatesDir = path.join(path.dirname(promptsDir), "templates");
+    const templateEngine = createTemplateEngine(templatesDir);
 
     // Create render model resolver (cached factory)
-    const renderModels = new Map<string, LLMModel>()
+    const renderModels = new Map<string, LLMModel>();
     const resolveRenderModel = (modelId: string): LLMModel => {
-      const existing = renderModels.get(modelId)
-      if (existing) return existing
+      const existing = renderModels.get(modelId);
+      if (existing) return existing;
       const model = createLLMModel({
         modelId,
         cacheDir,
@@ -1513,18 +1709,18 @@ async function runStoryboardStep(
         onLog: onLlmLog,
         credentials: llmCredentials,
         signal: options.signal,
-      })
-      renderModels.set(modelId, model)
-      return model
-    }
+      });
+      renderModels.set(modelId, model);
+      return model;
+    };
 
     // Set up visual refinement if any render strategy enables it
     if (webAssetsDir) {
-      const hasVisualRefinement = Object.values(config.render_strategies ?? {}).some(
-        (s) => s.config?.visual_refinement?.enabled
-      )
+      const hasVisualRefinement = Object.values(
+        config.render_strategies ?? {},
+      ).some((s) => s.config?.visual_refinement?.enabled);
       if (hasVisualRefinement) {
-        const screenshotRenderer = await createScreenshotRenderer()
+        const screenshotRenderer = await createScreenshotRenderer();
         visualRefinement = {
           screenshotRenderer,
           webAssetsDir,
@@ -1532,19 +1728,23 @@ async function runStoryboardStep(
             config.default_model ?? DEFAULT_VISUAL_REVIEW_MODEL_ID,
           ),
           storeScreenshot: (base64: string) => {
-            const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
-            storage.putDebugImage(hash, Buffer.from(base64, "base64"))
+            const hash = crypto
+              .createHash("sha256")
+              .update(base64)
+              .digest("hex")
+              .slice(0, 16);
+            storage.putDebugImage(hash, Buffer.from(base64, "base64"));
           },
-        }
+        };
       }
     }
 
     // Get all pages
-    const pages = storage.getPages()
-    const totalPages = pages.length
-    const effectiveConcurrency = config.concurrency ?? 32
+    const pages = storage.getPages();
+    const totalPages = pages.length;
+    const effectiveConcurrency = config.concurrency ?? 32;
     // Book typography (editable size-per-role map) — resolve once, share with all pages.
-    const typography = readTypography(storage)
+    const typography = readTypography(storage);
 
     if (isFixedLayoutBook(config)) {
       // Fixed-layout: build the positioned tree (into `fixed-layout-sectioning`)
@@ -1553,100 +1753,128 @@ async function runStoryboardStep(
       // web-rendering step only — the semantic `page-sectioning` is owned and
       // already produced by the sectioning stage, so we don't re-emit its
       // progress here (that would wrongly re-mark the sectioning stage running).
-      console.log(`[stage-run] ${label}: fixed-layout rendering for ${totalPages} pages`)
-      progress.emit({ type: "step-start", step: "web-rendering" })
-      const { processFixedLayoutPages } = await import("@adt/pipeline")
-      const imageUrlPrefix = `/api/books/${label}/images`
-      processFixedLayoutPages(storage, imageUrlPrefix)
-      progress.emit({ type: "step-complete", step: "web-rendering" })
-      console.log(`[stage-run] ${label}: fixed-layout rendering complete`)
-      return
+      console.log(
+        `[stage-run] ${label}: fixed-layout rendering for ${totalPages} pages`,
+      );
+      progress.emit({ type: "step-start", step: "web-rendering" });
+      const { processFixedLayoutPages } = await import("@adt/pipeline");
+      const imageUrlPrefix = `/api/books/${label}/images`;
+      processFixedLayoutPages(storage, imageUrlPrefix);
+      progress.emit({ type: "step-complete", step: "web-rendering" });
+      console.log(`[stage-run] ${label}: fixed-layout rendering complete`);
+      return;
     }
 
     console.log(
-      `[stage-run] ${label}: rendering storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
-    )
+      `[stage-run] ${label}: rendering storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`,
+    );
 
-    await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksDir))
+    await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksDir));
 
-    let completedRendering = 0
-    const failedPages: FailedPage[] = []
-    const skippedByStep = new Map<string, Set<string>>()
-    const gate = new AdmissionGate()
-    const stepController = new AbortController()
+    let completedRendering = 0;
+    const failedPages: FailedPage[] = [];
+    const skippedByStep = new Map<string, Set<string>>();
+    const gate = new AdmissionGate();
+    const stepController = new AbortController();
     const pageFailureDeps = buildPageFailureDeps(options, {
       failedPages,
       skippedByStep,
       gate,
       stepController,
-    })
+    });
 
     await processWithConcurrency(
       pages,
       effectiveConcurrency,
       async (page: PageData) => {
         try {
-          if (options.signal?.aborted) throw new RunCancelledError()
+          if (options.signal?.aborted) throw new RunCancelledError();
 
-          const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
+          const structuringRow = storage.getLatestNodeData(
+            "page-sectioning",
+            page.pageId,
+          );
           if (!structuringRow) {
             console.log(
-              `[stage-run] ${label}: skipping ${page.pageId} (no page-sectioning)`
-            )
-            completedRendering++
+              `[stage-run] ${label}: skipping ${page.pageId} (no page-sectioning)`,
+            );
+            completedRendering++;
             progress.emit({
               type: "step-progress",
               step: "web-rendering",
               message: `${completedRendering}/${totalPages}`,
               page: completedRendering,
               totalPages,
-            })
-            return
+            });
+            return;
           }
-          const sectioning = structuringRow.data as PageSectioningOutput
+          const sectioning = structuringRow.data as PageSectioningOutput;
 
           const imageClassificationRow = storage.getLatestNodeData(
             "image-filtering",
-            page.pageId
-          )
-          const imageClassification = (imageClassificationRow?.data as ImageClassificationOutput) ?? { images: [] }
+            page.pageId,
+          );
+          const imageClassification =
+            (imageClassificationRow?.data as ImageClassificationOutput) ?? {
+              images: [],
+            };
           const unprunedImageIds = imageClassificationRow
-            ? imageClassification.images.filter((img) => !img.isPruned).map((img) => img.imageId)
-            : storage.getPageImages(page.pageId).map((img) => img.imageId)
+            ? imageClassification.images
+                .filter((img) => !img.isPruned)
+                .map((img) => img.imageId)
+            : storage.getPageImages(page.pageId).map((img) => img.imageId);
 
           const pageDims = new Map(
-            storage.getPageImages(page.pageId).map((img) => [img.imageId, { width: img.width, height: img.height }])
-          )
-          const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
+            storage
+              .getPageImages(page.pageId)
+              .map((img) => [
+                img.imageId,
+                { width: img.width, height: img.height },
+              ]),
+          );
+          const renderImages = new Map<
+            string,
+            { base64: string; width?: number; height?: number }
+          >();
           for (const imageId of unprunedImageIds) {
-            if (options.signal?.aborted) throw new RunCancelledError()
-            const dims = pageDims.get(imageId)
-            renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
+            if (options.signal?.aborted) throw new RunCancelledError();
+            const dims = pageDims.get(imageId);
+            renderImages.set(imageId, {
+              base64: storage.getImageBase64(imageId),
+              width: dims?.width,
+              height: dims?.height,
+            });
           }
           // Sections can reference images extracted on other pages (cross-page
           // merges, images added from another page) — those are not in this
           // page's image-filtering output, so pull them in by walking the tree.
-          for (const imageId of collectReferencedImageIds(sectioning.sections)) {
-            if (renderImages.has(imageId)) continue
+          for (const imageId of collectReferencedImageIds(
+            sectioning.sections,
+          )) {
+            if (renderImages.has(imageId)) continue;
             try {
-              const dims = storage.getImageDimensions(imageId)
-              renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width ?? undefined, height: dims?.height ?? undefined })
+              const dims = storage.getImageDimensions(imageId);
+              renderImages.set(imageId, {
+                base64: storage.getImageBase64(imageId),
+                width: dims?.width ?? undefined,
+                height: dims?.height ?? undefined,
+              });
             } catch {
               // Image file no longer exists — leave it out; the renderer emits
               // the URL reference without pixels.
             }
           }
 
-          if (options.signal?.aborted) throw new RunCancelledError()
-          const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+          if (options.signal?.aborted) throw new RunCancelledError();
+          const pageImageBase64 = storage.getPageImageBase64(page.pageId);
           // Page images for content merged in from other pages (cross-page
           // merges) — per-section provenance recorded in sourcePageIds.
           const sourcePageImages = collectSourcePageImages(
             sectioning.sections,
-            (id) => storage.getPageImageBase64(id)
-          )
+            (id) => storage.getPageImageBase64(id),
+          );
 
-          console.log(`[stage-run] ${label}: rendering ${page.pageId}`)
+          console.log(`[stage-run] ${label}: rendering ${page.pageId}`);
           const renderResult = await renderPage(
             {
               label,
@@ -1664,40 +1892,46 @@ async function runStoryboardStep(
             templateEngine,
             visualRefinement,
             { signal: options.signal },
-          )
-          if (options.signal?.aborted) throw new RunCancelledError()
-          storage.putNodeData("web-rendering", page.pageId, renderResult)
-          completedRendering++
+          );
+          if (options.signal?.aborted) throw new RunCancelledError();
+          storage.putNodeData("web-rendering", page.pageId, renderResult);
+          completedRendering++;
           progress.emit({
             type: "step-progress",
             step: "web-rendering",
             message: `${completedRendering}/${totalPages}`,
             page: completedRendering,
             totalPages,
-          })
+          });
         } catch (err) {
           if (!isCancellation(err, [options.signal])) {
             console.error(
-              `[stage-run] ${label}: ${page.pageId} failed at web-rendering: ${toErrorMessage(err)}`
-            )
+              `[stage-run] ${label}: ${page.pageId} failed at web-rendering: ${toErrorMessage(err)}`,
+            );
           }
-          await reportPageFailure(pageFailureDeps, progress, "web-rendering", page.pageId, err)
+          await reportPageFailure(
+            pageFailureDeps,
+            progress,
+            "web-rendering",
+            page.pageId,
+            err,
+          );
         }
       },
       { runSignal: options.signal, stopSignal: stepController.signal, gate },
-    )
+    );
 
     if (stepController.signal.aborted) {
-      throw new StepError("web-rendering", "Stopped by a page-error decision")
+      throw new StepError("web-rendering", "Stopped by a page-error decision");
     }
 
-    finishPageStep(progress, "web-rendering", pageFailureDeps)
-    console.log(`[stage-run] ${label}: storyboard complete`)
+    finishPageStep(progress, "web-rendering", pageFailureDeps);
+    console.log(`[stage-run] ${label}: storyboard complete`);
   } finally {
     if (visualRefinement) {
-      await visualRefinement.screenshotRenderer.close()
+      await visualRefinement.screenshotRenderer.close();
     }
-    storage.close()
+    storage.close();
   }
 }
 
@@ -1708,30 +1942,34 @@ async function runStoryboardStep(
 async function runQuizzesStep(
   label: string,
   options: StageRunOptions,
-  progress: StageRunProgress
+  progress: StageRunProgress,
 ): Promise<void> {
-  const { booksDir, promptsDir, configPath } = options
+  const { booksDir, promptsDir, configPath } = options;
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = createBookStorage(label, booksDir);
 
   try {
-    const config = loadBookConfig(label, booksDir, configPath)
-    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const config = loadBookConfig(label, booksDir, configPath);
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache");
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts");
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir]);
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
-      : undefined
-    const llmCredentials = buildLLMCredentials(options)
+      : undefined;
+    const llmCredentials = buildLLMCredentials(options);
 
     // Get book language from metadata
-    const metadataRow = storage.getLatestNodeData("metadata", "book")
-    const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+    const metadataRow = storage.getLatestNodeData("metadata", "book");
+    const metadata = metadataRow?.data as {
+      language_code?: string | null;
+    } | null;
+    const language = normalizeLocale(
+      config.editing_language ?? metadata?.language_code ?? "en",
+    );
 
     const onLlmLog = (entry: LlmLogEntry) => {
-      storage.appendLlmLog(entry)
-      const step = entry.taskType as StepName
+      storage.appendLlmLog(entry);
+      const step = entry.taskType as StepName;
       progress.emit({
         type: "llm-log",
         step,
@@ -1743,14 +1981,14 @@ async function runQuizzesStep(
         inputTokens: entry.usage?.inputTokens,
         outputTokens: entry.usage?.outputTokens,
         validationErrors: entry.validationErrors,
-      })
-    }
+      });
+    };
 
-    const quizConfig = buildQuizGenerationConfig(config, language)
+    const quizConfig = buildQuizGenerationConfig(config, language);
     if (!quizConfig) {
-      progress.emit({ type: "step-skip", step: "quiz-generation" })
-      console.log(`[stage-run] ${label}: quizzes skipped (disabled in config)`)
-      return
+      progress.emit({ type: "step-skip", step: "quiz-generation" });
+      console.log(`[stage-run] ${label}: quizzes skipped (disabled in config)`);
+      return;
     }
 
     const quizModel = createLLMModel({
@@ -1761,87 +1999,95 @@ async function runQuizzesStep(
       onLog: onLlmLog,
       credentials: llmCredentials,
       signal: options.signal,
-    })
+    });
 
-    const effectiveConcurrency = config.concurrency ?? 32
+    const effectiveConcurrency = config.concurrency ?? 32;
 
-    progress.emit({ type: "step-start", step: "quiz-generation" })
+    progress.emit({ type: "step-start", step: "quiz-generation" });
 
     // Gather page data for quiz generation. A page is eligible only when it has
     // BOTH a web-rendering and a render-sectioning node — the quiz LLM reads
     // rendered text, and batching counts sectioned content pages.
-    const pages = storage.getPages()
-    const quizPages: QuizPageInput[] = []
-    let missingRendering = 0
-    let missingSectioning = 0
+    const pages = storage.getPages();
+    const quizPages: QuizPageInput[] = [];
+    let missingRendering = 0;
+    let missingSectioning = 0;
     for (const page of pages) {
-      const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
+      const renderingRow = storage.getLatestNodeData(
+        "web-rendering",
+        page.pageId,
+      );
       // Filter by the SEMANTIC sectioning (real types like `text_and_single_image`),
       // not the render sectioning — in fixed-layout the render tree is positioned
       // and its only section type is `fixed-layout-page`, which never matches
       // `quiz_section_types`, so no page would qualify and no quiz would generate.
-      const sectioning = getSemanticSectioning(storage, page.pageId)
+      const sectioning = getSemanticSectioning(storage, page.pageId);
       if (!renderingRow) {
-        missingRendering++
-        continue
+        missingRendering++;
+        continue;
       }
       if (!sectioning) {
-        missingSectioning++
-        continue
+        missingSectioning++;
+        continue;
       }
       quizPages.push({
         pageId: page.pageId,
         rendering: renderingRow.data as WebRenderingOutput,
         sectioning,
-      })
+      });
     }
     console.log(
       `[stage-run] ${label}: quiz input — ${quizPages.length}/${pages.length} pages ready ` +
         `(missing web-rendering: ${missingRendering}, missing sectioning: ${missingSectioning}); ` +
-        `pages_per_quiz=${quizConfig.pagesPerQuiz}`
-    )
+        `pages_per_quiz=${quizConfig.pagesPerQuiz}`,
+    );
 
     if (quizPages.length > 0) {
-      const quizResult = await generateAllQuizzes(quizPages, quizConfig, quizModel, {
-        concurrency: effectiveConcurrency,
-        onQuizComplete: (completed, total) => {
-          progress.emit({
-            type: "step-progress",
-            step: "quiz-generation",
-            message: `${completed}/${total}`,
-            page: completed,
-            totalPages: total,
-          })
+      const quizResult = await generateAllQuizzes(
+        quizPages,
+        quizConfig,
+        quizModel,
+        {
+          concurrency: effectiveConcurrency,
+          onQuizComplete: (completed, total) => {
+            progress.emit({
+              type: "step-progress",
+              step: "quiz-generation",
+              message: `${completed}/${total}`,
+              page: completed,
+              totalPages: total,
+            });
+          },
         },
-      })
-      storage.putNodeData("quiz-generation", "book", quizResult)
+      );
+      storage.putNodeData("quiz-generation", "book", quizResult);
       console.log(
-        `[stage-run] ${label}: generated ${quizResult.quizzes.length} quiz(zes) from ${quizPages.length} page(s)`
-      )
+        `[stage-run] ${label}: generated ${quizResult.quizzes.length} quiz(zes) from ${quizPages.length} page(s)`,
+      );
       progress.emit({
         type: "step-progress",
         step: "quiz-generation",
         message: `${quizResult.quizzes.length} quizzes from ${quizPages.length} pages`,
-      })
+      });
     } else {
       // Nothing to generate. This is the silent "finished instantly, no quizzes"
       // case — surface it loudly instead of completing green with no output.
       console.warn(
         `[stage-run] ${label}: quiz-generation produced NOTHING — 0 of ${pages.length} pages ` +
           `had both web-rendering and render-sectioning. Re-run the Storyboard stage first ` +
-          `(fixed-layout writes both there), then Quizzes.`
-      )
+          `(fixed-layout writes both there), then Quizzes.`,
+      );
       progress.emit({
         type: "step-progress",
         step: "quiz-generation",
         message: `No quizzes: 0/${pages.length} pages had rendering + sectioning`,
-      })
+      });
     }
 
-    progress.emit({ type: "step-complete", step: "quiz-generation" })
-    console.log(`[stage-run] ${label}: quizzes complete`)
+    progress.emit({ type: "step-complete", step: "quiz-generation" });
+    console.log(`[stage-run] ${label}: quizzes complete`);
   } finally {
-    storage.close()
+    storage.close();
   }
 }
 
@@ -1852,41 +2098,46 @@ async function runQuizzesStep(
 async function runCaptionsStep(
   label: string,
   options: StageRunOptions,
-  progress: StageRunProgress
+  progress: StageRunProgress,
 ): Promise<void> {
-  const { booksDir, promptsDir, configPath } = options
+  const { booksDir, promptsDir, configPath } = options;
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = createBookStorage(label, booksDir);
 
   try {
-    const config = loadBookConfig(label, booksDir, configPath)
-    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const config = loadBookConfig(label, booksDir, configPath);
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache");
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts");
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir]);
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
-      : undefined
-    const llmCredentials = buildLLMCredentials(options)
+      : undefined;
+    const llmCredentials = buildLLMCredentials(options);
 
     // Get book language from metadata
-    const metadataRow = storage.getLatestNodeData("metadata", "book")
-    const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+    const metadataRow = storage.getLatestNodeData("metadata", "book");
+    const metadata = metadataRow?.data as {
+      language_code?: string | null;
+    } | null;
+    const language = normalizeLocale(
+      config.editing_language ?? metadata?.language_code ?? "en",
+    );
 
     // Load book summary for captioning context
-    const summaryRow = storage.getLatestNodeData("book-summary", "book")
-    const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
+    const summaryRow = storage.getLatestNodeData("book-summary", "book");
+    const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)
+      ?.summary;
 
-    const glossaryRow = storage.getLatestNodeData("glossary", "book")
-    const glossary = glossaryRow?.data as GlossaryOutput | undefined
+    const glossaryRow = storage.getLatestNodeData("glossary", "book");
+    const glossary = glossaryRow?.data as GlossaryOutput | undefined;
     const glossaryImageIdsByPage = groupGlossaryImageIdsByPage(
       glossary,
       (imageId) => storage.getImageMeta(imageId)?.pageId,
-    )
+    );
 
     const onLlmLog = (entry: LlmLogEntry) => {
-      storage.appendLlmLog(entry)
-      const step = entry.taskType as StepName
+      storage.appendLlmLog(entry);
+      const step = entry.taskType as StepName;
       progress.emit({
         type: "llm-log",
         step,
@@ -1898,10 +2149,10 @@ async function runCaptionsStep(
         inputTokens: entry.usage?.inputTokens,
         outputTokens: entry.usage?.outputTokens,
         validationErrors: entry.validationErrors,
-      })
-    }
+      });
+    };
 
-    const captionConfig = buildCaptionConfig(config)
+    const captionConfig = buildCaptionConfig(config);
     const captionModel = createLLMModel({
       modelId: captionConfig.modelId,
       cacheDir,
@@ -1910,33 +2161,35 @@ async function runCaptionsStep(
       onLog: onLlmLog,
       credentials: llmCredentials,
       signal: options.signal,
-    })
+    });
 
-    const pages = storage.getPages()
-    const totalPages = pages.length
-    const effectiveConcurrency = config.concurrency ?? 32
-    let completedCaptions = 0
-    const failedPages: FailedPage[] = []
-    const skippedByStep = new Map<string, Set<string>>()
-    const gate = new AdmissionGate()
-    const stepController = new AbortController()
+    const pages = storage.getPages();
+    const totalPages = pages.length;
+    const effectiveConcurrency = config.concurrency ?? 32;
+    let completedCaptions = 0;
+    const failedPages: FailedPage[] = [];
+    const skippedByStep = new Map<string, Set<string>>();
+    const gate = new AdmissionGate();
+    const stepController = new AbortController();
     const pageFailureDeps = buildPageFailureDeps(options, {
       failedPages,
       skippedByStep,
       gate,
       stepController,
-    })
+    });
 
-    progress.emit({ type: "step-start", step: "image-captioning" })
+    progress.emit({ type: "step-start", step: "image-captioning" });
     progress.emit({
       type: "step-progress",
       step: "image-captioning",
       message: `0/${totalPages}`,
       page: 0,
       totalPages,
-    })
+    });
 
-    console.log(`[stage-run] ${label}: captioning ${totalPages} pages (concurrency=${effectiveConcurrency})`)
+    console.log(
+      `[stage-run] ${label}: captioning ${totalPages} pages (concurrency=${effectiveConcurrency})`,
+    );
 
     await processWithConcurrency(
       pages,
@@ -1944,103 +2197,128 @@ async function runCaptionsStep(
       async (page: PageData) => {
         try {
           // Get rendered HTML for this page
-          const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
+          const renderingRow = storage.getLatestNodeData(
+            "web-rendering",
+            page.pageId,
+          );
           if (!renderingRow) {
             // No rendering — store empty result
-            storage.putNodeData("image-captioning", page.pageId, { captions: [] })
-            completedCaptions++
+            storage.putNodeData("image-captioning", page.pageId, {
+              captions: [],
+            });
+            completedCaptions++;
             progress.emit({
               type: "step-progress",
               step: "image-captioning",
               message: `${completedCaptions}/${totalPages}`,
               page: completedCaptions,
               totalPages,
-            })
-            return
+            });
+            return;
           }
 
-          const rendering = renderingRow.data as WebRenderingOutput
+          const rendering = renderingRow.data as WebRenderingOutput;
           // Filter out pruned sections before extracting image IDs
-          const sectioning = getRenderSectioning(storage, page.pageId)
+          const sectioning = getRenderSectioning(storage, page.pageId);
           const htmlSections = rendering.sections
             .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
-            .map((s) => s.html)
+            .map((s) => s.html);
           const imageIds = collectCaptionImageIds(
             htmlSections,
             glossaryImageIdsByPage.get(page.pageId),
-          )
+          );
 
           if (imageIds.length === 0) {
-            storage.putNodeData("image-captioning", page.pageId, { captions: [] })
-            completedCaptions++
+            storage.putNodeData("image-captioning", page.pageId, {
+              captions: [],
+            });
+            completedCaptions++;
             progress.emit({
               type: "step-progress",
               step: "image-captioning",
               message: `${completedCaptions}/${totalPages}`,
               page: completedCaptions,
               totalPages,
-            })
-            return
+            });
+            return;
           }
 
           const images = imageIds.map((imageId) => {
-            const dims = storage.getImageDimensions(imageId)
+            const dims = storage.getImageDimensions(imageId);
             return {
               imageId,
               imageBase64: storage.getImageBase64(imageId),
               width: dims?.width,
               height: dims?.height,
-            }
-          })
-          const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+            };
+          });
+          const pageImageBase64 = storage.getPageImageBase64(page.pageId);
 
           const result = await captionPageImages(
-            { pageId: page.pageId, pageImageBase64, images, language, bookSummary },
+            {
+              pageId: page.pageId,
+              pageImageBase64,
+              pageText: page.text,
+              images,
+              language,
+              bookSummary,
+            },
             captionConfig,
-            captionModel
-          )
+            captionModel,
+          );
 
           // Re-running captioning preserves the user's manual work. An entry the
           // user edited (caption text or the decorative toggle) is marked
           // source:"manual" and is kept wholesale across re-runs; everything
           // else is freshly regenerated and stamped source:"ai". Images that no
           // longer appear on the page simply fall out (their caption is moot).
-          const prev = storage.getLatestNodeData("image-captioning", page.pageId)
-            ?.data as ImageCaptioningOutput | undefined
+          const prev = storage.getLatestNodeData(
+            "image-captioning",
+            page.pageId,
+          )?.data as ImageCaptioningOutput | undefined;
           const prevById = new Map(
-            (prev?.captions ?? []).map((c) => [c.imageId, c])
-          )
+            (prev?.captions ?? []).map((c) => [c.imageId, c]),
+          );
           result.captions = result.captions.map((c) => {
-            const prior = prevById.get(c.imageId)
-            if (prior?.source === "manual") return prior
-            return { ...c, source: "ai" as const }
-          })
+            const prior = prevById.get(c.imageId);
+            if (prior?.source === "manual") return prior;
+            return { ...c, source: "ai" as const };
+          });
 
-          storage.putNodeData("image-captioning", page.pageId, result)
+          storage.putNodeData("image-captioning", page.pageId, result);
 
-          completedCaptions++
+          completedCaptions++;
           progress.emit({
             type: "step-progress",
             step: "image-captioning",
             message: `${completedCaptions}/${totalPages}`,
             page: completedCaptions,
             totalPages,
-          })
+          });
         } catch (err) {
-          await reportPageFailure(pageFailureDeps, progress, "image-captioning", page.pageId, err)
+          await reportPageFailure(
+            pageFailureDeps,
+            progress,
+            "image-captioning",
+            page.pageId,
+            err,
+          );
         }
       },
       { runSignal: options.signal, stopSignal: stepController.signal, gate },
-    )
+    );
 
     if (stepController.signal.aborted) {
-      throw new StepError("image-captioning", "Stopped by a page-error decision")
+      throw new StepError(
+        "image-captioning",
+        "Stopped by a page-error decision",
+      );
     }
 
-    finishPageStep(progress, "image-captioning", pageFailureDeps)
-    console.log(`[stage-run] ${label}: captions complete`)
+    finishPageStep(progress, "image-captioning", pageFailureDeps);
+    console.log(`[stage-run] ${label}: captions complete`);
   } finally {
-    storage.close()
+    storage.close();
   }
 }
 
@@ -2051,30 +2329,34 @@ async function runCaptionsStep(
 async function runGlossaryStep(
   label: string,
   options: StageRunOptions,
-  progress: StageRunProgress
+  progress: StageRunProgress,
 ): Promise<void> {
-  const { booksDir, promptsDir, configPath } = options
+  const { booksDir, promptsDir, configPath } = options;
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = createBookStorage(label, booksDir);
 
   try {
-    const config = loadBookConfig(label, booksDir, configPath)
-    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const config = loadBookConfig(label, booksDir, configPath);
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache");
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts");
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir]);
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
-      : undefined
-    const llmCredentials = buildLLMCredentials(options)
+      : undefined;
+    const llmCredentials = buildLLMCredentials(options);
 
     // Get book language from metadata
-    const metadataRow = storage.getLatestNodeData("metadata", "book")
-    const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+    const metadataRow = storage.getLatestNodeData("metadata", "book");
+    const metadata = metadataRow?.data as {
+      language_code?: string | null;
+    } | null;
+    const language = normalizeLocale(
+      config.editing_language ?? metadata?.language_code ?? "en",
+    );
 
     const onLlmLog = (entry: LlmLogEntry) => {
-      storage.appendLlmLog(entry)
-      const step = entry.taskType as StepName
+      storage.appendLlmLog(entry);
+      const step = entry.taskType as StepName;
       progress.emit({
         type: "llm-log",
         step,
@@ -2086,10 +2368,10 @@ async function runGlossaryStep(
         inputTokens: entry.usage?.inputTokens,
         outputTokens: entry.usage?.outputTokens,
         validationErrors: entry.validationErrors,
-      })
-    }
+      });
+    };
 
-    const glossaryConfig = buildGlossaryConfig(config, language)
+    const glossaryConfig = buildGlossaryConfig(config, language);
     const glossaryModel = createLLMModel({
       modelId: glossaryConfig.modelId,
       cacheDir,
@@ -2098,14 +2380,16 @@ async function runGlossaryStep(
       onLog: onLlmLog,
       credentials: llmCredentials,
       signal: options.signal,
-    })
+    });
 
-    const pages = storage.getPages()
-    const effectiveConcurrency = config.concurrency ?? 32
+    const pages = storage.getPages();
+    const effectiveConcurrency = config.concurrency ?? 32;
 
-    progress.emit({ type: "step-start", step: "glossary" })
+    progress.emit({ type: "step-start", step: "glossary" });
 
-    console.log(`[stage-run] ${label}: generating glossary from ${pages.length} pages`)
+    console.log(
+      `[stage-run] ${label}: generating glossary from ${pages.length} pages`,
+    );
 
     const glossary = await regenerateGlossaryPreservingEdits({
       storage,
@@ -2120,20 +2404,22 @@ async function runGlossaryStep(
           message: `${completed}/${total}`,
           page: completed,
           totalPages: total,
-        })
+        });
       },
-    })
-    storage.putNodeData("glossary", "book", glossary)
+    });
+    storage.putNodeData("glossary", "book", glossary);
 
     progress.emit({
       type: "step-progress",
       step: "glossary",
       message: `${glossary.items.length} terms from ${glossary.pageCount} pages`,
-    })
-    progress.emit({ type: "step-complete", step: "glossary" })
-    console.log(`[stage-run] ${label}: glossary complete (${glossary.items.length} terms)`)
+    });
+    progress.emit({ type: "step-complete", step: "glossary" });
+    console.log(
+      `[stage-run] ${label}: glossary complete (${glossary.items.length} terms)`,
+    );
   } finally {
-    storage.close()
+    storage.close();
   }
 }
 
@@ -2144,29 +2430,33 @@ async function runGlossaryStep(
 async function runTocStep(
   label: string,
   options: StageRunOptions,
-  progress: StageRunProgress
+  progress: StageRunProgress,
 ): Promise<void> {
-  const { booksDir, promptsDir, configPath } = options
+  const { booksDir, promptsDir, configPath } = options;
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = createBookStorage(label, booksDir);
 
   try {
-    const config = loadBookConfig(label, booksDir, configPath)
-    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const config = loadBookConfig(label, booksDir, configPath);
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache");
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts");
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir]);
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
-      : undefined
-    const llmCredentials = buildLLMCredentials(options)
+      : undefined;
+    const llmCredentials = buildLLMCredentials(options);
 
-    const metadataRow = storage.getLatestNodeData("metadata", "book")
-    const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+    const metadataRow = storage.getLatestNodeData("metadata", "book");
+    const metadata = metadataRow?.data as {
+      language_code?: string | null;
+    } | null;
+    const language = normalizeLocale(
+      config.editing_language ?? metadata?.language_code ?? "en",
+    );
 
     const onLlmLog = (entry: LlmLogEntry) => {
-      storage.appendLlmLog(entry)
-      const step = entry.taskType as StepName
+      storage.appendLlmLog(entry);
+      const step = entry.taskType as StepName;
       progress.emit({
         type: "llm-log",
         step,
@@ -2178,10 +2468,10 @@ async function runTocStep(
         inputTokens: entry.usage?.inputTokens,
         outputTokens: entry.usage?.outputTokens,
         validationErrors: entry.validationErrors,
-      })
-    }
+      });
+    };
 
-    const tocConfig = buildTocGenerationConfig(config, language)
+    const tocConfig = buildTocGenerationConfig(config, language);
     const tocModel = createLLMModel({
       modelId: tocConfig.modelId,
       cacheDir,
@@ -2190,31 +2480,35 @@ async function runTocStep(
       onLog: onLlmLog,
       credentials: llmCredentials,
       signal: options.signal,
-    })
+    });
 
-    const pages = storage.getPages()
+    const pages = storage.getPages();
 
-    progress.emit({ type: "step-start", step: "toc-generation" })
+    progress.emit({ type: "step-start", step: "toc-generation" });
 
-    console.log(`[stage-run] ${label}: generating TOC from ${pages.length} pages`)
+    console.log(
+      `[stage-run] ${label}: generating TOC from ${pages.length} pages`,
+    );
 
     const toc = await generateToc({
       storage,
       pages,
       config: tocConfig,
       llmModel: tocModel,
-    })
-    storage.putNodeData("toc-generation", "book", toc)
+    });
+    storage.putNodeData("toc-generation", "book", toc);
 
     progress.emit({
       type: "step-progress",
       step: "toc-generation",
       message: `${toc.entries.length} entries`,
-    })
-    progress.emit({ type: "step-complete", step: "toc-generation" })
-    console.log(`[stage-run] ${label}: TOC complete (${toc.entries.length} entries)`)
+    });
+    progress.emit({ type: "step-complete", step: "toc-generation" });
+    console.log(
+      `[stage-run] ${label}: TOC complete (${toc.entries.length} entries)`,
+    );
   } finally {
-    storage.close()
+    storage.close();
   }
 }
 
@@ -2225,30 +2519,34 @@ async function runTocStep(
 async function runEasyReadStep(
   label: string,
   options: StageRunOptions,
-  progress: StageRunProgress
+  progress: StageRunProgress,
 ): Promise<void> {
-  const { booksDir, promptsDir, configPath } = options
+  const { booksDir, promptsDir, configPath } = options;
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = createBookStorage(label, booksDir);
 
   try {
-    const config = loadBookConfig(label, booksDir, configPath)
-    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const config = loadBookConfig(label, booksDir, configPath);
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache");
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts");
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir]);
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
-      : undefined
-    const llmCredentials = buildLLMCredentials(options)
+      : undefined;
+    const llmCredentials = buildLLMCredentials(options);
 
     // Get book language from metadata
-    const metadataRow = storage.getLatestNodeData("metadata", "book")
-    const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+    const metadataRow = storage.getLatestNodeData("metadata", "book");
+    const metadata = metadataRow?.data as {
+      language_code?: string | null;
+    } | null;
+    const language = normalizeLocale(
+      config.editing_language ?? metadata?.language_code ?? "en",
+    );
 
     const onLlmLog = (entry: LlmLogEntry) => {
-      storage.appendLlmLog(entry)
-      const step = entry.taskType as StepName
+      storage.appendLlmLog(entry);
+      const step = entry.taskType as StepName;
       progress.emit({
         type: "llm-log",
         step,
@@ -2260,56 +2558,70 @@ async function runEasyReadStep(
         inputTokens: entry.usage?.inputTokens,
         outputTokens: entry.usage?.outputTokens,
         validationErrors: entry.validationErrors,
-      })
-    }
+      });
+    };
 
-    const pages = storage.getPages()
-    const effectiveConcurrency = config.concurrency ?? 32
+    const pages = storage.getPages();
+    const effectiveConcurrency = config.concurrency ?? 32;
 
     // Output languages — always include the base language so it's treated as a first-class output
     const outputLanguages = Array.from(
       new Set(
-        [language, ...(config.output_languages ?? [])].map((code) => normalizeLocale(code))
-      )
-    )
+        [language, ...(config.output_languages ?? [])].map((code) =>
+          normalizeLocale(code),
+        ),
+      ),
+    );
 
     // ── Step 1: Build text catalog ──────────────────────────────────
-    progress.emit({ type: "step-start", step: "text-catalog" })
-    progress.emit({ type: "step-progress", step: "text-catalog", message: "Building text catalog..." })
+    progress.emit({ type: "step-start", step: "text-catalog" });
+    progress.emit({
+      type: "step-progress",
+      step: "text-catalog",
+      message: "Building text catalog...",
+    });
 
-    console.log(`[stage-run] ${label}: building text catalog from ${pages.length} pages`)
+    console.log(
+      `[stage-run] ${label}: building text catalog from ${pages.length} pages`,
+    );
 
-    const catalog = await buildTextCatalog(storage, pages)
-    storage.putNodeData("text-catalog", "book", catalog)
+    const catalog = await buildTextCatalog(storage, pages);
+    storage.putNodeData("text-catalog", "book", catalog);
 
     progress.emit({
       type: "step-progress",
       step: "text-catalog",
       message: `${catalog.entries.length} entries`,
-    })
-    progress.emit({ type: "step-complete", step: "text-catalog" })
+    });
+    progress.emit({ type: "step-complete", step: "text-catalog" });
 
-    const baseEasyReadConfig = buildEasyReadConfig(config, language)
-    const explicitEasyReadRun = options.fromStage === "easy-read" && options.toStage === "easy-read"
+    const baseEasyReadConfig = buildEasyReadConfig(config, language);
+    const explicitEasyReadRun =
+      options.fromStage === "easy-read" && options.toStage === "easy-read";
     const easyReadConfig = {
       ...baseEasyReadConfig,
       enabled: explicitEasyReadRun || baseEasyReadConfig.enabled,
-    }
-    let easyReadEntries: TextCatalogEntry[] = []
+    };
+    let easyReadEntries: TextCatalogEntry[] = [];
 
     if (!easyReadConfig.enabled) {
-      progress.emit({ type: "step-skip", step: "easy-read" })
-      console.log(`[stage-run] ${label}: easy read skipped (disabled)`)
+      progress.emit({ type: "step-skip", step: "easy-read" });
+      console.log(`[stage-run] ${label}: easy read skipped (disabled)`);
     } else {
-      progress.emit({ type: "step-start", step: "easy-read" })
-      const blocks = buildEasyReadSourceBlocks(storage, pages)
+      progress.emit({ type: "step-start", step: "easy-read" });
+      const blocks = buildEasyReadSourceBlocks(storage, pages);
       if (blocks.length === 0) {
-        const existingEasyRead = storage.getLatestNodeData("easy-read", "book")?.data
+        const existingEasyRead = storage.getLatestNodeData(
+          "easy-read",
+          "book",
+        )?.data;
         if (!isDeterministicEmptyEasyReadOutput(existingEasyRead)) {
-          storage.putNodeData("easy-read", "book", createEmptyEasyReadOutput())
+          storage.putNodeData("easy-read", "book", createEmptyEasyReadOutput());
         }
-        progress.emit({ type: "step-skip", step: "easy-read" })
-        console.log(`[stage-run] ${label}: easy read skipped (no eligible text)`)
+        progress.emit({ type: "step-skip", step: "easy-read" });
+        console.log(
+          `[stage-run] ${label}: easy read skipped (no eligible text)`,
+        );
       } else {
         const easyReadModel = createLLMModel({
           modelId: easyReadConfig.modelId,
@@ -2319,42 +2631,52 @@ async function runEasyReadStep(
           onLog: onLlmLog,
           credentials: llmCredentials,
           signal: options.signal,
-        })
-        const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
+        });
+        const totalEntries = blocks.reduce(
+          (sum, block) => sum + block.entries.length,
+          0,
+        );
         progress.emit({
           type: "step-progress",
           step: "easy-read",
           message: `0/${totalEntries}`,
           page: 0,
           totalPages: totalEntries,
-        })
-        const easyRead = await generateEasyRead(blocks, easyReadConfig, easyReadModel, {
-          concurrency: effectiveConcurrency,
-          onProgress: (completed, total) => {
-            progress.emit({
-              type: "step-progress",
-              step: "easy-read",
-              message: `${completed}/${total}`,
-              page: completed,
-              totalPages: total,
-            })
+        });
+        const easyRead = await generateEasyRead(
+          blocks,
+          easyReadConfig,
+          easyReadModel,
+          {
+            concurrency: effectiveConcurrency,
+            onProgress: (completed, total) => {
+              progress.emit({
+                type: "step-progress",
+                step: "easy-read",
+                message: `${completed}/${total}`,
+                page: completed,
+                totalPages: total,
+              });
+            },
           },
-        })
-        storage.putNodeData("easy-read", "book", easyRead)
-        easyReadEntries = flattenEasyReadEntries(easyRead)
+        );
+        storage.putNodeData("easy-read", "book", easyRead);
+        easyReadEntries = flattenEasyReadEntries(easyRead);
         progress.emit({
           type: "step-progress",
           step: "easy-read",
           message: `${easyReadEntries.length} entries`,
-        })
-        progress.emit({ type: "step-complete", step: "easy-read" })
-        console.log(`[stage-run] ${label}: easy read generated ${easyReadEntries.length} entries`)
+        });
+        progress.emit({ type: "step-complete", step: "easy-read" });
+        console.log(
+          `[stage-run] ${label}: easy read generated ${easyReadEntries.length} entries`,
+        );
       }
     }
 
-    console.log(`[stage-run] ${label}: easy read stage complete`)
+    console.log(`[stage-run] ${label}: easy read stage complete`);
   } finally {
-    storage.close()
+    storage.close();
   }
 }
 
@@ -2365,29 +2687,33 @@ async function runEasyReadStep(
 async function runTranslateStep(
   label: string,
   options: StageRunOptions,
-  progress: StageRunProgress
+  progress: StageRunProgress,
 ): Promise<void> {
-  const { booksDir, promptsDir, configPath } = options
+  const { booksDir, promptsDir, configPath } = options;
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = createBookStorage(label, booksDir);
 
   try {
-    const config = loadBookConfig(label, booksDir, configPath)
-    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const config = loadBookConfig(label, booksDir, configPath);
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache");
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts");
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir]);
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
-      : undefined
-    const llmCredentials = buildLLMCredentials(options)
+      : undefined;
+    const llmCredentials = buildLLMCredentials(options);
 
-    const metadataRow = storage.getLatestNodeData("metadata", "book")
-    const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+    const metadataRow = storage.getLatestNodeData("metadata", "book");
+    const metadata = metadataRow?.data as {
+      language_code?: string | null;
+    } | null;
+    const language = normalizeLocale(
+      config.editing_language ?? metadata?.language_code ?? "en",
+    );
 
     const onLlmLog = (entry: LlmLogEntry) => {
-      storage.appendLlmLog(entry)
-      const step = entry.taskType as StepName
+      storage.appendLlmLog(entry);
+      const step = entry.taskType as StepName;
       progress.emit({
         type: "llm-log",
         step,
@@ -2399,15 +2725,17 @@ async function runTranslateStep(
         inputTokens: entry.usage?.inputTokens,
         outputTokens: entry.usage?.outputTokens,
         validationErrors: entry.validationErrors,
-      })
-    }
+      });
+    };
 
-    const effectiveConcurrency = config.concurrency ?? 32
+    const effectiveConcurrency = config.concurrency ?? 32;
     const outputLanguages = Array.from(
       new Set(
-        [language, ...(config.output_languages ?? [])].map((code) => normalizeLocale(code))
-      )
-    )
+        [language, ...(config.output_languages ?? [])].map((code) =>
+          normalizeLocale(code),
+        ),
+      ),
+    );
 
     // The text-catalog is a derived artifact (a pure read of storyboard +
     // captions + glossary + quizzes, no LLM). It's normally produced by the
@@ -2421,31 +2749,30 @@ async function runTranslateStep(
     //     entirely absent), silently skipping all translation.
     // Always rebuild from current data; persist a new version only when the
     // content changed, to avoid version churn on repeated re-runs.
-    const pages = storage.getPages()
-    const catalog = await buildTextCatalog(storage, pages)
-    const existingCatalog = storage.getLatestNodeData("text-catalog", "book")?.data as
-      | TextCatalogOutput
-      | undefined
+    const pages = storage.getPages();
+    const catalog = await buildTextCatalog(storage, pages);
+    const existingCatalog = storage.getLatestNodeData("text-catalog", "book")
+      ?.data as TextCatalogOutput | undefined;
     if (!textCatalogsEqual(existingCatalog, catalog)) {
-      storage.putNodeData("text-catalog", "book", catalog)
+      storage.putNodeData("text-catalog", "book", catalog);
       console.log(
-        `[stage-run] ${label}: rebuilt text catalog (${catalog.entries.length} entries)`
-      )
+        `[stage-run] ${label}: rebuilt text catalog (${catalog.entries.length} entries)`,
+      );
     }
-    const easyReadRow = storage.getLatestNodeData("easy-read", "book")
-    const easyRead = easyReadRow?.data as EasyReadOutput | undefined
-    const easyReadEntries = easyRead ? flattenEasyReadEntries(easyRead) : []
-    const translationEntries = [...catalog.entries, ...easyReadEntries]
+    const easyReadRow = storage.getLatestNodeData("easy-read", "book");
+    const easyRead = easyReadRow?.data as EasyReadOutput | undefined;
+    const easyReadEntries = easyRead ? flattenEasyReadEntries(easyRead) : [];
+    const translationEntries = [...catalog.entries, ...easyReadEntries];
 
     // ── Step 2: Translate catalog to target languages ────────────────
-    const targetLanguages = getTargetLanguages(outputLanguages, language)
+    const targetLanguages = getTargetLanguages(outputLanguages, language);
     if (targetLanguages.length === 0 || translationEntries.length === 0) {
-      progress.emit({ type: "step-skip", step: "catalog-translation" })
-      console.log(`[stage-run] ${label}: catalog translation skipped`)
+      progress.emit({ type: "step-skip", step: "catalog-translation" });
+      console.log(`[stage-run] ${label}: catalog translation skipped`);
     } else {
-      progress.emit({ type: "step-start", step: "catalog-translation" })
+      progress.emit({ type: "step-start", step: "catalog-translation" });
 
-      const translationConfig = buildCatalogTranslationConfig(config, language)
+      const translationConfig = buildCatalogTranslationConfig(config, language);
       const translationModel = createLLMModel({
         modelId: translationConfig.modelId,
         cacheDir,
@@ -2454,31 +2781,31 @@ async function runTranslateStep(
         onLog: onLlmLog,
         credentials: llmCredentials,
         signal: options.signal,
-      })
+      });
 
-      const batchSize = translationConfig.batchSize
+      const batchSize = translationConfig.batchSize;
       interface TranslationWorkItem {
-        language: string
-        batchIndex: number
-        entries: TextCatalogEntry[]
+        language: string;
+        batchIndex: number;
+        entries: TextCatalogEntry[];
       }
-      const workItems: TranslationWorkItem[] = []
+      const workItems: TranslationWorkItem[] = [];
       for (const lang of targetLanguages) {
         for (let i = 0; i < translationEntries.length; i += batchSize) {
           workItems.push({
             language: lang,
             batchIndex: Math.floor(i / batchSize),
             entries: translationEntries.slice(i, i + batchSize),
-          })
+          });
         }
       }
 
-      const totalBatches = workItems.length
-      let completedBatches = 0
+      const totalBatches = workItems.length;
+      let completedBatches = 0;
 
-      const resultsByLang = new Map<string, TextCatalogEntry[]>()
+      const resultsByLang = new Map<string, TextCatalogEntry[]>();
       for (const lang of targetLanguages) {
-        resultsByLang.set(lang, [])
+        resultsByLang.set(lang, []);
       }
 
       progress.emit({
@@ -2487,9 +2814,11 @@ async function runTranslateStep(
         message: `0/${totalBatches} batches (${targetLanguages.length} languages)`,
         page: 0,
         totalPages: totalBatches,
-      })
+      });
 
-      console.log(`[stage-run] ${label}: translating ${translationEntries.length} entries to ${targetLanguages.length} languages (${totalBatches} batches)`)
+      console.log(
+        `[stage-run] ${label}: translating ${translationEntries.length} entries to ${targetLanguages.length} languages (${totalBatches} batches)`,
+      );
 
       await processWithConcurrency(
         workItems,
@@ -2499,40 +2828,42 @@ async function runTranslateStep(
             item.entries,
             item.language,
             translationConfig,
-            translationModel
-          )
-          resultsByLang.get(item.language)!.push(...translated)
-          completedBatches++
+            translationModel,
+          );
+          resultsByLang.get(item.language)!.push(...translated);
+          completedBatches++;
           progress.emit({
             type: "step-progress",
             step: "catalog-translation",
             message: `${completedBatches}/${totalBatches} batches`,
             page: completedBatches,
             totalPages: totalBatches,
-          })
+          });
         },
         { runSignal: options.signal },
-      )
+      );
 
       for (const lang of targetLanguages) {
-        const entries = resultsByLang.get(lang)!
-        const idOrder = new Map(translationEntries.map((e, i) => [e.id, i]))
-        entries.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
+        const entries = resultsByLang.get(lang)!;
+        const idOrder = new Map(translationEntries.map((e, i) => [e.id, i]));
+        entries.sort(
+          (a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0),
+        );
 
         const output: TextCatalogOutput = {
           entries,
           generatedAt: new Date().toISOString(),
-        }
-        storage.putNodeData("text-catalog-translation", lang, output)
+        };
+        storage.putNodeData("text-catalog-translation", lang, output);
       }
 
-      progress.emit({ type: "step-complete", step: "catalog-translation" })
-      console.log(`[stage-run] ${label}: catalog translation complete`)
+      progress.emit({ type: "step-complete", step: "catalog-translation" });
+      console.log(`[stage-run] ${label}: catalog translation complete`);
     }
 
     // ── Step 3: Prepare the independent per-language Core TTS catalogs ──
-    progress.emit({ type: "step-start", step: "core-tts-catalog" })
-    const coreTtsConfig = buildCoreTtsPreparationConfig(config)
+    progress.emit({ type: "step-start", step: "core-tts-catalog" });
+    const coreTtsConfig = buildCoreTtsPreparationConfig(config);
     const coreTtsModel = createLLMModel({
       modelId: coreTtsConfig.modelId,
       cacheDir,
@@ -2541,12 +2872,12 @@ async function runTranslateStep(
       onLog: onLlmLog,
       credentials: llmCredentials,
       signal: options.signal,
-    })
+    });
     const coreTtsConfigDir = configPath
       ? path.join(path.dirname(configPath), "config")
-      : path.resolve(process.cwd(), "config")
-    const profiles = loadCoreTtsProfiles(coreTtsConfigDir)
-    const sourceDisplayEntries = [...catalog.entries, ...easyReadEntries]
+      : path.resolve(process.cwd(), "config");
+    const profiles = loadCoreTtsProfiles(coreTtsConfigDir);
+    const sourceDisplayEntries = [...catalog.entries, ...easyReadEntries];
     const sourceCoreTts = await prepareCoreTtsCatalog({
       entries: sourceDisplayEntries,
       language,
@@ -2554,28 +2885,29 @@ async function runTranslateStep(
       profile: resolveCoreTtsProfile(language, profiles),
       llmModel: coreTtsModel,
       previous: getCoreTtsCatalog(storage, language),
-    })
-    storage.putNodeData("core-tts-catalog", language, sourceCoreTts)
+    });
+    storage.putNodeData("core-tts-catalog", language, sourceCoreTts);
     const sourceContext = buildCoreTtsSourceContext(
       sourceDisplayEntries,
       sourceCoreTts,
-    )
+    );
 
-    let preparedLanguages = 1
+    let preparedLanguages = 1;
     const preparationLocales = getCoreTtsPreparationLocales(
       outputLanguages,
       language,
-    )
+    );
     for (const locale of preparationLocales) {
-      const lang = locale.language
-      let targetDisplayEntries = sourceDisplayEntries
+      const lang = locale.language;
+      let targetDisplayEntries = sourceDisplayEntries;
       if (!locale.usesSourceDisplayText) {
-        const legacyLang = lang.replace("-", "_")
+        const legacyLang = lang.replace("-", "_");
         const translatedRow =
           storage.getLatestNodeData("text-catalog-translation", lang) ??
-          storage.getLatestNodeData("text-catalog-translation", legacyLang)
-        if (!translatedRow) continue
-        targetDisplayEntries = (translatedRow.data as TextCatalogOutput).entries
+          storage.getLatestNodeData("text-catalog-translation", legacyLang);
+        if (!translatedRow) continue;
+        targetDisplayEntries = (translatedRow.data as TextCatalogOutput)
+          .entries;
       }
       const targetCoreTts = await prepareCoreTtsCatalog({
         entries: targetDisplayEntries,
@@ -2585,22 +2917,22 @@ async function runTranslateStep(
         llmModel: coreTtsModel,
         previous: getCoreTtsCatalog(storage, lang),
         sourceContext,
-      })
-      storage.putNodeData("core-tts-catalog", lang, targetCoreTts)
-      preparedLanguages++
+      });
+      storage.putNodeData("core-tts-catalog", lang, targetCoreTts);
+      preparedLanguages++;
       progress.emit({
         type: "step-progress",
         step: "core-tts-catalog",
         message: `${preparedLanguages}/${outputLanguages.length} languages`,
         page: preparedLanguages,
         totalPages: outputLanguages.length,
-      })
+      });
     }
-    progress.emit({ type: "step-complete", step: "core-tts-catalog" })
+    progress.emit({ type: "step-complete", step: "core-tts-catalog" });
 
     // ── Step 4: Translate burned-in text in user-selected images ────
-    const imageTranslation = buildImageTranslationConfig(config)
-    const imageTargetLanguages = getTargetLanguages(outputLanguages, language)
+    const imageTranslation = buildImageTranslationConfig(config);
+    const imageTargetLanguages = getTargetLanguages(outputLanguages, language);
     if (
       !imageTranslation.enabled ||
       imageTranslation.selectedImageIds.length === 0 ||
@@ -2608,73 +2940,78 @@ async function runTranslateStep(
     ) {
       // Disabling the step or shrinking the selection should remove stale
       // variants from disk and DB.
-      storage.clearTranslatedImages()
-      progress.emit({ type: "step-skip", step: "image-translation" })
+      storage.clearTranslatedImages();
+      progress.emit({ type: "step-skip", step: "image-translation" });
       console.log(
         `[stage-run] ${label}: image translation skipped ` +
-        `(enabled=${imageTranslation.enabled}, selected=${imageTranslation.selectedImageIds.length}, targets=${imageTargetLanguages.length})`
-      )
+          `(enabled=${imageTranslation.enabled}, selected=${imageTranslation.selectedImageIds.length}, targets=${imageTargetLanguages.length})`,
+      );
     } else {
-      progress.emit({ type: "step-start", step: "image-translation" })
+      progress.emit({ type: "step-start", step: "image-translation" });
 
       // Validate prerequisites BEFORE clearing existing variants — a missing
       // API key shouldn't wipe prior work.
       if (!options.apiKey) {
         throw new StepError(
           "image-translation",
-          "Image translation requires an OpenAI API key"
-        )
+          "Image translation requires an OpenAI API key",
+        );
       }
 
-      const promptName = config.image_translation?.prompt ?? "image_translation"
+      const promptName =
+        config.image_translation?.prompt ?? "image_translation";
       const bookPromptPath = path.join(
         path.resolve(booksDir),
         label,
         "prompts",
-        `${promptName}.liquid`
-      )
+        `${promptName}.liquid`,
+      );
       const globalPromptPath = path.join(
         path.resolve(promptsDir),
-        `${promptName}.liquid`
-      )
-      let templateContent: string | null = null
+        `${promptName}.liquid`,
+      );
+      let templateContent: string | null = null;
       if (fs.existsSync(bookPromptPath)) {
-        templateContent = fs.readFileSync(bookPromptPath, "utf-8")
+        templateContent = fs.readFileSync(bookPromptPath, "utf-8");
       } else if (fs.existsSync(globalPromptPath)) {
-        templateContent = fs.readFileSync(globalPromptPath, "utf-8")
+        templateContent = fs.readFileSync(globalPromptPath, "utf-8");
       }
       if (!templateContent) {
         throw new StepError(
           "image-translation",
-          `Image translation prompt not found: ${promptName}.liquid`
-        )
+          `Image translation prompt not found: ${promptName}.liquid`,
+        );
       }
-      const promptText = await renderLiquidTemplate(templateContent.trim(), {})
+      const promptText = await renderLiquidTemplate(templateContent.trim(), {});
 
       // Prerequisites validated — safe to clear previously-generated variants so
       // shrinking the selection or changing languages drops stale ones. Cached
       // regeneration is fast for variants we still want.
-      storage.clearTranslatedImages()
+      storage.clearTranslatedImages();
 
       // Resolve which selected images actually exist + grab their on-disk paths
       type ImageWork = {
-        imageId: string
-        pageId: string
-        targetLanguage: string
-        diskPath: string
-      }
-      const bookDir = path.join(path.resolve(booksDir), label)
-      const items: ImageWork[] = []
+        imageId: string;
+        pageId: string;
+        targetLanguage: string;
+        diskPath: string;
+      };
+      const bookDir = path.join(path.resolve(booksDir), label);
+      const items: ImageWork[] = [];
       for (const imageId of imageTranslation.selectedImageIds) {
-        const meta = storage.getImageMeta(imageId)
+        const meta = storage.getImageMeta(imageId);
         if (!meta) {
-          console.warn(`[stage-run] ${label}: image-translation skipping unknown image ${imageId}`)
-          continue
+          console.warn(
+            `[stage-run] ${label}: image-translation skipping unknown image ${imageId}`,
+          );
+          continue;
         }
-        const diskPath = path.resolve(bookDir, meta.relativePath)
+        const diskPath = path.resolve(bookDir, meta.relativePath);
         if (!fs.existsSync(diskPath)) {
-          console.warn(`[stage-run] ${label}: image-translation skipping missing-on-disk image ${imageId}`)
-          continue
+          console.warn(
+            `[stage-run] ${label}: image-translation skipping missing-on-disk image ${imageId}`,
+          );
+          continue;
         }
         for (const targetLang of imageTargetLanguages) {
           items.push({
@@ -2682,82 +3019,91 @@ async function runTranslateStep(
             pageId: meta.pageId,
             targetLanguage: targetLang,
             diskPath,
-          })
+          });
         }
       }
 
       if (items.length === 0) {
-        progress.emit({ type: "step-skip", step: "image-translation" })
-        console.log(`[stage-run] ${label}: image translation skipped (no resolvable images)`)
+        progress.emit({ type: "step-skip", step: "image-translation" });
+        console.log(
+          `[stage-run] ${label}: image translation skipped (no resolvable images)`,
+        );
       } else {
-        const total = items.length
-        let completed = 0
+        const total = items.length;
+        let completed = 0;
         progress.emit({
           type: "step-progress",
           step: "image-translation",
           message: `0/${total}`,
           page: 0,
           totalPages: total,
-        })
+        });
 
-        const imageModelId = imageTranslation.modelId
+        const imageModelId = imageTranslation.modelId;
         // Run with low concurrency — image edits are heavy & rate-limited.
-        const imageConcurrency = Math.min(effectiveConcurrency, 4)
-        await processWithConcurrency(items, imageConcurrency, async (item) => {
-          try {
-            const buffer = fs.readFileSync(item.diskPath)
-            const result = await translateImage({
-              apiKey: options.apiKey,
-              modelId: imageModelId,
-              prompt: promptText,
-              sourceLanguage: language,
-              targetLanguage: item.targetLanguage,
-              imageBuffer: buffer,
-              imageName: `${item.imageId}.png`,
-              cacheDir,
-              log: {
-                taskType: "image-translation",
+        const imageConcurrency = Math.min(effectiveConcurrency, 4);
+        await processWithConcurrency(
+          items,
+          imageConcurrency,
+          async (item) => {
+            try {
+              const buffer = fs.readFileSync(item.diskPath);
+              const result = await translateImage({
+                apiKey: options.apiKey,
+                modelId: imageModelId,
+                prompt: promptText,
+                sourceLanguage: language,
+                targetLanguage: item.targetLanguage,
+                imageBuffer: buffer,
+                imageName: `${item.imageId}.png`,
+                cacheDir,
+                log: {
+                  taskType: "image-translation",
+                  pageId: item.pageId,
+                  promptName,
+                },
+                onLog: onLlmLog,
+                signal: options.signal,
+              });
+
+              storage.putTranslatedImage({
+                sourceImageId: item.imageId,
                 pageId: item.pageId,
-                promptName,
-              },
-              onLog: onLlmLog,
-              signal: options.signal,
-            })
+                languageCode: item.targetLanguage,
+                buffer: result.buffer,
+                width: result.width,
+                height: result.height,
+              });
+            } catch (err) {
+              if (isCancellation(err, [options.signal])) throw err;
+              const message = toErrorMessage(err);
+              console.warn(
+                `[stage-run] ${label}: image-translation failed for ${item.imageId} → ${item.targetLanguage}: ${message}`,
+              );
+            } finally {
+              completed++;
+              progress.emit({
+                type: "step-progress",
+                step: "image-translation",
+                message: `${completed}/${total}`,
+                page: completed,
+                totalPages: total,
+              });
+            }
+          },
+          { runSignal: options.signal },
+        );
 
-            storage.putTranslatedImage({
-              sourceImageId: item.imageId,
-              pageId: item.pageId,
-              languageCode: item.targetLanguage,
-              buffer: result.buffer,
-              width: result.width,
-              height: result.height,
-            })
-          } catch (err) {
-            if (isCancellation(err, [options.signal])) throw err
-            const message = toErrorMessage(err)
-            console.warn(
-              `[stage-run] ${label}: image-translation failed for ${item.imageId} → ${item.targetLanguage}: ${message}`
-            )
-          } finally {
-            completed++
-            progress.emit({
-              type: "step-progress",
-              step: "image-translation",
-              message: `${completed}/${total}`,
-              page: completed,
-              totalPages: total,
-            })
-          }
-        }, { runSignal: options.signal })
-
-        progress.emit({ type: "step-complete", step: "image-translation" })
-        console.log(`[stage-run] ${label}: image translation complete (${completed}/${total})`)
+        progress.emit({ type: "step-complete", step: "image-translation" });
+        console.log(
+          `[stage-run] ${label}: image translation complete (${completed}/${total})`,
+        );
       }
     }
 
-    console.log(`[stage-run] ${label}: translate stage complete`)
+    console.log(`[stage-run] ${label}: translate stage complete`);
   } finally {
-    storage.close()
+    storage.close();
   }
 }
 
@@ -2768,169 +3114,284 @@ async function runTranslateStep(
 async function runSpeechStep(
   label: string,
   options: StageRunOptions,
-  progress: StageRunProgress
+  progress: StageRunProgress,
 ): Promise<void> {
-  const { booksDir, configPath } = options
+  const { booksDir, configPath } = options;
 
-  const storage = createBookStorage(label, booksDir)
+  const storage = createBookStorage(label, booksDir);
 
   try {
-    const config = loadBookConfig(label, booksDir, configPath)
-    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const bookDir = path.join(path.resolve(booksDir), label)
+    const config = loadBookConfig(label, booksDir, configPath);
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache");
+    const bookDir = path.join(path.resolve(booksDir), label);
     const configDir = configPath
       ? path.join(path.dirname(configPath), "config")
-      : path.resolve(process.cwd(), "config")
+      : path.resolve(process.cwd(), "config");
 
     // Get book language from metadata
-    const metadataRow = storage.getLatestNodeData("metadata", "book")
-    const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+    const metadataRow = storage.getLatestNodeData("metadata", "book");
+    const metadata = metadataRow?.data as {
+      language_code?: string | null;
+    } | null;
+    const language = normalizeLocale(
+      config.editing_language ?? metadata?.language_code ?? "en",
+    );
 
-    const effectiveConcurrency = config.concurrency ?? 32
+    const effectiveConcurrency = config.concurrency ?? 32;
 
     // Output languages — always include the base language so TTS is generated for it too
     const outputLanguages = Array.from(
       new Set(
-        [language, ...(config.output_languages ?? [])].map((code) => normalizeLocale(code))
-      )
-    )
+        [language, ...(config.output_languages ?? [])].map((code) =>
+          normalizeLocale(code),
+        ),
+      ),
+    );
 
     // Core TTS is the only provider-text source. It already includes Easy Read
     // entries and deliberately omits failed LaTeX conversions.
     const hasCoreTtsEntries = outputLanguages.some(
       (lang) => getReadyCoreTtsEntries(storage, lang).length > 0,
-    )
+    );
     if (!hasCoreTtsEntries) {
-      progress.emit({ type: "step-skip", step: "tts" })
-      progress.emit({ type: "step-skip", step: "word-timestamps" })
-      console.log(`[stage-run] ${label}: TTS skipped (empty Core TTS catalog)`)
-      return
+      progress.emit({ type: "step-skip", step: "tts" });
+      progress.emit({ type: "step-skip", step: "word-timestamps" });
+      console.log(`[stage-run] ${label}: TTS skipped (empty Core TTS catalog)`);
+      return;
     }
 
-    progress.emit({ type: "step-start", step: "tts" })
-    progress.emit({ type: "step-progress", step: "tts", message: "Preparing audio..." })
-
-    const voiceMaps = loadVoicesConfig(configDir)
-    const instructionsMap = loadSpeechInstructions(configDir)
+    const voiceMaps = loadVoicesConfig(configDir);
+    const instructionsMap = loadSpeechInstructions(configDir);
 
     const speechModel =
-      config.speech?.model ?? config.default_speech_generation_model
-    const defaultProvider = config.speech?.default_provider ?? "openai"
-    const providerConfigs = config.speech?.providers ?? {}
-    const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
+      config.speech?.model ?? config.default_speech_generation_model;
+    const defaultProvider = config.speech?.default_provider ?? "openai";
+    const providerConfigs = config.speech?.providers ?? {};
+    const routing: ProviderRouting = {
+      providers: providerConfigs,
+      defaultProvider,
+    };
+    const localModelsDir = process.env.LOCAL_TTS_MODELS_DIR;
+    const providerVariant = (
+      provider: string,
+      model: string,
+    ): string | undefined => {
+      const providerConfig = providerConfigs[provider] ?? {};
+      if (provider === "local-system") {
+        return JSON.stringify({
+          platform: process.platform,
+          speed: providerConfig.speed ?? 1,
+        });
+      }
+      if (provider !== "local-hf" || !localModelsDir) return undefined;
+      const manifest = readLocalHfManifest(localModelsDir, model);
+      return JSON.stringify({
+        revision: manifest.revision,
+        dtype: manifest.dtype,
+        modelFile: manifest.modelFile,
+        speed: providerConfig.speed ?? 1,
+      });
+    };
+
+    if (
+      (config.default_model?.startsWith("local:") ||
+        config.default_model?.startsWith("ollama:")) &&
+      defaultProvider === "openai" &&
+      !options.apiKey?.trim()
+    ) {
+      progress.emit({ type: "step-skip", step: "tts" });
+      progress.emit({ type: "step-skip", step: "word-timestamps" });
+      console.log(
+        `[stage-run] ${label}: TTS skipped (local AI selected; no cloud speech provider configured)`,
+      );
+      return;
+    }
+
+    progress.emit({ type: "step-start", step: "tts" });
+    progress.emit({
+      type: "step-progress",
+      step: "tts",
+      message: "Preparing audio...",
+    });
     // ElevenLabs voice_settings overrides, resolved once for the whole step.
     // Shared helper so the reuse check, the generation call, and the other two
     // execution paths all hash the same cache key.
-    const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(config.speech)
+    const elevenLabsVoiceSettings = elevenLabsVoiceSettingsFromConfig(
+      config.speech,
+    );
 
-    console.log(`[stage-run] ${label}: TTS configDir=${configDir} voiceMaps=${Object.keys(voiceMaps).join(",")||"(empty)"}`)
-    console.log(`[stage-run] ${label}: TTS config — defaultProvider=${defaultProvider} model=${speechModel ?? "(provider default)"} format=${config.speech?.format ?? "(provider default)"}`)
-    console.log(`[stage-run] ${label}: TTS providers=${JSON.stringify(providerConfigs)}`)
-    console.log(`[stage-run] ${label}: TTS azureKey=${options.azureSpeechKey ? "set" : "NOT SET"} azureRegion=${options.azureSpeechRegion ?? "NOT SET"} geminiKey=${options.geminiApiKey ? "set" : "NOT SET"} elevenLabsKey=${options.elevenLabsApiKey ? "set" : "NOT SET"}`)
+    console.log(
+      `[stage-run] ${label}: TTS configDir=${configDir} voiceMaps=${Object.keys(voiceMaps).join(",") || "(empty)"}`,
+    );
+    console.log(
+      `[stage-run] ${label}: TTS config — defaultProvider=${defaultProvider} model=${speechModel ?? "(provider default)"} format=${config.speech?.format ?? "(provider default)"}`,
+    );
+    console.log(
+      `[stage-run] ${label}: TTS providers=${JSON.stringify(providerConfigs)}`,
+    );
+    console.log(
+      `[stage-run] ${label}: TTS azureKey=${options.azureSpeechKey ? "set" : "NOT SET"} azureRegion=${options.azureSpeechRegion ?? "NOT SET"} geminiKey=${options.geminiApiKey ? "set" : "NOT SET"} elevenLabsKey=${options.elevenLabsApiKey ? "set" : "NOT SET"}`,
+    );
 
-    const synthesizers = new Map<string, TTSSynthesizer>()
+    const synthesizers = new Map<string, TTSSynthesizer>();
     function getSynthesizer(providerName: string): TTSSynthesizer {
-      if (synthesizers.has(providerName)) return synthesizers.get(providerName)!
-      console.log(`[stage-run] ${label}: creating TTS synthesizer for provider="${providerName}"`)
+      if (synthesizers.has(providerName))
+        return synthesizers.get(providerName)!;
+      console.log(
+        `[stage-run] ${label}: creating TTS synthesizer for provider="${providerName}"`,
+      );
       if (providerName === "azure") {
         if (!options.azureSpeechKey || !options.azureSpeechRegion) {
-          throw new Error("Azure Speech key and region are required for Azure TTS provider. Set them in the API Keys dialog (gear icon).")
+          throw new Error(
+            "Azure Speech key and region are required for Azure TTS provider. Set them in the API Keys dialog (gear icon).",
+          );
         }
         const synth = createAzureTTSSynthesizer(
-          { subscriptionKey: options.azureSpeechKey, region: options.azureSpeechRegion },
-          { sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate }
-        )
-        synthesizers.set("azure", synth)
-        return synth
+          {
+            subscriptionKey: options.azureSpeechKey,
+            region: options.azureSpeechRegion,
+          },
+          {
+            sampleRate: config.speech?.sample_rate,
+            bitRate: config.speech?.bit_rate,
+          },
+        );
+        synthesizers.set("azure", synth);
+        return synth;
       }
       if (providerName === "gemini") {
         if (!options.geminiApiKey && !process.env.GEMINI_API_KEY) {
-          throw new Error("Gemini API key is required for Gemini TTS provider. Set it in the API Keys dialog (gear icon).")
+          throw new Error(
+            "Gemini API key is required for Gemini TTS provider. Set it in the API Keys dialog (gear icon).",
+          );
         }
         const synth = createGeminiTTSSynthesizer(
-          options.geminiApiKey ? { apiKey: options.geminiApiKey } : undefined
-        )
-        synthesizers.set("gemini", synth)
-        return synth
+          options.geminiApiKey ? { apiKey: options.geminiApiKey } : undefined,
+        );
+        synthesizers.set("gemini", synth);
+        return synth;
+      }
+      if (providerName === "local-hf") {
+        const providerConfig = providerConfigs[providerName] ?? {};
+        const modelsDir = process.env.LOCAL_TTS_MODELS_DIR;
+        if (!modelsDir)
+          throw new Error("LOCAL_TTS_MODELS_DIR is required for local speech");
+        const synth = createLocalHfTTSSynthesizer({
+          modelsDir,
+          runtimeDir: process.env.LOCAL_TTS_RUNTIME_DIR,
+          adapter: providerConfig.adapter,
+          dtype: providerConfig.dtype,
+          device: providerConfig.device,
+          speed: providerConfig.speed,
+          parallelism: providerConfig.parallelism,
+        });
+        synthesizers.set(providerName, synth);
+        return synth;
+      }
+      if (providerName === "local-system") {
+        const providerConfig = providerConfigs[providerName] ?? {};
+        const synth = createMacSystemTTSSynthesizer({
+          speed: providerConfig.speed,
+        });
+        synthesizers.set(providerName, synth);
+        return synth;
       }
       if (providerName === "elevenlabs") {
         if (!options.elevenLabsApiKey && !process.env.ELEVENLABS_API_KEY) {
-          throw new Error("ElevenLabs API key is required for ElevenLabs TTS provider. Set it in the API Keys dialog (gear icon).")
+          throw new Error(
+            "ElevenLabs API key is required for ElevenLabs TTS provider. Set it in the API Keys dialog (gear icon).",
+          );
         }
         const synth = createElevenLabsTTSSynthesizer(
-          options.elevenLabsApiKey ? { apiKey: options.elevenLabsApiKey } : undefined,
-          { sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate }
-        )
-        synthesizers.set("elevenlabs", synth)
-        return synth
+          options.elevenLabsApiKey
+            ? { apiKey: options.elevenLabsApiKey }
+            : undefined,
+          {
+            sampleRate: config.speech?.sample_rate,
+            bitRate: config.speech?.bit_rate,
+          },
+        );
+        synthesizers.set("elevenlabs", synth);
+        return synth;
       }
-      const synth = createTTSSynthesizer(options.apiKey)
-      synthesizers.set(providerName, synth)
-      return synth
+      if (providerName === "openai") {
+        if (!options.apiKey?.trim())
+          throw new Error("OpenAI API key is required for OpenAI TTS");
+        const synth = createTTSSynthesizer(options.apiKey);
+        synthesizers.set(providerName, synth);
+        return synth;
+      }
+      throw new Error(`Unsupported TTS provider: ${providerName}`);
     }
 
     interface TTSWorkItem {
-      textId: string
-      text: string
-      language: string
+      textId: string;
+      text: string;
+      language: string;
       /** Adjacent catalog entries' text (ElevenLabs' previous_text/next_text),
        *  only populated when elevenlabs_use_context is enabled and the entry
        *  is routed to ElevenLabs. */
-      previousText?: string
-      nextText?: string
+      previousText?: string;
+      nextText?: string;
     }
-    const ttsWorkItems: TTSWorkItem[] = []
+    const ttsWorkItems: TTSWorkItem[] = [];
     // Page-batched TTS (experimental, Gemini only): a page's entries are
     // synthesized in one request then sliced back into per-entry files, which
     // needs an OpenAI key for the Whisper alignment pass. Non-page entries
     // (glossary, quiz, easy-read) and non-Gemini languages keep per-entry.
-    const batchByPage = config.speech?.batch_by_page === true && !!options.apiKey?.trim()
+    const batchByPage =
+      config.speech?.batch_by_page === true && !!options.apiKey?.trim();
     if (config.speech?.batch_by_page === true && !options.apiKey?.trim()) {
-      console.warn(`[stage-run] ${label}: batch_by_page is enabled but no OpenAI key was provided; falling back to per-entry TTS (the Whisper alignment pass needs an OpenAI key)`)
+      console.warn(
+        `[stage-run] ${label}: batch_by_page is enabled but no OpenAI key was provided; falling back to per-entry TTS (the Whisper alignment pass needs an OpenAI key)`,
+      );
     }
-    interface PageGroup { language: string; pageKey: string; entries: { id: string; text: string }[] }
-    const pageGroups = new Map<string, PageGroup>()
-    const textByLanguage = new Map<string, Map<string, string>>()
-    const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
-    const failedByLang = new Map<string, SpeechFailedEntry[]>()
-    const reusedEntriesByLang = new Map<string, number>()
+    interface PageGroup {
+      language: string;
+      pageKey: string;
+      entries: { id: string; text: string }[];
+    }
+    const pageGroups = new Map<string, PageGroup>();
+    const textByLanguage = new Map<string, Map<string, string>>();
+    const ttsResultsByLang = new Map<string, SpeechFileEntry[]>();
+    const failedByLang = new Map<string, SpeechFailedEntry[]>();
+    const reusedEntriesByLang = new Map<string, number>();
     for (const lang of outputLanguages) {
-      ttsResultsByLang.set(lang, [])
-      failedByLang.set(lang, [])
-      reusedEntriesByLang.set(lang, 0)
+      ttsResultsByLang.set(lang, []);
+      failedByLang.set(lang, []);
+      reusedEntriesByLang.set(lang, 0);
     }
     // Expose the (live-mutated) result arrays so GET /tts can serve a
     // progressive snapshot while this run is active. Cleared in `finally`.
-    beginSpeechRun(label, ttsResultsByLang, failedByLang)
+    beginSpeechRun(label, ttsResultsByLang, failedByLang);
 
     for (const lang of outputLanguages) {
-      const existingSpeechEntries = getExistingSpeechEntries(storage, lang)
-      const provider = resolveProviderForLanguage(lang, routing)
+      const existingSpeechEntries = getExistingSpeechEntries(storage, lang);
+      const provider = resolveProviderForLanguage(lang, routing);
       const batchThisLanguage =
-        batchByPage &&
-        provider === "gemini" &&
-        supportsPageBatchedSpeech(lang)
+        batchByPage && provider === "gemini" && supportsPageBatchedSpeech(lang);
 
       if (batchByPage && provider === "gemini" && !batchThisLanguage) {
         console.log(
           `[stage-run] ${label}: page-batched TTS is disabled for ${lang}; using per-entry TTS`,
-        )
+        );
       }
 
-      const entries = getReadyCoreTtsEntries(storage, lang)
+      const entries = getReadyCoreTtsEntries(storage, lang);
       if (entries.length === 0) {
-        console.warn(`[stage-run] ${label}: no ready Core TTS entries for ${lang}, skipping TTS for this language`)
-        continue
+        console.warn(
+          `[stage-run] ${label}: no ready Core TTS entries for ${lang}, skipping TTS for this language`,
+        );
+        continue;
       }
 
-      const languageTextMap = new Map<string, string>()
+      const languageTextMap = new Map<string, string>();
       for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
-        const entry = entries[entryIndex]
+        const entry = entries[entryIndex];
         // Excluded entries get no audio at all — not generated, not reused
         // into the new TTS output version.
-        if (isTtsExcluded(entry.id, config.speech)) continue
-        languageTextMap.set(entry.id, entry.text)
+        if (isTtsExcluded(entry.id, config.speech)) continue;
+        languageTextMap.set(entry.id, entry.text);
 
         // Route page-scoped entries of a Gemini language into a per-page group
         // (generated together below). Skips the per-entry reuse check — page
@@ -2943,21 +3404,33 @@ async function runSpeechStep(
           isBatchableSpeechEntry(entry.id) &&
           existingSpeechEntries.get(entry.id)?.provider !== "manual"
         ) {
-          const pageKey = batchPageKeyOf(entry.id)!
-          const groupKey = `${lang}::${pageKey}`
-          let group = pageGroups.get(groupKey)
+          const pageKey = batchPageKeyOf(entry.id)!;
+          const groupKey = `${lang}::${pageKey}`;
+          let group = pageGroups.get(groupKey);
           if (!group) {
-            group = { language: lang, pageKey, entries: [] }
-            pageGroups.set(groupKey, group)
+            group = { language: lang, pageKey, entries: [] };
+            pageGroups.set(groupKey, group);
           }
-          group.entries.push({ id: entry.id, text: entry.text })
-          continue
+          group.entries.push({ id: entry.id, text: entry.text });
+          continue;
         }
 
-        const provider = resolveProviderForLanguage(lang, routing)
-        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
-        const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-        const voice = resolveVoice(provider, lang, voiceMaps, config.speech?.voice)
+        const provider = resolveProviderForLanguage(lang, routing);
+        const providerModel = resolveSpeechModel(
+          provider,
+          providerConfigs,
+          speechModel,
+        );
+        const outputFormat = resolveSpeechFormat(
+          provider,
+          config.speech?.format,
+        );
+        const voice = resolveVoice(
+          provider,
+          lang,
+          voiceMaps,
+          providerConfigs[provider]?.voice ?? config.speech?.voice,
+        );
         // OpenAI consumes instructions via its `instructions` field; Gemini embeds
         // them in the prompt text (it rejects systemInstruction). Both paths must
         // resolve identically here and in the generation loop below so the cache key
@@ -2965,19 +3438,19 @@ async function runSpeechStep(
         const instructions =
           provider === "openai" || provider === "gemini"
             ? resolveInstructions(lang, instructionsMap)
-            : ""
+            : "";
         // ElevenLabs-only: adjacent-entry context, opt-in via
         // elevenlabs_use_context. Must resolve identically here and below so
         // the cache key stays in sync with canReuseSpeechEntry.
         const previousText =
           provider === "elevenlabs" && config.speech?.elevenlabs_use_context
             ? findAdjacentSpeechText(entries, entryIndex, -1, config.speech)
-            : undefined
+            : undefined;
         const nextText =
           provider === "elevenlabs" && config.speech?.elevenlabs_use_context
             ? findAdjacentSpeechText(entries, entryIndex, 1, config.speech)
-            : undefined
-        const existingEntry = existingSpeechEntries.get(entry.id)
+            : undefined;
+        const existingEntry = existingSpeechEntries.get(entry.id);
 
         if (
           canReuseSpeechEntry(existingEntry, {
@@ -2992,15 +3465,20 @@ async function runSpeechStep(
             format: outputFormat,
             geminiTemperature: config.speech?.temperature,
             geminiSeed: config.speech?.seed,
+            providerVariant: providerVariant(provider, providerModel),
             elevenLabsPreviousText: previousText,
             elevenLabsNextText: nextText,
-            elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+            elevenLabsApplyTextNormalization:
+              config.speech?.elevenlabs_apply_text_normalization,
             ...elevenLabsVoiceSettings,
           })
         ) {
-          ttsResultsByLang.get(lang)?.push(existingEntry)
-          reusedEntriesByLang.set(lang, (reusedEntriesByLang.get(lang) ?? 0) + 1)
-          continue
+          ttsResultsByLang.get(lang)?.push(existingEntry);
+          reusedEntriesByLang.set(
+            lang,
+            (reusedEntriesByLang.get(lang) ?? 0) + 1,
+          );
+          continue;
         }
 
         ttsWorkItems.push({
@@ -3009,68 +3487,104 @@ async function runSpeechStep(
           language: lang,
           previousText,
           nextText,
-        })
+        });
       }
-      textByLanguage.set(lang, languageTextMap)
+      textByLanguage.set(lang, languageTextMap);
     }
 
-    const batchedEntryCount = [...pageGroups.values()].reduce((n, g) => n + g.entries.length, 0)
-    const totalItems = ttsWorkItems.length + batchedEntryCount
-    let completedItems = 0
+    const batchedEntryCount = [...pageGroups.values()].reduce(
+      (n, g) => n + g.entries.length,
+      0,
+    );
+    const totalItems = ttsWorkItems.length + batchedEntryCount;
+    let completedItems = 0;
 
-    const reusedItems = [...reusedEntriesByLang.values()].reduce((sum, count) => sum + count, 0)
-    emitSpeechStepProgress(progress, 0, totalItems, 0, reusedItems)
+    const reusedItems = [...reusedEntriesByLang.values()].reduce(
+      (sum, count) => sum + count,
+      0,
+    );
+    emitSpeechStepProgress(progress, 0, totalItems, 0, reusedItems);
 
-    console.log(`[stage-run] ${label}: generating TTS for ${totalItems} entries and reusing ${reusedItems} existing entries across ${outputLanguages.length} languages (${outputLanguages.join(", ")})`)
-    console.log(`[stage-run] ${label}: TTS routing — for each language: ${outputLanguages.map((l) => `${l}→${resolveProviderForLanguage(l, routing)}`).join(", ")}`)
+    console.log(
+      `[stage-run] ${label}: generating TTS for ${totalItems} entries and reusing ${reusedItems} existing entries across ${outputLanguages.length} languages (${outputLanguages.join(", ")})`,
+    );
+    console.log(
+      `[stage-run] ${label}: TTS routing — for each language: ${outputLanguages.map((l) => `${l}→${resolveProviderForLanguage(l, routing)}`).join(", ")}`,
+    );
 
     const hasGeminiTts = outputLanguages.some(
-      (lang) => resolveProviderForLanguage(lang, routing) === "gemini"
-    )
+      (lang) => resolveProviderForLanguage(lang, routing) === "gemini",
+    );
     // Adaptive limiter: start at the documented ceiling for the selected model
     // (or a user-pinned value) and back off on 429s, so a generous quota runs
     // fast while a smaller tier self-throttles instead of erroring out.
-    const geminiTtsModel = resolveSpeechModel("gemini", providerConfigs, speechModel)
+    const geminiTtsModel = resolveSpeechModel(
+      "gemini",
+      providerConfigs,
+      speechModel,
+    );
     const geminiTtsRate = resolveGeminiTtsRateLimit({
       model: geminiTtsModel,
       rateLimit: providerConfigs.gemini?.rate_limit,
-    })
+    });
     const geminiTtsRateLimiter: AdaptiveRateLimiter | undefined = hasGeminiTts
       ? createAdaptiveRateLimiter({
           startRpm: geminiTtsRate.startRpm,
           minRpm: geminiTtsRate.minRpm,
           maxRpm: geminiTtsRate.maxRpm,
         })
-      : undefined
+      : undefined;
     if (geminiTtsRateLimiter) {
       console.log(
-        `[stage-run] ${label}: Gemini TTS adaptive limiter — model=${geminiTtsModel} mode=${geminiTtsRate.mode} start=${geminiTtsRate.startRpm} range=${geminiTtsRate.minRpm}-${geminiTtsRate.maxRpm} req/min`
-      )
+        `[stage-run] ${label}: Gemini TTS adaptive limiter — model=${geminiTtsModel} mode=${geminiTtsRate.mode} start=${geminiTtsRate.startRpm} range=${geminiTtsRate.minRpm}-${geminiTtsRate.maxRpm} req/min`,
+      );
     }
 
-    const failedItems: string[] = []
-    const geminiFailedItems: string[] = []
+    const failedItems: string[] = [];
+    const geminiFailedItems: string[] = [];
 
     // ── Page-batched pre-pass (Gemini) ──────────────────────────────
     // One synthesis request per page (consistent tone), sliced into per-entry
     // files. Shares the adaptive rate limiter, cancellation, and progress with
     // the per-entry loop below.
     if (pageGroups.size > 0) {
-      const groups = [...pageGroups.values()]
-      console.log(`[stage-run] ${label}: page-batched TTS — ${groups.length} page group(s), ${batchedEntryCount} entries`)
+      const groups = [...pageGroups.values()];
+      console.log(
+        `[stage-run] ${label}: page-batched TTS — ${groups.length} page group(s), ${batchedEntryCount} entries`,
+      );
       await processWithConcurrency(
         groups,
         effectiveConcurrency,
         async (group: PageGroup) => {
-          const providerModel = resolveSpeechModel("gemini", providerConfigs, speechModel)
-          const outputFormat = resolveSpeechFormat("gemini", config.speech?.format)
-          const voice = resolveVoice("gemini", group.language, voiceMaps, config.speech?.voice)
-          const instructions = resolveInstructions(group.language, instructionsMap)
-          const startMs = Date.now()
+          const providerModel = resolveSpeechModel(
+            "gemini",
+            providerConfigs,
+            speechModel,
+          );
+          const outputFormat = resolveSpeechFormat(
+            "gemini",
+            config.speech?.format,
+          );
+          const voice = resolveVoice(
+            "gemini",
+            group.language,
+            voiceMaps,
+            config.speech?.voice,
+          );
+          const instructions = resolveInstructions(
+            group.language,
+            instructionsMap,
+          );
+          const startMs = Date.now();
           // Record the page synthesis in the LLM log (transparency + cost
           // tracking), mirroring the per-entry path so batched Gemini calls
           // aren't invisible.
-          const emitPageLog = (o: { success: boolean; cacheHit: boolean; attempt: number; error?: string }) => {
+          const emitPageLog = (o: {
+            success: boolean;
+            cacheHit: boolean;
+            attempt: number;
+            error?: string;
+          }) => {
             const logEntry = buildTtsLogEntry({
               textId: group.pageKey,
               language: group.language,
@@ -3083,13 +3597,21 @@ async function runSpeechStep(
               cached: o.cacheHit,
               attempt: o.attempt,
               error: o.error,
-            })
-            storage.appendLlmLog(logEntry)
-            progress.emit({ type: "llm-log", step: "tts", itemId: group.pageKey, promptName: logEntry.promptName, modelId: logEntry.modelId, cacheHit: o.cacheHit, durationMs: logEntry.durationMs })
-          }
-          let attempt = 0
+            });
+            storage.appendLlmLog(logEntry);
+            progress.emit({
+              type: "llm-log",
+              step: "tts",
+              itemId: group.pageKey,
+              promptName: logEntry.promptName,
+              modelId: logEntry.modelId,
+              cacheHit: o.cacheHit,
+              durationMs: logEntry.durationMs,
+            });
+          };
+          let attempt = 0;
           while (true) {
-            attempt++
+            attempt++;
             try {
               const entries = await generatePageSpeechFiles({
                 entries: group.entries,
@@ -3107,56 +3629,88 @@ async function runSpeechStep(
                 geminiTemperature: config.speech?.temperature,
                 geminiSeed: config.speech?.seed,
                 signal: options.signal,
-              })
-              for (const e of entries) ttsResultsByLang.get(group.language)?.push(e)
+              });
+              for (const e of entries)
+                ttsResultsByLang.get(group.language)?.push(e);
               // A page served from cache makes no request — don't reward the
               // limiter for it (mirrors the per-entry `!entry.cached` guard).
-              const pageCached = entries.length > 0 && entries.every((e) => e.cached)
-              if (entries.length > 0 && !pageCached) geminiTtsRateLimiter?.reward()
-              emitPageLog({ success: true, cacheHit: pageCached, attempt })
-              break
+              const pageCached =
+                entries.length > 0 && entries.every((e) => e.cached);
+              if (entries.length > 0 && !pageCached)
+                geminiTtsRateLimiter?.reward();
+              emitPageLog({ success: true, cacheHit: pageCached, attempt });
+              break;
             } catch (err) {
               if (isCancellation(err, [options.signal])) {
-                throw err instanceof RunCancelledError ? err : new RunCancelledError()
+                throw err instanceof RunCancelledError
+                  ? err
+                  : new RunCancelledError();
               }
-              const msg = toErrorMessage(err)
-              const rateLimited = isGeminiTtsRateLimitMessage(msg)
+              const msg = toErrorMessage(err);
+              const rateLimited = isGeminiTtsRateLimitMessage(msg);
               // generatePageSpeechFiles also calls OpenAI Whisper (alignment); a
               // transient Whisper error (429/5xx) is retryable too, but it must NOT
               // penalize the Gemini limiter (different service). Retrying prevents a
               // transient hiccup from failing the whole page and — via
               // geminiFailedItems — skipping word-timestamps for the entire book.
-              const whisperTransient = /Whisper transcription failed \((?:429|5\d\d)\)/.test(msg)
-              const transient = (!rateLimited && isGeminiTtsTransientError(msg)) || whisperTransient
+              const whisperTransient =
+                /Whisper transcription failed \((?:429|5\d\d)\)/.test(msg);
+              const transient =
+                (!rateLimited && isGeminiTtsTransientError(msg)) ||
+                whisperTransient;
               if (
                 (rateLimited || transient) &&
                 !options.signal?.aborted &&
                 attempt <= GEMINI_TTS_MAX_RATE_LIMIT_RETRIES
               ) {
                 const retryDelayMs = rateLimited
-                  ? (parseGeminiRetryDelayMs(msg) ?? Math.min(GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attempt, GEMINI_TTS_MAX_RETRY_DELAY_MS))
-                  : Math.min(GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS * attempt, GEMINI_TTS_MAX_RETRY_DELAY_MS)
-                if (rateLimited) geminiTtsRateLimiter?.penalize(retryDelayMs)
-                console.warn(`[stage-run] ${label}: page-batched TTS ${rateLimited ? "rate limited" : "transient error"} for ${group.pageKey} (${group.language}); retry ${attempt + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`)
-                await sleep(retryDelayMs, options.signal)
-                if (options.signal?.aborted) throw new RunCancelledError()
-                continue
+                  ? (parseGeminiRetryDelayMs(msg) ??
+                    Math.min(
+                      GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attempt,
+                      GEMINI_TTS_MAX_RETRY_DELAY_MS,
+                    ))
+                  : Math.min(
+                      GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS * attempt,
+                      GEMINI_TTS_MAX_RETRY_DELAY_MS,
+                    );
+                if (rateLimited) geminiTtsRateLimiter?.penalize(retryDelayMs);
+                console.warn(
+                  `[stage-run] ${label}: page-batched TTS ${rateLimited ? "rate limited" : "transient error"} for ${group.pageKey} (${group.language}); retry ${attempt + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`,
+                );
+                await sleep(retryDelayMs, options.signal);
+                if (options.signal?.aborted) throw new RunCancelledError();
+                continue;
               }
-              console.error(`[stage-run] ${label}: page-batched TTS failed for ${group.pageKey} (${group.language}): ${msg}`)
-              emitPageLog({ success: false, cacheHit: false, attempt, error: msg })
+              console.error(
+                `[stage-run] ${label}: page-batched TTS failed for ${group.pageKey} (${group.language}): ${msg}`,
+              );
+              emitPageLog({
+                success: false,
+                cacheHit: false,
+                attempt,
+                error: msg,
+              });
               for (const e of group.entries) {
-                failedItems.push(`${e.id}: ${msg}`)
-                failedByLang.get(group.language)?.push({ textId: e.id, error: msg })
-                geminiFailedItems.push(`${e.id}: ${msg}`)
+                failedItems.push(`${e.id}: ${msg}`);
+                failedByLang
+                  .get(group.language)
+                  ?.push({ textId: e.id, error: msg });
+                geminiFailedItems.push(`${e.id}: ${msg}`);
               }
-              break
+              break;
             }
           }
-          completedItems += group.entries.length
-          emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
+          completedItems += group.entries.length;
+          emitSpeechStepProgress(
+            progress,
+            completedItems,
+            totalItems,
+            failedItems.length,
+            reusedItems,
+          );
         },
-        { runSignal: options.signal }
-      )
+        { runSignal: options.signal },
+      );
     }
 
     // ElevenLabs' concurrent-request ceiling is low and plan-dependent, so its
@@ -3168,29 +3722,41 @@ async function runSpeechStep(
     // because one of its languages uses ElevenLabs. Combined with the 429
     // retry below this still keeps a throttled ElevenLabs run from failing
     // entries outright.
-    const elevenLabsWorkItems: TTSWorkItem[] = []
-    const otherWorkItems: TTSWorkItem[] = []
+    const elevenLabsWorkItems: TTSWorkItem[] = [];
+    const otherWorkItems: TTSWorkItem[] = [];
     for (const item of ttsWorkItems) {
       if (resolveProviderForLanguage(item.language, routing) === "elevenlabs") {
-        elevenLabsWorkItems.push(item)
+        elevenLabsWorkItems.push(item);
       } else {
-        otherWorkItems.push(item)
+        otherWorkItems.push(item);
       }
     }
-    const elevenLabsConcurrency = Math.min(effectiveConcurrency, ELEVENLABS_TTS_MAX_CONCURRENCY)
+    const elevenLabsConcurrency = Math.min(
+      effectiveConcurrency,
+      ELEVENLABS_TTS_MAX_CONCURRENCY,
+    );
 
     const processTtsWorkItem = async (item: TTSWorkItem) => {
-      const startMs = Date.now()
-      const provider = resolveProviderForLanguage(item.language, routing)
-      const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
-      const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
-      const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
+      const startMs = Date.now();
+      const provider = resolveProviderForLanguage(item.language, routing);
+      const providerModel = resolveSpeechModel(
+        provider,
+        providerConfigs,
+        speechModel,
+      );
+      const outputFormat = resolveSpeechFormat(provider, config.speech?.format);
+      const voice = resolveVoice(
+        provider,
+        item.language,
+        voiceMaps,
+        providerConfigs[provider]?.voice ?? config.speech?.voice,
+      );
       // Must mirror the reuse-check above: OpenAI + Gemini both receive resolved
       // instructions (Gemini embeds them in the prompt text), Azure does not.
       const instructions =
         provider === "openai" || provider === "gemini"
           ? resolveInstructions(item.language, instructionsMap)
-          : ""
+          : "";
       // Request parameters recorded on the debug log entry so the settings that
       // produced this audio are inspectable. ElevenLabs only for now — the other
       // providers' params are a separate change.
@@ -3203,22 +3769,25 @@ async function runSpeechStep(
               format: outputFormat,
               sampleRate: config.speech?.sample_rate,
               bitRate: config.speech?.bit_rate,
-              applyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+              applyTextNormalization:
+                config.speech?.elevenlabs_apply_text_normalization,
               previousText: item.previousText,
               nextText: item.nextText,
               ...elevenLabsVoiceSettings,
             })
-          : undefined
-      let attemptCount = 0
+          : undefined;
+      let attemptCount = 0;
 
-      console.log(`[stage-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`)
+      console.log(
+        `[stage-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`,
+      );
 
       try {
-        const ttsSynthesizer = getSynthesizer(provider)
-        let entry: SpeechFileEntry | null
+        const ttsSynthesizer = getSynthesizer(provider);
+        let entry: SpeechFileEntry | null;
 
         while (true) {
-          attemptCount++
+          attemptCount++;
           try {
             entry = await generateSpeechFile({
               textId: item.textId,
@@ -3231,53 +3800,56 @@ async function runSpeechStep(
               bookDir,
               cacheDir,
               ttsSynthesizer,
-              rateLimiter: provider === "gemini" ? geminiTtsRateLimiter : undefined,
+              rateLimiter:
+                provider === "gemini" ? geminiTtsRateLimiter : undefined,
               provider,
               geminiTemperature: config.speech?.temperature,
               geminiSeed: config.speech?.seed,
+              providerVariant: providerVariant(provider, providerModel),
               elevenLabsPreviousText: item.previousText,
               elevenLabsNextText: item.nextText,
-              elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+              elevenLabsApplyTextNormalization:
+                config.speech?.elevenlabs_apply_text_normalization,
               ...elevenLabsVoiceSettings,
               signal: options.signal,
-            })
+            });
             // A real (non-cached) success means the current rate held —
             // let the limiter probe back toward the ceiling.
             if (provider === "gemini" && entry && !entry.cached) {
-              geminiTtsRateLimiter?.reward()
+              geminiTtsRateLimiter?.reward();
             }
-            break
+            break;
           } catch (err) {
-            const msg = toErrorMessage(err)
+            const msg = toErrorMessage(err);
 
             // ElevenLabs: no adaptive limiter, but 429 (concurrency/quota)
             // and 5xx are retryable with exponential backoff so a transient
             // throttle doesn't permanently fail the entry. The per-item
             // concurrency cap above already bounds how many can be in flight.
             if (provider === "elevenlabs") {
-              const kind = classifyElevenLabsTtsError(msg)
+              const kind = classifyElevenLabsTtsError(msg);
               if (
                 kind !== "permanent" &&
                 !options.signal?.aborted &&
                 attemptCount <= ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES
               ) {
-                const retryDelayMs = elevenLabsTtsRetryDelayMs(attemptCount)
+                const retryDelayMs = elevenLabsTtsRetryDelayMs(attemptCount);
                 console.warn(
-                  `[stage-run] ${label}: ElevenLabs TTS ${kind === "rate-limit" ? "rate limited" : "transient error"} for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
-                )
-                await sleep(retryDelayMs, options.signal)
-                if (options.signal?.aborted) throw new RunCancelledError()
-                continue
+                  `[stage-run] ${label}: ElevenLabs TTS ${kind === "rate-limit" ? "rate limited" : "transient error"} for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`,
+                );
+                await sleep(retryDelayMs, options.signal);
+                if (options.signal?.aborted) throw new RunCancelledError();
+                continue;
               }
-              throw err
+              throw err;
             }
 
             const rateLimited =
-              provider === "gemini" && isGeminiTtsRateLimitMessage(msg)
+              provider === "gemini" && isGeminiTtsRateLimitMessage(msg);
             const transient =
               provider === "gemini" &&
               !rateLimited &&
-              isGeminiTtsTransientError(msg)
+              isGeminiTtsTransientError(msg);
             if (
               (rateLimited || transient) &&
               !options.signal?.aborted &&
@@ -3288,38 +3860,38 @@ async function runSpeechStep(
                   parseGeminiRetryDelayMs(msg) ??
                   Math.min(
                     GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attemptCount,
-                    GEMINI_TTS_MAX_RETRY_DELAY_MS
-                  )
+                    GEMINI_TTS_MAX_RETRY_DELAY_MS,
+                  );
                 // Halve the shared rate and pause all workers for the retry
                 // window, so one 429 throttles the whole batch instead of every
                 // item discovering the limit independently.
-                geminiTtsRateLimiter?.penalize(retryDelayMs)
+                geminiTtsRateLimiter?.penalize(retryDelayMs);
                 console.warn(
-                  `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); backing off to ${geminiTtsRateLimiter?.currentRpm() ?? "?"} req/min, retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
-                )
-                await sleep(retryDelayMs, options.signal)
-                if (options.signal?.aborted) throw new RunCancelledError()
-                continue
+                  `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); backing off to ${geminiTtsRateLimiter?.currentRpm() ?? "?"} req/min, retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`,
+                );
+                await sleep(retryDelayMs, options.signal);
+                if (options.signal?.aborted) throw new RunCancelledError();
+                continue;
               }
               // Transient server error (500/empty audio): retry without
               // penalizing the limiter — it's a Gemini hiccup, not a rate issue.
               const retryDelayMs = Math.min(
                 GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS * attemptCount,
-                GEMINI_TTS_MAX_RETRY_DELAY_MS
-              )
+                GEMINI_TTS_MAX_RETRY_DELAY_MS,
+              );
               console.warn(
-                `[stage-run] ${label}: Gemini TTS transient error for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
-              )
-              await sleep(retryDelayMs, options.signal)
-              if (options.signal?.aborted) throw new RunCancelledError()
-              continue
+                `[stage-run] ${label}: Gemini TTS transient error for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`,
+              );
+              await sleep(retryDelayMs, options.signal);
+              if (options.signal?.aborted) throw new RunCancelledError();
+              continue;
             }
-            throw err
+            throw err;
           }
         }
 
-        const durationMs = Date.now() - startMs
-        const cached = entry?.cached ?? false
+        const durationMs = Date.now() - startMs;
+        const cached = entry?.cached ?? false;
 
         const logEntry = buildTtsLogEntry({
           textId: item.textId,
@@ -3333,8 +3905,8 @@ async function runSpeechStep(
           cached,
           attempt: attemptCount,
           params: logParams,
-        })
-        storage.appendLlmLog(logEntry)
+        });
+        storage.appendLlmLog(logEntry);
         progress.emit({
           type: "llm-log",
           step: "tts",
@@ -3343,24 +3915,30 @@ async function runSpeechStep(
           modelId: logEntry.modelId,
           cacheHit: cached,
           durationMs,
-        })
+        });
 
         if (entry) {
-          ttsResultsByLang.get(item.language)?.push(entry)
+          ttsResultsByLang.get(item.language)?.push(entry);
         }
       } catch (err) {
         // Run cancel — re-throw so processWithConcurrency unwinds; an aborted
         // item is not a failure (it re-runs cheaply via the TTS cache).
         if (isCancellation(err, [options.signal])) {
-          throw err instanceof RunCancelledError ? err : new RunCancelledError()
+          throw err instanceof RunCancelledError
+            ? err
+            : new RunCancelledError();
         }
-        const msg = toErrorMessage(err)
-        const durationMs = Date.now() - startMs
-        console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
-        failedItems.push(`${item.textId}: ${msg}`)
-        failedByLang.get(item.language)?.push({ textId: item.textId, error: msg })
+        const msg = toErrorMessage(err);
+        const durationMs = Date.now() - startMs;
+        console.error(
+          `[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`,
+        );
+        failedItems.push(`${item.textId}: ${msg}`);
+        failedByLang
+          .get(item.language)
+          ?.push({ textId: item.textId, error: msg });
         if (provider === "gemini") {
-          geminiFailedItems.push(`${item.textId}: ${msg}`)
+          geminiFailedItems.push(`${item.textId}: ${msg}`);
         }
 
         const logEntry = buildTtsLogEntry({
@@ -3376,8 +3954,8 @@ async function runSpeechStep(
           attempt: attemptCount,
           error: msg,
           params: logParams,
-        })
-        storage.appendLlmLog(logEntry)
+        });
+        storage.appendLlmLog(logEntry);
         progress.emit({
           type: "llm-log",
           step: "tts",
@@ -3386,67 +3964,105 @@ async function runSpeechStep(
           modelId: logEntry.modelId,
           cacheHit: false,
           durationMs,
-        })
+        });
         if (provider !== "gemini") {
           progress.emit({
             type: "step-error",
             step: "tts",
             error: `${item.textId} failed: ${msg}`,
-          })
+          });
         }
       }
 
-      completedItems++
-      emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
-    }
+      completedItems++;
+      emitSpeechStepProgress(
+        progress,
+        completedItems,
+        totalItems,
+        failedItems.length,
+        reusedItems,
+      );
+    };
 
     await Promise.all([
-      processWithConcurrency(elevenLabsWorkItems, elevenLabsConcurrency, processTtsWorkItem, {
-        runSignal: options.signal,
-      }),
-      processWithConcurrency(otherWorkItems, effectiveConcurrency, processTtsWorkItem, {
-        runSignal: options.signal,
-      }),
-    ])
+      processWithConcurrency(
+        elevenLabsWorkItems,
+        elevenLabsConcurrency,
+        processTtsWorkItem,
+        {
+          runSignal: options.signal,
+        },
+      ),
+      processWithConcurrency(
+        otherWorkItems,
+        effectiveConcurrency,
+        processTtsWorkItem,
+        {
+          runSignal: options.signal,
+        },
+      ),
+    ]);
 
     if (failedItems.length > 0) {
-      console.error(`[stage-run] ${label}: ${failedItems.length} TTS item(s) failed:\n${failedItems.join("\n")}`)
+      console.error(
+        `[stage-run] ${label}: ${failedItems.length} TTS item(s) failed:\n${failedItems.join("\n")}`,
+      );
     }
 
     for (const lang of outputLanguages) {
-      const entries = ttsResultsByLang.get(lang)
-      if (!entries) continue
-      const failed = failedByLang.get(lang) ?? []
+      const entries = ttsResultsByLang.get(lang);
+      if (!entries) continue;
+      const failed = failedByLang.get(lang) ?? [];
       const output: TTSOutput = {
         entries,
         generatedAt: new Date().toISOString(),
         ...(failed.length > 0 ? { failed } : {}),
-      }
-      storage.putNodeData("tts", lang, output)
+      };
+      storage.putNodeData("tts", lang, output);
+    }
+
+    // Export must never look successful when deterministic/local narration is
+    // incomplete. Gemini keeps its existing repair-in-UI behavior below, but
+    // local and OpenAI providers fail the stage after persisting diagnostics.
+    const nonGeminiFailures = failedItems.length - geminiFailedItems.length;
+    if (nonGeminiFailures > 0) {
+      throw new Error(
+        `${nonGeminiFailures} TTS item(s) failed. Fix or regenerate the failed narration before export.`,
+      );
     }
 
     if (geminiFailedItems.length > 0) {
-      const summary = `${geminiFailedItems.length} Gemini TTS item(s) failed. Missing Gemini audio can be generated one by one from the Speech view.`
+      const summary = `${geminiFailedItems.length} Gemini TTS item(s) failed. Missing Gemini audio can be generated one by one from the Speech view.`;
       // Complete the step with gaps rather than erroring. The failed items are
       // persisted per-language in the TTS output (`failed`) and surfaced in the
       // Speech/Language view for one-by-one regeneration, so a stray transient
       // failure shouldn't leave the whole stage incomplete and block the export.
-      progress.emit({ type: "step-progress", step: "tts", message: summary })
-      progress.emit({ type: "step-complete", step: "tts" })
-      progress.emit({ type: "step-skip", step: "word-timestamps" })
+      progress.emit({ type: "step-progress", step: "tts", message: summary });
+      progress.emit({ type: "step-complete", step: "tts" });
+      progress.emit({ type: "step-skip", step: "word-timestamps" });
       console.warn(
-        `[stage-run] ${label}: speech completed with ${geminiFailedItems.length} Gemini TTS gap(s)`
-      )
-      return
+        `[stage-run] ${label}: speech completed with ${geminiFailedItems.length} Gemini TTS gap(s)`,
+      );
+      return;
     }
 
-    progress.emit({ type: "step-complete", step: "tts" })
+    progress.emit({ type: "step-complete", step: "tts" });
 
-    const wordHighlightingEnabled = config.speech?.word_highlighting === true
-    let wordTimestampsByLang = new Map<string, Record<string, WordTimestampEntry>>()
-    let timestampFailedByLang = new Map<string, SpeechFailedEntry[]>()
+    const wordHighlightingEnabled =
+      config.speech?.word_highlighting === true &&
+      Boolean(options.apiKey?.trim());
+    if (config.speech?.word_highlighting === true && !options.apiKey?.trim()) {
+      console.warn(
+        `[stage-run] ${label}: word highlighting needs OpenAI Whisper; using sentence highlighting for this local run`,
+      );
+    }
+    let wordTimestampsByLang = new Map<
+      string,
+      Record<string, WordTimestampEntry>
+    >();
+    let timestampFailedByLang = new Map<string, SpeechFailedEntry[]>();
     if (wordHighlightingEnabled) {
-      progress.emit({ type: "step-start", step: "word-timestamps" })
+      progress.emit({ type: "step-start", step: "word-timestamps" });
       const generatedWordTimestamps = await generateSpeechWordTimestamps({
         label,
         bookDir,
@@ -3458,9 +4074,9 @@ async function runSpeechStep(
         concurrency: effectiveConcurrency,
         progress,
         signal: options.signal,
-      })
-      wordTimestampsByLang = generatedWordTimestamps.entriesByLanguage
-      timestampFailedByLang = generatedWordTimestamps.failedByLanguage
+      });
+      wordTimestampsByLang = generatedWordTimestamps.entriesByLanguage;
+      timestampFailedByLang = generatedWordTimestamps.failedByLanguage;
 
       // Only persist tts-timestamps when we actually generated them. When
       // highlighting is disabled, leave existing rows untouched so that
@@ -3468,49 +4084,57 @@ async function runSpeechStep(
       // across speech re-runs. Per-item failures are persisted alongside the
       // entries so the Speech view can mark them for pruning / one-by-one
       // regeneration (mirrors the TTS `failed` list).
-      const timestampsGeneratedAt = new Date().toISOString()
+      const timestampsGeneratedAt = new Date().toISOString();
       for (const lang of outputLanguages) {
-        const entries = wordTimestampsByLang.get(lang) ?? {}
-        const failed = timestampFailedByLang.get(lang) ?? []
+        const entries = wordTimestampsByLang.get(lang) ?? {};
+        const failed = timestampFailedByLang.get(lang) ?? [];
         storage.putNodeData("tts-timestamps", lang, {
           entries,
           generatedAt: timestampsGeneratedAt,
           ...(failed.length > 0 ? { failed } : {}),
-        } satisfies WordTimestampOutput)
+        } satisfies WordTimestampOutput);
       }
     }
 
     const totalTimestampFailed = [...timestampFailedByLang.values()].reduce(
       (sum, items) => sum + items.length,
       0,
-    )
+    );
 
     if (!wordHighlightingEnabled) {
-      progress.emit({ type: "step-skip", step: "word-timestamps" })
-      console.log(`[stage-run] ${label}: word-level highlighting disabled; skipping timestamp generation`)
+      progress.emit({ type: "step-skip", step: "word-timestamps" });
+      console.log(
+        `[stage-run] ${label}: word-level highlighting disabled; skipping timestamp generation`,
+      );
     } else if (totalTimestampFailed > 0) {
       // Complete the step with gaps rather than erroring, mirroring the Gemini
       // TTS gap path above. The failures are persisted per-language in
       // tts-timestamps (`failed`) and surfaced in the Speech view, so a few
       // unspeakable entries (e.g. bare page numbers) don't flip the whole
       // stage to `error` and strand the user on the Speech landing page.
-      const summary = `${totalTimestampFailed} word timestamp item(s) failed. Missing highlighting is marked in the Speech view — prune those items or regenerate them one by one.`
+      const summary = `${totalTimestampFailed} word timestamp item(s) failed. Missing highlighting is marked in the Speech view — prune those items or regenerate them one by one.`;
       console.warn(
         `[stage-run] ${label}: ${summary}\n` +
           [...timestampFailedByLang.entries()]
-            .flatMap(([lang, items]) => items.map((i) => `${lang}/${i.textId}: ${i.error}`))
+            .flatMap(([lang, items]) =>
+              items.map((i) => `${lang}/${i.textId}: ${i.error}`),
+            )
             .join("\n"),
-      )
-      progress.emit({ type: "step-progress", step: "word-timestamps", message: summary })
-      progress.emit({ type: "step-complete", step: "word-timestamps" })
+      );
+      progress.emit({
+        type: "step-progress",
+        step: "word-timestamps",
+        message: summary,
+      });
+      progress.emit({ type: "step-complete", step: "word-timestamps" });
     } else {
-      progress.emit({ type: "step-complete", step: "word-timestamps" })
+      progress.emit({ type: "step-complete", step: "word-timestamps" });
     }
 
-    console.log(`[stage-run] ${label}: speech complete`)
+    console.log(`[stage-run] ${label}: speech complete`);
   } finally {
-    endSpeechRun(label)
-    storage.close()
+    endSpeechRun(label);
+    storage.close();
   }
 }
 
@@ -3524,44 +4148,56 @@ async function runFilterPass(
   deps: PageFailureDeps,
   progress: StageRunProgress,
 ): Promise<void> {
-  const total = pages.length
-  let completed = 0
-  progress.emit({ type: "step-start", step: "image-filtering" })
+  const total = pages.length;
+  let completed = 0;
+  progress.emit({ type: "step-start", step: "image-filtering" });
   await processWithConcurrency(
     pages,
     concurrency,
     async (page) => {
       try {
-        const images = storage.getPageImages(page.pageId)
-        const result = classifyPageImages(page.pageId, images, config)
-        results.set(page.pageId, result)
-        storage.putNodeData("image-filtering", page.pageId, result)
+        const images = storage.getPageImages(page.pageId);
+        const result = classifyPageImages(page.pageId, images, config);
+        results.set(page.pageId, result);
+        storage.putNodeData("image-filtering", page.pageId, result);
       } catch (err) {
-        console.error(`[stage-run] ${label}: ${page.pageId} failed at image-filtering: ${toErrorMessage(err)}`)
-        await reportPageFailure(deps, progress, "image-filtering", page.pageId, err)
+        console.error(
+          `[stage-run] ${label}: ${page.pageId} failed at image-filtering: ${toErrorMessage(err)}`,
+        );
+        await reportPageFailure(
+          deps,
+          progress,
+          "image-filtering",
+          page.pageId,
+          err,
+        );
       } finally {
-        completed++
+        completed++;
         progress.emit({
           type: "step-progress",
           step: "image-filtering",
           message: `${completed}/${total}`,
           page: completed,
           totalPages: total,
-        })
+        });
       }
     },
-    { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate },
-  )
+    {
+      runSignal: deps.runSignal,
+      stopSignal: deps.stepController.signal,
+      gate: deps.gate,
+    },
+  );
   // Only mark the step done when it had no real failures of its own and wasn't
   // stopped. A spurious step-complete here would overwrite the per-page error in
   // the DB with "done", leaving the run failing with no step attributed.
-  const failed = deps.failedPages.some((f) => f.step === "image-filtering")
+  const failed = deps.failedPages.some((f) => f.step === "image-filtering");
   if (!failed && !deps.stepController.signal.aborted) {
     progress.emit({
       type: "step-complete",
       step: "image-filtering",
       message: skipMessage(deps.skippedByStep, "image-filtering"),
-    })
+    });
   }
 }
 
@@ -3580,76 +4216,98 @@ async function runMeaningfulnessPass(
   if (!config || !model) {
     if (autoDedup) {
       for (const page of pages) {
-        const existing = results.get(page.pageId)
-        if (!existing) continue
-        const updated = dedupAutoFigureCandidatesInStorage(storage, page.pageId, existing)
-        if (updated !== existing) results.set(page.pageId, updated)
+        const existing = results.get(page.pageId);
+        if (!existing) continue;
+        const updated = dedupAutoFigureCandidatesInStorage(
+          storage,
+          page.pageId,
+          existing,
+        );
+        if (updated !== existing) results.set(page.pageId, updated);
       }
     }
-    progress.emit({ type: "step-skip", step: "image-meaningfulness" })
-    return
+    progress.emit({ type: "step-skip", step: "image-meaningfulness" });
+    return;
   }
 
-  const total = pages.length
-  let completed = 0
-  progress.emit({ type: "step-start", step: "image-meaningfulness" })
+  const total = pages.length;
+  let completed = 0;
+  progress.emit({ type: "step-start", step: "image-meaningfulness" });
   await processWithConcurrency(
     pages,
     concurrency,
     async (page) => {
-    const existing = results.get(page.pageId)
-    if (!existing) {
-      completed++
-      progress.emit({
-        type: "step-progress",
-        step: "image-meaningfulness",
-        message: `${completed}/${total}`,
-        page: completed,
-        totalPages: total,
-      })
-      return
-    }
-    try {
-      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing)
-
-      if (unprunedImages.length > 0) {
-        const updated = await filterPageImageMeaningfulness(
-          {
-            pageId: page.pageId,
-            pageImageBase64: storage.getPageImageBase64(page.pageId),
-            pageText: page.text,
-            images: unprunedImages,
-          },
-          existing,
-          config,
-          model,
-        )
-        results.set(page.pageId, updated)
-        storage.putNodeData("image-filtering", page.pageId, updated)
+      const existing = results.get(page.pageId);
+      if (!existing) {
+        completed++;
+        progress.emit({
+          type: "step-progress",
+          step: "image-meaningfulness",
+          message: `${completed}/${total}`,
+          page: completed,
+          totalPages: total,
+        });
+        return;
       }
-    } catch (err) {
-      console.error(`[stage-run] ${label}: ${page.pageId} failed at image-meaningfulness: ${toErrorMessage(err)}`)
-      await reportPageFailure(deps, progress, "image-meaningfulness", page.pageId, err)
-    } finally {
-      completed++
-      progress.emit({
-        type: "step-progress",
-        step: "image-meaningfulness",
-        message: `${completed}/${total}`,
-        page: completed,
-        totalPages: total,
-      })
-    }
+      try {
+        const unprunedImages = buildMeaningfulnessImages(
+          storage,
+          page.pageId,
+          existing,
+        );
+
+        if (unprunedImages.length > 0) {
+          const updated = await filterPageImageMeaningfulness(
+            {
+              pageId: page.pageId,
+              pageImageBase64: storage.getPageImageBase64(page.pageId),
+              pageText: page.text,
+              images: unprunedImages,
+            },
+            existing,
+            config,
+            model,
+          );
+          results.set(page.pageId, updated);
+          storage.putNodeData("image-filtering", page.pageId, updated);
+        }
+      } catch (err) {
+        console.error(
+          `[stage-run] ${label}: ${page.pageId} failed at image-meaningfulness: ${toErrorMessage(err)}`,
+        );
+        await reportPageFailure(
+          deps,
+          progress,
+          "image-meaningfulness",
+          page.pageId,
+          err,
+        );
+      } finally {
+        completed++;
+        progress.emit({
+          type: "step-progress",
+          step: "image-meaningfulness",
+          message: `${completed}/${total}`,
+          page: completed,
+          totalPages: total,
+        });
+      }
     },
-    { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate },
-  )
-  const failed = deps.failedPages.some((f) => f.step === "image-meaningfulness")
+    {
+      runSignal: deps.runSignal,
+      stopSignal: deps.stepController.signal,
+      gate: deps.gate,
+    },
+  );
+  const failed = deps.failedPages.some(
+    (f) => f.step === "image-meaningfulness",
+  );
   if (!failed && !deps.stepController.signal.aborted) {
     progress.emit({
       type: "step-complete",
       step: "image-meaningfulness",
       message: skipMessage(deps.skippedByStep, "image-meaningfulness"),
-    })
+    });
   }
 }
 
@@ -3665,108 +4323,138 @@ async function runSegmentationPass(
   runSignal?: AbortSignal,
 ): Promise<void> {
   if (!config || !model) {
-    progress.emit({ type: "step-skip", step: "image-segmentation" })
-    return
+    progress.emit({ type: "step-skip", step: "image-segmentation" });
+    return;
   }
 
-  const total = pages.length
-  let completed = 0
-  progress.emit({ type: "step-start", step: "image-segmentation" })
-  await processWithConcurrency(pages, concurrency, async (page) => {
-    const existing = results.get(page.pageId)
-    if (!existing) {
-      completed++
-      progress.emit({
-        type: "step-progress",
-        step: "image-segmentation",
-        message: `${completed}/${total}`,
-        page: completed,
-        totalPages: total,
-      })
-      return
-    }
-    try {
-      const images = storage.getPageImages(page.pageId)
-      const unprunedIds = new Set(
-        existing.images.filter((img) => !img.isPruned).map((img) => img.imageId)
-      )
-      const segMinSide = config.minSide
-      const unprunedImages = images
-        .filter((img) => unprunedIds.has(img.imageId))
-        .filter((img) => segMinSide === undefined || Math.min(img.width, img.height) >= segMinSide)
-        .map((img) => ({
-          imageId: img.imageId,
-          imageBase64: storage.getImageBase64(img.imageId),
-          width: img.width,
-          height: img.height,
-        }))
-
-      if (unprunedImages.length > 0) {
-        const segmentationResult = await segmentPageImages(
-          {
-            pageId: page.pageId,
-            pageImageBase64: storage.getPageImageBase64(page.pageId),
-            images: unprunedImages,
-          },
-          config,
-          model,
-        )
-        const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
-        const segDims = new Map(images.map((img) => [img.imageId, { width: img.width, height: img.height }]))
-        const applied = applySegmentation(
-          segmentationResult,
-          (imageId) => storage.getImageBase64(imageId),
-          segDims,
-        )
-        const srcMeta = new Map(images.map((img) => [img.imageId, img]))
-        for (const seg of applied) {
-          const src = srcMeta.get(seg.sourceImageId)
-          const bounds = src?.bounds
-            ? segmentBoundsOnPage(src.bounds, src.width, src.height, seg)
-            : undefined
-          storage.putSegmentedImage({
-            sourceImageId: seg.sourceImageId,
-            segmentIndex: seg.segmentIndex,
-            pageId: page.pageId,
-            version: segVersion,
-            buffer: seg.buffer,
-            width: seg.width,
-            height: seg.height,
-            bounds,
-          })
-          existing.images.push({
-            imageId: getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion),
-            isPruned: false,
-          })
-        }
-        if (applied.length > 0) {
-          const segmentedSourceIds = new Set(applied.map((s) => s.sourceImageId))
-          for (const sourceId of segmentedSourceIds) {
-            const origEntry = existing.images.find((i) => i.imageId === sourceId)
-            if (origEntry) {
-              origEntry.isPruned = true
-              origEntry.reason = "segmented"
-            }
-          }
-          storage.putNodeData("image-filtering", page.pageId, existing)
-        }
+  const total = pages.length;
+  let completed = 0;
+  progress.emit({ type: "step-start", step: "image-segmentation" });
+  await processWithConcurrency(
+    pages,
+    concurrency,
+    async (page) => {
+      const existing = results.get(page.pageId);
+      if (!existing) {
+        completed++;
+        progress.emit({
+          type: "step-progress",
+          step: "image-segmentation",
+          message: `${completed}/${total}`,
+          page: completed,
+          totalPages: total,
+        });
+        return;
       }
-    } catch (err) {
-      if (isCancellation(err, [runSignal])) throw err
-      console.error(`[stage-run] ${label}: image segmentation failed for ${page.pageId}: ${toErrorMessage(err)}`)
-    } finally {
-      completed++
-      progress.emit({
-        type: "step-progress",
-        step: "image-segmentation",
-        message: `${completed}/${total}`,
-        page: completed,
-        totalPages: total,
-      })
-    }
-  }, { runSignal })
-  if (runSignal?.aborted) return
-  progress.emit({ type: "step-complete", step: "image-segmentation" })
+      try {
+        const images = storage.getPageImages(page.pageId);
+        const unprunedIds = new Set(
+          existing.images
+            .filter((img) => !img.isPruned)
+            .map((img) => img.imageId),
+        );
+        const segMinSide = config.minSide;
+        const unprunedImages = images
+          .filter((img) => unprunedIds.has(img.imageId))
+          .filter(
+            (img) =>
+              segMinSide === undefined ||
+              Math.min(img.width, img.height) >= segMinSide,
+          )
+          .map((img) => ({
+            imageId: img.imageId,
+            imageBase64: storage.getImageBase64(img.imageId),
+            width: img.width,
+            height: img.height,
+          }));
+
+        if (unprunedImages.length > 0) {
+          const segmentationResult = await segmentPageImages(
+            {
+              pageId: page.pageId,
+              pageImageBase64: storage.getPageImageBase64(page.pageId),
+              images: unprunedImages,
+            },
+            config,
+            model,
+          );
+          const segVersion = storage.putNodeData(
+            "image-segmentation",
+            page.pageId,
+            segmentationResult,
+          );
+          const segDims = new Map(
+            images.map((img) => [
+              img.imageId,
+              { width: img.width, height: img.height },
+            ]),
+          );
+          const applied = applySegmentation(
+            segmentationResult,
+            (imageId) => storage.getImageBase64(imageId),
+            segDims,
+          );
+          const srcMeta = new Map(images.map((img) => [img.imageId, img]));
+          for (const seg of applied) {
+            const src = srcMeta.get(seg.sourceImageId);
+            const bounds = src?.bounds
+              ? segmentBoundsOnPage(src.bounds, src.width, src.height, seg)
+              : undefined;
+            storage.putSegmentedImage({
+              sourceImageId: seg.sourceImageId,
+              segmentIndex: seg.segmentIndex,
+              pageId: page.pageId,
+              version: segVersion,
+              buffer: seg.buffer,
+              width: seg.width,
+              height: seg.height,
+              bounds,
+            });
+            existing.images.push({
+              imageId: getSegmentedImageId(
+                seg.sourceImageId,
+                seg.segmentIndex,
+                segVersion,
+              ),
+              isPruned: false,
+            });
+          }
+          if (applied.length > 0) {
+            const segmentedSourceIds = new Set(
+              applied.map((s) => s.sourceImageId),
+            );
+            for (const sourceId of segmentedSourceIds) {
+              const origEntry = existing.images.find(
+                (i) => i.imageId === sourceId,
+              );
+              if (origEntry) {
+                origEntry.isPruned = true;
+                origEntry.reason = "segmented";
+              }
+            }
+            storage.putNodeData("image-filtering", page.pageId, existing);
+          }
+        }
+      } catch (err) {
+        if (isCancellation(err, [runSignal])) throw err;
+        console.error(
+          `[stage-run] ${label}: image segmentation failed for ${page.pageId}: ${toErrorMessage(err)}`,
+        );
+      } finally {
+        completed++;
+        progress.emit({
+          type: "step-progress",
+          step: "image-segmentation",
+          message: `${completed}/${total}`,
+          page: completed,
+          totalPages: total,
+        });
+      }
+    },
+    { runSignal },
+  );
+  if (runSignal?.aborted) return;
+  progress.emit({ type: "step-complete", step: "image-segmentation" });
 }
 
 async function runCroppingPass(
@@ -3781,92 +4469,106 @@ async function runCroppingPass(
   runSignal?: AbortSignal,
 ): Promise<void> {
   if (!config || !model) {
-    progress.emit({ type: "step-skip", step: "image-cropping" })
-    return
+    progress.emit({ type: "step-skip", step: "image-cropping" });
+    return;
   }
 
-  const total = pages.length
-  let completed = 0
-  progress.emit({ type: "step-start", step: "image-cropping" })
-  await processWithConcurrency(pages, concurrency, async (page) => {
-    const existing = results.get(page.pageId)
-    if (!existing) {
-      completed++
-      progress.emit({
-        type: "step-progress",
-        step: "image-cropping",
-        message: `${completed}/${total}`,
-        page: completed,
-        totalPages: total,
-      })
-      return
-    }
-    try {
-      const images = storage.getPageImages(page.pageId)
-      const prunedIds = new Set(
-        existing.images.filter((img) => img.isPruned).map((img) => img.imageId)
-      )
-      const unprunedImages = images
-        .filter((img) => !prunedIds.has(img.imageId))
-        .map((img) => ({
-          imageId: img.imageId,
-          imageBase64: storage.getImageBase64(img.imageId),
-          width: img.width,
-          height: img.height,
-        }))
-
-      if (unprunedImages.length > 0) {
-        const croppingResult = await cropPageImages(
-          {
-            pageId: page.pageId,
-            pageImageBase64: storage.getPageImageBase64(page.pageId),
-            images: unprunedImages,
-          },
-          config,
-          model,
-        )
-        const croppingVersion = storage.putNodeData("image-cropping", page.pageId, croppingResult)
-        const applied = applyCrops(
-          croppingResult,
-          (imageId) => storage.getImageBase64(imageId)
-        )
-        for (const crop of applied) {
-          storage.putCroppedImage({
-            imageId: crop.imageId,
-            pageId: page.pageId,
-            version: croppingVersion,
-            buffer: crop.buffer,
-            width: crop.width,
-            height: crop.height,
-          })
-          const origEntry = existing.images.find((i) => i.imageId === crop.imageId)
-          if (origEntry) {
-            origEntry.isPruned = true
-            origEntry.reason = "cropped"
-          }
-          existing.images.push({
-            imageId: getCroppedImageId(crop.imageId, croppingVersion),
-            isPruned: false,
-          })
-        }
-        if (applied.length > 0) {
-          storage.putNodeData("image-filtering", page.pageId, existing)
-        }
+  const total = pages.length;
+  let completed = 0;
+  progress.emit({ type: "step-start", step: "image-cropping" });
+  await processWithConcurrency(
+    pages,
+    concurrency,
+    async (page) => {
+      const existing = results.get(page.pageId);
+      if (!existing) {
+        completed++;
+        progress.emit({
+          type: "step-progress",
+          step: "image-cropping",
+          message: `${completed}/${total}`,
+          page: completed,
+          totalPages: total,
+        });
+        return;
       }
-    } catch (err) {
-      if (isCancellation(err, [runSignal])) throw err
-      console.error(`[stage-run] ${label}: image cropping failed for ${page.pageId}: ${toErrorMessage(err)}`)
-    } finally {
-      completed++
-      progress.emit({
-        type: "step-progress",
-        step: "image-cropping",
-        message: `${completed}/${total}`,
-        page: completed,
-        totalPages: total,
-      })
-    }
-  }, { runSignal })
-  if (runSignal?.aborted) return
-  progress.emit({ type: "step-complete", step: "image-cropping" })
+      try {
+        const images = storage.getPageImages(page.pageId);
+        const prunedIds = new Set(
+          existing.images
+            .filter((img) => img.isPruned)
+            .map((img) => img.imageId),
+        );
+        const unprunedImages = images
+          .filter((img) => !prunedIds.has(img.imageId))
+          .map((img) => ({
+            imageId: img.imageId,
+            imageBase64: storage.getImageBase64(img.imageId),
+            width: img.width,
+            height: img.height,
+          }));
+
+        if (unprunedImages.length > 0) {
+          const croppingResult = await cropPageImages(
+            {
+              pageId: page.pageId,
+              pageImageBase64: storage.getPageImageBase64(page.pageId),
+              images: unprunedImages,
+            },
+            config,
+            model,
+          );
+          const croppingVersion = storage.putNodeData(
+            "image-cropping",
+            page.pageId,
+            croppingResult,
+          );
+          const applied = applyCrops(croppingResult, (imageId) =>
+            storage.getImageBase64(imageId),
+          );
+          for (const crop of applied) {
+            storage.putCroppedImage({
+              imageId: crop.imageId,
+              pageId: page.pageId,
+              version: croppingVersion,
+              buffer: crop.buffer,
+              width: crop.width,
+              height: crop.height,
+            });
+            const origEntry = existing.images.find(
+              (i) => i.imageId === crop.imageId,
+            );
+            if (origEntry) {
+              origEntry.isPruned = true;
+              origEntry.reason = "cropped";
+            }
+            existing.images.push({
+              imageId: getCroppedImageId(crop.imageId, croppingVersion),
+              isPruned: false,
+            });
+          }
+          if (applied.length > 0) {
+            storage.putNodeData("image-filtering", page.pageId, existing);
+          }
+        }
+      } catch (err) {
+        if (isCancellation(err, [runSignal])) throw err;
+        console.error(
+          `[stage-run] ${label}: image cropping failed for ${page.pageId}: ${toErrorMessage(err)}`,
+        );
+      } finally {
+        completed++;
+        progress.emit({
+          type: "step-progress",
+          step: "image-cropping",
+          message: `${completed}/${total}`,
+          page: completed,
+          totalPages: total,
+        });
+      }
+    },
+    { runSignal },
+  );
+  if (runSignal?.aborted) return;
+  progress.emit({ type: "step-complete", step: "image-cropping" });
 }

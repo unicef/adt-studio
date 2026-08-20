@@ -1,8 +1,8 @@
-import fs from "node:fs"
-import path from "node:path"
-import { Hono } from "hono"
-import { HTTPException } from "hono/http-exception"
-import { z } from "zod"
+import fs from "node:fs";
+import path from "node:path";
+import { Hono } from "hono";
+import { HTTPException } from "hono/http-exception";
+import { z } from "zod";
 import {
   parseBookLabel,
   TTSOutput,
@@ -14,14 +14,17 @@ import {
   type TextCatalogOutput,
   type WordTimestampEntry,
   type WordTimestampOutput,
-} from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
+} from "@adt/types";
+import { openBookDb, createBookStorage } from "@adt/storage";
 import {
   createAzureTTSSynthesizer,
   createGeminiTTSSynthesizer,
+  createLocalHfTTSSynthesizer,
+  createMacSystemTTSSynthesizer,
+  readLocalHfManifest,
   createElevenLabsTTSSynthesizer,
   createTTSSynthesizer,
-} from "@adt/llm"
+} from "@adt/llm";
 import {
   getBaseLanguage,
   loadBookConfig,
@@ -44,27 +47,27 @@ import {
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
   type ProviderRouting,
-} from "@adt/pipeline"
-import { getLiveSpeechRun } from "../services/speech-progress.js"
+} from "@adt/pipeline";
+import { getLiveSpeechRun } from "../services/speech-progress.js";
 
 const GenerateSingleTTSBody = z
   .object({
     textId: z.string().min(1),
     language: z.string().min(1),
   })
-  .strict()
+  .strict();
 
 const UploadSingleTTSFields = z
   .object({
     textId: z.string().min(1),
     language: z.string().min(1),
   })
-  .strict()
+  .strict();
 
-const GEMINI_FLASH_PREVIEW_TTS_MODEL = "gemini-2.5-flash-preview-tts"
-const GEMINI_PRO_PREVIEW_TTS_MODEL = "gemini-2.5-pro-preview-tts"
-const SAFE_AUDIO_LANGUAGE_RE = /^[A-Za-z0-9_-]+$/
-const SAFE_AUDIO_TEXT_ID_RE = /^[A-Za-z0-9._-]+$/
+const GEMINI_FLASH_PREVIEW_TTS_MODEL = "gemini-2.5-flash-preview-tts";
+const GEMINI_PRO_PREVIEW_TTS_MODEL = "gemini-2.5-pro-preview-tts";
+const SAFE_AUDIO_LANGUAGE_RE = /^[A-Za-z0-9_-]+$/;
+const SAFE_AUDIO_TEXT_ID_RE = /^[A-Za-z0-9._-]+$/;
 const AUDIO_UPLOAD_FORMAT_BY_MIME: Record<string, "mp3" | "wav" | "ogg"> = {
   "audio/mpeg": "mp3",
   "audio/mp3": "mp3",
@@ -74,162 +77,164 @@ const AUDIO_UPLOAD_FORMAT_BY_MIME: Record<string, "mp3" | "wav" | "ogg"> = {
   "audio/vnd.wave": "wav",
   "audio/ogg": "ogg",
   "application/ogg": "ogg",
-}
-const AUDIO_UPLOAD_EXTENSIONS = new Set([".mp3", ".wav", ".ogg"])
+};
+const AUDIO_UPLOAD_EXTENSIONS = new Set([".mp3", ".wav", ".ogg"]);
 
 interface SingleItemFallbackAttempt {
-  provider: "openai" | "azure" | "elevenlabs"
-  model: string
-  voice: string
+  provider: "openai" | "azure" | "elevenlabs";
+  model: string;
+  voice: string;
 }
 
 function safeParseLabel(label: string): string {
   try {
-    return parseBookLabel(label)
+    return parseBookLabel(label);
   } catch (err) {
     throw new HTTPException(400, {
       message: err instanceof Error ? err.message : String(err),
-    })
+    });
   }
 }
 
 function getBookDbPath(booksDir: string, label: string): string {
-  return path.join(path.resolve(booksDir), label, `${label}.db`)
+  return path.join(path.resolve(booksDir), label, `${label}.db`);
 }
 
 function getConfigDir(configPath?: string): string {
   return configPath
     ? path.join(path.dirname(configPath), "config")
-    : path.resolve(process.cwd(), "config")
+    : path.resolve(process.cwd(), "config");
 }
 
 function getSourceLanguage(
   storage: ReturnType<typeof createBookStorage>,
   booksDir: string,
   label: string,
-  configPath?: string
+  configPath?: string,
 ): { config: ReturnType<typeof loadBookConfig>; language: string } {
-  const config = loadBookConfig(label, booksDir, configPath)
-  const metadataRow = storage.getLatestNodeData("metadata", "book")
-  const metadata = metadataRow?.data as { language_code?: string | null } | null
+  const config = loadBookConfig(label, booksDir, configPath);
+  const metadataRow = storage.getLatestNodeData("metadata", "book");
+  const metadata = metadataRow?.data as {
+    language_code?: string | null;
+  } | null;
   return {
     config,
     language: normalizeLocale(
-      config.editing_language ?? metadata?.language_code ?? "en"
+      config.editing_language ?? metadata?.language_code ?? "en",
     ),
-  }
+  };
 }
 
 function getOutputLanguages(
   config: ReturnType<typeof loadBookConfig>,
-  sourceLanguage: string
+  sourceLanguage: string,
 ): string[] {
   return Array.from(
     new Set(
       [sourceLanguage, ...(config.output_languages ?? [])].map((code) =>
-        normalizeLocale(code)
-      )
-    )
-  )
+        normalizeLocale(code),
+      ),
+    ),
+  );
 }
 
 function getCatalogEntriesForLanguage(
   storage: ReturnType<typeof createBookStorage>,
   _sourceLanguage: string,
-  language: string
+  language: string,
 ): TextCatalogEntry[] {
-  const normalizedLanguage = normalizeLocale(language)
+  const normalizedLanguage = normalizeLocale(language);
   if (!getCoreTtsCatalog(storage, normalizedLanguage)) {
     throw new HTTPException(404, {
       message: `Core TTS catalog not found for ${normalizedLanguage}`,
-    })
+    });
   }
-  return getReadyCoreTtsEntries(storage, normalizedLanguage)
+  return getReadyCoreTtsEntries(storage, normalizedLanguage);
 }
 
 function getLatestTtsEntries(
   storage: ReturnType<typeof createBookStorage>,
-  language: string
+  language: string,
 ): SpeechFileEntry[] {
-  return getLatestTtsOutput(storage, language)?.entries ?? []
+  return getLatestTtsOutput(storage, language)?.entries ?? [];
 }
 
 function getLatestTtsOutput(
   storage: ReturnType<typeof createBookStorage>,
-  language: string
+  language: string,
 ): TTSOutput | undefined {
-  const normalizedLanguage = normalizeLocale(language)
-  const legacyLanguage = normalizedLanguage.replace("-", "_")
+  const normalizedLanguage = normalizeLocale(language);
+  const legacyLanguage = normalizedLanguage.replace("-", "_");
   const row =
     storage.getLatestNodeData("tts", normalizedLanguage) ??
-    storage.getLatestNodeData("tts", legacyLanguage)
+    storage.getLatestNodeData("tts", legacyLanguage);
 
-  return row ? (row.data as TTSOutput) : undefined
+  return row ? (row.data as TTSOutput) : undefined;
 }
 
 function mergeSpeechEntry(
   existingEntries: SpeechFileEntry[],
   nextEntry: SpeechFileEntry,
-  orderedIds: string[]
+  orderedIds: string[],
 ): SpeechFileEntry[] {
-  const byId = new Map(existingEntries.map((entry) => [entry.textId, entry]))
-  byId.set(nextEntry.textId, nextEntry)
+  const byId = new Map(existingEntries.map((entry) => [entry.textId, entry]));
+  byId.set(nextEntry.textId, nextEntry);
 
-  const order = new Map(orderedIds.map((id, index) => [id, index]))
+  const order = new Map(orderedIds.map((id, index) => [id, index]));
   return [...byId.values()].sort(
     (left, right) =>
       (order.get(left.textId) ?? Number.MAX_SAFE_INTEGER) -
-      (order.get(right.textId) ?? Number.MAX_SAFE_INTEGER)
-  )
+      (order.get(right.textId) ?? Number.MAX_SAFE_INTEGER),
+  );
 }
 
 function buildUpdatedTtsOutput(
   storage: ReturnType<typeof createBookStorage>,
   language: string,
   entries: SpeechFileEntry[],
-  resolvedTextId: string
+  resolvedTextId: string,
 ): TTSOutput {
-  const previous = getLatestTtsOutput(storage, language)
+  const previous = getLatestTtsOutput(storage, language);
   const failed = (previous?.failed ?? []).filter(
-    (entry) => entry.textId !== resolvedTextId
-  )
+    (entry) => entry.textId !== resolvedTextId,
+  );
   return {
     entries,
     generatedAt: new Date().toISOString(),
     ...(failed.length > 0 ? { failed } : {}),
-  }
+  };
 }
 
 function getTtsCompletionSummary(
   storage: ReturnType<typeof createBookStorage>,
   config: ReturnType<typeof loadBookConfig>,
-  sourceLanguage: string
+  sourceLanguage: string,
 ): { remainingItems: number; allComplete: boolean } {
-  const outputLanguages = getOutputLanguages(config, sourceLanguage)
-  let remainingItems = 0
+  const outputLanguages = getOutputLanguages(config, sourceLanguage);
+  let remainingItems = 0;
 
   for (const language of outputLanguages) {
-    let expectedEntries: TextCatalogEntry[]
+    let expectedEntries: TextCatalogEntry[];
     try {
       expectedEntries = getCatalogEntriesForLanguage(
         storage,
         sourceLanguage,
-        language
-      )
+        language,
+      );
     } catch (err) {
       if (err instanceof HTTPException) {
-        remainingItems++
-        continue
+        remainingItems++;
+        continue;
       }
-      throw err
+      throw err;
     }
     const availableIds = new Set(
-      getLatestTtsEntries(storage, language).map((entry) => entry.textId)
-    )
+      getLatestTtsEntries(storage, language).map((entry) => entry.textId),
+    );
     for (const entry of expectedEntries) {
-      if (isTtsExcluded(entry.id, config.speech)) continue
+      if (isTtsExcluded(entry.id, config.speech)) continue;
       if (!availableIds.has(entry.id)) {
-        remainingItems++
+        remainingItems++;
       }
     }
   }
@@ -237,24 +242,24 @@ function getTtsCompletionSummary(
   return {
     remainingItems,
     allComplete: remainingItems === 0,
-  }
+  };
 }
 
 function getGeminiFallbackModel(model: string): string | null {
   if (model === GEMINI_FLASH_PREVIEW_TTS_MODEL) {
-    return GEMINI_PRO_PREVIEW_TTS_MODEL
+    return GEMINI_PRO_PREVIEW_TTS_MODEL;
   }
   if (model === GEMINI_PRO_PREVIEW_TTS_MODEL) {
-    return GEMINI_FLASH_PREVIEW_TTS_MODEL
+    return GEMINI_FLASH_PREVIEW_TTS_MODEL;
   }
-  return null
+  return null;
 }
 
 // Retries for a single-item ElevenLabs regeneration. Much lower than the batch
 // paths' ELEVENLABS_TTS_MAX_RATE_LIMIT_RETRIES (5, backing off to 30s) because
 // this runs inside an HTTP request: 2 retries at 2s + 4s absorb a transient
 // concurrency 429 while keeping the response well inside client/proxy timeouts.
-const ELEVENLABS_SINGLE_ITEM_MAX_RETRIES = 2
+const ELEVENLABS_SINGLE_ITEM_MAX_RETRIES = 2;
 
 /**
  * The credential a given TTS provider needs for single-item regeneration, or
@@ -265,47 +270,52 @@ const ELEVENLABS_SINGLE_ITEM_MAX_RETRIES = 2
 function getMissingProviderKeyMessage(
   provider: string,
   keys: {
-    geminiApiKey?: string
-    openaiApiKey?: string
-    azureSpeechKey?: string
-    azureSpeechRegion?: string
-    elevenLabsApiKey?: string
+    geminiApiKey?: string;
+    openaiApiKey?: string;
+    azureSpeechKey?: string;
+    azureSpeechRegion?: string;
+    elevenLabsApiKey?: string;
   },
 ): string | null {
   switch (provider) {
     case "gemini":
       return keys.geminiApiKey
         ? null
-        : "Gemini API key required. Set X-Gemini-API-Key header."
+        : "Gemini API key required. Set X-Gemini-API-Key header.";
     case "elevenlabs":
       return keys.elevenLabsApiKey
         ? null
-        : "ElevenLabs API key required. Set X-ElevenLabs-API-Key header."
+        : "ElevenLabs API key required. Set X-ElevenLabs-API-Key header.";
     case "azure":
       return keys.azureSpeechKey && keys.azureSpeechRegion
         ? null
-        : "Azure Speech key and region required. Set X-Azure-Speech-Key and X-Azure-Speech-Region headers."
-    default:
+        : "Azure Speech key and region required. Set X-Azure-Speech-Key and X-Azure-Speech-Region headers.";
+    case "local-hf":
+    case "local-system":
+      return null;
+    case "openai":
       return keys.openaiApiKey
         ? null
-        : "OpenAI API key required. Set X-OpenAI-Key header."
+        : "OpenAI API key required. Set X-OpenAI-Key header.";
+    default:
+      return `Unsupported TTS provider: ${provider}`;
   }
 }
 
 function getSingleItemFallbackAttempts(options: {
-  openaiApiKey?: string
-  azureSpeechKey?: string
-  azureSpeechRegion?: string
-  elevenLabsApiKey?: string
-  language: string
-  providerConfigs: Record<string, TTSProviderConfig>
-  voiceMaps: ReturnType<typeof loadVoicesConfig>
-  defaultOpenAIModel?: string
+  openaiApiKey?: string;
+  azureSpeechKey?: string;
+  azureSpeechRegion?: string;
+  elevenLabsApiKey?: string;
+  language: string;
+  providerConfigs: Record<string, TTSProviderConfig>;
+  voiceMaps: ReturnType<typeof loadVoicesConfig>;
+  defaultOpenAIModel?: string;
   /** The provider already tried as the primary attempt — excluded so a
    *  failure isn't retried against the same provider that just failed. */
-  primaryProvider?: string
+  primaryProvider?: string;
 }): SingleItemFallbackAttempt[] {
-  const attempts: SingleItemFallbackAttempt[] = []
+  const attempts: SingleItemFallbackAttempt[] = [];
 
   if (options.openaiApiKey) {
     attempts.push({
@@ -316,7 +326,7 @@ function getSingleItemFallbackAttempts(options: {
         options.defaultOpenAIModel,
       ),
       voice: resolveVoice("openai", options.language, options.voiceMaps),
-    })
+    });
   }
 
   if (options.azureSpeechKey && options.azureSpeechRegion) {
@@ -324,7 +334,7 @@ function getSingleItemFallbackAttempts(options: {
       provider: "azure",
       model: resolveSpeechModel("azure", options.providerConfigs),
       voice: resolveVoice("azure", options.language, options.voiceMaps),
-    })
+    });
   }
 
   if (options.elevenLabsApiKey) {
@@ -332,136 +342,177 @@ function getSingleItemFallbackAttempts(options: {
       provider: "elevenlabs",
       model: resolveSpeechModel("elevenlabs", options.providerConfigs),
       voice: resolveVoice("elevenlabs", options.language, options.voiceMaps),
-    })
+    });
   }
 
-  return attempts.filter((attempt) => attempt.provider !== options.primaryProvider)
+  return attempts.filter(
+    (attempt) => attempt.provider !== options.primaryProvider,
+  );
 }
 
 function resolveUploadedAudioFormat(file: File): "mp3" | "wav" | "ogg" {
-  const mimeType = file.type.trim().toLowerCase()
-  const byMime = AUDIO_UPLOAD_FORMAT_BY_MIME[mimeType]
+  const mimeType = file.type.trim().toLowerCase();
+  const byMime = AUDIO_UPLOAD_FORMAT_BY_MIME[mimeType];
   if (byMime) {
-    return byMime
+    return byMime;
   }
 
-  const extension = path.extname(file.name).toLowerCase()
+  const extension = path.extname(file.name).toLowerCase();
   if (AUDIO_UPLOAD_EXTENSIONS.has(extension)) {
-    return extension.slice(1) as "mp3" | "wav" | "ogg"
+    return extension.slice(1) as "mp3" | "wav" | "ogg";
   }
 
   throw new HTTPException(400, {
     message: `Unsupported audio type: ${file.type || file.name}. Allowed formats: mp3, wav, ogg`,
-  })
+  });
 }
 
 function clearWordTimestampEntry(
   storage: ReturnType<typeof createBookStorage>,
   language: string,
-  textId: string
+  textId: string,
 ): void {
-  const normalizedLanguage = normalizeLocale(language)
-  const legacyLanguage = normalizedLanguage.replace("-", "_")
+  const normalizedLanguage = normalizeLocale(language);
+  const legacyLanguage = normalizedLanguage.replace("-", "_");
   const row =
     storage.getLatestNodeData("tts-timestamps", normalizedLanguage) ??
-    storage.getLatestNodeData("tts-timestamps", legacyLanguage)
+    storage.getLatestNodeData("tts-timestamps", legacyLanguage);
 
-  if (!row) return
+  if (!row) return;
 
-  const data = row.data as WordTimestampOutput
-  const existing = data.entries
-  const failed = data.failed ?? []
-  const hasEntry = textId in existing
-  const hasFailed = failed.some((f) => f.textId === textId)
-  if (!hasEntry && !hasFailed) return
+  const data = row.data as WordTimestampOutput;
+  const existing = data.entries;
+  const failed = data.failed ?? [];
+  const hasEntry = textId in existing;
+  const hasFailed = failed.some((f) => f.textId === textId);
+  if (!hasEntry && !hasFailed) return;
 
-  const nextEntries = { ...existing }
-  delete nextEntries[textId]
+  const nextEntries = { ...existing };
+  delete nextEntries[textId];
   // Removing/replacing the audio makes any prior highlighting failure stale.
-  const nextFailed = failed.filter((f) => f.textId !== textId)
+  const nextFailed = failed.filter((f) => f.textId !== textId);
 
   storage.putNodeData("tts-timestamps", normalizedLanguage, {
     entries: nextEntries,
     generatedAt: new Date().toISOString(),
     ...(nextFailed.length > 0 ? { failed: nextFailed } : {}),
-  } satisfies WordTimestampOutput)
+  } satisfies WordTimestampOutput);
 }
 
 function appendSingleTtsLog(
   storage: ReturnType<typeof createBookStorage>,
   options: {
-    textId: string
-    language: string
-    voice: string
-    model: string
-    provider: string
-    text: string
-    durationMs: number
-    success: boolean
-    cached: boolean
-    attempt: number
-    error?: string
+    textId: string;
+    language: string;
+    voice: string;
+    model: string;
+    provider: string;
+    text: string;
+    durationMs: number;
+    success: boolean;
+    cached: boolean;
+    attempt: number;
+    error?: string;
     /** Resolved provider request parameters, for the debug panel. */
-    params?: Record<string, unknown>
-  }
+    params?: Record<string, unknown>;
+  },
 ): void {
   const logEntry = buildTtsLogEntry({
     ...options,
-  })
+  });
 
-  storage.appendLlmLog(logEntry)
+  storage.appendLlmLog(logEntry);
 }
 
-export function createTTSRoutes(booksDir: string, configPath?: string, taskService?: import("../services/task-service.js").TaskService): Hono {
-  const app = new Hono()
+export function createTTSRoutes(
+  booksDir: string,
+  configPath?: string,
+  taskService?: import("../services/task-service.js").TaskService,
+): Hono {
+  const app = new Hono();
 
   // GET /books/:label/tts — Get all TTS data grouped by language
   app.get("/books/:label/tts", (c) => {
-    const { label } = c.req.param()
-    const safeLabel = safeParseLabel(label)
-    const dbPath = getBookDbPath(booksDir, safeLabel)
+    const { label } = c.req.param();
+    const safeLabel = safeParseLabel(label);
+    const dbPath = getBookDbPath(booksDir, safeLabel);
 
     if (!fs.existsSync(dbPath)) {
-      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` });
     }
 
-    const resolvedBooksDir = path.resolve(booksDir)
-    const mapEntries = (language: string, entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string }>) => {
-      const audioDir = path.join(resolvedBooksDir, safeLabel, "audio", language)
-      const storage = createBookStorage(safeLabel, booksDir)
-      let readyIds: Set<string>
+    const resolvedBooksDir = path.resolve(booksDir);
+    const mapEntries = (
+      language: string,
+      entries: Array<{
+        textId: string;
+        fileName: string;
+        voice: string;
+        model: string;
+        cached: boolean;
+        provider?: string;
+      }>,
+    ) => {
+      const audioDir = path.join(
+        resolvedBooksDir,
+        safeLabel,
+        "audio",
+        language,
+      );
+      const storage = createBookStorage(safeLabel, booksDir);
+      let readyIds: Set<string>;
       try {
         readyIds = new Set(
           getReadyCoreTtsEntries(storage, language).map((entry) => entry.id),
-        )
+        );
       } finally {
-        storage.close()
+        storage.close();
       }
-      return entries.filter((entry) => readyIds.has(entry.textId)).map((e) => {
-        let cacheKey: string | undefined
-        try {
-          cacheKey = fs.statSync(path.join(audioDir, e.fileName)).mtimeMs.toString(36)
-        } catch {
-          // file missing — leave cacheKey undefined
-        }
-        return {
-          textId: e.textId,
-          fileName: e.fileName,
-          voice: e.voice,
-          model: e.model,
-          cached: e.cached,
-          provider: e.provider,
-          cacheKey,
-        }
-      })
-    }
+      return entries
+        .filter((entry) => readyIds.has(entry.textId))
+        .map((e) => {
+          let cacheKey: string | undefined;
+          try {
+            cacheKey = fs
+              .statSync(path.join(audioDir, e.fileName))
+              .mtimeMs.toString(36);
+          } catch {
+            // file missing — leave cacheKey undefined
+          }
+          return {
+            textId: e.textId,
+            fileName: e.fileName,
+            voice: e.voice,
+            model: e.model,
+            cached: e.cached,
+            provider: e.provider,
+            cacheKey,
+          };
+        });
+    };
 
-    const languages: Record<string, { entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string; cacheKey?: string }>; failed?: Array<{ textId: string; error: string }>; generatedAt: string; version: number }> = {}
+    const languages: Record<
+      string,
+      {
+        entries: Array<{
+          textId: string;
+          fileName: string;
+          voice: string;
+          model: string;
+          cached: boolean;
+          provider?: string;
+          cacheKey?: string;
+        }>;
+        failed?: Array<{ textId: string; error: string }>;
+        generatedAt: string;
+        version: number;
+      }
+    > = {};
 
     // While a speech run is active, serve its live snapshot — node data is
     // only persisted at the end of the run, but audio files land on disk per
     // item, so this lets the Speech view fill in progressively.
-    const live = getLiveSpeechRun(safeLabel)
+    const live = getLiveSpeechRun(safeLabel);
     if (live) {
       for (const [lang, data] of Object.entries(live.languages)) {
         languages[lang] = {
@@ -469,12 +520,12 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           ...(data.failed.length > 0 ? { failed: data.failed } : {}),
           generatedAt: live.startedAt,
           version: 0,
-        }
+        };
       }
-      return c.json({ languages, live: true })
+      return c.json({ languages, live: true });
     }
 
-    const db = openBookDb(dbPath)
+    const db = openBookDb(dbPath);
     try {
       // TTS is stored per language: node="tts", item_id=language code
       // Get latest version per language
@@ -483,14 +534,14 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
          WHERE node = ? AND (item_id, version) IN (
            SELECT item_id, MAX(version) FROM node_data WHERE node = ? GROUP BY item_id
          )`,
-        ["tts", "tts"]
-      ) as Array<{ item_id: string; data: string; version: number }>
+        ["tts", "tts"],
+      ) as Array<{ item_id: string; data: string; version: number }>;
 
       for (const row of rows) {
         try {
-          const parsed = JSON.parse(row.data)
-          const validated = TTSOutput.safeParse(parsed)
-          if (!validated.success) continue
+          const parsed = JSON.parse(row.data);
+          const validated = TTSOutput.safeParse(parsed);
+          if (!validated.success) continue;
           languages[row.item_id] = {
             entries: mapEntries(row.item_id, validated.data.entries),
             ...(validated.data.failed && validated.data.failed.length > 0
@@ -498,111 +549,111 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
               : {}),
             generatedAt: validated.data.generatedAt,
             version: row.version,
-          }
+          };
         } catch {
           // skip corrupted
         }
       }
 
-      return c.json({ languages })
+      return c.json({ languages });
     } finally {
-      db.close()
+      db.close();
     }
-  })
+  });
 
   // DELETE /books/:label/tts — Clear all TTS data and audio files
   app.delete("/books/:label/tts", (c) => {
-    const { label } = c.req.param()
-    const safeLabel = safeParseLabel(label)
-    const dbPath = getBookDbPath(booksDir, safeLabel)
+    const { label } = c.req.param();
+    const safeLabel = safeParseLabel(label);
+    const dbPath = getBookDbPath(booksDir, safeLabel);
 
     if (!fs.existsSync(dbPath)) {
-      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` });
     }
 
-    const storage = createBookStorage(safeLabel, booksDir)
+    const storage = createBookStorage(safeLabel, booksDir);
     try {
-      storage.clearNodesByType(["tts", "tts-timestamps"])
-      storage.clearStepRuns(["tts"])
+      storage.clearNodesByType(["tts", "tts-timestamps"]);
+      storage.clearStepRuns(["tts"]);
 
       // Remove audio files on disk
-      const bookDir = path.join(path.resolve(booksDir), safeLabel)
-      const audioDir = path.join(bookDir, "audio")
+      const bookDir = path.join(path.resolve(booksDir), safeLabel);
+      const audioDir = path.join(bookDir, "audio");
       if (fs.existsSync(audioDir)) {
-        fs.rmSync(audioDir, { recursive: true, force: true })
+        fs.rmSync(audioDir, { recursive: true, force: true });
       }
 
-      return c.json({ ok: true })
+      return c.json({ ok: true });
     } finally {
-      storage.close()
+      storage.close();
     }
-  })
+  });
 
   // POST /books/:label/tts/upload-one — Upload a manual audio file for a single text entry
   app.post("/books/:label/tts/upload-one", async (c) => {
-    const { label } = c.req.param()
-    const safeLabel = safeParseLabel(label)
-    const dbPath = getBookDbPath(booksDir, safeLabel)
+    const { label } = c.req.param();
+    const safeLabel = safeParseLabel(label);
+    const dbPath = getBookDbPath(booksDir, safeLabel);
 
     if (!fs.existsSync(dbPath)) {
-      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` });
     }
 
-    const formData = await c.req.formData()
-    const audioFile = formData.get("audio")
-    const textId = formData.get("textId")
-    const language = formData.get("language")
+    const formData = await c.req.formData();
+    const audioFile = formData.get("audio");
+    const textId = formData.get("textId");
+    const language = formData.get("language");
 
     if (!(audioFile instanceof File)) {
-      throw new HTTPException(400, { message: "Audio file is required" })
+      throw new HTTPException(400, { message: "Audio file is required" });
     }
 
     const parsed = UploadSingleTTSFields.safeParse({
       textId: typeof textId === "string" ? textId : undefined,
       language: typeof language === "string" ? language : undefined,
-    })
+    });
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid upload request: ${parsed.error.message}`,
-      })
+      });
     }
 
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
+    const normalizedLanguage = normalizeLocale(parsed.data.language);
     if (!SAFE_AUDIO_LANGUAGE_RE.test(normalizedLanguage)) {
       throw new HTTPException(400, {
         message: `Invalid language: ${normalizedLanguage}`,
-      })
+      });
     }
 
-    const storage = createBookStorage(safeLabel, booksDir)
+    const storage = createBookStorage(safeLabel, booksDir);
 
     try {
       const { config, language: sourceLanguage } = getSourceLanguage(
         storage,
         booksDir,
         safeLabel,
-        configPath
-      )
+        configPath,
+      );
       const languageEntries = getCatalogEntriesForLanguage(
         storage,
         sourceLanguage,
-        normalizedLanguage
-      )
+        normalizedLanguage,
+      );
       const textEntry = languageEntries.find(
-        (entry) => entry.id === parsed.data.textId
-      )
+        (entry) => entry.id === parsed.data.textId,
+      );
       if (!textEntry) {
         throw new HTTPException(404, {
           message: `Text entry not found for ${parsed.data.textId} (${normalizedLanguage})`,
-        })
+        });
       }
       if (!SAFE_AUDIO_TEXT_ID_RE.test(textEntry.id)) {
         throw new HTTPException(400, {
           message: `Unsupported text ID for audio upload: ${textEntry.id}`,
-        })
+        });
       }
 
-      const format = resolveUploadedAudioFormat(audioFile)
+      const format = resolveUploadedAudioFormat(audioFile);
       const nextEntry: SpeechFileEntry = {
         textId: textEntry.id,
         language: normalizedLanguage,
@@ -611,87 +662,89 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         model: "uploaded",
         cached: false,
         provider: "manual",
-      }
+      };
 
-      const buffer = Buffer.from(await audioFile.arrayBuffer())
+      const buffer = Buffer.from(await audioFile.arrayBuffer());
       if (buffer.length === 0) {
         throw new HTTPException(400, {
           message: "Uploaded audio file is empty",
-        })
+        });
       }
 
-      const bookDir = path.join(path.resolve(booksDir), safeLabel)
-      const audioRoot = path.resolve(bookDir, "audio")
-      const audioDir = path.resolve(audioRoot, normalizedLanguage)
+      const bookDir = path.join(path.resolve(booksDir), safeLabel);
+      const audioRoot = path.resolve(bookDir, "audio");
+      const audioDir = path.resolve(audioRoot, normalizedLanguage);
       if (
         audioDir !== audioRoot &&
         !audioDir.startsWith(audioRoot + path.sep)
       ) {
-        throw new HTTPException(400, { message: "Invalid audio directory" })
+        throw new HTTPException(400, { message: "Invalid audio directory" });
       }
 
-      const outputPath = path.resolve(audioDir, nextEntry.fileName)
+      const outputPath = path.resolve(audioDir, nextEntry.fileName);
       if (!outputPath.startsWith(audioDir + path.sep)) {
-        throw new HTTPException(400, { message: "Invalid audio file path" })
+        throw new HTTPException(400, { message: "Invalid audio file path" });
       }
 
-      const existingEntries = getLatestTtsEntries(storage, normalizedLanguage)
+      const existingEntries = getLatestTtsEntries(storage, normalizedLanguage);
       const existingEntry = existingEntries.find(
-        (entry) => entry.textId === textEntry.id
-      )
+        (entry) => entry.textId === textEntry.id,
+      );
 
-      fs.mkdirSync(audioDir, { recursive: true })
-      fs.writeFileSync(outputPath, buffer)
+      fs.mkdirSync(audioDir, { recursive: true });
+      fs.writeFileSync(outputPath, buffer);
 
-      if (
-        existingEntry &&
-        existingEntry.fileName !== nextEntry.fileName
-      ) {
-        const previousPath = path.resolve(audioDir, existingEntry.fileName)
+      if (existingEntry && existingEntry.fileName !== nextEntry.fileName) {
+        const previousPath = path.resolve(audioDir, existingEntry.fileName);
         if (
           previousPath.startsWith(audioDir + path.sep) &&
           fs.existsSync(previousPath)
         ) {
-          fs.rmSync(previousPath, { force: true })
+          fs.rmSync(previousPath, { force: true });
         }
       }
 
       const mergedEntries = mergeSpeechEntry(
         existingEntries,
         nextEntry,
-        languageEntries.map((entry) => entry.id)
-      )
+        languageEntries.map((entry) => entry.id),
+      );
 
       const version = storage.putNodeData(
         "tts",
         normalizedLanguage,
-        buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
-      )
+        buildUpdatedTtsOutput(
+          storage,
+          normalizedLanguage,
+          mergedEntries,
+          textEntry.id,
+        ),
+      );
 
-      clearWordTimestampEntry(storage, normalizedLanguage, textEntry.id)
+      clearWordTimestampEntry(storage, normalizedLanguage, textEntry.id);
 
       const completion = getTtsCompletionSummary(
         storage,
         config,
-        sourceLanguage
-      )
+        sourceLanguage,
+      );
       if (completion.allComplete) {
-        storage.markStepCompleted("tts")
+        storage.markStepCompleted("tts");
       } else {
         const currentStatus = storage
           .getStepRuns()
-          .find((step) => step.step === "tts")?.status
+          .find((step) => step.step === "tts")?.status;
         if (currentStatus === "error") {
           storage.recordStepError(
             "tts",
-            `${completion.remainingItems} audio item(s) still need generation or upload.`
-          )
+            `${completion.remainingItems} audio item(s) still need generation or upload.`,
+          );
         }
       }
 
-      let cacheKey: string | undefined
+      let cacheKey: string | undefined;
       try {
-        cacheKey = fs.statSync(outputPath).mtimeMs.toString(36)
+        cacheKey = fs.statSync(outputPath).mtimeMs.toString(36);
       } catch {
         // ignore — file was just written, this shouldn't happen
       }
@@ -703,66 +756,65 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           completed: completion.allComplete,
           remainingItems: completion.remainingItems,
         },
-        201
-      )
+        201,
+      );
     } finally {
-      storage.close()
+      storage.close();
     }
-  })
+  });
 
   app.post("/books/:label/tts/generate-one", async (c) => {
-    const { label } = c.req.param()
-    const safeLabel = safeParseLabel(label)
-    const dbPath = getBookDbPath(booksDir, safeLabel)
+    const { label } = c.req.param();
+    const safeLabel = safeParseLabel(label);
+    const dbPath = getBookDbPath(booksDir, safeLabel);
 
     if (!fs.existsSync(dbPath)) {
-      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` });
     }
 
-    let body: unknown
+    let body: unknown;
     try {
-      body = await c.req.json()
+      body = await c.req.json();
     } catch {
-      throw new HTTPException(400, { message: "Invalid JSON body" })
+      throw new HTTPException(400, { message: "Invalid JSON body" });
     }
 
-    const parsed = GenerateSingleTTSBody.safeParse(body)
+    const parsed = GenerateSingleTTSBody.safeParse(body);
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid TTS item request: ${parsed.error.message}`,
-      })
+      });
     }
 
-    const geminiApiKey = c.req.header("X-Gemini-API-Key")?.trim()
-    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
-    const azureSpeechKey = c.req.header("X-Azure-Speech-Key")?.trim()
-    const azureSpeechRegion = c.req.header("X-Azure-Speech-Region")?.trim()
-    const elevenLabsApiKey = c.req.header("X-ElevenLabs-API-Key")?.trim()
-
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
-    const storage = createBookStorage(safeLabel, booksDir)
+    const geminiApiKey = c.req.header("X-Gemini-API-Key")?.trim();
+    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim();
+    const azureSpeechKey = c.req.header("X-Azure-Speech-Key")?.trim();
+    const azureSpeechRegion = c.req.header("X-Azure-Speech-Region")?.trim();
+    const elevenLabsApiKey = c.req.header("X-ElevenLabs-API-Key")?.trim();
+    const normalizedLanguage = normalizeLocale(parsed.data.language);
+    const storage = createBookStorage(safeLabel, booksDir);
 
     try {
       const { config, language: sourceLanguage } = getSourceLanguage(
         storage,
         booksDir,
         safeLabel,
-        configPath
-      )
-      const outputLanguages = getOutputLanguages(config, sourceLanguage)
+        configPath,
+      );
+      const outputLanguages = getOutputLanguages(config, sourceLanguage);
       if (!outputLanguages.includes(normalizedLanguage)) {
         throw new HTTPException(400, {
           message: `Language is not configured for TTS output: ${normalizedLanguage}`,
-        })
+        });
       }
 
       const providerConfigs: Record<string, TTSProviderConfig> =
-        config.speech?.providers ?? {}
+        config.speech?.providers ?? {};
       const routing: ProviderRouting = {
         providers: providerConfigs,
         defaultProvider: config.speech?.default_provider ?? "openai",
-      }
-      const provider = resolveProviderForLanguage(normalizedLanguage, routing)
+      };
+      const provider = resolveProviderForLanguage(normalizedLanguage, routing);
       // The API key is validated against the *resolved* provider rather than
       // always demanding a Gemini key: a book routed to ElevenLabs (or Azure,
       // or OpenAI) has no Gemini key to give, and previously got turned away
@@ -774,43 +826,44 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         azureSpeechKey,
         azureSpeechRegion,
         elevenLabsApiKey,
-      })
+      });
       if (missingKeyMessage) {
-        throw new HTTPException(400, { message: missingKeyMessage })
+        throw new HTTPException(400, { message: missingKeyMessage });
       }
 
       const languageEntries = getCatalogEntriesForLanguage(
         storage,
         sourceLanguage,
-        normalizedLanguage
-      )
+        normalizedLanguage,
+      );
       const entryIndex = languageEntries.findIndex(
-        (entry) => entry.id === parsed.data.textId
-      )
-      const textEntry = entryIndex === -1 ? undefined : languageEntries[entryIndex]
+        (entry) => entry.id === parsed.data.textId,
+      );
+      const textEntry =
+        entryIndex === -1 ? undefined : languageEntries[entryIndex];
       if (!textEntry) {
         throw new HTTPException(404, {
           message: `Text entry not found for ${parsed.data.textId} (${normalizedLanguage})`,
-        })
+        });
       }
 
-      const configDir = getConfigDir(configPath)
-      const voiceMaps = loadVoicesConfig(configDir)
-      const instructionsMap = loadSpeechInstructions(configDir)
+      const configDir = getConfigDir(configPath);
+      const voiceMaps = loadVoicesConfig(configDir);
+      const instructionsMap = loadSpeechInstructions(configDir);
       const defaultSpeechModel =
-        config.speech?.model ?? config.default_speech_generation_model
+        config.speech?.model ?? config.default_speech_generation_model;
       const model = resolveSpeechModel(
         provider,
         providerConfigs,
         defaultSpeechModel,
-      )
-      const format = resolveSpeechFormat(provider, config.speech?.format)
+      );
+      const format = resolveSpeechFormat(provider, config.speech?.format);
       const voice = resolveVoice(
         provider,
         normalizedLanguage,
         voiceMaps,
-        config.speech?.voice
-      )
+        providerConfigs[provider]?.voice ?? config.speech?.voice,
+      );
       const fallbackAttempts = getSingleItemFallbackAttempts({
         openaiApiKey,
         azureSpeechKey,
@@ -821,9 +874,16 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         voiceMaps,
         defaultOpenAIModel: defaultSpeechModel,
         primaryProvider: provider,
-      })
-      const bookDir = path.join(path.resolve(booksDir), safeLabel)
-      const cacheDir = path.join(bookDir, ".cache")
+      });
+      const bookDir = path.join(path.resolve(booksDir), safeLabel);
+      const cacheDir = path.join(bookDir, ".cache");
+      const localModelsDir =
+        process.env.LOCAL_TTS_MODELS_DIR ??
+        path.join(path.dirname(booksDir), ".local-models", "tts");
+      const localManifest =
+        provider === "local-hf"
+          ? readLocalHfManifest(localModelsDir, model)
+          : undefined;
 
       // Request parameters recorded on the debug log entry so the settings that
       // produced this audio are inspectable. Takes provider/model/voice per call
@@ -842,24 +902,35 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
               format,
               sampleRate: config.speech?.sample_rate,
               bitRate: config.speech?.bit_rate,
-              applyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+              applyTextNormalization:
+                config.speech?.elevenlabs_apply_text_normalization,
               // Must match what generateEntry sends below, or the log would
               // describe a request we didn't make.
               previousText: config.speech?.elevenlabs_use_context
-                ? findAdjacentSpeechText(languageEntries, entryIndex, -1, config.speech)
+                ? findAdjacentSpeechText(
+                    languageEntries,
+                    entryIndex,
+                    -1,
+                    config.speech,
+                  )
                 : undefined,
               nextText: config.speech?.elevenlabs_use_context
-                ? findAdjacentSpeechText(languageEntries, entryIndex, 1, config.speech)
+                ? findAdjacentSpeechText(
+                    languageEntries,
+                    entryIndex,
+                    1,
+                    config.speech,
+                  )
                 : undefined,
               ...elevenLabsVoiceSettingsFromConfig(config.speech),
             })
-          : undefined
+          : undefined;
 
-      const startMs = Date.now()
+      const startMs = Date.now();
       const synthesizeEntry = async (options: {
-        targetProvider: string
-        targetModel: string
-        targetVoice: string
+        targetProvider: string;
+        targetModel: string;
+        targetVoice: string;
       }) =>
         generateSpeechFile({
           textId: textEntry.id,
@@ -880,7 +951,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           cacheDir,
           ttsSynthesizer:
             options.targetProvider === "gemini"
-              ? createGeminiTTSSynthesizer({ apiKey: geminiApiKey })
+              ? createGeminiTTSSynthesizer({ apiKey: geminiApiKey! })
               : options.targetProvider === "azure"
                 ? createAzureTTSSynthesizer(
                     {
@@ -895,36 +966,70 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 : options.targetProvider === "elevenlabs"
                   ? createElevenLabsTTSSynthesizer(
                       { apiKey: elevenLabsApiKey! },
-                      // Must match stage-runner.ts and pipeline-dag.ts: without
-                      // these, a regenerated entry is synthesized at ElevenLabs'
-                      // default mp3_44100_128 while the rest of the book used the
-                      // configured rates, and `logParamsFor` below (which does
-                      // read them) would report a format we never requested.
                       {
                         sampleRate: config.speech?.sample_rate,
                         bitRate: config.speech?.bit_rate,
                       },
                     )
-                  : createTTSSynthesizer(openaiApiKey),
+                  : options.targetProvider === "local-hf"
+                    ? createLocalHfTTSSynthesizer({
+                        modelsDir: localModelsDir,
+                        runtimeDir: process.env.LOCAL_TTS_RUNTIME_DIR,
+                        adapter: providerConfigs["local-hf"]?.adapter,
+                        dtype: providerConfigs["local-hf"]?.dtype,
+                        device: providerConfigs["local-hf"]?.device,
+                        speed: providerConfigs["local-hf"]?.speed,
+                      })
+                    : options.targetProvider === "local-system"
+                      ? createMacSystemTTSSynthesizer({
+                          speed: providerConfigs["local-system"]?.speed,
+                        })
+                      : createTTSSynthesizer(openaiApiKey),
           provider: options.targetProvider,
           geminiTemperature: config.speech?.temperature,
           geminiSeed: config.speech?.seed,
+          providerVariant: localManifest
+            ? JSON.stringify({
+                revision: localManifest.revision,
+                dtype: localManifest.dtype,
+                modelFile: localManifest.modelFile,
+                speed: providerConfigs["local-hf"]?.speed ?? 1,
+              })
+            : options.targetProvider === "local-system"
+              ? JSON.stringify({
+                  platform: process.platform,
+                  speed: providerConfigs["local-system"]?.speed ?? 1,
+                })
+              : undefined,
           // ElevenLabs-only: adjacent-entry context, opt-in via
           // elevenlabs_use_context. Must resolve identically to stage-runner.ts
           // and pipeline-dag.ts so the cache key stays in sync across paths.
           elevenLabsPreviousText:
-            options.targetProvider === "elevenlabs" && config.speech?.elevenlabs_use_context
-              ? findAdjacentSpeechText(languageEntries, entryIndex, -1, config.speech)
+            options.targetProvider === "elevenlabs" &&
+            config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(
+                  languageEntries,
+                  entryIndex,
+                  -1,
+                  config.speech,
+                )
               : undefined,
           elevenLabsNextText:
-            options.targetProvider === "elevenlabs" && config.speech?.elevenlabs_use_context
-              ? findAdjacentSpeechText(languageEntries, entryIndex, 1, config.speech)
+            options.targetProvider === "elevenlabs" &&
+            config.speech?.elevenlabs_use_context
+              ? findAdjacentSpeechText(
+                  languageEntries,
+                  entryIndex,
+                  1,
+                  config.speech,
+                )
               : undefined,
-          elevenLabsApplyTextNormalization: config.speech?.elevenlabs_apply_text_normalization,
+          elevenLabsApplyTextNormalization:
+            config.speech?.elevenlabs_apply_text_normalization,
           // Voice-tuning overrides. Shared helper so this path hashes the same
           // cache key as stage-runner.ts and pipeline-dag.ts.
           ...elevenLabsVoiceSettingsFromConfig(config.speech),
-        })
+        });
 
       /**
        * `synthesizeEntry` plus the ElevenLabs 429/5xx retry.
@@ -942,71 +1047,68 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
        * timeout. Wrapping here rather than at the call sites covers the fallback
        * attempts too.
        */
-      let synthesisAttempts = 0
+      let synthesisAttempts = 0;
       const generateEntry = async (options: {
-        targetProvider: string
-        targetModel: string
-        targetVoice: string
+        targetProvider: string;
+        targetModel: string;
+        targetVoice: string;
       }): Promise<Awaited<ReturnType<typeof synthesizeEntry>>> => {
         for (let attemptCount = 1; ; attemptCount++) {
-          synthesisAttempts++
+          synthesisAttempts++;
           try {
-            return await synthesizeEntry(options)
+            return await synthesizeEntry(options);
           } catch (err) {
-            const message = err instanceof Error ? err.message : String(err)
+            const message = err instanceof Error ? err.message : String(err);
             if (
               options.targetProvider !== "elevenlabs" ||
               attemptCount > ELEVENLABS_SINGLE_ITEM_MAX_RETRIES ||
               classifyElevenLabsTtsError(message) === "permanent"
             ) {
-              throw err
+              throw err;
             }
-            const delayMs = elevenLabsTtsRetryDelayMs(attemptCount)
+            const delayMs = elevenLabsTtsRetryDelayMs(attemptCount);
             console.warn(
-              `[tts] ${safeLabel}: ElevenLabs TTS failed for ${textEntry.id}; retrying ${attemptCount + 1}/${ELEVENLABS_SINGLE_ITEM_MAX_RETRIES + 1} in ${delayMs}ms: ${message}`
-            )
-            await new Promise((resolve) => setTimeout(resolve, delayMs))
+              `[tts] ${safeLabel}: ElevenLabs TTS failed for ${textEntry.id}; retrying ${attemptCount + 1}/${ELEVENLABS_SINGLE_ITEM_MAX_RETRIES + 1} in ${delayMs}ms: ${message}`,
+            );
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
           }
         }
-      }
+      };
 
       try {
-        let usedProvider = provider
-        let usedModel = model
-        let usedVoice = voice
-        let entry: Awaited<ReturnType<typeof generateEntry>>
+        let usedProvider = provider;
+        let usedModel = model;
+        let usedVoice = voice;
+        let entry: Awaited<ReturnType<typeof generateEntry>>;
 
         try {
           entry = await generateEntry({
             targetProvider: provider,
             targetModel: model,
             targetVoice: voice,
-          })
+          });
         } catch (err) {
-          const message = err instanceof Error ? err.message : String(err)
-          const fallbackModel = getGeminiFallbackModel(model)
-          if (
-            fallbackModel &&
-            /did not include audio data/i.test(message)
-          ) {
+          const message = err instanceof Error ? err.message : String(err);
+          const fallbackModel = getGeminiFallbackModel(model);
+          if (fallbackModel && /did not include audio data/i.test(message)) {
             console.warn(
-              `[tts] ${safeLabel}: retrying ${textEntry.id} with fallback Gemini model ${fallbackModel} after ${model} returned no audio`
-            )
-            usedModel = fallbackModel
+              `[tts] ${safeLabel}: retrying ${textEntry.id} with fallback Gemini model ${fallbackModel} after ${model} returned no audio`,
+            );
+            usedModel = fallbackModel;
             entry = await generateEntry({
               targetProvider: provider,
               targetModel: fallbackModel,
               targetVoice: voice,
-            })
+            });
           } else {
-            throw err
+            throw err;
           }
         }
 
         if (!entry) {
           throw new HTTPException(422, {
             message: `Text entry is not speakable: ${textEntry.id}`,
-          })
+          });
         }
 
         appendSingleTtsLog(storage, {
@@ -1021,36 +1123,41 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           cached: entry.cached,
           attempt: synthesisAttempts,
           params: logParamsFor(usedProvider, usedModel, usedVoice),
-        })
+        });
 
         const mergedEntries = mergeSpeechEntry(
           getLatestTtsEntries(storage, normalizedLanguage),
           entry,
-          languageEntries.map((item) => item.id)
-        )
+          languageEntries.map((item) => item.id),
+        );
 
         const version = storage.putNodeData(
           "tts",
           normalizedLanguage,
-          buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
-        )
+          buildUpdatedTtsOutput(
+            storage,
+            normalizedLanguage,
+            mergedEntries,
+            textEntry.id,
+          ),
+        );
 
         const completion = getTtsCompletionSummary(
           storage,
           config,
-          sourceLanguage
-        )
+          sourceLanguage,
+        );
         if (completion.allComplete) {
-          storage.markStepCompleted("tts")
+          storage.markStepCompleted("tts");
         } else {
           const currentStatus = storage
             .getStepRuns()
-            .find((step) => step.step === "tts")?.status
+            .find((step) => step.step === "tts")?.status;
           if (currentStatus === "error") {
             storage.recordStepError(
               "tts",
-              `${completion.remainingItems} audio item(s) still need generation.`
-            )
+              `${completion.remainingItems} audio item(s) still need generation.`,
+            );
           }
         }
 
@@ -1059,34 +1166,34 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           version,
           completed: completion.allComplete,
           remainingItems: completion.remainingItems,
-        })
+        });
       } catch (err) {
         if (err instanceof HTTPException) {
-          throw err
+          throw err;
         }
 
-        const message = err instanceof Error ? err.message : String(err)
-        let fallbackFailureMessage = message
-        let failedProvider = provider
-        let failedModel = model
-        let failedVoice = voice
+        const message = err instanceof Error ? err.message : String(err);
+        let fallbackFailureMessage = message;
+        let failedProvider = provider;
+        let failedModel = model;
+        let failedVoice = voice;
 
         if (/did not include audio data/i.test(message)) {
           for (const attempt of fallbackAttempts) {
             try {
               console.warn(
-                `[tts] ${safeLabel}: retrying ${textEntry.id} with fallback provider ${attempt.provider} after Gemini returned no audio`
-              )
+                `[tts] ${safeLabel}: retrying ${textEntry.id} with fallback provider ${attempt.provider} after Gemini returned no audio`,
+              );
               const entry = await generateEntry({
                 targetProvider: attempt.provider,
                 targetModel: attempt.model,
                 targetVoice: attempt.voice,
-              })
+              });
 
               if (!entry) {
                 throw new HTTPException(422, {
                   message: `Text entry is not speakable: ${textEntry.id}`,
-                })
+                });
               }
 
               appendSingleTtsLog(storage, {
@@ -1100,37 +1207,46 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 success: true,
                 cached: entry.cached,
                 attempt: synthesisAttempts,
-                params: logParamsFor(attempt.provider, attempt.model, attempt.voice),
-              })
+                params: logParamsFor(
+                  attempt.provider,
+                  attempt.model,
+                  attempt.voice,
+                ),
+              });
 
               const mergedEntries = mergeSpeechEntry(
                 getLatestTtsEntries(storage, normalizedLanguage),
                 entry,
-                languageEntries.map((item) => item.id)
-              )
+                languageEntries.map((item) => item.id),
+              );
 
               const version = storage.putNodeData(
                 "tts",
                 normalizedLanguage,
-                buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
-              )
+                buildUpdatedTtsOutput(
+                  storage,
+                  normalizedLanguage,
+                  mergedEntries,
+                  textEntry.id,
+                ),
+              );
 
               const completion = getTtsCompletionSummary(
                 storage,
                 config,
-                sourceLanguage
-              )
+                sourceLanguage,
+              );
               if (completion.allComplete) {
-                storage.markStepCompleted("tts")
+                storage.markStepCompleted("tts");
               } else {
                 const currentStatus = storage
                   .getStepRuns()
-                  .find((step) => step.step === "tts")?.status
+                  .find((step) => step.step === "tts")?.status;
                 if (currentStatus === "error") {
                   storage.recordStepError(
                     "tts",
-                    `${completion.remainingItems} audio item(s) still need generation.`
-                  )
+                    `${completion.remainingItems} audio item(s) still need generation.`,
+                  );
                 }
               }
 
@@ -1139,17 +1255,19 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 version,
                 completed: completion.allComplete,
                 remainingItems: completion.remainingItems,
-              })
+              });
             } catch (fallbackErr) {
               if (fallbackErr instanceof HTTPException) {
-                throw fallbackErr
+                throw fallbackErr;
               }
               const fallbackMessage =
-                fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)
-              fallbackFailureMessage = `${message}. Fallback ${attempt.provider} failed: ${fallbackMessage}`
-              failedProvider = attempt.provider
-              failedModel = attempt.model
-              failedVoice = attempt.voice
+                fallbackErr instanceof Error
+                  ? fallbackErr.message
+                  : String(fallbackErr);
+              fallbackFailureMessage = `${message}. Fallback ${attempt.provider} failed: ${fallbackMessage}`;
+              failedProvider = attempt.provider;
+              failedModel = attempt.model;
+              failedVoice = attempt.voice;
             }
           }
         }
@@ -1167,178 +1285,207 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           attempt: synthesisAttempts,
           error: fallbackFailureMessage,
           params: logParamsFor(failedProvider, failedModel, failedVoice),
-        })
+        });
         storage.recordStepError(
           "tts",
-          `Gemini audio generation failed for ${textEntry.id}: ${fallbackFailureMessage}`
-        )
+          `Gemini audio generation failed for ${textEntry.id}: ${fallbackFailureMessage}`,
+        );
 
-        const status = /\(429\)|quota|rate limit/i.test(fallbackFailureMessage) ? 429 : 502
-        return c.json({ error: fallbackFailureMessage }, status)
+        const status = /\(429\)|quota|rate limit/i.test(fallbackFailureMessage)
+          ? 429
+          : 502;
+        return c.json({ error: fallbackFailureMessage }, status);
       }
     } finally {
-      storage.close()
+      storage.close();
     }
-  })
+  });
 
   // GET /books/:label/tts/timestamps/:language — Get word timestamps for a language
   app.get("/books/:label/tts/timestamps/:language", (c) => {
-    const { label, language } = c.req.param()
-    const safeLabel = safeParseLabel(label)
-    const dbPath = getBookDbPath(booksDir, safeLabel)
+    const { label, language } = c.req.param();
+    const safeLabel = safeParseLabel(label);
+    const dbPath = getBookDbPath(booksDir, safeLabel);
 
     if (!fs.existsSync(dbPath)) {
-      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` });
     }
 
-    const storage = createBookStorage(safeLabel, booksDir)
+    const storage = createBookStorage(safeLabel, booksDir);
     try {
-      const normalizedLanguage = normalizeLocale(language)
-      const row = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
+      const normalizedLanguage = normalizeLocale(language);
+      const row = storage.getLatestNodeData(
+        "tts-timestamps",
+        normalizedLanguage,
+      );
       if (!row) {
-        return c.json({ entries: {}, generatedAt: null })
+        return c.json({ entries: {}, generatedAt: null });
       }
-      const data = row.data as WordTimestampOutput
-      return c.json(data)
+      const data = row.data as WordTimestampOutput;
+      return c.json(data);
     } finally {
-      storage.close()
+      storage.close();
     }
-  })
+  });
 
   // PUT /books/:label/tts/timestamps/:language/:textId — Save edited word timestamps
   app.put("/books/:label/tts/timestamps/:language/:textId", async (c) => {
-    const { label, language, textId } = c.req.param()
-    const safeLabel = safeParseLabel(label)
-    const dbPath = getBookDbPath(booksDir, safeLabel)
+    const { label, language, textId } = c.req.param();
+    const safeLabel = safeParseLabel(label);
+    const dbPath = getBookDbPath(booksDir, safeLabel);
 
     if (!fs.existsSync(dbPath)) {
-      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` });
     }
 
-    let body: unknown
+    let body: unknown;
     try {
-      body = await c.req.json()
+      body = await c.req.json();
     } catch {
-      throw new HTTPException(400, { message: "Invalid JSON body" })
+      throw new HTTPException(400, { message: "Invalid JSON body" });
     }
 
-    const schema = z.object({
-      words: z.array(z.object({
-        word: z.string(),
-        start: z.number(),
-        end: z.number(),
-      })),
-      duration: z.number(),
-    }).strict()
+    const schema = z
+      .object({
+        words: z.array(
+          z.object({
+            word: z.string(),
+            start: z.number(),
+            end: z.number(),
+          }),
+        ),
+        duration: z.number(),
+      })
+      .strict();
 
-    const parsed = schema.safeParse(body)
+    const parsed = schema.safeParse(body);
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid request: ${parsed.error.message}`,
-      })
+      });
     }
 
-    const normalizedLanguage = normalizeLocale(language)
-    const storage = createBookStorage(safeLabel, booksDir)
+    const normalizedLanguage = normalizeLocale(language);
+    const storage = createBookStorage(safeLabel, booksDir);
 
     try {
-      const existingRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
+      const existingRow = storage.getLatestNodeData(
+        "tts-timestamps",
+        normalizedLanguage,
+      );
       const existingData = existingRow
         ? (existingRow.data as WordTimestampOutput)
-        : undefined
-      const existing = existingData?.entries ?? {}
+        : undefined;
+      const existing = existingData?.entries ?? {};
 
       const updatedEntry: WordTimestampEntry = {
         textId,
         language: normalizedLanguage,
         words: parsed.data.words,
         duration: parsed.data.duration,
-      }
+      };
 
       const merged: Record<string, WordTimestampEntry> = {
         ...existing,
         [textId]: updatedEntry,
-      }
+      };
 
       // A manual edit resolves this item — drop it from the failed list while
       // preserving any other still-failed items.
-      const remainingFailed = (existingData?.failed ?? []).filter((f) => f.textId !== textId)
+      const remainingFailed = (existingData?.failed ?? []).filter(
+        (f) => f.textId !== textId,
+      );
 
       storage.putNodeData("tts-timestamps", normalizedLanguage, {
         entries: merged,
         generatedAt: new Date().toISOString(),
         ...(remainingFailed.length > 0 ? { failed: remainingFailed } : {}),
-      } satisfies WordTimestampOutput)
+      } satisfies WordTimestampOutput);
 
-      return c.json({ ok: true })
+      return c.json({ ok: true });
     } finally {
-      storage.close()
+      storage.close();
     }
-  })
+  });
 
   // POST /books/:label/tts/transcribe-one — Generate word timestamps for a single entry
   app.post("/books/:label/tts/transcribe-one", async (c) => {
-    const { label } = c.req.param()
-    const safeLabel = safeParseLabel(label)
-    const dbPath = getBookDbPath(booksDir, safeLabel)
+    const { label } = c.req.param();
+    const safeLabel = safeParseLabel(label);
+    const dbPath = getBookDbPath(booksDir, safeLabel);
 
     if (!fs.existsSync(dbPath)) {
-      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` });
     }
 
-    let body: unknown
+    let body: unknown;
     try {
-      body = await c.req.json()
+      body = await c.req.json();
     } catch {
-      throw new HTTPException(400, { message: "Invalid JSON body" })
+      throw new HTTPException(400, { message: "Invalid JSON body" });
     }
 
-    const parsed = GenerateSingleTTSBody.safeParse(body)
+    const parsed = GenerateSingleTTSBody.safeParse(body);
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid request: ${parsed.error.message}`,
-      })
+      });
     }
 
-    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
+    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim();
     if (!openaiApiKey) {
       throw new HTTPException(400, {
-        message: "OpenAI API key required for Whisper transcription. Set X-OpenAI-Key header.",
-      })
+        message:
+          "OpenAI API key required for Whisper transcription. Set X-OpenAI-Key header.",
+      });
     }
 
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
-    const storage = createBookStorage(safeLabel, booksDir)
+    const normalizedLanguage = normalizeLocale(parsed.data.language);
+    const storage = createBookStorage(safeLabel, booksDir);
 
     try {
       // Find the audio file for this entry
-      const ttsEntries = getLatestTtsEntries(storage, normalizedLanguage)
-      const ttsEntry = ttsEntries.find((e) => e.textId === parsed.data.textId)
+      const ttsEntries = getLatestTtsEntries(storage, normalizedLanguage);
+      const ttsEntry = ttsEntries.find((e) => e.textId === parsed.data.textId);
       if (!ttsEntry) {
         throw new HTTPException(404, {
           message: `No audio found for ${parsed.data.textId} in ${normalizedLanguage}`,
-        })
+        });
       }
 
-      const bookDir = path.join(path.resolve(booksDir), safeLabel)
-      const audioPath = path.resolve(bookDir, "audio", normalizedLanguage, ttsEntry.fileName)
+      const bookDir = path.join(path.resolve(booksDir), safeLabel);
+      const audioPath = path.resolve(
+        bookDir,
+        "audio",
+        normalizedLanguage,
+        ttsEntry.fileName,
+      );
       if (!fs.existsSync(audioPath)) {
         throw new HTTPException(404, {
           message: `Audio file not found: ${ttsEntry.fileName}`,
-        })
+        });
       }
 
-      const audioBuffer = Buffer.from(fs.readFileSync(audioPath))
-      const baseLanguage = getBaseLanguage(normalizedLanguage)
+      const audioBuffer = Buffer.from(fs.readFileSync(audioPath));
+      const baseLanguage = getBaseLanguage(normalizedLanguage);
 
       // Look up the source text to use as a Whisper prompt for improved accuracy
-      const { config, language: sourceLanguage } = getSourceLanguage(storage, booksDir, safeLabel, configPath)
-      void config
-      let textPrompt: string | undefined
+      const { config, language: sourceLanguage } = getSourceLanguage(
+        storage,
+        booksDir,
+        safeLabel,
+        configPath,
+      );
+      void config;
+      let textPrompt: string | undefined;
       try {
-        const catalogEntries = getCatalogEntriesForLanguage(storage, sourceLanguage, normalizedLanguage)
-        const entry = catalogEntries.find((e) => e.id === parsed.data.textId)
-        if (entry?.text) textPrompt = entry.text
+        const catalogEntries = getCatalogEntriesForLanguage(
+          storage,
+          sourceLanguage,
+          normalizedLanguage,
+        );
+        const entry = catalogEntries.find((e) => e.id === parsed.data.textId);
+        if (entry?.text) textPrompt = entry.text;
       } catch {
         // Non-critical — proceed without prompt
       }
@@ -1350,100 +1497,110 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         language: baseLanguage,
         prompt: textPrompt,
         cacheDir: path.join(bookDir, ".cache"),
-      })
+      });
 
       const timestampEntry: WordTimestampEntry = {
         textId: parsed.data.textId,
         language: normalizedLanguage,
         words: result.words,
         duration: result.duration,
-      }
+      };
 
       // Merge into existing timestamps for this language
-      const existingRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
+      const existingRow = storage.getLatestNodeData(
+        "tts-timestamps",
+        normalizedLanguage,
+      );
       const existingData = existingRow
         ? (existingRow.data as WordTimestampOutput)
-        : undefined
-      const existing = existingData?.entries ?? {}
+        : undefined;
+      const existing = existingData?.entries ?? {};
 
       const merged: Record<string, WordTimestampEntry> = {
         ...existing,
         [parsed.data.textId]: timestampEntry,
-      }
+      };
 
       // Successful re-transcription resolves this item — drop it from the failed
       // list while preserving any other still-failed items.
       const remainingFailed = (existingData?.failed ?? []).filter(
         (f) => f.textId !== parsed.data.textId,
-      )
+      );
 
       storage.putNodeData("tts-timestamps", normalizedLanguage, {
         entries: merged,
         generatedAt: new Date().toISOString(),
         ...(remainingFailed.length > 0 ? { failed: remainingFailed } : {}),
-      } satisfies WordTimestampOutput)
+      } satisfies WordTimestampOutput);
 
-      return c.json({ entry: timestampEntry })
+      return c.json({ entry: timestampEntry });
     } finally {
-      storage.close()
+      storage.close();
     }
-  })
+  });
 
   // POST /books/:label/tts/transcribe-all — Batch generate word timestamps for all entries in a language
   app.post("/books/:label/tts/transcribe-all", async (c) => {
-    const { label } = c.req.param()
-    const safeLabel = safeParseLabel(label)
-    const dbPath = getBookDbPath(booksDir, safeLabel)
+    const { label } = c.req.param();
+    const safeLabel = safeParseLabel(label);
+    const dbPath = getBookDbPath(booksDir, safeLabel);
 
     if (!fs.existsSync(dbPath)) {
-      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` });
     }
 
-    let body: unknown
+    let body: unknown;
     try {
-      body = await c.req.json()
+      body = await c.req.json();
     } catch {
-      throw new HTTPException(400, { message: "Invalid JSON body" })
+      throw new HTTPException(400, { message: "Invalid JSON body" });
     }
 
-    const parsed = z.object({ language: z.string().min(1) }).strict().safeParse(body)
+    const parsed = z
+      .object({ language: z.string().min(1) })
+      .strict()
+      .safeParse(body);
     if (!parsed.success) {
       throw new HTTPException(400, {
         message: `Invalid request: ${parsed.error.message}`,
-      })
+      });
     }
 
-    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
+    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim();
     if (!openaiApiKey) {
       throw new HTTPException(400, {
-        message: "OpenAI API key required for Whisper transcription. Set X-OpenAI-Key header.",
-      })
+        message:
+          "OpenAI API key required for Whisper transcription. Set X-OpenAI-Key header.",
+      });
     }
 
-    const normalizedLanguage = normalizeLocale(parsed.data.language)
+    const normalizedLanguage = normalizeLocale(parsed.data.language);
 
     // Pre-check: count how many need transcribing before submitting task
-    const preStorage = createBookStorage(safeLabel, booksDir)
-    let totalToTranscribe: number
+    const preStorage = createBookStorage(safeLabel, booksDir);
+    let totalToTranscribe: number;
     try {
-      const ttsEntries = getLatestTtsEntries(preStorage, normalizedLanguage)
+      const ttsEntries = getLatestTtsEntries(preStorage, normalizedLanguage);
       if (ttsEntries.length === 0) {
-        return c.json({ taskId: null, count: 0, skipped: 0 })
+        return c.json({ taskId: null, count: 0, skipped: 0 });
       }
-      const existingRow = preStorage.getLatestNodeData("tts-timestamps", normalizedLanguage)
+      const existingRow = preStorage.getLatestNodeData(
+        "tts-timestamps",
+        normalizedLanguage,
+      );
       const existing = existingRow
         ? (existingRow.data as WordTimestampOutput).entries
-        : {}
-      totalToTranscribe = ttsEntries.filter((e) => !existing[e.textId]).length
+        : {};
+      totalToTranscribe = ttsEntries.filter((e) => !existing[e.textId]).length;
       if (totalToTranscribe === 0) {
-        return c.json({ taskId: null, count: 0, skipped: ttsEntries.length })
+        return c.json({ taskId: null, count: 0, skipped: ttsEntries.length });
       }
     } finally {
-      preStorage.close()
+      preStorage.close();
     }
 
     if (!taskService) {
-      throw new HTTPException(500, { message: "Task service not available" })
+      throw new HTTPException(500, { message: "Task service not available" });
     }
 
     const { taskId } = taskService.submitTask(
@@ -1451,44 +1608,62 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       "transcribe-timestamps",
       `Transcribing ${totalToTranscribe} entries (${normalizedLanguage})`,
       async (emitProgress) => {
-        const storage = createBookStorage(safeLabel, booksDir)
+        const storage = createBookStorage(safeLabel, booksDir);
         try {
-          const ttsEntries = getLatestTtsEntries(storage, normalizedLanguage)
-          const existingRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
+          const ttsEntries = getLatestTtsEntries(storage, normalizedLanguage);
+          const existingRow = storage.getLatestNodeData(
+            "tts-timestamps",
+            normalizedLanguage,
+          );
           const existing = existingRow
             ? (existingRow.data as WordTimestampOutput).entries
-            : {}
+            : {};
 
-          const toTranscribe = ttsEntries.filter((e) => !existing[e.textId])
-          if (toTranscribe.length === 0) return { count: 0, skipped: ttsEntries.length }
+          const toTranscribe = ttsEntries.filter((e) => !existing[e.textId]);
+          if (toTranscribe.length === 0)
+            return { count: 0, skipped: ttsEntries.length };
 
-          const bookDir = path.join(path.resolve(booksDir), safeLabel)
-          const baseLanguage = getBaseLanguage(normalizedLanguage)
+          const bookDir = path.join(path.resolve(booksDir), safeLabel);
+          const baseLanguage = getBaseLanguage(normalizedLanguage);
 
           // Load text catalog for prompts
-          const { config, language: sourceLanguage } = getSourceLanguage(storage, booksDir, safeLabel, configPath)
-          void config
-          let textMap = new Map<string, string>()
+          const { config, language: sourceLanguage } = getSourceLanguage(
+            storage,
+            booksDir,
+            safeLabel,
+            configPath,
+          );
+          void config;
+          let textMap = new Map<string, string>();
           try {
-            const catalogEntries = getCatalogEntriesForLanguage(storage, sourceLanguage, normalizedLanguage)
-            textMap = new Map(catalogEntries.map((e) => [e.id, e.text]))
+            const catalogEntries = getCatalogEntriesForLanguage(
+              storage,
+              sourceLanguage,
+              normalizedLanguage,
+            );
+            textMap = new Map(catalogEntries.map((e) => [e.id, e.text]));
           } catch {
             // Non-critical
           }
 
-          let count = 0
-          const newlyFailed: SpeechFailedEntry[] = []
-          const succeededIds = new Set<string>()
+          let count = 0;
+          const newlyFailed: SpeechFailedEntry[] = [];
+          const succeededIds = new Set<string>();
 
           for (const ttsEntry of toTranscribe) {
             try {
-              const audioPath = path.resolve(bookDir, "audio", normalizedLanguage, ttsEntry.fileName)
+              const audioPath = path.resolve(
+                bookDir,
+                "audio",
+                normalizedLanguage,
+                ttsEntry.fileName,
+              );
               if (!fs.existsSync(audioPath)) {
-                throw new Error(`Audio file not found: ${ttsEntry.fileName}`)
+                throw new Error(`Audio file not found: ${ttsEntry.fileName}`);
               }
 
-              const audioBuffer = Buffer.from(fs.readFileSync(audioPath))
-              const textPrompt = textMap.get(ttsEntry.textId)
+              const audioBuffer = Buffer.from(fs.readFileSync(audioPath));
+              const textPrompt = textMap.get(ttsEntry.textId);
               const result = await generateWordTimestamps({
                 audioBuffer,
                 fileName: ttsEntry.fileName,
@@ -1496,124 +1671,140 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 language: baseLanguage,
                 prompt: textPrompt,
                 cacheDir: path.join(bookDir, ".cache"),
-              })
+              });
 
               const entry: WordTimestampEntry = {
                 textId: ttsEntry.textId,
                 language: normalizedLanguage,
                 words: result.words,
                 duration: result.duration,
-              }
+              };
 
               // Write incrementally to avoid overwriting concurrent user edits;
               // clear this item from the failed list on success.
-              const currentRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
+              const currentRow = storage.getLatestNodeData(
+                "tts-timestamps",
+                normalizedLanguage,
+              );
               const currentData = currentRow
                 ? (currentRow.data as WordTimestampOutput)
-                : undefined
-              const current = currentData?.entries ?? {}
+                : undefined;
+              const current = currentData?.entries ?? {};
               const remainingFailed = (currentData?.failed ?? []).filter(
                 (f) => f.textId !== ttsEntry.textId,
-              )
+              );
               storage.putNodeData("tts-timestamps", normalizedLanguage, {
                 entries: { ...current, [ttsEntry.textId]: entry },
                 generatedAt: new Date().toISOString(),
-                ...(remainingFailed.length > 0 ? { failed: remainingFailed } : {}),
-              } satisfies WordTimestampOutput)
+                ...(remainingFailed.length > 0
+                  ? { failed: remainingFailed }
+                  : {}),
+              } satisfies WordTimestampOutput);
 
-              succeededIds.add(ttsEntry.textId)
-              count++
+              succeededIds.add(ttsEntry.textId);
+              count++;
             } catch (err) {
               // Record the failure and keep going — one bad item (e.g. an empty
               // page-number slice) shouldn't abort the whole batch.
               newlyFailed.push({
                 textId: ttsEntry.textId,
                 error: err instanceof Error ? err.message : String(err),
-              })
+              });
             }
             emitProgress(
               `${count + newlyFailed.length}/${toTranscribe.length}`,
-              Math.round(((count + newlyFailed.length) / toTranscribe.length) * 100),
-            )
+              Math.round(
+                ((count + newlyFailed.length) / toTranscribe.length) * 100,
+              ),
+            );
           }
 
           // Fold this batch's failures into the persisted failed list (dropping
           // any that succeeded in this pass).
           if (newlyFailed.length > 0) {
-            const currentRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-            const currentData = currentRow ? (currentRow.data as WordTimestampOutput) : undefined
-            const failedById = new Map<string, SpeechFailedEntry>()
-            for (const f of currentData?.failed ?? []) failedById.set(f.textId, f)
-            for (const f of newlyFailed) failedById.set(f.textId, f)
-            for (const id of succeededIds) failedById.delete(id)
-            const failed = [...failedById.values()]
+            const currentRow = storage.getLatestNodeData(
+              "tts-timestamps",
+              normalizedLanguage,
+            );
+            const currentData = currentRow
+              ? (currentRow.data as WordTimestampOutput)
+              : undefined;
+            const failedById = new Map<string, SpeechFailedEntry>();
+            for (const f of currentData?.failed ?? [])
+              failedById.set(f.textId, f);
+            for (const f of newlyFailed) failedById.set(f.textId, f);
+            for (const id of succeededIds) failedById.delete(id);
+            const failed = [...failedById.values()];
             storage.putNodeData("tts-timestamps", normalizedLanguage, {
               entries: currentData?.entries ?? {},
               generatedAt: new Date().toISOString(),
               ...(failed.length > 0 ? { failed } : {}),
-            } satisfies WordTimestampOutput)
+            } satisfies WordTimestampOutput);
           }
 
           return {
             count,
             skipped: ttsEntries.length - toTranscribe.length,
             failed: newlyFailed.length,
-          }
+          };
         } finally {
-          storage.close()
+          storage.close();
         }
-      }
-    )
+      },
+    );
 
-    return c.json({ taskId })
-  })
+    return c.json({ taskId });
+  });
 
   // GET /books/:label/audio/:language/:fileName — Serve audio file
   app.get("/books/:label/audio/:language/:fileName", (c) => {
-    const { label, language, fileName } = c.req.param()
-    const safeLabel = safeParseLabel(label)
-    const resolvedDir = path.resolve(booksDir)
-    const bookDir = path.join(resolvedDir, safeLabel)
+    const { label, language, fileName } = c.req.param();
+    const safeLabel = safeParseLabel(label);
+    const resolvedDir = path.resolve(booksDir);
+    const bookDir = path.join(resolvedDir, safeLabel);
 
     // Validate language and fileName to prevent path traversal
     if (!/^[a-zA-Z0-9_-]+$/.test(language)) {
-      throw new HTTPException(400, { message: "Invalid language" })
+      throw new HTTPException(400, { message: "Invalid language" });
     }
     if (!/^[a-zA-Z0-9_.-]+$/.test(fileName)) {
-      throw new HTTPException(400, { message: "Invalid file name" })
+      throw new HTTPException(400, { message: "Invalid file name" });
     }
 
-    const audioPath = path.resolve(bookDir, "audio", language, fileName)
+    const audioPath = path.resolve(bookDir, "audio", language, fileName);
     // Verify path doesn't escape book directory
     if (!audioPath.startsWith(bookDir + path.sep)) {
-      throw new HTTPException(400, { message: "Invalid audio path" })
+      throw new HTTPException(400, { message: "Invalid audio path" });
     }
 
-    let stat: fs.Stats
+    let stat: fs.Stats;
     try {
-      stat = fs.statSync(audioPath)
+      stat = fs.statSync(audioPath);
     } catch {
       throw new HTTPException(404, {
         message: `Audio file not found: ${fileName}`,
-      })
+      });
     }
     if (!stat.isFile()) {
       throw new HTTPException(404, {
         message: `Audio file not found: ${fileName}`,
-      })
+      });
     }
 
-    const audioBuffer = fs.readFileSync(audioPath)
-    const ext = path.extname(fileName).toLowerCase()
+    const audioBuffer = fs.readFileSync(audioPath);
+    const ext = path.extname(fileName).toLowerCase();
     const contentType =
-      ext === ".mp3" ? "audio/mpeg"
-        : ext === ".wav" ? "audio/wav"
-          : ext === ".ogg" ? "audio/ogg"
-            : "audio/mpeg"
-    c.header("Content-Type", contentType)
-    c.header("Cache-Control", "public, max-age=86400")
-    return c.body(audioBuffer)
-  })
+      ext === ".mp3"
+        ? "audio/mpeg"
+        : ext === ".wav"
+          ? "audio/wav"
+          : ext === ".ogg"
+            ? "audio/ogg"
+            : "audio/mpeg";
+    c.header("Content-Type", contentType);
+    c.header("Cache-Control", "public, max-age=86400");
+    return c.body(audioBuffer);
+  });
 
-  return app
+  return app;
 }

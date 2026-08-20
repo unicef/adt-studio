@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "id": "momo-grade1",
+  "title": "Momo and the Leopards, Grade 1",
+  "language": "en",
+  "strata": {
+    "language": "en",
+    "domain": "general-literacy",
+    "contentType": "illustrated-storybook",
+    "audience": "grade-1",
+    "layoutComplexity": "sparse-illustrated",
+    "sourceQuality": "born-digital",
+    "riskLevel": "standard"
+  },
+  "tags": ["storybook", "early-reader", "illustrated", "born-digital-pdf"],
+  "expectedPages": 20,
+  "sourcePdf": "../../../momograde1.pdf",
+  "sourcePdfSha256": "3d4e589013715ee89ee0e9ac1e7419daf4e4afd8bbdc9a85eaa4b34dd82c6468",
+  "limitations": "One short English storybook. This case cannot represent textbooks, scans, tables, RTL content, or multilingual speech.",
+  "rubric": {
+    "captions": [
+      { "itemId": "pg001", "criterion": "Baby monkey asleep in tree; leopard below; owl above" },
+      { "itemId": "pg005", "criterion": "Three monkeys sleeping in tree" },
+      { "itemId": "pg006", "criterion": "Mother leopard approaches or watches monkeys in tree" },
+      { "itemId": "pg007", "criterion": "Mother leopard climbs tree" },
+      { "itemId": "pg008", "criterion": "Leopard creeps toward sleeping Momo" },
+      { "itemId": "pg009", "criterion": "Leopard reaches frightened Momo" },
+      { "itemId": "pg010", "criterion": "Monkeys throw sticks at fleeing leopard" },
+      { "itemId": "pg011", "criterion": "Mother leopard and cub walk at night" },
+      { "itemId": "pg012", "criterion": "Cub climbs tree; mother below; monkeys above" },
+      { "itemId": "pg013", "criterion": "Cub creeps along branch toward sleeping Momo; mother below" },
+      { "itemId": "pg014", "criterion": "Shaking branch; cub hangs below Momo" },
+      { "itemId": "pg015", "criterion": "Cub jumps toward Momo but cannot reach" },
+      { "itemId": "pg016", "criterion": "Cub falls from tree" },
+      { "itemId": "pg017", "criterion": "Cub lands on mother" },
+      { "itemId": "pg018", "criterion": "Monkeys throw sticks; two leopards flee" }
+    ]
+  }
+}

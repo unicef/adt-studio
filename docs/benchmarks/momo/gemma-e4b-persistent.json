@@ -1,0 +1,269 @@
+{
+  "schemaVersion": 1,
+  "label": "momo-benchmark-gemma-e4b-persistent-1",
+  "mode": "local",
+  "model": "local:gemma4-e4b",
+  "speechProvider": "local-hf",
+  "sourcePdf": "/Users/amoghbanta/Downloads/UNICEF/momograde1.pdf",
+  "createdAt": "2026-08-03T22:30:09.919Z",
+  "createDurationMs": 13,
+  "runDurationMs": 283462,
+  "transitions": [
+    {
+      "at": "2026-08-03T22:25:28.921Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "running",
+        "sectioning": "queued",
+        "storyboard": "queued",
+        "quizzes": "queued",
+        "captions": "queued",
+        "glossary": "queued",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T22:25:45.927Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "running",
+        "storyboard": "queued",
+        "quizzes": "queued",
+        "captions": "queued",
+        "glossary": "queued",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T22:25:47.933Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "queued",
+        "quizzes": "queued",
+        "captions": "queued",
+        "glossary": "queued",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T22:25:49.938Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "running",
+        "captions": "queued",
+        "glossary": "queued",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T22:26:07.997Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "running",
+        "glossary": "queued",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T22:26:54.185Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "done",
+        "glossary": "running",
+        "toc": "queued",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T22:27:10.232Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "done",
+        "glossary": "done",
+        "toc": "running",
+        "easy-read": "queued",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T22:27:12.237Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "done",
+        "glossary": "done",
+        "toc": "done",
+        "easy-read": "running",
+        "translate": "queued",
+        "speech": "queued",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T22:27:14.244Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "done",
+        "glossary": "done",
+        "toc": "done",
+        "easy-read": "done",
+        "translate": "done",
+        "speech": "running",
+        "package": "queued"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T22:30:01.884Z",
+      "runStatus": "running",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "done",
+        "glossary": "done",
+        "toc": "done",
+        "easy-read": "done",
+        "translate": "done",
+        "speech": "done",
+        "package": "running",
+        "preview": "done"
+      },
+      "error": null
+    },
+    {
+      "at": "2026-08-03T22:30:09.917Z",
+      "runStatus": "idle",
+      "stages": {
+        "extract": "done",
+        "sectioning": "done",
+        "storyboard": "done",
+        "quizzes": "done",
+        "captions": "done",
+        "glossary": "done",
+        "toc": "done",
+        "easy-read": "done",
+        "translate": "done",
+        "speech": "done",
+        "package": "done",
+        "preview": "done"
+      },
+      "error": null
+    }
+  ],
+  "finalStatus": {
+    "stages": {
+      "extract": "done",
+      "sectioning": "done",
+      "storyboard": "done",
+      "quizzes": "done",
+      "captions": "done",
+      "glossary": "done",
+      "toc": "done",
+      "easy-read": "done",
+      "translate": "done",
+      "speech": "done",
+      "package": "done",
+      "preview": "done"
+    },
+    "steps": {
+      "extract": "done",
+      "metadata": "done",
+      "book-summary": "done",
+      "image-filtering": "done",
+      "image-segmentation": "skipped",
+      "image-meaningfulness": "skipped",
+      "image-cropping": "skipped",
+      "page-sectioning": "done",
+      "translation": "skipped",
+      "web-rendering": "done",
+      "quiz-generation": "done",
+      "image-captioning": "done",
+      "glossary": "done",
+      "toc-generation": "done",
+      "text-catalog": "done",
+      "easy-read": "skipped",
+      "catalog-translation": "skipped",
+      "image-translation": "skipped",
+      "tts": "done",
+      "word-timestamps": "skipped",
+      "package-web": "done",
+      "accessibility-assessment": "done"
+    },
+    "error": null,
+    "stepErrors": null,
+    "stepMessages": {
+      "extract": "page 20/20",
+      "image-filtering": "20/20",
+      "page-sectioning": "20/20",
+      "web-rendering": "20/20",
+      "quiz-generation": "5 quizzes from 20 pages",
+      "image-captioning": "20/20",
+      "glossary": "9 terms from 16 pages",
+      "toc-generation": "3 entries",
+      "text-catalog": "116 entries",
+      "tts": "116/116 audio entries"
+    },
+    "runStatus": "idle",
+    "pendingDecisions": []
+  }
+}

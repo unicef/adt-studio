@@ -1,0 +1,2815 @@
+{
+  "schemaVersion": 1,
+  "suiteId": "suite-726f35712c58",
+  "reviews": [
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "candidateId": "gemma-e4b",
+      "dimension": "captionFidelity",
+      "items": [
+        {
+          "itemId": "pg001",
+          "score": 0.5,
+          "rationale": "B accurately and clearly captures the complete scene, whereas A omits the owl and does not identify the monkey as sleeping.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.82,
+              "evidence": "The illustration and title support Momo on a tree branch at night, with a leopard nearby; however, Momo is more specifically shown asleep or reclining."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.98,
+              "evidence": "It omits the owl above and fails to convey that the baby monkey is asleep."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The caption is concise, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "not_met",
+              "confidence": 0.96,
+              "evidence": "It leaves out the owl and describes the monkey only by name, while also missing the visually important sleeping action."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg005",
+          "score": 1,
+          "rationale": "Both captions accurately convey the central scene, but B is more useful and complete because it specifies three monkeys and includes the visibly present owl, moon, and stars without adding unsupported content.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The image shows monkeys asleep on long tree branches beneath a nighttime sky."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.86,
+              "evidence": "It identifies the central subjects, their sleeping action, and the tree-at-night setting, though it omits the count of three and the owl."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, concrete, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.88,
+              "evidence": "It clearly conveys who is present, what they are doing, and where, but leaves out visible details that help distinguish the scene."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg006",
+          "score": 1,
+          "rationale": "A is preferable because it accurately captures the central action of the leopard approaching the monkeys' tree without adding the unsupported claim that the rabbit is hiding.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The mother leopard faces and appears to walk toward the tree containing the monkeys."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.97,
+              "evidence": "It includes the mother leopard, her movement toward the tree, and the monkeys in the tree."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "The sentence is concise, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.95,
+              "evidence": "It clearly conveys the central relationship between the approaching leopard and the monkeys' tree."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg007",
+          "score": 1,
+          "rationale": "B accurately and concisely conveys the central scene. A adds the visible rabbit but also introduces an unsupported dusk setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The illustration shows the mother leopard climbing the tree, and the page text directly supports that she climbs quietly."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "Captures the main actor, action, and setting: the mother leopard climbing the tree."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The caption is concise, grammatical, and appropriate for a young audience."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "Clearly identifies the central actor and action without unsupported detail; the omitted rabbit is secondary."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg008",
+          "score": 0.5,
+          "rationale": "B accurately conveys the central scene: the leopard quietly approaches sleeping Momo on a branch at night. A is broadly grounded but misses both the creeping action and Momo's sleeping state.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.9,
+              "evidence": "The leopard faces Momo, who is a baby monkey positioned on a tree branch at night."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.98,
+              "evidence": "It omits the key action that the leopard is creeping toward Momo and does not identify Momo as sleeping."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "not_met",
+              "confidence": 0.94,
+              "evidence": "It identifies both animals and the setting but fails to convey the scene's central action and Momo's sleeping state."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg009",
+          "score": 1,
+          "rationale": "Both captions are supported, but B gives a more complete visual account by identifying Momo as a monkey and including his fear, raised arms, tree setting, and nighttime context.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The leopard is close to Momo, while the printed page text directly states that the branch shook and Momo woke and saw the leopard."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.91,
+              "evidence": "Identifies the leopard, Momo, their encounter, the shaking branch, and Momo waking, though it omits Momo's frightened pose and the nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.94,
+              "evidence": "The sentence is grammatical and understandable, although slightly crowded with multiple actions."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.9,
+              "evidence": "Clearly conveys who approaches whom and the narrative actions, but provides less visual detail about Momo and the setting."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg010",
+          "score": 0.75,
+          "rationale": "B more completely conveys the visible and text-supported scene, especially the leopard running away into the forest and the nighttime setting, without adding unsupported details.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The page shows monkeys with sticks aimed toward a leopard descending from the tree; the printed text also states that the monkeys shouted and threw sticks."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.9,
+              "evidence": "It covers the monkeys throwing sticks and the leopard jumping down, but omits that the leopard runs away into the forest, an important outcome of the scene."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and clearly identifies the monkeys and leopard."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.88,
+              "evidence": "It clearly distinguishes the actors and their main actions, though it gives less information about the leopard's escape and the setting."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg011",
+          "score": 0.5,
+          "rationale": "A accurately and clearly covers the main scene while adding visible details about the moon, stars, flowers, and hidden rabbit. B captures the core event but has a duplicated word and inaccurately says the leopards walk “through” the ground.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "not_met",
+              "confidence": 0.95,
+              "evidence": "The leopards are walking across or on the ground, not “through” it."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.91,
+              "evidence": "Despite its wording error, it identifies the mother leopard, baby leopard, walking action, and nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "not_met",
+              "confidence": 0.99,
+              "evidence": "“Through the the ground” contains a repeated word and an incorrect preposition."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.72,
+              "evidence": "It still communicates the main actors, action, and nighttime setting, though the malformed phrase reduces precision."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg012",
+          "score": 0.5,
+          "rationale": "A accurately and clearly covers all major visible actors, actions, positions, and the nighttime setting; B omits the adult leopard below.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The baby leopard is visibly climbing, while the page text and resting poses support that the monkeys are sleeping and the climb is quiet."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.98,
+              "evidence": "It omits the prominent adult leopard standing at the base of the tree."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, concrete, and grammatical."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "not_met",
+              "confidence": 0.96,
+              "evidence": "Although it identifies the climber and monkeys, it leaves out the adult leopard and therefore does not fully convey the visible scene."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg013",
+          "score": 0.75,
+          "rationale": "B more completely describes the visible scene, especially the nighttime setting and the adult leopard below, while remaining clear and grounded.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "The illustration and page text show Momo asleep on a long branch and a baby leopard moving quietly onto it."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.94,
+              "evidence": "It omits the adult leopard visibly standing below the branch and looking upward."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The sentence is concise, grammatical, and clearly identifies Momo and the baby leopard."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.86,
+              "evidence": "It clearly conveys the main action of the baby leopard approaching sleeping Momo, though it leaves out the leopard below."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg014",
+          "score": 0.25,
+          "rationale": "B accurately describes the cub hanging upside down beneath Momo on the shaking branch. A incorrectly says Momo hangs and misses the cub's essential position.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "not_met",
+              "confidence": 0.97,
+              "evidence": "Momo is sitting astride a branch and gripping another branch, not hanging from one; the cub is already hanging below him rather than visibly approaching."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.98,
+              "evidence": "It omits the essential arrangement of the baby leopard hanging upside down beneath Momo and does not mention the shaking branch."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "The sentence is concise, grammatical, and easy to understand despite its visual inaccuracies."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "not_met",
+              "confidence": 0.97,
+              "evidence": "It misstates Momo's position and fails to convey the cub's distinctive upside-down position below the branch."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg015",
+          "score": 1,
+          "rationale": "Both captions accurately convey the central event, but A is more visually informative and precise about Momo being above the leopard and out of reach in the nighttime tree setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.97,
+              "evidence": "Momo is on a large branch while the baby leopard jumps or reaches toward him without succeeding; the page text also directly supports these actions."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.93,
+              "evidence": "It identifies Momo, the baby leopard, the branch, and the leopard's unsuccessful attempt."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.9,
+              "evidence": "The wording is grammatical and suitable for children, though 'could not get Momo' is less precise than 'could not reach Momo.'"
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.9,
+              "evidence": "It distinguishes the two actors and communicates the failed attempt, but provides less spatial and scene information than A."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg016",
+          "score": 0.25,
+          "rationale": "A accurately describes the baby leopard falling upside down through the tree at night. B is clear but incorrectly says the leopard is hanging from a branch.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "not_met",
+              "confidence": 0.99,
+              "evidence": "The leopard is airborne and falling between branches, not hanging from a branch."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.99,
+              "evidence": "It replaces the central falling action with hanging and therefore misrepresents the scene."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The sentence is concise, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "not_met",
+              "confidence": 0.97,
+              "evidence": "Although it identifies the animal and nighttime tree setting, it gives the wrong central action."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg017",
+          "score": 1,
+          "rationale": "Both captions accurately describe the central event, but A is more useful because it explicitly identifies the falling animal as a baby and adds the visibly supported tree and nighttime setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "A smaller spotted cat is visibly falling or landing on a larger cat presented as its mother."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.84,
+              "evidence": "It includes the central action and both related animals, though it does not explicitly identify the falling leopard as a cub or mention the tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The short sentence is grammatical and readily understandable."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.82,
+              "evidence": "It conveys the main action and mother-offspring relationship, but provides less visual distinction and context than A."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg018",
+          "score": 0,
+          "rationale": "A accurately and clearly describes the two monkeys, two fleeing leopards, stick-throwing action, spatial arrangement, and nighttime setting. B conveys the core action but its phrase about retreating 'from the branch' is spatially misleading.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "not_met",
+              "confidence": 0.85,
+              "evidence": "Shouting, throwing, and retreating are supported, but 'leopards retreat from the branch' inaccurately or ambiguously places the leopards relative to the branch; they are on the ground below."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.78,
+              "evidence": "It captures the main actors and actions but gives a confusing setting and omits the clear nighttime context and the actors' positions."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "not_met",
+              "confidence": 0.9,
+              "evidence": "The phrase 'leopards retreat from the branch' is awkward and can imply that the leopards were on the branch."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "not_met",
+              "confidence": 0.86,
+              "evidence": "It does not clearly convey that the monkeys are in branches while the two leopards flee below into the forest."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        }
+      ],
+      "judgeModel": "gpt-5.6-sol"
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "candidateId": "gpt-5.4",
+      "dimension": "captionFidelity",
+      "items": [
+        {
+          "itemId": "pg001",
+          "score": 1,
+          "rationale": "B accurately and clearly captures the complete scene, whereas A omits the owl and does not identify the monkey as sleeping.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The image shows a small monkey asleep on a branch, a leopard below, and an owl above near a crescent moon and stars."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It includes all central actors, their relative positions, the monkey sleeping, and the nighttime tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The sentence is concrete, grammatical, and clearly distinguishes the animals and their positions."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It conveys the key visual relationships and actions: the monkey sleeps, the leopard is below, and the owl is above."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg005",
+          "score": 1,
+          "rationale": "Both captions accurately convey the central scene, but B is more useful and complete because it specifies three monkeys and includes the visibly present owl, moon, and stars without adding unsupported content.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "Three sleeping monkeys, long elevated branches, a nearby open-eyed owl, the moon, and stars are all visible."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It covers all three monkeys, their sleeping action, the tree setting, nighttime, and the nearby owl."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The sentence is grammatical, specific, and readable despite containing more detail than A."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly distinguishes the sleeping monkeys from the nearby owl and provides meaningful nighttime setting details."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg006",
+          "score": 0.75,
+          "rationale": "A is preferable because it accurately captures the central action of the leopard approaching the monkeys' tree without adding the unsupported claim that the rabbit is hiding.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "not_met",
+              "confidence": 0.88,
+              "evidence": "Night, two resting monkeys, and the rabbit beside a rock are visible, but the rabbit is not clearly hiding, and the leopard appears mid-stride rather than stationary."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.94,
+              "evidence": "It identifies the mother leopard beneath the tree and the two monkeys resting on branches."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.97,
+              "evidence": "The sentence is grammatical, concrete, and clearly distinguishes the animals and their locations."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.94,
+              "evidence": "It provides useful spatial details about the leopard, monkeys, tree, and rabbit."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg007",
+          "score": 0.75,
+          "rationale": "B accurately and concisely conveys the central scene. A adds the visible rabbit but also introduces an unsupported dusk setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "not_met",
+              "confidence": 0.88,
+              "evidence": "The leopard climbing, the rabbit below, and quiet movement are supported, but the image and page text do not establish that it is dusk."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "Identifies the mother leopard climbing a tree and also notes the visible rabbit below."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, concrete, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.95,
+              "evidence": "Clearly distinguishes the leopard’s action from the rabbit’s position and conveys the central scene."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg008",
+          "score": 1,
+          "rationale": "B accurately conveys the central scene: the leopard quietly approaches sleeping Momo on a branch at night. A is broadly grounded but misses both the creeping action and Momo's sleeping state.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The leopard is moving along the branch toward the sleeping monkey; the moon and stars are visible, and quiet movement is supported by the page text."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It includes the leopard, sleeping Momo, the approach along the branch, and the nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The caption is concrete, grammatical, and clearly states who is approaching whom."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly distinguishes the actors, their states and actions, and the meaningful nighttime setting."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg009",
+          "score": 1,
+          "rationale": "Both captions are supported, but B gives a more complete visual account by identifying Momo as a monkey and including his fear, raised arms, tree setting, and nighttime context.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "The image shows a leopard near Momo in a tree under stars, with the worried-looking monkey holding both arms up."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "Captures both animals, the close encounter, the tree branch, nighttime, and Momo's frightened reaction."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "Concise, concrete, grammatical language clearly describes the scene."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "Identifies Momo as a monkey and distinguishes the leopard's approach from Momo's visible fearful pose while establishing the setting."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg010",
+          "score": 1,
+          "rationale": "B more completely conveys the visible and text-supported scene, especially the leopard running away into the forest and the nighttime setting, without adding unsupported details.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "Four monkeys are shown in a tree with sticks, while the leopard jumps downward; the moon, stars, and text support the nighttime setting and escape into the forest."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It includes the four monkeys, their shouting and stick-throwing, the leopard's descent and flight, the forest, and nighttime."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The caption is concrete, grammatical, and presents the sequence of actions clearly."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly identifies the actors, their distinct actions, the leopard's escape, and the nighttime forest setting."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg011",
+          "score": 1,
+          "rationale": "A accurately and clearly covers the main scene while adding visible details about the moon, stars, flowers, and hidden rabbit. B captures the core event but has a duplicated word and inaccurately says the leopards walk “through” the ground.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The image shows an adult leopard and cub walking together on a pale field beneath a crescent moon and stars, with a rabbit partly concealed by blue flowers and leaves."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It identifies the mother, cub, walking action, and nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and uses concrete language."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly distinguishes the two leopards and also conveys the moonlit setting and concealed rabbit."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg012",
+          "score": 1,
+          "rationale": "A accurately and clearly covers all major visible actors, actions, positions, and the nighttime setting; B omits the adult leopard below.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The image shows a starry night, a baby leopard climbing, an adult leopard below, and sleeping monkeys on upper branches."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It includes the cub, the adult leopard below, the sleeping monkeys above, and the nighttime tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and clearly locates each animal."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly distinguishes the baby leopard, adult leopard, and monkeys and explains their actions and positions."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg013",
+          "score": 1,
+          "rationale": "B more completely describes the visible scene, especially the nighttime setting and the adult leopard below, while remaining clear and grounded.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The moon and stars indicate night; Momo sleeps on the branch, the cub approaches him, and an adult leopard below looks upward."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It includes sleeping Momo, the approaching baby leopard, the long branch, the nighttime setting, and the leopard below."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The caption is grammatical and clearly distinguishes the monkey, baby leopard, and leopard below."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It provides the scene’s meaningful spatial and narrative relationships: Momo ahead, the cub creeping toward him, and another leopard below."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg014",
+          "score": 1,
+          "rationale": "B accurately describes the cub hanging upside down beneath Momo on the shaking branch. A incorrectly says Momo hangs and misses the cub's essential position.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The image shows a nighttime tree scene with Momo gripping a branch, the baby leopard hanging upside down below, and an owl, crescent moon, and stars."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It captures both main actors, their relative positions, the shaking branch, and the nighttime tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "The caption is grammatical, concrete, and clearly distinguishes Momo from the baby leopard."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly communicates the crucial spatial relationship and actions while adding useful scene context."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg015",
+          "score": 1,
+          "rationale": "Both captions accurately convey the central event, but A is more visually informative and precise about Momo being above the leopard and out of reach in the nighttime tree setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The image shows Momo crouched on an elevated branch and a young leopard reaching or leaping toward him beneath a star-filled night sky."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.97,
+              "evidence": "It includes both main actors, the leopard's failed attempt to reach Momo, and the elevated tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and clearly describes the actors' positions and actions."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It clearly distinguishes Momo from the leopard and explains their spatial relationship and the failed reach."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg016",
+          "score": 1,
+          "rationale": "A accurately describes the baby leopard falling upside down through the tree at night. B is clear but incorrectly says the leopard is hanging from a branch.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The image shows a baby leopard upside down and airborne among tree branches, with a crescent moon and stars visible."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It captures the leopard cub, its downward tumble, the tree, and the nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and concrete."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly identifies the animal, falling action, orientation, and nighttime surroundings."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg017",
+          "score": 1,
+          "rationale": "Both captions accurately describe the central event, but A is more useful because it explicitly identifies the falling animal as a baby and adds the visibly supported tree and nighttime setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.97,
+              "evidence": "The illustration shows a small spotted cub coming down onto a larger spotted cat beneath a tree, with a crescent moon and stars visible."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It identifies the cub, its mother, the falling/landing action, and the nighttime tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, concrete, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It clearly distinguishes the baby leopard from its mother and explains their positions and action."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg018",
+          "score": 1,
+          "rationale": "A accurately and clearly describes the two monkeys, two fleeing leopards, stick-throwing action, spatial arrangement, and nighttime setting. B conveys the core action but its phrase about retreating 'from the branch' is spatially misleading.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The page shows two monkeys on branches, two leopards running below, airborne/held sticks, and stars indicating night."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It identifies both groups, the stick-throwing action, the leopards' flight, and the nighttime tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and clearly relates the monkeys' action to the leopards' retreat."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It clearly distinguishes the monkeys in the branches from the leopards below and explains the central action."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        }
+      ],
+      "judgeModel": "gpt-5.6-sol"
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "candidateId": "gpt-5.4",
+      "dimension": "captionFidelity",
+      "items": [
+        {
+          "itemId": "pg001",
+          "score": 1,
+          "rationale": "B accurately and clearly captures the sleeping monkey, leopard below, owl above, and nighttime setting. A misses the owl and misstates the monkey's main action.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The image shows a sleeping young monkey on a branch, a leopard below, and an owl above against a moonlit, starry sky."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It includes all three important animals, their relative positions, the monkey's action, and the nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and uses clear spatial language."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly distinguishes the monkey, leopard, and owl and explains their actions and locations."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg005",
+          "score": 1,
+          "rationale": "B is fully grounded and more complete, accurately including all three monkeys, the owl, and the moon-and-stars nighttime setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The image shows three sleeping monkeys on tree branches, an owl perched nearby, and a moon and stars in the night sky."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It identifies the three monkeys, their sleeping action, the tree setting, nighttime, and the nearby owl."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and uses concrete language."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly distinguishes the sleeping monkeys from the nearby owl and describes the meaningful nighttime setting."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg006",
+          "score": 1,
+          "rationale": "B is fully grounded and provides clearer, more complete visual information, including the nighttime setting, monkeys on branches, and rabbit by the rock. A accurately conveys the central event but is less specific and omits meaningful visible details.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.95,
+              "evidence": "The nighttime scene visibly shows a leopard beneath a tree, two monkeys resting on branches, and a crouching rabbit beside a rock."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It includes the main leopard, monkeys, tree, nighttime setting, and the secondary rabbit."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and uses concrete spatial descriptions."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It clearly distinguishes all three animal types and explains their positions and activities."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg007",
+          "score": 1,
+          "rationale": "Both captions accurately convey the main action, but A provides fuller useful visual coverage by mentioning the rabbit below and the dusk-like setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.95,
+              "evidence": "Mother leopard is climbing a tree, a small rabbit is below, and the colored horizon supports a dusk setting; quiet climbing is also stated on the page."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "Covers the leopard, climbing action, tree, rabbit below, and visible setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The caption is concise, grammatical, and clearly relates both animals spatially."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "Clearly distinguishes the leopard's action from the rabbit's position and supplies useful setting information."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg008",
+          "score": 1,
+          "rationale": "B accurately captures the leopard's quiet approach toward sleeping Momo and includes the relevant nighttime tree setting. A is clear but replaces the central action and sleeping state with a less accurate description.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The leopard is visibly moving along a branch toward Momo; Momo's closed eyes show sleep, and the night sky contains a moon and stars."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It identifies both animals, the leopard's quiet approach, Momo's sleeping state, and the tree-at-night setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, concrete, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly distinguishes the leopard's action from Momo's state and communicates the scene's central tension."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg009",
+          "score": 1,
+          "rationale": "Both captions are supported, but B is more useful as visual description because it identifies Momo as a monkey and conveys his visible fear, raised hands, and nighttime tree setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.94,
+              "evidence": "The image shows a leopard close to Momo in a tree at night; Momo has both hands raised and a frightened expression."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "It identifies the leopard, Momo, their close encounter, Momo's reaction, and the nighttime tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The sentence is concise, grammatical, and uses concrete language."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.97,
+              "evidence": "It clearly distinguishes both animals and conveys their positions and Momo's visible alarm."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg010",
+          "score": 1,
+          "rationale": "B accurately conveys the complete scene, including the leopard fleeing into the forest, while A stops at the leopard reaching the ground and misses that essential outcome.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The page shows four monkeys among branches with sticks, a descending leopard, foliage, a crescent moon, and stars; the printed text confirms that the leopard runs into the forest."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It includes the monkeys, their shouting and stick-throwing, the leopard's escape, and the nighttime forest setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The sentence is concrete, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly identifies who acts, what they do, how the leopard responds, and where the scene occurs."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg011",
+          "score": 1,
+          "rationale": "A accurately and clearly describes the central action and relevant nighttime details. B includes the essentials but has a duplicated word and the misleading phrase “through the ground.”",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The image shows an adult leopard and cub walking together beneath a crescent moon and stars, with a rabbit partly concealed beside blue flowers."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "Covers the main animals, their walking action, the nighttime field, and the visible rabbit."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is grammatical, concrete, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "Clearly conveys the principal action and setting while distinguishing the leopards and the nearby rabbit."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg012",
+          "score": 1,
+          "rationale": "A provides the most complete, image-grounded account by including the adult leopard below and the nighttime setting; B is accurate but omits the adult.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The moon and stars indicate night; a baby leopard climbs the trunk, an adult leopard stands below, and monkeys sleep overhead."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It includes the cub climbing, the adult leopard below, the sleeping monkeys above, and the nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The caption is grammatical, concrete, and easy to follow."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly distinguishes both leopards and the monkeys while conveying their positions and actions."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg013",
+          "score": 1,
+          "rationale": "B is more complete while remaining clear and image-grounded, especially because it includes the nighttime setting and the larger leopard below that A omits.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The moon and stars indicate night; Momo is visibly asleep on a branch, a small leopard approaches him, and a larger leopard below looks upward."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "Captures Momo sleeping, the baby leopard creeping toward him, the leopard below, and the nighttime tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, concrete, and clearly identifies each animal."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "Clearly distinguishes the sleeping monkey, approaching baby leopard, and observing leopard below while conveying their spatial relationships."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg014",
+          "score": 1,
+          "rationale": "B accurately captures the central action and spatial relationship: the branch shakes while the baby leopard hangs below Momo. A incorrectly says Momo is hanging and leaves out the key shaking action.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.97,
+              "evidence": "Momo grips an upper branch while sitting on a lower one; the baby leopard hangs upside down below. The owl, crescent moon, and stars are visible, and the page text supports that the branch shook."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "Identifies Momo, the hanging baby leopard, the shaking branch, and the nighttime tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.97,
+              "evidence": "The sentence is grammatical, concrete, and clearly states each animal's position."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "Clearly distinguishes Momo above from the leopard hanging below and includes the meaningful shaking action."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg015",
+          "score": 1,
+          "rationale": "Both captions accurately convey the main event, but A is more precise and accessible because it explicitly describes the leopard leaping from below, Momo's higher position, and the inability to reach him.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.97,
+              "evidence": "Momo is positioned on a higher branch while the baby leopard leaps upward beneath him against a dark blue sky with stars."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It clearly captures both actors, the leopard's attempted reach, Momo's higher position, and the nighttime tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.97,
+              "evidence": "The sentence is concise, concrete, grammatical, and uses the precise phrase 'cannot reach him.'"
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The relative positions and action are clearly distinguished, making the failed attempt easy to understand."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg016",
+          "score": 1,
+          "rationale": "A accurately describes the baby leopard falling upside down at night, while B incorrectly says the animal is hanging from a branch.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The image shows a baby leopard tumbling upside down among tree branches beneath a crescent moon and stars."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It captures the cub, its downward tumble from the tree, and the nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The caption is concise, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It clearly conveys the actor, orientation, action, and visually meaningful nighttime context."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg017",
+          "score": 1,
+          "rationale": "Both captions accurately describe the main event, but A more clearly identifies the falling leopard as a baby and includes the visibly relevant tree and nighttime setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "A smaller leopard is shown descending beneath a tree onto its mother, with a crescent moon and stars visible."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It includes the cub, mother, falling action, tree, and nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The caption is concrete, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "It distinguishes the baby from its mother and supplies meaningful context about the fall and setting."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg018",
+          "score": 1,
+          "rationale": "Both captions convey the main event, but A is more precise and informative about the numbers of animals, their positions, and the nighttime setting. B’s phrase “retreat from the branch” is less clear.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "Two monkeys are on branches, sticks are being thrown, and two leopards below are fleeing; stars and the page text indicate night."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It captures both actor counts, the stick-throwing action, the leopards being driven away, and the nighttime tree setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.95,
+              "evidence": "The caption is concrete, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "It clearly identifies who acts, who flees, their relative positions, and the nighttime context."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        }
+      ],
+      "judgeModel": "gpt-5.6-sol"
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "candidateId": "gemma-e4b",
+      "dimension": "captionFidelity",
+      "items": [
+        {
+          "itemId": "pg001",
+          "score": 0.25,
+          "rationale": "B accurately and clearly captures the sleeping monkey, leopard below, owl above, and nighttime setting. A misses the owl and misstates the monkey's main action.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "not_met",
+              "confidence": 0.91,
+              "evidence": "The pictured monkey has closed eyes and is reclining asleep, rather than simply sitting; the other stated elements are visible."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.99,
+              "evidence": "It omits the owl above and fails to convey that Momo is asleep."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The caption is grammatical, concise, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "not_met",
+              "confidence": 0.98,
+              "evidence": "Omitting the owl and describing the sleeping monkey merely as sitting leaves out meaningful scene information."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg005",
+          "score": 0.75,
+          "rationale": "B is fully grounded and more complete, accurately including all three monkeys, the owl, and the moon-and-stars nighttime setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "Monkeys are visibly sleeping on long tree branches beneath a night sky."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.88,
+              "evidence": "It captures the main action and setting but omits the visible count of three monkeys and the nearby owl."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is brief, concrete, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.91,
+              "evidence": "It meaningfully conveys the primary subjects, action, and setting, though with less visual detail than B."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg006",
+          "score": 1,
+          "rationale": "B is fully grounded and provides clearer, more complete visual information, including the nighttime setting, monkeys on branches, and rabbit by the rock. A accurately conveys the central event but is less specific and omits meaningful visible details.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "The leopard is shown moving or standing toward the monkeys’ tree, and the page text says she came to it."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.84,
+              "evidence": "It captures the central leopard, action, monkeys, and tree, though it omits the nighttime setting and visible rabbit."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.94,
+              "evidence": "The sentence is grammatical and understandable, although 'where monkeys are located' is somewhat vague."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.78,
+              "evidence": "It conveys the main action and actors but gives little detail about the monkeys’ position or the rest of the scene."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg007",
+          "score": 1,
+          "rationale": "Both captions accurately convey the main action, but A provides fuller useful visual coverage by mentioning the rabbit below and the dusk-like setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The illustration and printed page text show Mother leopard climbing the tree very quietly."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "Identifies the central actor and action: Mother leopard climbing the tree."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and concrete."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.91,
+              "evidence": "Clearly communicates the scene's primary actor, action, and quiet manner, though it omits the rabbit."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg008",
+          "score": 0.25,
+          "rationale": "B accurately captures the leopard's quiet approach toward sleeping Momo and includes the relevant nighttime tree setting. A is clear but replaces the central action and sleeping state with a less accurate description.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "not_met",
+              "confidence": 0.94,
+              "evidence": "Momo is shown asleep and reclined with closed eyes, not simply sitting; the leopard is also visibly advancing rather than only watching."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.99,
+              "evidence": "It omits the essential action of the leopard creeping toward Momo and fails to identify that Momo is sleeping."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The sentence is grammatical, concise, and uses clear language."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "not_met",
+              "confidence": 0.96,
+              "evidence": "Although it names both animals and the nighttime setting, it misrepresents their key states and loses the central approaching-danger information."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg009",
+          "score": 1,
+          "rationale": "Both captions are supported, but B is more useful as visual description because it identifies Momo as a monkey and conveys his visible fear, raised hands, and nighttime tree setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.95,
+              "evidence": "The leopard is near Momo, while the page text directly states that the branch shook and Momo woke to see the leopard."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.91,
+              "evidence": "It includes both principal actors and the approach, shaking branch, and Momo seeing the leopard, though it does not explicitly identify Momo as a frightened monkey."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.97,
+              "evidence": "The caption is grammatical, coherent, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.88,
+              "evidence": "It clearly communicates the narrative action, but provides less visual information about Momo's species, fear, raised hands, and the nighttime setting."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg010",
+          "score": 0.75,
+          "rationale": "B accurately conveys the complete scene, including the leopard fleeing into the forest, while A stops at the leopard reaching the ground and misses that essential outcome.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The monkeys are shown with sticks and open mouths, while the leopard is descending; the printed text states that it jumped to the ground."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.97,
+              "evidence": "It omits the essential outcome that the leopard runs away into the forest."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The caption is concise, grammatical, and clearly identifies the actors and actions."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.86,
+              "evidence": "It meaningfully distinguishes the monkeys' actions from the leopard's movement, though it leaves out the leopard's flight."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg011",
+          "score": 0.5,
+          "rationale": "A accurately and clearly describes the central action and relevant nighttime details. B includes the essentials but has a duplicated word and the misleading phrase “through the ground.”",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "not_met",
+              "confidence": 0.94,
+              "evidence": "The mother and cub are walking at night, but “through the ground” incorrectly suggests movement inside the ground."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "Identifies the mother leopard, baby leopard, walking action, and nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "not_met",
+              "confidence": 0.99,
+              "evidence": "“Through the the ground” contains a repeated word and is unnatural and misleading."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.86,
+              "evidence": "Clearly distinguishes the adult and baby leopard and states their main action, despite the flawed setting phrase."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg012",
+          "score": 0.75,
+          "rationale": "A provides the most complete, image-grounded account by including the adult leopard below and the nighttime setting; B is accurate but omits the adult.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The image and page text show a baby leopard climbing quietly and monkeys sleeping on upper branches."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.98,
+              "evidence": "It omits the adult leopard standing below the climbing cub."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, grammatical, and clearly identifies the cub's action and the monkeys' state."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.85,
+              "evidence": "It clearly distinguishes the climbing baby leopard from the sleeping monkeys, though it leaves out the adult leopard."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg013",
+          "score": 0.75,
+          "rationale": "B is more complete while remaining clear and image-grounded, especially because it includes the nighttime setting and the larger leopard below that A omits.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.95,
+              "evidence": "Momo is asleep on a long branch, and the baby leopard is shown moving quietly onto or along that branch."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.97,
+              "evidence": "It omits the larger leopard visibly positioned below and does not mention the nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The caption is brief, grammatical, and easy to understand."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.9,
+              "evidence": "It identifies Momo and the baby leopard and communicates their main actions, though it leaves out the leopard below."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg014",
+          "score": 0.25,
+          "rationale": "B accurately captures the central action and spatial relationship: the branch shakes while the baby leopard hangs below Momo. A incorrectly says Momo is hanging and leaves out the key shaking action.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "not_met",
+              "confidence": 0.97,
+              "evidence": "The image shows the baby leopard hanging below the branch, while Momo sits on a branch and grips another; saying Momo hangs misidentifies the actors' positions."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.98,
+              "evidence": "It omits the shaking branch and the leopard's key upside-down position, while inaccurately assigning the hanging action to Momo."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.96,
+              "evidence": "The caption is concise and grammatically clear despite its factual error."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "not_met",
+              "confidence": 0.98,
+              "evidence": "It reverses the scene's central spatial relationship and does not convey the branch shaking."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg015",
+          "score": 1,
+          "rationale": "Both captions accurately convey the main event, but A is more precise and accessible because it explicitly describes the leopard leaping from below, Momo's higher position, and the inability to reach him.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The page shows Momo on a large branch and a baby leopard jumping toward him without reaching him; the printed page text also directly supports both actions."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.93,
+              "evidence": "It includes Momo, the baby leopard, their jumping actions, the failed attempt, and the branch."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.76,
+              "evidence": "The wording is understandable and grammatical, though the repeated 'jumped' and phrase 'could not get Momo' are less precise."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.83,
+              "evidence": "It communicates the central interaction, but gives less spatial detail and does not identify what kind of animal Momo is."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg016",
+          "score": 0.25,
+          "rationale": "A accurately describes the baby leopard falling upside down at night, while B incorrectly says the animal is hanging from a branch.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "not_met",
+              "confidence": 0.98,
+              "evidence": "The baby leopard is visibly airborne and upside down, not hanging from a branch."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "not_met",
+              "confidence": 0.99,
+              "evidence": "It omits and misstates the central action: the cub is falling or tumbling from the tree."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.99,
+              "evidence": "The sentence is concise, concrete, and grammatical."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "not_met",
+              "confidence": 0.97,
+              "evidence": "Although it identifies the animal and nighttime setting, it gives an incorrect account of the key action."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg017",
+          "score": 1,
+          "rationale": "Both captions accurately describe the main event, but A more clearly identifies the falling leopard as a baby and includes the visibly relevant tree and nighttime setting.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.98,
+              "evidence": "The illustration shows a smaller leopard falling onto a larger leopard identified as its mother."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.86,
+              "evidence": "It captures the central actors and action, though it omits the tree and nighttime setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.95,
+              "evidence": "The sentence is concise and grammatical, although “falls down onto” is slightly redundant."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.88,
+              "evidence": "It clearly conveys that one leopard falls onto its mother, but provides limited scene context."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        },
+        {
+          "itemId": "pg018",
+          "score": 1,
+          "rationale": "Both captions convey the main event, but A is more precise and informative about the numbers of animals, their positions, and the nighttime setting. B’s phrase “retreat from the branch” is less clear.",
+          "atomicCriteria": [
+            {
+              "rubricId": "groundedness",
+              "verdict": "met",
+              "confidence": 0.9,
+              "evidence": "The page shows monkeys throwing sticks while two leopards run away, and the printed text supports shouting."
+            },
+            {
+              "rubricId": "essentialCoverage",
+              "verdict": "met",
+              "confidence": 0.86,
+              "evidence": "It includes the monkeys, thrown sticks, and retreating leopards, though it omits their counts and the nighttime forest setting."
+            },
+            {
+              "rubricId": "languageClarity",
+              "verdict": "met",
+              "confidence": 0.78,
+              "evidence": "The sentence is concise and grammatical, but “retreat from the branch” is somewhat ambiguous."
+            },
+            {
+              "rubricId": "accessibilityUsefulness",
+              "verdict": "met",
+              "confidence": 0.84,
+              "evidence": "It clearly distinguishes the monkeys’ actions from the leopards’ retreat, despite limited spatial detail."
+            }
+          ],
+          "atomicDecisionCoverage": 1
+        }
+      ],
+      "judgeModel": "gpt-5.6-sol"
+    }
+  ],
+  "comparisons": [
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg001",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B accurately and clearly captures the complete scene, whereas A omits the owl and does not identify the monkey as sleeping.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg005",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "Both captions accurately convey the central scene, but B is more useful and complete because it specifies three monkeys and includes the visibly present owl, moon, and stars without adding unsupported content.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg006",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gemma-e4b",
+      "rationale": "A is preferable because it accurately captures the central action of the leopard approaching the monkeys' tree without adding the unsupported claim that the rabbit is hiding.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg007",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gemma-e4b",
+      "rationale": "B accurately and concisely conveys the central scene. A adds the visible rabbit but also introduces an unsupported dusk setting.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg008",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B accurately conveys the central scene: the leopard quietly approaches sleeping Momo on a branch at night. A is broadly grounded but misses both the creeping action and Momo's sleeping state.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg009",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "Both captions are supported, but B gives a more complete visual account by identifying Momo as a monkey and including his fear, raised arms, tree setting, and nighttime context.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg010",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B more completely conveys the visible and text-supported scene, especially the leopard running away into the forest and the nighttime setting, without adding unsupported details.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg011",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "A accurately and clearly covers the main scene while adding visible details about the moon, stars, flowers, and hidden rabbit. B captures the core event but has a duplicated word and inaccurately says the leopards walk “through” the ground.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg012",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "A accurately and clearly covers all major visible actors, actions, positions, and the nighttime setting; B omits the adult leopard below.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg013",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B more completely describes the visible scene, especially the nighttime setting and the adult leopard below, while remaining clear and grounded.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg014",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B accurately describes the cub hanging upside down beneath Momo on the shaking branch. A incorrectly says Momo hangs and misses the cub's essential position.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg015",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "Both captions accurately convey the central event, but A is more visually informative and precise about Momo being above the leopard and out of reach in the nighttime tree setting.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg016",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "A accurately describes the baby leopard falling upside down through the tree at night. B is clear but incorrectly says the leopard is hanging from a branch.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg017",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "Both captions accurately describe the central event, but A is more useful because it explicitly identifies the falling animal as a baby and adds the visibly supported tree and nighttime setting.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass1",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg018",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "A accurately and clearly describes the two monkeys, two fleeing leopards, stick-throwing action, spatial arrangement, and nighttime setting. B conveys the core action but its phrase about retreating 'from the branch' is spatially misleading.",
+      "passIndex": 1,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg001",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B accurately and clearly captures the sleeping monkey, leopard below, owl above, and nighttime setting. A misses the owl and misstates the monkey's main action.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg005",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B is fully grounded and more complete, accurately including all three monkeys, the owl, and the moon-and-stars nighttime setting.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg006",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B is fully grounded and provides clearer, more complete visual information, including the nighttime setting, monkeys on branches, and rabbit by the rock. A accurately conveys the central event but is less specific and omits meaningful visible details.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg007",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "Both captions accurately convey the main action, but A provides fuller useful visual coverage by mentioning the rabbit below and the dusk-like setting.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg008",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B accurately captures the leopard's quiet approach toward sleeping Momo and includes the relevant nighttime tree setting. A is clear but replaces the central action and sleeping state with a less accurate description.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg009",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "Both captions are supported, but B is more useful as visual description because it identifies Momo as a monkey and conveys his visible fear, raised hands, and nighttime tree setting.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg010",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B accurately conveys the complete scene, including the leopard fleeing into the forest, while A stops at the leopard reaching the ground and misses that essential outcome.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg011",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "A accurately and clearly describes the central action and relevant nighttime details. B includes the essentials but has a duplicated word and the misleading phrase “through the ground.”",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg012",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "A provides the most complete, image-grounded account by including the adult leopard below and the nighttime setting; B is accurate but omits the adult.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg013",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B is more complete while remaining clear and image-grounded, especially because it includes the nighttime setting and the larger leopard below that A omits.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg014",
+      "candidateIds": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "B accurately captures the central action and spatial relationship: the branch shakes while the baby leopard hangs below Momo. A incorrectly says Momo is hanging and leaves out the key shaking action.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gpt-5.4",
+        "gemma-e4b"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg015",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "Both captions accurately convey the main event, but A is more precise and accessible because it explicitly describes the leopard leaping from below, Momo's higher position, and the inability to reach him.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg016",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "A accurately describes the baby leopard falling upside down at night, while B incorrectly says the animal is hanging from a branch.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg017",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "Both captions accurately describe the main event, but A more clearly identifies the falling leopard as a baby and includes the visibly relevant tree and nighttime setting.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    },
+    {
+      "reviewerId": "judge:gpt-5.6-sol:pass2",
+      "blinded": true,
+      "sampleId": "momo-grade1:caption:pg018",
+      "candidateIds": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ],
+      "winnerCandidateId": "gpt-5.4",
+      "rationale": "Both captions convey the main event, but A is more precise and informative about the numbers of animals, their positions, and the nighttime setting. B’s phrase “retreat from the branch” is less clear.",
+      "passIndex": 2,
+      "presentationOrder": [
+        "gemma-e4b",
+        "gpt-5.4"
+      ]
+    }
+  ],
+  "judge": {
+    "model": "gpt-5.6-sol",
+    "endpointOrigin": "https://api.openai.com",
+    "durationMs": 237364,
+    "samples": 15,
+    "passes": 2,
+    "multimodal": true,
+    "reasoningEffort": "high",
+    "usage": [
+      {
+        "input_tokens": 3144,
+        "input_tokens_details": {
+          "cache_write_tokens": 3141,
+          "cached_tokens": 0
+        },
+        "output_tokens": 638,
+        "output_tokens_details": {
+          "reasoning_tokens": 260
+        },
+        "total_tokens": 3782
+      },
+      {
+        "input_tokens": 3159,
+        "input_tokens_details": {
+          "cache_write_tokens": 3156,
+          "cached_tokens": 0
+        },
+        "output_tokens": 664,
+        "output_tokens_details": {
+          "reasoning_tokens": 287
+        },
+        "total_tokens": 3823
+      },
+      {
+        "input_tokens": 3135,
+        "input_tokens_details": {
+          "cache_write_tokens": 3132,
+          "cached_tokens": 0
+        },
+        "output_tokens": 705,
+        "output_tokens_details": {
+          "reasoning_tokens": 353
+        },
+        "total_tokens": 3840
+      },
+      {
+        "input_tokens": 3154,
+        "input_tokens_details": {
+          "cache_write_tokens": 3151,
+          "cached_tokens": 0
+        },
+        "output_tokens": 577,
+        "output_tokens_details": {
+          "reasoning_tokens": 198
+        },
+        "total_tokens": 3731
+      },
+      {
+        "input_tokens": 3152,
+        "input_tokens_details": {
+          "cache_write_tokens": 3149,
+          "cached_tokens": 0
+        },
+        "output_tokens": 1292,
+        "output_tokens_details": {
+          "reasoning_tokens": 936
+        },
+        "total_tokens": 4444
+      },
+      {
+        "input_tokens": 3151,
+        "input_tokens_details": {
+          "cache_write_tokens": 3148,
+          "cached_tokens": 0
+        },
+        "output_tokens": 639,
+        "output_tokens_details": {
+          "reasoning_tokens": 233
+        },
+        "total_tokens": 3790
+      },
+      {
+        "input_tokens": 3159,
+        "input_tokens_details": {
+          "cache_write_tokens": 3156,
+          "cached_tokens": 0
+        },
+        "output_tokens": 1280,
+        "output_tokens_details": {
+          "reasoning_tokens": 882
+        },
+        "total_tokens": 4439
+      },
+      {
+        "input_tokens": 3149,
+        "input_tokens_details": {
+          "cache_write_tokens": 3146,
+          "cached_tokens": 0
+        },
+        "output_tokens": 695,
+        "output_tokens_details": {
+          "reasoning_tokens": 309
+        },
+        "total_tokens": 3844
+      },
+      {
+        "input_tokens": 3153,
+        "input_tokens_details": {
+          "cache_write_tokens": 3150,
+          "cached_tokens": 0
+        },
+        "output_tokens": 497,
+        "output_tokens_details": {
+          "reasoning_tokens": 131
+        },
+        "total_tokens": 3650
+      },
+      {
+        "input_tokens": 3166,
+        "input_tokens_details": {
+          "cache_write_tokens": 3163,
+          "cached_tokens": 0
+        },
+        "output_tokens": 680,
+        "output_tokens_details": {
+          "reasoning_tokens": 302
+        },
+        "total_tokens": 3846
+      },
+      {
+        "input_tokens": 3166,
+        "input_tokens_details": {
+          "cache_write_tokens": 3163,
+          "cached_tokens": 0
+        },
+        "output_tokens": 647,
+        "output_tokens_details": {
+          "reasoning_tokens": 255
+        },
+        "total_tokens": 3813
+      },
+      {
+        "input_tokens": 3159,
+        "input_tokens_details": {
+          "cache_write_tokens": 3156,
+          "cached_tokens": 0
+        },
+        "output_tokens": 767,
+        "output_tokens_details": {
+          "reasoning_tokens": 370
+        },
+        "total_tokens": 3926
+      },
+      {
+        "input_tokens": 3138,
+        "input_tokens_details": {
+          "cache_write_tokens": 3135,
+          "cached_tokens": 0
+        },
+        "output_tokens": 511,
+        "output_tokens_details": {
+          "reasoning_tokens": 171
+        },
+        "total_tokens": 3649
+      },
+      {
+        "input_tokens": 3135,
+        "input_tokens_details": {
+          "cache_write_tokens": 3132,
+          "cached_tokens": 0
+        },
+        "output_tokens": 808,
+        "output_tokens_details": {
+          "reasoning_tokens": 440
+        },
+        "total_tokens": 3943
+      },
+      {
+        "input_tokens": 3149,
+        "input_tokens_details": {
+          "cache_write_tokens": 3146,
+          "cached_tokens": 0
+        },
+        "output_tokens": 841,
+        "output_tokens_details": {
+          "reasoning_tokens": 397
+        },
+        "total_tokens": 3990
+      },
+      {
+        "input_tokens": 3144,
+        "input_tokens_details": {
+          "cache_write_tokens": 3141,
+          "cached_tokens": 0
+        },
+        "output_tokens": 591,
+        "output_tokens_details": {
+          "reasoning_tokens": 238
+        },
+        "total_tokens": 3735
+      },
+      {
+        "input_tokens": 3159,
+        "input_tokens_details": {
+          "cache_write_tokens": 3156,
+          "cached_tokens": 0
+        },
+        "output_tokens": 563,
+        "output_tokens_details": {
+          "reasoning_tokens": 198
+        },
+        "total_tokens": 3722
+      },
+      {
+        "input_tokens": 3135,
+        "input_tokens_details": {
+          "cache_write_tokens": 3132,
+          "cached_tokens": 0
+        },
+        "output_tokens": 594,
+        "output_tokens_details": {
+          "reasoning_tokens": 246
+        },
+        "total_tokens": 3729
+      },
+      {
+        "input_tokens": 3152,
+        "input_tokens_details": {
+          "cache_write_tokens": 3149,
+          "cached_tokens": 0
+        },
+        "output_tokens": 698,
+        "output_tokens_details": {
+          "reasoning_tokens": 312
+        },
+        "total_tokens": 3850
+      },
+      {
+        "input_tokens": 3154,
+        "input_tokens_details": {
+          "cache_write_tokens": 3151,
+          "cached_tokens": 0
+        },
+        "output_tokens": 712,
+        "output_tokens_details": {
+          "reasoning_tokens": 315
+        },
+        "total_tokens": 3866
+      },
+      {
+        "input_tokens": 3159,
+        "input_tokens_details": {
+          "cache_write_tokens": 3156,
+          "cached_tokens": 0
+        },
+        "output_tokens": 874,
+        "output_tokens_details": {
+          "reasoning_tokens": 482
+        },
+        "total_tokens": 4033
+      },
+      {
+        "input_tokens": 3151,
+        "input_tokens_details": {
+          "cache_write_tokens": 3148,
+          "cached_tokens": 0
+        },
+        "output_tokens": 691,
+        "output_tokens_details": {
+          "reasoning_tokens": 305
+        },
+        "total_tokens": 3842
+      },
+      {
+        "input_tokens": 3149,
+        "input_tokens_details": {
+          "cache_write_tokens": 3146,
+          "cached_tokens": 0
+        },
+        "output_tokens": 590,
+        "output_tokens_details": {
+          "reasoning_tokens": 226
+        },
+        "total_tokens": 3739
+      },
+      {
+        "input_tokens": 3153,
+        "input_tokens_details": {
+          "cache_write_tokens": 3150,
+          "cached_tokens": 0
+        },
+        "output_tokens": 602,
+        "output_tokens_details": {
+          "reasoning_tokens": 244
+        },
+        "total_tokens": 3755
+      },
+      {
+        "input_tokens": 3166,
+        "input_tokens_details": {
+          "cache_write_tokens": 3163,
+          "cached_tokens": 0
+        },
+        "output_tokens": 680,
+        "output_tokens_details": {
+          "reasoning_tokens": 306
+        },
+        "total_tokens": 3846
+      },
+      {
+        "input_tokens": 3166,
+        "input_tokens_details": {
+          "cache_write_tokens": 3163,
+          "cached_tokens": 0
+        },
+        "output_tokens": 685,
+        "output_tokens_details": {
+          "reasoning_tokens": 278
+        },
+        "total_tokens": 3851
+      },
+      {
+        "input_tokens": 3159,
+        "input_tokens_details": {
+          "cache_write_tokens": 3156,
+          "cached_tokens": 0
+        },
+        "output_tokens": 858,
+        "output_tokens_details": {
+          "reasoning_tokens": 451
+        },
+        "total_tokens": 4017
+      },
+      {
+        "input_tokens": 3138,
+        "input_tokens_details": {
+          "cache_write_tokens": 3135,
+          "cached_tokens": 0
+        },
+        "output_tokens": 437,
+        "output_tokens_details": {
+          "reasoning_tokens": 96
+        },
+        "total_tokens": 3575
+      },
+      {
+        "input_tokens": 3135,
+        "input_tokens_details": {
+          "cache_write_tokens": 3132,
+          "cached_tokens": 0
+        },
+        "output_tokens": 573,
+        "output_tokens_details": {
+          "reasoning_tokens": 227
+        },
+        "total_tokens": 3708
+      },
+      {
+        "input_tokens": 3149,
+        "input_tokens_details": {
+          "cache_write_tokens": 3146,
+          "cached_tokens": 0
+        },
+        "output_tokens": 913,
+        "output_tokens_details": {
+          "reasoning_tokens": 516
+        },
+        "total_tokens": 4062
+      }
+    ]
+  }
+}

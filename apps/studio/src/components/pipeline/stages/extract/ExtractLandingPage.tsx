@@ -22,6 +22,7 @@ import { usePartInfo } from "@/hooks/use-parts"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useLlmAccess } from "@/hooks/use-llm-access"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { PageGroupingVisual } from "./components/PageGroupingVisual"
 import { ExtractPreview } from "./components/ExtractPreview"
@@ -32,7 +33,8 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey } = useApiKey()
+  const { hasLlmAccess: hasApiKey } = useLlmAccess(bookLabel)
   const { queueRun } = useBookRun()
   const status = useStageStatus("extract")
   const { data: book } = useBook(bookLabel)

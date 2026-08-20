@@ -1,157 +1,241 @@
-import { useState, useEffect, useMemo } from "react"
-import { AlertCircle, Pencil, Settings2 } from "lucide-react"
-import { Link } from "@tanstack/react-router"
-import { Trans, useLingui } from "@lingui/react/macro"
-import { msg } from "@lingui/core/macro"
-import { i18n as linguiI18n } from "@lingui/core"
-import type { MessageDescriptor } from "@lingui/core"
-import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
-import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
+import { useState, useEffect, useMemo } from "react";
+import { AlertCircle, Pencil, Settings2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { msg } from "@lingui/core/macro";
+import { i18n as linguiI18n } from "@lingui/core";
+import type { MessageDescriptor } from "@lingui/core";
+import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell";
+import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard";
 import {
   SettingsCard,
   SettingsField,
-} from "@/components/pipeline/components/SettingsCard"
-import { SegmentedControl } from "@/components/ui/segmented-control"
-import { useActiveConfig } from "@/hooks/use-debug"
-import { useStageStatus } from "@/hooks/use-stage-status"
-import { useBookRun } from "@/hooks/use-book-run"
-import { useApiKey } from "@/hooks/use-api-key"
-import { useBookConfig } from "@/hooks/use-book-config"
-import { usePersistConfig } from "@/hooks/use-persist-config"
-import { SpeechPreview } from "./components/SpeechPreview"
+} from "@/components/pipeline/components/SettingsCard";
+import { SegmentedControl } from "@/components/ui/segmented-control";
+import { useActiveConfig } from "@/hooks/use-debug";
+import { useStageStatus } from "@/hooks/use-stage-status";
+import { useBookRun } from "@/hooks/use-book-run";
+import { useApiKey } from "@/hooks/use-api-key";
+import { useBookConfig } from "@/hooks/use-book-config";
+import { usePersistConfig } from "@/hooks/use-persist-config";
+import { useQuery } from "@tanstack/react-query";
+import { api } from "@/api/client";
+import { SpeechPreview } from "./components/SpeechPreview";
 
-type ProviderKey = "openai" | "azure" | "gemini" | "elevenlabs"
+type ProviderKey =
+  | "openai"
+  | "azure"
+  | "gemini"
+  | "elevenlabs"
+  | "local-hf"
+  | "local-system";
 
 const PROVIDER_LABELS: Record<ProviderKey, MessageDescriptor> = {
   openai: msg`OpenAI`,
   azure: msg`Azure`,
   gemini: msg`Gemini`,
   elevenlabs: msg`ElevenLabs`,
-}
+  "local-hf": msg`Local`,
+  "local-system": msg`Mac Fast`,
+};
 
 const PROVIDER_HINTS: Record<ProviderKey, MessageDescriptor> = {
   openai: msg`Natural, expressive voices. Best general-purpose default.`,
   azure: msg`Wide multilingual coverage with neural voices for many locales.`,
   gemini: msg`Google's voices with strong intonation for narrative content.`,
   elevenlabs: msg`High-fidelity, expressive voices with fine-grained cloning support.`,
-}
+  "local-hf": msg`Private offline English narration with a downloaded Kokoro model.`,
+  "local-system": msg`Fast private offline narration using voices already managed by macOS.`,
+};
 
 // Voices & Accents card hidden for now while we evaluate the configure-voices
 // flow. Markup stays in place so re-enabling is a single flag flip.
-const SHOW_VOICES_ACCENTS_CARD = false
+const SHOW_VOICES_ACCENTS_CARD = false;
 
 export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
-  const { t } = useLingui()
-  const { data: bookConfigData } = useBookConfig(bookLabel)
-  const { data: activeConfigData } = useActiveConfig(bookLabel)
-  const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey, hasAzureKey, hasGeminiKey, hasElevenLabsKey } = useApiKey()
-  const { queueRun } = useBookRun()
-  const status = useStageStatus("speech")
-  const translateStatus = useStageStatus("translate")
-  const translateReady = translateStatus.isCompleted
+  const { t } = useLingui();
+  const { data: bookConfigData } = useBookConfig(bookLabel);
+  const { data: activeConfigData } = useActiveConfig(bookLabel);
+  const persist = usePersistConfig(bookLabel);
+  const { apiKey, hasApiKey, hasAzureKey, hasGeminiKey, hasElevenLabsKey } =
+    useApiKey();
+  const { queueRun } = useBookRun();
+  const status = useStageStatus("speech");
+  const translateStatus = useStageStatus("translate");
+  const translateReady = translateStatus.isCompleted;
+  const localSpeech = useQuery({
+    queryKey: ["local-speech", "status"],
+    queryFn: api.getLocalSpeechStatus,
+  });
 
-  const [wordHighlighting, setWordHighlighting] = useState(false)
-  const [provider, setProvider] = useState<ProviderKey>("openai")
+  const [wordHighlighting, setWordHighlighting] = useState(false);
+  const [provider, setProvider] = useState<ProviderKey>("openai");
 
   useEffect(() => {
-    if (!activeConfigData) return
-    const m = activeConfigData.merged as Record<string, unknown>
-    const speech = (m.speech ?? {}) as Record<string, unknown>
+    if (!activeConfigData) return;
+    const m = activeConfigData.merged as Record<string, unknown>;
+    const speech = (m.speech ?? {}) as Record<string, unknown>;
     if (typeof speech.word_highlighting === "boolean") {
-      setWordHighlighting(speech.word_highlighting)
+      setWordHighlighting(speech.word_highlighting);
     }
     if (
       speech.default_provider === "openai" ||
       speech.default_provider === "azure" ||
       speech.default_provider === "gemini" ||
-      speech.default_provider === "elevenlabs"
+      speech.default_provider === "elevenlabs" ||
+      speech.default_provider === "local-hf" ||
+      speech.default_provider === "local-system"
     ) {
-      setProvider(speech.default_provider)
+      setProvider(speech.default_provider);
     }
-  }, [activeConfigData])
+  }, [activeConfigData]);
 
   const persistSpeech = (patch: Record<string, unknown>) => {
     const existing = (bookConfigData?.config?.speech ?? {}) as Record<
       string,
       unknown
-    >
-    persist({ speech: { ...existing, ...patch } })
-  }
+    >;
+    persist({ speech: { ...existing, ...patch } });
+  };
 
   const handleHighlightingToggle = (next: boolean) => {
-    setWordHighlighting(next)
-    persistSpeech({ word_highlighting: next })
-  }
+    setWordHighlighting(next);
+    persistSpeech({ word_highlighting: next });
+  };
 
   const handleProviderChange = (value: ProviderKey) => {
-    setProvider(value)
-    persistSpeech({ default_provider: value })
-  }
+    setProvider(value);
+    if (value === "local-hf" && localSpeech.data?.installed[0]) {
+      const speech = (bookConfigData?.config?.speech ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const providers = (speech.providers ?? {}) as Record<string, unknown>;
+      const model =
+        localSpeech.data.installed.find((item) => item.runtime === "mlx") ??
+        localSpeech.data.installed[0];
+      persistSpeech({
+        default_provider: value,
+        providers: {
+          ...providers,
+          "local-hf": {
+            adapter: "kokoro",
+            model: model.repository,
+            voice: model.voices[0] ?? "af_heart",
+            dtype: model.dtype,
+            device: "auto",
+          },
+        },
+      });
+    } else if (value === "local-system") {
+      const speech = (bookConfigData?.config?.speech ?? {}) as Record<
+        string,
+        unknown
+      >;
+      const providers = (speech.providers ?? {}) as Record<string, unknown>;
+      persistSpeech({
+        default_provider: value,
+        format: "wav",
+        providers: {
+          ...providers,
+          "local-system": {
+            model: "apple-speech",
+            // eslint-disable-next-line lingui/no-unlocalized-strings -- macOS voice identifier, not interface copy.
+            voice: "Samantha",
+            speed: 1,
+            languages: ["en"],
+          },
+        },
+      });
+    } else {
+      persistSpeech({ default_provider: value });
+    }
+  };
 
   const handleRun = () => {
-    if (!hasApiKey || !translateReady || status.isRunning) return
-    queueRun({ fromStage: "speech", toStage: "speech", apiKey, viewAfter: true })
-  }
+    if (!providerKeyAvailable[provider] || !translateReady || status.isRunning)
+      return;
+    queueRun({
+      fromStage: "speech",
+      toStage: "speech",
+      apiKey,
+      viewAfter: true,
+    });
+  };
 
   const providerKeyAvailable: Record<ProviderKey, boolean> = {
     openai: hasApiKey,
     azure: hasAzureKey,
     gemini: hasGeminiKey,
     elevenlabs: hasElevenLabsKey,
-  }
+    "local-hf": Boolean(localSpeech.data?.installed.length),
+    "local-system": navigator.userAgent.includes("Mac OS X"),
+  };
 
-  const providerOptions = useMemo(
-    () => {
-      const disabledHint = t`Add this provider's API key in Book settings.`
-      return [
-        {
-          value: "openai" as const,
-          label: linguiI18n._(PROVIDER_LABELS.openai),
-          disabled: !hasApiKey,
-          disabledHint,
-        },
-        {
-          value: "azure" as const,
-          label: linguiI18n._(PROVIDER_LABELS.azure),
-          disabled: !hasAzureKey,
-          disabledHint,
-        },
-        {
-          value: "gemini" as const,
-          label: linguiI18n._(PROVIDER_LABELS.gemini),
-          disabled: !hasGeminiKey,
-          disabledHint,
-        },
-        {
-          value: "elevenlabs" as const,
-          label: linguiI18n._(PROVIDER_LABELS.elevenlabs),
-          disabled: !hasElevenLabsKey,
-          disabledHint,
-        },
-      ]
-    },
-    [t, hasApiKey, hasAzureKey, hasGeminiKey, hasElevenLabsKey],
-  )
+  const providerOptions = useMemo(() => {
+    const disabledHint = t`Add this provider's API key in Book settings.`;
+    return [
+      {
+        value: "openai" as const,
+        label: linguiI18n._(PROVIDER_LABELS.openai),
+        disabled: !hasApiKey,
+        disabledHint,
+      },
+      {
+        value: "azure" as const,
+        label: linguiI18n._(PROVIDER_LABELS.azure),
+        disabled: !hasAzureKey,
+        disabledHint,
+      },
+      {
+        value: "gemini" as const,
+        label: linguiI18n._(PROVIDER_LABELS.gemini),
+        disabled: !hasGeminiKey,
+        disabledHint,
+      },
+      {
+        value: "elevenlabs" as const,
+        label: linguiI18n._(PROVIDER_LABELS.elevenlabs),
+        disabled: !hasElevenLabsKey,
+        disabledHint,
+      },
+      {
+        value: "local-hf" as const,
+        label: linguiI18n._(PROVIDER_LABELS["local-hf"]),
+        disabled: !localSpeech.data?.installed.length,
+        disabledHint: t`Download a local speech model in Settings > Local AI.`,
+      },
+      {
+        value: "local-system" as const,
+        label: linguiI18n._(PROVIDER_LABELS["local-system"]),
+        disabled: !navigator.userAgent.includes("Mac OS X"),
+        disabledHint: t`macOS system voices are available in the Mac desktop app.`,
+      },
+    ];
+  }, [
+    t,
+    hasApiKey,
+    hasAzureKey,
+    hasGeminiKey,
+    hasElevenLabsKey,
+    localSpeech.data?.installed.length,
+  ]);
 
-  const selectedProviderKeyMissing = !providerKeyAvailable[provider]
+  const selectedProviderKeyMissing = !providerKeyAvailable[provider];
 
   const disabledProviderLabels = useMemo(
-    () =>
-      providerOptions
-        .filter((o) => o.disabled)
-        .map((o) => o.label),
+    () => providerOptions.filter((o) => o.disabled).map((o) => o.label),
     [providerOptions],
-  )
+  );
 
   const disabledProvidersText = useMemo(() => {
-    if (disabledProviderLabels.length === 0) return ""
+    if (disabledProviderLabels.length === 0) return "";
     const formatter = new Intl.ListFormat(linguiI18n.locale ?? "en", {
       style: "long",
       type: "conjunction",
-    })
-    return formatter.format(disabledProviderLabels)
-  }, [disabledProviderLabels])
+    });
+    return formatter.format(disabledProviderLabels);
+  }, [disabledProviderLabels]);
 
   const highlightingOptions = useMemo(
     () => [
@@ -159,15 +243,21 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
       { value: "word" as const, label: t`Per-Word` },
     ],
     [t],
-  )
+  );
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to run speech.</Trans>
-  ) : selectedProviderKeyMissing ? (
-    <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
+  const disabledReason = selectedProviderKeyMissing ? (
+    provider === "local-hf" ? (
+      <Trans>Download a local speech model in Settings first.</Trans>
+    ) : provider === "local-system" ? (
+      <Trans>macOS system voices require the Mac desktop app.</Trans>
+    ) : (
+      <Trans>
+        Add the selected provider's API key in Book settings to run speech.
+      </Trans>
+    )
   ) : !translateReady ? (
     <Trans>Run Language first — speech narrates the translated text.</Trans>
-  ) : undefined
+  ) : undefined;
 
   return (
     <LandingPageShell
@@ -181,7 +271,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || selectedProviderKeyMissing || !translateReady}
+      extraDisabled={selectedProviderKeyMissing || !translateReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Speech</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
@@ -195,9 +285,8 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         </h1>
         <p className="text-[14px] text-[#737373] leading-relaxed">
           <Trans>
-            Generate audio narration for every page of the book. Pick a
-            provider and choose whether to highlight each word as it's read
-            aloud.
+            Generate audio narration for every page of the book. Pick a provider
+            and choose whether to highlight each word as it's read aloud.
           </Trans>
         </p>
       </div>
@@ -265,8 +354,8 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
           hint={
             wordHighlighting ? (
               <Trans>
-                Highlights each word as it's narrated. Adds a transcription
-                step so audio aligns with text on the page.
+                Highlights each word as it's narrated. Adds a transcription step
+                so audio aligns with text on the page.
               </Trans>
             ) : (
               <Trans>
@@ -304,7 +393,11 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
               className="group flex w-full items-center gap-3 rounded-md border border-[#e5e5e5] bg-white px-3 py-2.5 text-left transition-colors hover:border-[#d4d4d4] hover:bg-[#fafafa] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring/40"
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-rose-100 text-rose-700">
-                <Settings2 className="h-3.5 w-3.5" strokeWidth={2} aria-hidden />
+                <Settings2
+                  className="h-3.5 w-3.5"
+                  strokeWidth={2}
+                  aria-hidden
+                />
               </span>
               <span className="flex-1 text-[13px] font-medium text-[#0a0a0a]">
                 <Trans>Configure voices and accents</Trans>
@@ -319,5 +412,5 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         </SettingsCard>
       )}
     </LandingPageShell>
-  )
+  );
 }

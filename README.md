@@ -199,7 +199,7 @@ Download [`windows-setup-and-run.bat`](https://github.com/unicef/adt-studio/rele
 
 ### Local development
 
-Prerequisites: [Node.js](https://nodejs.org/) >= 20, [pnpm](https://pnpm.io/) >= 9, and Playwright Chromium (used by visual refinement in storyboard rendering).
+Prerequisites: [Node.js](https://nodejs.org/) >= 22.13, [pnpm](https://pnpm.io/) 10.32.1, and Playwright Chromium (used by visual refinement in storyboard rendering).
 
 ```bash
 # Clone the repository
@@ -215,6 +215,14 @@ pnpm exec playwright install chromium
 # Start dev servers — builds automatically, opens browser
 pnpm dev
 ```
+
+### Local Gemma 4 (Mac and Windows)
+
+Choose **Local AI** during onboarding or in **Settings → Local AI**. ADT Studio detects system memory, downloads a verified Gemma 4 model from Hugging Face on demand, and runs text/vision generation through its embedded llama.cpp runtime. No Ollama or cloud key is required. Cloud providers remain optional for later regeneration or improvement.
+
+Optional English narration also runs locally: download a compatible Kokoro model from Hugging Face in **Settings → Local AI**, then select **Local** in Speech. Generated WAV files are embedded in the exported static ADT; the model is not shipped in the export.
+
+See [docs/LOCAL_AI.md](docs/LOCAL_AI.md) for model tiers, privacy behavior, packaging, and troubleshooting.
 
 On Linux, if Chromium system libraries are missing, run:
 
@@ -418,6 +426,10 @@ Notes:
 | Document | Description |
 |----------|-------------|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | System architecture, package graph, pipeline model, data flow |
+| [docs/LOCAL_AI.md](docs/LOCAL_AI.md) | Local Gemma 4 setup for the Mac and Windows apps |
+| [docs/EVALUATION_FRAMEWORK.md](docs/EVALUATION_FRAMEWORK.md) | Reproducible ADT, model, judge, and TTS evaluation process |
+| [docs/ADT_STUDIO_TEAM_REVIEW_AND_LOCAL_AI_HANDOFF_2026-08-06.md](docs/ADT_STUDIO_TEAM_REVIEW_AND_LOCAL_AI_HANDOFF_2026-08-06.md) | Team-facing review, local AI results, current integration status, and priorities |
+| [docs/CODEX_PROJECT_REVIEW_2026-08-02.md](docs/CODEX_PROJECT_REVIEW_2026-08-02.md) | Architecture, code, security, dependency, UI/UX, and local-AI review |
 | [docs/RELEASING.md](docs/RELEASING.md) | Release flow, branching model (develop → beta, main → stable), and how the release pipeline works |
 | [docs/DEVELOPER-GUIDE.md](docs/DEVELOPER-GUIDE.md) | Hosting guide and developer extension reference for third-party teams |
 | [AGENTS.md](AGENTS.md) | Project instructions for AI coding agents (Claude Code, Codex, Cursor, etc.) |

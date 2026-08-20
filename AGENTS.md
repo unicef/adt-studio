@@ -127,7 +127,7 @@ its own `pnpm --filter @adt/runtime typecheck`.
 
 ### Desktop Development
 
-Prerequisites: Node.js 20+ and pnpm. No Rust, no platform native toolchains required for app code (electron-builder pulls platform-specific signing/packaging tools as needed).
+Prerequisites: Node.js 22.13+ and pnpm. No Rust, no platform native toolchains required for app code (electron-builder pulls platform-specific signing/packaging tools as needed).
 
 ```bash
 # Dev mode — electron-vite drives main/preload/renderer with HMR

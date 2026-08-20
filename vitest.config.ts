@@ -1,5 +1,5 @@
-import { fileURLToPath } from "node:url"
-import { defineConfig } from "vitest/config"
+import { fileURLToPath } from "node:url";
+import { defineConfig } from "vitest/config";
 
 /**
  * Root vitest config — uses projects so each app gets its own `@` alias.
@@ -9,6 +9,10 @@ import { defineConfig } from "vitest/config"
  */
 export default defineConfig({
   test: {
+    // SQLite/WASM and Electron-adjacent suites are memory-heavy. Unbounded
+    // file workers cause otherwise healthy tests to miss their 5 s timeout on
+    // high-core developer machines and CI runners.
+    maxWorkers: 4,
     projects: [
       {
         test: {
@@ -31,6 +35,7 @@ export default defineConfig({
             "apps/adt-runtime/src/**/*.test.ts",
             "apps/adt-runtime/src/**/*.test.tsx",
           ],
+          setupFiles: ["apps/adt-runtime/src/test/setup.ts"],
         },
         resolve: {
           alias: {
@@ -78,4 +83,4 @@ export default defineConfig({
       },
     ],
   },
-})
+});
