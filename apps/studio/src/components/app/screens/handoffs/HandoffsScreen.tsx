@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { Scissors } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,6 @@ import { CoordinatorEmpty, EditorEmpty } from "./HandoffsEmpties"
 const sectionLabel = "text-[11.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground"
 
 export function HandoffsScreen() {
-  const navigate = useNavigate()
   const { books, locale, isLoading, error } = useAppBooks()
 
   if (isLoading || error) return <ScreenFallback error={error} />
@@ -40,9 +39,11 @@ export function HandoffsScreen() {
             </div>
           </div>
           {!firstRun && (
-            <Button size="sm" className="ml-auto" onClick={() => navigate({ to: "/books/new" })}>
-              <Scissors className="size-3.5" />
-              <Trans>Split a book</Trans>
+            <Button asChild size="sm" className="ml-auto">
+              <Link to="/books/new">
+                <Scissors className="size-3.5" />
+                <Trans>Split a book</Trans>
+              </Link>
             </Button>
           )}
         </div>

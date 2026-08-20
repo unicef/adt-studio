@@ -295,9 +295,8 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
             }
           >
             <Link
-              to="/books/$label/$step/settings"
-              params={{ label: bookLabel, step: "speech" }}
-              search={{ tab: "general" }}
+              to="/pipeline/$label/$step/settings/$tab"
+              params={{ label: bookLabel, step: "speech", tab: "general" }}
               className="group flex w-full items-center gap-3 rounded-md border border-border bg-card px-3 py-2.5 text-left transition-colors hover:border-border hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-ring/40"
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-rose-100 text-rose-700">

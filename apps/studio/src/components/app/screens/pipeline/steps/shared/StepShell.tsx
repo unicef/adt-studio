@@ -5,6 +5,7 @@ import { PluginEmptyState, type Prerequisite, type ScopeKey } from "@/components
 import { PreRunChecklist } from "@/components/app/screens/pipeline/plugins/PreRunChecklist"
 import { PluginRailEmpty } from "@/components/app/screens/pipeline/plugins/PluginRailEmpty"
 import { StepLanding, hasStepLanding } from "./StepLanding"
+import { StepBodySkeleton, StepRailSkeleton } from "./StepSkeleton"
 import { PluginWorkspace } from "@/components/app/screens/pipeline/plugins/PluginWorkspace"
 import { StageRunningPanel } from "@/components/app/screens/pipeline/runs/StageRunningPanel"
 import { useOptionalStageActivity, useRunActivity, type RunStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
@@ -240,22 +241,9 @@ export function StepRunning({
 /** Loading frame shown while a step's output is being fetched. */
 export function StepLoading(props: StepProps) {
   const { t } = useLingui()
-  const { plugin, pages, frame } = props
   return (
-    <StepShell
-      {...props}
-      chips={[t`Loading…`]}
-      canApply={false}
-      rail={
-        <PluginRailEmpty
-          hex={plugin.hex}
-          title={getStageLabelI18n(plugin.slug)}
-          pageCount={pages.length}
-          sectionCount={frame.sectionCount}
-        />
-      }
-    >
-      <span className="text-sm text-muted-foreground">{t`Loading…`}</span>
+    <StepShell {...props} chips={[t`Loading…`]} canApply={false} rail={<StepRailSkeleton />}>
+      <StepBodySkeleton />
     </StepShell>
   )
 }

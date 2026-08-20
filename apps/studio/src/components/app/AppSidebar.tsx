@@ -21,12 +21,13 @@ import {
   ArrowUpRight,
   type LucideIcon,
 } from "lucide-react"
-import { Link, useLocation, useNavigate } from "@tanstack/react-router"
+import { Link, useLocation } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { Kbd } from "./ui/Kbd"
 import { APP_PATHS, activeAppView } from "./nav"
+import { SETTINGS_PATHS } from "./screens/settings/nav"
 import type { AppView } from "./types"
 import { useUpdateDialog } from "@/components/updates"
 import { SidebarLogo } from "./SidebarLogo"
@@ -41,6 +42,9 @@ const DOCS_LABEL: Record<AppView, MessageDescriptor> = {
   pipeline: msg`Pipeline guide`,
   settings: msg`Settings guide`,
 }
+
+const MENU_ROW =
+  "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
 
 export interface AppSidebarProps {
   libraryCount: number
@@ -62,11 +66,7 @@ function MenuRow({
   onClick?: () => void
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
-    >
+    <button type="button" onClick={onClick} className={MENU_ROW}>
       <Icon className="size-4 shrink-0 text-muted-foreground" />
       <span className="flex-1 truncate">{children}</span>
       {trailing}
@@ -82,7 +82,6 @@ export function AppSidebar({
   onOpenShortcuts,
 }: AppSidebarProps) {
   const { t, i18n } = useLingui()
-  const navigate = useNavigate()
   const { pathname } = useLocation()
   const activeView = activeAppView(pathname)
   const [helpOpen, setHelpOpen] = useState(false)
@@ -124,29 +123,30 @@ export function AppSidebar({
       <nav className="mt-2 flex flex-col gap-0.5">
         {items.map((item) => {
           const Icon = item.icon
-          const active = activeView === item.view
           return (
             <Link
               key={item.view}
               to={APP_PATHS[item.view]}
-              className={cn(
-                "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors",
-                active
-                  ? "bg-card font-semibold text-brand-700 ring-1 ring-border shadow-sm"
-                  : "text-foreground hover:bg-black/5 dark:hover:bg-white/5",
-              )}
+              activeOptions={{ exact: item.view === "home", includeSearch: false }}
+              className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors"
+              activeProps={{ className: "bg-card font-semibold text-brand-700 ring-1 ring-border shadow-sm" }}
+              inactiveProps={{ className: "text-foreground hover:bg-black/5 dark:hover:bg-white/5" }}
             >
-              <Icon className="size-[17px]" />
-              <span className="flex-1 text-left">{item.label}</span>
-              {item.count != null && (
-                <span
-                  className={cn(
-                    "min-w-[21px] rounded-full px-1.5 text-center font-mono text-[11px] font-semibold",
-                    active ? "bg-brand-100 text-brand-700" : "bg-black/5 text-muted-foreground dark:bg-white/10",
+              {({ isActive }) => (
+                <>
+                  <Icon className="size-[17px]" />
+                  <span className="flex-1 text-left">{item.label}</span>
+                  {item.count != null && (
+                    <span
+                      className={cn(
+                        "min-w-[21px] rounded-full px-1.5 text-center font-mono text-[11px] font-semibold",
+                        isActive ? "bg-brand-100 text-brand-700" : "bg-black/5 text-muted-foreground dark:bg-white/10",
+                      )}
+                    >
+                      {item.count}
+                    </span>
                   )}
-                >
-                  {item.count}
-                </span>
+                </>
               )}
             </Link>
           )
@@ -235,15 +235,12 @@ export function AppSidebar({
             >
               <Trans>Report an issue</Trans>
             </MenuRow>
-            <MenuRow
-              icon={Info}
-              onClick={() => {
-                setHelpOpen(false)
-                navigate({ to: "/settings/about",  })
-              }}
-            >
-              <Trans>About ADT Studio</Trans>
-            </MenuRow>
+            <Link to={SETTINGS_PATHS.about} onClick={() => setHelpOpen(false)} className={MENU_ROW}>
+              <Info className="size-4 shrink-0 text-muted-foreground" />
+              <span className="flex-1 truncate">
+                <Trans>About ADT Studio</Trans>
+              </span>
+            </Link>
           </PopoverContent>
         </Popover>
       </div>

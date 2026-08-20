@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { Link } from "@tanstack/react-router"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
 import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus } from "lucide-react"
 import { CORE_STAGE_ORDER } from "@adt/types"
@@ -7,6 +8,7 @@ import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { cn } from "@/lib/utils"
 import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
+import { APP_PATHS } from "../../nav"
 
 export interface HomeVariantProps {
   books: BookVM[]
@@ -14,7 +16,6 @@ export interface HomeVariantProps {
   onOpen: (label: string) => void
   onContinue?: (label: string) => void
   onAddBook: () => void
-  onOpenLibrary: () => void
 }
 
 export type ViewMode = "grid" | "list"
@@ -474,16 +475,15 @@ export function OutputsPanel({ vm, className }: { vm: BookVM; className?: string
   )
 }
 
-export function LibraryLink({ count, onClick }: { count: number; onClick: () => void }) {
+export function LibraryLink({ count }: { count: number }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <Link
+      to={APP_PATHS.library}
       className="inline-flex items-center gap-1 text-[12.5px] font-medium text-brand-700 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50"
     >
       <Trans>All {count} books in Library</Trans>
       <ArrowUpRight className="size-3.5" />
-    </button>
+    </Link>
   )
 }
 

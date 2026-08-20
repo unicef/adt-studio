@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { FileText, Sparkles, Package, ArrowRight, Plus, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,6 @@ export interface WelcomeHeroProps {
 
 /** Home first-run welcome (design 1c): headline + PDF→AI→bundle flow card + CTAs. */
 export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
-  const navigate = useNavigate()
   return (
     <>
       <div className="text-2xl font-bold leading-[1.1] tracking-[-0.02em]">
@@ -50,9 +49,11 @@ export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
               <Plus className="size-3.5" />
               <Trans>Add your first book</Trans>
             </Button>
-            <Button variant="outline" onClick={() => navigate({ to: "/books/import" })}>
-              <Upload className="size-3.5" />
-              <Trans>Import existing project</Trans>
+            <Button asChild variant="outline">
+              <Link to="/books/import">
+                <Upload className="size-3.5" />
+                <Trans>Import existing project</Trans>
+              </Link>
             </Button>
           </div>
         </div>

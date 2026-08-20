@@ -1,6 +1,6 @@
 import type { ReactNode } from "react"
 import { Trans } from "@lingui/react/macro"
-import { useNavigate } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { Check, RotateCcw, Folder, FileDown, Download, Laptop, Compass } from "lucide-react"
 import { useAppVersion } from "@/hooks/use-app-version"
 import { useAppLogo } from "@/hooks/use-app-logo"
@@ -46,7 +46,6 @@ export function AboutSection() {
   const version = useAppVersion()
   const logoSrc = useAppLogo()
   const os = usePlatform()
-  const navigate = useNavigate()
   const { openUpdateDialog, hasPendingUpdate } = useUpdateDialog()
 
   return (
@@ -124,14 +123,11 @@ export function AboutSection() {
           <p className="text-[12px] leading-normal text-muted-foreground">
             <Trans>Replay the guided introduction to ADT Studio.</Trans>
           </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => navigate({ to: "/onboarding" })}
-            className="mt-3"
-          >
-            <RotateCcw className="size-3.5" />
-            <Trans>Restart tour</Trans>
+          <Button asChild variant="outline" size="sm" className="mt-3">
+            <Link to="/onboarding">
+              <RotateCcw className="size-3.5" />
+              <Trans>Restart tour</Trans>
+            </Link>
           </Button>
         </DetailTile>
 
