@@ -4,6 +4,7 @@ import {
   AlertCircle,
   Bot,
   Check,
+  ChevronDown,
   FileArchive,
   FileCode2,
   FileText,
@@ -100,7 +101,7 @@ function PreviewCover({ preview }: { preview: AnyImportPreview }) {
   const cover = previewCover(preview)
 
   return (
-    <aside className="flex min-h-[390px] flex-col items-center justify-center border-t border-slate-200 bg-slate-50/80 p-6 md:sticky md:top-0 md:self-start md:border-l md:border-t-0">
+    <aside className="flex min-h-[390px] flex-col items-center justify-center border-t border-slate-200 bg-slate-50/80 p-6 md:border-l md:border-t-0">
       <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
         <Trans>Book cover</Trans>
       </p>
@@ -268,13 +269,19 @@ function OverviewTab({ preview }: { preview: AnyImportPreview }) {
 function FeaturesTab({ preview }: { preview: AnyImportPreview }) {
   const { i18n } = useLingui()
   const detected = isAdtBundleImportPreview(preview) ? detectedAdtFeatures(preview) : null
+  const [hasMoreBelow, setHasMoreBelow] = useState(true)
 
   return (
-    <div>
+    <div className="relative h-full">
       <div
         role="region"
         aria-labelledby="import-review-tab-features"
-        className="pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+        tabIndex={0}
+        className="h-full overflow-y-auto pb-12 pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+        onScroll={(event) => {
+          const area = event.currentTarget
+          setHasMoreBelow(area.scrollHeight - area.scrollTop - area.clientHeight > 4)
+        }}
       >
         <div className="mb-3 flex items-center justify-between gap-4">
           <p className="text-xs leading-relaxed text-slate-600">
@@ -311,6 +318,14 @@ function FeaturesTab({ preview }: { preview: AnyImportPreview }) {
           })}
         </div>
       </div>
+      {hasMoreBelow ? (
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-12 items-end justify-center bg-gradient-to-t from-white via-white/95 to-transparent pb-1.5">
+          <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600 shadow-sm">
+            <Trans>Scroll to see all features</Trans>
+            <ChevronDown className="h-3 w-3" />
+          </span>
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -557,11 +572,11 @@ export function ImportReview({
   }
 
   const tabContent = displayedTab === "overview" ? (
-    <div className="pr-1"><OverviewTab preview={preview} /></div>
+    <div className="h-full overflow-y-auto pr-1"><OverviewTab preview={preview} /></div>
   ) : displayedTab === "features" ? (
     <FeaturesTab preview={preview} />
   ) : (
-    <div className="pr-1">
+    <div className="h-full overflow-y-auto pr-1">
       <ReviewTabContent
         preview={preview}
         unresolvedActivityCount={unresolvedActivityCount}
@@ -573,9 +588,9 @@ export function ImportReview({
 
   return (
     <>
-      <section className="grid min-h-[390px] w-full grid-cols-1 rounded-xl border border-slate-200 bg-white shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-300 md:grid-cols-[minmax(0,1fr)_240px]">
-        <div className="min-w-0">
-          <header className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+      <section className="grid min-h-0 w-full flex-1 grid-cols-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-300 md:grid-cols-[minmax(0,1fr)_240px]">
+        <div className="flex min-h-0 min-w-0 flex-col">
+          <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
             <div className="min-w-0">
               <TypeBadge preview={preview} />
               <h2 className="mt-2 truncate text-xl font-semibold tracking-[-0.02em] text-slate-950">{previewTitle(preview)}</h2>
@@ -596,9 +611,9 @@ export function ImportReview({
           <Tabs
             value={activeTab}
             onValueChange={handleTabChange}
-            className="px-5 pb-5 pt-3"
+            className="flex min-h-0 flex-1 flex-col px-5 pb-5 pt-3"
           >
-            <TabsList aria-label={t`Book import details`} className="grid h-10 w-full grid-cols-3 bg-slate-100">
+            <TabsList aria-label={t`Book import details`} className="grid h-10 w-full shrink-0 grid-cols-3 bg-slate-100">
               <TabsTrigger id="import-review-tab-overview" aria-controls="import-review-panel" value="overview"><Trans>Overview</Trans></TabsTrigger>
               <TabsTrigger id="import-review-tab-features" aria-controls="import-review-panel" value="features"><Trans>Features</Trans></TabsTrigger>
               <TabsTrigger id="import-review-tab-review" aria-controls="import-review-panel" value="review" className="gap-1.5">
@@ -606,13 +621,13 @@ export function ImportReview({
                 {needsReview(preview, unresolvedActivityCount) ? <span className="h-1.5 w-1.5 rounded-full bg-amber-500" /> : null}
               </TabsTrigger>
             </TabsList>
-            <div>
+            <div className="min-h-0 flex-1 overflow-hidden">
               <div
                 id="import-review-panel"
                 role="tabpanel"
                 aria-labelledby={`import-review-tab-${displayedTab}`}
                 className={cn(
-                  "pt-4",
+                  "h-full pt-4",
                   transitionPhase === "exiting"
                     && "motion-safe:animate-out motion-safe:fade-out-0 motion-safe:slide-out-to-top-1 motion-safe:duration-[120ms]",
                   transitionPhase === "entering"
