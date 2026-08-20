@@ -26,7 +26,6 @@ export function PipelineTopBar({
   label,
   pageLabel,
   version,
-  status,
   rerun,
   onPreview,
   previewDisabled,
@@ -68,8 +67,6 @@ export function PipelineTopBar({
       </nav>
 
       <div className="flex-1" />
-
-      {status}
 
       <div style={NO_DRAG_REGION} className="flex items-center gap-1.5">
         {rerun}

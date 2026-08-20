@@ -3,7 +3,6 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { AiEditPanel } from "./plugins/AiEditPanel"
 import { DockHandle } from "./chrome/DockHandle"
-import { PipelineStatus } from "./chrome/PipelineStatus"
 import { PipelineTopBar } from "./chrome/PipelineTopBar"
 import { CanvasEmptyPanel } from "./canvas/CanvasEmptyPanel"
 import { CanvasViewportControls } from "./canvas/CanvasViewportControls"
@@ -114,7 +113,6 @@ export function PipelineWorkspace({
   const empty = !state.hasSections || !state.hasRendering
   const phase: StoryboardPhase = state.hasSections ? "render" : "sections"
   const emptyRun = phase === "render" ? storyboardRun : sectioningRun
-  const runningStage = run.activeStages.find((s) => s.state === "running") ?? run.activeStages[0]
   const foundationRunning = extractActivity.isActive
     ? extractActivity
     : sectioningActivity.isActive
@@ -140,15 +138,6 @@ export function PipelineWorkspace({
           empty ? null : activeQuiz ? quizzesQuery.data?.version ?? null : activePage?.renderingVersion ?? null
         }
         rerun={<StageRerunButton slug="storyboard" rerun={storyboardRerun} variant="topbar" />}
-        status={
-          <PipelineStatus
-            state={state}
-            runningStage={runningStage}
-            empty={empty}
-            phase={phase}
-            outdatedCount={staleness.outdatedCount}
-          />
-        }
         onPreview={() =>
           onOpenPreview(
             previewSectionId(activePage?.sections, activeQuiz?.quizIndex ?? null),

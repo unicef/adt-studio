@@ -2514,6 +2514,9 @@ msgstr "Escolha seu provedor de IA"
 msgid "Ciências da Natureza - Ensino Fundamental"
 msgstr "Ciências da Natureza - Ensino Fundamental"
 
+msgid "Classic"
+msgstr "Clássica"
+
 msgid "Classic Storybook"
 msgstr "Livro infantil clássico"
 
@@ -7623,6 +7626,12 @@ msgstr "Recursos do pipeline"
 msgid "Pipeline guide"
 msgstr "Guia do pipeline"
 
+msgid "Pipeline interface"
+msgstr "Interface do pipeline"
+
+msgid "pipeline interface new classic layout"
+msgstr "pipeline interface nova clássica layout"
+
 msgid "Pipeline stages"
 msgstr "Etapas do pipeline"
 
@@ -10014,6 +10023,9 @@ msgstr "Prompt de resumo"
 
 msgid "Sun"
 msgstr "Sol"
+
+msgid "Switch between the new and the classic pipeline screen."
+msgstr "Alterne entre a nova tela do pipeline e a clássica."
 
 msgid "Switch languages in a tap."
 msgstr "Troque de idioma com um toque."

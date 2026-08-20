@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { useSplitStatus } from "@/hooks/use-parts"
 import { BookCover } from "../../BookCover"
 import { toBookVM } from "../../data"
+import { useOpenBook } from "../../use-open-book"
 import {
   StatusBadge, SegBar, STATUS_META, partsOf, segmentsOf, fallbackSegments, approxMergedParts,
   type CoordinatorPart,
@@ -72,6 +73,7 @@ function RailItem({ book, locale, active, onSelect }: { book: BookSummary; local
 
 function SplitDetail({ book, locale }: { book: BookSummary; locale: string }) {
   const navigate = useNavigate()
+  const openBookInPipeline = useOpenBook()
   const { t } = useLingui()
   const { data: status, isLoading } = useSplitStatus(book.label)
   const vm = toBookVM(book, locale)
@@ -82,7 +84,7 @@ function SplitDetail({ book, locale }: { book: BookSummary; locale: string }) {
   const merged = parts ? parts.filter((p) => p.status === "merged").length : approxMergedParts(split)
   const total = parts ? parts.length : split.exportedParts
 
-  const openBook = () => navigate({ to: "/books/$label/$step", params: { label: book.label, step: "book" } })
+  const openBook = () => openBookInPipeline(book.label)
   const goImport = () => navigate({ to: "/books/import" })
 
   return (
