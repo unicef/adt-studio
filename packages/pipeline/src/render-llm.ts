@@ -2,6 +2,7 @@ import type { SectionRendering } from "@adt/types"
 import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { autoRepairUnderlineActivityHtml } from "./activity-underline-repair.js"
+import { repairOverlayStacking } from "./overlay-stacking-repair.js"
 import { validateSectionHtml, isEnumerationMarker } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
 import type { ImageRef, RenderConfig, RenderExecutionOptions, RenderNode, RenderSectionInput } from "./web-rendering.js"
@@ -245,6 +246,7 @@ export async function renderSectionLlm(
   if (section.sectionType === "table_of_contents") {
     generatedHtml = repairTableOfContentsLayout(generatedHtml, renderContext.leaf_texts)
   }
+  generatedHtml = repairOverlayStacking(generatedHtml)
 
   // Ordering has one inspectable source of truth in the validated HTML. Derive
   // its rank map deterministically so initial render, rerender, Studio editing,
@@ -328,6 +330,7 @@ function validateWebRendering(
   if (sectionType === "table_of_contents") {
     candidateHtml = repairTableOfContentsLayout(candidateHtml, leaf_texts)
   }
+  candidateHtml = repairOverlayStacking(candidateHtml)
   const minimumEditableElements = minimumLearnerResponseCount(nodes)
 
   const check = validateSectionHtml(
