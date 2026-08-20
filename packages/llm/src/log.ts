@@ -16,6 +16,8 @@ export interface LlmLogEntry {
   durationMs: number
   usage?: TokenUsage
   validationErrors?: string[]
+  /** Transport or provider failure, distinct from a structured-output validation error. */
+  error?: string
   /**
    * Resolved provider request parameters, recorded so a run is inspectable
    * after the fact ("which settings produced this output?").

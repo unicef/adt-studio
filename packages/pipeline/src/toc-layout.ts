@@ -1,6 +1,12 @@
 import type { LeafText } from "./web-rendering.js"
 import { DomUtils, parseDocument } from "htmlparser2"
 
+// htmlparser2 does not expose a convenient common element type through its
+// public helpers. Keep the untyped boundary here instead of throughout the
+// rendering code.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type HtmlNode = any
+
 interface TocParts {
   title: string
   leader: string
@@ -8,7 +14,21 @@ interface TocParts {
   pageNumber: string
 }
 
-function splitTocEntry(text: string): TocParts | null {
+interface SplitRow {
+  row: HtmlNode
+  titles: HtmlNode[]
+  pageNumber: HtmlNode
+  leader: HtmlNode | null
+}
+
+const PAGE_NUMBER_RE = /^\s*(?:[ivxlcdm]+|\d+)\s*$/i
+const DOT_RUN_RE = /^\s*\.(?:\s*\.)+\s*$/
+const ROW_CLASSES = ["flex", "items-baseline", "w-full", "min-w-0", "gap-0"]
+const LEADER_CLASS =
+  "mx-1.5 sm:mx-2 flex-1 min-w-6 border-b-2 border-dotted border-current opacity-80"
+const PAGE_CLASSES = ["shrink-0", "text-right", "tabular-nums"]
+
+function splitEntry(text: string): TocParts | null {
   const dotted = text.match(/^(.*?)(\.(?:\s*\.)+)(\s*)([ivxlcdm]+|\d+)\s*$/i)
   if (dotted) {
     return {
@@ -19,7 +39,7 @@ function splitTocEntry(text: string): TocParts | null {
     }
   }
   const merged = text.match(/^(.*?\D)(\s*)([ivxlcdm]+|\d+)\s*$/i)
-  if (!merged || !merged[1].trim()) return null
+  if (!merged?.[1].trim()) return null
   return { title: merged[1], leader: "", separator: merged[2], pageNumber: merged[3] }
 }
 
@@ -31,199 +51,229 @@ function escapeHtml(text: string): string {
     .replaceAll('"', "&quot;")
 }
 
-function escapeRegex(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+function elements(nodes: HtmlNode[]): HtmlNode[] {
+  return DomUtils.findAll((node) => node.type === "tag", nodes)
 }
 
-function addRowClasses(openingTag: string): string {
-  const required = "flex items-baseline w-full min-w-0 gap-0"
-  if (/\bclass=["']/.test(openingTag)) {
-    return openingTag.replace(/\bclass=(["'])/, `class=$1${required} `)
+function directElements(element: HtmlNode): HtmlNode[] {
+  return (element.children ?? []).filter((child: HtmlNode) => child.type === "tag")
+}
+
+function setChildren(parent: HtmlNode, children: HtmlNode[]): void {
+  for (const child of parent.children ?? []) {
+    child.parent = null
+    child.prev = null
+    child.next = null
   }
-  return openingTag.replace(/>$/, ` class="${required}">`)
+  children.forEach((child, index) => {
+    child.parent = parent
+    child.prev = children[index - 1] ?? null
+    child.next = children[index + 1] ?? null
+  })
+  parent.children = children
 }
 
-function rowChildren(parts: TocParts): string {
-  const leader = parts.leader
-    ? `<span data-toc-leader="true" aria-hidden="true" class="mx-1.5 sm:mx-2 flex-1 min-w-6 border-b-2 border-dotted border-current opacity-80"><span class="sr-only">${escapeHtml(parts.leader)}</span></span>`
-    : `<span data-toc-leader="true" aria-hidden="true" class="mx-1.5 sm:mx-2 flex-1 min-w-6 border-b-2 border-dotted border-current opacity-80"></span>`
-  const titleText = parts.leader ? parts.title : parts.title + parts.separator
-  const pageText = parts.leader
-    ? parts.separator + parts.pageNumber
-    : parts.pageNumber
-  return `<span data-toc-title="true" class="min-w-0 max-w-[82%]">${escapeHtml(titleText)}</span>${leader}<span data-toc-page-number="true" class="w-8 sm:w-10 shrink-0 text-right tabular-nums">${escapeHtml(pageText)}</span>`
+function removeNode(node: HtmlNode): void {
+  if (node.parent) setChildren(node.parent, node.parent.children.filter((child: HtmlNode) => child !== node))
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function tocMarkerChildren(element: any): any[] | null {
-  const directChildren = (element.children ?? []).filter(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (child: any) => "attribs" in child,
-  )
-  const markerIndexes = ["data-toc-title", "data-toc-leader", "data-toc-page-number"].map(
-    (attribute) => directChildren.findIndex(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (child: any) => child.attribs?.[attribute] === "true",
-    ),
-  )
-  return markerIndexes.every((index) => index >= 0) && markerIndexes.join(",") === "0,1,2"
-    ? directChildren.slice(0, 3)
-    : null
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function hasTocMarkersInOrder(element: any): boolean {
-  return tocMarkerChildren(element) !== null
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function hasCanonicalTocContent(element: any, parts: TocParts): boolean {
-  const markers = tocMarkerChildren(element)
-  if (!markers) return false
-  const expectedTitle = parts.leader ? parts.title : parts.title + parts.separator
-  const expectedPage = parts.leader ? parts.separator + parts.pageNumber : parts.pageNumber
-  return (
-    DomUtils.textContent(markers[0]) === expectedTitle &&
-    DomUtils.textContent(markers[1]) === parts.leader &&
-    DomUtils.textContent(markers[2]) === expectedPage
-  )
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function addRequiredRowClasses(element: any): void {
-  const classes = new Set((element.attribs?.class ?? "").split(/\s+/).filter(Boolean))
-  for (const className of ["flex", "items-baseline", "w-full", "min-w-0", "gap-0"]) {
-    classes.add(className)
-  }
+function normalizeLeaf(element: HtmlNode, required: string[], kind: "title" | "page"): void {
+  const classes = (element.attribs?.class ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter((className: string) => {
+      const utility = baseUtility(className)
+      if (required.includes(className)) return false
+      if (/^(?:absolute|fixed)$/.test(utility)) return false
+      if (/^(?:flex(?:-.+)?|grow(?:-.+)?|shrink(?:-.+)?|basis-.+|w-.+|min-w-.+|max-w-.+)$/.test(utility)) {
+        return false
+      }
+      if (kind === "title" && /^(?:truncate|whitespace-nowrap)$/.test(utility)) return false
+      if (kind === "page" && /^text-(?:left|center|justify|start|end)$/.test(utility)) return false
+      return true
+    })
   element.attribs = element.attribs ?? {}
-  element.attribs.class = Array.from(classes).join(" ")
+  element.attribs.class = [...new Set([...classes, ...required])].join(" ")
 }
 
-/** The string fast path intentionally handles the common literal-text shape.
- * When generated HTML already contains child spans, repair only the still-
- * invalid recognized rows through the DOM while preserving their wrapper. */
-function repairNestedTableOfContentsRows(html: string, leafTexts: LeafText[]): string {
-  const doc = parseDocument(html)
-  let changed = false
-  for (const leaf of leafTexts) {
-    const parts = splitTocEntry(leaf.text)
-    if (!parts) continue
-    const element = DomUtils.findOne(
-      (node) => node.type === "tag" && node.attribs?.["data-id"] === leaf.text_id,
-      doc.children,
-      true,
-    )
-    if (!element || hasCanonicalTocContent(element, parts)) continue
-    const classes = element.attribs?.class ?? ""
-    if (!parts.leader && !/\b(?:flex|grid|items-baseline)\b/.test(classes)) continue
+function baseUtility(className: string): string {
+  return className.slice(className.lastIndexOf(":") + 1)
+}
 
-    const fragment = parseDocument(rowChildren(parts))
-    for (const child of element.children ?? []) {
-      child.parent = null
-      child.prev = null
-      child.next = null
+function normalizeRow(row: HtmlNode): void {
+  const kept = (row.attribs?.class ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((className: string) => {
+      const utility = baseUtility(className)
+      const indent = utility.match(/^(ml|ms)-(?!auto$)(.+)$/)
+      if (!indent) return className
+      const prefix = className.slice(0, className.length - utility.length)
+      return `${prefix}${indent[1] === "ml" ? "pl" : "ps"}-${indent[2]}`
+    })
+    .filter((className: string) => {
+      const utility = baseUtility(className)
+      return !(
+        /^(?:flex|inline-flex|grid|inline-grid|flex-nowrap)$/.test(utility) ||
+        /^(?:w|min-w|max-w)-/.test(utility) ||
+        /^(?:grid-cols|gap(?:-[xy])?|items|space-x)-/.test(utility)
+      )
+    })
+  row.attribs = row.attribs ?? {}
+  row.attribs.class = [...new Set([...kept, ...ROW_CLASSES])].join(" ")
+}
+
+function rowMarkup(parts: TocParts): string {
+  const title = parts.leader ? parts.title : parts.title + parts.separator
+  const page = parts.leader ? parts.separator + parts.pageNumber : parts.pageNumber
+  const sourceDots = parts.leader
+    ? `<span class="sr-only">${escapeHtml(parts.leader)}</span>`
+    : ""
+  return `<span data-toc-title="true" class="min-w-0 max-w-[82%]">${escapeHtml(title)}</span><span data-toc-leader="true" aria-hidden="true" class="${LEADER_CLASS}">${sourceDots}</span><span data-toc-page-number="true" class="w-8 sm:w-10 ${PAGE_CLASSES.join(" ")}">${escapeHtml(page)}</span>`
+}
+
+function replaceMergedRow(row: HtmlNode, parts: TocParts): void {
+  setChildren(row, parseDocument(rowMarkup(parts)).children)
+  normalizeRow(row)
+}
+
+function isLeader(element: HtmlNode): boolean {
+  if (element.type !== "tag" || element.attribs?.["data-id"]) return false
+  if (element.attribs?.["data-toc-leader"] === "true") return true
+  return (
+    DOT_RUN_RE.test(DomUtils.textContent(element)) ||
+    (element.attribs?.["aria-hidden"] === "true" &&
+      /\bborder-dotted\b/.test(element.attribs?.class ?? ""))
+  )
+}
+
+function createLeader(): HtmlNode {
+  const leader = parseDocument("<span></span>").children[0]
+  if (!leader) throw new Error("Failed to create TOC leader")
+  return leader
+}
+
+function findSplitRows(doc: HtmlNode, leafById: Map<string, string>): SplitRow[] {
+  const rows: SplitRow[] = []
+  for (const row of elements(doc.children)) {
+    if (row.attribs?.["data-id"] || /^h[1-6]$/i.test(row.name ?? "")) continue
+    const children = directElements(row)
+    const leaves = children.filter((child) => leafById.has(child.attribs?.["data-id"]))
+    const pageNumber = leaves.at(-1)
+    const pageText = pageNumber && leafById.get(pageNumber.attribs["data-id"])
+    if (!pageNumber || !pageText || !PAGE_NUMBER_RE.test(pageText)) continue
+
+    const pageIndex = children.indexOf(pageNumber)
+    const titles = leaves.filter((child) => {
+      const text = leafById.get(child.attribs["data-id"]) ?? ""
+      return children.indexOf(child) < pageIndex && text.trim() && !PAGE_NUMBER_RE.test(text)
+    })
+    const leader = children.find(isLeader) ?? null
+    const rowLike = /\b(?:flex|grid|items-baseline)\b/.test(row.attribs?.class ?? "")
+    if (titles.length && (leader || rowLike || leaves.length === 2)) {
+      rows.push({ row, titles, pageNumber, leader })
     }
-    for (const child of fragment.children) child.parent = element
-    element.children = fragment.children
-    addRequiredRowClasses(element)
+  }
+  return rows
+}
+
+function normalizeSplitRow(split: SplitRow): void {
+  const leader = split.leader ?? createLeader()
+  leader.attribs = {
+    ...leader.attribs,
+    "data-toc-leader": "true",
+    "aria-hidden": "true",
+    class: LEADER_CLASS,
+  }
+  setChildren(leader, [])
+
+  const children = split.row.children.filter(
+    (child: HtmlNode) =>
+      !isLeader(child) &&
+      !(child.type === "text" && DOT_RUN_RE.test(child.data ?? "")),
+  )
+  children.splice(children.indexOf(split.pageNumber), 0, leader)
+  setChildren(split.row, children)
+  normalizeRow(split.row)
+  for (const title of split.titles) normalizeLeaf(title, ["min-w-0"], "title")
+  normalizeLeaf(split.pageNumber, PAGE_CLASSES, "page")
+}
+
+function removeDuplicateDecorations(doc: HtmlNode, pageNumbers: Set<string>): boolean {
+  let changed = false
+  for (const element of elements(doc.children)) {
+    if (element.attribs?.["data-toc-leader"] !== "true" && isLeader(element)) {
+      const ownsRow = element.parent && directElements(element.parent).some(
+        (sibling) => directElements(sibling).some(
+          (child) => child.attribs?.["data-toc-leader"] === "true",
+        ),
+      )
+      if (ownsRow) {
+        removeNode(element)
+        changed = true
+      }
+    }
+
+    const classes = (element.attribs?.class ?? "").split(/\s+/)
+    if (classes.includes("sm:flex-nowrap")) {
+      element.attribs.class = classes.filter((name: string) => name !== "sm:flex-nowrap").join(" ")
+      changed = true
+    }
+
+    if (classes.includes("absolute")) {
+      const values = directElements(element).map((child) => DomUtils.textContent(child).trim())
+      if (
+        values.length >= 2 &&
+        values.every((value) => PAGE_NUMBER_RE.test(value) && pageNumbers.has(value.toLowerCase()))
+      ) {
+        removeNode(element)
+        changed = true
+      }
+    }
+  }
+  return changed
+}
+
+/** Normalize the two TOC shapes produced by extraction: one merged text leaf,
+ * or separate title and page-number leaves in the same row. */
+export function repairTableOfContentsLayout(html: string, leafTexts: LeafText[]): string {
+  const doc = parseDocument(html)
+  const leafById = new Map(leafTexts.map((leaf) => [leaf.text_id, leaf.text]))
+  const elementById = new Map(
+    elements(doc.children)
+      .filter((element) => element.attribs?.["data-id"])
+      .map((element) => [element.attribs["data-id"], element]),
+  )
+  const pageNumbers = new Set<string>()
+  let changed = false
+
+  for (const leaf of leafTexts) {
+    const parts = splitEntry(leaf.text)
+    if (!parts) {
+      if (PAGE_NUMBER_RE.test(leaf.text)) pageNumbers.add(leaf.text.trim().toLowerCase())
+      continue
+    }
+    pageNumbers.add(parts.pageNumber.toLowerCase())
+    const row = elementById.get(leaf.text_id)
+    if (!row) continue
+    const rowLike = /\b(?:flex|grid|items-baseline)\b/.test(row.attribs?.class ?? "")
+    if (!parts.leader && !rowLike) continue
+    replaceMergedRow(row, parts)
     changed = true
   }
+
+  for (const split of findSplitRows(doc, leafById)) {
+    normalizeSplitRow(split)
+    changed = true
+  }
+
+  changed = removeDuplicateDecorations(doc, pageNumbers) || changed
   return changed ? DomUtils.getOuterHTML(doc) : html
 }
 
-/** Guarantee title → dotted leader → right-aligned page-number TOC rows. */
-export function repairTableOfContentsLayout(
-  html: string,
-  leafTexts: LeafText[],
-): string {
-  let repaired = html
-  const expectedPageNumbers = new Set<string>()
-  for (const leaf of leafTexts) {
-    const parts = splitTocEntry(leaf.text)
-    if (!parts) continue
-    expectedPageNumbers.add(parts.pageNumber.toLowerCase())
-    const id = escapeRegex(leaf.text_id)
-    const element = new RegExp(
-      `(<([a-z][\\w-]*)\\b[^>]*\\bdata-id=(['"])${id}\\3[^>]*>)([^<>]*)(<\\/\\2>)`,
-      "i",
-    )
-    repaired = repaired.replace(
-      element,
-      (
-        match,
-        opening: string,
-        _tag: string,
-        _quote: string,
-        _content: string,
-        closing: string,
-      ) => {
-        // OCR often drops leaders altogether. In that case, only repair elements
-        // that the renderer already treated as rows. This prevents a heading such
-        // as "Chapter 1" from being mistaken for an entry whose page number is 1.
-        if (!parts.leader && !/\b(?:flex|grid|items-baseline)\b/.test(opening)) return match
-        return `${addRowClasses(opening)}${rowChildren(parts)}${closing}`
-      },
-    )
-  }
-
-  repaired = repairNestedTableOfContentsRows(repaired, leafTexts)
-
-  // Some generated TOCs add a second, decorative leader immediately after
-  // each content leaf. Once the leaf itself owns the complete semantic row,
-  // that sibling both doubles the dots and can force long rows past the page.
-  repaired = repaired.replace(
-    /<span\b([^>]*\b(?:aria-hidden=(?:"true"|'true'))[^>]*)><\/span>/gi,
-    (match, attributes: string) =>
-      /\bborder-(?:b(?:-\d+)?\s+)?border-dotted\b|\bborder-dotted\b/.test(attributes) &&
-      !/\bopacity-80\b/.test(attributes)
-        ? ""
-        : match,
-  )
-
-  // A second failure mode is an absolutely positioned number-only column,
-  // visually duplicating every page number. Remove it only when it contains
-  // two or more numbers and every value is a page number already present in
-  // the semantic TOC leaves. This leaves unrelated badges/footers untouched.
-  repaired = repaired.replace(
-    /<div\b([^>]*\bclass=(?:"[^"]*\babsolute\b[^"]*"|'[^']*\babsolute\b[^']*')[^>]*)>\s*((?:<(?:div|span)\b[^>]*>\s*(?:[ivxlcdm]+|\d+)\s*<\/(?:div|span)>\s*){2,})<\/div>/gi,
-    (match, _attributes: string, body: string) => {
-      const numbers = [...body.matchAll(/>\s*([ivxlcdm]+|\d+)\s*</gi)].map((entry) => entry[1].toLowerCase())
-      return numbers.length >= 2 && numbers.every((number) => expectedPageNumbers.has(number)) ? "" : match
-    },
-  )
-
-  // A long TOC title may be split into multiple OCR leaves. Generators often
-  // wrap on mobile but force those fragments onto one desktop line, which
-  // pushes the repaired terminal leaf and page number beyond the page edge.
-  // TOC rows must be allowed to wrap at every viewport, matching print.
-  repaired = repaired.replace(/\s*\bsm:flex-nowrap\b/g, "")
-  return repaired
-}
-
-/** Confirm that every TOC leaf the deterministic repair recognizes retains the
- * three direct child markers needed by layout and runtime translation. */
-export function tableOfContentsLayoutErrors(
-  html: string,
-  leafTexts: LeafText[],
-): string[] {
-  const doc = parseDocument(html)
-  const errors: string[] = []
-  for (const leaf of leafTexts) {
-    const parts = splitTocEntry(leaf.text)
-    if (!parts) continue
-    const element = DomUtils.findOne(
-      (node) => node.type === "tag" && node.attribs?.["data-id"] === leaf.text_id,
-      doc.children,
-      true,
-    )
-    if (!element) continue
-    const classes = element.attribs?.class ?? ""
-    if (!parts.leader && !/\b(?:flex|grid|items-baseline)\b/.test(classes)) continue
-    if (!hasTocMarkersInOrder(element)) {
-      errors.push(
-        `TOC entry data-id="${leaf.text_id}" must contain direct title, leader, and page-number spans in that order.`,
-      )
-    }
-  }
-  return errors
+/** Rendering calls repair first, so a second pass must be a no-op. */
+export function tableOfContentsLayoutErrors(html: string, leafTexts: LeafText[]): string[] {
+  return repairTableOfContentsLayout(html, leafTexts) === html
+    ? []
+    : ["Table-of-contents rows must use the canonical title, leader, and page-number layout."]
 }

@@ -37,7 +37,7 @@ export function SegmentedControl<T extends string = string>({
     >
       {showIndicator ? (
         <div
-          className="absolute top-1 bottom-1 rounded-lg bg-background shadow-sm transition-all duration-200"
+          className="absolute top-1 bottom-1 rounded-md bg-card ring-1 ring-border shadow-sm transition-all duration-200 dark:bg-accent"
           style={{
             width: `calc((100% - 8px) / ${options.length})`,
             left: `calc(4px + ${activeIndex} * (100% - 8px) / ${options.length})`,

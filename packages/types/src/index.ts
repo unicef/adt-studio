@@ -67,6 +67,7 @@ export {
   type StageDef,
   PIPELINE,
   STAGE_ORDER,
+  CORE_STAGE_ORDER,
   STEP_TO_STAGE,
   STAGE_BY_NAME,
   ALL_STEP_NAMES,
@@ -144,6 +145,7 @@ export {
   EpubGlossaryMode,
   EpubGlossaryConfig,
   AgentsConfig,
+  FigureExtractionMode,
   AppConfig,
   type TypeDef,
 } from "./config.js"

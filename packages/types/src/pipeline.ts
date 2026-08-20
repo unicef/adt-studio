@@ -86,8 +86,8 @@ export const PIPELINE: StageDef[] = [
       { name: "book-summary", label: "Book Summary", modelDefault: "llm", dependsOn: ["metadata"] },
       { name: "book-outline", label: "Book Outline", modelDefault: "llm", dependsOn: ["book-summary"] },
       { name: "image-filtering", label: "Image Filtering", dependsOn: ["extract"], pageProgress: true },
-      { name: "image-segmentation", label: "Image Segmentation", modelDefault: "llm", dependsOn: ["image-filtering"], pageProgress: true },
-      { name: "image-meaningfulness", label: "Image Meaningfulness", modelDefault: "llm", dependsOn: ["image-segmentation"], pageProgress: true },
+      { name: "image-meaningfulness", label: "Image Meaningfulness", modelDefault: "llm", dependsOn: ["image-filtering"], pageProgress: true },
+      { name: "image-segmentation", label: "Image Segmentation", modelDefault: "llm", dependsOn: ["image-meaningfulness"], pageProgress: true },
       { name: "image-cropping", label: "Image Cropping", modelDefault: "llm", dependsOn: ["image-segmentation"], pageProgress: true },
     ],
   },
@@ -187,6 +187,24 @@ export const PIPELINE: StageDef[] = [
 
 /** Ordered stage names */
 export const STAGE_ORDER: StageName[] = PIPELINE.map((s) => s.name)
+
+export const CORE_STAGE_ORDER: StageName[] = (() => {
+  const stages: StageName[] = []
+  const roots = PIPELINE.filter((stage) => stage.dependsOn.length === 0)
+  let current = roots.length === 1 ? roots[0] : undefined
+
+  while (current) {
+    const currentName = current.name
+    stages.push(currentName)
+    const dependents = PIPELINE.filter((stage) => stage.dependsOn.includes(currentName))
+    current =
+      dependents.length === 1 && dependents[0].dependsOn.length === 1
+        ? dependents[0]
+        : undefined
+  }
+
+  return stages
+})()
 
 /** Map step name → parent stage name */
 export const STEP_TO_STAGE: Record<StepName, StageName> = Object.fromEntries(

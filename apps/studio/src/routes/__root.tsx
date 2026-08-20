@@ -33,7 +33,9 @@ function RootLayout() {
   const navigate = useNavigate()
   const openSettings = useCallback(
     (section: SettingsSection = "default-model") => {
-      void navigate({ to: "/settings", search: { section } })
+      if (section === "api-keys") void navigate({ to: "/settings/providers" })
+      else if (section === "prompts") void navigate({ to: "/settings/prompts" })
+      else void navigate({ to: "/settings/models" })
     },
     [navigate],
   )

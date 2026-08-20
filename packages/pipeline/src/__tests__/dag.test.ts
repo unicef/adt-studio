@@ -444,7 +444,8 @@ describe("runPipelineDAG", () => {
   it("mid-stage failure skips remaining steps but not already-complete ones", async () => {
     // In the extract stage: extract succeeds, then image-filtering fails
     // metadata (parallel to image-filtering) should still complete
-    // image-segmentation (depends on image-filtering) should be skipped
+    // image-meaningfulness (depends on image-filtering), and therefore image
+    // segmentation, should be skipped
     const executors = new Map<StepName, StepExecutor>([
       ["image-filtering", async () => { throw new Error("filter fail") }],
     ])
@@ -475,6 +476,15 @@ describe("runPipelineDAG", () => {
         }
       }
     }
+  })
+
+  it("evaluates original image IDs before segmentation creates new versions", () => {
+    const extractStage = PIPELINE.find((stage) => stage.name === "extract")!
+    const meaningfulness = extractStage.steps.find((step) => step.name === "image-meaningfulness")!
+    const segmentation = extractStage.steps.find((step) => step.name === "image-segmentation")!
+
+    expect(meaningfulness.dependsOn).toEqual(["image-filtering"])
+    expect(segmentation.dependsOn).toEqual(["image-meaningfulness"])
   })
 
   it("stage dependsOn references are valid stage names", () => {

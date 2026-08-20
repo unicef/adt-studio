@@ -19,6 +19,7 @@ import {
   findAdjacentSpeechText,
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,
+  buildTtsLogEntry,
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
   parseElevenLabsErrorStatus,
@@ -1022,6 +1023,44 @@ describe("buildElevenLabsTtsLogParams", () => {
       "language",
       "outputFormat",
     ])
+  })
+})
+
+// ---------------------------------------------------------------------------
+// buildTtsLogEntry
+// ---------------------------------------------------------------------------
+
+describe("buildTtsLogEntry", () => {
+  it("keeps the complete request text and records provider failures separately", () => {
+    const text = "A very long narrated entry. ".repeat(30)
+    const entry = buildTtsLogEntry({
+      textId: "pg001_t001",
+      language: "en",
+      voice: "en-US-JennyNeural",
+      model: "azure-tts",
+      provider: "azure",
+      text,
+      durationMs: 250,
+      success: false,
+      cached: false,
+      attempt: 0,
+      error: "Azure TTS request failed (400): Bad Request",
+    })
+
+    expect(entry).toMatchObject({
+      taskType: "tts",
+      pageId: "pg001_t001",
+      promptName: "tts-azure",
+      modelId: "azure/azure-tts",
+      success: false,
+      errorCount: 1,
+      attempt: 1,
+      error: "Azure TTS request failed (400): Bad Request",
+    })
+    expect(entry.messages[0]?.content[0]).toEqual({
+      type: "text",
+      text: `[en] voice=en-US-JennyNeural\n${text}`,
+    })
   })
 })
 

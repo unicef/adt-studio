@@ -9,73 +9,45 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
-import { Route as SettingsRouteImport } from "./routes/settings"
-import { Route as RedesignRouteImport } from "./routes/redesign"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
-import { Route as IndexRouteImport } from "./routes/index"
-import { Route as RedesignIndexRouteImport } from "./routes/redesign.index"
-import { Route as RedesignSettingsRouteImport } from "./routes/redesign.settings"
-import { Route as RedesignLibraryRouteImport } from "./routes/redesign.library"
-import { Route as RedesignHandoffsRouteImport } from "./routes/redesign.handoffs"
+import { Route as AppRouteImport } from "./routes/_app"
+import { Route as AppIndexRouteImport } from "./routes/_app.index"
 import { Route as PromptsSettingsRouteImport } from "./routes/prompts.settings"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
-import { Route as RedesignSettingsIndexRouteImport } from "./routes/redesign.settings.index"
+import { Route as AppSettingsRouteImport } from "./routes/_app.settings"
+import { Route as AppLibraryRouteImport } from "./routes/_app.library"
+import { Route as AppHandoffsRouteImport } from "./routes/_app.handoffs"
 import { Route as BooksLabelIndexRouteImport } from "./routes/books.$label.index"
-import { Route as RedesignSettingsThemeRouteImport } from "./routes/redesign.settings.theme"
-import { Route as RedesignSettingsProvidersRouteImport } from "./routes/redesign.settings.providers"
-import { Route as RedesignSettingsPromptsRouteImport } from "./routes/redesign.settings.prompts"
-import { Route as RedesignSettingsNotificationsRouteImport } from "./routes/redesign.settings.notifications"
-import { Route as RedesignSettingsModelsRouteImport } from "./routes/redesign.settings.models"
-import { Route as RedesignSettingsLanguageRouteImport } from "./routes/redesign.settings.language"
-import { Route as RedesignSettingsAboutRouteImport } from "./routes/redesign.settings.about"
-import { Route as RedesignPipelineLabelRouteImport } from "./routes/redesign.pipeline.$label"
+import { Route as AppSettingsIndexRouteImport } from "./routes/_app.settings.index"
 import { Route as BooksLabelDebugRouteImport } from "./routes/books.$label.debug"
 import { Route as BooksLabelStepRouteImport } from "./routes/books.$label.$step"
+import { Route as AppSettingsThemeRouteImport } from "./routes/_app.settings.theme"
+import { Route as AppSettingsProvidersRouteImport } from "./routes/_app.settings.providers"
+import { Route as AppSettingsPromptsRouteImport } from "./routes/_app.settings.prompts"
+import { Route as AppSettingsNotificationsRouteImport } from "./routes/_app.settings.notifications"
+import { Route as AppSettingsModelsRouteImport } from "./routes/_app.settings.models"
+import { Route as AppSettingsLanguageRouteImport } from "./routes/_app.settings.language"
+import { Route as AppSettingsAboutRouteImport } from "./routes/_app.settings.about"
+import { Route as AppPipelineLabelRouteImport } from "./routes/_app.pipeline.$label"
 import { Route as BooksLabelStepIndexRouteImport } from "./routes/books.$label.$step.index"
 import { Route as BooksLabelStepSettingsRouteImport } from "./routes/books.$label.$step.settings"
 import { Route as BooksLabelStepPageIdRouteImport } from "./routes/books.$label.$step.$pageId"
 
-const SettingsRoute = SettingsRouteImport.update({
-  id: "/settings",
-  path: "/settings",
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RedesignRoute = RedesignRouteImport.update({
-  id: "/redesign",
-  path: "/redesign",
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: "/onboarding",
   path: "/onboarding",
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+const AppRoute = AppRouteImport.update({
+  id: "/_app",
   getParentRoute: () => rootRouteImport,
 } as any)
-const RedesignIndexRoute = RedesignIndexRouteImport.update({
+const AppIndexRoute = AppIndexRouteImport.update({
   id: "/",
   path: "/",
-  getParentRoute: () => RedesignRoute,
-} as any)
-const RedesignSettingsRoute = RedesignSettingsRouteImport.update({
-  id: "/settings",
-  path: "/settings",
-  getParentRoute: () => RedesignRoute,
-} as any)
-const RedesignLibraryRoute = RedesignLibraryRouteImport.update({
-  id: "/library",
-  path: "/library",
-  getParentRoute: () => RedesignRoute,
-} as any)
-const RedesignHandoffsRoute = RedesignHandoffsRouteImport.update({
-  id: "/handoffs",
-  path: "/handoffs",
-  getParentRoute: () => RedesignRoute,
+  getParentRoute: () => AppRoute,
 } as any)
 const PromptsSettingsRoute = PromptsSettingsRouteImport.update({
   id: "/prompts/settings",
@@ -97,58 +69,30 @@ const BooksLabelRoute = BooksLabelRouteImport.update({
   path: "/books/$label",
   getParentRoute: () => rootRouteImport,
 } as any)
-const RedesignSettingsIndexRoute = RedesignSettingsIndexRouteImport.update({
-  id: "/",
-  path: "/",
-  getParentRoute: () => RedesignSettingsRoute,
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: "/settings",
+  path: "/settings",
+  getParentRoute: () => AppRoute,
+} as any)
+const AppLibraryRoute = AppLibraryRouteImport.update({
+  id: "/library",
+  path: "/library",
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHandoffsRoute = AppHandoffsRouteImport.update({
+  id: "/handoffs",
+  path: "/handoffs",
+  getParentRoute: () => AppRoute,
 } as any)
 const BooksLabelIndexRoute = BooksLabelIndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => BooksLabelRoute,
 } as any)
-const RedesignSettingsThemeRoute = RedesignSettingsThemeRouteImport.update({
-  id: "/theme",
-  path: "/theme",
-  getParentRoute: () => RedesignSettingsRoute,
-} as any)
-const RedesignSettingsProvidersRoute =
-  RedesignSettingsProvidersRouteImport.update({
-    id: "/providers",
-    path: "/providers",
-    getParentRoute: () => RedesignSettingsRoute,
-  } as any)
-const RedesignSettingsPromptsRoute = RedesignSettingsPromptsRouteImport.update({
-  id: "/prompts",
-  path: "/prompts",
-  getParentRoute: () => RedesignSettingsRoute,
-} as any)
-const RedesignSettingsNotificationsRoute =
-  RedesignSettingsNotificationsRouteImport.update({
-    id: "/notifications",
-    path: "/notifications",
-    getParentRoute: () => RedesignSettingsRoute,
-  } as any)
-const RedesignSettingsModelsRoute = RedesignSettingsModelsRouteImport.update({
-  id: "/models",
-  path: "/models",
-  getParentRoute: () => RedesignSettingsRoute,
-} as any)
-const RedesignSettingsLanguageRoute =
-  RedesignSettingsLanguageRouteImport.update({
-    id: "/language",
-    path: "/language",
-    getParentRoute: () => RedesignSettingsRoute,
-  } as any)
-const RedesignSettingsAboutRoute = RedesignSettingsAboutRouteImport.update({
-  id: "/about",
-  path: "/about",
-  getParentRoute: () => RedesignSettingsRoute,
-} as any)
-const RedesignPipelineLabelRoute = RedesignPipelineLabelRouteImport.update({
-  id: "/pipeline/$label",
-  path: "/pipeline/$label",
-  getParentRoute: () => RedesignRoute,
+const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => AppSettingsRoute,
 } as any)
 const BooksLabelDebugRoute = BooksLabelDebugRouteImport.update({
   id: "/debug",
@@ -159,6 +103,47 @@ const BooksLabelStepRoute = BooksLabelStepRouteImport.update({
   id: "/$step",
   path: "/$step",
   getParentRoute: () => BooksLabelRoute,
+} as any)
+const AppSettingsThemeRoute = AppSettingsThemeRouteImport.update({
+  id: "/theme",
+  path: "/theme",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsProvidersRoute = AppSettingsProvidersRouteImport.update({
+  id: "/providers",
+  path: "/providers",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsPromptsRoute = AppSettingsPromptsRouteImport.update({
+  id: "/prompts",
+  path: "/prompts",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsNotificationsRoute =
+  AppSettingsNotificationsRouteImport.update({
+    id: "/notifications",
+    path: "/notifications",
+    getParentRoute: () => AppSettingsRoute,
+  } as any)
+const AppSettingsModelsRoute = AppSettingsModelsRouteImport.update({
+  id: "/models",
+  path: "/models",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsLanguageRoute = AppSettingsLanguageRouteImport.update({
+  id: "/language",
+  path: "/language",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppSettingsAboutRoute = AppSettingsAboutRouteImport.update({
+  id: "/about",
+  path: "/about",
+  getParentRoute: () => AppSettingsRoute,
+} as any)
+const AppPipelineLabelRoute = AppPipelineLabelRouteImport.update({
+  id: "/pipeline/$label",
+  path: "/pipeline/$label",
+  getParentRoute: () => AppRoute,
 } as any)
 const BooksLabelStepIndexRoute = BooksLabelStepIndexRouteImport.update({
   id: "/",
@@ -177,85 +162,78 @@ const BooksLabelStepPageIdRoute = BooksLabelStepPageIdRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
+  "/": typeof AppIndexRoute
   "/onboarding": typeof OnboardingRoute
-  "/redesign": typeof RedesignRouteWithChildren
-  "/settings": typeof SettingsRoute
+  "/handoffs": typeof AppHandoffsRoute
+  "/library": typeof AppLibraryRoute
+  "/settings": typeof AppSettingsRouteWithChildren
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
-  "/redesign/handoffs": typeof RedesignHandoffsRoute
-  "/redesign/library": typeof RedesignLibraryRoute
-  "/redesign/settings": typeof RedesignSettingsRouteWithChildren
-  "/redesign/": typeof RedesignIndexRoute
+  "/pipeline/$label": typeof AppPipelineLabelRoute
+  "/settings/about": typeof AppSettingsAboutRoute
+  "/settings/language": typeof AppSettingsLanguageRoute
+  "/settings/models": typeof AppSettingsModelsRoute
+  "/settings/notifications": typeof AppSettingsNotificationsRoute
+  "/settings/prompts": typeof AppSettingsPromptsRoute
+  "/settings/providers": typeof AppSettingsProvidersRoute
+  "/settings/theme": typeof AppSettingsThemeRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
-  "/redesign/pipeline/$label": typeof RedesignPipelineLabelRoute
-  "/redesign/settings/about": typeof RedesignSettingsAboutRoute
-  "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
-  "/redesign/settings/models": typeof RedesignSettingsModelsRoute
-  "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
-  "/redesign/settings/prompts": typeof RedesignSettingsPromptsRoute
-  "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
-  "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
+  "/settings/": typeof AppSettingsIndexRoute
   "/books/$label/": typeof BooksLabelIndexRoute
-  "/redesign/settings/": typeof RedesignSettingsIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
   "/books/$label/$step/": typeof BooksLabelStepIndexRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
-  "/settings": typeof SettingsRoute
+  "/handoffs": typeof AppHandoffsRoute
+  "/library": typeof AppLibraryRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
-  "/redesign/handoffs": typeof RedesignHandoffsRoute
-  "/redesign/library": typeof RedesignLibraryRoute
-  "/redesign": typeof RedesignIndexRoute
+  "/": typeof AppIndexRoute
+  "/pipeline/$label": typeof AppPipelineLabelRoute
+  "/settings/about": typeof AppSettingsAboutRoute
+  "/settings/language": typeof AppSettingsLanguageRoute
+  "/settings/models": typeof AppSettingsModelsRoute
+  "/settings/notifications": typeof AppSettingsNotificationsRoute
+  "/settings/prompts": typeof AppSettingsPromptsRoute
+  "/settings/providers": typeof AppSettingsProvidersRoute
+  "/settings/theme": typeof AppSettingsThemeRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
-  "/redesign/pipeline/$label": typeof RedesignPipelineLabelRoute
-  "/redesign/settings/about": typeof RedesignSettingsAboutRoute
-  "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
-  "/redesign/settings/models": typeof RedesignSettingsModelsRoute
-  "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
-  "/redesign/settings/prompts": typeof RedesignSettingsPromptsRoute
-  "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
-  "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
+  "/settings": typeof AppSettingsIndexRoute
   "/books/$label": typeof BooksLabelIndexRoute
-  "/redesign/settings": typeof RedesignSettingsIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
   "/books/$label/$step": typeof BooksLabelStepIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
+  "/_app": typeof AppRouteWithChildren
   "/onboarding": typeof OnboardingRoute
-  "/redesign": typeof RedesignRouteWithChildren
-  "/settings": typeof SettingsRoute
+  "/_app/handoffs": typeof AppHandoffsRoute
+  "/_app/library": typeof AppLibraryRoute
+  "/_app/settings": typeof AppSettingsRouteWithChildren
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
-  "/redesign/handoffs": typeof RedesignHandoffsRoute
-  "/redesign/library": typeof RedesignLibraryRoute
-  "/redesign/settings": typeof RedesignSettingsRouteWithChildren
-  "/redesign/": typeof RedesignIndexRoute
+  "/_app/": typeof AppIndexRoute
+  "/_app/pipeline/$label": typeof AppPipelineLabelRoute
+  "/_app/settings/about": typeof AppSettingsAboutRoute
+  "/_app/settings/language": typeof AppSettingsLanguageRoute
+  "/_app/settings/models": typeof AppSettingsModelsRoute
+  "/_app/settings/notifications": typeof AppSettingsNotificationsRoute
+  "/_app/settings/prompts": typeof AppSettingsPromptsRoute
+  "/_app/settings/providers": typeof AppSettingsProvidersRoute
+  "/_app/settings/theme": typeof AppSettingsThemeRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
-  "/redesign/pipeline/$label": typeof RedesignPipelineLabelRoute
-  "/redesign/settings/about": typeof RedesignSettingsAboutRoute
-  "/redesign/settings/language": typeof RedesignSettingsLanguageRoute
-  "/redesign/settings/models": typeof RedesignSettingsModelsRoute
-  "/redesign/settings/notifications": typeof RedesignSettingsNotificationsRoute
-  "/redesign/settings/prompts": typeof RedesignSettingsPromptsRoute
-  "/redesign/settings/providers": typeof RedesignSettingsProvidersRoute
-  "/redesign/settings/theme": typeof RedesignSettingsThemeRoute
+  "/_app/settings/": typeof AppSettingsIndexRoute
   "/books/$label/": typeof BooksLabelIndexRoute
-  "/redesign/settings/": typeof RedesignSettingsIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
   "/books/$label/$step/": typeof BooksLabelStepIndexRoute
@@ -265,92 +243,83 @@ export interface FileRouteTypes {
   fullPaths:
     | "/"
     | "/onboarding"
-    | "/redesign"
+    | "/handoffs"
+    | "/library"
     | "/settings"
     | "/books/$label"
     | "/books/import"
     | "/books/new"
     | "/prompts/settings"
-    | "/redesign/handoffs"
-    | "/redesign/library"
-    | "/redesign/settings"
-    | "/redesign/"
+    | "/pipeline/$label"
+    | "/settings/about"
+    | "/settings/language"
+    | "/settings/models"
+    | "/settings/notifications"
+    | "/settings/prompts"
+    | "/settings/providers"
+    | "/settings/theme"
     | "/books/$label/$step"
     | "/books/$label/debug"
-    | "/redesign/pipeline/$label"
-    | "/redesign/settings/about"
-    | "/redesign/settings/language"
-    | "/redesign/settings/models"
-    | "/redesign/settings/notifications"
-    | "/redesign/settings/prompts"
-    | "/redesign/settings/providers"
-    | "/redesign/settings/theme"
+    | "/settings/"
     | "/books/$label/"
-    | "/redesign/settings/"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
     | "/books/$label/$step/"
   fileRoutesByTo: FileRoutesByTo
   to:
-    | "/"
     | "/onboarding"
-    | "/settings"
+    | "/handoffs"
+    | "/library"
     | "/books/import"
     | "/books/new"
     | "/prompts/settings"
-    | "/redesign/handoffs"
-    | "/redesign/library"
-    | "/redesign"
+    | "/"
+    | "/pipeline/$label"
+    | "/settings/about"
+    | "/settings/language"
+    | "/settings/models"
+    | "/settings/notifications"
+    | "/settings/prompts"
+    | "/settings/providers"
+    | "/settings/theme"
     | "/books/$label/debug"
-    | "/redesign/pipeline/$label"
-    | "/redesign/settings/about"
-    | "/redesign/settings/language"
-    | "/redesign/settings/models"
-    | "/redesign/settings/notifications"
-    | "/redesign/settings/prompts"
-    | "/redesign/settings/providers"
-    | "/redesign/settings/theme"
+    | "/settings"
     | "/books/$label"
-    | "/redesign/settings"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
     | "/books/$label/$step"
   id:
     | "__root__"
-    | "/"
+    | "/_app"
     | "/onboarding"
-    | "/redesign"
-    | "/settings"
+    | "/_app/handoffs"
+    | "/_app/library"
+    | "/_app/settings"
     | "/books/$label"
     | "/books/import"
     | "/books/new"
     | "/prompts/settings"
-    | "/redesign/handoffs"
-    | "/redesign/library"
-    | "/redesign/settings"
-    | "/redesign/"
+    | "/_app/"
+    | "/_app/pipeline/$label"
+    | "/_app/settings/about"
+    | "/_app/settings/language"
+    | "/_app/settings/models"
+    | "/_app/settings/notifications"
+    | "/_app/settings/prompts"
+    | "/_app/settings/providers"
+    | "/_app/settings/theme"
     | "/books/$label/$step"
     | "/books/$label/debug"
-    | "/redesign/pipeline/$label"
-    | "/redesign/settings/about"
-    | "/redesign/settings/language"
-    | "/redesign/settings/models"
-    | "/redesign/settings/notifications"
-    | "/redesign/settings/prompts"
-    | "/redesign/settings/providers"
-    | "/redesign/settings/theme"
+    | "/_app/settings/"
     | "/books/$label/"
-    | "/redesign/settings/"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
     | "/books/$label/$step/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
   OnboardingRoute: typeof OnboardingRoute
-  RedesignRoute: typeof RedesignRouteWithChildren
-  SettingsRoute: typeof SettingsRoute
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
   BooksNewRoute: typeof BooksNewRoute
@@ -359,20 +328,6 @@ export interface RootRouteChildren {
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    "/settings": {
-      id: "/settings"
-      path: "/settings"
-      fullPath: "/settings"
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    "/redesign": {
-      id: "/redesign"
-      path: "/redesign"
-      fullPath: "/redesign"
-      preLoaderRoute: typeof RedesignRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     "/onboarding": {
       id: "/onboarding"
       path: "/onboarding"
@@ -380,40 +335,19 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof OnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/": {
-      id: "/"
-      path: "/"
+    "/_app": {
+      id: "/_app"
+      path: ""
       fullPath: "/"
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/redesign/": {
-      id: "/redesign/"
+    "/_app/": {
+      id: "/_app/"
       path: "/"
-      fullPath: "/redesign/"
-      preLoaderRoute: typeof RedesignIndexRouteImport
-      parentRoute: typeof RedesignRoute
-    }
-    "/redesign/settings": {
-      id: "/redesign/settings"
-      path: "/settings"
-      fullPath: "/redesign/settings"
-      preLoaderRoute: typeof RedesignSettingsRouteImport
-      parentRoute: typeof RedesignRoute
-    }
-    "/redesign/library": {
-      id: "/redesign/library"
-      path: "/library"
-      fullPath: "/redesign/library"
-      preLoaderRoute: typeof RedesignLibraryRouteImport
-      parentRoute: typeof RedesignRoute
-    }
-    "/redesign/handoffs": {
-      id: "/redesign/handoffs"
-      path: "/handoffs"
-      fullPath: "/redesign/handoffs"
-      preLoaderRoute: typeof RedesignHandoffsRouteImport
-      parentRoute: typeof RedesignRoute
+      fullPath: "/"
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRoute
     }
     "/prompts/settings": {
       id: "/prompts/settings"
@@ -443,12 +377,26 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof BooksLabelRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/redesign/settings/": {
-      id: "/redesign/settings/"
-      path: "/"
-      fullPath: "/redesign/settings/"
-      preLoaderRoute: typeof RedesignSettingsIndexRouteImport
-      parentRoute: typeof RedesignSettingsRoute
+    "/_app/settings": {
+      id: "/_app/settings"
+      path: "/settings"
+      fullPath: "/settings"
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    "/_app/library": {
+      id: "/_app/library"
+      path: "/library"
+      fullPath: "/library"
+      preLoaderRoute: typeof AppLibraryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    "/_app/handoffs": {
+      id: "/_app/handoffs"
+      path: "/handoffs"
+      fullPath: "/handoffs"
+      preLoaderRoute: typeof AppHandoffsRouteImport
+      parentRoute: typeof AppRoute
     }
     "/books/$label/": {
       id: "/books/$label/"
@@ -457,61 +405,12 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof BooksLabelIndexRouteImport
       parentRoute: typeof BooksLabelRoute
     }
-    "/redesign/settings/theme": {
-      id: "/redesign/settings/theme"
-      path: "/theme"
-      fullPath: "/redesign/settings/theme"
-      preLoaderRoute: typeof RedesignSettingsThemeRouteImport
-      parentRoute: typeof RedesignSettingsRoute
-    }
-    "/redesign/settings/providers": {
-      id: "/redesign/settings/providers"
-      path: "/providers"
-      fullPath: "/redesign/settings/providers"
-      preLoaderRoute: typeof RedesignSettingsProvidersRouteImport
-      parentRoute: typeof RedesignSettingsRoute
-    }
-    "/redesign/settings/prompts": {
-      id: "/redesign/settings/prompts"
-      path: "/prompts"
-      fullPath: "/redesign/settings/prompts"
-      preLoaderRoute: typeof RedesignSettingsPromptsRouteImport
-      parentRoute: typeof RedesignSettingsRoute
-    }
-    "/redesign/settings/notifications": {
-      id: "/redesign/settings/notifications"
-      path: "/notifications"
-      fullPath: "/redesign/settings/notifications"
-      preLoaderRoute: typeof RedesignSettingsNotificationsRouteImport
-      parentRoute: typeof RedesignSettingsRoute
-    }
-    "/redesign/settings/models": {
-      id: "/redesign/settings/models"
-      path: "/models"
-      fullPath: "/redesign/settings/models"
-      preLoaderRoute: typeof RedesignSettingsModelsRouteImport
-      parentRoute: typeof RedesignSettingsRoute
-    }
-    "/redesign/settings/language": {
-      id: "/redesign/settings/language"
-      path: "/language"
-      fullPath: "/redesign/settings/language"
-      preLoaderRoute: typeof RedesignSettingsLanguageRouteImport
-      parentRoute: typeof RedesignSettingsRoute
-    }
-    "/redesign/settings/about": {
-      id: "/redesign/settings/about"
-      path: "/about"
-      fullPath: "/redesign/settings/about"
-      preLoaderRoute: typeof RedesignSettingsAboutRouteImport
-      parentRoute: typeof RedesignSettingsRoute
-    }
-    "/redesign/pipeline/$label": {
-      id: "/redesign/pipeline/$label"
-      path: "/pipeline/$label"
-      fullPath: "/redesign/pipeline/$label"
-      preLoaderRoute: typeof RedesignPipelineLabelRouteImport
-      parentRoute: typeof RedesignRoute
+    "/_app/settings/": {
+      id: "/_app/settings/"
+      path: "/"
+      fullPath: "/settings/"
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppSettingsRoute
     }
     "/books/$label/debug": {
       id: "/books/$label/debug"
@@ -526,6 +425,62 @@ declare module "@tanstack/react-router" {
       fullPath: "/books/$label/$step"
       preLoaderRoute: typeof BooksLabelStepRouteImport
       parentRoute: typeof BooksLabelRoute
+    }
+    "/_app/settings/theme": {
+      id: "/_app/settings/theme"
+      path: "/theme"
+      fullPath: "/settings/theme"
+      preLoaderRoute: typeof AppSettingsThemeRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/providers": {
+      id: "/_app/settings/providers"
+      path: "/providers"
+      fullPath: "/settings/providers"
+      preLoaderRoute: typeof AppSettingsProvidersRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/prompts": {
+      id: "/_app/settings/prompts"
+      path: "/prompts"
+      fullPath: "/settings/prompts"
+      preLoaderRoute: typeof AppSettingsPromptsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/notifications": {
+      id: "/_app/settings/notifications"
+      path: "/notifications"
+      fullPath: "/settings/notifications"
+      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/models": {
+      id: "/_app/settings/models"
+      path: "/models"
+      fullPath: "/settings/models"
+      preLoaderRoute: typeof AppSettingsModelsRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/language": {
+      id: "/_app/settings/language"
+      path: "/language"
+      fullPath: "/settings/language"
+      preLoaderRoute: typeof AppSettingsLanguageRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/settings/about": {
+      id: "/_app/settings/about"
+      path: "/about"
+      fullPath: "/settings/about"
+      preLoaderRoute: typeof AppSettingsAboutRouteImport
+      parentRoute: typeof AppSettingsRoute
+    }
+    "/_app/pipeline/$label": {
+      id: "/_app/pipeline/$label"
+      path: "/pipeline/$label"
+      fullPath: "/pipeline/$label"
+      preLoaderRoute: typeof AppPipelineLabelRouteImport
+      parentRoute: typeof AppRoute
     }
     "/books/$label/$step/": {
       id: "/books/$label/$step/"
@@ -551,50 +506,49 @@ declare module "@tanstack/react-router" {
   }
 }
 
-interface RedesignSettingsRouteChildren {
-  RedesignSettingsAboutRoute: typeof RedesignSettingsAboutRoute
-  RedesignSettingsLanguageRoute: typeof RedesignSettingsLanguageRoute
-  RedesignSettingsModelsRoute: typeof RedesignSettingsModelsRoute
-  RedesignSettingsNotificationsRoute: typeof RedesignSettingsNotificationsRoute
-  RedesignSettingsPromptsRoute: typeof RedesignSettingsPromptsRoute
-  RedesignSettingsProvidersRoute: typeof RedesignSettingsProvidersRoute
-  RedesignSettingsThemeRoute: typeof RedesignSettingsThemeRoute
-  RedesignSettingsIndexRoute: typeof RedesignSettingsIndexRoute
+interface AppSettingsRouteChildren {
+  AppSettingsAboutRoute: typeof AppSettingsAboutRoute
+  AppSettingsLanguageRoute: typeof AppSettingsLanguageRoute
+  AppSettingsModelsRoute: typeof AppSettingsModelsRoute
+  AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
+  AppSettingsPromptsRoute: typeof AppSettingsPromptsRoute
+  AppSettingsProvidersRoute: typeof AppSettingsProvidersRoute
+  AppSettingsThemeRoute: typeof AppSettingsThemeRoute
+  AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
-const RedesignSettingsRouteChildren: RedesignSettingsRouteChildren = {
-  RedesignSettingsAboutRoute: RedesignSettingsAboutRoute,
-  RedesignSettingsLanguageRoute: RedesignSettingsLanguageRoute,
-  RedesignSettingsModelsRoute: RedesignSettingsModelsRoute,
-  RedesignSettingsNotificationsRoute: RedesignSettingsNotificationsRoute,
-  RedesignSettingsPromptsRoute: RedesignSettingsPromptsRoute,
-  RedesignSettingsProvidersRoute: RedesignSettingsProvidersRoute,
-  RedesignSettingsThemeRoute: RedesignSettingsThemeRoute,
-  RedesignSettingsIndexRoute: RedesignSettingsIndexRoute,
+const AppSettingsRouteChildren: AppSettingsRouteChildren = {
+  AppSettingsAboutRoute: AppSettingsAboutRoute,
+  AppSettingsLanguageRoute: AppSettingsLanguageRoute,
+  AppSettingsModelsRoute: AppSettingsModelsRoute,
+  AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
+  AppSettingsPromptsRoute: AppSettingsPromptsRoute,
+  AppSettingsProvidersRoute: AppSettingsProvidersRoute,
+  AppSettingsThemeRoute: AppSettingsThemeRoute,
+  AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
 
-const RedesignSettingsRouteWithChildren =
-  RedesignSettingsRoute._addFileChildren(RedesignSettingsRouteChildren)
-
-interface RedesignRouteChildren {
-  RedesignHandoffsRoute: typeof RedesignHandoffsRoute
-  RedesignLibraryRoute: typeof RedesignLibraryRoute
-  RedesignSettingsRoute: typeof RedesignSettingsRouteWithChildren
-  RedesignIndexRoute: typeof RedesignIndexRoute
-  RedesignPipelineLabelRoute: typeof RedesignPipelineLabelRoute
-}
-
-const RedesignRouteChildren: RedesignRouteChildren = {
-  RedesignHandoffsRoute: RedesignHandoffsRoute,
-  RedesignLibraryRoute: RedesignLibraryRoute,
-  RedesignSettingsRoute: RedesignSettingsRouteWithChildren,
-  RedesignIndexRoute: RedesignIndexRoute,
-  RedesignPipelineLabelRoute: RedesignPipelineLabelRoute,
-}
-
-const RedesignRouteWithChildren = RedesignRoute._addFileChildren(
-  RedesignRouteChildren,
+const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
+  AppSettingsRouteChildren,
 )
+
+interface AppRouteChildren {
+  AppHandoffsRoute: typeof AppHandoffsRoute
+  AppLibraryRoute: typeof AppLibraryRoute
+  AppSettingsRoute: typeof AppSettingsRouteWithChildren
+  AppIndexRoute: typeof AppIndexRoute
+  AppPipelineLabelRoute: typeof AppPipelineLabelRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppHandoffsRoute: AppHandoffsRoute,
+  AppLibraryRoute: AppLibraryRoute,
+  AppSettingsRoute: AppSettingsRouteWithChildren,
+  AppIndexRoute: AppIndexRoute,
+  AppPipelineLabelRoute: AppPipelineLabelRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
 interface BooksLabelStepRouteChildren {
   BooksLabelStepPageIdRoute: typeof BooksLabelStepPageIdRoute
@@ -629,10 +583,8 @@ const BooksLabelRouteWithChildren = BooksLabelRoute._addFileChildren(
 )
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
   OnboardingRoute: OnboardingRoute,
-  RedesignRoute: RedesignRouteWithChildren,
-  SettingsRoute: SettingsRoute,
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,
   BooksNewRoute: BooksNewRoute,

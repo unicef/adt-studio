@@ -47,6 +47,7 @@
   --color-stage-translate: #db2777;    --color-stage-translate-50: #fdf2f8;
   --color-stage-speech: #e11d48;       --color-stage-speech-50: #fff1f2;
   --color-stage-sign: #0891b2;         --color-stage-sign-50: #ecfeff;
+  --color-stage-easy-read: #c026d3;    --color-stage-easy-read-50: #fdf4ff;
   --color-stage-validation: #059669;   --color-stage-validation-50: #ecfdf5;
   --color-stage-export: #4338ca;       --color-stage-export-50: #eef2ff;
   --color-secondary: var(--secondary);
@@ -96,10 +97,21 @@
   --animate-onboarding-fade-up: onboarding-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-onboarding-fade-in: onboarding-fade-in 0.8s ease-out both;
   --animate-hero-drift: hero-drift 14s ease-in-out infinite;
+  --animate-menu-in: menu-in 140ms cubic-bezier(0.23, 1, 0.32, 1);
+  --animate-content-in: content-in 180ms cubic-bezier(0.23, 1, 0.32, 1);
+  --animate-eq: eq 1s ease-in-out infinite;
+  --animate-float-y: float-y 6s ease-in-out infinite;
+  --animate-flow-dot: flow-dot 3.4s ease-in-out infinite;
   --animate-onboarding-drift-a: onboarding-drift-a 22s ease-in-out infinite;
   --animate-onboarding-drift-b: onboarding-drift-b 28s ease-in-out infinite;
   --animate-onboarding-icon-float: onboarding-icon-float 5s ease-in-out infinite;
   --animate-onboarding-shimmer: onboarding-shimmer 2.8s ease-in-out infinite;
+  --animate-onboarding-eq: onboarding-eq 0.85s ease-in-out infinite;
+  --animate-onboarding-gradient: onboarding-gradient 6s ease-in-out infinite;
+  --animate-finale-rise: finale-rise 0.95s cubic-bezier(0.19, 1, 0.22, 1) both;
+  --animate-finale-aurora-in: finale-aurora-in 1.4s cubic-bezier(0.19, 1, 0.22, 1) both;
+  --animate-finale-sheen: finale-sheen 1.15s cubic-bezier(0.4, 0, 0.2, 1) 0.85s both;
+  --animate-finale-glow: finale-glow 4.5s ease-in-out infinite;
 }
 
 @keyframes accordion-down {
@@ -255,6 +267,28 @@
   0%, 100% { transform: translate(0, 0); }
   50% { transform: translate(20px, -14px); }
 }
+@keyframes menu-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes content-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes eq {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+@keyframes float-y {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes flow-dot {
+  0% { left: 0; opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { left: 100%; opacity: 0; }
+}
 @keyframes onboarding-drift-a {
   0%,
   100% {
@@ -297,6 +331,110 @@
   }
 }
 
+@keyframes onboarding-eq {
+  0%,
+  100% {
+    transform: scaleY(0.4);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes finale-rise {
+  from {
+    transform: translateY(118%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes finale-aurora-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes finale-sheen {
+  from {
+    transform: translateX(-160%) skewX(-14deg);
+  }
+  to {
+    transform: translateX(280%) skewX(-14deg);
+  }
+}
+
+@keyframes finale-glow {
+  0%,
+  100% {
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-finale-rise,
+  .animate-finale-aurora-in,
+  .animate-finale-sheen,
+  .animate-finale-glow {
+    animation: none;
+  }
+}
+
+/* Onboarding surface tokens — flip with the app `.dark` class. Feature-panel
+   gradients and white-on-panel text stay vibrant in both themes. */
+.ob-root {
+  --ob-page: radial-gradient(120% 120% at 50% -10%, var(--ob-accent-wash) 0%, #eef0f5 55%, #e7e9ef 100%);
+  --ob-bg: #ffffff;
+  --ob-surface: #ffffff;
+  --ob-surface-2: #fbfbfc;
+  --ob-row: #f6f7f9;
+  --ob-track: #eef0f4;
+  --ob-fg: #0a0a0a;
+  --ob-muted: #737373;
+  --ob-faint: #9aa0aa;
+  --ob-border: rgba(0, 0, 0, 0.08);
+  --ob-border-strong: rgba(0, 0, 0, 0.15);
+  --ob-card-shadow: 0 40px 120px -24px rgba(20, 32, 80, 0.45);
+  --ob-sheen: rgba(255, 255, 255, 0.7);
+}
+
+.dark .ob-root {
+  --ob-page: radial-gradient(120% 120% at 50% -10%, #131a2b 0%, #0c1017 55%, #080b12 100%);
+  --ob-bg: #0e1320;
+  --ob-surface: #161c2b;
+  --ob-surface-2: #1b2333;
+  --ob-row: rgba(255, 255, 255, 0.045);
+  --ob-track: rgba(255, 255, 255, 0.09);
+  --ob-fg: #f1f4fb;
+  --ob-muted: #9aa4b6;
+  --ob-faint: #6c7688;
+  --ob-border: rgba(255, 255, 255, 0.1);
+  --ob-border-strong: rgba(255, 255, 255, 0.2);
+  --ob-card-shadow: 0 40px 120px -24px rgba(0, 0, 0, 0.7);
+  --ob-sheen: rgba(255, 255, 255, 0);
+}
+
+@keyframes onboarding-gradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 @keyframes onboarding-caret {
   0%,
   50% {
@@ -332,6 +470,12 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label[for],
+  summary {
+    cursor: pointer;
   }
 }
 
@@ -479,10 +623,13 @@
   --muted-foreground: oklch(0.65 0.03 250);
   --accent: oklch(0.25 0.03 250);
   --accent-foreground: oklch(0.93 0.01 250);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.28 0.03 250);
-  --input: oklch(0.25 0.03 250);
+  --destructive: oklch(0.645 0.203 25.5);
+  --destructive-foreground: oklch(0.985 0 0);
+  --border: oklch(0.34 0.03 250);
+  --input: oklch(0.32 0.03 250);
+  /* Stage glyphs that fail 3:1 on the dark card footer — lightened for dark only. */
+  --color-stage-storyboard: #a78bfa;
+  --color-stage-export: #818cf8;
   --ring: oklch(0.72 0.189 260);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);

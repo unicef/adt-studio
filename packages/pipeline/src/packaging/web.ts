@@ -985,18 +985,19 @@ body {
   opacity: 1 !important;
 }
 
-/* Force single-column layout for all section containers.
-   Side-by-side (lg:flex-row) layouts squeeze text in narrow
-   reader viewports. */
-section > div {
-  flex-direction: column !important;
-  max-width: 100% !important;
-}
+/* Force single-column layout only in narrow reader viewports. Above the
+   lg breakpoint the page's own lg:flex-row / max-w-* rules govern, so wide
+   readers (PNLD/LIP, wide EPUB) keep the authored side-by-side layout. */
+@media (max-width: 1023px) {
+  section > div {
+    flex-direction: column !important;
+    max-width: 100% !important;
+  }
 
-/* Remove max-width constraints on nested containers (max-w-6xl, max-w-xl, etc.) */
-.container,
-section [class*="max-w-"] {
-  max-width: 100% !important;
+  .container,
+  section [class*="max-w-"] {
+    max-width: 100% !important;
+  }
 }
 
 /* Responsive images */

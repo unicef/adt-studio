@@ -186,7 +186,7 @@ export const PRESETS: PresetConfig[] = [
       activitiesGenerator: true,
       imageCropping: false,
       imageSegmentation: true,
-      figureExtraction: true,
+      figureExtraction: "auto",
     },
     formDefaults: {
       imageFilterMinSide: 50,
@@ -473,7 +473,7 @@ export const PRESETS: PresetConfig[] = [
       sectioningMode: "page",
       imageCropping: false,
       imageSegmentation: false,
-      figureExtraction: true,
+      figureExtraction: "auto",
     },
     formDefaults: {
       imageFilterMinSide: 100,
@@ -604,6 +604,9 @@ const VALUE_LABELS: Record<string, MessageDescriptor> = {
   spread: msg`Spread`,
   page: msg`Per Page`,
   dynamic: msg`Dynamic`,
+  auto: msg`Auto`,
+  all: msg`All`,
+  off: msg`Off`,
 };
 
 function formatDefaultValue(

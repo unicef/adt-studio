@@ -13,7 +13,7 @@ function platformWindowOptions(): Partial<Electron.BrowserWindowConstructorOptio
     case "darwin":
       return {
         titleBarStyle: "hiddenInset",
-        trafficLightPosition: { x: 14, y: 14 },
+        trafficLightPosition: { x: 18, y: 13 },
       };
     case "win32":
     case "linux":
@@ -24,7 +24,8 @@ function platformWindowOptions(): Partial<Electron.BrowserWindowConstructorOptio
   }
 }
 
-export function createMainWindow(): BrowserWindow {
+export function createMainWindow(startPath = "/"): BrowserWindow {
+  const normalizedStartPath = startPath.startsWith("/") ? startPath : "/";
   const mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
@@ -68,9 +69,9 @@ export function createMainWindow(): BrowserWindow {
   const STUDIO_DEV_URL = "http://localhost:5173";
 
   if (is.dev && process.env.NODE_ENV === "development") {
-    mainWindow.loadURL(STUDIO_DEV_URL);
+    mainWindow.loadURL(`${STUDIO_DEV_URL}${normalizedStartPath}`);
   } else {
-    mainWindow.loadURL(`${STUDIO_APP_ORIGIN}/`);
+    mainWindow.loadURL(`${STUDIO_APP_ORIGIN}${normalizedStartPath}`);
   }
 
   return mainWindow;
