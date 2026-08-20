@@ -297,21 +297,21 @@ function FeaturesTab({ preview }: { preview: AnyImportPreview }) {
                 : (preview as ImportPreview).stages[feature.slug]?.status === "done"
             const Icon = feature.icon
             return (
-              <div key={feature.slug} className="flex min-h-[78px] items-start gap-3 rounded-lg border border-slate-200 bg-white p-3">
+              <div key={feature.slug} className="flex min-h-[96px] items-start gap-3 rounded-lg border border-slate-200 bg-white p-3">
                 <span className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border", feature.bgLight, feature.borderColor, feature.textColor)}>
                   <Icon className="h-4 w-4" />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-slate-900">{i18n._(feature.label)}</p>
+                  <div className="flex min-w-0 flex-col items-start gap-1.5">
+                    <p className="min-w-0 break-words text-sm font-semibold leading-tight text-slate-900">{i18n._(feature.label)}</p>
                     <span className={cn(
-                      "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                      "inline-flex max-w-full whitespace-normal break-words rounded-full px-2 py-0.5 text-left text-[10px] font-semibold leading-tight",
                       present ? `${feature.bgLight} ${feature.textColor}` : "bg-slate-100 text-slate-500",
                     )}>
                       {present ? <Trans>Included</Trans> : <Trans>Available</Trans>}
                     </span>
                   </div>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-slate-500">{i18n._(feature.description)}</p>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">{i18n._(feature.description)}</p>
                 </div>
               </div>
             )

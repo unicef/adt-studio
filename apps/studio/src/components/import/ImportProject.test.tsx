@@ -190,7 +190,8 @@ describe("ImportProject", () => {
 
     try {
       render(<ImportProject />)
-      expect(screen.getByRole("tabpanel").parentElement?.className).toContain("h-[360px]")
+      expect(screen.getByRole("tabpanel").parentElement?.className).toContain("flex-1")
+      expect(screen.getByRole("tabpanel").parentElement?.className).toContain("overflow-hidden")
       const featuresTab = screen.getByRole("tab", { name: "Features" })
       fireEvent.keyDown(featuresTab, { key: "Enter" })
 
@@ -207,6 +208,9 @@ describe("ImportProject", () => {
       expect(screen.getByText("Scroll to see all features")).toBeTruthy()
       const storyboard = screen.getByText("Storyboard")
       expect(storyboard.parentElement?.textContent).toContain("Included")
+      expect(storyboard.parentElement?.className).toContain("flex-col")
+      expect(storyboard.parentElement?.querySelector("span")?.className).toContain("max-w-full")
+      expect(storyboard.parentElement?.querySelector("span")?.className).toContain("whitespace-normal")
       const captions = screen.getByText("Image Captions")
       expect(captions.parentElement?.textContent).toContain("Included")
 
