@@ -13,25 +13,25 @@ export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
   const navigate = useNavigate()
   return (
     <>
-      <div className="text-2xl font-bold leading-[1.1] tracking-[-0.02em]">
+      <div className="text-[30px] font-bold leading-[1.08] tracking-[-0.02em]">
         <Trans>Welcome to ADT Studio</Trans>
       </div>
-      <div className="mt-1.5 text-sm text-muted-foreground">
+      <div className="mt-2 text-[15px] text-muted-foreground">
         <Trans>Turn any educational PDF into an accessible, interactive learning bundle — extracted, captioned, and quiz-ready.</Trans>
       </div>
 
-      <div className="mt-[18px] flex gap-6 rounded-2xl border bg-card p-6 shadow-sm">
-        <div aria-hidden className="flex w-fit p-4 shrink-0 items-center justify-center gap-2.5 self-stretch rounded-2xl">
-          <span className="grid size-11 place-items-center rounded-xl bg-stage-speech/10 text-stage-speech">
-            <FileText className="size-[21px]" />
+      <div className="mt-6 flex gap-8 rounded-2xl border bg-card p-8 shadow-sm">
+        <div aria-hidden className="flex w-fit shrink-0 items-center justify-center gap-3 self-stretch rounded-2xl">
+          <span className="grid size-14 place-items-center rounded-2xl bg-stage-speech/10 text-stage-speech">
+            <FileText className="size-7" />
           </span>
-          <ArrowRight className="size-3 text-muted-foreground" />
-          <span className="grid size-11 place-items-center rounded-xl bg-brand-100 text-brand-600">
-            <Sparkles className="size-[21px]" />
+          <ArrowRight className="size-3.5 text-muted-foreground" />
+          <span className="grid size-14 place-items-center rounded-2xl bg-brand-100 text-brand-600">
+            <Sparkles className="size-7" />
           </span>
-          <ArrowRight className="size-3 text-muted-foreground" />
-          <span className="grid size-11 place-items-center rounded-xl bg-stage-validation/10 text-stage-validation">
-            <Package className="size-[21px]" />
+          <ArrowRight className="size-3.5 text-muted-foreground" />
+          <span className="grid size-14 place-items-center rounded-2xl bg-stage-validation/10 text-stage-validation">
+            <Package className="size-7" />
           </span>
         </div>
         <div className="min-w-0 flex-1">
@@ -39,10 +39,10 @@ export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
             <Sparkles className="size-3" />
             <Trans>New here?</Trans>
           </Badge>
-          <h2 className="mb-2 mt-3 text-xl font-bold leading-[1.25] tracking-[-0.015em]">
+          <h2 className="mb-2.5 mt-3.5 text-[25px] font-bold leading-[1.2] tracking-[-0.015em]">
             <Trans>Add your first book and ADT Studio takes care of the rest.</Trans>
           </h2>
-          <p className="mb-4 text-[13px] leading-relaxed text-muted-foreground">
+          <p className="mb-5 max-w-[62ch] text-sm leading-relaxed text-muted-foreground">
             <Trans>Drop in a textbook PDF and we&apos;ll extract pages, generate accessible captions, build storyboards, and assemble quizzes — every step inspectable, every result versioned.</Trans>
           </p>
           <div className="flex gap-2.5">
