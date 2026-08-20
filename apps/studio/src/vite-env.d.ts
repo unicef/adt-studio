@@ -174,6 +174,11 @@ interface ElectronOnboardingApi {
   /** Whether onboarding has been completed (persisted in the main process). */
   getStatus: () => Promise<boolean>
   /**
+   * Open the small, dedicated onboarding window on demand (e.g. "Restart tour")
+   * so the replay renders at its intended size rather than in the main window.
+   */
+  open: () => Promise<void>
+  /**
    * Mark onboarding complete and hand off to the main app window, which opens
    * on `startPath` (e.g. "/" or "/books/new").
    */

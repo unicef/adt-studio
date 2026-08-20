@@ -127,7 +127,12 @@ export function AboutSection() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => navigate({ to: "/onboarding" })}
+            onClick={() => {
+              const bridge =
+                typeof window !== "undefined" ? window.api?.onboarding : undefined
+              if (bridge?.open) void bridge.open()
+              else void navigate({ to: "/onboarding" })
+            }}
             className="mt-3"
           >
             <RotateCcw className="size-3.5" />

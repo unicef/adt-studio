@@ -103,6 +103,7 @@ app.whenReady().then(async () => {
     closeAfter?: BrowserWindow | null,
   ): BrowserWindow => {
     if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.show();
       mainWindow.focus();
       if (closeAfter && !closeAfter.isDestroyed()) closeAfter.destroy();
       return mainWindow;
@@ -123,14 +124,43 @@ app.whenReady().then(async () => {
     return win;
   };
 
-  registerOnboardingIpc(({ startPath, window }) => {
-    openMainWindow(startPath, window);
-  });
+  // Single small onboarding window shared by first-run and the "Restart tour"
+  // action. Focused if already open so repeated triggers never stack windows.
+  let onboardingWindow: BrowserWindow | null = null;
+  const openOnboardingWindow = (): BrowserWindow => {
+    if (onboardingWindow && !onboardingWindow.isDestroyed()) {
+      onboardingWindow.focus();
+      return onboardingWindow;
+    }
+    // When replaying the tour, hide the main window so the small onboarding
+    // window stands alone (as it does on first-run) instead of floating over
+    // the live app. It is restored when the onboarding window closes.
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide();
+    const win = createOnboardingWindow();
+    onboardingWindow = win;
+    win.on("closed", () => {
+      if (onboardingWindow === win) onboardingWindow = null;
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.show();
+        mainWindow.focus();
+      }
+    });
+    return win;
+  };
+
+  registerOnboardingIpc(
+    ({ startPath, window }) => {
+      openMainWindow(startPath, window);
+    },
+    () => {
+      openOnboardingWindow();
+    },
+  );
 
   if (hasCompletedOnboarding()) {
     openMainWindow();
   } else {
-    const onboardingWindow = createOnboardingWindow();
+    const win = openOnboardingWindow();
 
     // The onboarding window is transparent + frameless and only reveals itself
     // on `ready-to-show`. If the renderer never loads (e.g. the dev server isn't
@@ -143,22 +173,22 @@ app.whenReady().then(async () => {
       if (recovered) return;
       recovered = true;
       clearTimeout(readyGuard);
-      if (!onboardingWindow.isDestroyed()) onboardingWindow.destroy();
+      if (!win.isDestroyed()) win.destroy();
       openMainWindow();
     };
 
     const readyGuard = setTimeout(() => {
-      if (!onboardingWindow.isDestroyed() && !onboardingWindow.isVisible()) {
+      if (!win.isDestroyed() && !win.isVisible()) {
         fallbackToMainWindow();
       }
     }, 15000);
 
-    onboardingWindow.once("ready-to-show", () => {
+    win.once("ready-to-show", () => {
       clearTimeout(readyGuard);
       if (!splashWindow.isDestroyed()) splashWindow.destroy();
     });
 
-    onboardingWindow.webContents.on(
+    win.webContents.on(
       "did-fail-load",
       (_event, errorCode, _desc, _url, isMainFrame) => {
         // -3 (ERR_ABORTED) fires for superseded navigations, not real failures.
