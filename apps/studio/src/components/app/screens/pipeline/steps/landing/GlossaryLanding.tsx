@@ -85,7 +85,7 @@ export function GlossaryLanding({ bookLabel, beforeRun }: { bookLabel: string; b
 
   const handleRun = () => {
     if (!hasApiKey || !storyboardReady || status.isRunning) return
-    queueRun({ fromStage: "glossary", toStage: "glossary", apiKey, viewAfter: true })
+    queueRun({ fromStage: "glossary", toStage: "glossary", apiKey })
   }
 
   const disabledReason = !hasApiKey ? (

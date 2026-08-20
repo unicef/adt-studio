@@ -4,7 +4,7 @@ import type { TocEntry } from "@/api/client"
 import { useToc } from "@/hooks/use-toc"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import { useSaveToc } from "./shared/mutations"
-import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
 import { EditableText, SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
 import type { StepProps } from "./shared/types"
 
@@ -33,7 +33,8 @@ export function TocStep(props: StepProps) {
     })
   }
 
-  if (query.isLoading) return <StepLoading {...props} />
+  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: entries.length > 0 })
+  if (loading) return <StepLoading {...props} />
   if (entries.length === 0) return <StepEmpty {...props} />
 
   const shown =

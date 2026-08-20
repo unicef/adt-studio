@@ -95,7 +95,7 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
     // outline is deliberately stale. Start at Sectioning: the API rebuilds the
     // authoritative outline from those stored pages without clearing them.
     const fromStage = resolveSectioningStartStage(extractCovered, hasAssembledPages)
-    queueRun({ fromStage, toStage: "sectioning", apiKey, viewAfter: true })
+    queueRun({ fromStage, toStage: "sectioning", apiKey })
   }
 
   const modeOptions = useMemo(

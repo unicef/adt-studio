@@ -84,7 +84,7 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
 
   const handleRun = () => {
     if (!hasApiKey || status.isRunning) return
-    queueRun({ fromStage: "extract", toStage: "extract", apiKey, viewAfter: true })
+    queueRun({ fromStage: "extract", toStage: "extract", apiKey })
   }
 
   const disabledReason = !hasApiKey ? (

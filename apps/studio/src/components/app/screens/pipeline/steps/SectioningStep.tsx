@@ -7,7 +7,7 @@ import { useSaveSectioning } from "@/hooks/use-page-mutations"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { useSectioningRun } from "@/components/app/screens/pipeline/runs/useSectioningRun"
-import { StepEmpty, StepLoading, StepRunning, StepShell } from "./shared/StepShell"
+import { StepEmpty, StepLoading, StepRunning, StepShell, useStepLoading } from "./shared/StepShell"
 import { RowAction, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./shared/ui"
 import type { StepProps } from "./shared/types"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
@@ -143,6 +143,11 @@ export function SectioningStep(props: StepProps) {
     [pages, details],
   )
 
+  const loading = useStepLoading(props, {
+    isLoading: details.some((d) => d.isLoading),
+    hasOutput: entries.length > 0,
+  })
+
   const feeding = sectioning.isActive ? sectioning : extract.isActive ? extract : null
   if (feeding && entries.length === 0) {
     return (
@@ -155,7 +160,7 @@ export function SectioningStep(props: StepProps) {
       />
     )
   }
-  if (details.some((d) => d.isLoading)) return <StepLoading {...props} />
+  if (loading) return <StepLoading {...props} />
   if (entries.length === 0) {
     return (
       <StepEmpty

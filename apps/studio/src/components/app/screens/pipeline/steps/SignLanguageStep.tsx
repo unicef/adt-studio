@@ -9,7 +9,7 @@ import {
   useDeleteSignLanguageVideo,
 } from "@/hooks/use-sign-language-videos"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
-import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
 import { RowAction, SaveError, StepBody, StepCard, StepRail } from "./shared/ui"
 import type { StepProps } from "./shared/types"
 
@@ -46,7 +46,8 @@ export function SignLanguageStep(props: StepProps) {
 
   const pickFile = () => fileInput.current?.click()
 
-  if (query.isLoading) return <StepLoading {...props} />
+  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: videos.length > 0 })
+  if (loading) return <StepLoading {...props} />
   if (videos.length === 0) return <StepEmpty {...props} onRun={pickFile} onManual={pickFile} />
 
   const shown =

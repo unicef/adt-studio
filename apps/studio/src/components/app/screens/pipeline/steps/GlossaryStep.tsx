@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { useGlossary } from "@/hooks/use-glossary"
 import { cn } from "@/lib/utils"
 import { useSaveGlossary } from "./shared/mutations"
-import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
 import { EditableText, RowAction, SaveError, StepBody, StepCard, StepEmptyHint, StepRail } from "./shared/ui"
 import type { StepProps } from "./shared/types"
 
@@ -62,7 +62,8 @@ export function GlossaryStep(props: StepProps) {
     setSearch("")
   }
 
-  if (query.isLoading) return <StepLoading {...props} />
+  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: items.length > 0 })
+  if (loading) return <StepLoading {...props} />
   if (items.length === 0) return <StepEmpty {...props} onManual={addTerm} />
 
   const active = items.filter((i) => !i.pruned).length

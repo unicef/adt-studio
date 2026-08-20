@@ -187,8 +187,18 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     const es = new EventSource(url)
 
     // Refetch on (re)connection to catch up on any missed events
+    let hadConnection = false
     es.addEventListener("open", () => {
       queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
+      // A reconnection means events were missed — and with them the data
+      // invalidations their handlers would have run (a step-complete while the
+      // connection was down leaves the status saying "done" over stale
+      // content). Refetch the book's data to reconcile; skipped on the first
+      // open, where mount-time fetches already cover it.
+      if (hadConnection) {
+        invalidateBookQueries(queryClient, label)
+      }
+      hadConnection = true
     })
 
     es.addEventListener("progress", (e) => {

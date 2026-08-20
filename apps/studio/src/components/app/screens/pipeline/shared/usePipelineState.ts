@@ -43,6 +43,16 @@ export interface PipelineState {
 
 const NO_PAGES: PageSummaryItem[] = []
 
+/**
+ * Stages absent from `PIPELINE`, so the run status never reports them as done and
+ * their own artifact is the completion signal. Nothing but their query can say
+ * whether they have output.
+ */
+export const ARTIFACT_DERIVED_SLUGS: ReadonlySet<DockSlug> = new Set<DockSlug>([
+  "sign-language",
+  "validation",
+])
+
 export function usePipelineState(label: string): PipelineState {
   const booksQuery = useBooks()
   const pagesQuery = usePages(label)

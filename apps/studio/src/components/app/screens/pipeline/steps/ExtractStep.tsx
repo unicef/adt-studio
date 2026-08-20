@@ -8,7 +8,7 @@ import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
 import { cn } from "@/lib/utils"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
-import { StepEmpty, StepLoading, StepRunning, StepShell } from "./shared/StepShell"
+import { StepEmpty, StepLoading, StepRunning, StepShell, useStepLoading } from "./shared/StepShell"
 import { RowAction, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./shared/ui"
 import type { StepProps } from "./shared/types"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
@@ -150,6 +150,11 @@ export function ExtractStep(props: StepProps) {
     [pages, details],
   )
 
+  const loading = useStepLoading(props, {
+    isLoading: pages.length > 0 && details.every((d) => d.isLoading),
+    hasOutput: pages.length > 0,
+  })
+
   if (extract.isActive && pages.length === 0) {
     return (
       <StepRunning
@@ -161,6 +166,7 @@ export function ExtractStep(props: StepProps) {
       />
     )
   }
+  if (loading) return <StepLoading {...props} />
   if (pages.length === 0) {
     return (
       <StepEmpty
@@ -175,7 +181,6 @@ export function ExtractStep(props: StepProps) {
       />
     )
   }
-  if (details.every((d) => d.isLoading)) return <StepLoading {...props} />
 
   const withWarnings = entries.filter((e) => e.detail?.extractionWarning).length
   const shown = activePageId ? entries.filter((e) => e.page.pageId === activePageId) : entries

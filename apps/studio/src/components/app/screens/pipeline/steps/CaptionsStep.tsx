@@ -5,7 +5,7 @@ import { EyeOff, Undo2 } from "lucide-react"
 import { api, BASE_URL, type PageDetail } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { useSaveCaptions } from "./shared/mutations"
-import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
 import { EditableText, RowAction, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./shared/ui"
 import type { StepProps } from "./shared/types"
 
@@ -116,7 +116,8 @@ export function CaptionsStep(props: StepProps) {
 
   const [activePageId, setActivePageId] = useState<string | null>(null)
 
-  if (isLoading) return <StepLoading {...props} />
+  const loading = useStepLoading(props, { isLoading, hasOutput: perPage.length > 0 })
+  if (loading) return <StepLoading {...props} />
   if (perPage.length === 0) return <StepEmpty {...props} />
 
   const total = perPage.reduce((sum, e) => sum + e.captions.length, 0)

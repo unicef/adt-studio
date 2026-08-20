@@ -1,11 +1,13 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { PluginEmptyState, type Prerequisite, type ScopeKey } from "@/components/app/screens/pipeline/plugins/PluginEmptyState"
 import { PreRunChecklist } from "@/components/app/screens/pipeline/plugins/PreRunChecklist"
 import { PluginRailEmpty } from "@/components/app/screens/pipeline/plugins/PluginRailEmpty"
 import { StepLanding, hasStepLanding } from "./StepLanding"
-import { StepBodySkeleton, StepRailSkeleton } from "./StepSkeleton"
+import { StepRail } from "./ui"
+import { LoadingState, type StageSlug } from "@/components/pipeline/components/LoadingState"
 import { PluginWorkspace } from "@/components/app/screens/pipeline/plugins/PluginWorkspace"
 import { StageRunningPanel } from "@/components/app/screens/pipeline/runs/StageRunningPanel"
 import { useOptionalStageActivity, useRunActivity, type RunStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
@@ -13,6 +15,9 @@ import { useStageRun } from "@/components/app/screens/pipeline/runs/useStageRun"
 import { isStepSettingsSlug } from "@/components/app/screens/pipeline/settings/slugs"
 import { STEP_PREREQ_REASON } from "@/components/app/screens/pipeline/shared/stepPrereq"
 import { useStepPrereq } from "@/components/app/screens/pipeline/runs/useStepPrereq"
+import { useBookRun } from "@/hooks/use-book-run"
+import { ARTIFACT_DERIVED_SLUGS } from "@/components/app/screens/pipeline/shared/usePipelineState"
+import type { DockSlug } from "@/components/app/screens/pipeline/shared/plugins"
 import type { StepProps } from "./types"
 
 export interface StepShellProps extends StepProps {
@@ -238,12 +243,80 @@ export function StepRunning({
   )
 }
 
+// Sign Language is the one dock slug the shared loader has no stage animation
+// for, so it falls back to the generic one.
+function loaderStage(slug: DockSlug): StageSlug | undefined {
+  return slug === "sign-language" ? undefined : slug
+}
+
 /** Loading frame shown while a step's output is being fetched. */
 export function StepLoading(props: StepProps) {
   const { t } = useLingui()
+  const { plugin } = props
   return (
-    <StepShell {...props} chips={[t`Loading…`]} canApply={false} rail={<StepRailSkeleton />}>
-      <StepBodySkeleton />
+    <StepShell
+      {...props}
+      chips={[t`Loading…`]}
+      canApply={false}
+      rail={<StepRail heading={getStageLabelI18n(plugin.slug)} hex={plugin.hex} entries={[]} />}
+    >
+      <LoadingState stageSlug={loaderStage(plugin.slug)} label={t`Loading…`} />
     </StepShell>
   )
+}
+
+export interface StepOutputQuery {
+  /** The step's own output query is still on its first fetch. */
+  isLoading: boolean
+  /** The step's output is present in the cache. */
+  hasOutput: boolean
+}
+
+/**
+ * Whether the loader should stand in for a step's body, mirroring how the classic
+ * UI gates it: the run status decides, so a stage that has produced nothing drops
+ * straight to its empty state instead of flashing a loader it will never fill.
+ * While the status itself is unknown the loader wins — `LoadingState` holds its
+ * visual back 200ms, so a cached read resolves before anything is drawn.
+ *
+ * The inverse disagreement — the stage reads done but the cached output is still
+ * empty — means the completion-time invalidation never reached this client (an
+ * SSE reconnect gap, a route handoff mid-run). The classic UI survives that
+ * because its landing/content switch follows the run status alone; here the
+ * content decides, so the hook heals the cache itself: keep the loader up, force
+ * one refetch, and only fall back to the empty state once that refetch confirms
+ * the output is genuinely empty.
+ */
+export function useStepLoading(
+  { label, plugin, frame }: StepProps,
+  { isLoading, hasOutput }: StepOutputQuery,
+): boolean {
+  const { isStatusLoading } = useBookRun()
+  const queryClient = useQueryClient()
+  const [heal, setHeal] = useState<"idle" | "healing" | "done">("idle")
+
+  // These two have no run status to consult — the query being awaited is itself
+  // what decides whether they have output, so status and cache cannot disagree.
+  const artifactDerived = ARTIFACT_DERIVED_SLUGS.has(plugin.slug)
+  const dock = [...frame.foundations, ...frame.plugins].find((item) => item.slug === plugin.slug)
+  const stageDone = dock?.state === "done"
+
+  useEffect(() => {
+    if (artifactDerived) return
+    if (!stageDone) {
+      // A re-run took the stage out of done — arm the heal again for its landing.
+      if (heal !== "idle") setHeal("idle")
+      return
+    }
+    if (hasOutput || heal !== "idle") return
+    setHeal("healing")
+    void queryClient
+      .invalidateQueries({ queryKey: ["books", label] })
+      .finally(() => setHeal("done"))
+  }, [artifactDerived, stageDone, hasOutput, heal, queryClient, label])
+
+  if (isStatusLoading) return true
+  if (artifactDerived) return isLoading
+  if (!stageDone) return false
+  return isLoading || (!hasOutput && heal !== "done")
 }

@@ -11,7 +11,7 @@ import {
   useReviewerValidationCatalog,
   useReviewerValidationSessions,
 } from "@/hooks/use-reviewer-validation"
-import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
 import { StepRail } from "./shared/ui"
 import type { StepProps } from "./shared/types"
 
@@ -33,7 +33,12 @@ export function ValidationStep(props: StepProps) {
 
   const openPreviewToPage = (href: string) => frame.onOpenPreviewHref(href)
 
-  if (assessment.isLoading || packaging) return <StepLoading {...props} />
+  const loading = useStepLoading(props, {
+    isLoading: assessment.isLoading,
+    hasOutput: Boolean(assessment.data?.assessment),
+  })
+
+  if (loading || packaging) return <StepLoading {...props} />
 
   if (!assessment.data?.assessment) {
     return (

@@ -56,7 +56,7 @@ export function TocLanding({ bookLabel, beforeRun }: { bookLabel: string; before
 
   const handleRun = () => {
     if (!hasApiKey || !storyboardReady || status.isRunning) return
-    queueRun({ fromStage: "toc", toStage: "toc", apiKey, viewAfter: true })
+    queueRun({ fromStage: "toc", toStage: "toc", apiKey })
   }
 
   const modeOptions = useMemo(

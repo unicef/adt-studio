@@ -4,7 +4,7 @@ import type { EasyReadSectionBlock } from "@/api/client"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import { useSaveEasyRead } from "./shared/mutations"
 import { useEasyRead } from "./shared/queries"
-import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
 import { EditableText, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./shared/ui"
 import type { StepProps } from "./shared/types"
 
@@ -46,7 +46,8 @@ export function EasyReadStep(props: StepProps) {
     save.mutate({ blocks: next, generatedAt: query.data.generatedAt })
   }
 
-  if (query.isLoading) return <StepLoading {...props} />
+  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: blocks.length > 0 })
+  if (loading) return <StepLoading {...props} />
   if (blocks.length === 0) return <StepEmpty {...props} />
 
   const total = blocks.reduce((sum, b) => sum + b.entries.length, 0)

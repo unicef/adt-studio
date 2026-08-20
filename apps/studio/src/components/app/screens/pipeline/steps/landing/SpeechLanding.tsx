@@ -91,7 +91,7 @@ export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; bef
 
   const handleRun = () => {
     if (!hasApiKey || !translateReady || status.isRunning) return
-    queueRun({ fromStage: "speech", toStage: "speech", apiKey, viewAfter: true })
+    queueRun({ fromStage: "speech", toStage: "speech", apiKey })
   }
 
   const providerKeyAvailable: Record<ProviderKey, boolean> = {

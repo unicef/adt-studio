@@ -4,7 +4,7 @@ import { AlertTriangle } from "lucide-react"
 import { getAudioUrl } from "@/api/client"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import { useSpeech, useTextCatalog } from "./shared/queries"
-import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
 import { StepBody, StepCard, StepEmptyHint, StepRail } from "./shared/ui"
 import type { StepProps } from "./shared/types"
 
@@ -36,7 +36,8 @@ export function SpeechStep(props: StepProps) {
     return map
   }, [catalog.data, language])
 
-  if (query.isLoading) return <StepLoading {...props} />
+  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: languages.length > 0 })
+  if (loading) return <StepLoading {...props} />
   if (languages.length === 0) return <StepEmpty {...props} />
 
   const entries = data?.entries ?? []

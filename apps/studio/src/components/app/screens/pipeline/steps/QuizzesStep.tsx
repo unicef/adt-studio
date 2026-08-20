@@ -6,7 +6,7 @@ import { useQuizzes } from "@/hooks/use-quizzes"
 import { cn } from "@/lib/utils"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import { useSaveQuizzes } from "./shared/mutations"
-import { StepEmpty, StepLoading, StepShell } from "./shared/StepShell"
+import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
 import { EditableText, SaveError, StepBody, StepCard, StepEmptyHint, StepRail } from "./shared/ui"
 import type { StepProps } from "./shared/types"
 
@@ -56,7 +56,8 @@ export function QuizzesStep(props: StepProps) {
     })
   }
 
-  if (query.isLoading) return <StepLoading {...props} />
+  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: quizzes.length > 0 })
+  if (loading) return <StepLoading {...props} />
   if (quizzes.length === 0) return <StepEmpty {...props} />
 
   const shown = activePageId ? quizzes.filter((q) => q.afterPageId === activePageId) : quizzes
