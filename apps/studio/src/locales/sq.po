@@ -1903,6 +1903,9 @@ msgstr "Kthehu te aktiviteti klasik"
 msgid "Back to home"
 msgstr "Kthehu në shtëpi"
 
+msgid "Back to library"
+msgstr "Kthehu te biblioteka"
+
 msgid "Back to preview"
 msgstr "Kthehu te pamja paraprake"
 
@@ -10508,6 +10511,9 @@ msgstr "Ky libër është një pjesë. Eksportojeni si <0>Pjesa e përfunduar</0
 
 msgid "This book is fully assembled"
 msgstr "Ky libër është plotësisht i montuar"
+
+msgid "This book is not in your library."
+msgstr "Ky libër nuk është në bibliotekën tuaj."
 
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."

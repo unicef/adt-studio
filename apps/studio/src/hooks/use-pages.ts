@@ -1,13 +1,20 @@
-import { useQuery } from "@tanstack/react-query"
+import { queryOptions, useQuery } from "@tanstack/react-query"
 import { api, getSectionScreenshotUrl } from "@/api/client"
+
+/** Shared so route loaders prime the very cache entry `usePages` reads. */
+export function pagesQueryOptions(label: string) {
+  return queryOptions({
+    queryKey: ["books", label, "pages"],
+    queryFn: () => api.getPages(label),
+  })
+}
 
 export function usePages(
   label: string,
   options?: { refetchInterval?: number | false; refetchOnMount?: boolean | "always"; enabled?: boolean }
 ) {
   return useQuery({
-    queryKey: ["books", label, "pages"],
-    queryFn: () => api.getPages(label),
+    ...pagesQueryOptions(label),
     // `enabled: false` still subscribes to (and re-renders on) the cached query
     // populated by other observers — it just won't trigger its own fetch.
     enabled: !!label && (options?.enabled ?? true),

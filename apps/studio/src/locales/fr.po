@@ -1903,6 +1903,9 @@ msgstr "Revenir à l'activité classique"
 msgid "Back to home"
 msgstr "Retour à l'accueil"
 
+msgid "Back to library"
+msgstr "Retour à la bibliothèque"
+
 msgid "Back to preview"
 msgstr "Retour à l'aperçu"
 
@@ -10508,6 +10511,9 @@ msgstr "Ce livre est une partie. Exportez-le en tant que <0>Partie terminée</0>
 
 msgid "This book is fully assembled"
 msgstr "Ce livre est entièrement assemblé"
+
+msgid "This book is not in your library."
+msgstr "Ce livre n'est pas dans votre bibliothèque."
 
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."

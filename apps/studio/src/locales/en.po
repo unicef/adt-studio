@@ -1901,6 +1901,9 @@ msgstr "Back to classic activity"
 msgid "Back to home"
 msgstr "Back to home"
 
+msgid "Back to library"
+msgstr "Back to library"
+
 msgid "Back to preview"
 msgstr "Back to preview"
 
@@ -10506,6 +10509,9 @@ msgstr "This book is a part. Export it as a <0>Completed Part</0> and send the f
 
 msgid "This book is fully assembled"
 msgstr "This book is fully assembled"
+
+msgid "This book is not in your library."
+msgstr "This book is not in your library."
 
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."

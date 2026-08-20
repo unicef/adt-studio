@@ -14,7 +14,7 @@ export function useOpenBook(): (label: string) => void {
         void navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
         return
       }
-      void navigate({ to: "/pipeline/$label", params: { label }, search: {} })
+      void navigate({ to: "/pipeline/$label", params: { label } })
     },
     [navigate, pipelineUi],
   )

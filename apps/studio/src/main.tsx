@@ -60,6 +60,7 @@ const queryClient = new QueryClient({
 
 const router = createRouter({
   routeTree,
+  context: { queryClient },
   rewrite: {
     input: ({ url }) => {
       const lang = url.searchParams.get("lang")

@@ -25,8 +25,23 @@ import { getSettingsTabLabel } from "../settings-tabs"
 import { STAGES } from "../stage-config"
 import { getStageLabelI18n } from "../pipeline-i18n"
 import { useCloseIntent } from "@/components/close-guard/CloseGuard"
+import { shouldBlockNavigation, type NavigationLocation } from "./unsavedNavigation"
 
 const STAGE_BY_SLUG = new Map<string, (typeof STAGES)[number]>(STAGES.map((s) => [s.slug, s]))
+
+function toNavigationLocation(location: {
+  routeId: unknown
+  pathname: string
+  params: unknown
+  search: unknown
+}): NavigationLocation {
+  return {
+    routeId: String(location.routeId),
+    pathname: location.pathname,
+    params: (location.params ?? {}) as Record<string, string | undefined>,
+    search: (location.search ?? {}) as Record<string, unknown>,
+  }
+}
 
 export function UnsavedChangesGuard() {
   const { t, i18n } = useLingui()
@@ -46,20 +61,16 @@ export function UnsavedChangesGuard() {
   const ephemeralDirtyRef = useRef(ephemeralDirtyTabs)
   ephemeralDirtyRef.current = ephemeralDirtyTabs
 
-  const shouldBlockFn = useCallback<ShouldBlockFn>(({ current, next }) => {
-    if (!hasUnsavedRef.current) return false
-    if (current.pathname !== next.pathname) return true
-    const nextSettings = (next.search as { settings?: string } | undefined)?.settings
-    const currentSettings = (current.search as { settings?: string } | undefined)?.settings
-    if (currentSettings && nextSettings !== currentSettings) return true
-    const nextTab = (next.search as { tab?: string } | undefined)?.tab
-    const currentTab = (current.search as { tab?: string } | undefined)?.tab
-    if (nextTab === "overview" && currentTab !== "overview") return true
-    for (const tab of ephemeralDirtyRef.current) {
-      if (tab !== nextTab) return true
-    }
-    return false
-  }, [])
+  const shouldBlockFn = useCallback<ShouldBlockFn>(
+    ({ current, next }) =>
+      shouldBlockNavigation({
+        current: toNavigationLocation(current),
+        next: toNavigationLocation(next),
+        hasUnsaved: hasUnsavedRef.current,
+        ephemeralDirtyTabs: ephemeralDirtyRef.current,
+      }),
+    [],
+  )
   const enableBeforeUnload = useCallback(() => hasUnsavedRef.current, [])
 
   const { status, proceed, reset } = useBlocker({

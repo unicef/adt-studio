@@ -32,8 +32,17 @@ import { Route as AppSettingsLanguageRouteImport } from "./routes/_app.settings.
 import { Route as AppSettingsAboutRouteImport } from "./routes/_app.settings.about"
 import { Route as AppPipelineLabelRouteImport } from "./routes/_app.pipeline.$label"
 import { Route as BooksLabelStepIndexRouteImport } from "./routes/books.$label.$step.index"
+import { Route as AppPipelineLabelIndexRouteImport } from "./routes/_app.pipeline.$label.index"
 import { Route as BooksLabelStepSettingsRouteImport } from "./routes/books.$label.$step.settings"
 import { Route as BooksLabelStepPageIdRouteImport } from "./routes/books.$label.$step.$pageId"
+import { Route as AppPipelineLabelPreviewRouteImport } from "./routes/_app.pipeline.$label.preview"
+import { Route as AppPipelineLabelInfoRouteImport } from "./routes/_app.pipeline.$label.info"
+import { Route as AppPipelineLabelStepRouteImport } from "./routes/_app.pipeline.$label.$step"
+import { Route as AppPipelineLabelStepIndexRouteImport } from "./routes/_app.pipeline.$label.$step.index"
+import { Route as AppPipelineLabelPagesPageIdRouteImport } from "./routes/_app.pipeline.$label.pages.$pageId"
+import { Route as AppPipelineLabelStepSettingsRouteImport } from "./routes/_app.pipeline.$label.$step.settings"
+import { Route as AppPipelineLabelStepSettingsIndexRouteImport } from "./routes/_app.pipeline.$label.$step.settings.index"
+import { Route as AppPipelineLabelStepSettingsTabRouteImport } from "./routes/_app.pipeline.$label.$step.settings.$tab"
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: "/onboarding",
@@ -150,6 +159,11 @@ const BooksLabelStepIndexRoute = BooksLabelStepIndexRouteImport.update({
   path: "/",
   getParentRoute: () => BooksLabelStepRoute,
 } as any)
+const AppPipelineLabelIndexRoute = AppPipelineLabelIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => AppPipelineLabelRoute,
+} as any)
 const BooksLabelStepSettingsRoute = BooksLabelStepSettingsRouteImport.update({
   id: "/settings",
   path: "/settings",
@@ -160,6 +174,51 @@ const BooksLabelStepPageIdRoute = BooksLabelStepPageIdRouteImport.update({
   path: "/$pageId",
   getParentRoute: () => BooksLabelStepRoute,
 } as any)
+const AppPipelineLabelPreviewRoute = AppPipelineLabelPreviewRouteImport.update({
+  id: "/preview",
+  path: "/preview",
+  getParentRoute: () => AppPipelineLabelRoute,
+} as any)
+const AppPipelineLabelInfoRoute = AppPipelineLabelInfoRouteImport.update({
+  id: "/info",
+  path: "/info",
+  getParentRoute: () => AppPipelineLabelRoute,
+} as any)
+const AppPipelineLabelStepRoute = AppPipelineLabelStepRouteImport.update({
+  id: "/$step",
+  path: "/$step",
+  getParentRoute: () => AppPipelineLabelRoute,
+} as any)
+const AppPipelineLabelStepIndexRoute =
+  AppPipelineLabelStepIndexRouteImport.update({
+    id: "/",
+    path: "/",
+    getParentRoute: () => AppPipelineLabelStepRoute,
+  } as any)
+const AppPipelineLabelPagesPageIdRoute =
+  AppPipelineLabelPagesPageIdRouteImport.update({
+    id: "/pages/$pageId",
+    path: "/pages/$pageId",
+    getParentRoute: () => AppPipelineLabelRoute,
+  } as any)
+const AppPipelineLabelStepSettingsRoute =
+  AppPipelineLabelStepSettingsRouteImport.update({
+    id: "/settings",
+    path: "/settings",
+    getParentRoute: () => AppPipelineLabelStepRoute,
+  } as any)
+const AppPipelineLabelStepSettingsIndexRoute =
+  AppPipelineLabelStepSettingsIndexRouteImport.update({
+    id: "/",
+    path: "/",
+    getParentRoute: () => AppPipelineLabelStepSettingsRoute,
+  } as any)
+const AppPipelineLabelStepSettingsTabRoute =
+  AppPipelineLabelStepSettingsTabRouteImport.update({
+    id: "/$tab",
+    path: "/$tab",
+    getParentRoute: () => AppPipelineLabelStepSettingsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof AppIndexRoute
@@ -171,7 +230,7 @@ export interface FileRoutesByFullPath {
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
-  "/pipeline/$label": typeof AppPipelineLabelRoute
+  "/pipeline/$label": typeof AppPipelineLabelRouteWithChildren
   "/settings/about": typeof AppSettingsAboutRoute
   "/settings/language": typeof AppSettingsLanguageRoute
   "/settings/models": typeof AppSettingsModelsRoute
@@ -183,9 +242,18 @@ export interface FileRoutesByFullPath {
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/settings/": typeof AppSettingsIndexRoute
   "/books/$label/": typeof BooksLabelIndexRoute
+  "/pipeline/$label/$step": typeof AppPipelineLabelStepRouteWithChildren
+  "/pipeline/$label/info": typeof AppPipelineLabelInfoRoute
+  "/pipeline/$label/preview": typeof AppPipelineLabelPreviewRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
+  "/pipeline/$label/": typeof AppPipelineLabelIndexRoute
   "/books/$label/$step/": typeof BooksLabelStepIndexRoute
+  "/pipeline/$label/$step/settings": typeof AppPipelineLabelStepSettingsRouteWithChildren
+  "/pipeline/$label/pages/$pageId": typeof AppPipelineLabelPagesPageIdRoute
+  "/pipeline/$label/$step/": typeof AppPipelineLabelStepIndexRoute
+  "/pipeline/$label/$step/settings/$tab": typeof AppPipelineLabelStepSettingsTabRoute
+  "/pipeline/$label/$step/settings/": typeof AppPipelineLabelStepSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   "/onboarding": typeof OnboardingRoute
@@ -195,7 +263,6 @@ export interface FileRoutesByTo {
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/": typeof AppIndexRoute
-  "/pipeline/$label": typeof AppPipelineLabelRoute
   "/settings/about": typeof AppSettingsAboutRoute
   "/settings/language": typeof AppSettingsLanguageRoute
   "/settings/models": typeof AppSettingsModelsRoute
@@ -206,9 +273,16 @@ export interface FileRoutesByTo {
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/settings": typeof AppSettingsIndexRoute
   "/books/$label": typeof BooksLabelIndexRoute
+  "/pipeline/$label/info": typeof AppPipelineLabelInfoRoute
+  "/pipeline/$label/preview": typeof AppPipelineLabelPreviewRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
+  "/pipeline/$label": typeof AppPipelineLabelIndexRoute
   "/books/$label/$step": typeof BooksLabelStepIndexRoute
+  "/pipeline/$label/pages/$pageId": typeof AppPipelineLabelPagesPageIdRoute
+  "/pipeline/$label/$step": typeof AppPipelineLabelStepIndexRoute
+  "/pipeline/$label/$step/settings/$tab": typeof AppPipelineLabelStepSettingsTabRoute
+  "/pipeline/$label/$step/settings": typeof AppPipelineLabelStepSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -222,7 +296,7 @@ export interface FileRoutesById {
   "/books/new": typeof BooksNewRoute
   "/prompts/settings": typeof PromptsSettingsRoute
   "/_app/": typeof AppIndexRoute
-  "/_app/pipeline/$label": typeof AppPipelineLabelRoute
+  "/_app/pipeline/$label": typeof AppPipelineLabelRouteWithChildren
   "/_app/settings/about": typeof AppSettingsAboutRoute
   "/_app/settings/language": typeof AppSettingsLanguageRoute
   "/_app/settings/models": typeof AppSettingsModelsRoute
@@ -234,9 +308,18 @@ export interface FileRoutesById {
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/_app/settings/": typeof AppSettingsIndexRoute
   "/books/$label/": typeof BooksLabelIndexRoute
+  "/_app/pipeline/$label/$step": typeof AppPipelineLabelStepRouteWithChildren
+  "/_app/pipeline/$label/info": typeof AppPipelineLabelInfoRoute
+  "/_app/pipeline/$label/preview": typeof AppPipelineLabelPreviewRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
+  "/_app/pipeline/$label/": typeof AppPipelineLabelIndexRoute
   "/books/$label/$step/": typeof BooksLabelStepIndexRoute
+  "/_app/pipeline/$label/$step/settings": typeof AppPipelineLabelStepSettingsRouteWithChildren
+  "/_app/pipeline/$label/pages/$pageId": typeof AppPipelineLabelPagesPageIdRoute
+  "/_app/pipeline/$label/$step/": typeof AppPipelineLabelStepIndexRoute
+  "/_app/pipeline/$label/$step/settings/$tab": typeof AppPipelineLabelStepSettingsTabRoute
+  "/_app/pipeline/$label/$step/settings/": typeof AppPipelineLabelStepSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -262,9 +345,18 @@ export interface FileRouteTypes {
     | "/books/$label/debug"
     | "/settings/"
     | "/books/$label/"
+    | "/pipeline/$label/$step"
+    | "/pipeline/$label/info"
+    | "/pipeline/$label/preview"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
+    | "/pipeline/$label/"
     | "/books/$label/$step/"
+    | "/pipeline/$label/$step/settings"
+    | "/pipeline/$label/pages/$pageId"
+    | "/pipeline/$label/$step/"
+    | "/pipeline/$label/$step/settings/$tab"
+    | "/pipeline/$label/$step/settings/"
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/onboarding"
@@ -274,7 +366,6 @@ export interface FileRouteTypes {
     | "/books/new"
     | "/prompts/settings"
     | "/"
-    | "/pipeline/$label"
     | "/settings/about"
     | "/settings/language"
     | "/settings/models"
@@ -285,9 +376,16 @@ export interface FileRouteTypes {
     | "/books/$label/debug"
     | "/settings"
     | "/books/$label"
+    | "/pipeline/$label/info"
+    | "/pipeline/$label/preview"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
+    | "/pipeline/$label"
     | "/books/$label/$step"
+    | "/pipeline/$label/pages/$pageId"
+    | "/pipeline/$label/$step"
+    | "/pipeline/$label/$step/settings/$tab"
+    | "/pipeline/$label/$step/settings"
   id:
     | "__root__"
     | "/_app"
@@ -312,9 +410,18 @@ export interface FileRouteTypes {
     | "/books/$label/debug"
     | "/_app/settings/"
     | "/books/$label/"
+    | "/_app/pipeline/$label/$step"
+    | "/_app/pipeline/$label/info"
+    | "/_app/pipeline/$label/preview"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
+    | "/_app/pipeline/$label/"
     | "/books/$label/$step/"
+    | "/_app/pipeline/$label/$step/settings"
+    | "/_app/pipeline/$label/pages/$pageId"
+    | "/_app/pipeline/$label/$step/"
+    | "/_app/pipeline/$label/$step/settings/$tab"
+    | "/_app/pipeline/$label/$step/settings/"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -489,6 +596,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof BooksLabelStepIndexRouteImport
       parentRoute: typeof BooksLabelStepRoute
     }
+    "/_app/pipeline/$label/": {
+      id: "/_app/pipeline/$label/"
+      path: "/"
+      fullPath: "/pipeline/$label/"
+      preLoaderRoute: typeof AppPipelineLabelIndexRouteImport
+      parentRoute: typeof AppPipelineLabelRoute
+    }
     "/books/$label/$step/settings": {
       id: "/books/$label/$step/settings"
       path: "/settings"
@@ -502,6 +616,62 @@ declare module "@tanstack/react-router" {
       fullPath: "/books/$label/$step/$pageId"
       preLoaderRoute: typeof BooksLabelStepPageIdRouteImport
       parentRoute: typeof BooksLabelStepRoute
+    }
+    "/_app/pipeline/$label/preview": {
+      id: "/_app/pipeline/$label/preview"
+      path: "/preview"
+      fullPath: "/pipeline/$label/preview"
+      preLoaderRoute: typeof AppPipelineLabelPreviewRouteImport
+      parentRoute: typeof AppPipelineLabelRoute
+    }
+    "/_app/pipeline/$label/info": {
+      id: "/_app/pipeline/$label/info"
+      path: "/info"
+      fullPath: "/pipeline/$label/info"
+      preLoaderRoute: typeof AppPipelineLabelInfoRouteImport
+      parentRoute: typeof AppPipelineLabelRoute
+    }
+    "/_app/pipeline/$label/$step": {
+      id: "/_app/pipeline/$label/$step"
+      path: "/$step"
+      fullPath: "/pipeline/$label/$step"
+      preLoaderRoute: typeof AppPipelineLabelStepRouteImport
+      parentRoute: typeof AppPipelineLabelRoute
+    }
+    "/_app/pipeline/$label/$step/": {
+      id: "/_app/pipeline/$label/$step/"
+      path: "/"
+      fullPath: "/pipeline/$label/$step/"
+      preLoaderRoute: typeof AppPipelineLabelStepIndexRouteImport
+      parentRoute: typeof AppPipelineLabelStepRoute
+    }
+    "/_app/pipeline/$label/pages/$pageId": {
+      id: "/_app/pipeline/$label/pages/$pageId"
+      path: "/pages/$pageId"
+      fullPath: "/pipeline/$label/pages/$pageId"
+      preLoaderRoute: typeof AppPipelineLabelPagesPageIdRouteImport
+      parentRoute: typeof AppPipelineLabelRoute
+    }
+    "/_app/pipeline/$label/$step/settings": {
+      id: "/_app/pipeline/$label/$step/settings"
+      path: "/settings"
+      fullPath: "/pipeline/$label/$step/settings"
+      preLoaderRoute: typeof AppPipelineLabelStepSettingsRouteImport
+      parentRoute: typeof AppPipelineLabelStepRoute
+    }
+    "/_app/pipeline/$label/$step/settings/": {
+      id: "/_app/pipeline/$label/$step/settings/"
+      path: "/"
+      fullPath: "/pipeline/$label/$step/settings/"
+      preLoaderRoute: typeof AppPipelineLabelStepSettingsIndexRouteImport
+      parentRoute: typeof AppPipelineLabelStepSettingsRoute
+    }
+    "/_app/pipeline/$label/$step/settings/$tab": {
+      id: "/_app/pipeline/$label/$step/settings/$tab"
+      path: "/$tab"
+      fullPath: "/pipeline/$label/$step/settings/$tab"
+      preLoaderRoute: typeof AppPipelineLabelStepSettingsTabRouteImport
+      parentRoute: typeof AppPipelineLabelStepSettingsRoute
     }
   }
 }
@@ -532,12 +702,62 @@ const AppSettingsRouteWithChildren = AppSettingsRoute._addFileChildren(
   AppSettingsRouteChildren,
 )
 
+interface AppPipelineLabelStepSettingsRouteChildren {
+  AppPipelineLabelStepSettingsTabRoute: typeof AppPipelineLabelStepSettingsTabRoute
+  AppPipelineLabelStepSettingsIndexRoute: typeof AppPipelineLabelStepSettingsIndexRoute
+}
+
+const AppPipelineLabelStepSettingsRouteChildren: AppPipelineLabelStepSettingsRouteChildren =
+  {
+    AppPipelineLabelStepSettingsTabRoute: AppPipelineLabelStepSettingsTabRoute,
+    AppPipelineLabelStepSettingsIndexRoute:
+      AppPipelineLabelStepSettingsIndexRoute,
+  }
+
+const AppPipelineLabelStepSettingsRouteWithChildren =
+  AppPipelineLabelStepSettingsRoute._addFileChildren(
+    AppPipelineLabelStepSettingsRouteChildren,
+  )
+
+interface AppPipelineLabelStepRouteChildren {
+  AppPipelineLabelStepSettingsRoute: typeof AppPipelineLabelStepSettingsRouteWithChildren
+  AppPipelineLabelStepIndexRoute: typeof AppPipelineLabelStepIndexRoute
+}
+
+const AppPipelineLabelStepRouteChildren: AppPipelineLabelStepRouteChildren = {
+  AppPipelineLabelStepSettingsRoute:
+    AppPipelineLabelStepSettingsRouteWithChildren,
+  AppPipelineLabelStepIndexRoute: AppPipelineLabelStepIndexRoute,
+}
+
+const AppPipelineLabelStepRouteWithChildren =
+  AppPipelineLabelStepRoute._addFileChildren(AppPipelineLabelStepRouteChildren)
+
+interface AppPipelineLabelRouteChildren {
+  AppPipelineLabelStepRoute: typeof AppPipelineLabelStepRouteWithChildren
+  AppPipelineLabelInfoRoute: typeof AppPipelineLabelInfoRoute
+  AppPipelineLabelPreviewRoute: typeof AppPipelineLabelPreviewRoute
+  AppPipelineLabelIndexRoute: typeof AppPipelineLabelIndexRoute
+  AppPipelineLabelPagesPageIdRoute: typeof AppPipelineLabelPagesPageIdRoute
+}
+
+const AppPipelineLabelRouteChildren: AppPipelineLabelRouteChildren = {
+  AppPipelineLabelStepRoute: AppPipelineLabelStepRouteWithChildren,
+  AppPipelineLabelInfoRoute: AppPipelineLabelInfoRoute,
+  AppPipelineLabelPreviewRoute: AppPipelineLabelPreviewRoute,
+  AppPipelineLabelIndexRoute: AppPipelineLabelIndexRoute,
+  AppPipelineLabelPagesPageIdRoute: AppPipelineLabelPagesPageIdRoute,
+}
+
+const AppPipelineLabelRouteWithChildren =
+  AppPipelineLabelRoute._addFileChildren(AppPipelineLabelRouteChildren)
+
 interface AppRouteChildren {
   AppHandoffsRoute: typeof AppHandoffsRoute
   AppLibraryRoute: typeof AppLibraryRoute
   AppSettingsRoute: typeof AppSettingsRouteWithChildren
   AppIndexRoute: typeof AppIndexRoute
-  AppPipelineLabelRoute: typeof AppPipelineLabelRoute
+  AppPipelineLabelRoute: typeof AppPipelineLabelRouteWithChildren
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -545,7 +765,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppLibraryRoute: AppLibraryRoute,
   AppSettingsRoute: AppSettingsRouteWithChildren,
   AppIndexRoute: AppIndexRoute,
-  AppPipelineLabelRoute: AppPipelineLabelRoute,
+  AppPipelineLabelRoute: AppPipelineLabelRouteWithChildren,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

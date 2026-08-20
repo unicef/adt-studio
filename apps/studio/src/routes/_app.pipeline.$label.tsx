@@ -1,53 +1,52 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { PipelineScreen } from "@/components/app/screens/pipeline/PipelineScreen"
-import { isDockSlug, type DockSlug } from "@/components/app/screens/pipeline/shared/plugins"
-import {
-  isStepSettingsSlug,
-  type StepSettingsSlug,
-} from "@/components/app/screens/pipeline/settings/slugs"
+import { createFileRoute, Link, Outlet, notFound } from "@tanstack/react-router"
+import { Trans } from "@lingui/react/macro"
 import { PageErrorDecisionDialog } from "@/components/pipeline/components/PageErrorDecisionDialog"
 import { BookRunProvider, useBookRunStatus } from "@/hooks/use-book-run"
-
-export interface PipelineSearch {
-  step?: DockSlug
-  settings?: StepSettingsSlug
-  tab?: string
-  /** Page the canvas is showing. Absent means the first page of the book. */
-  page?: string
-  /** Reading the packaged book; carries the section the storyboard was showing. */
-  preview?: boolean
-  previewSection?: string
-  /** Bundle-relative page to open, when the caller already knows the file
-   *  (validation findings link straight to the page they were found on). */
-  previewHref?: string
-  /** The book's cover and metadata, opened from the top bar. */
-  info?: boolean
-}
+import { booksQueryOptions, useBooks } from "@/hooks/use-books"
+import { ensurePages } from "@/components/app/screens/pipeline/shared/ensurePages"
+import { usePageTitle } from "@/hooks/use-page-title"
+import { ScreenFallback } from "@/components/app/ui/ScreenFallback"
+import { APP_PATHS } from "@/components/app/nav"
 
 export const Route = createFileRoute("/_app/pipeline/$label")({
-  component: PipelineRoute,
-  validateSearch: (search: Record<string, unknown>): PipelineSearch => {
-    const { step, settings, tab, page, preview, previewSection, previewHref, info } = search
-    return {
-      ...(typeof step === "string" && isDockSlug(step) ? { step } : {}),
-      ...(typeof settings === "string" && isStepSettingsSlug(settings) ? { settings } : {}),
-      ...(typeof tab === "string" ? { tab } : {}),
-      ...(typeof page === "string" && page ? { page } : {}),
-      ...(preview === true || preview === "true" ? { preview: true } : {}),
-      ...(typeof previewSection === "string" ? { previewSection } : {}),
-      ...(typeof previewHref === "string" && previewHref ? { previewHref } : {}),
-      ...(info === true || info === "true" ? { info: true } : {}),
-    }
+  loader: async ({ context, params }) => {
+    const books = await context.queryClient.ensureQueryData(booksQueryOptions())
+    if (!books.some((book) => book.label === params.label)) throw notFound()
+    // A book with no extraction has no page database yet, so this 404s. That is
+    // a legitimate state — the workspace opens on its empty canvas — so warming
+    // the cache here must not fail the route.
+    await ensurePages(context.queryClient, params.label)
   },
+  component: PipelineLayout,
+  pendingComponent: () => <ScreenFallback />,
+  errorComponent: ({ error }) => <ScreenFallback error={error} />,
+  notFoundComponent: BookNotFound,
 })
 
-function PipelineRoute() {
+function BookNotFound() {
+  return (
+    <div className="grid h-full place-items-center gap-3 p-6 text-center text-sm">
+      <p className="text-muted-foreground">
+        <Trans>This book is not in your library.</Trans>
+      </p>
+      <Link to={APP_PATHS.library} className="font-semibold text-brand-700 hover:underline">
+        <Trans>Back to library</Trans>
+      </Link>
+    </div>
+  )
+}
+
+function PipelineLayout() {
   const { label } = Route.useParams()
   const bookRun = useBookRunStatus(label)
+  const booksQuery = useBooks()
+  const book = booksQuery.data?.find((entry) => entry.label === label)
+
+  usePageTitle(book?.title ?? label)
 
   return (
     <BookRunProvider value={bookRun}>
-      <PipelineScreen />
+      <Outlet />
       <PageErrorDecisionDialog />
     </BookRunProvider>
   )
