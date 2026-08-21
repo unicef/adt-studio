@@ -9,7 +9,7 @@ import { ScreenFallback } from "@/components/app/ui/ScreenFallback"
 import { APP_PATHS } from "@/components/app/nav"
 
 export const Route = createFileRoute("/_app/pipeline/$label")({
-  loader: async ({ context, params }) => {
+  beforeLoad: async ({ context, params }) => {
     const books = await context.queryClient.ensureQueryData(booksQueryOptions())
     if (!books.some((book) => book.label === params.label)) throw notFound()
     // A book with no extraction has no page database yet, so this 404s. That is

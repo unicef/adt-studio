@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Outlet, useLocation } from "@tanstack/react-router"
+import { Outlet, useRouterState } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 import { Trans } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
@@ -27,7 +27,9 @@ const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
 
 export function AppLayout() {
   const { t, i18n } = useLingui()
-  const { pathname } = useLocation()
+  const pathname = useRouterState({
+    select: (state) => state.matches[state.matches.length - 1]?.pathname ?? state.location.pathname,
+  })
   const isFullBleed = isFullBleedAppView(pathname)
   usePageTitle(t`ADT Studio`)
   const { books, locale } = useAppBooks()

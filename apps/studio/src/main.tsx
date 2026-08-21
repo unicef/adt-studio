@@ -75,7 +75,8 @@ const router = createRouter({
       return url
     },
   },
-  history: createBrowserHistory(),
+    history: createBrowserHistory(),
+  defaultPreload: "intent"
 })
 
 declare module "@tanstack/react-router" {
