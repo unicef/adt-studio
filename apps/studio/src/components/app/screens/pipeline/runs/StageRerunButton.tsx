@@ -10,10 +10,6 @@ import { NO_DRAG_REGION } from "@/constants"
 import { cn } from "@/lib/utils"
 import type { StageRerun } from "./useStageRerun"
 
-/**
- * `header` sits on a stage-tinted plugin header (light text on colour);
- * `topbar` sits on the neutral workspace top bar next to Preview.
- */
 export type StageRerunVariant = "header" | "topbar" | "banner"
 
 const VARIANT_BASE: Record<StageRerunVariant, string> = {
@@ -54,7 +50,6 @@ export interface StageRerunButtonProps {
   variant?: StageRerunVariant
 }
 
-/** Re-runs one stage that already produced output, cancelling it while it runs. */
 export function StageRerunButton({ slug, rerun, variant = "header" }: StageRerunButtonProps) {
   const { t } = useLingui()
   const [cascadeOpen, setCascadeOpen] = useState(false)

@@ -11,7 +11,6 @@ export interface PagerProps {
   className?: string
 }
 
-/** "Showing a–b of N" summary + numbered page controls. Renders nothing for a single page. */
 export function Pager({ page, totalPages, totalItems, pageSize, onChange, className }: PagerProps) {
   const { t } = useLingui()
   if (totalPages <= 1) return null

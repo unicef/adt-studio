@@ -13,7 +13,6 @@ import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/Step
 import { RowAction, SaveError, StepBody, StepCard, StepRail } from "./shared/ui"
 import type { StepProps } from "./shared/types"
 
-/** `""` shows every video; `null` shows only the unassigned ones. */
 type VideoFilter = string | null
 
 function formatSize(bytes: number, locale: string): string {

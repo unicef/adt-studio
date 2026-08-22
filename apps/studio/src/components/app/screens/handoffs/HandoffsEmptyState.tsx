@@ -4,7 +4,6 @@ import { Scissors, Users, GitMerge, ArrowRight, FolderDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/app/ui/EmptyState"
 
-/** Split & merge first-run state (design 3a): the split → hand off → merge flow explainer. */
 export function HandoffsEmptyState() {
   return (
     <div className="relative flex flex-1 items-center justify-center">

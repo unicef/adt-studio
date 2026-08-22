@@ -33,8 +33,6 @@ export interface BookInfoScreenProps {
   onBack: () => void
 }
 
-/** The book's cover and the metadata this conversion is running on, framed by
- *  the pipeline shell. Read-only — editing happens in the metadata settings. */
 export function BookInfoScreen({ label, onBack }: BookInfoScreenProps) {
   const { t, i18n } = useLingui()
   const { data: book, error } = useBook(label)

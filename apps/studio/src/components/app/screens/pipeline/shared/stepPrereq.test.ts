@@ -16,7 +16,6 @@ vi.mock("@lingui/core/macro", () => ({
 import { PLUGIN_SLUGS, FOUNDATION_SLUGS, type DockSlug } from "./plugins"
 import { STEP_PREREQ, isStepLocked, type StageEvidence } from "./stepPrereq"
 
-/** A book that has run nothing at all. */
 const FRESH: StageEvidence = {
   covered: () => false,
   pageCount: 0,
@@ -87,7 +86,6 @@ describe("isStepLocked", () => {
   })
 
   it("trusts artifacts when completedStages is missing the flag", () => {
-    // Older books carry renderings without "storyboard" in completedStages.
     expect(isStepLocked("glossary", STORYBOARDED)).toBe(false)
     expect(STORYBOARDED.covered("storyboard")).toBe(false)
   })

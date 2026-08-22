@@ -39,14 +39,11 @@ export interface PipelineWorkspaceProps {
   sectioningRun: SectioningRun
   storyboardRun: StoryboardRun
   navigationEnabled: boolean
-  /** Page the canvas shows, straight off the URL. Null falls back to the first page. */
   pageId: string | null
   onSelectPage: (pageId: string) => void
   onOpenStep: (slug: string) => void
   onOpenSettings: (slug: string) => void
-  /** Opens the packaged book, landing on the section the canvas is showing. */
   onOpenPreview: (sectionId: string | null) => void
-  /** Opens the book's cover and metadata. */
   onOpenBookInfo: () => void
 }
 
@@ -74,7 +71,6 @@ export function PipelineWorkspace({
   const storyboardRerun = useStoryboardRerun(label)
   const staleness = useStoryboardStaleness(state.pages)
   const [chromeHidden, setChromeHidden] = useState(false)
-  // A quiz is a storyboard page of its own, so selecting one takes over the canvas.
   const [selectedQuizIndex, setSelectedQuizIndex] = useState<number | null>(null)
   const quizzesQuery = useQuizzes(label)
   const quizzes = useMemo(

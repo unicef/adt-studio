@@ -10,7 +10,6 @@ export interface StagePillProps {
   className?: string
 }
 
-/** "N stages" pill that opens a popover grid of the completed stages. */
 export function StagePill({ discs, className }: StagePillProps) {
   const furthest = discs.length ? discs[discs.length - 1].hex : "#c2c8d0"
   return (

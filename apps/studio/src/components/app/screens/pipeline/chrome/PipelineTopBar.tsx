@@ -8,18 +8,12 @@ import { PipelineRunIndicator } from "@/components/app/screens/pipeline/runs/Pip
 
 export interface PipelineTopBarProps {
   label: string
-  /** Current page crumb — omitted while the storyboard is still empty. */
   pageLabel?: string
   version?: number | null
-  /** Right-hand status pill: review queue, extraction summary, … */
   status?: React.ReactNode
-  /** Re-runs the storyboard — omitted while nothing is rendered yet. */
   rerun?: React.ReactNode
-  /** Opens the packaged book preview on the page the canvas is showing. */
   onPreview?: () => void
-  /** Nothing is rendered yet, so there is no page to preview. */
   previewDisabled?: boolean
-  /** Opens the book's cover and metadata. */
   onOpenBookInfo: () => void
 }
 export function PipelineTopBar({

@@ -3,14 +3,11 @@ import type { StageDisc } from "../data"
 
 export interface StageDiscsProps {
   discs: StageDisc[]
-  /** Disc diameter in px. */
   size?: number
-  /** Cap the number of discs shown; the remainder collapses to a "+N" count. */
   max?: number
   className?: string
 }
 
-/** A row of colored, glyphed pipeline-stage discs. */
 export function StageDiscs({ discs, size = 28, max, className }: StageDiscsProps) {
   const shown = max != null ? discs.slice(0, max) : discs
   const overflow = max != null && discs.length > max ? discs.length - max : 0

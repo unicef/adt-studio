@@ -21,8 +21,6 @@ export interface StepSettingsBodyProps {
 }
 
 export function StepSettingsBody({ label, slug, tab }: StepSettingsBodyProps) {
-  // Overview is the stage's landing page, the same surface the step view shows
-  // before the stage has ever run.
   if (tab === "overview" && hasStepLanding(slug)) {
     return <StepLanding label={label} slug={slug as DockSlug} />
   }

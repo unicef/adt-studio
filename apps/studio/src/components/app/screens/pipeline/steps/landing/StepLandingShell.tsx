@@ -30,27 +30,12 @@ export interface StepLandingShellProps {
   previewBodyClassName?: string
   onRun: () => void
   preview: ReactNode
-  /**
-   * When set, pressing Run first shows an advisory warning modal (e.g. the
-   * feature is incompatible with the book's fixed-layout mode). The user can
-   * cancel or proceed. Omit/leave null when there's nothing to warn about.
-   */
   runWarning?: { title: ReactNode; description: ReactNode } | null
   hideRunButton?: boolean
-  /** Pre-run checklist supplied by the workspace, rendered above Run. */
   beforeRun?: ReactNode
   children: ReactNode
 }
 
-/**
- * A stage's landing inside the pipeline workspace: what the stage does and the
- * settings that shape it, beside a live preview of the result.
- *
- * The workspace already supplies a rail, a settings gear and a dock, so there is
- * no aside and no footer here — Run sits at the end of the settings column, and
- * the two panes swap to a single column when the workspace squeezes them.
- * Colours come from `stage-config` rather than being passed per stage.
- */
 export function StepLandingShell({
   bookLabel,
   stageSlug,
@@ -87,8 +72,6 @@ export function StepLandingShell({
 
   const isDisabled = isRunning || !canRun || extraDisabled
 
-  // Run gates, applied outermost-first: fixed-layout (or other) warning, then
-  // the cascade-reset confirmation, then the run itself.
   const proceedRun = () => {
     if (needsConfirmation) {
       setConfirmOpen(true)

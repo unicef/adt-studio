@@ -12,16 +12,6 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 
-/**
- * Tile + modal editor for a free-form "Custom Instructions" field. Renders a
- * dashed empty-state button when no content exists, or a quiet preview card
- * (clamped to 3 lines) when filled — clicking either opens a focused modal
- * with a 12-row textarea, an Auto-fill action, and Cancel/Save buttons.
- *
- * `compose` produces a string from book context (title, summary, language,
- * etc.) that fills the draft when the user taps Auto-fill. Pass `accentHex`
- * so the dialog wears the stage's accent color (Save button, focus rings).
- */
 export function CustomInstructionsField({
   value,
   onChange,

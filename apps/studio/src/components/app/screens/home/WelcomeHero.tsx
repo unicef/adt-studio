@@ -8,7 +8,6 @@ export interface WelcomeHeroProps {
   onOpenAdd: () => void
 }
 
-/** Home first-run welcome (design 1c): headline + PDF→AI→bundle flow card + CTAs. */
 export function WelcomeHero({ onOpenAdd }: WelcomeHeroProps) {
   return (
     <>

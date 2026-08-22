@@ -28,7 +28,6 @@ import { ComingSoon } from "../ui"
 
 export const EASE = "ease-[cubic-bezier(0.23,1,0.32,1)]"
 
-/** Resolve server-localized manifest text for the active locale (falls back to English). */
 export function localize(text: LocalizedText, locale: string): string {
   return text[locale] ?? text.en
 }
@@ -94,7 +93,6 @@ function LongMessage({ health }: { health: ProviderHealthResponse }) {
   }
 }
 
-/** Full status line with icon, message, detail, and a Refresh button. */
 export function HealthLine({
   health,
   isFetching,
@@ -158,7 +156,6 @@ export function ProviderTile({ id, className }: { id: string; className?: string
   )
 }
 
-// ---- inline credential editing ----
 
 export interface Draft {
   descriptor: ProviderDescriptor
@@ -261,7 +258,6 @@ export function CredentialFields({ draft, onSubmit }: { draft: Draft; onSubmit?:
   )
 }
 
-/** CLI / API key segmented control (the Conductor "Authentication" pattern). */
 export function AuthModeToggle({
   mode,
   onChange,
@@ -322,7 +318,6 @@ function CopyCommand({ command }: { command: string }) {
           try {
             void navigator.clipboard?.writeText(command)
           } catch {
-            /* ignore */
           }
           setCopied(true)
           setTimeout(() => setCopied(false), 1400)
@@ -336,7 +331,6 @@ function CopyCommand({ command }: { command: string }) {
   )
 }
 
-/** Actionable guidance for CLI dead-ends (not-logged-in / cli-not-found). */
 export function CliGuidance({ providerId, code }: { providerId: string; code: ProviderHealthCode }) {
   // eslint-disable-next-line lingui/no-unlocalized-strings -- literal shell command, not translatable UI copy
   const command = providerId === "codex" ? "codex login" : "claude /login"
@@ -418,7 +412,6 @@ function ModalityLabel({ modality }: { modality: AiModality }) {
   }
 }
 
-/** What a given backend can actually do — makes the CLI mode's reduced reach visible. */
 export function ModalityBadges({ modalities }: { modalities: AiModality[] }) {
   return (
     <div className="flex flex-wrap gap-1.5">
@@ -434,7 +427,6 @@ export function ModalityBadges({ modalities }: { modalities: AiModality[] }) {
   )
 }
 
-/** Which mode a vendor card opens on: its API-key backend if that's configured, else CLI. */
 export function defaultCardMode(cardKey: string, store: Providers): "api-key" | "cli" {
   const card = PROVIDER_CARDS[cardKey]
   if (!card.apiKeyProviderId || !card.cliProviderId) return "api-key"
@@ -476,7 +468,6 @@ export function useCardHealth(cardKey: string, store: Providers, refreshToken = 
   return { data: enabled ? health.data : null, isFetching: enabled && health.isFetching, fallbackConfigured }
 }
 
-/** Dot-only status mark, sized to sit on a provider icon (T3-Code style). */
 export function HealthDotMark({ data, isFetching, fallbackConfigured }: CardHealth) {
   const tone: Tone = data ? toneOf(data.code) : fallbackConfigured ? "ok" : "muted"
   return (
@@ -489,7 +480,6 @@ export function HealthDotMark({ data, isFetching, fallbackConfigured }: CardHeal
   )
 }
 
-/** Pure auth-line text from a resolved CardHealth (no probe of its own). */
 export function AuthLineFromHealth({ data, isFetching, fallbackConfigured }: CardHealth) {
   if (isFetching) return <Trans>Checking connection…</Trans>
   if (fallbackConfigured) return <Trans>Authenticated · API key</Trans>
@@ -516,18 +506,12 @@ export function AuthLineFromHealth({ data, isFetching, fallbackConfigured }: Car
   }
 }
 
-/**
- * Providers the shipping app already supports (this branch's `useApiKey`: OpenAI, Anthropic,
- * Google, Custom, Azure, Gemini, ElevenLabs). Only the new CLI backends (codex, claude-agent)
- * and local ollama arrive with `feature/ai-agnostic`; those are shown but marked "Coming soon".
- */
 const AVAILABLE_PROVIDERS = new Set(["openai", "anthropic", "google", "custom", "azure", "gemini", "elevenlabs"])
 
 export function isProviderAvailable(providerId: string): boolean {
   return AVAILABLE_PROVIDERS.has(providerId)
 }
 
-/** A card is available when its primary (API-key or local) backend already ships. */
 export function isCardAvailable(cardKey: string): boolean {
   const card = PROVIDER_CARDS[cardKey]
   const primary = card.apiKeyProviderId ?? card.localProviderId

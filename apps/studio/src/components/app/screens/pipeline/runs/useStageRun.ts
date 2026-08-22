@@ -8,9 +8,7 @@ export interface StageRun {
   run: () => void
   canRun: boolean
   hasApiKey: boolean
-  /** True when *this* stage is already running or queued. */
   isRunning: boolean
-  /** True when this slug is a pipeline stage at all — sign language is not. */
   isRunnable: boolean
 }
 

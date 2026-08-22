@@ -10,7 +10,6 @@ export const APP_PATHS = {
 
 export const APP_VIEWS = ["home", "library", "handoffs", "pipeline", "settings"] as const satisfies readonly AppView[]
 
-/** Views that replace the whole window and bring their own chrome. */
 const FULL_BLEED_VIEWS: readonly AppView[] = ["pipeline", "settings"]
 
 export function activeAppView(pathname: string): AppView {

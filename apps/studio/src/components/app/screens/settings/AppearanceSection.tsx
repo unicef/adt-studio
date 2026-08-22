@@ -29,11 +29,9 @@ function applyTheme(mode: ThemeMode) {
   try {
     localStorage.setItem(THEME_KEY, mode)
   } catch {
-    /* ignore */
   }
 }
 
-/** A mini window mock painted from the option's token set, used as the theme swatch. */
 function ThemePreview({ th }: { th: ThemeOption }) {
   return (
     <div className="relative flex h-[104px] overflow-hidden" style={{ background: th.previewBg }}>

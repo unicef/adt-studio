@@ -9,7 +9,6 @@ import { useStoryboardRun } from "./runs/useStoryboardRun"
 
 export interface WorkspaceScreenProps {
   label: string
-  /** Null only while the book has no pages yet — the canvas shows its empty state. */
   pageId: string | null
 }
 

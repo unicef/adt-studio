@@ -67,8 +67,6 @@ function StepSettingsFrame({
   const hex = stage?.hex ?? "#4b5563"
   const StageIcon = stage?.icon ?? Settings
   const name = getStageLabelI18n(slug)
-  // Overview is the stage's landing page. It only earns a tab once the stage has
-  // output to re-run against — before that the step view itself is the landing.
   const showOverview = hasStepLanding(slug) && landingReachable
   const tabs = stepSettingsTabs(slug, i18n, showOverview)
   const activeTab = tabs.some((entry) => entry.key === tab) ? tab : (tabs[0]?.key ?? "general")

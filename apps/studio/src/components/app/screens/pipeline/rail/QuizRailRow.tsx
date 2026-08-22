@@ -5,13 +5,11 @@ import { cn } from "@/lib/utils"
 
 export interface QuizRailRowProps {
   quiz: QuizItem
-  /** Page the quiz follows, when it is still in the book. */
   pageNumber: number | null
   active: boolean
   onSelect: () => void
 }
 
-/** Miniature of the rendered quiz: one bar per option, the answer highlighted. */
 function QuizThumb({ quiz, active }: { quiz: QuizItem; active: boolean }) {
   return (
     <span
@@ -52,8 +50,6 @@ function QuizThumb({ quiz, active }: { quiz: QuizItem; active: boolean }) {
   )
 }
 
-/** Quizzes are their own storyboard pages, so they get their own rail row,
- *  right after the page they follow. */
 export function QuizRailRow({ quiz, pageNumber, active, onSelect }: QuizRailRowProps) {
   const { t } = useLingui()
 

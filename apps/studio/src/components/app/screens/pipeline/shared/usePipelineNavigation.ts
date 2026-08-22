@@ -8,14 +8,12 @@ import {
 import { isDockSlug } from "./plugins"
 
 export interface PipelineNavigation {
-  /** The canvas, on whichever page it was last showing. */
   openWorkspace: () => void
   openPage: (pageId: string) => void
   openStep: (slug: string) => void
   openStepSettings: (slug: string) => void
   openSettingsTab: (slug: string, tab: string) => void
   openPreview: (sectionId: string | null) => void
-  /** Opens the preview straight on a bundle page the caller already resolved. */
   openPreviewHref: (href: string) => void
   openBookInfo: () => void
 }

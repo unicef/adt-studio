@@ -17,16 +17,11 @@ const PREVIEW_HEX = STAGES.find((stage) => stage.slug === "preview")?.hex ?? "#4
 
 export interface PreviewScreenProps {
   label: string
-  /** Section the storyboard was showing — the preview opens on its page. */
   targetSectionId: string | null
-  /** Bundle-relative page, when the caller already resolved it. Wins over
-   *  `targetSectionId` and skips the manifest lookup entirely. */
   targetHref?: string | null
   onBack: () => void
 }
 
-/** The packaged book, read inside the pipeline shell. Only the top bar frames
- *  it — the dock stays out so the book reads exactly as the reader gets it. */
 export function PreviewScreen({ label, targetSectionId, targetHref, onBack }: PreviewScreenProps) {
   const { t } = useLingui()
   const [viewport, setViewport] = useState<Viewport>("desktop")
@@ -34,9 +29,6 @@ export function PreviewScreen({ label, targetSectionId, targetHref, onBack }: Pr
   const pkg = usePreviewPackage(label, true)
   const packaged = pkg.status === "ready" && pkg.version !== null
 
-  // Only the manifest knows which file a section became — the book's first page
-  // is written as index.html. Without a target there is nothing to look up, and
-  // the bundle root already redirects to the first page.
   const needsManifest = !targetHref && !!targetSectionId
   const manifestQuery = useAdtPages(label, { enabled: packaged && needsManifest })
   const targetResolved = !needsManifest || manifestQuery.isSuccess || manifestQuery.isError

@@ -4,7 +4,6 @@ import { i18n } from "@lingui/core"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { getBookCoverUrl, type BookSummary } from "@/api/client"
 
-/** Cover backgrounds picked deterministically per book label. */
 const COVER_PALETTE = [
   { bg: "#1e40af", accent: "#7dd3fc" },
   { bg: "#166534", accent: "#86efac" },
@@ -63,7 +62,6 @@ export interface StageDisc {
 
 const STAGE_ORDER = STAGES.filter((s) => s.slug !== "book")
 
-/** Completed stages, mapped to disc glyphs in canonical pipeline order. */
 export function presentDiscs(book: BookSummary): StageDisc[] {
   const done = new Set(book.completedStages)
   return STAGE_ORDER.filter((s) => done.has(s.slug)).map((s) => ({
@@ -73,7 +71,6 @@ export function presentDiscs(book: BookSummary): StageDisc[] {
   }))
 }
 
-/** Compact relative time — "2h ago", "yesterday", "3 days ago", else a date. */
 export function formatRelative(iso: string, locale: string): string {
   const then = new Date(iso).getTime()
   if (Number.isNaN(then)) return ""

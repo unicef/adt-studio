@@ -3,11 +3,6 @@ import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Prerequisite } from "./PluginEmptyState"
 
-/**
- * What has to be true before a stage can run, carried over from the new pipeline UI's
- * empty state into the stage landing. The landing's own warnings explain a
- * blocking upstream in prose; this is the at-a-glance version.
- */
 export function PreRunChecklist({ items }: { items: Prerequisite[] }) {
   if (items.length === 0) return null
 

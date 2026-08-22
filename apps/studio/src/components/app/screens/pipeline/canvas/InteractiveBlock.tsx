@@ -12,17 +12,9 @@ export interface InteractiveBlockProps {
   className?: string
 }
 
-/** A preview reports its height while it is still parsing and again as images
- *  and fonts settle. Committing only the height that holds for this long turns
- *  that run of reports into a single resize. */
 const HEIGHT_SETTLE_MS = 180
-/** A preview that never reports one (an error page, say) still has to appear. */
 const REVEAL_TIMEOUT_MS = 1500
 
-/** Heights already measured this session, keyed by preview URL — the rendering
- *  version is part of it, so a re-render never reuses a stale height. Coming
- *  back to a page already seen lays out at the right size straight away instead
- *  of resizing under the reader. */
 const measuredHeights = new Map<string, number>()
 const MEASURED_CAP = 60
 
@@ -41,9 +33,6 @@ function startingHeight(src: string): number | null {
   return measuredHeights.get(src) ?? lastSettledHeight
 }
 
-/** A live `adt-preview` render, scaled from the width it lays out at down to
- *  the width the canvas gives it. `?fit=1` makes the preview post its content
- *  height, so the frame grows to the content instead of scrolling. */
 export function InteractiveBlock({
   src,
   frameTitle,
@@ -87,8 +76,6 @@ export function InteractiveBlock({
   const revealTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
   useEffect(() => () => clearTimeout(revealTimeout.current), [])
 
-  // The preview replaces its document on every load, so the bridge is rebuilt
-  // each time rather than once on mount.
   const unbridge = useRef<() => void>(undefined)
   useEffect(() => () => unbridge.current?.(), [])
 

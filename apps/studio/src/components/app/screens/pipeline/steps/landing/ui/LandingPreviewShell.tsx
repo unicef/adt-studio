@@ -1,13 +1,6 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
-/**
- * The framed sheet a stage's preview renders into.
- *
- * Every surface is a theme token: the previews inside follow the theme too, so
- * a fixed light sheet would put dark-theme content on a white card. The shadow
- * stays fixed — it reads as depth against either background.
- */
 export function LandingPreviewShell({
   label,
   className,

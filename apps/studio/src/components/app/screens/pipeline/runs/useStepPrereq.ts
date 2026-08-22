@@ -7,12 +7,9 @@ import type { DockSlug } from "@/components/app/screens/pipeline/shared/plugins"
 import { STEP_PREREQ, isStepLocked, type StageEvidence } from "@/components/app/screens/pipeline/shared/stepPrereq"
 
 export interface StepPrereq {
-  /** Upstream stage this step waits on, or null when it never blocks. */
   upstream: StageName | null
   upstreamLabel: string
-  /** False while the upstream has neither produced output nor been started. */
   isMet: boolean
-  /** True when the upstream is met only because it is still running or queued. */
   upstreamInFlight: boolean
 }
 

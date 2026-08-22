@@ -6,15 +6,9 @@ import type { StageRerun } from "@/components/app/screens/pipeline/runs/useStage
 
 export interface StoryboardStaleBannerProps {
   rerun: StageRerun
-  /** Pages whose render is behind its sections; 0 when only the stage was reset. */
   outdatedCount: number
 }
 
-/**
- * The renderings are still on disk and still editable, but they no longer match
- * the sections they came from. One banner for the whole book, so a restructuring
- * session in Sectioning costs one re-run rather than one per edit.
- */
 export function StoryboardStaleBanner({ rerun, outdatedCount }: StoryboardStaleBannerProps) {
   const { t } = useLingui()
 

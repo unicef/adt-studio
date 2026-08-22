@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 
 type TrailState = "done" | "current" | "todo"
 
-/** Which foundation the storyboard is still waiting on. */
 export type StoryboardPhase = "sections" | "render"
 
 const TRAIL: { key: string; label: MessageDescriptor }[] = [
@@ -38,7 +37,6 @@ export interface StoryboardEmptyStateProps {
   disabledReason?: React.ReactNode
 }
 
-/** Center pane before the storyboard is rendered (design 3a). */
 export function StoryboardEmptyState({
   phase,
   pageCount,

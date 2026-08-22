@@ -5,7 +5,6 @@ export type RailItem =
   | { kind: "page"; pageId: string }
   | { kind: "quiz"; quizIndex: number }
 
-/** A quiz is a storyboard page of its own, listed after the page it follows. */
 export function groupQuizzesByPage(quizzes: QuizItem[]): Map<string, QuizItem[]> {
   const byPage = new Map<string, QuizItem[]>()
   for (const quiz of quizzes) {
@@ -16,7 +15,6 @@ export function groupQuizzesByPage(quizzes: QuizItem[]): Map<string, QuizItem[]>
   return byPage
 }
 
-/** The rail read top to bottom — the order the arrow keys walk. */
 export function buildRailOrder(pages: PipelinePage[], quizzes: QuizItem[]): RailItem[] {
   const quizzesByPage = groupQuizzesByPage(quizzes)
   const order: RailItem[] = []

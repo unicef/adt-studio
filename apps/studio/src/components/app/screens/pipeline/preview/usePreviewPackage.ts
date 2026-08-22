@@ -9,7 +9,6 @@ export type PreviewPackageStatus = "packaging" | "ready" | "error"
 
 export interface PreviewPackage {
   status: PreviewPackageStatus
-  /** Cache-bust segment of the packaged bundle URL; null until it is ready. */
   version: string | null
   error: string | null
   repackage: () => void

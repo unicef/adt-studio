@@ -27,7 +27,6 @@ export interface StepShellProps extends StepProps {
   children: React.ReactNode
 }
 
-/** The workspace frame with a step's own rail and body plugged in. */
 export function StepShell({
   label,
   plugin,
@@ -61,17 +60,14 @@ export function StepShell({
 }
 
 export interface StepEmptyProps extends StepProps {
-  /** Overrides the default "queue this stage" action. */
   onRun?: () => void
   onManual?: () => void
   onImport?: () => void
-  /** Overrides the default "sections exist, text is normalized" checklist. */
   prerequisites?: Prerequisite[]
   canRun?: boolean
   runDisabledReason?: React.ReactNode
 }
 
-/** The never-run frame every step falls back to (design 4a). */
 export function StepEmpty({
   onRun,
   onManual,
@@ -85,8 +81,6 @@ export function StepEmpty({
   const { label, plugin, pages, frame } = props
   const [scope, setScope] = useState<ScopeKey>("book")
 
-  // Every step's primary action queues its own stage unless the step overrides
-  // it — sign language uploads a file, sectioning resolves its own start stage.
   const stageRun = useStageRun(label, plugin.slug)
   const activity = useOptionalStageActivity(plugin.slug)
   const run = useRunActivity()
@@ -96,8 +90,6 @@ export function StepEmpty({
   const prereqReason = STEP_PREREQ_REASON[plugin.slug]
   const effectiveRun = onRun ?? stageRun.run
   const explicitCanRun = canRun ?? (onRun ? true : stageRun.canRun)
-  // The blocking upstream wins over everything: no API key matters if the step
-  // has nothing to run against yet.
   const effectiveCanRun = prereq.isMet && explicitCanRun
   const effectiveReason = !prereq.isMet ? (
     prereqReason ? (
@@ -112,7 +104,6 @@ export function StepEmpty({
     ) : null)
   )
 
-  // Once queued, this stage takes over the frame so the click has visible effect.
   if (activity?.isActive) {
     return (
       <StepRunning
@@ -162,8 +153,6 @@ export function StepEmpty({
     />
   )
 
-  // The stage's own landing owns its run gating and the settings that drive its
-  // preview, so it replaces the generic empty state wherever one exists.
   if (hasStepLanding(plugin.slug)) {
     return (
       <StepShell
@@ -210,7 +199,6 @@ export interface StepRunningProps extends StepProps {
   outcome?: React.ReactNode
 }
 
-/** Frame shown while the step's own stage is queued or running. */
 export function StepRunning({
   stage,
   isCancelling,
@@ -243,13 +231,10 @@ export function StepRunning({
   )
 }
 
-// Sign Language is the one dock slug the shared loader has no stage animation
-// for, so it falls back to the generic one.
 function loaderStage(slug: DockSlug): StageSlug | undefined {
   return slug === "sign-language" ? undefined : slug
 }
 
-/** Loading frame shown while a step's output is being fetched. */
 export function StepLoading(props: StepProps) {
   const { t } = useLingui()
   const { plugin } = props
@@ -266,9 +251,7 @@ export function StepLoading(props: StepProps) {
 }
 
 export interface StepOutputQuery {
-  /** The step's own output query is still on its first fetch. */
   isLoading: boolean
-  /** The step's output is present in the cache. */
   hasOutput: boolean
 }
 

@@ -63,15 +63,11 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
   const [filter, setFilter] = useState<FilterValue>("missing")
   const [manageOpen, setManageOpen] = useState(false)
 
-  // Videos attached to glossary items (sectionId like `gl001` / `gl_manual_*`)
-  // are managed from the Glossary stage — keep them out of the page-section
-  // lists and counts here.
   const videos = useMemo(
     () => (videosData?.videos ?? []).filter((v) => !isGlossaryVideoSectionId(v.sectionId)),
     [videosData],
   )
 
-  // Flat list of sections in book order
   const sectionEntries = useMemo<SectionEntry[]>(() => {
     if (!pages) return []
     return pages.flatMap((page) => {
@@ -147,8 +143,6 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
     const target = targetSectionRef.current
     targetSectionRef.current = null
 
-    // For single-section upload we just upload the first file; for the
-    // top-level "Add videos" button we accept multiple files unassigned.
     const fileList = target ? [files[0]] : Array.from(files)
     for (const file of fileList) {
       uploadMutation.mutate(file, {
@@ -282,7 +276,6 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                 </div>
               </div>
 
-              {/* Unassigned pool */}
               {unassignedVideos.length > 0 && (
                 <div className="flex flex-col gap-1.5 rounded-md border border-cyan-200 bg-cyan-50/60 p-2">
                   <div className="flex items-center gap-1.5 px-1">
@@ -361,7 +354,6 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                 </div>
               )}
 
-              {/* Section list */}
               {sectionEntries.length === 0 ? (
                 <div className="rounded-md border border-dashed border-border bg-muted px-3 py-4 text-center text-[12px] text-muted-foreground">
                   <Trans>
@@ -371,7 +363,6 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                 </div>
               ) : (
                 <>
-                  {/* Focal "Next missing" slot */}
                   {nextMissing ? (
                     <button
                       type="button"
@@ -416,7 +407,6 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
                     </div>
                   )}
 
-                  {/* Manage all sections — opens dialog */}
                   <button
                     type="button"
                     onClick={() => setManageOpen(true)}
@@ -443,7 +433,6 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
             </div>
           </SettingsCard>
 
-      {/* Player dialog */}
       <Dialog
         open={!!playingVideo}
         onOpenChange={(open) => {
@@ -469,7 +458,6 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
         </DialogContent>
       </Dialog>
 
-      {/* Delete-all confirmation */}
       <Dialog
         open={confirmDeleteAll}
         onOpenChange={(open) => {
@@ -513,15 +501,6 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
             <button
               type="button"
               onClick={async () => {
-                // Delete only the page-section videos shown here — videos
-                // attached to glossary terms are managed from the Glossary
-                // stage and must survive a "remove all" on this page.
-                //
-                // Every video is attempted even if one fails, so a single bad
-                // delete can't strand the rest; failures are reported together
-                // and the dialog stays open so the leftovers can be retried
-                // (each success refetches the list, so a retry only re-attempts
-                // what is still there).
                 setDeletingAll(true)
                 setDeleteAllError(null)
                 const total = videos.length

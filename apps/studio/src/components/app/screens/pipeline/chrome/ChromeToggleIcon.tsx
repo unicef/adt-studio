@@ -1,11 +1,8 @@
 export interface ChromeToggleIconProps {
-  /** Dims the chip to mirror the controls being hidden. */
   hidden?: boolean
   className?: string
 }
 
-/** The workspace itself: the canvas frame and the control chip at its top right
- *  — the one thing this button toggles. The dock collapses on its own. */
 export function ChromeToggleIcon({ hidden, className }: ChromeToggleIconProps) {
   return (
     <svg

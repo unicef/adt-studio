@@ -20,7 +20,6 @@ export interface RunStepActivity {
   label: string
   state: StepState
   progress?: string
-  /** 0–1 from the step's page counter, absent for steps that don't report one. */
   fraction?: number
   error?: string
 }
@@ -36,13 +35,7 @@ export interface RunStageActivity {
   steps: RunStepActivity[]
   runningCount: number
   doneCount: number
-  /** 0–1 across the whole stage, crediting the running step's page counter. */
   fraction: number
-  /**
-   * False while nothing has landed and no step reports pages — single-step
-   * stages like Captions or Glossary have no measurable middle, so their bars
-   * must run indeterminate instead of sitting at zero for minutes.
-   */
   isDeterminate: boolean
   current?: RunStepActivity
 }

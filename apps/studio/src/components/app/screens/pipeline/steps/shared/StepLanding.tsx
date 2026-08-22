@@ -12,12 +12,6 @@ import { TocLanding } from "../landing/TocLanding"
 import { ValidationLanding } from "../landing/ValidationLanding"
 import type { DockSlug } from "@/components/app/screens/pipeline/shared/plugins"
 
-/**
- * The stage landings, owned by the new pipeline UI. Each one carries its stage's run
- * gating and the settings that drive its preview.
- *
- * Storyboard is deliberately absent — it keeps the new pipeline UI's own empty state.
- */
 const LANDINGS: Partial<Record<DockSlug, ComponentType<LandingProps>>> = {
   extract: ExtractLanding,
   sectioning: SectioningLanding,
@@ -44,7 +38,6 @@ export function hasStepLanding(slug: string): boolean {
 export interface StepLandingProps {
   label: string
   slug: DockSlug
-  /** Pre-run checklist from the workspace, rendered above the stage's Run button. */
   beforeRun?: ReactNode
 }
 

@@ -33,8 +33,6 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
   const status = useStageStatus("sectioning")
   const extractStatus = useStageStatus("extract")
   const extractReady = extractStatus.isCompleted
-  // "Covered" = already done, running, or queued — i.e. it will produce its
-  // output without us starting it, so we can just queue Sectioning behind it.
   const extractCovered = extractStatus.isCompleted || extractStatus.isRunning
   const hasExtractedPages = (pages?.length ?? 0) > 0
   const hasAssembledPages = hasExtractedPages && splitStatus?.hasMergeActivity === true
@@ -42,8 +40,6 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
     !extractCovered && (pagesLoading || (hasExtractedPages && splitStatusLoading))
 
   const [sectioningMode, setSectioningMode] = useState<SectioningModeKey>("dynamic")
-  // Single flag honored by sectioning + web-rendering (via the `activity_`
-  // prefix) — the source of truth for the activities on/off choice.
   const [generateActivities, setGenerateActivities] = useState(true)
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
@@ -88,12 +84,6 @@ export function SectioningLanding({ bookLabel, beforeRun }: { bookLabel: string;
 
   const handleRun = () => {
     if (!hasApiKey || status.isRunning || resolvingStoredState) return
-    // Cue from here even if Extract hasn't run yet. If Extract is already
-    // done/running/queued it will produce its output, so queue Sectioning
-    // behind it; only pull Extract into the run when it isn't covered.
-    // An assembled split book already has extracted pages, but its part-local
-    // outline is deliberately stale. Start at Sectioning: the API rebuilds the
-    // authoritative outline from those stored pages without clearing them.
     const fromStage = resolveSectioningStartStage(extractCovered, hasAssembledPages)
     queueRun({ fromStage, toStage: "sectioning", apiKey })
   }

@@ -22,10 +22,6 @@ export interface StageRerunWarning {
 }
 
 export interface StageRerun {
-  /**
-   * False while the stage has never been started — the landing owns the first
-   * Run, so the header must not offer a re-run of nothing.
-   */
   hasRun: boolean
   isRunning: boolean
   isCancelling: boolean

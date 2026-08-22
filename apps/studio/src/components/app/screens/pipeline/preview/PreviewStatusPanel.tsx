@@ -8,7 +8,6 @@ export interface PreviewStatusPanelProps {
   onRetry: () => void
 }
 
-/** Occupies the canvas while the bundle is being built, or when it failed. */
 export function PreviewStatusPanel({ hex, error, onRetry }: PreviewStatusPanelProps) {
   const { t } = useLingui()
 

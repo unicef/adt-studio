@@ -10,7 +10,6 @@ export interface PageEmptyStateProps {
   label: string
   page: PipelinePage
   sectioning: SectioningRun
-  /** Storyboard stage in flight — this page is queued for rendering. */
   storyboardRunning?: boolean
   onOpenSectioning: () => void
 }
@@ -34,7 +33,6 @@ function Stat({ icon, children }: { icon: React.ReactNode; children: React.React
   )
 }
 
-/** Center pane when the book is sectioned but this particular page came out empty. */
 export function PageEmptyState({
   label,
   page,

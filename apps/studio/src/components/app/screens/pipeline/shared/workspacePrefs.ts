@@ -43,12 +43,6 @@ export const canvasViewport = viewportStore
 export const canvasZoom = zoomStore
 export const dockMinimized = dockMinimizedStore
 
-/**
- * Page the canvas was last on, per book. The step, settings, preview and info
- * screens are sibling routes rather than search params on the workspace, so the
- * page is not in their URL to carry back — this is what "close" returns to, and
- * it outlives a reload as a bonus.
- */
 export function rememberLastPage(label: string, pageId: string) {
   lastPageStore.set((previous) =>
     previous[label] === pageId ? previous : { ...previous, [label]: pageId },

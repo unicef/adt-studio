@@ -19,7 +19,6 @@ import { quizPreviewUrl } from "./previewUrls"
 import type { Viewport } from "@/components/app/screens/pipeline/shared/types"
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
 
-/** Fallback height until the live render reports how tall it lays out. */
 const QUIZ_FRAME_HEIGHT = 520
 
 export interface QuizCanvasProps {
@@ -32,7 +31,6 @@ export interface QuizCanvasProps {
   onZoomChange: (zoom: number) => void
 }
 
-/** The pages the quiz was generated from, as thumbnails. */
 function SourcePages({
   label,
   quiz,
@@ -76,7 +74,6 @@ function SourcePages({
   )
 }
 
-/** The generated quiz as the reader will answer it, on its own storyboard page. */
 export function QuizCanvas({
   label,
   quiz,

@@ -2,10 +2,8 @@ import type { LucideIcon } from "lucide-react"
 import { PIPELINE } from "@adt/types"
 import { STAGES, type StageGroup } from "@/components/pipeline/stage-config"
 
-/** Stages that must run before the storyboard exists — they are not plugins. */
 export const FOUNDATION_SLUGS = ["extract", "sectioning"] as const
 
-/** Stages that enrich an existing storyboard and are reachable from the dock. */
 export const PLUGIN_SLUGS = [
   "captions",
   "quizzes",
@@ -40,7 +38,6 @@ function entry(slug: DockSlug): DockEntry {
 export const FOUNDATIONS: DockEntry[] = FOUNDATION_SLUGS.map(entry)
 export const PLUGINS: DockEntry[] = PLUGIN_SLUGS.map(entry)
 
-/** Order the dock lays the groups out in, left to right. */
 export const DOCK_GROUP_ORDER: StageGroup[] = [
   "convert",
   "enhancements",
@@ -53,12 +50,6 @@ export interface DockGroup<T extends DockEntry> {
   items: T[]
 }
 
-/**
- * Bucket dock entries by their stage group, in `DOCK_GROUP_ORDER`. Grouping by
- * key rather than by runs of adjacent entries keeps a group whole even when the
- * source order interleaves it with another (Sign Language sits after Language
- * in `PLUGIN_SLUGS`, yet belongs with the other enhancements).
- */
 export function groupDockEntries<T extends DockEntry>(entries: T[]): DockGroup<T>[] {
   return DOCK_GROUP_ORDER.map((key) => ({
     key,
@@ -70,11 +61,6 @@ const STAGE_DEPENDENCIES = new Map<string, readonly string[]>(
   PIPELINE.map((stage) => [stage.name, stage.dependsOn]),
 )
 
-/**
- * Whether `slug` consumes `upstream`'s output, per the `PIPELINE` DAG. Drives
- * the dock connectors, so stages with no edge between them (every enhancement,
- * and Sign Language, which has no `PIPELINE` stage at all) read as independent.
- */
 export function stageDependsOn(slug: string, upstream: string): boolean {
   return STAGE_DEPENDENCIES.get(slug)?.includes(upstream) ?? false
 }
@@ -89,7 +75,6 @@ export function findDockEntry(slug: string): DockEntry | undefined {
   return [...FOUNDATIONS, ...PLUGINS].find((p) => p.slug === slug)
 }
 
-/** Translucent wash of a stage hex, legible over both light and dark surfaces. */
 export function tint(hex: string, alpha = 0.12): string {
   const value = Math.round(alpha * 255)
     .toString(16)

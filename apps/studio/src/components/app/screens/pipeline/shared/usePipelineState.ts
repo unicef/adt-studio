@@ -12,16 +12,12 @@ export type DockState = "done" | "running" | "queued" | "error" | "ready" | "loc
 
 export interface DockItem extends DockEntry {
   state: DockState
-  /** Outstanding work surfaced as a badge on the dock disc. */
   pending: number
-  /** Upstream stage holding this one back, when locked. */
   lockedBy?: string
 }
 
 export interface PipelinePage extends PageSummaryItem {
-  /** Images on this page that still have no caption. */
   missingCaptions: number
-  /** Every section pruned — the page is excluded from the rendered book. */
   isDiscarded: boolean
 }
 
@@ -43,11 +39,6 @@ export interface PipelineState {
 
 const NO_PAGES: PageSummaryItem[] = []
 
-/**
- * Stages absent from `PIPELINE`, so the run status never reports them as done and
- * their own artifact is the completion signal. Nothing but their query can say
- * whether they have output.
- */
 export const ARTIFACT_DERIVED_SLUGS: ReadonlySet<DockSlug> = new Set<DockSlug>([
   "sign-language",
   "validation",

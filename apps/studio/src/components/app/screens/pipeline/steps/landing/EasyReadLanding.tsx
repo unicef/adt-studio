@@ -126,7 +126,6 @@ function FeatureRow({
   )
 }
 
-/** Static illustrative preview: original text on top, simplified below. */
 function EasyReadPreview() {
   return (
     <div className="flex h-full flex-col gap-3 p-5 text-left">

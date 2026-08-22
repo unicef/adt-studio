@@ -9,14 +9,11 @@ export interface CanvasNavigationOptions {
   quizzes: QuizItem[]
   activePageId: string | null
   activeQuizIndex: number | null
-  /** Off while the canvas is empty or a step/settings screen owns the view. */
   enabled: boolean
   onSelectPage: (pageId: string) => void
   onSelectQuiz: (quizIndex: number) => void
 }
 
-/** A dialog, menu, or popover on top of the canvas owns its own arrow keys.
- *  Text fields are already covered by the hotkey's `ignoreInputs` default. */
 function overlayOpen(): boolean {
   return (
     document.querySelector(

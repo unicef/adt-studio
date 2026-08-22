@@ -10,7 +10,6 @@ export interface PipelineStatusProps {
   runningStage: RunStageActivity | undefined
   empty: boolean
   phase: StoryboardPhase
-  /** Pages whose render is behind the sections it was built from. */
   outdatedCount: number
 }
 

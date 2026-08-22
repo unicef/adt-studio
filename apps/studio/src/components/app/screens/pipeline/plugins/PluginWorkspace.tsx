@@ -18,11 +18,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 export interface PluginWorkspaceProps {
   label: string
   plugin: DockEntry
-  /** Short chips summarising the plugin's current output. */
   chips: string[]
-  /** Whether "Apply to book" is actionable — false while there is no output. */
   canApply: boolean
-  /** Left rail body: per-page index of the plugin's output. */
   rail: React.ReactNode
   children: React.ReactNode
   pages: PipelinePage[]
@@ -31,7 +28,6 @@ export interface PluginWorkspaceProps {
   plugins: DockItem[]
   onBack: () => void
   onOpenPlugin: (slug: string) => void
-  /** Omitted for steps that have no settings of their own — the gear is hidden. */
   onOpenSettings?: () => void
 }
 

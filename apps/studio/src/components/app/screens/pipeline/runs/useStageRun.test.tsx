@@ -23,8 +23,6 @@ vi.mock("@/hooks/use-pages", () => ({
 vi.mock("@/hooks/use-book-run", () => ({
   useBookRun: () => ({
     queueRun: mocks.queueRun,
-    // Nothing has run on this book by default — every stage is idle, so every
-    // stage has unsatisfied upstream output.
     stageState: (stage: string) => mocks.stageStates.value[stage] ?? "idle",
     isRunning: mocks.runInFlight.value,
   }),

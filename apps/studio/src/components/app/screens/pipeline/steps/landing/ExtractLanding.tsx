@@ -36,8 +36,6 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
   const status = useStageStatus("extract")
   const { data: book } = useBook(bookLabel)
   const { data: sourcePdfInfo, isPending: sourcePdfPending } = useSourcePdfInfo(bookLabel)
-  // A book imported as a part is scoped to a fixed page window — show the
-  // assigned range read-only so the contributor processes exactly that subset.
   const { data: partInfo } = usePartInfo(bookLabel)
   const isPart = !!partInfo
 

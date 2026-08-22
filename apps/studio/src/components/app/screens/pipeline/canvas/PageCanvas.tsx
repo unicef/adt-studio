@@ -20,7 +20,6 @@ import type { Viewport } from "@/components/app/screens/pipeline/shared/types";
 import type { SectioningRun } from "@/components/app/screens/pipeline/runs/useSectioningRun";
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState";
 
-/** Fallback height until the live render reports how tall it lays out. */
 const SECTION_FRAME_HEIGHT = 640;
 
 export interface PageCanvasProps {
@@ -30,7 +29,6 @@ export interface PageCanvasProps {
   zoom: number;
   onZoomChange: (zoom: number) => void;
   sectioning: SectioningRun;
-  /** Storyboard stage in flight — pages it has not reached yet are still building. */
   storyboardRunning?: boolean;
   onOpenSectioning: () => void;
 }
@@ -62,8 +60,6 @@ function SectionSlice({
     );
   }
 
-  // The section loads the same interactive render the reader gets, so activities
-  // stay answerable and the page shows live HTML instead of a flat capture.
   return (
     <InteractiveBlock
       src={sectionPreviewUrl(
@@ -85,7 +81,6 @@ function SectionSlice({
   );
 }
 
-/** The rendered page as the reader will see it, at the selected viewport width. */
 export function PageCanvas({
   label,
   page,
@@ -98,8 +93,6 @@ export function PageCanvas({
 }: PageCanvasProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const sections = page.sections.filter((s) => !s.isPruned);
-  // A page the storyboard has not reached yet has no screenshots to serve, so it
-  // waits behind the same panel the rail's spinner promises.
   const building =
     !!storyboardRunning && !page.hasRendering && !page.isDiscarded;
   const empty = sections.length === 0 || building;

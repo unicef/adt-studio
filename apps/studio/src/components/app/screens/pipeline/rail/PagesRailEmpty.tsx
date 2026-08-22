@@ -23,12 +23,6 @@ function GhostPage() {
   )
 }
 
-/**
- * Left rail before the storyboard is rendered. The extracted PDF pages are not
- * book pages yet — nothing in them can be opened, reordered or previewed — so
- * the rail counts what it can list, which is nothing, and the footer carries the
- * extraction numbers instead.
- */
 export function PagesRailEmpty({ pageCount, imageCount, extracting }: PagesRailEmptyProps) {
   const { t } = useLingui()
 

@@ -21,8 +21,6 @@ export function ValidationLanding({
   const { isTaskRunning } = useBookTasks(bookLabel)
   const storyboard = useStageStatus("storyboard")
 
-  // Validation has no pipeline stage of its own: packaging the book is what
-  // produces the assessment, so that task is both its run and its progress.
   const isRunning = packageAdt.isPending || isTaskRunning("package-adt")
   const isCompleted = Boolean(assessment.data?.assessment)
   const storyboardReady = storyboard.isCompleted || storyboard.isRunning

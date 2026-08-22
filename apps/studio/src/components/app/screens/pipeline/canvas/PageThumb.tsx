@@ -7,12 +7,9 @@ import { ThumbSkeleton } from "./PageSkeleton"
 export interface PageThumbProps {
   label: string
   pageId: string
-  /** Section rendered into the thumbnail — the page's first section. */
   sectionIndex: number | null
   cacheKey?: number | null
-  /** Discarded page: no section is rendered, so the PDF page stands in, greyed out. */
   pruned?: boolean
-  /** The storyboard has not reached this page yet — the PDF page stands in behind a spinner. */
   pending?: boolean
   className?: string
 }
@@ -37,7 +34,6 @@ function useInView<T extends Element>() {
   return [ref, inView] as const
 }
 
-/** Section screenshot for a page, falling back to the PDF page then to a paper-like placeholder. */
 export function PageThumb({
   label,
   pageId,
@@ -53,8 +49,6 @@ export function PageThumb({
     cacheKey,
     enabled: inView && !pruned,
   })
-  // Pruned and not-yet-rendered sections have no screenshot to serve, so the
-  // PDF page is the only thing left to show.
   const needsPdf = sectionIndex == null || pruned === true || pending === true || screenshot.isError
   const pdf = usePageImage(label, pageId, { enabled: inView && needsPdf })
   const pdfSrc = pdf.data?.imageBase64 ? `data:image/png;base64,${pdf.data.imageBase64}` : null

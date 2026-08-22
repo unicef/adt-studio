@@ -2,11 +2,6 @@ import { useId, type ReactNode } from "react"
 import { BrandedSwitch } from "@/components/ui/branded-switch"
 import { cn } from "@/lib/utils"
 
-/**
- * Clickable card with a title + description on the left and a switch on the
- * right — the standard "single boolean setting" pattern used across landing
- * pages (Figure Extraction, Activity Detection, …).
- */
 export function ToggleCard({
   title,
   description,

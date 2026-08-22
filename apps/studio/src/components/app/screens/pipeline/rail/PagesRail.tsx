@@ -13,15 +13,12 @@ import type { PipelinePage } from "@/components/app/screens/pipeline/shared/useP
 export interface PagesRailProps {
   label: string
   pages: PipelinePage[]
-  /** Quizzes are storyboard pages of their own, listed after the page they follow. */
   quizzes: QuizItem[]
   activePageId: string | null
   activeQuizIndex: number | null
   onSelect: (pageId: string) => void
   onSelectQuiz: (quizIndex: number) => void
-  /** Storyboard stage in flight — pages it has not reached yet show a spinner. */
   storyboardRunning?: boolean
-  /** Pages whose render is behind the sections it was built from. */
   outdatedPageIds?: ReadonlySet<string>
 }
 
@@ -39,8 +36,6 @@ export function PagesRail({
   const { t } = useLingui()
   const quizzesByPage = useMemo(() => groupQuizzesByPage(quizzes), [quizzes])
 
-  // The arrow keys move the selection without touching the rail, so the active
-  // row — page or quiz, both marked `aria-current` — brings itself into view.
   const listRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     listRef.current

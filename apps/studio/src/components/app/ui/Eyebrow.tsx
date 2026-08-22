@@ -1,7 +1,6 @@
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 
-/** Uppercase micro-label with a leading hairline rule. */
 export function Eyebrow({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <div

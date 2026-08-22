@@ -9,8 +9,6 @@ export interface PreviewFrameProps {
   viewport: Viewport
 }
 
-/** The packaged book itself, full-bleed on desktop and inside device chrome
- *  otherwise. The reader owns its scrolling, so the iframe just fills its screen. */
 export function PreviewFrame({ src, viewport }: PreviewFrameProps) {
   const { t } = useLingui()
   const paneRef = useRef<HTMLDivElement>(null)

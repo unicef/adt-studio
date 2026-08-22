@@ -23,7 +23,6 @@ export interface AiEditPanelProps {
   pageId: string | null
   pageLabel?: string
   sectionIndex?: number
-  /** Renders the first-run panel: nothing to edit yet, only starter prompts. */
   empty?: boolean
 }
 
@@ -82,7 +81,6 @@ interface PanelContentProps extends AiEditPanelProps {
   onCollapse: () => void
 }
 
-/** Right-hand "Edit with AI" rail: turn history for the open page, plus a composer. */
 function PanelContent({
   label,
   pageId,
@@ -208,11 +206,6 @@ function PanelContent({
   )
 }
 
-/**
- * Collapsible frame around the panel: the rail slides its own width shut and
- * hands the canvas the space, leaving a floating button to bring it back.
- * Both halves stay mounted so the open and close animations both play.
- */
 export function AiEditPanel(props: AiEditPanelProps) {
   const { t } = useLingui()
   const [open, setOpen] = useAiPanelOpen()

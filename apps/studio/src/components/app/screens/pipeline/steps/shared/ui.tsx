@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 import { RailCollapseButton } from "@/components/app/screens/pipeline/rail/SideRail"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 
-/** Scrolling body for a step, matching the workspace's centred column. */
 export function StepBody({
   title,
   meta,
@@ -39,7 +38,6 @@ export function StepCard({
   className,
 }: {
   children: React.ReactNode
-  /** Pruned / excluded items read as inactive. */
   muted?: boolean
   accent?: string
   className?: string
@@ -58,7 +56,6 @@ export function StepCard({
   )
 }
 
-/** Small uppercase group heading used between cards. */
 export function StepGroupLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="pt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
@@ -77,7 +74,6 @@ export interface EditableTextProps {
   className?: string
 }
 
-/** Click-to-edit text. Enter (or blur) commits, Escape reverts. */
 export function EditableText({
   value,
   onSave,
@@ -154,7 +150,6 @@ export function EditableText({
   return multiline ? <textarea rows={3} {...shared} /> : <input type="text" {...shared} />
 }
 
-/** Compact icon button used for per-item row actions. */
 export function RowAction({
   icon: Icon,
   label,
@@ -188,13 +183,11 @@ export function RowAction({
 }
 
 export interface RailEntry {
-  /** Filter this row selects. `""` conventionally means "no filter". */
   key: string | null
   title: string
   count: number
 }
 
-/** Plugin left rail: an index of where the step's output lives. */
 export function StepRail({
   heading,
   hex,

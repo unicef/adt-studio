@@ -2,9 +2,6 @@ import { useEffect, useLayoutEffect, useState, type RefObject } from "react"
 import type { Viewport } from "@/components/app/screens/pipeline/shared/types"
 import { zoomBy } from "./zoom"
 
-/** Widths the sections are rendered and captured at (`SCREENSHOT_VIEWPORTS`).
- *  Tablet and mobile lay their device screen out at exactly this width, so the
- *  render is 1:1; desktop displays its capture across whatever the pane gives. */
 export const CAPTURE_WIDTH: Record<Viewport, number> = {
   desktop: 1280,
   tablet: 768,
@@ -12,7 +9,6 @@ export const CAPTURE_WIDTH: Record<Viewport, number> = {
 }
 
 export const CANVAS_PADDING = 48
-/** px-6 on both sides plus pt-6 / pb-10 around the device. */
 export const DEVICE_PADDING = 64
 const DESKTOP_FALLBACK_WIDTH = 760
 

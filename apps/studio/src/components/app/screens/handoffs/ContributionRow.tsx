@@ -14,7 +14,6 @@ export interface ContributionRowProps {
   locale: string
 }
 
-/** A part someone shared with you (derived from real `book.part`). */
 export function ContributionRow({ book, locale }: ContributionRowProps) {
   const openBook = useOpenBook()
   const { t } = useLingui()

@@ -21,19 +21,11 @@ export interface PluginDockProps {
   plugins: DockItem[]
   activeSlug?: string | null
   onOpenPlugin: (slug: string) => void
-  /** Shown above the dock while plugins are still locked. */
   hint?: React.ReactNode
-  /** Collapses the dock to its handle. Omitted on screens with no minimized mode. */
   onMinimize?: () => void
-  /** Slides the dock off the bottom edge. It stays mounted so both directions animate. */
   minimized?: boolean
 }
 
-/**
- * Uppercase caption above each cluster of discs. `leading-none` pins its height
- * to the font size, so the trailing controls can reserve the same height with a
- * blank spacer and stay level with the discs.
- */
 const GROUP_LABEL_CLASS =
   "text-[9px] font-semibold uppercase leading-none tracking-[0.14em] text-muted-foreground/65 whitespace-nowrap"
 const GROUP_LABEL_HEIGHT = "h-2"
@@ -46,7 +38,6 @@ function DockDisc({
 }: {
   item: DockItem
   active: boolean
-  /** Draw the connector back to the disc on the left — this stage consumes its output. */
   linked: boolean
   onClick: () => void
 }) {

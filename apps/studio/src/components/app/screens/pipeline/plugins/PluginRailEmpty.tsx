@@ -10,7 +10,6 @@ export interface PluginRailEmptyProps {
   sectionCount: number
 }
 
-/** Plugin left rail before the first run: a hint of what will be indexed here. */
 export function PluginRailEmpty({ hex, title, pageCount, sectionCount }: PluginRailEmptyProps) {
   const { t } = useLingui()
 

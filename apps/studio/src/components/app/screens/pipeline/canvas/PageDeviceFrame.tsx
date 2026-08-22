@@ -4,16 +4,12 @@ import { IPhoneFrame } from "@/components/pipeline/stages/storyboard/components/
 
 export interface PageDeviceFrameProps {
   viewport: "tablet" | "mobile"
-  /** Logical width the sections were rendered at. */
   screenWidth: number
   zoom: number
-  /** Pane space the device has to fit into; 0 before the first measurement. */
   available: { width: number; height: number }
   children: React.ReactNode
 }
 
-/** iPhone / iPad chrome around the rendered page, reusing the shells the
- *  classic storyboard preview uses. */
 export function PageDeviceFrame({
   viewport,
   screenWidth,

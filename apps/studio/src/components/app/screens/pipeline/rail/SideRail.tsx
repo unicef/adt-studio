@@ -3,7 +3,6 @@ import { PanelLeftClose, PanelLeftOpen } from "lucide-react"
 import { useSideRailOpen } from "@/hooks/use-side-rail"
 import { cn } from "@/lib/utils"
 
-/** Collapse control, placed in each rail's own header. */
 export function RailCollapseButton({ className }: { className?: string }) {
   const { t } = useLingui()
   const [, setOpen] = useSideRailOpen()
@@ -25,16 +24,10 @@ export function RailCollapseButton({ className }: { className?: string }) {
 }
 
 export interface SideRailProps {
-  /** Width the rail expands to — matches the width its content is built at. */
   widthClass: string
   children: React.ReactNode
 }
 
-/**
- * Collapsible frame around a left rail, mirroring the AI panel: the rail slides
- * its own width shut and hands the space to the canvas, leaving a floating
- * button to bring it back. Both halves stay mounted so both animations play.
- */
 export function SideRail({ widthClass, children }: SideRailProps) {
   const { t } = useLingui()
   const [open, setOpen] = useSideRailOpen()

@@ -15,7 +15,6 @@ import type { PipelinePage } from "@/components/app/screens/pipeline/shared/useP
 type SectioningTree = NonNullable<PageDetail["sectioningTree"]>
 type Section = SectioningTree["sections"][number]
 
-/** Flattens a node tree into its readable lines, keeping the role for context. */
 function flatten(nodes: ContentNode[] | undefined, out: { role: string; text: string }[] = []) {
   for (const node of nodes ?? []) {
     if (node.text?.trim()) out.push({ role: node.role ?? node.structure ?? "", text: node.text })

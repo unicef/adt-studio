@@ -7,7 +7,6 @@ import {
 import type { PipelinePage } from "@/components/app/screens/pipeline/shared/usePipelineState"
 
 export interface StoryboardStaleness {
-  /** Renderings exist but no longer match the sections they were built from. */
   isStale: boolean
   outdatedPageIds: ReadonlySet<string>
   outdatedCount: number

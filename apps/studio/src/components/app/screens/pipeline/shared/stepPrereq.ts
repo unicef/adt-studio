@@ -3,19 +3,6 @@ import type { MessageDescriptor } from "@lingui/core"
 import type { StageName } from "@adt/types"
 import type { DockSlug } from "./plugins"
 
-/**
- * Gating rules lifted from the old pipeline UI, where each landing page named
- * its blocking upstream through `PrereqGuard upstreamSlug` (or, for sign
- * language, a direct storyboard check).
- *
- * `null` means the step never blocks: Extract has no upstream, and Sectioning
- * and Storyboard pull their missing ancestors into the run instead of refusing
- * to start — "Running Sectioning will run Extract first".
- *
- * Note this is the UI rule, not the DAG execution rule. Translate depends on
- * easy-read/quizzes/captions/glossary/toc in `PIPELINE`, but the old UI only
- * ever blocked it on Storyboard, so that is what we mirror.
- */
 export const STEP_PREREQ: Record<DockSlug, StageName | null> = {
   extract: null,
   sectioning: null,
@@ -30,25 +17,13 @@ export const STEP_PREREQ: Record<DockSlug, StageName | null> = {
   validation: "storyboard",
 }
 
-/** What we know about a book's progress, from the run status and its artifacts. */
 export interface StageEvidence {
-  /**
-   * The stage will have produced its output by the time anything queued now
-   * starts — the server drains its per-book run queue in click order, so a
-   * stage queued behind this one never starts before it finishes.
-   */
   covered: (stage: string) => boolean
   pageCount: number
   hasSections: boolean
   hasRendering: boolean
 }
 
-/**
- * A stage counts as satisfied when the run covers it *or* when its artifacts
- * are already on disk. Older books carry pages, sections and renderings
- * without the matching entry in `completedStages`, and gating purely on the
- * flag would lock their whole pipeline.
- */
 export function isStageSatisfied(stage: StageName, evidence: StageEvidence): boolean {
   if (evidence.covered(stage)) return true
   if (stage === "extract") return evidence.pageCount > 0
@@ -57,13 +32,11 @@ export function isStageSatisfied(stage: StageName, evidence: StageEvidence): boo
   return false
 }
 
-/** True while the step's blocking upstream is neither done nor on its way. */
 export function isStepLocked(slug: DockSlug, evidence: StageEvidence): boolean {
   const upstream = STEP_PREREQ[slug]
   return upstream != null && !isStageSatisfied(upstream, evidence)
 }
 
-/** Why the upstream is needed — the copy the old landing pages showed. */
 export const STEP_PREREQ_REASON: Partial<Record<DockSlug, MessageDescriptor>> = {
   captions: msg`Image Captions describes the images Storyboard placed. Finish Storyboard before running this stage.`,
   quizzes: msg`Quizzes are written from the sections Storyboard placed. Finish Storyboard before running this stage.`,

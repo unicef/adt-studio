@@ -36,8 +36,6 @@ const PROVIDER_HINTS: Record<ProviderKey, MessageDescriptor> = {
   elevenlabs: msg`High-fidelity, expressive voices with fine-grained cloning support.`,
 }
 
-// Voices & Accents card hidden for now while we evaluate the configure-voices
-// flow. Markup stays in place so re-enabling is a single flag flip.
 const SHOW_VOICES_ACCENTS_CARD = false
 
 export function SpeechLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {

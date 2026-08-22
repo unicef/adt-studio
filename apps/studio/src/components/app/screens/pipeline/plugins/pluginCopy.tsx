@@ -5,17 +5,11 @@ import { Sparkles } from "lucide-react"
 import type { DockSlug } from "@/components/app/screens/pipeline/shared/plugins"
 
 export interface PluginCopy {
-  /** Headline for the never-run state. */
   emptyTitle: MessageDescriptor
-  /** Label of the primary "run it" action. */
   runVerb: MessageDescriptor
-  /** Label of the secondary "do it by hand" action. */
   manualVerb: MessageDescriptor
-  /** A concrete example of what this plugin produces. */
   sample: React.ReactNode
-  /** One line explaining the shape of every produced item. */
   sampleNote: React.ReactNode
-  /** Overrides the sample heading for plugins that do not generate with AI. */
   sampleTitle?: MessageDescriptor
 }
 

@@ -8,11 +8,6 @@ import {
 } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 
-/**
- * Small inline help affordance: a muted `?` icon that reveals tooltip copy on
- * hover/focus. Use as the `labelAction` slot on `SettingsField` (or anywhere
- * a field needs an unobtrusive explainer).
- */
 export function HelpHint({
   content,
   side = "right",

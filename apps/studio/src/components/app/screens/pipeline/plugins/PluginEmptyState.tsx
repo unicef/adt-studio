@@ -34,7 +34,6 @@ export interface PluginEmptyStateProps {
   runDisabledReason?: React.ReactNode
 }
 
-/** Never-run state for a plugin: what it does, a real sample, and two ways in (design 4a). */
 export function PluginEmptyState({
   plugin,
   prerequisites,

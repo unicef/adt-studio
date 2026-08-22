@@ -55,10 +55,6 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
   const [imageDialogOpen, setImageDialogOpen] = useState(false)
   const seededRef = useRef(false)
 
-  // The book's original language drives the implicit base output. Resolve it the
-  // same way as LanguageView/LanguageSettings: prefer an explicit editing-language
-  // override, otherwise the Extract metadata language, normalized to a BCP-47
-  // locale so a localized code (e.g. "es-UY") is preserved.
   const configuredEditingLanguage =
     typeof activeConfigData?.merged?.editing_language === "string"
       ? (activeConfigData.merged.editing_language as string)
@@ -77,15 +73,8 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
 
     if (!seededRef.current) {
       seededRef.current = true
-      // The book's original language is always an output. Reconcile its entry
-      // with the current Extract metadata language so a previously-seeded bare
-      // code is updated to the live, localized one ("es" -> "es-UY"). Only the
-      // stale bare-base seed is replaced — deliberately-added regional variants
-      // (e.g. "en-GB" while the source is "en", or "es-MX" while the source is
-      // "es-UY") are preserved.
       const reconciled = reconcileSourceOutputLanguage(existing, baseLanguage)
       setOutputLanguages(new Set(reconciled))
-      // Persist only when the set of languages actually changed (ignore reorder).
       const changed =
         reconciled.length !== existing.length ||
         reconciled.some((code) => !existing.includes(code)) ||
@@ -162,9 +151,6 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
 
   const handleImagesConfirm = (ids: string[]) => {
     setSelectedImageIds(ids)
-    // Image translations are "enabled" iff at least one image is selected —
-    // the selection itself is the on/off signal. Still persist both fields so
-    // the pipeline's existing `enabled` check keeps working.
     persistImageTranslation({
       enabled: ids.length > 0,
       selected_image_ids: ids.length > 0 ? ids : undefined,
@@ -178,8 +164,6 @@ export function LanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; b
   }
 
   const hasLanguages = outputLanguages.size > 0
-  // Fixed layout only breaks when translating the original into *additional*
-  // languages — running translation with just the original language is fine.
   const hasAdditionalLanguages = Array.from(outputLanguages).some(
     (code) => normalizeLocale(code) !== baseLanguage,
   )

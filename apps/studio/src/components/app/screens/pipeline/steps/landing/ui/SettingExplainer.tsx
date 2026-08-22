@@ -31,11 +31,6 @@ export function SettingExplainer({
   align?: "start" | "center" | "end"
   openDelay?: number
   closeDelay?: number
-  /**
-   * Accent colors to re-establish inside the portaled popover. Required when
-   * the visual uses `var(--accent-color)` because the Radix HoverCard portal
-   * does not inherit the LandingPageShell's CSS variable cascade.
-   */
   accentColor?: string
   accentColorSoft?: string
 }) {
