@@ -51,7 +51,7 @@ import {
   getCoreTtsCatalog,
   getReadyCoreTtsEntries,
 } from "@adt/pipeline"
-import { getImportedAdtPresentationAssets } from "../services/adt-imported-presentation.js"
+import { getImportedAdtPresentationAssets } from "../services/adt-import/presentation.js"
 
 // ---------------------------------------------------------------------------
 // MIME type helper

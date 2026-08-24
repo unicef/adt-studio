@@ -25,4 +25,3 @@ export function textContentExcludingScripts(node: any): string {
   }
   return ""
 }
-

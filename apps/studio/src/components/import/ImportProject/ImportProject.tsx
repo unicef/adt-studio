@@ -30,7 +30,7 @@ import type { AdtBundleImportPreview, AnyImportPreview } from "@/api/client"
 import {
   importProjectInitialState,
   useImportProjectReviewFixture,
-} from "./import-project-review-fixtures"
+} from "@/dev/import-review/fixtures"
 import { ImportProgress } from "./ImportProgress"
 import { ImportStatus } from "./ImportStatus"
 import { ArchiveReviewSkeleton } from "./ArchiveReviewSkeleton"
@@ -392,4 +392,3 @@ export function ImportProject() {
     </>
   )
 }
-

@@ -75,8 +75,8 @@ import {
   type ScreenshotRenderer,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
-import { getImportedAdtPresentationAssets } from "../services/adt-imported-presentation.js"
-import { isImportedAdtProject } from "../services/imported-adt-source.js"
+import { getImportedAdtPresentationAssets } from "../services/adt-import/presentation.js"
+import { isImportedAdtProject } from "../services/adt-import/source.js"
 
 /**
  * Lazily-initialized shared Playwright renderer for section screenshots.

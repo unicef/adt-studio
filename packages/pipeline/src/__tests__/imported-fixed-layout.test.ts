@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest"
 import type { PageSectioningSection } from "@adt/types"
-import { projectImportedFixedLayoutPage } from "../imported-fixed-layout.js"
+import { projectImportedFixedLayoutPage } from "../adt-round-trip/fixed-layout.js"
 import { renderFixedLayoutPage } from "../fixed-layout-rendering.js"
-import { projectImportedHtmlSection } from "../imported-html.js"
+import { projectImportedHtmlSection } from "../adt-round-trip/html.js"
 
 /** A page in the exact shape Studio's fixed-layout exporter emits. */
 function exportedFixedLayoutPage(body: string, options: {

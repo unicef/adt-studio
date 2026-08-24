@@ -118,4 +118,3 @@ export function ActivityClassificationSelect({
     </Select>
   )
 }
-

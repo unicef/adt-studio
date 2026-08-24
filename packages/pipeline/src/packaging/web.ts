@@ -52,11 +52,11 @@ import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
 import { buildTextCatalog } from "../text-catalog.js"
-import { readAdtAgentGuideTemplate, renderAdtAgentGuide } from "../adt-agent-guide.js"
+import { readAdtAgentGuideTemplate, renderAdtAgentGuide } from "../adt-round-trip/agent-guide.js"
 import {
   buildAdtRoundTripManifest,
   collectTranslationBaselines,
-} from "../adt-round-trip-manifest.js"
+} from "../adt-round-trip/manifest.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
 import { getRenderSectioning } from "../render-sectioning.js"

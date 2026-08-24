@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 import {
   inspectImportedActivity,
   restoreImportedCustomActivityScripts,
-} from "../imported-activity.js"
+} from "../adt-round-trip/activity.js"
 
 describe("inspectImportedActivity", () => {
   it("recognizes an explicit Studio activity and its editing capability", () => {

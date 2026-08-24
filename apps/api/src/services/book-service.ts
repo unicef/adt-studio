@@ -14,9 +14,9 @@ import {
   type PartRange,
 } from "@adt/types"
 import { openBookDb } from "@adt/storage"
-import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./adt-import-marker.js"
+import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./adt-import/marker.js"
 import { ensureProjectIdentity } from "./project-identity.js"
-import { isImportedAdtProject } from "./imported-adt-source.js"
+import { isImportedAdtProject } from "./adt-import/source.js"
 
 function workingSource(bookDir: string, fallback: BookSummary["sourceKind"]): BookSummary["workingSource"] {
   return isImportedAdtProject(bookDir) ? "imported-adt" : fallback

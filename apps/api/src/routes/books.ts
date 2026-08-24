@@ -44,9 +44,9 @@ import {
   ADT_BUNDLE_READER_LIMITS,
   AdtBundleNotDetectedError,
   AdtBundleReadError,
-} from "../services/adt-bundle-reader.js"
-import { AdtImportError } from "../services/adt-import-error.js"
-import { previewAdtRecoveryImport } from "../services/adt-import-preview.js"
+} from "../services/adt-import/bundle-reader.js"
+import { AdtImportError } from "../services/adt-import/error.js"
+import { previewAdtRecoveryImport } from "../services/adt-import/preview.js"
 import {
   exportPart,
   importPart,
@@ -65,8 +65,8 @@ import {
 import {
   AdtProjectImportError,
   importAdtProject,
-} from "../services/adt-project-import.js"
-import { AdtActivityReviewError } from "../services/adt-activity-reconciliation.js"
+} from "../services/adt-import/project-import.js"
+import { AdtActivityReviewError } from "../services/adt-import/activity-reconciliation.js"
 import { readAdtAgentGuideTemplate } from "@adt/pipeline"
 
 const BookConfigUpdateRequest = z.object({

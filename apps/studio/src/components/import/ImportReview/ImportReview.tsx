@@ -3,7 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertCircle, Bot, Check, FileCode2, Puzzle, ShieldCheck } from "lucide-react"
 import type { AnyImportPreview } from "@/api/client"
 import { isAdtBundleImportPreview, isPartImportPreview } from "@/api/client"
-import { CopyTextButton } from "@/components/import/CopyTextButton"
+import { CopyTextButton } from "./CopyTextButton"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
@@ -271,4 +271,3 @@ export function ImportReview({
     </>
   )
 }
-

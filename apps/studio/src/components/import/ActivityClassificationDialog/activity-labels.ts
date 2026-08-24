@@ -96,4 +96,3 @@ export function activityTypeVisual(type: string | null): {
   }
   return { icon: Puzzle, tileClassName: "bg-violet-50 text-violet-700" }
 }
-

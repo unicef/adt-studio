@@ -18,4 +18,3 @@ export function isReadyImportPreview(preview: AnyImportPreview): boolean {
   if (isPartImportPreview(preview)) return true
   return !preview.validationError
 }
-

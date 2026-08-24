@@ -217,16 +217,16 @@ export {
   type ImportedHtmlContractIssueCode,
   type ImportedHtmlContractInspection,
   type ImportedHtmlContractOptions,
-} from "./imported-html.js"
+} from "./adt-round-trip/html.js"
 export {
   projectImportedFixedLayoutPage,
   isImportedFixedLayoutPage,
   type ImportedFixedLayoutProjection,
-} from "./imported-fixed-layout.js"
+} from "./adt-round-trip/fixed-layout.js"
 export {
   recoverImportedQuiz,
   type ImportedQuizRecovery,
-} from "./imported-quiz.js"
+} from "./adt-round-trip/quiz.js"
 export {
   inspectImportedActivity,
   restoreImportedCustomActivityScripts,
@@ -234,7 +234,7 @@ export {
   ACTIVITY_CLASSIFICATION_GUIDE,
   type ImportedActivityInspection,
   type ImportedActivitySignal,
-} from "./imported-activity.js"
+} from "./adt-round-trip/activity.js"
 export {
   buildCoreTtsPreparationConfig,
   loadCoreTtsProfiles,
@@ -403,7 +403,7 @@ export {
   buildAdtRoundTripManifest,
   collectTranslationBaselines,
   type BuildAdtRoundTripManifestOptions,
-} from "./adt-round-trip-manifest.js"
+} from "./adt-round-trip/manifest.js"
 export {
   ADT_AGENT_GUIDE_VERSION,
   inspectAdtAgentGuide,
@@ -412,7 +412,7 @@ export {
   resolveAdtAgentGuideTemplatePath,
   type AdtAgentGuideContext,
   type AdtAgentGuideInspection,
-} from "./adt-agent-guide.js"
+} from "./adt-round-trip/agent-guide.js"
 export {
   resolveQuizPalette,
   deriveQuizPalette,

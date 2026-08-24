@@ -15,7 +15,7 @@ import { createBookEventBus } from "../services/book-event-bus.js"
 import { createPageErrorDecisions } from "../services/page-error-decisions.js"
 import { createBookRoutes } from "./books.js"
 import { createStageRoutes } from "./stages.js"
-import { ADT_IMPORT_IN_PROGRESS_MARKER } from "../services/adt-import-marker.js"
+import { ADT_IMPORT_IN_PROGRESS_MARKER } from "../services/adt-import/marker.js"
 import { getBook } from "../services/book-service.js"
 
 const mockEventBus = createBookEventBus()

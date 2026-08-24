@@ -1,7 +1,7 @@
 import { Trans } from "@lingui/react/macro"
 import type { AdtBundleImportPreview, AnyImportPreview } from "@/api/client"
 import { isAdtBundleImportPreview, isPartImportPreview } from "@/api/client"
-import { CopyTextButton } from "@/components/import/CopyTextButton"
+import { CopyTextButton } from "./CopyTextButton"
 import {
   Dialog,
   DialogContent,
@@ -89,4 +89,3 @@ export function GuideDialog({
     </Dialog>
   )
 }
-

@@ -70,4 +70,3 @@ export function Definition({ label, value }: { label: React.ReactNode; value: Re
     </div>
   )
 }
-

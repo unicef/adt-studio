@@ -3,7 +3,7 @@ import {
   extractImportedHtmlPresentationAssets,
   inspectImportedHtmlContract,
   projectImportedHtmlSection,
-} from "../imported-html.js"
+} from "../adt-round-trip/html.js"
 
 describe("projectImportedHtmlSection", () => {
   it("normalizes a full exported page into a semantic section fragment", () => {
@@ -248,4 +248,3 @@ describe("inspectImportedHtmlContract", () => {
     ])
   })
 })
-

@@ -19,7 +19,7 @@ import type { TaskService } from "../services/task-service.js"
 import {
   getImportedAdtFeaturesNeedingRegeneration,
   restoreImportedAdtPresentation,
-} from "../services/adt-imported-presentation.js"
+} from "../services/adt-import/presentation.js"
 
 const PACKAGE_VERSION_LENGTH = 16
 

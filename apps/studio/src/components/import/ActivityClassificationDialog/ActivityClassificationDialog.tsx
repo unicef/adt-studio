@@ -252,4 +252,3 @@ export function ActivityClassificationDialog({
     </Dialog>
   )
 }
-

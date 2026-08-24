@@ -86,7 +86,7 @@ vi.mock("@/api/client", () => ({
 }))
 
 const { ImportProject } = await import("./ImportProject")
-const { IMPORT_REVIEW_STATES } = await import("./import-project-review-fixtures")
+const { IMPORT_REVIEW_STATES } = await import("@/dev/import-review/fixtures")
 
 afterEach(() => {
   cleanup()

@@ -291,4 +291,3 @@ export async function buildTextCatalog(
     generatedAt: new Date().toISOString(),
   }
 }
-

@@ -1,6 +1,6 @@
 import { serve } from "@hono/node-server"
 import { cleanupInterruptedSteps } from "@adt/storage"
-import { upgradeImportedAdtProjects } from "./services/adt-import-projection.js"
+import { upgradeImportedAdtProjects } from "./services/adt-import/projection.js"
 import app, { booksDir } from "./app.js"
 
 declare global {

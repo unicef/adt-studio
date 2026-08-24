@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { recoverImportedQuiz } from "../imported-quiz.js"
+import { recoverImportedQuiz } from "../adt-round-trip/quiz.js"
 
 const TEXTS = {
   qz001_que: "Who was coming to visit The COPE Academy?",
