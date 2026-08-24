@@ -17,7 +17,7 @@ import {
   showResolvedAtom,
   type CommentScope,
 } from "@/features/comments/state/comments.atoms"
-import { followedNameAtom, pendingThreadIdAtom } from "@/features/comments/state/follow.atoms"
+import { followedPeerAtom, pendingThreadIdAtom } from "@/features/comments/state/follow.atoms"
 import { otherPeersAtom } from "@/features/comments/state/presence.atoms"
 import { currentSectionIdAtom, pagesAtom, tocAtom } from "@/features/navigation/state/nav.atoms"
 
@@ -62,7 +62,7 @@ export function CommentsSidebar({
   const toc = useAtomValue(tocAtom)
   const currentSectionId = useAtomValue(currentSectionIdAtom)
   const setPendingThread = useSetAtom(pendingThreadIdAtom)
-  const stopFollowing = useSetAtom(followedNameAtom)
+  const stopFollowing = useSetAtom(followedPeerAtom)
   const listRef = useRef<HTMLDivElement>(null)
   const closeRef = useRef<HTMLButtonElement>(null)
 

@@ -2,7 +2,7 @@ import { useAtomValue, useSetAtom } from "jotai"
 import { Eye } from "lucide-react"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
 import { findFollowed } from "@/features/comments/lib/follow"
-import { followedNameAtom } from "@/features/comments/state/follow.atoms"
+import { followedPeerAtom } from "@/features/comments/state/follow.atoms"
 import { otherPeersAtom } from "@/features/comments/state/presence.atoms"
 
 const FALLBACK_COLOR = "#6366f1"
@@ -19,13 +19,16 @@ const FALLBACK_COLOR = "#6366f1"
  */
 export function FollowingBanner() {
   const { t } = useCommentsText()
-  const name = useAtomValue(followedNameAtom)
+  const followed = useAtomValue(followedPeerAtom)
   const peers = useAtomValue(otherPeersAtom)
-  const setName = useSetAtom(followedNameAtom)
+  const setFollowed = useSetAtom(followedPeerAtom)
 
-  if (name === null) return null
+  if (followed === null) return null
+  /** The name recorded when the follow started, not one looked up now: the banner has to keep
+   *  naming somebody through the gap where their socket is reconnecting. */
+  const name = followed.name
 
-  const color = findFollowed(peers, name)?.color ?? FALLBACK_COLOR
+  const color = findFollowed(peers, followed.id)?.color ?? FALLBACK_COLOR
 
   return (
     <>
@@ -45,7 +48,7 @@ export function FollowingBanner() {
         </span>
         <button
           type="button"
-          onClick={() => setName(null)}
+          onClick={() => setFollowed(null)}
           className="ml-1 rounded-full bg-muted px-2 py-0.5 text-[0.6875rem] font-medium text-foreground transition-colors hover:bg-muted/70"
         >
           {t("comments-follow-stop-label")}

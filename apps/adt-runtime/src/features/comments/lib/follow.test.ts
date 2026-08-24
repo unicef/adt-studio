@@ -38,14 +38,39 @@ describe("who can be followed", () => {
     expect(isFollowable(peer({ name: ANONYMOUS_PEER_NAME }))).toBe(false)
   })
 
-  /** Ids are per socket and a page turn is a reload, so the id of the person being followed
-   *  changes at the exact moment the follow has work to do. The name is what survives. */
-  it("finds the followed peer by name across a change of socket id", () => {
-    const before = findFollowed([peer({ id: "socket-1" })], "Ana")
-    const after = findFollowed([peer({ id: "socket-9", page_section_id: "pg003_sec001" })], "Ana")
-    expect(before?.id).toBe("socket-1")
-    expect(after?.id).toBe("socket-9")
+  /** The id survives a page turn now, so it is what the follow holds on to — and it follows the
+   *  same person onto their new page. */
+  it("finds the followed peer by id across a page turn", () => {
+    const before = findFollowed([peer({ id: "s-ana.tab1" })], "s-ana.tab1")
+    const after = findFollowed(
+      [peer({ id: "s-ana.tab1", page_section_id: "pg003_sec001" })],
+      "s-ana.tab1",
+    )
+    expect(before?.id).toBe("s-ana.tab1")
     expect(after?.page_section_id).toBe("pg003_sec001")
+  })
+
+  /**
+   * The reason for moving off the name. A name only collides when both sessions carry a PIN, so
+   * two pinless readers can both be "Ana" — and following one of them used to be able to attach
+   * to the other, or flip between them as the roster order changed.
+   */
+  it("tells two readers with the same name apart", () => {
+    const roster = [
+      peer({ id: "s-one.tab1", name: "Ana", page_section_id: "pg002_sec001" }),
+      peer({ id: "s-two.tab1", name: "Ana", page_section_id: "pg007_sec001" }),
+    ]
+    expect(findFollowed(roster, "s-two.tab1")?.page_section_id).toBe("pg007_sec001")
+    expect(findFollowed(roster, "s-one.tab1")?.page_section_id).toBe("pg002_sec001")
+  })
+
+  /** Two tabs of one reader are two people in the room, so following picks the one clicked. */
+  it("follows the tab that was clicked, not the reader's other window", () => {
+    const roster = [
+      peer({ id: "s-ana.tab1", page_section_id: "pg002_sec001" }),
+      peer({ id: "s-ana.tab2", page_section_id: "pg009_sec001" }),
+    ]
+    expect(findFollowed(roster, "s-ana.tab2")?.page_section_id).toBe("pg009_sec001")
   })
 })
 

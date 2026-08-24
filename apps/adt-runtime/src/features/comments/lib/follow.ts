@@ -9,28 +9,35 @@ import { ANONYMOUS_PEER_NAME, type RoomPeer } from "@/features/comments/lib/room
  */
 
 /**
- * A peer is followed **by name**, not by id.
+ * Whether a peer can be followed at all.
  *
- * `RoomPeer.id` is minted per socket, and every page turn in this runtime is a full document
- * reload — so the person you are following gets a new id at the exact moment you most need to
- * keep hold of them. Names are unique per publication (the worker refuses a duplicate), which
- * makes the name the only identity that survives the thing we are trying to follow.
+ * Following used to key on the *name*, because a peer id was minted per socket and every page
+ * turn is a document reload — the followed reader changed id at the exact moment you most needed
+ * to keep hold of them. The reasoning came with a claim that names are unique per publication,
+ * and that stopped being true in M3.5: a name only collides when both sessions carry a PIN, so
+ * two pinless readers can both be "Ana", and following one of them could attach to the other.
+ * Ids now survive a page turn, so the follow keys on the id and that ambiguity is gone.
  *
- * The exception is the unnamed reader: everybody who never gave a name is "Someone", so there
- * is no way to tell two of them apart. They can be seen, and not followed.
+ * The unnamed reader still cannot be followed, but for a different reason than before: their id
+ * *would* now distinguish them, so this is a product line rather than a technical one — a banner
+ * reading "Following Someone" is not worth the confusion.
  */
 export function isFollowable(peer: RoomPeer): boolean {
   return peer.name !== ANONYMOUS_PEER_NAME
 }
 
-export function findFollowed(peers: readonly RoomPeer[], name: string | null): RoomPeer | null {
-  if (name === null) return null
-  return peers.find((peer) => peer.name === name) ?? null
+export function findFollowed(
+  peers: readonly RoomPeer[],
+  peerId: string | null,
+): RoomPeer | null {
+  if (peerId === null) return null
+  return peers.find((peer) => peer.id === peerId) ?? null
 }
 
-/** How long a followed peer may be missing from the roster before the follow is dropped. A
- *  page turn *is* a disappearance — leave, then join with a new id — so reacting immediately
- *  would end the follow every single time it was doing its job. */
+/** How long a followed peer may be missing from the roster before the follow is dropped. A page
+ *  turn is still a disappearance — the socket closes and reopens — so reacting immediately would
+ *  end the follow every time it was doing its job, even now that the id on the far side of it is
+ *  the same one. */
 export const FOLLOW_GRACE_MS = 12_000
 
 export type FollowOutcome =

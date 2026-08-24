@@ -7,7 +7,7 @@ import {
   type PageEntry,
 } from "@/features/navigation/state/nav.atoms";
 import { dockMenuValueAtom } from "@/shared/state/ui.atoms";
-import { followedNameAtom } from "@/features/comments/state/follow.atoms";
+import { followedPeerAtom } from "@/features/comments/state/follow.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { DockIconButton } from "@/features/dock/components/DockIconButton";
 
@@ -52,7 +52,7 @@ export function PageNav() {
   const currentPageFromMeta = useAtomValue(currentPageNumberAtom);
   const dockMenuValue = useAtomValue(dockMenuValueAtom);
   const setDockMenuValue = useSetAtom(dockMenuValueAtom);
-  const stopFollowing = useSetAtom(followedNameAtom);
+  const stopFollowing = useSetAtom(followedPeerAtom);
   const { t } = useTranslation();
 
   const idx = pages.findIndex((p) => p.section_id === currentSectionId);

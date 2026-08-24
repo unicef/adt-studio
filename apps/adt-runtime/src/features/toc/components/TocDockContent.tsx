@@ -9,7 +9,7 @@ import {
   type TocEntry,
 } from "@/features/navigation/state/nav.atoms";
 import { activeNavTabAtom } from "@/shared/state/ui.atoms";
-import { followedNameAtom } from "@/features/comments/state/follow.atoms";
+import { followedPeerAtom } from "@/features/comments/state/follow.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { cn } from "@/shared/lib/utils";
 import { ScrollArea } from "@/shared/ui/scroll-area";
@@ -93,7 +93,7 @@ function TocList({
   currentSectionId: string | null;
 }) {
   /** Picking a destination yourself ends a follow, for the same reason turning the page does. */
-  const stopFollowing = useSetAtom(followedNameAtom);
+  const stopFollowing = useSetAtom(followedPeerAtom);
   return (
     <ul className="py-1">
       {entries.map((entry) => {
@@ -150,7 +150,7 @@ function PageList({
   printPageLabel: string;
   coverLabel: string;
 }) {
-  const stopFollowing = useSetAtom(followedNameAtom);
+  const stopFollowing = useSetAtom(followedPeerAtom);
   const items = useMemo<PageListItem[]>(() => {
     const chapterLookup = new Map<string, TocEntry>();
     for (const chapter of toc) {

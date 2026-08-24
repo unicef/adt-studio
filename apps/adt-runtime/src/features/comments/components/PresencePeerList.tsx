@@ -3,7 +3,7 @@ import { readableTextColor } from "@/features/comments/lib/color"
 import { isFollowable, pageLabelFor } from "@/features/comments/lib/follow"
 import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
 import { pagesAtom, tocAtom } from "@/features/navigation/state/nav.atoms"
-import { followedNameAtom } from "@/features/comments/state/follow.atoms"
+import { followedPeerAtom } from "@/features/comments/state/follow.atoms"
 import { otherPeersAtom } from "@/features/comments/state/presence.atoms"
 import type { RoomPeer } from "@/features/comments/lib/room-protocol"
 
@@ -32,8 +32,8 @@ export function PresencePeerList({ onFollow }: { onFollow?: () => void }) {
   const peers = useAtomValue(otherPeersAtom)
   const pages = useAtomValue(pagesAtom)
   const toc = useAtomValue(tocAtom)
-  const following = useAtomValue(followedNameAtom)
-  const setFollowing = useSetAtom(followedNameAtom)
+  const following = useAtomValue(followedPeerAtom)
+  const setFollowing = useSetAtom(followedPeerAtom)
 
   const labels = {
     unknown: t("comments-presence-unknown-page-label"),
@@ -44,7 +44,7 @@ export function PresencePeerList({ onFollow }: { onFollow?: () => void }) {
     <ul className="flex list-none flex-col p-0">
       {peers.map((peer) => {
         const followable = isFollowable(peer)
-        const isFollowed = following === peer.name
+        const isFollowed = following?.id === peer.id
         return (
           <li
             key={peer.id}
@@ -63,7 +63,7 @@ export function PresencePeerList({ onFollow }: { onFollow?: () => void }) {
               <button
                 type="button"
                 onClick={() => {
-                  setFollowing(isFollowed ? null : peer.name)
+                  setFollowing(isFollowed ? null : { id: peer.id, name: peer.name })
                   if (!isFollowed) onFollow?.()
                 }}
                 className={`shrink-0 rounded-full px-2.5 py-1 text-[0.6875rem] font-medium transition-colors ${
