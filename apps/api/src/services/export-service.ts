@@ -11,7 +11,7 @@ import { ensureProjectIdentity } from "./project-identity.js"
 import {
   getImportedAdtFeaturesNeedingRegeneration,
   restoreImportedAdtPresentation,
-} from "./adt-recovery-session.js"
+} from "./adt-imported-presentation.js"
 
 export interface ExportResult {
   stream: ReadableStream<Uint8Array>

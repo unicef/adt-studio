@@ -6,41 +6,17 @@ import {
 import {
   AdtActivitySectionType,
   type AdtActivityImportDecision,
+  type AdtActivityReviewReason,
+  type AdtImportedActivityReview,
+  type AdtImportedActivityReviewItem,
 } from "@adt/types"
 
 import type { ReadAdtBundle } from "./adt-bundle-reader.js"
 
-export type AdtActivityReviewReason =
-  | "missing-declaration"
-  | "missing-marker"
-  | "type-mismatch"
-  | "interactive-unmarked"
-  | "invalid-structure"
-  | "missing-page"
-
-export interface AdtImportedActivityReviewItem {
-  sectionId: string
-  href: string
-  declaredType: string | null
-  detectedType: string | null
-  suggestedType: string
-  kind: "quiz" | "known" | "custom" | "candidate"
-  status: "confirmed" | "needs-review"
-  supportsStudioEditing: boolean
-  reasons: AdtActivityReviewReason[]
-  signals: string[]
-  validationErrors: string[]
-  textPreview: string
-  previewHtml: string
-}
-
-export interface AdtImportedActivityReview {
-  inventoryVersion: number | null
-  items: AdtImportedActivityReviewItem[]
-  needsReviewCount: number
-  quizCount: number
-  activityCount: number
-  typeOptions: string[]
+export type {
+  AdtActivityReviewReason,
+  AdtImportedActivityReview,
+  AdtImportedActivityReviewItem,
 }
 
 function activityKind(

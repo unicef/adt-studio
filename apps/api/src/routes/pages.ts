@@ -75,7 +75,8 @@ import {
   type ScreenshotRenderer,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
-import { getImportedAdtPresentationAssets } from "../services/adt-recovery-session.js"
+import { getImportedAdtPresentationAssets } from "../services/adt-imported-presentation.js"
+import { isImportedAdtProject } from "../services/imported-adt-source.js"
 
 /**
  * Lazily-initialized shared Playwright renderer for section screenshots.
@@ -1445,7 +1446,7 @@ export function createPageRoutes(
         storage.close()
       }
 
-      const importedPresentation = fs.existsSync(path.join(bookDir, ".adt-import-current.json"))
+      const importedPresentation = isImportedAdtProject(bookDir)
         ? getImportedAdtPresentationAssets(safeLabel, booksDir)
         : null
       const screenshotHtml = await buildScreenshotHtml({

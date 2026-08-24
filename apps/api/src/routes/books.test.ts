@@ -15,7 +15,7 @@ import { createBookEventBus } from "../services/book-event-bus.js"
 import { createPageErrorDecisions } from "../services/page-error-decisions.js"
 import { createBookRoutes } from "./books.js"
 import { createStageRoutes } from "./stages.js"
-import { ADT_RECOVERY_MARKER } from "../services/adt-recovery-marker.js"
+import { ADT_IMPORT_IN_PROGRESS_MARKER } from "../services/adt-import-marker.js"
 import { getBook } from "../services/book-service.js"
 
 const mockEventBus = createBookEventBus()
@@ -1818,7 +1818,7 @@ describe("POST /books/import-adt", () => {
       workingSource: "imported-adt",
     })
     const bookDir = path.join(tmpDir, "exported-book")
-    expect(fs.existsSync(path.join(bookDir, ADT_RECOVERY_MARKER))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, ADT_IMPORT_IN_PROGRESS_MARKER))).toBe(false)
     expect(fs.existsSync(path.join(bookDir, ".adt-import-current.json"))).toBe(true)
     expect(fs.readdirSync(path.join(bookDir, ".adt-imports"))).toHaveLength(1)
 

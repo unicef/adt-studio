@@ -19,7 +19,7 @@ import type { TaskService } from "../services/task-service.js"
 import {
   getImportedAdtFeaturesNeedingRegeneration,
   restoreImportedAdtPresentation,
-} from "../services/adt-recovery-session.js"
+} from "../services/adt-imported-presentation.js"
 
 const PACKAGE_VERSION_LENGTH = 16
 
@@ -268,7 +268,9 @@ async function runPackaging(
     const preHash = computePackagingInputHash(hashOptions)
     const bundleVersion = packageVersionFromHash(preHash)
     if (fs.existsSync(hashPath) && fs.readFileSync(hashPath, "utf-8").trim() === preHash) {
-      restoreImportedAdtPresentation(safeLabel, booksDir)
+      // No presentation restore here: a matching hash means `adt/` was built by
+      // an earlier run that already restored into it, and re-checking would
+      // expand the source archive to discover there is nothing to do.
       return { version: readBuildVersion(bookDir, preHash) }
     }
 

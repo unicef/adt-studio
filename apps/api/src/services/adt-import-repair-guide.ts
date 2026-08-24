@@ -3,26 +3,17 @@ import {
   inspectAdtAgentGuide,
   renderAdtAgentGuide,
 } from "@adt/pipeline"
-import { ADT_EDITING_CONTRACT_VERSION } from "@adt/types"
+import {
+  ADT_EDITING_CONTRACT_VERSION,
+  type AdtAgentGuideReview,
+  type AdtImportCompatibility,
+  type AdtImportCompatibilityIssueCode,
+  type AdtImportedActivityReview,
+} from "@adt/types"
 
-import type { AdtImportedActivityReview } from "./adt-activity-reconciliation.js"
 import type { ReadAdtBundle } from "./adt-bundle-reader.js"
-import type {
-  AdtImportCompatibility,
-  AdtImportCompatibilityIssueCode,
-} from "./adt-recovery-session.js"
 
-export interface AdtAgentGuideReview {
-  status: "current" | "partial" | "outdated" | "missing"
-  currentVersion: number
-  files: {
-    agentsMd: { present: boolean; version: number | null; current: boolean }
-    claudeMd: { present: boolean; version: number | null; current: boolean }
-  }
-  currentGuide: string
-  repairPrompt: string
-  activityPrompt: string | null
-}
+export type { AdtAgentGuideReview }
 
 const compatibilityIssueGuidance: Record<AdtImportCompatibilityIssueCode, string> = {
   "missing-editing-contract": "manifest.json is missing current ADT Studio round-trip metadata.",

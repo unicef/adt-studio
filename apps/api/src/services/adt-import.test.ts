@@ -13,20 +13,47 @@ import { canonicalJson } from "@adt/types/fingerprint"
 
 import { listBooks } from "./book-service.js"
 import {
+  extractAdtBundleArchiveFiles,
+  readAdtBundle,
+} from "./adt-bundle-reader.js"
+import { assessAdtImportCompatibility } from "./adt-import-compatibility.js"
+import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./adt-import-marker.js"
+import { previewAdtRecoveryImport } from "./adt-import-preview.js"
+import {
   ADT_IMPORT_PROJECTION_VERSION,
-  ADT_RECOVERY_MARKER,
-  assessAdtImportCompatibility,
-  createAdtRecoverySession,
-  deleteAdtRecoverySession,
   ensureImportedAdtProjectProjection,
-  exportAdtRecoverySession,
-  getAdtRecoverySession,
+} from "./adt-import-projection.js"
+import {
+  seedImportedAdtProject,
+  type ImportedAdtSeedResult,
+} from "./adt-import-seed.js"
+import {
   getImportedAdtFeaturesNeedingRegeneration,
-  listAdtRecoverySessions,
-  previewAdtRecoveryImport,
   restoreImportedAdtPresentation,
-  syncAdtRecoveryPreview,
-} from "./adt-recovery-session.js"
+} from "./adt-imported-presentation.js"
+
+/** Mirrors what `importAdtProject` does around the seeder: read the archive
+ * once, then project it into the label the manifest asks for. */
+function seedFromArchive(
+  zipBuffer: Buffer,
+  booksDir: string,
+  sourceFileName?: string,
+  activityDecisions?: ReadonlyArray<{ sectionId: string; type: string | null }>,
+): ImportedAdtSeedResult {
+  const bundle = readAdtBundle(zipBuffer)
+  const files = extractAdtBundleArchiveFiles(zipBuffer)
+  return seedImportedAdtProject(bundle.manifest.book.label, booksDir, bundle, files, {
+    sourceFileName,
+    activityDecisions,
+  })
+}
+
+function assessArchive(zipBuffer: Buffer) {
+  return assessAdtImportCompatibility(
+    readAdtBundle(zipBuffer),
+    extractAdtBundleArchiveFiles(zipBuffer),
+  )
+}
 
 const temporaryRoots: string[] = []
 const json = (value: unknown) => strToU8(JSON.stringify(value))
@@ -345,7 +372,7 @@ describe("ADT recovery workspace", () => {
 
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-page-count-"))
     temporaryRoots.push(booksDir)
-    const session = createAdtRecoverySession(bundle, booksDir, "multi-section.zip")
+    const session = seedFromArchive(bundle, booksDir, "multi-section.zip")
     expect(session.pageCount).toBe(1)
     const storage = createBookStorage(session.label, booksDir)
     try {
@@ -356,17 +383,17 @@ describe("ADT recovery workspace", () => {
   })
 
   it("accepts quiz pages emitted before Studio added data-section-id", () => {
-    expect(assessAdtImportCompatibility(makeCurrentBundleWithLegacyQuizMarkup()))
+    expect(assessArchive(makeCurrentBundleWithLegacyQuizMarkup()))
       .toEqual({ supported: true, issues: [] })
   })
 
   it("imports pages added outside Studio when every page index is updated", () => {
     const bundle = makeCurrentBundleWithExternallyAddedPage()
-    expect(assessAdtImportCompatibility(bundle)).toEqual({ supported: true, issues: [] })
+    expect(assessArchive(bundle)).toEqual({ supported: true, issues: [] })
 
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-added-page-"))
     temporaryRoots.push(booksDir)
-    const session = createAdtRecoverySession(bundle, booksDir, "expanded-book.zip")
+    const session = seedFromArchive(bundle, booksDir, "expanded-book.zip")
 
     expect(session).toMatchObject({
       title: "Expanded Book",
@@ -380,7 +407,7 @@ describe("ADT recovery workspace", () => {
   })
 
   it("rejects folders outside the canonical ADT bundle root", () => {
-    expect(assessAdtImportCompatibility(makeBundle())).toMatchObject({
+    expect(assessArchive(makeBundle())).toMatchObject({
       supported: false,
       issues: expect.arrayContaining([
         expect.objectContaining({
@@ -395,7 +422,7 @@ describe("ADT recovery workspace", () => {
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-"))
     temporaryRoots.push(booksDir)
 
-    const session = createAdtRecoverySession(makeBundle(), booksDir, "hyena.zip")
+    const session = seedFromArchive(makeBundle(), booksDir, "hyena.zip")
     const bookDir = path.join(booksDir, session.label)
     expect(session).toMatchObject({
       title: "Hyena and Raven",
@@ -406,42 +433,10 @@ describe("ADT recovery workspace", () => {
       ignoredHtmlEntryCount: 0,
       contentChanged: true,
     })
-    expect(fs.existsSync(path.join(bookDir, ADT_RECOVERY_MARKER))).toBe(true)
-    expect(getAdtRecoverySession(session.label, booksDir)).toMatchObject({
-      label: session.label,
-      sourceFileName: "hyena.zip",
-      title: "Hyena and Raven",
-      pageCount: 1,
-      tocEntryCount: 1,
-      glossaryEntryCount: 1,
-      translationLanguageCount: 1,
-      runtimeFeatures: { readAloud: true, highlight: true },
-      contentChanged: true,
-    })
-    expect(listAdtRecoverySessions(booksDir).map(({ label }) => label))
-      .toEqual([session.label])
-    expect(fs.existsSync(path.join(bookDir, "adt", "index.html"))).toBe(true)
-    expect(fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf8"))
-      .not.toContain("data-adt-recovery-storage-shim")
-    expect(fs.readFileSync(path.join(bookDir, "adt", "assets", "scorm.js"), "utf8"))
-      .toBe("void window.parent.API")
+    expect(fs.existsSync(path.join(bookDir, ADT_IMPORT_IN_PROGRESS_MARKER))).toBe(true)
     expect(listBooks(booksDir)).toEqual([])
     expect(fs.readFileSync(path.join(bookDir, "config.yaml"), "utf8"))
       .toContain("- en")
-
-    expect(syncAdtRecoveryPreview(session.label, booksDir)).toMatchObject({
-      audioCount: 1,
-      languages: ["en"],
-    })
-    expect(fs.readFileSync(
-      path.join(bookDir, "adt", "content", "i18n", "en", "audio", "original.mp3"),
-      "utf8",
-    )).toBe("original audio")
-    const untouchedExport = unzipSync(exportAdtRecoverySession(session.label, booksDir))
-    expect(new TextDecoder().decode(untouchedExport["content/i18n/en/audio/original.mp3"]))
-      .toBe("original audio")
-    expect(JSON.parse(new TextDecoder().decode(untouchedExport["content/i18n/en/audios.json"])))
-      .toEqual({ pg001_n001: "original.mp3" })
 
     const storage = createBookStorage(session.label, booksDir)
     try {
@@ -496,118 +491,6 @@ describe("ADT recovery workspace", () => {
     } finally {
       storage.close()
     }
-
-    const audioDir = path.join(bookDir, "audio", "en")
-    fs.mkdirSync(audioDir, { recursive: true })
-    fs.writeFileSync(path.join(audioDir, "pg001_n001.mp3"), "audio")
-    const speechStorage = createBookStorage(session.label, booksDir)
-    try {
-      speechStorage.putNodeData("tts", "en", {
-        entries: [{
-          textId: "pg001_n001",
-          language: "en",
-          fileName: "pg001_n001.mp3",
-          voice: "alloy",
-          model: "gpt-4o-mini-tts",
-          cached: false,
-          provider: "openai",
-        }],
-        generatedAt: new Date().toISOString(),
-      })
-      speechStorage.putNodeData("tts-timestamps", "en", {
-        entries: {
-          pg001_n001: {
-            textId: "pg001_n001",
-            language: "en",
-            words: [{ word: "Edited", start: 0, end: 0.4 }],
-            duration: 0.4,
-          },
-        },
-        generatedAt: new Date().toISOString(),
-      })
-    } finally {
-      speechStorage.close()
-    }
-    expect(syncAdtRecoveryPreview(session.label, booksDir)).toMatchObject({
-      audioCount: 1,
-      languages: ["en"],
-    })
-    expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf8")))
-      .toMatchObject({ features: { readAloud: true, highlight: true } })
-    expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "audios.json"), "utf8")))
-      .toEqual({ pg001_n001: "pg001_n001.mp3" })
-    expect(fs.existsSync(path.join(bookDir, "adt", "content", "i18n", "en", "audio", "pg001_n001.mp3")))
-      .toBe(true)
-    expect(fs.readFileSync(path.join(bookDir, "adt", "assets", "offline-preloader.js"), "utf8"))
-      .toContain('"pg001_n001":"pg001_n001.mp3"')
-
-    const exported = unzipSync(exportAdtRecoverySession(session.label, booksDir))
-    expect(JSON.parse(new TextDecoder().decode(exported["content/i18n/en/audios.json"])))
-      .toEqual({ pg001_n001: "pg001_n001.mp3" })
-    expect(JSON.parse(new TextDecoder().decode(exported["assets/config.json"])))
-      .toMatchObject({ features: { readAloud: true, highlight: true } })
-    expect(new TextDecoder().decode(exported["index.html"]))
-      .not.toContain("data-adt-recovery-storage-shim")
-    expect(new TextDecoder().decode(exported["assets/scorm.js"]))
-      .toBe("void window.parent.API")
-
-    fs.writeFileSync(path.join(bookDir, "config.yaml"), `editing_language: en
-output_languages:
-  - es
-speech:
-  excluded_text_ids:
-    - pg001_n001
-`)
-    expect(syncAdtRecoveryPreview(session.label, booksDir)).toMatchObject({
-      audioCount: 0,
-      languages: [],
-    })
-    expect(JSON.parse(fs.readFileSync(
-      path.join(bookDir, "adt", "content", "i18n", "en", "audios.json"),
-      "utf8",
-    ))).toEqual({})
-    expect(JSON.parse(fs.readFileSync(
-      path.join(bookDir, "adt", "content", "i18n", "en", "timecode", "timecode_output.json"),
-      "utf8",
-    ))).toEqual({})
-    fs.writeFileSync(path.join(bookDir, "config.yaml"), `editing_language: en
-output_languages:
-  - es
-`)
-    expect(syncAdtRecoveryPreview(session.label, booksDir).audioCount).toBe(1)
-
-    const clearStorage = createBookStorage(session.label, booksDir)
-    try {
-      clearStorage.putNodeData("tts", "en", { entries: [], generatedAt: new Date().toISOString() })
-      clearStorage.putNodeData("tts-timestamps", "en", { entries: {}, generatedAt: new Date().toISOString() })
-    } finally {
-      clearStorage.close()
-    }
-    syncAdtRecoveryPreview(session.label, booksDir)
-    expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "audios.json"), "utf8")))
-      .toEqual({})
-    expect(fs.existsSync(path.join(bookDir, "adt", "content", "i18n", "en", "audio", "pg001_n001.mp3")))
-      .toBe(false)
-
-    const invalidatedStorage = createBookStorage(session.label, booksDir)
-    try {
-      invalidatedStorage.putNodeData("tts", "en", {
-        entries: [],
-        generatedAt: new Date().toISOString(),
-        invalidatedBySourceRevision: "revision-2",
-      })
-    } finally {
-      invalidatedStorage.close()
-    }
-    syncAdtRecoveryPreview(session.label, booksDir)
-    expect(JSON.parse(fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "audios.json"), "utf8")))
-      .toEqual({ pg001_n001: "original.mp3" })
-    expect(fs.existsSync(path.join(bookDir, "adt", "content", "i18n", "en", "audio", "original.mp3")))
-      .toBe(true)
-
-    deleteAdtRecoverySession(session.label, booksDir)
-    expect(fs.existsSync(bookDir)).toBe(false)
-
   })
 
   it("upgrades an older imported project projection once without replacing its source", () => {
@@ -615,7 +498,7 @@ output_languages:
     temporaryRoots.push(booksDir)
 
     const source = makeBundle()
-    const session = createAdtRecoverySession(source, booksDir, "hyena.zip")
+    const session = seedFromArchive(source, booksDir, "hyena.zip")
     const bookDir = path.join(booksDir, session.label)
     const revisionId = "legacy-revision"
     const revisionDir = path.join(bookDir, ".adt-imports", revisionId)
@@ -644,6 +527,8 @@ output_languages:
     expect(JSON.parse(fs.readFileSync(path.join(bookDir, ".adt-import-current.json"), "utf8")))
       .toMatchObject({ projectionVersion: ADT_IMPORT_PROJECTION_VERSION })
 
+    // `packageAdtWeb` rebuilds `adt/` before presentation restore runs.
+    fs.mkdirSync(path.join(bookDir, "adt"), { recursive: true })
     fs.writeFileSync(path.join(bookDir, "adt", "index.html"), "<html><head></head><body></body></html>")
     fs.mkdirSync(path.join(bookDir, "adt", "content"), { recursive: true })
     fs.writeFileSync(path.join(bookDir, "adt", "content", "pages.json"), JSON.stringify([
@@ -677,7 +562,7 @@ output_languages:
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-speech-"))
     temporaryRoots.push(booksDir)
 
-    const session = createAdtRecoverySession(makeBundleWithUnchangedHtmlCatalog(), booksDir)
+    const session = seedFromArchive(makeBundleWithUnchangedHtmlCatalog(), booksDir)
     expect(session.contentChanged).toBe(false)
     const revisionDir = path.join(booksDir, session.label, ".adt-imports", "speech-revision")
     fs.mkdirSync(revisionDir, { recursive: true })
@@ -717,7 +602,7 @@ output_languages:
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-image-alt-"))
     temporaryRoots.push(booksDir)
 
-    const session = createAdtRecoverySession(
+    const session = seedFromArchive(
       makeCurrentBundleWithCanonicalImageDescription(),
       booksDir,
     )
@@ -744,39 +629,6 @@ output_languages:
     }
   })
 
-  it("restores generated Speech status from versioned local data", () => {
-    const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-status-"))
-    temporaryRoots.push(booksDir)
-    const files = unzipSync(makeBundle())
-    files["assets/config.json"] = json({
-      title: "Hyena and Raven",
-      features: { readAloud: false, highlight: false },
-    })
-    delete files["content/i18n/en/audio/original.mp3"]
-    files["content/i18n/en/audios.json"] = json({})
-    const session = createAdtRecoverySession(Buffer.from(zipSync(files)), booksDir)
-    expect(getAdtRecoverySession(session.label, booksDir).runtimeFeatures.readAloud).toBe(false)
-
-    const storage = createBookStorage(session.label, booksDir)
-    try {
-      storage.putNodeData("tts", "en", {
-        entries: [{
-          textId: "pg001_n001",
-          language: "en",
-          fileName: "pg001_n001.mp3",
-          voice: "alloy",
-          model: "gpt-4o-mini-tts",
-          cached: false,
-          provider: "openai",
-        }],
-        generatedAt: new Date().toISOString(),
-      })
-    } finally {
-      storage.close()
-    }
-
-    expect(getAdtRecoverySession(session.label, booksDir).runtimeFeatures.readAloud).toBe(true)
-  })
 
   it("surfaces externally changed HTML as feature attention evidence", () => {
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-recovery-edited-"))
@@ -788,10 +640,9 @@ output_languages:
     }
     files["manifest.json"] = json(manifest)
 
-    const session = createAdtRecoverySession(Buffer.from(zipSync(files)), booksDir)
+    const session = seedFromArchive(Buffer.from(zipSync(files)), booksDir)
 
     expect(session.contentChanged).toBe(true)
-    expect(getAdtRecoverySession(session.label, booksDir).contentChanged).toBe(true)
   })
 })
 
@@ -831,7 +682,7 @@ describe("imported feature recovery", () => {
   it("rebuilds a generated quiz into a real entity", () => {
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-quiz-"))
     temporaryRoots.push(booksDir)
-    const session = createAdtRecoverySession(makeFixedLayoutBundle(), booksDir)
+    const session = seedFromArchive(makeFixedLayoutBundle(), booksDir)
     const storage = createBookStorage(session.label, booksDir)
     try {
       const quiz = (storage.getLatestNodeData("quiz-generation", "book")!
@@ -887,7 +738,7 @@ describe("imported fixed-layout books", () => {
   function importFixedLayout() {
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-fixed-layout-"))
     temporaryRoots.push(booksDir)
-    const session = createAdtRecoverySession(makeFixedLayoutBundle(), booksDir)
+    const session = seedFromArchive(makeFixedLayoutBundle(), booksDir)
     return { booksDir, session }
   }
 
@@ -968,7 +819,7 @@ describe("imported fixed-layout books", () => {
   it("leaves a reflowable import's config free of render strategies", () => {
     const booksDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-reflowable-config-"))
     temporaryRoots.push(booksDir)
-    const session = createAdtRecoverySession(makeBundle(), booksDir)
+    const session = seedFromArchive(makeBundle(), booksDir)
     const config = yaml.load(fs.readFileSync(
       path.join(booksDir, session.label, "config.yaml"),
       "utf8",

@@ -14,13 +14,12 @@ import {
   type PartRange,
 } from "@adt/types"
 import { openBookDb } from "@adt/storage"
-import { ADT_RECOVERY_MARKER } from "./adt-recovery-marker.js"
+import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./adt-import-marker.js"
 import { ensureProjectIdentity } from "./project-identity.js"
-
-const ADT_IMPORT_CURRENT_FILE = ".adt-import-current.json"
+import { isImportedAdtProject } from "./imported-adt-source.js"
 
 function workingSource(bookDir: string, fallback: BookSummary["sourceKind"]): BookSummary["workingSource"] {
-  return fs.existsSync(path.join(bookDir, ADT_IMPORT_CURRENT_FILE)) ? "imported-adt" : fallback
+  return isImportedAdtProject(bookDir) ? "imported-adt" : fallback
 }
 
 type BookDb = ReturnType<typeof openBookDb>
@@ -153,7 +152,7 @@ export function listBooks(booksDir: string): BookSummary[] {
 
     const label = entry.name
     const bookDir = path.join(resolvedDir, label)
-    if (fs.existsSync(path.join(bookDir, ADT_RECOVERY_MARKER))) continue
+    if (fs.existsSync(path.join(bookDir, ADT_IMPORT_IN_PROGRESS_MARKER))) continue
     const dbPath = path.join(bookDir, `${label}.db`)
     const pdfPath = path.join(bookDir, `${label}.pdf`)
     const identity = ensureProjectIdentity(bookDir)

@@ -5,7 +5,8 @@ import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody } from "@adt/types"
+import { StageName, STAGE_ORDER, PIPELINE, IMPORTED_ADT_LOCKED_STAGES, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody } from "@adt/types"
+import { isImportedAdtProjectLabel } from "../services/imported-adt-source.js"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
@@ -90,18 +91,13 @@ export function createStageRoutes(
 
     const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
 
-    const safeLabel = parseBookLabel(label)
-    const usesImportedHtml = fs.existsSync(
-      path.join(path.resolve(booksDir), safeLabel, ".adt-import-current.json"),
-    )
-    if (usesImportedHtml) {
+    if (isImportedAdtProjectLabel(label, booksDir)) {
       const fromIndex = STAGE_ORDER.indexOf(fromStage)
       const toIndex = STAGE_ORDER.indexOf(toStage)
-      const sourceStages = new Set<StageName>(["extract", "sectioning", "storyboard"])
-      const includesSourceStage = STAGE_ORDER
+      const includesLockedStage = STAGE_ORDER
         .slice(fromIndex, toIndex + 1)
-        .some((stage) => sourceStages.has(stage))
-      if (includesSourceStage) {
+        .some((stage) => IMPORTED_ADT_LOCKED_STAGES.has(stage))
+      if (includesLockedStage) {
         throw new HTTPException(409, {
           message: "Extract, Sectioning, and Storyboard regeneration are not available while imported HTML is the source. Open Storyboard to edit the imported HTML, or run an enhancement stage.",
         })

@@ -45,11 +45,8 @@ import {
   AdtBundleNotDetectedError,
   AdtBundleReadError,
 } from "../services/adt-bundle-reader.js"
-import { AdtBundleEditorError } from "../services/adt-bundle-editor.js"
-import {
-  AdtRecoverySessionError,
-  previewAdtRecoveryImport,
-} from "../services/adt-recovery-session.js"
+import { AdtImportError } from "../services/adt-import-error.js"
+import { previewAdtRecoveryImport } from "../services/adt-import-preview.js"
 import {
   exportPart,
   importPart,
@@ -70,6 +67,7 @@ import {
   importAdtProject,
 } from "../services/adt-project-import.js"
 import { AdtActivityReviewError } from "../services/adt-activity-reconciliation.js"
+import { readAdtAgentGuideTemplate } from "@adt/pipeline"
 
 const BookConfigUpdateRequest = z.object({
   config: z
@@ -250,18 +248,13 @@ export function createBookRoutes(
       throw new HTTPException(400, { message: distributionFormatMessage(distributionFormat) })
     }
     try {
-      const guideTemplatePath = webAssetsDir
-        ? path.join(path.dirname(webAssetsDir), "AGENTS.md.liquid")
-        : path.resolve(process.cwd(), "assets", "AGENTS.md.liquid")
-      const guideTemplate = fs.existsSync(guideTemplatePath)
-        ? fs.readFileSync(guideTemplatePath, "utf8")
-        : undefined
+      const guideTemplate = readAdtAgentGuideTemplate(webAssetsDir) ?? undefined
       return c.json(previewAdtRecoveryImport(zipBuffer, guideTemplate))
     } catch (error) {
       if (error instanceof AdtBundleNotDetectedError) {
         return c.json(previewImport(zipBuffer))
       }
-      if (error instanceof AdtBundleReadError || error instanceof AdtRecoverySessionError) {
+      if (error instanceof AdtBundleReadError || error instanceof AdtImportError) {
         throw new HTTPException(400, { message: error.message })
       }
       throw error
@@ -317,8 +310,7 @@ export function createBookRoutes(
       if (
         error instanceof AdtProjectImportError
         || error instanceof AdtBundleReadError
-        || error instanceof AdtBundleEditorError
-        || error instanceof AdtRecoverySessionError
+        || error instanceof AdtImportError
         || error instanceof AdtActivityReviewError
       ) {
         throw new HTTPException(400, { message: error.message })

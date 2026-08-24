@@ -469,3 +469,30 @@ export function readAdtBundle(
     ...(options.includePreviewImages ? { previewImages } : {}),
   }
 }
+
+/** Every entry in the archive, bounded by the same limits `readAdtBundle`
+ * applies to its selected subset. Used when the import needs the whole bundle
+ * (asset recovery, presentation restore), not just the parsed projections. */
+export function extractAdtBundleArchiveFiles(zipBuffer: Buffer): Record<string, Uint8Array> {
+  if (zipBuffer.byteLength > ADT_BUNDLE_READER_LIMITS.archiveBytes) {
+    throw new AdtBundleReadError("ADT bundle exceeds the compressed archive size limit")
+  }
+  let totalBytes = 0
+  try {
+    return unzipSync(zipBuffer, {
+      filter(info) {
+        if (!Number.isSafeInteger(info.originalSize) || info.originalSize < 0) {
+          throw new AdtBundleReadError("ADT bundle contains an invalid archive entry")
+        }
+        totalBytes += info.originalSize
+        if (totalBytes > ARCHIVE_SAFETY_LIMITS.expandedBytes) {
+          throw new AdtBundleReadError("ADT bundle exceeds the expanded archive size limit")
+        }
+        return true
+      },
+    })
+  } catch (error) {
+    if (error instanceof AdtBundleReadError) throw error
+    throw new AdtBundleReadError("Invalid or unsupported ADT ZIP bundle")
+  }
+}

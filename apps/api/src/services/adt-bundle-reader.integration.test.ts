@@ -6,8 +6,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import { packageAdtWeb } from "@adt/pipeline"
-import { readAdtBundle } from "./adt-bundle-reader.js"
-import { assessAdtImportCompatibility, previewAdtRecoveryImport } from "./adt-recovery-session.js"
+import { AdtBundleImportPreview } from "@adt/types"
+import { extractAdtBundleArchiveFiles, readAdtBundle } from "./adt-bundle-reader.js"
+import { assessAdtImportCompatibility } from "./adt-import-compatibility.js"
+import { previewAdtRecoveryImport } from "./adt-import-preview.js"
 
 let tmpDir: string
 
@@ -148,14 +150,20 @@ describe("readAdtBundle with a real packageAdtWeb archive", () => {
       pageHtmlChanged: [],
       pageHtmlMissing: [],
     })
-    expect(assessAdtImportCompatibility(archive, bundle)).toEqual({
+    expect(assessAdtImportCompatibility(bundle, extractAdtBundleArchiveFiles(archive))).toEqual({
       supported: true,
       issues: [],
     })
-    expect(previewAdtRecoveryImport(archive)).toMatchObject({
+    const preview = previewAdtRecoveryImport(archive)
+    expect(preview).toMatchObject({
       contentChanged: false,
       exportComparisonStatus: "unchanged",
     })
+    // The response shape is the shared `@adt/types` contract the Studio client
+    // derives from. Parsing a real preview here is what stops the two sides
+    // drifting: an added or renamed field fails this instead of only breaking
+    // at runtime in the browser.
+    expect(() => AdtBundleImportPreview.parse(preview)).not.toThrow()
 
     const editedFiles = unzipSync(archive)
     editedFiles["index.html"] = strToU8(

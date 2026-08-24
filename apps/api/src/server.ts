@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server"
 import { cleanupInterruptedSteps } from "@adt/storage"
+import { upgradeImportedAdtProjects } from "./services/adt-import-projection.js"
 import app, { booksDir } from "./app.js"
 
 declare global {
@@ -21,6 +22,7 @@ type ServeFn = (
 interface StartServerOptions {
   serveFn?: ServeFn
   cleanupFn?: (dir: string) => void
+  upgradeFn?: (dir: string) => void
   booksDirPath?: string
   fetchHandler?: typeof app.fetch
   port?: number
@@ -33,12 +35,16 @@ export function startServer(options: StartServerOptions = {}): unknown {
   const port = options.port ?? parseInt(process.env.PORT ?? defaultPort, 10)
   const serveFn = options.serveFn ?? (serve as ServeFn)
   const cleanupFn = options.cleanupFn ?? cleanupInterruptedSteps
+  const upgradeFn = options.upgradeFn ?? upgradeImportedAdtProjects
   const booksDirPath = options.booksDirPath ?? booksDir
   const fetchHandler = options.fetchHandler ?? app.fetch
   const log = options.log ?? console.log
 
   // Startup-only cleanup: run once before the server accepts requests.
   cleanupFn(booksDirPath)
+  // Re-project imported-ADT books whose projection predates this build. Reads
+  // each book's immutable source archive, so it is safe to repeat.
+  upgradeFn(booksDirPath)
 
   console.log({
     ADT_ENVIRONMENT: process.env.ADT_ENVIRONMENT

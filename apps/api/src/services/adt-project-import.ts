@@ -2,22 +2,24 @@ import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 
-import { createBookStorage } from "@adt/storage"
 import {
   parseBookLabel,
   type AdtActivityImportDecision,
   type BookSummary,
 } from "@adt/types"
 
-import { readAdtBundle } from "./adt-bundle-reader.js"
 import {
-  ADT_IMPORT_PROJECTION_VERSION,
-  ADT_RECOVERY_MARKER,
-  assessAdtImportCompatibility,
-  createAdtRecoverySession,
-} from "./adt-recovery-session.js"
+  extractAdtBundleArchiveFiles,
+  readAdtBundle,
+  type ReadAdtBundle,
+} from "./adt-bundle-reader.js"
+import { assessAdtImportCompatibility } from "./adt-import-compatibility.js"
+import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./adt-import-marker.js"
+import { ADT_IMPORT_PROJECTION_VERSION } from "./adt-import-projection.js"
+import { seedImportedAdtProject } from "./adt-import-seed.js"
 import { getBook, listBooks } from "./book-service.js"
 import { ensureProjectIdentity } from "./project-identity.js"
+import { importedAdtRevisionDir, writeImportedAdtCurrent } from "./imported-adt-source.js"
 
 export class AdtProjectImportError extends Error {
   constructor(message: string) {
@@ -40,16 +42,18 @@ function writeJsonAtomically(filePath: string, value: unknown): void {
   fs.renameSync(temporaryPath, filePath)
 }
 
+/** Keep the archive this project came from, addressed by its own fingerprint.
+ * Every later re-projection reads it rather than the book's generated output. */
 function persistImportArchive(
   bookDir: string,
+  bundle: ReadAdtBundle,
   zipBuffer: Buffer,
   sourceFileName: string | null,
 ): { revisionId: string; importedAt: string } {
-  const bundle = readAdtBundle(zipBuffer)
   const archiveFingerprint = createHash("sha256").update(zipBuffer).digest("hex")
   const publicationId = bundle.manifest.lineage?.publicationId ?? "legacy"
   const revisionId = `${publicationId}-${archiveFingerprint.slice(0, 12)}`
-  const revisionDir = path.join(bookDir, ".adt-imports", revisionId)
+  const revisionDir = importedAdtRevisionDir(bookDir, revisionId)
   const importedAt = new Date().toISOString()
 
   fs.mkdirSync(revisionDir, { recursive: true })
@@ -66,96 +70,24 @@ function persistImportArchive(
   return { revisionId, importedAt }
 }
 
-function setCurrentImportArchive(
+/** Adopt the exporting project's identity when nothing here claims it yet, so a
+ * round trip keeps one lineage instead of forking a new project id each time. */
+function adoptProjectIdentity(
   bookDir: string,
-  archive: { revisionId: string; importedAt: string },
-): void {
-  writeJsonAtomically(path.join(bookDir, ".adt-import-current.json"), {
-    version: 1,
-    ...archive,
-    projectionVersion: ADT_IMPORT_PROJECTION_VERSION,
-  })
-}
-
-function rewriteImportedBookReferences<T>(
-  value: T,
-  sourceLabel: string,
-  targetLabel: string,
-): T {
-  const sourcePrefix = `/api/books/${sourceLabel}/images/`
-  const targetPrefix = `/api/books/${targetLabel}/images/`
-  const serialized = JSON.stringify(value)
-  if (!serialized.includes(sourcePrefix)) return value
-  return JSON.parse(serialized.replaceAll(sourcePrefix, targetPrefix)) as T
-}
-
-function rewritePromotedStoryboardReferences(
-  sourceLabel: string,
-  targetLabel: string,
+  bundle: ReadAdtBundle,
   booksDir: string,
 ): void {
-  if (sourceLabel === targetLabel) return
-  const storage = createBookStorage(targetLabel, booksDir)
-  try {
-    for (const page of storage.getPages()) {
-      const current = storage.getLatestNodeData("web-rendering", page.pageId)
-      if (!current) continue
-      const rewritten = rewriteImportedBookReferences(
-        current.data,
-        sourceLabel,
-        targetLabel,
-      )
-      if (rewritten !== current.data) {
-        storage.putNodeData("web-rendering", page.pageId, rewritten)
-      }
-    }
-  } finally {
-    storage.close()
-  }
-}
-
-function promoteTemporaryProject(
-  temporaryLabel: string,
-  zipBuffer: Buffer,
-  booksDir: string,
-  sourceFileName: string | null,
-): BookSummary {
-  const bundle = readAdtBundle(zipBuffer)
   const existingProjectIds = new Set(listBooks(booksDir).map((book) => book.projectId))
-  const finalLabel = uniqueLabel(bundle.manifest.book.label, booksDir)
-  const temporaryDir = path.join(booksDir, temporaryLabel)
-  const finalDir = path.join(booksDir, finalLabel)
-
-  fs.renameSync(temporaryDir, finalDir)
-  try {
-    fs.renameSync(
-      path.join(finalDir, `${temporaryLabel}.db`),
-      path.join(finalDir, `${finalLabel}.db`),
-    )
-    rewritePromotedStoryboardReferences(temporaryLabel, finalLabel, booksDir)
-    fs.rmSync(path.join(finalDir, ADT_RECOVERY_MARKER), { force: true })
-    fs.rmSync(path.join(finalDir, "source-adt.zip"), { force: true })
-
-    const originProjectId = bundle.manifest.lineage?.originProjectId
-    const canAdoptOrigin = Boolean(originProjectId && !existingProjectIds.has(originProjectId))
-    ensureProjectIdentity(finalDir, {
-      ...(canAdoptOrigin ? { projectId: originProjectId } : {}),
-      sourceKind: "imported-adt",
-      sourceFingerprint: bundle.manifest.lineage?.sourceFingerprint ?? null,
-      ...(!canAdoptOrigin && originProjectId
-        ? { derivedFromProjectId: originProjectId }
-        : {}),
-    })
-    const archive = persistImportArchive(finalDir, zipBuffer, sourceFileName)
-    setCurrentImportArchive(finalDir, archive)
-    // Imported executable files are never served. Preview and export rebuild
-    // from the sanitized storyboard projection with ADT Studio's runtime.
-    fs.rmSync(path.join(finalDir, "adt"), { recursive: true, force: true })
-    return getBook(finalLabel, booksDir)
-  } catch (error) {
-    fs.rmSync(finalDir, { recursive: true, force: true })
-    throw error
-  }
+  const originProjectId = bundle.manifest.lineage?.originProjectId
+  const canAdoptOrigin = Boolean(originProjectId && !existingProjectIds.has(originProjectId))
+  ensureProjectIdentity(bookDir, {
+    ...(canAdoptOrigin ? { projectId: originProjectId } : {}),
+    sourceKind: "imported-adt",
+    sourceFingerprint: bundle.manifest.lineage?.sourceFingerprint ?? null,
+    ...(!canAdoptOrigin && originProjectId
+      ? { derivedFromProjectId: originProjectId }
+      : {}),
+  })
 }
 
 export function importAdtProject(
@@ -168,7 +100,8 @@ export function importAdtProject(
 ): BookSummary {
   const resolvedBooksDir = path.resolve(booksDir)
   const bundle = readAdtBundle(zipBuffer)
-  const compatibility = assessAdtImportCompatibility(zipBuffer, bundle)
+  const files = extractAdtBundleArchiveFiles(zipBuffer)
+  const compatibility = assessAdtImportCompatibility(bundle, files)
   if (!compatibility.supported) {
     const first = compatibility.issues[0]
     throw new AdtProjectImportError(
@@ -176,20 +109,28 @@ export function importAdtProject(
     )
   }
 
-  const temporary = createAdtRecoverySession(
-    zipBuffer,
-    resolvedBooksDir,
-    options.sourceFileName,
-    options.activityDecisions,
-  )
+  const label = uniqueLabel(bundle.manifest.book.label, resolvedBooksDir)
+  const bookDir = path.join(resolvedBooksDir, label)
   try {
-    return promoteTemporaryProject(
-      temporary.label,
+    seedImportedAdtProject(label, resolvedBooksDir, bundle, files, options)
+    adoptProjectIdentity(bookDir, bundle, resolvedBooksDir)
+    const archive = persistImportArchive(
+      bookDir,
+      bundle,
       zipBuffer,
-      resolvedBooksDir,
       options.sourceFileName ?? null,
     )
-  } finally {
-    fs.rmSync(path.join(resolvedBooksDir, temporary.label), { recursive: true, force: true })
+    writeImportedAdtCurrent(bookDir, {
+      version: 1,
+      ...archive,
+      projectionVersion: ADT_IMPORT_PROJECTION_VERSION,
+    })
+    // Last write: until this marker is gone the directory stays hidden from
+    // `listBooks`, so an interrupted import never leaves a usable-looking book.
+    fs.rmSync(path.join(bookDir, ADT_IMPORT_IN_PROGRESS_MARKER), { force: true })
+    return getBook(label, resolvedBooksDir)
+  } catch (error) {
+    fs.rmSync(bookDir, { recursive: true, force: true })
+    throw error
   }
 }
