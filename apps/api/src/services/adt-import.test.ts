@@ -26,7 +26,7 @@ import {
 import {
   seedImportedAdtProject,
   type ImportedAdtSeedResult,
-} from "./adt-import-seed.js"
+} from "./adt-import-seed/index.js"
 import {
   getImportedAdtFeaturesNeedingRegeneration,
   restoreImportedAdtPresentation,

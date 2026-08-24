@@ -14,7 +14,7 @@ import {
   seedImportedStoryboard,
   seedPages,
   warnOnUndetectedFixedLayout,
-} from "./adt-import-seed.js"
+} from "./adt-import-seed/index.js"
 import {
   ImportedAdtSourceError,
   bookDirFor,

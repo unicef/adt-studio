@@ -16,7 +16,7 @@ import {
 import { assessAdtImportCompatibility } from "./adt-import-compatibility.js"
 import { ADT_IMPORT_IN_PROGRESS_MARKER } from "./adt-import-marker.js"
 import { ADT_IMPORT_PROJECTION_VERSION } from "./adt-import-projection.js"
-import { seedImportedAdtProject } from "./adt-import-seed.js"
+import { seedImportedAdtProject } from "./adt-import-seed/index.js"
 import { getBook, listBooks } from "./book-service.js"
 import { ensureProjectIdentity } from "./project-identity.js"
 import { importedAdtRevisionDir, writeImportedAdtCurrent } from "./imported-adt-source.js"
