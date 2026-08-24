@@ -69,6 +69,12 @@ describe("reporting why the worker could not be reached", () => {
 })
 
 describe("retrying a request that failed in transit", () => {
+  it("does not repeat a failure it cannot even name", async () => {
+    const fetchFn = vi.fn().mockRejectedValue(new TypeError("fetch failed"))
+    await expect(client(fetchFn).getPublication(PUBLICATION.token)).rejects.toThrow()
+    expect(fetchFn).toHaveBeenCalledTimes(1)
+  })
+
   it("retries a read and succeeds when the next attempt lands", async () => {
     const fetchFn = vi
       .fn()
@@ -115,5 +121,58 @@ describe("retrying a request that failed in transit", () => {
     await expect(client(fetchFn).getPublication(PUBLICATION.token)).rejects.toThrow(/ENOTFOUND/)
     expect(fetchFn.mock.calls.length).toBeGreaterThan(1)
     expect(fetchFn.mock.calls.length).toBeLessThanOrEqual(4)
+  })
+})
+
+describe("the failure this was reported for", () => {
+  /**
+   * EPIPE means our own write failed because the socket was already closed — a pooled
+   * connection Cloudflare hung up while idle, which is why it strikes instantly rather than
+   * after a long upload. Nothing arrived, so re-sending cannot duplicate a version, and not
+   * re-sending it threw away a publish the author had already waited through an export for.
+   */
+  it("retries an upload that died writing to a closed socket", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockRejectedValueOnce(transportFailure("EPIPE", "write EPIPE"))
+      .mockResolvedValueOnce(ok({ publication: PUBLICATION, has_access_code: false }))
+
+    await client(fetchFn).revoke(PUBLICATION.token)
+    expect(fetchFn).toHaveBeenCalledTimes(2)
+  })
+
+  it("reports EPIPE by name when every attempt fails", async () => {
+    const fetchFn = vi.fn().mockRejectedValue(transportFailure("EPIPE", "write EPIPE"))
+    const error = await client(fetchFn)
+      .revoke(PUBLICATION.token)
+      .catch((caught: unknown) => caught)
+    expect((error as Error).message).toContain("EPIPE")
+  })
+})
+
+describe("re-sending the upload body", () => {
+  /**
+   * The retry is worthless if the body cannot be sent twice, and the failing request is a
+   * multipart upload rather than the bodyless calls above. A `File` built over a `Uint8Array` is
+   * re-readable, unlike a stream — this is what proves it, and would fail loudly with "body
+   * already used" if the snapshot were ever switched to one.
+   */
+  it("carries the whole snapshot on the retry, not an empty body", async () => {
+    const snapshot = new Uint8Array(2048).fill(7)
+    const bodies: number[] = []
+    const fetchFn = vi.fn(async (_url: string, init: RequestInit) => {
+      const form = init.body as FormData
+      const file = form.get("snapshot") as File
+      bodies.push(file.size)
+      if (bodies.length === 1) throw transportFailure("EPIPE", "write EPIPE")
+      return ok({
+        publication: PUBLICATION,
+        version: { version: 2, page_manifest: [], created_at: "2026-08-02T09:00:00.000Z" },
+      })
+    })
+
+    await client(fetchFn).createVersion(PUBLICATION.token, [], snapshot)
+
+    expect(bodies).toEqual([2048, 2048])
   })
 })

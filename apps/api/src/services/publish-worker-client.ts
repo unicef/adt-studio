@@ -190,11 +190,53 @@ const UNDELIVERED_CODES = new Set([
   "ENETUNREACH",
   "ENETDOWN",
   "UND_ERR_CONNECT_TIMEOUT",
+  /**
+   * `EPIPE` belongs here, which is not obvious and was got wrong once.
+   *
+   * It means *our own write* failed because the far end had already closed — in practice a
+   * pooled keep-alive socket that Cloudflare hung up while it sat idle, which is why it strikes
+   * instantly and repeatedly rather than after a long upload. The request therefore never
+   * arrived in one piece, and a worker that never received a complete multipart body cannot have
+   * committed a version: the D1 row is written after the zip is read, so an aborted request
+   * leaves at worst some unreferenced R2 objects, never a phantom version.
+   *
+   * That is the whole difference from `ECONNRESET`, which stays out: there the server may well
+   * have read the request, done the work, and lost only the answer on the way back.
+   */
+  "EPIPE",
+  "ECONNABORTED",
 ])
 
 function neverDelivered(error: unknown): boolean {
   const code = errorCode(error)
   return code !== null && UNDELIVERED_CODES.has(code)
+}
+
+/**
+ * Failures worth repeating on a request that changes nothing, where the only cost of guessing
+ * wrong is one more round trip. `ECONNRESET` sits here and not above: it is ambiguous for a
+ * write, but a read has nothing to duplicate.
+ */
+const TRANSIENT_READ_CODES = new Set([
+  "ECONNRESET",
+  "UND_ERR_SOCKET",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+  "ETIMEDOUT",
+])
+
+/**
+ * A failure with no code at all is not retried, whatever the method.
+ *
+ * Waiting a second and a half to repeat something we cannot name is guessing, and it is paid
+ * twice over: the author waits before being told anything, and every test that exercises an
+ * unreachable service waits with them.
+ */
+function worthRepeating(error: unknown, method: string): boolean {
+  if (neverDelivered(error)) return true
+  if (method !== "GET" && method !== "HEAD") return false
+  const code = errorCode(error)
+  return code !== null && TRANSIENT_READ_CODES.has(code)
 }
 
 /** Three tries over about a second and a half. Long enough to ride out the DNS blip and the
@@ -226,8 +268,7 @@ export function createPublishWorkerClient({
      * property of the method, not of how transient the error looked.
      */
     const method = (init.method ?? "GET").toUpperCase()
-    const retriable = (error: unknown): boolean =>
-      method === "GET" || method === "HEAD" ? true : neverDelivered(error)
+    const retriable = (error: unknown): boolean => worthRepeating(error, method)
 
     let response: Response
     let attempt = 0
@@ -452,7 +493,6 @@ export function createPublishWorkerClient({
         .filter((segment) => segment.length > 0)
         .map((segment) => encodeURIComponent(segment))
         .join("/")
-      /** A read, so every transport failure is worth another try. */
       let attempt = 0
       for (;;) {
         try {
@@ -462,7 +502,7 @@ export function createPublishWorkerClient({
           })
         } catch (error) {
           const delay = RETRY_DELAYS_MS[attempt]
-          if (delay === undefined) {
+          if (delay === undefined || !worthRepeating(error, "GET")) {
             throw new PublishWorkerError({
               message:
                 `Could not reach your publish worker at ${base}: ` +
