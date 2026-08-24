@@ -27,20 +27,40 @@ const DIRECTION_KEY = {
 } as const
 
 /** Points away from the screen, at the peer: the marker says which way to go. */
-const CHEVRON = {
-  top: "M5 2 L9 8 L1 8 Z",
-  bottom: "M5 8 L1 2 L9 2 Z",
-  left: "M2 5 L8 1 L8 9 Z",
-  right: "M8 5 L2 9 L2 1 Z",
+/**
+ * The tail, drawn *outside* the pill and pointing away from the screen.
+ *
+ * Outside rather than inside because the tail is not an icon: it is the marker saying "over
+ * there", the way a speech bubble points at whoever is speaking. Set among the letters it reads
+ * as decoration on a label; hanging off the edge it reads as a direction.
+ */
+export const TAIL = {
+  top: "M7 0 L14 9 L0 9 Z",
+  bottom: "M7 9 L0 0 L14 0 Z",
+  left: "M0 7 L9 0 L9 14 Z",
+  right: "M9 7 L0 14 L0 0 Z",
+} as const
+
+/** Long side against the pill, point away from it. */
+export const TAIL_BOX = {
+  top: { width: 14, height: 9 },
+  bottom: { width: 14, height: 9 },
+  left: { width: 9, height: 14 },
+  right: { width: 9, height: 14 },
 } as const
 
 function edgeAnchorClass(edge: CursorEdge): string {
   /** Translated so the marker hangs off the edge it belongs to rather than being centred on the
    *  clamped point, which would put half of it outside the window. */
-  if (edge === "top") return "-translate-x-1/2 translate-y-0"
-  if (edge === "bottom") return "-translate-x-1/2 -translate-y-full"
-  if (edge === "left") return "translate-x-0 -translate-y-1/2"
-  return "-translate-x-full -translate-y-1/2"
+  if (edge === "top") return "-translate-x-1/2 translate-y-0 flex-col"
+  if (edge === "bottom") return "-translate-x-1/2 -translate-y-full flex-col"
+  if (edge === "left") return "translate-x-0 -translate-y-1/2 flex-row"
+  return "-translate-x-full -translate-y-1/2 flex-row"
+}
+
+/** The tail leads on the edges that point back towards the window, and trails on the others. */
+export function tailFirst(edge: CursorEdge): boolean {
+  return edge === "top" || edge === "left"
 }
 
 /**
@@ -56,6 +76,21 @@ function edgeAnchorClass(edge: CursorEdge): string {
  * real buttons in their own labelled layer: "somebody is reading three screens down" is
  * navigation, not decoration, and it is the one thing here worth offering to a keyboard.
  */
+function Tail({ edge }: { edge: CursorEdge }) {
+  const box = TAIL_BOX[edge]
+  return (
+    <svg
+      width={box.width}
+      height={box.height}
+      viewBox={`0 0 ${box.width} ${box.height}`}
+      className="shrink-0 drop-shadow-[0_1px_1px_rgba(0,0,0,0.2)]"
+      aria-hidden
+    >
+      <path d={TAIL[edge]} fill="currentColor" />
+    </svg>
+  )
+}
+
 export function PeerCursors() {
   const peers = useAtomValue(roomPeersAtom)
   const selfId = useAtomValue(selfPeerIdAtom)
@@ -167,8 +202,14 @@ export function PeerCursors() {
                 />
               </svg>
               <span
-                className="absolute left-3.5 top-4 max-w-[10rem] truncate rounded-full px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-tight shadow-sm"
-                style={{ backgroundColor: color, color: readableTextColor(color) }}
+                className="absolute left-3 top-3.5 max-w-[10rem] truncate px-2 py-0.5 text-[0.6875rem] font-semibold leading-tight shadow-sm"
+                style={{
+                  backgroundColor: color,
+                  color: readableTextColor(color),
+                  /** Sharp where it meets the arrow, round elsewhere: the label reads as a flag
+                   *  flown from the cursor rather than a separate bubble drifting beside it. */
+                  borderRadius: "3px 12px 12px 12px",
+                }}
               >
                 {entry.peer.name}
               </span>
@@ -195,26 +236,22 @@ export function PeerCursors() {
                 const delta = scrollDeltaToReveal(point, viewport)
                 window.scrollBy({ left: delta.x, top: delta.y, behavior: "smooth" })
               }}
-              className={`pointer-events-auto absolute left-0 top-0 flex max-w-[11rem] items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.6875rem] font-semibold leading-tight shadow-sm duration-200 animate-in fade-in-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:animate-none ${edgeAnchorClass(placement.edge)}`}
+              className={`pointer-events-auto absolute left-0 top-0 flex items-center justify-center gap-[3px] bg-transparent p-0 duration-200 animate-in fade-in-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:animate-none ${edgeAnchorClass(placement.edge)}`}
               style={{
                 marginLeft: placement.x,
                 marginTop: placement.y,
-                backgroundColor: color,
-                color: readableTextColor(color),
+                color,
                 transition: "margin 90ms linear",
               }}
             >
-              {placement.edge === "left" || placement.edge === "top" ? (
-                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
-                  <path d={CHEVRON[placement.edge]} fill="currentColor" />
-                </svg>
-              ) : null}
-              <span className="truncate">{entry.peer.name}</span>
-              {placement.edge === "right" || placement.edge === "bottom" ? (
-                <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden>
-                  <path d={CHEVRON[placement.edge]} fill="currentColor" />
-                </svg>
-              ) : null}
+              {tailFirst(placement.edge) ? <Tail edge={placement.edge} /> : null}
+              <span
+                className="max-w-[11rem] truncate rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold leading-tight shadow-sm"
+                style={{ backgroundColor: color, color: readableTextColor(color) }}
+              >
+                {entry.peer.name}
+              </span>
+              {tailFirst(placement.edge) ? null : <Tail edge={placement.edge} />}
             </button>
           )
         })}
