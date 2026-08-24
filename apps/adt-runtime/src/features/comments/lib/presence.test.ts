@@ -3,12 +3,14 @@ import type { PublishComment } from "@/features/comments/lib/contract"
 import {
   applyCommentFrame,
   applyCursor,
+  CURSOR_OFFSCREEN_STALE_MS,
   cursorFromFrame,
   otherPeers,
   pruneCursors,
   visibleCursors,
   type PeerCursor,
 } from "@/features/comments/lib/presence"
+import { ROOM_CURSOR_STALE_MS } from "@/features/comments/lib/room-protocol"
 import type { RoomPeer, RoomPeerCursorFrame } from "@/features/comments/lib/room-protocol"
 
 const PAGE = "pg001_sec001"
@@ -238,5 +240,61 @@ describe("applying a comment event to the page's list", () => {
     )
     expect(outcome.arrivedRootId).toBeNull()
     expect(outcome.comments).toEqual([])
+  })
+})
+
+describe("cursor lifetimes", () => {
+  /** The bug this pair of windows fixes: an off-screen peer is by definition somebody who has
+   *  stopped moving their pointer, so filtering at the arrow's window discarded exactly the
+   *  people the edge markers exist to show — nothing appeared at all. */
+  it("keeps a still peer's cursor long past the window an arrow would use", () => {
+    const now = 1_000_000
+    const cursor = {
+      peerId: "p1",
+      sectionId: "pg005_sec001",
+      selector: "#content [data-id='n1']",
+      xOffsetPct: 50,
+      yOffsetPct: 50,
+      at: now - 20_000,
+    }
+    const peers = [
+      { id: "p1", name: "Ana", color: "#0091ff", is_author: false, page_section_id: "pg005_sec001" },
+    ]
+
+    expect(
+      visibleCursors([cursor], peers, "me", "pg005_sec001", now, ROOM_CURSOR_STALE_MS),
+    ).toEqual([])
+
+    expect(
+      visibleCursors([cursor], peers, "me", "pg005_sec001", now, CURSOR_OFFSCREEN_STALE_MS),
+    ).toHaveLength(1)
+  })
+
+  it("still forgets a peer who has been gone for a minute", () => {
+    const now = 1_000_000
+    const cursor = {
+      peerId: "p1",
+      sectionId: "pg005_sec001",
+      selector: "#content [data-id='n1']",
+      xOffsetPct: 50,
+      yOffsetPct: 50,
+      at: now - 60_000,
+    }
+    const peers = [
+      { id: "p1", name: "Ana", color: "#0091ff", is_author: false, page_section_id: "pg005_sec001" },
+    ]
+    expect(
+      visibleCursors([cursor], peers, "me", "pg005_sec001", now, CURSOR_OFFSCREEN_STALE_MS),
+    ).toEqual([])
+  })
+
+  it("prunes state at the longer window, so the overlay still has something to draw", () => {
+    const now = 1_000_000
+    const cursors = [
+      { peerId: "p1", sectionId: "s", selector: "a", xOffsetPct: 1, yOffsetPct: 1, at: now - 20_000 },
+      { peerId: "p2", sectionId: "s", selector: "b", xOffsetPct: 1, yOffsetPct: 1, at: now - 60_000 },
+    ]
+    const kept = pruneCursors(cursors, now, new Set(["p1", "p2"]), CURSOR_OFFSCREEN_STALE_MS)
+    expect(kept.map((cursor) => cursor.peerId)).toEqual(["p1"])
   })
 })

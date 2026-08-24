@@ -6,6 +6,7 @@ import { anchorFromPoint } from "@/features/comments/lib/anchor"
 import {
   applyCommentFrame,
   applyCursor,
+  CURSOR_OFFSCREEN_STALE_MS,
   cursorFromFrame,
   pruneCursors,
 } from "@/features/comments/lib/presence"
@@ -67,6 +68,9 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
 
   const socketRef = useRef<RoomSocket | null>(null)
   const sectionRef = useRef<string | null>(sectionId ?? null)
+  /** Where the pointer was last seen, so a scroll can re-anchor from it. Survives the
+   *  effect, because a reader who scrolls without touching the mouse still has one. */
+  const lastPointRef = useRef<{ x: number; y: number } | null>(null)
   sectionRef.current = sectionId ?? null
   const deviceRef = useRef<DevicePreview>(device)
   deviceRef.current = device
@@ -161,16 +165,36 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
       })
     }
 
-    const onPointerMove = (event: PointerEvent): void => {
-      pending = { x: event.clientX, y: event.clientY }
+    const queue = (point: { x: number; y: number }): void => {
+      pending = point
       if (timer !== null) return
       const wait = Math.max(0, ROOM_CURSOR_THROTTLE_MS - (Date.now() - lastSentAt))
       timer = window.setTimeout(flush, wait)
     }
 
+    const onPointerMove = (event: PointerEvent): void => {
+      lastPointRef.current = { x: event.clientX, y: event.clientY }
+      queue(lastPointRef.current)
+    }
+
+    /**
+     * Scrolling moves the page under a stationary pointer, so the word being pointed at changes
+     * without a single `pointermove`. Re-sending on scroll is therefore not a refresh hack: the
+     * anchor genuinely has changed, and without it a reader who scrolls away simply expires out
+     * of everyone else's view five seconds later — which is precisely the person the edge
+     * markers exist to show.
+     */
+    const onScroll = (): void => {
+      const point = lastPointRef.current
+      if (!point) return
+      queue(point)
+    }
+
     document.addEventListener("pointermove", onPointerMove, { passive: true })
+    window.addEventListener("scroll", onScroll, { passive: true })
     return () => {
       document.removeEventListener("pointermove", onPointerMove)
+      window.removeEventListener("scroll", onScroll)
       if (timer !== null) window.clearTimeout(timer)
     }
   }, [context])
@@ -179,7 +203,16 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
     if (!context) return
     const interval = window.setInterval(() => {
       setCursors((cursors) =>
-        pruneCursors(cursors, Date.now(), new Set(store.get(roomPeersAtom).map((peer) => peer.id))),
+        /** Kept for the *longer* of the two display windows. The overlay decides what to draw
+         *  from a cursor's age; dropping it from state at the arrow's window would leave the
+         *  edge markers with nothing to show, since a peer reading three screens down has by
+         *  definition stopped moving their pointer. */
+        pruneCursors(
+          cursors,
+          Date.now(),
+          new Set(store.get(roomPeersAtom).map((peer) => peer.id)),
+          CURSOR_OFFSCREEN_STALE_MS,
+        ),
       )
     }, PRUNE_INTERVAL_MS)
     return () => window.clearInterval(interval)

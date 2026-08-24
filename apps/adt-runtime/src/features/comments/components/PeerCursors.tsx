@@ -1,8 +1,9 @@
 import { useAtomValue } from "jotai"
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
 import { readableTextColor } from "@/features/comments/lib/color"
-import { visibleCursors } from "@/features/comments/lib/presence"
+import { CURSOR_OFFSCREEN_STALE_MS, visibleCursors } from "@/features/comments/lib/presence"
+import { ROOM_CURSOR_STALE_MS } from "@/features/comments/lib/room-protocol"
 import {
   placeCursor,
   scrollDeltaToReveal,
@@ -63,9 +64,39 @@ export function PeerCursors() {
   const viewport = useViewportSize()
   const { t } = useCommentsText()
 
+  /**
+   * Collected at the longer off-screen window, then split by where each peer landed: an arrow is
+   * only drawn for a cursor still fresh by the pointing standard, while an edge marker survives
+   * on the ambient one. Filtering at the short window first would drop the very peers the edge
+   * markers exist for — somebody reading three screens down is not moving their mouse.
+   */
+  /**
+   * A once-a-second clock, only while somebody's cursor is in state.
+   *
+   * Ages are compared against it rather than against `Date.now()` at render time, because
+   * nothing else re-renders this overlay while a peer sits still: the pruner returns the very
+   * same array when it drops nothing, so an arrow crossing its freshness boundary would
+   * otherwise stay on screen until an unrelated render happened to clear it.
+   */
+  const [now, setNow] = useState(() => Date.now())
+  const ticking = cursors.length > 0
+  useEffect(() => {
+    if (!ticking) return
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [ticking])
+
   const visible = useMemo(
-    () => visibleCursors(cursors, peers, selfId, sectionId ?? null, Date.now()),
-    [cursors, peers, sectionId, selfId],
+    () =>
+      visibleCursors(
+        cursors,
+        peers,
+        selfId,
+        sectionId ?? null,
+        now,
+        CURSOR_OFFSCREEN_STALE_MS,
+      ),
+    [cursors, now, peers, sectionId, selfId],
   )
 
   const targets = useMemo<AnchorTarget[]>(
@@ -93,7 +124,12 @@ export function PeerCursors() {
 
   if (placed.length === 0) return null
 
-  const onscreen = placed.filter((item) => item.placement.kind === "onscreen")
+  /** An arrow claims "pointing here, now" and holds only to the short window; an edge marker
+   *  claims "reading over there" and holds to the long one. */
+  const onscreen = placed.filter(
+    (item) =>
+      item.placement.kind === "onscreen" && now - item.entry.cursor.at < ROOM_CURSOR_STALE_MS,
+  )
   const offscreen = placed.filter((item) => item.placement.kind === "edge")
 
   return (

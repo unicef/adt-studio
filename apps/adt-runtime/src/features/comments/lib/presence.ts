@@ -48,6 +48,21 @@ export function applyCursor(cursors: PeerCursor[], next: PeerCursor): PeerCursor
   return updated
 }
 
+/**
+ * How long an *off-screen* peer keeps their edge marker.
+ *
+ * Longer than the arrow because the two claim different things. An arrow says "pointing here,
+ * now", which stops being true almost immediately once someone stops moving — five seconds is
+ * right. An edge marker says "reading somewhere down there", which stays true while they sit and
+ * read, and a reader who is still is the normal case rather than the exception. Held to under a
+ * minute so somebody who closed the tab mid-sentence does not haunt the edge of the page.
+ *
+ * Deliberately *not* in `room-protocol.ts`: the constants there mirror the wire contract in
+ * `@adt/types` and are drift-tested against it. This one is a drawing decision the worker has no
+ * opinion about, so putting it there would imply agreement that nothing else needs.
+ */
+export const CURSOR_OFFSCREEN_STALE_MS = 45000
+
 export function pruneCursors(
   cursors: PeerCursor[],
   now: number,
