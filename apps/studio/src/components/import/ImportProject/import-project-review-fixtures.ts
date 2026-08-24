@@ -320,3 +320,45 @@ export function getImportProjectReviewFixture(value: string | null): ImportProje
     importError: "Project database could not be created",
   }
 }
+
+/**
+ * Development-only review states for the import screen, selected with
+ * `?uiReview=<state>`. Returns null in production, which lets the whole
+ * fixture module drop out of the bundle.
+ */
+export function useImportProjectReviewFixture(): ImportProjectReviewFixture | null {
+  if (!import.meta.env.DEV) return null
+  return getImportProjectReviewFixture(
+    new URLSearchParams(window.location.search).get("uiReview"),
+  )
+}
+
+export interface ImportProjectInitialState {
+  zipFile: File | null
+  preview: AnyImportPreview | null
+  previewLoading: boolean
+  previewError: string | null
+  activityDecisions: Record<string, string | null>
+  activityDialogOpen: boolean
+}
+
+/** Resolve a fixture into the screen's initial state, so the component's
+ * useState calls read the same way whether or not a fixture is active. */
+export function importProjectInitialState(
+  fixture: ImportProjectReviewFixture | null,
+): ImportProjectInitialState {
+  return {
+    zipFile: fixture?.fileName
+      ? new File(
+        [new Uint8Array(Math.min(fixture.fileSize ?? 1, 1_024))],
+        fixture.fileName,
+        { type: "application/zip" },
+      )
+      : null,
+    preview: fixture?.preview ?? null,
+    previewLoading: fixture?.previewLoading ?? false,
+    previewError: fixture?.previewError ?? null,
+    activityDecisions: fixture?.activityDecisions ?? {},
+    activityDialogOpen: fixture?.activityDialogOpen ?? false,
+  }
+}

@@ -27,7 +27,10 @@ import { useImportAdtProject, useImportBook } from "@/hooks/use-books"
 import { useFriendlyArchiveError, type FriendlyError } from "@/hooks/use-archive-error"
 import { api, isAdtBundleImportPreview, isPartImportPreview } from "@/api/client"
 import type { AdtBundleImportPreview, AnyImportPreview } from "@/api/client"
-import { getImportProjectReviewFixture } from "./import-project-review-fixtures"
+import {
+  importProjectInitialState,
+  useImportProjectReviewFixture,
+} from "./import-project-review-fixtures"
 import { ImportProgress } from "./ImportProgress"
 import { ImportStatus } from "./ImportStatus"
 import { ArchiveReviewSkeleton } from "./ArchiveReviewSkeleton"
@@ -41,24 +44,14 @@ export function ImportProject() {
   const adtImportMutation = useImportAdtProject()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const previewRequestRef = useRef(0)
-  const reviewSearchParams = new URLSearchParams(window.location.search)
-  const reviewFixture = import.meta.env.DEV
-    ? getImportProjectReviewFixture(reviewSearchParams.get("uiReview"))
-    : null
-  const [zipFile, setZipFile] = useState<File | null>(() => reviewFixture?.fileName
-    ? new File(
-      [new Uint8Array(Math.min(reviewFixture.fileSize ?? 1, 1_024))],
-      reviewFixture.fileName,
-      { type: "application/zip" },
-    )
-    : null)
-  const [preview, setPreview] = useState<AnyImportPreview | null>(reviewFixture?.preview ?? null)
-  const [previewLoading, setPreviewLoading] = useState(reviewFixture?.previewLoading ?? false)
-  const [previewError, setPreviewError] = useState<string | null>(reviewFixture?.previewError ?? null)
-  const [activityDecisions, setActivityDecisions] = useState<Record<string, string | null>>(
-    reviewFixture?.activityDecisions ?? {},
-  )
-  const [activityDialogOpen, setActivityDialogOpen] = useState(reviewFixture?.activityDialogOpen ?? false)
+  const reviewFixture = useImportProjectReviewFixture()
+  const [initial] = useState(() => importProjectInitialState(reviewFixture))
+  const [zipFile, setZipFile] = useState<File | null>(initial.zipFile)
+  const [preview, setPreview] = useState<AnyImportPreview | null>(initial.preview)
+  const [previewLoading, setPreviewLoading] = useState(initial.previewLoading)
+  const [previewError, setPreviewError] = useState<string | null>(initial.previewError)
+  const [activityDecisions, setActivityDecisions] = useState(initial.activityDecisions)
+  const [activityDialogOpen, setActivityDialogOpen] = useState(initial.activityDialogOpen)
 
   useEffect(() => {
     if (reviewFixture?.preview && isReadyImportPreview(reviewFixture.preview)) {
