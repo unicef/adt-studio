@@ -5,6 +5,8 @@ import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useBook } from "@/hooks/use-books"
+import { isImportedAdtStageRerunnable } from "../../stage-config"
 import { StageRunCard } from "../../components/StageRunCard"
 import { LoadingState } from "../../components/LoadingState"
 import { StageEmptyState } from "../../components/StageEmptyState"
@@ -28,6 +30,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const { setExtra, setOnLabelClick } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey } = useApiKey()
+  const { data: book } = useBook(bookLabel)
   const storyboardState = stageState("storyboard")
   const storyboardDone = storyboardState === "done"
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
@@ -48,10 +51,13 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     ? !hasPageData
     : !storyboardDone && !hasRenderingData
 
+  // Regenerating would overwrite the imported HTML this project is built on.
+  const canRegenerate = isImportedAdtStageRerunnable("storyboard")
+    || book?.workingSource !== "imported-adt"
   const handleRunStoryboard = useCallback(() => {
-    if (!hasApiKey || !sectioningReady || storyboardRunning) return
+    if (!canRegenerate || !hasApiKey || !sectioningReady || storyboardRunning) return
     queueRun({ fromStage: "storyboard", toStage: "storyboard", apiKey })
-  }, [hasApiKey, sectioningReady, storyboardRunning, apiKey, queueRun])
+  }, [canRegenerate, hasApiKey, sectioningReady, storyboardRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
   const { sectionIndex, setSectionIndex, skipNextResetRef } = useSectionNav()
@@ -371,7 +377,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
             variant="outline"
             className="h-7 shrink-0 border-amber-300 bg-white px-3 text-xs text-amber-900 hover:bg-amber-100"
             onClick={handleRunStoryboard}
-            disabled={!hasApiKey || !sectioningReady || storyboardRunning}
+            disabled={!canRegenerate || !hasApiKey || !sectioningReady || storyboardRunning}
           >
             <RotateCcw className="mr-1 h-3 w-3" />
             <Trans>Re-run Storyboard</Trans>
@@ -391,7 +397,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={storyboardRunning}
           completed={storyboardDone}
           onRun={handleRunStoryboard}
-          disabled={!hasApiKey || !sectioningReady || storyboardRunning}
+          disabled={!canRegenerate || !hasApiKey || !sectioningReady || storyboardRunning}
         />
       </div>
     )
@@ -467,7 +473,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           isRunning={storyboardRunning}
           completed={storyboardDone}
           onRun={handleRunStoryboard}
-          disabled={!hasApiKey || !sectioningReady || storyboardRunning}
+          disabled={!canRegenerate || !hasApiKey || !sectioningReady || storyboardRunning}
         />
       </div>
     )

@@ -12,8 +12,6 @@ import {
   SettingsField,
 } from "@/components/pipeline/components/SettingsCard"
 import { SegmentedControl } from "@/components/ui/segmented-control"
-import { Button } from "@/components/ui/button"
-import { useBookApiKeyDialog } from "@/components/settings/BookApiKeyDialogProvider"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
@@ -43,20 +41,13 @@ const PROVIDER_HINTS: Record<ProviderKey, MessageDescriptor> = {
 // flow. Markup stays in place so re-enabling is a single flag flip.
 const SHOW_VOICES_ACCENTS_CARD = false
 
-export function SpeechLandingPage({
-  bookLabel,
-  embedded = false,
-}: {
-  bookLabel: string
-  embedded?: boolean
-}) {
+export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
   const { apiKey, hasApiKey, azureKey, azureRegion, geminiKey, elevenLabsKey } = useApiKey()
   const { queueRun } = useBookRun()
-  const { openApiKeyDialog } = useBookApiKeyDialog()
   const status = useStageStatus("speech")
   const translateStatus = useStageStatus("translate")
   const translateReady = translateStatus.isCompleted
@@ -114,9 +105,7 @@ export function SpeechLandingPage({
 
   const providerOptions = useMemo(
     () => {
-      const disabledHint = embedded
-        ? t`Add this provider's API key.`
-        : t`Add this provider's API key in Book settings.`
+      const disabledHint = t`Add this provider's API key in Book settings.`
       return [
         {
           value: "openai" as const,
@@ -146,7 +135,6 @@ export function SpeechLandingPage({
     },
     [
       t,
-      embedded,
       hasApiKey,
       providerKeyAvailable.azure,
       providerKeyAvailable.gemini,
@@ -182,9 +170,7 @@ export function SpeechLandingPage({
     [t],
   )
 
-  const providerMissingReason = embedded ? (
-    <Trans>Add the selected provider's API key to run speech.</Trans>
-  ) : (
+  const providerMissingReason = (
     <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
   )
   const disabledReason = selectedProviderKeyMissing ? providerMissingReason
@@ -210,7 +196,6 @@ export function SpeechLandingPage({
       disabledReason={disabledReason}
       runLabel={<Trans>Run Speech</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
-      hideAdvancedSettings={embedded}
       previewLabel={t`Speech Preview`}
       onRun={handleRun}
       preview={<SpeechPreview wordHighlighting={wordHighlighting} />}
@@ -244,17 +229,10 @@ export function SpeechLandingPage({
           label={<Trans>Provider</Trans>}
           hint={
             selectedProviderKeyMissing ? (
-              embedded ? (
-                <Trans>
-                  No API key for {linguiI18n._(PROVIDER_LABELS[provider])} yet.
-                  Add one to enable this provider.
-                </Trans>
-              ) : (
-                <Trans>
-                  No API key for {linguiI18n._(PROVIDER_LABELS[provider])} yet.
-                  Add one in Book settings to enable this provider.
-                </Trans>
-              )
+              <Trans>
+                No API key for {linguiI18n._(PROVIDER_LABELS[provider])} yet.
+                Add one in Book settings to enable this provider.
+              </Trans>
             ) : (
               linguiI18n._(PROVIDER_HINTS[provider])
             )
@@ -275,13 +253,7 @@ export function SpeechLandingPage({
                     aria-hidden
                   />
                   <span>
-                    {embedded ? (
-                      disabledProviderLabels.length === 1 ? (
-                        <Trans>{disabledProvidersText} is disabled — add its API key to enable it.</Trans>
-                      ) : (
-                        <Trans>{disabledProvidersText} are disabled — add their API keys to enable them.</Trans>
-                      )
-                    ) : disabledProviderLabels.length === 1 ? (
+                    {disabledProviderLabels.length === 1 ? (
                       <Trans>
                         {disabledProvidersText} is disabled — add its API key in
                         Book settings to enable it.
@@ -294,18 +266,6 @@ export function SpeechLandingPage({
                     )}
                   </span>
                 </div>
-                {embedded ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={openApiKeyDialog}
-                    className="h-7 self-start border-amber-300 bg-white px-2.5 text-[11px] text-amber-900 hover:bg-amber-100"
-                  >
-                    <Settings2 className="mr-1.5 h-3.5 w-3.5" aria-hidden />
-                    <Trans>Manage API keys</Trans>
-                  </Button>
-                ) : null}
               </div>
             )}
           </div>

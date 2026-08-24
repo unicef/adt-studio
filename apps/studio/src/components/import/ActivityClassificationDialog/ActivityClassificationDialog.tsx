@@ -1,26 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
-import {
-  ArrowDownAZ,
-  ArrowLeft,
-  ArrowRight,
-  Ban,
-  Check,
-  CircleHelp,
-  CircleAlert,
-  FileText,
-  Link2,
-  ListChecks,
-  MessageSquareText,
-  Puzzle,
-  Table2,
-  ToggleLeft,
-  Type,
-  Underline,
-  type LucideIcon,
-} from "lucide-react"
+import { ArrowLeft, ArrowRight, Check, CircleAlert, FileText, Puzzle } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 
-import type { AdtBundleImportPreview } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -31,194 +12,17 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 
-type ActivityReview = AdtBundleImportPreview["activityReview"]
-type ActivityReviewItem = ActivityReview["items"][number]
-
-function hasDecision(
-  decisions: Record<string, string | null>,
-  sectionId: string,
-): boolean {
-  return Object.prototype.hasOwnProperty.call(decisions, sectionId)
-}
-
-function useActivityTypeLabel() {
-  const { t } = useLingui()
-  return (type: string): string => {
-    if (type === "activity_quiz") return t`Quiz`
-    if (type === "activity_multiple_choice") return t`Multiple choice`
-    if (type === "activity_multi_select") return t`Multiple selection`
-    if (type === "activity_true_false") return t`True or false`
-    if (type === "activity_fill_in_the_blank") return t`Fill in the blank`
-    if (type === "activity_fill_in_a_table") return t`Fill in a table`
-    if (type === "activity_open_ended_answer") return t`Open-ended answer`
-    if (type === "activity_underline_text") return t`Underline text`
-    if (type === "activity_matching") return t`Matching`
-    if (type === "activity_sorting") return t`Sorting`
-    if (type === "activity_other") return t`Other activity`
-    const customName = type.startsWith("activity_custom_")
-      ? type.slice("activity_custom_".length).replaceAll("_", " ")
-      : undefined
-    return customName ? `${t`Custom activity`}: ${customName}` : t`Custom activity`
-  }
-}
-
-function useActivityReasonLabel() {
-  const { t } = useLingui()
-  return (reason: ActivityReviewItem["reasons"][number]): string => {
-    if (reason === "missing-declaration") return t`This activity was added after export.`
-    if (reason === "missing-marker") return t`The exported activity marker is missing.`
-    if (reason === "type-mismatch") return t`The activity type changed after export.`
-    if (reason === "interactive-unmarked") return t`Interactive controls were found without an activity marker.`
-    if (reason === "invalid-structure") return t`The activity structure needs confirmation.`
-    return t`The declared activity page is missing.`
-  }
-}
-
-function activityTypeVisual(type: string | null): {
-  icon: LucideIcon
-  tileClassName: string
-} {
-  if (type === null) return { icon: Ban, tileClassName: "bg-slate-100 text-slate-600" }
-  if (type === "activity_quiz") {
-    return { icon: CircleHelp, tileClassName: "bg-orange-50 text-orange-700" }
-  }
-  if (type === "activity_multiple_choice" || type === "activity_multi_select") {
-    return { icon: ListChecks, tileClassName: "bg-violet-50 text-violet-700" }
-  }
-  if (type === "activity_true_false") {
-    return { icon: ToggleLeft, tileClassName: "bg-violet-50 text-violet-700" }
-  }
-  if (type === "activity_fill_in_the_blank") {
-    return { icon: Type, tileClassName: "bg-violet-50 text-violet-700" }
-  }
-  if (type === "activity_fill_in_a_table") {
-    return { icon: Table2, tileClassName: "bg-violet-50 text-violet-700" }
-  }
-  if (type === "activity_open_ended_answer") {
-    return { icon: MessageSquareText, tileClassName: "bg-violet-50 text-violet-700" }
-  }
-  if (type === "activity_underline_text") {
-    return { icon: Underline, tileClassName: "bg-violet-50 text-violet-700" }
-  }
-  if (type === "activity_matching") {
-    return { icon: Link2, tileClassName: "bg-violet-50 text-violet-700" }
-  }
-  if (type === "activity_sorting") {
-    return { icon: ArrowDownAZ, tileClassName: "bg-violet-50 text-violet-700" }
-  }
-  return { icon: Puzzle, tileClassName: "bg-violet-50 text-violet-700" }
-}
-
-function ClassificationOption({
-  type,
-  label,
-  compact = false,
-}: {
-  type: string | null
-  label: string
-  compact?: boolean
-}) {
-  const visual = activityTypeVisual(type)
-  const Icon = visual.icon
-  return (
-    <span className="flex min-w-0 items-center gap-2">
-      <span className={cn(
-        "flex shrink-0 items-center justify-center rounded-md",
-        compact ? "size-5" : "size-6",
-        visual.tileClassName,
-      )}>
-        <Icon aria-hidden="true" className={compact ? "size-3" : "size-3.5"} />
-      </span>
-      <span className="truncate">{label}</span>
-    </span>
-  )
-}
-
-function ActivityClassificationSelect({
-  item,
-  options,
-  hasSelection,
-  value,
-  onChange,
-}: {
-  item: ActivityReviewItem
-  options: string[]
-  hasSelection: boolean
-  value: string | null | undefined
-  onChange: (value: string | null) => void
-}) {
-  const { t } = useLingui()
-  const activityTypeLabel = useActivityTypeLabel()
-  const notAnActivityValue = JSON.stringify(null)
-  const selectedValue = hasSelection ? value ?? notAnActivityValue : ""
-  const selectedLabel = hasSelection
-    ? value === null
-      ? t`Not an activity`
-      : value
-        ? activityTypeLabel(value)
-        : undefined
-    : undefined
-
-  return (
-    <Select
-      value={selectedValue}
-      onValueChange={(nextValue) => onChange(
-        nextValue === notAnActivityValue ? null : nextValue,
-      )}
-    >
-      <SelectTrigger
-        aria-label={t`Classification for ${item.href}`}
-        className={cn(
-          "h-10 w-full rounded-lg border-slate-300 bg-white text-sm shadow-sm hover:border-primary/40 data-[state=open]:border-primary data-[state=open]:ring-2 data-[state=open]:ring-primary/15",
-          hasSelection && value === "activity_quiz" && "text-orange-700",
-          hasSelection && value !== null && value !== undefined && value !== "activity_quiz" && "text-violet-800",
-        )}
-      >
-        <SelectValue placeholder={t`Choose classification`}>
-          {selectedLabel !== undefined ? (
-            <ClassificationOption type={value ?? null} label={selectedLabel} compact />
-          ) : null}
-        </SelectValue>
-      </SelectTrigger>
-      <SelectContent
-        position="popper"
-        align="end"
-        sideOffset={6}
-        collisionPadding={12}
-        className="max-h-80 w-[var(--radix-select-trigger-width)] rounded-lg"
-      >
-        {options.map((type) => (
-          <SelectItem
-            key={type}
-            value={type}
-            className={cn(
-              "py-2.5 text-sm",
-              type === "activity_quiz"
-                ? "text-orange-700 focus:bg-orange-50 focus:text-orange-800"
-                : "text-violet-800 focus:bg-violet-50 focus:text-violet-900",
-            )}
-          >
-            <ClassificationOption type={type} label={activityTypeLabel(type)} />
-          </SelectItem>
-        ))}
-        <SelectSeparator />
-        <SelectItem value={notAnActivityValue} className="py-2.5 text-sm text-slate-700 focus:bg-slate-100">
-          <ClassificationOption type={null} label={t`Not an activity`} />
-        </SelectItem>
-      </SelectContent>
-    </Select>
-  )
-}
+import { ActivityClassificationSelect } from "./ActivityClassificationSelect"
+import {
+  activityTypeVisual,
+  hasDecision,
+  useActivityReasonLabel,
+  useActivityTypeLabel,
+  type ActivityReview,
+  type ActivityReviewItem,
+} from "./activity-labels"
 
 export function ActivityClassificationDialog({
   open,
@@ -448,3 +252,4 @@ export function ActivityClassificationDialog({
     </Dialog>
   )
 }
+

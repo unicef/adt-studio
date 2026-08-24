@@ -13,15 +13,11 @@ export function SpeechView({
   bookLabel,
   selectedPageId,
   onSelectPage,
-  embedded = false,
-  onConfigureSpeech,
 }: {
   bookLabel: string
   stageSlug?: string
   selectedPageId?: string
   onSelectPage?: (pageId: string | null) => void
-  embedded?: boolean
-  onConfigureSpeech?: () => void
 }) {
   return (
     <LanguageView
@@ -29,8 +25,6 @@ export function SpeechView({
       stageSlug="speech"
       selectedPageId={selectedPageId}
       onSelectPage={onSelectPage}
-      embedded={embedded}
-      onConfigureSpeech={onConfigureSpeech}
     />
   )
 }

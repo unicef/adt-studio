@@ -279,15 +279,11 @@ export function LanguageView({
   stageSlug = "translate",
   selectedPageId,
   onSelectPage,
-  embedded = false,
-  onConfigureSpeech,
 }: {
   bookLabel: string;
   stageSlug?: string;
   selectedPageId?: string;
   onSelectPage?: (pageId: string | null) => void;
-  embedded?: boolean;
-  onConfigureSpeech?: () => void;
 }) {
   const isSpeechStage = stageSlug === "speech";
   const { t, i18n } = useLingui();
@@ -398,7 +394,7 @@ export function LanguageView({
     // A recovered bundle already has its translated catalog and cannot safely
     // rebuild Translate without the original Storyboard entities. Normal books
     // retain the catalog-refresh path when OpenAI credentials are available.
-    const fromStage = isSpeechStage && (embedded || !hasApiKey || book?.workingSource === "imported-adt")
+    const fromStage = isSpeechStage && (!hasApiKey || book?.workingSource === "imported-adt")
       ? "speech"
       : "translate";
     queueRun({
@@ -409,7 +405,6 @@ export function LanguageView({
   }, [
     apiKey,
     canRunStage,
-    embedded,
     book?.workingSource,
     hasApiKey,
     isRunning,
@@ -1664,17 +1659,6 @@ export function LanguageView({
                     : t`Review`}
         </button>
       )}
-      {isSpeechStage && embedded && !isRunning && onConfigureSpeech ? (
-        <button
-          type="button"
-          onClick={onConfigureSpeech}
-          className="inline-flex h-6 items-center gap-1 rounded bg-white/20 px-2 text-[10px] font-medium text-white transition-colors hover:bg-white/30"
-          title={t`Choose Provider`}
-        >
-          <Settings className="h-3 w-3" />
-          {t`Provider`}
-        </button>
-      ) : null}
       <div className="w-px h-4 bg-white/20" />
       <button
         type="button"
@@ -1859,26 +1843,15 @@ export function LanguageView({
                   </div>
                   <WordHighlightPreview enabled={wordHighlightingEnabled} />
                 </div>
-                {embedded ? (
-                  <button
-                    type="button"
-                    onClick={onConfigureSpeech}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 transition-colors hover:text-rose-700"
-                  >
-                    <Settings className="h-3 w-3" />
-                    {t`Choose Provider`}
-                  </button>
-                ) : (
-                  <Link
-                    to="/books/$label/$step/settings"
-                    params={{ label: bookLabel, step: "speech" }}
-                    search={{ tab: "general" }}
-                    className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 hover:text-rose-700 transition-colors"
-                  >
-                    <Settings className="w-3 h-3" />
-                    {t`Choose Provider`}
-                  </Link>
-                )}
+                <Link
+                  to="/books/$label/$step/settings"
+                  params={{ label: bookLabel, step: "speech" }}
+                  search={{ tab: "general" }}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-rose-600 hover:text-rose-700 transition-colors"
+                >
+                  <Settings className="w-3 h-3" />
+                  {t`Choose Provider`}
+                </Link>
               </div>
             )}
           </StageRunCard>

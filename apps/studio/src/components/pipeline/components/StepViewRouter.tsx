@@ -31,6 +31,30 @@ import { cn } from "@/lib/utils";
 import { Trans } from "@lingui/react/macro";
 import { StepHeaderBar } from "./StepHeaderBar";
 import { useBook } from "@/hooks/use-books";
+import {
+  isImportedAdtUnavailableStage,
+  type ImportedAdtUnavailableStage,
+} from "@adt/types";
+
+/** One entry per stage in `IMPORTED_ADT_UNAVAILABLE_STAGES`. The Record type is
+ * exhaustive, so widening that set is a type error until copy is written. */
+const IMPORTED_ADT_UNAVAILABLE_COPY: Record<
+  ImportedAdtUnavailableStage,
+  { title: ReactNode; body: ReactNode }
+> = {
+  extract: {
+    title: <Trans>Extract starts from a source PDF</Trans>,
+    body: (
+      <Trans>This project was created from an exported ADT publication, so it does not include the source PDF. The imported HTML already contains the book content.</Trans>
+    ),
+  },
+  sectioning: {
+    title: <Trans>Sectioning starts from extracted PDF pages</Trans>,
+    body: (
+      <Trans>This project uses the published HTML as its page structure. The original PDF sections and extraction history are not available to rerun.</Trans>
+    ),
+  },
+};
 
 // Context for views to inject content into the step header
 interface StepHeaderControls {
@@ -53,7 +77,6 @@ interface ViewProps {
   stageSlug?: string;
   selectedPageId?: string;
   onSelectPage?: (pageId: string | null) => void;
-  embedded?: boolean;
 }
 
 interface ViewEntry {
@@ -86,13 +109,11 @@ export function StepViewRouter({
   bookLabel,
   selectedPageId,
   onSelectPage,
-  showSettings = true,
 }: {
   step: string;
   bookLabel: string;
   selectedPageId?: string;
   onSelectPage?: (pageId: string | null) => void;
-  showSettings?: boolean;
 }) {
   const entry = VIEW_MAP[step];
   const stepConfig = STAGES.find((s) => s.slug === step);
@@ -125,6 +146,9 @@ export function StepViewRouter({
   const Icon = stepConfig.icon;
   const unavailableForImportedHtml = book?.workingSource === "imported-adt"
     && !isImportedAdtStageAvailable(stepConfig.slug);
+  const unavailableCopy = isImportedAdtUnavailableStage(stepConfig.slug)
+    ? IMPORTED_ADT_UNAVAILABLE_COPY[stepConfig.slug]
+    : null;
   const stepLabel =
     step === "book" ? toCamelLabel(bookLabel) : getStageLabelI18n(step);
 
@@ -153,7 +177,7 @@ export function StepViewRouter({
           )}
           <div ref={setHeaderSlotEl} className="contents" />
           {headerExtra}
-          {!unavailableForImportedHtml && showSettings && (SETTINGS_STAGE_SLUGS as readonly string[]).includes(step) && (
+          {!unavailableForImportedHtml && (SETTINGS_STAGE_SLUGS as readonly string[]).includes(step) && (
             <Link
               to="/books/$label/$step/settings"
               params={{ label: bookLabel, step }}
@@ -166,7 +190,7 @@ export function StepViewRouter({
         </StepHeaderBar>
 
         {/* Step content */}
-        {unavailableForImportedHtml ? (
+        {unavailableForImportedHtml && unavailableCopy ? (
           <div className="flex flex-1 items-center justify-center overflow-auto bg-slate-50/40 p-6 sm:p-10">
             <section className="w-full max-w-xl overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="px-6 py-6 sm:px-7 sm:py-7">
@@ -188,18 +212,10 @@ export function StepViewRouter({
                       <Trans>Not needed for this source</Trans>
                     </span>
                     <h3 className="mt-2.5 text-lg font-semibold tracking-tight text-slate-950">
-                      {step === "extract" ? (
-                        <Trans>Extract starts from a source PDF</Trans>
-                      ) : (
-                        <Trans>Sectioning starts from extracted PDF pages</Trans>
-                      )}
+                      {unavailableCopy.title}
                     </h3>
                     <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                      {step === "extract" ? (
-                        <Trans>This project was created from an exported ADT publication, so it does not include the source PDF. The imported HTML already contains the book content.</Trans>
-                      ) : (
-                        <Trans>This project uses the published HTML as its page structure. The original PDF sections and extraction history are not available to rerun.</Trans>
-                      )}
+                      {unavailableCopy.body}
                     </p>
                   </div>
                 </div>
@@ -228,7 +244,6 @@ export function StepViewRouter({
               stageSlug={step}
               selectedPageId={selectedPageId}
               onSelectPage={onSelectPage}
-              embedded={!showSettings}
             />
           </div>
         ) : (
@@ -238,7 +253,6 @@ export function StepViewRouter({
               stageSlug={step}
               selectedPageId={selectedPageId}
               onSelectPage={onSelectPage}
-              embedded={!showSettings}
             />
           </div>
         )}
