@@ -75,11 +75,15 @@ function body(failure: PublishFailure): ReactNode {
         </Trans>
       )
     case "worker_unreachable":
+      /** No claim about *why* any more. This used to offer "services that haven't been used in a
+       *  while can take a moment to wake up", which is not how Workers behave and sent the author
+       *  looking in the wrong place; the detail line below now carries the actual reason the
+       *  connection failed, so the copy only has to say what is and is not true of their book. */
       return (
         <Trans>
-          The Studio couldn't talk to the publishing service in your Cloudflare account. Check that
-          this computer is online, then try again — services that haven't been used in a while can
-          take a moment to wake up.
+          The Studio couldn't reach the publishing service in your Cloudflare account, so nothing
+          was sent. Your link and everything on it are untouched. It already tried a few times —
+          check this computer's connection and try again.
         </Trans>
       )
     case "snapshot_too_large":

@@ -134,6 +134,78 @@ function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+/** Node's `fetch` reports every transport failure as the same three words, and puts the reason
+ *  underneath in `cause` — sometimes two levels down. */
+function causeChain(error: unknown): Error[] {
+  const chain: Error[] = []
+  let current: unknown = error
+  while (current instanceof Error && chain.length < 4) {
+    chain.push(current)
+    current = (current as { cause?: unknown }).cause
+  }
+  return chain
+}
+
+function errorCode(error: unknown): string | null {
+  for (const link of causeChain(error)) {
+    const code = (link as { code?: unknown }).code
+    if (typeof code === "string" && code.length > 0) return code
+  }
+  return null
+}
+
+/**
+ * What actually went wrong, rather than "fetch failed".
+ *
+ * `fetch failed` is the only thing `error.message` ever says for a transport failure, so every
+ * distinct problem — no DNS, no route, refused, reset mid-upload, timed out — arrived at the
+ * author looking identical, and the panel had to guess out loud which it was. The code and the
+ * innermost message are what separate "this computer is offline" from "the upload died halfway".
+ */
+function describeTransportFailure(error: unknown): string {
+  const chain = causeChain(error)
+  const code = errorCode(error)
+  const deepest = chain.at(-1)
+  const detail = deepest && deepest !== chain[0] ? deepest.message : null
+  if (code && detail) return `${code} — ${detail}`
+  if (code) return `${code} — ${describe(error)}`
+  return detail ?? describe(error)
+}
+
+/**
+ * Transport failures that prove the request never arrived, so re-sending it cannot duplicate
+ * anything.
+ *
+ * The distinction matters because publishing is not idempotent: `POST /api/publications` mints a
+ * token and `POST …/versions` adds a version, so retrying one that *did* land would leave the
+ * author with two publications or a phantom version. A name that never resolved and a connection
+ * that was refused are safe — nothing was ever spoken. A socket reset or a timeout is not: the
+ * worker may have done the work and lost the answer on the way back.
+ */
+const UNDELIVERED_CODES = new Set([
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "ECONNREFUSED",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "ENETDOWN",
+  "UND_ERR_CONNECT_TIMEOUT",
+])
+
+function neverDelivered(error: unknown): boolean {
+  const code = errorCode(error)
+  return code !== null && UNDELIVERED_CODES.has(code)
+}
+
+/** Three tries over about a second and a half. Long enough to ride out the DNS blip and the
+ *  laptop that just woke its wifi, short enough that a genuinely offline machine still answers
+ *  quickly instead of appearing to hang. */
+const RETRY_DELAYS_MS = [200, 600, 1200]
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export function createPublishWorkerClient({
   workerUrl,
   mgmtSecret,
@@ -147,20 +219,41 @@ export function createPublishWorkerClient({
     init: RequestInit,
     schema: { parse: (value: unknown) => unknown },
   ): Promise<unknown> => {
+    /**
+     * Reading is retried on any transport failure; writing only when the request provably never
+     * arrived. A `GET` that is sent twice costs a round trip, whereas a `POST` that is sent twice
+     * can mint a second publication or a phantom version — so the safety of a retry here is a
+     * property of the method, not of how transient the error looked.
+     */
+    const method = (init.method ?? "GET").toUpperCase()
+    const retriable = (error: unknown): boolean =>
+      method === "GET" || method === "HEAD" ? true : neverDelivered(error)
+
     let response: Response
-    try {
-      response = await doFetch(`${base}${path}`, {
-        ...init,
-        headers: {
-          ...(init.headers as Record<string, string> | undefined),
-          Authorization: `Bearer ${mgmtSecret}`,
-        },
-      })
-    } catch (error) {
-      throw new PublishWorkerError({
-        message: `Could not reach your publish worker at ${base}: ${describe(error)}`,
-        unreachable: true,
-      })
+    let attempt = 0
+    for (;;) {
+      try {
+        response = await doFetch(`${base}${path}`, {
+          ...init,
+          headers: {
+            ...(init.headers as Record<string, string> | undefined),
+            Authorization: `Bearer ${mgmtSecret}`,
+          },
+        })
+        break
+      } catch (error) {
+        const delay = RETRY_DELAYS_MS[attempt]
+        if (delay === undefined || !retriable(error)) {
+          throw new PublishWorkerError({
+            message:
+              `Could not reach your publish worker at ${base}: ` +
+              describeTransportFailure(error),
+            unreachable: true,
+          })
+        }
+        attempt += 1
+        await sleep(delay)
+      }
     }
 
     const text = await response.text()
@@ -359,16 +452,27 @@ export function createPublishWorkerClient({
         .filter((segment) => segment.length > 0)
         .map((segment) => encodeURIComponent(segment))
         .join("/")
-      try {
-        return await doFetch(`${base}/p/${token}/${encoded}`, {
-          method: "GET",
-          headers: { ...headers, Authorization: `Bearer ${mgmtSecret}` },
-        })
-      } catch (error) {
-        throw new PublishWorkerError({
-          message: `Could not reach your publish worker at ${base}: ${describe(error)}`,
-          unreachable: true,
-        })
+      /** A read, so every transport failure is worth another try. */
+      let attempt = 0
+      for (;;) {
+        try {
+          return await doFetch(`${base}/p/${token}/${encoded}`, {
+            method: "GET",
+            headers: { ...headers, Authorization: `Bearer ${mgmtSecret}` },
+          })
+        } catch (error) {
+          const delay = RETRY_DELAYS_MS[attempt]
+          if (delay === undefined) {
+            throw new PublishWorkerError({
+              message:
+                `Could not reach your publish worker at ${base}: ` +
+                describeTransportFailure(error),
+              unreachable: true,
+            })
+          }
+          attempt += 1
+          await sleep(delay)
+        }
       }
     },
   }
