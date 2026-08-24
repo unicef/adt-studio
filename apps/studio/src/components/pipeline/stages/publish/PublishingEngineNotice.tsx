@@ -1,6 +1,6 @@
 import { Trans } from "@lingui/react/macro"
 import { ArrowUpCircle, CloudOff } from "lucide-react"
-import { PublishingSettingsLink } from "@/components/pipeline/stages/export/publish/PublishingSettingsLink"
+import { PublishingSettingsLink } from "@/components/pipeline/stages/publish/PublishingSettingsLink"
 import { useCloudflareConnection } from "@/hooks/use-cloudflare-connection"
 import { useCloudflareCredentials } from "@/hooks/use-cloudflare-credentials"
 

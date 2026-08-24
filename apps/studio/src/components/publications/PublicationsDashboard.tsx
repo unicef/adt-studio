@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { StageEmptyState } from "@/components/pipeline/components/StageEmptyState"
-import { PublishingSettingsLink } from "@/components/pipeline/stages/export/publish/PublishingSettingsLink"
+import { PublishingSettingsLink } from "@/components/pipeline/stages/publish/PublishingSettingsLink"
 import {
   useDeletePublication,
   usePublications,

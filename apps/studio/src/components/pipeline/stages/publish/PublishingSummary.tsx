@@ -4,7 +4,7 @@ import { History, KeyRound, MessagesSquare, Unlock, Users, type LucideIcon } fro
 import type { BookPublicationRecord } from "@/api/client"
 import { usePublicationReaders } from "@/hooks/use-publications"
 import { useFeedbackBadge } from "@/components/publication-feedback/use-feedback-badge"
-import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
+import { formatPublishDate } from "@/components/pipeline/stages/publish/expiry-options"
 import { cn } from "@/lib/utils"
 
 /** One colour per tile, so the four are told apart at a glance rather than read. The tint is

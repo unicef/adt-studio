@@ -496,9 +496,12 @@ describe("PublishPanel — publishing", () => {
       })
     })
 
-    expect(screen.getByTestId("publish-error-worker_unreachable").textContent).toContain(
-      "this computer is online",
-    )
+    /** The substance rather than a phrase: that nothing reached the readers, and that the raw
+     *  reason is shown rather than swallowed. Pinning the wording is what made this test fail on
+     *  a copy change that improved it. */
+    const notice = screen.getByTestId("publish-error-worker_unreachable").textContent ?? ""
+    expect(notice).toContain("nothing was sent")
+    expect(notice).toContain("fetch failed")
     expect(screen.getByTestId("publish-step-3").getAttribute("data-state")).toBe("error")
     expect(screen.getByTestId("publish-start-button").textContent).toContain("Try publishing again")
 

@@ -2,7 +2,7 @@ import { useLingui } from "@lingui/react/macro"
 import { FileText, Link2, Package, UploadCloud } from "lucide-react"
 import type { PublishStepId, PublishStepStatus } from "@adt/types"
 import { CalmStepLoader, type LoaderStep } from "@/components/publishing/CalmStepLoader"
-import { PUBLISH_STEP_COPY } from "@/components/pipeline/stages/export/publish/publish-steps"
+import { PUBLISH_STEP_COPY } from "@/components/pipeline/stages/publish/publish-steps"
 import type { PublishRunStatus } from "@/hooks/use-book-publication"
 
 /** One icon per step, so the medallion has something of its own to show at each stage rather

@@ -2,7 +2,7 @@ import { useState } from "react"
 import { Trans } from "@lingui/react/macro"
 import { Loader2, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { RevokeDialog } from "@/components/pipeline/stages/export/publish/RevokeDialog"
+import { RevokeDialog } from "@/components/pipeline/stages/publish/RevokeDialog"
 import { useRevokePublication } from "@/hooks/use-book-publication"
 
 /**

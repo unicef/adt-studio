@@ -2,8 +2,8 @@ import { AlertTriangle, ArrowUpCircle, Loader2, UserRound } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { PublicationReader } from "@adt/types"
 import { apiErrorCode } from "@/api/client"
-import { PublishingSettingsLink } from "@/components/pipeline/stages/export/publish/PublishingSettingsLink"
-import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
+import { PublishingSettingsLink } from "@/components/pipeline/stages/publish/PublishingSettingsLink"
+import { formatPublishDate } from "@/components/pipeline/stages/publish/expiry-options"
 import { usePublicationReaders } from "@/hooks/use-publications"
 
 function Initial({ reader }: { reader: PublicationReader }) {

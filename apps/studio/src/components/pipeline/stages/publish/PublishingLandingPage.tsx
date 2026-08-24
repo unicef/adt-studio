@@ -1,6 +1,6 @@
 import { Trans } from "@lingui/react/macro"
 import { History, Loader2, MessagesSquare, Users } from "lucide-react"
-import { PublishPanel } from "@/components/pipeline/stages/export/publish/PublishPanel"
+import { PublishPanel } from "@/components/pipeline/stages/publish/PublishPanel"
 import { PublicationReaders } from "@/components/publications/PublicationReaders"
 import { ScrollBox } from "@/components/publishing/ScrollBox"
 import {

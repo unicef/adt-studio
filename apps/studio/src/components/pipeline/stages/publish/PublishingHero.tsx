@@ -4,7 +4,7 @@ import { BookOpen, Check, CloudOff, Copy } from "lucide-react"
 import { getBookCoverUrl } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { ExternalLinkButton } from "@/components/settings/publishing/ExternalLinkButton"
-import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
+import { formatPublishDate } from "@/components/pipeline/stages/publish/expiry-options"
 import { useCopyLink } from "@/hooks/use-copy-link"
 
 interface PublishingHeroProps {

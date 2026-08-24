@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Check, Copy, Send } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { formatPublishDate } from "@/components/pipeline/stages/export/publish/expiry-options"
+import { formatPublishDate } from "@/components/pipeline/stages/publish/expiry-options"
 
 const COPIED_MS = 2500
 

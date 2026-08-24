@@ -1,6 +1,6 @@
 import { Trans, useLingui } from "@lingui/react/macro"
 import type { BookPublicationRecord } from "@/api/client"
-import { formatPublishDateTime } from "@/components/pipeline/stages/export/publish/expiry-options"
+import { formatPublishDateTime } from "@/components/pipeline/stages/publish/expiry-options"
 import { cn } from "@/lib/utils"
 
 /**

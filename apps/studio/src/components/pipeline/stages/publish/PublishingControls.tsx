@@ -4,15 +4,15 @@ import { CalendarClock, KeyRound, Loader2, RefreshCw, Unlock } from "lucide-reac
 import type { BookPublicationRecord } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { AccessCodeChip } from "@/components/publications/PublicationStatusChip"
-import { ExpiryChoice } from "@/components/pipeline/stages/export/publish/ExpiryChoice"
+import { ExpiryChoice } from "@/components/pipeline/stages/publish/ExpiryChoice"
 import {
   generateAccessCode,
-} from "@/components/pipeline/stages/export/publish/access-code"
+} from "@/components/pipeline/stages/publish/access-code"
 import {
   expiryChoiceToIso,
   formatPublishDate,
   isoToExpiryChoice,
-} from "@/components/pipeline/stages/export/publish/expiry-options"
+} from "@/components/pipeline/stages/publish/expiry-options"
 import {
   useSetPublicationAccessCode,
   useSetPublicationExpiry,
