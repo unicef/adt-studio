@@ -6303,8 +6303,8 @@ msgstr "I ri këtu?"
 msgid "New session"
 msgstr "Sesion i ri"
 
-msgid "New term"
-msgstr "Term i ri"
+#~ msgid "New term"
+#~ msgstr "Term i ri"
 
 msgid "new_type_key"
 msgstr "new_type_key"

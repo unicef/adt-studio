@@ -6303,8 +6303,8 @@ msgstr "Nouveau ici ?"
 msgid "New session"
 msgstr "Nouvelle session"
 
-msgid "New term"
-msgstr "Nouveau terme"
+#~ msgid "New term"
+#~ msgstr "Nouveau terme"
 
 msgid "new_type_key"
 msgstr "new_type_key"

@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { EyeOff, Plus, Search, Sparkles, Undo2 } from "lucide-react"
+import { EyeOff, Plus, Search, Sparkles, Trash2, Undo2 } from "lucide-react"
 import type { GlossaryItem } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useGlossary } from "@/hooks/use-glossary"
 import { cn } from "@/lib/utils"
+import { AddGlossaryDialog } from "@/components/pipeline/stages/glossary/AddGlossaryDialog"
 import { useSaveGlossary } from "./shared/mutations"
 import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
 import { EditableText, RowAction, SaveError, StepBody, StepCard, StepEmptyHint, StepRail } from "./shared/ui"
@@ -19,6 +20,7 @@ export function GlossaryStep(props: StepProps) {
 
   const [search, setSearch] = useState("")
   const [letter, setLetter] = useState<string>("")
+  const [showAdd, setShowAdd] = useState(false)
 
   const items = useMemo(() => query.data?.items ?? [], [query.data])
 
@@ -53,18 +55,36 @@ export function GlossaryStep(props: StepProps) {
     persist(items.map((item, i) => (i === index ? { ...item, ...changes } : item)))
   }
 
-  const addTerm = () => {
-    persist([
-      { word: t`New term`, definition: "", variations: [], emojis: [], source: "manual" },
-      ...items,
-    ])
+  const addTerm = (item: GlossaryItem) => {
+    persist([item, ...items])
     setLetter("")
     setSearch("")
   }
 
+  const removeTerm = (index: number) => {
+    persist(items.filter((_, i) => i !== index))
+  }
+
+  const addDialog = (
+    <AddGlossaryDialog
+      open={showAdd}
+      onOpenChange={setShowAdd}
+      bookLabel={label}
+      existingItems={items}
+      onAdd={addTerm}
+    />
+  )
+
   const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: items.length > 0 })
   if (loading) return <StepLoading {...props} />
-  if (items.length === 0) return <StepEmpty {...props} onManual={addTerm} />
+  if (items.length === 0) {
+    return (
+      <>
+        <StepEmpty {...props} onManual={() => setShowAdd(true)} />
+        {addDialog}
+      </>
+    )
+  }
 
   const active = items.filter((i) => !i.pruned).length
 
@@ -97,7 +117,7 @@ export function GlossaryStep(props: StepProps) {
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t`Search terms…`}
             />
-            <Button size="sm" variant="outline" onClick={addTerm}>
+            <Button size="sm" variant="outline" onClick={() => setShowAdd(true)}>
               <Plus className="size-3.5" />
               <Trans>Add term</Trans>
             </Button>
@@ -143,11 +163,20 @@ export function GlossaryStep(props: StepProps) {
                     </span>
                   ))}
                   <div className="ml-auto flex shrink-0 gap-1">
-                    <RowAction
-                      icon={item.pruned ? Undo2 : EyeOff}
-                      label={item.pruned ? t`Restore term` : t`Prune term`}
-                      onClick={() => patch(index, { pruned: !item.pruned })}
-                    />
+                    {item.source === "manual" ? (
+                      <RowAction
+                        icon={Trash2}
+                        label={t`Remove manual glossary term`}
+                        tone="danger"
+                        onClick={() => removeTerm(index)}
+                      />
+                    ) : (
+                      <RowAction
+                        icon={item.pruned ? Undo2 : EyeOff}
+                        label={item.pruned ? t`Restore term` : t`Prune term`}
+                        onClick={() => patch(index, { pruned: !item.pruned })}
+                      />
+                    )}
                   </div>
                 </div>
 
@@ -164,6 +193,8 @@ export function GlossaryStep(props: StepProps) {
           })
         )}
       </StepBody>
+
+      {addDialog}
     </StepShell>
   )
 }

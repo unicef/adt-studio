@@ -6301,8 +6301,8 @@ msgstr "Novo por aqui?"
 msgid "New session"
 msgstr "New session"
 
-msgid "New term"
-msgstr "Novo termo"
+#~ msgid "New term"
+#~ msgstr "Novo termo"
 
 msgid "new_type_key"
 msgstr "novo_tipo"

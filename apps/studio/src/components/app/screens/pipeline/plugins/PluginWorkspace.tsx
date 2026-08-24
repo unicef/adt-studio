@@ -75,23 +75,23 @@ export function PluginWorkspace({
         className="drag-region relative flex h-12.5 shrink-0 items-center gap-3 px-3.5 text-white"
         style={{ background: plugin.hex }}
       >
-              <div className="flex flex-1 items-center justify-start gap-1">
-                  <button
-                    type="button"
-                    onClick={onBack}
-                    style={NO_DRAG_REGION}
-                    className="flex h-7 items-center gap-1.5 rounded-lg bg-white/16 px-2.5 text-xs font-semibold transition-colors hover:bg-white/24"
-                  >
-                    <ArrowLeft className="size-3.5" />
-                    <Trans>Storyboard</Trans>
-                  </button>
+        <div className="flex flex-1 items-center justify-start gap-1">
+            <button
+            type="button"
+            onClick={onBack}
+            style={NO_DRAG_REGION}
+            className="flex h-7 items-center gap-1.5 rounded-lg bg-white/16 px-2.5 text-xs font-semibold transition-colors hover:bg-white/24"
+            >
+            <ArrowLeft className="size-3.5" />
+            <Trans>Storyboard</Trans>
+            </button>
 
-                  <span className="grid size-6.5 place-items-center rounded-full bg-white/20">
-                    <plugin.icon className="size-3.5" strokeWidth={2.4} />
-                  </span>
+            <span className="grid size-6.5 place-items-center rounded-full bg-white/20">
+            <plugin.icon className="size-3.5" strokeWidth={2.4} />
+            </span>
 
-                  <span className="text-sm font-semibold">{name}</span>
-              </div>
+            <span className="text-sm font-semibold">{name}</span>
+        </div>
 
         <div className="flex flex-1 items-center justify-center gap-1.5 drag-region">
           {[...runChips, ...chips].map((chip, index) => (
@@ -105,24 +105,26 @@ export function PluginWorkspace({
           ))}
         </div>
 
-        <div className="flex items-center gap-2">
-          <WorkspaceRunButton label={label} slug={plugin.slug} />
-          {onOpenSettings && (
-            <button
-              type="button"
-              onClick={onOpenSettings}
-              aria-label={t`${name} settings`}
-              title={t`${name} settings`}
-              className="grid size-7 place-items-center rounded-lg transition-colors hover:bg-white/16"
-            >
-              <Settings className="size-3.5" />
-            </button>
-          )}
+
+        <div className="flex flex-1 justify-end">
+            <div className="flex items-center gap-2">
+            <WorkspaceRunButton label={label} slug={plugin.slug} />
+            {onOpenSettings && (
+                <button
+                type="button"
+                onClick={onOpenSettings}
+                aria-label={t`${name} settings`}
+                title={t`${name} settings`}
+                className="grid size-7 place-items-center rounded-lg transition-colors hover:bg-white/16"
+                >
+                <Settings className="size-3.5" />
+                </button>
+            )}
+            </div>
+            <TitleBarControls darkMode className="-my-px -mr-3.5 h-12.5" />
         </div>
 
-        <TitleBarControls darkMode className="-my-px -mr-3.5 h-12.5" />
-
-        {isActive && activity && (
+              {isActive && activity && (
           <span
             aria-hidden
             className="pointer-events-none absolute inset-x-0 bottom-0 h-[3px] overflow-hidden bg-black/15"
