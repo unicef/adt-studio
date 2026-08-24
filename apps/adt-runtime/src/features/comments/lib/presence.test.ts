@@ -288,6 +288,9 @@ describe("cursor lifetimes", () => {
     ).toEqual([])
   })
 
+  /** Both pruning sites must agree. One of them was left on the short default, so any join,
+   *  leave or page turn — a page turn being a reload, so two of them — silently deleted the
+   *  off-screen cursors the long window exists to keep. */
   it("prunes state at the longer window, so the overlay still has something to draw", () => {
     const now = 1_000_000
     const cursors = [

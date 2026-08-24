@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react"
 import { currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
 import { readableTextColor } from "@/features/comments/lib/color"
 import { CURSOR_OFFSCREEN_STALE_MS, visibleCursors } from "@/features/comments/lib/presence"
+import { scrollBehavior } from "@/features/comments/lib/motion"
 import { ROOM_CURSOR_STALE_MS } from "@/features/comments/lib/room-protocol"
 import {
   placeCursor,
@@ -26,7 +27,6 @@ const DIRECTION_KEY = {
   right: "comments-cursor-direction-right-label",
 } as const
 
-/** Points away from the screen, at the peer: the marker says which way to go. */
 /**
  * The tail, drawn *outside* the pill and pointing away from the screen.
  *
@@ -63,19 +63,6 @@ export function tailFirst(edge: CursorEdge): boolean {
   return edge === "top" || edge === "left"
 }
 
-/**
- * Other people's cursors, drawn where they are pointing rather than where their pointer is.
- *
- * A cursor travels as an anchor — a selector into `#content` plus a percentage inside the
- * matched box — and is resolved back through the very same engine that positions pins. That is
- * the whole reason a phone and a laptop reading the same page see each other point at the same
- * *word* instead of at the same pixel of two differently-reflowed columns.
- *
- * A peer further down the same page gets an edge marker instead of being clipped away. The
- * arrows are decorative and stay hidden from assistive technology, but the edge markers are
- * real buttons in their own labelled layer: "somebody is reading three screens down" is
- * navigation, not decoration, and it is the one thing here worth offering to a keyboard.
- */
 function Tail({ edge }: { edge: CursorEdge }) {
   const box = TAIL_BOX[edge]
   return (
@@ -91,6 +78,19 @@ function Tail({ edge }: { edge: CursorEdge }) {
   )
 }
 
+/**
+ * Other people's cursors, drawn where they are pointing rather than where their pointer is.
+ *
+ * A cursor travels as an anchor — a selector into `#content` plus a percentage inside the
+ * matched box — and is resolved back through the very same engine that positions pins. That is
+ * the whole reason a phone and a laptop reading the same page see each other point at the same
+ * *word* instead of at the same pixel of two differently-reflowed columns.
+ *
+ * A peer further down the same page gets an edge marker instead of being clipped away. The
+ * arrows are decorative and stay hidden from assistive technology, but the edge markers are
+ * real buttons in their own labelled layer: "somebody is reading three screens down" is
+ * navigation, not decoration, and it is the one thing here worth offering to a keyboard.
+ */
 export function PeerCursors() {
   const peers = useAtomValue(roomPeersAtom)
   const selfId = useAtomValue(selfPeerIdAtom)
@@ -99,12 +99,6 @@ export function PeerCursors() {
   const viewport = useViewportSize()
   const { t } = useCommentsText()
 
-  /**
-   * Collected at the longer off-screen window, then split by where each peer landed: an arrow is
-   * only drawn for a cursor still fresh by the pointing standard, while an edge marker survives
-   * on the ambient one. Filtering at the short window first would drop the very peers the edge
-   * markers exist for — somebody reading three screens down is not moving their mouse.
-   */
   /**
    * A once-a-second clock, only while somebody's cursor is in state.
    *
@@ -121,6 +115,12 @@ export function PeerCursors() {
     return () => window.clearInterval(timer)
   }, [ticking])
 
+  /**
+   * Collected at the longer off-screen window, then split by where each peer landed: an arrow is
+   * only drawn for a cursor still fresh by the pointing standard, while an edge marker survives
+   * on the ambient one. Filtering at the short window first would drop the very peers the edge
+   * markers exist for — somebody reading three screens down is not moving their mouse.
+   */
   const visible = useMemo(
     () =>
       visibleCursors(
@@ -234,7 +234,9 @@ export function PeerCursors() {
               })}
               onClick={() => {
                 const delta = scrollDeltaToReveal(point, viewport)
-                window.scrollBy({ left: delta.x, top: delta.y, behavior: "smooth" })
+                /** The feature's own helper, which also honours the reader's in-book
+                 *  reduce-motion switch — not just the OS media query. */
+                window.scrollBy({ left: delta.x, top: delta.y, behavior: scrollBehavior() })
               }}
               className={`pointer-events-auto absolute left-0 top-0 flex items-center justify-center gap-[3px] bg-transparent p-0 duration-200 animate-in fade-in-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 motion-reduce:animate-none ${edgeAnchorClass(placement.edge)}`}
               style={{

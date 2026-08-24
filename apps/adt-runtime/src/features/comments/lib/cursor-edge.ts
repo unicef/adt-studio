@@ -17,8 +17,15 @@ export type CursorPlacement =
 /** Keeps a clamped marker clear of the very edge, where it would be half cut off. */
 const EDGE_INSET = 16
 
-/** Minimum gap between two markers sharing an edge before they are pushed apart. */
-const EDGE_SPACING = 34
+/**
+ * Minimum pitch between two markers sharing an edge.
+ *
+ * Different per orientation because the marker is not square: side by side along the top or
+ * bottom they must clear each other's *width* — a truncated name pill plus its tail — while
+ * stacked down the left or right they need only clear its height. One number for both left the
+ * horizontal edges overlapping, which is the case the spreading exists for.
+ */
+export const EDGE_SPACING = { horizontal: 132, vertical: 30 } as const
 
 /**
  * Where to draw a peer who is on this page.
@@ -90,14 +97,19 @@ export interface PlacedCursor {
 export function spreadAlongEdges<T extends PlacedCursor>(
   placed: T[],
   viewport: Viewport,
-  spacing: number = EDGE_SPACING,
+  spacing: { horizontal: number; vertical: number } = EDGE_SPACING,
+  inset: number = EDGE_INSET,
 ): T[] {
   const result = [...placed]
   const edges: CursorEdge[] = ["top", "right", "bottom", "left"]
 
   for (const edge of edges) {
     const horizontal = edge === "top" || edge === "bottom"
-    const limit = horizontal ? viewport.width : viewport.height
+    /** The same inset `placeCursor` respects. Clamping to the raw viewport instead let the
+     *  sweep push markers flush against the edge, where several would land on the identical
+     *  coordinate and each be half-clipped by the overlay's `overflow-hidden`. */
+    const limit = Math.max(inset, (horizontal ? viewport.width : viewport.height) - inset)
+    const pitch = horizontal ? spacing.horizontal : spacing.vertical
     const onEdge = result
       .map((item, index) => ({ item, index }))
       .filter(({ item }) => item.placement.kind === "edge" && item.placement.edge === edge)
@@ -107,28 +119,61 @@ export function spreadAlongEdges<T extends PlacedCursor>(
         return horizontal ? pa.x - pb.x : pa.y - pb.y
       })
 
+    /**
+     * Two passes, because one is not enough at the far end of the edge.
+     *
+     * The forward sweep alone pushes every crowded marker up against the limit, where they all
+     * land on the identical coordinate — the pile it was meant to prevent, just relocated. The
+     * backward sweep then walks from the last marker inwards and pulls anything still too close
+     * *away* from that end, so a cluster arriving near the corner spreads back along the edge
+     * instead of collapsing into one badge.
+     */
+    const coordinate = (item: T): number => {
+      const placement = item.placement as { x: number; y: number }
+      return horizontal ? placement.x : placement.y
+    }
+
+    const positions = onEdge.map(({ item }) => coordinate(item))
+
     let previous = Number.NEGATIVE_INFINITY
-    for (const { item, index } of onEdge) {
+    for (let i = 0; i < positions.length; i += 1) {
+      positions[i] = Math.min(Math.max(positions[i]!, previous + pitch), limit)
+      previous = positions[i]!
+    }
+
+    let next = Number.POSITIVE_INFINITY
+    for (let i = positions.length - 1; i >= 0; i -= 1) {
+      positions[i] = Math.max(Math.min(positions[i]!, next - pitch), inset)
+      next = positions[i]!
+    }
+
+    onEdge.forEach(({ item, index }, i) => {
       const placement = item.placement as { kind: "edge"; x: number; y: number; edge: CursorEdge }
-      const current = horizontal ? placement.x : placement.y
-      const shifted = Math.min(Math.max(current, previous + spacing), limit)
-      previous = shifted
+      const shifted = positions[i]!
       result[index] = {
         ...item,
         placement: horizontal
           ? { ...placement, x: shifted }
           : { ...placement, y: shifted },
       }
-    }
+    })
   }
 
   return result
 }
 
-/** How far to scroll to bring an off-screen peer into the middle of the view. */
+/**
+ * How far to scroll to bring an off-screen peer into view.
+ *
+ * Only the axis they are actually off on moves. Centring both would drag a reader sideways to
+ * reach somebody who was merely further down — a page that scrolls horizontally at all would
+ * lurch for no reason, and the reader did not ask to go anywhere but "down there".
+ */
 export function scrollDeltaToReveal(point: CursorPoint, viewport: Viewport): CursorPoint {
+  const offHorizontally = point.x < 0 || point.x > viewport.width
+  const offVertically = point.y < 0 || point.y > viewport.height
   return {
-    x: Math.round(point.x - viewport.width / 2),
-    y: Math.round(point.y - viewport.height / 2),
+    x: offHorizontally ? Math.round(point.x - viewport.width / 2) : 0,
+    y: offVertically ? Math.round(point.y - viewport.height / 2) : 0,
   }
 }

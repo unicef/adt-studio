@@ -91,7 +91,13 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
           setSelfId(frame.self_id)
           setPeers(frame.peers)
           const ids = new Set(frame.peers.map((peer) => peer.id))
-          setCursors((cursors) => pruneCursors(cursors, Date.now(), ids))
+          /** The long window here too. Every join, leave and page turn produces a presence
+           *  frame — and a page turn is a reload, so it produces two — which meant this line
+           *  quietly deleted the off-screen cursors the long window exists to keep, in exactly
+           *  the busy rooms where the markers matter most. */
+          setCursors((cursors) =>
+            pruneCursors(cursors, Date.now(), ids, CURSOR_OFFSCREEN_STALE_MS),
+          )
           return
         }
 
@@ -190,11 +196,23 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
       queue(point)
     }
 
+    /** A pointer that has left the window is not pointing at anything, so the scroll re-send
+     *  must stop speaking for it. Without this the last position it held would be renewed on
+     *  every scroll for as long as the tab stayed open — an arrow kept alive by a mouse that is
+     *  no longer there, which is the opposite of what the stale window is for. */
+    const onPointerGone = (): void => {
+      lastPointRef.current = null
+    }
+
     document.addEventListener("pointermove", onPointerMove, { passive: true })
     window.addEventListener("scroll", onScroll, { passive: true })
+    document.addEventListener("pointerleave", onPointerGone)
+    window.addEventListener("blur", onPointerGone)
     return () => {
       document.removeEventListener("pointermove", onPointerMove)
       window.removeEventListener("scroll", onScroll)
+      document.removeEventListener("pointerleave", onPointerGone)
+      window.removeEventListener("blur", onPointerGone)
       if (timer !== null) window.clearTimeout(timer)
     }
   }, [context])
