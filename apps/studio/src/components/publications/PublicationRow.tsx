@@ -46,7 +46,7 @@ function StepAction({
   enabled: boolean
   variant: "outline" | "ghost"
   label: string
-  step: "storyboard" | "export"
+  step: "storyboard" | "publish"
   disabledHint: string
   children: ReactNode
 }) {
@@ -273,7 +273,10 @@ export function PublicationRow({
             enabled={publication.book_exists}
             variant="ghost"
             label={publication.book_label}
-            step="export"
+            /** Publishing, not Export. The two were the same page until publishing became its
+             *  own stage and Export was cut back to a pointer at it — after which this button
+             *  was sending the author to a screen with nothing on it to press. */
+            step="publish"
             disabledHint={t`This book is not on this computer`}
           >
             <RefreshCw className="size-3.5" aria-hidden="true" />

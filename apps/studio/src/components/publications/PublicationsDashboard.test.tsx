@@ -280,10 +280,13 @@ describe("PublicationsDashboard — populated", () => {
     })
     expect(feedback.textContent).toContain("3")
 
+    /** Publishing, not Export. These were the same screen until publishing became its own
+     *  stage and Export was cut back to a pointer at it, and this assertion happily agreed with
+     *  the stale destination — so it is spelled out here rather than left as a bare string. */
     const update = screen.getByRole("link", { name: /update site/i })
     expect(JSON.parse(update.getAttribute("data-params") as string)).toEqual({
       label: "raven",
-      step: "export",
+      step: "publish",
     })
   })
 

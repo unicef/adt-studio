@@ -232,8 +232,8 @@ export function PublicationsDashboard({ embedded = false }: PublicationsDashboar
               title={<Trans>Nothing published yet</Trans>}
               subtitle={
                 <Trans>
-                  Open a book, go to Export and choose Share online. You'll get a link to send to
-                  readers, and everything they comment on comes back here.
+                  Open a book and go to Publishing. You'll get a link to send to readers, and
+                  everything they comment on comes back here.
                 </Trans>
               }
             />
