@@ -26,15 +26,12 @@ import type {
 import { WebRenderingOutput as WebRenderingOutputSchema, isHeadingRole, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 import {
   ADT_EDITING_CONTRACT_VERSION,
-  ADT_ROUND_TRIP_FORMAT_VERSION,
-  AdtRoundTripManifest,
   GOOGLE_FONTS,
   googleFontsReferencedIn,
   googleFontsCss2Url,
   primaryFontFamily,
 } from "@adt/types"
 import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
-import { canonicalJson } from "@adt/types/fingerprint"
 import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
 import {
   bundleBookFontsIntoCss,
@@ -54,10 +51,12 @@ import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
-import { buildTextCatalog, inspectImportedHtmlContract } from "../text-catalog.js"
-import { isImportedFixedLayoutPage } from "../imported-fixed-layout.js"
-import { inspectImportedActivity } from "../imported-activity.js"
-import { renderAdtAgentGuide } from "../adt-agent-guide.js"
+import { buildTextCatalog } from "../text-catalog.js"
+import { readAdtAgentGuideTemplate, renderAdtAgentGuide } from "../adt-agent-guide.js"
+import {
+  buildAdtRoundTripManifest,
+  collectTranslationBaselines,
+} from "../adt-round-trip-manifest.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
 import { getCoreTtsCatalog, getReadyCoreTtsEntries } from "../core-tts.js"
 import { getRenderSectioning } from "../render-sectioning.js"
@@ -262,18 +261,6 @@ function hashValue(value: unknown): string {
   return createHash("sha256")
     .update(JSON.stringify(value) ?? "undefined")
     .digest("hex")
-}
-
-function hashBuffer(value: Uint8Array): string {
-  return createHash("sha256").update(value).digest("hex")
-}
-
-function fingerprintIds(ids: Iterable<string>): string {
-  return hashValue([...new Set(ids)].sort((a, b) => a.localeCompare(b)))
-}
-
-function hashJsonFile(filePath: string): string {
-  return hashBuffer(Buffer.from(canonicalJson(JSON.parse(fs.readFileSync(filePath, "utf-8")))))
 }
 
 // ---------------------------------------------------------------------------
@@ -950,99 +937,31 @@ export async function packageAdtWeb(
 
   // Round-trip metadata is written after every supported projection is final,
   // but before the offline preloader snapshots JSON resources.
-  const translationBaselines: Record<string, number> = {}
-  for (const lang of outputLanguages) {
-    if (getBaseLanguage(lang) === getBaseLanguage(language)) continue
-    const legacyLang = lang.replace("-", "_")
-    const row =
-      storage.getLatestNodeData("text-catalog-translation", lang) ??
-      storage.getLatestNodeData("text-catalog-translation", legacyLang)
-    if (row) translationBaselines[lang] = row.version
-  }
-
   if (catalogVersion === undefined) {
-    const row = storage.getLatestNodeData("text-catalog", "book")
-    catalogVersion = row?.version
+    catalogVersion = storage.getLatestNodeData("text-catalog", "book")?.version
   }
   if (catalogVersion === undefined) {
     throw new Error("Cannot write ADT round-trip manifest without a text-catalog version")
   }
-
-  const sourceTextsPath = path.join(contentDir, "i18n", language, "texts.json")
-  const pageHtmlFingerprints: Record<string, string> = {}
-  const pageDataIds: Record<string, string[]> = {}
-  const activities: Array<{ sectionId: string; href: string; type: string }> = []
-  const nonActivities: Array<{ sectionId: string; href: string }> = []
-  for (const href of new Set(pageList.map((page) => page.href))) {
-    const filePath = path.join(adtDir, href)
-    if (fs.existsSync(filePath)) {
-      pageHtmlFingerprints[href] = hashBuffer(fs.readFileSync(filePath))
-      const page = pageList.find((entry) => entry.href === href)
-      if (page) {
-        const html = fs.readFileSync(filePath, "utf8")
-        const allowSectionDataId = page.section_id.startsWith("qz")
-        // A fixed-layout page has no semantic <section>; its data-ids hang
-        // directly off #content. Declaring them under the same rule the importer
-        // re-checks keeps the contract self-consistent across a round trip.
-        const fixedLayoutPage = isImportedFixedLayoutPage(html)
-        pageDataIds[href] = inspectImportedHtmlContract(
-          html,
-          page.section_id,
-          { allowSectionDataId, fixedLayoutPage },
-        ).dataIds
-        const activity = inspectImportedActivity(html, page.section_id, { allowSectionDataId })
-        if (activity.isActivity && activity.sectionType) {
-          activities.push({
-            sectionId: page.section_id,
-            href,
-            type: activity.sectionType,
-          })
-        } else if (activity.explicitNonActivity || activity.signals.length > 0) {
-          // Interactive reader controls are not necessarily learning activities.
-          // Record that negative classification so a future import does not ask
-          // the user or an agent to classify the same page again.
-          nonActivities.push({ sectionId: page.section_id, href })
-        }
-      }
-    }
-  }
-
-  const roundTripManifest = AdtRoundTripManifest.parse({
-    formatVersion: ADT_ROUND_TRIP_FORMAT_VERSION,
-    editingContract: {
-      version: ADT_EDITING_CONTRACT_VERSION,
-      pageOrder: pageList.map((page) => ({ sectionId: page.section_id, href: page.href })),
-      pageDataIds,
-      activities,
-      nonActivities,
-    },
-    book: { label, title },
+  const roundTripManifest = buildAdtRoundTripManifest({
+    adtDir,
+    contentDir,
+    label,
+    title,
+    language,
+    outputLanguages,
+    pageList,
+    catalog,
+    catalogVersion,
+    easyReadEntries,
+    glossaryVersion: glossaryRow?.version ?? null,
+    tocVersion: tocRow?.version ?? null,
+    translationBaselines: collectTranslationBaselines(
+      language,
+      outputLanguages,
+      (lang) => storage.getLatestNodeData("text-catalog-translation", lang),
+    ),
     ...(lineage ? { lineage } : {}),
-    languages: {
-      source: language,
-      output: outputLanguages,
-    },
-    baselines: {
-      glossary: glossaryRow?.version ?? null,
-      tocGeneration: tocRow?.version ?? null,
-      textCatalogTranslations: translationBaselines,
-    },
-    textCatalog: {
-      version: catalogVersion,
-      idFingerprint: fingerprintIds(catalog.entries.map((entry) => entry.id)),
-    },
-    translatableText: {
-      idFingerprint: fingerprintIds([
-        ...catalog.entries.map((entry) => entry.id),
-        ...easyReadEntries.map((entry) => entry.id),
-      ]),
-    },
-    frozen: {
-      ...(fs.existsSync(sourceTextsPath)
-        ? { sourceTextsFingerprint: hashJsonFile(sourceTextsPath) }
-        : {}),
-      pageHtmlFingerprints,
-    },
   })
   writeJson(path.join(adtDir, "manifest.json"), roundTripManifest)
 
@@ -1053,10 +972,10 @@ export async function packageAdtWeb(
   generateImsManifest(adtDir, title, label, pageList)
 
   // Render AGENTS.md from Liquid template with book-specific data
-  const agentsMdTemplate = path.join(path.dirname(webAssetsDir), "AGENTS.md.liquid")
-  if (fs.existsSync(agentsMdTemplate)) {
+  const agentsMdTemplate = readAdtAgentGuideTemplate(webAssetsDir)
+  if (agentsMdTemplate !== null) {
     const agentsMd = renderAdtAgentGuide(
-      fs.readFileSync(agentsMdTemplate, "utf8"),
+      agentsMdTemplate,
       {
         title,
         label,

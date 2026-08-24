@@ -1,3 +1,6 @@
+import fs from "node:fs"
+import path from "node:path"
+
 import { Liquid } from "liquidjs"
 import type {
   GlossaryOutput,
@@ -137,4 +140,32 @@ export function renderAdtAgentGuide(
     editingContractVersion: ctx.editingContractVersion,
     activityClassificationGuide: ACTIVITY_CLASSIFICATION_GUIDE,
   })
+}
+
+const TEMPLATE_FILE = "AGENTS.md.liquid"
+
+/**
+ * Locate the Liquid template for the exported assistant guide.
+ *
+ * `webAssetsDir` normally points at `<assets>/adt`, so the template sits beside
+ * it. In the desktop app the web assets are unpacked from a ZIP into a temp
+ * directory, which puts `path.dirname(webAssetsDir)` under the OS temp root
+ * where no template exists — hence the `WEB_ASSETS_DIR` and repo-relative
+ * fallbacks. Import and export must agree on this, because import treats a
+ * missing template as a hard failure while export silently skips the guide.
+ */
+export function resolveAdtAgentGuideTemplatePath(webAssetsDir?: string): string | null {
+  const candidates = [
+    ...(webAssetsDir ? [path.join(path.dirname(webAssetsDir), TEMPLATE_FILE)] : []),
+    ...(process.env.WEB_ASSETS_DIR
+      ? [path.join(path.dirname(path.resolve(process.env.WEB_ASSETS_DIR)), TEMPLATE_FILE)]
+      : []),
+    path.resolve(process.cwd(), "assets", TEMPLATE_FILE),
+  ]
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? null
+}
+
+export function readAdtAgentGuideTemplate(webAssetsDir?: string): string | null {
+  const templatePath = resolveAdtAgentGuideTemplatePath(webAssetsDir)
+  return templatePath ? fs.readFileSync(templatePath, "utf8") : null
 }

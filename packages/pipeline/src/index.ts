@@ -201,10 +201,13 @@ export {
 export {
   buildTextCatalog,
   extractTextCatalogEntriesFromHtml,
+} from "./text-catalog.js"
+export {
   projectImportedHtmlSection,
   createSafeImportedHtmlPreview,
   extractImportedHtmlPresentationAssets,
   inspectImportedHtmlContract,
+  removeExecutableImportedMarkup,
   ADT_EDITING_ALLOWED_ROOT_ENTRIES,
   type ImportedHtmlImageReference,
   type ImportedHtmlSectionProjection,
@@ -214,7 +217,7 @@ export {
   type ImportedHtmlContractIssueCode,
   type ImportedHtmlContractInspection,
   type ImportedHtmlContractOptions,
-} from "./text-catalog.js"
+} from "./imported-html.js"
 export {
   projectImportedFixedLayoutPage,
   isImportedFixedLayoutPage,
@@ -397,9 +400,16 @@ export {
   convertLatexToMathml,
 } from "./packaging/web.js"
 export {
+  buildAdtRoundTripManifest,
+  collectTranslationBaselines,
+  type BuildAdtRoundTripManifestOptions,
+} from "./adt-round-trip-manifest.js"
+export {
   ADT_AGENT_GUIDE_VERSION,
   inspectAdtAgentGuide,
+  readAdtAgentGuideTemplate,
   renderAdtAgentGuide,
+  resolveAdtAgentGuideTemplatePath,
   type AdtAgentGuideContext,
   type AdtAgentGuideInspection,
 } from "./adt-agent-guide.js"

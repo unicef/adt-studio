@@ -73,6 +73,11 @@ export {
   STEPS_BY_DEFAULT_MODEL_KIND,
   PAGE_PROGRESS_STEPS,
   BOOK_LEVEL_STAGES,
+  IMPORTED_ADT_UNAVAILABLE_STAGE_NAMES,
+  IMPORTED_ADT_UNAVAILABLE_STAGES,
+  IMPORTED_ADT_LOCKED_STAGES,
+  isImportedAdtUnavailableStage,
+  type ImportedAdtUnavailableStage,
 } from "./pipeline.js"
 
 export {
@@ -113,6 +118,16 @@ export {
   AdtBundleGlossary,
   AdtBundleTexts,
   AdtRoundTripManifest,
+  AdtImportCompatibilityIssueCode,
+  AdtImportCompatibilityIssue,
+  AdtImportCompatibility,
+  AdtActivityReviewReason,
+  AdtImportedActivityReviewItem,
+  AdtImportedActivityReview,
+  AdtAgentGuideFileState,
+  AdtAgentGuideReview,
+  AdtImportFeatureRecovery,
+  AdtBundleImportPreview,
 } from "./adt-round-trip.js"
 
 export {

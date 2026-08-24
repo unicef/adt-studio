@@ -227,3 +227,133 @@ export const AdtRoundTripManifest = z.object({
   }
 })
 export type AdtRoundTripManifest = z.infer<typeof AdtRoundTripManifest>
+
+// ---------------------------------------------------------------------------
+// Import preview payload
+//
+// The wire contract for `POST /books/preview-import` when the archive is an
+// exported ADT bundle. Defined here so the API response and the Studio client
+// derive from one schema instead of maintaining parallel hand-written unions.
+// ---------------------------------------------------------------------------
+
+export const AdtImportCompatibilityIssueCode = z.enum([
+  "missing-editing-contract",
+  "unsupported-editing-contract",
+  "nested-page",
+  "unexpected-bundle-entry",
+  "changed-page-structure",
+  "missing-content-root",
+  "multiple-content-roots",
+  "missing-section",
+  "multiple-sections",
+  "missing-section-type",
+  "missing-data-id",
+  "duplicate-data-id",
+  "image-missing-data-id",
+  "remote-asset",
+  "unsafe-asset",
+  "unsupported-stylesheet",
+  "unsupported-script",
+  "unsupported-asset-location",
+  "missing-asset",
+])
+export type AdtImportCompatibilityIssueCode = z.infer<typeof AdtImportCompatibilityIssueCode>
+
+export const AdtImportCompatibilityIssue = z.object({
+  code: AdtImportCompatibilityIssueCode,
+  pageHref: z.string(),
+  detail: z.string().optional(),
+})
+export type AdtImportCompatibilityIssue = z.infer<typeof AdtImportCompatibilityIssue>
+
+export const AdtImportCompatibility = z.object({
+  supported: z.boolean(),
+  issues: z.array(AdtImportCompatibilityIssue),
+})
+export type AdtImportCompatibility = z.infer<typeof AdtImportCompatibility>
+
+export const AdtActivityReviewReason = z.enum([
+  "missing-declaration",
+  "missing-marker",
+  "type-mismatch",
+  "interactive-unmarked",
+  "invalid-structure",
+  "missing-page",
+])
+export type AdtActivityReviewReason = z.infer<typeof AdtActivityReviewReason>
+
+export const AdtImportedActivityReviewItem = z.object({
+  sectionId: z.string(),
+  href: z.string(),
+  declaredType: z.string().nullable(),
+  detectedType: z.string().nullable(),
+  suggestedType: z.string(),
+  kind: z.enum(["quiz", "known", "custom", "candidate"]),
+  status: z.enum(["confirmed", "needs-review"]),
+  supportsStudioEditing: z.boolean(),
+  reasons: z.array(AdtActivityReviewReason),
+  signals: z.array(z.string()),
+  validationErrors: z.array(z.string()),
+  textPreview: z.string(),
+  previewHtml: z.string(),
+})
+export type AdtImportedActivityReviewItem = z.infer<typeof AdtImportedActivityReviewItem>
+
+export const AdtImportedActivityReview = z.object({
+  inventoryVersion: z.number().nullable(),
+  items: z.array(AdtImportedActivityReviewItem),
+  needsReviewCount: z.number(),
+  quizCount: z.number(),
+  activityCount: z.number(),
+  typeOptions: z.array(z.string()),
+})
+export type AdtImportedActivityReview = z.infer<typeof AdtImportedActivityReview>
+
+export const AdtAgentGuideFileState = z.object({
+  present: z.boolean(),
+  version: z.number().nullable(),
+  current: z.boolean(),
+})
+export type AdtAgentGuideFileState = z.infer<typeof AdtAgentGuideFileState>
+
+export const AdtAgentGuideReview = z.object({
+  status: z.enum(["current", "partial", "outdated", "missing"]),
+  currentVersion: z.number(),
+  files: z.object({
+    agentsMd: AdtAgentGuideFileState,
+    claudeMd: AdtAgentGuideFileState,
+  }),
+  currentGuide: z.string(),
+  repairPrompt: z.string(),
+  activityPrompt: z.string().nullable(),
+})
+export type AdtAgentGuideReview = z.infer<typeof AdtAgentGuideReview>
+
+export const AdtImportFeatureRecovery = z.enum(["recovered", "needs-regeneration"])
+export type AdtImportFeatureRecovery = z.infer<typeof AdtImportFeatureRecovery>
+
+export const AdtBundleImportPreview = z.object({
+  isAdtBundle: z.literal(true),
+  legacyRecovery: z.boolean(),
+  label: z.string(),
+  title: z.string(),
+  coverBase64: z.string().nullable(),
+  sourceLanguage: z.string(),
+  outputLanguages: z.array(z.string()),
+  runtimeFeatures: z.record(z.string(), z.boolean()),
+  pageCount: z.number(),
+  imageCount: z.number(),
+  captionedImageCount: z.number(),
+  glossaryEntryCount: z.number(),
+  tocEntryCount: z.number(),
+  translationLanguageCount: z.number(),
+  contentChanged: z.boolean(),
+  exportComparisonStatus: z.enum(["unchanged", "changed", "unavailable"]),
+  activityReview: AdtImportedActivityReview,
+  compatibility: AdtImportCompatibility,
+  /** Per-feature outcome of this import, keyed by pipeline stage slug. Features
+   * the archive does not have at all are absent from the map. */
+  featureRecovery: z.record(z.string(), AdtImportFeatureRecovery),
+  agentGuide: AdtAgentGuideReview,
+})
+export type AdtBundleImportPreview = z.infer<typeof AdtBundleImportPreview>

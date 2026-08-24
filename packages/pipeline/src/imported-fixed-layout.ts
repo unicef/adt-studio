@@ -41,7 +41,7 @@ import type {
   SectionViewport,
 } from "@adt/types"
 import { AUTO_FIT_SCRIPT_SRC, SectionTextSegment as SectionTextSegmentSchema } from "@adt/types"
-import { removeExecutableImportedMarkup } from "./text-catalog.js"
+import { removeExecutableImportedMarkup } from "./imported-html.js"
 
 export interface ImportedFixedLayoutProjection {
   /** Sanitized `#content` element, authoritative for rendering. */
