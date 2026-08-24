@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { CommenterDisplayName } from "./commenter-name.js"
 
-export const PUBLISH_WORKER_VERSION = "0.11.0"
+export const PUBLISH_WORKER_VERSION = "0.12.0"
 
 /** R2's free allowance. Used only to give the dashboard's storage total a sense of scale —
  *  never to claim a usage number we did not measure ourselves. */
@@ -75,8 +75,27 @@ export const PublicationCreateRequest = z.object({
   expires_at: z.string().datetime().nullable().optional(),
   /** Plaintext in the HTTPS body, PBKDF2 at rest — the worker never stores what was sent. */
   access_code: PublicationAccessCode.nullable().optional(),
+  /** What the files already streamed to `PUT …/files/…` came to, when the Studio uploaded them
+   *  itself. Absent for a request that still carries a zip, where the worker counts as it
+   *  unpacks. */
+  snapshot_bytes: z.number().int().min(0).optional(),
 })
 export type PublicationCreateRequest = z.infer<typeof PublicationCreateRequest>
+
+/**
+ * One file of a version, streamed on its own.
+ *
+ * The zip upload puts a whole book through a single worker request: it is unpacked inside a
+ * 128 MB sandbox and written file by file, so one request carries hundreds of subrequests and
+ * seconds of CPU, and the body is measured against the account's 100 MB request cap. Every one
+ * of those limits is *per request*, so sending one file per request makes all of them moot — and
+ * a failure costs that file rather than the whole book.
+ */
+export const PublicationFileUploadResponse = z.object({
+  path: z.string().min(1),
+  bytes: z.number().int().min(0),
+})
+export type PublicationFileUploadResponse = z.infer<typeof PublicationFileUploadResponse>
 
 export const PublicationCreateResponse = z.object({
   publication: Publication,
@@ -88,6 +107,7 @@ export type PublicationCreateResponse = z.infer<typeof PublicationCreateResponse
 
 export const PublicationVersionCreateRequest = z.object({
   page_manifest: z.array(PublicationPageEntry),
+  snapshot_bytes: z.number().int().min(0).optional(),
 })
 export type PublicationVersionCreateRequest = z.infer<typeof PublicationVersionCreateRequest>
 

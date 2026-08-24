@@ -354,3 +354,93 @@ describe("publish round-trip against real D1 and R2", () => {
     await expect(page.text()).resolves.toContain("page 249")
   })
 })
+
+describe("uploading a version file by file", () => {
+  async function putFile(token: string, version: number, path: string, body: string) {
+    return app().request(
+      `${BASE}/api/publications/${token}/files/${version}/${path}`,
+      {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${SECRET}` },
+        body,
+      },
+      env,
+    )
+  }
+
+  /** The whole point: a book arrives as many small requests instead of one big one, so none of
+   *  the per-request ceilings — 50 subrequests and 10 ms of CPU on the free plan, the account's
+   *  100 MB body cap — is anywhere near being reached. */
+  it("serves a version whose files were streamed one at a time", async () => {
+    const token = "TokenFilesTokenFilesTokenFile1"
+
+    const first = await putFile(token, 1, "index.html", "<h1>page one</h1>")
+    expect(first.status).toBe(200)
+    expect(await first.json()).toMatchObject({ path: "index.html", bytes: 17 })
+    expect((await putFile(token, 1, "assets/app.js", "console.log(1)")).status).toBe(200)
+
+    /** No `snapshot` part: the files are already there, and the request only names the version. */
+    const metadata = new FormData()
+    metadata.set(
+      "metadata",
+      JSON.stringify({
+        token,
+        title: "Raven and the Sun",
+        book_label: "raven",
+        page_manifest: [],
+        snapshot_bytes: 31,
+      }),
+    )
+    const created = await app().request(`${BASE}/api/publications`, mgmt(metadata), env)
+    expect(created.status).toBe(201)
+
+    expect(await r2Text(`${token}/v1/index.html`)).toBe("<h1>page one</h1>")
+    const served = await app().request(`${BASE}/p/${token}/`, {}, env)
+    expect(served.status).toBe(200)
+    expect(await served.text()).toContain("page one")
+  })
+
+  /**
+   * The same guard the zip unpacker applies: a path climbing out of the prefix would let one
+   * publication write over another's files.
+   *
+   * Percent-encoded, because that is the vector that actually reaches the handler — a literal
+   * `../..` is collapsed by URL parsing before routing and lands on no route at all, which is a
+   * refusal but not this one. The encoded form survives that and is decoded here.
+   */
+  it("refuses a path that escapes the version's prefix", async () => {
+    const res = await putFile("TokenFilesTokenFilesTokenFile2", 1, "%2E%2E%2F%2E%2E%2Fpasswd", "x")
+    expect(res.status).toBe(400)
+    await expect(res.json()).resolves.toMatchObject({ error: "invalid_request" })
+  })
+
+  /** And the unencoded form is refused too, by the router rather than the guard. */
+  it("has no route for a literal climb out of the prefix", async () => {
+    const res = await putFile("TokenFilesTokenFilesTokenFile5", 1, "../../passwd", "x")
+    expect(res.status).toBe(404)
+  })
+
+  it("refuses a file past the per-entry limit", async () => {
+    const token = "TokenFilesTokenFilesTokenFile3"
+    const res = await app().request(
+      `${BASE}/api/publications/${token}/files/1/big.bin`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${SECRET}`,
+          "content-length": String(64 * 1024 * 1024),
+        },
+        body: "x",
+      },
+      env,
+    )
+    expect(res.status).toBe(413)
+  })
+
+  it("still accepts a zip, so an older Studio keeps working", async () => {
+    const token = "TokenFilesTokenFilesTokenFile4"
+    const res = await publish(token, { "index.html": "<h1>zipped</h1>" })
+    expect(res.status).toBe(201)
+    expect(await r2Text(`${token}/v1/index.html`)).toBe("<h1>zipped</h1>")
+  })
+})

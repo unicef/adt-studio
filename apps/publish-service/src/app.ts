@@ -11,6 +11,7 @@ import {
   type Publication,
   type PublicationCreateResponse,
   type PublicationDetail,
+  type PublicationFileUploadResponse,
   type PublicationList,
   type PublicationReaderList,
   type PublicationResponse,
@@ -37,6 +38,7 @@ import {
   deleteSnapshotObjects,
   isSnapshotUnpackError,
   normalizeSnapshotPath,
+  SNAPSHOT_LIMITS,
   unpackSnapshotToR2,
   type SnapshotLimits,
 } from "./snapshot.js"
@@ -57,7 +59,9 @@ export interface AppOptions {
 }
 
 type SnapshotUpload<T> =
-  | { ok: true; metadata: T; snapshot: File }
+  /** `snapshot` is absent when the Studio streamed the files itself through
+   *  `PUT …/files/…`, which is the path that avoids putting a whole book through one request. */
+  | { ok: true; metadata: T; snapshot: File | null }
   | { ok: false; code: "invalid_request"; status: 400; message: string }
   | { ok: false; code: "payload_too_large"; status: 413; message: string }
 
@@ -106,12 +110,28 @@ async function readSnapshotUpload<S extends z.ZodTypeAny>(
   }
 
   const snapshot = body[SNAPSHOT_FIELD]
+  if (snapshot === undefined) {
+    /** No zip is only legal as the pre-uploaded path, and `snapshot_bytes` is how that path
+     *  announces itself: the Studio counted the files as it streamed them. Without either, the
+     *  request names a version that has no content anywhere, which used to be caught here and
+     *  would otherwise surface later as a publication serving nothing. */
+    const declared = (parsed.data as { snapshot_bytes?: number }).snapshot_bytes
+    if (declared === undefined) {
+      return {
+        ok: false,
+        code: "invalid_request",
+        status: 400,
+        message: `Missing "${SNAPSHOT_FIELD}" form file — send one, or "snapshot_bytes" for files already uploaded`,
+      }
+    }
+    return { ok: true, metadata: parsed.data, snapshot: null }
+  }
   if (!(snapshot instanceof File)) {
     return {
       ok: false,
       code: "invalid_request",
       status: 400,
-      message: `Missing "${SNAPSHOT_FIELD}" form file`,
+      message: `The "${SNAPSHOT_FIELD}" form field is not a file`,
     }
   }
 
@@ -211,6 +231,68 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     return c.json(body)
   })
 
+  /**
+   * One file of a version, streamed straight into R2.
+   *
+   * The zip route puts a whole book through a single request — unpacked in a 128 MB sandbox,
+   * written file by file, weighed against the account's request cap — so it spends hundreds of
+   * subrequests and seconds of CPU on one invocation. On the Workers free plan that is fifty
+   * subrequests and ten milliseconds, which no real book fits inside; on paid it still fails
+   * whole when the edge refuses once. Every one of those ceilings is per request, so one file
+   * per request steps around all of them and makes a failure cost one file.
+   *
+   * Deliberately writes before any row exists: the version is not real until the create or
+   * versions call names it, and a set of objects nobody committed is cleaned up with the rest of
+   * the token's prefix when the publication is deleted.
+   */
+  app.put("/api/publications/:token/files/:version/*", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+
+    const version = Number(c.req.param("version"))
+    if (!Number.isInteger(version) || version < 1) {
+      return errorResponse(c, "invalid_request", 400, "Version must be a positive integer")
+    }
+
+    const prefix = `/api/publications/${token.data}/files/${c.req.param("version")}/`
+    const index = c.req.path.indexOf(prefix)
+    const raw = index === -1 ? "" : decodeURIComponent(c.req.path.slice(index + prefix.length))
+
+    /** The same guard the unpacker applies to a zip entry: a path that escapes the prefix would
+     *  let a caller write over another publication's files. */
+    const path = normalizeSnapshotPath(raw)
+    if (path === null) {
+      return errorResponse(c, "invalid_request", 400, "Unsafe file path")
+    }
+
+    const declared = Number(c.req.header("content-length") ?? Number.NaN)
+    if (Number.isFinite(declared) && declared > SNAPSHOT_LIMITS.maxEntryBytes) {
+      return errorResponse(
+        c,
+        "payload_too_large",
+        413,
+        `Files are limited to ${SNAPSHOT_LIMITS.maxEntryBytes} bytes`,
+      )
+    }
+
+    const body = await c.req.arrayBuffer()
+    if (body.byteLength > SNAPSHOT_LIMITS.maxEntryBytes) {
+      return errorResponse(
+        c,
+        "payload_too_large",
+        413,
+        `Files are limited to ${SNAPSHOT_LIMITS.maxEntryBytes} bytes`,
+      )
+    }
+
+    await c.env.SNAPSHOTS.put(`${token.data}/v${version}/${path}`, body)
+
+    const response: PublicationFileUploadResponse = { path, bytes: body.byteLength }
+    return c.json(response)
+  })
+
   app.post("/api/publications", async (c) => {
     const upload = await readSnapshotUpload(c, PublicationCreateRequest, maxSnapshotBytes)
     if (!upload.ok) {
@@ -229,8 +311,14 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       )
     }
 
-    const unpacked = await unpack(c, token, 1, upload.snapshot)
-    if (!unpacked.ok) return unpacked.response
+    /** A pre-uploaded version has nothing to unpack; its size is what the Studio counted as it
+     *  streamed the files, since the worker never saw them. */
+    let snapshotBytes: number | null = upload.metadata.snapshot_bytes ?? null
+    if (upload.snapshot !== null) {
+      const unpacked = await unpack(c, token, 1, upload.snapshot)
+      if (!unpacked.ok) return unpacked.response
+      snapshotBytes = unpacked.totalBytes
+    }
 
     const publication: Publication = {
       token,
@@ -247,7 +335,7 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
       publication,
       pageManifest: page_manifest,
       accessCode,
-      snapshotBytes: unpacked.totalBytes,
+      snapshotBytes,
     })
     const body: PublicationCreateResponse = {
       publication,
@@ -275,15 +363,19 @@ export function createApp(options: AppOptions = {}): Hono<AppEnv> {
     }
 
     const version = existing.current_version + 1
-    const unpacked = await unpack(c, token.data, version, upload.snapshot)
-    if (!unpacked.ok) return unpacked.response
+    let snapshotBytes: number | null = upload.metadata.snapshot_bytes ?? null
+    if (upload.snapshot !== null) {
+      const unpacked = await unpack(c, token.data, version, upload.snapshot)
+      if (!unpacked.ok) return unpacked.response
+      snapshotBytes = unpacked.totalBytes
+    }
 
     const result = await store.addVersion({
       token: token.data,
       version,
       pageManifest: upload.metadata.page_manifest,
       createdAt: timestamp(),
-      snapshotBytes: unpacked.totalBytes,
+      snapshotBytes,
     })
     if (!result) {
       return errorResponse(

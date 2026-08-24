@@ -430,6 +430,7 @@ export {
   Publication,
   PublicationCreateRequest,
   PublicationCreateResponse,
+  PublicationFileUploadResponse,
   PublicationVersionCreateRequest,
   PublicationVersionCreateResponse,
   PublicationExpiryUpdateRequest,
