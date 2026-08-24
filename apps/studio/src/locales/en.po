@@ -3913,8 +3913,8 @@ msgstr "Fast, consistent results with no AI cost"
 msgid "Features"
 msgstr "Features"
 
-msgid "Features found in the archive remain available after import. Missing features can be generated from the working book."
-msgstr "Features found in the archive remain available after import. Missing features can be generated from the working book."
+#~ msgid "Features found in the archive remain available after import. Missing features can be generated from the working book."
+#~ msgstr "Features found in the archive remain available after import. Missing features can be generated from the working book."
 
 msgid "Feedback"
 msgstr "Feedback"
@@ -4804,6 +4804,12 @@ msgstr "Include in render"
 
 msgid "Included"
 msgstr "Included"
+
+msgid "Included features carry over to the imported book. Missing features can be generated in Studio."
+msgstr "Included features carry over to the imported book. Missing features can be generated in Studio."
+
+msgid "Included features carry over to the imported book. The others need generating in Studio."
+msgstr "Included features carry over to the imported book. The others need generating in Studio."
 
 msgid "Includes:"
 msgstr "Includes:"
@@ -5801,6 +5807,9 @@ msgstr "Needs classification"
 
 msgid "Needs rebuild"
 msgstr "Needs rebuild"
+
+msgid "Needs regenerating"
+msgstr "Needs regenerating"
 
 msgid "needs update"
 msgstr "needs update"
@@ -9631,6 +9640,9 @@ msgstr "The section was edited after conversion — use \"Rebuild from page\" to
 
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
+
+msgid "The source publication uses this, but its editable data is not in the archive."
+msgstr "The source publication uses this, but its editable data is not in the archive."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."

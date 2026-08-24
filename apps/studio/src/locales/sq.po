@@ -3913,8 +3913,8 @@ msgstr "Rezultate të shpejta dhe konsistente pa kosto AI"
 msgid "Features"
 msgstr "Veçoritë"
 
-msgid "Features found in the archive remain available after import. Missing features can be generated from the working book."
-msgstr "Veçoritë e gjetura në arkiv mbeten të disponueshme pas importimit. Veçoritë që mungojnë mund të gjenerohen nga libri i punës."
+#~ msgid "Features found in the archive remain available after import. Missing features can be generated from the working book."
+#~ msgstr "Veçoritë e gjetura në arkiv mbeten të disponueshme pas importimit. Veçoritë që mungojnë mund të gjenerohen nga libri i punës."
 
 msgid "Feedback"
 msgstr "Reagimi"
@@ -4804,6 +4804,12 @@ msgstr "Përfshi në paraqitje"
 
 msgid "Included"
 msgstr "E përfshirë"
+
+msgid "Included features carry over to the imported book. Missing features can be generated in Studio."
+msgstr "Veçoritë e përfshira kalojnë në librin e importuar. Veçoritë që mungojnë mund të gjenerohen në Studio."
+
+msgid "Included features carry over to the imported book. The others need generating in Studio."
+msgstr "Veçoritë e përfshira kalojnë në librin e importuar. Të tjerat duhet të gjenerohen në Studio."
 
 msgid "Includes:"
 msgstr "Përfshin:"
@@ -5801,6 +5807,9 @@ msgstr "Kërkon klasifikim"
 
 msgid "Needs rebuild"
 msgstr "Kërkon rindërtim"
+
+msgid "Needs regenerating"
+msgstr "Kërkon rigjenerim"
 
 msgid "needs update"
 msgstr "nevojitet përditësim"
@@ -9631,6 +9640,9 @@ msgstr "Seksioni u ndryshua pas konvertimit — përdor «Rindërto nga faqja» 
 
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "Seksionet do të kombinohen lokalisht. Pa një çelës API-je, Storyboard-i do të duhet të ekzekutohet përsëri për të rigjeneruar seksionin e kombinuar."
+
+msgid "The source publication uses this, but its editable data is not in the archive."
+msgstr "Publikimi burimor e përdor këtë, por të dhënat e tij të redaktueshme nuk janë në arkivë."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Storyboard duhet të plotësohet para gjenerimit të {stageName}. Ekzekuto fazën Storyboard fillimisht."

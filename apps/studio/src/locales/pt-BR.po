@@ -3911,8 +3911,8 @@ msgstr "Resultados rápidos e consistentes sem custo de IA"
 msgid "Features"
 msgstr "Recursos"
 
-msgid "Features found in the archive remain available after import. Missing features can be generated from the working book."
-msgstr "Os recursos encontrados no arquivo permanecem disponíveis após a importação. Os recursos ausentes podem ser gerados a partir do livro de trabalho."
+#~ msgid "Features found in the archive remain available after import. Missing features can be generated from the working book."
+#~ msgstr "Os recursos encontrados no arquivo permanecem disponíveis após a importação. Os recursos ausentes podem ser gerados a partir do livro de trabalho."
 
 msgid "Feedback"
 msgstr "Feedback"
@@ -4802,6 +4802,12 @@ msgstr "Incluir na renderização"
 
 msgid "Included"
 msgstr "Incluído"
+
+msgid "Included features carry over to the imported book. Missing features can be generated in Studio."
+msgstr "Recursos incluídos são transferidos para o livro importado. Recursos ausentes podem ser gerados no Studio."
+
+msgid "Included features carry over to the imported book. The others need generating in Studio."
+msgstr "Recursos incluídos são transferidos para o livro importado. Os outros precisam ser gerados no Studio."
 
 msgid "Includes:"
 msgstr "Inclui:"
@@ -5799,6 +5805,9 @@ msgstr "Precisa de classificação"
 
 msgid "Needs rebuild"
 msgstr "Precisa ser reconstruído"
+
+msgid "Needs regenerating"
+msgstr "Precisa ser regenerado"
 
 msgid "needs update"
 msgstr "precisa de atualização"
@@ -9629,6 +9638,9 @@ msgstr "A seção foi editada após a conversão — use «Reconstruir a partir 
 
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "As seções serão combinadas localmente. Sem uma chave de API, será necessário executar novamente o Storyboard para regenerar a seção combinada."
+
+msgid "The source publication uses this, but its editable data is not in the archive."
+msgstr "A publicação de origem usa isso, mas seus dados editáveis não estão no arquivo."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "O storyboard deve ser concluído antes de gerar {stageName}. Execute a etapa do Storyboard primeiro."

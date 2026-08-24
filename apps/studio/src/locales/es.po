@@ -3911,8 +3911,8 @@ msgstr "Resultados rápidos y consistentes sin costo de IA"
 msgid "Features"
 msgstr "Funcionalidades"
 
-msgid "Features found in the archive remain available after import. Missing features can be generated from the working book."
-msgstr "Las funcionalidades encontradas en el archivo siguen disponibles después de la importación. Las funcionalidades que faltan se pueden generar a partir del libro de trabajo."
+#~ msgid "Features found in the archive remain available after import. Missing features can be generated from the working book."
+#~ msgstr "Las funcionalidades encontradas en el archivo siguen disponibles después de la importación. Las funcionalidades que faltan se pueden generar a partir del libro de trabajo."
 
 msgid "Feedback"
 msgstr "Retroalimentación"
@@ -4802,6 +4802,12 @@ msgstr "Incluir en la renderización"
 
 msgid "Included"
 msgstr "Incluido"
+
+msgid "Included features carry over to the imported book. Missing features can be generated in Studio."
+msgstr "Las funciones incluidas se transfieren al libro importado. Las funciones faltantes se pueden generar en Studio."
+
+msgid "Included features carry over to the imported book. The others need generating in Studio."
+msgstr "Las funciones incluidas se transfieren al libro importado. Las otras necesitan generarse en Studio."
 
 msgid "Includes:"
 msgstr "Incluye:"
@@ -5799,6 +5805,9 @@ msgstr "Necesita clasificación"
 
 msgid "Needs rebuild"
 msgstr "Requiere reconstrucción"
+
+msgid "Needs regenerating"
+msgstr "Necesita regenerarse"
 
 msgid "needs update"
 msgstr "necesita actualización"
@@ -9629,6 +9638,9 @@ msgstr "La sección se editó después de la conversión: usa «Reconstruir desd
 
 msgid "The sections will be combined locally. Without an API key, the Storyboard will need re-running to regenerate the combined section."
 msgstr "Las secciones se combinarán localmente. Sin una clave de API, será necesario volver a ejecutar el Storyboard para regenerar la sección combinada."
+
+msgid "The source publication uses this, but its editable data is not in the archive."
+msgstr "La publicación fuente usa esto, pero sus datos editables no están en el archivo."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "El storyboard debe completarse antes de generar {stageName}. Ejecuta la etapa de Storyboard primero."
