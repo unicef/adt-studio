@@ -8,6 +8,7 @@ import {
   type Publication,
 } from "@adt/types"
 import type { Env } from "./env.js"
+import { attemptGate, callerIp } from "./access-throttle.js"
 import { errorResponse } from "./errors.js"
 import {
   accessCookieIsValid,
@@ -80,6 +81,10 @@ function currentRelative(c: AccessContext, token: string): string {
   return normalizeSnapshotPath(rest) === null ? "" : rest
 }
 
+/** Vague on purpose about which limit tripped and how many tries are left: an attacker learns
+ *  the shape of the limit from that, and a reviewer only needs to know to wait. */
+const TOO_MANY_ATTEMPTS_MESSAGE = "Too many attempts. Wait a moment and try again."
+
 export interface GatePageOptions {
   wrongCode?: boolean
   /** Path inside the publication the reader was heading for, so the code prompt does not
@@ -87,6 +92,10 @@ export interface GatePageOptions {
   next?: string | undefined
   /** Echoed back on a wrong code so the visitor retypes the code, not their name. */
   name?: string | null
+  /** Refused for guessing too often. A different message from a wrong code, because the reader
+   *  who has simply mistyped a few times needs to know that waiting is the answer and that
+   *  nothing is broken — not to be told once more that the code is wrong. */
+  waiting?: boolean
 }
 
 /**
@@ -102,6 +111,7 @@ export interface GatePageOptions {
 export function gatePage(publication: Publication, options: GatePageOptions = {}): string {
   const title = escapeHtml(publication.title)
   const wrong = options.wrongCode === true
+  const waiting = options.waiting === true
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title>
@@ -158,7 +168,13 @@ export function gatePage(publication: Publication, options: GatePageOptions = {}
       <input id="code" name="${CODE_FIELD}" required autocomplete="off" autocapitalize="characters"
              spellcheck="false" enterkeyhint="go" maxlength="12"${wrong ? ' aria-invalid="true"' : ""}>
     </div>
-    ${wrong ? `<p class="error" role="alert">That code doesn't open this book. Check it and try again.</p>` : ""}
+    ${
+      waiting
+        ? `<p class="error" role="alert">Too many tries. Wait a moment, then enter the code again.</p>`
+        : wrong
+          ? `<p class="error" role="alert">That code doesn't open this book. Check it and try again.</p>`
+          : ""
+    }
     <button type="submit">Open the book</button>
   </form>
 </main>
@@ -276,6 +292,30 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
     const { code, name, next } = await readSubmission(c)
     const isForm = !(c.req.header("content-type") ?? "").includes("json")
 
+    /**
+     * Checked before the comparison, for the same reason the comparison always runs: a refused
+     * attempt must cost the same as any other and reveal nothing by how long it took. The code
+     * *is* the door here — unauthenticated by construction — so 32^6 is only worth what the
+     * worker's willingness to keep answering makes it.
+     */
+    const gate =
+      secret === undefined
+        ? null
+        : await attemptGate({
+            store: deps.resolveStore(c.env),
+            secret,
+            ip: callerIp(c.req.raw.headers),
+            token: publication.token,
+            now: new Date(deps.timestamp()),
+          })
+
+    if (gate && gate.refusedFor !== null) {
+      c.header("Retry-After", String(gate.refusedFor))
+      return isForm
+        ? c.html(gatePage(publication, { wrongCode: true, next, name, waiting: true }), 429)
+        : errorResponse(c, "rate_limited", 429, TOO_MANY_ATTEMPTS_MESSAGE)
+    }
+
     /** Runs even when there is nothing to verify against, so how long the answer takes never
      *  says whether this publication has a code or whether the code was close. */
     const verified = await verifyAccessCode(code, packed)
@@ -291,10 +331,12 @@ export function registerAccessRoute(app: Hono<AccessAppEnv>, deps: AccessRouteDe
     }
 
     if (!verified) {
+      await gate?.recordFailure()
       return isForm
         ? c.html(gatePage(publication, { wrongCode: true, next, name }), 401)
         : errorResponse(c, "unauthorized", 401, WRONG_CODE_MESSAGE)
     }
+    await gate?.recordSuccess()
 
     setCookie(
       c,

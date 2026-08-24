@@ -101,3 +101,54 @@ export async function clientHandle(ip: string | undefined, secret: string): Prom
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("")
 }
+
+export interface ThrottleDeps {
+  store: PublicationStore
+  secret: string
+  ip: string | undefined
+  token: string
+  now: Date
+}
+
+export interface ThrottleGate {
+  /** `null` when the caller may try. Otherwise the seconds they must wait. */
+  refusedFor: number | null
+  /** Call after a wrong secret, so the next attempt counts this one. */
+  recordFailure: () => Promise<void>
+  /** Call after a right one, so a reader who mistyped twice leaves nothing behind. */
+  recordSuccess: () => Promise<void>
+}
+
+/**
+ * The guard both secret-checking doors put in front of themselves.
+ *
+ * One helper rather than two call sites doing their own arithmetic: the access code and the
+ * reviewer PIN are the same kind of secret with the same kind of attacker, and a limit that
+ * applied to one and not the other would simply move the guessing to the weaker door — which is
+ * the four-digit PIN, not the six-character code.
+ */
+export async function attemptGate(deps: ThrottleDeps): Promise<ThrottleGate> {
+  const client = await clientHandle(deps.ip, deps.secret)
+  const verdict = await checkAttemptAllowed(deps.store, {
+    token: deps.token,
+    client,
+    now: deps.now,
+  })
+
+  return {
+    refusedFor: verdict.allowed ? null : verdict.retryAfter,
+    recordFailure: () =>
+      deps.store.recordAccessFailure({
+        token: deps.token,
+        client,
+        at: deps.now.toISOString(),
+      }),
+    recordSuccess: () => deps.store.clearAccessFailures({ token: deps.token, client }),
+  }
+}
+
+/** What the platform gives us for the caller's address; absent in tests and behind some
+ *  proxies, where every such caller shares one bucket rather than escaping the limit. */
+export function callerIp(headers: Headers): string | undefined {
+  return headers.get("cf-connecting-ip") ?? headers.get("x-forwarded-for") ?? undefined
+}

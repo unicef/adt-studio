@@ -1,3 +1,4 @@
+import { CLIENT_ATTEMPT_LIMIT } from "./access-throttle.js"
 import { env } from "cloudflare:test"
 import { beforeEach, describe, expect, it } from "vitest"
 import { zipSync } from "fflate"
@@ -130,12 +131,20 @@ async function session(
   )
 }
 
-async function claimIdentity(token: string, name: string, pin: string): Promise<Response> {
+async function claimIdentity(
+  token: string,
+  name: string,
+  pin: string,
+  ip?: string,
+): Promise<Response> {
   return app().request(
     `${BASE}/p/${token}/session/claim`,
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        ...(ip === undefined ? {} : { "cf-connecting-ip": ip }),
+      },
       body: JSON.stringify({ name, pin }),
     },
     env,
@@ -1245,5 +1254,62 @@ describe("reviewer PINs and identity reclaim", () => {
     await expect(renamed.json()).resolves.toMatchObject({
       session: { id: "legacy-session", name: "Maria (legacy)" },
     })
+  })
+})
+
+describe("guessing a reviewer's PIN", () => {
+  /**
+   * The weaker of the two doors by four orders of magnitude: a four-digit PIN is 10^4, so
+   * without a limit somebody can walk the whole space and take over a reviewer's identity —
+   * which then attributes their comments to a name the author trusts.
+   */
+  it("stops answering a caller who keeps guessing", async () => {
+    const token = await publish()
+    await session(token, { name: "Maria", pin: "2468" })
+
+    for (let i = 0; i < CLIENT_ATTEMPT_LIMIT; i += 1) {
+      expect((await claimIdentity(token, "Maria", "0000", "203.0.113.20")).status).toBe(401)
+    }
+
+    const refused = await claimIdentity(token, "Maria", "0000", "203.0.113.20")
+    expect(refused.status).toBe(429)
+    await expect(refused.json()).resolves.toMatchObject({ error: "rate_limited" })
+    expect(Number(refused.headers.get("Retry-After"))).toBeGreaterThan(0)
+  })
+
+  /** The right PIN must not slip through on the attempt after the limit trips. */
+  it("refuses the correct PIN while the caller is timed out", async () => {
+    const token = await publish()
+    await session(token, { name: "Maria", pin: "2468" })
+    for (let i = 0; i < CLIENT_ATTEMPT_LIMIT; i += 1) {
+      await claimIdentity(token, "Maria", "0000", "203.0.113.21")
+    }
+    expect((await claimIdentity(token, "Maria", "2468", "203.0.113.21")).status).toBe(429)
+  })
+
+  /** Maria mistyping her own PIN twice must not lock her out of her own name. */
+  it("forgets the misses once the reviewer gets in", async () => {
+    const token = await publish()
+    await session(token, { name: "Maria", pin: "2468" })
+
+    await claimIdentity(token, "Maria", "1111", "203.0.113.22")
+    await claimIdentity(token, "Maria", "1111", "203.0.113.22")
+    expect((await claimIdentity(token, "Maria", "2468", "203.0.113.22")).status).toBe(200)
+
+    for (let i = 0; i < CLIENT_ATTEMPT_LIMIT; i += 1) {
+      expect((await claimIdentity(token, "Maria", "1111", "203.0.113.22")).status).toBe(401)
+    }
+  })
+
+  /** Both doors share one counter per caller, so an attacker cannot get a fresh allowance by
+   *  moving from the access code to the PIN. */
+  it("counts attempts at both doors together", async () => {
+    const token = await publish()
+    await session(token, { name: "Maria", pin: "2468" })
+
+    for (let i = 0; i < CLIENT_ATTEMPT_LIMIT; i += 1) {
+      await claimIdentity(token, "Maria", "0000", "203.0.113.23")
+    }
+    expect((await claimIdentity(token, "Maria", "0000", "203.0.113.23")).status).toBe(429)
   })
 })

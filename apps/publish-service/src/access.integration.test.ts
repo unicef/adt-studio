@@ -1,3 +1,4 @@
+import { CLIENT_ATTEMPT_LIMIT } from "./access-throttle.js"
 import { env } from "cloudflare:test"
 import { beforeEach, describe, expect, it } from "vitest"
 import { zipSync } from "fflate"
@@ -95,12 +96,15 @@ function get(token: string, path: string, init: RequestInit): Promise<Response> 
   return app().request(`${BASE}/p/${token}/${path}`, init, env)
 }
 
-async function enter(token: string, code: string): Promise<Response> {
+async function enter(token: string, code: string, ip?: string): Promise<Response> {
   return app().request(
     `${BASE}/p/${token}/access`,
     {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: {
+        "content-type": "application/json",
+        ...(ip === undefined ? {} : { "cf-connecting-ip": ip }),
+      },
       body: JSON.stringify({ code }),
     },
     env,
@@ -747,5 +751,69 @@ describe("the access-code door as the identity step", () => {
     expect(res.status).toBe(204)
     expect(res.headers.get("set-cookie")).toBeNull()
     await expect(sessions()).resolves.toEqual([])
+  })
+})
+
+describe("guessing the access code", () => {
+  /**
+   * The code *is* the door and nothing else guards it, so its strength is not 32^6 but how long
+   * the worker will keep answering. Without this an attacker simply keeps asking.
+   */
+  it("stops answering a caller who keeps guessing", async () => {
+    const token = await publish(CODE)
+
+    for (let i = 0; i < CLIENT_ATTEMPT_LIMIT; i += 1) {
+      expect((await enter(token, "WRONG1", "203.0.113.7")).status).toBe(401)
+    }
+
+    const refused = await enter(token, "WRONG1", "203.0.113.7")
+    expect(refused.status).toBe(429)
+    await expect(refused.json()).resolves.toMatchObject({ error: "rate_limited" })
+    expect(Number(refused.headers.get("Retry-After"))).toBeGreaterThan(0)
+  })
+
+  /** Refusal has to outlast the right answer too, or the limit is a speed bump: an attacker who
+   *  guesses correctly on the attempt after being cut off must still be cut off. */
+  it("refuses even the correct code while the caller is timed out", async () => {
+    const token = await publish(CODE)
+    for (let i = 0; i < CLIENT_ATTEMPT_LIMIT; i += 1) {
+      await enter(token, "WRONG1", "203.0.113.8")
+    }
+    expect((await enter(token, CODE, "203.0.113.8")).status).toBe(429)
+  })
+
+  /**
+   * The griefing case, and the reason the per-token ceiling sits so far above the per-caller
+   * one. A stricter ceiling would let anybody lock a whole class out of its own book by
+   * guessing badly on purpose from one machine.
+   */
+  it("does not let one bad guesser lock everybody else out", async () => {
+    const token = await publish(CODE)
+    for (let i = 0; i < CLIENT_ATTEMPT_LIMIT + 5; i += 1) {
+      await enter(token, "WRONG1", "198.51.100.1")
+    }
+
+    const classmate = await enter(token, CODE, "198.51.100.2")
+    expect(classmate.status).toBe(204)
+  })
+
+  /** A reader who mistypes twice and then gets in must not carry those two forward. */
+  it("forgets a caller's misses once they are in", async () => {
+    const token = await publish(CODE)
+    await enter(token, "WRONG1", "203.0.113.9")
+    await enter(token, "WRONG1", "203.0.113.9")
+    expect((await enter(token, CODE, "203.0.113.9")).status).toBe(204)
+
+    for (let i = 0; i < CLIENT_ATTEMPT_LIMIT; i += 1) {
+      expect((await enter(token, "WRONG1", "203.0.113.9")).status).toBe(401)
+    }
+  })
+
+  /** A link with no code has no door to force, and must not start counting attempts. */
+  it("leaves an open link alone", async () => {
+    const token = await publish(null)
+    for (let i = 0; i < CLIENT_ATTEMPT_LIMIT + 2; i += 1) {
+      expect((await enter(token, "ANYTHING", "203.0.113.10")).status).toBe(204)
+    }
   })
 })

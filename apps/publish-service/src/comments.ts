@@ -16,6 +16,7 @@ import {
 } from "@adt/types"
 import { filterCommentThreads } from "./comment-threads.js"
 import type { Env } from "./env.js"
+import { attemptGate, callerIp } from "./access-throttle.js"
 import { errorResponse } from "./errors.js"
 import { exceedsLength, readJsonBody } from "./http.js"
 import { authorSessionMarker, normalizeDisplayName, verifyPin } from "./identity.js"
@@ -36,6 +37,11 @@ export type CommentAppEnv = { Bindings: Env; Variables: PublicationVariables }
 export type CommentRoutesDeps = SessionDeps
 
 type CommentContext = Context<CommentAppEnv>
+
+/** Deliberately vague about which limit was hit and how many tries remain: an attacker being
+ *  told "3 left" learns the shape of the limit, while a reviewer only needs to know to wait. */
+const TOO_MANY_ATTEMPTS_MESSAGE =
+  "Too many attempts. Wait a moment and try again."
 
 const MISSING_SECRET_MESSAGE =
   "This worker has no MGMT_SECRET bound, so it cannot issue commenter sessions"
@@ -133,6 +139,22 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
     }
 
     const store = deps.resolveStore(c.env)
+
+    /** The weaker of the two doors: a four-digit PIN is 10^4, so without a limit it falls in
+     *  minutes to anyone willing to keep asking. Checked *before* the comparison, so a refused
+     *  attempt costs no work and its timing says nothing about how close the guess was. */
+    const gate = await attemptGate({
+      store,
+      secret,
+      ip: callerIp(c.req.raw.headers),
+      token: publication.token,
+      now: new Date(deps.timestamp()),
+    })
+    if (gate.refusedFor !== null) {
+      c.header("Retry-After", String(gate.refusedFor))
+      return errorResponse(c, "rate_limited", 429, TOO_MANY_ATTEMPTS_MESSAGE)
+    }
+
     /** Pinned rows only — a pinless namesake must not shadow the identity being claimed, which
      *  is exactly what became possible when pinless names stopped reserving (M3.5). */
     const match = await pinnedHolderOf(store, publication.token, body.data.name, null)
@@ -141,8 +163,10 @@ export function registerCommentRoutes(app: Hono<CommentAppEnv>, deps: CommentRou
      *  route already reveals which names exist, this route must not also confirm PINs. */
     const verified = await verifyPin(body.data.pin, match?.pin ?? null)
     if (!verified || !match) {
+      await gate.recordFailure()
       return errorResponse(c, "invalid_claim", 401, INVALID_CLAIM_MESSAGE)
     }
+    await gate.recordSuccess()
 
     const session: CommenterSession = {
       id: match.id,
