@@ -285,7 +285,7 @@ describe("readPageManifest", () => {
 })
 
 describe("publishBook", () => {
-  it("streams the four steps, uploads the zipped bundle and records the publication", async () => {
+  it("streams the four steps, uploads the book and records the publication", async () => {
     createBook(LABEL, "Raven and the Sun")
     const worker = createFakePublishWorker()
     const { events, emit } = collector()
@@ -293,11 +293,14 @@ describe("publishBook", () => {
     const result = await publishBook({
       sleep: async () => {}, ...publishOptions(worker), emit, expiresAt: null })
 
-    expect(
-      events
-        .filter((event) => event.type === "step")
-        .map((event) => `${event.id}:${event.status}`),
-    ).toEqual([
+    /** Deduplicated: the upload step now reports progress per file, so `upload:running` repeats
+     *  once per file of the export. The guarantee under test is the order of the four steps, not
+     *  how chatty one of them is. */
+    const sequence = events
+      .filter((event) => event.type === "step")
+      .map((event) => `${event.id}:${event.status}`)
+      .filter((entry, index, all) => entry !== all[index - 1])
+    expect(sequence).toEqual([
       "export:running",
       "export:done",
       "package:running",
@@ -326,46 +329,37 @@ describe("publishBook", () => {
     ])
   })
 
-  it("turns features.comments on inside the snapshot and leaves the local export alone", async () => {
+  it("turns features.comments on in what is uploaded and leaves the local export alone", async () => {
     createBook(LABEL, "Raven and the Sun")
     const worker = createFakePublishWorker()
     const { emit } = collector()
-    const snapshots: Uint8Array[] = []
 
     await publishBook({
       sleep: async () => {},
       ...publishOptions(worker),
-      createClient: () =>
-        createPublishWorkerClient({
-          workerUrl: worker.baseUrl,
-          mgmtSecret: "fake-mgmt-secret",
-          fetchFn: async (input, init) => {
-            const body = init?.body
-            if (body instanceof FormData) {
-              const snapshot = body.get("snapshot")
-              if (snapshot instanceof Blob) {
-                snapshots.push(new Uint8Array(await snapshot.arrayBuffer()))
-              }
-            }
-            return worker.fetchFn(input, init)
-          },
-        }),
       emit,
     })
 
-    expect(snapshots.length).toBe(1)
-    const published = unzipSync(snapshots[0]!)
-    const publishedConfig = JSON.parse(
-      Buffer.from(published["assets/config.json"]!).toString("utf-8"),
-    ) as { features: Record<string, unknown> }
+    /** Read from what was actually streamed, rather than from a zip that no longer exists. The
+     *  patch is applied for the duration of the upload and reverted afterwards, so uploading
+     *  outside that window would publish a book with commenting quietly switched off. */
+    const uploaded = worker.state.uploadedFiles.get(`${TOKEN}/v1`) ?? []
+    const fileText = (name: string): string => {
+      const entry = uploaded.find((file) => file.path === name)
+      expect(entry, `expected ${name} to have been uploaded`).toBeDefined()
+      return entry!.text
+    }
+
+    const publishedConfig = JSON.parse(fileText("assets/config.json")) as {
+      features: Record<string, unknown>
+    }
     expect(publishedConfig.features.comments).toBe(true)
     expect(publishedConfig.features.glossary).toBe(true)
 
     // The runtime reads the preloader's inlined copy, not the served file.
-    const publishedPreloader = Buffer.from(
-      published["assets/offline-preloader.js"]!,
-    ).toString("utf-8")
-    expect(inlinedPreloaderConfig(publishedPreloader).features.comments).toBe(true)
+    expect(
+      inlinedPreloaderConfig(fileText("assets/offline-preloader.js")).features.comments,
+    ).toBe(true)
 
     const onDisk = fs.readFileSync(
       path.join(tmpDir, LABEL, "adt", "assets", "config.json"),
@@ -514,54 +508,17 @@ describe("publishBook", () => {
     ).rejects.toMatchObject({ code: "snapshot_too_large", stepId: "upload" })
   })
 
-  it("packages the export as a zip the worker can unpack", async () => {
+  /** Replaces a test that unzipped what was posted. There is no zip any more: the same guarantee
+   *  is that every file of the export reaches the worker, under the path it has on disk. */
+  it("streams every file of the export, under its own path", async () => {
     createBook(LABEL, "Raven")
     const worker = createFakePublishWorker()
-    const captured: Uint8Array[] = []
     const { emit } = collector()
 
-    await publishBook({
-      sleep: async () => {},
-      ...publishOptions(worker),
-      emit,
-      createClient: () => ({
-        async createPublication(request, snapshot) {
-          captured.push(snapshot)
-          return {
-            publication: {
-              token: request.token,
-              title: request.title,
-              book_label: request.book_label,
-              current_version: 1,
-              created_at: "2026-08-03T12:00:00.000Z",
-              expires_at: null,
-              revoked_at: null,
-            },
-            version: {
-              version: 1,
-              page_manifest: request.page_manifest,
-              created_at: "2026-08-03T12:00:00.000Z",
-            },
-            url: worker.shareUrl(request.token),
-          }
-        },
-        createVersion: () => {
-          throw new Error("not used")
-        },
-        revoke: () => {
-          throw new Error("not used")
-        },
-        setExpiry: () => {
-          throw new Error("not used")
-        },
-        getPublication: () => {
-          throw new Error("not used")
-        },
-      }),
-    })
+    await publishBook({ sleep: async () => {}, ...publishOptions(worker), emit })
 
-    const files = unzipSync(captured[0] as Uint8Array)
-    expect(Object.keys(files).sort()).toEqual([
+    const uploaded = worker.state.uploadedFiles.get(`${TOKEN}/v1`) ?? []
+    expect(uploaded.map((file) => file.path).sort()).toEqual([
       "assets/base.bundle.min.js",
       "assets/config.json",
       "assets/offline-preloader.js",
@@ -569,7 +526,7 @@ describe("publishBook", () => {
       "index.html",
       "pg002_sec001.html",
     ])
-    expect(new TextDecoder().decode(files["index.html"])).toBe("<h1>page one</h1>")
+    expect(uploaded.find((file) => file.path === "index.html")?.text).toBe("<h1>page one</h1>")
   })
 })
 

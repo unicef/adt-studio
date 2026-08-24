@@ -1,6 +1,7 @@
 import {
   PUBLISH_AUTHOR_NAME_HEADER,
   PublicationCreateResponse,
+  PublicationFileUploadResponse,
   PublicationDetail,
   PublicationList,
   PublicationReaderList,
@@ -46,14 +47,20 @@ export function isPublishWorkerError(error: unknown): error is PublishWorkerErro
 }
 
 export interface PublishWorkerClient {
-  createPublication(
-    request: PublicationCreateRequest,
-    snapshot: Uint8Array,
-  ): Promise<PublicationCreateResponse>
+  /** Metadata only: the files were streamed by `uploadFile` before this names the version. */
+  createPublication(request: PublicationCreateRequest): Promise<PublicationCreateResponse>
+  /** One file of a version, straight into R2. See the worker route for why the whole book no
+   *  longer travels in a single request. */
+  uploadFile(
+    token: string,
+    version: number,
+    filePath: string,
+    body: Uint8Array,
+  ): Promise<PublicationFileUploadResponse>
   createVersion(
     token: string,
     pageManifest: PublicationPageEntry[],
-    snapshot: Uint8Array,
+    extra: { snapshot_bytes: number },
   ): Promise<PublicationVersionCreateResponse>
   revoke(token: string): Promise<PublicationResponse>
   reinstate(token: string): Promise<PublicationResponse>
@@ -328,29 +335,46 @@ export function createPublishWorkerClient({
     }
   }
 
-  const snapshotBody = (metadata: unknown, snapshot: Uint8Array): FormData => {
+  /** Still multipart, still the same `metadata` field — only the zip part is gone, so a worker
+   *  that predates per-file upload rejects this with its own "missing snapshot" error rather
+   *  than misreading it. */
+  const metadataBody = (metadata: unknown): FormData => {
     const form = new FormData()
     form.set("metadata", JSON.stringify(metadata))
-    form.set(
-      "snapshot",
-      new File([snapshot], SNAPSHOT_FILE_NAME, { type: "application/zip" }),
-    )
     return form
   }
 
   return {
-    async createPublication(createRequest, snapshot) {
+    async createPublication(createRequest) {
       return (await request(
         "/api/publications",
-        { method: "POST", body: snapshotBody(createRequest, snapshot) },
+        { method: "POST", body: metadataBody(createRequest) },
         PublicationCreateResponse,
       )) as PublicationCreateResponse
     },
 
-    async createVersion(token, pageManifest, snapshot) {
+    async uploadFile(token, version, filePath, body) {
+      /** Each segment encoded separately: the slashes are the path, and encoding them would
+       *  flatten a book's directories into one very strange filename. */
+      const encoded = filePath.split("/").map(encodeURIComponent).join("/")
+      return (await request(
+        `/api/publications/${token}/files/${version}/${encoded}`,
+        {
+          method: "PUT",
+          body,
+          headers: { "content-type": "application/octet-stream" },
+        },
+        PublicationFileUploadResponse,
+      )) as PublicationFileUploadResponse
+    },
+
+    async createVersion(token, pageManifest, extra) {
       return (await request(
         `/api/publications/${token}/versions`,
-        { method: "POST", body: snapshotBody({ page_manifest: pageManifest }, snapshot) },
+        {
+          method: "POST",
+          body: metadataBody({ page_manifest: pageManifest, ...extra }),
+        },
         PublicationVersionCreateResponse,
       )) as PublicationVersionCreateResponse
     },

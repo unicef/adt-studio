@@ -228,7 +228,13 @@ describe("POST /books/:label/publication", () => {
     expect(res.headers.get("content-type")).toContain("text/event-stream")
 
     const events = await readSse(res)
-    expect(events.filter((event) => event.type === "step").length).toBe(8)
+    /** Four steps, each running then done — except upload, which now reports once per file of
+     *  the export, so the count is the distinct transitions rather than the raw events. */
+    const transitions = events
+      .filter((event) => event.type === "step")
+      .map((event) => `${event.id}:${event.status}`)
+      .filter((entry, index, all) => entry !== all[index - 1])
+    expect(transitions.length).toBe(8)
     const complete = events.at(-1)
     expect(complete?.type).toBe("complete")
     if (complete?.type === "complete") {

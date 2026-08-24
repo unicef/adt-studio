@@ -274,7 +274,101 @@ async function withPublishConfig<T>(bookDir: string, run: () => Promise<T>): Pro
   }
 }
 
-async function zipAdtBundle(bookDir: string): Promise<Uint8Array> {
+/** How many files are in flight at once. Enough to hide the round trip on a book of a few
+ *  hundred files, low enough that a flaky connection is not made worse by saturating it. */
+const UPLOAD_CONCURRENCY = 6
+
+/** Every file of the packaged book, as paths relative to `adt/`. */
+function adtFilePaths(adtDir: string, prefix = ""): string[] {
+  const paths: string[] = []
+  for (const entry of fs.readdirSync(path.join(adtDir, prefix), { withFileTypes: true })) {
+    const relative = prefix === "" ? entry.name : `${prefix}/${entry.name}`
+    if (entry.isDirectory()) paths.push(...adtFilePaths(adtDir, relative))
+    else if (entry.isFile()) paths.push(relative)
+  }
+  return paths
+}
+
+/**
+ * Streams the packaged book to the worker a file at a time.
+ *
+ * Replaces posting one zip, which put a whole book through a single worker request: unpacked in
+ * a 128 MB sandbox, written file by file, weighed against the account's 100 MB request cap, and
+ * spending one subrequest per file against a limit of fifty on the Workers free plan. All of
+ * those are per-request ceilings, so this simply stops meeting them — and a refusal now costs
+ * one file, which the retry above can absorb, rather than the entire upload.
+ *
+ * Returns the byte total, because the worker no longer counts it: nothing it receives sees the
+ * whole book any more.
+ */
+async function uploadAdtFiles(
+  client: PublishWorkerClient,
+  token: string,
+  version: number,
+  bookDir: string,
+  emit: PublishEmit,
+  sleep: (ms: number) => Promise<void>,
+): Promise<number> {
+  const adtDir = path.join(bookDir, "adt")
+  const files = adtFilePaths(adtDir)
+  if (files.length === 0) {
+    throw new PublishStepError(
+      "package_failed",
+      "package",
+      "The web export directory is empty — run the pipeline for this book first",
+    )
+  }
+
+  let uploaded = 0
+  let bytes = 0
+  let cursor = 0
+
+  const worker = async (): Promise<void> => {
+    for (;;) {
+      const index = cursor
+      cursor += 1
+      const relative = files[index]
+      if (relative === undefined) return
+
+      const body = fs.readFileSync(path.join(adtDir, relative))
+      /** Retried per file, which is the point of sending them separately: one refusal costs one
+       *  file and is usually gone a second later, where the same refusal used to discard the
+       *  whole book. Non-retryable answers — a file over the per-entry limit, a bad secret —
+       *  still fail immediately, and `uploadWithRetry` turns them into a `PublishStepError` so
+       *  the step reports them like any other upload failure. */
+      const result = await uploadWithRetry(
+        () => client.uploadFile(token, version, relative, body),
+        emit,
+        sleep,
+      )
+      bytes += result.bytes
+      uploaded += 1
+      /** Named rather than counted alone: on a slow connection this is the longest step by far,
+       *  and a number that only goes up says less than the file it is working on. */
+      await emit(
+        stepEvent("upload", "running", {
+          message: `${uploaded} of ${files.length} files`,
+        }),
+      )
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(UPLOAD_CONCURRENCY, files.length) }, worker),
+  )
+  return bytes
+}
+
+/**
+ * How much there is to send, without building anything.
+ *
+ * There is deliberately no whole-book ceiling any more. The old one was not a policy but a
+ * transport fact — Cloudflare measures a *request body* against the account plan's 100 MB — and
+ * with each file travelling in its own request that number stops applying. What still binds is
+ * per file, and the worker enforces it. A book that used to be refused for its narration can now
+ * be published with it.
+ */
+function measureAdtBundle(bookDir: string): { files: number; bytes: number } {
   const adtDir = path.join(bookDir, "adt")
   if (!fs.existsSync(adtDir)) {
     throw new PublishStepError(
@@ -283,28 +377,12 @@ async function zipAdtBundle(bookDir: string): Promise<Uint8Array> {
       "The web export directory is missing — run the pipeline for this book first",
     )
   }
-
-  let buffer: ArrayBuffer
-  try {
-    buffer = await new Response(createZipStream(adtDir)).arrayBuffer()
-  } catch (error) {
-    throw new PublishStepError(
-      "package_failed",
-      "package",
-      `Could not package the web export: ${describe(error)}`,
-    )
-  }
-
-  const bytes = new Uint8Array(buffer)
-  if (bytes.byteLength > PUBLICATION_SNAPSHOT_MAX_BYTES) {
-    throw new PublishStepError(
-      "snapshot_too_large",
-      "package",
-      `This book packages to ${bytes.byteLength} bytes, over the ${PUBLICATION_SNAPSHOT_MAX_BYTES} byte publish limit`,
-    )
-  }
-
-  return bytes
+  const paths = adtFilePaths(adtDir)
+  const bytes = paths.reduce(
+    (total, relative) => total + fs.statSync(path.join(adtDir, relative)).size,
+    0,
+  )
+  return { files: paths.length, bytes }
 }
 
 export interface PublishExportOptions {
@@ -322,7 +400,6 @@ export interface PublishExportOptions {
 
 export interface PublishSnapshot {
   pageManifest: PublicationPageEntryType[]
-  snapshot: Uint8Array
   title: string
 }
 
@@ -372,16 +449,20 @@ async function buildSnapshot(
 
   await emit(stepEvent("package", "running"))
   const pageManifest = readPageManifest(bookDir)
-  const snapshot = await withPublishConfig(bookDir, () => zipAdtBundle(bookDir))
+  /** Measured, not zipped. The zip existed to be the request body; now that files travel one at
+   *  a time there is nothing to compress, and compressing a 673 MB book to report a number in a
+   *  progress line would be the slowest step in the publish. */
+  const measured = measureAdtBundle(bookDir)
   await emit(
     stepEvent("package", "done", {
-      message: `${pageManifest.length} pages, ${Math.round(snapshot.byteLength / 1024)} kB`,
+      message: `${pageManifest.length} pages, ${measured.files} files, ${Math.round(
+        measured.bytes / 1024,
+      )} kB`,
     }),
   )
 
   return {
     pageManifest,
-    snapshot,
     title: readBookTitle(safeLabel, path.resolve(options.booksDir)),
   }
 }
@@ -497,19 +578,25 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
   const client = clientFor(options)
 
   await emit(stepEvent("upload", "running"))
+  /** Inside the same patched window the zip used to be built in: `withPublishConfig` turns on
+   *  `features.comments` for the duration and puts the author's own config back afterwards, so
+   *  uploading outside it would publish a book with commenting quietly switched off. */
+  const { bookDir } = requireBook(options.label, options.booksDir)
+  const snapshotBytes = await withPublishConfig(bookDir, () =>
+    uploadAdtFiles(client, token, 1, bookDir, emit, options.sleep ?? delay),
+  )
+
   const created = await uploadWithRetry(
     () =>
-      client.createPublication(
-        {
-          token,
-          title: built.title,
-          book_label: parseBookLabel(options.label),
-          page_manifest: built.pageManifest,
-          ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
-          ...(options.accessCode ? { access_code: options.accessCode } : {}),
-        },
-        built.snapshot,
-      ),
+      client.createPublication({
+        token,
+        title: built.title,
+        book_label: parseBookLabel(options.label),
+        page_manifest: built.pageManifest,
+        snapshot_bytes: snapshotBytes,
+        ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
+        ...(options.accessCode ? { access_code: options.accessCode } : {}),
+      }),
     emit,
     options.sleep ?? delay,
   )
@@ -569,8 +656,28 @@ export async function republishBook(
   const client = clientFor(options)
 
   await emit(stepEvent("upload", "running"))
+  /** The worker owns the version counter, so it is read rather than guessed: writing to the
+   *  wrong prefix would leave the files where nothing will ever serve them. Two publishes racing
+   *  still collide, and `addVersion` refuses the loser rather than overwriting the winner. */
+  const current = await client.getPublication(options.record.token)
+  const nextVersion = current.publication.current_version + 1
+  const { bookDir: updateDir } = requireBook(options.label, options.booksDir)
+  const snapshotBytes = await withPublishConfig(updateDir, () =>
+    uploadAdtFiles(
+      client,
+      options.record.token,
+      nextVersion,
+      updateDir,
+      emit,
+      options.sleep ?? delay,
+    ),
+  )
+
   const created = await uploadWithRetry(
-    () => client.createVersion(options.record.token, built.pageManifest, built.snapshot),
+    () =>
+      client.createVersion(options.record.token, built.pageManifest, {
+        snapshot_bytes: snapshotBytes,
+      }),
     emit,
     options.sleep ?? delay,
   )

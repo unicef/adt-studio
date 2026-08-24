@@ -157,21 +157,19 @@ describe("re-sending the upload body", () => {
    * re-readable, unlike a stream — this is what proves it, and would fail loudly with "body
    * already used" if the snapshot were ever switched to one.
    */
-  it("carries the whole snapshot on the retry, not an empty body", async () => {
-    const snapshot = new Uint8Array(2048).fill(7)
+  /** Was written for the zip, which had to be rebuilt into a fresh multipart body on every
+   *  attempt or the retry sent an empty file. Files travel on their own now, so the same
+   *  guarantee is asserted where it moved to: a retried upload carries the whole file again. */
+  it("carries the whole file on the retry, not an empty body", async () => {
+    const file = new Uint8Array(2048).fill(7)
     const bodies: number[] = []
     const fetchFn = vi.fn(async (_url: string, init: RequestInit) => {
-      const form = init.body as FormData
-      const file = form.get("snapshot") as File
-      bodies.push(file.size)
+      bodies.push((init.body as Uint8Array).byteLength)
       if (bodies.length === 1) throw transportFailure("EPIPE", "write EPIPE")
-      return ok({
-        publication: PUBLICATION,
-        version: { version: 2, page_manifest: [], created_at: "2026-08-02T09:00:00.000Z" },
-      })
+      return ok({ path: "index.html", bytes: file.byteLength })
     })
 
-    await client(fetchFn).createVersion(PUBLICATION.token, [], snapshot)
+    await client(fetchFn).uploadFile(PUBLICATION.token, 1, "index.html", file)
 
     expect(bodies).toEqual([2048, 2048])
   })

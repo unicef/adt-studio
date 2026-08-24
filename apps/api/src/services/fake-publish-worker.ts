@@ -48,6 +48,10 @@ export interface FakePublishWorkerState {
    *  migration 0004. Add to it to exercise the "at least" storage total. */
   unmeasuredTokens: Set<string>
   calls: Array<{ method: string; path: string; search: string }>
+  /** What the Studio streamed, keyed `<token>/v<N>`. The real worker puts these straight into R2;
+   *  the double keeps the text so a test can assert *what* was published, not merely that
+   *  something was. */
+  uploadedFiles: Map<string, { path: string; bytes: number; text: string }[]>
 }
 
 export interface FakePublishWorkerOptions {
@@ -103,6 +107,8 @@ export function createFakePublishWorker(
   const secret = options.mgmtSecret ?? DEFAULT_SECRET
   const createdAt = options.now ?? DEFAULT_NOW
 
+  const staged = new Map<string, { path: string; bytes: number; text: string }[]>()
+
   const state: FakePublishWorkerState = {
     publications: new Map(),
     accessCodes: new Map(),
@@ -114,6 +120,7 @@ export function createFakePublishWorker(
     roomTickets: [],
     unmeasuredTokens: new Set(),
     calls: [],
+    uploadedFiles: staged,
   }
 
   const authorSession = (token: string, name: string | undefined): CommenterSession => ({
@@ -124,6 +131,22 @@ export function createFakePublishWorker(
   })
 
   const shareUrl = (token: string): string => `${baseUrl}/p/${token}/`
+
+  /** Mirrors the worker: a request with no zip names a version whose files were streamed
+   *  beforehand, so they come from what was staged under that prefix. */
+  const versionContent = async (
+    value: File | string | null,
+    token: string,
+    version: number,
+  ): Promise<{ files: string[]; totalBytes: number } | null> => {
+    if (value !== null) return snapshotFiles(value)
+    const entries = staged.get(`${token}/v${version}`) ?? []
+    if (entries.length === 0) return null
+    return {
+      files: entries.map((entry) => entry.path).sort(),
+      totalBytes: entries.reduce((total, entry) => total + entry.bytes, 0),
+    }
+  }
 
   const fetchFn: FetchLike = async (input, init) => {
     if (options.unreachable) {
@@ -191,6 +214,25 @@ export function createFakePublishWorker(
       return json({ publications })
     }
 
+    const fileMatch = /^\/api\/publications\/([^/]+)\/files\/(\d+)\/(.+)$/.exec(url.pathname)
+    if (fileMatch && method === "PUT") {
+      const [, token, version, rest] = fileMatch as unknown as [string, string, string, string]
+      const filePath = decodeURIComponent(rest)
+      if (filePath.split("/").some((segment) => segment === "." || segment === "..")) {
+        return json({ error: "invalid_request" }, 400)
+      }
+      const body = new Uint8Array(await request.arrayBuffer())
+      const key = `${token}/v${version}`
+      const existing = staged.get(key) ?? []
+      existing.push({
+        path: filePath,
+        bytes: body.byteLength,
+        text: new TextDecoder().decode(body),
+      })
+      staged.set(key, existing)
+      return json({ path: filePath, bytes: body.byteLength })
+    }
+
     if (url.pathname === "/api/publications" && method === "POST") {
       if (options.failCreateStatus) {
         return json(options.failCreateBody ?? { error: "internal_error" }, options.failCreateStatus)
@@ -203,7 +245,7 @@ export function createFakePublishWorker(
       if (!metadata.success) {
         return json({ error: "invalid_request", message: metadata.error.message }, 400)
       }
-      const unpacked = await snapshotFiles(form.get("snapshot"))
+      const unpacked = await versionContent(form.get("snapshot"), metadata.data.token, 1)
       if (unpacked === null) {
         return json({ error: "invalid_request", message: "missing snapshot" }, 400)
       }
@@ -257,12 +299,16 @@ export function createFakePublishWorker(
       if (!metadata.success) {
         return json({ error: "invalid_request", message: metadata.error.message }, 400)
       }
-      const unpacked = await snapshotFiles(form.get("snapshot"))
+      const nextVersion = publication.current_version + 1
+      const unpacked = await versionContent(
+        form.get("snapshot"),
+        publication.token,
+        nextVersion,
+      )
       if (unpacked === null) {
         return json({ error: "invalid_request", message: "missing snapshot" }, 400)
       }
 
-      const nextVersion = publication.current_version + 1
       const version: FakePublishedVersion = {
         version: nextVersion,
         page_manifest: metadata.data.page_manifest,
