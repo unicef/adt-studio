@@ -24,6 +24,7 @@ export interface StepShellProps extends StepProps {
   chips: string[]
   canApply: boolean
   rail: React.ReactNode
+  bodyViewportClassName?: string
   children: React.ReactNode
 }
 
@@ -35,6 +36,7 @@ export function StepShell({
   chips,
   canApply,
   rail,
+  bodyViewportClassName,
   children,
 }: StepShellProps) {
   return (
@@ -48,6 +50,7 @@ export function StepShell({
       hasSections={frame.hasSections}
       foundations={frame.foundations}
       plugins={frame.plugins}
+      bodyViewportClassName={bodyViewportClassName}
       onBack={frame.onBack}
       onOpenPlugin={frame.onOpenPlugin}
       onOpenSettings={

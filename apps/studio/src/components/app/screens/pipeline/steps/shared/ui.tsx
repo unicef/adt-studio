@@ -19,7 +19,7 @@ export function StepBody({
 }) {
   return (
     <ScrollArea className="h-full w-full">
-      <div className="mx-auto flex w-[820px] flex-col gap-4 py-7">
+      <div className="mx-auto flex container flex-col gap-4 py-7">
         <div className="flex items-baseline gap-3">
           <h1 className="text-[19px] font-bold tracking-[-0.01em]">{title}</h1>
           {meta && <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>}
@@ -186,6 +186,8 @@ export interface RailEntry {
   key: string | null
   title: string
   count: number
+  thumb?: React.ReactNode
+  subtitle?: string
 }
 
 export function StepRail({
@@ -223,13 +225,23 @@ export function StepRail({
                 onClick={() => onSelect?.(entry.key)}
                 aria-current={active ? "true" : undefined}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-md px-1.5 py-1.5 text-left text-[11px] transition-colors",
+                  "flex items-center gap-2 rounded-md px-1.5 py-1.5 text-left text-[11px] transition-colors",
                   active ? "font-semibold" : "text-muted-foreground hover:bg-muted",
                 )}
                 style={active ? { background: tint(hex, 0.12), color: hex } : undefined}
               >
-                <span className="min-w-0 flex-1 truncate">{entry.title}</span>
-                <span className="font-mono text-[10px] opacity-70">{entry.count}</span>
+                {entry.thumb && <span className="shrink-0">{entry.thumb}</span>}
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                  <span className="flex items-center gap-1.5">
+                    <span className="min-w-0 flex-1 truncate">{entry.title}</span>
+                    <span className="font-mono text-[10px] opacity-70">{entry.count}</span>
+                  </span>
+                  {entry.subtitle && (
+                    <span className="truncate text-[10px] font-normal text-muted-foreground">
+                      {entry.subtitle}
+                    </span>
+                  )}
+                </span>
               </button>
             )
           })}

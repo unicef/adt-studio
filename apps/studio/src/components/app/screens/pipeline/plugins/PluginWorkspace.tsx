@@ -29,6 +29,7 @@ export interface PluginWorkspaceProps {
   onBack: () => void
   onOpenPlugin: (slug: string) => void
   onOpenSettings?: () => void
+  bodyViewportClassName?: string
 }
 
 export function PluginWorkspace({
@@ -44,6 +45,7 @@ export function PluginWorkspace({
   onBack,
   onOpenPlugin,
   onOpenSettings,
+  bodyViewportClassName,
 }: PluginWorkspaceProps) {
   const { t } = useLingui()
   const [dockMinimized, setDockMinimized] = useDockMinimized()
@@ -150,7 +152,7 @@ export function PluginWorkspace({
             "min-w-0 flex-1 transition-opacity duration-300 ease-out motion-reduce:transition-none",
             isActive && "opacity-60",
           )}
-          viewportClassName="flex px-6 [&>div]:m-auto"
+          viewportClassName={cn("flex px-6 [&>div]:m-auto", bodyViewportClassName)}
         >
           {children}
         </ScrollArea>

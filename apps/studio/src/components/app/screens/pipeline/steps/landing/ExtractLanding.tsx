@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo , type ReactNode } from "react"
+import { useState, useMemo, type ReactNode } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Lock } from "lucide-react"
+import type { FigureExtractionMode } from "@adt/types"
 import { useBook } from "@/hooks/use-books"
 import { useSourcePdfInfo } from "@/hooks/use-source-pdf-info"
 import { StepLandingShell } from "./StepLandingShell"
@@ -24,6 +25,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { PageGroupingVisual } from "@/components/pipeline/stages/extract/components/PageGroupingVisual"
 import { ExtractPreview } from "@/components/pipeline/stages/extract/components/ExtractPreview"
+import { readFigureExtractionMode } from "../extract/figureMode"
 
 type SpreadModeKey = "single" | "spread"
 
@@ -41,39 +43,54 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
 
   const totalPages = sourcePdfInfo?.pageCount ?? book?.pageCount ?? 0
 
-  const [pageRange, setPageRange] = useState<[number, number]>([1, 1])
-  const [spreadMode, setSpreadMode] = useState<SpreadModeKey>("single")
-  const [vectorTextGrouping, setVectorTextGrouping] = useState(true)
+  const config = bookConfigData?.config
+  const spreadMode: SpreadModeKey = config?.spread_mode === true ? "spread" : "single"
+  const removeWatermarks = config?.remove_watermarks === true
+  const figureExtractionMode: FigureExtractionMode = config
+    ? readFigureExtractionMode(config)
+    : "all"
+  const serverStart = config?.start_page != null ? Number(config.start_page) : 1
+  const serverEnd =
+    config?.end_page != null
+      ? Number(config.end_page)
+      : Math.max(serverStart, totalPages || 1)
 
-  useEffect(() => {
-    if (!bookConfigData) return
-    const c = bookConfigData.config
-    setSpreadMode(c.spread_mode === true ? "spread" : "single")
-    setVectorTextGrouping(c.vector_text_grouping !== false)
-    const start = c.start_page != null ? Number(c.start_page) : 1
-    const end = c.end_page != null ? Number(c.end_page) : Math.max(start, totalPages || 1)
-    setPageRange([start, end])
-  }, [bookConfigData, totalPages])
+  const [dragRange, setDragRange] = useState<[number, number] | null>(null)
+  const pageRange: [number, number] = dragRange ?? [serverStart, serverEnd]
 
-  const handlePageRangeChange = ([start, end]: [number, number]) => {
-    setPageRange([start, end])
+  const commitPageRange = ([start, end]: [number, number]) => {
     persist({ start_page: start, end_page: end })
+    setDragRange(null)
   }
 
   const handleSpreadModeChange = (value: SpreadModeKey) => {
-    setSpreadMode(value)
     persist({ spread_mode: value === "spread" })
   }
 
-  const handleVectorTextChange = (next: boolean) => {
-    setVectorTextGrouping(next)
-    persist({ vector_text_grouping: next })
+  const handleFigureExtractionModeChange = (next: FigureExtractionMode) => {
+    persist({
+      figure_extraction_mode: next,
+      vector_text_grouping: next !== "off",
+    })
+  }
+
+  const handleRemoveWatermarksChange = (next: boolean) => {
+    persist({ remove_watermarks: next })
   }
 
   const spreadOptions = useMemo(
     () => [
       { value: "single" as const, label: t`Single` },
       { value: "spread" as const, label: t`Spread` },
+    ],
+    [t],
+  )
+
+  const figureExtractionOptions = useMemo(
+    () => [
+      { value: "off" as const, label: t`Off` },
+      { value: "auto" as const, label: t`Auto` },
+      { value: "all" as const, label: t`All` },
     ],
     [t],
   )
@@ -172,7 +189,8 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
             startLabel={t`Initial Page`}
             endLabel={t`Final Page`}
             value={pageRange}
-            onChange={handlePageRangeChange}
+            onChange={setDragRange}
+            onCommit={commitPageRange}
             disabled={pageRangeDisabled}
             readOnly={isPart}
           />
@@ -203,16 +221,38 @@ export function ExtractLanding({ bookLabel, beforeRun }: { bookLabel: string; be
         </SettingsField>
       </SettingsCard>
 
+      <SettingsCard>
+        <SettingsField
+          label={<Trans>Figure Extraction</Trans>}
+          hint={
+            <Trans>
+              Auto preserves charts, labeled images, and complex infographics as
+              single assets while leaving styled headings, callouts, and
+              conventional tables for accessible HTML. All keeps every composite
+              candidate. Off prevents PDF text from being merged into figures.
+            </Trans>
+          }
+        >
+          <SegmentedControl
+            options={figureExtractionOptions}
+            value={figureExtractionMode}
+            onValueChange={handleFigureExtractionModeChange}
+          />
+        </SettingsField>
+      </SettingsCard>
+
       <ToggleCard
-        title={<Trans>Figure Extraction</Trans>}
+        title={<Trans>Remove Watermarks</Trans>}
         description={
           <Trans>
-            Detects complex charts and figures that contain a mix of text,
-            vectors and images and crops them out of the page.
+            Detects text stamped identically across pages — like a diagonal
+            &ldquo;for online reading only&rdquo; notice — and removes it from
+            page renders, extracted figures, and the book text. Turn off to
+            keep pages exactly as printed.
           </Trans>
         }
-        checked={vectorTextGrouping}
-        onCheckedChange={handleVectorTextChange}
+        checked={removeWatermarks}
+        onCheckedChange={handleRemoveWatermarksChange}
       />
     </StepLandingShell>
   )

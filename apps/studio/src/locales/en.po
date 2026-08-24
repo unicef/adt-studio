@@ -612,8 +612,15 @@ msgstr "{totalPages} pages"
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} pages · {totalSections} sections"
 
-msgid "{withWarnings} recovered from images"
-msgstr "{withWarnings} recovered from images"
+#. placeholder {0}: pages.length
+msgid "{warnCount} of {0} pages had no extracted text"
+msgstr "{warnCount} of {0} pages had no extracted text"
+
+msgid "{warnCount} recovered from images"
+msgstr "{warnCount} recovered from images"
+
+#~ msgid "{withWarnings} recovered from images"
+#~ msgstr "{withWarnings} recovered from images"
 
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
@@ -3380,8 +3387,8 @@ msgstr "Detects activities already present in the book and transforms them into 
 msgid "Detects and splits composited illustrations into separate regions so each asset can be placed and refined on its own."
 msgstr "Detects and splits composited illustrations into separate regions so each asset can be placed and refined on its own."
 
-msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
-msgstr "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
+#~ msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
+#~ msgstr "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
 
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
@@ -3512,8 +3519,8 @@ msgstr "Drop PDF here"
 msgid "Drop the bundle on any static host to serve the book as a website."
 msgstr "Drop the bundle on any static host to serve the book as a website."
 
-msgid "Drop this image"
-msgstr "Drop this image"
+#~ msgid "Drop this image"
+#~ msgstr "Drop this image"
 
 msgid "Drop this section"
 msgstr "Drop this section"
@@ -4097,8 +4104,8 @@ msgstr "Extracted from the document"
 msgid "Extracted Images ({0})"
 msgstr "Extracted Images ({0})"
 
-msgid "Extracted text"
-msgstr "Extracted text"
+#~ msgid "Extracted text"
+#~ msgstr "Extracted text"
 
 msgid "Extracted Text"
 msgstr "Extracted Text"
@@ -4119,6 +4126,9 @@ msgstr "Extraction and sectioning are done — {sectionCount} sections across {p
 msgid "Extraction complete · {0} pages"
 msgstr "Extraction complete · {0} pages"
 
+msgid "Extraction failed."
+msgstr "Extraction failed."
+
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Extraction is running — you can review spreads once it finishes."
 
@@ -4130,6 +4140,9 @@ msgstr "Extraction notes"
 
 msgid "Extraction Prompt"
 msgstr "Extraction Prompt"
+
+msgid "Extraction was interrupted."
+msgstr "Extraction was interrupted."
 
 msgid "Extracts text and image data from each page of the PDF."
 msgstr "Extracts text and image data from each page of the PDF."
@@ -5347,8 +5360,8 @@ msgstr "Keep output schemas and IDs unchanged when editing prompts."
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 
-msgid "Keep this image"
-msgstr "Keep this image"
+#~ msgid "Keep this image"
+#~ msgstr "Keep this image"
 
 msgid "Keep this section"
 msgstr "Keep this section"
@@ -5660,6 +5673,9 @@ msgstr "Loading page-level findings"
 
 msgid "Loading page..."
 msgstr "Loading page..."
+
+msgid "Loading page…"
+msgstr "Loading page…"
 
 msgid "Loading pages..."
 msgstr "Loading pages..."
@@ -6677,8 +6693,8 @@ msgstr "No text"
 msgid "No text extracted"
 msgstr "No text extracted"
 
-msgid "No text on this page."
-msgstr "No text on this page."
+#~ msgid "No text on this page."
+#~ msgstr "No text on this page."
 
 msgid "No text or images were extracted from this page, so there is nothing to section. Blank and decorative pages stay out of the book."
 msgstr "No text or images were extracted from this page, so there is nothing to section. Blank and decorative pages stay out of the book."
@@ -6972,6 +6988,10 @@ msgstr "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 
 msgid "Open Liquid guide"
 msgstr "Open Liquid guide"
+
+#. placeholder {0}: page.pageNumber
+msgid "Open page {0}"
+msgstr "Open page {0}"
 
 msgid "Open page preview for {pageId}"
 msgstr "Open page preview for {pageId}"
@@ -8552,6 +8572,9 @@ msgstr "Restricted license"
 msgid "Results"
 msgstr "Results"
 
+msgid "Resume"
+msgstr "Resume"
+
 msgid "Resume target"
 msgstr "Resume target"
 
@@ -9616,11 +9639,17 @@ msgstr "Some books are mostly single pages but have a few illustrations that run
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 
+msgid "Some steps didn't finish — resume the run to complete this stage."
+msgstr "Some steps didn't finish — resume the run to complete this stage."
+
 msgid "Someone who prefers to live alone and avoids the company of others."
 msgstr "Someone who prefers to live alone and avoids the company of others."
 
 msgid "Something went wrong"
 msgstr "Something went wrong"
+
+msgid "Something went wrong while extracting the PDF."
+msgstr "Something went wrong while extracting the PDF."
 
 msgid "Soon"
 msgstr "Soon"
@@ -10596,8 +10625,8 @@ msgstr "This only changes ADT Studio's interface. It does not affect the languag
 msgid "This option has no answer key entry"
 msgstr "This option has no answer key entry"
 
-msgid "This page had no embedded text layer — the text below was recovered from the page image."
-msgstr "This page had no embedded text layer — the text below was recovered from the page image."
+#~ msgid "This page had no embedded text layer — the text below was recovered from the page image."
+#~ msgstr "This page had no embedded text layer — the text below was recovered from the page image."
 
 msgid "This page has an interactive activity"
 msgstr "This page has an interactive activity"

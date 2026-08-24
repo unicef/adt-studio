@@ -614,8 +614,15 @@ msgstr "{totalPages} pages"
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} pages · {totalSections} sections"
 
-msgid "{withWarnings} recovered from images"
-msgstr "{withWarnings} récupérées depuis les images"
+#. placeholder {0}: pages.length
+msgid "{warnCount} of {0} pages had no extracted text"
+msgstr "{warnCount} pages sur {0} n'ont pas de texte extrait"
+
+msgid "{warnCount} recovered from images"
+msgstr "{warnCount} récupérées à partir d'images"
+
+#~ msgid "{withWarnings} recovered from images"
+#~ msgstr "{withWarnings} récupérées depuis les images"
 
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
@@ -3382,8 +3389,8 @@ msgstr "Détecte les activités déjà présentes dans le livre et les transform
 msgid "Detects and splits composited illustrations into separate regions so each asset can be placed and refined on its own."
 msgstr "Détecte et sépare les illustrations composées en régions distinctes afin que chaque élément puisse être placé et affiné individuellement."
 
-msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
-msgstr "Détecte les graphiques et figures complexes contenant un mélange de texte, de vecteurs et d'images et les recadre hors de la page."
+#~ msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
+#~ msgstr "Détecte les graphiques et figures complexes contenant un mélange de texte, de vecteurs et d'images et les recadre hors de la page."
 
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Détecte les exercices et les quiz intégrés dans le livre et les classe comme leurs propres sections afin qu'ils puissent être rendus comme des éléments interactifs en aval."
@@ -3514,8 +3521,8 @@ msgstr "Drop PDF ici"
 msgid "Drop the bundle on any static host to serve the book as a website."
 msgstr "Déposez le paquet sur n'importe quel hôte statique pour servir le livre comme un site web."
 
-msgid "Drop this image"
-msgstr "Écarter cette image"
+#~ msgid "Drop this image"
+#~ msgstr "Écarter cette image"
 
 msgid "Drop this section"
 msgstr "Écarter cette section"
@@ -4099,8 +4106,8 @@ msgstr "Extrait du document"
 msgid "Extracted Images ({0})"
 msgstr "Extrait Images ({0})"
 
-msgid "Extracted text"
-msgstr "Texte extrait"
+#~ msgid "Extracted text"
+#~ msgstr "Texte extrait"
 
 msgid "Extracted Text"
 msgstr "Extrait Texte"
@@ -4121,6 +4128,9 @@ msgstr "L'extraction et le découpage sont terminés — {sectionCount} sections
 msgid "Extraction complete · {0} pages"
 msgstr "Extraction terminée · {0} pages"
 
+msgid "Extraction failed."
+msgstr "L'extraction a échoué."
+
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "L'extraction est en cours — vous pouvez revoir les fusions une fois terminée."
 
@@ -4132,6 +4142,9 @@ msgstr "Notes d'extraction"
 
 msgid "Extraction Prompt"
 msgstr "Extraction Invite"
+
+msgid "Extraction was interrupted."
+msgstr "L'extraction a été interrompue."
 
 msgid "Extracts text and image data from each page of the PDF."
 msgstr "Extrait le texte et les données d'image de chaque page du PDF."
@@ -5349,8 +5362,8 @@ msgstr "Gardez les schémas de sortie et les ID inchangés lorsque vous modifiez
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Gardez les pages entières par défaut, mais divisez-les lorsque des types d'activités distincts sont détectés sur la même page."
 
-msgid "Keep this image"
-msgstr "Conserver cette image"
+#~ msgid "Keep this image"
+#~ msgstr "Conserver cette image"
 
 msgid "Keep this section"
 msgstr "Conserver cette section"
@@ -5662,6 +5675,9 @@ msgstr "Chargement des résultats au niveau de la page"
 
 msgid "Loading page..."
 msgstr "Chargement de la page..."
+
+msgid "Loading page…"
+msgstr "Chargement de la page…"
 
 msgid "Loading pages..."
 msgstr "Chargement des pages..."
@@ -6679,8 +6695,8 @@ msgstr "Pas de texte"
 msgid "No text extracted"
 msgstr "Aucun texte extrait"
 
-msgid "No text on this page."
-msgstr "Aucun texte sur cette page."
+#~ msgid "No text on this page."
+#~ msgstr "Aucun texte sur cette page."
 
 msgid "No text or images were extracted from this page, so there is nothing to section. Blank and decorative pages stay out of the book."
 msgstr "Aucun texte ni image n'a Ã©tÃ© extrait de cette page, il n'y a donc rien Ã  dÃ©couper. Les pages blanches et dÃ©coratives restent en dehors du livre."
@@ -6974,6 +6990,10 @@ msgstr "Ouvrez-le dans n'importe quelle liseuse EPUB 3 ou outil d'accessibilité
 
 msgid "Open Liquid guide"
 msgstr "Ouvrir le guide Liquid"
+
+#. placeholder {0}: page.pageNumber
+msgid "Open page {0}"
+msgstr "Ouvrir la page {0}"
 
 msgid "Open page preview for {pageId}"
 msgstr "Ouvrir l'aperçu de la page {pageId}"
@@ -8554,6 +8574,9 @@ msgstr "Licence restreinte"
 msgid "Results"
 msgstr "Résultats"
 
+msgid "Resume"
+msgstr "Reprendre"
+
 msgid "Resume target"
 msgstr "Cible de reprise"
 
@@ -9618,11 +9641,17 @@ msgstr "Certains livres sont principalement composés de pages simples mais ont 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Certaines pages n'ont pas de couche de texte intégrée — le texte a été récupéré à partir de l'image de la page. Préférez un PDF basé sur du texte."
 
+msgid "Some steps didn't finish — resume the run to complete this stage."
+msgstr "Certaines étapes ne sont pas terminées — reprenez l'exécution pour terminer cette étape."
+
 msgid "Someone who prefers to live alone and avoids the company of others."
 msgstr "Personne qui préfère vivre isolée et évite la compagnie des autres."
 
 msgid "Something went wrong"
 msgstr "Quelque chose s'est mal passé"
+
+msgid "Something went wrong while extracting the PDF."
+msgstr "Une erreur s'est produite lors de l'extraction du PDF."
 
 msgid "Soon"
 msgstr "Bientôt"
@@ -10598,8 +10627,8 @@ msgstr "Cela ne change que l'interface de ADT Studio. Cela n'affecte pas les lan
 msgid "This option has no answer key entry"
 msgstr "Cette option n'a pas d'entrée dans le corrigé"
 
-msgid "This page had no embedded text layer — the text below was recovered from the page image."
-msgstr "Cette page n'avait pas de couche de texte intégrée : le texte ci-dessous a été récupéré depuis l'image de la page."
+#~ msgid "This page had no embedded text layer — the text below was recovered from the page image."
+#~ msgstr "Cette page n'avait pas de couche de texte intégrée : le texte ci-dessous a été récupéré depuis l'image de la page."
 
 msgid "This page has an interactive activity"
 msgstr "Cette page contient une activitÃ© interactive"

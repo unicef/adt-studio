@@ -614,8 +614,15 @@ msgstr "{totalPages} faqe"
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} faqe · {totalSections} seksione"
 
-msgid "{withWarnings} recovered from images"
-msgstr "{withWarnings} të rikuperuara nga imazhet"
+#. placeholder {0}: pages.length
+msgid "{warnCount} of {0} pages had no extracted text"
+msgstr "{warnCount} nga {0} faqe nuk kishin tekst të nxjerrë"
+
+msgid "{warnCount} recovered from images"
+msgstr "{warnCount} të rikuperuara nga imazhet"
+
+#~ msgid "{withWarnings} recovered from images"
+#~ msgstr "{withWarnings} të rikuperuara nga imazhet"
 
 #. placeholder {0}: String(filterSectionIndex + 1)
 msgid "/ Section {0}"
@@ -3382,8 +3389,8 @@ msgstr "Zbulon aktivitetet që gjenden tashmë në libër dhe i transformon ato 
 msgid "Detects and splits composited illustrations into separate regions so each asset can be placed and refined on its own."
 msgstr "Zbulon dhe ndan ilustrimet e kompozuara në rajone të veçanta që çdo element të mund të vendoset dhe rafinohet më vete."
 
-msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
-msgstr "Zbulon grafikë dhe figura komplekse që përmbajnë kombinim teksti, vektorësh dhe imazhesh dhe i pret nga faqja."
+#~ msgid "Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page."
+#~ msgstr "Zbulon grafikë dhe figura komplekse që përmbajnë kombinim teksti, vektorësh dhe imazhesh dhe i pret nga faqja."
 
 msgid "Detects exercises and quizzes embedded in the book and classifies them as their own sections so they can render as interactive elements downstream."
 msgstr "Zbulon ushtrimet dhe kuizet e ngulura në libër dhe i klasifikon si seksionet e tyre që të mund të renderohën si elementë interaktivë."
@@ -3514,8 +3521,8 @@ msgstr "Hidh PDF-in këtu"
 msgid "Drop the bundle on any static host to serve the book as a website."
 msgstr "Hidh paketat në çdo host statik për të shërbyer librin si faqe interneti."
 
-msgid "Drop this image"
-msgstr "Hiq këtë imazh"
+#~ msgid "Drop this image"
+#~ msgstr "Hiq këtë imazh"
 
 msgid "Drop this section"
 msgstr "Hiq këtë seksion"
@@ -4099,8 +4106,8 @@ msgstr "Nxjerrë nga dokumenti"
 msgid "Extracted Images ({0})"
 msgstr "Imazhe të nxjerra ({0})"
 
-msgid "Extracted text"
-msgstr "Teksti i nxjerrë"
+#~ msgid "Extracted text"
+#~ msgstr "Teksti i nxjerrë"
 
 msgid "Extracted Text"
 msgstr "Tekst i nxjerrë"
@@ -4121,6 +4128,9 @@ msgstr "Nxjerrja dhe ndarja në seksione përfunduan — {sectionCount} seksione
 msgid "Extraction complete · {0} pages"
 msgstr "Nxjerrja përfundoi · {0} faqe"
 
+msgid "Extraction failed."
+msgstr "Nxjerrja dështoi."
+
 msgid "Extraction is running — you can review spreads once it finishes."
 msgstr "Ekstraktimi është në proces — mund të rishikoni faqet e përbashkëta pasi të përfundojë."
 
@@ -4132,6 +4142,9 @@ msgstr "Shënime nxjerrjeje"
 
 msgid "Extraction Prompt"
 msgstr "Prompt-i i nxjerrjes"
+
+msgid "Extraction was interrupted."
+msgstr "Nxjerrja u ndërpre."
 
 msgid "Extracts text and image data from each page of the PDF."
 msgstr "Nxjerr të dhëna teksti dhe imazhi nga çdo faqe e PDF-it."
@@ -5349,8 +5362,8 @@ msgstr "Mbaji të pandryshuara skemat e daljes dhe ID-të kur redakton promptet.
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të ndryshme aktivitetesh në të njëjtën faqe."
 
-msgid "Keep this image"
-msgstr "Mbaj këtë imazh"
+#~ msgid "Keep this image"
+#~ msgstr "Mbaj këtë imazh"
 
 msgid "Keep this section"
 msgstr "Mbaj këtë seksion"
@@ -5662,6 +5675,9 @@ msgstr "Duke ngarkuar gjetjet në nivel faqeje"
 
 msgid "Loading page..."
 msgstr "Duke ngarkuar faqen..."
+
+msgid "Loading page…"
+msgstr "Faqja po ngarkohet…"
 
 msgid "Loading pages..."
 msgstr "Duke ngarkuar faqet..."
@@ -6679,8 +6695,8 @@ msgstr "Nuk ka tekst"
 msgid "No text extracted"
 msgstr "Nuk u ekstraktua tekst"
 
-msgid "No text on this page."
-msgstr "Nuk ka tekst në këtë faqe."
+#~ msgid "No text on this page."
+#~ msgstr "Nuk ka tekst në këtë faqe."
 
 msgid "No text or images were extracted from this page, so there is nothing to section. Blank and decorative pages stay out of the book."
 msgstr "Nga kjo faqe nuk u nxor asnjÃ« tekst apo imazh, ndaj nuk ka Ã§farÃ« tÃ« ndahet nÃ« seksione. Faqet bosh dhe dekorative mbeten jashtÃ« librit."
@@ -6974,6 +6990,10 @@ msgstr "Hapeni në çdo lexues EPUB 3, e-reader, ose mjet aksesueshmërie."
 
 msgid "Open Liquid guide"
 msgstr "Hap udhëzuesin Liquid"
+
+#. placeholder {0}: page.pageNumber
+msgid "Open page {0}"
+msgstr "Hap faqen {0}"
 
 msgid "Open page preview for {pageId}"
 msgstr "Hapni pamjen paraprake të faqes për {pageId}"
@@ -8554,6 +8574,9 @@ msgstr "Licencë e kufizuar"
 msgid "Results"
 msgstr "Rezultatet"
 
+msgid "Resume"
+msgstr "Vazhdo"
+
 msgid "Resume target"
 msgstr "Rimerr synimin"
 
@@ -9618,11 +9641,17 @@ msgstr "Disa libra janë kryesisht faqe të vetme, por kanë disa ilustrime që 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes. Preferoni një PDF të bazuar në tekst."
 
+msgid "Some steps didn't finish — resume the run to complete this stage."
+msgstr "Disa hapa nuk përfunduan — rifillo ekzekutimin për të përfunduar këtë fazë."
+
 msgid "Someone who prefers to live alone and avoids the company of others."
 msgstr "Person që parapëlqen të jetojë i izoluar dhe shmang shoqërinë e të tjerëve."
 
 msgid "Something went wrong"
 msgstr "Diçka shkoi keq"
+
+msgid "Something went wrong while extracting the PDF."
+msgstr "Diçka shkoi keq gjatë nxjerrjes së PDF-së."
 
 msgid "Soon"
 msgstr "Së shpejti"
@@ -10598,8 +10627,8 @@ msgstr "Kjo ndryshon vetëm ndërfaqen e ADT Studio. Nuk ndikon në gjuhët në 
 msgid "This option has no answer key entry"
 msgstr "Ky opsion nuk ka hyrje në çelësin e përgjigjeve"
 
-msgid "This page had no embedded text layer — the text below was recovered from the page image."
-msgstr "Kjo faqe nuk kishte shtresë teksti të integruar — teksti më poshtë u rikuperua nga imazhi i faqes."
+#~ msgid "This page had no embedded text layer — the text below was recovered from the page image."
+#~ msgstr "Kjo faqe nuk kishte shtresë teksti të integruar — teksti më poshtë u rikuperua nga imazhi i faqes."
 
 msgid "This page has an interactive activity"
 msgstr "Kjo faqe ka njÃ« aktivitet interaktiv"
