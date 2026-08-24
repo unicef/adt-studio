@@ -100,7 +100,6 @@ export function SectioningStep(props: StepProps) {
       {...props}
       chips={[t`${total} sections`, pruned > 0 ? t`${pruned} dropped` : t`All kept`]}
       canApply={total - pruned > 0}
-      bodyViewportClassName="[&>div]:!my-0"
       rail={
         <StepRail
           heading={<Trans>Sections by page</Trans>}

@@ -53,7 +53,7 @@ export function PagesRail({
         <RailCollapseButton className="-mr-1" />
       </div>
 
-      <ScrollArea className="min-h-0 flex-1">
+      <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:block!">
         <div ref={listRef} className="flex flex-col gap-1.5 px-2.5 pb-2.5">
           {pages.map((page) => {
             const active = activeQuizIndex == null && page.pageId === activePageId

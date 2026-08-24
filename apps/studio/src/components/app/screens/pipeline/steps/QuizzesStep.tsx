@@ -128,7 +128,6 @@ export function QuizzesStep(props: StepProps) {
       {...props}
       chips={[t`${quizzes.length} questions`, t`every ${output?.pagesPerQuiz ?? 1} pages`]}
       canApply={quizzes.length > 0}
-      bodyViewportClassName="[&>div]:!my-0"
       rail={
         <StepRail
           heading={<Trans>Questions by page</Trans>}

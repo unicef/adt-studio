@@ -19,7 +19,8 @@ export function StepBody({
 }) {
   return (
     <ScrollArea className="h-full w-full">
-      <div className="mx-auto flex container flex-col gap-4 py-7">
+      <div className="mx-auto flex container flex-col gap-4 px-4 py-7">
+
         <div className="flex items-baseline gap-3">
           <h1 className="text-[19px] font-bold tracking-[-0.01em]">{title}</h1>
           {meta && <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>}
@@ -245,7 +246,7 @@ export function StepRail({
         <RailCollapseButton className="-mr-1 -my-1" />
       </div>
 
-      <ScrollArea className="-mx-1 min-h-0 flex-1">
+      <ScrollArea className="-mx-1 min-h-0 flex-1" viewportClassName="[&>div]:block!">
         <div className="flex flex-col gap-0.5 px-1">
           {entries.map((entry) => {
             const active = entry.key === activeKey

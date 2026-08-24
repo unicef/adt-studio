@@ -246,6 +246,7 @@ export function StepLoading(props: StepProps) {
       {...props}
       chips={[t`Loading…`]}
       canApply={false}
+      bodyViewportClassName="[&>div]:my-auto"
       rail={<StepRail heading={getStageLabelI18n(plugin.slug)} hex={plugin.hex} entries={[]} />}
     >
       <LoadingState stageSlug={loaderStage(plugin.slug)} label={t`Loading…`} />

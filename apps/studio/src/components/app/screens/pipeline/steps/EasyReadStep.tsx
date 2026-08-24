@@ -106,7 +106,6 @@ export function EasyReadStep(props: StepProps) {
       {...props}
       chips={[t`${total} blocks`, t`${blocks.length} sections`, t`v${edits.version ?? 1}`]}
       canApply={total > 0}
-      bodyViewportClassName="[&>div]:!my-0"
       rail={
         <StepRail
           heading={<Trans>Blocks by page</Trans>}

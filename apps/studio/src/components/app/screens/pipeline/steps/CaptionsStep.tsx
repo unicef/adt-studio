@@ -94,7 +94,6 @@ export function CaptionsStep(props: StepProps) {
         missing > 0 ? t`${missing} awaiting captions` : t`All captioned`,
       ]}
       canApply={missing === 0}
-      bodyViewportClassName="[&>div]:!my-0"
       rail={
         <StepRail
           heading={<Trans>Images by page</Trans>}

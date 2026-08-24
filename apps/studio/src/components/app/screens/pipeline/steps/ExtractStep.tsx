@@ -93,8 +93,7 @@ export function ExtractStep(props: StepProps) {
         t`${pages.length} pages`,
         warnCount > 0 ? t`${warnCount} recovered from images` : t`Text layer on every page`,
       ]}
-      canApply={false}
-      bodyViewportClassName="[&>div]:!my-0"
+      canApply={false}
       rail={
         <StepRail
           heading={<Trans>Pages</Trans>}
