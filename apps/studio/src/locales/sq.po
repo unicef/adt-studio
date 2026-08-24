@@ -130,6 +130,10 @@ msgstr "{0} të caktuar"
 msgid "{0} audio"
 msgstr "{0} audio"
 
+#. placeholder {0}: getStageLabelI18n(locked[0])
+msgid "{0} cannot be regenerated while imported HTML is this project's source."
+msgstr "{0} nuk mund të rigjenerohet për sa kohë që HTML-ja e importuar është burimi i këtij projekti."
+
 #. placeholder {0}: activeProgress.criteriaPerPage
 msgid "{0} checks per page"
 msgstr "{0} kontrolle për faqe"
@@ -360,14 +364,14 @@ msgstr "{coveredSections} nga {totalSections} seksione të mbuluara"
 msgid "{disabledProvidersText} are disabled — add their API keys in Book settings to enable them."
 msgstr "{disabledProvidersText} janë të çaktivizuar — shtoni çelësat e tyre API në cilësimet e Librit për t'i aktivizuar."
 
-msgid "{disabledProvidersText} are disabled — add their API keys to enable them."
-msgstr "{disabledProvidersText} janë të çaktivizuar — shtoni çelësat e tyre të API-t për t'i aktivizuar."
+#~ msgid "{disabledProvidersText} are disabled — add their API keys to enable them."
+#~ msgstr "{disabledProvidersText} janë të çaktivizuar — shtoni çelësat e tyre të API-t për t'i aktivizuar."
 
 msgid "{disabledProvidersText} is disabled — add its API key in Book settings to enable it."
 msgstr "{disabledProvidersText} është i çaktivizuar — shtoni çelësin e tij API në cilësimet e Librit për ta aktivizuar."
 
-msgid "{disabledProvidersText} is disabled — add its API key to enable it."
-msgstr "{disabledProvidersText} është i çaktivizuar — shtoni çelësin e tij të API-t për ta aktivizuar."
+#~ msgid "{disabledProvidersText} is disabled — add its API key to enable it."
+#~ msgstr "{disabledProvidersText} është i çaktivizuar — shtoni çelësin e tij të API-t për ta aktivizuar."
 
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
@@ -1064,14 +1068,14 @@ msgstr "Shto rajonin (p.sh. Spanjisht — Uruguai) që fazat pasuese të përdor
 msgid "Add the selected provider's API key in Book settings to run speech."
 msgstr "Shto çelësin API të ofruesit të zgjedhur në cilësimet e Librit për të ekzekutuar të folurit."
 
-msgid "Add the selected provider's API key to run speech."
-msgstr "Shtoni çelësin API të ofruesit të zgjedhur për të ekzekutuar të folurit."
+#~ msgid "Add the selected provider's API key to run speech."
+#~ msgstr "Shtoni çelësin API të ofruesit të zgjedhur për të ekzekutuar të folurit."
 
 msgid "Add this provider's API key in Book settings."
 msgstr "Shto çelësin API të këtij ofruesi në cilësimet e Librit."
 
-msgid "Add this provider's API key."
-msgstr "Shtoni çelësin API të këtij ofruesi."
+#~ msgid "Add this provider's API key."
+#~ msgstr "Shtoni çelësin API të këtij ofruesi."
 
 msgid "Add tile"
 msgstr "Shto pllakëz"
@@ -5396,8 +5400,8 @@ msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studi
 msgid "Manage all sections"
 msgstr "Menaxho të gjitha seksionet"
 
-msgid "Manage API keys"
-msgstr "Menaxho çelësat e API-t"
+#~ msgid "Manage API keys"
+#~ msgstr "Menaxho çelësat e API-t"
 
 msgid "Manage sign-language videos"
 msgstr "Menaxho videot e gjuhës së shenjave"
@@ -5897,8 +5901,8 @@ msgid "No API key for {0} yet. Add one in Book settings to enable this provider.
 msgstr "Nuk ka ende çelës API për {0}. Shto një te cilësimet e Librit për të aktivizuar këtë ofrues."
 
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
-msgid "No API key for {0} yet. Add one to enable this provider."
-msgstr "Ende nuk ka çelës API për {0}. Shtoni një për të aktivizuar këtë ofrues."
+#~ msgid "No API key for {0} yet. Add one to enable this provider."
+#~ msgstr "Ende nuk ka çelës API për {0}. Shtoni një për të aktivizuar këtë ofrues."
 
 msgid "No assessment"
 msgstr "Pa vlerësim"

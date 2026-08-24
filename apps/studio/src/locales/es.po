@@ -128,6 +128,10 @@ msgstr "{0} asignados"
 msgid "{0} audio"
 msgstr "{0} audios"
 
+#. placeholder {0}: getStageLabelI18n(locked[0])
+msgid "{0} cannot be regenerated while imported HTML is this project's source."
+msgstr "No se puede regenerar {0} mientras el HTML importado sea la fuente de este proyecto."
+
 #. placeholder {0}: activeProgress.criteriaPerPage
 msgid "{0} checks per page"
 msgstr "{0} checks per page"
@@ -358,14 +362,14 @@ msgstr "{coveredSections} de {totalSections} secciones cubiertas"
 msgid "{disabledProvidersText} are disabled — add their API keys in Book settings to enable them."
 msgstr "{disabledProvidersText} están deshabilitados — añade sus claves API en la configuración del libro para habilitarlos."
 
-msgid "{disabledProvidersText} are disabled — add their API keys to enable them."
-msgstr "{disabledProvidersText} están desactivados — añade sus claves de API para activarlos."
+#~ msgid "{disabledProvidersText} are disabled — add their API keys to enable them."
+#~ msgstr "{disabledProvidersText} están desactivados — añade sus claves de API para activarlos."
 
 msgid "{disabledProvidersText} is disabled — add its API key in Book settings to enable it."
 msgstr "{disabledProvidersText} está deshabilitado — añade su clave API en la configuración del libro para habilitarlo."
 
-msgid "{disabledProvidersText} is disabled — add its API key to enable it."
-msgstr "{disabledProvidersText} está desactivado — añade su clave de API para activarlo."
+#~ msgid "{disabledProvidersText} is disabled — add its API key to enable it."
+#~ msgstr "{disabledProvidersText} está desactivado — añade su clave de API para activarlo."
 
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
@@ -1062,14 +1066,14 @@ msgstr "Añade la región (p. ej. Español — Uruguay) para que las etapas post
 msgid "Add the selected provider's API key in Book settings to run speech."
 msgstr "Añade la clave API del proveedor seleccionado en la configuración del libro para ejecutar voz."
 
-msgid "Add the selected provider's API key to run speech."
-msgstr "Añade la clave de API del proveedor seleccionado para ejecutar la voz."
+#~ msgid "Add the selected provider's API key to run speech."
+#~ msgstr "Añade la clave de API del proveedor seleccionado para ejecutar la voz."
 
 msgid "Add this provider's API key in Book settings."
 msgstr "Añade la clave API de este proveedor en la configuración del libro."
 
-msgid "Add this provider's API key."
-msgstr "Añade la clave de API de este proveedor."
+#~ msgid "Add this provider's API key."
+#~ msgstr "Añade la clave de API de este proveedor."
 
 msgid "Add tile"
 msgstr "Agregar pieza"
@@ -5394,8 +5398,8 @@ msgstr "Asegúrese de subir un archivo .zip exportado desde ADT Studio."
 msgid "Manage all sections"
 msgstr "Gestionar todas las secciones"
 
-msgid "Manage API keys"
-msgstr "Gestionar claves de API"
+#~ msgid "Manage API keys"
+#~ msgstr "Gestionar claves de API"
 
 msgid "Manage sign-language videos"
 msgstr "Gestionar videos de lenguaje de señas"
@@ -5895,8 +5899,8 @@ msgid "No API key for {0} yet. Add one in Book settings to enable this provider.
 msgstr "Aún no hay clave API para {0}. Añade una en la configuración del libro para habilitar este proveedor."
 
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
-msgid "No API key for {0} yet. Add one to enable this provider."
-msgstr "Aún no hay clave de API para {0}. Añade una para activar este proveedor."
+#~ msgid "No API key for {0} yet. Add one to enable this provider."
+#~ msgstr "Aún no hay clave de API para {0}. Añade una para activar este proveedor."
 
 msgid "No assessment"
 msgstr "No assessment"
