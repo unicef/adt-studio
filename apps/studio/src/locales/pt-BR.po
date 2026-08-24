@@ -1375,8 +1375,8 @@ msgid "After {0}"
 msgstr "Após {0}"
 
 #. placeholder {0}: String(pageNumber)
+#. placeholder {0}: afterNumber != null ? String(afterNumber) : "—"
 #. placeholder {0}: afterPage.pageNumber
-#. placeholder {0}: pageNumber(quiz.afterPageId)
 msgid "after page {0}"
 msgstr "após a página {0}"
 
@@ -4236,11 +4236,21 @@ msgstr "Resultados rápidos e consistentes sem custo de IA"
 msgid "Feedback"
 msgstr "Feedback"
 
+#. placeholder {0}: index + 1
+msgid "feedback for option {0}"
+msgstr "feedback da opção {0}"
+
 msgid "Feedback generated — review it and save"
 msgstr "Feedback gerado — revise e salve"
 
 msgid "Feedback generation failed"
 msgstr "Falha ao gerar o feedback"
+
+msgid "Feedback shown when answered correctly…"
+msgstr "Mensagem exibida ao responder corretamente…"
+
+msgid "Feedback shown when this option is picked…"
+msgstr "Mensagem exibida ao escolher esta opção…"
 
 msgid "figure"
 msgstr "figura"
@@ -4593,6 +4603,9 @@ msgstr "Gerado por IA"
 
 msgid "Generated from pages {fromLabel}"
 msgstr "Gerado a partir das páginas {fromLabel}"
+
+msgid "Generated from pages {sourceLabel}"
+msgstr "Gerado a partir das páginas {sourceLabel}"
 
 msgid "Generated from these pages"
 msgstr "Gerado a partir destas páginas"
@@ -7030,6 +7043,9 @@ msgstr "Abrir página {0}"
 msgid "Open page {pageNumber}"
 msgstr "Abrir página {pageNumber}"
 
+msgid "Open page preview"
+msgstr "Abrir pré-visualização da página"
+
 msgid "Open page preview for {pageId}"
 msgstr "Abrir pré-visualização da página {0}"
 
@@ -7038,6 +7054,9 @@ msgstr "Abrir parte"
 
 msgid "Open Preview"
 msgstr "Open Preview"
+
+msgid "Open preview of page {number}"
+msgstr "Abrir pré-visualização da página {number}"
 
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"

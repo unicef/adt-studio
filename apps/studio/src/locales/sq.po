@@ -1377,8 +1377,8 @@ msgid "After {0}"
 msgstr "Pas {0}"
 
 #. placeholder {0}: String(pageNumber)
+#. placeholder {0}: afterNumber != null ? String(afterNumber) : "—"
 #. placeholder {0}: afterPage.pageNumber
-#. placeholder {0}: pageNumber(quiz.afterPageId)
 msgid "after page {0}"
 msgstr "pas faqes {0}"
 
@@ -4238,11 +4238,21 @@ msgstr "Rezultate të shpejta dhe konsistente pa kosto AI"
 msgid "Feedback"
 msgstr "Reagimi"
 
+#. placeholder {0}: index + 1
+msgid "feedback for option {0}"
+msgstr "reagimi për opsionin {0}"
+
 msgid "Feedback generated — review it and save"
 msgstr "Reagimi u gjenerua — rishikojeni dhe ruajeni"
 
 msgid "Feedback generation failed"
 msgstr "Gjenerimi i reagimit dështoi"
+
+msgid "Feedback shown when answered correctly…"
+msgstr "Mesazhi që shfaqet kur përgjigjeni saktë…"
+
+msgid "Feedback shown when this option is picked…"
+msgstr "Mesazhi që shfaqet kur zgjidhet ky opsion…"
 
 msgid "figure"
 msgstr "figurë"
@@ -4595,6 +4605,9 @@ msgstr "Gjeneruar nga AI"
 
 msgid "Generated from pages {fromLabel}"
 msgstr "Gjeneruar nga faqet {fromLabel}"
+
+msgid "Generated from pages {sourceLabel}"
+msgstr "Gjeneruar nga faqet {sourceLabel}"
 
 msgid "Generated from these pages"
 msgstr "Gjeneruar nga këto faqe"
@@ -7032,6 +7045,9 @@ msgstr "Hap faqen {0}"
 msgid "Open page {pageNumber}"
 msgstr "Hap faqen {pageNumber}"
 
+msgid "Open page preview"
+msgstr "Hap pamjen paraprake të faqes"
+
 msgid "Open page preview for {pageId}"
 msgstr "Hapni pamjen paraprake të faqes për {pageId}"
 
@@ -7040,6 +7056,9 @@ msgstr "Hap pjesën"
 
 msgid "Open Preview"
 msgstr "Hapni Pamjen Paraprake"
+
+msgid "Open preview of page {number}"
+msgstr "Hap pamjen paraprake të faqes {number}"
 
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
