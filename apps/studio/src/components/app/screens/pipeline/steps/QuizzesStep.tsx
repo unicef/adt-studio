@@ -133,9 +133,11 @@ export function QuizzesStep(props: StepProps) {
         <StepRail
           heading={<Trans>Questions by page</Trans>}
           hex={plugin.hex}
-          entries={byPage}
-          activeKey={activePageId}
-          onSelect={(key) => setActivePageId((cur) => (cur === key ? null : key))}
+          entries={[{ key: "", title: t`All quizzes`, count: quizzes.length }, ...byPage]}
+          activeKey={activePageId ?? ""}
+          onSelect={(key) =>
+            key ? setActivePageId((cur) => (cur === key ? null : key)) : setActivePageId(null)
+          }
           footer={<Trans>Select a page to filter. Click again to show all.</Trans>}
         />
       }

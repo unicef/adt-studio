@@ -338,7 +338,7 @@ msgstr "{0} pyetje"
 
 #. placeholder {0}: String(group.blocks.length)
 #. placeholder {0}: blocks.length
-#. placeholder {0}: page.sectionCount
+#. placeholder {0}: group.blocks.length
 msgid "{0} sections"
 msgstr "{0} seksione"
 
@@ -1519,6 +1519,9 @@ msgstr "Të gjitha pjesët e bashkuara — libri i montuar"
 
 msgid "All plugins"
 msgstr "Të gjitha shtojcat"
+
+msgid "All quizzes"
+msgstr "Të gjitha kuizet"
 
 msgid "All sections are covered"
 msgstr "Të gjitha seksionet janë mbuluar"
@@ -7057,6 +7060,10 @@ msgstr "Hap pjesën"
 msgid "Open Preview"
 msgstr "Hapni Pamjen Paraprake"
 
+#. placeholder {0}: group.pageNumber
+msgid "Open preview of page {0}"
+msgstr "Hap pamjen paraprake të faqes {0}"
+
 msgid "Open preview of page {number}"
 msgstr "Hap pamjen paraprake të faqes {number}"
 
@@ -7272,7 +7279,7 @@ msgstr "f. 7"
 
 #. placeholder {0}: String(current.pageNumber)
 #. placeholder {0}: m[1]
-#. placeholder {0}: pageMatch[1]
+#. placeholder {0}: match[1]
 msgid "p{0}"
 msgstr "f{0}"
 
@@ -7343,8 +7350,8 @@ msgstr "Faqja {0} — Seksioni {1}"
 #. placeholder {0}: block.pageNumber
 #. placeholder {1}: block.sectionIndex + 1
 #. placeholder {2}: block.sectionType
-msgid "Page {0} · section {1} · {2}"
-msgstr "Faqja {0} · seksioni {1} · {2}"
+#~ msgid "Page {0} · section {1} · {2}"
+#~ msgstr "Faqja {0} · seksioni {1} · {2}"
 
 #. placeholder {0}: page.pageNumber
 msgid "Page {0} (discarded)"
@@ -8781,8 +8788,8 @@ msgstr "Revokuar"
 msgid "Rewrite the book in Easy Read"
 msgstr "Rishkruaj librin në Lexim i Lehtë"
 
-msgid "Rewrite this passage…"
-msgstr "Rishkruaj këtë pjesë…"
+#~ msgid "Rewrite this passage…"
+#~ msgstr "Rishkruaj këtë pjesë…"
 
 msgid "Rewriting the story of this section..."
 msgstr "Duke rishkruar historinë e këtij seksioni..."
@@ -9612,6 +9619,9 @@ msgstr "Video në gjuhën e shenjave e lidhur me çdo faqe."
 
 msgid "Similarity"
 msgstr "Ngjashmëria"
+
+msgid "Simplified blocks show up here as each section is rewritten."
+msgstr "Blloqet e thjeshtuara shfaqen këtu ndërsa çdo seksion rishkruhet."
 
 msgid "Simplified Easy Read text variants."
 msgstr "Variante të thjeshtuara të tekstit Easy Read."
@@ -11359,6 +11369,7 @@ msgstr "Përdoret për këtë kuiz"
 msgid "Using fallback"
 msgstr "Po përdoret fallback"
 
+#. placeholder {0}: edits.version ?? 1
 #. placeholder {0}: query.data?.version ?? 1
 msgid "v{0}"
 msgstr "v{0}"

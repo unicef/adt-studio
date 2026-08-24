@@ -1,21 +1,33 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import type { EasyReadSectionBlock } from "@/api/client"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
-import { useSaveEasyRead } from "./shared/mutations"
-import { useEasyRead } from "./shared/queries"
-import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
-import { EditableText, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./shared/ui"
+import { RotateCcw, Search, X } from "lucide-react"
+import type { EasyReadEntry, EasyReadSectionBlock } from "@/api/client"
+import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
+import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
+import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
+import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
+import { PageLightbox } from "@/components/pipeline/components/PageLightbox"
+import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
+import { useRunEasyRead } from "@/components/pipeline/stages/easy-read/use-run-easy-read"
+import { StepEmpty, StepLoading, StepRunning, StepShell, useStepLoading } from "./shared/StepShell"
+import { DetailNavButton, SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
+import { EasyReadPageSection, type EasyReadPageGroup } from "./easy-read/EasyReadPageSection"
+import { useEasyReadEdits } from "./easy-read/useEasyReadEdits"
 import type { StepProps } from "./shared/types"
 
 export function EasyReadStep(props: StepProps) {
   const { label, plugin } = props
   const { t } = useLingui()
-  const query = useEasyRead(label)
-  const save = useSaveEasyRead(label)
+  const run = useRunActivity()
+  const stage = useStageActivity("easy-read")
+  const { runEasyRead, hasApiKey } = useRunEasyRead(label)
+  const edits = useEasyReadEdits(label)
 
-  const blocks = useMemo(() => query.data?.blocks ?? [], [query.data])
   const [activePageId, setActivePageId] = useState<string | null>(null)
+  const [lightboxPageId, setLightboxPageId] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
+
+  const blocks = edits.blocks
 
   const railEntries = useMemo(() => {
     const map = new Map<string, { pageNumber: number; count: number }>()
@@ -28,89 +40,218 @@ export function EasyReadStep(props: StepProps) {
       key: pageId,
       title: t`Page ${value.pageNumber}`,
       count: value.count,
+      thumb: (
+        <PageThumb label={label} pageId={pageId} sectionIndex={null} className="h-[52px] w-[38px]" />
+      ),
     }))
-  }, [blocks, t])
+  }, [blocks, label, t])
 
-  const patch = (sectionId: string, easyReadId: string, text: string) => {
-    if (!query.data) return
-    const next: EasyReadSectionBlock[] = blocks.map((block) =>
-      block.sectionId === sectionId
-        ? {
-            ...block,
-            entries: block.entries.map((entry) =>
-              entry.easyReadId === easyReadId ? { ...entry, text } : entry,
-            ),
-          }
-        : block,
+  const pageGroups = useMemo(() => {
+    const scoped = activePageId ? blocks.filter((block) => block.pageId === activePageId) : blocks
+    const query = search.trim().toLowerCase()
+    const filtered = query
+      ? scoped.filter((block) => {
+          if (block.sectionType.toLowerCase().includes(query)) return true
+          return block.entries.some(
+            (entry) =>
+              entry.originalText.toLowerCase().includes(query) ||
+              entry.text.toLowerCase().includes(query),
+          )
+        })
+      : scoped
+
+    const groups: EasyReadPageGroup[] = []
+    const indexByPage = new Map<string, number>()
+    for (const block of filtered) {
+      let index = indexByPage.get(block.pageId)
+      if (index === undefined) {
+        index = groups.length
+        indexByPage.set(block.pageId, index)
+        groups.push({ pageId: block.pageId, pageNumber: block.pageNumber, blocks: [] })
+      }
+      groups[index].blocks.push(block)
+    }
+    return groups
+  }, [blocks, activePageId, search])
+
+  const openPage = useCallback((pageId: string) => setLightboxPageId(pageId), [])
+
+  const isRunning = stage.isActive
+  const loading = useStepLoading(props, {
+    isLoading: edits.isLoading,
+    hasOutput: blocks.length > 0,
+  })
+
+  if (isRunning && blocks.length === 0) {
+    return (
+      <StepRunning
+        {...props}
+        stage={stage}
+        isCancelling={run.isCancelling}
+        onCancel={run.cancelRun}
+        outcome={t`Simplified blocks show up here as each section is rewritten.`}
+      />
     )
-    save.mutate({ blocks: next, generatedAt: query.data.generatedAt })
+  }
+  if (loading) return <StepLoading {...props} />
+  if (blocks.length === 0) {
+    return <StepEmpty {...props} onRun={() => void runEasyRead()} canRun={hasApiKey && !isRunning} />
   }
 
-  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: blocks.length > 0 })
-  if (loading) return <StepLoading {...props} />
-  if (blocks.length === 0) return <StepEmpty {...props} />
-
-  const total = blocks.reduce((sum, b) => sum + b.entries.length, 0)
-  const shown = activePageId ? blocks.filter((b) => b.pageId === activePageId) : blocks
+  const total = blocks.reduce((sum, block) => sum + block.entries.length, 0)
+  const searchActive = search.trim().length > 0
 
   return (
     <StepShell
       {...props}
-      chips={[t`${total} blocks`, t`${blocks.length} sections`]}
+      chips={[t`${total} blocks`, t`${blocks.length} sections`, t`v${edits.version ?? 1}`]}
       canApply={total > 0}
+      bodyViewportClassName="[&>div]:!my-0"
       rail={
         <StepRail
           heading={<Trans>Blocks by page</Trans>}
           hex={plugin.hex}
-          entries={railEntries}
-          activeKey={activePageId}
-          onSelect={(key) => setActivePageId((cur) => (cur === key ? null : key))}
+          entries={[{ key: "", title: t`All pages`, count: total }, ...railEntries]}
+          activeKey={activePageId ?? ""}
+          onSelect={(key) => setActivePageId(key ? key : null)}
           footer={<Trans>Readers switch between the original text and these blocks.</Trans>}
         />
       }
     >
-      <StepBody title={<Trans>Easy Read</Trans>} meta={t`${total} blocks`}>
-        <SaveError error={save.error} />
+      <FloatingSaveProvider barClassName="bottom-27">
+        <UnsavedChangesGuard />
+        <StepBody
+          title={<Trans>Easy Read</Trans>}
+          meta={t`${total} blocks`}
+          actions={
+            <>
+              <div className="relative w-64">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/70" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t`Search original or Easy Read text…`}
+                  aria-label={t`Search original or Easy Read text…`}
+                  className="h-8 w-full rounded-lg border bg-background pl-8 pr-8 text-[12px] placeholder:text-muted-foreground/60 focus:border-brand-400 focus:outline-none focus:shadow-[0_0_0_3px_var(--brand-50)]"
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    aria-label={t`Clear search`}
+                    className="absolute right-1 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  >
+                    <X className="size-3" />
+                  </button>
+                )}
+              </div>
+              <DetailNavButton
+                icon={RotateCcw}
+                label={t`Regenerate Easy Read`}
+                onClick={() => void runEasyRead()}
+                disabled={!hasApiKey || isRunning || edits.dirty}
+              >
+                <Trans>Regenerate</Trans>
+              </DetailNavButton>
+              <VersionPicker
+                step="easy-read"
+                itemId="book"
+                currentVersion={edits.version}
+                saving={edits.saving}
+                dirty={edits.dirty}
+                bookLabel={label}
+                onRestored={edits.discard}
+                onSave={edits.save}
+                onDiscard={edits.discard}
+                diff={{
+                  items: (data) =>
+                    (data as { blocks?: EasyReadSectionBlock[] } | null)?.blocks?.flatMap(
+                      (block) => block.entries,
+                    ) ?? [],
+                  keyOf: (item) => (item as EasyReadEntry).easyReadId,
+                  isEqual: (a, b) => {
+                    const x = a as EasyReadEntry
+                    const y = b as EasyReadEntry
+                    return x.text === y.text && x.originalText === y.originalText
+                  },
+                  diffText: (item) => (item as EasyReadEntry).text ?? "",
+                  searchText: (item) => {
+                    const x = item as EasyReadEntry
+                    return `${x.originalText ?? ""} ${x.text ?? ""}`
+                  },
+                  searchPlaceholder: t`Search original or Easy Read text…`,
+                  renderItem: (item, ctx) => {
+                    const entry = item as EasyReadEntry
+                    const match = /^pg0*(\d+)/.exec(entry.pageId ?? "")
+                    const pageRef = match ? t`p${match[1]}` : null
+                    return (
+                      <span className="flex min-w-0 flex-col gap-0.5">
+                        {pageRef ? (
+                          <span className="text-[9px] font-semibold uppercase tracking-wide tabular-nums text-muted-foreground">
+                            {pageRef}
+                          </span>
+                        ) : null}
+                        {entry.originalText && entry.originalText !== entry.text ? (
+                          <span className="line-clamp-2 text-[11px] text-muted-foreground">
+                            {entry.originalText}
+                          </span>
+                        ) : null}
+                        {ctx?.diff ? (
+                          <span className="text-foreground">{ctx.diff}</span>
+                        ) : entry.text ? (
+                          <span className="text-foreground">{entry.text}</span>
+                        ) : null}
+                      </span>
+                    )
+                  },
+                }}
+              />
+            </>
+          }
+        >
+          <SaveError error={edits.saveError} />
 
-        {shown.map((block) => (
-          <div key={block.sectionId} className="flex flex-col gap-2">
-            <StepGroupLabel>
-              {t`Page ${block.pageNumber} · section ${block.sectionIndex + 1} · ${block.sectionType}`}
-            </StepGroupLabel>
+          {pageGroups.length === 0 ? (
+            <StepEmptyHint>
+              <span className="flex flex-col items-center gap-2">
+                <Trans>No matching blocks</Trans>
+                {searchActive && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="font-medium underline-offset-2 hover:underline"
+                    style={{ color: plugin.hex }}
+                  >
+                    <Trans>Clear search</Trans>
+                  </button>
+                )}
+              </span>
+            </StepEmptyHint>
+          ) : (
+            pageGroups.map((group) => (
+              <EasyReadPageSection
+                key={group.pageId}
+                label={label}
+                group={group}
+                accent={plugin.hex}
+                disabled={isRunning || edits.saving}
+                onUpdateEntry={edits.updateEntry}
+                onOpenPage={openPage}
+              />
+            ))
+          )}
+        </StepBody>
+      </FloatingSaveProvider>
 
-            {block.entries.map((entry) => (
-              <StepCard key={entry.easyReadId} accent={plugin.hex}>
-                <div className="grid grid-cols-2 gap-3.5">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
-                      <Trans>Original</Trans>
-                    </span>
-                    <p className="px-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
-                      {entry.originalText}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <span
-                      className="w-fit rounded px-1.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
-                      style={{ background: tint(plugin.hex, 0.12), color: plugin.hex }}
-                    >
-                      <Trans>Easy Read</Trans>
-                    </span>
-                    <EditableText
-                      value={entry.text}
-                      ariaLabel={t`Easy Read text`}
-                      placeholder={t`Rewrite this passage…`}
-                      isSaving={save.isPending}
-                      onSave={(text) => patch(block.sectionId, entry.easyReadId, text)}
-                      className="text-[12.5px] leading-relaxed"
-                    />
-                  </div>
-                </div>
-              </StepCard>
-            ))}
-          </div>
-        ))}
-      </StepBody>
+      <PageLightbox
+        bookLabel={label}
+        pageId={lightboxPageId}
+        open={lightboxPageId != null}
+        onOpenChange={(open) => {
+          if (!open) setLightboxPageId(null)
+        }}
+      />
     </StepShell>
   )
 }

@@ -336,7 +336,7 @@ msgstr "{0} preguntas"
 
 #. placeholder {0}: String(group.blocks.length)
 #. placeholder {0}: blocks.length
-#. placeholder {0}: page.sectionCount
+#. placeholder {0}: group.blocks.length
 msgid "{0} sections"
 msgstr "{0} secciones"
 
@@ -1517,6 +1517,9 @@ msgstr "Todas las partes fusionadas — libro ensamblado"
 
 msgid "All plugins"
 msgstr "Todos los complementos"
+
+msgid "All quizzes"
+msgstr "Todos los cuestionarios"
 
 msgid "All sections are covered"
 msgstr "Todas las secciones están cubiertas"
@@ -7055,6 +7058,10 @@ msgstr "Abrir parte"
 msgid "Open Preview"
 msgstr "Open Preview"
 
+#. placeholder {0}: group.pageNumber
+msgid "Open preview of page {0}"
+msgstr "Abrir vista previa de la página {0}"
+
 msgid "Open preview of page {number}"
 msgstr "Abrir vista previa de la página {number}"
 
@@ -7270,7 +7277,7 @@ msgstr "p. 7"
 
 #. placeholder {0}: String(current.pageNumber)
 #. placeholder {0}: m[1]
-#. placeholder {0}: pageMatch[1]
+#. placeholder {0}: match[1]
 msgid "p{0}"
 msgstr "p{0}"
 
@@ -7341,8 +7348,8 @@ msgstr "Página {0} — Sección {1}"
 #. placeholder {0}: block.pageNumber
 #. placeholder {1}: block.sectionIndex + 1
 #. placeholder {2}: block.sectionType
-msgid "Page {0} · section {1} · {2}"
-msgstr "Página {0} · sección {1} · {2}"
+#~ msgid "Page {0} · section {1} · {2}"
+#~ msgstr "Página {0} · sección {1} · {2}"
 
 #. placeholder {0}: page.pageNumber
 msgid "Page {0} (discarded)"
@@ -8779,8 +8786,8 @@ msgstr "Revocado"
 msgid "Rewrite the book in Easy Read"
 msgstr "Reescribir el libro en Lectura Fácil"
 
-msgid "Rewrite this passage…"
-msgstr "Reescribe este pasaje…"
+#~ msgid "Rewrite this passage…"
+#~ msgstr "Reescribe este pasaje…"
 
 msgid "Rewriting the story of this section..."
 msgstr "Reescribiendo la historia de esta sección..."
@@ -9610,6 +9617,9 @@ msgstr "Video en lenguaje de señas vinculado a cada página."
 
 msgid "Similarity"
 msgstr "Similitud"
+
+msgid "Simplified blocks show up here as each section is rewritten."
+msgstr "Los bloques simplificados aparecen aquí a medida que cada sección es reescrita."
 
 msgid "Simplified Easy Read text variants."
 msgstr "Variantes de texto simplificadas de Lectura Fácil."
@@ -11357,6 +11367,7 @@ msgstr "Se usa en este cuestionario"
 msgid "Using fallback"
 msgstr "Usando fallback"
 
+#. placeholder {0}: edits.version ?? 1
 #. placeholder {0}: query.data?.version ?? 1
 msgid "v{0}"
 msgstr "v{0}"

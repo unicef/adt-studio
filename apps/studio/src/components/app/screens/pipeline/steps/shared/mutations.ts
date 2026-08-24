@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { api, type EasyReadSectionBlock } from "@/api/client"
+import { api } from "@/api/client"
 
 function useStepMutation<TVars>(
   label: string,
@@ -26,14 +26,6 @@ export function useSaveToc(label: string) {
 
 export function useSaveQuizzes(label: string) {
   return useStepMutation(label, "quizzes", (data: unknown) => api.updateQuizzes(label, data))
-}
-
-export function useSaveEasyRead(label: string) {
-  return useStepMutation(
-    label,
-    "easy-read",
-    (data: { blocks: EasyReadSectionBlock[]; generatedAt: string }) => api.updateEasyRead(label, data),
-  )
 }
 
 export function useSaveTranslation(label: string, language: string) {
