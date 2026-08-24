@@ -260,8 +260,8 @@ msgid "{0} missing prompt files will be created. Existing files are left unchang
 msgstr "{0} arquivos de prompt ausentes serão criados. Arquivos existentes não serão alterados."
 
 #. placeholder {0}: lines.length
-msgid "{0} nodes"
-msgstr "{0} nós"
+#~ msgid "{0} nodes"
+#~ msgstr "{0} nós"
 
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
@@ -336,6 +336,7 @@ msgstr "{0} questões"
 
 #. placeholder {0}: String(group.blocks.length)
 #. placeholder {0}: blocks.length
+#. placeholder {0}: page.sectionCount
 msgid "{0} sections"
 msgstr "{0} seções"
 
@@ -544,6 +545,9 @@ msgstr "{percent}%"
 
 msgid "{pruned} dropped"
 msgstr "{pruned} descartadas"
+
+msgid "{prunedCount} sections excluded from render"
+msgstr "{prunedCount} seções excluídas da renderização"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
@@ -2904,8 +2908,11 @@ msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Não foi possível remover {failed} de {total} vídeos — tente novamente."
 
 #. placeholder {0}: error.message
-msgid "Could not save your change: {0}"
-msgstr "Não foi possível salvar sua alteração: {0}"
+#~ msgid "Could not save your change: {0}"
+#~ msgstr "Não foi possível salvar sua alteração: {0}"
+
+msgid "Could not save your change: {message}"
+msgstr "Não foi possível salvar sua alteração: {message}"
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Não foi possível aplicar os spreads — tente novamente."
@@ -3522,8 +3529,8 @@ msgstr "Coloque o pacote em qualquer host estático para servir o livro como um 
 #~ msgid "Drop this image"
 #~ msgstr "Descartar esta imagem"
 
-msgid "Drop this section"
-msgstr "Descartar esta seção"
+#~ msgid "Drop this section"
+#~ msgstr "Descartar esta seção"
 
 msgid "Drop ZIP here"
 msgstr "Solte o ZIP aqui"
@@ -5363,8 +5370,8 @@ msgstr "Mantenha as páginas inteiras por padrão, mas divida quando tipos disti
 #~ msgid "Keep this image"
 #~ msgstr "Manter esta imagem"
 
-msgid "Keep this section"
-msgstr "Manter esta seção"
+#~ msgid "Keep this section"
+#~ msgstr "Manter esta seção"
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mantém páginas inteiras, a menos que tipos mistos de atividade exijam divisão."
@@ -5658,6 +5665,9 @@ msgstr "Carregando glossário..."
 
 msgid "Loading image..."
 msgstr "Carregando imagem..."
+
+msgid "Loading image…"
+msgstr "Carregando imagem…"
 
 msgid "Loading images..."
 msgstr "Carregando imagens..."
@@ -10646,6 +10656,9 @@ msgstr "Esta página não tem entradas para sintetizar"
 msgid "This page has no sectioning output"
 msgstr "Esta página não tem saída de seccionamento"
 
+msgid "This page has no sectioning output yet."
+msgstr "Esta página ainda não tem saída de seccionamento."
+
 msgid "This page has no simplified text blocks"
 msgstr "Esta página não tem blocos de texto simplificados"
 
@@ -10709,8 +10722,8 @@ msgstr "Esta seção não existe nesta versão."
 msgid "This section has no storyboard rendering yet"
 msgstr "Esta seção ainda não tem renderização de storyboard"
 
-msgid "This section has no text nodes."
-msgstr "Esta seção não tem nós de texto."
+#~ msgid "This section has no text nodes."
+#~ msgstr "Esta seção não tem nós de texto."
 
 msgid "This section is pruned and isn't rendered."
 msgstr "Esta seção foi removida e não é renderizada."

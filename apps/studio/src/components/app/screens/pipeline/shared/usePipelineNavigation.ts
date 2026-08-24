@@ -26,9 +26,11 @@ export function usePipelineNavigation(label: string): PipelineNavigation {
       void navigate({ to: "/pipeline/$label", params: { label } })
     }
 
+    // `search: true` carries the current search (e.g. the open `page`) into the
+    // next step, so switching steps keeps the page the user was working on.
     const openStep = (slug: string) => {
       if (!isDockSlug(slug)) return
-      void navigate({ to: "/pipeline/$label/$step", params: { label, step: slug } })
+      void navigate({ to: "/pipeline/$label/$step", params: { label, step: slug }, search: true })
     }
 
     const openSettingsTab = (slug: string, tab: string) => {

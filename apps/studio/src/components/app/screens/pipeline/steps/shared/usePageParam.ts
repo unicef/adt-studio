@@ -1,14 +1,14 @@
 import { useCallback } from "react"
 import { useNavigate, useSearch } from "@tanstack/react-router"
 
-export interface ExtractPageParam {
+export interface PageParam {
   pageParam: string | null
   openPage: (pageId: string) => void
   stepPage: (pageId: string) => void
   closeDetail: () => void
 }
 
-export function useExtractPageParam(label: string, slug: string): ExtractPageParam {
+export function usePageParam(label: string, slug: string): PageParam {
   const search = useSearch({ strict: false })
   const navigate = useNavigate()
 
@@ -19,7 +19,7 @@ export function useExtractPageParam(label: string, slug: string): ExtractPagePar
       void navigate({
         to: "/pipeline/$label/$step",
         params: { label, step: slug },
-        search: page ? { page } : {},
+        search: (prev) => ({ ...prev, page: page ?? undefined }),
         replace,
       })
     },

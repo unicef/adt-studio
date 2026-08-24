@@ -12,7 +12,6 @@ import {
 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { resolveReflowableFont } from "@adt/types"
-import { cn } from "@/lib/utils"
 import { usePage, usePageImage } from "@/hooks/use-pages"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -24,40 +23,10 @@ import {
   pageBoundsToCropRect,
 } from "@/components/pipeline/stages/storyboard/components/ImageCropDialog"
 import { SegmentPreviewDialog } from "@/components/pipeline/stages/storyboard/components/SegmentPreviewDialog"
-import { SaveError, StepBody } from "../shared/ui"
+import { DetailNavButton, SaveError, StepBody } from "../shared/ui"
+import { usePrefetchAdjacentPages } from "../shared/usePrefetchAdjacentPages"
 import { ExtractImageGrid } from "./ExtractImageGrid"
 import { useExtractImages } from "./useExtractImages"
-
-function DetailNavButton({
-  icon: Icon,
-  label,
-  onClick,
-  disabled,
-  children,
-}: {
-  icon: typeof ChevronLeft
-  label: string
-  onClick: () => void
-  disabled?: boolean
-  children?: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={label}
-      aria-label={label}
-      className={cn(
-        "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium text-foreground",
-        "transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40",
-      )}
-    >
-      <Icon className="size-3.5" />
-      {children}
-    </button>
-  )
-}
 
 export function ExtractPageDetail({
   label,
@@ -84,6 +53,7 @@ export function ExtractPageDetail({
   const { stageState, stepState } = useBookRun()
   const nav = usePipelineNavigation(label)
   const [pageImageDims, setPageImageDims] = useState<{ w: number; h: number } | null>(null)
+  usePrefetchAdjacentPages(label, prevPageId, nextPageId)
 
   const storyboardState = stageState("storyboard")
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"

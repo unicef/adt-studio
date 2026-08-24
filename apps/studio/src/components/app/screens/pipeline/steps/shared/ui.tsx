@@ -150,6 +150,37 @@ export function EditableText({
   return multiline ? <textarea rows={3} {...shared} /> : <input type="text" {...shared} />
 }
 
+export function DetailNavButton({
+  icon: Icon,
+  label,
+  onClick,
+  disabled,
+  children,
+}: {
+  icon: typeof Check
+  label: string
+  onClick: () => void
+  disabled?: boolean
+  children?: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={label}
+      aria-label={label}
+      className={cn(
+        "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium text-foreground",
+        "transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40",
+      )}
+    >
+      <Icon className="size-3.5" />
+      {children}
+    </button>
+  )
+}
+
 export function RowAction({
   icon: Icon,
   label,
@@ -263,12 +294,13 @@ export function StepEmptyHint({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function SaveError({ error }: { error: Error | null }) {
+export function SaveError({ error }: { error: Error | string | null }) {
   if (!error) return null
+  const message = typeof error === "string" ? error : error.message
   return (
     <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-[12px] text-destructive">
       <X className="size-3.5 shrink-0" />
-      <Trans>Could not save your change: {error.message}</Trans>
+      <Trans>Could not save your change: {message}</Trans>
     </div>
   )
 }

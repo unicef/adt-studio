@@ -13,12 +13,12 @@ import { FloatingSaveProvider } from "@/components/pipeline/components/floating-
 import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
 import { StepEmpty, StepLoading, StepRunning, StepShell, useStepLoading } from "./shared/StepShell"
 import { StepBody, StepRail } from "./shared/ui"
+import { usePageDetailKeys } from "./shared/usePageDetailKeys"
+import { usePageParam } from "./shared/usePageParam"
 import { ExtractPageDetail } from "./extract/ExtractPageDetail"
 import { ExtractPageGrid } from "./extract/ExtractPageGrid"
 import { ExtractRunBanner } from "./extract/ExtractRunBanner"
 import { ExtractSpreadReview } from "./extract/ExtractSpreadReview"
-import { useExtractDetailKeys } from "./extract/useExtractDetailKeys"
-import { useExtractPageParam } from "./extract/useExtractPageParam"
 import type { StepProps } from "./shared/types"
 
 export function ExtractStep(props: StepProps) {
@@ -29,7 +29,7 @@ export function ExtractStep(props: StepProps) {
   const extract = useStageActivity("extract")
   const extractRun = useExtractRun(label)
   const pagesQuery = usePages(label)
-  const { pageParam, openPage, stepPage, closeDetail } = useExtractPageParam(label, plugin.slug)
+  const { pageParam, openPage, stepPage, closeDetail } = usePageParam(label, plugin.slug)
 
   const hasPages = pages.length > 0
   const warnCount = useMemo(
@@ -45,7 +45,7 @@ export function ExtractStep(props: StepProps) {
   const nextPageId =
     currentIndex >= 0 && currentIndex < pages.length - 1 ? pages[currentIndex + 1].pageId : null
 
-  useExtractDetailKeys({
+  usePageDetailKeys({
     enabled: !!selectedPage,
     prevPageId,
     nextPageId,

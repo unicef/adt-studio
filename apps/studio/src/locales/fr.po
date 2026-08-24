@@ -262,8 +262,8 @@ msgid "{0} missing prompt files will be created. Existing files are left unchang
 msgstr "{0} fichiers de prompt manquants seront créés. Les fichiers existants ne seront pas modifiés."
 
 #. placeholder {0}: lines.length
-msgid "{0} nodes"
-msgstr "{0} nœuds"
+#~ msgid "{0} nodes"
+#~ msgstr "{0} nœuds"
 
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
@@ -338,6 +338,7 @@ msgstr "{0} questions"
 
 #. placeholder {0}: String(group.blocks.length)
 #. placeholder {0}: blocks.length
+#. placeholder {0}: page.sectionCount
 msgid "{0} sections"
 msgstr "{0} sections"
 
@@ -546,6 +547,9 @@ msgstr "{percent}%"
 
 msgid "{pruned} dropped"
 msgstr "{pruned} écartées"
+
+msgid "{prunedCount} sections excluded from render"
+msgstr "{prunedCount} sections exclues du rendu"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} détectée(s)"
@@ -2906,8 +2910,11 @@ msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Impossible de supprimer {failed} vidéos sur {total} — veuillez réessayer."
 
 #. placeholder {0}: error.message
-msgid "Could not save your change: {0}"
-msgstr "Impossible d'enregistrer la modification : {0}"
+#~ msgid "Could not save your change: {0}"
+#~ msgstr "Impossible d'enregistrer la modification : {0}"
+
+msgid "Could not save your change: {message}"
+msgstr "Impossible d'enregistrer la modification : {message}"
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Impossible d'appliquer les fusions — veuillez réessayer."
@@ -3524,8 +3531,8 @@ msgstr "Déposez le paquet sur n'importe quel hôte statique pour servir le livr
 #~ msgid "Drop this image"
 #~ msgstr "Écarter cette image"
 
-msgid "Drop this section"
-msgstr "Écarter cette section"
+#~ msgid "Drop this section"
+#~ msgstr "Écarter cette section"
 
 msgid "Drop ZIP here"
 msgstr "Déposez le ZIP ici"
@@ -5365,8 +5372,8 @@ msgstr "Gardez les pages entières par défaut, mais divisez-les lorsque des typ
 #~ msgid "Keep this image"
 #~ msgstr "Conserver cette image"
 
-msgid "Keep this section"
-msgstr "Conserver cette section"
+#~ msgid "Keep this section"
+#~ msgstr "Conserver cette section"
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Garde les pages entières sauf si des types d'activités mixtes nécessitent un découpage."
@@ -5660,6 +5667,9 @@ msgstr "Chargement du glossaire..."
 
 msgid "Loading image..."
 msgstr "Chargement de l'image..."
+
+msgid "Loading image…"
+msgstr "Chargement de l'image…"
 
 msgid "Loading images..."
 msgstr "Chargement des images..."
@@ -10648,6 +10658,9 @@ msgstr "Cette page n'a pas d'entrées à synthétiser"
 msgid "This page has no sectioning output"
 msgstr "Cette page n'a pas de sortie de sectionnement"
 
+msgid "This page has no sectioning output yet."
+msgstr "Cette page n'a pas encore de sortie de sectionnement."
+
 msgid "This page has no simplified text blocks"
 msgstr "Cette page n'a pas de blocs de texte simplifiés"
 
@@ -10711,8 +10724,8 @@ msgstr "Cette section n'existe pas dans cette version."
 msgid "This section has no storyboard rendering yet"
 msgstr "Cette section n'a pas encore de rendu de scénarimage"
 
-msgid "This section has no text nodes."
-msgstr "Cette section n'a aucun nœud de texte."
+#~ msgid "This section has no text nodes."
+#~ msgstr "Cette section n'a aucun nœud de texte."
 
 msgid "This section is pruned and isn't rendered."
 msgstr "Cette section est élaguée et n'est pas rendue."

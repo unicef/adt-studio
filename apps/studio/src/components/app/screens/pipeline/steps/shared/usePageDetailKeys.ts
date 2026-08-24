@@ -8,7 +8,7 @@ function overlayOpen(): boolean {
   )
 }
 
-export function useExtractDetailKeys({
+export function usePageDetailKeys({
   enabled,
   prevPageId,
   nextPageId,

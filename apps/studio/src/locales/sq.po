@@ -262,8 +262,8 @@ msgid "{0} missing prompt files will be created. Existing files are left unchang
 msgstr "{0} skedarë prompti që mungojnë do të krijohen. Skedarët ekzistues nuk do të ndryshohen."
 
 #. placeholder {0}: lines.length
-msgid "{0} nodes"
-msgstr "{0} nyje"
+#~ msgid "{0} nodes"
+#~ msgstr "{0} nyje"
 
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
@@ -338,6 +338,7 @@ msgstr "{0} pyetje"
 
 #. placeholder {0}: String(group.blocks.length)
 #. placeholder {0}: blocks.length
+#. placeholder {0}: page.sectionCount
 msgid "{0} sections"
 msgstr "{0} seksione"
 
@@ -546,6 +547,9 @@ msgstr "{percent}%"
 
 msgid "{pruned} dropped"
 msgstr "{pruned} të hequra"
+
+msgid "{prunedCount} sections excluded from render"
+msgstr "{prunedCount} seksione të përjashtuara nga renderimi"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
@@ -2906,8 +2910,11 @@ msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Nuk u hoqën dot {failed} nga {total} video — ju lutem provoni përsëri."
 
 #. placeholder {0}: error.message
-msgid "Could not save your change: {0}"
-msgstr "Ndryshimi juaj nuk u ruajt dot: {0}"
+#~ msgid "Could not save your change: {0}"
+#~ msgstr "Ndryshimi juaj nuk u ruajt dot: {0}"
+
+msgid "Could not save your change: {message}"
+msgstr "Ndryshimi juaj nuk u ruajt dot: {message}"
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Nuk mund të aplikohej faqet e përbashkëta — ju lutem provoni përsëri."
@@ -3524,8 +3531,8 @@ msgstr "Hidh paketat në çdo host statik për të shërbyer librin si faqe inte
 #~ msgid "Drop this image"
 #~ msgstr "Hiq këtë imazh"
 
-msgid "Drop this section"
-msgstr "Hiq këtë seksion"
+#~ msgid "Drop this section"
+#~ msgstr "Hiq këtë seksion"
 
 msgid "Drop ZIP here"
 msgstr "Hidh ZIP-in këtu"
@@ -5365,8 +5372,8 @@ msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të 
 #~ msgid "Keep this image"
 #~ msgstr "Mbaj këtë imazh"
 
-msgid "Keep this section"
-msgstr "Mbaj këtë seksion"
+#~ msgid "Keep this section"
+#~ msgstr "Mbaj këtë seksion"
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërkojnë ndarje."
@@ -5660,6 +5667,9 @@ msgstr "Duke ngarkuar glosarin..."
 
 msgid "Loading image..."
 msgstr "Duke ngarkuar imazhin..."
+
+msgid "Loading image…"
+msgstr "Duke ngarkuar imazhin…"
 
 msgid "Loading images..."
 msgstr "Duke ngarkuar imazhet..."
@@ -10648,6 +10658,9 @@ msgstr "Kjo faqe nuk ka hyrje për të sintetizuar"
 msgid "This page has no sectioning output"
 msgstr "Kjo faqe nuk ka dalje seksionimi"
 
+msgid "This page has no sectioning output yet."
+msgstr "Kjo faqe nuk ka ende dalje seksionimi."
+
 msgid "This page has no simplified text blocks"
 msgstr "Kjo faqe nuk ka blloqe teksti të thjeshtuara"
 
@@ -10711,8 +10724,8 @@ msgstr "Kjo pjesë nuk ekziston në këtë version."
 msgid "This section has no storyboard rendering yet"
 msgstr "Ky seksion nuk ka ende renderim storyboard"
 
-msgid "This section has no text nodes."
-msgstr "Ky seksion nuk ka nyje teksti."
+#~ msgid "This section has no text nodes."
+#~ msgstr "Ky seksion nuk ka nyje teksti."
 
 msgid "This section is pruned and isn't rendered."
 msgstr "Ky seksion është prerë dhe nuk renderizohet."

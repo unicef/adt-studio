@@ -260,8 +260,8 @@ msgid "{0} missing prompt files will be created. Existing files are left unchang
 msgstr "{0} missing prompt files will be created. Existing files are left unchanged."
 
 #. placeholder {0}: lines.length
-msgid "{0} nodes"
-msgstr "{0} nodes"
+#~ msgid "{0} nodes"
+#~ msgstr "{0} nodes"
 
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
@@ -336,6 +336,7 @@ msgstr "{0} questions"
 
 #. placeholder {0}: String(group.blocks.length)
 #. placeholder {0}: blocks.length
+#. placeholder {0}: page.sectionCount
 msgid "{0} sections"
 msgstr "{0} sections"
 
@@ -544,6 +545,9 @@ msgstr "{percent}%"
 
 msgid "{pruned} dropped"
 msgstr "{pruned} dropped"
+
+msgid "{prunedCount} sections excluded from render"
+msgstr "{prunedCount} sections excluded from render"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
@@ -2904,8 +2908,11 @@ msgid "Could not remove {failed} of {total} videos. Please try again."
 msgstr "Could not remove {failed} of {total} videos. Please try again."
 
 #. placeholder {0}: error.message
-msgid "Could not save your change: {0}"
-msgstr "Could not save your change: {0}"
+#~ msgid "Could not save your change: {0}"
+#~ msgstr "Could not save your change: {0}"
+
+msgid "Could not save your change: {message}"
+msgstr "Could not save your change: {message}"
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Couldn't apply the spreads — please try again."
@@ -3522,8 +3529,8 @@ msgstr "Drop the bundle on any static host to serve the book as a website."
 #~ msgid "Drop this image"
 #~ msgstr "Drop this image"
 
-msgid "Drop this section"
-msgstr "Drop this section"
+#~ msgid "Drop this section"
+#~ msgstr "Drop this section"
 
 msgid "Drop ZIP here"
 msgstr "Drop ZIP here"
@@ -5363,8 +5370,8 @@ msgstr "Keep pages whole by default, but split when distinct activity types are 
 #~ msgid "Keep this image"
 #~ msgstr "Keep this image"
 
-msgid "Keep this section"
-msgstr "Keep this section"
+#~ msgid "Keep this section"
+#~ msgstr "Keep this section"
 
 msgid "Keeps pages whole unless mixed activity types require splitting."
 msgstr "Keeps pages whole unless mixed activity types require splitting."
@@ -5658,6 +5665,9 @@ msgstr "Loading glossary..."
 
 msgid "Loading image..."
 msgstr "Loading image..."
+
+msgid "Loading image…"
+msgstr "Loading image…"
 
 msgid "Loading images..."
 msgstr "Loading images..."
@@ -10646,6 +10656,9 @@ msgstr "This page has no entries to synthesize"
 msgid "This page has no sectioning output"
 msgstr "This page has no sectioning output"
 
+msgid "This page has no sectioning output yet."
+msgstr "This page has no sectioning output yet."
+
 msgid "This page has no simplified text blocks"
 msgstr "This page has no simplified text blocks"
 
@@ -10709,8 +10722,8 @@ msgstr "This section doesn't exist in this version."
 msgid "This section has no storyboard rendering yet"
 msgstr "This section has no storyboard rendering yet"
 
-msgid "This section has no text nodes."
-msgstr "This section has no text nodes."
+#~ msgid "This section has no text nodes."
+#~ msgstr "This section has no text nodes."
 
 msgid "This section is pruned and isn't rendered."
 msgstr "This section is pruned and isn't rendered."
