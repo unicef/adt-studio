@@ -99,6 +99,26 @@ export const RoomCursorMoveFrame = z.object({
 })
 export type RoomCursorMoveFrame = z.infer<typeof RoomCursorMoveFrame>
 
+/**
+ * Client → server: where in the page this reader is *looking*, as against where they are
+ * pointing.
+ *
+ * Same shape as a cursor and a separate frame on purpose, because the two claim different
+ * things. A cursor exists only while a pointer moves, which means a reader on a tablet never has
+ * one at all and a reader who has settled down to read loses theirs after five seconds — and
+ * those are exactly the people the edge markers are meant to place. A viewport is reported
+ * whenever the page moves under them, so it is the honest answer to "where are they", and it is
+ * never drawn as an arrow: nobody is pointing at anything.
+ */
+export const RoomViewportFrame = z.object({
+  t: z.literal("viewport"),
+  section_id: z.string().min(1),
+  selector: z.string().min(1).max(512),
+  xOffsetPct: z.number().min(0).max(100),
+  yOffsetPct: z.number().min(0).max(100),
+})
+export type RoomViewportFrame = z.infer<typeof RoomViewportFrame>
+
 export const RoomPageFrame = z.object({
   t: z.literal("page"),
   section_id: z.string().min(1).nullable(),
@@ -117,6 +137,7 @@ export type RoomDeviceFrame = z.infer<typeof RoomDeviceFrame>
 export const RoomClientFrame = z.discriminatedUnion("t", [
   RoomHelloFrame,
   RoomCursorMoveFrame,
+  RoomViewportFrame,
   RoomPageFrame,
   RoomDeviceFrame,
 ])
@@ -141,6 +162,17 @@ export const RoomPeerCursorFrame = z.object({
 })
 export type RoomPeerCursorFrame = z.infer<typeof RoomPeerCursorFrame>
 
+/** Server → client, relayed to the peers reading the same page, exactly as a cursor is. */
+export const RoomPeerViewportFrame = z.object({
+  t: z.literal("viewport"),
+  peer_id: z.string().min(1),
+  section_id: z.string().min(1),
+  selector: z.string().min(1).max(512),
+  xOffsetPct: z.number().min(0).max(100),
+  yOffsetPct: z.number().min(0).max(100),
+})
+export type RoomPeerViewportFrame = z.infer<typeof RoomPeerViewportFrame>
+
 export const ROOM_COMMENT_EVENTS = [
   "comment-created",
   "comment-updated",
@@ -162,6 +194,7 @@ export type RoomCommentFrame = z.infer<typeof RoomCommentFrame>
 export const RoomServerFrame = z.discriminatedUnion("t", [
   RoomPresenceFrame,
   RoomPeerCursorFrame,
+  RoomPeerViewportFrame,
   RoomCommentFrame.extend({ t: z.literal("comment-created") }),
   RoomCommentFrame.extend({ t: z.literal("comment-updated") }),
   RoomCommentFrame.extend({ t: z.literal("comment-deleted") }),

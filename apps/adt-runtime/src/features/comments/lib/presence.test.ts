@@ -7,6 +7,7 @@ import {
   cursorFromFrame,
   otherPeers,
   PRESENCE_GRACE_MS,
+  positionsToDraw,
   pruneCursors,
   stickyRoster,
   visibleCursors,
@@ -411,5 +412,50 @@ describe("keeping the list in the same order", () => {
     const legacy = [{ peer: bruno, lastSeenMs: 900 }]
     const state = stickyRoster([ana], legacy, 1_000)
     expect(state.display.map((peer) => peer.name)).toEqual(["Bruno", "Ana"])
+  })
+})
+
+describe("choosing what to draw for each peer", () => {
+  const peer: RoomPeer = {
+    id: "p1",
+    name: "Ana",
+    color: "#0091ff",
+    is_author: false,
+    page_section_id: "pg001_sec001",
+    device: "full",
+  }
+  const at = (n: number): PeerCursor => ({
+    peerId: "p1",
+    sectionId: "pg001_sec001",
+    selector: `#content [data-id='n${n}']`,
+    xOffsetPct: 50,
+    yOffsetPct: 50,
+    at: 1_000_000,
+  })
+  const OPTIONS = { cursorStaleMs: 5_000, viewportStaleMs: 45_000 }
+
+  it("prefers the cursor, which is the more specific claim", () => {
+    const drawn = positionsToDraw([at(1)], [at(2)], [peer], "me", "pg001_sec001", 1_000_100, OPTIONS)
+    expect(drawn).toHaveLength(1)
+    expect(drawn[0]?.pointing).toBe(true)
+    expect(drawn[0]?.cursor.selector).toContain("n1")
+  })
+
+  /** The reader who stopped moving their mouse, and the tablet reader who never had one. */
+  it("falls back to where they are looking once the cursor goes stale", () => {
+    const drawn = positionsToDraw([at(1)], [at(2)], [peer], "me", "pg001_sec001", 1_020_000, OPTIONS)
+    expect(drawn).toHaveLength(1)
+    expect(drawn[0]?.pointing).toBe(false)
+    expect(drawn[0]?.cursor.selector).toContain("n2")
+  })
+
+  it("never reports the same peer twice", () => {
+    const drawn = positionsToDraw([at(1)], [at(2)], [peer], "me", "pg001_sec001", 1_000_100, OPTIONS)
+    expect(new Set(drawn.map((entry) => entry.cursor.peerId)).size).toBe(drawn.length)
+  })
+
+  it("places a peer who only ever reported a viewport", () => {
+    const drawn = positionsToDraw([], [at(2)], [peer], "me", "pg001_sec001", 1_000_100, OPTIONS)
+    expect(drawn.map((entry) => entry.pointing)).toEqual([false])
   })
 })

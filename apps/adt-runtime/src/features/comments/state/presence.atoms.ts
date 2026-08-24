@@ -33,6 +33,13 @@ export const selfPeerIdAtom = ephemeralAtom<string | null>(null)
 
 export const peerCursorsAtom = ephemeralAtom<PeerCursor[]>([])
 
+/**
+ * Where each peer is *looking*, as against pointing. Same shape as a cursor and kept apart from
+ * one, because only a cursor may be drawn as an arrow — a viewport says somebody is reading
+ * there, which is not a claim that they are pointing at it.
+ */
+export const peerViewportsAtom = ephemeralAtom<PeerCursor[]>([])
+
 export const otherPeersAtom = atom((get) => otherPeers(get(roomPeersAtom), get(selfPeerIdAtom)))
 
 /**

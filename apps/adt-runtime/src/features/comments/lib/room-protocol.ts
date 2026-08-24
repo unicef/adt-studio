@@ -16,11 +16,19 @@ import type {
   RoomDevice,
   RoomPeer,
   RoomPeerCursorFrame,
+  RoomPeerViewportFrame,
   RoomPresenceFrame,
   RoomServerFrame,
 } from "@adt/types"
 
-export type { RoomDevice, RoomPeer, RoomPeerCursorFrame, RoomPresenceFrame, RoomServerFrame }
+export type {
+  RoomDevice,
+  RoomPeer,
+  RoomPeerCursorFrame,
+  RoomPeerViewportFrame,
+  RoomPresenceFrame,
+  RoomServerFrame,
+}
 
 export const ROOM_MAX_PEERS = 64
 
@@ -86,6 +94,10 @@ export function isCursorFrame(frame: RoomServerFrame): frame is RoomPeerCursorFr
   return frame.t === "cursor"
 }
 
+export function isViewportFrame(frame: RoomServerFrame): frame is RoomPeerViewportFrame {
+  return frame.t === "viewport"
+}
+
 export function isCommentEvent(value: string): value is RoomCommentEvent {
   return COMMENT_EVENTS.includes(value)
 }
@@ -120,6 +132,24 @@ export function parseServerFrame(raw: unknown): RoomServerFrame | null {
     if (!isText(payload.self_id) || !Array.isArray(payload.peers)) return null
     if (!payload.peers.every(isPeer)) return null
     return { t: "presence", self_id: payload.self_id, peers: payload.peers }
+  }
+
+  /** Identical validation to a cursor, kept as its own branch rather than folded in with it:
+   *  they are the same shape today and mean different things, and a reader on an older snapshot
+   *  drops this frame unparsed rather than mistaking it for somebody pointing. */
+  if (payload.t === "viewport") {
+    if (!isText(payload.peer_id) || !isText(payload.section_id) || !isText(payload.selector)) {
+      return null
+    }
+    if (!isPercent(payload.xOffsetPct) || !isPercent(payload.yOffsetPct)) return null
+    return {
+      t: "viewport",
+      peer_id: payload.peer_id,
+      section_id: payload.section_id,
+      selector: payload.selector,
+      xOffsetPct: payload.xOffsetPct,
+      yOffsetPct: payload.yOffsetPct,
+    }
   }
 
   if (payload.t === "cursor") {

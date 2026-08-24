@@ -6,6 +6,7 @@ import {
   RoomServerFrame,
   type PublishErrorResponse,
   type RoomPeerCursorFrame,
+  type RoomPeerViewportFrame,
   type RoomPresenceFrame,
 } from "@adt/types"
 import type { Env } from "./env.js"
@@ -161,6 +162,25 @@ export class PublicationRoom {
       }
       /** Same page only. A cursor is a position inside a document; relaying it to somebody
        *  reading a different one would resolve the selector against the wrong DOM. */
+      for (const socket of this.state.getWebSockets()) {
+        if (socket === ws) continue
+        if (attachmentOf(socket)?.page_section_id !== frame.section_id) continue
+        send(socket, relay)
+      }
+      return
+    }
+
+    /** Relayed on the same terms as a cursor, and for the same reason: it is a position inside
+     *  one document, so it means nothing to somebody reading another. */
+    if (frame.t === "viewport") {
+      const relay: RoomPeerViewportFrame = {
+        t: "viewport",
+        peer_id: peer.id,
+        section_id: frame.section_id,
+        selector: frame.selector,
+        xOffsetPct: frame.xOffsetPct,
+        yOffsetPct: frame.yOffsetPct,
+      }
       for (const socket of this.state.getWebSockets()) {
         if (socket === ws) continue
         if (attachmentOf(socket)?.page_section_id !== frame.section_id) continue

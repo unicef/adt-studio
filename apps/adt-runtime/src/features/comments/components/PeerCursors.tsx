@@ -2,7 +2,7 @@ import { useAtomValue } from "jotai"
 import { useEffect, useMemo, useState } from "react"
 import { currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
 import { readableTextColor } from "@/features/comments/lib/color"
-import { CURSOR_OFFSCREEN_STALE_MS, visibleCursors } from "@/features/comments/lib/presence"
+import { CURSOR_OFFSCREEN_STALE_MS, positionsToDraw } from "@/features/comments/lib/presence"
 import { scrollBehavior } from "@/features/comments/lib/motion"
 import { ROOM_CURSOR_STALE_MS } from "@/features/comments/lib/room-protocol"
 import {
@@ -16,6 +16,7 @@ import { useCommentsText } from "@/features/comments/hooks/useCommentsText"
 import { useViewportSize } from "@/features/comments/hooks/useViewportSize"
 import {
   peerCursorsAtom,
+  peerViewportsAtom,
   roomPeersAtom,
   selfPeerIdAtom,
 } from "@/features/comments/state/presence.atoms"
@@ -95,6 +96,7 @@ export function PeerCursors() {
   const peers = useAtomValue(roomPeersAtom)
   const selfId = useAtomValue(selfPeerIdAtom)
   const cursors = useAtomValue(peerCursorsAtom)
+  const viewports = useAtomValue(peerViewportsAtom)
   const sectionId = useAtomValue(currentSectionIdAtom)
   const viewport = useViewportSize()
   const { t } = useCommentsText()
@@ -108,7 +110,9 @@ export function PeerCursors() {
    * otherwise stay on screen until an unrelated render happened to clear it.
    */
   const [now, setNow] = useState(() => Date.now())
-  const ticking = cursors.length > 0
+  /** Viewports count too: they are now the only signal a tablet reader ever produces, and
+   *  without them the clock would never start for a room of them. */
+  const ticking = cursors.length > 0 || viewports.length > 0
   useEffect(() => {
     if (!ticking) return
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
@@ -123,15 +127,13 @@ export function PeerCursors() {
    */
   const visible = useMemo(
     () =>
-      visibleCursors(
-        cursors,
-        peers,
-        selfId,
-        sectionId ?? null,
-        now,
-        CURSOR_OFFSCREEN_STALE_MS,
-      ),
-    [cursors, now, peers, sectionId, selfId],
+      positionsToDraw(cursors, viewports, peers, selfId, sectionId ?? null, now, {
+        /** Collected at the long window and split by placement below: filtering at the arrow's
+         *  window first would drop the very peers the edge markers exist for. */
+        cursorStaleMs: CURSOR_OFFSCREEN_STALE_MS,
+        viewportStaleMs: CURSOR_OFFSCREEN_STALE_MS,
+      }),
+    [cursors, now, peers, sectionId, selfId, viewports],
   )
 
   const targets = useMemo<AnchorTarget[]>(
@@ -161,9 +163,13 @@ export function PeerCursors() {
 
   /** An arrow claims "pointing here, now" and holds only to the short window; an edge marker
    *  claims "reading over there" and holds to the long one. */
+  /** Only a *cursor* may become an arrow. A viewport says somebody is reading there, which is
+   *  not a claim that they are pointing at it — drawing one would invent a gesture. */
   const onscreen = placed.filter(
     (item) =>
-      item.placement.kind === "onscreen" && now - item.entry.cursor.at < ROOM_CURSOR_STALE_MS,
+      item.placement.kind === "onscreen" &&
+      item.entry.pointing &&
+      now - item.entry.cursor.at < ROOM_CURSOR_STALE_MS,
   )
   const offscreen = placed.filter((item) => item.placement.kind === "edge")
 

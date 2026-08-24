@@ -3,6 +3,7 @@ import {
   ROOM_CURSOR_STALE_MS,
   type RoomPeer,
   type RoomPeerCursorFrame,
+  type RoomPeerViewportFrame,
 } from "@/features/comments/lib/room-protocol"
 
 /**
@@ -28,7 +29,12 @@ export interface VisibleCursor {
   peer: RoomPeer
 }
 
-export function cursorFromFrame(frame: RoomPeerCursorFrame, at: number): PeerCursor {
+/** Both frames carry the same five fields; only what they *mean* differs, and that is decided
+ *  by which list the result is stored in rather than by re-deriving it here. */
+export function cursorFromFrame(
+  frame: RoomPeerCursorFrame | RoomPeerViewportFrame,
+  at: number,
+): PeerCursor {
   return {
     peerId: frame.peer_id,
     sectionId: frame.section_id,
@@ -168,6 +174,49 @@ export function stickyRoster(
     .map((entry) => entry.peer)
 
   return { display, seen: next }
+}
+
+/**
+ * The one position to draw per peer, from the two signals that can supply one.
+ *
+ * A cursor wins where there is a fresh one: it is the more specific claim, and the only one that
+ * may be drawn as an arrow. A viewport fills in for everybody else — the tablet reader who never
+ * had a cursor, and the reader who stopped moving their mouse — and is marked so the overlay
+ * knows it must never sprout an arrowhead. Somebody reading quietly three screens down is placed
+ * at the edge either way, which is the whole point.
+ */
+export interface PlacedPeer {
+  cursor: PeerCursor
+  peer: RoomPeer
+  /** `false` for a viewport-derived position, which may only ever become an edge marker. */
+  pointing: boolean
+}
+
+export function positionsToDraw(
+  cursors: PeerCursor[],
+  viewports: PeerCursor[],
+  peers: RoomPeer[],
+  selfId: string | null,
+  sectionId: string | null,
+  now: number,
+  options: { cursorStaleMs: number; viewportStaleMs: number },
+): PlacedPeer[] {
+  const pointing = visibleCursors(cursors, peers, selfId, sectionId, now, options.cursorStaleMs)
+  const claimed = new Set(pointing.map((entry) => entry.cursor.peerId))
+
+  const looking = visibleCursors(
+    viewports,
+    peers,
+    selfId,
+    sectionId,
+    now,
+    options.viewportStaleMs,
+  ).filter((entry) => !claimed.has(entry.cursor.peerId))
+
+  return [
+    ...pointing.map((entry) => ({ ...entry, pointing: true })),
+    ...looking.map((entry) => ({ ...entry, pointing: false })),
+  ]
 }
 
 /** Everyone but the reader. "3 people here" counts the others; the reader knows they are here. */

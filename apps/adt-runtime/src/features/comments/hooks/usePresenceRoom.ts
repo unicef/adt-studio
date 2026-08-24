@@ -27,6 +27,7 @@ import {
 } from "@/features/comments/state/comments.atoms"
 import {
   peerCursorsAtom,
+  peerViewportsAtom,
   roomPeersAtom,
   seenPeersAtom,
   roomStatusAtom,
@@ -95,6 +96,7 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
   const setPeers = useSetAtom(roomPeersAtom)
   const setSelfId = useSetAtom(selfPeerIdAtom)
   const setCursors = useSetAtom(peerCursorsAtom)
+  const setViewports = useSetAtom(peerViewportsAtom)
   const setComments = useSetAtom(commentsAtom)
   const setSettling = useSetAtom(settlingPinIdAtom)
 
@@ -141,11 +143,19 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
           setCursors((cursors) =>
             pruneCursors(cursors, Date.now(), ids, CURSOR_OFFSCREEN_STALE_MS),
           )
+          setViewports((seen) =>
+            pruneCursors(seen, Date.now(), ids, CURSOR_OFFSCREEN_STALE_MS),
+          )
           return
         }
 
         if (frame.t === "cursor") {
           setCursors((cursors) => applyCursor(cursors, cursorFromFrame(frame, Date.now())))
+          return
+        }
+
+        if (frame.t === "viewport") {
+          setViewports((seen) => applyCursor(seen, cursorFromFrame(frame, Date.now())))
           return
         }
 
@@ -280,6 +290,62 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
 
   /** Nothing arrives to say "their grace has run out", so the lingering entries are swept on the
    *  same beat the cursors are. */
+  /**
+   * Report where this reader is looking, which is the half of presence a pointer cannot supply.
+   *
+   * A cursor only exists while a mouse moves, so a reader on a tablet has never had one and a
+   * reader who has settled down to read loses theirs in five seconds — and those are precisely
+   * the people the edge markers exist to place. The viewport is reported whenever the page moves
+   * under them and once on arrival, so somebody sitting still three screens down is still
+   * somewhere rather than nowhere.
+   *
+   * The anchor is taken from the middle of the screen, walking a little way down the centre line
+   * when that exact point lands in a gap between blocks — which it often does, since the middle
+   * of a page is as likely to be margin as text.
+   */
+  useEffect(() => {
+    if (!context) return
+
+    let timer: number | null = null
+
+    const report = (): void => {
+      timer = null
+      if (document.visibilityState === "hidden") return
+      const section = sectionRef.current
+      if (section === null) return
+
+      const x = window.innerWidth / 2
+      for (const fraction of [0.5, 0.4, 0.6, 0.3, 0.7]) {
+        const anchor = anchorFromPoint(x, window.innerHeight * fraction)
+        if (!anchor) continue
+        socketRef.current?.send({
+          t: "viewport",
+          section_id: section,
+          selector: anchor.selector,
+          xOffsetPct: anchor.xOffsetPct,
+          yOffsetPct: anchor.yOffsetPct,
+        })
+        return
+      }
+    }
+
+    /** Coarser than the cursor's 30ms: this answers "which part of the page", and a reader
+     *  cannot scroll somewhere meaningfully different thirty times a second. */
+    const schedule = (): void => {
+      if (timer !== null) return
+      timer = window.setTimeout(report, 250)
+    }
+
+    schedule()
+    window.addEventListener("scroll", schedule, { passive: true })
+    window.addEventListener("resize", schedule, { passive: true })
+    return () => {
+      window.removeEventListener("scroll", schedule)
+      window.removeEventListener("resize", schedule)
+      if (timer !== null) window.clearTimeout(timer)
+    }
+  }, [context])
+
   useEffect(() => {
     if (!context) return
     const interval = window.setInterval(() => {
@@ -296,6 +362,14 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
   useEffect(() => {
     if (!context) return
     const interval = window.setInterval(() => {
+      setViewports((seen) =>
+        pruneCursors(
+          seen,
+          Date.now(),
+          new Set(store.get(roomPeersAtom).map((peer) => peer.id)),
+          CURSOR_OFFSCREEN_STALE_MS,
+        ),
+      )
       setCursors((cursors) =>
         /** Kept for the *longer* of the two display windows. The overlay decides what to draw
          *  from a cursor's age; dropping it from state at the arrow's window would leave the

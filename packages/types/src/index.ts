@@ -514,6 +514,8 @@ export {
   RoomClientFrame,
   RoomPresenceFrame,
   RoomPeerCursorFrame,
+  RoomPeerViewportFrame,
+  RoomViewportFrame,
   RoomCommentEvent,
   RoomCommentFrame,
   RoomServerFrame,
