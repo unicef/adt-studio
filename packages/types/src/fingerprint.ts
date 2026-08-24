@@ -39,7 +39,9 @@ import { SCHEMA_VERSION } from "./db.js"
 export const EXTRACTION_CONFIG_KEYS = [
   "spread_mode",
   "spread_pairs",
+  "figure_extraction_mode",
   "vector_text_grouping",
+  "remove_watermarks",
   "layout_type",
 ] as const
 

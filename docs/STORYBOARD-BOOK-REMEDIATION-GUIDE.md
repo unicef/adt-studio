@@ -1,10 +1,8 @@
 # Storyboard Book Remediation Guide
 
-This guide records the reusable lessons from remediating the **Science Standard 5** book. It is intended for any subject or language and should be used before, during, and after Storyboard generation.
+This guide is a reusable playbook for remediating any book, in any subject or language, before, during, and after Storyboard generation.
 
 The goal is not merely to pass automated checks. The digital book should preserve the source book's content, visual identity, reading order, activities, and diagrams while adding keyboard, screen-reader, mobile, language, and voice support.
-
-Some safeguards described below are requirements tracked by open GitHub issues and pull requests, not claims about behavior already available on `develop`. Use the canonical issues in [Related GitHub work](#related-github-work) to check implementation status before relying on a safeguard.
 
 ## Non-destructive workflow
 
@@ -115,8 +113,6 @@ Some safeguards described below are requirements tracked by open GitHub issues a
 - Test the Storyboard's real Mobile mode (375px), not only a resized outer browser window, because the preview iframe has its own device viewport.
 - Enter a sample answer and verify the control is enabled, keyboard-focusable, and retains the typed value.
 
-The English Standard 3 remediation was reported as producing **202 labelled response controls across 35 exercise pages**, with no missing labels, duplicate IDs, duplicate activity-item IDs, unsupported control types, clipped controls, or text-bearing exercise screenshots remaining. The repository does not contain the underlying book revision, structural-audit output, or screenshots, so treat those figures as a reported case-study result rather than an independently reproducible project baseline.
-
 ### Tables and table continuations
 
 **Symptoms**
@@ -161,26 +157,22 @@ The English Standard 3 remediation was reported as producing **202 labelled resp
 - Assert that each row has a non-zero leader, there are no duplicate number-only overlays, and the rendered section has no horizontal overflow.
 - Include tests for front-matter Roman numerals, multi-page continuation, long wrapped titles, unit/chapter headings, and cleanup of legacy generated markup.
 
-The English Standard 3 remediation was reported as aligning **43 entries across both TOC pages** to one page-number column, with continuous leaders, correct wrapping, no duplicate overlays, and no horizontal overflow. The repository does not contain the source book or screenshot measurements, so retain those artifacts when using this workflow to support an equivalent claim.
+### Accessibility validation
 
-### Accessibility validation findings
+**Fix**
 
-The Science Standard 5 remediation was reported in [#618](https://github.com/unicef/adt-studio/issues/618#issuecomment-5155450784) and [#678](https://github.com/unicef/adt-studio/issues/678#issuecomment-5155450923) as reducing **69 confirmed violations on 49 pages to 0 confirmed violations across 88 pages**. This repository does not contain the underlying before/after audit artifacts, so treat those numbers as a reported case-study result rather than an independently reproducible project baseline. Future remediations must retain the machine-readable reports, book revision, commands, and representative screenshots used to support equivalent claims.
-
-The safe, reusable corrections reported from that remediation were:
-
-- remove unsupported ARIA roles from native elements;
-- replace decorative nested `<aside>` landmarks with non-landmark containers;
-- repair skipped heading levels;
-- remove invalid `aria-label`/`aria-labelledby` usage from role-less SVG primitives;
-- remove non-interactive graphics from the keyboard tab order;
-- repair missing radio labels and broken ID references;
-- darken low-contrast activity headers, page-number ornaments, and callouts while retaining the book palette;
-- keep automated “incomplete” results separate from confirmed violations and review them manually.
+- Remove unsupported ARIA roles from native elements.
+- Replace decorative nested `<aside>` landmarks with non-landmark containers.
+- Repair skipped heading levels.
+- Remove invalid `aria-label`/`aria-labelledby` usage from role-less SVG primitives.
+- Remove non-interactive graphics from the keyboard tab order.
+- Repair missing radio labels and broken ID references.
+- Darken low-contrast activity headers, page-number ornaments, and callouts while retaining the book palette.
+- Keep automated “incomplete” results separate from confirmed violations and review them manually.
 
 Do not chase a zero score by hiding meaningful content from assistive technology. A fix must remain visually faithful and semantically honest.
 
-## Required quality gates for future books
+## Required quality gates for every book
 
 ### Before Storyboard
 
@@ -221,21 +213,3 @@ Image meaningfulness and other LLM-backed extraction calls can fail with timeout
 - After retries are exhausted, preserve page cardinality and surface an actionable per-page error with a retry action. Never prune a page because an API call failed.
 - Record the page ID, attempt count, final error class, prompt and model, cache status, and retry outcome for inspection.
 - Test connection timeout, closed connection, HTTP 429, retryable HTTP 5xx, and non-retryable failure paths.
-
-These are the pending acceptance requirements tracked by [#685](https://github.com/unicef/adt-studio/issues/685); this guide does not mark that implementation complete.
-
-## Related GitHub work
-
-The issues below are the canonical requirement trackers. Pull-request links identify the current implementation work at the time this guide was updated and may later be merged or superseded. Check the issue before starting duplicate work.
-
-| Area | Canonical issue | Implementation reference |
-| --- | --- | --- |
-| Network resilience without page loss | [#685](https://github.com/unicef/adt-studio/issues/685) | Pending |
-| Full-page visual fidelity | [#668](https://github.com/unicef/adt-studio/issues/668) | [#691](https://github.com/unicef/adt-studio/pull/691) |
-| Page preservation in By Page mode | [#666](https://github.com/unicef/adt-studio/issues/666) | [#692](https://github.com/unicef/adt-studio/pull/692) |
-| TOC leaders and response spacing | [#670](https://github.com/unicef/adt-studio/issues/670) | [#690](https://github.com/unicef/adt-studio/pull/690) |
-| Accessible labelled diagrams | [#520](https://github.com/unicef/adt-studio/issues/520) | [#689](https://github.com/unicef/adt-studio/pull/689) |
-| Heading hierarchy and font consistency | [#673](https://github.com/unicef/adt-studio/issues/673) | [#688](https://github.com/unicef/adt-studio/pull/688) |
-| Validation fix routing | [#618](https://github.com/unicef/adt-studio/issues/618) | [#645](https://github.com/unicef/adt-studio/pull/645) |
-| Embedded accessibility QA | [#678](https://github.com/unicef/adt-studio/issues/678) | Pending |
-| AI-assisted image cleaning and image-level version history | [#695](https://github.com/unicef/adt-studio/issues/695) | Pending |

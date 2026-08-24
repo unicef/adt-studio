@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest"
 import {
   reconstructHtmlWithEdit,
+  removeElementFromSourceHtml,
   serializeContentWrapper,
   usesViewportHeight,
 } from "./iframe-html"
@@ -137,5 +138,39 @@ describe("usesViewportHeight", () => {
 
   it("ignores fixed-height layout", () => {
     expect(usesViewportHeight(`<section class="min-h-[520px] h-96"></section>`)).toBe(false)
+  })
+})
+
+describe("removeElementFromSourceHtml", () => {
+  it("removes the matching source wrapper while preserving scripts and LaTeX", () => {
+    const source = `<div id="content" class="container"><section>
+  <div class="keep"><p data-id="keep">The area is $\\pi r^2$</p></div>
+  <script>window.adtRegisterCustomActivity(section, { validate: () => true })</script>
+  <div class="bg-orange-100"><span data-id="remove">Remove me</span></div>
+</section></div>`
+    const live = wrapperFrom(`<div id="content" class="container"><section>
+  <div class="keep"><p data-id="keep">The area is <math><mi>π</mi></math></p></div>
+  <div class="bg-orange-100" data-id="_el1"><span data-id="remove">Remove me</span></div>
+</section></div>`)
+    const target = live.querySelector('[data-id="_el1"]')
+    if (!target) throw new Error("no transient target in fixture")
+
+    const result = removeElementFromSourceHtml(source, live, target)
+
+    expect(result).not.toBeNull()
+    expect(result?.removedDataIds).toEqual(["remove"])
+    expect(result?.html).not.toContain("Remove me")
+    expect(result?.html).toContain("$\\pi r^2$")
+    expect(result?.html).not.toContain("<math")
+    expect(result?.html).toContain("window.adtRegisterCustomActivity")
+  })
+
+  it("refuses to remove when the live subtree cannot be matched to the source", () => {
+    const source = `<div id="content" class="container"><div><span data-id="source">Source</span></div></div>`
+    const live = wrapperFrom(`<div id="content" class="container"><div data-id="_el1"><span data-id="other">Other</span></div></div>`)
+    const target = live.querySelector('[data-id="_el1"]')
+    if (!target) throw new Error("no transient target in fixture")
+
+    expect(removeElementFromSourceHtml(source, live, target)).toBeNull()
   })
 })

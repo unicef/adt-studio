@@ -8,6 +8,7 @@ import { PRESETS, getPresetAccent } from "@/components/wizard/constants"
 import { SingleValueSlider, RangeSlider } from "@/components/ui/range-slider"
 import { ImageProcessingFeatureSwitch } from "./ImageProcessingFeatureSwitch"
 import { useDelayedPreviewFocus } from "@/components/wizard"
+import { FigureExtractionModeControl } from "./FigureExtractionModeControl"
 
 function parseMinSidePx(raw: string): number {
   const n = parseInt(raw.trim(), 10)
@@ -25,7 +26,10 @@ const TITLE_ACTIVITIES = msg`Activity Converter`
 const SUBTITLE_ACTIVITIES = msg`Detects activities already present in the book and transforms them into interactive HTML elements like radio buttons and text inputs.`
 
 const TITLE_FIGURE_EXTRACTION = msg`Figure Extraction`
-const SUBTITLE_FIGURE_EXTRACTION = msg`Detects complex charts and figures that contain a mix of text, vectors and images and crops them out of the page.`
+const SUBTITLE_FIGURE_EXTRACTION = msg`Auto keeps charts, labeled images, and complex infographics together while leaving headings, callouts, and conventional tables for accessible HTML.`
+
+const TITLE_REMOVE_WATERMARKS = msg`Remove Watermarks`
+const SUBTITLE_REMOVE_WATERMARKS = msg`Detects text stamped identically across pages — like a diagonal “for online reading only” notice — and removes it from page renders, extracted figures, and the book text. Turn off to keep pages exactly as printed.`
 
 const TITLE_SMART_CROPPING = msg`Smart Cropping`
 const SUBTITLE_SMART_CROPPING = msg`Best for complex content like textbooks - automatically trims stray text, artifacts, and extra margins from extracted images.`
@@ -97,15 +101,34 @@ export function Step3() {
 
   const activitiesGenerator = useStore(form.store, (s) => s.values.activitiesGenerator)
   const figureExtraction = useStore(form.store, (s) => s.values.figureExtraction)
+  const removeWatermarks = useStore(form.store, (s) => s.values.removeWatermarks)
   const imageCropping = useStore(form.store, (s) => s.values.imageCropping)
   const imageSegmentation = useStore(form.store, (s) => s.values.imageSegmentation)
   const segmentationMinSide = useStore(form.store, (s) => s.values.segmentationMinSide)
   const imageFilterMinSide = useStore(form.store, (s) => s.values.imageFilterMinSide)
   const imageFilterMaxSide = useStore(form.store, (s) => s.values.imageFilterMaxSide)
 
+  const watermarkSettings = (
+    <div className="flex flex-col gap-3">
+      <p className="text-xs font-semibold text-[#737373]">
+        <Trans>Watermarks</Trans>
+      </p>
+      <ImageProcessingFeatureSwitch
+        id="wizard-remove-watermarks"
+        title={i18n._(TITLE_REMOVE_WATERMARKS)}
+        subtitle={i18n._(SUBTITLE_REMOVE_WATERMARKS)}
+        previewFocus="idle"
+        checked={removeWatermarks}
+        onCheckedChange={(checked) => form.setFieldValue("removeWatermarks", checked)}
+        accent={accent}
+      />
+    </div>
+  )
+
   if (renderStrategy === "fixed_layout") {
     return (
       <div className="flex w-full flex-col gap-4 p-8">
+        {watermarkSettings}
         <div
           className="rounded-lg border border-dashed px-5 py-6"
           style={{ borderColor: accent.bg, backgroundColor: `${accent.bg}0d` }}
@@ -128,6 +151,8 @@ export function Step3() {
 
   return (
     <div className="flex w-full flex-col gap-8 p-8">
+      {watermarkSettings}
+
       <div className="flex flex-col gap-3">
         <p className="text-xs font-semibold text-[#737373]">
           <Trans>Activities</Trans>
@@ -150,16 +175,15 @@ export function Step3() {
           <Trans>Images</Trans>
         </p>
 
-        <ImageProcessingFeatureSwitch
-          id="wizard-figure-extraction"
+        <FigureExtractionModeControl
           title={i18n._(TITLE_FIGURE_EXTRACTION)}
           subtitle={i18n._(SUBTITLE_FIGURE_EXTRACTION)}
-          previewFocus="figureExtraction"
-          checked={figureExtraction}
-          onCheckedChange={(checked) => form.setFieldValue("figureExtraction", checked)}
-          recommended={recommendations.figureExtraction === true}
+          value={figureExtraction}
+          onValueChange={(value) => form.setFieldValue("figureExtraction", value)}
+          recommended={recommendations.figureExtraction === "auto" && selectedPresetId !== "textbook"}
           presetLabel={preset?.title}
           accent={accent}
+          labels={{ off: i18n._(msg`Off`), auto: i18n._(msg`Auto`), all: i18n._(msg`All`) }}
         />
 
         <ImageProcessingFeatureSwitch
@@ -182,7 +206,7 @@ export function Step3() {
             previewFocus="segmentation"
             checked={imageSegmentation}
             onCheckedChange={(checked) => form.setFieldValue("imageSegmentation", checked)}
-            recommended={recommendations.imageSegmentation === true}
+            recommended={recommendations.imageSegmentation === true && selectedPresetId !== "textbook"}
             presetLabel={preset?.title}
             accent={accent}
           />

@@ -627,6 +627,7 @@ export interface LlmLogEntry {
     cacheHit: boolean
     /** Final status of this individual attempt. Older log entries may omit it. */
     success?: boolean
+    error?: string
     durationMs: number
     usage?: { inputTokens: number; outputTokens: number }
     validationErrors?: string[]

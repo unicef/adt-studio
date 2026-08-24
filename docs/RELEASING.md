@@ -84,6 +84,14 @@ no `v` prefix**. This matters for two reasons:
   `beta.N` tags and stable calculation skips any prerelease, so a
   `-beta-pr-<n>` tag never shifts a future release version.
 
+Staging notes and covers remain factual by default. To test AI-generated
+release content before merging its implementation, run **Regenerate release
+assets** from the release-tooling branch and enter the staging tag exactly as
+shown on its prerelease (for example `0.7.5-beta-pr-123`). Staging targets must
+belong to an open same-repository PR into `develop`; they use the
+`release-ai-preview` environment and are updated live. Closing the target PR
+removes the staging release through the normal cleanup workflow.
+
 The `publish` job is idempotent per PR: before creating the release it deletes
 any existing release (and its tag) ending in `-beta-pr-<n>`, then recreates it
 from the current build. Staging does not create a `v*` tag or a Docker image.
@@ -186,7 +194,59 @@ actor for an App) and re-import.
 
 Open **Actions -> Release -> Run workflow**, select the release branch, and
 choose `beta`, `beta-minor`, `beta-major`, `patch`, `minor`, or `major` from
-the **Version increment** list.
+the **Version increment** list. Leave **Preview notes and covers only** checked
+to test the form and AI output without creating a release, tag, build, package,
+or commit. The run uploads the English notes and coordinated
+light/dark covers as a short-lived workflow artifact. Uncheck it only when
+cutting a real release from `develop` or `main`.
+
+Although the Release workflow already exists on the default branch, GitHub
+still builds the manual input form from that default-branch definition. A
+feature branch can be selected under **Use workflow from**, but its newly added
+controls cannot be reviewed reliably in the primary repository's UI before this
+schema reaches `develop`.
+
+For an exact pre-merge UI test, use a temporary fork, make the test branch its
+default branch, and open that fork's **Actions -> Release -> Run workflow**
+form. Create a restricted `release-ai-preview` environment in the fork, allow
+only that exact branch, and add an `OPENAI_API_KEY` with a conservative spend
+limit. The preview token has read-only repository access. Delete the fork or
+secret after testing. Preview mode fetches the canonical upstream release tags,
+which GitHub does not copy into every fork. CLI/API dispatch can execute a
+feature-branch workflow in the primary repository, but it does not expose the
+new controls in the web form.
+
+Stable releases and previews also accept editorial and cover inputs:
+
+- **Main feature** — the user-visible feature the notes and cover should lead
+  with;
+- **Release notice** — exact, English-only text rendered in bold as the first
+  visible line of a preview, beta, or stable release. Use it for critical
+  compatibility or reinstall instructions; leaving it blank preserves an
+  existing notice during regeneration;
+- **Cover palette** — `auto`, `random`, `adt`, or a pipeline stage. Every cover
+  keeps ADT electric blue (`#2B7FFF`), deep navy (`#0F172A`), white (`#FFFFFF`),
+  and cool blue-gray (`#64748B`) as its brand foundation. A stage choice adds
+  its predefined product accent, such as Storyboard violet (`#7C3AED`), Quizzes
+  orange (`#EA580C`), Captions teal (`#0D9488`), or Export indigo (`#4338CA`).
+  The workflow never accepts arbitrary color input.
+
+Empty editorial fields let the model choose from the generated changelog and
+commit history. `auto` infers the stage from the main feature first, then the
+generated notes, commits, and changed files.
+`random` selects a stage accent deterministically from the release tag. Both
+modes keep the light/dark pair coordinated and retain the ADT brand foundation.
+Preview mode accepts only stable increments (`patch`, `minor`, or `major`). A
+published beta does not receive AI assets automatically, but it can be used as
+the live end-to-end test target through the regeneration workflow described
+below.
+
+GitHub's `workflow_dispatch` form supports only boolean, choice, number,
+environment, and single-line string inputs. It cannot add sections, multiline
+text areas, conditional fields, or palette swatches. If release coordination
+eventually needs a richer GitHub-native interface, use an Issue Form to collect
+the request and keep the release workflow as the controlled executor; that
+approach requires additional authorization and issue-parsing automation.
 
 The branch contract is enforced:
 
@@ -217,17 +277,133 @@ case-insensitive, and only the head commit of the push is inspected.
 
 ## Release pipeline
 
-[`release.yml`](../.github/workflows/release.yml) has four stages:
+[`release.yml`](../.github/workflows/release.yml) has five release stages plus a
+small post-publication URL update job:
 
 1. `prepare` calculates the next version, validates the branch contract, bumps
    `apps/desktop/package.json`, and updates issue-template versions.
 2. `desktop` builds and signs installers for Windows, macOS, and Linux.
 3. `docker` builds and publishes the combined application image to GHCR.
-4. `finalize` commits release metadata, creates the tag, and publishes the
-   GitHub Release only after all builds succeed.
+4. `finalize` commits release metadata and creates the tag. Beta releases are
+   published immediately; stable releases are first saved as factual drafts.
+5. `enrich-stable-release` optionally adds English AI notes and light/dark
+   covers to a stable draft without delaying or affecting beta releases.
+6. `canonicalize-stable-release-covers` runs when a stable draft is published
+   and replaces its temporary draft asset links with permanent tag-based URLs.
 
 Stable Docker releases update both their version tag and `latest`. Beta images
 publish only their version tag and cannot overwrite `latest`.
+
+### Stable release review
+
+Stable releases use AI to turn GitHub's factual generated notes into the
+editorial format used by recent releases and to create an on-brand light/dark
+cover pair with the established release typography, glossy 3D feature tile, and
+exact version, headline, and subtitle copy. The light cover is generated first;
+the dark cover edits that result so layout, feature geometry, and typography
+remain aligned across themes.
+Create a `release-ai` GitHub Environment, allow deployments from `main`, and add
+its `OPENAI_API_KEY` secret. Do not add required reviewers to this environment:
+the draft's **Publish release** button is the editorial approval gate. The
+factual draft is created before OpenAI is called. If the secret is absent or an
+API call fails, that draft remains intact and can be enriched later with the
+regeneration workflow. Beta releases never enter this environment.
+
+The generated notes remain English. Only the light/dark covers are attached to
+the release. Generation context, requests, prompts, and other diagnostics are
+retained with the workflow run for three days instead of cluttering the public
+release downloads. Regenerating an older release removes its legacy translation
+metadata from both the release body and attached assets.
+
+Draft releases use GitHub's internal `untagged-*` URL until publication. The
+workflow records the draft's release ID and actual review URL, uploads the cover
+pair, and then embeds the asset URLs returned by GitHub so both themes render in
+the draft itself. Publishing the release triggers a final body update that uses
+the permanent `releases/download/vX.Y.Z/...` cover URLs.
+
+After the workflow succeeds:
+
+1. Open the draft link in the workflow summary.
+2. Review the rendered notes, both cover themes, and attached installers
+   together.
+3. Edit the draft directly, or open **Actions -> Regenerate release assets**.
+4. Choose `notes`, `image`, or `both`, select `auto` or a stage palette, provide
+   the main feature when needed, and run the regeneration from `main`.
+5. When satisfied, click **Publish release** on the draft. This is the human
+   confirmation step for the Electron release notes, covers, and installers.
+
+Regeneration accepts an unpublished stable `vX.Y.Z` draft, a published numbered
+beta `vX.Y.Z-beta.N`, or a PR staging `X.Y.Z-beta-pr-N` prerelease. Generated
+blocks are wrapped in hidden
+Markdown markers so image-only regeneration keeps the notes unchanged,
+notes-only regeneration keeps the cover unchanged, and human text outside
+those blocks is preserved. Image-only regeneration makes a fresh editorial
+pass for the new visual concept while leaving the existing notes unchanged.
+Notes-only regeneration preserves the existing cover and its English alt text.
+
+Beta and staging releases initially keep GitHub's factual generated notes as a
+fallback. A successful `notes` or `both` regeneration replaces that fallback
+with the AI editorial notes instead of displaying both versions. Manual notices
+and the `### Release source` provenance section remain intact. Numbered beta and
+staging generation compares against the newest applicable numbered beta, with
+the preceding stable release used only when no beta is available.
+
+Numbered beta and staging covers match the app's fallback beta banner: a deep
+violet/navy background with magenta radial glows, bright typography, a
+`BETA RELEASE` eyebrow, and a luminous `BETA` capsule integrated into the
+feature tile. The tile keeps the beta identity while the selected ADT or
+pipeline palette controls its feature objects and highlights. Stable covers
+keep the standard neutral ADT background and have no channel badge.
+
+For a beta test, create the beta normally, then open **Actions -> Regenerate
+release assets**, select `develop` under **Use workflow from**, enter its exact
+numbered tag, and regenerate `both`. The workflow uses the restricted
+`release-ai-preview` environment and updates that published prerelease in
+place, so the result is immediately visible on GitHub and in clients consuming
+its release body. Stable regeneration runs on `main` and uses `release-ai`; a
+stable request launched from another branch is forwarded to `main`.
+
+Before any body update, the workflow verifies the release ID, channel/state,
+and a hash of the original body. If a person edits the release or its state
+changes while generation is running, it refuses to overwrite the edit and
+removes any newly uploaded cover pair. Beta regeneration is therefore a live
+test and should target a disposable or explicitly selected prerelease.
+
+Only one stable draft may exist at a time. A stable draft already has a public
+protected tag and metadata commit, so abandoning one is not equivalent to
+deleting an ordinary draft. Delete the draft, remove the version tag through an
+authorized tag-protection bypass, and revert the metadata commit before
+calculating another release.
+
+### Local release preview
+
+The same generator can be exercised without creating a tag or GitHub Release:
+
+```bash
+OPENAI_API_KEY=... node scripts/generate-ai-release-assets.mjs \
+  --from v0.7.4 \
+  --to HEAD \
+  --tag v0.7.5 \
+  --repo unicef/adt-studio \
+  --hero "PNLD export" \
+  --palette auto \
+  --output .context/release-preview
+```
+
+Choose a stage explicitly, such as `--palette storyboard` or
+`--palette quizzes`, to override automatic inference. Arbitrary color input is
+intentionally unsupported so every cover remains grounded in ADT colors and the
+pipeline's established stage accents.
+
+The generated Markdown uses a `<picture>` element to select
+`release-cover-dark.png` or `release-cover-light.png` from the viewer's GitHub
+theme.
+
+Add `--no-image` for a text-only preview or `--dry-run` to write the collected
+context and OpenAI request without making any API calls. Preview files live
+under the gitignored `.context/` directory. Set `OPENAI_IMAGE_QUALITY=low` and
+`OPENAI_IMAGE_SIZE=1024x1024` for a faster, lower-cost local cover draft; CI
+uses the landscape production defaults.
 
 ### Beta release provenance
 
@@ -251,15 +427,12 @@ fallback. The PR list is capped, while the Compare link covers the complete
 range.
 
 Do not edit `### Release source` by hand. It is a parsing contract and must
-remain the last section of the release body. Newer apps remove it from the
-ordinary release notes and show its fields in the Beta versions source card;
-older apps display it as normal Markdown. The updater also strips the HTML form
-rendered by GitHub's feed before showing update notes.
+remain the final section of the release body. Newer apps show its fields in the
+Beta versions source card; older apps display it as normal Markdown. The updater
+also strips the HTML form rendered by GitHub's feed before showing update notes.
 
 If composition or provenance lookup fails, the workflow discards the temporary
 file and lets `gh release create --generate-notes` produce the release normally.
-Stable releases do not run the composer and retain their existing generated-note
-behavior.
 
 ## Desktop channels
 
@@ -267,11 +440,11 @@ Beta and stable are separate desktop products and can be installed together.
 Any version containing `-beta` uses the beta product identity and updater
 channel, including staging versions such as `0.7.5-beta-pr-123`.
 
-| Installed build                | Updater channel | Receives        |
-| ------------------------------ | --------------- | --------------- |
-| Stable (`X.Y.Z`)               | `latest`        | Stable releases |
-| Beta (`X.Y.Z-beta.N`)          | `beta`          | Beta releases   |
-| Staging (`X.Y.Z-beta-pr-<n>`)  | `beta`          | Beta releases   |
+| Installed build               | Updater channel | Receives        |
+| ----------------------------- | --------------- | --------------- |
+| Stable (`X.Y.Z`)              | `latest`        | Stable releases |
+| Beta (`X.Y.Z-beta.N`)         | `beta`          | Beta releases   |
+| Staging (`X.Y.Z-beta-pr-<n>`) | `beta`          | Beta releases   |
 
 The version browser accepts numbered beta releases and PR-qualified staging
 builds. Staging artifacts themselves are not listed remotely because they are
