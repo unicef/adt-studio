@@ -386,6 +386,11 @@ async function buildSnapshot(
   }
 }
 
+/** Injected so a test can exercise the retry without waiting out the backoff. */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 export interface PublishBookOptions extends PublishExportOptions {
   connection: CloudflareConnectionRecord
   emit: PublishEmit
@@ -395,6 +400,7 @@ export interface PublishBookOptions extends PublishExportOptions {
   accessCode?: string | null
   now?: () => Date
   generateToken?: () => string
+  sleep?: (ms: number) => Promise<void>
   createClient?: (connection: CloudflareConnectionRecord) => PublishWorkerClient
 }
 
@@ -412,6 +418,59 @@ function clientFor(options: PublishBookOptions, fetchFn?: never): PublishWorkerC
     mgmtSecret: options.connection.mgmt_secret,
     ...(fetchFn === undefined ? {} : { fetchFn }),
   })
+}
+
+/** Attempts, including the first. Three is enough to ride out an edge hiccup and few enough
+ *  that a genuinely broken account fails while the author is still watching. */
+const UPLOAD_ATTEMPTS = 3
+
+const UPLOAD_BACKOFF_MS = [1_000, 3_000]
+
+/**
+ * Whether this failure is worth trying again.
+ *
+ * A 5xx is the worker or the edge in trouble, not the request: the same bytes may well be
+ * accepted a second later, and 503 in particular is Cloudflare saying "not now" rather than
+ * "not this". Unreachable is the same story one layer down. Everything else — a rejected zip, a
+ * payload over the cap, a bad secret — will fail identically however many times it is sent, and
+ * retrying it only makes the author wait longer for the same answer.
+ */
+function isRetryableUpload(error: unknown): boolean {
+  if (!isPublishWorkerError(error)) return false
+  if (error.unreachable) return true
+  return error.status !== null && error.status >= 500
+}
+
+/**
+ * The upload, retried.
+ *
+ * A snapshot costs a full export to produce, and one 503 used to throw all of it away and ask
+ * the author to start again — which they did, by hand, at the same odds. The bytes are already
+ * in memory, so trying again is nearly free, and the step reports it rather than appearing to
+ * hang.
+ */
+async function uploadWithRetry<T>(
+  attempt: () => Promise<T>,
+  emit: PublishEmit,
+  sleep: (ms: number) => Promise<void>,
+): Promise<T> {
+  let lastError: unknown
+  for (let index = 0; index < UPLOAD_ATTEMPTS; index += 1) {
+    try {
+      return await attempt()
+    } catch (error) {
+      lastError = error
+      const final = index === UPLOAD_ATTEMPTS - 1
+      if (final || !isRetryableUpload(error)) break
+      await emit(
+        stepEvent("upload", "running", {
+          message: `Cloudflare didn't take it — trying again (${index + 2} of ${UPLOAD_ATTEMPTS})`,
+        }),
+      )
+      await sleep(UPLOAD_BACKOFF_MS[index] ?? 3_000)
+    }
+  }
+  throw uploadFailure(lastError)
 }
 
 function uploadFailure(error: unknown): PublishStepError {
@@ -438,22 +497,22 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
   const client = clientFor(options)
 
   await emit(stepEvent("upload", "running"))
-  let created
-  try {
-    created = await client.createPublication(
-      {
-        token,
-        title: built.title,
-        book_label: parseBookLabel(options.label),
-        page_manifest: built.pageManifest,
-        ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
-        ...(options.accessCode ? { access_code: options.accessCode } : {}),
-      },
-      built.snapshot,
-    )
-  } catch (error) {
-    throw uploadFailure(error)
-  }
+  const created = await uploadWithRetry(
+    () =>
+      client.createPublication(
+        {
+          token,
+          title: built.title,
+          book_label: parseBookLabel(options.label),
+          page_manifest: built.pageManifest,
+          ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
+          ...(options.accessCode ? { access_code: options.accessCode } : {}),
+        },
+        built.snapshot,
+      ),
+    emit,
+    options.sleep ?? delay,
+  )
   await emit(stepEvent("upload", "done"))
 
   await emit(stepEvent("register", "running"))
@@ -510,12 +569,11 @@ export async function republishBook(
   const client = clientFor(options)
 
   await emit(stepEvent("upload", "running"))
-  let created
-  try {
-    created = await client.createVersion(options.record.token, built.pageManifest, built.snapshot)
-  } catch (error) {
-    throw uploadFailure(error)
-  }
+  const created = await uploadWithRetry(
+    () => client.createVersion(options.record.token, built.pageManifest, built.snapshot),
+    emit,
+    options.sleep ?? delay,
+  )
   await emit(stepEvent("upload", "done"))
 
   await emit(stepEvent("register", "running"))

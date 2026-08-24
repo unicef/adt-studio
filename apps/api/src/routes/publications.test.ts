@@ -113,6 +113,9 @@ function routes(overrides: Partial<PublishRoutesDeps> = {}): Hono {
   app.route(
     "/api",
     createPublishRoutes({
+      /** The retry's backoff is real time; the behaviour under test is the retrying, not the
+       *  waiting. */
+      sleep: async () => {},
       booksDir: tmpDir,
       webAssetsDir,
       stateDir,

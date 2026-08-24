@@ -68,10 +68,15 @@ function body(failure: PublishFailure): ReactNode {
         </Trans>
       )
     case "upload_failed":
+      /** Says "try again" rather than "check Settings". The overwhelming case here is a 5xx from
+       *  Cloudflare — temporary by definition, and nothing to do with the service being out of
+       *  date, which is what the old copy sent people to look at. The Studio has already retried
+       *  before this notice appears, so it is honest to say the attempts happened. */
       return (
         <Trans>
-          Your Cloudflare account refused the upload. Check in Settings that your publishing service
-          is up to date, then try again. Nothing was shared.
+          Cloudflare didn't accept the upload, after a few tries. This is usually temporary —
+          waiting a moment and publishing again normally works. Nothing was shared, and your book
+          is untouched.
         </Trans>
       )
     case "worker_unreachable":

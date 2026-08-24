@@ -6,6 +6,7 @@ import { unzipSync } from "fflate"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import type { BookPublicationRecord, PublishProgressEvent } from "@adt/types"
 import { prepareExport } from "./export-service.js"
+import type { FetchLike } from "./cloudflare/client.js"
 import { createFakePublishWorker } from "./fake-publish-worker.js"
 import {
   BOOK_PUBLICATION_ITEM_ID,
@@ -289,7 +290,8 @@ describe("publishBook", () => {
     const worker = createFakePublishWorker()
     const { events, emit } = collector()
 
-    const result = await publishBook({ ...publishOptions(worker), emit, expiresAt: null })
+    const result = await publishBook({
+      sleep: async () => {}, ...publishOptions(worker), emit, expiresAt: null })
 
     expect(
       events
@@ -331,6 +333,7 @@ describe("publishBook", () => {
     const snapshots: Uint8Array[] = []
 
     await publishBook({
+      sleep: async () => {},
       ...publishOptions(worker),
       createClient: () =>
         createPublishWorkerClient({
@@ -387,7 +390,8 @@ describe("publishBook", () => {
     const { emit } = collector()
     const files = { ...adtFiles(), "assets/offline-preloader.js": "var INLINE = {};" }
 
-    await expect(publishBook({ ...publishOptions(worker, files), emit })).rejects.toMatchObject({
+    await expect(publishBook({
+      sleep: async () => {}, ...publishOptions(worker, files), emit })).rejects.toMatchObject({
       name: "PublishStepError",
       code: "package_failed",
     })
@@ -401,7 +405,8 @@ describe("publishBook", () => {
     delete (files as Record<string, string>)["assets/config.json"]
 
     await expect(
-      publishBook({ ...publishOptions(worker, files), emit }),
+      publishBook({
+      sleep: async () => {}, ...publishOptions(worker, files), emit }),
     ).rejects.toMatchObject({ name: "PublishStepError", code: "package_failed" })
   })
 
@@ -410,7 +415,8 @@ describe("publishBook", () => {
     const worker = createFakePublishWorker()
     const { emit } = collector()
 
-    await publishBook({ ...publishOptions(worker), emit, expiresAt: null })
+    await publishBook({
+      sleep: async () => {}, ...publishOptions(worker), emit, expiresAt: null })
 
     const record = readPublicationRecord(LABEL, tmpDir)
     expect(record).toMatchObject({
@@ -456,6 +462,7 @@ describe("publishBook", () => {
     const { emit } = collector()
 
     const result = await publishBook({
+      sleep: async () => {},
       ...publishOptions(worker),
       emit,
       expiresAt: "2027-01-01T00:00:00.000Z",
@@ -471,6 +478,7 @@ describe("publishBook", () => {
 
     await expect(
       publishBook({
+      sleep: async () => {},
         ...publishOptions(worker),
         prepareExportFn: (async () => {
           throw new Error("pipeline is not finished")
@@ -486,7 +494,8 @@ describe("publishBook", () => {
     const { emit } = collector()
 
     await expect(
-      publishBook({ ...publishOptions(worker), emit }),
+      publishBook({
+      sleep: async () => {}, ...publishOptions(worker), emit }),
     ).rejects.toMatchObject({ code: "worker_unreachable", stepId: "upload" })
     expect(readPublicationRecord(LABEL, tmpDir)).toBeNull()
   })
@@ -500,7 +509,8 @@ describe("publishBook", () => {
     const { emit } = collector()
 
     await expect(
-      publishBook({ ...publishOptions(worker), emit }),
+      publishBook({
+      sleep: async () => {}, ...publishOptions(worker), emit }),
     ).rejects.toMatchObject({ code: "snapshot_too_large", stepId: "upload" })
   })
 
@@ -511,6 +521,7 @@ describe("publishBook", () => {
     const { emit } = collector()
 
     await publishBook({
+      sleep: async () => {},
       ...publishOptions(worker),
       emit,
       createClient: () => ({
@@ -567,13 +578,15 @@ describe("republishBook", () => {
     createBook(LABEL, "Raven")
     const worker = createFakePublishWorker()
     const { emit } = collector()
-    await publishBook({ ...publishOptions(worker), emit })
+    await publishBook({
+      sleep: async () => {}, ...publishOptions(worker), emit })
 
     const record = readPublicationRecord(LABEL, tmpDir)
     expect(record).not.toBeNull()
 
     const updatedManifest = [{ section_id: "pg001_sec001", href: "index.html", page_number: 1 }]
     const result = await republishBook({
+      sleep: async () => {},
       ...publishOptions(worker, adtFiles(updatedManifest, "<h1>edited</h1>")),
       emit,
       record: record as BookPublicationRecord,
@@ -598,5 +611,74 @@ describe("republishBook", () => {
       },
     ])
     expect(worker.state.versions.get(TOKEN)?.at(-1)?.page_manifest).toEqual(updatedManifest)
+  })
+})
+
+describe("riding out a Cloudflare hiccup", () => {
+  function clientWith(worker: ReturnType<typeof createFakePublishWorker>, fetchFn: FetchLike) {
+    const record = connection(worker.baseUrl)
+    return () =>
+      createPublishWorkerClient({
+        workerUrl: record.worker_url,
+        mgmtSecret: record.mgmt_secret,
+        fetchFn,
+      })
+  }
+
+  /** The reported symptom: a 503 on upload threw away a completed export and asked the author to
+   *  start over, which they did by hand at exactly the same odds. */
+  it("retries a 5xx and succeeds without the author doing anything", async () => {
+    createBook(LABEL, "Raven and the Sun")
+    const worker = createFakePublishWorker()
+    let uploads = 0
+    const flaky: FetchLike = async (input, init) => {
+      const method = (init?.method ?? "GET").toUpperCase()
+      if (method === "POST" && String(input).endsWith("/api/publications")) {
+        uploads += 1
+        if (uploads === 1) return new Response("", { status: 503 })
+      }
+      return worker.fetchFn(input, init)
+    }
+
+    const result = await publishBook({
+      sleep: async () => {},
+      ...publishOptions(worker),
+      createClient: clientWith(worker, flaky),
+      emit: async () => {},
+      expiresAt: null,
+    })
+
+    expect(uploads).toBe(2)
+    expect(result.url).toContain("/p/")
+  })
+
+  /** A payload over the cap fails identically however often it is sent, so retrying only makes
+   *  the author wait longer for the same answer. */
+  it("does not retry a refusal that will not change", async () => {
+    createBook(LABEL, "Raven and the Sun")
+    const worker = createFakePublishWorker()
+    let uploads = 0
+    const refusing: FetchLike = async (input, init) => {
+      const method = (init?.method ?? "GET").toUpperCase()
+      if (method === "POST" && String(input).endsWith("/api/publications")) {
+        uploads += 1
+        return new Response(JSON.stringify({ error: "payload_too_large" }), {
+          status: 413,
+          headers: { "content-type": "application/json" },
+        })
+      }
+      return worker.fetchFn(input, init)
+    }
+
+    await expect(
+      publishBook({
+        sleep: async () => {},
+        ...publishOptions(worker),
+        createClient: clientWith(worker, refusing),
+        emit: async () => {},
+        expiresAt: null,
+      }),
+    ).rejects.toThrow()
+    expect(uploads).toBe(1)
   })
 })

@@ -59,6 +59,8 @@ export interface PublishRoutesDeps {
   fetchFn?: FetchLike
   now?: () => Date
   generateToken?: () => string
+  /** Injected by tests so the upload retry's backoff does not cost them real seconds. */
+  sleep?: (ms: number) => Promise<void>
   prepareExportFn?: typeof prepareExport
   createClient?: (connection: CloudflareConnectionRecord) => PublishWorkerClient
 }
@@ -111,6 +113,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
     ...(deps.prepareExportFn === undefined ? {} : { prepareExportFn: deps.prepareExportFn }),
     ...(deps.now === undefined ? {} : { now: deps.now }),
     ...(deps.generateToken === undefined ? {} : { generateToken: deps.generateToken }),
+    ...(deps.sleep === undefined ? {} : { sleep: deps.sleep }),
     createClient: clientFor,
   })
 
