@@ -13,6 +13,7 @@ import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { cn } from "@/shared/lib/utils";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { DockContent } from "@/features/dock/components/DockLayout";
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 export function TocContent() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -101,7 +102,7 @@ function TocList({
               type="button"
               title={entry.title}
               onClick={() => {
-                window.location.href = entry.href;
+                navigateToPage(entry.href);
               }}
               className={cn(
                 "w-full text-left rounded-md px-2.5 py-1.5 text-base",
@@ -195,7 +196,7 @@ function PageList({
               <button
                 type="button"
                 onClick={() => {
-                  window.location.href = page.href;
+                  navigateToPage(page.href);
                 }}
                 aria-label={ariaLabel}
                 title={ariaLabel}

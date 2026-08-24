@@ -21,6 +21,7 @@ import {
   speechTextsAtom,
   translationsAtom,
 } from "@/features/language/state/language.atoms"
+import { pageEpochAtom } from "@/features/navigation/state/nav.atoms"
 import { easyReadModeAtom } from "@/shared/state/ui.atoms"
 import {
   clearBlockHighlight,
@@ -167,6 +168,7 @@ export function useAudioPlayer(): UseAudioPlayer {
   const autoplayMode = useAtomValue(autoplayModeAtom) as boolean
   const readAloudMode = useAtomValue(readAloudModeAtom) as boolean
   const setReadAloudMode = useSetAtom(readAloudModeAtom)
+  const pageEpoch = useAtomValue(pageEpochAtom)
   const wordHighlightMode = useAtomValue(wordHighlightModeAtom) as boolean
   const describeImagesMode = useAtomValue(describeImagesModeAtom) as boolean
   const timecodeMaps = useAtomValue(timecodeMapsAtom)
@@ -181,6 +183,10 @@ export function useAudioPlayer(): UseAudioPlayer {
   speedRef.current = speed
   volumeRef.current = volume
 
+  // `pageEpoch` is a dependency, not a decoration: an in-place page swap
+  // replaces <main> without changing any of the other inputs, so without it
+  // this memo would keep serving `el` references into the detached previous
+  // page and read-aloud would narrate content that is no longer on screen.
   const items = useMemo(() => {
     const all = gatherPlayableItems(
       audioFiles,
@@ -190,7 +196,7 @@ export function useAudioPlayer(): UseAudioPlayer {
     )
     if (describeImagesMode) return all
     return all.filter((item) => item.el.tagName.toLowerCase() !== "img")
-  }, [audioFiles, translations, speechTexts, easyReadMode, describeImagesMode])
+  }, [audioFiles, translations, speechTexts, easyReadMode, describeImagesMode, pageEpoch])
 
   const teardownActive = useCallback(() => {
     const active = activeRef.current
@@ -423,6 +429,25 @@ export function useAudioPlayer(): UseAudioPlayer {
     setIsPlaying(false)
     setCurrentIndex(0)
   }, [stopAndClear, setIsPlaying, setCurrentIndex])
+
+  // Page turned in place. The audio element and every playback atom survived,
+  // but the nodes they referred to did not: stop the track that belongs to the
+  // previous page, rewind to its first item, and — if the reader was listening
+  // — pick up on the new one. This mirrors what a full document reload does
+  // via the persisted `isPlaying` flag.
+  //
+  // Self-contained rather than delegating to the auto-start effect below,
+  // whose `items.length` dependency does not change between two pages that
+  // happen to hold the same number of readable blocks.
+  useEffect(() => {
+    if (pageEpoch <= 1) return
+    stopAndClear()
+    setCurrentIndex(0)
+    hasAutoStartedRef.current = false
+    if (!readAloudMode || !isPlaying) return
+    hasAutoStartedRef.current = true
+    playAtIndex(0)
+  }, [pageEpoch])
 
   useEffect(() => {
     if (hasAutoStartedRef.current) return

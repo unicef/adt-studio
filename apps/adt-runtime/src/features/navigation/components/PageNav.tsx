@@ -9,6 +9,7 @@ import {
 import { dockMenuValueAtom } from "@/shared/state/ui.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { DockIconButton } from "@/features/dock/components/DockIconButton";
+import { navigateToPage } from "@/features/navigation/lib/page-swap"
 
 /**
  * Section IDs encode their page range, e.g.:
@@ -70,7 +71,7 @@ export function PageNav() {
     // rather than re-opening. Playback resumes independently via the
     // persisted `isPlaying` flag, so audio keeps reading the new page.
     if (dockMenuValue === "audio") setDockMenuValue("");
-    window.location.href = href;
+    navigateToPage(href);
   };
 
   return (

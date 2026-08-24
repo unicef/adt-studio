@@ -10,6 +10,7 @@ import {
   subscribeLanguageChanges,
   subscribePreviewSettings,
 } from "@/app/lifecycle"
+import { subscribeSoftNavHistory } from "@/features/navigation/lib/page-swap"
 import { describeInitError, showErrorToast, showMainContent } from "@/shared/lib/errors"
 
 const sharedStore = getDefaultStore()
@@ -70,9 +71,11 @@ function mount(): void {
     .then(() => {
       const unsubLanguage = subscribeLanguageChanges()
       const unsubPreview = subscribePreviewSettings()
+      const unsubSoftNav = subscribeSoftNavHistory()
       window.__adtRuntime!.unsubscribe = () => {
         unsubLanguage()
         unsubPreview()
+        unsubSoftNav()
       }
     })
     .catch((err) => {
