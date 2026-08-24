@@ -509,8 +509,11 @@ msgstr "{mergedCount} {mergedCount, plural, one {faqe e përbashkët} other {faq
 msgid "{mins}m ago"
 msgstr "{mins} minuta më parë"
 
-msgid "{missing} without a description"
-msgstr "{missing} pa përshkrim"
+msgid "{missing} awaiting captions"
+msgstr "{missing} në pritje të titujve"
+
+#~ msgid "{missing} without a description"
+#~ msgstr "{missing} pa përshkrim"
 
 msgid "{missingAudioCount} missing"
 msgstr "{missingAudioCount} mungojnë"
@@ -600,8 +603,8 @@ msgstr "{title} - faqe {0}"
 msgid "{total} blocks"
 msgstr "{total} blloqe"
 
-msgid "{total} images"
-msgstr "{total} imazhe"
+#~ msgid "{total} images"
+#~ msgstr "{total} imazhe"
 
 msgid "{total} sections"
 msgstr "{total} seksione"
@@ -611,6 +614,9 @@ msgstr "{total} tekste burimore në katalog."
 
 msgid "{total} strings"
 msgstr "{total} tekste"
+
+msgid "{totalImages} images"
+msgstr "{totalImages} imazhe"
 
 msgid "{totalPages} pages"
 msgstr "{totalPages} faqe"
@@ -1481,6 +1487,9 @@ msgstr "Të {0} faqet janë bashkuar"
 msgid "All {count} books in Library"
 msgstr "Të gjithë {count} librat në Bibliotekë"
 
+msgid "All captioned"
+msgstr "Të gjitha me tituj"
+
 msgid "All categories"
 msgstr "Të gjitha kategoritë"
 
@@ -1490,8 +1499,8 @@ msgstr "Të Gjitha Kategoritë"
 msgid "All changes saved"
 msgstr "Të gjitha ndryshimet u ruajtën"
 
-msgid "All described"
-msgstr "Të gjitha të përshkruara"
+#~ msgid "All described"
+#~ msgstr "Të gjitha të përshkruara"
 
 msgid "All issues and manual review items"
 msgstr "Të gjitha problemet dhe elementet e rishikimit manual"
@@ -1544,8 +1553,8 @@ msgstr "Tashmë të shpërndara"
 msgid "alt-text · 148 characters"
 msgstr "tekst alternativ · 148 shenja"
 
-msgid "alternative description"
-msgstr "përshkrim alternativ"
+#~ msgid "alternative description"
+#~ msgstr "përshkrim alternativ"
 
 msgid "Among the Stars"
 msgstr "Mes yjeve"
@@ -2053,6 +2062,9 @@ msgstr "Mbulimi i librit"
 
 msgid "Book Fonts"
 msgstr "Fontet e librit"
+
+msgid "Book has images to caption — none found"
+msgstr "Libri ka imazhe për tituj — nuk u gjet asnjë"
 
 msgid "Book heading outline"
 msgstr "Hierarkia e titujve të librit"
@@ -3127,8 +3139,8 @@ msgstr "Data e krijimit"
 msgid "Debug mode is not enabled."
 msgstr "Modaliteti i korrigjimit nuk është aktivizuar."
 
-msgid "decorative"
-msgstr "dekorative"
+#~ msgid "decorative"
+#~ msgstr "dekorative"
 
 msgid "Decorative"
 msgstr "Dekorativ"
@@ -5009,6 +5021,9 @@ msgstr "Prompt i Prerjes së Imazheve"
 msgid "Image descriptions"
 msgstr "Përshkrimet e imazheve"
 
+msgid "Image descriptions show up here as each page is captioned."
+msgstr "Përshkrimet e imazheve shfaqen këtu ndërsa çdo faqe merr tituj."
+
 msgid "Image edit complete"
 msgstr "Modifikimi i imazhit u krye"
 
@@ -5104,6 +5119,9 @@ msgstr "Imazhe sipas faqes"
 
 msgid "Images must have alternate text"
 msgstr "Imazhet duhet të kenë tekst alternativ"
+
+#~ msgid "Images on this page are not captioned yet"
+#~ msgstr "Imazhet e kësaj faqeje ende nuk kanë tituj"
 
 msgid "Images only"
 msgstr "Vetëm imazhe"
@@ -5854,8 +5872,8 @@ msgstr "Shëno si dekorativ"
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Shëno si dekorativ (i fshehur nga lexuesit e ekranit)"
 
-msgid "Mark as meaningful"
-msgstr "Shëno si kuptimplote"
+#~ msgid "Mark as meaningful"
+#~ msgstr "Shëno si kuptimplote"
 
 #. placeholder {0}: index + 1
 msgid "Mark option {0} as the correct answer"
@@ -6366,8 +6384,14 @@ msgstr "Nuk ka tituj për këtë faqe"
 msgid "No captions match these filters"
 msgstr "Asnjë titull nuk përputhet me këta filtra"
 
+msgid "No captions match these filters."
+msgstr "Asnjë titull nuk përputhet me këta filtra."
+
 msgid "No captions match your search"
 msgstr "Asnjë titull nuk përputhet me kërkimin tuaj"
+
+msgid "No captions match your search."
+msgstr "Asnjë titull nuk përputhet me kërkimin tuaj."
 
 msgid "no changes"
 msgstr "pa ndryshime"
@@ -7004,6 +7028,9 @@ msgstr "Hap udhëzuesin Liquid"
 #. placeholder {0}: page.pageNumber
 msgid "Open page {0}"
 msgstr "Hap faqen {0}"
+
+msgid "Open page {pageNumber}"
+msgstr "Hap faqen {pageNumber}"
 
 msgid "Open page preview for {pageId}"
 msgstr "Hapni pamjen paraprake të faqes për {pageId}"
@@ -9121,6 +9148,7 @@ msgid "Section {0}"
 msgstr "Seksioni {0}"
 
 #. placeholder {0}: String(group.sectionIndex + 1)
+#. placeholder {0}: group.sectionIndex + 1
 #. placeholder {1}: group.sectionType
 msgid "Section {0} — {1}"
 msgstr "Seksioni {0} — {1}"
@@ -10648,6 +10676,9 @@ msgstr "Kjo faqe ka imazhe pa përshkrim alternativ."
 
 msgid "This page has no captioned images"
 msgstr "Kjo faqe nuk ka imazhe me tituj"
+
+msgid "This page has no captioned images yet."
+msgstr "Kjo faqe ende nuk ka imazhe me tituj."
 
 msgid "This page has no embedded text layer — the text below was recovered from the page image (vision). For better summaries, metadata, and translations, prefer a text-based version of this PDF."
 msgstr "Kjo faqe nuk ka shtresë teksti të integruar — teksti më poshtë u rikuperua nga imazhi i faqes (vegim). Për përmbledhje, metadata dhe përkthime më të mira, përdorni një version të këtij PDF-je të bazuar në tekst."

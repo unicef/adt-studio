@@ -1,6 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { api, type EasyReadSectionBlock } from "@/api/client"
-import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 
 function useStepMutation<TVars>(
   label: string,
@@ -41,16 +40,4 @@ export function useSaveTranslation(label: string, language: string) {
   return useStepMutation(label, "text-catalog", (data: unknown) =>
     api.updateTranslation(label, language, data),
   )
-}
-
-export function useSaveCaptions(label: string, pageId: string) {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (data: unknown) => api.updateImageCaptioning(label, pageId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["books", label, "pages", pageId] })
-      queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
-      invalidateStoryboardDependents(queryClient, label)
-    },
-  })
 }

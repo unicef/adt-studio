@@ -507,8 +507,11 @@ msgstr "{mergedCount} {mergedCount, plural, one {spread} other {spreads}} mescla
 msgid "{mins}m ago"
 msgstr "{mins}m atrás"
 
-msgid "{missing} without a description"
-msgstr "{missing} sem descrição"
+msgid "{missing} awaiting captions"
+msgstr "{missing} aguardando legendas"
+
+#~ msgid "{missing} without a description"
+#~ msgstr "{missing} sem descrição"
 
 msgid "{missingAudioCount} missing"
 msgstr "{missingAudioCount} faltando"
@@ -598,8 +601,8 @@ msgstr "{title} - página {0}"
 msgid "{total} blocks"
 msgstr "{total} blocos"
 
-msgid "{total} images"
-msgstr "{total} imagens"
+#~ msgid "{total} images"
+#~ msgstr "{total} imagens"
 
 msgid "{total} sections"
 msgstr "{total} seções"
@@ -609,6 +612,9 @@ msgstr "{total} textos de origem no catálogo."
 
 msgid "{total} strings"
 msgstr "{total} textos"
+
+msgid "{totalImages} images"
+msgstr "{totalImages} imagens"
 
 msgid "{totalPages} pages"
 msgstr "{totalPages} páginas"
@@ -1479,6 +1485,9 @@ msgstr "As {0} páginas foram mescladas"
 msgid "All {count} books in Library"
 msgstr "Todos os {count} livros na Biblioteca"
 
+msgid "All captioned"
+msgstr "Todas legendadas"
+
 msgid "All categories"
 msgstr "Todas as categorias"
 
@@ -1488,8 +1497,8 @@ msgstr "All Categories"
 msgid "All changes saved"
 msgstr "Todas as alterações salvas"
 
-msgid "All described"
-msgstr "Todas descritas"
+#~ msgid "All described"
+#~ msgstr "Todas descritas"
 
 msgid "All issues and manual review items"
 msgstr "Todos os problemas e itens de revisão manual"
@@ -1542,8 +1551,8 @@ msgstr "Já distribuídas"
 msgid "alt-text · 148 characters"
 msgstr "texto alternativo · 148 caracteres"
 
-msgid "alternative description"
-msgstr "descrição alternativa"
+#~ msgid "alternative description"
+#~ msgstr "descrição alternativa"
 
 msgid "Among the Stars"
 msgstr "Entre as Estrelas"
@@ -2051,6 +2060,9 @@ msgstr "Cobertura do livro"
 
 msgid "Book Fonts"
 msgstr "Fontes do Livro"
+
+msgid "Book has images to caption — none found"
+msgstr "O livro tem imagens para legendar — nenhuma encontrada"
 
 msgid "Book heading outline"
 msgstr "Hierarquia de títulos do livro"
@@ -3125,8 +3137,8 @@ msgstr "Data de criação"
 msgid "Debug mode is not enabled."
 msgstr "Modo de depuração não está ativado."
 
-msgid "decorative"
-msgstr "decorativa"
+#~ msgid "decorative"
+#~ msgstr "decorativa"
 
 msgid "Decorative"
 msgstr "Decorativa"
@@ -5007,6 +5019,9 @@ msgstr "Prompt de recorte de imagem"
 msgid "Image descriptions"
 msgstr "Descrições de imagens"
 
+msgid "Image descriptions show up here as each page is captioned."
+msgstr "As descrições de imagens aparecem aqui conforme cada página é legendada."
+
 msgid "Image edit complete"
 msgstr "Edição de imagem concluída"
 
@@ -5102,6 +5117,9 @@ msgstr "Imagens por página"
 
 msgid "Images must have alternate text"
 msgstr "Imagens devem ter texto alternativo"
+
+#~ msgid "Images on this page are not captioned yet"
+#~ msgstr "As imagens desta página ainda não têm legendas"
 
 msgid "Images only"
 msgstr "Somente imagens"
@@ -5852,8 +5870,8 @@ msgstr "Marcar como decorativo"
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Marcar como decorativo (oculto para leitores de tela)"
 
-msgid "Mark as meaningful"
-msgstr "Marcar como significativa"
+#~ msgid "Mark as meaningful"
+#~ msgstr "Marcar como significativa"
 
 #. placeholder {0}: index + 1
 msgid "Mark option {0} as the correct answer"
@@ -6364,8 +6382,14 @@ msgstr "Sem legendas para esta página"
 msgid "No captions match these filters"
 msgstr "Nenhuma legenda corresponde a esses filtros"
 
+msgid "No captions match these filters."
+msgstr "Nenhuma legenda corresponde a esses filtros."
+
 msgid "No captions match your search"
 msgstr "Nenhuma legenda corresponde à sua pesquisa"
+
+msgid "No captions match your search."
+msgstr "Nenhuma legenda corresponde à sua pesquisa."
 
 msgid "no changes"
 msgstr "sem alterações"
@@ -7002,6 +7026,9 @@ msgstr "Abrir guia Liquid"
 #. placeholder {0}: page.pageNumber
 msgid "Open page {0}"
 msgstr "Abrir página {0}"
+
+msgid "Open page {pageNumber}"
+msgstr "Abrir página {pageNumber}"
 
 msgid "Open page preview for {pageId}"
 msgstr "Abrir pré-visualização da página {0}"
@@ -9119,6 +9146,7 @@ msgid "Section {0}"
 msgstr "Seção {0}"
 
 #. placeholder {0}: String(group.sectionIndex + 1)
+#. placeholder {0}: group.sectionIndex + 1
 #. placeholder {1}: group.sectionType
 msgid "Section {0} — {1}"
 msgstr "Seção {0} — {1}"
@@ -10646,6 +10674,9 @@ msgstr "Esta página tem imagens sem descrição alternativa."
 
 msgid "This page has no captioned images"
 msgstr "Esta página não tem imagens legendadas"
+
+msgid "This page has no captioned images yet."
+msgstr "Esta página ainda não tem imagens legendadas."
 
 msgid "This page has no embedded text layer — the text below was recovered from the page image (vision). For better summaries, metadata, and translations, prefer a text-based version of this PDF."
 msgstr "Esta página não tem camada de texto incorporada — o texto abaixo foi recuperado a partir da imagem da página (visão). Para melhores resumos, metadados e traduções, use uma versão deste PDF baseada em texto."

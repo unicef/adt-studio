@@ -507,8 +507,11 @@ msgstr "{mergedCount} {mergedCount, plural, one {spread} other {spreads}} merged
 msgid "{mins}m ago"
 msgstr "{mins}m ago"
 
-msgid "{missing} without a description"
-msgstr "{missing} without a description"
+msgid "{missing} awaiting captions"
+msgstr "{missing} awaiting captions"
+
+#~ msgid "{missing} without a description"
+#~ msgstr "{missing} without a description"
 
 msgid "{missingAudioCount} missing"
 msgstr "{missingAudioCount} missing"
@@ -598,8 +601,8 @@ msgstr "{title} - page {0}"
 msgid "{total} blocks"
 msgstr "{total} blocks"
 
-msgid "{total} images"
-msgstr "{total} images"
+#~ msgid "{total} images"
+#~ msgstr "{total} images"
 
 msgid "{total} sections"
 msgstr "{total} sections"
@@ -609,6 +612,9 @@ msgstr "{total} source strings in the catalog."
 
 msgid "{total} strings"
 msgstr "{total} strings"
+
+msgid "{totalImages} images"
+msgstr "{totalImages} images"
 
 msgid "{totalPages} pages"
 msgstr "{totalPages} pages"
@@ -1479,6 +1485,9 @@ msgstr "All {0} pages merged in"
 msgid "All {count} books in Library"
 msgstr "All {count} books in Library"
 
+msgid "All captioned"
+msgstr "All captioned"
+
 msgid "All categories"
 msgstr "All categories"
 
@@ -1488,8 +1497,8 @@ msgstr "All Categories"
 msgid "All changes saved"
 msgstr "All changes saved"
 
-msgid "All described"
-msgstr "All described"
+#~ msgid "All described"
+#~ msgstr "All described"
 
 msgid "All issues and manual review items"
 msgstr "All issues and manual review items"
@@ -1542,8 +1551,8 @@ msgstr "Already handed out"
 msgid "alt-text · 148 characters"
 msgstr "alt-text · 148 characters"
 
-msgid "alternative description"
-msgstr "alternative description"
+#~ msgid "alternative description"
+#~ msgstr "alternative description"
 
 msgid "Among the Stars"
 msgstr "Among the Stars"
@@ -2051,6 +2060,9 @@ msgstr "Book coverage"
 
 msgid "Book Fonts"
 msgstr "Book Fonts"
+
+msgid "Book has images to caption — none found"
+msgstr "Book has images to caption — none found"
 
 msgid "Book heading outline"
 msgstr "Book heading outline"
@@ -3125,8 +3137,8 @@ msgstr "Date created"
 msgid "Debug mode is not enabled."
 msgstr "Debug mode is not enabled."
 
-msgid "decorative"
-msgstr "decorative"
+#~ msgid "decorative"
+#~ msgstr "decorative"
 
 msgid "Decorative"
 msgstr "Decorative"
@@ -5007,6 +5019,9 @@ msgstr "Image Cropping Prompt"
 msgid "Image descriptions"
 msgstr "Image descriptions"
 
+msgid "Image descriptions show up here as each page is captioned."
+msgstr "Image descriptions show up here as each page is captioned."
+
 msgid "Image edit complete"
 msgstr "Image edit complete"
 
@@ -5102,6 +5117,9 @@ msgstr "Images by page"
 
 msgid "Images must have alternate text"
 msgstr "Images must have alternate text"
+
+#~ msgid "Images on this page are not captioned yet"
+#~ msgstr "Images on this page are not captioned yet"
 
 msgid "Images only"
 msgstr "Images only"
@@ -5852,8 +5870,8 @@ msgstr "Mark as decorative"
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Mark as decorative (hidden from screen readers)"
 
-msgid "Mark as meaningful"
-msgstr "Mark as meaningful"
+#~ msgid "Mark as meaningful"
+#~ msgstr "Mark as meaningful"
 
 #. placeholder {0}: index + 1
 msgid "Mark option {0} as the correct answer"
@@ -6364,8 +6382,14 @@ msgstr "No captions for this page"
 msgid "No captions match these filters"
 msgstr "No captions match these filters"
 
+msgid "No captions match these filters."
+msgstr "No captions match these filters."
+
 msgid "No captions match your search"
 msgstr "No captions match your search"
+
+msgid "No captions match your search."
+msgstr "No captions match your search."
 
 msgid "no changes"
 msgstr "no changes"
@@ -7002,6 +7026,9 @@ msgstr "Open Liquid guide"
 #. placeholder {0}: page.pageNumber
 msgid "Open page {0}"
 msgstr "Open page {0}"
+
+msgid "Open page {pageNumber}"
+msgstr "Open page {pageNumber}"
 
 msgid "Open page preview for {pageId}"
 msgstr "Open page preview for {pageId}"
@@ -9119,6 +9146,7 @@ msgid "Section {0}"
 msgstr "Section {0}"
 
 #. placeholder {0}: String(group.sectionIndex + 1)
+#. placeholder {0}: group.sectionIndex + 1
 #. placeholder {1}: group.sectionType
 msgid "Section {0} — {1}"
 msgstr "Section {0} — {1}"
@@ -10646,6 +10674,9 @@ msgstr "This page has images without an alternative description."
 
 msgid "This page has no captioned images"
 msgstr "This page has no captioned images"
+
+msgid "This page has no captioned images yet."
+msgstr "This page has no captioned images yet."
 
 msgid "This page has no embedded text layer — the text below was recovered from the page image (vision). For better summaries, metadata, and translations, prefer a text-based version of this PDF."
 msgstr "This page has no embedded text layer — the text below was recovered from the page image (vision). For better summaries, metadata, and translations, prefer a text-based version of this PDF."

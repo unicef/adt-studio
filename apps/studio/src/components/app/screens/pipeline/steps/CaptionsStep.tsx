@@ -1,164 +1,150 @@
-import { useMemo, useState } from "react"
-import { useQueries } from "@tanstack/react-query"
+import { useMemo } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { EyeOff, Undo2 } from "lucide-react"
-import { api, BASE_URL, type PageDetail } from "@/api/client"
-import { cn } from "@/lib/utils"
-import { useSaveCaptions } from "./shared/mutations"
-import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
-import { EditableText, RowAction, SaveError, StepBody, StepCard, StepGroupLabel, StepRail } from "./shared/ui"
+import { usePages } from "@/hooks/use-pages"
+import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
+import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
+import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
+import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
+import { StepEmpty, StepLoading, StepRunning, StepShell, useStepLoading } from "./shared/StepShell"
+import { StepBody, StepRail } from "./shared/ui"
+import { usePageDetailKeys } from "./shared/usePageDetailKeys"
+import { usePageParam } from "./shared/usePageParam"
+import { CaptionsAllImages } from "./captions/CaptionsAllImages"
+import { CaptionsPageDetail } from "./captions/CaptionsPageDetail"
 import type { StepProps } from "./shared/types"
-
-type Caption = NonNullable<PageDetail["imageCaptioning"]>["captions"][number]
-
-function PageCaptions({
-  label,
-  pageId,
-  pageNumber,
-  captions,
-  accent,
-}: {
-  label: string
-  pageId: string
-  pageNumber: number
-  captions: Caption[]
-  accent: string
-}) {
-  const { t } = useLingui()
-  const save = useSaveCaptions(label, pageId)
-
-  const patch = (imageId: string, changes: Partial<Caption>) => {
-    save.mutate({
-      captions: captions.map((c) => (c.imageId === imageId ? { ...c, ...changes } : c)),
-    })
-  }
-
-  return (
-    <>
-      <StepGroupLabel>{t`Page ${pageNumber}`}</StepGroupLabel>
-      <SaveError error={save.error} />
-      {captions.map((caption) => (
-        <StepCard key={caption.imageId} muted={caption.decorative} accent={accent}>
-          <div className="flex gap-3.5">
-            <img
-              src={`${BASE_URL}/books/${label}/images/${caption.imageId}`}
-              alt=""
-              loading="lazy"
-              className="h-[120px] w-[120px] shrink-0 rounded-lg border object-contain"
-            />
-            <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-[10px] text-muted-foreground">{caption.imageId}</span>
-                {caption.decorative && (
-                  <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-                    <Trans>decorative</Trans>
-                  </span>
-                )}
-                <div className="ml-auto flex gap-1">
-                  <RowAction
-                    icon={caption.decorative ? Undo2 : EyeOff}
-                    label={caption.decorative ? t`Mark as meaningful` : t`Mark as decorative`}
-                    onClick={() => patch(caption.imageId, { decorative: !caption.decorative })}
-                  />
-                </div>
-              </div>
-
-              <EditableText
-                value={caption.caption}
-                ariaLabel={t`alternative description`}
-                placeholder={t`Describe this image…`}
-                isSaving={save.isPending}
-                onSave={(text) => patch(caption.imageId, { caption: text, source: "manual" })}
-                className={cn(
-                  "text-[12.5px] leading-relaxed",
-                  !caption.caption && "italic",
-                )}
-              />
-
-              {caption.reasoning && (
-                <p className="px-1.5 text-[11px] leading-relaxed text-muted-foreground">
-                  {caption.reasoning}
-                </p>
-              )}
-            </div>
-          </div>
-        </StepCard>
-      ))}
-    </>
-  )
-}
 
 export function CaptionsStep(props: StepProps) {
   const { label, plugin, pages } = props
   const { t } = useLingui()
+  const run = useRunActivity()
+  const captions = useStageActivity("captions")
+  const pagesQuery = usePages(label)
+  const { pageParam, openPage, stepPage, closeDetail } = usePageParam(label, plugin.slug)
 
-  const withImages = useMemo(() => pages.filter((p) => p.imageCount > 0), [pages])
+  const withImages = useMemo(() => pages.filter((page) => page.imageCount > 0), [pages])
+  const totalImages = useMemo(
+    () => withImages.reduce((sum, page) => sum + page.imageCount, 0),
+    [withImages],
+  )
+  const missing = useMemo(
+    () => withImages.reduce((sum, page) => sum + page.missingCaptions, 0),
+    [withImages],
+  )
+  const hasOutput = useMemo(() => withImages.some((page) => page.hasCaptioning), [withImages])
 
-  const details = useQueries({
-    queries: withImages.map((page) => ({
-      queryKey: ["books", label, "pages", page.pageId],
-      queryFn: () => api.getPage(label, page.pageId),
-    })),
+  const currentIndex = useMemo(
+    () => (pageParam ? withImages.findIndex((page) => page.pageId === pageParam) : -1),
+    [withImages, pageParam],
+  )
+  const selectedPage = currentIndex >= 0 ? withImages[currentIndex] : null
+  const prevPageId = currentIndex > 0 ? withImages[currentIndex - 1].pageId : null
+  const nextPageId =
+    currentIndex >= 0 && currentIndex < withImages.length - 1
+      ? withImages[currentIndex + 1].pageId
+      : null
+
+  usePageDetailKeys({
+    enabled: !!selectedPage,
+    prevPageId,
+    nextPageId,
+    onStep: stepPage,
   })
 
-  const isLoading = details.some((d) => d.isLoading)
+  const loading = useStepLoading(props, {
+    isLoading: pagesQuery.isPending,
+    hasOutput,
+  })
 
-  const perPage = useMemo(
-    () =>
-      withImages
-        .map((page, i) => ({
-          page,
-          captions: details[i]?.data?.imageCaptioning?.captions ?? [],
-        }))
-        .filter((entry) => entry.captions.length > 0),
-    [withImages, details],
-  )
-
-  const [activePageId, setActivePageId] = useState<string | null>(null)
-
-  const loading = useStepLoading(props, { isLoading, hasOutput: perPage.length > 0 })
+  if (captions.isActive && !hasOutput) {
+    return (
+      <StepRunning
+        {...props}
+        stage={captions}
+        isCancelling={run.isCancelling}
+        onCancel={run.cancelRun}
+        outcome={t`Image descriptions show up here as each page is captioned.`}
+      />
+    )
+  }
   if (loading) return <StepLoading {...props} />
-  if (perPage.length === 0) return <StepEmpty {...props} />
-
-  const total = perPage.reduce((sum, e) => sum + e.captions.length, 0)
-  const missing = perPage.reduce(
-    (sum, e) => sum + e.captions.filter((c) => !c.decorative && !c.caption.trim()).length,
-    0,
-  )
-  const shown = activePageId ? perPage.filter((e) => e.page.pageId === activePageId) : perPage
+  if (!hasOutput) {
+    return (
+      <StepEmpty
+        {...props}
+        prerequisites={
+          withImages.length === 0
+            ? [
+                {
+                  key: "images",
+                  met: false,
+                  label: t`Book has images to caption — none found`,
+                },
+              ]
+            : undefined
+        }
+      />
+    )
+  }
 
   return (
     <StepShell
       {...props}
-      chips={[t`${total} images`, missing > 0 ? t`${missing} without a description` : t`All described`]}
+      chips={[
+        t`${totalImages} images`,
+        missing > 0 ? t`${missing} awaiting captions` : t`All captioned`,
+      ]}
       canApply={missing === 0}
+      bodyViewportClassName="[&>div]:!my-0"
       rail={
         <StepRail
           heading={<Trans>Images by page</Trans>}
           hex={plugin.hex}
-          entries={perPage.map((e) => ({
-            key: e.page.pageId,
-            title: t`Page ${e.page.pageNumber}`,
-            count: e.captions.length,
-          }))}
-          activeKey={activePageId}
-          onSelect={(key) => setActivePageId((cur) => (cur === key ? null : key))}
-          footer={<Trans>Select a page to filter. Click again to show all.</Trans>}
+          entries={[
+            { key: "", title: t`All pages`, count: totalImages },
+            ...withImages.map((page) => ({
+              key: page.pageId,
+              title: t`Page ${page.pageNumber}`,
+              count: page.imageCount,
+              subtitle: page.textPreview?.replace(/\n/g, " ") || undefined,
+              thumb: (
+                <PageThumb
+                  label={label}
+                  pageId={page.pageId}
+                  sectionIndex={null}
+                  className="h-[52px] w-[38px]"
+                />
+              ),
+            })),
+          ]}
+          activeKey={selectedPage?.pageId ?? ""}
+          onSelect={(key) => (key ? openPage(key) : closeDetail())}
+          footer={<Trans>Counts show how many images each page contributed.</Trans>}
         />
       }
     >
-      <StepBody title={<Trans>Image descriptions</Trans>} meta={t`${total} images`}>
-        {shown.map((entry) => (
-          <PageCaptions
-            key={entry.page.pageId}
+      <FloatingSaveProvider barClassName="bottom-27">
+        <UnsavedChangesGuard />
+        {selectedPage ? (
+          <CaptionsPageDetail
             label={label}
-            pageId={entry.page.pageId}
-            pageNumber={entry.page.pageNumber}
-            captions={entry.captions}
+            pageId={selectedPage.pageId}
             accent={plugin.hex}
+            prevPageId={prevPageId}
+            nextPageId={nextPageId}
+            onStep={stepPage}
+            onClose={closeDetail}
           />
-        ))}
-      </StepBody>
+        ) : (
+          <StepBody title={<Trans>Image descriptions</Trans>} meta={t`${totalImages} images`}>
+            <CaptionsAllImages
+              label={label}
+              pages={withImages}
+              accent={plugin.hex}
+              onOpenPage={openPage}
+            />
+          </StepBody>
+        )}
+      </FloatingSaveProvider>
     </StepShell>
   )
 }
