@@ -129,6 +129,9 @@ export interface BookPreviewFrameProps {
   /** Reports the iframe's current on-screen width in CSS pixels (renderWidth × scale).
    *  Updates whenever the canvas resizes — useful for showing the active viewport size. */
   onVisibleWidthChange?: (width: number) => void
+  /** Reports the CSS transform applied to the authored page. Unlike visible
+   *  width, this remains accurate for fixed-layout pages with custom dimensions. */
+  onScaleChange?: (scale: number) => void
   /** Link mode — clicks resolve to an activity anchor and are reported via
    *  `onLinkSelect` instead of opening the inline editor. Mutually exclusive
    *  with `editable`; the page becomes a click-to-locate map. */
@@ -188,6 +191,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   maxVisibleHeight,
   deviceView,
   onVisibleWidthChange,
+  onScaleChange,
   linkMode = false,
   linkedAnchor,
   previewAnchor,
@@ -916,6 +920,9 @@ ${selectors}:hover {
   useEffect(() => {
     onVisibleWidthChange?.(visibleWidth)
   }, [visibleWidth, onVisibleWidthChange])
+  useEffect(() => {
+    onScaleChange?.(scale)
+  }, [scale, onScaleChange])
 
   // Keep onReady in a ref so the reveal effect can fire it without re-running
   // (and re-POSTing the CSS recompile) on every render.

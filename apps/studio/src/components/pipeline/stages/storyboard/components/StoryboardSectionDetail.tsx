@@ -503,6 +503,7 @@ export function StoryboardSectionDetail({
   >(null)
   const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
   const [previewVisibleWidth, setPreviewVisibleWidth] = useState(0)
+  const [previewScale, setPreviewScale] = useState(1)
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -2626,6 +2627,18 @@ export function StoryboardSectionDetail({
     )
   }
 
+  // Single source of truth for which preview the section body renders. Both the
+  // render tree below and the fit-scale pill gate switch on this, so the two can
+  // never disagree about whether the scalable BookPreviewFrame is on screen.
+  const previewMode: "none" | "stepper" | "classic-activity" | "book-frame" =
+    !section || !renderedSection?.html
+      ? "none"
+      : stepperEnabled && editableEntry
+        ? "stepper"
+        : isActivitySection && activityPreviewMode && !editActivityPanelOpen
+          ? "classic-activity"
+          : "book-frame"
+
   return (
     <>
     {headerSlotEl && createPortal(headerControls, headerSlotEl)}
@@ -2694,10 +2707,7 @@ export function StoryboardSectionDetail({
         className="flex-1 overflow-auto px-4 py-4 relative [scrollbar-gutter:stable]"
         ref={scrollContainerRef}
       >
-        <FitScaleIndicator
-          visibleWidth={previewVisibleWidth}
-          fullWidth={DEVICE_WIDTHS[deviceView]}
-        />
+        {previewMode === "book-frame" && <FitScaleIndicator scale={previewScale} />}
         {!section ? (
           <StageEmptyState
             icon={LayoutGrid}
@@ -2799,9 +2809,9 @@ export function StoryboardSectionDetail({
                 }
               />
             )}
-            {stepperEnabled && editableEntry ? (
+            {previewMode === "stepper" ? (
               <>
-                {editableEntry.sourceRenderingVersion !== undefined &&
+                {editableEntry?.sourceRenderingVersion !== undefined &&
                   (page.versions.rendering ?? 0) !== editableEntry.sourceRenderingVersion && (
                     <div className="mb-2 flex justify-center">
                       <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded">
@@ -2815,7 +2825,7 @@ export function StoryboardSectionDetail({
                   deviceView={deviceView}
                 />
               </>
-            ) : isActivitySection && activityPreviewMode && !editActivityPanelOpen ? (
+            ) : previewMode === "classic-activity" ? (
               <>
                 {renderingDirty && (
                   <div className="mb-2 flex justify-center">
@@ -2851,6 +2861,7 @@ export function StoryboardSectionDetail({
                   onLinkSelect={handleLinkSelectFromPage}
                   onLinkHover={handleAnchorHover}
                   onVisibleWidthChange={setPreviewVisibleWidth}
+                  onScaleChange={setPreviewScale}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
             )}

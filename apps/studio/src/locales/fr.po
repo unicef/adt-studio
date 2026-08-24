@@ -3740,6 +3740,9 @@ msgstr "La première langue est la langue par défaut"
 msgid "Fit"
 msgstr "Ajuster"
 
+msgid "Fit to panel · showing {display}% of full size"
+msgstr "Ajusté au panneau · affichage à {display} % de la taille réelle"
+
 msgid "Fixed layout"
 msgstr "Mise en page fixe"
 

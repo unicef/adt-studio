@@ -2,16 +2,15 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Maximize2 } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import { Badge } from "@/components/ui/badge"
+import { prefersReducedMotion } from "@/lib/utils"
 
 const EXIT_MS = 220
 const COUNT_MS = 550
 const HOLD_MS = 2500
 
 interface FitScaleIndicatorProps {
-  /** On-screen width of the preview in CSS px (render width × scale). */
-  visibleWidth: number
-  /** The width the page renders at before scaling. */
-  fullWidth: number
+  /** CSS transform applied to the authored page, where 1 is full size. */
+  scale: number
 }
 
 /**
@@ -26,10 +25,9 @@ interface FitScaleIndicatorProps {
  * spring-in and the count-up; while it is already visible a live resize updates
  * the number instantly (a rolling number would only lag a value being dragged).
  */
-export function FitScaleIndicator({ visibleWidth, fullWidth }: FitScaleIndicatorProps) {
+export function FitScaleIndicator({ scale }: FitScaleIndicatorProps) {
   const { t } = useLingui()
-  const fitPercent =
-    visibleWidth && fullWidth ? Math.round((visibleWidth / fullWidth) * 100) : 100
+  const fitPercent = Number.isFinite(scale) && scale > 0 ? Math.round(scale * 100) : 100
 
   const [rendered, setRendered] = useState(false)
   const [open, setOpen] = useState(false)
@@ -47,10 +45,7 @@ export function FitScaleIndicator({ visibleWidth, fullWidth }: FitScaleIndicator
 
   const startCountUp = useCallback(() => {
     if (countRafRef.current) cancelAnimationFrame(countRafRef.current)
-    const reduce =
-      // eslint-disable-next-line lingui/no-unlocalized-strings
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false
-    if (reduce) {
+    if (prefersReducedMotion()) {
       setDisplay(fitRef.current)
       countRafRef.current = null
       return
