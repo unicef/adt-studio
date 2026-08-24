@@ -224,12 +224,12 @@ export function StepRunning({
         />
       }
     >
-      <StageRunningPanel
-        stage={stage}
-        isCancelling={isCancelling}
-        onCancel={onCancel}
-        outcome={outcome}
-      />
+        <StageRunningPanel
+                stage={stage}
+                isCancelling={isCancelling}
+                onCancel={onCancel}
+                outcome={outcome}
+          />
     </StepShell>
   )
 }

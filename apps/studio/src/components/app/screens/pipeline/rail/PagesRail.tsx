@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle, Puzzle } from "lucide-react"
+import { useVirtualizer } from "@tanstack/react-virtual"
 import type { QuizItem } from "@/api/client"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -22,6 +23,13 @@ export interface PagesRailProps {
   outdatedPageIds?: ReadonlySet<string>
 }
 
+type RailItem =
+  | { type: "page"; page: PipelinePage }
+  | { type: "quiz"; quiz: QuizItem; pageNumber: number }
+
+const PAGE_ROW_ESTIMATE = 92
+const QUIZ_ROW_ESTIMATE = 48
+
 export function PagesRail({
   label,
   pages,
@@ -34,14 +42,41 @@ export function PagesRail({
   outdatedPageIds,
 }: PagesRailProps) {
   const { t } = useLingui()
-  const quizzesByPage = useMemo(() => groupQuizzesByPage(quizzes), [quizzes])
 
-  const listRef = useRef<HTMLDivElement>(null)
+  const items = useMemo<RailItem[]>(() => {
+    const quizzesByPage = groupQuizzesByPage(quizzes)
+    const out: RailItem[] = []
+    for (const page of pages) {
+      out.push({ type: "page", page })
+      for (const quiz of quizzesByPage.get(page.pageId) ?? []) {
+        out.push({ type: "quiz", quiz, pageNumber: page.pageNumber })
+      }
+    }
+    return out
+  }, [pages, quizzes])
+
+  const activeIndex = useMemo(
+    () =>
+      items.findIndex((item) =>
+        activeQuizIndex != null
+          ? item.type === "quiz" && item.quiz.quizIndex === activeQuizIndex
+          : item.type === "page" && item.page.pageId === activePageId,
+      ),
+    [items, activePageId, activeQuizIndex],
+  )
+
+  const parentRef = useRef<HTMLDivElement>(null)
+  const virtualizer = useVirtualizer({
+    count: items.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: (index) =>
+      items[index]?.type === "quiz" ? QUIZ_ROW_ESTIMATE : PAGE_ROW_ESTIMATE,
+    overscan: 8,
+  })
+
   useEffect(() => {
-    listRef.current
-      ?.querySelector("[aria-current='page']")
-      ?.scrollIntoView({ block: "nearest" })
-  }, [activePageId, activeQuizIndex])
+    if (activeIndex >= 0) virtualizer.scrollToIndex(activeIndex, { align: "auto" })
+  }, [activeIndex, virtualizer])
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r bg-card">
@@ -53,15 +88,50 @@ export function PagesRail({
         <RailCollapseButton className="-mr-1" />
       </div>
 
-      <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:block!">
-        <div ref={listRef} className="flex flex-col gap-1.5 px-2.5 pb-2.5">
-          {pages.map((page) => {
+      <ScrollArea className="min-h-0 flex-1" viewportRef={parentRef} viewportClassName="px-2.5 pb-2.5">
+        <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const item = items[virtualRow.index]
+            const rowStyle: React.CSSProperties = {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              transform: `translateY(${virtualRow.start}px)`,
+            }
+
+            if (item.type === "quiz") {
+              return (
+                <div
+                  key={`quiz-${item.quiz.quizIndex}`}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  style={rowStyle}
+                  className="pb-1.5"
+                >
+                  <QuizRailRow
+                    quiz={item.quiz}
+                    pageNumber={item.pageNumber}
+                    active={item.quiz.quizIndex === activeQuizIndex}
+                    onSelect={() => onSelectQuiz(item.quiz.quizIndex)}
+                  />
+                </div>
+              )
+            }
+
+            const page = item.page
             const active = activeQuizIndex == null && page.pageId === activePageId
             const pending = !!storyboardRunning && !page.hasRendering && !page.isDiscarded
             const hasActivity = page.sections.some((s) => s.isActivity && !s.isPruned)
             const outdated = outdatedPageIds?.has(page.pageId) ?? false
             return (
-              <div key={page.pageId} className="flex flex-col gap-1.5">
+              <div
+                key={page.pageId}
+                data-index={virtualRow.index}
+                ref={virtualizer.measureElement}
+                style={rowStyle}
+                className="pb-1.5"
+              >
                 <button
                   type="button"
                   onClick={() => onSelect(page.pageId)}
@@ -75,7 +145,7 @@ export function PagesRail({
                         : undefined
                   }
                   className={cn(
-                    "flex gap-2.5 rounded-[9px] p-2 text-left transition-colors",
+                    "flex w-full gap-2.5 rounded-[9px] p-2 text-left transition-colors",
                     active
                       ? "bg-brand-50 shadow-[inset_0_0_0_1px_var(--brand-200)]"
                       : "hover:bg-muted",
@@ -124,16 +194,6 @@ export function PagesRail({
                     </span>
                   </div>
                 </button>
-
-                {(quizzesByPage.get(page.pageId) ?? []).map((quiz) => (
-                  <QuizRailRow
-                    key={quiz.quizIndex}
-                    quiz={quiz}
-                    pageNumber={page.pageNumber}
-                    active={quiz.quizIndex === activeQuizIndex}
-                    onSelect={() => onSelectQuiz(quiz.quizIndex)}
-                  />
-                ))}
               </div>
             )
           })}

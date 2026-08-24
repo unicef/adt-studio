@@ -25,7 +25,7 @@ export function StageRunningPanel({
   return (
     <div
       className={cn(
-        "w-[440px] mx-auto overflow-hidden rounded-2xl border bg-card shadow-[0_24px_60px_-30px_rgba(0,0,0,0.35)]",
+        "w-[440px] m-auto overflow-hidden rounded-2xl border bg-card shadow-[0_24px_60px_-30px_rgba(0,0,0,0.35)]",
         className,
       )}
       style={{ borderColor: tint(stage.hex, 0.35) }}
