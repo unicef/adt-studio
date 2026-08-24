@@ -116,6 +116,9 @@ export const PRESENCE_GRACE_MS = 8000
 
 export interface SeenPeer {
   peer: RoomPeer
+  /** When this peer first appeared, which is what the list is ordered by. Kept across their
+   *  reconnections so turning a page does not move them. */
+  firstSeenMs?: number
   lastSeenMs: number
 }
 
@@ -138,14 +141,33 @@ export function stickyRoster(
   graceMs: number = PRESENCE_GRACE_MS,
 ): { display: RoomPeer[]; seen: SeenPeer[] } {
   const liveIds = new Set(live.map((peer) => peer.id))
+  const known = new Map(seen.map((entry) => [entry.peer.id, entry]))
   const lingering = seen.filter(
     (entry) => !liveIds.has(entry.peer.id) && now - entry.lastSeenMs < graceMs,
   )
-  const next = [
-    ...live.map((peer) => ({ peer, lastSeenMs: now })),
+
+  const next: SeenPeer[] = [
+    ...live.map((peer) => {
+      const previous = known.get(peer.id)
+      return {
+        peer,
+        /** Carried over, never reset. The room reports whoever is connected in socket order, so a
+         *  reader who turns a page comes back at the *end* of it — which is why the list kept
+         *  reshuffling under people. Ordering on first sight instead keeps everybody where the
+         *  reader last saw them. */
+        firstSeenMs: previous?.firstSeenMs ?? previous?.lastSeenMs ?? now,
+        lastSeenMs: now,
+      }
+    }),
     ...lingering,
   ]
-  return { display: next.map((entry) => entry.peer), seen: next }
+
+  const order = (entry: SeenPeer): number => entry.firstSeenMs ?? entry.lastSeenMs
+  const display = [...next]
+    .sort((a, b) => order(a) - order(b) || a.peer.id.localeCompare(b.peer.id))
+    .map((entry) => entry.peer)
+
+  return { display, seen: next }
 }
 
 /** Everyone but the reader. "3 people here" counts the others; the reader knows they are here. */

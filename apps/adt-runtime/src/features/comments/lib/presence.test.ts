@@ -365,3 +365,51 @@ describe("keeping the roster steady across a page turn", () => {
     expect(stickyRoster([], remembered, now + 300).display.map((p) => p.name)).toEqual(["Bruno"])
   })
 })
+
+describe("keeping the list in the same order", () => {
+  const ana: RoomPeer = {
+    id: "s-ana.tab1",
+    name: "Ana",
+    color: "#0091ff",
+    is_author: false,
+    page_section_id: "pg001_sec001",
+    device: "full",
+  }
+  const bruno: RoomPeer = { ...ana, id: "s-bruno.tab1", name: "Bruno" }
+  const cris: RoomPeer = { ...ana, id: "s-cris.tab1", name: "Cris" }
+
+  /** The room lists whoever is connected in socket order, so a reader who turns a page rejoins
+   *  at the end of it. Following that put people in a different place every time somebody
+   *  moved. */
+  it("keeps a peer in place when they turn a page and rejoin last", () => {
+    let state = stickyRoster([ana, bruno, cris], [], 1_000)
+    expect(state.display.map((peer) => peer.name)).toEqual(["Ana", "Bruno", "Cris"])
+
+    // Bruno turns a page: he drops out, then the room reports him after the others.
+    state = stickyRoster([ana, cris], state.seen, 1_100)
+    expect(state.display.map((peer) => peer.name)).toEqual(["Ana", "Bruno", "Cris"])
+
+    state = stickyRoster([ana, cris, bruno], state.seen, 1_200)
+    expect(state.display.map((peer) => peer.name)).toEqual(["Ana", "Bruno", "Cris"])
+  })
+
+  it("puts somebody genuinely new at the end", () => {
+    const first = stickyRoster([ana], [], 1_000)
+    const second = stickyRoster([ana, bruno], first.seen, 2_000)
+    expect(second.display.map((peer) => peer.name)).toEqual(["Ana", "Bruno"])
+  })
+
+  /** Two peers seen in the same millisecond still need a settled order, or they swap about. */
+  it("breaks a tie the same way every time", () => {
+    const a = stickyRoster([ana, bruno], [], 1_000).display.map((peer) => peer.name)
+    const b = stickyRoster([bruno, ana], [], 1_000).display.map((peer) => peer.name)
+    expect(a).toEqual(b)
+  })
+
+  /** Entries restored from a tab that predates the ordering field must not sort as NaN. */
+  it("tolerates a remembered peer with no first-seen recorded", () => {
+    const legacy = [{ peer: bruno, lastSeenMs: 900 }]
+    const state = stickyRoster([ana], legacy, 1_000)
+    expect(state.display.map((peer) => peer.name)).toEqual(["Bruno", "Ana"])
+  })
+})
