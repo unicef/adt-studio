@@ -152,6 +152,13 @@ export interface ImportedHtmlContractOptions {
   /** Generated quiz pages from older Studio versions identified their root
    * section with data-id instead of data-section-id. */
   allowSectionDataId?: boolean
+  /** A fixed-layout page holds its absolutely-positioned leaves directly under
+   * `#content` and has no semantic `<section>` to require — the positioning
+   * context IS the wrapper. Data-id and asset rules still apply, so the page is
+   * checked against them under `#content` instead. Callers decide with
+   * `isImportedFixedLayoutPage`, so a genuinely broken reflowable page still
+   * reports `missing-section`. */
+  fixedLayoutPage?: boolean
 }
 
 const STANDARD_ADT_STYLESHEETS = new Set([
@@ -211,7 +218,7 @@ export function inspectImportedHtmlContract(
   if (contentRoots.length === 0) issues.push({ code: "missing-content-root" })
   if (contentRoots.length > 1) issues.push({ code: "multiple-content-roots" })
 
-  const matchingSections = DomUtils.findAll(
+  const matchingSections = options.fixedLayoutPage === true ? [] : DomUtils.findAll(
     (el) => el.type === "tag" && el.name === "section"
       && (
         el.attribs?.["data-section-id"] === expectedSectionId
@@ -219,15 +226,21 @@ export function inspectImportedHtmlContract(
       ),
     contentRoots[0]?.children ?? [],
   )
-  if (matchingSections.length === 0) issues.push({ code: "missing-section", detail: expectedSectionId })
-  if (matchingSections.length > 1) issues.push({ code: "multiple-sections", detail: expectedSectionId })
+  if (options.fixedLayoutPage !== true) {
+    if (matchingSections.length === 0) issues.push({ code: "missing-section", detail: expectedSectionId })
+    if (matchingSections.length > 1) issues.push({ code: "multiple-sections", detail: expectedSectionId })
+  }
   const section = matchingSections[0]
   if (section && !section.attribs["data-section-type"]?.trim()) {
     issues.push({ code: "missing-section-type", detail: expectedSectionId })
   }
 
-  if (section) {
-    const elements = [section, ...DomUtils.findAll((el) => el.type === "tag", section.children ?? [])]
+  const dataIdRoot = options.fixedLayoutPage === true ? contentRoots[0] : section
+  if (dataIdRoot) {
+    const elements = [
+      ...(section ? [section] : []),
+      ...DomUtils.findAll((el) => el.type === "tag", dataIdRoot.children ?? []),
+    ]
     const ids = new Set<string>()
     let dataIdCount = 0
     for (const element of elements) {
@@ -376,7 +389,7 @@ function escapeHtmlAttribute(value: string): string {
     .replaceAll(">", "&gt;")
 }
 
-function removeExecutableImportedMarkup(section: ReturnType<typeof DomUtils.findOne>): void {
+export function removeExecutableImportedMarkup(section: ReturnType<typeof DomUtils.findOne>): void {
   if (!section) return
   const executable = DomUtils.findAll(
     (el) => (el.type === "tag" || el.type === "script")

@@ -58,6 +58,10 @@ export interface ReadAdtBundle {
   pages: Array<{ section_id: string; href: string; page_number?: number }>
   pageHtml: Record<string, string>
   runtimeFeatures: Record<string, boolean>
+  /** Declared presentation of the exported publication. `fixedLayout` books
+   * render from a positioned `#content` box rather than reflowable sections, so
+   * the importer has to project them through the fixed-layout path. */
+  presentation: { fixedLayout: boolean }
   toc: AdtBundleTocData
   glossaries: Record<string, AdtBundleGlossaryData>
   texts: Record<string, AdtBundleTextsData>
@@ -88,6 +92,7 @@ const RuntimeConfig = z.object({
     default: z.string().trim().min(2),
   }).optional(),
   features: z.record(z.boolean()).optional(),
+  fixedLayout: z.boolean().optional(),
 }).passthrough()
 
 const RuntimePages = z.array(z.object({
@@ -448,6 +453,7 @@ export function readAdtBundle(
     pages,
     pageHtml,
     runtimeFeatures: runtimeConfig?.features ?? {},
+    presentation: { fixedLayout: runtimeConfig?.fixedLayout === true },
     toc,
     glossaries,
     texts,

@@ -216,6 +216,15 @@ export {
   type ImportedHtmlContractOptions,
 } from "./text-catalog.js"
 export {
+  projectImportedFixedLayoutPage,
+  isImportedFixedLayoutPage,
+  type ImportedFixedLayoutProjection,
+} from "./imported-fixed-layout.js"
+export {
+  recoverImportedQuiz,
+  type ImportedQuizRecovery,
+} from "./imported-quiz.js"
+export {
   inspectImportedActivity,
   restoreImportedCustomActivityScripts,
   KNOWN_ACTIVITY_SECTION_TYPES,

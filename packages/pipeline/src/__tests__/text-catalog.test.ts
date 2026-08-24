@@ -743,6 +743,49 @@ describe("inspectImportedHtmlContract", () => {
     })
   })
 
+  it("checks a fixed-layout page under #content instead of demanding a section", () => {
+    const html = `
+      <link href="./content/tailwind_output.css" rel="stylesheet">
+      <main><div id="content" data-fl-reference-width="1145" style="position:relative;width:1145px;height:692px">
+        <img src="images/pg001_im001.png" alt="" data-id="pg001_im001" style="position:absolute;top:0px;left:0px;width:575px;height:692px">
+        <p data-id="pg001_p000" style="position:absolute;top:597px;left:121px;line-height:20px">Text</p>
+        <script src="./assets/auto-fit.js"></script>
+      </div></main>
+    `
+
+    expect(inspectImportedHtmlContract(html, "pg001_sec001").issues)
+      .toContainEqual({ code: "missing-section", detail: "pg001_sec001" })
+    expect(inspectImportedHtmlContract(html, "pg001_sec001", {
+      fixedLayoutPage: true,
+    })).toEqual({
+      issues: [],
+      localAssets: [
+        "content/tailwind_output.css",
+        "images/pg001_im001.png",
+        "assets/auto-fit.js",
+      ],
+      dataIds: ["pg001_im001", "pg001_p000"],
+    })
+  })
+
+  it("still enforces data-id and asset rules on a fixed-layout page", () => {
+    const result = inspectImportedHtmlContract(`
+      <div id="content" style="position:relative;width:1145px;height:692px">
+        <img src="images/decor.png" alt="" style="position:absolute;top:0px;left:0px;width:10px;height:10px">
+        <img src="https://cdn.example.com/remote.png" alt="" data-id="pg001_im002" style="position:absolute;top:0px;left:0px;width:10px;height:10px">
+        <p data-id="pg001_p000" style="position:absolute;top:1px;left:1px;line-height:20px">A</p>
+        <p data-id="pg001_p000" style="position:absolute;top:2px;left:1px;line-height:20px">B</p>
+      </div>
+    `, "pg001_sec001", { fixedLayoutPage: true })
+
+    expect(result.issues).toContainEqual({ code: "image-missing-data-id", detail: "images/decor.png" })
+    expect(result.issues).toContainEqual({ code: "duplicate-data-id", detail: "pg001_p000" })
+    expect(result.issues).toContainEqual({
+      code: "remote-asset",
+      detail: "https://cdn.example.com/remote.png",
+    })
+  })
+
   it("accepts the legacy quiz section identity only when explicitly enabled", () => {
     const html = `
       <div id="content">

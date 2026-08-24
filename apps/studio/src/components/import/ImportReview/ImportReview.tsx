@@ -82,18 +82,20 @@ function needsReview(preview: AnyImportPreview, unresolvedActivityCount: number)
   return !isPartImportPreview(preview) && Boolean(preview.validationError)
 }
 
-function detectedAdtFeatures(preview: AdtBundleImportPreview): Set<string> {
-  return new Set([
-    preview.pageCount > 0 ? "storyboard" : null,
-    preview.captionedImageCount > 0 ? "captions" : null,
-    (preview.activityReview?.quizCount ?? 0) > 0 ? "quizzes" : null,
-    preview.glossaryEntryCount > 0 ? "glossary" : null,
-    preview.tocEntryCount > 0 ? "toc" : null,
-    preview.runtimeFeatures.easyRead ? "easy-read" : null,
-    preview.runtimeFeatures.signLanguage ? "sign-language" : null,
-    preview.translationLanguageCount > 0 ? "translate" : null,
-    preview.runtimeFeatures.readAloud ? "speech" : null,
-  ].filter((slug): slug is string => slug !== null))
+type FeatureStatus = "recovered" | "needs-regeneration" | "available"
+
+/** The API reports what the import will actually produce. A published archive
+ * can *use* a feature whose pipeline data cannot be rebuilt from it (Easy Read,
+ * quizzes, sign language) — those have to be generated again in Studio, so they
+ * must not be presented as carried over. */
+function featureStatus(preview: AnyImportPreview, slug: string): FeatureStatus {
+  if (isPartImportPreview(preview)) return "available"
+  if (isAdtBundleImportPreview(preview)) {
+    return preview.featureRecovery?.[slug] ?? "available"
+  }
+  return (preview as ImportPreview).stages[slug]?.status === "done"
+    ? "recovered"
+    : "available"
 }
 
 function PreviewCover({ preview }: { preview: AnyImportPreview }) {
@@ -101,7 +103,7 @@ function PreviewCover({ preview }: { preview: AnyImportPreview }) {
   const cover = previewCover(preview)
 
   return (
-    <aside className="flex min-h-[390px] flex-col items-center justify-center border-t border-slate-200 bg-slate-50/80 p-6 md:border-l md:border-t-0">
+    <aside className="hidden min-h-[390px] flex-col items-center justify-center border-t border-slate-200 bg-slate-50/80 p-6 md:flex md:border-l md:border-t-0">
       <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500">
         <Trans>Book cover</Trans>
       </p>
@@ -268,33 +270,55 @@ function OverviewTab({ preview }: { preview: AnyImportPreview }) {
 
 function FeaturesTab({ preview }: { preview: AnyImportPreview }) {
   const { i18n } = useLingui()
-  const detected = isAdtBundleImportPreview(preview) ? detectedAdtFeatures(preview) : null
-  const [hasMoreBelow, setHasMoreBelow] = useState(true)
+  const [hasMoreBelow, setHasMoreBelow] = useState(false)
+  const scrollArea = useRef<HTMLDivElement>(null)
+  const needsRegeneration = FEATURES.some((feature) => (
+    featureStatus(preview, feature.slug) === "needs-regeneration"
+  ))
+
+  // The grid reflows from one column to three across the breakpoints, so
+  // whether anything is actually cut off depends on the rendered height rather
+  // than the feature count. Measure it, and keep measuring as the card resizes,
+  // so the hint never invites a scroll that does nothing.
+  useEffect(() => {
+    const area = scrollArea.current
+    if (!area) return
+    const measure = () => {
+      setHasMoreBelow(area.scrollHeight - area.scrollTop - area.clientHeight > 4)
+    }
+    measure()
+    if (typeof ResizeObserver === "undefined") return
+    const observer = new ResizeObserver(measure)
+    observer.observe(area)
+    for (const child of Array.from(area.children)) observer.observe(child)
+    return () => observer.disconnect()
+  }, [])
 
   return (
     <div className="relative h-full">
       <div
+        ref={scrollArea}
         role="region"
         aria-labelledby="import-review-tab-features"
         tabIndex={0}
-        className="h-full overflow-y-auto pb-12 pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
+        className="h-full overflow-y-auto pb-10 pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2"
         onScroll={(event) => {
           const area = event.currentTarget
           setHasMoreBelow(area.scrollHeight - area.scrollTop - area.clientHeight > 4)
         }}
       >
-        <div className="mb-3 flex items-center justify-between gap-4">
+        <div className="mb-2 flex items-center justify-between gap-4">
           <p className="text-xs leading-relaxed text-slate-600">
-            <Trans>Features found in the archive remain available after import. Missing features can be generated from the working book.</Trans>
+            {needsRegeneration ? (
+              <Trans>Included features carry over to the imported book. The others need generating in Studio.</Trans>
+            ) : (
+              <Trans>Included features carry over to the imported book. Missing features can be generated in Studio.</Trans>
+            )}
           </p>
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {FEATURES.map((feature) => {
-            const present = isPartImportPreview(preview)
-              ? false
-              : isAdtBundleImportPreview(preview)
-                ? detected?.has(feature.slug) ?? false
-                : (preview as ImportPreview).stages[feature.slug]?.status === "done"
+            const status = featureStatus(preview, feature.slug)
             const Icon = feature.icon
             return (
               <div key={feature.slug} className="flex min-h-[96px] items-start gap-3 rounded-lg border border-slate-200 bg-white p-3">
@@ -305,13 +329,27 @@ function FeaturesTab({ preview }: { preview: AnyImportPreview }) {
                   <div className="flex min-w-0 flex-col items-start gap-1.5">
                     <p className="min-w-0 break-words text-sm font-semibold leading-tight text-slate-900">{i18n._(feature.label)}</p>
                     <span className={cn(
-                      "inline-flex max-w-full whitespace-normal break-words rounded-full px-2 py-0.5 text-left text-[10px] font-semibold leading-tight",
-                      present ? `${feature.bgLight} ${feature.textColor}` : "bg-slate-100 text-slate-500",
+                      "inline-flex max-w-full whitespace-normal break-words rounded-full px-2 py-0.5 text-left text-[10px] font-semibold leading-tight transition-colors duration-200",
+                      status === "recovered"
+                        ? `${feature.bgLight} ${feature.textColor}`
+                        : status === "needs-regeneration"
+                          ? "bg-amber-50 text-amber-700"
+                          : "bg-slate-100 text-slate-500",
                     )}>
-                      {present ? <Trans>Included</Trans> : <Trans>Available</Trans>}
+                      {status === "recovered" ? (
+                        <Trans>Included</Trans>
+                      ) : status === "needs-regeneration" ? (
+                        <Trans>Needs regenerating</Trans>
+                      ) : (
+                        <Trans>Available</Trans>
+                      )}
                     </span>
                   </div>
-                  <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">{i18n._(feature.description)}</p>
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500">
+                    {status === "needs-regeneration"
+                      ? <Trans>The source publication uses this, but its editable data is not in the archive.</Trans>
+                      : i18n._(feature.description)}
+                  </p>
                 </div>
               </div>
             )
@@ -319,7 +357,7 @@ function FeaturesTab({ preview }: { preview: AnyImportPreview }) {
         </div>
       </div>
       {hasMoreBelow ? (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-12 items-end justify-center bg-gradient-to-t from-white via-white/95 to-transparent pb-1.5">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-12 items-end justify-center bg-gradient-to-t from-white via-white/95 to-transparent pb-1.5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
           <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-semibold text-slate-600 shadow-sm">
             <Trans>Scroll to see all features</Trans>
             <ChevronDown className="h-3 w-3" />
@@ -588,7 +626,7 @@ export function ImportReview({
 
   return (
     <>
-      <section className="grid min-h-0 w-full flex-1 grid-cols-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-300 md:grid-cols-[minmax(0,1fr)_240px]">
+      <section className="grid min-h-0 w-full flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_auto] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-300 md:grid-cols-[minmax(0,1fr)_240px] md:grid-rows-[minmax(0,1fr)]">
         <div className="flex min-h-0 min-w-0 flex-col">
           <header className="flex shrink-0 flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
             <div className="min-w-0">

@@ -100,6 +100,18 @@ function makeAdtPreview(
     translationLanguageCount: 2,
     contentChanged: false,
     exportComparisonStatus: "unchanged",
+    featureRecovery: {
+      storyboard: "recovered",
+      captions: "recovered",
+      glossary: "recovered",
+      toc: "recovered",
+      translate: "recovered",
+      speech: "recovered",
+      // Rebuilt from the catalog text plus the quiz page's answer key.
+      quizzes: "recovered",
+      // Baked into the published bundle, so the import cannot rebuild it.
+      "easy-read": "needs-regeneration",
+    },
     activityReview: {
       inventoryVersion: 2,
       items: [],

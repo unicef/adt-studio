@@ -198,14 +198,16 @@ describe("ImportProject", () => {
       expect(featuresTab.getAttribute("data-state")).toBe("active")
       expect(screen.getByRole("tabpanel").className).toContain("motion-safe:animate-out")
       expect(screen.getByText("Pages")).toBeTruthy()
-      expect(screen.queryByText(/Features found in the archive/)).toBeNull()
+      expect(screen.queryByText(/carry over to the imported book/)).toBeNull()
 
       act(() => vi.advanceTimersByTime(120))
 
       expect(screen.getByRole("tabpanel").className).toContain("motion-safe:animate-in")
       expect(screen.queryByText("Pages")).toBeNull()
-      expect(screen.getByText(/Features found in the archive/)).toBeTruthy()
-      expect(screen.getByText("Scroll to see all features")).toBeTruthy()
+      expect(screen.getByText(/carry over to the imported book/)).toBeTruthy()
+      // Nothing is cut off until the grid actually overflows, so the hint stays
+      // out of the way rather than inviting a scroll that does nothing.
+      expect(screen.queryByText("Scroll to see all features")).toBeNull()
       const storyboard = screen.getByText("Storyboard")
       expect(storyboard.parentElement?.textContent).toContain("Included")
       expect(storyboard.parentElement?.className).toContain("flex-col")
@@ -213,10 +215,20 @@ describe("ImportProject", () => {
       expect(storyboard.parentElement?.querySelector("span")?.className).toContain("whitespace-normal")
       const captions = screen.getByText("Image Captions")
       expect(captions.parentElement?.textContent).toContain("Included")
+      // Easy Read has no recoverable pipeline data, so it must not be sold as
+      // carried over just because the published runtime switched it on.
+      const easyRead = screen.getByText("Easy Read")
+      expect(easyRead.parentElement?.textContent).toContain("Needs regenerating")
+      expect(easyRead.parentElement?.textContent).not.toContain("Included")
+      const signLanguage = screen.getByText("Sign Language")
+      expect(signLanguage.parentElement?.textContent).toContain("Available")
 
       const featureRegion = screen.getByRole("region", { name: "Features" })
       Object.defineProperty(featureRegion, "scrollHeight", { configurable: true, value: 800 })
       Object.defineProperty(featureRegion, "clientHeight", { configurable: true, value: 360 })
+      fireEvent.scroll(featureRegion)
+      expect(screen.getByText("Scroll to see all features")).toBeTruthy()
+
       featureRegion.scrollTop = 440
       fireEvent.scroll(featureRegion)
       expect(screen.queryByText("Scroll to see all features")).toBeNull()

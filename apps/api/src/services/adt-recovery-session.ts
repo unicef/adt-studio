@@ -10,25 +10,31 @@ import {
   extractImportedHtmlPresentationAssets,
   extractTextCatalogEntriesFromHtml,
   inspectImportedHtmlContract,
+  isImportedFixedLayoutPage,
   getWordTimestamps,
   generateOfflinePreloader,
   normalizeLocale,
+  projectImportedFixedLayoutPage,
   projectImportedHtmlSection,
+  recoverImportedQuiz,
   restoreImportedCustomActivityScripts,
+  type ImportedFixedLayoutProjection,
 } from "@adt/pipeline"
 import { createBookStorage, openBookDb } from "@adt/storage"
 import {
   ADT_EDITING_CONTRACT_VERSION,
   ADT_EDITING_CONTRACT_MIN_VERSION,
-  type AdtActivityImportDecision,
+  AdtActivityImportDecision,
   BookMetadata,
   AdtRoundTripManifest,
   EasyReadOutput,
   GlossaryOutput,
   ImageCaptioningOutput,
+  ImageClassificationOutput,
   SpeechConfig,
   TTSOutput,
   TextCatalogOutput,
+  QuizGenerationOutput,
   TocGenerationOutput,
   WordTimestampOutput,
   isTtsExcluded,
@@ -60,7 +66,21 @@ import {
 
 export { ADT_RECOVERY_MARKER } from "./adt-recovery-marker.js"
 
-export const ADT_IMPORT_PROJECTION_VERSION = 3
+export const ADT_IMPORT_PROJECTION_VERSION = 4
+
+/** Section type the fixed-layout renderer and packaging key off. Imported
+ * fixed-layout pages carry it so they are indistinguishable downstream from
+ * pages this pipeline sectioned itself. */
+const FIXED_LAYOUT_SECTION_TYPE = "fixed-layout-page"
+
+/** Book config that makes `isFixedLayoutBook()` true. Written for imported
+ * fixed-layout projects so packaging, font resolution and re-export all take
+ * the fixed-layout path; it deliberately says nothing about extraction, which
+ * stays unavailable for imported ADTs (there is no source PDF). */
+const FIXED_LAYOUT_CONFIG = {
+  render_strategies: { fixed_layout: { render_type: "fixed_layout" } },
+  default_render_strategy: "fixed_layout",
+} as const
 
 export interface AdtRecoverySession {
   label: string
@@ -101,6 +121,9 @@ export interface AdtRecoveryImportPreview {
   exportComparisonStatus: "unchanged" | "changed" | "unavailable"
   activityReview: AdtImportedActivityReview
   compatibility: AdtImportCompatibility
+  /** Per-feature outcome of this import, keyed by pipeline stage slug. Features
+   * the archive does not have at all are absent from the map. */
+  featureRecovery: Record<string, AdtImportFeatureRecovery>
   agentGuide: AdtAgentGuideReview
 }
 
@@ -231,7 +254,13 @@ export function assessAdtImportCompatibility(
     const originalInspection = inspectImportedHtmlContract(
       bundle.pageHtml[page.href] ?? "",
       page.section_id,
-      { allowSectionDataId: generatedQuizPage },
+      {
+        allowSectionDataId: generatedQuizPage,
+        // Round-trip exports of a fixed-layout book carry positioned pages with
+        // no semantic <section>. Requiring one rejected every fixed-layout book
+        // we had just exported ourselves.
+        fixedLayoutPage: isImportedFixedLayoutPage(bundle.pageHtml[page.href] ?? ""),
+      },
     )
     const inspection = bundle.sourceFormat === "legacy-studio-export"
       ? inspectImportedHtmlContract(
@@ -333,6 +362,99 @@ export function assessAdtImportCompatibility(
   return { supported: unique.length === 0, issues: unique }
 }
 
+/**
+ * How each pipeline feature will actually come out of this archive.
+ *
+ * The archive's `assets/config.json` says which features its *runtime* had
+ * switched on, which is not the same question as whether the importer can
+ * rebuild them as pipeline entities. Easy Read and sign language have no
+ * recoverable entity representation at all: their runtime data is baked into the
+ * published bundle, so the import drops them and `packageAdtWeb` writes
+ * `easyRead: false` on the way back out. Reporting them as "included" promised
+ * the user something the exporter then removed. Quizzes are the opposite case:
+ * they look baked-in but rebuild cleanly, so they are judged on whether the
+ * rebuild actually succeeded rather than on the runtime flag.
+ *
+ * `recovered` means an entity is seeded and the feature works after import.
+ * `needs-regeneration` means the source publication had it, but it has to be
+ * generated again in Studio. Anything absent from the archive is simply
+ * available to generate, and is not listed here.
+ */
+export type AdtImportFeatureRecovery = "recovered" | "needs-regeneration"
+
+export function planImportedFeatureRecovery(
+  bundle: ReturnType<typeof readAdtBundle>,
+  counts: {
+    captionedImageCount: number
+    glossaryEntryCount: number
+    tocEntryCount: number
+    translationLanguageCount: number
+    quizCount: number
+    declaredQuizCount: number
+    recoverableQuizCount: number
+    speechRecoverable: boolean
+  },
+): Record<string, AdtImportFeatureRecovery> {
+  const plan: Record<string, AdtImportFeatureRecovery> = {}
+  if (recoveredPageCount(bundle.pages) > 0) plan.storyboard = "recovered"
+  if (counts.captionedImageCount > 0) plan.captions = "recovered"
+  if (counts.glossaryEntryCount > 0) plan.glossary = "recovered"
+  if (counts.tocEntryCount > 0) plan.toc = "recovered"
+  if (counts.translationLanguageCount > 0) plan.translate = "recovered"
+  if (bundle.runtimeFeatures.readAloud) {
+    plan.speech = counts.speechRecoverable ? "recovered" : "needs-regeneration"
+  }
+  // A generated quiz keeps its text in the shared catalog and its answer key in
+  // the quiz page, so it rebuilds into a real entity. Only a quiz missing either
+  // half has to be made again.
+  // `quizCount` counts pages the activity review reads as a quiz; the recovery
+  // only sees generated `qz*` pages. Judge against whichever population is
+  // larger so a hand-authored quiz can't be silently reported as recovered, and
+  // an undetected generated one can't be reported as absent.
+  const quizzesInArchive = Math.max(counts.quizCount, counts.declaredQuizCount)
+  if (quizzesInArchive > 0) {
+    plan.quizzes = counts.recoverableQuizCount >= quizzesInArchive
+      ? "recovered"
+      : "needs-regeneration"
+  }
+  if (bundle.runtimeFeatures.easyRead) plan["easy-read"] = "needs-regeneration"
+  if (bundle.runtimeFeatures.signLanguage) plan["sign-language"] = "needs-regeneration"
+  return plan
+}
+
+/** Whether this archive carries narration audio the importer can adopt. */
+function hasRecoverableSpeech(
+  bundle: ReturnType<typeof readAdtBundle>,
+  zipBuffer: Buffer,
+  contentChanged: boolean,
+): boolean {
+  if (!bundle.runtimeFeatures.readAloud || contentChanged) return false
+  let files: Record<string, Uint8Array>
+  try {
+    files = extractAdtBundleArchiveFiles(zipBuffer)
+  } catch {
+    return false
+  }
+  // Mirror `seedImportedSpeech`: a manifest is not enough — the map has to parse
+  // and at least one narration file it names has to be present in the archive.
+  return bundle.manifest.languages.output.some((language) => {
+    const bytes = files[`${bundle.root}content/i18n/${language}/audios.json`]
+    if (!bytes) return false
+    let audioMap: unknown
+    try {
+      audioMap = JSON.parse(new TextDecoder().decode(bytes))
+    } catch {
+      return false
+    }
+    if (!audioMap || typeof audioMap !== "object" || Array.isArray(audioMap)) return false
+    return Object.values(audioMap as Record<string, unknown>).some((fileName) => (
+      typeof fileName === "string"
+      && path.basename(fileName) === fileName
+      && files[`${bundle.root}content/i18n/${language}/audio/${fileName}`] !== undefined
+    ))
+  })
+}
+
 export function previewAdtRecoveryImport(
   zipBuffer: Buffer,
   agentGuideTemplate?: string,
@@ -368,6 +490,15 @@ export function previewAdtRecoveryImport(
     return fs.readFileSync(defaultPath, "utf8")
   })()
 
+  const recoveredQuizzes = recoverImportedQuizzes(bundle, sourceTexts)
+  const glossaryEntryCount = Object.keys(
+    bundle.glossaries[bundle.manifest.languages.source] ?? {},
+  ).length
+  const translationLanguageCount = outputLanguages.filter((language) => (
+    bundle.texts[language] || bundle.texts[language.replace("-", "_")]
+  )).length
+  const contentChanged = hasSourceChanges(bundle, catalog, sourceTexts)
+
   return {
     isAdtBundle: true,
     legacyRecovery: bundle.sourceFormat === "legacy-studio-export",
@@ -382,15 +513,23 @@ export function previewAdtRecoveryImport(
     pageCount: recoveredPageCount(bundle.pages),
     imageCount,
     captionedImageCount,
-    glossaryEntryCount: Object.keys(bundle.glossaries[bundle.manifest.languages.source] ?? {}).length,
+    glossaryEntryCount,
     tocEntryCount: bundle.toc.length,
-    translationLanguageCount: outputLanguages.filter((language) => (
-      bundle.texts[language] || bundle.texts[language.replace("-", "_")]
-    )).length,
-    contentChanged: hasSourceChanges(bundle, catalog, sourceTexts),
+    translationLanguageCount,
+    contentChanged,
     exportComparisonStatus: compareWithExportBaseline(bundle),
     activityReview,
     compatibility,
+    featureRecovery: planImportedFeatureRecovery(bundle, {
+      captionedImageCount,
+      glossaryEntryCount,
+      tocEntryCount: bundle.toc.length,
+      translationLanguageCount,
+      quizCount: activityReview.quizCount,
+      declaredQuizCount: recoveredQuizzes.declaredCount,
+      recoverableQuizCount: recoveredQuizzes.quizzes.length,
+      speechRecoverable: hasRecoverableSpeech(bundle, zipBuffer, contentChanged),
+    }),
     agentGuide: createAdtImportRepairGuide(bundle, compatibility, template, activityReview),
   }
 }
@@ -630,6 +769,12 @@ function seedPages(
   }
 }
 
+/**
+ * Project the exported HTML into the storyboard entities the normal pipeline
+ * writes. Returns how the book was projected so the caller can write a matching
+ * `config.yaml` — an imported fixed-layout book has to be recognized by
+ * `isFixedLayoutBook()` for packaging and re-export to keep its geometry.
+ */
 function seedImportedStoryboard(
   label: string,
   booksDir: string,
@@ -641,23 +786,26 @@ function seedImportedStoryboard(
   activityOverrides: ReadonlyMap<string, string> = new Map(),
   activityReview?: AdtImportedActivityReview,
   activityDecisions: readonly AdtActivityImportDecision[] = [],
-): void {
+): { fixedLayoutPageCount: number } {
+  const imageUrlPrefix = `/api/books/${encodeURIComponent(label)}/images`
   const grouped = new Map<string, Array<{
     sectionId: string
     href: string
     projection: ReturnType<typeof projectImportedHtmlSection>
+    fixedLayout: ReturnType<typeof projectImportedFixedLayoutPage>
   }>>()
   pages.forEach((page, index) => {
     const pageId = pageIdFromSection(page.section_id, index)
     if (!pageId) return
     const entries = grouped.get(pageId) ?? []
+    const html = pageHtml[page.href] ?? ""
     entries.push({
       sectionId: page.section_id,
       href: page.href,
       projection: projectImportedHtmlSection(
-        pageHtml[page.href] ?? "",
+        html,
         page.section_id,
-        `/api/books/${encodeURIComponent(label)}/images`,
+        imageUrlPrefix,
         {
           repairLegacyIds: legacyRecovery,
           ...(activityOverrides.has(page.section_id)
@@ -665,10 +813,16 @@ function seedImportedStoryboard(
             : {}),
         },
       ),
+      // A user-classified activity is a reflowable section by definition, so an
+      // explicit decision always wins over layout sniffing.
+      fixedLayout: activityOverrides.has(page.section_id)
+        ? null
+        : projectImportedFixedLayoutPage(html, imageUrlPrefix),
     })
     grouped.set(pageId, entries)
   })
 
+  let fixedLayoutPageCount = 0
   const storage = createBookStorage(label, booksDir)
   try {
     let pageNumber = 0
@@ -700,13 +854,50 @@ function seedImportedStoryboard(
           }
         }),
       })
+      // A fixed-layout page renders from its `#content` box, not from a
+      // reflowable section: unwrapping it would drop the page's pixel viewport,
+      // its reference width and the positioning context every absolutely-placed
+      // child depends on. Seed the positioned tree under its own node — never
+      // over `page-sectioning`, which keeps the semantic tree above — so the
+      // render-sectioning resolver hands downstream features and re-export the
+      // tree that matches the rendered HTML.
+      const fixedLayoutSections = entries.map((entry) => (
+        entry.fixedLayout ? { sectionId: entry.sectionId, ...entry.fixedLayout } : null
+      ))
+      const positioned = fixedLayoutSections.every((section) => section !== null)
+        ? fixedLayoutSections as Array<{ sectionId: string } & ImportedFixedLayoutProjection>
+        : null
+      if (positioned) {
+        fixedLayoutPageCount++
+        storage.putNodeData("fixed-layout-sectioning", pageId, {
+          reasoning: "Recovered from the exported ADT fixed-layout HTML: nodes are in the exported draw order, so DOM order preserves z-stacking.",
+          sections: positioned.map((section) => ({
+            sectionId: section.sectionId,
+            sectionType: FIXED_LAYOUT_SECTION_TYPE,
+            backgroundColor: "#ffffff",
+            textColor: "#000000",
+            pageNumber,
+            isPruned: false,
+            nodes: section.nodes,
+            placement: section.placement,
+            viewport: section.viewport,
+          })),
+        })
+      }
       storage.putNodeData("web-rendering", pageId, {
-        sections: entries.map((entry, sectionIndex) => ({
-          sectionIndex,
-          sectionType: entry.projection.sectionType,
-          reasoning: "Imported HTML is the canonical storyboard source.",
-          html: entry.projection.html,
-        })),
+        sections: positioned
+          ? positioned.map((section, sectionIndex) => ({
+              sectionIndex,
+              sectionType: FIXED_LAYOUT_SECTION_TYPE,
+              reasoning: "Imported fixed-layout HTML is the canonical storyboard source.",
+              html: section.html,
+            }))
+          : entries.map((entry, sectionIndex) => ({
+              sectionIndex,
+              sectionType: entry.projection.sectionType,
+              reasoning: "Imported HTML is the canonical storyboard source.",
+              html: entry.projection.html,
+            })),
       })
       const captions = entries.flatMap((entry) => entry.projection.images)
         .filter((image) => Boolean(sourceTexts[image.imageId]) || image.alt.length > 0 || image.decorative)
@@ -739,6 +930,79 @@ function seedImportedStoryboard(
   } finally {
     storage.close()
   }
+  return { fixedLayoutPageCount }
+}
+
+/**
+ * The archive's own `assets/config.json` is the publication's declared
+ * presentation, while the seeded projection is what we could actually recover
+ * from its pages. When a book declares fixed layout and no page projected that
+ * way, the import silently degraded to reflowable — the exact failure this path
+ * exists to prevent — so say so instead of shipping a broken storyboard quietly.
+ */
+function warnOnUndetectedFixedLayout(
+  bundle: ReturnType<typeof readAdtBundle>,
+  fixedLayoutPageCount: number,
+): void {
+  if (!bundle.presentation.fixedLayout || fixedLayoutPageCount > 0) return
+  console.warn(
+    "[adt-import] The archive declares fixedLayout but none of its pages carry a "
+    + "positioned #content box. The storyboard was imported as reflowable and its "
+    + "original page geometry could not be recovered.",
+  )
+}
+
+/**
+ * Rebuild every generated quiz the archive still carries enough data for.
+ *
+ * The quiz pages sit outside the storyboard (`pageIdFromSection` returns null
+ * for them), so a quiz's placement is recovered from its position in the page
+ * order: it belongs after the last content page preceding it, and covers the
+ * content pages since the previous quiz.
+ */
+function recoverImportedQuizzes(
+  bundle: ReturnType<typeof readAdtBundle>,
+  sourceTexts: Record<string, string>,
+): { quizzes: QuizGenerationOutput["quizzes"]; declaredCount: number } {
+  const quizzes: QuizGenerationOutput["quizzes"] = []
+  let declaredCount = 0
+  let covered: string[] = []
+  let lastContentPageId: string | null = null
+
+  bundle.pages.forEach((page, index) => {
+    const pageId = pageIdFromSection(page.section_id, index)
+    if (pageId) {
+      if (pageId !== lastContentPageId) {
+        covered.push(pageId)
+        lastContentPageId = pageId
+      }
+      return
+    }
+    declaredCount++
+    const recovered = recoverImportedQuiz(
+      bundle.pageHtml[page.href] ?? "",
+      page.section_id,
+      sourceTexts,
+    )
+    // A quiz with no content pages before it has nothing to be "about"; the
+    // stored entity requires an anchor, so leave it for regeneration.
+    if (!recovered || !lastContentPageId) {
+      covered = []
+      return
+    }
+    quizzes.push({
+      quizIndex: quizzes.length,
+      afterPageId: lastContentPageId,
+      pageIds: covered.length > 0 ? [...covered] : [lastContentPageId],
+      question: recovered.question,
+      options: recovered.options,
+      answerIndex: recovered.answerIndex,
+      reasoning: "Recovered from the exported ADT quiz page and its text catalog.",
+    })
+    covered = []
+  })
+
+  return { quizzes, declaredCount }
 }
 
 function seedImportedFeatures(
@@ -785,6 +1049,25 @@ function seedImportedFeatures(
         generatedAt,
       }))
       storage.markStepCompleted("glossary", "Recovered from exported ADT data")
+    }
+
+    const sourceTexts = bundle.texts[bundle.manifest.languages.source] ?? {}
+    const { quizzes, declaredCount } = recoverImportedQuizzes(bundle, sourceTexts)
+    // Seed only what is missing. A re-projection (see
+    // `ensureImportedAdtProjectProjection`) must not replace quizzes the user
+    // has edited in Studio since the import.
+    if (quizzes.length > 0 && !storage.getLatestNodeData("quiz-generation", "book")) {
+      storage.putNodeData("quiz-generation", "book", QuizGenerationOutput.parse({
+        generatedAt,
+        language: normalizeLocale(bundle.manifest.languages.source),
+        pagesPerQuiz: Math.max(...quizzes.map((quiz) => quiz.pageIds.length)),
+        quizzes,
+      }))
+      // Only claim the step is done when every quiz in the archive came back.
+      // A partial recovery still needs the user to regenerate the rest.
+      if (quizzes.length === declaredCount) {
+        storage.markStepCompleted("quiz-generation", "Recovered from exported ADT data")
+      }
     }
   } finally {
     storage.close()
@@ -967,6 +1250,7 @@ function seedImportedImages(
   fs.mkdirSync(imagesDir, { recursive: true })
   const db = openBookDb(path.join(bookDir, `${label}.db`))
   const firstImageByPage = new Map<string, { bytes: Uint8Array; extension: string }>()
+  const imageIdsByPage = new Map<string, string[]>()
   try {
     bundle.pages.forEach((page, index) => {
       const pageId = pageIdFromSection(page.section_id, index)
@@ -1003,6 +1287,7 @@ function seedImportedImages(
              source = excluded.source`,
           [image.imageId, pageId, `images/${filename}`, hash, dimensions.width, dimensions.height, "extract"],
         )
+        imageIdsByPage.set(pageId, [...(imageIdsByPage.get(pageId) ?? []), image.imageId])
         if (!firstImageByPage.has(pageId)) {
           firstImageByPage.set(pageId, { bytes: resolved.bytes, extension: resolved.extension })
         }
@@ -1039,6 +1324,42 @@ function seedImportedImages(
     }
   } finally {
     db.close()
+  }
+
+  // Every consumer that asks "which images does this page have?" — the page
+  // summary's `imageCount`, and with it the Captions gallery — reads the
+  // `image-filtering` classification, not the images table. Without one an
+  // imported book reports zero images everywhere and Captions renders "No
+  // images in this book" even though the captions themselves were recovered.
+  // Nothing here can justify pruning: the imported HTML already draws these
+  // images, so they are all in use. The synthetic `_page` render is the one
+  // exception, pruned exactly as the native pipeline prunes it.
+  const storage = createBookStorage(label, booksDir)
+  try {
+    for (const [pageId, imageIds] of imageIdsByPage) {
+      // Only when the page has no classification yet: on a re-projection the
+      // existing one carries the user's own pruning decisions.
+      if (storage.getLatestNodeData("image-filtering", pageId)) continue
+      storage.putNodeData("image-filtering", pageId, ImageClassificationOutput.parse({
+        images: [
+          ...imageIds.map((imageId) => ({
+            imageId,
+            isPruned: false,
+            reason: "Recovered from the exported ADT HTML, which already draws this image.",
+          })),
+          {
+            imageId: `${pageId}_page`,
+            isPruned: true,
+            reason: "Whole-page render: keeping it would draw the page twice.",
+          },
+        ],
+      }))
+    }
+    if (imageIdsByPage.size > 0) {
+      storage.markStepCompleted("image-filtering", "Recovered from exported ADT HTML")
+    }
+  } finally {
+    storage.close()
   }
 }
 
@@ -1258,7 +1579,7 @@ export function createAdtRecoverySession(
 
     const legacyRecovery = bundle.sourceFormat === "legacy-studio-export"
     seedPages(path.join(bookDir, `${label}.db`), bundle.pages, bundle.pageHtml, legacyRecovery)
-    seedImportedStoryboard(
+    const storyboard = seedImportedStoryboard(
       label,
       booksDir,
       bundle.pages,
@@ -1273,11 +1594,13 @@ export function createAdtRecoverySession(
     seedImportedFeatures(label, booksDir, bundle, createdAt)
     seedImportedImages(label, booksDir, bundle, files)
     seedImportedSpeech(label, booksDir, bundle, files, sourceContentChanged, createdAt)
+    warnOnUndetectedFixedLayout(bundle, storyboard.fixedLayoutPageCount)
     fs.writeFileSync(path.join(bookDir, "config.yaml"), yaml.dump({
       editing_language: sourceLanguage,
       // The existing Speech UI treats this as the selectable narration list;
       // normal books always include their source language here as well.
       output_languages: [sourceLanguage, ...outputLanguages],
+      ...(storyboard.fixedLayoutPageCount > 0 ? FIXED_LAYOUT_CONFIG : {}),
     }))
     fs.writeFileSync(path.join(bookDir, "source-adt.zip"), zipBuffer)
     fs.writeFileSync(path.join(bookDir, ADT_RECOVERY_MARKER), JSON.stringify({
@@ -1582,6 +1905,69 @@ function readCurrentImportedAdtSource(label: string, booksDir: string): Buffer {
   }
 }
 
+/**
+ * Activity classifications the user made when this project was imported. Any
+ * decision the current review no longer asks for is dropped rather than
+ * replayed, because `resolveImportedActivityDecisions` rejects answers to
+ * questions it did not ask.
+ */
+function readPersistedActivityDecisions(
+  label: string,
+  booksDir: string,
+  review: AdtImportedActivityReview,
+): AdtActivityImportDecision[] {
+  const asked = new Set(
+    review.items.filter((item) => item.status === "needs-review").map((item) => item.sectionId),
+  )
+  if (asked.size === 0) return []
+  const storage = createBookStorage(label, booksDir)
+  let stored: unknown
+  try {
+    stored = storage.getLatestNodeData("imported-activity-review", "book")?.data
+  } finally {
+    storage.close()
+  }
+  const decisions = (stored as { decisions?: unknown })?.decisions
+  if (!Array.isArray(decisions)) return []
+  const seen = new Set<string>()
+  const recovered: AdtActivityImportDecision[] = []
+  for (const candidate of decisions) {
+    const parsed = AdtActivityImportDecision.safeParse(candidate)
+    if (!parsed.success) continue
+    if (!asked.has(parsed.data.sectionId) || seen.has(parsed.data.sectionId)) continue
+    seen.add(parsed.data.sectionId)
+    recovered.push(parsed.data)
+  }
+  return recovered
+}
+
+/**
+ * Merge the fixed-layout render strategy into an existing book config, leaving
+ * every other key (editing language, narration languages, speech settings) as
+ * the user left it.
+ */
+function applyFixedLayoutBookConfig(bookDir: string): void {
+  const configPath = path.join(bookDir, "config.yaml")
+  let existing: Record<string, unknown> = {}
+  if (fs.existsSync(configPath)) {
+    const loaded = yaml.load(fs.readFileSync(configPath, "utf8"))
+    if (loaded && typeof loaded === "object" && !Array.isArray(loaded)) {
+      existing = loaded as Record<string, unknown>
+    }
+  }
+  const strategies = existing.render_strategies
+  fs.writeFileSync(configPath, yaml.dump({
+    ...existing,
+    ...FIXED_LAYOUT_CONFIG,
+    render_strategies: {
+      ...(strategies && typeof strategies === "object" && !Array.isArray(strategies)
+        ? strategies
+        : {}),
+      ...FIXED_LAYOUT_CONFIG.render_strategies,
+    },
+  }))
+}
+
 /** Upgrade projects imported before the normal pipeline projection existed.
  * Every entity write appends a version; the immutable source ZIP remains the
  * rollback/audit source if an upgrade is interrupted. */
@@ -1608,8 +1994,22 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
   const bundle = readAdtBundle(sourceZip)
   const files = extractAdtBundleArchiveFiles(sourceZip)
   const legacyRecovery = bundle.sourceFormat === "legacy-studio-export"
+  // Re-projecting from the archive would otherwise discard how the user
+  // classified this book's ambiguous activities at import time. A project
+  // imported before those decisions were recorded has none to replay; it keeps
+  // the unclassified projection rather than blocking the upgrade.
+  const activityReview = analyzeImportedActivities(bundle)
+  const activityDecisions = readPersistedActivityDecisions(safeLabel, booksDir, activityReview)
+  // `resolveImportedActivityDecisions` is all-or-nothing by design — it guards
+  // the import path, where every open question must be answered before the user
+  // may proceed. An upgrade has no user to ask, and failing it wholesale would
+  // discard the answers we do still have, so map those directly and leave any
+  // newly-ambiguous section unclassified.
+  const activityOverrides: ReadonlyMap<string, string> = new Map(
+    activityDecisions.map((decision) => [decision.sectionId, decision.type ?? "content"]),
+  )
   seedPages(path.join(bookDir, `${safeLabel}.db`), bundle.pages, bundle.pageHtml, legacyRecovery)
-  seedImportedStoryboard(
+  const storyboard = seedImportedStoryboard(
     safeLabel,
     booksDir,
     bundle.pages,
@@ -1617,9 +2017,16 @@ export function ensureImportedAdtProjectProjection(label: string, booksDir: stri
     bundle.toc,
     legacyRecovery,
     bundle.texts[bundle.manifest.languages.source] ?? {},
+    activityOverrides,
+    activityReview,
+    activityDecisions,
   )
   seedImportedFeatures(safeLabel, booksDir, bundle, new Date().toISOString())
   seedImportedImages(safeLabel, booksDir, bundle, files)
+  warnOnUndetectedFixedLayout(bundle, storyboard.fixedLayoutPageCount)
+  if (storyboard.fixedLayoutPageCount > 0) {
+    applyFixedLayoutBookConfig(bookDir)
+  }
 
   const temporaryPath = `${currentPath}.tmp`
   fs.writeFileSync(temporaryPath, `${JSON.stringify({

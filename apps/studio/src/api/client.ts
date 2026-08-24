@@ -175,6 +175,9 @@ export interface AdtBundleImportPreview {
   translationLanguageCount: number
   contentChanged: boolean
   exportComparisonStatus: "unchanged" | "changed" | "unavailable"
+  /** Per-feature outcome of the import, keyed by pipeline stage slug. Features
+   * the archive does not have at all are absent from the map. */
+  featureRecovery: Record<string, "recovered" | "needs-regeneration">
   activityReview: {
     inventoryVersion: number | null
     items: Array<{

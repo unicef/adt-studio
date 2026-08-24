@@ -95,6 +95,19 @@ function legacyFiles(root = "legacy-book/"): Record<string, Uint8Array> {
 }
 
 describe("readAdtBundle", () => {
+  it("surfaces a declared fixed-layout presentation", () => {
+    const files = baseFiles()
+    files["assets/config.json"] = json({
+      title: "Sample Book",
+      bundleVersion: "1",
+      languages: { available: ["en", "es"], default: "en" },
+      features: { glossary: true },
+      fixedLayout: true,
+    })
+    expect(readAdtBundle(Buffer.from(zipSync(files))).presentation)
+      .toEqual({ fixedLayout: true })
+  })
+
   it("reads supported projections from a root archive", () => {
     const bundle = readAdtBundle(Buffer.from(zipSync(baseFiles())))
     expect(bundle.root).toBe("")
@@ -104,6 +117,7 @@ describe("readAdtBundle", () => {
     expect(bundle.pages).toEqual([{ section_id: "s1", href: "index.html" }])
     expect(bundle.pageHtml["index.html"]).toContain("Hello")
     expect(bundle.runtimeFeatures.glossary).toBe(true)
+    expect(bundle.presentation).toEqual({ fixedLayout: false })
     expect(bundle.cover?.mimeType).toBe("image/png")
     expect(bundle.toc[0].section_id).toBe("s1")
     expect(bundle.glossaries.en.Soil.id).toBe("gl001")

@@ -55,6 +55,7 @@ import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
 import { buildTextCatalog, inspectImportedHtmlContract } from "../text-catalog.js"
+import { isImportedFixedLayoutPage } from "../imported-fixed-layout.js"
 import { inspectImportedActivity } from "../imported-activity.js"
 import { renderAdtAgentGuide } from "../adt-agent-guide.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
@@ -980,10 +981,14 @@ export async function packageAdtWeb(
       if (page) {
         const html = fs.readFileSync(filePath, "utf8")
         const allowSectionDataId = page.section_id.startsWith("qz")
+        // A fixed-layout page has no semantic <section>; its data-ids hang
+        // directly off #content. Declaring them under the same rule the importer
+        // re-checks keeps the contract self-consistent across a round trip.
+        const fixedLayoutPage = isImportedFixedLayoutPage(html)
         pageDataIds[href] = inspectImportedHtmlContract(
           html,
           page.section_id,
-          { allowSectionDataId },
+          { allowSectionDataId, fixedLayoutPage },
         ).dataIds
         const activity = inspectImportedActivity(html, page.section_id, { allowSectionDataId })
         if (activity.isActivity && activity.sectionType) {

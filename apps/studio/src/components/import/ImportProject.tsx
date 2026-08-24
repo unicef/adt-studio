@@ -441,7 +441,10 @@ export function ImportProject() {
       ) : null}
 
       <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-slate-50/40 p-4 sm:p-6">
-        <div className="flex h-full max-h-[760px] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        {/* One size for every step. Sizing the card to its current phase made it
+            jump between selecting, reviewing and importing; the review step needs
+            the most room, so that size is the size. */}
+        <div className="flex h-full max-h-[1040px] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm 2xl:max-w-7xl">
           <header className="shrink-0 px-6 pt-8 pb-3 text-center">
             <h1 className="text-2xl font-semibold tracking-[-0.5px] text-slate-950 sm:text-[28px]">
               <Trans>Import a book</Trans>
@@ -492,7 +495,7 @@ export function ImportProject() {
                   />
                 </div>
               ) : (
-                <div className="flex min-h-0 flex-1 flex-col gap-4">
+                <div className="flex min-h-0 flex-1 flex-col justify-center gap-4">
                   <div
                     role="button"
                     tabIndex={0}
@@ -505,7 +508,7 @@ export function ImportProject() {
                     }}
                     aria-label={t`Upload ZIP or drag and drop`}
                     className={cn(
-                      "group relative flex min-h-[300px] w-full flex-1 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed bg-white px-8 py-10 text-center shadow-sm transition-[border-color,background-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
+                      "group relative mx-auto flex min-h-[300px] w-full max-w-3xl flex-1 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed bg-white px-8 py-10 text-center shadow-sm transition-[border-color,background-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:max-h-[420px]",
                       friendlyPreviewError
                         ? "border-red-300 bg-red-50/30 hover:border-red-400 hover:bg-red-50/50"
                         : "border-slate-300 hover:border-primary/60 hover:bg-primary/[0.025] hover:shadow-md",
