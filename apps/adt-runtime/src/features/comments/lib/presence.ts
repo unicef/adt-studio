@@ -103,6 +103,51 @@ export function visibleCursors(
   return visible
 }
 
+/**
+ * How long somebody stays on the roster after their socket goes quiet.
+ *
+ * A page turn in a published book is a document reload, so it reaches the room as a departure
+ * followed a heartbeat later by an arrival. Reporting that faithfully is what made everyone
+ * blink out of the list every time they turned a page. `FOLLOW_GRACE_MS` already exists for the
+ * same reason on the same event; this is the roster's version of it, and shorter, because
+ * showing somebody who really has left is a smaller lie than losing somebody you are following.
+ */
+export const PRESENCE_GRACE_MS = 8000
+
+export interface SeenPeer {
+  peer: RoomPeer
+  lastSeenMs: number
+}
+
+/**
+ * Who to show, given who the room says is connected and who it said a moment ago.
+ *
+ * Live peers are always shown and their clock is reset. Anybody who has just dropped out is
+ * carried for `graceMs` — long enough to cover a reload, short enough that a closed tab is not
+ * advertised for a whole minute. A peer who returns within the window is simply live again, and
+ * because their id now survives a page turn, "returns" means the same person rather than a
+ * stranger who happens to share a name.
+ *
+ * Pure, and takes `now`, so the awkward part — what is still lingering and what has finally
+ * gone — is testable without waiting for real time to pass.
+ */
+export function stickyRoster(
+  live: readonly RoomPeer[],
+  seen: readonly SeenPeer[],
+  now: number,
+  graceMs: number = PRESENCE_GRACE_MS,
+): { display: RoomPeer[]; seen: SeenPeer[] } {
+  const liveIds = new Set(live.map((peer) => peer.id))
+  const lingering = seen.filter(
+    (entry) => !liveIds.has(entry.peer.id) && now - entry.lastSeenMs < graceMs,
+  )
+  const next = [
+    ...live.map((peer) => ({ peer, lastSeenMs: now })),
+    ...lingering,
+  ]
+  return { display: next.map((entry) => entry.peer), seen: next }
+}
+
 /** Everyone but the reader. "3 people here" counts the others; the reader knows they are here. */
 export function otherPeers(peers: RoomPeer[], selfId: string | null): RoomPeer[] {
   return peers.filter((peer) => peer.id !== selfId)

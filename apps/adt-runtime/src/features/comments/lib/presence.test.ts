@@ -6,7 +6,9 @@ import {
   CURSOR_OFFSCREEN_STALE_MS,
   cursorFromFrame,
   otherPeers,
+  PRESENCE_GRACE_MS,
   pruneCursors,
+  stickyRoster,
   visibleCursors,
   type PeerCursor,
 } from "@/features/comments/lib/presence"
@@ -299,5 +301,67 @@ describe("cursor lifetimes", () => {
     ]
     const kept = pruneCursors(cursors, now, new Set(["p1", "p2"]), CURSOR_OFFSCREEN_STALE_MS)
     expect(kept.map((cursor) => cursor.peerId)).toEqual(["p1"])
+  })
+})
+
+describe("keeping the roster steady across a page turn", () => {
+  const ana: RoomPeer = {
+    id: "session-ana.tab1",
+    name: "Ana",
+    color: "#0091ff",
+    is_author: false,
+    page_section_id: "pg001_sec001",
+    device: "full",
+  }
+  const bruno: RoomPeer = { ...ana, id: "session-bruno.tab1", name: "Bruno" }
+
+  /** The reported symptom: turning a page is a reload, so the room sees a departure and then an
+   *  arrival, and reporting that faithfully made everybody blink out of the list. */
+  it("holds somebody who has just dropped out", () => {
+    const now = 1_000_000
+    const first = stickyRoster([ana, bruno], [], now)
+    expect(first.display.map((peer) => peer.name)).toEqual(["Ana", "Bruno"])
+
+    const during = stickyRoster([ana], first.seen, now + 200)
+    expect(during.display.map((peer) => peer.name)).toEqual(["Ana", "Bruno"])
+  })
+
+  it("lets them back in as themselves when they return", () => {
+    const now = 1_000_000
+    const first = stickyRoster([ana, bruno], [], now)
+    const gone = stickyRoster([ana], first.seen, now + 200)
+    const back = stickyRoster([ana, bruno], gone.seen, now + 400)
+
+    expect(back.display.map((peer) => peer.name)).toEqual(["Ana", "Bruno"])
+    expect(back.seen.filter((entry) => entry.peer.id === bruno.id)).toHaveLength(1)
+  })
+
+  /** Somebody who really closed the tab has to go, or the roster becomes a list of everyone who
+   *  ever visited. */
+  it("lets go once the window has passed", () => {
+    const now = 1_000_000
+    const first = stickyRoster([ana, bruno], [], now)
+    const later = stickyRoster([ana], first.seen, now + PRESENCE_GRACE_MS + 1)
+    expect(later.display.map((peer) => peer.name)).toEqual(["Ana"])
+    expect(later.seen).toHaveLength(1)
+  })
+
+  it("shows the freshest version of a peer, not the remembered one", () => {
+    const now = 1_000_000
+    const first = stickyRoster([{ ...bruno, page_section_id: "pg001_sec001" }], [], now)
+    const moved = stickyRoster(
+      [{ ...bruno, page_section_id: "pg009_sec001" }],
+      first.seen,
+      now + 100,
+    )
+    expect(moved.display[0]?.page_section_id).toBe("pg009_sec001")
+  })
+
+  /** Seeded from the previous page's roster on a reload, so the reader's own chip does not blank
+   *  while the new socket is still opening. */
+  it("carries a remembered roster through with no live peers at all", () => {
+    const now = 1_000_000
+    const remembered = [{ peer: bruno, lastSeenMs: now }]
+    expect(stickyRoster([], remembered, now + 300).display.map((p) => p.name)).toEqual(["Bruno"])
   })
 })

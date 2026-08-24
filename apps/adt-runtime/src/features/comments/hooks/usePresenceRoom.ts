@@ -8,7 +8,9 @@ import {
   applyCursor,
   CURSOR_OFFSCREEN_STALE_MS,
   cursorFromFrame,
+  PRESENCE_GRACE_MS,
   pruneCursors,
+  stickyRoster,
 } from "@/features/comments/lib/presence"
 import {
   isCommentEvent,
@@ -26,6 +28,7 @@ import {
 import {
   peerCursorsAtom,
   roomPeersAtom,
+  seenPeersAtom,
   roomStatusAtom,
   selfPeerIdAtom,
 } from "@/features/comments/state/presence.atoms"
@@ -118,7 +121,18 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
       onFrame: (frame) => {
         if (frame.t === "presence") {
           setSelfId(frame.self_id)
-          setPeers(frame.peers)
+          /**
+           * The roster is held steady rather than mirrored. A page turn reaches the room as a
+           * departure and then an arrival, so mirroring it made everybody blink out of the list
+           * whenever anybody turned a page — and now that a peer's id survives the turn, the
+           * arrival is recognisably the same person rather than a stranger.
+           */
+          {
+            const now = Date.now()
+            const { display, seen } = stickyRoster(frame.peers, store.get(seenPeersAtom), now)
+            store.set(seenPeersAtom, seen)
+            setPeers(display)
+          }
           const ids = new Set(frame.peers.map((peer) => peer.id))
           /** The long window here too. Every join, leave and page turn produces a presence
            *  frame — and a page turn is a reload, so it produces two — which meant this line
@@ -245,6 +259,39 @@ export function usePresenceRoom(context: CommentsRuntimeContext | null): void {
       if (timer !== null) window.clearTimeout(timer)
     }
   }, [context])
+
+  /**
+   * Show the previous page's roster straight away, then let the socket correct it.
+   *
+   * Without this the reader's own chip is empty for as long as the new connection takes, which
+   * on every page turn is the blink they reported. Entries older than the grace window are
+   * dropped rather than shown, so a tab reopened tomorrow does not claim a room full of people.
+   */
+  useEffect(() => {
+    if (!context) return
+    const now = Date.now()
+    const remembered = store
+      .get(seenPeersAtom)
+      .filter((entry) => now - entry.lastSeenMs < PRESENCE_GRACE_MS)
+    if (remembered.length === 0) return
+    store.set(seenPeersAtom, remembered)
+    setPeers(remembered.map((entry) => entry.peer))
+  }, [context, setPeers, store])
+
+  /** Nothing arrives to say "their grace has run out", so the lingering entries are swept on the
+   *  same beat the cursors are. */
+  useEffect(() => {
+    if (!context) return
+    const interval = window.setInterval(() => {
+      const now = Date.now()
+      const seen = store.get(seenPeersAtom)
+      const kept = seen.filter((entry) => now - entry.lastSeenMs < PRESENCE_GRACE_MS)
+      if (kept.length === seen.length) return
+      store.set(seenPeersAtom, kept)
+      setPeers(kept.map((entry) => entry.peer))
+    }, 1000)
+    return () => window.clearInterval(interval)
+  }, [context, setPeers, store])
 
   useEffect(() => {
     if (!context) return

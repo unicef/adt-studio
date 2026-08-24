@@ -101,8 +101,17 @@ describe("where a follow sends the reader", () => {
 })
 
 describe("saying where somebody is", () => {
-  it("prefers the heading the reader would recognise", () => {
-    expect(pageLabelFor(peer(), PAGES, TOC, LABELS)).toBe("Water and life")
+  /** The number is what somebody says out loud to catch up with a reader, so it leads; the
+   *  heading follows as context and is what truncation eats first. */
+  it("leads with the page number and keeps the heading as context", () => {
+    expect(pageLabelFor(peer(), PAGES, TOC, LABELS)).toBe("Page 2 · Water and life")
+  })
+
+  it("still names the heading when the page itself is not in this snapshot", () => {
+    const toc = [{ section_id: "pg404_sec001", href: "x.html", title: "Afterword", chapter_id: "c9" }]
+    expect(pageLabelFor(peer({ page_section_id: "pg404_sec001" }), PAGES, toc, LABELS)).toBe(
+      "Afterword",
+    )
   })
 
   it("falls back to the page number when the section has no heading", () => {

@@ -82,13 +82,19 @@ export function pageLabelForSection(
 ): string {
   if (sectionId === null) return labels.unknown
 
-  const heading = toc.find((entry) => entry.section_id === sectionId)
-  if (heading && heading.title.trim().length > 0) return heading.title
+  const heading = toc.find((entry) => entry.section_id === sectionId)?.title.trim() ?? ""
 
   const page = pages.find((entry) => entry.section_id === sectionId)
   const index = pages.findIndex((entry) => entry.section_id === sectionId)
   const number = page?.page_number ?? (index === -1 ? null : index + 1)
-  return number === null ? labels.unknown : labels.page(number)
+
+  /** The number leads. A heading alone told the reader which *chapter* somebody was in, which is
+   *  not the question being asked of a roster — "page 7" is what you say out loud to catch up
+   *  with somebody, and it is what the dock is already showing at the bottom of the screen. The
+   *  heading follows it where there is one, and gets truncated first because it is the context
+   *  rather than the answer. */
+  if (number === null) return heading.length > 0 ? heading : labels.unknown
+  return heading.length > 0 ? `${labels.page(number)} · ${heading}` : labels.page(number)
 }
 
 export function pageLabelFor(
