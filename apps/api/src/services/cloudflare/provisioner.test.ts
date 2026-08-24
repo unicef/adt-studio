@@ -301,6 +301,7 @@ describe("provisionCloudflare — idempotent re-run", () => {
     "0002_session_pin.sql",
     "0003_publication_access.sql",
     "0004_version_snapshot_bytes.sql",
+    "0005_access_attempts.sql",
   ]
 
   it("ships exactly the migrations the contract documents", () => {
@@ -321,15 +322,11 @@ describe("provisionCloudflare — idempotent re-run", () => {
     })
 
     expect(error).toBeNull()
-    expect(fake.state.executedSql).toEqual([
-      migrations[1]?.sql,
-      migrations[2]?.sql,
-      migrations[3]?.sql,
-    ])
+    expect(fake.state.executedSql).toEqual(migrations.slice(1).map((entry) => entry.sql))
     expect(fake.state.executedSql[0]).toContain("ALTER TABLE sessions ADD COLUMN pin")
     expect(fake.state.migrationRows.map((row) => row.name)).toEqual(MIGRATION_NAMES)
     expect(finishedStep(events, "apply-migrations")?.message).toBe(
-      "Applied 0002_session_pin.sql, 0003_publication_access.sql, 0004_version_snapshot_bytes.sql",
+      `Applied ${MIGRATION_NAMES.slice(1).join(", ")}`,
     )
   })
 
@@ -353,11 +350,11 @@ describe("provisionCloudflare — idempotent re-run", () => {
     })
 
     expect(error).toBeNull()
-    expect(fake.state.executedSql).toEqual([migrations[2]?.sql, migrations[3]?.sql])
+    expect(fake.state.executedSql).toEqual(migrations.slice(2).map((entry) => entry.sql))
     expect(fake.state.executedSql[0]).toContain("ALTER TABLE publications ADD COLUMN access_code")
     expect(fake.state.migrationRows.map((row) => row.name)).toEqual(MIGRATION_NAMES)
     expect(finishedStep(events, "apply-migrations")?.message).toBe(
-      "Applied 0003_publication_access.sql, 0004_version_snapshot_bytes.sql",
+      `Applied ${MIGRATION_NAMES.slice(2).join(", ")}`,
     )
   })
 
@@ -382,11 +379,11 @@ describe("provisionCloudflare — idempotent re-run", () => {
     })
 
     expect(error).toBeNull()
-    expect(fake.state.executedSql).toEqual([migrations[3]?.sql])
+    expect(fake.state.executedSql).toEqual(migrations.slice(3).map((entry) => entry.sql))
     expect(fake.state.executedSql[0]).toContain("ALTER TABLE versions ADD COLUMN snapshot_bytes")
     expect(fake.state.migrationRows.map((row) => row.name)).toEqual(MIGRATION_NAMES)
     expect(finishedStep(events, "apply-migrations")?.message).toBe(
-      "Applied 0004_version_snapshot_bytes.sql",
+      `Applied ${MIGRATION_NAMES.slice(3).join(", ")}`,
     )
   })
 

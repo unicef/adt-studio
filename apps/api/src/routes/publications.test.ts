@@ -1608,3 +1608,76 @@ describe("DELETE /api/publications/:token", () => {
     await expect(res.json()).resolves.toMatchObject({ code: "worker_unreachable" })
   })
 })
+
+describe("publishing without every feature", () => {
+  /** Recording what the export was asked for, since the point of the selection is that it
+   *  reaches the packaging step — which already honours these flags and always got none. */
+  function recordingExport(): { fn: typeof prepareExport; seen: unknown[] } {
+    const inner = fakeExport()
+    const seen: unknown[] = []
+    const fn = (async (
+      label: string,
+      format: string,
+      booksDir: string,
+      webAssetsDir: string,
+      configPath?: string,
+      features?: unknown,
+    ) => {
+      seen.push(features)
+      return (inner as unknown as (...args: unknown[]) => Promise<void>)(
+        label,
+        format,
+        booksDir,
+        webAssetsDir,
+        configPath,
+        features,
+      )
+    }) as unknown as typeof prepareExport
+    return { fn, seen }
+  }
+
+  it("hands the exclusion to the export step", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const recorder = recordingExport()
+    const app = routes({ fetchFn: worker.fetchFn, prepareExportFn: recorder.fn })
+
+    await drain(
+      app,
+      `/api/books/${LABEL}/publication`,
+      publishRequest({ features: { readAloud: false } }),
+    )
+
+    expect(recorder.seen).toEqual([{ readAloud: false }])
+  })
+
+  /** Publishing everything is still the default, so no existing caller changes behaviour. */
+  it("passes nothing when no selection is made", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const recorder = recordingExport()
+    const app = routes({ fetchFn: worker.fetchFn, prepareExportFn: recorder.fn })
+
+    await drain(app, `/api/books/${LABEL}/publication`, publishRequest())
+
+    expect(recorder.seen).toEqual([undefined])
+  })
+
+  /** The trap this exists to avoid: a book that fits only because its narration was left out
+   *  would fail on update at the very cap the exclusion was made to clear. */
+  it("repeats the exclusion when the site is updated", async () => {
+    const worker = createFakePublishWorker()
+    connect(worker.baseUrl)
+    const recorder = recordingExport()
+    const app = routes({ fetchFn: worker.fetchFn, prepareExportFn: recorder.fn })
+
+    await drain(
+      app,
+      `/api/books/${LABEL}/publication`,
+      publishRequest({ features: { readAloud: false } }),
+    )
+    await drain(app, `/api/books/${LABEL}/publication/versions`, publishRequest())
+
+    expect(recorder.seen).toEqual([{ readAloud: false }, { readAloud: false }])
+  })
+})

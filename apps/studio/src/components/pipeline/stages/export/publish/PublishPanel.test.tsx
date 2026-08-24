@@ -5,6 +5,15 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-libra
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import type { BookPublicationStatus, PublishProgressEvent, PublishStreamOptions } from "@/api/client"
 
+vi.mock("@/hooks/use-export-features", () => ({
+  /** The panel only needs to know what the book has, and resolving that for real pulls in the
+   *  pipeline run context this suite has no provider for. */
+  useAllProjectFeatures: () => ({
+    toggleable: { glossary: true, readAloud: true, quizzes: true, signLanguage: false },
+    present: { captions: false, toc: false, easyRead: false },
+  }),
+}))
+
 vi.mock("@lingui/react/macro", () => {
   function templateToString(strings: TemplateStringsArray, ...values: unknown[]) {
     return strings.reduce(

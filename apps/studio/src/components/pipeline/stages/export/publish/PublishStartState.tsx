@@ -5,6 +5,12 @@ import { Button } from "@/components/ui/button"
 import { AccessChoice } from "./AccessChoice"
 import { ExpiryChoice } from "./ExpiryChoice"
 import {
+  DEFAULT_INCLUDE_CHOICE,
+  IncludeChoice,
+  includeChoiceToFeatures,
+  type IncludeChoiceValue,
+} from "./IncludeChoice"
+import {
   DEFAULT_ACCESS_CHOICE,
   generateAccessCode,
   isValidAccessCode,
@@ -16,18 +22,28 @@ import {
   expiryChoiceToIso,
   type ExpiryChoiceValue,
 } from "./expiry-options"
+import type { AvailableExportFeatures } from "@/hooks/use-export-features"
+import type { PublishFeatureSelection } from "@adt/types"
 
 interface PublishStartStateProps {
+  /** What this book actually has, resolved by the caller — this form stays a leaf so it can be
+   *  rendered in a test without the pipeline's run context. */
+  available: AvailableExportFeatures
   kind: "first" | "again"
   isRunning: boolean
   hasFailed?: boolean
   /** Set when something else on the panel is the primary way forward — today that is
    *  "Resume sharing" on a revoked publication. */
   secondary?: boolean
-  onPublish: (options: { expiresAt: string | null; accessCode: string | null }) => void
+  onPublish: (options: {
+    expiresAt: string | null
+    accessCode: string | null
+    features?: PublishFeatureSelection
+  }) => void
 }
 
 export function PublishStartState({
+  available,
   kind,
   isRunning,
   hasFailed = false,
@@ -40,6 +56,7 @@ export function PublishStartState({
   /** Generated once per mount so the code the author is looking at is the code that gets
    *  published — it must not change under them while they copy it. */
   const [code, setCode] = useState(() => generateAccessCode())
+  const [include, setInclude] = useState<IncludeChoiceValue>(DEFAULT_INCLUDE_CHOICE)
   const codeReady = access === "open" || isValidAccessCode(code)
 
   return (
@@ -73,6 +90,13 @@ export function PublishStartState({
         disabled={isRunning}
       />
 
+      <IncludeChoice
+        value={include}
+        onChange={setInclude}
+        available={available}
+        disabled={isRunning}
+      />
+
       <ExpiryChoice
         value={choice}
         onChange={setChoice}
@@ -92,6 +116,9 @@ export function PublishStartState({
             onPublish({
               expiresAt: expiryChoiceToIso(choice),
               accessCode: access === "code" ? normalizeAccessCodeInput(code) : null,
+              ...(includeChoiceToFeatures(include) === undefined
+                ? {}
+                : { features: includeChoiceToFeatures(include) }),
             })
           }
         >

@@ -462,6 +462,7 @@ export {
   BookPublicationRecord,
   BookPublicationStatus,
   BookPublishRequest,
+  PublishFeatureSelection,
   publicationStateAt,
 } from "./publication.js"
 

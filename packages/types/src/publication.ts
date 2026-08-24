@@ -330,6 +330,28 @@ export type BookPublicationVersionRecord = z.infer<typeof BookPublicationVersion
 
 /** The book-local half of a publication: enough to rebuild the share link, list the
  *  version history and recover from a partial upload without reaching the worker. */
+/**
+ * What to leave out of a published snapshot.
+ *
+ * Every flag defaults to *included*, so an absent object publishes the whole book and no
+ * existing caller changes behaviour. Only the reasons to leave something out are worth naming:
+ * read-aloud audio is usually the bulk of a big book — a novel with two narrated locales can be
+ * 72 MB of the 131 MB it packages to — and it is the one part a reviewer looking at layout and
+ * wording does not need. The 100 MB transport cap is what forces the choice.
+ *
+ * Mirrors `ExportFeatures` in the export service, which the packaging step already honours; the
+ * publish path was simply never handed one.
+ */
+export const PublishFeatureSelection = z.object({
+  glossary: z.boolean().optional(),
+  readAloud: z.boolean().optional(),
+  quizzes: z.boolean().optional(),
+  signLanguage: z.boolean().optional(),
+  /** Locales to include. Absent means every locale the book has. */
+  languages: z.array(z.string().min(1)).optional(),
+})
+export type PublishFeatureSelection = z.infer<typeof PublishFeatureSelection>
+
 export const BookPublicationRecord = z.object({
   token: PublicationToken,
   base_url: z.string().url(),
@@ -350,6 +372,15 @@ export const BookPublicationRecord = z.object({
    *  book has no publication any more. `readPublicationRecord` turns it back into `null`,
    *  which is what every caller already handles. */
   deleted_at: z.string().datetime().nullable().default(null),
+  /** What the author chose to leave out when this link was first made.
+   *
+   *  Remembered because "Update site" must repeat it: a book published without its narration
+   *  fits under the transport cap precisely *because* of that choice, so an update that
+   *  silently put the audio back would fail at the same wall the choice existed to avoid — and
+   *  it would fail on the step after the author had already waited through an export. `null`
+   *  for links made before this was recorded, and for the ordinary case of publishing
+   *  everything. */
+  features: PublishFeatureSelection.nullable().default(null),
 })
 export type BookPublicationRecord = z.infer<typeof BookPublicationRecord>
 
@@ -418,9 +449,11 @@ export const PublicationsOverview = z.object({
 })
 export type PublicationsOverview = z.infer<typeof PublicationsOverview>
 
+
 export const BookPublishRequest = z.object({
   expires_at: z.string().datetime().nullable().optional(),
   access_code: PublicationAccessCode.nullable().optional(),
+  features: PublishFeatureSelection.optional(),
 })
 export type BookPublishRequest = z.infer<typeof BookPublishRequest>
 

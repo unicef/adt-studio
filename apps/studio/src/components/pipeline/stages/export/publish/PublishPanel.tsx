@@ -3,6 +3,7 @@ import { AlertTriangle, CalendarOff, CheckCircle2, Globe, Loader2, Link2 } from 
 import { Button } from "@/components/ui/button"
 import { useCloudflareConnection } from "@/hooks/use-cloudflare-connection"
 import { useCloudflareCredentials } from "@/hooks/use-cloudflare-credentials"
+import { useAllProjectFeatures } from "@/hooks/use-export-features"
 import {
   publicationLifecycle,
   useBookPublication,
@@ -27,6 +28,7 @@ import { RevokedNotice } from "./RevokedNotice"
  */
 export function PublishPanel({ bookLabel }: { bookLabel: string }) {
   const status = useBookPublication(bookLabel)
+  const { toggleable } = useAllProjectFeatures(bookLabel)
   const run = useBookPublishRun(bookLabel)
   const { credentials } = useCloudflareCredentials()
   const connected = status.data?.connected === true
@@ -190,11 +192,12 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
 
             {lifecycle !== "active" && (
               <PublishStartState
+                available={toggleable}
                 kind={lifecycle === "none" ? "first" : "again"}
                 isRunning={isRunning}
                 hasFailed={run.status === "error"}
                 secondary={lifecycle === "revoked"}
-                onPublish={({ expiresAt, accessCode }) => run.publish({ expiresAt, accessCode })}
+                onPublish={(options) => run.publish(options)}
               />
             )}
 

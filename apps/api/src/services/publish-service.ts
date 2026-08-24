@@ -6,6 +6,7 @@ import { createBookStorage } from "@adt/storage"
 import {
   BookPublicationRecord as BookPublicationRecordSchema,
   PUBLICATION_SNAPSHOT_MAX_BYTES,
+  type PublishFeatureSelection,
   PUBLICATION_TOKEN_LENGTH,
   PUBLISH_STEPS,
   PublicationPageEntry,
@@ -312,6 +313,11 @@ export interface PublishExportOptions {
   webAssetsDir: string
   configPath?: string
   prepareExportFn?: typeof prepareExport
+  /** What to leave out of the snapshot. Absent publishes the whole book, so nothing that omits
+   *  it changes behaviour — packaging has honoured these flags all along and the publish path
+   *  simply never passed any. Shared with "Update site": a book first published without its
+   *  narration would otherwise balloon back over the transport cap on its next update. */
+  features?: PublishFeatureSelection
 }
 
 export interface PublishSnapshot {
@@ -357,6 +363,7 @@ async function buildSnapshot(
       options.booksDir,
       options.webAssetsDir,
       options.configPath,
+      options.features,
     )
   } catch (error) {
     throw new PublishStepError("export_failed", "export", describeHttp(error))
@@ -468,6 +475,7 @@ export async function publishBook(options: PublishBookOptions): Promise<PublishB
     access_code: options.accessCode ?? null,
     has_access_code: created.has_access_code,
     deleted_at: null,
+    features: options.features ?? null,
   }
   savePublicationRecord(options.label, options.booksDir, record)
   await emit(stepEvent("register", "done"))
@@ -490,7 +498,14 @@ export async function republishBook(
   options: RepublishBookOptions,
 ): Promise<PublishBookResult> {
   const emit = options.emit
-  const built = await buildSnapshot(options, emit)
+  /** Repeat whatever the first publish left out, unless this call says otherwise. A book that
+   *  fits under the cap only because its narration was excluded would otherwise fail on update
+   *  at the same wall the exclusion existed to avoid — after the author had already waited
+   *  through a full export. */
+  const built = await buildSnapshot(
+    { ...options, features: options.features ?? options.record.features ?? undefined },
+    emit,
+  )
   const contentRevision = readContentRevision(options.label, options.booksDir)
   const client = clientFor(options)
 

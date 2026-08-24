@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { PUBLISH_STEP_COUNT, type Publication } from "@adt/types"
+import {
+  PUBLISH_STEP_COUNT,
+  type Publication,
+  type PublishFeatureSelection,
+} from "@adt/types"
 import {
   api,
   apiErrorCode,
@@ -58,6 +62,8 @@ export interface PublishFailure {
 export interface PublishOptions {
   expiresAt?: string | null
   accessCode?: string | null
+  /** Absent means the whole book, which is what publishing did before this existed. */
+  features?: PublishFeatureSelection
 }
 
 export interface PublishRunResult {
@@ -213,6 +219,7 @@ export function useBookPublishRun(label: string): BookPublishRunController {
               onEvent: handleEvent,
               expiresAt: options.expiresAt ?? null,
               accessCode: options.accessCode ?? null,
+              ...(options.features === undefined ? {} : { features: options.features }),
               signal: controller.signal,
             })
           : api.publishBookVersion(label, {

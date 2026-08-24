@@ -535,6 +535,7 @@ export function createPublishRoutes(deps: PublishRoutesDeps): Hono {
           emit,
           expiresAt: body.data.expires_at ?? null,
           accessCode: body.data.access_code ?? null,
+          ...(body.data.features ? { features: body.data.features } : {}),
         })
       } catch (error) {
         await emit(toPublishErrorEvent(error))

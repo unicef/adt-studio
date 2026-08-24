@@ -52,6 +52,7 @@ import type {
   PublicationRoomTicketResponse,
   PublicationSummary,
   PublicationsOverview,
+  PublishFeatureSelection,
   PublishComment,
   PublishCommentListResponse,
   PublishCommentResponse,
@@ -2323,13 +2324,19 @@ export const api = {
   /** First publish: mints a token and uploads v1. Streams the four publish steps. */
   publishBook: (
     label: string,
-    options: PublishStreamOptions & { expiresAt?: string | null; accessCode?: string | null },
+    options: PublishStreamOptions & {
+      expiresAt?: string | null
+      accessCode?: string | null
+      /** Omitted entirely when nothing is excluded, so the ordinary case sends no key at all. */
+      features?: PublishFeatureSelection
+    },
   ): Promise<void> =>
     streamPublishEvents(
       `/books/${label}/publication`,
       {
         ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
         ...(options.accessCode === undefined ? {} : { access_code: options.accessCode }),
+        ...(options.features === undefined ? {} : { features: options.features }),
       },
       options,
     ),
