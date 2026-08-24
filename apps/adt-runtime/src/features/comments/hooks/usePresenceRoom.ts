@@ -10,7 +10,12 @@ import {
   cursorFromFrame,
   pruneCursors,
 } from "@/features/comments/lib/presence"
-import { isCommentEvent, ROOM_CURSOR_THROTTLE_MS } from "@/features/comments/lib/room-protocol"
+import {
+  isCommentEvent,
+  PUBLICATION_ROOM_TAB_PARAM,
+  PUBLICATION_ROOM_TAB_PATTERN,
+  ROOM_CURSOR_THROTTLE_MS,
+} from "@/features/comments/lib/room-protocol"
 import { createRoomSocket, type RoomSocket } from "@/features/comments/lib/room-socket"
 import type { CommentsRuntimeContext } from "@/features/comments/hooks/useCommentsContext"
 import {
@@ -29,11 +34,35 @@ import {
  *  reporting, not the mechanism that makes a moving cursor smooth. */
 const PRUNE_INTERVAL_MS = 1000
 
+const TAB_STORAGE_KEY = "adtRoomTab"
+
+/**
+ * A handle for *this tab*, stable across page turns and unique per window.
+ *
+ * `sessionStorage` is the exact lifetime wanted: every navigation in a published book reloads
+ * the document, so this cannot live in memory, and it must not be shared with another tab or
+ * two windows would collapse into one peer. Refused storage falls back to a per-load value,
+ * which simply restores the old blink rather than breaking the room.
+ */
+function tabId(): string | null {
+  try {
+    const existing = window.sessionStorage.getItem(TAB_STORAGE_KEY)
+    if (existing && PUBLICATION_ROOM_TAB_PATTERN.test(existing)) return existing
+    const minted = Math.random().toString(36).slice(2, 12)
+    window.sessionStorage.setItem(TAB_STORAGE_KEY, minted)
+    return minted
+  } catch {
+    return null
+  }
+}
+
 function roomUrl(apiBase: string): string | null {
   if (typeof window === "undefined") return null
   try {
     const url = new URL(`${apiBase}room`, window.location.href)
     url.protocol = url.protocol === "http:" ? "ws:" : "wss:"
+    const tab = tabId()
+    if (tab) url.searchParams.set(PUBLICATION_ROOM_TAB_PARAM, tab)
     return url.toString()
   } catch {
     return null

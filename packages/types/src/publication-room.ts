@@ -24,6 +24,23 @@ export const PUBLICATION_ROOM_TICKET_TTL_SECONDS = 60
 
 export const PUBLICATION_ROOM_TICKET_PARAM = "ticket"
 
+/**
+ * Query param carrying the reader's *tab*, so a peer keeps one identity across a page turn.
+ *
+ * Every navigation in a published book is a document reload, and the peer id used to be minted
+ * fresh per connection — so turning a page looked, to everybody else in the room, like a reader
+ * leaving and a stranger arriving. The roster blinked, and anything keyed on a peer had to key
+ * on a display name instead, which is why two readers called Ana were indistinguishable.
+ *
+ * Only the *tab* comes from the client. The identity it is combined with is taken from the
+ * connection's own credentials, server-side, so supplying somebody else's tab cannot borrow
+ * their name: the worst a client can do is split or merge its own tabs.
+ */
+export const PUBLICATION_ROOM_TAB_PARAM = "tab"
+
+/** Bounds what is accepted from the client, since it lands in a header and a roster key. */
+export const PUBLICATION_ROOM_TAB_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
+
 /** Minimum gap between outgoing cursor frames. 30ms is ~33/s: smooth to the eye and an order
  *  of magnitude below what a pointer device reports. */
 export const PUBLICATION_ROOM_CURSOR_THROTTLE_MS = 30
@@ -40,8 +57,6 @@ export const PUBLISH_ANONYMOUS_NAME = "Someone"
  *  an unnamed peer must not look like a named one whose name failed to load. */
 export const PUBLISH_ANONYMOUS_COLOR = "#a1a1aa"
 
-/** Room membership is per *socket*, not per session: two tabs are two cursors, which is what
- *  the roster is counting. The id is minted per connection and is never a credential. */
 /** The width a peer is reading at. `full` is a real window; the other two mean they are using
  *  the device preview. Travels with presence so a follower can match it — following somebody
  *  checking a phone layout while seeing a desktop one shows you the wrong problem.

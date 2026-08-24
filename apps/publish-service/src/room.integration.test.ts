@@ -137,9 +137,12 @@ afterEach(() => {
 
 async function connect(
   token: string,
-  options: { ticket?: string; cookies?: string[] } = {},
+  options: { ticket?: string; cookies?: string[]; tab?: string } = {},
 ): Promise<Response> {
-  const query = options.ticket === undefined ? "" : `?ticket=${encodeURIComponent(options.ticket)}`
+  const params = new URLSearchParams()
+  if (options.ticket !== undefined) params.set("ticket", options.ticket)
+  if (options.tab !== undefined) params.set("tab", options.tab)
+  const query = params.size === 0 ? "" : `?${params.toString()}`
   return app().request(
     `${BASE}/p/${token}/room${query}`,
     {
@@ -154,7 +157,12 @@ async function connect(
 
 async function join(
   token: string,
-  options: { ticket?: string; cookies?: string[]; section?: string | null } = {},
+  options: {
+    ticket?: string
+    cookies?: string[]
+    section?: string | null
+    tab?: string
+  } = {},
 ): Promise<RoomPeerClient> {
   const response = await connect(token, options)
   expect(response.status).toBe(101)
@@ -612,5 +620,70 @@ describe("comment events", () => {
     )
     expect(res.status).toBe(201)
     await waitOnExecutionContext(ctx)
+  })
+})
+
+describe("peer identity across a page turn", () => {
+  /** Every navigation in a published book reloads the document, so the room sees a close and a
+   *  fresh connect. While the id was minted per connection that read, to everybody else, as a
+   *  reader leaving and a stranger arriving — the roster blinked on every page turn, and
+   *  anything keyed on a peer had to key on a display name instead. */
+  it("gives the same reader the same id when their tab reconnects", async () => {
+    const token = await publish()
+    const cookie = await commenterCookie(token, "Maria")
+    const cookies = [`${COMMENTER_SESSION_COOKIE}=${cookie}`]
+
+    const first = await join(token, { cookies, section: "pg001_sec001", tab: "tab1" })
+    const before = (await presenceWith(first, 1)).self_id
+    first.ws.close()
+
+    const second = await join(token, { cookies, section: "pg002_sec001", tab: "tab1" })
+    expect((await presenceWith(second, 1)).self_id).toBe(before)
+  })
+
+  /** Two windows are two people in the room, so the tab has to separate them. */
+  it("gives the same reader's other tab a different id", async () => {
+    const token = await publish()
+    const cookie = await commenterCookie(token, "Maria")
+    const cookies = [`${COMMENTER_SESSION_COOKIE}=${cookie}`]
+
+    const one = await join(token, { cookies, section: "pg001_sec001", tab: "tab1" })
+    const two = await join(token, { cookies, section: "pg001_sec001", tab: "tab2" })
+
+    const roster = await presenceWith(two, 2)
+    expect(new Set(roster.peers.map((peer) => peer.id)).size).toBe(2)
+    expect(one.ws).toBeDefined()
+  })
+
+  /** The identity half is server-side, so asking for another reader's tab cannot borrow their
+   *  name — the worst a client can do is split or merge its own tabs. */
+  it("will not let a stranger's tab borrow a named reader's identity", async () => {
+    const token = await publish()
+    const cookie = await commenterCookie(token, "Maria")
+
+    const maria = await join(token, {
+      cookies: [`${COMMENTER_SESSION_COOKIE}=${cookie}`],
+      section: "pg001_sec001",
+      tab: "tab1",
+    })
+    const mariaId = (await presenceWith(maria, 1)).self_id
+
+    const stranger = await join(token, { section: "pg001_sec001", tab: "tab1" })
+    const strangerId = (await presenceWith(stranger, 2)).self_id
+    expect(strangerId).not.toBe(mariaId)
+  })
+
+  /** A reader on a snapshot published before the tab param existed keeps working. */
+  it("falls back to a per-connection id when no tab is sent", async () => {
+    const token = await publish()
+    const cookie = await commenterCookie(token, "Maria")
+    const cookies = [`${COMMENTER_SESSION_COOKIE}=${cookie}`]
+
+    const first = await join(token, { cookies, section: "pg001_sec001" })
+    const before = (await presenceWith(first, 1)).self_id
+    first.ws.close()
+
+    const second = await join(token, { cookies, section: "pg001_sec001" })
+    expect((await presenceWith(second, 1)).self_id).not.toBe(before)
   })
 })

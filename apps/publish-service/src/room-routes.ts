@@ -1,5 +1,7 @@
 import type { Context, Hono } from "hono"
 import {
+  PUBLICATION_ROOM_TAB_PARAM,
+  PUBLICATION_ROOM_TAB_PATTERN,
   PUBLICATION_ROOM_TICKET_PARAM,
   PUBLISH_ANONYMOUS_COLOR,
   PUBLISH_ANONYMOUS_NAME,
@@ -48,19 +50,35 @@ function socketUrl(c: RoomContext, token: string): string {
  * never commented has no session and joins as an unnamed peer, because a room that hides the
  * people in it is lying about how private the reading is.
  */
+/**
+ * The peer id: who they are, plus which of their tabs.
+ *
+ * Identity comes from the connection's own credentials and never from the request, so a client
+ * cannot borrow another reader's row by asking for it. The tab *is* the client's to choose,
+ * because only the client knows which of its windows this is — and the worst it can do with
+ * that is split or merge its own tabs.
+ *
+ * A client that sends no tab falls back to a fresh random id, which is exactly the old
+ * behaviour: a reader on a snapshot published before this existed keeps working, they simply
+ * keep blinking out of the roster on every page turn.
+ */
+function peerIdFor(c: RoomContext, identity: string): string {
+  const raw = c.req.query(PUBLICATION_ROOM_TAB_PARAM)
+  if (!raw || !PUBLICATION_ROOM_TAB_PATTERN.test(raw)) return randomId(9)
+  return `${identity}.${raw}`
+}
+
 async function peerFor(
   c: RoomContext,
   deps: RoomRoutesDeps,
   token: string,
   isAuthor: boolean,
 ): Promise<RoomPeer> {
-  const id = randomId(9)
-
   if (isAuthor) {
     const store = deps.resolveStore(c.env)
     const session = await store.findAuthorSession(token)
     return {
-      id,
+      id: peerIdFor(c, session?.id ?? `author-${token}`),
       name: session?.name ?? PUBLISH_AUTHOR_DEFAULT_NAME,
       color: session?.color ?? PUBLISH_AUTHOR_COLOR,
       is_author: true,
@@ -73,7 +91,10 @@ async function peerFor(
 
   const commenter = await commenterFromCookie(c, deps.resolveStore(c.env), token)
   return {
-    id,
+    /** An unnamed reader has no server-side identity to key on, so the tab carries it alone.
+     *  Two anonymous readers who chose the same tab would share a row — harmless, since an
+     *  anonymous peer has no name and nothing attributed to it, and tab ids are random. */
+    id: peerIdFor(c, commenter?.id ?? "anon"),
     name: commenter?.name ?? PUBLISH_ANONYMOUS_NAME,
     color: commenter?.color ?? PUBLISH_ANONYMOUS_COLOR,
     is_author: false,

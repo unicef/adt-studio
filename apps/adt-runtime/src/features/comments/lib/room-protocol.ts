@@ -30,6 +30,10 @@ export const ROOM_CURSOR_STALE_MS = 5000
 
 export const ROOM_TICKET_PARAM = "ticket"
 
+export const PUBLICATION_ROOM_TAB_PARAM = "tab"
+
+export const PUBLICATION_ROOM_TAB_PATTERN = /^[A-Za-z0-9_-]{1,32}$/
+
 export const ANONYMOUS_PEER_NAME = "Someone"
 
 export const ANONYMOUS_PEER_COLOR = "#a1a1aa"
