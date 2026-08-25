@@ -4795,6 +4795,10 @@ msgstr "Agrupa regiones de imágenes en ilustraciones discretas en cada página.
 msgid "Guidance for this book"
 msgstr "Orientación para este libro"
 
+#. placeholder {0}: entry.level
+msgid "H{0}"
+msgstr "H{0}"
+
 msgid "Hand out page-range parts and merge them back later."
 msgstr "Reparte partes por rango de páginas y combínalas más tarde."
 
@@ -5598,6 +5602,9 @@ msgstr "Enlazar página"
 msgid "Linked pages are kept together as one spread."
 msgstr "Las páginas vinculadas se mantienen juntas como una doble página."
 
+msgid "Linked to {value}"
+msgstr "Vinculado a {value}"
+
 msgid "Linked to: {value}"
 msgstr "Vinculado a: {value}"
 
@@ -6295,6 +6302,9 @@ msgstr "Las nuevas versiones llegan aquí primero — desde nuestra rama de prue
 msgid "New checklist item"
 msgstr "New checklist item"
 
+msgid "New entry"
+msgstr "Nueva entrada"
+
 msgid "New Entry"
 msgstr "Nueva entrada"
 
@@ -6449,8 +6459,11 @@ msgstr "No hay ninguna voz de ElevenLabs asignada a este idioma, por lo que se u
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "Sin capa de texto incrustado — el texto se recuperó a partir de la imagen de la página"
 
-msgid "No entries at this level."
-msgstr "No hay entradas en este nivel."
+#~ msgid "No entries at this level."
+#~ msgstr "No hay entradas en este nivel."
+
+msgid "No entries match this filter."
+msgstr "Ninguna entrada coincide con este filtro."
 
 msgid "No entries match your search"
 msgstr "No hay entradas que coincidan con tu búsqueda"
@@ -6562,6 +6575,9 @@ msgstr "No hay cuestionarios coincidentes"
 
 msgid "No matching sections"
 msgstr "No hay secciones coincidentes"
+
+msgid "No matching sections."
+msgstr "No hay secciones coincidentes."
 
 msgid "No narration yet"
 msgstr "Aún no hay narración"
@@ -7036,6 +7052,9 @@ msgstr "Abrir vista previa de la imagen"
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Ábrelo en cualquier lector EPUB 3, lector electrónico o herramienta de accesibilidad."
 
+msgid "Open linked page in preview"
+msgstr "Abrir la página vinculada en la vista previa"
+
 msgid "Open Liquid guide"
 msgstr "Abrir guía Liquid"
 
@@ -7276,8 +7295,8 @@ msgid "p. 7"
 msgstr "p. 7"
 
 #. placeholder {0}: String(current.pageNumber)
+#. placeholder {0}: current.pageNumber
 #. placeholder {0}: m[1]
-#. placeholder {0}: match[1]
 msgid "p{0}"
 msgstr "p{0}"
 
@@ -9117,8 +9136,14 @@ msgstr "Buscar preguntas u opciones…"
 msgid "Search questions, answers, or explanations…"
 msgstr "Buscar preguntas, respuestas o explicaciones…"
 
+msgid "Search sections"
+msgstr "Buscar secciones"
+
 msgid "Search sections..."
 msgstr "Buscar secciones..."
+
+msgid "Search sections…"
+msgstr "Buscar secciones…"
 
 msgid "Search settings"
 msgstr "Buscar configuraciones"

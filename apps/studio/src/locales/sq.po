@@ -4797,6 +4797,10 @@ msgstr "Grupon rajonet e imazheve në ilustrime të veçanta në çdo faqe."
 msgid "Guidance for this book"
 msgstr "Udhëzime për këtë libër"
 
+#. placeholder {0}: entry.level
+msgid "H{0}"
+msgstr "H{0}"
+
 msgid "Hand out page-range parts and merge them back later."
 msgstr "Shpërndani pjesë sipas intervalit të faqeve dhe bashkojini më vonë."
 
@@ -5600,6 +5604,9 @@ msgstr "Faqe lidhje"
 msgid "Linked pages are kept together as one spread."
 msgstr "Faqet e lidhura mbahen së bashku si një faqe e përbashkët."
 
+msgid "Linked to {value}"
+msgstr "Lidhur me {value}"
+
 msgid "Linked to: {value}"
 msgstr "I lidhur me: {value}"
 
@@ -6297,6 +6304,9 @@ msgstr "Versionet e reja mbërrijnë këtu të parat — nga dega jonë e testim
 msgid "New checklist item"
 msgstr "Element i ri i listës kontrolluese"
 
+msgid "New entry"
+msgstr "Zë i ri"
+
 msgid "New Entry"
 msgstr "Hyrje e re"
 
@@ -6451,8 +6461,11 @@ msgstr "Për këtë gjuhë nuk është caktuar asnjë zë i ElevenLabs, pra për
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "Pa shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes"
 
-msgid "No entries at this level."
-msgstr "Nuk ka zëra në këtë nivel."
+#~ msgid "No entries at this level."
+#~ msgstr "Nuk ka zëra në këtë nivel."
+
+msgid "No entries match this filter."
+msgstr "Asnjë zë nuk përputhet me këtë filtër."
 
 msgid "No entries match your search"
 msgstr "Asnjë hyrje nuk përputhet me kërkimin tuaj"
@@ -6564,6 +6577,9 @@ msgstr "Nuk ka kuize përputhëse"
 
 msgid "No matching sections"
 msgstr "Nuk ka seksione përputhëse"
+
+msgid "No matching sections."
+msgstr "Asnjë seksion që përputhet."
 
 msgid "No narration yet"
 msgstr "Ende nuk ka narracion"
@@ -7038,6 +7054,9 @@ msgstr "Hapni pamjen paraprake të imazhit"
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Hapeni në çdo lexues EPUB 3, e-reader, ose mjet aksesueshmërie."
 
+msgid "Open linked page in preview"
+msgstr "Hap faqen e lidhur në parapamje"
+
 msgid "Open Liquid guide"
 msgstr "Hap udhëzuesin Liquid"
 
@@ -7278,8 +7297,8 @@ msgid "p. 7"
 msgstr "f. 7"
 
 #. placeholder {0}: String(current.pageNumber)
+#. placeholder {0}: current.pageNumber
 #. placeholder {0}: m[1]
-#. placeholder {0}: match[1]
 msgid "p{0}"
 msgstr "f{0}"
 
@@ -9119,8 +9138,14 @@ msgstr "Kërko pyetje ose opsione…"
 msgid "Search questions, answers, or explanations…"
 msgstr "Kërko pyetje, përgjigje ose shpjegime…"
 
+msgid "Search sections"
+msgstr "Kërko seksione"
+
 msgid "Search sections..."
 msgstr "Kërko seksione..."
+
+msgid "Search sections…"
+msgstr "Kërko seksione…"
 
 msgid "Search settings"
 msgstr "Kërko cilësimet"

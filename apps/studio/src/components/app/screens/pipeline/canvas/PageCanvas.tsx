@@ -39,12 +39,14 @@ function SectionSlice({
   section,
   viewport,
   contentWidth,
+  animateHeight,
 }: {
   label: string;
   page: PipelinePage;
   section: PageSummarySection;
   viewport: Viewport;
   contentWidth: number;
+  animateHeight: boolean;
 }) {
   const { t } = useLingui();
   const sectionIndex = section.sectionIndex;
@@ -76,6 +78,7 @@ function SectionSlice({
       frameWidth={CAPTURE_WIDTH[viewport]}
       frameHeight={SECTION_FRAME_HEIGHT}
       displayWidth={contentWidth}
+      animateHeight={animateHeight}
       className="border-b last:border-b-0"
     />
   );
@@ -123,6 +126,7 @@ export function PageCanvas({
       section={section}
       viewport={viewport}
       contentWidth={contentWidth}
+      animateHeight={!resizing}
     />
   ));
 

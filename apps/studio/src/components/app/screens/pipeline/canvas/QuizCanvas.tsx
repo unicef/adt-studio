@@ -113,6 +113,7 @@ export function QuizCanvas({
       frameWidth={CAPTURE_WIDTH[viewport]}
       frameHeight={QUIZ_FRAME_HEIGHT}
       displayWidth={contentWidth}
+      animateHeight={!resizing}
     />
   )
 

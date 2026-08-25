@@ -9,6 +9,7 @@ export interface InteractiveBlockProps {
   frameWidth: number
   frameHeight: number
   displayWidth: number
+  animateHeight?: boolean
   className?: string
 }
 
@@ -39,17 +40,28 @@ export function InteractiveBlock({
   frameWidth,
   frameHeight,
   displayWidth,
+  animateHeight = true,
   className,
 }: InteractiveBlockProps) {
   const frameRef = useRef<HTMLIFrameElement>(null)
   const [height, setHeight] = useState<number | null>(() => startingHeight(src))
-  const [ready, setReady] = useState(false)
+  const [ready, setReady] = useState(() => measuredHeights.has(src))
   const scale = displayWidth / frameWidth
 
   useEffect(() => {
     setHeight(startingHeight(src))
-    setReady(false)
+    setReady(measuredHeights.has(src))
   }, [src])
+
+  const [canAnimate, setCanAnimate] = useState(() => measuredHeights.has(src))
+  useEffect(() => {
+    if (!ready) {
+      setCanAnimate(false)
+      return
+    }
+    const frame = requestAnimationFrame(() => setCanAnimate(true))
+    return () => cancelAnimationFrame(frame)
+  }, [ready])
 
   useEffect(() => {
     let settle: ReturnType<typeof setTimeout> | undefined
@@ -82,7 +94,10 @@ export function InteractiveBlock({
   return (
     <div className={cn("relative overflow-hidden bg-card", className)}>
       <div
-        className="overflow-hidden transition-[height] duration-200 ease-out"
+        className={cn(
+          "overflow-hidden",
+          canAnimate && animateHeight && "transition-[height] duration-200 ease-out",
+        )}
         style={{ height: Math.round((height ?? frameHeight) * scale) }}
       >
         <iframe
@@ -91,7 +106,11 @@ export function InteractiveBlock({
           title={frameTitle}
           onLoad={(event) => {
             clearTimeout(revealTimeout.current)
-            revealTimeout.current = setTimeout(() => setReady(true), REVEAL_TIMEOUT_MS)
+            if (measuredHeights.has(src)) {
+              setReady(true)
+            } else {
+              revealTimeout.current = setTimeout(() => setReady(true), REVEAL_TIMEOUT_MS)
+            }
             unbridge.current?.()
             unbridge.current = bridgeIframeKeys(event.currentTarget)
           }}

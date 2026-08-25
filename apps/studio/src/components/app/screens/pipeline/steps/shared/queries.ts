@@ -25,3 +25,12 @@ export function useTextCatalog(label: string) {
     enabled: !!label,
   })
 }
+
+/** Sections a TOC entry can link to — only worth fetching once the TOC exists. */
+export function useTocSections(label: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ["books", label, "toc-sections"],
+    queryFn: () => api.getTocSections(label),
+    enabled: !!label && enabled,
+  })
+}

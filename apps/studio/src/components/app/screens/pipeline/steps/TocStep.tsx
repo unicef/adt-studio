@@ -1,21 +1,31 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import type { TocEntry } from "@/api/client"
+import { Plus, Search } from "lucide-react"
+import type { TocEntry, TocSection } from "@/api/client"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useToc } from "@/hooks/use-toc"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import { useSaveToc } from "./shared/mutations"
+import { useTocSections } from "./shared/queries"
 import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
-import { EditableText, SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
+import { SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
+import { MAX_TOC_LEVEL, MIN_TOC_LEVEL, TocEntryRow } from "./toc/TocEntryRow"
 import type { StepProps } from "./shared/types"
 
+const NO_SECTIONS: TocSection[] = []
+
 export function TocStep(props: StepProps) {
-  const { label, plugin } = props
+  const { label, plugin, frame } = props
   const { t } = useLingui()
   const query = useToc(label)
   const save = useSaveToc(label)
 
   const entries = useMemo(() => query.data?.entries ?? [], [query.data])
+  const sectionsQuery = useTocSections(label, entries.length > 0)
+  const sections = sectionsQuery.data ?? NO_SECTIONS
+
   const [activeLevel, setActiveLevel] = useState<string>("")
+  const [search, setSearch] = useState("")
 
   const levels = useMemo(() => {
     const counts = new Map<number, number>()
@@ -25,21 +35,82 @@ export function TocStep(props: StepProps) {
       .map(([level, count]) => ({ key: String(level), title: t`Level ${level}`, count }))
   }, [entries, t])
 
-  const patch = (id: string, changes: Partial<TocEntry>) => {
-    if (!query.data) return
-    save.mutate({
-      ...query.data,
-      entries: entries.map((entry) => (entry.id === id ? { ...entry, ...changes } : entry)),
+  const shown = useMemo(() => {
+    const needle = search.trim().toLowerCase()
+    return entries.filter((entry) => {
+      if (activeLevel !== "" && String(entry.level) !== activeLevel) return false
+      if (!needle) return true
+      return entry.title.toLowerCase().includes(needle)
     })
-  }
+  }, [entries, activeLevel, search])
+
+  const persist = useCallback(
+    (next: TocEntry[]) => {
+      if (!query.data) return
+      save.mutate({ ...query.data, entries: next })
+    },
+    [query.data, save],
+  )
+
+  const patch = useCallback(
+    (id: string, changes: Partial<TocEntry>) => {
+      persist(entries.map((entry) => (entry.id === id ? { ...entry, ...changes } : entry)))
+    },
+    [entries, persist],
+  )
+
+  const shiftLevel = useCallback(
+    (id: string, delta: number) => {
+      const current = entries.find((entry) => entry.id === id)
+      if (!current) return
+      const level = Math.min(MAX_TOC_LEVEL, Math.max(MIN_TOC_LEVEL, current.level + delta))
+      if (level === current.level) return
+      persist(entries.map((entry) => (entry.id === id ? { ...entry, level } : entry)))
+    },
+    [entries, persist],
+  )
+
+  const removeEntry = useCallback(
+    (id: string) => {
+      persist(entries.filter((entry) => entry.id !== id))
+    },
+    [entries, persist],
+  )
+
+  const insertAfter = useCallback(
+    (afterId: string | null, level: number) => {
+      setSearch("")
+      setActiveLevel("")
+      const created: TocEntry = {
+        id: `toc_new_${Date.now()}`,
+        title: t`New entry`,
+        sectionId: "",
+        href: "",
+        chapterId: "",
+        level,
+      }
+      if (afterId === null) {
+        persist([...entries, created])
+        return
+      }
+      const index = entries.findIndex((entry) => entry.id === afterId)
+      if (index === -1) return
+      persist([...entries.slice(0, index + 1), created, ...entries.slice(index + 1)])
+    },
+    [entries, persist, t],
+  )
+
+  const openPreview = frame.onOpenPreview
+  const previewSection = useCallback(
+    (sectionId: string) => openPreview(sectionId),
+    [openPreview],
+  )
 
   const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: entries.length > 0 })
   if (loading) return <StepLoading {...props} />
   if (entries.length === 0) return <StepEmpty {...props} />
 
-  const shown =
-    activeLevel === "" ? entries : entries.filter((e) => String(e.level) === activeLevel)
-  const deepest = Math.max(...entries.map((e) => e.level))
+  const deepest = Math.max(...entries.map((entry) => entry.level))
 
   return (
     <StepShell
@@ -57,36 +128,47 @@ export function TocStep(props: StepProps) {
         />
       }
     >
-      <StepBody title={<Trans>Table of contents</Trans>} meta={t`${entries.length} entries`}>
+      <StepBody
+        title={<Trans>Table of contents</Trans>}
+        meta={t`${entries.length} entries`}
+        actions={
+          <>
+            <Input
+              wrapperClassName="w-[220px]"
+              className="h-8"
+              prependIcon={<Search className="size-3.5" />}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t`Search entries…`}
+            />
+            <Button size="sm" variant="outline" onClick={() => insertAfter(null, MIN_TOC_LEVEL)}>
+              <Plus className="size-3.5" />
+              <Trans>Add entry</Trans>
+            </Button>
+          </>
+        }
+      >
         <SaveError error={save.error} />
 
         {shown.length === 0 ? (
           <StepEmptyHint>
-            <Trans>No entries at this level.</Trans>
+            <Trans>No entries match this filter.</Trans>
           </StepEmptyHint>
         ) : (
-          <div className="flex flex-col rounded-xl border bg-card p-2">
+          <div className="flex flex-col gap-1.5">
             {shown.map((entry) => (
-              <div
+              <TocEntryRow
                 key={entry.id}
-                className="flex items-center gap-2 rounded-lg py-0.5"
-                style={{ paddingLeft: `${(entry.level - 1) * 22}px` }}
-              >
-                <span
-                  className="shrink-0 rounded px-1.5 py-0.5 font-mono text-[10px]"
-                  style={{ background: tint(plugin.hex, 0.12), color: plugin.hex }}
-                >
-                  H{entry.level}
-                </span>
-                <EditableText
-                  value={entry.title}
-                  ariaLabel={t`entry title`}
-                  multiline={false}
-                  isSaving={save.isPending}
-                  onSave={(title) => patch(entry.id, { title })}
-                  className="text-[12.5px]"
-                />
-              </div>
+                entry={entry}
+                sections={sections}
+                hex={plugin.hex}
+                isSaving={save.isPending}
+                onPatch={patch}
+                onShiftLevel={shiftLevel}
+                onInsertAfter={insertAfter}
+                onRemove={removeEntry}
+                onPreview={previewSection}
+              />
             ))}
           </div>
         )}

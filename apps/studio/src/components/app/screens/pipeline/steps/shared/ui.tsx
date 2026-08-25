@@ -187,23 +187,27 @@ export function RowAction({
   label,
   onClick,
   active,
+  disabled,
   tone = "default",
 }: {
   icon: typeof Check
   label: string
   onClick: () => void
   active?: boolean
+  disabled?: boolean
   tone?: "default" | "danger"
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       title={label}
       aria-label={label}
       aria-pressed={active}
       className={cn(
         "grid size-6 shrink-0 place-items-center rounded-md border transition-colors",
+        "disabled:pointer-events-none disabled:opacity-30",
         active && "border-brand-300 bg-brand-50 text-brand-700",
         !active && tone === "danger" && "text-muted-foreground hover:bg-destructive/10 hover:text-destructive",
         !active && tone === "default" && "text-muted-foreground hover:bg-muted hover:text-foreground",

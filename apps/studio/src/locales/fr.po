@@ -4797,6 +4797,10 @@ msgstr "Regroupe les régions d'image en illustrations distinctes sur chaque pag
 msgid "Guidance for this book"
 msgstr "Consignes pour ce livre"
 
+#. placeholder {0}: entry.level
+msgid "H{0}"
+msgstr "H{0}"
+
 msgid "Hand out page-range parts and merge them back later."
 msgstr "Distribuez des parties par plage de pages et fusionnez-les plus tard."
 
@@ -5600,6 +5604,9 @@ msgstr "Lier la page"
 msgid "Linked pages are kept together as one spread."
 msgstr "Les pages liées sont conservées ensemble comme une seule fusion."
 
+msgid "Linked to {value}"
+msgstr "Lié à {value}"
+
 msgid "Linked to: {value}"
 msgstr "Linked to: {value}"
 
@@ -6297,6 +6304,9 @@ msgstr "Les nouvelles versions arrivent ici en premier — depuis notre branche 
 msgid "New checklist item"
 msgstr "Nouvel élément de liste de contrôle"
 
+msgid "New entry"
+msgstr "Nouvelle entrée"
+
 msgid "New Entry"
 msgstr "Nouvelle entrée"
 
@@ -6451,8 +6461,11 @@ msgstr "Aucune voix ElevenLabs n'est associée à cette langue ; la voix anglais
 msgid "No embedded text layer — text was recovered from the page image"
 msgstr "Pas de couche de texte intégrée — le texte a été récupéré à partir de l'image de la page"
 
-msgid "No entries at this level."
-msgstr "Aucune entrée à ce niveau."
+#~ msgid "No entries at this level."
+#~ msgstr "Aucune entrée à ce niveau."
+
+msgid "No entries match this filter."
+msgstr "Aucune entrée ne correspond à ce filtre."
 
 msgid "No entries match your search"
 msgstr "Aucune entrée ne correspond à votre recherche"
@@ -6564,6 +6577,9 @@ msgstr "Aucun quiz correspondant"
 
 msgid "No matching sections"
 msgstr "Aucune section correspondante"
+
+msgid "No matching sections."
+msgstr "Aucune section correspondante."
 
 msgid "No narration yet"
 msgstr "Pas encore de narration"
@@ -7038,6 +7054,9 @@ msgstr "Ouvrir l'aperçu de l'image"
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Ouvrez-le dans n'importe quelle liseuse EPUB 3 ou outil d'accessibilité."
 
+msgid "Open linked page in preview"
+msgstr "Ouvrir la page liée dans l'aperçu"
+
 msgid "Open Liquid guide"
 msgstr "Ouvrir le guide Liquid"
 
@@ -7278,8 +7297,8 @@ msgid "p. 7"
 msgstr "p. 7"
 
 #. placeholder {0}: String(current.pageNumber)
+#. placeholder {0}: current.pageNumber
 #. placeholder {0}: m[1]
-#. placeholder {0}: match[1]
 msgid "p{0}"
 msgstr "p{0}"
 
@@ -9119,8 +9138,14 @@ msgstr "Rechercher des questions ou des options…"
 msgid "Search questions, answers, or explanations…"
 msgstr "Rechercher des questions, des réponses ou des explications…"
 
+msgid "Search sections"
+msgstr "Rechercher des sections"
+
 msgid "Search sections..."
 msgstr "Rechercher des sections..."
+
+msgid "Search sections…"
+msgstr "Rechercher des sections…"
 
 msgid "Search settings"
 msgstr "Paramètres de recherche"
