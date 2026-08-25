@@ -20,6 +20,7 @@ import {
   SettingsHeading,
   SettingsLead,
 } from "@/components/app/screens/settings/ui"
+import { BOOK_INFO_ANCHORS } from "./searchIndex"
 
 interface MetadataDraft {
   title: string
@@ -154,6 +155,7 @@ export function BookInfoSection({ label, book }: { label: string; book: BookDeta
         <form.Field name="title">
           {(field) => (
             <SettingRow
+              anchorId={BOOK_INFO_ANCHORS.title}
               title={<Trans>Title</Trans>}
               subtitle={<Trans>Shown across the library and in the exported book.</Trans>}
             >
@@ -175,6 +177,7 @@ export function BookInfoSection({ label, book }: { label: string; book: BookDeta
             return (
               <SettingRow
                 alignStart
+                anchorId={BOOK_INFO_ANCHORS.authors}
                 title={<Trans>Authors</Trans>}
                 subtitle={<Trans>One entry per author, in the order they are credited.</Trans>}
               >
@@ -223,6 +226,7 @@ export function BookInfoSection({ label, book }: { label: string; book: BookDeta
         <form.Field name="publisher">
           {(field) => (
             <SettingRow
+              anchorId={BOOK_INFO_ANCHORS.publisher}
               title={<Trans>Publisher</Trans>}
               subtitle={<Trans>Appears on the generated cover and in the package metadata.</Trans>}
             >
@@ -255,6 +259,7 @@ export function BookInfoSection({ label, book }: { label: string; book: BookDeta
             return (
               <SettingRow
                 alignStart
+                anchorId={BOOK_INFO_ANCHORS.language}
                 title={<Trans>Original language</Trans>}
                 subtitle={
                   <Trans>

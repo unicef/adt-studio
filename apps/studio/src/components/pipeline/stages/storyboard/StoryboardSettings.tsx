@@ -43,6 +43,7 @@ import {
 import { getSectionTypeLabel } from "@/lib/section-constants"
 import { FontSettings } from "./FontSettings"
 import { RenderStrategyOptions } from "./components/RenderStrategyOptions"
+import { STEP_SETTINGS_ANCHORS } from "@/components/app/screens/pipeline/settings/searchIndex"
 
 const PROMPT_TABS = [
   "rendering-prompt",
@@ -502,7 +503,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
         <div className="flex flex-col h-full">
           {/* Styleguide + Temperature settings */}
           <div className="shrink-0 p-4 pb-0 space-y-4">
-            <div>
+            <div id={STEP_SETTINGS_ANCHORS.storyboardStyleguide} className="scroll-mt-6">
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 {<Trans>Styleguide</Trans>}
               </h3>
@@ -564,7 +565,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               </p>
             </div>
 
-            <div>
+            <div id={STEP_SETTINGS_ANCHORS.storyboardTemperature} className="scroll-mt-6">
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 {<Trans>Temperature</Trans>}
               </h3>
@@ -591,7 +592,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               </p>
             </div>
 
-            <div>
+            <div id={STEP_SETTINGS_ANCHORS.storyboardDisplay} className="scroll-mt-6">
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 {<Trans>Display</Trans>}
               </h3>
@@ -799,7 +800,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
       {tab === "visual-review-prompt" && (
         <div className="flex flex-col h-full">
           <div className="shrink-0 p-4 pb-0 space-y-4">
-            <div>
+            <div id={STEP_SETTINGS_ANCHORS.storyboardMatchDesign} className="scroll-mt-6">
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 {<Trans>Match Design</Trans>}
               </h3>
@@ -834,7 +835,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 </div>
               </RadioGroup>
             </div>
-            <div>
+            <div id={STEP_SETTINGS_ANCHORS.storyboardMaxIterations} className="scroll-mt-6">
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 {<Trans>Max Iterations</Trans>}
               </h3>

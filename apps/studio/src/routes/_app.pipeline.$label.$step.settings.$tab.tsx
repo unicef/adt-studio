@@ -64,7 +64,7 @@ function StepSettingsRoute() {
       foundations={state.foundations}
       plugins={state.plugins}
       onClose={() => (isDockSlug(step) ? nav.openStep(step) : nav.openWorkspace())}
-      onSelectTab={(next) => nav.openSettingsTab(step, next)}
+      onSelectTab={(next, anchor) => nav.openSettingsTab(step, next, anchor)}
       onOpenPlugin={nav.openStepSettings}
     />
   )

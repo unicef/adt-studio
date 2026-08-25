@@ -20,7 +20,7 @@ export interface BookSettingsSidebarProps {
   book: BookDetail | undefined
   label: string
   section: string
-  onSelectSection: (section: string) => void
+  onSelectSection: (section: string, anchor?: string) => void
   onBack: () => void
 }
 

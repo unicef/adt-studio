@@ -1,6 +1,7 @@
 import { msg } from "@lingui/core/macro"
 import type { I18n, MessageDescriptor } from "@lingui/core"
 import type { LucideIcon } from "lucide-react"
+import { STEP_SETTINGS_FIELDS } from "@/components/app/screens/pipeline/settings/searchIndex"
 import {
   BOOK_SETTINGS_GROUPS,
   BOOK_SETTINGS_SECTION_BY_KEY,
@@ -14,6 +15,7 @@ export interface BookSettingsSearchEntry {
   hint?: MessageDescriptor
   keywords?: MessageDescriptor
   icon?: LucideIcon
+  anchor?: string
 }
 
 export interface BookSettingsSearchItem {
@@ -23,6 +25,7 @@ export interface BookSettingsSearchItem {
   keywords?: string
   icon?: LucideIcon
   section: string
+  anchor?: string
 }
 
 const SECTION_KEYWORDS: Record<string, MessageDescriptor> = {
@@ -38,24 +41,34 @@ const SECTION_KEYWORDS: Record<string, MessageDescriptor> = {
   "visual-review-prompt": msg`visual review quality check`,
 }
 
+export const BOOK_INFO_ANCHORS = {
+  title: "book-info-title",
+  authors: "book-info-authors",
+  publisher: "book-info-publisher",
+  language: "book-info-language",
+} as const
+
 const OPTION_ENTRIES: BookSettingsSearchEntry[] = [
   {
     id: "book-info-title",
     section: "information",
     label: msg`Title`,
     keywords: msg`title name book`,
+    anchor: BOOK_INFO_ANCHORS.title,
   },
   {
     id: "book-info-authors",
     section: "information",
     label: msg`Authors`,
     keywords: msg`author writer credits`,
+    anchor: BOOK_INFO_ANCHORS.authors,
   },
   {
     id: "book-info-publisher",
     section: "information",
     label: msg`Publisher`,
     keywords: msg`publisher imprint`,
+    anchor: BOOK_INFO_ANCHORS.publisher,
   },
   {
     id: "book-info-language",
@@ -63,6 +76,7 @@ const OPTION_ENTRIES: BookSettingsSearchEntry[] = [
     label: msg`Original language`,
     hint: msg`Drives every language-dependent stage.`,
     keywords: msg`language locale region translation`,
+    anchor: BOOK_INFO_ANCHORS.language,
   },
   {
     id: "book-api-keys-credentials",
@@ -83,9 +97,23 @@ const SECTION_ENTRIES: BookSettingsSearchEntry[] = BOOK_SETTINGS_GROUPS.flatMap(
   })),
 )
 
+// The storyboard's own fields are indexed once for the whole app; the hub shows
+// them under the section whose key matches the stage tab they live in.
+const STORYBOARD_FIELD_ENTRIES: BookSettingsSearchEntry[] = STEP_SETTINGS_FIELDS.filter(
+  (field) => field.stage === "storyboard" && field.tab in BOOK_SETTINGS_SECTION_BY_KEY,
+).map((field, index) => ({
+  id: `book-storyboard-field-${index}`,
+  section: field.tab,
+  label: field.label,
+  hint: field.hint,
+  keywords: field.keywords,
+  anchor: field.anchor,
+}))
+
 export const BOOK_SETTINGS_SEARCH_ENTRIES: BookSettingsSearchEntry[] = [
   ...SECTION_ENTRIES,
   ...OPTION_ENTRIES,
+  ...STORYBOARD_FIELD_ENTRIES,
 ]
 
 export function buildBookSettingsSearchItems(
@@ -104,6 +132,7 @@ export function buildBookSettingsSearchItems(
       keywords: entry.keywords ? i18n._(entry.keywords) : undefined,
       icon: entry.icon ?? section?.icon,
       section: entry.section,
+      anchor: entry.anchor,
     }
   })
 }

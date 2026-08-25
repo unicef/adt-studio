@@ -7,6 +7,7 @@ import { SettingsReturnProvider } from "@/hooks/use-settings-return";
 import { useBook } from "@/hooks/use-books";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { TopBar } from "@/components/title-bar/TopBar";
+import { useSettingsAnchor } from "@/components/app/screens/settings/useSettingsAnchor";
 import { BookSettingsBody } from "./BookSettingsBody";
 import { BookSettingsSidebar } from "./BookSettingsSidebar";
 import { bookSettingsScope } from "./sections";
@@ -14,7 +15,7 @@ import { bookSettingsScope } from "./sections";
 export interface BookSettingsScreenProps {
     label: string;
     section: string;
-    onSelectSection: (section: string) => void;
+    onSelectSection: (section: string, anchor?: string) => void;
     onBack: () => void;
 }
 
@@ -39,6 +40,7 @@ function BookSettingsFrame({
 }: BookSettingsScreenProps) {
     const [discardNonce, setDiscardNonce] = useState(0);
     const { data: book, error } = useBook(label);
+    useSettingsAnchor();
     const fullWidth = bookSettingsScope(section) === "storyboard";
 
     const body = (

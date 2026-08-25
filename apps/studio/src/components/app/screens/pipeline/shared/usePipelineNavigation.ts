@@ -17,11 +17,11 @@ export interface PipelineNavigation {
   openPage: (pageId: string) => void
   openStep: (slug: string) => void
   openStepSettings: (slug: string) => void
-  openSettingsTab: (slug: string, tab: string) => void
+  openSettingsTab: (slug: string, tab: string, anchor?: string) => void
   openPreview: (sectionId: string | null) => void
   openPreviewHref: (href: string) => void
   openBookInfo: () => void
-  openBookSettings: (section: string) => void
+  openBookSettings: (section: string, anchor?: string) => void
 }
 
 export function usePipelineNavigation(label: string): PipelineNavigation {
@@ -39,16 +39,17 @@ export function usePipelineNavigation(label: string): PipelineNavigation {
       void navigate({ to: "/pipeline/$label/$step", params: { label, step: slug }, search: true })
     }
 
-    const openBookSettings = (section: string) => {
+    const openBookSettings = (section: string, anchor?: string) => {
       void navigate({
         to: "/pipeline/$label/settings/$section",
         params: { label, section },
+        hash: anchor,
       })
     }
 
     // Storyboard is the workspace itself, so its settings live in the book
     // settings hub rather than behind a step screen.
-    const openSettingsTab = (slug: string, tab: string) => {
+    const openSettingsTab = (slug: string, tab: string, anchor?: string) => {
       if (slug === "storyboard") {
         openBookSettings(storyboardTabSection(tab))
         return
@@ -57,6 +58,7 @@ export function usePipelineNavigation(label: string): PipelineNavigation {
       void navigate({
         to: "/pipeline/$label/$step/settings/$tab",
         params: { label, step: slug, tab },
+        hash: anchor,
       })
     }
 

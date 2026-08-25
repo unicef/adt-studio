@@ -16,7 +16,9 @@ export interface BookSettingsSearchResult {
   onSelect: () => void
 }
 
-export function useBookSettingsSearch(onOpenSection: (section: string) => void) {
+export function useBookSettingsSearch(
+  onOpenSection: (section: string, anchor?: string) => void,
+) {
   const { i18n } = useLingui()
   const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState("")
@@ -37,7 +39,7 @@ export function useBookSettingsSearch(onOpenSection: (section: string) => void) 
       sub: item.sub,
       icon: item.icon,
       onSelect: () => {
-        onOpenSection(item.section)
+        onOpenSection(item.section, item.anchor)
         setQuery("")
         inputRef.current?.blur()
       },

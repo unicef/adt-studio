@@ -3,6 +3,7 @@ import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { StepSettingsScreen } from "./StepSettingsScreen"
+import type { StepSettingsSlug } from "./slugs"
 
 vi.mock("@lingui/core/macro", () => ({
   msg(strings: TemplateStringsArray, ...values: unknown[]) {
@@ -49,6 +50,10 @@ vi.mock("@/components/pipeline/pipeline-i18n", () => ({
 
 vi.mock("@/components/title-bar/title-bar-controls", () => ({
   TitleBarControls: () => null,
+}))
+
+vi.mock("@/components/app/screens/settings/useSettingsAnchor", () => ({
+  useSettingsAnchor: () => {},
 }))
 
 vi.mock("@/components/ui/scroll-area", () => ({
@@ -102,6 +107,7 @@ afterEach(() => {
 
 function renderScreen(
   overrides: Partial<{
+    slug: StepSettingsSlug
     tab: string
     onClose: () => void
     onSelectTab: (tab: string) => void
@@ -110,7 +116,7 @@ function renderScreen(
 ) {
   const props = {
     label: "demo-book",
-    slug: "extract" as const,
+    slug: "extract" as StepSettingsSlug,
     tab: "general",
     foundations: [],
     plugins: [],
@@ -167,6 +173,74 @@ describe("StepSettingsScreen", () => {
     fireEvent.click(dock)
 
     expect(props.onOpenPlugin).toHaveBeenCalledWith("quizzes")
+  })
+
+  it("filters the rail to the settings matching the search", () => {
+    renderScreen()
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "segmentation prompt" } })
+
+    const rows = screen.getAllByRole("option").map((row) => row.textContent)
+
+    // The tab itself, plus the prompt field that lives inside it.
+    expect(rows).toContain("Segmentation Prompt")
+    expect(rows.some((row) => row?.startsWith("Image Segmentation Prompt"))).toBe(true)
+    expect(rows).not.toContain("General")
+  })
+
+  it("selects the highlighted match on Enter", () => {
+    const props = renderScreen()
+    const search = screen.getByRole("searchbox")
+
+    fireEvent.change(search, { target: { value: "cropping prompt" } })
+    fireEvent.keyDown(search, { key: "Enter" })
+
+    expect(props.onSelectTab).toHaveBeenCalledWith("cropping-prompt", undefined)
+  })
+
+  it("surfaces individual fields, labelled with the tab that holds them", () => {
+    renderScreen()
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "complexity" } })
+
+    const hit = screen.getByRole("option", { name: /Min complexity/ })
+    expect(hit.textContent).toContain("General")
+  })
+
+  it("opens the field's tab and anchors on it", () => {
+    const props = renderScreen()
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "meaningfulness filter" } })
+    fireEvent.click(screen.getByRole("option", { name: /LLM meaningfulness filter/ }))
+
+    expect(props.onSelectTab).toHaveBeenCalledWith("general", "step-extract-meaningfulness")
+  })
+
+  it("finds a field that lives in a tab the query does not name", () => {
+    const props = renderScreen()
+    const search = screen.getByRole("searchbox")
+
+    fireEvent.change(search, { target: { value: "min image dimension" } })
+    fireEvent.keyDown(search, { key: "Enter" })
+
+    expect(props.onSelectTab).toHaveBeenCalledWith(
+      "segmentation-prompt",
+      "step-extract-segmentation-min-side",
+    )
+  })
+
+  it("reports when nothing in the step matches", () => {
+    renderScreen()
+
+    fireEvent.change(screen.getByRole("searchbox"), { target: { value: "zzz" } })
+
+    expect(screen.getByText(/No settings match/)).toBeTruthy()
+  })
+
+  it("hides the search when the step has too few tabs to sift through", () => {
+    renderScreen({ slug: "glossary", tab: "general" })
+
+    expect(screen.queryByRole("searchbox")).toBeNull()
   })
 
   it("closes from both the back button and the close button", () => {

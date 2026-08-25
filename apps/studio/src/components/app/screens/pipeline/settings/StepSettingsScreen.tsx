@@ -17,6 +17,7 @@ import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import { useDockMinimized } from "@/components/app/screens/pipeline/shared/workspacePrefs"
 import type { DockItem } from "@/components/app/screens/pipeline/shared/usePipelineState"
 import { hasStepLanding } from "@/components/app/screens/pipeline/steps/shared/StepLanding"
+import { useSettingsAnchor } from "@/components/app/screens/settings/useSettingsAnchor"
 import { SettingsTabsRail } from "./SettingsTabsRail"
 import { StepSettingsBody } from "./StepSettingsBody"
 import { stepSettingsTabs, type StepSettingsSlug } from "./slugs"
@@ -28,7 +29,7 @@ export interface StepSettingsScreenProps {
   foundations: DockItem[]
   plugins: DockItem[]
   onClose: () => void
-  onSelectTab: (tab: string) => void
+  onSelectTab: (tab: string, anchor?: string) => void
   onOpenPlugin: (slug: string) => void
 }
 
@@ -59,6 +60,7 @@ function StepSettingsFrame({
   const [discardNonce, setDiscardNonce] = useState(0)
   const [dockMinimized, setDockMinimized] = useDockMinimized()
   const { stageState } = useBookRun()
+  useSettingsAnchor()
   const runState = stageState(slug)
   const landingReachable =
     runState === "done" || runState === "running" || runState === "queued"
