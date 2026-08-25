@@ -6438,6 +6438,9 @@ msgstr "sin cambios"
 msgid "No changes flagged on this page"
 msgstr "No changes flagged on this page"
 
+msgid "No clips match this search."
+msgstr "Ningún clip coincide con esta búsqueda."
+
 msgid "No colors found"
 msgstr "No se encontraron colores"
 
@@ -7144,6 +7147,9 @@ msgstr "OpenAI"
 
 msgid "OpenAI API Key"
 msgstr "Clave de API de OpenAI"
+
+msgid "OpenAI API key is required for transcription."
+msgstr "Se requiere una clave de API de OpenAI para la transcripción."
 
 msgid "OpenAI image-edit model used to regenerate each image with translated text."
 msgstr "Modelo de edición de imágenes de OpenAI utilizado para regenerar cada imagen con el texto traducido."
@@ -9144,6 +9150,9 @@ msgstr "Buscar fuentes..."
 
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Buscar títulos, ID o grupos de estilos..."
+
+msgid "Search id or spoken text…"
+msgstr "Buscar id o texto hablado…"
 
 msgid "Search id, source or translation…"
 msgstr "Buscar id, original o traducción…"
@@ -11875,8 +11884,8 @@ msgstr "Tu IA, tus claves."
 msgid "Your book"
 msgstr "Tu libro"
 
-msgid "Your browser cannot play this audio."
-msgstr "Tu navegador no puede reproducir este audio."
+#~ msgid "Your browser cannot play this audio."
+#~ msgstr "Tu navegador no puede reproducir este audio."
 
 msgid "Your browser cannot play this video."
 msgstr "Tu navegador no puede reproducir este vídeo."

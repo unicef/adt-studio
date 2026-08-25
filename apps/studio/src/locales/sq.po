@@ -6440,6 +6440,9 @@ msgstr "pa ndryshime"
 msgid "No changes flagged on this page"
 msgstr "Nuk janë sinjalizuar ndryshime në këtë faqe"
 
+msgid "No clips match this search."
+msgstr "Asnjë klip nuk përputhet me këtë kërkim."
+
 msgid "No colors found"
 msgstr "Nuk u gjetën ngjyra"
 
@@ -7146,6 +7149,9 @@ msgstr "OpenAI"
 
 msgid "OpenAI API Key"
 msgstr "Çelësi API i OpenAI"
+
+msgid "OpenAI API key is required for transcription."
+msgstr "Kërkohet një çelës API i OpenAI për transkriptimin."
 
 msgid "OpenAI image-edit model used to regenerate each image with translated text."
 msgstr "Modeli image-edit i OpenAI i përdorur për të rigjeneruar çdo imazh me tekst të përkthyer."
@@ -9146,6 +9152,9 @@ msgstr "Kërko fonte..."
 
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Kërkoni tituj, ID ose grupe stilesh..."
+
+msgid "Search id or spoken text…"
+msgstr "Kërko id ose tekstin e folur…"
 
 msgid "Search id, source or translation…"
 msgstr "Kërko id, origjinalin ose përkthimin…"
@@ -11877,8 +11886,8 @@ msgstr "IA-ja juaj, çelësat tuaj."
 msgid "Your book"
 msgstr "Libri yt"
 
-msgid "Your browser cannot play this audio."
-msgstr "Shfletuesi juaj nuk mund ta luajë këtë audio."
+#~ msgid "Your browser cannot play this audio."
+#~ msgstr "Shfletuesi juaj nuk mund ta luajë këtë audio."
 
 msgid "Your browser cannot play this video."
 msgstr "Shfletuesi juaj nuk mund ta luajë këtë video."

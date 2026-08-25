@@ -1,7 +1,6 @@
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Search } from "lucide-react"
-import { useVirtualizer } from "@tanstack/react-virtual"
 import type { TextCatalogEntry } from "@/api/client"
 import { Input } from "@/components/ui/input"
 import { useBook } from "@/hooks/use-books"
@@ -15,7 +14,7 @@ import { StepVersionPicker } from "./shared/StepVersionPicker"
 import { SaveError, StepEmptyHint, StepRail, StepScrollBody, STEP_FILL_VIEWPORT_CLASSNAME } from "./shared/ui"
 import { translationVersionDiff } from "./shared/versionDiffs"
 import { TranslateCategoryFilter } from "./translate/TranslateCategoryFilter"
-import { TranslateRow } from "./translate/TranslateRow"
+import { TranslateRowList } from "./translate/TranslateRowList"
 import {
   buildRows,
   countByCategory,
@@ -27,7 +26,6 @@ import {
 } from "./translate/translateState"
 import type { StepProps } from "./shared/types"
 
-const ROW_ESTIMATE = 96
 const NO_ENTRIES: TextCatalogEntry[] = []
 
 function languageName(code: string, locale: string): string {
@@ -72,14 +70,9 @@ export function TranslateStep(props: StepProps) {
   const untranslated = useMemo(() => (isBase ? 0 : countUntranslated(rows)), [rows, isBase])
   const shown = useMemo(() => filterRows(rows, category, search), [rows, category, search])
 
-  const scrollRef = useRef<HTMLDivElement>(null)
-  const virtualizer = useVirtualizer({
-    count: shown.length,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => ROW_ESTIMATE,
-    overscan: 6,
-    getItemKey: (index) => shown[index]?.id ?? index,
-  })
+  // State, not a ref: the list needs the element itself, and this settles once
+  // at mount instead of on every scroll frame.
+  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null)
 
   // The catalog is the source of truth for both modes: the base language writes
   // back the source entries, a translation writes back its own — appending the
@@ -155,7 +148,7 @@ export function TranslateStep(props: StepProps) {
       }
     >
       <StepScrollBody
-        viewportRef={scrollRef}
+        viewportRef={setScrollElement}
         title={isBase ? <Trans>Source text</Trans> : <Trans>Translation</Trans>}
         meta={
           isBase
@@ -190,37 +183,17 @@ export function TranslateStep(props: StepProps) {
             <Trans>No strings match this filter.</Trans>
           </StepEmptyHint>
         ) : (
-          <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
-            {virtualizer.getVirtualItems().map((virtualRow) => {
-              const row = shown[virtualRow.index]
-              return (
-                <div
-                  key={row.id}
-                  data-index={virtualRow.index}
-                  ref={virtualizer.measureElement}
-                  className="pb-2"
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    transform: `translateY(${virtualRow.start}px)`,
-                  }}
-                >
-                  <TranslateRow
-                    row={row}
-                    label={label}
-                    hex={plugin.hex}
-                    language={language}
-                    isBase={isBase}
-                    isSaving={save.isPending}
-                    onSave={saveRow}
-                    onOpenImage={openImage}
-                  />
-                </div>
-              )
-            })}
-          </div>
+          <TranslateRowList
+            scrollElement={scrollElement}
+            rows={shown}
+            label={label}
+            hex={plugin.hex}
+            language={language}
+            isBase={isBase}
+            isSaving={save.isPending}
+            onSave={saveRow}
+            onOpenImage={openImage}
+          />
         )}
       </StepScrollBody>
 
