@@ -1,56 +1,85 @@
-import { useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Trash2, Upload } from "lucide-react"
-import { getSignLanguageVideoUrl } from "@/api/client"
+import { Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   useSignLanguageVideos,
   useUploadSignLanguageVideo,
   useDeleteSignLanguageVideo,
+  useAssignSignLanguageVideo,
 } from "@/hooks/use-sign-language-videos"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { isGlossaryVideoSectionId } from "@/lib/glossary-video"
+import { buildSectionEntries } from "@/components/pipeline/stages/sign-language/components/sectionEntries"
 import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
-import { RowAction, SaveError, StepBody, StepCard, StepRail } from "./shared/ui"
+import { SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
+import { SignLanguageVideoCard } from "./sign-language/SignLanguageVideoCard"
 import type { StepProps } from "./shared/types"
 
+/** Rail selection: "" = every video, null = the unassigned ones, else a page number. */
 type VideoFilter = string | null
 
-function formatSize(bytes: number, locale: string): string {
-  const [value, unit] =
-    bytes < 1024
-      ? [bytes, "byte" as const]
-      : bytes < 1024 * 1024
-        ? [bytes / 1024, "kilobyte" as const]
-        : [bytes / (1024 * 1024), "megabyte" as const]
-  return new Intl.NumberFormat(locale, {
-    style: "unit",
-    unit,
-    unitDisplay: "short",
-    maximumFractionDigits: unit === "byte" ? 0 : 1,
-  }).format(value)
-}
-
 export function SignLanguageStep(props: StepProps) {
-  const { label, plugin } = props
+  const { label, plugin, pages } = props
   const { t, i18n } = useLingui()
   const query = useSignLanguageVideos(label)
   const upload = useUploadSignLanguageVideo(label)
   const remove = useDeleteSignLanguageVideo(label)
+  const assign = useAssignSignLanguageVideo(label)
   const fileInput = useRef<HTMLInputElement>(null)
 
-  const videos = useMemo(() => query.data?.videos ?? [], [query.data])
+  // Glossary term videos are stored in the same collection but belong to the
+  // Glossary step; offering them a page here would silently detach them.
+  const videos = useMemo(
+    () => (query.data?.videos ?? []).filter((v) => !isGlossaryVideoSectionId(v.sectionId)),
+    [query.data],
+  )
+
+  const sections = useMemo(() => buildSectionEntries(pages, i18n), [pages, i18n])
+  const pageBySection = useMemo(() => {
+    const map = new Map<string, number>()
+    for (const section of sections) map.set(section.sectionId, section.pageNumber)
+    return map
+  }, [sections])
+
   const [filter, setFilter] = useState<VideoFilter>("")
 
-  const assigned = videos.filter((v) => v.sectionId).length
+  const assigned = useMemo(() => videos.filter((v) => v.sectionId).length, [videos])
 
-  const pickFile = () => fileInput.current?.click()
+  const railEntries = useMemo(() => {
+    const counts = new Map<number, number>()
+    for (const video of videos) {
+      const pageNumber = video.sectionId ? pageBySection.get(video.sectionId) : undefined
+      if (pageNumber === undefined) continue
+      counts.set(pageNumber, (counts.get(pageNumber) ?? 0) + 1)
+    }
+    return [...counts.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([pageNumber, count]) => ({
+        key: String(pageNumber),
+        title: t`Page ${pageNumber}`,
+        count,
+      }))
+  }, [videos, pageBySection, t])
+
+  const shown = useMemo(() => {
+    if (filter === "") return videos
+    if (filter === null) return videos.filter((v) => !v.sectionId)
+    return videos.filter(
+      (v) => v.sectionId != null && String(pageBySection.get(v.sectionId)) === filter,
+    )
+  }, [videos, filter, pageBySection])
+
+  const assignVideo = useCallback(
+    (videoId: string, sectionId: string | null) => assign.mutate({ videoId, sectionId }),
+    [assign],
+  )
+  const deleteVideo = useCallback((videoId: string) => remove.mutate(videoId), [remove])
+
+  const pickFile = useCallback(() => fileInput.current?.click(), [])
 
   const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: videos.length > 0 })
   if (loading) return <StepLoading {...props} />
   if (videos.length === 0) return <StepEmpty {...props} onRun={pickFile} onManual={pickFile} />
-
-  const shown =
-    filter === "" ? videos : videos.filter((v) => (v.sectionId ?? null) === filter)
 
   return (
     <StepShell
@@ -59,15 +88,16 @@ export function SignLanguageStep(props: StepProps) {
       canApply={assigned > 0}
       rail={
         <StepRail
-          heading={<Trans>Videos</Trans>}
+          heading={<Trans>Videos by page</Trans>}
           hex={plugin.hex}
           entries={[
             { key: "", title: t`All videos`, count: videos.length },
             { key: null, title: t`Unassigned`, count: videos.length - assigned },
+            ...railEntries,
           ]}
           activeKey={filter}
           onSelect={setFilter}
-          footer={<Trans>Assign a video to a section so it plays alongside that passage.</Trans>}
+          footer={<Trans>Pick a page for a video so it plays alongside that passage.</Trans>}
         />
       }
     >
@@ -94,50 +124,37 @@ export function SignLanguageStep(props: StepProps) {
           }}
         />
 
-        <SaveError error={upload.error ?? remove.error} />
+        <SaveError error={upload.error ?? remove.error ?? assign.error} />
 
-        <div className="grid grid-cols-2 gap-3.5">
-          {shown.map((video) => (
-            <StepCard key={video.videoId} accent={plugin.hex} muted={!video.sectionId}>
-              <video
-                controls
-                preload="metadata"
-                className="w-full rounded-lg border bg-black"
-                src={getSignLanguageVideoUrl(label, video.videoId)}
-              >
-                <Trans>Your browser cannot play this video.</Trans>
-              </video>
+        {sections.length === 0 ? (
+          <StepEmptyHint>
+            <Trans>
+              Run Storyboard first — videos are placed on the sections it produces.
+            </Trans>
+          </StepEmptyHint>
+        ) : null}
 
-              <div className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 truncate text-[12.5px] font-medium">
-                  {video.originalName}
-                </span>
-                <RowAction
-                  icon={Trash2}
-                  tone="danger"
-                  label={t`Delete ${video.originalName}`}
-                  onClick={() => remove.mutate(video.videoId)}
-                />
-              </div>
-
-              <div className="flex items-center gap-2 font-mono text-[10px] text-muted-foreground">
-                <span>{formatSize(video.sizeBytes, i18n.locale)}</span>
-                {video.sectionId ? (
-                  <span
-                    className="rounded px-1.5 py-0.5"
-                    style={{ background: tint(plugin.hex, 0.12), color: plugin.hex }}
-                  >
-                    {video.sectionId}
-                  </span>
-                ) : (
-                  <span className="rounded bg-muted px-1.5 py-0.5">
-                    <Trans>unassigned</Trans>
-                  </span>
-                )}
-              </div>
-            </StepCard>
-          ))}
-        </div>
+        {shown.length === 0 ? (
+          <StepEmptyHint>
+            <Trans>No videos for this filter.</Trans>
+          </StepEmptyHint>
+        ) : (
+          <div className="grid grid-cols-2 gap-3.5">
+            {shown.map((video) => (
+              <SignLanguageVideoCard
+                key={video.videoId}
+                video={video}
+                label={label}
+                hex={plugin.hex}
+                sections={sections}
+                isAssigning={assign.isPending && assign.variables?.videoId === video.videoId}
+                isDeleting={remove.isPending && remove.variables === video.videoId}
+                onAssign={assignVideo}
+                onDelete={deleteVideo}
+              />
+            ))}
+          </div>
+        )}
       </StepBody>
     </StepShell>
   )

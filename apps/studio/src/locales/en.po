@@ -424,6 +424,9 @@ msgstr "{active} kept · {0} pruned"
 msgid "{active} terms"
 msgstr "{active} terms"
 
+msgid "{assigned} (section missing)"
+msgstr "{assigned} (section missing)"
+
 msgid "{assigned} assigned"
 msgstr "{assigned} assigned"
 
@@ -1790,8 +1793,8 @@ msgstr "Asset"
 msgid "Assign a video manually"
 msgstr "Assign a video manually"
 
-msgid "Assign a video to a section so it plays alongside that passage."
-msgstr "Assign a video to a section so it plays alongside that passage."
+#~ msgid "Assign a video to a section so it plays alongside that passage."
+#~ msgstr "Assign a video to a section so it plays alongside that passage."
 
 msgid "Assign models"
 msgstr "Assign models"
@@ -2497,6 +2500,9 @@ msgstr "choice"
 
 msgid "Choose a beta release to install."
 msgstr "Choose a beta release to install."
+
+msgid "Choose a page…"
+msgstr "Choose a page…"
 
 msgid "Choose a PDF"
 msgstr "Choose a PDF"
@@ -6816,6 +6822,9 @@ msgstr "No versions found for {node} / {itemId}"
 msgid "No videos assigned yet"
 msgstr "No videos assigned yet"
 
+msgid "No videos for this filter."
+msgstr "No videos for this filter."
+
 msgid "No visible translations to review."
 msgstr "No visible translations to review."
 
@@ -7388,6 +7397,7 @@ msgstr "Page {0}"
 
 #. placeholder {0}: page.pageNumber
 #. placeholder {1}: i + 1
+#. placeholder {1}: index + 1
 msgid "Page {0} — Section {1}"
 msgstr "Page {0} — Section {1}"
 
@@ -7467,6 +7477,10 @@ msgstr "Page context is respected"
 
 msgid "Page coverage"
 msgstr "Page coverage"
+
+#. placeholder {0}: video.originalName
+msgid "Page for {0}"
+msgstr "Page for {0}"
 
 msgid "Page Grouping"
 msgstr "Page Grouping"
@@ -7705,6 +7719,9 @@ msgstr "photosynthetic, photosynthesizing"
 
 msgid "Pick a family to attach to the book. It is downloaded when extraction runs and embedded in the final bundle."
 msgstr "Pick a family to attach to the book. It is downloaded when extraction runs and embedded in the final bundle."
+
+msgid "Pick a page for a video so it plays alongside that passage."
+msgstr "Pick a page for a video so it plays alongside that passage."
 
 msgid "Pick a page to see its sections."
 msgstr "Pick a page to see its sections."
@@ -8934,6 +8951,9 @@ msgstr "Run Storyboard first — the table of contents lists the typed sections 
 
 msgid "Run Storyboard first — translation needs the typed sections placed by Storyboard."
 msgstr "Run Storyboard first — translation needs the typed sections placed by Storyboard."
+
+msgid "Run Storyboard first — videos are placed on the sections it produces."
+msgstr "Run Storyboard first — videos are placed on the sections it produces."
 
 msgid "Run Storyboard to generate sections you can match sign-language videos to."
 msgstr "Run Storyboard to generate sections you can match sign-language videos to."
@@ -11511,6 +11531,9 @@ msgstr "Videos"
 
 msgid "Videos are recorded by an interpreter and uploaded here, then assigned to a section."
 msgstr "Videos are recorded by an interpreter and uploaded here, then assigned to a section."
+
+msgid "Videos by page"
+msgstr "Videos by page"
 
 msgid "View"
 msgstr "View"

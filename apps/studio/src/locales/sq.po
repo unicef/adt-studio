@@ -426,6 +426,9 @@ msgstr "{active} të mbajtura · {0} të hequra"
 msgid "{active} terms"
 msgstr "{active} terma"
 
+msgid "{assigned} (section missing)"
+msgstr "{assigned} (seksioni mungon)"
+
 msgid "{assigned} assigned"
 msgstr "{assigned} të caktuara"
 
@@ -1792,8 +1795,8 @@ msgstr "Burim"
 msgid "Assign a video manually"
 msgstr "Cakto një video manualisht"
 
-msgid "Assign a video to a section so it plays alongside that passage."
-msgstr "Cakto një video te një seksion që të luhet bashkë me atë pjesë."
+#~ msgid "Assign a video to a section so it plays alongside that passage."
+#~ msgstr "Cakto një video te një seksion që të luhet bashkë me atë pjesë."
 
 msgid "Assign models"
 msgstr "Cakto modelet"
@@ -2499,6 +2502,9 @@ msgstr "zgjedhje"
 
 msgid "Choose a beta release to install."
 msgstr "Zgjidhni një version beta për ta instaluar."
+
+msgid "Choose a page…"
+msgstr "Zgjidh një faqe…"
 
 msgid "Choose a PDF"
 msgstr "Zgjidh një PDF"
@@ -6818,6 +6824,9 @@ msgstr "Nuk u gjetën versione për {node} / {itemId}"
 msgid "No videos assigned yet"
 msgstr "Nuk ka ende video të caktuara"
 
+msgid "No videos for this filter."
+msgstr "Asnjë video nuk përputhet me këtë filtër."
+
 msgid "No visible translations to review."
 msgstr "Nuk ka përkthime të dukshme për të rishikuar."
 
@@ -7390,6 +7399,7 @@ msgstr "Faqja {0}"
 
 #. placeholder {0}: page.pageNumber
 #. placeholder {1}: i + 1
+#. placeholder {1}: index + 1
 msgid "Page {0} — Section {1}"
 msgstr "Faqja {0} — Seksioni {1}"
 
@@ -7469,6 +7479,10 @@ msgstr "Konteksti i faqes respektohet"
 
 msgid "Page coverage"
 msgstr "Mbulimi i faqeve"
+
+#. placeholder {0}: video.originalName
+msgid "Page for {0}"
+msgstr "Faqja e {0}"
 
 msgid "Page Grouping"
 msgstr "Grupimi i faqeve"
@@ -7707,6 +7721,9 @@ msgstr "fotosintetik, duke kryer fotosintezo"
 
 msgid "Pick a family to attach to the book. It is downloaded when extraction runs and embedded in the final bundle."
 msgstr "Zgjidhni një familje për ta bashkëngjitur në libër. Ajo shkarkohet kur ekzekutohet nxjerrja dhe futet në paketën përfundimtare."
+
+msgid "Pick a page for a video so it plays alongside that passage."
+msgstr "Zgjidh një faqe për videon që të luajë krahas asaj pjese."
 
 msgid "Pick a page to see its sections."
 msgstr "Zgjidhni një faqe për të parë seksionet e saj."
@@ -8936,6 +8953,9 @@ msgstr "Ekzekuto Storyboard-in së pari — tabela e përmbajtjes liston seksion
 
 msgid "Run Storyboard first — translation needs the typed sections placed by Storyboard."
 msgstr "Ekzekuto Storyboard-in së pari — përkthimi ka nevojë për seksionet e shtypura të vendosura nga Storyboard."
+
+msgid "Run Storyboard first — videos are placed on the sections it produces."
+msgstr "Nis fillimisht Storyboard — videot vendosen në seksionet që ai prodhon."
 
 msgid "Run Storyboard to generate sections you can match sign-language videos to."
 msgstr "Ekzekuto Storyboard-in për të gjeneruar seksione me të cilat mund të lidhni video të gjuhës së shenjave."
@@ -11513,6 +11533,9 @@ msgstr "Video"
 
 msgid "Videos are recorded by an interpreter and uploaded here, then assigned to a section."
 msgstr "Videot regjistrohen nga një përkthyes dhe ngarkohen këtu, më pas caktohen te një seksion."
+
+msgid "Videos by page"
+msgstr "Video sipas faqes"
 
 msgid "View"
 msgstr "Shiko"

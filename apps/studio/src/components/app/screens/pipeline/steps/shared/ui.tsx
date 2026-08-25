@@ -74,7 +74,6 @@ export function StepScrollBody({
 
 export function StepCard({
   children,
-  muted,
   accent,
   className,
 }: {
@@ -87,7 +86,6 @@ export function StepCard({
     <div
       className={cn(
         "flex flex-col gap-2 rounded-xl border bg-card p-3.5 transition-opacity",
-        muted && "opacity-50",
         className,
       )}
       style={accent ? { borderColor: tint(accent, 0.3) } : undefined}
@@ -213,7 +211,7 @@ export function DetailNavButton({
       aria-label={label}
       className={cn(
         "flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[12px] font-medium text-foreground",
-        "transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40",
+        "transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50",
       )}
     >
       <Icon className="size-3.5" />

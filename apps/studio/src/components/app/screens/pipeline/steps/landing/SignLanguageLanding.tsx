@@ -41,6 +41,7 @@ import { isGlossaryVideoSectionId } from "@/lib/glossary-video"
 import { ManageSectionsDialog } from "@/components/pipeline/stages/sign-language/components/ManageSectionsDialog"
 import { SignLanguageReaderPreview } from "@/components/pipeline/stages/sign-language/components/SignLanguageReaderPreview"
 import type { FilterValue, SectionEntry } from "@/components/pipeline/stages/sign-language/components/types"
+import { buildSectionEntries } from "@/components/pipeline/stages/sign-language/components/sectionEntries"
 
 export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: string; beforeRun?: ReactNode }) {
   const { t, i18n } = useLingui()
@@ -68,32 +69,11 @@ export function SignLanguageLanding({ bookLabel, beforeRun }: { bookLabel: strin
     [videosData],
   )
 
-  const sectionEntries = useMemo<SectionEntry[]>(() => {
-    if (!pages) return []
-    return pages.flatMap((page) => {
-      const sections = (page.sections ?? []).filter((s) => !s.isPruned)
-      if (sections.length === 0) return []
-      if (sections.length === 1) {
-        const s = sections[0]
-        return [
-          {
-            sectionId: s.sectionId,
-            sectionIndex: s.sectionIndex,
-            pageNumber: page.pageNumber,
-            pageLabel: i18n._(msg`Page ${page.pageNumber}`),
-            sectionLabel: i18n._(msg`Page ${page.pageNumber}`),
-          },
-        ]
-      }
-      return sections.map((s, i) => ({
-        sectionId: s.sectionId,
-        sectionIndex: s.sectionIndex,
-        pageNumber: page.pageNumber,
-        pageLabel: i18n._(msg`Page ${page.pageNumber}`),
-        sectionLabel: i18n._(msg`Page ${page.pageNumber} — Section ${i + 1}`),
-      }))
-    })
-  }, [pages, i18n])
+  const sectionEntries = useMemo<SectionEntry[]>(
+    () => buildSectionEntries(pages, i18n),
+    [pages, i18n],
+  )
+
 
   const videoBySection = useMemo(() => {
     const map = new Map<string, SignLanguageVideo>()
