@@ -2,6 +2,11 @@ import { useMemo } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { i18n } from "@lingui/core"
 import {
+  DEFAULT_BOOK_SETTINGS_SECTION,
+  DEFAULT_STORYBOARD_SETTINGS_SECTION,
+  storyboardTabSection,
+} from "@/components/app/screens/pipeline/book-settings/sections"
+import {
   defaultStepSettingsTab,
   isStepSettingsSlug,
 } from "@/components/app/screens/pipeline/settings/slugs"
@@ -16,6 +21,7 @@ export interface PipelineNavigation {
   openPreview: (sectionId: string | null) => void
   openPreviewHref: (href: string) => void
   openBookInfo: () => void
+  openBookSettings: (section: string) => void
 }
 
 export function usePipelineNavigation(label: string): PipelineNavigation {
@@ -33,7 +39,20 @@ export function usePipelineNavigation(label: string): PipelineNavigation {
       void navigate({ to: "/pipeline/$label/$step", params: { label, step: slug }, search: true })
     }
 
+    const openBookSettings = (section: string) => {
+      void navigate({
+        to: "/pipeline/$label/settings/$section",
+        params: { label, section },
+      })
+    }
+
+    // Storyboard is the workspace itself, so its settings live in the book
+    // settings hub rather than behind a step screen.
     const openSettingsTab = (slug: string, tab: string) => {
+      if (slug === "storyboard") {
+        openBookSettings(storyboardTabSection(tab))
+        return
+      }
       if (!isStepSettingsSlug(slug)) return
       void navigate({
         to: "/pipeline/$label/$step/settings/$tab",
@@ -45,6 +64,7 @@ export function usePipelineNavigation(label: string): PipelineNavigation {
       openWorkspace,
       openStep,
       openSettingsTab,
+      openBookSettings,
 
       // Replaces rather than pushes: the arrow keys walk the rail one page at a
       // time, and a history entry per keypress would bury whatever came before.
@@ -57,6 +77,10 @@ export function usePipelineNavigation(label: string): PipelineNavigation {
       },
 
       openStepSettings: (slug: string) => {
+        if (slug === "storyboard") {
+          openBookSettings(DEFAULT_STORYBOARD_SETTINGS_SECTION)
+          return
+        }
         if (!isStepSettingsSlug(slug)) {
           openStep(slug)
           return
@@ -76,7 +100,7 @@ export function usePipelineNavigation(label: string): PipelineNavigation {
       },
 
       openBookInfo: () => {
-        void navigate({ to: "/pipeline/$label/info", params: { label } })
+        openBookSettings(DEFAULT_BOOK_SETTINGS_SECTION)
       },
     }
   }, [navigate, label])

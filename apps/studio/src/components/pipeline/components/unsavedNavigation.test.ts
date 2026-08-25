@@ -18,6 +18,12 @@ const settings = (slug: string, tab: string) =>
     { step: slug, tab },
     `/pipeline/book/${slug}/settings/${tab}`,
   )
+const bookSettings = (section: string) =>
+  pipeline(
+    "/_app/pipeline/$label/settings/$section",
+    { section },
+    `/pipeline/book/settings/${section}`,
+  )
 const preview = () => pipeline("/_app/pipeline/$label/preview", {}, "/pipeline/book/preview")
 const library: NavigationLocation = {
   routeId: "/_app/library",
@@ -81,6 +87,31 @@ describe("shouldBlockNavigation", () => {
     expect(block(settings("captions", "general"), settings("captions", "general"), ["general"])).toBe(
       false,
     )
+  })
+
+  describe("the book settings hub", () => {
+    it("allows switching sections inside one group", () => {
+      expect(block(bookSettings("general"), bookSettings("fonts"))).toBe(false)
+      expect(block(bookSettings("information"), bookSettings("models"))).toBe(false)
+    })
+
+    it("blocks switching between the book and storyboard groups", () => {
+      expect(block(bookSettings("information"), bookSettings("fonts"))).toBe(true)
+      expect(block(bookSettings("fonts"), bookSettings("api-keys"))).toBe(true)
+    })
+
+    it("blocks leaving the hub but not entering it", () => {
+      expect(block(bookSettings("information"), workspace())).toBe(true)
+      expect(block(bookSettings("fonts"), page("p1"))).toBe(true)
+      expect(block(workspace(), bookSettings("information"))).toBe(false)
+    })
+
+    it("blocks leaving a section whose edits are only in memory", () => {
+      expect(block(bookSettings("information"), bookSettings("models"), ["information"])).toBe(true)
+      expect(block(bookSettings("information"), bookSettings("information"), ["information"])).toBe(
+        false,
+      )
+    })
   })
 
   it("keeps the classic UI keyed on its pathname and search tab", () => {

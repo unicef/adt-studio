@@ -1,5 +1,8 @@
+import { bookSettingsScope } from "@/components/app/screens/pipeline/book-settings/sections"
+
 const PIPELINE_ROUTE_PREFIX = "/_app/pipeline/$label"
 const PIPELINE_SETTINGS_ROUTE_PREFIX = "/_app/pipeline/$label/$step/settings"
+const BOOK_SETTINGS_ROUTE_PREFIX = "/_app/pipeline/$label/settings"
 
 export interface NavigationLocation {
   routeId: string
@@ -22,6 +25,18 @@ export interface GuardLocation {
 
 export function guardLocation(location: NavigationLocation): GuardLocation {
   if (location.routeId.startsWith(PIPELINE_ROUTE_PREFIX)) {
+    // The book settings hub keeps the storyboard's settings and the book's own
+    // settings side by side. Each group owns the drafts of its sections, so it
+    // stands in for a stage: switching group has to warn, switching section
+    // inside one does not.
+    if (location.routeId.startsWith(BOOK_SETTINGS_ROUTE_PREFIX)) {
+      const section = location.params.section
+      return {
+        screen: `pipeline:${location.params.label ?? ""}`,
+        settingsStep: section ? bookSettingsScope(section) : undefined,
+        tab: section,
+      }
+    }
     const isSettings = location.routeId.startsWith(PIPELINE_SETTINGS_ROUTE_PREFIX)
     return {
       screen: `pipeline:${location.params.label ?? ""}`,

@@ -70,8 +70,8 @@ msgstr "(non cible)"
 msgid "(p.{0})"
 msgstr "(p.{0})"
 
-msgid "(template)"
-msgstr "(modèle)"
+#~ msgid "(template)"
+#~ msgstr "(modèle)"
 
 msgid "(this section)"
 msgstr "(cette section)"
@@ -502,6 +502,9 @@ msgstr "{issueCount} {0}"
 
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
+
+msgid "{label} (unsaved changes)"
+msgstr "{label} (modifications non enregistrées)"
 
 msgid "{label} desktop size"
 msgstr "Taille de {label} sur ordinateur"
@@ -1025,6 +1028,9 @@ msgstr "Échec de la génération de l'activité"
 #. placeholder {0}: sectionIndex + 1
 msgid "Activity in section {0}"
 msgstr "ActivitÃ© dans la section {0}"
+
+msgid "activity interactive exercise rendering"
+msgstr "activité interactif exercice rendu"
 
 msgid "Activity Rendering"
 msgstr "Rendu d'activité"
@@ -1667,6 +1673,9 @@ msgstr "Clé API"
 msgid "API Key (optional)"
 msgstr "Clé API (facultatif)"
 
+msgid "api key credentials provider token openai gemini"
+msgstr "clé api identifiants fournisseur jeton openai gemini"
+
 msgid "API key required"
 msgstr "Clé API requise"
 
@@ -1700,6 +1709,9 @@ msgstr "Apparence"
 #. placeholder {0}: pages.join(", ")
 msgid "Appears on pages {0}"
 msgstr "Apparaît sur les pages {0}"
+
+msgid "Appears on the generated cover and in the package metadata."
+msgstr "Apparaît sur la couverture générée et dans les métadonnées du paquet."
 
 msgid "Application"
 msgstr "Application"
@@ -1850,6 +1862,9 @@ msgstr "Authentification"
 msgid "Author name"
 msgstr "Nom de l'auteur"
 
+msgid "author writer credits"
+msgstr "auteur écrivain crédits"
+
 msgid "Authored by {authorsList}."
 msgstr "Écrit par {authorsList}."
 
@@ -1949,6 +1964,9 @@ msgstr "Retour à l'aperçu"
 
 msgid "Back to Speech overview"
 msgstr "Retour à l'aperçu de la parole"
+
+msgid "Back to storyboard"
+msgstr "Retour au scénarimage"
 
 msgid "Back up or transfer the full project including the database, PDF, and all pipeline outputs."
 msgstr "Sauvegardez ou transférez le projet complet, y compris la base de données, le PDF et tous les résultats du pipeline."
@@ -2647,8 +2665,8 @@ msgstr "Fermer"
 msgid "Close {name} settings"
 msgstr "Fermer les paramètres de {name}"
 
-msgid "Close book information"
-msgstr "Fermer les informations du livre"
+#~ msgid "Close book information"
+#~ msgstr "Fermer les informations du livre"
 
 msgid "Close edit panel"
 msgstr "Fermer le panneau de modification"
@@ -2721,6 +2739,9 @@ msgstr "Terminé"
 
 msgid "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
 msgstr "Les étapes terminées liées à la langue (quiz, glossaire, légendes, audio) seront effacées et devront être réexécutées. Vous confirmerez d'abord."
+
+msgid "Completed language-based stages will be cleared and need to run again. You will confirm before saving."
+msgstr "Les étapes terminées qui dépendent de la langue seront effacées et devront être relancées. Vous confirmerez avant l'enregistrement."
 
 msgid "Completed Part"
 msgstr "Partie terminée"
@@ -2927,6 +2948,9 @@ msgstr "Bonne réponse"
 msgid "Correct answer (alternatives separated by |)"
 msgstr "Réponse correcte (alternatives séparées par |)"
 
+msgid "Correct the details extracted from the source document."
+msgstr "Corrigez les informations extraites du document source."
+
 msgid "Correct the metadata extracted from the document."
 msgstr "Corrigez les métadonnées extraites du document."
 
@@ -2993,6 +3017,9 @@ msgstr "Couverture de {displayTitle}"
 
 msgid "Cover of {title}"
 msgstr "Couverture de {title}"
+
+msgid "Cover page"
+msgstr "Page de couverture"
 
 #. placeholder {0}: String(metadata.cover_page_number)
 msgid "Cover: page {0}"
@@ -3225,6 +3252,9 @@ msgstr "Les dossiers de prompts par défaut ne peuvent pas être supprimés."
 
 msgid "Default Provider"
 msgstr "Fournisseur par défaut"
+
+msgid "Default render strategy"
+msgstr "Stratégie de rendu par défaut"
 
 msgid "Default Render Strategy"
 msgstr "Par défaut Render Strategy"
@@ -3548,6 +3578,12 @@ msgstr "Glissez les sommets pour remodeler. Cliquez sur les points médians (+) 
 
 msgid "Drawn from"
 msgstr "Tiré de"
+
+msgid "Drives every language-dependent stage — captions, quizzes, glossary, audio."
+msgstr "Détermine toutes les étapes dépendantes de la langue : légendes, quiz, glossaire, audio."
+
+msgid "Drives every language-dependent stage."
+msgstr "Détermine toutes les étapes dépendantes de la langue."
 
 msgid "Drop a part <0>.zip</0> here, or browse"
 msgstr "Déposez une partie <0>.zip</0> ici ou parcourez"
@@ -4250,6 +4286,9 @@ msgstr "Échec de la lecture de l'archive"
 msgid "Failed to save metadata. Please try again."
 msgstr "Échec de l'enregistrement des métadonnées. Veuillez réessayer."
 
+msgid "Failed to save the book information. Please try again."
+msgstr "Impossible d'enregistrer les informations du livre. Veuillez réessayer."
+
 msgid "Failed:"
 msgstr "Échoué :"
 
@@ -4403,6 +4442,9 @@ msgstr "Analyse des polices"
 
 msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
 msgstr "L’attribution des polices, la génération du guide de style et la révision visuelle utilisent également ce modèle par défaut, sauf remplacement."
+
+msgid "font typeface typography google fonts"
+msgstr "police typographie caractères google fonts"
 
 msgid "Fonts"
 msgstr "Polices"
@@ -5095,6 +5137,9 @@ msgstr "Génération d'images"
 msgid "Image generation and editing"
 msgstr "Génération et retouche d’images"
 
+msgid "image generation illustration prompt"
+msgstr "génération d'images illustration prompt"
+
 msgid "Image Generation Prompt"
 msgstr "Génération d'images Invite"
 
@@ -5277,6 +5322,9 @@ msgstr "Côtés individuels"
 msgid "Infographic"
 msgstr "Infographie"
 
+msgid "Information"
+msgstr "Informations"
+
 msgid "Inherited from a parent element. Choose a value here to override on this element."
 msgstr "Hérité d'un élément parent. Choisissez une valeur ici pour remplacer sur cet élément."
 
@@ -5458,6 +5506,9 @@ msgstr "Clavier et navigation"
 msgid "Keyboard shortcuts"
 msgstr "Raccourcis clavier"
 
+msgid "Keys are shared by every book on this machine and are sent only with run requests."
+msgstr "Les clés sont partagées par tous les livres de cette machine et ne sont envoyées qu'avec les requêtes d'exécution."
+
 msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
 msgstr "Les clés sont stockées localement dans ce navigateur ou cette session desktop et ne sont envoyées qu'avec les demandes d'exécution."
 
@@ -5492,6 +5543,9 @@ msgstr "Langue"
 
 msgid "Language"
 msgstr "Langue"
+
+msgid "language locale region translation"
+msgstr "langue paramètres régionaux région traduction"
 
 msgid "language locale translation region"
 msgstr "langue locale traduction région"
@@ -5537,6 +5591,9 @@ msgstr "Échec de la copie de mise en page"
 
 msgid "Layout mirrored onto this section"
 msgstr "Mise en page reproduite sur cette section"
+
+msgid "layout strategy style guide rendering defaults"
+msgstr "mise en page stratégie guide de style rendu valeurs par défaut"
 
 msgid "Leading"
 msgstr "Interligne"
@@ -6174,6 +6231,9 @@ msgstr "Mobile"
 msgid "Model"
 msgstr "Modèle"
 
+msgid "model llm image speech default"
+msgstr "modèle llm image voix par défaut"
+
 msgid "Model overrides"
 msgstr "Remplacements de modèles"
 
@@ -6686,6 +6746,9 @@ msgstr "Aucun raisonnement enregistré."
 msgid "No release notes were provided for this version."
 msgstr "Aucune note de version n’a été fournie pour cette version."
 
+msgid "No render strategies are configured for this book."
+msgstr "Aucune stratégie de rendu n'est configurée pour ce livre."
+
 msgid "No rendered content for this section"
 msgstr "Aucun contenu rendu pour cette section"
 
@@ -6998,6 +7061,9 @@ msgstr "Une colonne"
 msgid "One column for every section. Clean and predictable."
 msgstr "Une colonne pour chaque section. Propre et prévisible."
 
+msgid "One entry per author, in the order they are credited."
+msgstr "Une entrée par auteur, dans l'ordre des crédits."
+
 msgid "One section per PDF page"
 msgstr "Une section par page du PDF"
 
@@ -7054,6 +7120,9 @@ msgstr "Ouvrir une page à réviser"
 
 msgid "Open a page to see page-level findings"
 msgstr "Ouvrir une page pour voir les résultats au niveau de la page"
+
+msgid "Open AI providers"
+msgstr "Ouvrir les fournisseurs d'IA"
 
 msgid "Open an ADT project that <0>already exists</0> — a backup, a book part, or one exported by someone else. Nothing is converted. <1>.zip → added as-is</1>"
 msgstr "Ouvrir un projet ADT qui <0>existe déjà</0> — une sauvegarde, une partie de livre, ou un projet exporté par quelqu'un d'autre. Rien n'est converti. <1>.zip → ajouté tel quel</1>"
@@ -7250,6 +7319,9 @@ msgstr "Original"
 msgid "Original language"
 msgstr "Langue originale"
 
+msgid "Original layout"
+msgstr "Mise en page originale"
+
 msgid "Original PDF"
 msgstr "Original PDF"
 
@@ -7295,6 +7367,9 @@ msgstr "Jetons de sortie"
 
 msgid "Outputs will appear here as you generate them."
 msgstr "Les sorties apparaîtront ici au fur et à mesure que vous les générez."
+
+msgid "Over centuries these deposits form wide plains that shelter birds, fish, and the villages that farm them."
+msgstr "Au fil des siècles, ces dépôts forment de vastes plaines qui abritent oiseaux, poissons et les villages qui les cultivent."
 
 msgid "Overall page note"
 msgstr "Note globale de la page"
@@ -7734,6 +7809,9 @@ msgstr "Choisissez un fournisseur à connecter — ou passez et ajoutez-en un pl
 msgid "Pick a source section. Its layout will be applied to this section while keeping this section's content and data-ids."
 msgstr "Choisissez une section source. Sa mise en page sera appliquée à cette section tout en conservant le contenu et les data-ids de cette section."
 
+msgid "Pick an original language first"
+msgstr "Choisissez d'abord une langue d'origine"
+
 msgid "Pick another version above to compare it with the current one."
 msgstr "Choisissez une autre version ci-dessus pour la comparer à l'actuelle."
 
@@ -7751,6 +7829,9 @@ msgstr "Choisissez une des images du livre, recadrez une région d'une page ou t
 
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Choisissez les langues vers lesquelles vous souhaitez traduire. La langue originale du livre reste inchangée."
+
+msgid "Pick the models this book uses instead of the app-wide defaults."
+msgstr "Choisissez les modèles utilisés par ce livre au lieu des valeurs par défaut de l'application."
 
 #. placeholder {0}: resume.modified
 msgid "Pick up where you left off · {0}"
@@ -7989,6 +8070,9 @@ msgstr "Invite"
 msgid "Prompt (optional)"
 msgstr "Consigne (facultative)"
 
+msgid "prompt ai rendering html section"
+msgstr "prompt ia rendu html section"
+
 msgid "Prompt file created from template."
 msgstr "Fichier de prompt créé à partir du modèle."
 
@@ -8084,6 +8168,9 @@ msgstr "publié en"
 
 msgid "Publisher"
 msgstr "Éditeur"
+
+msgid "publisher imprint"
+msgstr "éditeur maison d'édition"
 
 msgid "Pull requests"
 msgstr "Pull requests"
@@ -8863,6 +8950,9 @@ msgstr "Réécriture de l'histoire de cette section..."
 msgid "Rising ocean temperatures cause coral bleaching - when stressed corals expel the colorful algae living inside them and turn white. Without these algae, corals slowly starve. Protecting reefs means reducing pollution, overfishing, and greenhouse gas emissions."
 msgstr "La hausse des températures océaniques provoque le blanchissement des coraux — lorsque les coraux stressés expulsent les algues colorées vivant en eux et deviennent blancs. Sans ces algues, les coraux meurent lentement de faim. Protéger les récifs signifie réduire la pollution, la surpêche et les émissions de gaz à effet de serre."
 
+msgid "Rivers and Deltas"
+msgstr "Fleuves et deltas"
+
 msgid "Role"
 msgstr "Rôle"
 
@@ -9140,6 +9230,9 @@ msgstr "Faites défiler vers les pages précédentes"
 msgid "Search beta versions"
 msgstr "Rechercher des versions bêta"
 
+msgid "Search book settings…"
+msgstr "Rechercher dans les paramètres du livre…"
+
 msgid "Search books, actions and settings…"
 msgstr "Rechercher des livres, des actions et des paramètres…"
 
@@ -9362,6 +9455,9 @@ msgstr "Les sections apparaissent ici à mesure que chaque page est structurée.
 msgid "Sections show up in the left rail as each page is structured."
 msgstr "Les sections apparaissent dans la colonne de gauche à mesure que chaque page est structurée."
 
+msgid "Sediment carried downstream settles where the current slows, building fertile land at the river mouth."
+msgstr "Les sédiments emportés par le courant se déposent là où il ralentit et forment des terres fertiles à l'embouchure."
+
 msgid "See examples"
 msgstr "Voir les exemples"
 
@@ -9577,6 +9673,9 @@ msgstr "Ombre"
 msgid "Shared"
 msgstr "Partagé"
 
+msgid "Shared by every book on this machine."
+msgstr "Partagées par tous les livres de cette machine."
+
 msgid "Ship"
 msgstr "Livrer"
 
@@ -9662,6 +9761,9 @@ msgstr "Affichage de {start}–{end} sur {totalItems} livres"
 msgid "Showing only terms you added — click to show all"
 msgstr "Affichage uniquement des termes que vous avez ajoutés — cliquez pour tout afficher"
 
+msgid "Shown across the library and in the exported book."
+msgstr "Affiché dans la bibliothèque et dans le livre exporté."
+
 msgid "Shown after page {afterNumber}"
 msgstr "Affiché après la page {afterNumber}"
 
@@ -9733,6 +9835,9 @@ msgstr "Quiz unique"
 
 msgid "Single value"
 msgstr "Valeur unique"
+
+msgid "Single-column template layout"
+msgstr "Mise en page de modèle à une colonne"
 
 msgid "Size"
 msgstr "Taille"
@@ -10315,6 +10420,9 @@ msgstr "Température"
 msgid "Template"
 msgstr "Modèle"
 
+msgid "template fixed layout two column"
+msgstr "modèle mise en page fixe deux colonnes"
+
 msgid "Template not found."
 msgstr "Modèle non trouvé."
 
@@ -10470,6 +10578,9 @@ msgstr "Les étapes complétées ci-dessous seront réinitialisées et devront �
 msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
 msgstr "Les étapes terminées ci-dessous seront réinitialisées et devront être réexécutées pour utiliser la nouvelle langue. Vos sections de page sont conservées."
 
+msgid "The credentials ADT Studio uses when it runs AI steps for this book."
+msgstr "Les identifiants utilisés par ADT Studio lors de l'exécution des étapes d'IA de ce livre."
+
 msgid "The credits page."
 msgstr "La page de crédits."
 
@@ -10478,6 +10589,9 @@ msgstr "Les données envoyées dans le corps d'un message de requête ou de rép
 
 msgid "The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure and ElevenLabs ignore it."
 msgstr "L'instruction TTS par défaut appliquée à chaque langue sauf si elle est remplacée ci-dessous. OpenAI l'utilise comme instruction vocale et Gemini comme guidage d'accent dans le prompt ; Azure et ElevenLabs l'ignorent."
+
+msgid "The details extracted from the source document."
+msgstr "Les informations extraites du document source."
 
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "La page entière est traitée comme une seule section — tout le texte et les images restent ensemble en une seule unité. Idéal pour les livres d'histoires, les ouvrages de référence et tout contenu où chaque page est autonome."
@@ -10683,6 +10797,9 @@ msgstr "Ce livre comporte {pageCount} pages."
 
 msgid "This book has no images to caption"
 msgstr "Ce livre ne contient aucune image à légender"
+
+msgid "This book has no metadata yet. Run the Extraction stage to read the title, authors, and language from the document."
+msgstr "Ce livre n'a pas encore de métadonnées. Lancez l'étape d'Extraction pour lire le titre, les auteurs et la langue du document."
 
 msgid "This book has no pages. Make sure the extraction and storyboard stages produced content before generating {stageName}."
 msgstr "Ce livre n'a pas de pages. Assurez-vous que les étapes d'extraction et de storyboard ont produit du contenu avant de générer {stageName}."
@@ -10910,6 +11027,12 @@ msgstr "Titre (A–Z)"
 
 msgid "Title and image with text overlaid as a caption — AI matches the source book's visual style."
 msgstr "Titre et image avec texte superposé en tant que sous-titre — l'IA correspond au style visuel du livre source."
+
+msgid "title authors publisher language pages identifier metadata cover"
+msgstr "titre auteurs éditeur langue pages identifiant métadonnées couverture"
+
+msgid "title name book"
+msgstr "titre nom livre"
 
 msgid "Titles are what the reader sees in the navigation menu."
 msgstr "Les titres sont ce que le lecteur voit dans le menu de navigation."
@@ -11584,6 +11707,9 @@ msgstr "Révision visuelle"
 
 msgid "Visual Review Prompt (read-only)"
 msgstr "Invite de révision visuelle (lecture seule)"
+
+msgid "visual review quality check"
+msgstr "revue visuelle contrôle qualité"
 
 msgid "Visual style editing isn't available for fixed-layout pages yet. You can still edit text inline, swap or crop images, and prune elements."
 msgstr "L'édition visuelle des styles n'est pas encore disponible pour les pages à mise en page fixe. Vous pouvez toujours modifier le texte en ligne, remplacer ou recadrer des images et élaguer des éléments."

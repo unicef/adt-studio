@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -41,6 +42,7 @@ import {
 } from "@/lib/render-strategy"
 import { getSectionTypeLabel } from "@/lib/section-constants"
 import { FontSettings } from "./FontSettings"
+import { RenderStrategyOptions } from "./components/RenderStrategyOptions"
 
 const PROMPT_TABS = [
   "rendering-prompt",
@@ -69,6 +71,7 @@ function strategyDisplayName(slug: string): string {
 const STRATEGY_DESCRIPTION_MSGS: Record<string, ReturnType<typeof msg>> = {
   llm: msg`LLM generates HTML from section content`,
   "llm-overlay": msg`LLM positions text over background images`,
+  one_column: msg`Single-column template layout`,
   two_column: msg`Fixed two-column template layout`,
   two_column_story: msg`Two-column template for story content`,
   fixed_layout: msg`Preserves the source PDF's exact page layout`,
@@ -206,6 +209,17 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     }
     return typeMap
   }, [activeConfigData])
+
+  const renderStrategyOptions = useMemo(
+    () =>
+      renderStrategyNames.map((name) => ({
+        id: name,
+        name: strategyDisplayName(name),
+        description: strategyDescription(name),
+        renderType: strategyRenderTypes[name],
+      })),
+    [renderStrategyNames, strategyRenderTypes, i18n.locale],
+  )
 
   const { data: styleguidesData } = useStyleguides(bookLabel)
   const { data: templatesData } = useTemplates()
@@ -443,12 +457,16 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     <div className={tab === "rendering-prompt" || tab === "rendering-template" || tab === "activity-prompts" || tab === "image-generation" || tab === "visual-review-prompt" ? "h-full" : "p-4 space-y-6"}>
       {tab === "general" && (
         <div>
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
             {<Trans>Default Render Strategy</Trans>}
           </h3>
-          <Select
+          <p className="text-xs text-muted-foreground mb-3">
+            {<Trans>The rendering strategy used for sections without an explicit mapping.</Trans>}
+          </p>
+          <RenderStrategyOptions
+            options={renderStrategyOptions}
             value={defaultRenderStrategy}
-            onValueChange={(v) => {
+            onChange={(v) => {
               setDefaultRenderStrategy(v)
               markDirty("default_render_strategy")
               // Update rendering config to match the newly selected strategy
@@ -474,43 +492,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 setTemplateTabDraft(null)
               }
             }}
-          >
-            <SelectTrigger className="w-72">
-              <SelectValue placeholder={t`Select strategy...`}>
-                {defaultRenderStrategy && (
-                  <>
-                    {strategyDisplayName(defaultRenderStrategy)}
-                    {strategyRenderTypes[defaultRenderStrategy] === "template" && (
-                      <span className="text-muted-foreground ml-1">{<Trans>(template)</Trans>}</span>
-                    )}
-                  </>
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent align="start">
-              {renderStrategyNames.map((name) => {
-                const isTemplate = strategyRenderTypes[name] === "template"
-                return (
-                  <SelectItem key={name} value={name}>
-                    <div className="flex flex-col items-start">
-                      <span>
-                        {strategyDisplayName(name)}
-                        {isTemplate && <span className="text-muted-foreground ml-1">{<Trans>(template)</Trans>}</span>}
-                      </span>
-                      {strategyDescription(name) && (
-                        <span className="text-xs text-muted-foreground">
-                          {strategyDescription(name)}
-                        </span>
-                      )}
-                    </div>
-                  </SelectItem>
-                )
-              })}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            {<Trans>The rendering strategy used for sections without an explicit mapping.</Trans>}
-          </p>
+          />
         </div>
       )}
 
@@ -775,29 +757,16 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
       {tab === "image-generation" && (
         <div className="h-full flex flex-col">
           {/* Sub-tabs for Generate vs Edit prompt */}
-          <div className="flex items-center gap-1 px-4 pt-3 pb-0 shrink-0">
-            <button
-              type="button"
-              onClick={() => setImagePromptSubTab("generate")}
-              className={`text-xs font-medium px-3 py-1.5 rounded-t border border-b-0 cursor-pointer transition-colors ${
-                imagePromptSubTab === "generate"
-                  ? "bg-background border-border"
-                  : "bg-muted/50 border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {<Trans>Generate Prompt</Trans>}
-            </button>
-            <button
-              type="button"
-              onClick={() => setImagePromptSubTab("edit")}
-              className={`text-xs font-medium px-3 py-1.5 rounded-t border border-b-0 cursor-pointer transition-colors ${
-                imagePromptSubTab === "edit"
-                  ? "bg-background border-border"
-                  : "bg-muted/50 border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {<Trans>Edit Prompt</Trans>}
-            </button>
+          <div className="shrink-0 px-4 pt-3">
+            <SegmentedControl
+              className="w-full max-w-[360px]"
+              value={imagePromptSubTab}
+              onValueChange={setImagePromptSubTab}
+              options={[
+                { value: "generate", label: t`Generate Prompt` },
+                { value: "edit", label: t`Edit Prompt` },
+              ]}
+            />
           </div>
           <div className="flex-1 min-h-0">
             {imagePromptSubTab === "generate" ? (

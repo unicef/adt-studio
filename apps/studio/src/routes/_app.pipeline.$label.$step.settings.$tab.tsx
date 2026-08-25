@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router"
 import { i18n } from "@lingui/core"
+import { storyboardTabSection } from "@/components/app/screens/pipeline/book-settings/sections"
 import { StepSettingsScreen } from "@/components/app/screens/pipeline/settings/StepSettingsScreen"
 import {
   defaultStepSettingsTab,
@@ -12,6 +13,15 @@ import { usePipelineState } from "@/components/app/screens/pipeline/shared/usePi
 
 export const Route = createFileRoute("/_app/pipeline/$label/$step/settings/$tab")({
   beforeLoad: ({ params }) => {
+    // Storyboard has no step screen of its own — it *is* the workspace — so its
+    // settings live in the book settings hub alongside the book information.
+    if (params.step === "storyboard") {
+      throw redirect({
+        to: "/pipeline/$label/settings/$section",
+        params: { label: params.label, section: storyboardTabSection(params.tab) },
+        replace: true,
+      })
+    }
     if (!isStepSettingsSlug(params.step)) {
       throw redirect({
         to: "/pipeline/$label/$step",
