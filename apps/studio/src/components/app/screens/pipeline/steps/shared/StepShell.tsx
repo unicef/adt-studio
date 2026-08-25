@@ -22,6 +22,8 @@ import type { StepProps } from "./types"
 
 export interface StepShellProps extends StepProps {
   chips: string[]
+  /** Version picker for the step header, alongside the chips. */
+  headerExtra?: React.ReactNode
   canApply: boolean
   rail: React.ReactNode
   bodyViewportClassName?: string
@@ -34,6 +36,7 @@ export function StepShell({
   pages,
   frame,
   chips,
+  headerExtra,
   canApply,
   rail,
   bodyViewportClassName,
@@ -44,6 +47,7 @@ export function StepShell({
       label={label}
       plugin={plugin}
       chips={chips}
+      headerExtra={headerExtra}
       canApply={canApply}
       rail={rail}
       pages={pages}

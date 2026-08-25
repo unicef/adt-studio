@@ -18,7 +18,9 @@ import { PageLightbox } from "@/components/pipeline/components/PageLightbox"
 import { AddQuizDialog } from "@/components/pipeline/stages/quizzes/AddQuizDialog"
 import { useSaveQuizzes } from "./shared/mutations"
 import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
+import { StepVersionPicker } from "./shared/StepVersionPicker"
 import { DetailNavButton, SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
+import { quizzesVersionDiff } from "./shared/versionDiffs"
 import { QuizCard } from "./quizzes/QuizCard"
 import type { StepProps } from "./shared/types"
 
@@ -55,6 +57,8 @@ export function QuizzesStep(props: StepProps) {
       count,
     }))
   }, [quizzes, pageNumbers, t])
+
+  const versionDiff = useMemo(() => quizzesVersionDiff(t), [t])
 
   const patchQuiz = useCallback(
     (quizIndex: number, changes: Partial<QuizItem>) => {
@@ -127,6 +131,15 @@ export function QuizzesStep(props: StepProps) {
     <StepShell
       {...props}
       chips={[t`${quizzes.length} questions`, t`every ${output?.pagesPerQuiz ?? 1} pages`]}
+      headerExtra={
+        <StepVersionPicker
+          label={label}
+          step="quiz-generation"
+          currentVersion={query.data?.version ?? null}
+          isSaving={save.isPending}
+          diff={versionDiff}
+        />
+      }
       canApply={quizzes.length > 0}
       rail={
         <StepRail

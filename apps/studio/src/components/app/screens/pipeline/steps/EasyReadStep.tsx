@@ -8,6 +8,7 @@ import { FloatingSaveProvider } from "@/components/pipeline/components/floating-
 import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
 import { PageLightbox } from "@/components/pipeline/components/PageLightbox"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
+import { easyReadVersionDiff } from "./shared/versionDiffs"
 import { useRunEasyRead } from "@/components/pipeline/stages/easy-read/use-run-easy-read"
 import { StepEmpty, StepLoading, StepRunning, StepShell, useStepLoading } from "./shared/StepShell"
 import { DetailNavButton, SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
@@ -28,6 +29,7 @@ export function EasyReadStep(props: StepProps) {
   const [search, setSearch] = useState("")
 
   const blocks = edits.blocks
+  const versionDiff = useMemo(() => easyReadVersionDiff(t), [t])
 
   const railEntries = useMemo(() => {
     const map = new Map<string, { pageNumber: number; count: number }>()
@@ -101,10 +103,26 @@ export function EasyReadStep(props: StepProps) {
   const total = blocks.reduce((sum, block) => sum + block.entries.length, 0)
   const searchActive = search.trim().length > 0
 
+  const versionPicker = (
+    <VersionPicker
+      step="easy-read"
+      itemId="book"
+      currentVersion={edits.version}
+      saving={edits.saving}
+      dirty={edits.dirty}
+      bookLabel={label}
+      onRestored={edits.discard}
+      onSave={edits.save}
+      onDiscard={edits.discard}
+      diff={versionDiff}
+    />
+  )
+
   return (
     <StepShell
       {...props}
-      chips={[t`${total} blocks`, t`${blocks.length} sections`, t`v${edits.version ?? 1}`]}
+      chips={[t`${total} blocks`, t`${blocks.length} sections`]}
+      headerExtra={versionPicker}
       canApply={total > 0}
       rail={
         <StepRail
@@ -153,59 +171,6 @@ export function EasyReadStep(props: StepProps) {
               >
                 <Trans>Regenerate</Trans>
               </DetailNavButton>
-              <VersionPicker
-                step="easy-read"
-                itemId="book"
-                currentVersion={edits.version}
-                saving={edits.saving}
-                dirty={edits.dirty}
-                bookLabel={label}
-                onRestored={edits.discard}
-                onSave={edits.save}
-                onDiscard={edits.discard}
-                diff={{
-                  items: (data) =>
-                    (data as { blocks?: EasyReadSectionBlock[] } | null)?.blocks?.flatMap(
-                      (block) => block.entries,
-                    ) ?? [],
-                  keyOf: (item) => (item as EasyReadEntry).easyReadId,
-                  isEqual: (a, b) => {
-                    const x = a as EasyReadEntry
-                    const y = b as EasyReadEntry
-                    return x.text === y.text && x.originalText === y.originalText
-                  },
-                  diffText: (item) => (item as EasyReadEntry).text ?? "",
-                  searchText: (item) => {
-                    const x = item as EasyReadEntry
-                    return `${x.originalText ?? ""} ${x.text ?? ""}`
-                  },
-                  searchPlaceholder: t`Search original or Easy Read text…`,
-                  renderItem: (item, ctx) => {
-                    const entry = item as EasyReadEntry
-                    const match = /^pg0*(\d+)/.exec(entry.pageId ?? "")
-                    const pageRef = match ? t`p${match[1]}` : null
-                    return (
-                      <span className="flex min-w-0 flex-col gap-0.5">
-                        {pageRef ? (
-                          <span className="text-[9px] font-semibold uppercase tracking-wide tabular-nums text-muted-foreground">
-                            {pageRef}
-                          </span>
-                        ) : null}
-                        {entry.originalText && entry.originalText !== entry.text ? (
-                          <span className="line-clamp-2 text-[11px] text-muted-foreground">
-                            {entry.originalText}
-                          </span>
-                        ) : null}
-                        {ctx?.diff ? (
-                          <span className="text-foreground">{ctx.diff}</span>
-                        ) : entry.text ? (
-                          <span className="text-foreground">{entry.text}</span>
-                        ) : null}
-                      </span>
-                    )
-                  },
-                }}
-              />
             </>
           }
         >

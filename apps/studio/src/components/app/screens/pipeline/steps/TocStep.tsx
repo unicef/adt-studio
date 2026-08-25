@@ -8,7 +8,9 @@ import { useToc } from "@/hooks/use-toc"
 import { useSaveToc } from "./shared/mutations"
 import { useTocSections } from "./shared/queries"
 import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
+import { StepVersionPicker } from "./shared/StepVersionPicker"
 import { SaveError, StepBody, StepEmptyHint, StepRail } from "./shared/ui"
+import { tocVersionDiff } from "./shared/versionDiffs"
 import { MAX_TOC_LEVEL, MIN_TOC_LEVEL, TocEntryRow } from "./toc/TocEntryRow"
 import type { StepProps } from "./shared/types"
 
@@ -106,6 +108,8 @@ export function TocStep(props: StepProps) {
     [openPreview],
   )
 
+  const versionDiff = useMemo(() => tocVersionDiff(t), [t])
+
   const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: entries.length > 0 })
   if (loading) return <StepLoading {...props} />
   if (entries.length === 0) return <StepEmpty {...props} />
@@ -116,6 +120,15 @@ export function TocStep(props: StepProps) {
     <StepShell
       {...props}
       chips={[t`${entries.length} entries`, t`${deepest} levels`]}
+      headerExtra={
+        <StepVersionPicker
+          label={label}
+          step="toc-generation"
+          currentVersion={query.data?.version ?? null}
+          isSaving={save.isPending}
+          diff={versionDiff}
+        />
+      }
       canApply={entries.length > 0}
       rail={
         <StepRail

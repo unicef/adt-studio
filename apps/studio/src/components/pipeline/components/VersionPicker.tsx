@@ -15,7 +15,7 @@ import {
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { useLingui } from "@lingui/react/macro"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { STEP_TO_STAGE, type StageName } from "@adt/types"
 import { api } from "@/api/client"
 import { toast } from "@/components/ui/sonner"
@@ -155,6 +155,12 @@ interface VersionPickerProps {
    * current version and a Compare button that opens an item-level diff dialog.
    */
   diff?: VersionDiffDescriptor
+  /**
+   * Overrides the per-step trigger class. The defaults assume the classic
+   * stage header (white-on-accent); surfaces that place the picker on a plain
+   * background — the new pipeline's step toolbars — pass their own.
+   */
+  triggerClassName?: string
 }
 
 export function VersionPicker({
@@ -176,22 +182,41 @@ export function VersionPicker({
   previewViewport,
   getChangedPreviewViewports,
   diff,
+  triggerClassName,
 }: VersionPickerProps) {
   const { t, i18n } = useLingui()
   const queryClient = useQueryClient()
   const styling = STEP_STYLING[step]
   const [open, setOpen] = useState(false)
-  const [versions, setVersions] = useState<VersionEntry[] | null>(null)
-  const [loadingVersions, setLoadingVersions] = useState(false)
   const [hoverCandidate, setHoverCandidate] = useState<number | null>(null)
   const [hovered, setHovered] = useState<number | null>(null)
   const [restoring, setRestoring] = useState(false)
-  const [loadError, setLoadError] = useState(false)
+
+  // History is fetched with every version's payload, so it is the priciest read
+  // in this component. Keeping it in the query cache (instead of local state)
+  // means reopening the popover — or opening a second picker for the same item
+  // — paints from cache instantly and revalidates in the background, and a
+  // restore's `["books", label]` invalidation refreshes it for free. staleTime
+  // is pinned to 0 against the app-wide 5min default: a save mints a new
+  // version, so a cached list is only ever a starting frame, never the answer.
+  const history = useQuery({
+    queryKey: ["books", bookLabel, "versions", step, itemId],
+    queryFn: () => api.getVersionHistory(bookLabel, step, itemId, true),
+    enabled: open,
+    staleTime: 0,
+  })
+  const versions = history.data?.versions ?? null
+  const loadingVersions = history.isLoading
+  const loadError = history.isError
   // Reserve the first hovered preview's height for later ones so switching
   // versions doesn't grow the flyout from the skeleton up (same page ≈ same
   // height).
   const [previewPaneRef, previewHeight] = useReservedHeight<HTMLDivElement>(hovered != null)
   const [compareOpen, setCompareOpen] = useState(false)
+  // The compare dialogs run their own diffing/preview hooks over every version,
+  // so they stay unmounted until the user actually asks to compare. Latching
+  // (rather than mirroring `compareOpen`) keeps the close animation intact.
+  const [compareMounted, setCompareMounted] = useState(false)
 
   // Full storyboard previews trigger a Tailwind compilation. Delay mounting
   // until the pointer settles so moving across the version list does not start
@@ -244,7 +269,9 @@ export function VersionPicker({
   if (saving || restoring) {
     return (
       <Loader2
-        className={`h-3 w-3 animate-spin ${styling.variant === "header" ? "text-white/60" : ""}`}
+        className={`h-3 w-3 animate-spin ${
+          triggerClassName ? "text-muted-foreground" : styling.variant === "header" ? "text-white/60" : ""
+        }`}
       />
     )
   }
@@ -255,22 +282,10 @@ export function VersionPicker({
   const accentColor = stageDef?.hex ?? NEUTRAL_ACCENT
   const stageIcon = stageDef?.icon ?? GitCompareArrows
 
-  const handleOpenChange = async (next: boolean) => {
+  const handleOpenChange = (next: boolean) => {
     setOpen(next)
     setHoverCandidate(null) // don't carry a stale hover-preview across open/close
     setHovered(null)
-    if (next) {
-      if (versions == null) setLoadingVersions(true)
-      setLoadError(false)
-      try {
-        const res = await api.getVersionHistory(bookLabel, step, itemId, true)
-        setVersions(res.versions)
-      } catch {
-        setLoadError(true)
-      } finally {
-        setLoadingVersions(false)
-      }
-    }
   }
 
   // Roll back to an existing version: move the pointer (no new version) and
@@ -484,6 +499,7 @@ export function VersionPicker({
             type="button"
             onClick={() => {
               setOpen(false)
+              setCompareMounted(true)
               setCompareOpen(true)
             }}
             className="flex w-full items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent cursor-pointer"
@@ -550,7 +566,7 @@ export function VersionPicker({
         <PopoverTrigger asChild>
           <button
             type="button"
-            className={`flex items-center gap-0.5 text-[10px] font-normal normal-case tracking-normal rounded px-1.5 py-0.5 transition-colors ${styling.triggerClass}`}
+            className={`flex items-center gap-0.5 text-[10px] font-normal normal-case tracking-normal rounded px-1.5 py-0.5 transition-colors ${triggerClassName ?? styling.triggerClass}`}
           >
             v{currentVersion}
             <ChevronDown className="h-2.5 w-2.5" />
@@ -571,7 +587,7 @@ export function VersionPicker({
               </span>
               <button
                 type="button"
-                onClick={() => handleOpenChange(true)}
+                onClick={() => void history.refetch()}
                 className="rounded px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-accent cursor-pointer"
                 style={{ color: accentColor }}
               >
@@ -651,7 +667,7 @@ export function VersionPicker({
 
       {/* Visual takes precedence if both were somehow supplied, so only one
           compare dialog can ever open. */}
-      {versions && versions.length > 0 && renderPreview ? (
+      {!compareMounted ? null : versions && versions.length > 0 && renderPreview ? (
         <VersionPreviewCompareDialog
           open={compareOpen}
           onOpenChange={setCompareOpen}

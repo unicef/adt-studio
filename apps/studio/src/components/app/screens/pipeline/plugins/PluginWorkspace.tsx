@@ -19,6 +19,11 @@ export interface PluginWorkspaceProps {
   label: string
   plugin: DockEntry
   chips: string[]
+  /**
+   * Interactive content sitting with the chips — the version picker. It is a
+   * control rather than a chip, so it opts out of the window drag region.
+   */
+  headerExtra?: React.ReactNode
   canApply: boolean
   rail: React.ReactNode
   children: React.ReactNode
@@ -36,6 +41,7 @@ export function PluginWorkspace({
   label,
   plugin,
   chips,
+  headerExtra,
   rail,
   children,
   pages,
@@ -103,6 +109,11 @@ export function PluginWorkspace({
               {chip}
             </span>
           ))}
+          {headerExtra && (
+            <div className="flex items-center" style={NO_DRAG_REGION}>
+              {headerExtra}
+            </div>
+          )}
         </div>
 
 

@@ -11394,8 +11394,8 @@ msgstr "Using fallback"
 
 #. placeholder {0}: edits.version ?? 1
 #. placeholder {0}: query.data?.version ?? 1
-msgid "v{0}"
-msgstr "v{0}"
+#~ msgid "v{0}"
+#~ msgstr "v{0}"
 
 msgid "v{hovered} preview"
 msgstr "v{hovered} preview"

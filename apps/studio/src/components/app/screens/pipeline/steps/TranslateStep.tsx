@@ -6,7 +6,9 @@ import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import { useSaveTranslation } from "./shared/mutations"
 import { useTextCatalog } from "./shared/queries"
 import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
+import { StepVersionPicker } from "./shared/StepVersionPicker"
 import { EditableText, SaveError, StepBody, StepCard, StepEmptyHint, StepRail } from "./shared/ui"
+import { translationVersionDiff } from "./shared/versionDiffs"
 import type { StepProps } from "./shared/types"
 
 function languageName(code: string, locale: string): string {
@@ -39,6 +41,8 @@ export function TranslateStep(props: StepProps) {
 
   const translation = language ? catalog?.translations[language] : undefined
 
+  const versionDiff = useMemo(() => translationVersionDiff(t, sourceById), [t, sourceById])
+
   const rows = useMemo(() => {
     const q = search.trim().toLowerCase()
     return (translation?.entries ?? []).filter((entry) => {
@@ -64,6 +68,18 @@ export function TranslateStep(props: StepProps) {
     <StepShell
       {...props}
       chips={[t`${total} strings`, t`${languages.length} languages`]}
+      headerExtra={
+        translation ? (
+          <StepVersionPicker
+            label={label}
+            step="text-catalog-translation"
+            itemId={language}
+            currentVersion={translation.version}
+            isSaving={save.isPending}
+            diff={versionDiff}
+          />
+        ) : null
+      }
       canApply={languages.length > 0}
       rail={
         <StepRail

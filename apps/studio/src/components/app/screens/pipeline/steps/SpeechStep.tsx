@@ -3,9 +3,12 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle } from "lucide-react"
 import { getAudioUrl } from "@/api/client"
 import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { normalizeLocale } from "@/lib/languages"
 import { useSpeech, useTextCatalog } from "./shared/queries"
 import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
+import { StepVersionPicker } from "./shared/StepVersionPicker"
 import { StepBody, StepCard, StepEmptyHint, StepRail } from "./shared/ui"
+import { speechVersionDiff } from "./shared/versionDiffs"
 import type { StepProps } from "./shared/types"
 
 function languageName(code: string, locale: string): string {
@@ -36,6 +39,11 @@ export function SpeechStep(props: StepProps) {
     return map
   }, [catalog.data, language])
 
+  const versionDiff = useMemo(() => speechVersionDiff(t), [t])
+  const speechCatalogVersion = language
+    ? catalog.data?.speechTexts[language]?.version ?? null
+    : null
+
   const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: languages.length > 0 })
   if (loading) return <StepLoading {...props} />
   if (languages.length === 0) return <StepEmpty {...props} />
@@ -47,6 +55,15 @@ export function SpeechStep(props: StepProps) {
     <StepShell
       {...props}
       chips={[t`${entries.length} clips`, t`${languages.length} languages`]}
+      headerExtra={
+        <StepVersionPicker
+          label={label}
+          step="core-tts-catalog"
+          itemId={normalizeLocale(language)}
+          currentVersion={speechCatalogVersion}
+          diff={versionDiff}
+        />
+      }
       canApply={entries.length > 0}
       rail={
         <StepRail

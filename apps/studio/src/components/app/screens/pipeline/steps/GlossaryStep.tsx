@@ -9,7 +9,9 @@ import { cn } from "@/lib/utils"
 import { AddGlossaryDialog } from "@/components/pipeline/stages/glossary/AddGlossaryDialog"
 import { useSaveGlossary } from "./shared/mutations"
 import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
+import { StepVersionPicker } from "./shared/StepVersionPicker"
 import { EditableText, RowAction, SaveError, StepBody, StepCard, StepEmptyHint, StepRail } from "./shared/ui"
+import { glossaryVersionDiff } from "./shared/versionDiffs"
 import type { StepProps } from "./shared/types"
 
 export function GlossaryStep(props: StepProps) {
@@ -65,6 +67,8 @@ export function GlossaryStep(props: StepProps) {
     persist(items.filter((_, i) => i !== index))
   }
 
+  const versionDiff = useMemo(() => glossaryVersionDiff(t), [t])
+
   const addDialog = (
     <AddGlossaryDialog
       open={showAdd}
@@ -91,7 +95,16 @@ export function GlossaryStep(props: StepProps) {
   return (
     <StepShell
       {...props}
-      chips={[t`${active} terms`, t`v${query.data?.version ?? 1}`]}
+      chips={[t`${active} terms`]}
+      headerExtra={
+        <StepVersionPicker
+          label={label}
+          step="glossary"
+          currentVersion={query.data?.version ?? null}
+          isSaving={save.isPending}
+          diff={versionDiff}
+        />
+      }
       canApply={active > 0}
       rail={
         <StepRail
