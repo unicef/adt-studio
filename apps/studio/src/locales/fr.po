@@ -127,6 +127,10 @@ msgstr "{0, plural, one {Utilisé par # tâche} other {Utilisé par # tâches}}"
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — tapez un pays ou Entrée pour base"
 
+#. placeholder {0}: languageName(language, i18n.locale)
+msgid "{0} · book language"
+msgstr "{0} · langue du livre"
+
 #. placeholder {0}: String(defaultValue ?? min)
 msgid "{0} (default)"
 msgstr "{0} (par défaut)"
@@ -354,6 +358,11 @@ msgstr "{0} termes"
 #. placeholder {0}: String(visibleEntries.length)
 msgid "{0} texts"
 msgstr "{0} textes"
+
+#. placeholder {0}: languageName(baseLanguage, i18n.locale)
+#. placeholder {1}: languageName(language, i18n.locale)
+msgid "{0} to {1}"
+msgstr "{0} vers {1}"
 
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
@@ -623,6 +632,9 @@ msgstr "{totalPages} pages"
 
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} pages · {totalSections} sections"
+
+msgid "{untranslated} untranslated"
+msgstr "{untranslated} non traduits"
 
 #. placeholder {0}: pages.length
 msgid "{warnCount} of {0} pages had no extracted text"
@@ -2083,6 +2095,9 @@ msgstr "Infos du livre"
 
 msgid "Book information"
 msgstr "Informations du livre"
+
+msgid "Book language"
+msgstr "Langue du livre"
 
 msgid "Book Language"
 msgstr "Livre Langue"
@@ -6734,8 +6749,11 @@ msgstr "Aucune fusion marquée pour l'instant. Passez à Toutes les pages et lie
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "Aucune section de storyboard trouvée. Exécutez le Storyboard pour générer des sections auxquelles vous pouvez associer des vidéos."
 
-msgid "No strings match this search."
-msgstr "Aucune chaîne ne correspond à cette recherche."
+msgid "No strings match this filter."
+msgstr "Aucun texte ne correspond à ce filtre."
+
+#~ msgid "No strings match this search."
+#~ msgstr "Aucune chaîne ne correspond à cette recherche."
 
 msgid "No suggestions are pending save in this view."
 msgstr "Aucune suggestion n'est en attente d'enregistrement dans cette vue."
@@ -6872,8 +6890,8 @@ msgstr "Non démarré"
 msgid "Not started yet"
 msgstr "Pas encore commencé"
 
-msgid "Not translated yet"
-msgstr "Pas encore traduit"
+#~ msgid "Not translated yet"
+#~ msgstr "Pas encore traduit"
 
 msgid "Not yet split:"
 msgstr "Pas encore divisé :"
@@ -7047,6 +7065,9 @@ msgstr "Ouvrir les détails de {title}"
 
 msgid "Open edit panel"
 msgstr "Ouvrir le panneau de modification"
+
+msgid "Open image for {entryId}"
+msgstr "Ouvrir l'image de {entryId}"
 
 msgid "Open image preview"
 msgstr "Ouvrir l'aperçu de l'image"
@@ -7638,6 +7659,9 @@ msgstr "En attente d'enregistrement"
 
 msgid "Pending..."
 msgstr "En attente..."
+
+msgid "Pending…"
+msgstr "En attente…"
 
 msgid "Per Page"
 msgstr "Par page"
@@ -9123,6 +9147,9 @@ msgstr "Rechercher des polices..."
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Rechercher des titres, des ID ou des groupes de styles..."
 
+msgid "Search id, source or translation…"
+msgstr "Rechercher un id, l'original ou la traduction…"
+
 msgid "Search languages..."
 msgstr "Rechercher langues..."
 
@@ -9153,8 +9180,8 @@ msgstr "Paramètres de recherche"
 msgid "Search settings…"
 msgstr "Rechercher dans les paramètres…"
 
-msgid "Search source or translation…"
-msgstr "Rechercher dans la source ou la traduction…"
+#~ msgid "Search source or translation…"
+#~ msgstr "Rechercher dans la source ou la traduction…"
 
 msgid "Search style guides..."
 msgstr "Rechercher des guides de style..."
@@ -9777,6 +9804,9 @@ msgstr "Le PDF source compte {sourcePages} pages — {0} extraites."
 msgid "Source PDF uploaded — {0} pages"
 msgstr "PDF source téléversé — {0} pages"
 
+msgid "Source text"
+msgstr "Texte source"
+
 msgid "Space around"
 msgstr "Espace autour"
 
@@ -10210,8 +10240,8 @@ msgstr "Fichier cible"
 msgid "Target language"
 msgstr "Langue cible"
 
-msgid "Target languages"
-msgstr "Langues cibles"
+#~ msgid "Target languages"
+#~ msgstr "Langues cibles"
 
 msgid "Target model"
 msgstr "Modèle cible"
@@ -10328,6 +10358,10 @@ msgstr "Normalisation du texte"
 
 msgid "Text Normalization"
 msgstr "Normalisation du texte"
+
+#. placeholder {0}: row.id
+msgid "text of {0}"
+msgstr "texte de {0}"
 
 msgid "Text Only"
 msgstr "Texte uniquement"
@@ -10963,7 +10997,7 @@ msgstr "traduction"
 msgid "Translation"
 msgstr "Traduction"
 
-#. placeholder {0}: entry.id
+#. placeholder {0}: row.id
 msgid "translation of {0}"
 msgstr "traduction de {0}"
 
@@ -11209,6 +11243,9 @@ msgstr "Entrée sans titre"
 
 msgid "Untitled quiz"
 msgstr "Quiz sans titre"
+
+msgid "Untranslated"
+msgstr "Non traduit"
 
 msgid "Unverified license"
 msgstr "Licence non vérifiée"

@@ -125,6 +125,10 @@ msgstr "{0, plural, one {Used by # task} other {Used by # tasks}}"
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — type country or Enter for base"
 
+#. placeholder {0}: languageName(language, i18n.locale)
+msgid "{0} · book language"
+msgstr "{0} · book language"
+
 #. placeholder {0}: String(defaultValue ?? min)
 msgid "{0} (default)"
 msgstr "{0} (default)"
@@ -352,6 +356,11 @@ msgstr "{0} terms"
 #. placeholder {0}: String(visibleEntries.length)
 msgid "{0} texts"
 msgstr "{0} texts"
+
+#. placeholder {0}: languageName(baseLanguage, i18n.locale)
+#. placeholder {1}: languageName(language, i18n.locale)
+msgid "{0} to {1}"
+msgstr "{0} to {1}"
 
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
@@ -621,6 +630,9 @@ msgstr "{totalPages} pages"
 
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} pages · {totalSections} sections"
+
+msgid "{untranslated} untranslated"
+msgstr "{untranslated} untranslated"
 
 #. placeholder {0}: pages.length
 msgid "{warnCount} of {0} pages had no extracted text"
@@ -2081,6 +2093,9 @@ msgstr "Book info"
 
 msgid "Book information"
 msgstr "Book information"
+
+msgid "Book language"
+msgstr "Book language"
 
 msgid "Book Language"
 msgstr "Book Language"
@@ -6732,8 +6747,11 @@ msgstr "No spreads marked yet. Switch to All pages and link two facing pages to 
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 
-msgid "No strings match this search."
-msgstr "No strings match this search."
+msgid "No strings match this filter."
+msgstr "No strings match this filter."
+
+#~ msgid "No strings match this search."
+#~ msgstr "No strings match this search."
 
 msgid "No suggestions are pending save in this view."
 msgstr "No suggestions are pending save in this view."
@@ -6870,8 +6888,8 @@ msgstr "Not started"
 msgid "Not started yet"
 msgstr "Not started yet"
 
-msgid "Not translated yet"
-msgstr "Not translated yet"
+#~ msgid "Not translated yet"
+#~ msgstr "Not translated yet"
 
 msgid "Not yet split:"
 msgstr "Not yet split:"
@@ -7045,6 +7063,9 @@ msgstr "Open details for {title}"
 
 msgid "Open edit panel"
 msgstr "Open edit panel"
+
+msgid "Open image for {entryId}"
+msgstr "Open image for {entryId}"
 
 msgid "Open image preview"
 msgstr "Open image preview"
@@ -7636,6 +7657,9 @@ msgstr "Pending save"
 
 msgid "Pending..."
 msgstr "Pending..."
+
+msgid "Pending…"
+msgstr "Pending…"
 
 msgid "Per Page"
 msgstr "Per Page"
@@ -9121,6 +9145,9 @@ msgstr "Search fonts..."
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Search headings, IDs, or style clusters..."
 
+msgid "Search id, source or translation…"
+msgstr "Search id, source or translation…"
+
 msgid "Search languages..."
 msgstr "Search languages..."
 
@@ -9151,8 +9178,8 @@ msgstr "Search settings"
 msgid "Search settings…"
 msgstr "Search settings…"
 
-msgid "Search source or translation…"
-msgstr "Search source or translation…"
+#~ msgid "Search source or translation…"
+#~ msgstr "Search source or translation…"
 
 msgid "Search style guides..."
 msgstr "Search style guides..."
@@ -9775,6 +9802,9 @@ msgstr "Source PDF has {sourcePages} pages — {0} extracted."
 msgid "Source PDF uploaded — {0} pages"
 msgstr "Source PDF uploaded — {0} pages"
 
+msgid "Source text"
+msgstr "Source text"
+
 msgid "Space around"
 msgstr "Space around"
 
@@ -10208,8 +10238,8 @@ msgstr "Target file"
 msgid "Target language"
 msgstr "Target language"
 
-msgid "Target languages"
-msgstr "Target languages"
+#~ msgid "Target languages"
+#~ msgstr "Target languages"
 
 msgid "Target model"
 msgstr "Target model"
@@ -10326,6 +10356,10 @@ msgstr "Text normalization"
 
 msgid "Text Normalization"
 msgstr "Text Normalization"
+
+#. placeholder {0}: row.id
+msgid "text of {0}"
+msgstr "text of {0}"
 
 msgid "Text Only"
 msgstr "Text Only"
@@ -10961,7 +10995,7 @@ msgstr "translation"
 msgid "Translation"
 msgstr "Translation"
 
-#. placeholder {0}: entry.id
+#. placeholder {0}: row.id
 msgid "translation of {0}"
 msgstr "translation of {0}"
 
@@ -11207,6 +11241,9 @@ msgstr "Untitled entry"
 
 msgid "Untitled quiz"
 msgstr "Untitled quiz"
+
+msgid "Untranslated"
+msgstr "Untranslated"
 
 msgid "Unverified license"
 msgstr "Unverified license"

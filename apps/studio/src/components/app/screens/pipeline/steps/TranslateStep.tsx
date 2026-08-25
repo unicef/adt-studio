@@ -1,15 +1,34 @@
-import { useMemo, useState } from "react"
+import { useCallback, useMemo, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Search } from "lucide-react"
+import { useVirtualizer } from "@tanstack/react-virtual"
+import type { TextCatalogEntry } from "@/api/client"
 import { Input } from "@/components/ui/input"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
+import { useBook } from "@/hooks/use-books"
+import { useActiveConfig } from "@/hooks/use-debug"
+import type { CatalogCategory } from "@/components/pipeline/stages/languages/lib/catalog-entries"
+import { ImageLightbox } from "@/components/pipeline/stages/languages/components/ImageLightbox"
 import { useSaveTranslation } from "./shared/mutations"
 import { useTextCatalog } from "./shared/queries"
 import { StepEmpty, StepLoading, StepShell, useStepLoading } from "./shared/StepShell"
 import { StepVersionPicker } from "./shared/StepVersionPicker"
-import { EditableText, SaveError, StepBody, StepCard, StepEmptyHint, StepRail } from "./shared/ui"
+import { SaveError, StepEmptyHint, StepRail, StepScrollBody, STEP_FILL_VIEWPORT_CLASSNAME } from "./shared/ui"
 import { translationVersionDiff } from "./shared/versionDiffs"
+import { TranslateCategoryFilter } from "./translate/TranslateCategoryFilter"
+import { TranslateRow } from "./translate/TranslateRow"
+import {
+  buildRows,
+  countByCategory,
+  countUntranslated,
+  filterRows,
+  isBaseLanguage,
+  patchEntries,
+  resolveLanguages,
+} from "./translate/translateState"
 import type { StepProps } from "./shared/types"
+
+const ROW_ESTIMATE = 96
+const NO_ENTRIES: TextCatalogEntry[] = []
 
 function languageName(code: string, locale: string): string {
   if (!code) return ""
@@ -24,81 +43,125 @@ export function TranslateStep(props: StepProps) {
   const { label, plugin } = props
   const { t, i18n } = useLingui()
   const query = useTextCatalog(label)
+  const config = useActiveConfig(label)
+  const book = useBook(label)
 
   const catalog = query.data
-  const languages = useMemo(() => Object.keys(catalog?.translations ?? {}).sort(), [catalog])
+
+  const { languages, baseLanguage } = useMemo(() => {
+    const merged = config.data?.merged as Record<string, unknown> | undefined
+    return resolveLanguages({
+      configuredOutputs: merged?.output_languages as string[] | undefined,
+      editingLanguage: merged?.editing_language as string | undefined,
+      bookLanguage: book.data?.languageCode ?? book.data?.metadata?.language_code ?? null,
+      translationCodes: Object.keys(catalog?.translations ?? {}),
+    })
+  }, [config.data, book.data, catalog])
+
   const [active, setActive] = useState<string | null>(null)
+  const [category, setCategory] = useState<CatalogCategory>("all")
   const [search, setSearch] = useState("")
+  const [lightbox, setLightbox] = useState<string | null>(null)
 
   const language = active ?? languages[0] ?? ""
+  const isBase = isBaseLanguage(language, baseLanguage)
   const save = useSaveTranslation(label, language)
 
-  const sourceById = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const entry of catalog?.entries ?? []) map.set(entry.id, entry.text)
-    return map
-  }, [catalog])
+  const rows = useMemo(() => buildRows(catalog, language, isBase), [catalog, language, isBase])
+  const categoryCounts = useMemo(() => countByCategory(rows), [rows])
+  const untranslated = useMemo(() => (isBase ? 0 : countUntranslated(rows)), [rows, isBase])
+  const shown = useMemo(() => filterRows(rows, category, search), [rows, category, search])
 
-  const translation = language ? catalog?.translations[language] : undefined
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const virtualizer = useVirtualizer({
+    count: shown.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => ROW_ESTIMATE,
+    overscan: 6,
+    getItemKey: (index) => shown[index]?.id ?? index,
+  })
 
-  const versionDiff = useMemo(() => translationVersionDiff(t, sourceById), [t, sourceById])
+  // The catalog is the source of truth for both modes: the base language writes
+  // back the source entries, a translation writes back its own — appending the
+  // row when the translation never held one, which is what makes an
+  // untranslated row editable at all.
+  const saveRow = useCallback(
+    (id: string, text: string) => {
+      const current = isBase
+        ? catalog?.entries ?? NO_ENTRIES
+        : catalog?.translations[language]?.entries ?? NO_ENTRIES
+      save.mutate({ entries: patchEntries(current, id, text) })
+    },
+    [catalog, language, isBase, save],
+  )
 
-  const rows = useMemo(() => {
-    const q = search.trim().toLowerCase()
-    return (translation?.entries ?? []).filter((entry) => {
-      if (!q) return true
-      return (entry.text + " " + (sourceById.get(entry.id) ?? "")).toLowerCase().includes(q)
-    })
-  }, [translation, search, sourceById])
+  const openImage = useCallback((src: string) => setLightbox(src), [])
 
-  const patch = (id: string, text: string) => {
-    if (!translation) return
-    save.mutate({
-      entries: translation.entries.map((entry) => (entry.id === id ? { ...entry, text } : entry)),
-    })
-  }
+  const versionDiff = useMemo(() => {
+    const sourceById = new Map((catalog?.entries ?? []).map((entry) => [entry.id, entry.text]))
+    return translationVersionDiff(t, sourceById)
+  }, [catalog, t])
 
-  const loading = useStepLoading(props, { isLoading: query.isLoading, hasOutput: languages.length > 0 })
+  const loading = useStepLoading(props, {
+    isLoading: query.isLoading,
+    hasOutput: (catalog?.entries.length ?? 0) > 0,
+  })
   if (loading) return <StepLoading {...props} />
-  if (languages.length === 0) return <StepEmpty {...props} />
+  if (!catalog || catalog.entries.length === 0) return <StepEmpty {...props} />
 
-  const total = catalog?.entries.length ?? 0
+  const version = isBase ? catalog.version : catalog.translations[language]?.version ?? null
+  const total = catalog.entries.length
 
   return (
     <StepShell
       {...props}
-      chips={[t`${total} strings`, t`${languages.length} languages`]}
+      chips={[
+        t`${total} strings`,
+        t`${languages.length} languages`,
+        ...(untranslated > 0 ? [t`${untranslated} untranslated`] : []),
+      ]}
       headerExtra={
-        translation ? (
-          <StepVersionPicker
-            label={label}
-            step="text-catalog-translation"
-            itemId={language}
-            currentVersion={translation.version}
-            isSaving={save.isPending}
-            diff={versionDiff}
-          />
-        ) : null
+        <StepVersionPicker
+          label={label}
+          step="text-catalog-translation"
+          itemId={language}
+          currentVersion={version}
+          isSaving={save.isPending}
+          diff={versionDiff}
+        />
       }
-      canApply={languages.length > 0}
+      canApply={total > 0}
+      bodyViewportClassName={STEP_FILL_VIEWPORT_CLASSNAME}
       rail={
         <StepRail
-          heading={<Trans>Target languages</Trans>}
+          heading={<Trans>Output languages</Trans>}
           hex={plugin.hex}
           entries={languages.map((code) => ({
             key: code,
             title: languageName(code, i18n.locale),
-            count: catalog?.translations[code]?.entries.length ?? 0,
+            subtitle: isBaseLanguage(code, baseLanguage) ? t`Book language` : code,
+            count: isBaseLanguage(code, baseLanguage)
+              ? total
+              : catalog.translations[code]?.entries.length ?? 0,
           }))}
           activeKey={language}
-          onSelect={setActive}
+          onSelect={(key) => {
+            setActive(key)
+            setCategory("all")
+            setSearch("")
+          }}
           footer={<Trans>{total} source strings in the catalog.</Trans>}
         />
       }
     >
-      <StepBody
-        title={<Trans>Translation</Trans>}
-        meta={languageName(language, i18n.locale)}
+      <StepScrollBody
+        viewportRef={scrollRef}
+        title={isBase ? <Trans>Source text</Trans> : <Trans>Translation</Trans>}
+        meta={
+          isBase
+            ? t`${languageName(language, i18n.locale)} · book language`
+            : t`${languageName(baseLanguage, i18n.locale)} to ${languageName(language, i18n.locale)}`
+        }
         actions={
           <Input
             wrapperClassName="w-[240px]"
@@ -106,47 +169,62 @@ export function TranslateStep(props: StepProps) {
             prependIcon={<Search className="size-3.5" />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t`Search source or translation…`}
+            placeholder={t`Search id, source or translation…`}
           />
         }
+        toolbar={
+          <>
+            <TranslateCategoryFilter
+              counts={categoryCounts}
+              total={rows.length}
+              active={category}
+              hex={plugin.hex}
+              onSelect={setCategory}
+            />
+            <SaveError error={save.error} />
+          </>
+        }
       >
-        <SaveError error={save.error} />
-
-        {rows.length === 0 ? (
+        {shown.length === 0 ? (
           <StepEmptyHint>
-            <Trans>No strings match this search.</Trans>
+            <Trans>No strings match this filter.</Trans>
           </StepEmptyHint>
         ) : (
-          rows.map((entry) => (
-            <StepCard key={entry.id} accent={plugin.hex}>
-              <div className="grid grid-cols-2 gap-3.5">
-                <div className="flex flex-col gap-1">
-                  <span className="font-mono text-[10px] text-muted-foreground">{entry.id}</span>
-                  <p className="px-1.5 text-[12.5px] leading-relaxed text-muted-foreground">
-                    {sourceById.get(entry.id) ?? ""}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span
-                    className="w-fit rounded px-1.5 font-mono text-[10px] uppercase"
-                    style={{ background: tint(plugin.hex, 0.12), color: plugin.hex }}
-                  >
-                    {language}
-                  </span>
-                  <EditableText
-                    value={entry.text}
-                    ariaLabel={t`translation of ${entry.id}`}
-                    placeholder={t`Not translated yet`}
+          <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
+            {virtualizer.getVirtualItems().map((virtualRow) => {
+              const row = shown[virtualRow.index]
+              return (
+                <div
+                  key={row.id}
+                  data-index={virtualRow.index}
+                  ref={virtualizer.measureElement}
+                  className="pb-2"
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "100%",
+                    transform: `translateY(${virtualRow.start}px)`,
+                  }}
+                >
+                  <TranslateRow
+                    row={row}
+                    label={label}
+                    hex={plugin.hex}
+                    language={language}
+                    isBase={isBase}
                     isSaving={save.isPending}
-                    onSave={(text) => patch(entry.id, text)}
-                    className="text-[12.5px] leading-relaxed"
+                    onSave={saveRow}
+                    onOpenImage={openImage}
                   />
                 </div>
-              </div>
-            </StepCard>
-          ))
+              )
+            })}
+          </div>
         )}
-      </StepBody>
+      </StepScrollBody>
+
+      {lightbox ? <ImageLightbox src={lightbox} onClose={() => setLightbox(null)} /> : null}
     </StepShell>
   )
 }

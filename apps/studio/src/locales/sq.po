@@ -127,6 +127,10 @@ msgstr "{0, plural, one {Përdorur nga # detyrë} other {Përdorur nga # detyra}
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — shkruani vendin ose Enter për bazë"
 
+#. placeholder {0}: languageName(language, i18n.locale)
+msgid "{0} · book language"
+msgstr "{0} · gjuha e librit"
+
 #. placeholder {0}: String(defaultValue ?? min)
 msgid "{0} (default)"
 msgstr "{0} (parazgjedhje)"
@@ -354,6 +358,11 @@ msgstr "{0} terma"
 #. placeholder {0}: String(visibleEntries.length)
 msgid "{0} texts"
 msgstr "{0} tekste"
+
+#. placeholder {0}: languageName(baseLanguage, i18n.locale)
+#. placeholder {1}: languageName(language, i18n.locale)
+msgid "{0} to {1}"
+msgstr "{0} në {1}"
 
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
@@ -623,6 +632,9 @@ msgstr "{totalPages} faqe"
 
 msgid "{totalPages} pages · {totalSections} sections"
 msgstr "{totalPages} faqe · {totalSections} seksione"
+
+msgid "{untranslated} untranslated"
+msgstr "{untranslated} të papërkthyera"
 
 #. placeholder {0}: pages.length
 msgid "{warnCount} of {0} pages had no extracted text"
@@ -2083,6 +2095,9 @@ msgstr "Info libri"
 
 msgid "Book information"
 msgstr "Informacione për librin"
+
+msgid "Book language"
+msgstr "Gjuha e librit"
 
 msgid "Book Language"
 msgstr "Gjuha e librit"
@@ -6734,8 +6749,11 @@ msgstr "Ende nuk janë shënuar faqe të përbashkëta. Ndrysho në Të gjitha f
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "Nuk u gjetën seksione storyboard. Ekzekutoni Storyboard-in për të gjeneruar seksione me të cilat mund të përputhni video."
 
-msgid "No strings match this search."
-msgstr "Asnjë tekst nuk përputhet me këtë kërkim."
+msgid "No strings match this filter."
+msgstr "Asnjë tekst nuk përputhet me këtë filtër."
+
+#~ msgid "No strings match this search."
+#~ msgstr "Asnjë tekst nuk përputhet me këtë kërkim."
 
 msgid "No suggestions are pending save in this view."
 msgstr "Nuk ka sugjerime në pritje të ruajtjes në këtë pamje."
@@ -6872,8 +6890,8 @@ msgstr "Nuk ka filluar"
 msgid "Not started yet"
 msgstr "Nuk ka filluar ende"
 
-msgid "Not translated yet"
-msgstr "Ende i papërkthyer"
+#~ msgid "Not translated yet"
+#~ msgstr "Ende i papërkthyer"
 
 msgid "Not yet split:"
 msgstr "Ende të pandara:"
@@ -7047,6 +7065,9 @@ msgstr "Hap detajet për {title}"
 
 msgid "Open edit panel"
 msgstr "Hapni panelin e redaktimit"
+
+msgid "Open image for {entryId}"
+msgstr "Hap imazhin e {entryId}"
 
 msgid "Open image preview"
 msgstr "Hapni pamjen paraprake të imazhit"
@@ -7638,6 +7659,9 @@ msgstr "Në pritje të ruajtjes"
 
 msgid "Pending..."
 msgstr "Në pritje..."
+
+msgid "Pending…"
+msgstr "Në pritje…"
 
 msgid "Per Page"
 msgstr "Për Faqe"
@@ -9123,6 +9147,9 @@ msgstr "Kërko fonte..."
 msgid "Search headings, IDs, or style clusters..."
 msgstr "Kërkoni tituj, ID ose grupe stilesh..."
 
+msgid "Search id, source or translation…"
+msgstr "Kërko id, origjinalin ose përkthimin…"
+
 msgid "Search languages..."
 msgstr "Kërko gjuhë..."
 
@@ -9153,8 +9180,8 @@ msgstr "Kërko cilësimet"
 msgid "Search settings…"
 msgstr "Kërko cilësimet…"
 
-msgid "Search source or translation…"
-msgstr "Kërko në burim ose përkthim…"
+#~ msgid "Search source or translation…"
+#~ msgstr "Kërko në burim ose përkthim…"
 
 msgid "Search style guides..."
 msgstr "Kërko udhëzues stili..."
@@ -9777,6 +9804,9 @@ msgstr "PDF-ja burimore ka {sourcePages} faqe — {0} të nxjerra."
 msgid "Source PDF uploaded — {0} pages"
 msgstr "PDF-ja burimore u ngarkua — {0} faqe"
 
+msgid "Source text"
+msgstr "Teksti burimor"
+
 msgid "Space around"
 msgstr "Hapësirë rreth"
 
@@ -10210,8 +10240,8 @@ msgstr "Skedari i synuar"
 msgid "Target language"
 msgstr "Gjuha e synuar"
 
-msgid "Target languages"
-msgstr "Gjuhët e synuara"
+#~ msgid "Target languages"
+#~ msgstr "Gjuhët e synuara"
 
 msgid "Target model"
 msgstr "Modeli i synuar"
@@ -10328,6 +10358,10 @@ msgstr "Normalizimi i tekstit"
 
 msgid "Text Normalization"
 msgstr "Normalizimi i tekstit"
+
+#. placeholder {0}: row.id
+msgid "text of {0}"
+msgstr "teksti i {0}"
 
 msgid "Text Only"
 msgstr "Vetëm Tekst"
@@ -10963,7 +10997,7 @@ msgstr "përkthim"
 msgid "Translation"
 msgstr "Përkthimi"
 
-#. placeholder {0}: entry.id
+#. placeholder {0}: row.id
 msgid "translation of {0}"
 msgstr "përkthimi i {0}"
 
@@ -11209,6 +11243,9 @@ msgstr "Hyrje pa titull"
 
 msgid "Untitled quiz"
 msgstr "Kuiz pa titull"
+
+msgid "Untranslated"
+msgstr "E papërkthyer"
 
 msgid "Unverified license"
 msgstr "Licencë e paverifikuar"

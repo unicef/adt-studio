@@ -32,6 +32,46 @@ export function StepBody({
   )
 }
 
+/**
+ * `StepBody` for a step that owns its own scrolling — a virtualized list needs a
+ * scroll container it can measure, and a heading that stays put while the list
+ * moves under it. The step must also stop the workspace's outer viewport from
+ * scrolling (`bodyViewportClassName={STEP_FILL_VIEWPORT_CLASSNAME}`), otherwise this fills
+ * to a height that never overflows and no scrollbar ever appears.
+ */
+export const STEP_FILL_VIEWPORT_CLASSNAME = "[&>div]:h-full [&>div]:min-h-0"
+
+export function StepScrollBody({
+  title,
+  meta,
+  actions,
+  toolbar,
+  viewportRef,
+  children,
+}: {
+  title: React.ReactNode
+  meta?: React.ReactNode
+  actions?: React.ReactNode
+  toolbar?: React.ReactNode
+  /** Handed to TanStack Virtual's `getScrollElement`. */
+  viewportRef: React.Ref<HTMLDivElement>
+  children: React.ReactNode
+}) {
+  return (
+    <div className="mx-auto flex h-full min-h-0 w-full container flex-col gap-3 px-4 py-7">
+      <div className="flex items-baseline gap-3">
+        <h1 className="text-[19px] font-bold tracking-[-0.01em]">{title}</h1>
+        {meta && <span className="font-mono text-[11px] text-muted-foreground">{meta}</span>}
+        <div className="ml-auto flex items-center gap-2">{actions}</div>
+      </div>
+      {toolbar}
+      <ScrollArea className="-mx-1 min-h-0 flex-1" viewportRef={viewportRef} viewportClassName="px-1">
+        {children}
+      </ScrollArea>
+    </div>
+  )
+}
+
 export function StepCard({
   children,
   muted,
