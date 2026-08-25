@@ -144,6 +144,13 @@ interface ElectronUpdatesApi {
   onStatus: (cb: (status: ElectronUpdateStatus) => void) => () => void
 }
 
+interface ElectronNotificationsApi {
+  /** Show an OS-level notification via the Electron main process. */
+  show: (payload: { title: string; body: string }) => Promise<void>
+  /** Whether the Electron window that hosts this renderer is focused. */
+  isWindowFocused: () => Promise<boolean>
+}
+
 interface Window {
   api: {
     onApiLog: (callback: (entry: ElectronApiLogEntry) => void) => () => void
@@ -169,6 +176,8 @@ interface Window {
     updates?: ElectronUpdatesApi
     /** IPC bridge for the first-run onboarding window. Undefined in the web build. */
     onboarding?: ElectronOnboardingApi
+    /** IPC bridge for OS notifications and window focus. Undefined in the web build. */
+    notifications?: ElectronNotificationsApi
   }
 }
 

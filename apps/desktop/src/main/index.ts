@@ -23,6 +23,7 @@ import { registerOnboardingIpc } from "./ipc/onboarding";
 import { hasCompletedOnboarding } from "./services/onboarding-state";
 import { registerSplashIpc } from "./ipc/splash";
 import { registerUpdatesIpc } from "./ipc/updates";
+import { registerNotificationsIpc } from "./ipc/notifications";
 import { handleScreenshotMessages } from "./ipc/api-bridge/screenshot";
 import { handleAccessibilityAuditMessages } from "./ipc/api-bridge/accessibility-audit";
 
@@ -62,6 +63,7 @@ app.whenReady().then(async () => {
   registerTitleBarIpc();
   registerWindowCloseIpc();
   registerFileDialogIpc();
+  registerNotificationsIpc();
 
   let apiProcess: Electron.UtilityProcess;
 

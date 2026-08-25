@@ -9,6 +9,7 @@ import { ErrorScreen } from "@/components/ErrorScreen"
 import type { SettingsSection } from "@/components/settings/settingsSections"
 import { Toaster } from "@/components/ui/sonner"
 import { UpdateDialogProvider } from "@/components/updates"
+import { useGlobalRunNotifications } from "@/hooks/use-global-run-notifications"
 
 const SettingsContext = createContext<{
   openSettings: (section?: SettingsSection) => void
@@ -31,6 +32,7 @@ export const Route = createRootRoute({
 
 function RootLayout() {
   const navigate = useNavigate()
+  useGlobalRunNotifications()
   const openSettings = useCallback(
     (section: SettingsSection = "default-model") => {
       void navigate({ to: "/settings", search: { section } })

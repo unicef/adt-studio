@@ -49,6 +49,11 @@ export interface SplashControlsApi {
   readonly version: string
 }
 
+export interface NotificationsApi {
+  show: (payload: { title: string; body: string }) => Promise<void>
+  isWindowFocused: () => Promise<boolean>
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
@@ -64,6 +69,7 @@ declare global {
       version: string
       windowControls: WindowControlsApi
       updates: UpdatesApi
+      notifications: NotificationsApi
     }
     splashControls?: SplashControlsApi
   }

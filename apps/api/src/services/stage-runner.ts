@@ -902,13 +902,30 @@ export function createStageRunner(): StageRunner {
         for (let i = fromIndex; i <= toIndex; i++) {
           if (options.signal?.aborted) throw new RunCancelledError()
           const stage = STAGE_ORDER[i]
-          await STAGE_RUNNERS[stage](label, options, trackingProgress)
+          try {
+            await STAGE_RUNNERS[stage](label, options, trackingProgress)
+            progress.emit({ type: "stage-complete", stage })
+          } catch (err) {
+            // A cancel is a deliberate action, not a failure: don't record step
+            // errors or emit step-error/stage-error (that would paint the
+            // sidebar red and, with the error toast/sound, beep on cancel).
+            // Just re-throw — executeJob's abort branch handles persistence cleanup.
+            if (isCancellation(err, [options.signal])) {
+              throw err
+            }
+            const message = toErrorMessage(err)
+            for (const step of runningSteps) {
+              completionStorage.recordStepError(step, message)
+              progress.emit({ type: "step-error", step, error: message })
+            }
+            runningSteps.clear()
+            progress.emit({ type: "stage-error", stage, error: message })
+            throw err
+          }
         }
       } catch (err) {
-        // A cancel is a deliberate action, not a failure: don't record step
-        // errors or emit step-error (that would paint the sidebar red and, with
-        // the error toast/sound, beep on cancel). Just re-throw — executeJob's
-        // abort branch handles persistence cleanup.
+        // Fallback for unexpected throws outside the per-stage loop. Stage
+        // failures are already recorded/emitted by the inner catch above.
         if (isCancellation(err, [options.signal])) {
           throw err
         }

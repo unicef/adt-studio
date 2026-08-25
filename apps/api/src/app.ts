@@ -8,6 +8,7 @@ import { logger } from "hono/logger"
 import { errorHandler } from "./middleware/error-handler.js"
 import { healthRoutes } from "./routes/health.js"
 import { createBookRoutes } from "./routes/books.js"
+import { createBookEventsRoutes } from "./routes/book-events.js"
 import { createPageRoutes } from "./routes/pages.js"
 import { createDebugRoutes } from "./routes/debug.js"
 import { createGlossaryRoutes } from "./routes/glossary.js"
@@ -96,6 +97,8 @@ app.use(
 app.onError(errorHandler)
 
 app.route("/api", healthRoutes)
+// Mounted before /books/:label so GET /books/events is not captured as a label.
+app.route("/api", createBookEventsRoutes(eventBus))
 app.route("/api", createBookRoutes(booksDir, webAssetsDir, configPath, taskService))
 app.route("/api", createPageRoutes(booksDir, promptsDir, webAssetsDir, configPath, taskService))
 app.route("/api", createGlossaryRoutes(booksDir, promptsDir, configPath))

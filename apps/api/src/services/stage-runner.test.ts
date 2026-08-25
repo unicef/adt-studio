@@ -442,6 +442,7 @@ section_types:
       expect.objectContaining({ type: "step-start", step: "book-outline" }),
       expect.objectContaining({ type: "step-complete", step: "book-outline" }),
       expect.objectContaining({ type: "step-complete", step: "page-sectioning" }),
+      expect.objectContaining({ type: "stage-complete", stage: "sectioning" }),
     ]))
 
     const verified = createBookStorage("assembled", booksDir)

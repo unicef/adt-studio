@@ -435,6 +435,18 @@ msgstr "{sections} seções"
 msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 msgstr "{spreadCount} {spreadCount, plural, one {página dupla selecionada} other {páginas duplas selecionadas}}"
 
+msgid "{stageLabel} completed"
+msgstr "{stageLabel} concluído"
+
+msgid "{stageLabel} completed in {label}"
+msgstr "{stageLabel} concluído em {label}"
+
+msgid "{stageLabel} failed"
+msgstr "{stageLabel} falhou"
+
+msgid "{stageLabel} failed in {label}"
+msgstr "{stageLabel} falhou em {label}"
+
 msgid "{stageLabel} isn't ready yet — every section in the Storyboard is currently pruned, so there's nothing to run on. Restore at least one section in Storyboard to continue."
 msgstr "{stageLabel} ainda não está pronto — todas as seções no Storyboard estão atualmente excluídas, então não há nada para executar. Restaure pelo menos uma seção no Storyboard para continuar."
 
