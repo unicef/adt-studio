@@ -71,11 +71,26 @@ export interface PublishRunResult {
   url: string
 }
 
+/**
+ * How far through its own work the running step is, when it knows.
+ *
+ * Kept as the server's own two numbers rather than a percentage, because the screens need to
+ * *say* them ("184 of 340 files") as well as draw them, and a percentage cannot be unsaid back
+ * into a count.
+ */
+export interface PublishStepProgress {
+  done: number
+  total: number
+  unit: "files" | "pages" | "bytes"
+}
+
 export interface BookPublishRunController {
   status: PublishRunStatus
   kind: PublishRunKind
   stepStates: PublishChecklistState[]
   activeStep: number | null
+  /** Null while the running step is indeterminate, which most of them always are. */
+  progress: PublishStepProgress | null
   failure: PublishFailure | null
   result: PublishRunResult | null
   publish: (options?: PublishOptions) => void
@@ -89,6 +104,7 @@ interface RunState {
   kind: PublishRunKind
   stepStates: PublishChecklistState[]
   activeStep: number | null
+  progress: PublishStepProgress | null
   failure: PublishFailure | null
   result: PublishRunResult | null
 }
@@ -102,6 +118,7 @@ const IDLE_STATE: RunState = {
   kind: "publish",
   stepStates: pendingSteps(),
   activeStep: null,
+  progress: null,
   failure: null,
   result: null,
 }
@@ -161,6 +178,7 @@ export function useBookPublishRun(label: string): BookPublishRunController {
         kind,
         stepStates: pendingSteps(),
         activeStep: 1,
+        progress: null,
         failure: null,
         result: null,
       })
@@ -175,6 +193,7 @@ export function useBookPublishRun(label: string): BookPublishRunController {
             status: "done",
             stepStates: prev.stepStates.map(() => "done"),
             activeStep: null,
+            progress: null,
             failure: null,
             result: { publication: event.publication, url: event.url },
           }))
@@ -208,6 +227,14 @@ export function useBookPublishRun(label: string): BookPublishRunController {
             ...prev,
             stepStates,
             activeStep: event.number,
+            /** Carried only while the step that reported it is the one running. A count left
+             *  over from the previous step would draw a bar that describes work already done. */
+            progress:
+              event.status === "running" && event.total !== undefined && event.done !== undefined
+                ? { done: event.done, total: event.total, unit: event.unit ?? "files" }
+                : event.status === "running"
+                  ? prev.progress
+                  : null,
             status: event.status === "error" ? "error" : prev.status,
           }
         })

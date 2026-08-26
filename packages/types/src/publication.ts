@@ -301,6 +301,22 @@ export const PublishStepEvent = z.object({
   status: PublishStepEventStatus,
   message: z.string().optional(),
   error: z.string().optional(),
+  /**
+   * How far through its own work the step is, when it knows.
+   *
+   * Separate from `message` because a sentence is not a quantity: the client has to be able to
+   * draw a bar, announce "184 of 340" in the reader's own language, and — for the upload — say
+   * which of the book's pages have landed. A formatted string can do none of those, and the
+   * one that was here before was English baked into an API response.
+   *
+   * Absent on steps that genuinely cannot say. A missing `total` means indeterminate, which is
+   * an honest answer; a `total` that arrives late is not, so a step that will report progress
+   * sends `done: 0` with its `total` as its first running event.
+   */
+  done: z.number().int().min(0).optional(),
+  total: z.number().int().min(0).optional(),
+  /** What is being counted, so the client can put it into words. */
+  unit: z.enum(["files", "pages", "bytes"]).optional(),
 })
 export type PublishStepEvent = z.infer<typeof PublishStepEvent>
 

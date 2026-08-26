@@ -63,6 +63,12 @@ const resumeBookPublication = vi.fn()
 const setBookPublicationExpiry = vi.fn()
 const setBookPublicationAccessCode = vi.fn()
 const getCloudflareConnection = vi.fn()
+const getBook = vi.fn()
+/** The live dashboard the page swaps in once a run lands; these keep its lists from erroring
+ *  where the assertions are about the run, not about them. */
+const getPublicationReaders = vi.fn()
+const getPublicationComments = vi.fn()
+const getPublicationPages = vi.fn()
 
 class MockApiError extends Error {
   readonly status: number
@@ -85,12 +91,19 @@ vi.mock("@/api/client", () => ({
     setBookPublicationExpiry,
     setBookPublicationAccessCode,
     getCloudflareConnection,
+    getBook,
+    getPublicationReaders,
+    getPublicationComments,
+    getPublicationPages,
   },
+  getBookCoverUrl: (label: string) => `/api/books/${label}/cover`,
   ApiError: MockApiError,
   apiErrorCode: (error: unknown) => (error instanceof MockApiError ? error.code : null),
 }))
 
 const { PublishPanel } = await import("./PublishPanel")
+const { useBookPublishRun } = await import("@/hooks/use-book-publication")
+const { PublishingLandingPage } = await import("./PublishingLandingPage")
 
 const SHARE_URL = "https://adt-publish.escola-azul.workers.dev/p/abcdefghijklmnopqrstuvwxyz012345"
 
@@ -169,13 +182,31 @@ function revokedStatus(): BookPublicationStatus {
   }
 }
 
+/** The page owns the run and hands it down, so a panel on its own needs one made for it. */
+function PanelHarness() {
+  return <PublishPanel bookLabel="meu-livro" run={useBookPublishRun("meu-livro")} />
+}
+
 function renderPanel() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   return render(
     <QueryClientProvider client={queryClient}>
-      <PublishPanel bookLabel="meu-livro" />
+      <PanelHarness />
+    </QueryClientProvider>,
+  )
+}
+
+/** A run is no longer the panel's to draw — the page takes the screen for it — so anything about
+ *  what the author watches while publishing has to be asked of the page. */
+function renderPage() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <PublishingLandingPage bookLabel="meu-livro" />
     </QueryClientProvider>,
   )
 }
@@ -183,6 +214,10 @@ function renderPanel() {
 const writeText = vi.fn(() => Promise.resolve())
 
 beforeEach(() => {
+  getBook.mockResolvedValue({ label: "meu-livro", title: "Meu Livro" })
+  getPublicationReaders.mockResolvedValue({ readers: [], total: 0 })
+  getPublicationComments.mockResolvedValue({ comments: [] })
+  getPublicationPages.mockResolvedValue({ pages: [] })
   getCloudflareConnection.mockResolvedValue({
     connected: true,
     auth_method: "oauth",
@@ -290,7 +325,11 @@ describe("PublishPanel — states", () => {
 
   it("mentions a waiting publishing-service update without nagging", async () => {
     getBookPublication.mockResolvedValue(publishedStatus())
-    getCloudflareConnection.mockResolvedValue({
+    getBook.mockResolvedValue({ label: "meu-livro", title: "Meu Livro" })
+  getPublicationReaders.mockResolvedValue({ readers: [], total: 0 })
+  getPublicationComments.mockResolvedValue({ comments: [] })
+  getPublicationPages.mockResolvedValue({ pages: [] })
+  getCloudflareConnection.mockResolvedValue({
       connected: true,
       auth_method: "oauth",
       worker_url: "https://adt-publish.escola-azul.workers.dev",
@@ -311,7 +350,11 @@ describe("PublishPanel — states", () => {
 })
 
 describe("PublishPanel — publishing", () => {
-  it("streams the four steps", async () => {
+  /**
+   * A first publish is a wait of minutes, and it gets the whole screen for the same reason an
+   * update does: a checklist inside a card is something the author has to go and find.
+   */
+  it("hands the page to the run, and hands it back to the dashboard", async () => {
     getBookPublication.mockResolvedValue(neverPublished())
 
     let emit: ((event: PublishProgressEvent) => void) | null = null
@@ -323,9 +366,10 @@ describe("PublishPanel — publishing", () => {
       })
     })
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
+    expect(screen.queryByTestId("publish-takeover")).toBeNull()
     fireEvent.click(screen.getByTestId("publish-start-button"))
 
     expect(publishBook).toHaveBeenCalledTimes(1)
@@ -335,17 +379,19 @@ describe("PublishPanel — publishing", () => {
     act(() => {
       emit?.({ type: "step", id: "export", number: 1, label: "Export", status: "running" })
     })
-    expect(screen.getByTestId("publish-step-1").getAttribute("data-state")).toBe("running")
-    expect(screen.getByTestId("publish-step-4").getAttribute("data-state")).toBe("pending")
-    /** The calm loader counts settled steps, so the first running step reads as "0 of 4". */
-    expect(screen.getByTestId("publish-checklist").textContent).toContain("0 of 4")
+    const takeover = screen.getByTestId("publish-takeover")
+    /** The card that asked the question steps aside; leaving it under a run gives the author two
+     *  places to look and one of them is stale. */
+    expect(screen.queryByTestId("publish-panel")).toBeNull()
+    expect(takeover.querySelectorAll("li")).toHaveLength(4)
+    /** Settled steps, so the first running step reads as "0 of 4". */
+    expect(takeover.textContent).toContain("0 of 4")
 
     act(() => {
       emit?.({ type: "step", id: "export", number: 1, label: "Export", status: "done" })
       emit?.({ type: "step", id: "upload", number: 3, label: "Upload", status: "running" })
     })
-    expect(screen.getByTestId("publish-step-1").getAttribute("data-state")).toBe("done")
-    expect(screen.getByTestId("publish-step-3").getAttribute("data-state")).toBe("running")
+    expect(screen.getByTestId("publish-takeover").textContent).toContain("1 of 4")
 
     getBookPublication.mockResolvedValue(publishedStatus())
 
@@ -363,11 +409,38 @@ describe("PublishPanel — publishing", () => {
       finishStream?.()
     })
 
-    /** The panel's job ends when the run does. The link and everything that can be done to it
-     *  belong to the Publishing dashboard, which the page swaps in the moment one exists — so
-     *  what this panel does on success is hand over: no loader, no link, nothing to press. */
-    await waitFor(() => expect(screen.queryByTestId("publish-checklist")).toBeNull())
-    expect(screen.queryByTestId("publish-share-link")).toBeNull()
+    /** The run's screen ends when the link exists. Everything that can be done to it belongs to
+     *  the Publishing dashboard, which the page swaps in the moment there is one. */
+    await waitFor(() => expect(screen.queryByTestId("publish-takeover")).toBeNull())
+    expect(screen.queryByTestId("publish-start-button")).toBeNull()
+  })
+
+  /** Between the last step and the status query catching up, the page used to flash the form it
+   *  had just been asked to submit. */
+  it("stays on the run until the link it made is really there", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+
+    let emit: ((event: PublishProgressEvent) => void) | null = null
+    publishBook.mockImplementation((_label: string, options: PublishStreamOptions) => {
+      emit = options.onEvent
+      return new Promise<void>(() => {})
+    })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
+    fireEvent.click(screen.getByTestId("publish-start-button"))
+
+    await act(async () => {
+      emit?.({
+        type: "complete",
+        publication: publishedStatus().publication!,
+        version: { version: 1, page_manifest: [], created_at: "2026-08-01T09:30:00.000Z" },
+        url: SHARE_URL,
+      })
+    })
+
+    expect(screen.getByTestId("publish-takeover").textContent).toContain("Your book is online")
     expect(screen.queryByTestId("publish-start-button")).toBeNull()
   })
 
@@ -481,10 +554,11 @@ describe("PublishPanel — publishing", () => {
       return new Promise<void>(() => {})
     })
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
     fireEvent.click(screen.getByTestId("publish-start-button"))
+    const chosenCode = publishBook.mock.calls[0][1].accessCode
 
     await act(async () => {
       emit?.({ type: "step", id: "upload", number: 3, label: "Upload", status: "error" })
@@ -502,11 +576,38 @@ describe("PublishPanel — publishing", () => {
     const notice = screen.getByTestId("publish-error-worker_unreachable").textContent ?? ""
     expect(notice).toContain("nothing was sent")
     expect(notice).toContain("fetch failed")
-    expect(screen.getByTestId("publish-step-3").getAttribute("data-state")).toBe("error")
-    expect(screen.getByTestId("publish-start-button").textContent).toContain("Try publishing again")
 
-    fireEvent.click(screen.getByTestId("publish-start-button"))
+    /** Retrying repeats the run that failed, access code and all. Re-reading the form would hand
+     *  back a freshly generated code and quietly publish under a different one. */
+    fireEvent.click(screen.getByRole("button", { name: /try again/i }))
     expect(publishBook).toHaveBeenCalledTimes(2)
+    expect(publishBook.mock.calls[1][1].accessCode).toBe(chosenCode)
+  })
+
+  /** A run that failed is over, and a screen about it with no way off is a dead end. */
+  it("gives the form back when the author would rather change something", async () => {
+    getBookPublication.mockResolvedValue(neverPublished())
+
+    let emit: ((event: PublishProgressEvent) => void) | null = null
+    publishBook.mockImplementation((_label: string, options: PublishStreamOptions) => {
+      emit = options.onEvent
+      return new Promise<void>(() => {})
+    })
+
+    renderPage()
+
+    await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
+    fireEvent.click(screen.getByTestId("publish-start-button"))
+
+    await act(async () => {
+      emit?.({ type: "error", code: "package_failed", message: "boom", step_id: "package" })
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /change how you share/i }))
+    expect(screen.queryByTestId("publish-takeover")).toBeNull()
+    expect(screen.getByTestId("publish-start-button").textContent).toContain(
+      "Publish and get a link",
+    )
   })
 
   it("explains a missing Cloudflare connection returned before the stream opens", async () => {
@@ -515,7 +616,7 @@ describe("PublishPanel — publishing", () => {
       new MockApiError("Cloudflare is not connected", 412, "publish_not_connected"),
     )
 
-    renderPanel()
+    renderPage()
 
     await waitFor(() => expect(screen.getByTestId("publish-start-button")).toBeTruthy())
     await act(async () => {

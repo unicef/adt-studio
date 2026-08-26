@@ -7,11 +7,8 @@ import { useAllProjectFeatures } from "@/hooks/use-export-features"
 import {
   publicationLifecycle,
   useBookPublication,
-  useBookPublishRun,
+  type BookPublishRunController,
 } from "@/hooks/use-book-publication"
-import { PublishCalm } from "@/components/pipeline/stages/publish/PublishCalm"
-import { useElapsed } from "@/components/settings/publishing/provision-elapsed"
-import { PublishErrorNotice } from "./PublishErrorNotice"
 import { PublishStartState } from "./PublishStartState"
 import { PublishingSettingsLink } from "./PublishingSettingsLink"
 import { RevokedNotice } from "./RevokedNotice"
@@ -25,11 +22,24 @@ import { RevokedNotice } from "./RevokedNotice"
  * column each — this card could only ever stack them. The page renders this panel only while
  * there is no live link, so the live branch that used to be here was unreachable code with a
  * second implementation of the same controls behind it.
+ *
+ * It says nothing about a run in flight either, and for the same reason: once one starts, the
+ * page hands the whole screen to the takeover, so a checklist here would be a second progress
+ * display nobody can see.
+ *
+ * The run arrives as a prop rather than from `useBookPublishRun` here. Calling that hook in both
+ * places gives each its own `useState`, so the page watched a run that never started while this
+ * card drove the one that did — which is why the stepper's "running" bead never lit.
  */
-export function PublishPanel({ bookLabel }: { bookLabel: string }) {
+export function PublishPanel({
+  bookLabel,
+  run,
+}: {
+  bookLabel: string
+  run: BookPublishRunController
+}) {
   const status = useBookPublication(bookLabel)
   const { toggleable } = useAllProjectFeatures(bookLabel)
-  const run = useBookPublishRun(bookLabel)
   const { credentials } = useCloudflareCredentials()
   const connected = status.data?.connected === true
   const connection = useCloudflareConnection(credentials, { enabled: connected })
@@ -38,8 +48,6 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
   const url = status.data?.url ?? run.result?.url ?? null
   const isRunning = run.status === "running"
   const isLive = lifecycle === "active" && !!url
-  /** The same clock the provisioning loader runs on, so both read "0:12" the same way. */
-  const elapsedMs = useElapsed(run.status === "running" ? "running" : run.status === "done" ? "done" : "idle")
 
   return (
     // `shrink-0` is load-bearing, not tidiness. This sits in the shell's scrolling flex column,
@@ -195,27 +203,9 @@ export function PublishPanel({ bookLabel }: { bookLabel: string }) {
                 available={toggleable}
                 kind={lifecycle === "none" ? "first" : "again"}
                 isRunning={isRunning}
-                hasFailed={run.status === "error"}
                 secondary={lifecycle === "revoked"}
                 onPublish={(options) => run.publish(options)}
               />
-            )}
-
-            {(run.status === "running" || run.status === "error") && (
-              <div className="border-t border-border pt-5">
-                <PublishCalm
-                  status={run.status}
-                  stepStates={run.stepStates}
-                  activeStep={run.activeStep}
-                  elapsedMs={elapsedMs}
-                  kind={run.kind === "update" ? "update" : "first"}
-                />
-                {run.status === "error" && run.failure && (
-                  <div className="mt-4">
-                    <PublishErrorNotice failure={run.failure} />
-                  </div>
-                )}
-              </div>
             )}
 
             {connection.data?.upgrade_available && (

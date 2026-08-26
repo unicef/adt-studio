@@ -323,6 +323,11 @@ async function uploadAdtFiles(
   let bytes = 0
   let cursor = 0
 
+  /** The total before the first file, not alongside it. A bar that appears a second late, or
+   *  worse rescales as the denominator arrives, is the thing determinate progress exists to
+   *  avoid. */
+  await emit(stepEvent("upload", "running", { done: 0, total: files.length, unit: "files" }))
+
   const worker = async (): Promise<void> => {
     for (;;) {
       const index = cursor
@@ -343,11 +348,14 @@ async function uploadAdtFiles(
       )
       bytes += result.bytes
       uploaded += 1
-      /** Named rather than counted alone: on a slow connection this is the longest step by far,
-       *  and a number that only goes up says less than the file it is working on. */
+      /** Counted rather than described: on a slow connection this is the longest step by far,
+       *  and the client can draw a real bar from these two numbers *and* say them in the
+       *  reader's own language, which a sentence assembled here could not. */
       await emit(
         stepEvent("upload", "running", {
-          message: `${uploaded} of ${files.length} files`,
+          done: uploaded,
+          total: files.length,
+          unit: "files",
         }),
       )
     }
@@ -408,7 +416,13 @@ export type PublishEmit = (event: PublishProgressEvent) => Promise<void>
 function stepEvent(
   id: PublishStepId,
   status: "running" | "done" | "error",
-  extra: { message?: string; error?: string } = {},
+  extra: {
+    message?: string
+    error?: string
+    done?: number
+    total?: number
+    unit?: "files" | "pages" | "bytes"
+  } = {},
 ): PublishProgressEvent {
   const descriptor = PUBLISH_STEPS.find((step) => step.id === id)
   if (!descriptor) {
@@ -422,6 +436,9 @@ function stepEvent(
     status,
     ...(extra.message === undefined ? {} : { message: extra.message }),
     ...(extra.error === undefined ? {} : { error: extra.error }),
+    ...(extra.done === undefined ? {} : { done: extra.done }),
+    ...(extra.total === undefined ? {} : { total: extra.total }),
+    ...(extra.unit === undefined ? {} : { unit: extra.unit }),
   }
 }
 

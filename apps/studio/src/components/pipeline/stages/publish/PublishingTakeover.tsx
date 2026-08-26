@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { PUBLISH_STEP_COPY } from "@/components/pipeline/stages/publish/publish-steps"
 import { PublishErrorNotice } from "@/components/pipeline/stages/publish/PublishErrorNotice"
 import { formatElapsed } from "@/components/settings/publishing/provision-elapsed"
+import { takeoverDetail, takeoverHeading } from "@/components/pipeline/stages/publish/takeover-copy"
 import type { BookPublishRunController } from "@/hooks/use-book-publication"
 
 const STEP_ICONS: Record<PublishStepId, LucideIcon> = {
@@ -104,43 +105,56 @@ function StepRow({
   )
 }
 
-interface PublishingUpdateTakeoverProps {
+
+export interface PublishTakeoverProps {
   title: string
+  /** The version readers stay on while an update runs. Null on a first publish, where there is
+   *  nothing for them to stay on. */
   fromVersion: number | null
   run: BookPublishRunController
   elapsedMs: number
 }
 
 /**
- * The update, given the whole page.
+ * The run, given the whole page.
  *
  * Publishing is the one thing on this screen that takes minutes rather than milliseconds, and it
- * used to happen in a card the size of a paragraph while the dashboard sat around it pretending
- * nothing was going on. Now the dashboard steps aside: the four steps are all on screen at once,
- * in order, with a rail between them, and the one that is running says what it is doing.
+ * used to happen in a card the size of a paragraph while the rest of the page sat around it
+ * pretending nothing was going on. Now the page steps aside: the four steps are all on screen at
+ * once, in order, with a rail between them, and the one that is running says what it is doing.
  *
  * All four are visible rather than one-at-a-time on purpose. "Uploading" alone tells an author
  * nothing about how much is left, and this is exactly the wait where somebody starts wondering
  * whether it has hung — the same reason the provisioning flow lists its eight.
+ *
+ * A first publish and an update run the identical four steps and deserve the identical screen;
+ * only the words differ, because the thing at stake differs. An update has readers already on a
+ * version and the reassurance they need is that nothing moves under them. A first publish has no
+ * readers yet, so the reassurance is the opposite one: nothing is shared until this finishes.
  */
-export function PublishingUpdateTakeover({
+export function PublishingTakeover({
   title,
   fromVersion,
   run,
   elapsedMs,
-}: PublishingUpdateTakeoverProps) {
+}: PublishTakeoverProps) {
+  const copy = { run, title, fromVersion }
   const failed = run.status === "error"
+  const done = run.status === "done"
+  const first = run.kind === "publish"
   const settled = run.stepStates.filter((state) => state === "done").length
   const total = PUBLISH_STEP_COPY.length
 
   return (
     <div
-      data-testid="publish-update-takeover"
+      data-testid="publish-takeover"
       className={cn(
-        "flex min-h-0 flex-1 flex-col items-center justify-center gap-6 rounded-2xl border p-8",
+        "flex min-h-0 flex-1 flex-col items-center justify-center gap-6 rounded-2xl border p-8 transition-colors duration-500 motion-reduce:transition-none",
         failed
           ? "border-destructive/30 bg-destructive/[0.03]"
-          : "border-indigo-200/70 bg-gradient-to-b from-indigo-50/70 via-card to-card",
+          : done
+            ? "border-emerald-200/70 bg-gradient-to-b from-emerald-50/70 via-card to-card"
+            : "border-indigo-200/70 bg-gradient-to-b from-indigo-50/70 via-card to-card",
         "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-[0.98] motion-safe:duration-500",
       )}
     >
@@ -150,18 +164,10 @@ export function PublishingUpdateTakeover({
           aria-live="polite"
           className="text-lg font-semibold tracking-tight text-foreground"
         >
-          {failed ? <Trans>Publishing stopped</Trans> : <Trans>Updating the shared copy</Trans>}
+          {takeoverHeading(copy)}
         </span>
         <span className="max-w-md text-sm leading-6 text-muted-foreground">
-          {failed ? (
-            <Trans>Nothing changed for your readers — they are still reading the copy you had.</Trans>
-          ) : fromVersion === null ? (
-            <Trans>{title} — your readers keep reading until this finishes.</Trans>
-          ) : (
-            <Trans>
-              {title} — readers stay on version {fromVersion} until this finishes.
-            </Trans>
-          )}
+          {takeoverDetail(copy)}
         </span>
       </div>
 
@@ -181,7 +187,7 @@ export function PublishingUpdateTakeover({
           <span
             className={cn(
               "block h-full rounded-full transition-[width] duration-500 motion-reduce:transition-none",
-              failed ? "bg-destructive" : "bg-indigo-600",
+              failed ? "bg-destructive" : done ? "bg-emerald-500" : "bg-indigo-600",
             )}
             style={{ width: `${(settled / total) * 100}%` }}
           />
@@ -197,9 +203,21 @@ export function PublishingUpdateTakeover({
       {failed && run.failure ? (
         <div className="flex w-full max-w-md flex-col gap-3">
           <PublishErrorNotice failure={run.failure} />
-          <Button className="self-center" onClick={run.update}>
-            <Trans>Try again</Trans>
-          </Button>
+          {/* `retry`, not `update`: a first publish carries the access code and end date the
+              author chose, and re-running the wrong kind would either lose them or fail. */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button onClick={run.retry}>
+              <Trans>Try again</Trans>
+            </Button>
+            {/* Without this the author is held on a screen about a run that is over. Only on a
+                first publish, where the way out is the form they filled in; an update has no
+                form to go back to. */}
+            {first ? (
+              <Button variant="ghost" onClick={run.reset}>
+                <Trans>Change how you share</Trans>
+              </Button>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </div>

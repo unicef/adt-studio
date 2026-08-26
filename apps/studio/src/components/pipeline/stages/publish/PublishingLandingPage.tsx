@@ -20,7 +20,7 @@ import { PublishingHero } from "./PublishingHero"
 import { PublishingSection } from "./PublishingSection"
 import { PublishingStepper, type PublishPhase } from "./PublishingStepper"
 import { PublishingSummary } from "./PublishingSummary"
-import { PublishingUpdateTakeover } from "./PublishingUpdateTakeover"
+import { PublishingTakeover } from "./PublishingTakeover"
 import { PublishingVersions } from "./PublishingVersions"
 
 /**
@@ -30,10 +30,13 @@ import { PublishingVersions } from "./PublishingVersions"
  * living thing with an address, an audience, an access code and a history — which is why it sits
  * *before* Export in the rail.
  *
- * One page, no tabs, and two shapes.
+ * One page, no tabs, and three shapes.
  *
  * **Before a link exists** it is a narrow scrolling column: a stepper, then the one card that
  * asks for a decision. There is exactly one thing to do, and a wide page would bury it.
+ *
+ * **While a run is going** — the first one or the hundredth — the page hands itself to the
+ * takeover. A wait of minutes shown inside a card is a wait the author has to go looking for.
  *
  * **Once the link exists** it becomes a dashboard that *fits the window* — a two-row, two-column
  * grid pinned to the shell's height, with the two lists scrolling inside their own boxes. The
@@ -58,12 +61,16 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
   const token = record?.token ?? null
   const currentVersion = status.data?.publication?.current_version ?? null
   const newest = [...(record?.versions ?? [])].sort((a, b) => b.version - a.version)[0] ?? null
-  const updating = run.status === "running" || run.status === "error"
+  /** A finished run whose link the status query has not caught up with yet. Without this the
+   *  screen drops back to the "Publish this book" form for the moment between the last step and
+   *  the refetch — a flash of the question, right after the answer. */
+  const settling = run.status === "done" && !live && !status.isError
+  const takingOver = run.status === "running" || run.status === "error" || settling
   const elapsedMs = useElapsed(run.status === "running" ? "running" : run.status === "done" ? "done" : "idle")
 
   const phase: PublishPhase = !connected
     ? "connect"
-    : run.status === "running"
+    : takingOver
       ? "running"
       : live
         ? "live"
@@ -78,6 +85,27 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
     )
   }
 
+  /* A first publish is the same wait as an update and gets the same screen: the page steps
+     aside for it rather than running it inside a card, which is the difference between watching
+     the thing happen and hunting for it. The stepper stays — the takeover replaces the body,
+     not the map. */
+  if (!live && connected && takingOver) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-8 pb-6 pt-6 mh:pb-4 mh:pt-4">
+        <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-5 mh:gap-4">
+          <Header compact />
+          <PublishingStepper phase={phase} />
+          <PublishingTakeover
+            title={book.data?.title ?? bookLabel}
+            fromVersion={null}
+            run={run}
+            elapsedMs={elapsedMs}
+          />
+        </div>
+      </div>
+    )
+  }
+
   if (!live) {
     return (
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
@@ -85,7 +113,7 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
           <Header />
           <PublishingStepper phase={phase} />
           <PublishingEngineNotice />
-          <PublishPanel bookLabel={bookLabel} />
+          <PublishPanel bookLabel={bookLabel} run={run} />
         </div>
       </div>
     )
@@ -103,8 +131,8 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
           hasAccessCode={status.data?.has_access_code ?? false}
         />
 
-        {updating ? (
-          <PublishingUpdateTakeover
+        {takingOver ? (
+          <PublishingTakeover
             title={book.data?.title ?? bookLabel}
             fromVersion={currentVersion}
             run={run}

@@ -31,7 +31,6 @@ interface PublishStartStateProps {
   available: AvailableExportFeatures
   kind: "first" | "again"
   isRunning: boolean
-  hasFailed?: boolean
   /** Set when something else on the panel is the primary way forward — today that is
    *  "Resume sharing" on a revoked publication. */
   secondary?: boolean
@@ -46,7 +45,6 @@ export function PublishStartState({
   available,
   kind,
   isRunning,
-  hasFailed = false,
   secondary = false,
   onPublish,
 }: PublishStartStateProps) {
@@ -129,8 +127,6 @@ export function PublishStartState({
           )}
           {isRunning ? (
             <Trans>Publishing…</Trans>
-          ) : hasFailed ? (
-            <Trans>Try publishing again</Trans>
           ) : kind === "first" ? (
             <Trans>Publish and get a link</Trans>
           ) : (
