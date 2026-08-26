@@ -28,22 +28,6 @@ function SampleHead({ children }: { children: React.ReactNode }) {
   )
 }
 
-const GENERIC: Pick<PluginCopy, "sample" | "sampleNote"> = {
-  sample: (
-    <SampleCard>
-      <SampleHead>
-        <span className="text-sm font-bold">
-          <Trans>Generated item</Trans>
-        </span>
-      </SampleHead>
-      <p className="text-[12.5px] leading-relaxed text-muted-foreground">
-        <Trans>Every item is produced per section, linked back to the page it came from.</Trans>
-      </p>
-    </SampleCard>
-  ),
-  sampleNote: <Trans>Everything is editable and saved as a new version — nothing is overwritten.</Trans>,
-}
-
 export const PLUGIN_COPY: Record<DockSlug, PluginCopy> = {
   extract: {
     emptyTitle: msg`Nothing extracted yet`,

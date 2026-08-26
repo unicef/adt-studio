@@ -105,5 +105,3 @@ export function useTtsExclusions(label: string) {
 
   return { exclusionFor, excludedIdSet, toggle }
 }
-
-export type TtsExclusions = ReturnType<typeof useTtsExclusions>

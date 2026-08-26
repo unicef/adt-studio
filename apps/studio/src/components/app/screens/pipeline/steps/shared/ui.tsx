@@ -95,14 +95,6 @@ export function StepCard({
   )
 }
 
-export function StepGroupLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="pt-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-      {children}
-    </div>
-  )
-}
-
 export interface EditableTextProps {
   value: string
   onSave: (next: string) => void

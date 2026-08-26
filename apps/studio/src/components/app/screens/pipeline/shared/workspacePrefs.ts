@@ -39,10 +39,6 @@ export const useCanvasZoom = zoomStore.use
 /** Whether the plugin dock is slid off the bottom edge, down to its handle. */
 export const useDockMinimized = dockMinimizedStore.use
 
-export const canvasViewport = viewportStore
-export const canvasZoom = zoomStore
-export const dockMinimized = dockMinimizedStore
-
 export function rememberLastPage(label: string, pageId: string) {
   lastPageStore.set((previous) =>
     previous[label] === pageId ? previous : { ...previous, [label]: pageId },

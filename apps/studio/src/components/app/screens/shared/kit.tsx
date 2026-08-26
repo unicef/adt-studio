@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
 import { Trans, Plural, useLingui } from "@lingui/react/macro"
-import { Check, RotateCcw, Sparkles, LayoutGrid, Rows3, ArrowRight, ArrowUpRight, Pin, Plus } from "lucide-react"
+import { Check, LayoutGrid, Rows3, ArrowUpRight, Pin, Plus } from "lucide-react"
 import { CORE_STAGE_ORDER } from "@adt/types"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
@@ -179,94 +179,6 @@ export function StageBar({ vm, labels = false, className }: { vm: BookVM; labels
   )
 }
 
-export function FrontierChip({ vm, className }: { vm: BookVM; className?: string }) {
-  const p = progressFor(vm)
-  const base = "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-semibold"
-
-  if (p.status === "new")
-    return (
-      <span className={cn(base, "bg-muted text-muted-foreground", className)}>
-        <Sparkles className="size-3.5" />
-        <Trans>Not started</Trans>
-      </span>
-    )
-  if (p.status === "rebuild")
-    return (
-      <span className={cn(base, "bg-stage-toc-50 text-stage-toc", className)}>
-        <RotateCcw className="size-3.5" />
-        <Trans>Needs rebuild</Trans>
-      </span>
-    )
-  if (p.status === "ready")
-    return (
-      <span className={cn(base, "bg-stage-validation-50 text-stage-validation", className)}>
-        <Check className="size-3.5" />
-        <Trans>Ready</Trans>
-      </span>
-    )
-
-  const Icon = p.baseFrontier!.icon
-  return (
-    <span className={cn(base, "bg-card ring-1 ring-border", className)}>
-      <Icon className="size-3.5" style={{ color: p.baseFrontier!.hex }} />
-      <span className="text-foreground">
-        <NextLabel label={getStageLabelI18n(p.baseFrontier!.slug)} />
-      </span>
-    </span>
-  )
-}
-
-function NextLabel({ label }: { label: string }) {
-  const { t } = useLingui()
-  return (
-    <>
-      <span className="text-muted-foreground">{t`Next`}</span> · {label}
-    </>
-  )
-}
-
-export function GridCard({
-  vm,
-  onOpen,
-  ring = false,
-  badge,
-}: {
-  vm: BookVM
-  onOpen: (label: string) => void
-  ring?: boolean
-  badge?: ReactNode
-}) {
-  return (
-    <button type="button" onClick={() => onOpen(vm.label)} className="group block text-left focus-visible:outline-none">
-      <div
-        className={cn(
-          "relative aspect-[3/4] overflow-hidden rounded-xl shadow-sm ring-1 ring-black/5 transition-transform duration-200 group-hover:-translate-y-1 group-hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-brand-500",
-          ring && "ring-2 ring-brand-500",
-        )}
-      >
-        <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} />
-        {badge && <div className="absolute left-2 top-2">{badge}</div>}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between bg-gradient-to-t from-black/70 to-transparent px-3 pb-2.5 pt-8 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-          <span className="truncate text-[11.5px] font-semibold text-primary-foreground">
-            <ContinueLabel vm={vm} />
-          </span>
-          <ArrowRight className="size-3.5 shrink-0 text-white" />
-        </div>
-      </div>
-      <div className="mt-2.5">
-        <div className="truncate text-[13px] font-semibold leading-tight">{vm.displayTitle}</div>
-        <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
-          {vm.authors} · {vm.pagesText}
-        </div>
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <FrontierChip vm={vm} />
-          <span className="shrink-0 text-[11px] text-muted-foreground">{vm.modified}</span>
-        </div>
-      </div>
-    </button>
-  )
-}
-
 export function ContinueLabel({ vm }: { vm: BookVM }) {
   const { t } = useLingui()
   const p = progressFor(vm)
@@ -277,72 +189,6 @@ export function ContinueLabel({ vm }: { vm: BookVM }) {
     <>
       {t`Continue`} <span className="opacity-70">· {getStageLabelI18n(p.baseFrontier!.slug)}</span>
     </>
-  )
-}
-
-export type Filter = "all" | "active" | "splits" | "ready"
-
-function matchesFilter(vm: BookVM, f: Filter): boolean {
-  if (f === "active") return isActive(vm)
-  if (f === "splits") return !!(vm.raw.split && !vm.raw.split.fullyMerged)
-  if (f === "ready") return progressFor(vm).status === "ready"
-  return true
-}
-
-export function filterBooks(books: BookVM[], f: Filter): BookVM[] {
-  return books.filter((vm) => matchesFilter(vm, f))
-}
-
-export function sortByStatus(books: BookVM[]): BookVM[] {
-  const rank = (vm: BookVM) => {
-    const s = progressFor(vm).status
-    return s === "rebuild" ? 0 : s === "in-progress" ? 1 : s === "new" ? 2 : 3
-  }
-  return [...books].sort(
-    (a, b) => rank(a) - rank(b) || new Date(b.raw.modifiedAt).getTime() - new Date(a.raw.modifiedAt).getTime(),
-  )
-}
-
-export function FilterChips({
-  books,
-  value,
-  onChange,
-  layout = "row",
-}: {
-  books: BookVM[]
-  value: Filter
-  onChange: (f: Filter) => void
-  layout?: "row" | "column"
-}) {
-  const { t } = useLingui()
-  const chips: { key: Filter; label: string }[] = [
-    { key: "all", label: t`All` },
-    { key: "active", label: t`In progress` },
-    { key: "splits", label: t`Splits` },
-    { key: "ready", label: t`Ready` },
-  ]
-  return (
-    <div className={cn(layout === "column" ? "flex flex-col gap-1" : "flex flex-wrap items-center gap-2")}>
-      {chips.map((c) => {
-        const count = filterBooks(books, c.key).length
-        const active = value === c.key
-        return (
-          <button
-            key={c.key}
-            type="button"
-            onClick={() => onChange(c.key)}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-medium transition-colors",
-              layout === "column" && "w-full justify-between rounded-lg",
-              active ? "border-transparent bg-foreground text-background" : "bg-card text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {c.label}
-            <span className={cn("tabular-nums", active ? "text-background/70" : "text-muted-foreground/70")}>{count}</span>
-          </button>
-        )
-      })}
-    </div>
   )
 }
 
@@ -395,22 +241,6 @@ export function ShelfCard({
   )
 }
 
-export function NewBookButton({ onClick, className }: { onClick: () => void; className?: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 py-2 text-[13px] font-semibold text-primary-foreground transition-colors duration-200 hover:bg-brand-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        className,
-      )}
-    >
-      <Plus className="size-4" />
-      <Trans>New book</Trans>
-    </button>
-  )
-}
-
 export function AddBookTile({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} className="group block text-left focus-visible:outline-none">
@@ -422,27 +252,6 @@ export function AddBookTile({ onClick }: { onClick: () => void }) {
       </div>
     </button>
   )
-}
-
-export function StatusLabel({ vm, className }: { vm: BookVM; className?: string }) {
-  const { t } = useLingui()
-  const p = progressFor(vm)
-  let text: string
-  let color: string
-  if (p.status === "new") {
-    text = t`Not started`
-    color = "text-muted-foreground"
-  } else if (p.status === "rebuild") {
-    text = t`Needs rebuild`
-    color = "text-stage-toc"
-  } else if (p.status === "ready") {
-    text = t`Ready`
-    color = "text-stage-validation"
-  } else {
-    text = `${t`Next`} · ${getStageLabelI18n(p.baseFrontier!.slug)}`
-    color = "text-foreground"
-  }
-  return <span className={cn("text-[11px] font-medium", color, className)}>{text}</span>
 }
 
 export function OutputsPanel({ vm, className }: { vm: BookVM; className?: string }) {
@@ -484,78 +293,5 @@ export function LibraryLink({ count }: { count: number }) {
       <Trans>All {count} books in Library</Trans>
       <ArrowUpRight className="size-3.5" />
     </Link>
-  )
-}
-
-const CELL = "px-4 py-3 align-middle"
-
-export function LibraryTable({ books, onOpen }: { books: BookVM[]; onOpen: (label: string) => void }) {
-  return (
-    <div className="overflow-hidden rounded-xl border">
-      <table className="w-full border-collapse text-left">
-        <thead>
-          <tr className="border-b bg-muted/40 text-[11px] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-            <th className={cn(CELL, "font-medium")}>
-              <Trans>Book</Trans>
-            </th>
-            <th className={cn(CELL, "w-[30%] font-medium")}>
-              <Trans>Progress</Trans>
-            </th>
-            <th className={cn(CELL, "font-medium")}>
-              <Trans>Pages</Trans>
-            </th>
-            <th className={cn(CELL, "font-medium")}>
-              <Trans>Lang</Trans>
-            </th>
-            <th className={cn(CELL, "font-medium")}>
-              <Trans>Last edited</Trans>
-            </th>
-          </tr>
-        </thead>
-        <tbody className="text-[13px]">
-          {books.map((vm) => (
-            <tr
-              key={vm.label}
-              onClick={() => onOpen(vm.label)}
-              className="group cursor-pointer border-b last:border-0 transition-colors hover:bg-muted/40"
-            >
-              <td className={CELL}>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onOpen(vm.label)
-                  }}
-                  className="flex w-full items-center gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
-                >
-                  <div className="h-11 w-8 shrink-0 overflow-hidden rounded shadow-sm ring-1 ring-black/5">
-                    <BookCover title={vm.displayTitle} author={vm.authors} cover={vm.cover} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="truncate font-semibold leading-tight">{vm.displayTitle}</div>
-                    <div className="truncate text-[11.5px] text-muted-foreground">{vm.authors}</div>
-                  </div>
-                </button>
-              </td>
-              <td className={CELL}>
-                <div className="flex items-center gap-2.5">
-                  <StageBar vm={vm} className="min-w-[92px] flex-1" />
-                  <FrontierChip vm={vm} />
-                </div>
-              </td>
-              <td className={cn(CELL, "tabular-nums text-muted-foreground")}>{vm.pagesText}</td>
-              <td className={cn(CELL, "font-mono text-[11.5px] text-muted-foreground")}>{vm.lang}</td>
-              <td className={cn(CELL, "whitespace-nowrap text-muted-foreground")}>
-                <span className="group-hover:hidden">{vm.modified}</span>
-                <span className="hidden items-center gap-1 font-medium text-brand-700 group-hover:inline-flex">
-                  <Trans>Continue</Trans>
-                  <ArrowRight className="size-3.5" />
-                </span>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   )
 }

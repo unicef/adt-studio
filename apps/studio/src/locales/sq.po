@@ -112,8 +112,8 @@ msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# faqe} other {# faqe}}"
 
 #. placeholder {0}: discs.length
-msgid "{0, plural, one {# stage} other {# stages}}"
-msgstr "{0, plural, one {# fazë} other {# faza}}"
+#~ msgid "{0, plural, one {# stage} other {# stages}}"
+#~ msgstr "{0, plural, one {# fazë} other {# faza}}"
 
 #. placeholder {0}: llmSteps.length
 msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
@@ -4024,8 +4024,8 @@ msgstr "Çdo disa faqe"
 msgid "Every image gets an alternative description a screen reader can announce."
 msgstr "Çdo imazh merr një përshkrim alternativ që lexuesi i ekranit mund ta shqiptojë."
 
-msgid "Every item is produced per section, linked back to the page it came from."
-msgstr "Çdo element prodhohet për seksion dhe mbetet i lidhur me faqen nga e cila erdhi."
+#~ msgid "Every item is produced per section, linked back to the page it came from."
+#~ msgstr "Çdo element prodhohet për seksion dhe mbetet i lidhur me faqen nga e cila erdhi."
 
 msgid "Every notable concept and named entity."
 msgstr "Çdo koncept i rëndësishëm dhe entitet i emërtuar."
@@ -4066,8 +4066,8 @@ msgstr "Çdo mënyrë për të lexuar."
 msgid "everyone."
 msgstr "të gjithë."
 
-msgid "Everything is editable and saved as a new version — nothing is overwritten."
-msgstr "Gjithçka është e redaktueshme dhe ruhet si version i ri — asgjë nuk mbishkruhet."
+#~ msgid "Everything is editable and saved as a new version — nothing is overwritten."
+#~ msgstr "Gjithçka është e redaktueshme dhe ruhet si version i ri — asgjë nuk mbishkruhet."
 
 msgid "Everything is ready to build the storyboard"
 msgstr "Gjithçka është gati për të ndërtuar storyboard-in"
@@ -4204,8 +4204,8 @@ msgid "Extraction and sectioning are done — {sectionCount} sections across {pa
 msgstr "Nxjerrja dhe ndarja në seksione përfunduan — {sectionCount} seksione në {pageCount} faqe. Renderizimi i kthen ato në faqet që do të shohë lexuesi."
 
 #. placeholder {0}: state.pages.length
-msgid "Extraction complete · {0} pages"
-msgstr "Nxjerrja përfundoi · {0} faqe"
+#~ msgid "Extraction complete · {0} pages"
+#~ msgstr "Nxjerrja përfundoi · {0} faqe"
 
 msgid "Extraction failed."
 msgstr "Nxjerrja dështoi."
@@ -4678,8 +4678,8 @@ msgstr "Gjeneruar nga faqet {sourceLabel}"
 msgid "Generated from these pages"
 msgstr "Gjeneruar nga këto faqe"
 
-msgid "Generated item"
-msgstr "Element i gjeneruar"
+#~ msgid "Generated item"
+#~ msgstr "Element i gjeneruar"
 
 msgid "Generated section"
 msgstr "Seksion i gjeneruar"
@@ -6361,8 +6361,8 @@ msgstr "Kërkon ndryshime"
 msgid "Needs fixing"
 msgstr "Kërkon rregullim"
 
-msgid "Needs rebuild"
-msgstr "Kërkon rindërtim"
+#~ msgid "Needs rebuild"
+#~ msgstr "Kërkon rindërtim"
 
 msgid "needs update"
 msgstr "nevojitet përditësim"
@@ -6376,8 +6376,8 @@ msgstr "Kurrë i ekzekutuar"
 msgid "New"
 msgstr "E re"
 
-msgid "New book"
-msgstr "Libër i ri"
+#~ msgid "New book"
+#~ msgstr "Libër i ri"
 
 msgid "New builds land here first — from our <0>develop</0> staging branch, and from individual pull requests we stage so you can try a change and share your take before it's merged. It's a preview, so your books stay on this device and every result stays versioned."
 msgstr "Versionet e reja mbërrijnë këtu të parat — nga dega jonë e testimit <0>develop</0> dhe nga pull request-e individuale që i përgatisim që ju të provoni një ndryshim dhe të ndani mendimin tuaj para se të bashkohet. Është një pamje paraprake, ndaj librat tuaj mbeten në këtë pajisje dhe çdo rezultat mbetet i versionuar."
@@ -6986,8 +6986,8 @@ msgstr "Asgjë e rëndësishme nuk mungon ose nuk është shtuar"
 msgid "Nothing is running right now. Stages you start show their steps here."
 msgstr "Asgjë nuk është në ekzekutim tani. Fazat që nisni shfaqin hapat e tyre këtu."
 
-msgid "Nothing pending review"
-msgstr "Asgjë në pritje për shqyrtim"
+#~ msgid "Nothing pending review"
+#~ msgstr "Asgjë në pritje për shqyrtim"
 
 msgid "Nothing sectioned yet"
 msgstr "Ende nuk është ndarë asgjë në seksione"
@@ -8449,8 +8449,8 @@ msgstr "Libër dixhital i pajtueshëm me Readium"
 msgid "Reads in"
 msgstr "Lexohet në"
 
-msgid "Ready"
-msgstr "Gati"
+#~ msgid "Ready"
+#~ msgstr "Gati"
 
 msgid "Real books processed with this preset — before and after."
 msgstr "Libra të vërtetë të procesuar me këtë paracaktim — para dhe pas."
@@ -8869,8 +8869,8 @@ msgid "Review pruned sections"
 msgstr "Rishiko seksionet e hequra"
 
 #. placeholder {0}: state.missingCaptions
-msgid "Review queue · {0}"
-msgstr "Radha e shqyrtimit · {0}"
+#~ msgid "Review queue · {0}"
+#~ msgstr "Radha e shqyrtimit · {0}"
 
 msgid "Review sectioning"
 msgstr "Shqyrto Seksionimin"
@@ -9401,8 +9401,8 @@ msgid "Sectioning"
 msgstr "Seksionim"
 
 #. placeholder {0}: state.sectionCount
-msgid "Sectioning complete · {0} sections"
-msgstr "Ndarja në seksione përfundoi · {0} seksione"
+#~ msgid "Sectioning complete · {0} sections"
+#~ msgstr "Ndarja në seksione përfundoi · {0} seksione"
 
 msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 msgstr "Seksionimi ka ndryshuar që kur u renderizuan këto faqe. Ekzekuto përsëri Storyboard-in për t'i rigjeneruar ato."
@@ -9755,8 +9755,8 @@ msgstr "Shfaq të pandryshuarat"
 msgid "Show:"
 msgstr "Shfaq:"
 
-msgid "Showing {start}–{end} of {totalItems} books"
-msgstr "Duke shfaqur {start}–{end} nga {totalItems} libra"
+#~ msgid "Showing {start}–{end} of {totalItems} books"
+#~ msgstr "Duke shfaqur {start}–{end} nga {totalItems} libra"
 
 msgid "Showing only terms you added — click to show all"
 msgstr "Po shfaqen vetëm termat që shtuat — klikoni për të shfaqur të gjitha"
@@ -10054,8 +10054,8 @@ msgstr "Ndaje librin në seksione sipas strofave"
 msgid "split this section"
 msgstr "ndaj këtë seksion"
 
-msgid "Splits"
-msgstr "Ndarjet"
+#~ msgid "Splits"
+#~ msgstr "Ndarjet"
 
 msgid "Spread"
 msgstr "Shpërndarje"

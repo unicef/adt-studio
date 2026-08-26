@@ -134,7 +134,6 @@ export function ExtractStep(props: StepProps) {
             key={selectedPage.pageId}
             label={label}
             pageId={selectedPage.pageId}
-            accent={plugin.hex}
             prevPageId={prevPageId}
             nextPageId={nextPageId}
             onStep={stepPage}

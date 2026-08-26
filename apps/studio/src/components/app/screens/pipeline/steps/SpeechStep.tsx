@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { AlertTriangle, Search } from "lucide-react"
 import type { WordTimestamp } from "@/api/client"
@@ -15,8 +15,6 @@ import { SpeechClipList } from "./speech/SpeechClipList"
 import { useSpeechAudio } from "./speech/useSpeechAudio"
 import { useTtsExclusions } from "./speech/useTtsExclusions"
 import type { StepProps } from "./shared/types"
-
-const ROW_ESTIMATE = 132
 
 function languageName(code: string, locale: string): string {
   if (!code) return ""

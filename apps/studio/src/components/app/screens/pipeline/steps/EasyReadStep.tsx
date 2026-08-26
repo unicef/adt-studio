@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { RotateCcw, Search, X } from "lucide-react"
-import type { EasyReadEntry, EasyReadSectionBlock } from "@/api/client"
 import { PageThumb } from "@/components/app/screens/pipeline/canvas/PageThumb"
 import { useRunActivity, useStageActivity } from "@/components/app/screens/pipeline/runs/useRunActivity"
 import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"

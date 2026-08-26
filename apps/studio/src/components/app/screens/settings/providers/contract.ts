@@ -68,5 +68,3 @@ export interface ProviderHealthResponse {
   modelCount?: number
   detail?: string
 }
-
-export type ProviderCredentialValues = Record<string, Record<string, string>>

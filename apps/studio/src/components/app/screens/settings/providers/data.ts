@@ -1,7 +1,7 @@
 /* eslint-disable lingui/no-unlocalized-strings -- Manifest copy mirrors server-localized provider data (LocalizedText from /providers), not app UI strings. */
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
-import type { AiModality, ProviderDescriptor } from "./contract"
+import type { ProviderDescriptor } from "./contract"
 
 export interface RoleGroup {
   key: string

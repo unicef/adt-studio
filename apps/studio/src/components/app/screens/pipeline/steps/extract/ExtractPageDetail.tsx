@@ -17,7 +17,6 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { usePipelineNavigation } from "@/components/app/screens/pipeline/shared/usePipelineNavigation"
-import { tint } from "@/components/app/screens/pipeline/shared/plugins"
 import {
   ImageCropDialog,
   pageBoundsToCropRect,
@@ -31,7 +30,6 @@ import { useExtractImages } from "./useExtractImages"
 export function ExtractPageDetail({
   label,
   pageId,
-  accent,
   prevPageId,
   nextPageId,
   onStep,
@@ -39,7 +37,6 @@ export function ExtractPageDetail({
 }: {
   label: string
   pageId: string
-  accent: string
   prevPageId: string | null
   nextPageId: string | null
   onStep: (pageId: string) => void

@@ -9,7 +9,7 @@ import { ActionMenu } from "@/components/ui/action-menu"
 import { BookCover } from "../../BookCover"
 import type { BookVM } from "../../data"
 import { StageBar, ShelfCard, ViewToggle } from "../shared/kit"
-import { useLibraryPrefs, type LibrarySort, type LibraryGroup } from "@/hooks/use-library-prefs"
+import { useLibraryPrefs, type LibrarySort } from "@/hooks/use-library-prefs"
 
 export interface LibBook extends BookVM {
   hasError?: boolean
@@ -17,7 +17,6 @@ export interface LibBook extends BookVM {
 }
 
 type SortKey = LibrarySort
-type Group = LibraryGroup
 type Attention = "errors" | "feedback" | "none"
 
 const ATTENTION_ORDER: Attention[] = ["errors", "feedback", "none"]

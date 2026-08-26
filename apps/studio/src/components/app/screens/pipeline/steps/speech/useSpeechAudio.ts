@@ -115,5 +115,3 @@ export function useSpeechAudio(label: string, language: string) {
     saveTimestamps,
   }
 }
-
-export type SpeechAudio = ReturnType<typeof useSpeechAudio>

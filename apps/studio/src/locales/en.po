@@ -110,8 +110,8 @@ msgid "{0, plural, one {# page} other {# pages}}"
 msgstr "{0, plural, one {# page} other {# pages}}"
 
 #. placeholder {0}: discs.length
-msgid "{0, plural, one {# stage} other {# stages}}"
-msgstr "{0, plural, one {# stage} other {# stages}}"
+#~ msgid "{0, plural, one {# stage} other {# stages}}"
+#~ msgstr "{0, plural, one {# stage} other {# stages}}"
 
 #. placeholder {0}: llmSteps.length
 msgid "{0, plural, one {# task inherits this model} other {# tasks inherit this model}}"
@@ -4022,8 +4022,8 @@ msgstr "Every few pages"
 msgid "Every image gets an alternative description a screen reader can announce."
 msgstr "Every image gets an alternative description a screen reader can announce."
 
-msgid "Every item is produced per section, linked back to the page it came from."
-msgstr "Every item is produced per section, linked back to the page it came from."
+#~ msgid "Every item is produced per section, linked back to the page it came from."
+#~ msgstr "Every item is produced per section, linked back to the page it came from."
 
 msgid "Every notable concept and named entity."
 msgstr "Every notable concept and named entity."
@@ -4064,8 +4064,8 @@ msgstr "Every way to read."
 msgid "everyone."
 msgstr "everyone."
 
-msgid "Everything is editable and saved as a new version — nothing is overwritten."
-msgstr "Everything is editable and saved as a new version — nothing is overwritten."
+#~ msgid "Everything is editable and saved as a new version — nothing is overwritten."
+#~ msgstr "Everything is editable and saved as a new version — nothing is overwritten."
 
 msgid "Everything is ready to build the storyboard"
 msgstr "Everything is ready to build the storyboard"
@@ -4202,8 +4202,8 @@ msgid "Extraction and sectioning are done — {sectionCount} sections across {pa
 msgstr "Extraction and sectioning are done — {sectionCount} sections across {pageCount} pages. Rendering turns them into the pages the reader will actually see."
 
 #. placeholder {0}: state.pages.length
-msgid "Extraction complete · {0} pages"
-msgstr "Extraction complete · {0} pages"
+#~ msgid "Extraction complete · {0} pages"
+#~ msgstr "Extraction complete · {0} pages"
 
 msgid "Extraction failed."
 msgstr "Extraction failed."
@@ -4676,8 +4676,8 @@ msgstr "Generated from pages {sourceLabel}"
 msgid "Generated from these pages"
 msgstr "Generated from these pages"
 
-msgid "Generated item"
-msgstr "Generated item"
+#~ msgid "Generated item"
+#~ msgstr "Generated item"
 
 msgid "Generated section"
 msgstr "Generated section"
@@ -6359,8 +6359,8 @@ msgstr "Needs changes"
 msgid "Needs fixing"
 msgstr "Needs fixing"
 
-msgid "Needs rebuild"
-msgstr "Needs rebuild"
+#~ msgid "Needs rebuild"
+#~ msgstr "Needs rebuild"
 
 msgid "needs update"
 msgstr "needs update"
@@ -6374,8 +6374,8 @@ msgstr "Never run"
 msgid "New"
 msgstr "New"
 
-msgid "New book"
-msgstr "New book"
+#~ msgid "New book"
+#~ msgstr "New book"
 
 msgid "New builds land here first — from our <0>develop</0> staging branch, and from individual pull requests we stage so you can try a change and share your take before it's merged. It's a preview, so your books stay on this device and every result stays versioned."
 msgstr "New builds land here first — from our <0>develop</0> staging branch, and from individual pull requests we stage so you can try a change and share your take before it's merged. It's a preview, so your books stay on this device and every result stays versioned."
@@ -6984,8 +6984,8 @@ msgstr "Nothing important is missing or added"
 msgid "Nothing is running right now. Stages you start show their steps here."
 msgstr "Nothing is running right now. Stages you start show their steps here."
 
-msgid "Nothing pending review"
-msgstr "Nothing pending review"
+#~ msgid "Nothing pending review"
+#~ msgstr "Nothing pending review"
 
 msgid "Nothing sectioned yet"
 msgstr "Nothing sectioned yet"
@@ -8447,8 +8447,8 @@ msgstr "Readium-compatible digital book"
 msgid "Reads in"
 msgstr "Reads in"
 
-msgid "Ready"
-msgstr "Ready"
+#~ msgid "Ready"
+#~ msgstr "Ready"
 
 msgid "Real books processed with this preset — before and after."
 msgstr "Real books processed with this preset — before and after."
@@ -8867,8 +8867,8 @@ msgid "Review pruned sections"
 msgstr "Review pruned sections"
 
 #. placeholder {0}: state.missingCaptions
-msgid "Review queue · {0}"
-msgstr "Review queue · {0}"
+#~ msgid "Review queue · {0}"
+#~ msgstr "Review queue · {0}"
 
 msgid "Review sectioning"
 msgstr "Review sectioning"
@@ -9399,8 +9399,8 @@ msgid "Sectioning"
 msgstr "Sectioning"
 
 #. placeholder {0}: state.sectionCount
-msgid "Sectioning complete · {0} sections"
-msgstr "Sectioning complete · {0} sections"
+#~ msgid "Sectioning complete · {0} sections"
+#~ msgstr "Sectioning complete · {0} sections"
 
 msgid "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
 msgstr "Sectioning has changed since these pages were rendered. Re-run Storyboard to regenerate them."
@@ -9753,8 +9753,8 @@ msgstr "Show unchanged"
 msgid "Show:"
 msgstr "Show:"
 
-msgid "Showing {start}–{end} of {totalItems} books"
-msgstr "Showing {start}–{end} of {totalItems} books"
+#~ msgid "Showing {start}–{end} of {totalItems} books"
+#~ msgstr "Showing {start}–{end} of {totalItems} books"
 
 msgid "Showing only terms you added — click to show all"
 msgstr "Showing only terms you added — click to show all"
@@ -10052,8 +10052,8 @@ msgstr "Split the book into sections by stanza"
 msgid "split this section"
 msgstr "split this section"
 
-msgid "Splits"
-msgstr "Splits"
+#~ msgid "Splits"
+#~ msgstr "Splits"
 
 msgid "Spread"
 msgstr "Spread"

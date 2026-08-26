@@ -9,7 +9,6 @@ import {
   X,
 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { msg } from "@lingui/core/macro"
 import { StepLandingShell } from "./StepLandingShell"
 import { LandingPageWarning } from "@/components/pipeline/components/LandingPageWarning"
 import { SettingsCard } from "./ui/SettingsCard"
