@@ -10899,6 +10899,9 @@ msgstr "Cela ne change que l'interface de ADT Studio. Cela n'affecte pas les lan
 msgid "This option has no answer key entry"
 msgstr "Cette option n'a pas d'entrée dans le corrigé"
 
+msgid "This page doesn't exist in this version."
+msgstr "Cette page n'existe pas dans cette version."
+
 #~ msgid "This page had no embedded text layer — the text below was recovered from the page image."
 #~ msgstr "Cette page n'avait pas de couche de texte intégrée : le texte ci-dessous a été récupéré depuis l'image de la page."
 

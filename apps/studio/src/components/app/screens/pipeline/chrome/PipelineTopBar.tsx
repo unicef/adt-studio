@@ -10,6 +10,7 @@ export interface PipelineTopBarProps {
   label: string
   pageLabel?: string
   version?: number | null
+  versionPicker?: React.ReactNode
   status?: React.ReactNode
   rerun?: React.ReactNode
   onPreview?: () => void
@@ -20,6 +21,7 @@ export function PipelineTopBar({
   label,
   pageLabel,
   version,
+  versionPicker,
   rerun,
   onPreview,
   previewDisabled,
@@ -48,10 +50,16 @@ export function PipelineTopBar({
             <span className="truncate font-semibold">{pageLabel}</span>
           </>
         )}
-        {version != null && (
-          <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
-            v{version}
+        {versionPicker ? (
+          <span style={NO_DRAG_REGION} className="flex items-center">
+            {versionPicker}
           </span>
+        ) : (
+          version != null && (
+            <span className="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
+              v{version}
+            </span>
+          )
         )}
         {!pageLabel && (
           <span className="text-muted-foreground/70">

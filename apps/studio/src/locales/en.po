@@ -10897,6 +10897,9 @@ msgstr "This only changes ADT Studio's interface. It does not affect the languag
 msgid "This option has no answer key entry"
 msgstr "This option has no answer key entry"
 
+msgid "This page doesn't exist in this version."
+msgstr "This page doesn't exist in this version."
+
 #~ msgid "This page had no embedded text layer — the text below was recovered from the page image."
 #~ msgstr "This page had no embedded text layer — the text below was recovered from the page image."
 

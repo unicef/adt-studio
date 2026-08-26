@@ -10899,6 +10899,9 @@ msgstr "Kjo ndryshon vetëm ndërfaqen e ADT Studio. Nuk ndikon në gjuhët në 
 msgid "This option has no answer key entry"
 msgstr "Ky opsion nuk ka hyrje në çelësin e përgjigjeve"
 
+msgid "This page doesn't exist in this version."
+msgstr "Kjo faqe nuk ekziston në këtë version."
+
 #~ msgid "This page had no embedded text layer — the text below was recovered from the page image."
 #~ msgstr "Kjo faqe nuk kishte shtresë teksti të integruar — teksti më poshtë u rikuperua nga imazhi i faqes."
 

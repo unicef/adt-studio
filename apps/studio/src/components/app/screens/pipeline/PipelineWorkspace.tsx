@@ -21,6 +21,7 @@ import { StageRerunButton } from "./runs/StageRerunButton"
 import { useStoryboardRerun } from "./runs/useStoryboardRerun"
 import { useStoryboardStaleness } from "./runs/useStoryboardStaleness"
 import { StoryboardStaleBanner } from "./canvas/StoryboardStaleBanner"
+import { StoryboardVersionPicker } from "./canvas/StoryboardVersionPicker"
 import { previewSectionId } from "./shared/previewTarget"
 import type { PipelineState } from "./shared/usePipelineState"
 import {
@@ -130,8 +131,15 @@ export function PipelineWorkspace({
                 ? t`Page ${activePage.pageNumber}`
                 : undefined
         }
-        version={
-          empty ? null : activeQuiz ? quizzesQuery.data?.version ?? null : activePage?.renderingVersion ?? null
+        version={empty || !activeQuiz ? null : quizzesQuery.data?.version ?? null}
+        versionPicker={
+          !empty && !activeQuiz && activePage ? (
+            <StoryboardVersionPicker
+              label={label}
+              page={activePage}
+              viewport={viewport}
+            />
+          ) : undefined
         }
         rerun={<StageRerunButton slug="storyboard" rerun={storyboardRerun} variant="topbar" />}
         onPreview={() =>
