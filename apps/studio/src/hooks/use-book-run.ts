@@ -22,6 +22,7 @@ import { getStageLabelI18n, getStageRunningLabelI18n } from "@/components/pipeli
 import { bookTasksKey } from "./use-book-tasks"
 import { invalidateStoryboardDependents } from "./use-page-mutations"
 import { useApiKey } from "./use-api-key"
+import { useOpenBook } from "@/components/app/use-open-book"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -125,10 +126,12 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   announceRef.current = announce
 
   const navigate = useNavigate()
+
   // Held in a ref so the always-on SSE effect can navigate (from a toast action)
-  // without listing navigate as a dependency and re-subscribing.
-  const navigateRef = useRef(navigate)
-  navigateRef.current = navigate
+  // without listing it as a dependency and re-subscribing.
+  const openBook = useOpenBook()
+  const openBookRef = useRef(openBook)
+  openBookRef.current = openBook
 
   // Primary source of truth: enriched step-status from the server
   const { data, isPending } = useQuery<StepStatusResponse>({
@@ -394,8 +397,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             id: `step-error:${pipelineStep}`,
             action: {
               label: i18n._(msg`View details`),
-              onClick: () =>
-                navigateRef.current({ to: "/books/$label/$step", params: { label, step: uiStage } }),
+              onClick: () => openBookRef.current(label, uiStage),
             },
           })
         }

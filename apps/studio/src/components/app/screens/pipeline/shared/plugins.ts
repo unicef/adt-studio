@@ -2,23 +2,20 @@ import type { LucideIcon } from "lucide-react"
 import { PIPELINE } from "@adt/types"
 import { STAGES, type StageGroup } from "@/components/pipeline/stage-config"
 
-export const FOUNDATION_SLUGS = ["extract", "sectioning"] as const
+import {
+  FOUNDATION_SLUGS,
+  PLUGIN_SLUGS,
+  type DockSlug,
+} from "./dockSlugs"
 
-export const PLUGIN_SLUGS = [
-  "captions",
-  "quizzes",
-  "glossary",
-  "toc",
-  "easy-read",
-  "translate",
-  "speech",
-  "sign-language",
-  "validation",
-] as const
-
-export type FoundationSlug = (typeof FOUNDATION_SLUGS)[number]
-export type PluginSlug = (typeof PLUGIN_SLUGS)[number]
-export type DockSlug = FoundationSlug | PluginSlug
+export {
+  FOUNDATION_SLUGS,
+  PLUGIN_SLUGS,
+  isDockSlug,
+  type FoundationSlug,
+  type PluginSlug,
+  type DockSlug,
+} from "./dockSlugs"
 
 export interface DockEntry {
   slug: DockSlug
@@ -63,12 +60,6 @@ const STAGE_DEPENDENCIES = new Map<string, readonly string[]>(
 
 export function stageDependsOn(slug: string, upstream: string): boolean {
   return STAGE_DEPENDENCIES.get(slug)?.includes(upstream) ?? false
-}
-
-const DOCK_SLUG_SET: Set<string> = new Set<string>([...FOUNDATION_SLUGS, ...PLUGIN_SLUGS])
-
-export function isDockSlug(slug: string): slug is DockSlug {
-  return DOCK_SLUG_SET.has(slug)
 }
 
 export function findDockEntry(slug: string): DockEntry | undefined {

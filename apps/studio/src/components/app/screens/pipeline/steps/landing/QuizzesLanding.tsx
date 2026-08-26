@@ -213,6 +213,7 @@ export function QuizzesLanding({ bookLabel, beforeRun }: { bookLabel: string; be
         open={showAddQuiz}
         onOpenChange={setShowAddQuiz}
         bookLabel={bookLabel}
+        onCreated={() => setShowAddQuiz(false)}
       />
     </StepLandingShell>
   )
