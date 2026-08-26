@@ -274,7 +274,6 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     setStyleguidePreviewOpen(true)
   }
 
-  // Track which field groups the user has actually touched
   const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker()
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
   const markDirty = (field: string) => {
@@ -282,9 +281,6 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     markTab(tab)
   }
 
-  const merged = activeConfigData?.merged as Record<string, unknown> | undefined
-
-  // Load render strategy, styleguide, and rendering config from active (merged) config
   useEffect(() => {
     if (!activeConfigData) return
     const merged = activeConfigData.merged as Record<string, unknown>
@@ -303,12 +299,10 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
 
     setRenderStrategyNames(listDefaultRenderStrategies(strategies))
 
-    // Styleguide
     setStyleguide(typeof merged.styleguide === "string" ? merged.styleguide : "")
-    // Body background
     setApplyBodyBackground(merged.apply_body_background !== false)
-    // Rendering config comes from the default render strategy
-    const defaultStrategy = normalizedDefaultRenderStrategy
+
+      const defaultStrategy = normalizedDefaultRenderStrategy
       ? strategies[normalizedDefaultRenderStrategy]
       : undefined
     if (defaultStrategy?.render_type) setRenderingRenderType(defaultStrategy.render_type)
@@ -689,7 +683,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
         <div className="flex flex-col h-full">
           <div className="shrink-0 p-4 pb-2">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-              {<Trans>Edit Prompts</Trans>}
+              <Trans>Edit Prompts</Trans>
             </h3>
             <Select
               value={activityStrategyName || "__none__"}

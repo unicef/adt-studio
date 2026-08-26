@@ -1,7 +1,8 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_WORKSPACE_NAME?: string
+    readonly VITE_WORKSPACE_NAME?: string
+    readonly DEV: boolean
 }
 
 interface ImportMeta {
