@@ -60,7 +60,6 @@ function HelpText({ descriptor }: { descriptor: ProviderDescriptor }) {
   return <p className="text-[11.5px] leading-normal text-muted-foreground">{localize(descriptor.manifest.localizedHelp, i18n.locale)}</p>
 }
 
-/** API-key (and local base-URL) backend: editable credential form + status. */
 function ApiKeyPanel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: Providers; active: boolean }) {
   const draft = useDraft(descriptor, store)
   const health = useProviderHealthMock(descriptor.manifest.id, draft.values, active)
@@ -76,7 +75,6 @@ function ApiKeyPanel({ descriptor, store, active }: { descriptor: ProviderDescri
   )
 }
 
-/** CLI/SDK backend: login is detected, not entered — status + guidance, no key field. */
 function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescriptor; store: Providers; active: boolean }) {
   const health = useProviderHealthMock(descriptor.manifest.id, store.credentials[descriptor.manifest.id] ?? {}, active)
   const deadEnd = health.data && (health.data.code === "not-logged-in" || health.data.code === "cli-not-found")
@@ -91,7 +89,6 @@ function CliPanel({ descriptor, store, active }: { descriptor: ProviderDescripto
   )
 }
 
-/** Dims a backend that's designed but not yet shipping, with a "coming" banner above it. */
 function ComingWrap({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col gap-3">
@@ -101,13 +98,6 @@ function ComingWrap({ children }: { children: ReactNode }) {
   )
 }
 
-/**
- * A vendor. Vendors offering both an API and a local CLI (OpenAI→Codex, Anthropic→Claude
- * Agent) show a CLI ↔ API-key toggle that swaps which backend you configure; each mode keeps
- * its own modalities and connection state. Single-backend vendors render one panel. Backends
- * that don't ship yet (the CLI ones, and the new speech/local providers) are previewed dimmed
- * behind a "coming" banner.
- */
 export function ProviderCard({ cardKey, store, active }: { cardKey: string; store: Providers; active: boolean }) {
   const card = PROVIDER_CARDS[cardKey]
   const dual = Boolean(card.apiKeyProviderId && card.cliProviderId)

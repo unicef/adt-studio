@@ -1,10 +1,3 @@
-/**
- * Local mirror of the `@adt/types` ai-provider contract from `feature/ai-agnostic`.
- * The redesigned providers screen renders against these shapes so that cutover to
- * the real `/providers` descriptors + `useProviderCredentials` + `useProviderHealth`
- * is a one-import swap once that branch lands. Keep field names identical to the
- * source of truth in `packages/types/src/ai-provider.ts` and `model-id.ts`.
- */
 
 export const AI_MODALITIES = ["structured-text", "agent", "image", "tts", "stt"] as const
 export type AiModality = (typeof AI_MODALITIES)[number]
@@ -75,6 +68,3 @@ export interface ProviderHealthResponse {
   modelCount?: number
   detail?: string
 }
-
-/** Credential values keyed by providerId → fieldKey → value. */
-export type ProviderCredentialValues = Record<string, Record<string, string>>

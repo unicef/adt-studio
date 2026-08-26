@@ -19,6 +19,11 @@ import "./styles/globals.css"
 import { LOCALES, activateLocale, getStoredLocale, matchSupportedLocale } from "./i18n/locales"
 import type { AppLocale } from "./i18n/locales"
 export { LOCALES, type AppLocale } from "./i18n/locales"
+import { scan } from "react-scan"
+
+scan({
+    enabled: import.meta.env.DEV,
+})
 
 // In Electron, match the OS languages against our supported locales for a
 // sensible first-launch default. Returns null on the web (no `systemLocales`).
@@ -60,6 +65,7 @@ const queryClient = new QueryClient({
 
 const router = createRouter({
   routeTree,
+  context: { queryClient },
   rewrite: {
     input: ({ url }) => {
       const lang = url.searchParams.get("lang")
@@ -74,7 +80,8 @@ const router = createRouter({
       return url
     },
   },
-  history: createBrowserHistory(),
+    history: createBrowserHistory(),
+  defaultPreload: "intent"
 })
 
 declare module "@tanstack/react-router" {

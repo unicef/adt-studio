@@ -1,12 +1,17 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { queryOptions, useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import type { BookMetadata } from "@adt/types"
 import { api } from "@/api/client"
 
-export function useBooks() {
-  return useQuery({
+/** Shared so route loaders prime the very cache entry `useBooks` reads. */
+export function booksQueryOptions() {
+  return queryOptions({
     queryKey: ["books"],
     queryFn: api.getBooks,
   })
+}
+
+export function useBooks() {
+  return useQuery(booksQueryOptions())
 }
 
 export function useBook(label: string) {

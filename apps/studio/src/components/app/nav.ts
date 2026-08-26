@@ -4,11 +4,18 @@ export const APP_PATHS = {
   home: "/",
   library: "/library",
   handoffs: "/handoffs",
+  pipeline: "/pipeline",
   settings: "/settings",
 } as const satisfies Record<AppView, string>
 
-export const APP_VIEWS = ["home", "library", "handoffs", "settings"] as const satisfies readonly AppView[]
+export const APP_VIEWS = ["home", "library", "handoffs", "pipeline", "settings"] as const satisfies readonly AppView[]
+
+const FULL_BLEED_VIEWS: readonly AppView[] = ["pipeline", "settings"]
 
 export function activeAppView(pathname: string): AppView {
   return APP_VIEWS.find((view) => view !== "home" && pathname.startsWith(APP_PATHS[view])) ?? "home"
+}
+
+export function isFullBleedAppView(pathname: string): boolean {
+  return FULL_BLEED_VIEWS.includes(activeAppView(pathname))
 }

@@ -1,4 +1,4 @@
-import { useNavigate } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Scissors, BookOpen, FolderUp } from "lucide-react"
 import type { BookSummary } from "@/api/client"
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { BookCover } from "../../BookCover"
 import { toBookVM } from "../../data"
+import { useOpenBook } from "../../use-open-book"
 import { StatusBadge } from "./status"
 
 export interface ContributionRowProps {
@@ -13,9 +14,8 @@ export interface ContributionRowProps {
   locale: string
 }
 
-/** A part someone shared with you (derived from real `book.part`). */
 export function ContributionRow({ book, locale }: ContributionRowProps) {
-  const navigate = useNavigate()
+  const openBook = useOpenBook()
   const { t } = useLingui()
   const vm = toBookVM(book, locale)
   const part = book.part!
@@ -41,13 +41,15 @@ export function ContributionRow({ book, locale }: ContributionRowProps) {
       </div>
       <StatusBadge status={status} />
       <div className="flex shrink-0 items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => navigate({ to: "/books/$label/$step", params: { label: book.label, step: "book" } })}>
+        <Button variant="outline" size="sm" onClick={() => openBook(book.label)}>
           <BookOpen className="size-3.5" />
           <Trans>Open part</Trans>
         </Button>
-        <Button size="sm" onClick={() => navigate({ to: "/books/$label/$step", params: { label: book.label, step: "export" } })}>
-          <FolderUp className="size-3.5" />
-          <Trans>Export &amp; return .zip</Trans>
+        <Button asChild size="sm">
+          <Link to="/books/$label/$step" params={{ label: book.label, step: "export" }}>
+            <FolderUp className="size-3.5" />
+            <Trans>Export &amp; return .zip</Trans>
+          </Link>
         </Button>
       </div>
     </div>

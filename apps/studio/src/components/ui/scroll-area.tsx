@@ -10,27 +10,32 @@ interface ScrollAreaProps
      auto-height Root, so a Root-only `max-h` clips the content without ever
      producing overflow — no scrollbar, and the tail unreachable. */
   viewportClassName?: string
+  /* Ref to the viewport (the element that actually scrolls) — virtualized
+     lists hand this to TanStack Virtual's `getScrollElement`. */
+  viewportRef?: React.Ref<HTMLDivElement>
+  /* Radix hides native scrollbars, so content wider than the viewport scrolls
+     without any visible affordance. Opt in to a horizontal bar when the content
+     can outgrow the viewport (zoomed canvases, wide tables). */
+  horizontal?: boolean
 }
 
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
   ScrollAreaProps
->(({ className, children, viewportClassName, ...props }, ref) => (
+>(({ className, children, viewportClassName, viewportRef, horizontal, ...props }, ref) => (
   <ScrollAreaPrimitive.Root
     ref={ref}
     className={cn("relative overflow-hidden", className)}
     {...props}
   >
-    {/* Radix wraps children in a `display: table` box, which is shrink-to-fit:
-        a `truncate` descendant reports its full text as min-content and widens
-        the wrapper past the viewport instead of ellipsizing. Forcing a block
-        box keeps it at the viewport width so width-constrained layouts work. */}
     <ScrollAreaPrimitive.Viewport
-      className={cn("h-full w-full rounded-[inherit] [&>div]:!block", viewportClassName)}
+      ref={viewportRef}
+      className={cn("h-full w-full rounded-[inherit] [&>div]:flex! [&>div]:flex-col!", viewportClassName)}
     >
       {children}
     </ScrollAreaPrimitive.Viewport>
     <ScrollBar />
+    {horizontal && <ScrollBar orientation="horizontal" />}
     <ScrollAreaPrimitive.Corner />
   </ScrollAreaPrimitive.Root>
 ))

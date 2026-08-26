@@ -1,7 +1,9 @@
 import { useState, type CSSProperties } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Check } from "lucide-react"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { Switch } from "@/components/ui/switch"
+import { usePipelineUi } from "@/hooks/use-pipeline-ui"
 import { cn } from "@/lib/utils"
 import { ComingSoon, SettingsCard, SettingsHeading, SettingsLead, SettingRow } from "./ui"
 import { THEME_OPTIONS, type ThemeMode, type ThemeOption } from "./options"
@@ -27,11 +29,9 @@ function applyTheme(mode: ThemeMode) {
   try {
     localStorage.setItem(THEME_KEY, mode)
   } catch {
-    /* ignore */
   }
 }
 
-/** A mini window mock painted from the option's token set, used as the theme swatch. */
 function ThemePreview({ th }: { th: ThemeOption }) {
   return (
     <div className="relative flex h-[104px] overflow-hidden" style={{ background: th.previewBg }}>
@@ -103,6 +103,7 @@ function ThemeCard({ th, selected, onSelect, index }: { th: ThemeOption; selecte
 export function AppearanceSection() {
   const { t } = useLingui()
   const [theme, setTheme] = useState<ThemeMode>(storedTheme)
+  const [pipelineUi, setPipelineUi] = usePipelineUi()
 
   return (
     <>
@@ -132,6 +133,21 @@ export function AppearanceSection() {
       </div>
 
       <SettingsCard>
+        <SettingRow
+          anchorId={SETTINGS_ANCHORS.pipelineInterface}
+          title={<Trans>Pipeline interface</Trans>}
+          subtitle={<Trans>Switch between the new and the classic pipeline screen.</Trans>}
+        >
+          <SegmentedControl
+            className="w-52"
+            options={[
+              { value: "new", label: t`New` },
+              { value: "classic", label: t`Classic` },
+            ]}
+            value={pipelineUi}
+            onValueChange={setPipelineUi}
+          />
+        </SettingRow>
         <SettingRow
           anchorId={SETTINGS_ANCHORS.reduceMotion}
           title={

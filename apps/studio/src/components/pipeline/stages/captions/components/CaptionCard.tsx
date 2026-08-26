@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { memo, useEffect, useRef } from "react"
 import { Eye, EyeOff, Maximize2, Pencil } from "lucide-react"
 import { BASE_URL } from "@/api/client"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -19,7 +19,7 @@ interface CaptionCardProps {
   pageNumber: number
 }
 
-export function CaptionCard({
+export const CaptionCard = memo(function CaptionCard({
   bookLabel,
   cap,
   list,
@@ -185,4 +185,4 @@ export function CaptionCard({
       </div>
     </div>
   )
-}
+})

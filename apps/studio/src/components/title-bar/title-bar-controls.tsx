@@ -5,14 +5,17 @@ import { cn } from "@/lib/utils";
 
 interface TitleBarControls {
   className?: string;
+  darkMode?: boolean;
 }
 export function TitleBarControls(props: TitleBarControls) {
   const isDark = useIsDarkMode()
+  const theme = props.darkMode ?? isDark ? "dark" : "light"
+
   return (
     <>
       <LinuxControls className={cn("self-stretch", props.className)} />
       <WindowsControls
-        variant={isDark ? "dark" : "light"}
+        variant={theme}
         className={cn("self-stretch", props.className)}
       />
     </>

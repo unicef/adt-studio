@@ -14,7 +14,7 @@ export function ExtractPreview({
   const truncatedTitle =
     bookTitle.length > 32 ? `${bookTitle.slice(0, 32)}…` : bookTitle
   return (
-    <div className="relative flex flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-blue-50/40 via-white to-white">
+    <div className="relative flex flex-1 min-h-0 overflow-hidden ">
       <div className="flex flex-col items-center w-full px-5 py-4 gap-3">
         {/* SOURCE PDF */}
         <div className="flex flex-col items-center gap-1.5">
@@ -24,7 +24,7 @@ export function ExtractPreview({
               <Trans>Source PDF</Trans>
             </span>
           </div>
-          <div className="w-[88px] aspect-[3/4] rounded-md bg-blue-50/80 ring-1 ring-blue-200 flex items-center justify-center">
+          <div className="w-[88px] aspect-[3/4] rounded-md bg-blue-50/80 ring-1 ring-border flex items-center justify-center">
             <BookOpen className="w-7 h-7 text-blue-300" strokeWidth={1.5} />
           </div>
           <div className="flex flex-col items-center gap-0.5">
@@ -149,8 +149,8 @@ function BlockCard({
         highlighted
           ? "border-blue-400/60 bg-blue-50/70"
           : faded
-            ? "border-dashed border-blue-200/70 bg-white/60"
-            : "border-blue-200 bg-white",
+            ? "border-dashed border-blue-200/70 bg-background/60"
+            : "border-blue-200 bg-background",
       )}
     >
       <div className="flex items-center gap-1.5">

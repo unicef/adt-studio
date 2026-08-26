@@ -109,6 +109,14 @@ export const STEP_DESCRIPTION_MESSAGES: Record<string, MessageDescriptor> = {
   "accessibility-assessment": msg`Runs accessibility checks against the packaged book.`,
 }
 
+/** Labels for the stage groups (`StageGroup` in stage-config), keyed by group. */
+export const STAGE_GROUP_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
+  convert: msg`Core Pipeline`,
+  enhancements: msg`Enhancements`,
+  localization: msg`Localization`,
+  packaging: msg`Packaging`,
+}
+
 /**
  * Status words for a stage, exposed to screen readers (the sidebar otherwise
  * conveys status only via icon color and a spinner ring).
@@ -126,6 +134,12 @@ export const STAGE_STATUS_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
 export function getStageLabelI18n(slug: string): string {
   const descriptor = STAGE_LABEL_MESSAGES[slug]
   return descriptor ? i18n._(descriptor) : slug
+}
+
+/** Resolve a stage group key (convert/enhancements/localization/packaging) to a translated label. */
+export function getStageGroupLabelI18n(group: string): string {
+  const descriptor = STAGE_GROUP_LABEL_MESSAGES[group]
+  return descriptor ? i18n._(descriptor) : group
 }
 
 /** Resolve a stage status (idle/queued/running/done/error/needs-update) to a translated word. */

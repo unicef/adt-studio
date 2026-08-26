@@ -20,7 +20,6 @@ export function requiredFieldsFilled(descriptor: ProviderDescriptor, creds: Reco
     .every((f, i) => (creds[f.key]?.trim().length ?? 0) > 0 || descriptor.fieldStatus[i]?.configuredOnServer)
 }
 
-// ---- module-level credential store (localStorage-backed, mirrors useProviderCredentials sync) ----
 
 type Creds = Record<string, Record<string, string>>
 
@@ -67,7 +66,6 @@ function writeCredential(providerId: string, fieldKey: string, value: string): v
     if (next) window.localStorage.setItem(field.storageKey, next)
     else window.localStorage.removeItem(field.storageKey)
   } catch {
-    /* ignore */
   }
   const current = getSnapshot()
   const providerValues = { ...(current[providerId] ?? {}) }
@@ -93,7 +91,6 @@ export function useProviders(): Providers {
   return { descriptors: PROVIDER_DESCRIPTORS, credentials, credentialValue, setCredential: writeCredential }
 }
 
-// ---- mock health probe (stands in for useProviderHealth + GET /providers/:id/health) ----
 
 function computeHealth(providerId: string, creds: Record<string, string>, sim: SimEnv): ProviderHealthResponse {
   const descriptor = PROVIDER_DESCRIPTORS.find((d) => d.manifest.id === providerId)!
@@ -112,7 +109,6 @@ function computeHealth(providerId: string, creds: Record<string, string>, sim: S
       ? { ...base, ok: true, code: "ok" }
       : { providerId, ok: false, code: "unreachable" }
   }
-  // api-key
   if (!requiredFieldsFilled(descriptor, creds)) return { providerId, ok: false, code: "missing-credential" }
   if (sim.rejectsKey) return { providerId, ok: false, code: "invalid-credential" }
   return { ...base, ok: true, code: "ok" }

@@ -1,13 +1,12 @@
 /* eslint-disable lingui/no-unlocalized-strings -- Manifest copy mirrors server-localized provider data (LocalizedText from /providers), not app UI strings. */
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
-import type { AiModality, ProviderDescriptor } from "./contract"
+import type { ProviderDescriptor } from "./contract"
 
 export interface RoleGroup {
   key: string
   label: MessageDescriptor
   hint: MessageDescriptor
-  /** Card keys (see PROVIDER_CARDS), not raw provider ids. */
   cards: string[]
 }
 
@@ -26,12 +25,6 @@ export const ROLE_GROUPS: RoleGroup[] = [
   },
 ]
 
-/**
- * A card is a vendor, not a backend. Vendors that offer both an API and a local CLI
- * (OpenAI → Codex, Anthropic → Claude Agent) collapse into one card whose CLI ↔ API-key
- * toggle selects which underlying provider you configure. Each mode keeps its own
- * modalities, credentials and connection state; model assignment stays in Settings → Models.
- */
 export interface ProviderCardDef {
   key: string
   displayName: string
@@ -231,11 +224,6 @@ export const PROVIDER_DESCRIPTORS: ProviderDescriptor[] = [
   },
 ]
 
-/**
- * Simulated machine environment for the mock health probe — stands in for what the
- * real `checkProviderConnection` detects (local CLI logins, reachable local servers).
- * Seeded to show a spread of states across the variants for design review.
- */
 export interface SimEnv {
   cliInstalled?: boolean
   cliLoggedIn?: boolean

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Outlet, useLocation } from "@tanstack/react-router"
+import { Outlet, useRouterState } from "@tanstack/react-router"
 import { useLingui } from "@lingui/react/macro"
 import { Trans } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
@@ -14,7 +14,7 @@ import { AddBookDialog } from "./AddBookDialog"
 import { AppShellContext } from "./AppShellContext"
 import { useAppBooks } from "./use-app-books"
 import { Kbd } from "./ui/Kbd"
-import { APP_PATHS } from "./nav"
+import { isFullBleedAppView } from "./nav"
 
 const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
   { keys: ["⌘", "K"], label: msg`Open command palette` },
@@ -27,8 +27,10 @@ const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
 
 export function AppLayout() {
   const { t, i18n } = useLingui()
-  const { pathname } = useLocation()
-  const isSettings = pathname.startsWith(APP_PATHS.settings)
+  const pathname = useRouterState({
+    select: (state) => state.matches[state.matches.length - 1]?.pathname ?? state.location.pathname,
+  })
+  const isFullBleed = isFullBleedAppView(pathname)
   usePageTitle(t`ADT Studio`)
   const { books, locale } = useAppBooks()
   const deleteMutation = useDeleteBook()
@@ -63,7 +65,7 @@ export function AppLayout() {
   return (
     <AppShellContext value={shell}>
       <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
-        {!isSettings && (
+        {!isFullBleed && (
           <AppSidebar
             libraryCount={books.length}
             handoffsCount={handoffsCount}

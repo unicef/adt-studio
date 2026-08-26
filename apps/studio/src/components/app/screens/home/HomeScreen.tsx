@@ -1,21 +1,19 @@
 import { useMemo, useState } from "react"
-import { useNavigate } from "@tanstack/react-router"
 import { WelcomeHero } from "./WelcomeHero"
 import { WelcomeFeatures } from "./WelcomeFeatures"
 import { HomeHeroAnchor } from "./HomeHeroAnchor"
 import { BookDetailDialog } from "../library/BookDetailDialog"
 import { ScreenFallback } from "../../ui/ScreenFallback"
 import { toBookVM } from "../../data"
-import { APP_PATHS } from "../../nav"
 import { useAppBooks } from "../../use-app-books"
 import { useAppShell } from "../../AppShellContext"
+import { useOpenBook } from "../../use-open-book"
 import { TopBar } from "@/components/title-bar/TopBar"
 
 export function HomeScreen() {
-  const navigate = useNavigate()
   const { books, locale, isLoading, error } = useAppBooks()
   const { openAdd, requestDelete } = useAppShell()
-  const openBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
+  const openBook = useOpenBook()
 
   const [detailLabel, setDetailLabel] = useState<string | null>(null)
 
@@ -42,7 +40,6 @@ export function HomeScreen() {
             onOpen={setDetailLabel}
             onContinue={openBook}
             onAddBook={openAdd}
-            onOpenLibrary={() => navigate({ to: APP_PATHS.library })}
           />
         </div>
       ) : (

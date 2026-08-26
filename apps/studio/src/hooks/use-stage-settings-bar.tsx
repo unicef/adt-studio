@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router"
 import type { StageName } from "@adt/types"
 import { useFloatingSave } from "@/components/pipeline/components/floating-save"
 import { useSettingsRemount } from "./use-settings-remount"
+import { useSettingsReturn } from "./use-settings-return"
 import { useRegisterDirtyTabs } from "./use-settings-dirty-tabs"
 import { useBookRun } from "./use-book-run"
 import { useApiKey } from "./use-api-key"
@@ -26,6 +27,7 @@ export function useStageSettingsBar({
 }) {
   const { t } = useLingui()
   const remount = useSettingsRemount()
+  const returnToStage = useSettingsReturn()
   const { queueRun } = useBookRun()
   const { apiKey, hasApiKey } = useApiKey()
   const navigate = useNavigate()
@@ -40,6 +42,10 @@ export function useStageSettingsBar({
     onSaveAndRerun: async () => {
       await save()
       queueRun({ fromStage: stage, toStage: stage, apiKey })
+      if (returnToStage) {
+        returnToStage()
+        return
+      }
       navigate({
         to: "/books/$label/$step",
         params: { label: bookLabel, step: stage },

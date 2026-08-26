@@ -61,6 +61,7 @@ export default defineConfig(({ mode }) => {
       tanstackRouter({
         quoteStyle: "double",
         routeFileIgnorePattern: "\\.test\\.tsx?$",
+        autoCodeSplitting: true,
       }),
       react(),
       tailwindcss(),

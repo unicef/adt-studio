@@ -1198,6 +1198,11 @@ export interface RenderPageOptions {
   /** When true, renders a minimal page without navigation/sidebar chrome.
    *  Content is visible immediately (no opacity-0). Used for storyboard preview. */
   embed?: boolean
+  /** Embed variant for hosts that size the frame to the content instead of
+   *  giving it a viewport: drops the `min-h-screen` floor and reports the
+   *  content height to the parent window, so the frame never scrolls on its
+   *  own. Only meaningful together with `embed`. */
+  fitToContent?: boolean
   /** Fixed viewport dimensions for fixed-layout pages (e.g., pre-paginated EPUB).
    *  When set, overrides the responsive viewport meta with a fixed size. */
   fixedViewport?: { width: number; height: number }
@@ -1209,20 +1214,24 @@ export interface RenderPageOptions {
 }
 
 /**
- * Add `opacity-0` to the first `<div id="content">` element's class list.
- * Used when the LLM-generated content already provides its own wrapper div so
- * we don't add a duplicate — but still need the fade-in class for the ADT animation.
+ * Add classes to the first `<div id="content">` element's class list, skipping
+ * any it already carries. Used when the LLM-generated content already provides
+ * its own wrapper div so we don't add a duplicate — but still need the page
+ * classes the ADT shell relies on.
  */
-function injectOpacityClass(html: string): string {
+function injectContentClasses(html: string, classes: string[]): string {
   return html.replace(
     /(<div\b[^>]*\bid="content"[^>]*)>/,
     (_, opening) => {
-      if (/\bopacity-0\b/.test(opening)) return opening + ">"
+      const missing = classes.filter(
+        (name) => !new RegExp(`\\b${name}\\b`).test(opening),
+      )
+      if (missing.length === 0) return opening + ">"
       const hasClass = /\bclass="/.test(opening)
       if (hasClass) {
-        return opening.replace(/\bclass="([^"]*)"/, 'class="$1 opacity-0"') + ">"
+        return opening.replace(/\bclass="([^"]*)"/, `class="$1 ${missing.join(" ")}"`) + ">"
       }
-      return opening + ' class="opacity-0">'
+      return `${opening} class="${missing.join(" ")}">`
     }
   )
 }
@@ -1294,11 +1303,15 @@ export function renderPageHtml(opts: RenderPageOptions): string {
   const contentAlreadyWrapped = /^\s*<div\b[^>]*\bid="content"/.test(normalizedContent)
   const skipOpacity = opts.embed || opts.fixedViewport
 
+  // `mx-auto` is not optional: the render templates wrap pages in
+  // `<div id="content" class="container">`, and Tailwind's `container` only sets
+  // a max-width — it never centers. Without the auto margins the page hugs the
+  // left edge on any viewport wider than that max-width (visible from 1536px up).
   const contentBlock = opts.skipContentWrapper
     ? `      ${normalizedContent}`
     : contentAlreadyWrapped
-      ? `      ${!skipOpacity ? injectOpacityClass(normalizedContent) : normalizedContent}`
-      : `      <div id="content"${skipOpacity ? "" : ` class="opacity-0"`}>
+      ? `      ${injectContentClasses(normalizedContent, skipOpacity ? ["mx-auto"] : ["mx-auto", "opacity-0"])}`
+      : `      <div id="content" class="mx-auto${skipOpacity ? "" : " opacity-0"}">
         ${normalizedContent}
       </div>`
 
@@ -1338,6 +1351,51 @@ ${fallbackHeadingHtml}${contentBlock}
       #explain-me-button, #eli5-content, #notepad-button, #notepad-content { display: none !important; }
     </style>`
     : ""
+
+  // Fit mode: every viewport-height floor (`min-h-screen` on the body and on
+  // the `#content` wrapper the quiz/LLM templates ship) resolves against the
+  // frame the host sizes *from this document's height*, so the two feed each
+  // other and the page grows without bound — pushing the centred content out
+  // of view. Dropping the floors keeps the centring and lets the document
+  // collapse to its real content height.
+  const fitStyles =
+    opts.embed && opts.fitToContent
+      ? `
+    <style>
+      html { height: auto !important; }
+      body, .min-h-screen { min-height: 0 !important; }
+      .h-screen { height: auto !important; }
+      /* The host sizes the frame to this document, so the only scrollbar the
+         reader should ever see is the host's own. */
+      html { scrollbar-width: none; }
+      html::-webkit-scrollbar { display: none; }
+    </style>`
+      : ""
+
+  const fitScript =
+    opts.embed && opts.fitToContent
+      ? `
+    <script>
+      (function () {
+        var last = 0
+        function report() {
+          var height = Math.ceil(document.documentElement.getBoundingClientRect().height)
+          if (!height || height === last) return
+          last = height
+          parent.postMessage({ type: "adt-preview:height", height: height }, "*")
+        }
+        // requestAnimationFrame never runs while the host tab is in the
+        // background, so report straight away and refine after layout.
+        function schedule() {
+          report()
+          if (window.requestAnimationFrame) requestAnimationFrame(report)
+        }
+        window.addEventListener("load", schedule)
+        if (window.ResizeObserver) new ResizeObserver(schedule).observe(document.documentElement)
+        schedule()
+      })()
+    </script>`
+      : ""
 
   // Reflowable base-font override: re-declare the same elements fonts.css
   // targets with the chosen family, placed last in <head> so it wins. Omitted
@@ -1382,7 +1440,7 @@ ${fallbackHeadingHtml}${contentBlock}
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
     <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}${customActivityStub}
-${mathScript}${embedStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
+${mathScript}${embedStyles}${fitStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
 
 <body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:100%;height:100%"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
 ${mainBlock}
@@ -1390,7 +1448,7 @@ ${flFit ? `${flFit.bodyScript}\n` : ""}${answersScript}
     <div class="relative z-50" id="interface-container"></div>
     <div class="relative z-50" id="nav-container"></div>
 ${opts.embed
-      ? `    <script src="./assets/base.bundle.min.js?v=${escapeAttr(opts.bundleVersion)}" type="module"></script>`
+      ? `    <script src="./assets/base.bundle.min.js?v=${escapeAttr(opts.bundleVersion)}" type="module"></script>${fitScript}`
       : `    <script src="./assets/offline-preloader.js"></script>
     <script src="./assets/scorm.js"></script>
     <script src="./assets/base.bundle.local.js"></script>`}

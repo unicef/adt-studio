@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { useNavigate } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ChevronRight, CheckCheck, Clock, BookOpen, FolderDown } from "lucide-react"
 import type { BookSummary } from "@/api/client"
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { useSplitStatus } from "@/hooks/use-parts"
 import { BookCover } from "../../BookCover"
 import { toBookVM } from "../../data"
+import { useOpenBook } from "../../use-open-book"
 import {
   StatusBadge, SegBar, STATUS_META, partsOf, segmentsOf, fallbackSegments, approxMergedParts,
   type CoordinatorPart,
@@ -71,7 +72,7 @@ function RailItem({ book, locale, active, onSelect }: { book: BookSummary; local
 }
 
 function SplitDetail({ book, locale }: { book: BookSummary; locale: string }) {
-  const navigate = useNavigate()
+  const openBookInPipeline = useOpenBook()
   const { t } = useLingui()
   const { data: status, isLoading } = useSplitStatus(book.label)
   const vm = toBookVM(book, locale)
@@ -82,8 +83,7 @@ function SplitDetail({ book, locale }: { book: BookSummary; locale: string }) {
   const merged = parts ? parts.filter((p) => p.status === "merged").length : approxMergedParts(split)
   const total = parts ? parts.length : split.exportedParts
 
-  const openBook = () => navigate({ to: "/books/$label/$step", params: { label: book.label, step: "book" } })
-  const goImport = () => navigate({ to: "/books/import" })
+  const openBook = () => openBookInPipeline(book.label)
 
   return (
     <div>
@@ -114,15 +114,25 @@ function SplitDetail({ book, locale }: { book: BookSummary; locale: string }) {
       {isLoading && !parts ? (
         <div className="border-t px-5 py-6 text-center text-xs text-muted-foreground"><Trans>Loading parts…</Trans></div>
       ) : (
-        (parts ?? []).map((part) => <PartRow key={`${part.range.startPage}-${part.range.endPage}`} part={part} onView={openBook} onImport={goImport} />)
+        (parts ?? []).map((part) => <PartRow key={`${part.range.startPage}-${part.range.endPage}`} part={part} onView={openBook} />)
       )}
 
-      <MergeFooter merged={merged} total={total} assembled={assembled} onImport={goImport} onManage={openBook} />
+      <MergeFooter merged={merged} total={total} assembled={assembled} onManage={openBook} />
     </div>
   )
 }
 
-function PartRow({ part, onView, onImport }: { part: CoordinatorPart; onView: () => void; onImport: () => void }) {
+function ImportPartButton() {
+  return (
+    <Button asChild size="sm" variant="outline">
+      <Link to="/books/import">
+        <FolderDown className="size-3.5" /> <Trans>Import returned .zip</Trans>
+      </Link>
+    </Button>
+  )
+}
+
+function PartRow({ part, onView }: { part: CoordinatorPart; onView: () => void }) {
   const { t } = useLingui()
   const { Icon, iconClass } = STATUS_META[part.status]
   return (
@@ -136,14 +146,14 @@ function PartRow({ part, onView, onImport }: { part: CoordinatorPart; onView: ()
         {part.status === "merged" ? (
           <Button size="sm" variant="outline" onClick={onView}><BookOpen className="size-3.5" /> <Trans>View in book</Trans></Button>
         ) : (
-          <Button size="sm" variant="outline" onClick={onImport}><FolderDown className="size-3.5" /> <Trans>Import returned .zip</Trans></Button>
+          <ImportPartButton />
         )}
       </div>
     </div>
   )
 }
 
-function MergeFooter({ merged, total, assembled, onImport, onManage }: { merged: number; total: number; assembled: boolean; onImport: () => void; onManage: () => void }) {
+function MergeFooter({ merged, total, assembled, onManage }: { merged: number; total: number; assembled: boolean; onManage: () => void }) {
   return (
     <div className={cn("flex items-center gap-3.5 border-t px-5 py-4", assembled ? "bg-emerald-50 dark:bg-emerald-950/30" : "bg-brand-50 dark:bg-brand-950/20")}>
       <FolderDown className={cn("size-5 shrink-0", assembled ? "text-emerald-700 dark:text-emerald-400" : "text-brand-700")} />
@@ -160,7 +170,9 @@ function MergeFooter({ merged, total, assembled, onImport, onManage }: { merged:
       {assembled ? (
         <Button size="sm" variant="outline" onClick={onManage}><BookOpen className="size-3.5" /> <Trans>Manage in book</Trans></Button>
       ) : (
-        <Button size="sm" variant="outline" onClick={onImport}><FolderDown className="size-3.5" /> <Trans>Import a part .zip</Trans></Button>
+        <Button asChild size="sm" variant="outline">
+          <Link to="/books/import"><FolderDown className="size-3.5" /> <Trans>Import a part .zip</Trans></Link>
+        </Button>
       )}
     </div>
   )

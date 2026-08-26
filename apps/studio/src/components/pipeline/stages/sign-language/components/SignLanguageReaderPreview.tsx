@@ -8,7 +8,7 @@ export function SignLanguageReaderPreview({
   hasAnyVideo: boolean
 }) {
   return (
-    <div className="relative flex flex-1 min-h-0 overflow-hidden bg-gradient-to-b from-cyan-50/40 via-white to-white">
+    <div className="relative flex flex-1 min-h-0 overflow-hidden ">
       <div className="flex h-full w-full flex-col gap-3 px-5 py-5">
         {/* Header eyebrow */}
         <div className="flex items-center justify-between shrink-0">
@@ -24,28 +24,28 @@ export function SignLanguageReaderPreview({
         </div>
 
         {/* Mock page */}
-        <div className="relative flex-1 min-h-0 overflow-hidden rounded-lg border border-cyan-100 bg-white p-4 shadow-sm">
+        <div className="relative flex-1 min-h-0 overflow-hidden rounded-lg border border-border bg-background p-4 shadow-sm">
           <div className="flex flex-col gap-2.5">
-            <div className="h-2.5 w-32 rounded-full bg-[#0a0a0a]/80" />
+            <div className="h-2.5 w-32 rounded-full bg-secondary" />
             <div className="flex flex-col gap-1.5 pt-1">
-              <div className="h-1.5 w-full rounded-full bg-[#e5e5e5]" />
-              <div className="h-1.5 w-11/12 rounded-full bg-[#e5e5e5]" />
-              <div className="h-1.5 w-10/12 rounded-full bg-[#e5e5e5]" />
-              <div className="h-1.5 w-3/4 rounded-full bg-[#e5e5e5]" />
+              <div className="h-1.5 w-full rounded-full bg-muted" />
+              <div className="h-1.5 w-11/12 rounded-full bg-muted" />
+              <div className="h-1.5 w-10/12 rounded-full bg-muted" />
+              <div className="h-1.5 w-3/4 rounded-full bg-muted" />
             </div>
             <div className="mt-2 h-20 rounded-md bg-gradient-to-br from-cyan-100/70 via-sky-100/70 to-indigo-100/70" />
             <div className="flex flex-col gap-1.5 pt-1">
-              <div className="h-1.5 w-full rounded-full bg-[#e5e5e5]" />
-              <div className="h-1.5 w-11/12 rounded-full bg-[#e5e5e5]" />
-              <div className="h-1.5 w-9/12 rounded-full bg-[#e5e5e5]" />
-              <div className="h-1.5 w-4/5 rounded-full bg-[#e5e5e5]" />
+              <div className="h-1.5 w-full rounded-full bg-muted" />
+              <div className="h-1.5 w-11/12 rounded-full bg-muted" />
+              <div className="h-1.5 w-9/12 rounded-full bg-muted" />
+              <div className="h-1.5 w-4/5 rounded-full bg-muted" />
             </div>
           </div>
 
           {/* Floating sign-language PIP */}
           <div
             className={cn(
-              "absolute bottom-3 right-3 flex w-[88px] flex-col gap-1.5 rounded-lg border border-cyan-200 bg-white p-1.5 shadow-[0_8px_20px_-12px_rgba(8,145,178,0.5)]",
+              "absolute bottom-3 right-3 flex w-[88px] flex-col gap-1.5 rounded-lg border border-cyan-200 bg-background p-1.5 shadow-[0_8px_20px_-12px_rgba(8,145,178,0.5)]",
               "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-500",
             )}
           >

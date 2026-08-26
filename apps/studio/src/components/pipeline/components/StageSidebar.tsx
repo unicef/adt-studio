@@ -36,16 +36,14 @@ import {
   type StageGroup,
 } from "../stage-config"
 import type { TaskInfoResponse } from "@/api/client"
-import { getStageLabelI18n, getStepLabelI18n, getStageStatusLabelI18n } from "../pipeline-i18n"
+import {
+  getStageLabelI18n,
+  getStepLabelI18n,
+  getStageStatusLabelI18n,
+  getStageGroupLabelI18n,
+} from "../pipeline-i18n"
 import { ALL_STEP_NAMES, STAGE_ORDER } from "@adt/types"
 import { useHasUnsavedChanges } from "./floating-save"
-
-const STAGE_GROUP_LABELS: Record<StageGroup, MessageDescriptor> = {
-  convert: msg`Core Pipeline`,
-  enhancements: msg`Enhancements`,
-  localization: msg`Localization`,
-  packaging: msg`Packaging`,
-}
 
 const TASK_KIND_LABELS: Record<string, MessageDescriptor> = {
   "package-adt": msg`Packaging`,
@@ -158,7 +156,7 @@ export function StageSidebar({
               className="absolute left-1/2 top-[14px] -translate-x-1/2 h-px w-5 bg-muted-foreground/25 transition-opacity duration-150 group-hover/rail:opacity-0"
             />
             <span className="absolute left-3 right-3 top-[10px] whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 opacity-0 transition-opacity duration-150 delay-150 group-hover/rail:opacity-100">
-              {i18n._(STAGE_GROUP_LABELS[stepGroup])}
+              {getStageGroupLabelI18n(stepGroup)}
             </span>
           </div>
         ) : (
@@ -166,7 +164,7 @@ export function StageSidebar({
             key={`group-${stepGroup}`}
             className="shrink-0 px-3 pt-3 pb-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 truncate"
           >
-            {i18n._(STAGE_GROUP_LABELS[stepGroup])}
+            {getStageGroupLabelI18n(stepGroup)}
           </div>
         ),
       )

@@ -16,15 +16,12 @@ import {
 export interface Feature {
   key: string
   icon: LucideIcon
-  /** Saturated tile: solid stage color + white glyph. */
   solid: string
-  /** Soft tile: 10% stage tint + stage-colored glyph. */
   soft: string
   label: ReactNode
   blurb: ReactNode
 }
 
-/** The reader-facing accessibility modes — the marquee of every edition. */
 export const MODES: Feature[] = [
   { key: "listen", icon: Volume2, solid: "bg-stage-speech text-white", soft: "bg-stage-speech/10 text-stage-speech", label: <Trans>Listen</Trans>, blurb: <Trans>Natural text-to-speech, timed page by page.</Trans> },
   { key: "easy-read", icon: BookOpenText, solid: "bg-stage-easy-read text-white", soft: "bg-stage-easy-read/10 text-stage-easy-read", label: <Trans>Easy-read</Trans>, blurb: <Trans>Simplified text for lower reading levels.</Trans> },
@@ -33,7 +30,6 @@ export const MODES: Feature[] = [
   { key: "captions", icon: Captions, solid: "bg-stage-captions text-white", soft: "bg-stage-captions/10 text-stage-captions", label: <Trans>Captions</Trans>, blurb: <Trans>Described visuals and image alt-text.</Trans> },
 ]
 
-/** Supporting outputs every edition also gains. */
 export const EXTRAS: Feature[] = [
   { key: "quizzes", icon: HelpCircle, solid: "bg-stage-quizzes text-white", soft: "bg-stage-quizzes/10 text-stage-quizzes", label: <Trans>Quizzes</Trans>, blurb: <Trans>Comprehension checks per section.</Trans> },
   { key: "glossary", icon: BookOpen, solid: "bg-stage-glossary text-white", soft: "bg-stage-glossary/10 text-stage-glossary", label: <Trans>Glossary</Trans>, blurb: <Trans>Key terms, defined in place.</Trans> },

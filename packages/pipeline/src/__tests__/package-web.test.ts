@@ -137,10 +137,55 @@ describe("renderPageHtml", () => {
 
     expect((html.match(/<main\b/g) ?? [])).toHaveLength(1)
     expect(html).toContain('<main class="w-full">')
-    expect(html).toContain('<div id="content" class="opacity-0">')
+    expect(html).toContain('<div id="content" class="mx-auto opacity-0">')
     expect(html).not.toContain('rel="preload"')
     expect(html).not.toContain("Merriweather-VariableFont.woff2")
     expect(html).toContain('href="./assets/fonts.css"')
+  })
+
+  it("centres a reused #content wrapper — `container` only caps the width", () => {
+    const html = renderPageHtml({
+      content: '<div id="content" class="container"><p>Hello</p></div>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect((html.match(/id="content"/g) ?? [])).toHaveLength(1)
+    expect(html).toContain('<div id="content" class="container mx-auto opacity-0">')
+  })
+
+  it("keeps the reused wrapper centred in embed mode, where opacity is skipped", () => {
+    const html = renderPageHtml({
+      content: '<div id="content" class="container"><p>Hello</p></div>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      embed: true,
+    })
+
+    expect(html).toContain('<div id="content" class="container mx-auto">')
+    expect(html).not.toContain("opacity-0")
+  })
+
+  it("does not duplicate classes the wrapper already carries", () => {
+    const html = renderPageHtml({
+      content: '<div id="content" class="container mx-auto opacity-0"><p>Hello</p></div>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect(html).toContain('<div id="content" class="container mx-auto opacity-0">')
   })
 
   it("strips contenteditable left over from the storyboard editor", () => {

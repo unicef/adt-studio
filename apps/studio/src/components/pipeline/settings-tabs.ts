@@ -4,6 +4,7 @@ import type { I18n, MessageDescriptor } from "@lingui/core"
 export const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   general: msg`General`,
   overview: msg`Overview`,
+  information: msg`Information`,
   "api-keys": msg`API Keys`,
   models: msg`Models`,
   "global-prompts": msg`Global Prompts`,
@@ -114,5 +115,10 @@ export function getSettingsTabs(
 
 export function getSettingsTabLabel(stage: string, tabKey: string, i18n: I18n): string {
   const tabs = getSettingsTabs(stage, i18n, false)
-  return tabs?.find((t) => t.key === tabKey)?.label ?? tabKey
+  const tab = tabs?.find((t) => t.key === tabKey)
+  if (tab) return tab.label
+  // Settings surfaces outside a stage's own tab rail (the book settings hub)
+  // still name their sections with these keys.
+  const message = SETTINGS_TAB_MESSAGE[tabKey]
+  return message ? i18n._(message) : tabKey
 }

@@ -1,0 +1,71 @@
+import { createFileRoute, redirect } from "@tanstack/react-router"
+import { i18n } from "@lingui/core"
+import { storyboardTabSection } from "@/components/app/screens/pipeline/book-settings/sections"
+import { StepSettingsScreen } from "@/components/app/screens/pipeline/settings/StepSettingsScreen"
+import {
+  defaultStepSettingsTab,
+  isStepSettingsSlug,
+  stepSettingsTabs,
+} from "@/components/app/screens/pipeline/settings/slugs"
+import { isDockSlug } from "@/components/app/screens/pipeline/shared/plugins"
+import { usePipelineNavigation } from "@/components/app/screens/pipeline/shared/usePipelineNavigation"
+import { usePipelineState } from "@/components/app/screens/pipeline/shared/usePipelineState"
+
+export const Route = createFileRoute("/_app/pipeline/$label/$step/settings/$tab")({
+  beforeLoad: ({ params }) => {
+    // Storyboard has no step screen of its own — it *is* the workspace — so its
+    // settings live in the book settings hub alongside the book information.
+    if (params.step === "storyboard") {
+      throw redirect({
+        to: "/pipeline/$label/settings/$section",
+        params: { label: params.label, section: storyboardTabSection(params.tab) },
+        replace: true,
+      })
+    }
+    if (!isStepSettingsSlug(params.step)) {
+      throw redirect({
+        to: "/pipeline/$label/$step",
+        params: { label: params.label, step: params.step },
+        replace: true,
+      })
+    }
+    // Overview is included here even though it only earns a tab once the stage
+    // has output — whether it is reachable depends on the live run state, which
+    // this guard cannot see. The screen falls back on its own when it is not.
+    const tabs = stepSettingsTabs(params.step, i18n, true)
+    if (tabs.length > 0 && !tabs.some((tab) => tab.key === params.tab)) {
+      throw redirect({
+        to: "/pipeline/$label/$step/settings/$tab",
+        params: {
+          label: params.label,
+          step: params.step,
+          tab: defaultStepSettingsTab(params.step, i18n),
+        },
+        replace: true,
+      })
+    }
+  },
+  component: StepSettingsRoute,
+})
+
+function StepSettingsRoute() {
+  const { label, step, tab } = Route.useParams()
+  const state = usePipelineState(label)
+  const nav = usePipelineNavigation(label)
+
+  if (!isStepSettingsSlug(step)) return null
+
+  return (
+    <StepSettingsScreen
+      key={step}
+      label={label}
+      slug={step}
+      tab={tab}
+      foundations={state.foundations}
+      plugins={state.plugins}
+      onClose={() => (isDockSlug(step) ? nav.openStep(step) : nav.openWorkspace())}
+      onSelectTab={(next, anchor) => nav.openSettingsTab(step, next, anchor)}
+      onOpenPlugin={nav.openStepSettings}
+    />
+  )
+}

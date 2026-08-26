@@ -1,9 +1,10 @@
-import { useNavigate } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import { FileText, ArrowRight, FileArchive, ChevronRight } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import { useAppLogo } from "@/hooks/use-app-logo"
 
 export interface AddBookDialogProps {
@@ -12,13 +13,7 @@ export interface AddBookDialogProps {
 }
 
 export function AddBookDialog({ open, onClose }: AddBookDialogProps) {
-  const navigate = useNavigate()
   const logoSrc = useAppLogo()
-
-  const go = (to: "/books/new" | "/books/import") => {
-    onClose()
-    navigate({ to })
-  }
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -33,16 +28,9 @@ export function AddBookDialog({ open, onClose }: AddBookDialogProps) {
         </DialogHeader>
 
         <div className="flex flex-col gap-3 p-6 pt-[18px]">
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={() => go("/books/new")}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault()
-                go("/books/new")
-              }
-            }}
+          <Link
+            to="/books/new"
+            onClick={onClose}
             className="relative flex cursor-pointer items-center gap-5 overflow-hidden rounded-2xl border-[1.5px] border-brand-300 bg-gradient-to-br from-brand-50 to-card p-5 transition hover:border-brand-500 hover:shadow-[0_0_0_3px_var(--brand-50)]"
           >
             <div className="flex shrink-0 items-center gap-3">
@@ -71,22 +59,15 @@ export function AddBookDialog({ open, onClose }: AddBookDialogProps) {
                 </Trans>
               </div>
             </div>
-            <Button
-              size="sm"
-              className="shrink-0"
-              onClick={(e) => {
-                e.stopPropagation()
-                go("/books/new")
-              }}
-            >
+            <span className={cn(buttonVariants({ size: "sm" }), "shrink-0")}>
               <Trans>Choose a PDF</Trans>
               <ArrowRight className="size-3.5" />
-            </Button>
-          </div>
+            </span>
+          </Link>
 
-          <button
-            type="button"
-            onClick={() => go("/books/import")}
+          <Link
+            to="/books/import"
+            onClick={onClose}
             className="flex cursor-pointer items-center gap-3.5 rounded-2xl border-[1.5px] bg-card px-5 py-3.5 text-left transition hover:border-brand-400 hover:shadow-[0_0_0_3px_var(--brand-50)]"
           >
             <span className="relative grid size-10 shrink-0 place-items-center rounded-[11px] border bg-white shadow-sm">
@@ -108,7 +89,7 @@ export function AddBookDialog({ open, onClose }: AddBookDialogProps) {
               </div>
             </div>
             <ChevronRight className="size-[17px] shrink-0 text-muted-foreground" />
-          </button>
+          </Link>
         </div>
       </DialogContent>
     </Dialog>

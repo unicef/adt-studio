@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { SegmentedControl } from "@/components/ui/segmented-control"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -41,6 +42,8 @@ import {
 } from "@/lib/render-strategy"
 import { getSectionTypeLabel } from "@/lib/section-constants"
 import { FontSettings } from "./FontSettings"
+import { RenderStrategyOptions } from "./components/RenderStrategyOptions"
+import { STEP_SETTINGS_ANCHORS } from "@/components/app/screens/pipeline/settings/searchIndex"
 
 const PROMPT_TABS = [
   "rendering-prompt",
@@ -69,6 +72,7 @@ function strategyDisplayName(slug: string): string {
 const STRATEGY_DESCRIPTION_MSGS: Record<string, ReturnType<typeof msg>> = {
   llm: msg`LLM generates HTML from section content`,
   "llm-overlay": msg`LLM positions text over background images`,
+  one_column: msg`Single-column template layout`,
   two_column: msg`Fixed two-column template layout`,
   two_column_story: msg`Two-column template for story content`,
   fixed_layout: msg`Preserves the source PDF's exact page layout`,
@@ -207,6 +211,17 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     return typeMap
   }, [activeConfigData])
 
+  const renderStrategyOptions = useMemo(
+    () =>
+      renderStrategyNames.map((name) => ({
+        id: name,
+        name: strategyDisplayName(name),
+        description: strategyDescription(name),
+        renderType: strategyRenderTypes[name],
+      })),
+    [renderStrategyNames, strategyRenderTypes, i18n.locale],
+  )
+
   const { data: styleguidesData } = useStyleguides(bookLabel)
   const { data: templatesData } = useTemplates()
   const availableTemplates = templatesData?.templates ?? []
@@ -259,7 +274,6 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     setStyleguidePreviewOpen(true)
   }
 
-  // Track which field groups the user has actually touched
   const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker()
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
   const markDirty = (field: string) => {
@@ -267,9 +281,6 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     markTab(tab)
   }
 
-  const merged = activeConfigData?.merged as Record<string, unknown> | undefined
-
-  // Load render strategy, styleguide, and rendering config from active (merged) config
   useEffect(() => {
     if (!activeConfigData) return
     const merged = activeConfigData.merged as Record<string, unknown>
@@ -288,12 +299,10 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
 
     setRenderStrategyNames(listDefaultRenderStrategies(strategies))
 
-    // Styleguide
     setStyleguide(typeof merged.styleguide === "string" ? merged.styleguide : "")
-    // Body background
     setApplyBodyBackground(merged.apply_body_background !== false)
-    // Rendering config comes from the default render strategy
-    const defaultStrategy = normalizedDefaultRenderStrategy
+
+      const defaultStrategy = normalizedDefaultRenderStrategy
       ? strategies[normalizedDefaultRenderStrategy]
       : undefined
     if (defaultStrategy?.render_type) setRenderingRenderType(defaultStrategy.render_type)
@@ -443,12 +452,16 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     <div className={tab === "rendering-prompt" || tab === "rendering-template" || tab === "activity-prompts" || tab === "image-generation" || tab === "visual-review-prompt" ? "h-full" : "p-4 space-y-6"}>
       {tab === "general" && (
         <div>
-          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+          <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">
             {<Trans>Default Render Strategy</Trans>}
           </h3>
-          <Select
+          <p className="text-xs text-muted-foreground mb-3">
+            {<Trans>The rendering strategy used for sections without an explicit mapping.</Trans>}
+          </p>
+          <RenderStrategyOptions
+            options={renderStrategyOptions}
             value={defaultRenderStrategy}
-            onValueChange={(v) => {
+            onChange={(v) => {
               setDefaultRenderStrategy(v)
               markDirty("default_render_strategy")
               // Update rendering config to match the newly selected strategy
@@ -474,43 +487,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 setTemplateTabDraft(null)
               }
             }}
-          >
-            <SelectTrigger className="w-72">
-              <SelectValue placeholder={t`Select strategy...`}>
-                {defaultRenderStrategy && (
-                  <>
-                    {strategyDisplayName(defaultRenderStrategy)}
-                    {strategyRenderTypes[defaultRenderStrategy] === "template" && (
-                      <span className="text-muted-foreground ml-1">{<Trans>(template)</Trans>}</span>
-                    )}
-                  </>
-                )}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent align="start">
-              {renderStrategyNames.map((name) => {
-                const isTemplate = strategyRenderTypes[name] === "template"
-                return (
-                  <SelectItem key={name} value={name}>
-                    <div className="flex flex-col items-start">
-                      <span>
-                        {strategyDisplayName(name)}
-                        {isTemplate && <span className="text-muted-foreground ml-1">{<Trans>(template)</Trans>}</span>}
-                      </span>
-                      {strategyDescription(name) && (
-                        <span className="text-xs text-muted-foreground">
-                          {strategyDescription(name)}
-                        </span>
-                      )}
-                    </div>
-                  </SelectItem>
-                )
-              })}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground mt-1.5">
-            {<Trans>The rendering strategy used for sections without an explicit mapping.</Trans>}
-          </p>
+          />
         </div>
       )}
 
@@ -520,7 +497,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
         <div className="flex flex-col h-full">
           {/* Styleguide + Temperature settings */}
           <div className="shrink-0 p-4 pb-0 space-y-4">
-            <div>
+            <div id={STEP_SETTINGS_ANCHORS.storyboardStyleguide} className="scroll-mt-6">
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 {<Trans>Styleguide</Trans>}
               </h3>
@@ -582,7 +559,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               </p>
             </div>
 
-            <div>
+            <div id={STEP_SETTINGS_ANCHORS.storyboardTemperature} className="scroll-mt-6">
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 {<Trans>Temperature</Trans>}
               </h3>
@@ -609,7 +586,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               </p>
             </div>
 
-            <div>
+            <div id={STEP_SETTINGS_ANCHORS.storyboardDisplay} className="scroll-mt-6">
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 {<Trans>Display</Trans>}
               </h3>
@@ -706,7 +683,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
         <div className="flex flex-col h-full">
           <div className="shrink-0 p-4 pb-2">
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-              {<Trans>Edit Prompts</Trans>}
+              <Trans>Edit Prompts</Trans>
             </h3>
             <Select
               value={activityStrategyName || "__none__"}
@@ -775,29 +752,16 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
       {tab === "image-generation" && (
         <div className="h-full flex flex-col">
           {/* Sub-tabs for Generate vs Edit prompt */}
-          <div className="flex items-center gap-1 px-4 pt-3 pb-0 shrink-0">
-            <button
-              type="button"
-              onClick={() => setImagePromptSubTab("generate")}
-              className={`text-xs font-medium px-3 py-1.5 rounded-t border border-b-0 cursor-pointer transition-colors ${
-                imagePromptSubTab === "generate"
-                  ? "bg-background border-border"
-                  : "bg-muted/50 border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {<Trans>Generate Prompt</Trans>}
-            </button>
-            <button
-              type="button"
-              onClick={() => setImagePromptSubTab("edit")}
-              className={`text-xs font-medium px-3 py-1.5 rounded-t border border-b-0 cursor-pointer transition-colors ${
-                imagePromptSubTab === "edit"
-                  ? "bg-background border-border"
-                  : "bg-muted/50 border-transparent text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {<Trans>Edit Prompt</Trans>}
-            </button>
+          <div className="shrink-0 px-4 pt-3">
+            <SegmentedControl
+              className="w-full max-w-[360px]"
+              value={imagePromptSubTab}
+              onValueChange={setImagePromptSubTab}
+              options={[
+                { value: "generate", label: t`Generate Prompt` },
+                { value: "edit", label: t`Edit Prompt` },
+              ]}
+            />
           </div>
           <div className="flex-1 min-h-0">
             {imagePromptSubTab === "generate" ? (
@@ -830,7 +794,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
       {tab === "visual-review-prompt" && (
         <div className="flex flex-col h-full">
           <div className="shrink-0 p-4 pb-0 space-y-4">
-            <div>
+            <div id={STEP_SETTINGS_ANCHORS.storyboardMatchDesign} className="scroll-mt-6">
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 {<Trans>Match Design</Trans>}
               </h3>
@@ -865,7 +829,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 </div>
               </RadioGroup>
             </div>
-            <div>
+            <div id={STEP_SETTINGS_ANCHORS.storyboardMaxIterations} className="scroll-mt-6">
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
                 {<Trans>Max Iterations</Trans>}
               </h3>
