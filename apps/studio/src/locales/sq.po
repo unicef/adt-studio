@@ -3190,6 +3190,9 @@ msgstr "Data e krijimit"
 msgid "Debug mode is not enabled."
 msgstr "Modaliteti i korrigjimit nuk është aktivizuar."
 
+msgid "Debug panel (⌘⇧D)"
+msgstr "Paneli i korrigjimit (⌘⇧D)"
+
 #~ msgid "decorative"
 #~ msgstr "dekorative"
 
@@ -7200,6 +7203,9 @@ msgstr "Hap PDF-në burimore"
 
 msgid "Open source PDF in a new tab"
 msgstr "Hapni PDF-in burimor në një skedë të re"
+
+msgid "Open the debug panel"
+msgstr "Hap panelin e korrigjimit"
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Hapni fazën Kuizet për të redaktuar këtë kuiz"

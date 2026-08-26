@@ -4,6 +4,7 @@ import { PageErrorDecisionDialog } from "@/components/pipeline/components/PageEr
 import { BookRunProvider, useBookRunStatus } from "@/hooks/use-book-run"
 import { booksQueryOptions, useBooks } from "@/hooks/use-books"
 import { ensurePages } from "@/components/app/screens/pipeline/shared/ensurePages"
+import { PipelineDebugDock } from "@/components/app/screens/pipeline/debug/PipelineDebugDock"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { ScreenFallback } from "@/components/app/ui/ScreenFallback"
 import { APP_PATHS } from "@/components/app/nav"
@@ -46,7 +47,9 @@ function PipelineLayout() {
 
   return (
     <BookRunProvider value={bookRun}>
-      <Outlet />
+      <PipelineDebugDock label={label} isRunning={bookRun.isRunning}>
+        <Outlet />
+      </PipelineDebugDock>
       <PageErrorDecisionDialog />
     </BookRunProvider>
   )

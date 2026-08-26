@@ -3188,6 +3188,9 @@ msgstr "Data de criação"
 msgid "Debug mode is not enabled."
 msgstr "Modo de depuração não está ativado."
 
+msgid "Debug panel (⌘⇧D)"
+msgstr "Painel de depuração (⌘⇧D)"
+
 #~ msgid "decorative"
 #~ msgstr "decorativa"
 
@@ -7198,6 +7201,9 @@ msgstr "Abrir o PDF de origem"
 
 msgid "Open source PDF in a new tab"
 msgstr "Abrir o PDF de origem em uma nova aba"
+
+msgid "Open the debug panel"
+msgstr "Abrir o painel de depuração"
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Abra a etapa de Questionários para editar este questionário"

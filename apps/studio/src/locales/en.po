@@ -3188,6 +3188,9 @@ msgstr "Date created"
 msgid "Debug mode is not enabled."
 msgstr "Debug mode is not enabled."
 
+msgid "Debug panel (⌘⇧D)"
+msgstr "Debug panel (⌘⇧D)"
+
 #~ msgid "decorative"
 #~ msgstr "decorative"
 
@@ -7198,6 +7201,9 @@ msgstr "Open source PDF"
 
 msgid "Open source PDF in a new tab"
 msgstr "Open source PDF in a new tab"
+
+msgid "Open the debug panel"
+msgstr "Open the debug panel"
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Open the Quizzes stage to edit this quiz"
