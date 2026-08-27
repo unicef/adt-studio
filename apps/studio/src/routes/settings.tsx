@@ -6,6 +6,7 @@ import { GlobalPromptsSettings } from "@/components/pipeline/stages/book/GlobalP
 import { ApiKeysSettings } from "@/components/settings/ApiKeysSettings"
 import { DefaultModelSettings } from "@/components/settings/DefaultModelSettings"
 import { SettingsNavigation } from "@/components/settings/SettingsNavigation"
+import { PublishingSettings } from "@/components/settings/publishing/PublishingSettings"
 import {
   normalizeSettingsSection,
   type SettingsSection,
@@ -37,6 +38,7 @@ export function SettingsPage() {
         <main className="min-h-0 min-w-0 flex-1 overflow-auto" tabIndex={-1}>
           {section === "default-model" && <DefaultModelSettings />}
           {section === "api-keys" && <ApiKeysSettings />}
+          {section === "publishing" && <PublishingSettings />}
           {section === "prompts" && (
             <FloatingSaveProvider>
               <GlobalPromptsSettings />

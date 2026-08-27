@@ -1,0 +1,604 @@
+import { Hono } from "hono"
+import type { Context } from "hono"
+import type { z } from "zod"
+import {
+  PUBLICATION_SNAPSHOT_MAX_BYTES,
+  PUBLISH_WORKER_VERSION,
+  PublicationCreateRequest,
+  PublicationToken,
+  PublicationUpdateRequest,
+  PublicationVersionCreateRequest,
+  type Publication,
+  type PublicationCreateResponse,
+  type PublicationDetail,
+  type PublicationFileUploadResponse,
+  type PublicationList,
+  type PublicationReaderList,
+  type PublicationResponse,
+  type PublicationVersionCreateResponse,
+  type PublishWorkerHealth,
+} from "@adt/types"
+import { accessGate, registerAccessRoute } from "./access.js"
+import { registerCommentRoutes } from "./comments.js"
+import { createD1PublicationStore } from "./d1-store.js"
+import type { Env } from "./env.js"
+import { errorResponse } from "./errors.js"
+import { readJsonBody } from "./http.js"
+import { hashAccessCode, randomId } from "./identity.js"
+import { mgmtAuth } from "./middleware/mgmt-auth.js"
+import { publicationLookup, type PublicationVariables } from "./middleware/publication-lookup.js"
+import { registerRoomRoutes } from "./room-routes.js"
+import {
+  cacheControlFor,
+  conditionalEtag,
+  contentTypeFor,
+  snapshotPathFromUrl,
+} from "./serve.js"
+import {
+  deleteSnapshotObjects,
+  isSnapshotUnpackError,
+  normalizeSnapshotPath,
+  SNAPSHOT_LIMITS,
+  unpackSnapshotToR2,
+  type SnapshotLimits,
+} from "./snapshot.js"
+import type { PublicationStore } from "./store.js"
+
+const METADATA_FIELD = "metadata"
+const SNAPSHOT_FIELD = "snapshot"
+
+export type AppEnv = { Bindings: Env; Variables: PublicationVariables }
+
+export interface AppOptions {
+  store?: PublicationStore
+  createStore?: (env: Env) => PublicationStore
+  maxSnapshotBytes?: number
+  snapshotLimits?: SnapshotLimits
+  now?: () => Date
+  newId?: () => string
+}
+
+type SnapshotUpload<T> =
+  /** `snapshot` is absent when the Studio streamed the files itself through
+   *  `PUT …/files/…`, which is the path that avoids putting a whole book through one request. */
+  | { ok: true; metadata: T; snapshot: File | null }
+  | { ok: false; code: "invalid_request"; status: 400; message: string }
+  | { ok: false; code: "payload_too_large"; status: 413; message: string }
+
+async function readSnapshotUpload<S extends z.ZodTypeAny>(
+  c: Context,
+  schema: S,
+  maxSnapshotBytes: number,
+): Promise<SnapshotUpload<z.infer<S>>> {
+  let body: Record<string, unknown>
+  try {
+    body = await c.req.parseBody()
+  } catch {
+    return {
+      ok: false,
+      code: "invalid_request",
+      status: 400,
+      message: "Expected a multipart/form-data body",
+    }
+  }
+
+  const rawMetadata = body[METADATA_FIELD]
+  if (typeof rawMetadata !== "string") {
+    return {
+      ok: false,
+      code: "invalid_request",
+      status: 400,
+      message: `Missing "${METADATA_FIELD}" form field`,
+    }
+  }
+
+  let metadata: unknown
+  try {
+    metadata = JSON.parse(rawMetadata)
+  } catch {
+    return {
+      ok: false,
+      code: "invalid_request",
+      status: 400,
+      message: `The "${METADATA_FIELD}" form field is not valid JSON`,
+    }
+  }
+
+  const parsed = schema.safeParse(metadata)
+  if (!parsed.success) {
+    return { ok: false, code: "invalid_request", status: 400, message: parsed.error.message }
+  }
+
+  const snapshot = body[SNAPSHOT_FIELD]
+  if (snapshot === undefined) {
+    /** No zip is only legal as the pre-uploaded path, and `snapshot_bytes` is how that path
+     *  announces itself: the Studio counted the files as it streamed them. Without either, the
+     *  request names a version that has no content anywhere, which used to be caught here and
+     *  would otherwise surface later as a publication serving nothing. */
+    const declared = (parsed.data as { snapshot_bytes?: number }).snapshot_bytes
+    if (declared === undefined) {
+      return {
+        ok: false,
+        code: "invalid_request",
+        status: 400,
+        message: `Missing "${SNAPSHOT_FIELD}" form file — send one, or "snapshot_bytes" for files already uploaded`,
+      }
+    }
+    return { ok: true, metadata: parsed.data, snapshot: null }
+  }
+  if (!(snapshot instanceof File)) {
+    return {
+      ok: false,
+      code: "invalid_request",
+      status: 400,
+      message: `The "${SNAPSHOT_FIELD}" form field is not a file`,
+    }
+  }
+
+  if (snapshot.size > maxSnapshotBytes) {
+    return {
+      ok: false,
+      code: "payload_too_large",
+      status: 413,
+      message: `Snapshot exceeds the ${maxSnapshotBytes} byte upload limit`,
+    }
+  }
+
+  return { ok: true, metadata: parsed.data, snapshot }
+}
+
+export function createApp(options: AppOptions = {}): Hono<AppEnv> {
+  const injected = options.store
+  const resolveStore = (env: Env): PublicationStore =>
+    injected ?? (options.createStore ?? ((e: Env) => createD1PublicationStore(e.DB)))(env)
+  const maxSnapshotBytes = options.maxSnapshotBytes ?? PUBLICATION_SNAPSHOT_MAX_BYTES
+  const now = options.now ?? (() => new Date())
+  const timestamp = (): string => now().toISOString()
+  const requirePublication = publicationLookup(resolveStore)
+
+  const shareUrl = (c: Context, token: string): string =>
+    `${new URL(c.req.url).origin}/p/${token}/`
+
+  /** Management answers report *whether* a code is set, never the code or its hash. */
+  const publicationBody = async (
+    store: PublicationStore,
+    publication: Publication,
+  ): Promise<PublicationResponse> => ({
+    publication,
+    has_access_code: ((await store.findRecord(publication.token))?.accessCode ?? null) !== null,
+  })
+
+  /** The unpacked byte total is the publication's real R2 occupancy, and the unpacker already
+   *  counts it on the way past — so it is carried out of here and stored on the version rather
+   *  than discarded and later guessed at from the zip's compressed size. */
+  const unpack = async (
+    c: Context<AppEnv>,
+    token: string,
+    version: number,
+    snapshot: File,
+  ): Promise<{ ok: true; totalBytes: number } | { ok: false; response: Response }> => {
+    try {
+      const result = await unpackSnapshotToR2({
+        bucket: c.env.SNAPSHOTS,
+        prefix: `${token}/v${version}`,
+        zip: snapshot.stream() as ReadableStream<Uint8Array>,
+        ...(options.snapshotLimits === undefined ? {} : { limits: options.snapshotLimits }),
+      })
+      return { ok: true, totalBytes: result.totalBytes }
+    } catch (error) {
+      if (isSnapshotUnpackError(error)) {
+        return {
+          ok: false,
+          response: errorResponse(
+            c,
+            error.code,
+            error.code === "payload_too_large" ? 413 : 400,
+            error.message,
+          ),
+        }
+      }
+      throw error
+    }
+  }
+
+  const app = new Hono<AppEnv>()
+
+  app.get("/health", (c) => {
+    const health: PublishWorkerHealth = { ok: true, version: PUBLISH_WORKER_VERSION }
+    return c.json(health)
+  })
+
+  app.use("/api/*", mgmtAuth)
+
+  /** §4.18 — every publication in this account, newest first, with the aggregates the Studio's
+   *  Publications dashboard shows. One D1 statement for the whole list: the account owns tens of
+   *  publications, and a per-row follow-up read would turn one screen into tens of round trips. */
+  app.get("/api/publications", async (c) => {
+    const store = resolveStore(c.env)
+    const rows = await store.listPublications()
+    const body: PublicationList = {
+      publications: rows.map((row) => ({
+        publication: row.publication,
+        url: shareUrl(c, row.publication.token),
+        has_access_code: row.hasAccessCode,
+        version_count: row.versionCount,
+        comment_count: row.commentCount,
+        unresolved_count: row.unresolvedCount,
+        snapshot_bytes: row.snapshotBytes,
+        last_published_at: row.lastPublishedAt,
+      })),
+    }
+    return c.json(body)
+  })
+
+  /**
+   * One file of a version, streamed straight into R2.
+   *
+   * The zip route puts a whole book through a single request — unpacked in a 128 MB sandbox,
+   * written file by file, weighed against the account's request cap — so it spends hundreds of
+   * subrequests and seconds of CPU on one invocation. On the Workers free plan that is fifty
+   * subrequests and ten milliseconds, which no real book fits inside; on paid it still fails
+   * whole when the edge refuses once. Every one of those ceilings is per request, so one file
+   * per request steps around all of them and makes a failure cost one file.
+   *
+   * Deliberately writes before any row exists: the version is not real until the create or
+   * versions call names it, and a set of objects nobody committed is cleaned up with the rest of
+   * the token's prefix when the publication is deleted.
+   */
+  app.put("/api/publications/:token/files/:version/*", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+
+    const version = Number(c.req.param("version"))
+    if (!Number.isInteger(version) || version < 1) {
+      return errorResponse(c, "invalid_request", 400, "Version must be a positive integer")
+    }
+
+    const prefix = `/api/publications/${token.data}/files/${c.req.param("version")}/`
+    const index = c.req.path.indexOf(prefix)
+    const raw = index === -1 ? "" : decodeURIComponent(c.req.path.slice(index + prefix.length))
+
+    /** The same guard the unpacker applies to a zip entry: a path that escapes the prefix would
+     *  let a caller write over another publication's files. */
+    const path = normalizeSnapshotPath(raw)
+    if (path === null) {
+      return errorResponse(c, "invalid_request", 400, "Unsafe file path")
+    }
+
+    const declared = Number(c.req.header("content-length") ?? Number.NaN)
+    if (Number.isFinite(declared) && declared > SNAPSHOT_LIMITS.maxEntryBytes) {
+      return errorResponse(
+        c,
+        "payload_too_large",
+        413,
+        `Files are limited to ${SNAPSHOT_LIMITS.maxEntryBytes} bytes`,
+      )
+    }
+
+    const body = await c.req.arrayBuffer()
+    if (body.byteLength > SNAPSHOT_LIMITS.maxEntryBytes) {
+      return errorResponse(
+        c,
+        "payload_too_large",
+        413,
+        `Files are limited to ${SNAPSHOT_LIMITS.maxEntryBytes} bytes`,
+      )
+    }
+
+    await c.env.SNAPSHOTS.put(`${token.data}/v${version}/${path}`, body)
+
+    const response: PublicationFileUploadResponse = { path, bytes: body.byteLength }
+    return c.json(response)
+  })
+
+  app.post("/api/publications", async (c) => {
+    const upload = await readSnapshotUpload(c, PublicationCreateRequest, maxSnapshotBytes)
+    if (!upload.ok) {
+      return errorResponse(c, upload.code, upload.status, upload.message)
+    }
+
+    const store = resolveStore(c.env)
+    const { token, title, book_label, page_manifest, expires_at, access_code } = upload.metadata
+
+    if (await store.findByToken(token)) {
+      return errorResponse(
+        c,
+        "invalid_request",
+        400,
+        "A publication already exists for this token — republish through POST /api/publications/:token/versions",
+      )
+    }
+
+    /** A pre-uploaded version has nothing to unpack; its size is what the Studio counted as it
+     *  streamed the files, since the worker never saw them. */
+    let snapshotBytes: number | null = upload.metadata.snapshot_bytes ?? null
+    if (upload.snapshot !== null) {
+      const unpacked = await unpack(c, token, 1, upload.snapshot)
+      if (!unpacked.ok) return unpacked.response
+      snapshotBytes = unpacked.totalBytes
+    }
+
+    const publication: Publication = {
+      token,
+      title,
+      book_label,
+      current_version: 1,
+      created_at: timestamp(),
+      expires_at: expires_at ?? null,
+      revoked_at: null,
+    }
+
+    const accessCode = access_code ? await hashAccessCode(access_code) : null
+    const version = await store.create({
+      publication,
+      pageManifest: page_manifest,
+      accessCode,
+      snapshotBytes,
+    })
+    const body: PublicationCreateResponse = {
+      publication,
+      version,
+      url: shareUrl(c, token),
+      has_access_code: accessCode !== null,
+    }
+    return c.json(body, 201)
+  })
+
+  app.post("/api/publications/:token/versions", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+    const upload = await readSnapshotUpload(c, PublicationVersionCreateRequest, maxSnapshotBytes)
+    if (!upload.ok) {
+      return errorResponse(c, upload.code, upload.status, upload.message)
+    }
+
+    const store = resolveStore(c.env)
+    const existing = await store.findByToken(token.data)
+    if (!existing) {
+      return errorResponse(c, "not_found", 404)
+    }
+
+    const version = existing.current_version + 1
+    let snapshotBytes: number | null = upload.metadata.snapshot_bytes ?? null
+    if (upload.snapshot !== null) {
+      const unpacked = await unpack(c, token.data, version, upload.snapshot)
+      if (!unpacked.ok) return unpacked.response
+      snapshotBytes = unpacked.totalBytes
+    }
+
+    const result = await store.addVersion({
+      token: token.data,
+      version,
+      pageManifest: upload.metadata.page_manifest,
+      createdAt: timestamp(),
+      snapshotBytes,
+    })
+    if (!result) {
+      return errorResponse(
+        c,
+        "invalid_request",
+        400,
+        "The publication changed while this version was uploading — try again",
+      )
+    }
+
+    const body: PublicationVersionCreateResponse = {
+      publication: result.publication,
+      version: result.version,
+    }
+    return c.json(body, 201)
+  })
+
+  app.post("/api/publications/:token/revoke", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+
+    const store = resolveStore(c.env)
+    const publication = await store.revoke(token.data, timestamp())
+    if (!publication) {
+      return errorResponse(c, "not_found", 404)
+    }
+
+    return c.json(await publicationBody(store, publication))
+  })
+
+  /** "Resume sharing": the same token starts serving again with every comment intact.
+   *  `expires_at` is untouched on purpose — an expired publication that is reinstated is
+   *  still expired until the Studio PATCHes a new end date. */
+  app.post("/api/publications/:token/reinstate", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+
+    const store = resolveStore(c.env)
+    const publication = await store.reinstate(token.data)
+    if (!publication) {
+      return errorResponse(c, "not_found", 404)
+    }
+
+    return c.json(await publicationBody(store, publication))
+  })
+
+  /** Erase the publication for good: the R2 objects, then the row and everything cascading
+   *  off it. R2 goes first on purpose — a failure there leaves the record intact and the
+   *  delete retryable, whereas the other order would strip the only pointer to the objects
+   *  and leave them billing the author's account with no way to find them again.
+   *
+   *  A token that is already gone answers `200`, not `404`: the caller asked for it to not
+   *  exist, and it does not. That keeps a retry after a dropped response from reading as a
+   *  failure. */
+  app.delete("/api/publications/:token", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+
+    const store = resolveStore(c.env)
+    const objectsDeleted = await deleteSnapshotObjects(c.env.SNAPSHOTS, token.data)
+    const publication = await store.deletePublication(token.data)
+
+    return c.json({
+      token: token.data,
+      deleted: publication !== null,
+      objects_deleted: objectsDeleted,
+    })
+  })
+
+  /** Expiry and the access code are independent knobs on one route: an absent key is left
+   *  alone, so rotating a code cannot silently drop an end date and vice versa. */
+  app.patch("/api/publications/:token", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+    const body = await readJsonBody(c, PublicationUpdateRequest)
+    if (!body.ok) {
+      return errorResponse(c, "invalid_request", 400, body.message)
+    }
+
+    const store = resolveStore(c.env)
+    let publication: Publication | null = null
+
+    if (body.data.expires_at !== undefined) {
+      publication = await store.setExpiry(token.data, body.data.expires_at)
+      if (!publication) {
+        return errorResponse(c, "not_found", 404)
+      }
+    }
+
+    if (body.data.access_code !== undefined) {
+      const hashed =
+        body.data.access_code === null ? null : await hashAccessCode(body.data.access_code)
+      publication = await store.setAccessCode(token.data, hashed)
+      if (!publication) {
+        return errorResponse(c, "not_found", 404)
+      }
+    }
+
+    if (!publication) {
+      return errorResponse(c, "not_found", 404)
+    }
+
+    return c.json(await publicationBody(store, publication))
+  })
+
+  app.get("/api/publications/:token", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+
+    const store = resolveStore(c.env)
+    const record = await store.findRecord(token.data)
+    if (!record) {
+      return errorResponse(c, "not_found", 404)
+    }
+
+    const body: PublicationDetail = {
+      publication: record.publication,
+      versions: await store.listVersions(token.data),
+      url: shareUrl(c, token.data),
+      has_access_code: record.accessCode !== null,
+    }
+    return c.json(body)
+  })
+
+  /** Who has been through this publication's door — see `PublicationReader` for why that is a
+   *  shorter list than "who opened the link". Behind `mgmtAuth` like everything under `/api`:
+   *  reviewers can see each other's names on the comments they wrote, never the roster. */
+  app.get("/api/publications/:token/readers", async (c) => {
+    const token = PublicationToken.safeParse(c.req.param("token"))
+    if (!token.success) {
+      return errorResponse(c, "invalid_request", 400, token.error.message)
+    }
+
+    const store = resolveStore(c.env)
+    if (!(await store.findByToken(token.data))) {
+      return errorResponse(c, "not_found", 404)
+    }
+
+    const body: PublicationReaderList = { readers: await store.listReaders(token.data) }
+    return c.json(body)
+  })
+
+  const serveSnapshot = async (c: Context<AppEnv>): Promise<Response> => {
+    const publication = c.get("publication")
+    const requested = snapshotPathFromUrl(c.req.url, publication.token)
+    const relative = normalizeSnapshotPath(requested)
+    if (relative === null) {
+      return errorResponse(c, "not_found", 404)
+    }
+
+    const key = `${publication.token}/v${publication.current_version}/${relative}`
+    const ifNoneMatch = conditionalEtag(c.req.header("If-None-Match"))
+    const object = await c.env.SNAPSHOTS.get(
+      key,
+      ifNoneMatch === undefined ? undefined : { onlyIf: { etagDoesNotMatch: ifNoneMatch } },
+    )
+
+    if (!object) {
+      return errorResponse(c, "not_found", 404)
+    }
+
+    const headers = new Headers({
+      "content-type": contentTypeFor(relative),
+      "cache-control": cacheControlFor(relative),
+      etag: object.httpEtag,
+    })
+
+    if (!("body" in object)) {
+      return new Response(null, { status: 304, headers })
+    }
+
+    headers.set("content-length", String(object.size))
+    return new Response(object.body, { headers })
+  }
+
+  app.use("/p/:token", requirePublication)
+  app.use("/p/:token/*", requirePublication)
+
+  /** Order is load-bearing three times over. The lookup ladder runs first, so an unknown token
+   *  is still `404` and a revoked one still `410` — the gate only ever guards requests that
+   *  would otherwise be served. `POST /access` is registered *before* the gate, because a
+   *  handler that answers without calling `next()` ends the chain: the code prompt's own form
+   *  target cannot sit behind the prompt. Everything after the gate — comments included — is
+   *  reachable only with a valid grant or `MGMT_SECRET`.
+   *
+   *  The door shares the comment routes' deps because it now mints commenter sessions too: the
+   *  gate collects the visitor's name, so both cookies are set on the one response. */
+  const sessionDeps = {
+    resolveStore,
+    timestamp,
+    newId: options.newId ?? (() => randomId()),
+  }
+
+  registerAccessRoute(app, sessionDeps)
+
+  /** Ahead of the gate for the same reason the door is: the room's ticket is an alternative
+   *  credential, and the middleware only understands the grant cookie. */
+  registerRoomRoutes(app, sessionDeps)
+
+  app.use("/p/:token", accessGate)
+  app.use("/p/:token/*", accessGate)
+
+  registerCommentRoutes(app, sessionDeps)
+
+  app.get("/p/:token", serveSnapshot)
+  app.get("/p/:token/*", serveSnapshot)
+
+  app.notFound((c) => errorResponse(c, "not_found", 404))
+
+  app.onError((err, c) => {
+    console.error(err)
+    return errorResponse(c, "internal_error", 500)
+  })
+
+  return app
+}

@@ -1,4 +1,4 @@
-import { Bot, FileText, KeyRound } from "lucide-react"
+import { Bot, FileText, Globe, KeyRound } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
@@ -22,6 +22,13 @@ export function SettingsNavigation({ activeSection }: { activeSection: SettingsS
       description: <Trans>Provider credentials</Trans>,
     },
     {
+      section: "publishing" as const,
+      icon: Globe,
+      label: <Trans>Publishing</Trans>,
+      shortLabel: <Trans>Publishing</Trans>,
+      description: <Trans>Share books as links</Trans>,
+    },
+    {
       section: "prompts" as const,
       icon: FileText,
       label: <Trans>Global prompts</Trans>,
@@ -32,7 +39,7 @@ export function SettingsNavigation({ activeSection }: { activeSection: SettingsS
 
   return (
     <aside className="shrink-0 border-b bg-muted/20 md:w-64 md:border-b-0 md:border-r">
-      <nav aria-label={t`Settings navigation`} className="grid grid-cols-3 gap-1 p-2 md:flex md:flex-col md:px-3">
+      <nav aria-label={t`Settings navigation`} className="grid grid-cols-2 gap-1 p-2 sm:grid-cols-4 md:flex md:flex-col md:px-3">
         {items.map(({ section, icon: Icon, label, shortLabel }) => {
           const isActive = activeSection === section
           return (

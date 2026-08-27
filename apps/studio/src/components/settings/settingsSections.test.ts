@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { normalizeSettingsSection } from "./settingsSections"
 
 describe("normalizeSettingsSection", () => {
-  it.each(["default-model", "api-keys", "prompts"] as const)(
+  it.each(["default-model", "api-keys", "publishing", "prompts"] as const)(
     "keeps the supported %s section",
     (section) => {
       expect(normalizeSettingsSection(section)).toBe(section)

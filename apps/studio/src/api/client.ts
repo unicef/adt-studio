@@ -1,6 +1,23 @@
 import { isElectron } from "@/lib/utils"
+import { readEventStream } from "@/api/sse"
+import { CLOUDFLARE_ACCOUNT_ID_HEADER, CLOUDFLARE_TOKEN_HEADER } from "@adt/types"
 import type {
   AccessibilityAssessmentOutput,
+  CloudflareAuthMethod,
+  CloudflareConnectionDeleteResponse,
+  CloudflareConnectionResources,
+  CloudflareConnectionStatus,
+  CloudflareOAuthAccount,
+  CloudflareOAuthAccountResponse,
+  CloudflareOAuthErrorCode,
+  CloudflareOAuthStartResponse,
+  CloudflareOAuthStatusResponse,
+  CloudflareTokenScope,
+  CloudflareVerifyResponse,
+  ProvisionErrorCode,
+  ProvisionProgressEvent,
+  ProvisionStepId,
+  ProvisionStepStatus,
   BookDetail,
   BookFont,
   BookFontRole,
@@ -20,6 +37,31 @@ import type {
   TranslationEvaluationResult,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
+import { PUBLISH_AUTHOR_NAME_HEADER } from "@adt/types"
+import type {
+  BookPublicationRecord,
+  BookPublicationStatus,
+  BookPublicationVersionRecord,
+  CommentAnchor,
+  CommenterSession,
+  PublicationPageEntry,
+  PublicationResponse,
+  PublicationReader,
+  PublicationReaderList,
+  PublicationDeleteResult,
+  PublicationRoomTicketResponse,
+  PublicationSummary,
+  PublicationsOverview,
+  PublishFeatureSelection,
+  PublishComment,
+  PublishCommentListResponse,
+  PublishCommentResponse,
+  PublishErrorCodeStudio,
+  PublishProgressEvent,
+  PublishStepDescriptor,
+  PublishStepId,
+  PublishStepStatus,
+} from "@adt/types"
 
 export type { BookSummary, BookDetail }
 
@@ -76,6 +118,11 @@ export function getSourcePdfUrl(label: string): string {
   return `${BASE_URL}/books/${label}/source-pdf`
 }
 
+/** The page image as a cacheable URL, for grids that would choke on base64 per page. */
+export function getPageRenderUrl(label: string, pageId: string): string {
+  return `${BASE_URL}/books/${label}/pages/${encodeURIComponent(pageId)}/render`
+}
+
 export function getBookCoverUrl(label: string, cacheKey?: string): string {
   const base = `${BASE_URL}/books/${label}/cover`
   if (!cacheKey) return base
@@ -98,15 +145,36 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   if (!res.ok) {
     const text = await res.text().catch(() => "")
     let message: string | undefined
+    let code: string | null = null
     try {
-      message = (JSON.parse(text) as { error?: string }).error
+      const body = JSON.parse(text) as { error?: string; code?: string }
+      message = body.error
+      code = typeof body.code === "string" ? body.code : null
     } catch {
       message = text || undefined
     }
-    throw new Error(message ?? `Request failed: ${res.status}`)
+    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, code)
   }
 
   return res.json()
+}
+
+/** Carries the machine-readable `code` some routes return alongside `error`, so callers
+ *  can branch on the reason instead of matching on prose. */
+export class ApiError extends Error {
+  readonly status: number
+  readonly code: string | null
+
+  constructor(message: string, status: number, code: string | null = null) {
+    super(message)
+    this.name = "ApiError"
+    this.status = status
+    this.code = code
+  }
+}
+
+export function apiErrorCode(error: unknown): string | null {
+  return error instanceof ApiError ? error.code : null
 }
 
 export interface ImportPreview {
@@ -834,6 +902,162 @@ export function getBookFontFileUrl(label: string, fontId: string, file: string):
 }
 
 // --- Task types ---
+
+// --- Cloudflare connection & provisioning ---
+
+export type {
+  CloudflareAuthMethod,
+  CloudflareConnectionDeleteResponse,
+  CloudflareConnectionResources,
+  CloudflareConnectionStatus,
+  CloudflareOAuthAccount,
+  CloudflareOAuthAccountResponse,
+  CloudflareOAuthErrorCode,
+  CloudflareOAuthStartResponse,
+  CloudflareOAuthStatusResponse,
+  CloudflareTokenScope,
+  CloudflareVerifyResponse,
+  ProvisionErrorCode,
+  ProvisionProgressEvent,
+  ProvisionStepId,
+  ProvisionStepStatus,
+}
+
+/** User-supplied Cloudflare credentials. Held in localStorage on this machine
+ *  and sent per-request to the Studio API only — never to the worker. */
+export interface CloudflareCredentials {
+  token: string
+  accountId: string
+}
+
+export interface ProvisionOptions {
+  onEvent: (event: ProvisionProgressEvent) => void
+  /** Resume a partially completed run from this 1-based step number. */
+  resumeFromStep?: number
+  signal?: AbortSignal
+}
+
+function buildCloudflareHeaders(
+  credentials?: Partial<CloudflareCredentials>,
+): Record<string, string> {
+  const headers: Record<string, string> = {}
+  if (credentials?.token) headers[CLOUDFLARE_TOKEN_HEADER] = credentials.token
+  if (credentials?.accountId) headers[CLOUDFLARE_ACCOUNT_ID_HEADER] = credentials.accountId
+  return headers
+}
+
+// --- Book publication (M1b) ---
+
+export type {
+  BookPublicationRecord,
+  BookPublicationStatus,
+  BookPublicationVersionRecord,
+  CommentAnchor,
+  CommenterSession,
+  PublicationPageEntry,
+  PublicationResponse,
+  PublicationReader,
+  PublicationReaderList,
+  PublicationRoomTicketResponse,
+  PublicationSummary,
+  PublicationsOverview,
+  PublishComment,
+  PublishCommentListResponse,
+  PublishCommentResponse,
+  PublishErrorCodeStudio,
+  PublishProgressEvent,
+  PublishStepDescriptor,
+  PublishStepId,
+  PublishStepStatus,
+}
+
+/** The published version's own pages — what the Feedback view navigates. */
+export interface PublicationPageManifest {
+  current_version: number
+  pages: PublicationPageEntry[]
+}
+
+export interface PublicationCommentQuery {
+  includeResolved?: boolean
+  pageSectionId?: string
+  version?: number
+}
+
+/** Same-origin URL for a file inside the published snapshot. The Studio proxies it with the
+ *  management secret, so the author reads the exact bytes reviewers saw — including on a link
+ *  that has since been stopped — and the browser never holds that secret. */
+export function getPublicationPreviewUrl(label: string, filePath = ""): string {
+  const encoded = filePath
+    .split("/")
+    .filter((segment) => segment.length > 0)
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")
+  return `${BASE_URL}/books/${label}/publication/preview/${encoded}`
+}
+
+function authorNameHeader(authorName?: string | null): Record<string, string> {
+  const trimmed = authorName?.trim() ?? ""
+  return trimmed.length === 0 ? {} : { [PUBLISH_AUTHOR_NAME_HEADER]: trimmed }
+}
+
+function commentQueryString(query: PublicationCommentQuery = {}): string {
+  const params = new URLSearchParams()
+  if (query.includeResolved !== undefined) {
+    params.set("include_resolved", query.includeResolved ? "true" : "false")
+  }
+  if (query.pageSectionId !== undefined) params.set("page_section_id", query.pageSectionId)
+  if (query.version !== undefined) params.set("version", String(query.version))
+  const search = params.toString()
+  return search.length === 0 ? "" : `?${search}`
+}
+
+export interface PublishStreamOptions {
+  onEvent: (event: PublishProgressEvent) => void
+  signal?: AbortSignal
+}
+
+/** Reads a `text/event-stream` POST response, turning the `{ error, code }`
+ *  bodies the route answers *before* the stream opens into an `ApiError`. */
+async function streamPublishEvents(
+  path: string,
+  body: Record<string, unknown>,
+  options: PublishStreamOptions,
+): Promise<void> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "text/event-stream" },
+    body: JSON.stringify(body),
+    signal: options.signal,
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "")
+    let message: string | undefined
+    let code: string | null = null
+    try {
+      const parsed = JSON.parse(text) as { error?: string; code?: string }
+      message = parsed.error
+      code = typeof parsed.code === "string" ? parsed.code : null
+    } catch {
+      message = text || undefined
+    }
+    throw new ApiError(message ?? `Request failed: ${res.status}`, res.status, code)
+  }
+
+  if (!res.body) throw new ApiError(`Request failed: ${res.status}`, res.status)
+
+  await readEventStream(res.body, ({ event, data }) => {
+    if (!data) return
+    let payload: Record<string, unknown>
+    try {
+      payload = JSON.parse(data) as Record<string, unknown>
+    } catch {
+      return
+    }
+    const type = typeof payload.type === "string" ? payload.type : event
+    options.onEvent({ ...payload, type } as PublishProgressEvent)
+  })
+}
 
 export interface TaskInfoResponse {
   taskId: string
@@ -2081,6 +2305,229 @@ export const api = {
     }
     const buf = await res.arrayBuffer()
     return new Blob([buf], { type: "application/zip" })
+  },
+
+  // --- Book publication (M1b) ---
+
+  getBookPublication: (label: string) =>
+    request<BookPublicationStatus>(`/books/${label}/publication`),
+
+  /** Every publication in the connected Cloudflare account, merged with what this machine
+   *  knows about each book. `412 publish_not_connected` when no account is connected. */
+  getPublications: () => request<PublicationsOverview>("/publications"),
+
+  /** Who has joined one publication. Keyed by token, not by book label, so it still answers for
+   *  a book that is no longer on this machine. */
+  getPublicationReaders: (token: string) =>
+    request<PublicationReaderList>(`/publications/${token}/readers`),
+
+  /** Erases a publication for good — snapshots, threads and reader names. Keyed by token, so
+   *  it reaches a row whose book has left this computer, which is the one the author cannot
+   *  remove any other way. */
+  deletePublication: (token: string) =>
+    request<PublicationDeleteResult>(`/publications/${token}`, { method: "DELETE" }),
+
+  /** First publish: mints a token and uploads v1. Streams the four publish steps. */
+  publishBook: (
+    label: string,
+    options: PublishStreamOptions & {
+      expiresAt?: string | null
+      accessCode?: string | null
+      /** Omitted entirely when nothing is excluded, so the ordinary case sends no key at all. */
+      features?: PublishFeatureSelection
+    },
+  ): Promise<void> =>
+    streamPublishEvents(
+      `/books/${label}/publication`,
+      {
+        ...(options.expiresAt === undefined ? {} : { expires_at: options.expiresAt }),
+        ...(options.accessCode === undefined ? {} : { access_code: options.accessCode }),
+        ...(options.features === undefined ? {} : { features: options.features }),
+      },
+      options,
+    ),
+
+  /** "Update site": re-exports and uploads the next version under the same link. */
+  publishBookVersion: (label: string, options: PublishStreamOptions): Promise<void> =>
+    streamPublishEvents(`/books/${label}/publication/versions`, {}, options),
+
+  revokeBookPublication: (label: string) =>
+    request<PublicationResponse>(`/books/${label}/publication/revoke`, {
+      method: "POST",
+    }),
+
+  /** "Resume sharing": clears the revocation, so the same address serves again. */
+  resumeBookPublication: (label: string) =>
+    request<PublicationResponse>(`/books/${label}/publication/resume`, {
+      method: "POST",
+    }),
+
+  setBookPublicationExpiry: (label: string, expiresAt: string | null) =>
+    request<PublicationResponse>(`/books/${label}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ expires_at: expiresAt }),
+    }),
+
+  /** Sets, rotates or (with `null`) removes the code readers have to type. Every code already
+   *  entered on a reader's device stops working the moment this lands. */
+  setBookPublicationAccessCode: (label: string, accessCode: string | null) =>
+    request<PublicationResponse>(`/books/${label}/publication`, {
+      method: "PATCH",
+      body: JSON.stringify({ access_code: accessCode }),
+    }),
+
+  // --- Feedback view (M4) ---
+
+  getPublicationPages: (label: string) =>
+    request<PublicationPageManifest>(`/books/${label}/publication/pages`),
+
+  getPublicationComments: (label: string, query: PublicationCommentQuery = {}) =>
+    request<PublishCommentListResponse>(
+      `/books/${label}/publication/comments${commentQueryString(query)}`,
+    ),
+
+  createPublicationComment: (
+    label: string,
+    body: { pageSectionId: string; body: string; parentId?: string | null; anchor?: CommentAnchor | null },
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(`/books/${label}/publication/comments`, {
+      method: "POST",
+      headers: authorNameHeader(authorName),
+      body: JSON.stringify({
+        page_section_id: body.pageSectionId,
+        body: body.body,
+        ...(body.parentId === undefined ? {} : { parent_id: body.parentId }),
+        ...(body.anchor === undefined ? {} : { anchor: body.anchor }),
+      }),
+    }),
+
+  /** Author-only, thread level: the reader has no resolve control at all. */
+  resolvePublicationComment: (
+    label: string,
+    id: string,
+    resolved: boolean,
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(
+      `/books/${label}/publication/comments/${encodeURIComponent(id)}/resolve`,
+      {
+        method: "POST",
+        headers: authorNameHeader(authorName),
+        body: JSON.stringify({ resolved }),
+      },
+    ),
+
+  updatePublicationComment: (
+    label: string,
+    id: string,
+    body: string,
+    authorName?: string | null,
+  ) =>
+    request<PublishCommentResponse>(
+      `/books/${label}/publication/comments/${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: authorNameHeader(authorName),
+        body: JSON.stringify({ body }),
+      },
+    ),
+
+  deletePublicationComment: (label: string, id: string, authorName?: string | null) =>
+    request<PublishCommentResponse>(
+      `/books/${label}/publication/comments/${encodeURIComponent(id)}`,
+      { method: "DELETE", headers: authorNameHeader(authorName) },
+    ),
+
+  // --- Realtime presence (M6) ---
+
+  /** A 60-second credential for the publication's realtime room, plus the `wss://` address to
+   *  spend it at. The management secret stays in `apps/api`; a ticket is all the browser holds,
+   *  and it is worth nothing after a minute. */
+  createPublicationRoomTicket: (label: string) =>
+    request<PublicationRoomTicketResponse>(`/books/${label}/publication/room-ticket`, {
+      method: "POST",
+    }),
+
+  // --- Cloudflare connection & provisioning ---
+
+  startCloudflareOAuth: () =>
+    request<CloudflareOAuthStartResponse>("/cloudflare/oauth/start", { method: "POST" }),
+
+  getCloudflareOAuthStatus: (state: string) =>
+    request<CloudflareOAuthStatusResponse>(
+      `/cloudflare/oauth/status?state=${encodeURIComponent(state)}`,
+    ),
+
+  pickCloudflareOAuthAccount: (state: string, accountId: string) =>
+    request<CloudflareOAuthAccountResponse>("/cloudflare/oauth/account", {
+      method: "POST",
+      body: JSON.stringify({ state, account_id: accountId }),
+    }),
+
+  verifyCloudflare: (credentials: Partial<CloudflareCredentials>) =>
+    request<CloudflareVerifyResponse>("/cloudflare/verify", {
+      method: "POST",
+      headers: buildCloudflareHeaders(credentials),
+    }),
+
+  getCloudflareConnection: (credentials?: Partial<CloudflareCredentials>) =>
+    request<CloudflareConnectionStatus>("/cloudflare/connection", {
+      headers: buildCloudflareHeaders(credentials),
+    }),
+
+  disconnectCloudflare: (
+    credentials: Partial<CloudflareCredentials>,
+    options?: { deleteResources?: boolean },
+  ) =>
+    request<CloudflareConnectionDeleteResponse>(
+      `/cloudflare/connection${options?.deleteResources ? "?delete_resources=1" : ""}`,
+      { method: "DELETE", headers: buildCloudflareHeaders(credentials) },
+    ),
+
+  /** Runs the provisioning sequence, streaming per-step progress as SSE.
+   *  Resolves when the stream closes; rejects if the request itself fails. */
+  provisionCloudflare: async (
+    credentials: Partial<CloudflareCredentials>,
+    options: ProvisionOptions,
+  ): Promise<void> => {
+    const res = await fetch(`${BASE_URL}/cloudflare/provision`, {
+      method: "POST",
+      headers: {
+        ...buildCloudflareHeaders(credentials),
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+      },
+      body: JSON.stringify(
+        options.resumeFromStep ? { resume_from_step: options.resumeFromStep } : {},
+      ),
+      signal: options.signal,
+    })
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "")
+      let message: string | undefined
+      try {
+        message = (JSON.parse(text) as { error?: string }).error
+      } catch {
+        message = text || undefined
+      }
+      throw new Error(message ?? `Request failed: ${res.status}`)
+    }
+
+    if (!res.body) throw new Error(`Request failed: ${res.status}`)
+
+    await readEventStream(res.body, ({ event, data }) => {
+      if (!data) return
+      let payload: Record<string, unknown>
+      try {
+        payload = JSON.parse(data) as Record<string, unknown>
+      } catch {
+        return
+      }
+      const type = typeof payload.type === "string" ? payload.type : event
+      options.onEvent({ ...payload, type } as ProvisionProgressEvent)
+    })
   },
 
   exportPnld: async (label: string): Promise<Blob | null> => {

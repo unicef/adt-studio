@@ -28,7 +28,7 @@ describe("stage-config", () => {
     ])
   })
 
-  it("returns book overview stages including validation before preview and export", () => {
+  it("returns book overview stages including validation before preview, export and feedback", () => {
     const overviewSlugs = getBookOverviewStages().map((stage) => stage.slug)
     expect(overviewSlugs).toEqual([
       "extract",
@@ -44,8 +44,22 @@ describe("stage-config", () => {
       "speech",
       "validation",
       "preview",
+      "publish",
       "export",
     ])
+  })
+
+  /** Publishing sits *before* Export on purpose: a publication is not an artifact you produce
+   *  once at the end, it is a live address you keep while the book is still being worked on. */
+  it("puts Publishing before Export and keeps it out of the runnable pipeline", () => {
+    const slugs = STAGES.map((stage) => stage.slug)
+    expect(slugs.indexOf("publish")).toBe(slugs.indexOf("export") - 1)
+    expect(getPipelineStages().map((stage) => stage.slug)).not.toContain("publish")
+  })
+
+  /** Reviewer comments moved into the Storyboard, so there is no Feedback stage to order. */
+  it("has no Feedback stage", () => {
+    expect(STAGES.map((stage) => stage.slug)).not.toContain("feedback")
   })
 
   it("includes validation as a non-pipeline stage", () => {

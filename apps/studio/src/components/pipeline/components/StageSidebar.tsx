@@ -25,6 +25,7 @@ import { useDirtyTabsForStage } from "@/hooks/use-settings-dirty-tabs"
 import { getSettingsTabs } from "../settings-tabs"
 import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
+import { useFeedbackBadge } from "../../publication-feedback/use-feedback-badge"
 import { StepProgressRing } from "./StepProgressRing"
 import { StoryboardIndex } from "./StoryboardIndex"
 import { useSectionNav } from "@/routes/books.$label"
@@ -82,6 +83,10 @@ export function StageSidebar({
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
+  /** Reviewer comments live in the Storyboard now, so its badge is what says work is waiting —
+   *  the Feedback stage that used to carry it is gone. It is a count, not a completion state:
+   *  the storyboard's own "done" is about rendering, and an open comment must not un-tick it. */
+  const feedback = useFeedbackBadge(bookLabel)
   const { tasks } = useBookTasks(bookLabel)
   const stageMissing = useStageMissingCounts(bookLabel)
   const translateNeedsRerun = stageMissing.translate > 0
@@ -92,6 +97,11 @@ export function StageSidebar({
   const noTextLayerLabel = i18n._(
     msg`Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF.`
   )
+
+  const unresolvedFeedbackLabel = (count: number) =>
+    count === 1
+      ? i18n._(msg`1 comment waiting for you`)
+      : i18n._(msg`${count} comments waiting for you`)
 
   const currentState = stageState(activeStep)
   // A stale Storyboard still has its renderings — staleness is a step_runs flag,
@@ -131,7 +141,6 @@ export function StageSidebar({
   const signLanguageCompleted = signLanguageData?.videos?.some((v) => v.sectionId !== null) ?? false
   const previewCompleted = packageStatus?.hasAdt ?? false
   const exportCompleted = tasks.some((t) => t.kind === "prepare-export" && t.status === "completed")
-
   const completionOverrides: Record<string, boolean> = {
     "sign-language": signLanguageCompleted,
     validation: validationCompleted,
@@ -264,7 +273,16 @@ export function StageSidebar({
                 >
                   <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
                 </span>
-              ) : step.slug === "extract" && hasNoTextLayer ? (
+              ) : step.slug === "storyboard" && feedback.unresolvedCount > 0 ? (
+              <span
+                role="img"
+                aria-label={unresolvedFeedbackLabel(feedback.unresolvedCount)}
+                title={unresolvedFeedbackLabel(feedback.unresolvedCount)}
+                className="absolute -top-1.5 -right-1.5 z-20 flex h-4 min-w-4 items-center justify-center rounded-full bg-indigo-600 px-1 text-[9px] font-bold leading-none text-white ring-2 ring-background transition-transform duration-200 motion-reduce:transition-none"
+              >
+                {feedback.unresolvedCount > 99 ? "99+" : feedback.unresolvedCount}
+              </span>
+            ) : step.slug === "extract" && hasNoTextLayer ? (
                 <span
                   role="img"
                   aria-label={noTextLayerLabel}

@@ -1,12 +1,24 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* The publishing run screen's step artworks, one file per step. Each holds the chosen design's
+   keyframes — the losing candidates were deleted with the bench that judged them (archived in
+   .context/publish-progress/rejected/). */
+@import "./publish-anim-export.css";
+@import "./publish-anim-package.css";
+@import "./publish-anim-upload.css";
+@import "./publish-anim-register.css";
+
 /* Dark mode is driven by a `.dark` class (see the `.dark { … }` token block
  * below), not the OS. Without this, Tailwind v4 defaults the `dark:` variant to
  * `@media (prefers-color-scheme: dark)`, so `dark:` utilities would fire on a
  * dark-mode OS while the class-based surfaces stay light — e.g. pale
  * `dark:text-amber-200` on a light `bg-amber-50`, making warnings illegible. */
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* Short-viewport variant: compact fallbacks for laptops with limited height.
+   Spacious is the default; `mh:` overrides apply under 820px of height. */
+@custom-variant mh (@media (max-height: 819px));
 
 @theme inline {
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
@@ -56,6 +68,8 @@
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-wizard-enter: wizard-enter 0.25s ease-out;
+  --animate-cursor-float-b: cursor-float-b 11s ease-in-out infinite;
+  --animate-pin-pop: pin-pop 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.5s backwards;
   --animate-fade-ring: fade-ring 1.5s ease-out forwards;
   --animate-indeterminate: indeterminate 1.15s ease-in-out infinite;
   --animate-btn-label-enter: btn-label-enter 0.22s cubic-bezier(0.22, 1, 0.36, 1);
@@ -73,6 +87,12 @@
   --animate-onboarding-drift-b: onboarding-drift-b 28s ease-in-out infinite;
   --animate-onboarding-icon-float: onboarding-icon-float 5s ease-in-out infinite;
   --animate-onboarding-shimmer: onboarding-shimmer 2.8s ease-in-out infinite;
+  --animate-hero-stamp: hero-stamp 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  --animate-hero-caret-blink: hero-caret-blink 1s step-end infinite;
+  --animate-flow-dash: flow-dash 0.8s linear infinite;
+  --animate-flow-edge: flow-edge 0.6s linear infinite;
+  --animate-medallion-breathe: medallion-breathe 2.6s ease-in-out infinite;
+  --animate-medallion-halo: medallion-halo 2.6s ease-in-out infinite;
   --animate-onboarding-eq: onboarding-eq 0.85s ease-in-out infinite;
   --animate-onboarding-gradient: onboarding-gradient 6s ease-in-out infinite;
   --animate-finale-rise: finale-rise 0.95s cubic-bezier(0.19, 1, 0.22, 1) both;
@@ -601,4 +621,135 @@
 
 .drag-region * {
   -webkit-app-region: no-drag;
+}
+
+@keyframes cursor-float-b {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  40% {
+    transform: translate(22px, -16px);
+  }
+  75% {
+    transform: translate(-12px, 8px);
+  }
+}
+
+@keyframes pin-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.15);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes hero-typing-width {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes hero-caret-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes hero-stamp {
+  0% {
+    opacity: 0;
+    transform: scale(0.5) rotate(-10deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.18) rotate(3deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Story hero: Maria's cursor "arriving" at the heading in Act 3. Mirrors the
+ * @starting-style pattern used by .adt-pill-chip — a fresh mount transitions
+ * in from an offset, then settles at rest. Restarted each loop by remounting
+ * the node (key change), not by re-running a fixed-length keyframe. */
+.hero-cursor-approach {
+  opacity: 1;
+  transform: translate(0, 0);
+  transition:
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 450ms ease-out;
+}
+@starting-style {
+  .hero-cursor-approach {
+    opacity: 0;
+    transform: translate(38px, -28px);
+  }
+}
+
+@keyframes flow-dash {
+  from {
+    background-position-y: 0;
+  }
+  to {
+    background-position-y: 12px;
+  }
+}
+
+@keyframes flow-edge {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+@keyframes medallion-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes medallion-halo {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.12);
+  }
+}
+
+/* The publishing run screen is on for minutes, so its reduced-motion promise has to be a floor,
+   not a habit: every `motion-reduce:` utility below is belt, and this is braces. A reviewer holds
+   a computed style against "animation-duration 0s, transition-duration under 100ms" for the whole
+   subtree, and one forgotten utility on one nested element would fail that for the whole screen. */
+@media (prefers-reduced-motion: reduce) {
+  [data-publish-run],
+  [data-publish-run] * {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
+  }
 }

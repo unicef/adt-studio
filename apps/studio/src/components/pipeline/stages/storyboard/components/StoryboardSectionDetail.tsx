@@ -21,6 +21,7 @@ import {
   RotateCcw,
   Sparkles,
   Type,
+  MessagesSquare,
   X,
 } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
@@ -63,6 +64,12 @@ import {
   type BookPreviewFrameHandle,
   type ComputedTypographyStyles,
 } from "./BookPreviewFrame"
+import {
+  StoryboardFeedbackOverlay,
+  useSectionFeedbackCount,
+} from "./feedback/StoryboardFeedbackOverlay"
+import { StoryboardCommentsSidebar } from "./feedback/StoryboardCommentsSidebar"
+import { sectionIdFor } from "./feedback/storyboard-pins"
 import { SectionEditPanel } from "./SectionEditPanel"
 import { writeCustomAnswerToHtml } from "../lib/activity-answer-labels"
 import { updateOrderingAnswer } from "../lib/ordering-answers"
@@ -71,7 +78,7 @@ import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
 import { sameAnchor, type ActivityAnchor } from "./activity-link"
-import { scrollBehavior } from "@/lib/utils"
+import { cn, scrollBehavior } from "@/lib/utils"
 import { StepperActivityPreview } from "./StepperActivityPreview"
 import {
   useActivityStructure,
@@ -505,6 +512,16 @@ export function StoryboardSectionDetail({
   const [previewVisibleWidth, setPreviewVisibleWidth] = useState(0)
   const [previewScale, setPreviewScale] = useState(1)
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
+  /** The pin overlay is drawn in this box's coordinates; the iframe's offset inside it is added
+   *  back per pin, exactly as the Feedback view does. */
+  const previewContainerRef = useRef<HTMLDivElement>(null)
+  const [feedbackShown, setFeedbackShown] = useState(false)
+  /** One selection shared by the pins and the sidebar: two states could disagree about which
+   *  comment is open, and the author would see a highlighted row with no highlighted pin. */
+  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null)
+  const [missingPinIds, setMissingPinIds] = useState<readonly string[]>([])
+  const missingPins = useMemo(() => new Set(missingPinIds), [missingPinIds])
+  const feedbackCount = useSectionFeedbackCount(bookLabel, sectionIdFor(pageId, sectionIndex))
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
   // Clear cached classes when element is deselected
@@ -812,6 +829,12 @@ export function StoryboardSectionDetail({
 
   // Effective data
   const sectioningData = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
+  /** Every section of this page, so the sidebar can group threads the way the author sees them.
+   *  Sectioning is the reliable source — rendering skips pruned sections. */
+  const pageSectionIds = useMemo(
+    () => (sectioningData?.sections ?? []).map((_section, index) => sectionIdFor(pageId, index)),
+    [sectioningData, pageId],
+  )
   const dirty = pendingSectioning != null
 
   // Current section data
@@ -2553,6 +2576,36 @@ export function StoryboardSectionDetail({
         onChange={setDeviceView}
         currentWidth={previewVisibleWidth}
       />
+      {/* Reviewer pins and the comments panel, as one toggle in the toolbar's own idiom —
+          white-on-violet like the viewport switch beside it, rather than the indigo pill it was,
+          which belonged to a page this bar is not on. Off until asked for: an author styling a
+          page should not have somebody else's dots in the way. */}
+      <button
+        type="button"
+        data-testid="storyboard-feedback-toggle"
+        aria-pressed={feedbackShown}
+        onClick={() => setFeedbackShown((shown) => !shown)}
+        title={t`Show reviewer comments on this page`}
+        className={cn(
+          "inline-flex h-6 shrink-0 cursor-pointer items-center gap-1 rounded px-1.5 text-[10px] transition-colors",
+          feedbackShown
+            ? "bg-white text-neutral-900"
+            : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white",
+        )}
+      >
+        <MessagesSquare className="h-3.5 w-3.5" />
+        <span>{t`Comments`}</span>
+        {feedbackCount > 0 ? (
+          <span
+            className={cn(
+              "ml-0.5 rounded-full px-1 text-[9px] font-bold leading-4 tabular-nums",
+              feedbackShown ? "bg-neutral-900 text-white" : "bg-white text-neutral-900",
+            )}
+          >
+            {feedbackCount > 99 ? "99+" : feedbackCount}
+          </span>
+        ) : null}
+      </button>
       {renderedSection?.html && hasApiKey ? (
         <div className="relative flex-1 min-w-[100px]">
           <Sparkles className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-400" />
@@ -2860,6 +2913,7 @@ export function StoryboardSectionDetail({
                 />
               </>
             ) : (
+              <div ref={previewContainerRef} className="relative w-full">
               <BookPreviewFrame
                   ref={previewFrameRef}
                   html={renderedSection.html}
@@ -2883,6 +2937,19 @@ export function StoryboardSectionDetail({
                   onScaleChange={setPreviewScale}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
+
+                <StoryboardFeedbackOverlay
+                  bookLabel={bookLabel}
+                  sectionId={sectionIdFor(pageId, sectionIndex)}
+                  frameRef={previewFrameRef}
+                  containerRef={previewContainerRef}
+                  enabled={feedbackShown}
+                  showResolved={false}
+                  selectedThreadId={selectedThreadId}
+                  onSelectThread={setSelectedThreadId}
+                  onMissingPinsChange={setMissingPinIds}
+                />
+              </div>
             )}
           </>
         ) : storyboardRunning && !section?.isPruned ? (
@@ -3197,6 +3264,17 @@ export function StoryboardSectionDetail({
         <div className="absolute inset-0 z-50 cursor-row-resize" />
       )}
     </div>
+
+    <StoryboardCommentsSidebar
+      bookLabel={bookLabel}
+      sectionIds={pageSectionIds}
+      activeSectionId={sectionIdFor(pageId, sectionIndex)}
+      open={feedbackShown}
+      onClose={() => setFeedbackShown(false)}
+      selectedThreadId={selectedThreadId}
+      onSelectThread={setSelectedThreadId}
+      missingPins={missingPins}
+    />
 
     {/* Inline element style editor — opens automatically on selection */}
     <StyleEditorPanel

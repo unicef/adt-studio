@@ -1,4 +1,4 @@
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { Fragment, useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import {
@@ -9,6 +9,7 @@ import {
   type TocEntry,
 } from "@/features/navigation/state/nav.atoms";
 import { activeNavTabAtom } from "@/shared/state/ui.atoms";
+import { followedPeerAtom } from "@/features/comments/state/follow.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { cn } from "@/shared/lib/utils";
 import { ScrollArea } from "@/shared/ui/scroll-area";
@@ -91,6 +92,8 @@ function TocList({
   entries: TocEntry[];
   currentSectionId: string | null;
 }) {
+  /** Picking a destination yourself ends a follow, for the same reason turning the page does. */
+  const stopFollowing = useSetAtom(followedPeerAtom);
   return (
     <ul className="py-1">
       {entries.map((entry) => {
@@ -101,6 +104,7 @@ function TocList({
               type="button"
               title={entry.title}
               onClick={() => {
+                stopFollowing(null);
                 window.location.href = entry.href;
               }}
               className={cn(
@@ -146,6 +150,7 @@ function PageList({
   printPageLabel: string;
   coverLabel: string;
 }) {
+  const stopFollowing = useSetAtom(followedPeerAtom);
   const items = useMemo<PageListItem[]>(() => {
     const chapterLookup = new Map<string, TocEntry>();
     for (const chapter of toc) {
@@ -195,6 +200,7 @@ function PageList({
               <button
                 type="button"
                 onClick={() => {
+                  stopFollowing(null);
                   window.location.href = page.href;
                 }}
                 aria-label={ariaLabel}

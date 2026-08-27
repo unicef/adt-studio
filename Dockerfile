@@ -39,6 +39,7 @@ COPY packages/ ./packages/
 COPY apps/api/ ./apps/api/
 COPY apps/studio/ ./apps/studio/
 COPY apps/adt-runtime/ ./apps/adt-runtime/
+COPY apps/publish-service/ ./apps/publish-service/
 
 # Read-only code assets required during build (prompts, templates, global config)
 COPY prompts/ ./prompts/
@@ -104,6 +105,12 @@ WORKDIR /app
 # postcss, playwright) which are installed into dist/node_modules/ during the build stage.
 # WASM files are copied into dist/ by the build:server script.
 COPY --from=build /app/apps/api/dist ./apps/api/dist
+
+# The publish worker artifact the API deploys into the author's Cloudflare account, plus its D1
+# migrations (not packaged inside dist/). Resolved at runtime from PROJECT_ROOT — without these,
+# "Publish this book" cannot provision or update the worker from a Docker install.
+COPY --from=build /app/apps/publish-service/dist ./apps/publish-service/dist
+COPY --from=build /app/apps/publish-service/migrations ./apps/publish-service/migrations
 
 # Playwright Chromium browser binary + system dependencies for screenshot rendering.
 # The browser was downloaded in the build stage; copy it and install OS-level libs.
@@ -172,6 +179,12 @@ WORKDIR /app
 
 # API bundle (self-contained except for external packages in dist/node_modules/)
 COPY --from=build /app/apps/api/dist ./apps/api/dist
+
+# The publish worker artifact the API deploys into the author's Cloudflare account, plus its D1
+# migrations (not packaged inside dist/). Resolved at runtime from PROJECT_ROOT — without these,
+# "Publish this book" cannot provision or update the worker from a Docker install.
+COPY --from=build /app/apps/publish-service/dist ./apps/publish-service/dist
+COPY --from=build /app/apps/publish-service/migrations ./apps/publish-service/migrations
 
 # Playwright Chromium browser binary + system dependencies for screenshot rendering.
 COPY --from=build /root/.cache/ms-playwright /home/node/.cache/ms-playwright
