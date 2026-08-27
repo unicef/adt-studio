@@ -1226,6 +1226,51 @@ export function createPageRoutes(
     }
   })
 
+  /**
+   * GET /books/:label/pages/:pageId/render — the page image as an image.
+   *
+   * The sibling `/image` route answers with base64 inside JSON, which is fine for the one page
+   * an editor is looking at and ruinous for a grid of a hundred: JSON is uncacheable by the
+   * image cache, base64 costs a third again in bytes, and every thumbnail has to be held in JS
+   * memory as a data URL. This one is a plain `image/png` a browser can put in an `<img>`, lazy
+   * load, and cache — which is what a wall of page thumbnails needs.
+   */
+  app.get("/books/:label/pages/:pageId/render", (c) => {
+    const { label, pageId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+    const resolvedDir = path.resolve(booksDir)
+    const bookDir = path.join(resolvedDir, safeLabel)
+    const dbPath = path.join(bookDir, `${safeLabel}.db`)
+
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+    }
+
+    const db = openBookDb(dbPath)
+    try {
+      const rows = db.all("SELECT path FROM images WHERE image_id = ?", [
+        `${pageId}_page`,
+      ]) as Array<{ path: string }>
+
+      if (rows.length === 0) {
+        throw new HTTPException(404, { message: `Page image not found: ${pageId}` })
+      }
+
+      const imagePath = path.resolve(bookDir, rows[0].path)
+      if (!imagePath.startsWith(bookDir + path.sep)) {
+        throw new HTTPException(400, { message: "Invalid image path" })
+      }
+
+      c.header("Content-Type", "image/png")
+      /** Immutable in practice: a re-extraction writes a new page id, so the same URL never
+       *  refers to a different picture. */
+      c.header("Cache-Control", "public, max-age=86400")
+      return c.body(new Uint8Array(fs.readFileSync(imagePath)))
+    } finally {
+      db.close()
+    }
+  })
+
   // GET /books/:label/spread-suggestions — Detect likely two-page spreads by
   // seam continuity across the extracted page renders.
   app.get("/books/:label/spread-suggestions", (c) => {

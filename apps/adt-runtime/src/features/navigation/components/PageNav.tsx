@@ -7,6 +7,7 @@ import {
   type PageEntry,
 } from "@/features/navigation/state/nav.atoms";
 import { dockMenuValueAtom } from "@/shared/state/ui.atoms";
+import { followedPeerAtom } from "@/features/comments/state/follow.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { DockIconButton } from "@/features/dock/components/DockIconButton";
 
@@ -51,6 +52,7 @@ export function PageNav() {
   const currentPageFromMeta = useAtomValue(currentPageNumberAtom);
   const dockMenuValue = useAtomValue(dockMenuValueAtom);
   const setDockMenuValue = useSetAtom(dockMenuValueAtom);
+  const stopFollowing = useSetAtom(followedPeerAtom);
   const { t } = useTranslation();
 
   const idx = pages.findIndex((p) => p.section_id === currentSectionId);
@@ -65,6 +67,10 @@ export function PageNav() {
 
   const go = (href: string | undefined) => {
     if (!href) return;
+    // Turning the page yourself is the clearest possible statement that you want the wheel
+    // back, so it ends a follow — otherwise the next presence frame would drag you straight
+    // back to the page you just left.
+    stopFollowing(null);
     // Turning the page dismisses the read-aloud panel. `dockMenuValue` is
     // persisted, so clearing it keeps the panel closed on the next document
     // rather than re-opening. Playback resumes independently via the

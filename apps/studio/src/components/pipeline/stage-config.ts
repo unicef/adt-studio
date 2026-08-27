@@ -12,7 +12,9 @@ import {
   ShieldCheck,
   FileDown,
   Hand,
+  MessagesSquare,
   Network,
+  Globe,
   type LucideIcon,
 } from "lucide-react"
 
@@ -33,6 +35,7 @@ export const STAGES = [
   { slug: "speech", label: "Speech", runningLabel: "Generating Speech", icon: AudioLines, color: "bg-rose-600", hex: "#e11d48", textColor: "text-rose-600", bgLight: "bg-rose-50", borderColor: "border-rose-200", borderDark: "border-rose-600", group: "localization" },
   { slug: "validation", label: "Validation", runningLabel: "Running Validation", icon: ShieldCheck, color: "bg-emerald-600", hex: "#059669", textColor: "text-emerald-600", bgLight: "bg-emerald-50", borderColor: "border-emerald-200", borderDark: "border-emerald-600", group: "packaging" },
   { slug: "preview", label: "Preview", runningLabel: "Building Preview", icon: Eye, color: "bg-gray-600", hex: "#4b5563", textColor: "text-gray-600", bgLight: "bg-gray-50", borderColor: "border-gray-200", borderDark: "border-gray-600", group: "packaging" },
+  { slug: "publish", label: "Publishing", runningLabel: "Publishing", icon: Globe, color: "bg-indigo-600", hex: "#4f46e5", textColor: "text-indigo-600", bgLight: "bg-indigo-50", borderColor: "border-indigo-200", borderDark: "border-indigo-600", group: "packaging" },
   { slug: "export", label: "Export", runningLabel: "Exporting", icon: FileDown, color: "bg-indigo-700", hex: "#4338ca", textColor: "text-indigo-700", bgLight: "bg-indigo-50", borderColor: "border-indigo-200", borderDark: "border-indigo-700", group: "packaging" },
 ] as const satisfies ReadonlyArray<{
   slug: string
@@ -50,7 +53,10 @@ export const STAGES = [
 
 export type StageSlug = (typeof STAGES)[number]["slug"]
 export type NonBookStageSlug = Exclude<StageSlug, "book">
-export type PipelineStageSlug = Exclude<StageSlug, "book" | "sign-language" | "validation" | "export">
+export type PipelineStageSlug = Exclude<
+  StageSlug,
+  "book" | "sign-language" | "validation" | "publish" | "export"
+>
 export type StageDefinition = (typeof STAGES)[number]
 export type NonBookStageDefinition = Extract<StageDefinition, { slug: NonBookStageSlug }>
 export type PipelineStageDefinition = Extract<StageDefinition, { slug: PipelineStageSlug }>
@@ -69,6 +75,7 @@ export const STAGE_DESCRIPTIONS: Record<NonBookStageSlug, string> = {
   "sign-language": "Upload and assign sign language videos to book pages.",
   validation: "Run whole-book validation checks and configure accessibility assessment settings.",
   preview: "Package and preview the final ADT web application.",
+  publish: "Put the book online for readers and reviewers, and manage the link, code and versions.",
   export: "Export packaged ADTs and related artifacts for delivery.",
 }
 
@@ -96,7 +103,13 @@ export function isBookOverviewStage(stage: StageDefinition): stage is NonBookSta
 }
 
 export function isPipelineStage(stage: StageDefinition): stage is PipelineStageDefinition {
-  return stage.slug !== "book" && stage.slug !== "sign-language" && stage.slug !== "validation" && stage.slug !== "export"
+  return (
+    stage.slug !== "book" &&
+    stage.slug !== "sign-language" &&
+    stage.slug !== "validation" &&
+    stage.slug !== "publish" &&
+    stage.slug !== "export"
+  )
 }
 
 export function getBookOverviewStages(): NonBookStageDefinition[] {

@@ -126,13 +126,12 @@ function ExportLandingBody({
     >
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
-          <Trans>Export</Trans>
+          <Trans>Export and share</Trans>
         </h1>
         <p className="text-[14px] text-[#737373] leading-relaxed">
           <Trans>
-            Package the book for distribution. Pick a format, choose what
-            content goes in, and we'll bundle everything into a downloadable
-            archive.
+            Put the book online for reviewers, or package a copy to distribute
+            another way.
           </Trans>
         </p>
       </div>
@@ -150,6 +149,15 @@ function ExportLandingBody({
           </p>
         </div>
       )}
+
+      <div className="flex flex-col gap-1 pt-2">
+        <h2 className="text-base font-semibold tracking-tight text-foreground">
+          <Trans>Download a copy</Trans>
+        </h2>
+        <p className="text-sm leading-6 text-muted-foreground">
+          <Trans>Choose a format to save, send, or archive the book as a file.</Trans>
+        </p>
+      </div>
 
       <SettingsCard>
         <SettingsField label={<Trans>Format</Trans>}>

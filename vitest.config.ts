@@ -48,6 +48,16 @@ export default defineConfig({
       },
       {
         test: {
+          name: "publish-service",
+          include: ["apps/publish-service/src/**/*.test.ts"],
+          exclude: ["apps/publish-service/src/**/*.integration.test.ts"],
+          environment: "node",
+        },
+      },
+      // Real workerd + D1 + R2 for the publish worker (@cloudflare/vitest-pool-workers).
+      "apps/publish-service/vitest.config.ts",
+      {
+        test: {
           name: "desktop",
           include: ["apps/desktop/src/**/*.test.ts"],
           environment: "node",

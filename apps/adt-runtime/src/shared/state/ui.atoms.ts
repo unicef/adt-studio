@@ -27,6 +27,24 @@ export const reduceMotionAtom = persistedBoolAtom("reduceMotion", false)
 export type Theme = "light" | "dark" | "system"
 export const themeAtom = persistedStringAtom("theme", "dark")
 
+/**
+ * Reading the book at a narrower width, to see what a pupil on a phone sees.
+ *
+ * A reviewing tool, not a reading one: it exists so somebody on a laptop can check a layout
+ * they do not own the device for. The control is desktop-only and the clamp never *widens*
+ * the book, so a real phone is unaffected whatever this is set to.
+ */
+export type DevicePreview = "full" | "tablet" | "phone"
+
+/** The Studio's own `DEVICE_WIDTHS`, restated: a reviewer checking a layout in the published
+ *  book and an author checking it in the storyboard must be looking at the same width. */
+export const DEVICE_PREVIEW_WIDTHS: Record<Exclude<DevicePreview, "full">, number> = {
+  tablet: 768,
+  phone: 375,
+}
+
+export const devicePreviewAtom = persistedStringAtom("devicePreview", "full")
+
 export const dockReadyAtom = ephemeralAtom(false)
 export const dockHiddenAtom = ephemeralAtom(false)
 

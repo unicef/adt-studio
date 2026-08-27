@@ -279,6 +279,135 @@ span[data-word-indices].bg-yellow-300 * {
 }
 
 /*
+ * Device preview. A reviewer on a laptop checks a layout on a phone or tablet
+ * they do not own, in the same frame the Studio's preview and storyboard draw.
+ * The wrapper is built by `DevicePreviewFrame` and is absent unless the preview
+ * is on, so a book nobody previews pays nothing for these rules.
+ *
+ * The frame surrounds `#content` alone: the dock, the pins and the cursors are
+ * chrome around the book, not part of the page being checked.
+ */
+.adt-device-frame {
+  display: flex;
+  justify-content: center;
+  padding: 2rem 1rem 3rem;
+}
+
+.adt-device-frame > .adt-device-screen {
+  position: relative;
+  width: var(--device-preview-width);
+  max-width: 100%;
+  background: var(--background, #fff);
+  overflow: hidden;
+}
+
+.adt-device-frame[data-device="phone"] > .adt-device-screen {
+  border: 12px solid #010101;
+  border-radius: 44px;
+  box-shadow:
+    inset 0 0 0 2px #342c3f,
+    0 24px 60px rgba(0, 0, 0, 0.28);
+  padding-top: 1.75rem;
+}
+
+/* The dynamic island, drawn on the screen wrapper so the book's own content
+   keeps every pseudo-element it might be using. */
+.adt-device-frame[data-device="phone"] > .adt-device-screen::before {
+  content: "";
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92px;
+  height: 24px;
+  border-radius: 999px;
+  background: #010101;
+  z-index: 5;
+}
+
+.adt-device-frame[data-device="tablet"] > .adt-device-screen {
+  border: 14px solid #010101;
+  border-radius: 28px;
+  box-shadow:
+    inset 0 0 0 2px #342c3f,
+    0 24px 60px rgba(0, 0, 0, 0.24);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .adt-device-frame > .adt-device-screen {
+    transition: width 250ms ease;
+  }
+}
+
+/*
+ * Comment mode (published snapshots only). While the reviewer is placing a pin
+ * the book content takes a crosshair and stops selecting text — the click is
+ * cancelled in the capture phase, so a link or quiz option must not look
+ * clickable either. The attribute is set by the comments feature and is absent
+ * everywhere else, which is why this costs a downloaded book nothing.
+ */
+body[data-comment-mode="on"] #content,
+body[data-comment-mode="on"] #content * {
+  cursor: crosshair !important;
+  user-select: none !important;
+}
+
+/*
+ * Keyboard pin placement. Book content is prose, not controls, so the comments
+ * feature lends each stable hook a tabindex while the reviewer is placing (or
+ * moving) a pin and takes it back afterwards — `[data-comment-target]` exists
+ * only for that window. The ring has to be drawn here rather than with a utility
+ * class because these are the book's own elements, which the chrome never
+ * renders and therefore cannot give a className to.
+ */
+[data-comment-target]:focus-visible {
+  /* A literal blue, not var(--ring): these are the book's own elements, and the
+     book's palette resolves --ring to a pale grey that vanishes on a white page.
+     The white halo is what keeps the ring readable over a dark photograph. */
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.8);
+  border-radius: 4px;
+  background-color: rgba(37, 99, 235, 0.07);
+}
+
+@layer utilities {
+  /*
+   * A dropped or re-anchored pin lands with a short overshoot, so the eye
+   * follows it to its new home instead of losing it. Only the `scale` property
+   * is animated: the pin's own `translate` keeps it sitting on its anchor, and
+   * animating `transform` instead would compose with that translate and throw
+   * the pin a full pin-height off the point it is commenting on.
+   */
+  @keyframes commentPinSettle {
+    0% { scale: 0.82; }
+    55% { scale: 1.12; }
+    100% { scale: 1; }
+  }
+  /* Jumping to a pin from the sidebar: two quiet rings and no movement, because
+     the pin the reviewer is hunting for must not also change position. */
+  @keyframes commentPinFlash {
+    0% { outline-color: color-mix(in oklab, var(--ring, #0091ff) 90%, transparent); outline-offset: 2px; }
+    50% { outline-color: color-mix(in oklab, var(--ring, #0091ff) 0%, transparent); outline-offset: 9px; }
+    100% { outline-color: color-mix(in oklab, var(--ring, #0091ff) 0%, transparent); outline-offset: 9px; }
+  }
+  .animate-comment-settle {
+    animation: commentPinSettle 420ms cubic-bezier(0.34, 1.32, 0.64, 1);
+  }
+  .animate-comment-flash {
+    outline: 2px solid transparent;
+    border-radius: 9999px;
+    animation: commentPinFlash 900ms ease-out 2;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .animate-comment-settle,
+    .animate-comment-flash {
+      animation: none;
+    }
+  }
+}
+
+/*
  * Tutorial popovers — replaces the @keyframes/animation/boxShadow
  * extensions from the legacy v3 tailwind.config.js. Kept as raw CSS since
  * the runtime references `animate-tutorialPopIn` etc. by class name.

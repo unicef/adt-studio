@@ -1,0 +1,543 @@
+import {
+  PUBLISH_AUTHOR_NAME_HEADER,
+  PublicationCreateResponse,
+  PublicationFileUploadResponse,
+  PublicationDetail,
+  PublicationList,
+  PublicationReaderList,
+  PublicationDeleteResult,
+  PublicationResponse,
+  PublicationRoomTicketResponse,
+  PublicationVersionCreateResponse,
+  PublishCommentListResponse,
+  PublishCommentResponse,
+  PublishErrorResponse,
+  type PublicationCreateRequest,
+  type PublicationPageEntry,
+  type PublicationUpdateRequest,
+  type PublishCommentCreateRequest,
+  type PublishCommentListQuery,
+  type PublishCommentResolveRequest,
+  type PublishCommentUpdateRequest,
+  type PublishErrorCode,
+} from "@adt/types"
+import type { FetchLike } from "./cloudflare/client.js"
+
+export class PublishWorkerError extends Error {
+  readonly status: number | null
+  readonly code: PublishErrorCode | null
+  readonly unreachable: boolean
+
+  constructor(options: {
+    message: string
+    status?: number | null
+    code?: PublishErrorCode | null
+    unreachable?: boolean
+  }) {
+    super(options.message)
+    this.name = "PublishWorkerError"
+    this.status = options.status ?? null
+    this.code = options.code ?? null
+    this.unreachable = options.unreachable ?? false
+  }
+}
+
+export function isPublishWorkerError(error: unknown): error is PublishWorkerError {
+  return error instanceof PublishWorkerError
+}
+
+export interface PublishWorkerClient {
+  /** Metadata only: the files were streamed by `uploadFile` before this names the version. */
+  createPublication(request: PublicationCreateRequest): Promise<PublicationCreateResponse>
+  /** One file of a version, straight into R2. See the worker route for why the whole book no
+   *  longer travels in a single request. */
+  uploadFile(
+    token: string,
+    version: number,
+    filePath: string,
+    body: Uint8Array,
+  ): Promise<PublicationFileUploadResponse>
+  createVersion(
+    token: string,
+    pageManifest: PublicationPageEntry[],
+    extra: { snapshot_bytes: number },
+  ): Promise<PublicationVersionCreateResponse>
+  revoke(token: string): Promise<PublicationResponse>
+  reinstate(token: string): Promise<PublicationResponse>
+  /** A 60-second signed credential for the publication's realtime room (§4.17). The Studio
+   *  spends it on a cross-origin WebSocket, which is the one thing a cookie cannot do. */
+  roomTicket(token: string): Promise<PublicationRoomTicketResponse>
+  setExpiry(token: string, expiresAt: string | null): Promise<PublicationResponse>
+  /** One PATCH for both knobs. An absent key is left alone by the worker, so this is also how
+   *  the code is rotated (`access_code: "NEW"`) and removed (`access_code: null`). */
+  updatePublication(
+    token: string,
+    update: PublicationUpdateRequest,
+  ): Promise<PublicationResponse>
+  getPublication(token: string): Promise<PublicationDetail>
+  /** Every publication in the connected account (§4.18) — what the Publications dashboard lists.
+   *  One request for the whole screen; the worker does the aggregating. */
+  listPublications(): Promise<PublicationList>
+  /** The people the worker has a session for on this publication — those who typed a name at
+   *  the access gate or before their first comment. Not a visit log; see `PublicationReader`. */
+  listReaders(token: string): Promise<PublicationReaderList>
+  /** Erases the publication, its snapshots and its feedback. Keyed by token rather than by
+   *  book label because the book it came from may be long gone from this computer — which is
+   *  exactly the row an author most wants to clear off the shelf. */
+  deletePublication(token: string): Promise<PublicationDeleteResult>
+  listComments(
+    token: string,
+    query: PublishCommentListQuery,
+    authorName?: string,
+  ): Promise<PublishCommentListResponse>
+  createComment(
+    token: string,
+    request: PublishCommentCreateRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
+  resolveComment(
+    token: string,
+    id: string,
+    request: PublishCommentResolveRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
+  updateComment(
+    token: string,
+    id: string,
+    request: PublishCommentUpdateRequest,
+    authorName?: string,
+  ): Promise<PublishCommentResponse>
+  deleteComment(token: string, id: string, authorName?: string): Promise<PublishCommentResponse>
+  /** The published snapshot's own bytes, author-authenticated. The `Response` is handed back
+   *  unread so the caller can stream it: a book's audio and video are the whole point of the
+   *  snapshot and buffering them through the Studio would defeat range-free playback. */
+  fetchSnapshotFile(token: string, filePath: string, headers?: Record<string, string>): Promise<Response>
+}
+
+function commentQueryString(query: PublishCommentListQuery): string {
+  const params = new URLSearchParams()
+  if (query.page_section_id !== undefined) params.set("page_section_id", query.page_section_id)
+  if (query.version !== undefined) params.set("version", String(query.version))
+  if (query.include_resolved !== undefined) {
+    params.set("include_resolved", query.include_resolved ? "true" : "false")
+  }
+  const search = params.toString()
+  return search.length === 0 ? "" : `?${search}`
+}
+
+function authorHeaders(authorName: string | undefined): Record<string, string> {
+  return authorName === undefined ? {} : { [PUBLISH_AUTHOR_NAME_HEADER]: authorName }
+}
+
+export interface PublishWorkerClientOptions {
+  workerUrl: string
+  mgmtSecret: string
+  fetchFn?: FetchLike
+}
+
+const SNAPSHOT_FILE_NAME = "snapshot.zip"
+
+function describe(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+/** Node's `fetch` reports every transport failure as the same three words, and puts the reason
+ *  underneath in `cause` — sometimes two levels down. */
+function causeChain(error: unknown): Error[] {
+  const chain: Error[] = []
+  let current: unknown = error
+  while (current instanceof Error && chain.length < 4) {
+    chain.push(current)
+    current = (current as { cause?: unknown }).cause
+  }
+  return chain
+}
+
+function errorCode(error: unknown): string | null {
+  for (const link of causeChain(error)) {
+    const code = (link as { code?: unknown }).code
+    if (typeof code === "string" && code.length > 0) return code
+  }
+  return null
+}
+
+/**
+ * What actually went wrong, rather than "fetch failed".
+ *
+ * `fetch failed` is the only thing `error.message` ever says for a transport failure, so every
+ * distinct problem — no DNS, no route, refused, reset mid-upload, timed out — arrived at the
+ * author looking identical, and the panel had to guess out loud which it was. The code and the
+ * innermost message are what separate "this computer is offline" from "the upload died halfway".
+ */
+function describeTransportFailure(error: unknown): string {
+  const chain = causeChain(error)
+  const code = errorCode(error)
+  const deepest = chain.at(-1)
+  const detail = deepest && deepest !== chain[0] ? deepest.message : null
+  if (code && detail) return `${code} — ${detail}`
+  if (code) return `${code} — ${describe(error)}`
+  return detail ?? describe(error)
+}
+
+/**
+ * Transport failures that prove the request never arrived, so re-sending it cannot duplicate
+ * anything.
+ *
+ * The distinction matters because publishing is not idempotent: `POST /api/publications` mints a
+ * token and `POST …/versions` adds a version, so retrying one that *did* land would leave the
+ * author with two publications or a phantom version. A name that never resolved and a connection
+ * that was refused are safe — nothing was ever spoken. A socket reset or a timeout is not: the
+ * worker may have done the work and lost the answer on the way back.
+ */
+const UNDELIVERED_CODES = new Set([
+  "ENOTFOUND",
+  "EAI_AGAIN",
+  "ECONNREFUSED",
+  "EHOSTUNREACH",
+  "ENETUNREACH",
+  "ENETDOWN",
+  "UND_ERR_CONNECT_TIMEOUT",
+  /**
+   * `EPIPE` belongs here, which is not obvious and was got wrong once.
+   *
+   * It means *our own write* failed because the far end had already closed — in practice a
+   * pooled keep-alive socket that Cloudflare hung up while it sat idle, which is why it strikes
+   * instantly and repeatedly rather than after a long upload. The request therefore never
+   * arrived in one piece, and a worker that never received a complete multipart body cannot have
+   * committed a version: the D1 row is written after the zip is read, so an aborted request
+   * leaves at worst some unreferenced R2 objects, never a phantom version.
+   *
+   * That is the whole difference from `ECONNRESET`, which stays out: there the server may well
+   * have read the request, done the work, and lost only the answer on the way back.
+   */
+  "EPIPE",
+  "ECONNABORTED",
+])
+
+function neverDelivered(error: unknown): boolean {
+  const code = errorCode(error)
+  return code !== null && UNDELIVERED_CODES.has(code)
+}
+
+/**
+ * Failures worth repeating on a request that changes nothing, where the only cost of guessing
+ * wrong is one more round trip. `ECONNRESET` sits here and not above: it is ambiguous for a
+ * write, but a read has nothing to duplicate.
+ */
+const TRANSIENT_READ_CODES = new Set([
+  "ECONNRESET",
+  "UND_ERR_SOCKET",
+  "UND_ERR_HEADERS_TIMEOUT",
+  "UND_ERR_BODY_TIMEOUT",
+  "ETIMEDOUT",
+])
+
+/**
+ * A failure with no code at all is not retried, whatever the method.
+ *
+ * Waiting a second and a half to repeat something we cannot name is guessing, and it is paid
+ * twice over: the author waits before being told anything, and every test that exercises an
+ * unreachable service waits with them.
+ */
+function worthRepeating(error: unknown, method: string): boolean {
+  if (neverDelivered(error)) return true
+  if (method !== "GET" && method !== "HEAD") return false
+  const code = errorCode(error)
+  return code !== null && TRANSIENT_READ_CODES.has(code)
+}
+
+/** Three tries over about a second and a half. Long enough to ride out the DNS blip and the
+ *  laptop that just woke its wifi, short enough that a genuinely offline machine still answers
+ *  quickly instead of appearing to hang. */
+const RETRY_DELAYS_MS = [200, 600, 1200]
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+export function createPublishWorkerClient({
+  workerUrl,
+  mgmtSecret,
+  fetchFn,
+}: PublishWorkerClientOptions): PublishWorkerClient {
+  const doFetch: FetchLike = fetchFn ?? ((input, init) => fetch(input, init))
+  const base = workerUrl.replace(/\/+$/, "")
+
+  const request = async (
+    path: string,
+    init: RequestInit,
+    schema: { parse: (value: unknown) => unknown },
+  ): Promise<unknown> => {
+    /**
+     * Reading is retried on any transport failure; writing only when the request provably never
+     * arrived. A `GET` that is sent twice costs a round trip, whereas a `POST` that is sent twice
+     * can mint a second publication or a phantom version — so the safety of a retry here is a
+     * property of the method, not of how transient the error looked.
+     */
+    const method = (init.method ?? "GET").toUpperCase()
+    const retriable = (error: unknown): boolean => worthRepeating(error, method)
+
+    let response: Response
+    let attempt = 0
+    for (;;) {
+      try {
+        response = await doFetch(`${base}${path}`, {
+          ...init,
+          headers: {
+            ...(init.headers as Record<string, string> | undefined),
+            Authorization: `Bearer ${mgmtSecret}`,
+          },
+        })
+        break
+      } catch (error) {
+        const delay = RETRY_DELAYS_MS[attempt]
+        if (delay === undefined || !retriable(error)) {
+          throw new PublishWorkerError({
+            message:
+              `Could not reach your publish worker at ${base}: ` +
+              describeTransportFailure(error),
+            unreachable: true,
+          })
+        }
+        attempt += 1
+        await sleep(delay)
+      }
+    }
+
+    const text = await response.text()
+    let payload: unknown = null
+    if (text.length > 0) {
+      try {
+        payload = JSON.parse(text) as unknown
+      } catch {
+        payload = null
+      }
+    }
+
+    if (!response.ok) {
+      const parsed = PublishErrorResponse.safeParse(payload)
+      throw new PublishWorkerError({
+        message: parsed.success
+          ? (parsed.data.message ?? parsed.data.error)
+          : `The publish worker answered ${response.status}`,
+        status: response.status,
+        code: parsed.success ? parsed.data.error : null,
+      })
+    }
+
+    try {
+      return schema.parse(payload)
+    } catch (error) {
+      throw new PublishWorkerError({
+        message: `The publish worker returned an unexpected response: ${describe(error)}`,
+        status: response.status,
+      })
+    }
+  }
+
+  /** Still multipart, still the same `metadata` field — only the zip part is gone, so a worker
+   *  that predates per-file upload rejects this with its own "missing snapshot" error rather
+   *  than misreading it. */
+  const metadataBody = (metadata: unknown): FormData => {
+    const form = new FormData()
+    form.set("metadata", JSON.stringify(metadata))
+    return form
+  }
+
+  return {
+    async createPublication(createRequest) {
+      return (await request(
+        "/api/publications",
+        { method: "POST", body: metadataBody(createRequest) },
+        PublicationCreateResponse,
+      )) as PublicationCreateResponse
+    },
+
+    async uploadFile(token, version, filePath, body) {
+      /** Each segment encoded separately: the slashes are the path, and encoding them would
+       *  flatten a book's directories into one very strange filename. */
+      const encoded = filePath.split("/").map(encodeURIComponent).join("/")
+      return (await request(
+        `/api/publications/${token}/files/${version}/${encoded}`,
+        {
+          method: "PUT",
+          body,
+          headers: { "content-type": "application/octet-stream" },
+        },
+        PublicationFileUploadResponse,
+      )) as PublicationFileUploadResponse
+    },
+
+    async createVersion(token, pageManifest, extra) {
+      return (await request(
+        `/api/publications/${token}/versions`,
+        {
+          method: "POST",
+          body: metadataBody({ page_manifest: pageManifest, ...extra }),
+        },
+        PublicationVersionCreateResponse,
+      )) as PublicationVersionCreateResponse
+    },
+
+    async revoke(token) {
+      return (await request(
+        `/api/publications/${token}/revoke`,
+        { method: "POST" },
+        PublicationResponse,
+      )) as PublicationResponse
+    },
+
+    async reinstate(token) {
+      return (await request(
+        `/api/publications/${token}/reinstate`,
+        { method: "POST" },
+        PublicationResponse,
+      )) as PublicationResponse
+    },
+
+    async roomTicket(token) {
+      return (await request(
+        `/api/publications/${token}/room-ticket`,
+        { method: "POST" },
+        PublicationRoomTicketResponse,
+      )) as PublicationRoomTicketResponse
+    },
+
+    async setExpiry(token, expiresAt) {
+      return (await request(
+        `/api/publications/${token}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ expires_at: expiresAt }),
+        },
+        PublicationResponse,
+      )) as PublicationResponse
+    },
+
+    async updatePublication(token, update) {
+      return (await request(
+        `/api/publications/${token}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(update),
+        },
+        PublicationResponse,
+      )) as PublicationResponse
+    },
+
+    async listPublications() {
+      return (await request(
+        "/api/publications",
+        { method: "GET" },
+        PublicationList,
+      )) as PublicationList
+    },
+
+    async listReaders(token) {
+      return (await request(
+        `/api/publications/${token}/readers`,
+        { method: "GET" },
+        PublicationReaderList,
+      )) as PublicationReaderList
+    },
+
+    async getPublication(token) {
+      return (await request(
+        `/api/publications/${token}`,
+        { method: "GET" },
+        PublicationDetail,
+      )) as PublicationDetail
+    },
+
+    async deletePublication(token) {
+      return (await request(
+        `/api/publications/${token}`,
+        { method: "DELETE" },
+        PublicationDeleteResult,
+      )) as PublicationDeleteResult
+    },
+
+    async listComments(token, query, authorName) {
+      return (await request(
+        `/p/${token}/comments${commentQueryString(query)}`,
+        { method: "GET", headers: authorHeaders(authorName) },
+        PublishCommentListResponse,
+      )) as PublishCommentListResponse
+    },
+
+    async createComment(token, createRequest, authorName) {
+      return (await request(
+        `/p/${token}/comments`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json", ...authorHeaders(authorName) },
+          body: JSON.stringify(createRequest),
+        },
+        PublishCommentResponse,
+      )) as PublishCommentResponse
+    },
+
+    async resolveComment(token, id, resolveRequest, authorName) {
+      return (await request(
+        `/p/${token}/comments/${encodeURIComponent(id)}/resolve`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json", ...authorHeaders(authorName) },
+          body: JSON.stringify(resolveRequest),
+        },
+        PublishCommentResponse,
+      )) as PublishCommentResponse
+    },
+
+    async updateComment(token, id, updateRequest, authorName) {
+      return (await request(
+        `/p/${token}/comments/${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json", ...authorHeaders(authorName) },
+          body: JSON.stringify(updateRequest),
+        },
+        PublishCommentResponse,
+      )) as PublishCommentResponse
+    },
+
+    async deleteComment(token, id, authorName) {
+      return (await request(
+        `/p/${token}/comments/${encodeURIComponent(id)}`,
+        { method: "DELETE", headers: authorHeaders(authorName) },
+        PublishCommentResponse,
+      )) as PublishCommentResponse
+    },
+
+    async fetchSnapshotFile(token, filePath, headers) {
+      const encoded = filePath
+        .split("/")
+        .filter((segment) => segment.length > 0)
+        .map((segment) => encodeURIComponent(segment))
+        .join("/")
+      let attempt = 0
+      for (;;) {
+        try {
+          return await doFetch(`${base}/p/${token}/${encoded}`, {
+            method: "GET",
+            headers: { ...headers, Authorization: `Bearer ${mgmtSecret}` },
+          })
+        } catch (error) {
+          const delay = RETRY_DELAYS_MS[attempt]
+          if (delay === undefined || !worthRepeating(error, "GET")) {
+            throw new PublishWorkerError({
+              message:
+                `Could not reach your publish worker at ${base}: ` +
+                describeTransportFailure(error),
+              unreachable: true,
+            })
+          }
+          attempt += 1
+          await sleep(delay)
+        }
+      }
+    },
+  }
+}

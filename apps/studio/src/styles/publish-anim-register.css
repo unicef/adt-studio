@@ -1,0 +1,756 @@
+/* Keyframes for the register step's candidate animations.
+ *
+ * One file per step so parallel work on different steps cannot collide, and so a rejected step's
+ * motion can be deleted in one move. Imported from globals.css.
+ *
+ * IMPORTANT: globals.css kills all animation under `prefers-reduced-motion` for
+ * `[data-publish-run]` with `!important`. Nothing here can rely on `fill-mode` to hold a
+ * final frame — author the resting state as base CSS and make keyframes depart from it.
+ *
+ * ---------------------------------------------------------------------------------------------
+ * HOW THIS FILE IS ORGANISED, AND WHY IT IS NOT WRITTEN AS TAILWIND ARBITRARY ANIMATION VALUES
+ *
+ * The sibling step files declare `[animation:name_4.4s_ease_infinite]` inline. That works for a
+ * single infinite loop. It cannot express this step, for three reasons:
+ *
+ * 1. **Base CSS is the arrived state.** Register is a three-piece one-shot — Opening, an unbounded
+ *    Holding, then Arrival — and the shipped reduced-motion rule forces every animation here to
+ *    `0s` with one iteration, so `animation-fill-mode` cannot hold anything. The only way a final
+ *    frame survives is if the *resting* style is ordinary CSS and every earlier state is the
+ *    exception. So every rule below reads backwards from the way it plays: the plain selector is
+ *    where the animation ends, and `[data-reg-phase="pre" | "anticipate" | "opening" | "holding"]`
+ *    departs from it.
+ *
+ * 2. **Opening is transitions, not keyframes.** Arrival is allowed to interrupt Opening — 700ms on
+ *    a warm Worker against 5s on a cold one — and a keyframe cut off at 40% snaps to its resting
+ *    value, which is a glitch at the emotional peak of the screen. A transition *towards the
+ *    resting state* is interruptible for free: whatever else Arrival changes, the geometry simply
+ *    carries on to where it was already going. Keyframes are used only for genuinely one-shot
+ *    flourishes (the light sweep, the arrival ring, the sparks) and for the one infinite Holding
+ *    breathe, none of which matter if they are cut.
+ *
+ * 3. **Every duration is multiplied by `--reg-scale`.** The bench drives CSS animations through the
+ *    Web Animations API, but it can only reach animations that already existed when the rate was
+ *    set — and a phase change creates new ones. Republishing the observed playback rate as a
+ *    multiplier is what makes 0.25× inspection actually show the phase transitions.
+ *
+ * REDUCED MOTION is a single inherited number, `--reg-rm` (1 when reduced) with its complement
+ * `--reg-on`. Values are written `calc(<amplitude> * var(--reg-on))` so one source of truth removes
+ * every translation, rotation and scale without duplicating a rule per media query. What is left is
+ * not an accident: the readers are simply *present* from the start rather than collapsed behind the
+ * book, the row is already in place with its emerald border, and the halo is static. "Delete the
+ * keyframes" would give an unremarked instant swap, which is the arrival evaporating.
+ */
+
+/* ============================================================================================
+   SHARED PLUMBING
+   ============================================================================================ */
+
+.pubreg-root {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+
+  --reg-rm: 0;
+  --reg-on: calc(1 - var(--reg-rm));
+  --reg-scale: 1;
+
+  /* House curves. Never `ease-in` on UI; bounce only where elasticity is physically implied. */
+  --e-house: cubic-bezier(0.22, 1, 0.36, 1);
+  --e-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --e-morph: cubic-bezier(0.77, 0, 0.175, 1);
+  --e-decel: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --e-std: cubic-bezier(0.2, 0, 0, 1);
+
+  /* When the URL text and the Copy button cross in, measured from the start of Arrival. Per
+     option, because each of the three hands the row over at a different moment. */
+  --reg-url-delay: 0ms;
+  --reg-copy-delay: 260ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pubreg-root {
+    --reg-rm: 1;
+  }
+}
+
+/* ---- artwork: covers and pages ------------------------------------------------------------- */
+
+.pubreg-leaf {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  border-radius: inherit;
+  background: var(--muted);
+}
+
+/* The drawn fallbacks, for a book with no page renders. Gradients and no strokes at all: a 1.6px
+   line from a 24px icon grid renders at eight or nine pixels of visual weight at these sizes while
+   keeping icon-grid proportions, and the eye reads the proportions. A sheet with a colour bleed
+   where a picture book's illustration lives has no fixed detail to outgrow. */
+.pubreg-leaf--cover {
+  background-color: #6f78d6;
+  background-image:
+    /* An unlettered title block, a sun and a hill: enough for the shape to read as a picture-book
+       cover at 54px and at 112px. Percentages throughout, so there is no detail to outgrow. */
+    linear-gradient(rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.46)),
+    radial-gradient(46% 26% at 66% 62%, rgba(255, 214, 130, 0.98), rgba(255, 214, 130, 0) 72%),
+    radial-gradient(126% 42% at 24% 108%, rgba(86, 186, 148, 0.95), rgba(86, 186, 148, 0) 74%),
+    linear-gradient(168deg, #7a83e0 0%, #9d86d3 56%, #c98fae 100%);
+  background-repeat: no-repeat;
+  background-size:
+    52% 5.5%,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  background-position:
+    22% 15%,
+    0 0,
+    0 0,
+    0 0;
+  box-shadow:
+    inset 3px 0 0 rgba(15, 23, 42, 0.22),
+    inset -1px 0 0 rgba(255, 255, 255, 0.28);
+}
+
+.pubreg-leaf--page {
+  background-color: #fafbfd;
+  background-image:
+    radial-gradient(72% 62% at 50% 50%, rgba(56, 189, 248, 0.34), rgba(56, 189, 248, 0) 72%),
+    linear-gradient(rgba(30, 41, 59, 0.14), rgba(30, 41, 59, 0.14)),
+    linear-gradient(rgba(30, 41, 59, 0.14), rgba(30, 41, 59, 0.14)),
+    linear-gradient(rgba(30, 41, 59, 0.11), rgba(30, 41, 59, 0.11));
+  background-repeat: no-repeat;
+  background-size: 66% 30%, 62% 3.5%, 52% 3.5%, 40% 3.5%;
+  background-position: 50% 26%, 18% 64%, 18% 74%, 18% 84%;
+  box-shadow: inset 2px 0 0 rgba(15, 23, 42, 0.07);
+}
+
+/* Three layouts, because adjacent surfaces have to differ. With one, F's verso and recto draw
+   identically and an open spread renders as a single undivided sheet. */
+.pubreg-leaf--page[data-seed="1"] {
+  background-image:
+    radial-gradient(64% 26% at 52% 78%, rgba(244, 162, 97, 0.42), rgba(244, 162, 97, 0) 74%),
+    linear-gradient(rgba(30, 41, 59, 0.14), rgba(30, 41, 59, 0.14)),
+    linear-gradient(rgba(30, 41, 59, 0.14), rgba(30, 41, 59, 0.14)),
+    linear-gradient(rgba(30, 41, 59, 0.11), rgba(30, 41, 59, 0.11));
+  background-size:
+    74% 28%,
+    56% 3.5%,
+    64% 3.5%,
+    38% 3.5%;
+  background-position:
+    50% 80%,
+    18% 18%,
+    18% 27%,
+    18% 36%;
+}
+
+.pubreg-leaf--page[data-seed="2"] {
+  background-image:
+    radial-gradient(54% 40% at 30% 42%, rgba(129, 178, 154, 0.46), rgba(129, 178, 154, 0) 76%),
+    linear-gradient(rgba(30, 41, 59, 0.13), rgba(30, 41, 59, 0.13)),
+    linear-gradient(rgba(30, 41, 59, 0.13), rgba(30, 41, 59, 0.13)),
+    linear-gradient(rgba(30, 41, 59, 0.1), rgba(30, 41, 59, 0.1));
+  background-size:
+    48% 34%,
+    44% 3.5%,
+    52% 3.5%,
+    46% 3.5%;
+  background-position:
+    24% 38%,
+    58% 62%,
+    58% 72%,
+    58% 82%;
+}
+
+/* ---- the row the whole step exists to produce ----------------------------------------------- */
+
+.pubreg-plate {
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: var(--reg-plate-w);
+  height: var(--reg-plate-h);
+  padding: 0 5px 0 9px;
+  border: 1px solid #6ee7b7; /* emerald-300 — base CSS is the arrived state */
+  border-radius: 9px;
+  background: var(--card);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  transition: border-color calc(240ms * var(--reg-scale)) linear;
+}
+
+.pubreg-root:not([data-reg-phase="arrived"]) .pubreg-plate {
+  border-color: var(--border);
+  pointer-events: none;
+}
+
+/* A dashed field is the reduced-motion frame's way of saying "waiting", so that dashed → solid
+   emerald can be the arrival signal when no motion is available to be the signal. */
+@media (prefers-reduced-motion: reduce) {
+  .pubreg-root:not([data-reg-phase="arrived"]) .pubreg-plate {
+    border-style: dashed;
+  }
+  .pubreg-root[data-reg-phase="arrived"] .pubreg-plate {
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.26);
+  }
+}
+
+.pubreg-url {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+  font-size: var(--reg-url-size);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--foreground);
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity calc(180ms * var(--reg-scale)) linear calc(var(--reg-url-delay) * var(--reg-scale)),
+    transform calc(180ms * var(--reg-scale)) var(--e-decel)
+      calc(var(--reg-url-delay) * var(--reg-scale));
+}
+
+.pubreg-root:not([data-reg-phase="arrived"]) .pubreg-url {
+  opacity: 0;
+  transform: translateY(calc(4px * var(--reg-on)));
+  transition-duration: 0s;
+  transition-delay: 0s;
+}
+
+/* Icon-only, because the row is 96px at the smallest slot and because the rubric forbids text
+   inside the artwork in five locales. The accessible name is still translated. Rendered at its
+   native icon size — this is UI chrome, not artwork blown up off a 24px grid. */
+.pubreg-copy {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--reg-plate-h) - 12px);
+  height: calc(var(--reg-plate-h) - 12px);
+  border-radius: 6px;
+  color: #047857; /* emerald-700 */
+  background: rgba(16, 185, 129, 0.12);
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity calc(200ms * var(--reg-scale)) linear calc(var(--reg-copy-delay) * var(--reg-scale)),
+    transform calc(200ms * var(--reg-scale)) var(--e-house)
+      calc(var(--reg-copy-delay) * var(--reg-scale)),
+    background-color 150ms linear;
+}
+
+.pubreg-copy:hover {
+  background: rgba(16, 185, 129, 0.22);
+}
+
+.pubreg-copy svg {
+  width: calc(var(--reg-plate-h) * 0.34);
+  height: calc(var(--reg-plate-h) * 0.34);
+}
+
+.pubreg-root:not([data-reg-phase="arrived"]) .pubreg-copy {
+  opacity: 0;
+  transform: scale(calc(1 - 0.06 * var(--reg-on)));
+  transition-duration: 0s;
+  transition-delay: 0s;
+}
+
+/* ---- the arrival ring ---------------------------------------------------------------------- */
+
+/* Sits at the row's resting rect as a sibling rather than inside the sleeve, so the ripple is not
+   clipped by the very thing that hid the row. Behind the row, so it only ever shows as a halo. */
+.pubreg-ring {
+  position: absolute;
+  top: var(--reg-ring-top);
+  left: 50%;
+  z-index: 0;
+  width: var(--reg-plate-w);
+  height: var(--reg-plate-h);
+  margin-left: calc(var(--reg-plate-w) / -2);
+  border: 1.5px solid #6ee7b7;
+  border-radius: 11px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pubreg-root[data-reg-phase="arrived"] .pubreg-ring {
+  animation: pubreg-ring calc(700ms * var(--reg-scale)) var(--e-out)
+    calc(var(--reg-copy-delay) * var(--reg-scale) * 0.4);
+}
+
+@keyframes pubreg-ring {
+  0% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.16);
+  }
+}
+
+/* ============================================================================================
+   THE BOOK IN THE READER, WITH OTHER PEOPLE'S CURSORS ON IT — shared peer art (H, I, J)
+   ============================================================================================
+
+   The deleted E, F and G animated a *metaphor* for sharing: one book becoming several. H, I and J
+   animate the **result**, because the shipped product already draws it. Open an ADT share link and
+   `PeerCursors.tsx` puts every other reader on the page as a coloured arrow flying a flag with
+   their name on it, plus an edge marker for anyone reading somewhere off screen. So these three are
+   miniatures of that overlay, using its own vocabulary: the same arrow path, the same
+   `3px 12px 12px 12px` flag — sharp where it meets the arrow, round elsewhere, so it reads as flown
+   from the cursor rather than as a bubble beside it — and the same edge marker with its tail
+   pointing out of the frame.
+
+   TWO RULES GOVERN EVERYTHING BELOW.
+
+   1. **These are decoration and must never imply data.** No cursor traces a path that could be read
+      as reading progress, nothing accumulates, nothing fills, nothing converges on a target during
+      Holding. Each one drifts on its own pair of near-coprime periods drawn from 7 / 11 / 13 / 23 /
+      31 / 41 seconds, with an amplitude of a few pixels — about 2% of the slot's short side — and a
+      negative start delay so no two are ever in step even on the first frame. Over a five-second
+      register nobody sees a cycle; what they see is that the picture is alive.
+
+   2. **They have to read as four different people.** Four grey avatar glyphs is the failure mode,
+      and four identical arrows in four hues is the same failure with paint on it. Distinctness here
+      is hue, *name-label width* (Ana against Beatriz is a third the width, and width is legible long
+      after the type is not), arrow size, and speed — four axes, no glyph, and nothing to translate.
+
+   The drift animations are deliberately **not** multiplied by `--reg-scale`, unlike every transition
+   in this file. They exist from mount, so `useAnimationControl` already has them by the handle and
+   sets their playback rate directly; multiplying the authored duration as well would make 0.25×
+   inspection run at 1/16 speed. Only motion *created by a phase change* needs the multiplier. */
+
+.pubreg-peer {
+  position: absolute;
+  top: var(--p-y);
+  left: var(--p-x);
+  z-index: 6;
+  pointer-events: none;
+  color: var(--p-hue);
+
+  --p-hue: #4f46e5;
+  --p-s: 1;
+  --p-amp: 1;
+  --p-tx: 13s;
+  --p-ty: 23s;
+  --p-delay: 0ms;
+  --p-x: 50%;
+  --p-y: 50%;
+  /* How far this person turns toward the link row on Arrival. Zero unless a variant asks: I and J
+     hand over by moving the *artwork*, and cursors that all lurched at the row would be three
+     variants of the same idea instead of three ideas. */
+  --p-lean-x: 0px;
+  --p-lean-y: 0px;
+  /* Where they come in from during Opening. Small, and different per person, because four pointers
+     appearing from one direction reads as one object splitting. */
+  --p-in-x: 0px;
+  --p-in-y: 7px;
+  /* When they come in, measured from the start of Opening. Zero unless a variant asks — H waits for
+     its book to finish opening first, because nobody can be reading a book that is shut. */
+  --p-in-delay: 0ms;
+
+  /* Base is the *arrived* state, per the rule at the top of this file: leaned, slightly smaller.
+     Both are multiplied by `--reg-on`, so with reduced motion the resting state is simply the
+     cursor sitting on the page where it was reading — which is what the still has to say. */
+  opacity: 1;
+  transform: translate(calc(var(--p-lean-x) * var(--reg-on)), calc(var(--p-lean-y) * var(--reg-on)))
+    scale(calc(1 - 0.06 * var(--reg-on)));
+  transition:
+    transform calc(560ms * var(--reg-scale)) var(--e-decel) calc(var(--p-delay) * var(--reg-scale)),
+    opacity calc(300ms * var(--reg-scale)) linear calc(var(--p-delay) * var(--reg-scale));
+}
+
+/* Opening and Holding: everybody where they are reading. */
+.pubreg-root:not([data-reg-phase="arrived"]) .pubreg-peer {
+  transform: none;
+}
+
+/* `pre` — the tail of step 3, before the link exists. Nobody has been sent anything yet, so nobody
+   is here. Multiplied by `--reg-rm` / `--reg-on` so that under reduced motion this state *is* the
+   resting state and the readers are simply present from the first frame.
+ *
+ * I's spread is open from the first frame, so `pre` is the only phase that needs it. (H, deleted,
+ * held it through `anticipate` too — its book was still shut for that beat.) */
+.pubreg-root[data-reg-phase="pre"] .pubreg-peer {
+  opacity: var(--reg-rm);
+  transform: translate(calc(var(--p-in-x) * var(--reg-on)), calc(var(--p-in-y) * var(--reg-on)))
+    scale(calc(1 - 0.2 * var(--reg-on)));
+  transition:
+    transform calc(260ms * var(--reg-scale)) var(--e-out),
+    opacity calc(200ms * var(--reg-scale)) linear;
+}
+
+/* The two ambient axes, on separate elements so neither ever competes with the phase transform for
+   the same property. Nesting is what stops a cursor snapping back to its drift position halfway
+   through the handover. */
+.pubreg-peer-x {
+  display: block;
+  animation: pubreg-peer-x var(--p-tx) ease-in-out infinite alternate;
+  animation-delay: calc(var(--p-tx) * -0.37);
+}
+
+.pubreg-peer-y {
+  position: relative;
+  display: block;
+  animation: pubreg-peer-y var(--p-ty) ease-in-out infinite alternate;
+  animation-delay: calc(var(--p-ty) * -0.61);
+}
+
+@keyframes pubreg-peer-x {
+  from {
+    transform: translateX(calc(var(--rd-drift) * var(--p-amp) * var(--reg-on) * -1));
+  }
+  to {
+    transform: translateX(calc(var(--rd-drift) * var(--p-amp) * var(--reg-on)));
+  }
+}
+
+@keyframes pubreg-peer-y {
+  from {
+    transform: translateY(calc(var(--rd-drift) * var(--p-amp) * var(--reg-on) * 0.7));
+  }
+  to {
+    transform: translateY(calc(var(--rd-drift) * var(--p-amp) * var(--reg-on) * -0.7));
+  }
+}
+
+/* The arrow, at the shipped proportions and a fraction of its shipped size. The white stroke is not
+   decoration: it is what keeps a coloured arrow legible over a full-bleed picture-book page. */
+.pubreg-peer-arrow {
+  display: block;
+  width: calc(var(--rd-arrow) * var(--p-s));
+  height: calc(var(--rd-arrow) * var(--p-s));
+  filter: drop-shadow(0 1px 1.5px rgba(15, 23, 42, 0.34));
+}
+
+.pubreg-peer-flag {
+  position: absolute;
+  top: calc(var(--rd-arrow) * var(--p-s) * 0.58);
+  left: calc(var(--rd-arrow) * var(--p-s) * 0.52);
+  padding: 1px 4px 1.5px;
+  /* The shipped flag, exactly. */
+  border-radius: 3px 12px 12px 12px;
+  background: var(--p-hue);
+  color: #ffffff;
+  font-size: var(--rd-name);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+}
+
+/* Somebody reading where you cannot see them. The shipped overlay draws exactly this, and it is
+   what stops the miniature claiming that a share link puts everyone on the same page. */
+.pubreg-peer-edge {
+  position: absolute;
+  top: var(--p-y);
+  right: var(--p-edge-inset, 3px);
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--p-hue);
+  /* Base is arrived: withdrawn, because by then the frame belongs to the link row. `--reg-on` keeps
+     it on screen in the reduced-motion still. */
+  opacity: calc(1 - var(--reg-on));
+  transform: translateY(-50%) translateX(calc(140% * var(--reg-on)));
+  transition:
+    transform calc(420ms * var(--reg-scale)) var(--e-std),
+    opacity calc(260ms * var(--reg-scale)) linear;
+}
+
+.pubreg-root:not([data-reg-phase="arrived"]) .pubreg-peer-edge {
+  opacity: 1;
+  transform: translateY(-50%);
+}
+
+.pubreg-root[data-reg-phase="pre"] .pubreg-peer-edge {
+  opacity: var(--reg-rm);
+  transform: translateY(-50%) translateX(calc(60% * var(--reg-on)));
+}
+
+.pubreg-peer-flag--edge {
+  position: static;
+  border-radius: 99px;
+}
+
+.pubreg-peer-tail {
+  display: block;
+  flex: 0 0 auto;
+  width: calc(var(--rd-arrow) * 0.5);
+  height: calc(var(--rd-arrow) * 0.78);
+  filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.2));
+}
+
+/* Four people. Hues are the Studio's presence palette — one person, one colour, the rule the real
+   cursors and the feedback pins already follow — dark enough for white type at 8px. The periods are
+   paired so that no two people share either axis, and the amplitudes differ so nobody moves like
+   anybody else. */
+.pubreg-peer[data-peer="0"],
+.pubreg-peer-edge[data-peer="0"] {
+  --p-hue: #4f46e5;
+  --p-s: 1;
+  --p-tx: 13s;
+  --p-ty: 23s;
+  --p-amp: 1;
+  --p-delay: 0ms;
+  --p-in-x: -6px;
+  --p-in-y: 8px;
+}
+
+.pubreg-peer[data-peer="1"],
+.pubreg-peer-edge[data-peer="1"] {
+  --p-hue: #b45309;
+  --p-s: 0.86;
+  --p-tx: 31s;
+  --p-ty: 11s;
+  --p-amp: 0.72;
+  --p-delay: 90ms;
+  --p-in-x: 7px;
+  --p-in-y: 6px;
+}
+
+.pubreg-peer[data-peer="2"],
+.pubreg-peer-edge[data-peer="2"] {
+  --p-hue: #0f766e;
+  --p-s: 1.12;
+  --p-tx: 41s;
+  --p-ty: 7s;
+  --p-amp: 0.6;
+  --p-delay: 180ms;
+  --p-in-x: 2px;
+  --p-in-y: 10px;
+}
+
+.pubreg-peer[data-peer="3"],
+.pubreg-peer-edge[data-peer="3"] {
+  --p-hue: #be185d;
+  --p-s: 0.94;
+  --p-tx: 23s;
+  --p-ty: 31s;
+  --p-amp: 0.86;
+  --p-delay: 260ms;
+  --p-in-x: -8px;
+  --p-in-y: -6px;
+}
+
+/* ---- I — over the spread -------------------------------------------------------------------
+ *
+ * No chrome whatsoever. The book fills the frame, four people are on it, and one page turns under
+ * them during Opening — once, never again, because a book that kept turning through an unbounded
+ * Holding would be drawing progress that does not exist. */
+
+.pubreg-i {
+  --reg-url-delay: 0ms;
+  --reg-copy-delay: 340ms;
+}
+
+/* `--reg-ring-top` is declared *here* and not on `.pubreg-i` with the two delays above, and the
+   difference is not stylistic. A custom property's `var()` references are substituted on the
+   element the property is declared on, so a `--reg-ring-top` written on the root would resolve
+   `var(--rd-pad)` against the root — where the reader metrics are not set, since they are published
+   as an inline style on this body — and the whole declaration would become invalid, leaving the
+   ring at `top: auto`. */
+.pubreg-i-body {
+  position: relative;
+  width: 100%;
+  height: 100%;
+
+  --reg-ring-top: calc(var(--rd-pad) + var(--rd-art-h) + 6px);
+}
+
+.pubreg-i-art {
+  position: absolute;
+  top: var(--rd-pad);
+  left: 0;
+  z-index: 2;
+  width: 100%;
+  height: var(--rd-art-h);
+  /* Arrival: the book lifts and makes room, and the row comes out from behind it into the space it
+     vacated. The artwork physically standing aside is a stronger handover than the artwork merely
+     dimming. */
+  transform: translateY(calc(-6px * var(--reg-on)));
+  filter: saturate(0.92) brightness(0.975);
+  transition:
+    transform calc(380ms * var(--reg-scale)) var(--e-decel),
+    filter calc(220ms * var(--reg-scale)) linear calc(400ms * var(--reg-scale));
+}
+
+.pubreg-i:not([data-reg-phase="arrived"]) .pubreg-i-art {
+  transform: none;
+  filter: none;
+  transition-delay: 0s;
+}
+
+.pubreg-i-spread {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: calc(var(--rd-page-w) * 2);
+  height: 100%;
+  margin-left: calc(var(--rd-page-w) * -1);
+  transform-style: preserve-3d;
+  perspective: 900px;
+}
+
+.pubreg-i-leaf {
+  position: absolute;
+  top: 0;
+  width: var(--rd-page-w);
+  height: 100%;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.pubreg-i-leaf--verso {
+  left: 0;
+  border-radius: 6px 2px 2px 6px;
+  box-shadow: -4px 5px 13px -8px rgba(15, 23, 42, 0.45);
+}
+
+.pubreg-i-leaf--recto {
+  left: var(--rd-page-w);
+  border-radius: 2px 6px 6px 2px;
+  box-shadow: 4px 5px 13px -8px rgba(15, 23, 42, 0.45);
+}
+
+/* The turning leaf. Base is *turned*, because base CSS is the arrived state and Arrival must be able
+   to interrupt Opening without the page snapping back — a keyframe cut at 40% would leave a leaf
+   standing on edge. The angle is multiplied by `--reg-on`, so under reduced motion the book is
+   simply never turned rather than frozen mid-swing. */
+.pubreg-i-turn {
+  position: absolute;
+  top: 0;
+  left: var(--rd-page-w);
+  z-index: 4;
+  width: var(--rd-page-w);
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transform: rotateY(calc(-168deg * var(--reg-on)));
+  transition: transform calc(900ms * var(--reg-scale)) var(--e-morph);
+}
+
+.pubreg-i[data-reg-phase="pre"] .pubreg-i-turn {
+  transform: none;
+  transition-duration: calc(240ms * var(--reg-scale));
+}
+
+.pubreg-i-face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  backface-visibility: hidden;
+  background: var(--card);
+}
+
+.pubreg-i-face--front {
+  border-radius: 2px 6px 6px 2px;
+  box-shadow: 3px 4px 12px -8px rgba(15, 23, 42, 0.5);
+}
+
+/* The back of the leaf, which in a printed book is the next spread's verso — hence `spreads()`
+   rather than raw indexing. Turned 180° so its content reads the right way round once the leaf has
+   swung over. */
+.pubreg-i-face--back {
+  border-radius: 6px 2px 2px 6px;
+  transform: rotateY(180deg);
+  box-shadow: -3px 4px 12px -8px rgba(15, 23, 42, 0.5);
+}
+
+.pubreg-i-gutter {
+  position: absolute;
+  top: 3%;
+  left: 50%;
+  z-index: 5;
+  width: 1px;
+  height: 94%;
+  margin-left: -0.5px;
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0),
+    rgba(15, 23, 42, 0.3) 18%,
+    rgba(15, 23, 42, 0.3) 82%,
+    rgba(15, 23, 42, 0)
+  );
+}
+
+/* The spread's own box, but a sibling of it rather than a child — see the note in the component.
+   Above the turning leaf, because in the shipped reader the cursors are an overlay over the whole
+   page and never go under the content. They also do not react to the turn: four real pointers
+   would not. */
+.pubreg-i-peers {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 6;
+  width: calc(var(--rd-page-w) * 2);
+  height: 100%;
+  margin-left: calc(var(--rd-page-w) * -1);
+  pointer-events: none;
+}
+
+.pubreg-i .pubreg-peer[data-peer="0"] {
+  --p-x: 22%;
+  --p-y: 26%;
+}
+
+.pubreg-i .pubreg-peer[data-peer="1"] {
+  --p-x: 67%;
+  --p-y: 17%;
+}
+
+.pubreg-i .pubreg-peer[data-peer="2"] {
+  --p-x: 54%;
+  --p-y: 66%;
+}
+
+.pubreg-i .pubreg-peer[data-peer="3"] {
+  --p-x: 9%;
+  --p-y: 63%;
+}
+
+.pubreg-i-sleeve {
+  position: absolute;
+  top: calc(var(--rd-pad) + var(--rd-art-h));
+  left: 0;
+  z-index: 1;
+  width: 100%;
+  height: calc(var(--reg-plate-h) + 20px);
+  overflow: hidden;
+}
+
+.pubreg-i .pubreg-plate {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  margin-left: calc(var(--reg-plate-w) / -2);
+  transform: none;
+  opacity: 1;
+  transition:
+    transform calc(440ms * var(--reg-scale)) var(--e-decel) calc(140ms * var(--reg-scale)),
+    opacity calc(320ms * var(--reg-scale)) linear calc(140ms * var(--reg-scale)),
+    border-color calc(240ms * var(--reg-scale)) linear;
+}
+
+.pubreg-i:not([data-reg-phase="arrived"]) .pubreg-plate {
+  transform: translateY(calc((var(--reg-plate-h) + 6px) * -1 * var(--reg-on)));
+  opacity: var(--reg-rm);
+  transition:
+    transform 0s linear calc(240ms * var(--reg-scale)),
+    opacity calc(220ms * var(--reg-scale)) linear;
+}

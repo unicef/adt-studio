@@ -21,6 +21,7 @@ export const STAGE_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
   "sign-language": msg`Sign Language`,
   validation: msg`Validation`,
   preview: msg`Preview`,
+  publish: msg`Publishing`,
   export: msg`Export`,
 }
 
@@ -39,6 +40,7 @@ export const STAGE_RUNNING_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
   "sign-language": msg`Sign Language`,
   validation: msg`Running Validation...`,
   preview: msg`Building Preview...`,
+  publish: msg`Publishing...`,
   export: msg`Exporting...`,
 }
 
@@ -56,6 +58,7 @@ export const STAGE_DESCRIPTION_MESSAGES: Record<string, MessageDescriptor> = {
   "sign-language": msg`Upload and assign sign language videos to book pages.`,
   validation: msg`Run whole-book validation checks and configure accessibility assessment settings.`,
   preview: msg`Package and preview the final ADT web application.`,
+  publish: msg`Put the book online for readers and reviewers, and manage the link.`,
   export: msg`Export the packaged book and related artifacts for delivery.`,
 }
 
