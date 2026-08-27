@@ -30,6 +30,54 @@ vi.mock("@lingui/react/macro", () => {
   }
 })
 
+/* jsdom has no ResizeObserver, and the takeover's artwork measures its slot with one on its
+   optimistic first frame — before the height check drops it for the 0px window jsdom reports. */
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+vi.stubGlobal("ResizeObserver", ResizeObserverStub)
+
+/* The macro transform rewrites `@lingui/react/macro` imports into `@lingui/react` at build time,
+ * so the mock above never intercepts the compiled calls — this one does. Same recipe as
+ * `publishing-controls.test.tsx`: resolve descriptors to their English source and interpolate
+ * `{name}` values naively. */
+vi.mock("@lingui/react", () => {
+  const fill = (text: string, values?: Record<string, unknown>) =>
+    Object.entries(values ?? {}).reduce(
+      (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
+      text,
+    )
+  const resolve = (descriptor: unknown, values?: Record<string, unknown>): string => {
+    if (typeof descriptor === "string") return fill(descriptor, values)
+    const d = descriptor as { message?: string; id?: string; values?: Record<string, unknown> }
+    return fill(d?.message ?? d?.id ?? "", values ?? d?.values)
+  }
+  return {
+    I18nProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    useLingui: () => ({
+      _: resolve,
+      t: resolve,
+      i18n: { locale: "en", _: resolve, number: (n: number) => String(n) },
+    }),
+    Trans: ({
+      message,
+      id,
+      values,
+      children,
+    }: {
+      message?: string
+      id?: string
+      values?: Record<string, unknown>
+      children?: React.ReactNode
+    }) => {
+      const text = (message ?? id ?? "").replace(/<\/?\d+>/g, "")
+      return <>{children ?? fill(text, values)}</>
+    },
+  }
+})
+
 vi.mock("@lingui/core/macro", () => {
   function templateToString(strings: TemplateStringsArray, ...values: unknown[]) {
     return strings.reduce(
@@ -383,15 +431,19 @@ describe("PublishPanel — publishing", () => {
     /** The card that asked the question steps aside; leaving it under a run gives the author two
      *  places to look and one of them is stale. */
     expect(screen.queryByTestId("publish-panel")).toBeNull()
-    expect(takeover.querySelectorAll("li")).toHaveLength(4)
-    /** Settled steps, so the first running step reads as "0 of 4". */
-    expect(takeover.textContent).toContain("0 of 4")
+    /** The run screen names the running step and offers the way out. There is deliberately no
+     *  "N of 4 steps" counter — a step-count aggregate jumps to 50% in seconds and then sits
+     *  still for the whole upload, which is the trust failure the time-weighted bar replaced. */
+    expect(takeover.textContent).toContain("Making a copy of the book")
+    expect(takeover.textContent).toContain("Stop")
 
     act(() => {
       emit?.({ type: "step", id: "export", number: 1, label: "Export", status: "done" })
       emit?.({ type: "step", id: "upload", number: 3, label: "Upload", status: "running" })
     })
-    expect(screen.getByTestId("publish-takeover").textContent).toContain("1 of 4")
+    expect(screen.getByTestId("publish-takeover").textContent).toContain(
+      "Sending it to your Cloudflare account",
+    )
 
     getBookPublication.mockResolvedValue(publishedStatus())
 

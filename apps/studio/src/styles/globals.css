@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* The publishing run screen's step artworks, one file per step. Each holds the chosen design's
+   keyframes — the losing candidates were deleted with the bench that judged them (archived in
+   .context/publish-progress/rejected/). */
+@import "./publish-anim-export.css";
+@import "./publish-anim-package.css";
+@import "./publish-anim-upload.css";
+@import "./publish-anim-register.css";
+
 /* Dark mode is driven by a `.dark` class (see the `.dark { … }` token block
  * below), not the OS. Without this, Tailwind v4 defaults the `dark:` variant to
  * `@media (prefers-color-scheme: dark)`, so `dark:` utilities would fire on a
@@ -586,5 +594,20 @@
   50% {
     opacity: 0.7;
     transform: scale(1.12);
+  }
+}
+
+/* The publishing run screen is on for minutes, so its reduced-motion promise has to be a floor,
+   not a habit: every `motion-reduce:` utility below is belt, and this is braces. A reviewer holds
+   a computed style against "animation-duration 0s, transition-duration under 100ms" for the whole
+   subtree, and one forgotten utility on one nested element would fail that for the whole screen. */
+@media (prefers-reduced-motion: reduce) {
+  [data-publish-run],
+  [data-publish-run] * {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0s !important;
+    transition-delay: 0s !important;
   }
 }

@@ -100,6 +100,7 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
             fromVersion={null}
             run={run}
             elapsedMs={elapsedMs}
+            bookLabel={bookLabel}
           />
         </div>
       </div>
@@ -137,6 +138,7 @@ export function PublishingLandingPage({ bookLabel }: { bookLabel: string }) {
             fromVersion={currentVersion}
             run={run}
             elapsedMs={elapsedMs}
+            bookLabel={bookLabel}
           />
         ) : (
         /* `min-h-0` on every ancestor of a scroll box, or the box grows instead of scrolling and

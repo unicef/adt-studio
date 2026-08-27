@@ -48,6 +48,7 @@ export default [
             "fill",
             "d",
             "viewBox",
+            "stroke",
             "strokeLinecap",
             "strokeDasharray",
 
@@ -82,6 +83,9 @@ export default [
             // --- CSS inline style properties (el.style.* assignments) ---
             "transition",
             "transform",
+            // Gradient and colour strings assembled for a `style` object — CSS values, never copy.
+            "background",
+            "backgroundImage",
 
             // --- CSS class & color props (never user-visible) ---
             "rootMargin",
@@ -211,6 +215,10 @@ export default [
             "onFeatureToggleChange",
           ],
           ignore: [
+            // SVG path data held in a constant (e.g. `const SHEET = "M8.5 3.5h5l4 4..."`).
+            // The `d` attribute is already ignored by name; this covers the same string when it
+            // is named and reused, which is how the animated step drawings are built.
+            "^[Mm]\\s*-?\\d",
             // Single-character literals — decorative SVG glyphs (`?`, `A`, `文`, `あ`),
             // drop-cap letters, single-symbol labels. Never translation targets.
             "^.$",

@@ -3,6 +3,45 @@ import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
 
+/* The Lingui macro transform rewrites macro imports to `@lingui/react` at build time, so a mock of
+   the macro path never intercepts the components' real calls — this one does. Messages come
+   through as `{id, message, values}` descriptors; interpolation is the naive `{name}` swap, which
+   is all these assertions need. */
+vi.mock("@lingui/react", () => {
+  const fill = (text: string, values?: Record<string, unknown>) =>
+    Object.entries(values ?? {}).reduce(
+      (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
+      text,
+    )
+  const resolve = (descriptor: unknown, values?: Record<string, unknown>): string => {
+    if (typeof descriptor === "string") return fill(descriptor, values)
+    const d = descriptor as { message?: string; id?: string; values?: Record<string, unknown> }
+    return fill(d?.message ?? d?.id ?? "", values ?? d?.values)
+  }
+  return {
+    I18nProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    useLingui: () => ({
+      _: resolve,
+      t: resolve,
+      i18n: { locale: "en", _: resolve, number: (n: number) => String(n) },
+    }),
+    Trans: ({
+      message,
+      id,
+      values,
+      children,
+    }: {
+      message?: string
+      id?: string
+      values?: Record<string, unknown>
+      children?: React.ReactNode
+    }) => {
+      const text = (message ?? id ?? "").replace(/<\/?\d+>/g, "")
+      return <>{children ?? fill(text, values)}</>
+    },
+  }
+})
+
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useLingui: () => ({ t: (s: TemplateStringsArray) => s.join(""), i18n: { _: () => "", locale: "en" } }),
