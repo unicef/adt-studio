@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
 
 Element.prototype.scrollIntoView = vi.fn()
 const writeClipboard = vi.fn()
@@ -86,7 +86,6 @@ vi.mock("@/api/client", () => ({
 }))
 
 const { ImportProject } = await import("./ImportProject")
-const { IMPORT_REVIEW_STATES } = await import("@/dev/import-review/fixtures")
 
 afterEach(() => {
   cleanup()
@@ -108,138 +107,6 @@ afterEach(() => {
 })
 
 describe("ImportProject", () => {
-  it.each(IMPORT_REVIEW_STATES)("renders the %s UI review state", (state) => {
-    window.history.replaceState({}, "", `/books/import?uiReview=${state}`)
-
-    render(<ImportProject />)
-
-    expect(state === "activities-modal"
-      ? screen.getByRole("dialog", { name: "Review activity pages" })
-      : screen.getByRole("heading", { name: "Import a book" })).toBeTruthy()
-  })
-
-  it("states the archive size limit before selection", () => {
-    window.history.replaceState({}, "", "/books/import?uiReview=empty")
-
-    render(<ImportProject />)
-
-    expect(screen.getByText("ZIP archive · Maximum 512 MiB")).toBeTruthy()
-  })
-
-  it("keeps the selected archive visible while reading and after a preview error", () => {
-    window.history.replaceState({}, "", "/books/import?uiReview=reading")
-    render(<ImportProject />)
-    expect(screen.getByText("english-std-3-pb--2023-main.zip")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Replace archive" })).toBeTruthy()
-
-    cleanup()
-    window.history.replaceState({}, "", "/books/import?uiReview=archive-error")
-    render(<ImportProject />)
-    expect(screen.getByText("damaged-export.zip")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Replace archive" })).toBeTruthy()
-  })
-
-  it("describes baseline differences without attributing who made them", () => {
-    window.history.replaceState({}, "", "/books/import?uiReview=adt-edited")
-
-    render(<ImportProject />)
-
-    expect(screen.getByText("Changes since export detected")).toBeTruthy()
-    expect(screen.getByText(/differs from its ADT Studio export baseline/)).toBeTruthy()
-  })
-
-  it("does not report edits for a fresh export whose baseline matches", () => {
-    window.history.replaceState({}, "", "/books/import?uiReview=adt-current")
-
-    render(<ImportProject />)
-
-    expect(screen.getByText("Ready to become a new project")).toBeTruthy()
-    expect(screen.queryByText("Changes since export detected")).toBeNull()
-    expect(screen.queryByText("Export baseline unavailable")).toBeNull()
-  })
-
-  it("keeps import failures concise and offers an immediate retry", () => {
-    window.history.replaceState({}, "", "/books/import?uiReview=import-error")
-
-    render(<ImportProject />)
-
-    expect(screen.getByText("Archive problem")).toBeTruthy()
-    expect(screen.getByText("Hyena and Raven-adt.zip")).toBeTruthy()
-    expect(screen.getByText("Show error details")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Try import again" })).toBeTruthy()
-  })
-
-  it("keeps the cover and repair workflow in the review shell", () => {
-    window.history.replaceState({}, "", "/books/import?uiReview=unsupported-current-guide")
-
-    render(<ImportProject />)
-
-    expect(screen.getByRole("heading", { name: "Edited publication needing repair" })).toBeTruthy()
-    expect(screen.getByText("Book cover")).toBeTruthy()
-    expect(screen.getByRole("tab", { name: /Review/ }).getAttribute("data-state")).toBe("active")
-    expect(screen.getByText("This archive needs repair before import")).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Validation details" })).toBeTruthy()
-    expect(screen.getByRole("button", { name: "Choose repaired ZIP" })).toBeTruthy()
-    expect(screen.queryByText("Changes since export detected")).toBeNull()
-    expect(screen.getByText("No cover available")).toBeTruthy()
-  })
-
-  it("transitions tabs without rendering overlapping content", () => {
-    vi.useFakeTimers()
-    window.history.replaceState({}, "", "/books/import?uiReview=adt-current")
-
-    try {
-      render(<ImportProject />)
-      expect(screen.getByRole("tabpanel").parentElement?.className).toContain("flex-1")
-      expect(screen.getByRole("tabpanel").parentElement?.className).toContain("overflow-hidden")
-      const featuresTab = screen.getByRole("tab", { name: "Features" })
-      fireEvent.keyDown(featuresTab, { key: "Enter" })
-
-      expect(featuresTab.getAttribute("data-state")).toBe("active")
-      expect(screen.getByRole("tabpanel").className).toContain("motion-safe:animate-out")
-      expect(screen.getByText("Pages")).toBeTruthy()
-      expect(screen.queryByText(/carry over to the imported book/)).toBeNull()
-
-      act(() => vi.advanceTimersByTime(120))
-
-      expect(screen.getByRole("tabpanel").className).toContain("motion-safe:animate-in")
-      expect(screen.queryByText("Pages")).toBeNull()
-      expect(screen.getByText(/carry over to the imported book/)).toBeTruthy()
-      // Nothing is cut off until the grid actually overflows, so the hint stays
-      // out of the way rather than inviting a scroll that does nothing.
-      expect(screen.queryByText("Scroll to see all features")).toBeNull()
-      const storyboard = screen.getByText("Storyboard")
-      expect(storyboard.parentElement?.textContent).toContain("Included")
-      expect(storyboard.parentElement?.className).toContain("flex-col")
-      expect(storyboard.parentElement?.querySelector("span")?.className).toContain("max-w-full")
-      expect(storyboard.parentElement?.querySelector("span")?.className).toContain("whitespace-normal")
-      const captions = screen.getByText("Image Captions")
-      expect(captions.parentElement?.textContent).toContain("Included")
-      // Easy Read has no recoverable pipeline data, so it must not be sold as
-      // carried over just because the published runtime switched it on.
-      const easyRead = screen.getByText("Easy Read")
-      expect(easyRead.parentElement?.textContent).toContain("Needs regenerating")
-      expect(easyRead.parentElement?.textContent).not.toContain("Included")
-      const signLanguage = screen.getByText("Sign Language")
-      expect(signLanguage.parentElement?.textContent).toContain("Available")
-
-      const featureRegion = screen.getByRole("region", { name: "Features" })
-      Object.defineProperty(featureRegion, "scrollHeight", { configurable: true, value: 800 })
-      Object.defineProperty(featureRegion, "clientHeight", { configurable: true, value: 360 })
-      fireEvent.scroll(featureRegion)
-      expect(screen.getByText("Scroll to see all features")).toBeTruthy()
-
-      featureRegion.scrollTop = 440
-      fireEvent.scroll(featureRegion)
-      expect(screen.queryByText("Scroll to see all features")).toBeNull()
-
-      act(() => vi.advanceTimersByTime(180))
-      expect(screen.getByRole("tabpanel").className).not.toContain("motion-safe:animate-in")
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
   it("imports an exported ADT through the shared import screen", async () => {
     previewImport.mockResolvedValue({
       isAdtBundle: true,

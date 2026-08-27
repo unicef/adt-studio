@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useRef, useState } from "react"
 import { Link, useNavigate } from "@tanstack/react-router"
 import {
   ArrowLeft,
@@ -27,10 +27,6 @@ import { useImportAdtProject, useImportBook } from "@/hooks/use-books"
 import { useFriendlyArchiveError, type FriendlyError } from "@/hooks/use-archive-error"
 import { api, isAdtBundleImportPreview, isPartImportPreview } from "@/api/client"
 import type { AdtBundleImportPreview, AnyImportPreview } from "@/api/client"
-import {
-  importProjectInitialState,
-  useImportProjectReviewFixture,
-} from "@/dev/import-review/fixtures"
 import { ImportProgress } from "./ImportProgress"
 import { ImportStatus } from "./ImportStatus"
 import { ArchiveReviewSkeleton } from "./ArchiveReviewSkeleton"
@@ -44,23 +40,15 @@ export function ImportProject() {
   const adtImportMutation = useImportAdtProject()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const previewRequestRef = useRef(0)
-  const reviewFixture = useImportProjectReviewFixture()
-  const [initial] = useState(() => importProjectInitialState(reviewFixture))
-  const [zipFile, setZipFile] = useState<File | null>(initial.zipFile)
-  const [preview, setPreview] = useState<AnyImportPreview | null>(initial.preview)
-  const [previewLoading, setPreviewLoading] = useState(initial.previewLoading)
-  const [previewError, setPreviewError] = useState<string | null>(initial.previewError)
-  const [activityDecisions, setActivityDecisions] = useState(initial.activityDecisions)
-  const [activityDialogOpen, setActivityDialogOpen] = useState(initial.activityDialogOpen)
-
-  useEffect(() => {
-    if (reviewFixture?.preview && isReadyImportPreview(reviewFixture.preview)) {
-      toast.success(t`Archive ready to review`)
-    }
-  }, [reviewFixture?.state, t])
+  const [zipFile, setZipFile] = useState<File | null>(null)
+  const [preview, setPreview] = useState<AnyImportPreview | null>(null)
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+  const [activityDecisions, setActivityDecisions] = useState<Record<string, string | null>>({})
+  const [activityDialogOpen, setActivityDialogOpen] = useState(false)
 
   const friendlyPreviewError = useFriendlyArchiveError(previewError)
-  const rawImportError = reviewFixture?.importError ?? adtImportMutation.error?.message
+  const rawImportError = adtImportMutation.error?.message
     ?? (importMutation.error
       ? importMutation.error instanceof Error
         ? importMutation.error.message
@@ -73,8 +61,7 @@ export function ImportProject() {
     ? preview.validationError
     : null
   const friendlyPreviewValidationError = useFriendlyArchiveError(rawPreviewValidationError)
-  const importPending = reviewFixture?.importPending
-    ?? (importMutation.isPending || adtImportMutation.isPending)
+  const importPending = importMutation.isPending || adtImportMutation.isPending
   const unsupportedAdt = Boolean(
     preview
     && isAdtBundleImportPreview(preview)
@@ -258,7 +245,7 @@ export function ImportProject() {
               {zipFile ? (
                 <SelectedArchiveBar
                   file={zipFile}
-                  displaySize={reviewFixture?.fileSize ?? zipFile.size}
+                  displaySize={zipFile.size}
                   disabled={importPending}
                   onReplace={() => fileInputRef.current?.click()}
                 />
