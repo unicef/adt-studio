@@ -2953,6 +2953,23 @@ async function runSpeechStep(
             profile: NonNullable<ReturnType<typeof resolveSpeechVoice>>
           } => item.profile !== null,
         )
+        // Page batching is a per-voice decision now that a secondary narrator
+        // can route to a different provider than its language's primary.
+        .map((item) => ({
+          ...item,
+          batchThisVoice:
+            batchByPage &&
+            item.profile.provider === "gemini" &&
+            supportsPageBatchedSpeech(lang),
+        }))
+
+      for (const { slot, profile, batchThisVoice } of configuredVoices) {
+        if (batchByPage && profile.provider === "gemini" && !batchThisVoice) {
+          console.log(
+            `[stage-run] ${label}: page-batched TTS is disabled for ${lang}:${slot}; using per-entry TTS`,
+          )
+        }
+      }
 
       const languageTextMap = new Map<string, string>()
       for (let entryIndex = 0; entryIndex < entries.length; entryIndex++) {
@@ -2962,12 +2979,8 @@ async function runSpeechStep(
         if (isTtsExcluded(entry.id, config.speech)) continue
         languageTextMap.set(entry.id, entry.text)
 
-        for (const { slot, profile } of configuredVoices) {
+        for (const { slot, profile, batchThisVoice } of configuredVoices) {
           const { provider, model: providerModel, voice, label: voiceLabel } = profile
-          const batchThisVoice =
-            batchByPage &&
-            provider === "gemini" &&
-            supportsPageBatchedSpeech(lang)
           const slotEntryId = voiceSlotEntryId(entry.id, slot)
 
           // Route page-scoped entries of a Gemini language into a per-page group

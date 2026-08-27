@@ -193,13 +193,11 @@ async function safeJsonFetch<T = unknown>(
       console.warn(`[i18n] ${context}: ${url} returned ${res.status}`)
       return null
     }
-
     return (await res.json()) as T
   } catch (err) {
     console.warn(`[i18n] failed to load ${url}`, err)
     return null
   }
-
 }
 
 async function safeOptionalJsonFetch<T>(url: string): Promise<T | null> {

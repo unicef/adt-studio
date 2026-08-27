@@ -146,7 +146,13 @@ export function voiceSlotEntryId(textId: string, slot?: VoiceSlot | null): strin
 }
 
 /** Inverse of {@link voiceSlotEntryId}: recovers the base textId and slot
- *  from a slot-qualified id (e.g. a word-timestamp map key). */
+ *  from a slot-qualified id (e.g. a word-timestamp map key).
+ *
+ *  This assumes no catalog id itself ends in
+ *  {@link SECONDARY_VOICE_SLOT_SUFFIX}. Ids are generated in fixed shapes
+ *  (`pg001_t001`, `gl001_def`, `qz001_que`, plus an `_easy_read` suffix), none
+ *  of which contain a double hyphen — so the suffix is unambiguous in
+ *  practice, though nothing validates it. */
 export function parseVoiceSlotEntryId(id: string): { textId: string; voiceSlot: VoiceSlot } {
   if (id.endsWith(SECONDARY_VOICE_SLOT_SUFFIX)) {
     return {
@@ -176,9 +182,9 @@ export type VoiceSlots = z.infer<typeof VoiceSlots>
 /**
  * A raw `voices.yaml` per-language entry. Legacy books configure a plain
  * scalar string (the provider's voice identifier) — equivalent to
- * `{ primary: { voice: <string> } }` with no secondary. Books adding a
- * stored an extended {@link VoiceSlots} shape during dual-voice development;
- * it remains readable, while current editors write only a primary mapping.
+ * `{ primary: { voice: <string> } }` with no secondary. Books created during
+ * dual-voice development stored an extended {@link VoiceSlots} shape; it
+ * remains readable, while current editors write only a primary mapping.
  */
 export const VoiceMapEntry = z.union([z.string(), VoiceSlots])
 export type VoiceMapEntry = z.infer<typeof VoiceMapEntry>

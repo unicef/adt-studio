@@ -1371,6 +1371,7 @@ export function LanguageView({
     mutationFn: async (variables: {
       textId: string;
       language: string;
+      voiceSlot: VoiceSlot;
       words: WordTimestamp[];
       duration: number;
     }) => {
@@ -1381,7 +1382,7 @@ export function LanguageView({
         {
           words: variables.words,
           duration: variables.duration,
-          voiceSlot: selectedVoiceSlot,
+          voiceSlot: variables.voiceSlot,
         },
       );
     },
@@ -1398,6 +1399,7 @@ export function LanguageView({
       saveTimestampsMutation.mutate({
         textId,
         language: audioLang,
+        voiceSlot: selectedVoiceSlot,
         words,
         duration,
       });
