@@ -7,6 +7,8 @@ import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRa
 import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
+  figureExtractionFlags,
+  resolveFigureExtractionMode,
   resolveFontsCacheDir,
   buildBookFontsPromptContext,
   readTypography,
@@ -72,6 +74,7 @@ import {
   computeSpeechCacheKey,
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,
+  buildTtsLogEntry,
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
   ELEVENLABS_TTS_MAX_CONCURRENCY,
@@ -95,6 +98,8 @@ import {
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
+  buildMeaningfulnessImages,
+  dedupAutoFigureCandidatesInStorage,
   cropPageImages,
   applyCrops,
   buildCroppingConfig,
@@ -1001,7 +1006,8 @@ async function runExtractStep(
         endPage: config.end_page,
         spreadMode: config.spread_mode,
         spreadPairs: config.spread_pairs,
-        vectorTextGrouping: config.vector_text_grouping,
+        ...figureExtractionFlags(config),
+        removeWatermarks: config.remove_watermarks === true,
         fixedLayout: isFixedLayoutBook(config),
         fontsCacheDir: resolveFontsCacheDir(booksDir),
       },
@@ -1193,6 +1199,7 @@ async function runExtractStep(
     if (!stepController.signal.aborted) {
       await runMeaningfulnessPass(
         label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
+        resolveFigureExtractionMode(config) === "auto",
         effectiveConcurrency, pageResults, pageFailureDeps, progress
       )
     }
@@ -3064,24 +3071,19 @@ async function runSpeechStep(
           // tracking), mirroring the per-entry path so batched Gemini calls
           // aren't invisible.
           const emitPageLog = (o: { success: boolean; cacheHit: boolean; attempt: number; error?: string }) => {
-            const preview = group.entries.map((e) => e.text).join(" ").slice(0, 300)
-            const logEntry: LlmLogEntry = {
-              requestId: crypto.randomUUID(),
-              timestamp: new Date().toISOString(),
-              taskType: "tts",
-              pageId: group.pageKey,
-              promptName: "tts-gemini",
-              modelId: `gemini/${providerModel}`,
-              cacheHit: o.cacheHit,
-              success: o.success,
-              errorCount: o.success ? 0 : 1,
-              attempt: Math.max(o.attempt, 1),
+            const logEntry = buildTtsLogEntry({
+              textId: group.pageKey,
+              language: group.language,
+              voice: `${voice} (page ${group.pageKey}, ${group.entries.length} entries)`,
+              model: providerModel,
+              provider: "gemini",
+              text: group.entries.map((entry) => entry.text).join(" "),
               durationMs: Date.now() - startMs,
-              messages: [{
-                role: "user",
-                content: [{ type: "text" as const, text: `[${group.language}] voice=${voice} (page ${group.pageKey}, ${group.entries.length} entries)${o.error ? `\nERROR: ${o.error}` : ""}\n${preview}` }],
-              }],
-            }
+              success: o.success,
+              cached: o.cacheHit,
+              attempt: o.attempt,
+              error: o.error,
+            })
             storage.appendLlmLog(logEntry)
             progress.emit({ type: "llm-log", step: "tts", itemId: group.pageKey, promptName: logEntry.promptName, modelId: logEntry.modelId, cacheHit: o.cacheHit, durationMs: logEntry.durationMs })
           }
@@ -3319,24 +3321,19 @@ async function runSpeechStep(
         const durationMs = Date.now() - startMs
         const cached = entry?.cached ?? false
 
-        const logEntry: LlmLogEntry = {
-          requestId: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          taskType: "tts",
-          pageId: item.textId,
-          promptName: `tts-${provider}`,
-          modelId: `${provider}/${providerModel}`,
-          cacheHit: cached,
-          success: true,
-          errorCount: 0,
-          attempt: attemptCount,
+        const logEntry = buildTtsLogEntry({
+          textId: item.textId,
+          language: item.language,
+          voice,
+          model: providerModel,
+          provider,
+          text: item.text,
           durationMs,
-          ...(logParams ? { params: logParams } : {}),
-          messages: [{
-            role: "user",
-            content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\n${item.text.slice(0, 300)}` }],
-          }],
-        }
+          success: true,
+          cached,
+          attempt: attemptCount,
+          params: logParams,
+        })
         storage.appendLlmLog(logEntry)
         progress.emit({
           type: "llm-log",
@@ -3366,24 +3363,20 @@ async function runSpeechStep(
           geminiFailedItems.push(`${item.textId}: ${msg}`)
         }
 
-        const logEntry: LlmLogEntry = {
-          requestId: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          taskType: "tts",
-          pageId: item.textId,
-          promptName: `tts-${provider}`,
-          modelId: `${provider}/${providerModel}`,
-          cacheHit: false,
-          success: false,
-          errorCount: 1,
-          attempt: Math.max(attemptCount, 1),
+        const logEntry = buildTtsLogEntry({
+          textId: item.textId,
+          language: item.language,
+          voice,
+          model: providerModel,
+          provider,
+          text: item.text,
           durationMs,
-          ...(logParams ? { params: logParams } : {}),
-          messages: [{
-            role: "user",
-            content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\nERROR: ${msg}\n\n${item.text.slice(0, 300)}` }],
-          }],
-        }
+          success: false,
+          cached: false,
+          attempt: attemptCount,
+          error: msg,
+          params: logParams,
+        })
         storage.appendLlmLog(logEntry)
         progress.emit({
           type: "llm-log",
@@ -3578,12 +3571,21 @@ async function runMeaningfulnessPass(
   storage: Storage,
   config: MeaningfulnessConfig | null,
   model: ReturnType<typeof createLLMModel> | null,
+  autoDedup: boolean,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
   deps: PageFailureDeps,
   progress: StageRunProgress,
 ): Promise<void> {
   if (!config || !model) {
+    if (autoDedup) {
+      for (const page of pages) {
+        const existing = results.get(page.pageId)
+        if (!existing) continue
+        const updated = dedupAutoFigureCandidatesInStorage(storage, page.pageId, existing)
+        if (updated !== existing) results.set(page.pageId, updated)
+      }
+    }
     progress.emit({ type: "step-skip", step: "image-meaningfulness" })
     return
   }
@@ -3608,24 +3610,14 @@ async function runMeaningfulnessPass(
       return
     }
     try {
-      const images = storage.getPageImages(page.pageId)
-      const unprunedImageIds = new Set(
-        existing.images.filter((img) => !img.isPruned).map((img) => img.imageId)
-      )
-      const unprunedImages = images
-        .filter((img) => unprunedImageIds.has(img.imageId))
-        .map((img) => ({
-          imageId: img.imageId,
-          imageBase64: storage.getImageBase64(img.imageId),
-          width: img.width,
-          height: img.height,
-        }))
+      const unprunedImages = buildMeaningfulnessImages(storage, page.pageId, existing)
 
       if (unprunedImages.length > 0) {
         const updated = await filterPageImageMeaningfulness(
           {
             pageId: page.pageId,
             pageImageBase64: storage.getPageImageBase64(page.pageId),
+            pageText: page.text,
             images: unprunedImages,
           },
           existing,

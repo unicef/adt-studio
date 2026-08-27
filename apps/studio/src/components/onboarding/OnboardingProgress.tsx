@@ -15,9 +15,9 @@ export function OnboardingProgress({
           className={cn(
             "h-1.5 rounded-full transition-all duration-300",
             i === current
-              ? "w-8 bg-primary"
+              ? "w-8 bg-[var(--ob-accent)]"
               : i < current
-                ? "w-1.5 bg-primary/60"
+                ? "w-1.5 bg-[rgba(var(--ob-accent-rgb),0.55)]"
                 : "w-1.5 bg-border",
           )}
         />

@@ -67,6 +67,13 @@ const updates = {
   },
 }
 
+const onboarding = {
+  getStatus: (): Promise<boolean> =>
+    ipcRenderer.invoke('onboarding:get-status'),
+  finish: (startPath: string): Promise<void> =>
+    ipcRenderer.invoke('onboarding:finish', startPath),
+}
+
 interface SaveFileDialogOptions {
   defaultPath?: string
   filters?: Array<{ name: string; extensions: string[] }>
@@ -98,6 +105,7 @@ const api = {
   },
   windowControls,
   updates,
+  onboarding,
 }
 
 if (process.contextIsolated) {

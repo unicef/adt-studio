@@ -307,9 +307,9 @@ Q
 }
 
 /**
- * Create a 1-page PDF with a raster image, overlapping vector, AND nearby text label.
- * The text "Figure 1" is placed just below the image+vector figure.
- * Used to verify text label absorption expands the figure group bbox.
+ * Create a 1-page PDF with a raster image, overlapping vector, AND a text
+ * label attached by a leader line. Used to verify raster-aware grouping keeps
+ * intrinsic annotations while ordinary captions can remain semantic text.
  */
 export function createFigureWithTextPdf(): Buffer {
   const doc = new mupdf.PDFDocument();
@@ -343,7 +343,8 @@ export function createFigureWithTextPdf(): Buffer {
   resourcesDict.put("Font", fontDict);
   const resources = doc.addObject(resourcesDict);
 
-  // Image at (100, 400) scaled to 200x200, overlapping red rect, plus text label below
+  // Image at (100, 400) scaled to 200x200, overlapping red rect, plus a
+  // leader line and label on the right.
   const stream = `
 q
 200 0 0 200 100 400 cm
@@ -353,9 +354,16 @@ q
 1 0 0 rg
 120 420 50 50 re f
 Q
+q
+0 0 0 RG
+1 w
+280 510 m
+315 510 l
+S
+Q
 BT
 /F1 12 Tf
-120 390 Td
+320 505 Td
 (Figure 1) Tj
 ET
 `;
@@ -407,4 +415,113 @@ Q
   const buf = new mupdf.Buffer();
   buf.writeLine(stream);
   doc.insertPage(-1, doc.addPage([0, 0, 612, 792], 0, resources, buf));
+}
+
+/**
+ * Create a multi-page PDF that mimics a publisher-watermarked book:
+ *
+ * - Every page carries the identical diagonal red stamp "FOR TESTING ONLY"
+ *   (rotated 45°, drawn across the page center) — a watermark.
+ * - Every page carries the identical small horizontal line "Running Head"
+ *   at the top — repeated page furniture that must NOT be detected.
+ * - Every page has one unique body text line ("Content of page N").
+ * - Every page paints a green→blue axial gradient (a `sh` shading op), so
+ *   the watermark-filtered render exercises fillShade forwarding.
+ * - Page 2 additionally has a raster image with an overlapping vector, so
+ *   figure grouping produces a page-crop composite on a watermarked page.
+ */
+export function createWatermarkedTestPdf(pageCount: number = 4): Buffer {
+  const doc = new mupdf.PDFDocument();
+
+  // Axial (type 2) shading: green at the left edge to blue at the right.
+  const shadingFn = doc.newDictionary();
+  shadingFn.put("FunctionType", 2);
+  shadingFn.put("Domain", [0, 1]);
+  shadingFn.put("C0", [0, 0.6, 0.2]);
+  shadingFn.put("C1", [0, 0.2, 0.8]);
+  shadingFn.put("N", 1);
+  const shading = doc.newDictionary();
+  shading.put("ShadingType", 2);
+  shading.put("ColorSpace", "DeviceRGB");
+  shading.put("Coords", [400, 560, 500, 560]);
+  shading.put("Function", doc.addObject(shadingFn));
+  shading.put("Extend", [true, true]);
+  const shadingObj = doc.addObject(shading);
+
+  const imgW = 30;
+  const imgH = 30;
+  const pixmap = new mupdf.Pixmap(mupdf.ColorSpace.DeviceRGB, [0, 0, imgW, imgH], false);
+  pixmap.clear(255);
+  const samples = pixmap.getPixels();
+  for (let y = 0; y < imgH; y++) {
+    for (let x = 0; x < imgW; x++) {
+      const i = (y * imgW + x) * 3;
+      samples[i] = 40; samples[i + 1] = 90; samples[i + 2] = 40;
+    }
+  }
+  const image = new mupdf.Image(pixmap);
+
+  const font = new mupdf.Font("Helvetica");
+
+  const numberWords = ["one", "two", "three", "four", "five", "six", "seven", "eight"];
+  for (let p = 0; p < pageCount; p++) {
+    const imgObj = doc.addImage(image);
+    const fontObj = doc.addSimpleFont(font);
+    const xobjects = doc.newDictionary();
+    xobjects.put("Im1", imgObj);
+    const fontDict = doc.newDictionary();
+    fontDict.put("F1", fontObj);
+    const shadingDict = doc.newDictionary();
+    shadingDict.put("Sh1", shadingObj);
+    const resourcesDict = doc.newDictionary();
+    resourcesDict.put("XObject", xobjects);
+    resourcesDict.put("Font", fontDict);
+    resourcesDict.put("Shading", shadingDict);
+    const resources = doc.addObject(resourcesDict);
+
+    const figure = p === 1
+      ? `
+q
+200 0 0 200 100 150 cm
+/Im1 Do
+Q
+q
+0 0 1 rg
+120 170 50 50 re f
+Q
+`
+      : "";
+    // cos45 = sin45 ≈ 0.707; the stamp runs diagonally from lower-left.
+    const stream = `
+BT
+/F1 12 Tf
+1 0 0 1 72 750 Tm
+(Running Head) Tj
+ET
+BT
+/F1 14 Tf
+1 0 0 1 72 700 Tm
+(Content of page ${numberWords[p] ?? String(p + 1)}) Tj
+ET
+${figure}
+q
+400 560 100 100 re W n
+/Sh1 sh
+Q
+q
+1 0 0 rg
+BT
+/F1 48 Tf
+0.707 0.707 -0.707 0.707 120 120 Tm
+(FOR TESTING ONLY) Tj
+ET
+Q
+`;
+    const buf = new mupdf.Buffer();
+    buf.writeLine(stream);
+    doc.insertPage(-1, doc.addPage([0, 0, 612, 792], 0, resources, buf));
+  }
+
+  const out = doc.saveToBuffer("").asUint8Array();
+  return Buffer.from(out);
 }
