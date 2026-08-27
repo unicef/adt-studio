@@ -43,4 +43,37 @@ Full Changelog: https://github.com/unicef/adt-studio/compare/v0.7.4-beta.3...v0.
       "https://github.com/user-attachments/assets/cover.png",
     )
   })
+
+  it("does not display release automation markers", () => {
+    render(
+      <ReleaseNotesMarkdown>{`
+<!-- adt-ai-notes:start -->
+Visible release note.
+<!-- adt-ai-notes:end -->
+      `}</ReleaseNotesMarkdown>,
+    )
+
+    expect(screen.getByText("Visible release note.")).toBeTruthy()
+    expect(screen.queryByText(/adt-ai-notes/)).toBeNull()
+  })
+
+  it("keeps light and dark release covers tied to the app theme", () => {
+    const { container } = render(
+      <ReleaseNotesMarkdown>{`
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/unicef/adt-studio/releases/download/v0.8.0/dark.png">
+  <source media="(prefers-color-scheme: light)" srcset="https://github.com/unicef/adt-studio/releases/download/v0.8.0/light.png">
+  <img alt="English accessible cover" src="https://github.com/unicef/adt-studio/releases/download/v0.8.0/light.png">
+</picture>
+      `}</ReleaseNotesMarkdown>,
+    )
+
+    const images = container.querySelectorAll("img")
+    expect(images).toHaveLength(2)
+    expect(images[0].getAttribute("src")).toContain("light.png")
+    expect(images[0].className).toContain("dark:hidden")
+    expect(images[1].getAttribute("src")).toContain("dark.png")
+    expect(images[1].className).toContain("dark:block")
+    expect(images[0].getAttribute("alt")).toBe("English accessible cover")
+  })
 })

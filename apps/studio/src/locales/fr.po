@@ -1901,6 +1901,9 @@ msgstr "Mais l'équipe a continué à gravir la montagne."
 msgid "Button"
 msgstr "Bouton"
 
+msgid "By"
+msgstr "Par"
+
 msgid "By Page"
 msgstr "Par page"
 
@@ -6034,6 +6037,9 @@ msgstr "Aucune correspondance de voix configurée."
 msgid "No voices found"
 msgstr "Aucune voix trouvée"
 
+msgid "Node actions"
+msgstr "Actions du nœud"
+
 msgid "Nodes"
 msgstr "Nodes"
 
@@ -8130,6 +8136,9 @@ msgstr "Section 3 · Aperçu"
 
 msgid "Section 3.2"
 msgstr "Section 3.2"
+
+msgid "Section actions"
+msgstr "Actions de la section"
 
 msgid "Section heading"
 msgstr "Titre de section"

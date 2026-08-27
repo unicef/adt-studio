@@ -13,6 +13,7 @@ import {
   demoteFirstHeadingIfPromoted,
   promoteFirstHeadingToH1,
   reconstructHtmlWithEdit,
+  removeElementFromSourceHtml,
   serializeContentWrapper,
 } from "./iframe-html"
 import {
@@ -87,6 +88,13 @@ export interface BookPreviewFrameHandle {
    *  element by data-id. Returns updated full HTML, or null. Used for styling
    *  that must win over class/cascade rules (e.g. per-element font-family). */
   setElementStyleProp: (dataId: string, property: string, value: string) => string | null
+  /** Resolve an iframe element by data-id, remove its counterpart from the
+   *  unsanitized source HTML, and mirror the removal in the live DOM. Returns
+   *  the updated source HTML plus the real (non-transient) data-ids found in
+   *  the removed subtree, or null when the element cannot be resolved safely.
+   *  Needed for containers whose transient `_el#` id exists only in the live
+   *  iframe. The reported ids let the caller drop matching sectioning leaves. */
+  removeElement: (dataId: string) => { html: string; removedDataIds: string[] } | null
   /** Re-inject the current `html` prop into the iframe, discarding any in-iframe
    *  DOM mutations (e.g. live `setElementClasses` edits). Used when the parent
    *  wants to revert to the saved state without changing the html prop. */
@@ -277,6 +285,18 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
+    removeElement: (dataId: string): { html: string; removedDataIds: string[] } | null => {
+      const doc = iframeRef.current?.contentDocument
+      if (!doc) return null
+      const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
+      if (!el) return null
+      const liveRoot = doc.getElementById("content") ?? doc.body
+      const removed = removeElementFromSourceHtml(sourceHtmlRef.current, liveRoot, el)
+      if (!removed) return null
+      el.remove()
+      stripTransientAttributes(doc)
+      return removed
+    },
     resetContent: () => {
       if (readyRef.current) injectContent(latestHtmlRef.current)
     },
@@ -351,6 +371,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   const [availableWidth, setAvailableWidth] = useState(DEFAULT_RENDER_WIDTH)
   const readyRef = useRef(false)
   const latestHtmlRef = useRef("")
+  const sourceHtmlRef = useRef("")
   const sanitizedHtmlRef = useRef("")
   const originalTextsRef = useRef<Record<string, string>>({})
   const measureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -381,6 +402,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     return () => { cancelled = true }
   }, [sanitizedHtml, assetsPrefix, thumbnail])
   latestHtmlRef.current = displayHtml
+  sourceHtmlRef.current = html
   sanitizedHtmlRef.current = sanitizedHtml
 
   // Build a map of data-id → original LaTeX innerHTML so the iframe can swap

@@ -60,6 +60,94 @@ export function serializeContentWrapper(wrapper: Element): string {
   return clone.outerHTML
 }
 
+interface ElementPathSegment {
+  tagName: string
+  indexAmongTag: number
+}
+
+/**
+ * Describe an element's location without relying on transient preview ids.
+ * Indexing among siblings with the same tag keeps the path stable when
+ * DOMPurify removes a sibling <script> before the preview is injected.
+ */
+function elementPath(root: Element, target: Element): ElementPathSegment[] | null {
+  if (root === target || !root.contains(target)) return null
+  const reversed: ElementPathSegment[] = []
+  let current = target
+
+  while (current !== root) {
+    const parent = current.parentElement
+    if (!parent) return null
+    const tagName = current.tagName.toLowerCase()
+    const sameTagSiblings = Array.from(parent.children).filter(
+      (child) => child.tagName.toLowerCase() === tagName
+    )
+    const indexAmongTag = sameTagSiblings.indexOf(current)
+    if (indexAmongTag < 0) return null
+    reversed.push({ tagName, indexAmongTag })
+    current = parent
+  }
+
+  return reversed.reverse()
+}
+
+function elementAtPath(root: Element, path: ElementPathSegment[]): Element | null {
+  let current = root
+  for (const segment of path) {
+    const matches = Array.from(current.children).filter(
+      (child) => child.tagName.toLowerCase() === segment.tagName
+    )
+    const next = matches[segment.indexAmongTag]
+    if (!next) return null
+    current = next
+  }
+  return current
+}
+
+/**
+ * Remove a transiently-addressed preview element from the persistence source.
+ * The live iframe contains sanitized HTML and display-only MathML, so
+ * serializing it would drop custom-activity scripts and replace source LaTeX.
+ */
+export function removeElementFromSourceHtml(
+  sourceHtml: string,
+  liveRoot: Element,
+  liveTarget: Element
+): { html: string; removedDataIds: string[] } | null {
+  const path = elementPath(liveRoot, liveTarget)
+  if (!path) return null
+
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(`<div id="__root">${sourceHtml}</div>`, "text/html")
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- Internal DOM id, not user-visible
+  const syntheticRoot = doc.getElementById("__root")
+  if (!syntheticRoot) return null
+  const sourceRoot = doc.getElementById("content") ?? syntheticRoot
+  const sourceTarget = elementAtPath(sourceRoot, path)
+  if (!sourceTarget) return null
+
+  const liveDataIds = Array.from(liveTarget.querySelectorAll("[data-id]"))
+    .map((node) => node.getAttribute("data-id"))
+    .filter((id): id is string => !!id && !/^_el\d+$/.test(id))
+  if (
+    liveDataIds.some(
+      (id) => sourceTarget.querySelector(`[data-id="${CSS.escape(id)}"]`) === null
+    )
+  ) {
+    return null
+  }
+
+  const removedDataIds = [sourceTarget, ...Array.from(sourceTarget.querySelectorAll("[data-id]"))]
+    .map((node) => node.getAttribute("data-id"))
+    .filter((id): id is string => !!id && !/^_el\d+$/.test(id))
+  sourceTarget.remove()
+
+  return {
+    html: serializeContentWrapper(sourceRoot),
+    removedDataIds,
+  }
+}
+
 // Apply a text edit to the original (LaTeX) HTML by splicing the iframe's
 // edited innerHTML into the element matching the given data-id. Using innerHTML
 // (rather than `textContent = newText`) preserves the inner span structure that
@@ -77,6 +165,7 @@ export function reconstructHtmlWithEdit(
     const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`)
     if (!el) return null
     el.innerHTML = editedInnerHtml
+    // eslint-disable-next-line lingui/no-unlocalized-strings -- Internal DOM id, not user-visible
     const wrapper = doc.getElementById("content") ?? doc.getElementById("__root")
     if (!wrapper) return null
     return serializeContentWrapper(wrapper)

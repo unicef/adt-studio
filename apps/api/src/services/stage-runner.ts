@@ -75,6 +75,7 @@ import {
   computeSpeechCacheKey,
   elevenLabsVoiceSettingsFromConfig,
   buildElevenLabsTtsLogParams,
+  buildTtsLogEntry,
   classifyElevenLabsTtsError,
   elevenLabsTtsRetryDelayMs,
   ELEVENLABS_TTS_MAX_CONCURRENCY,
@@ -3130,24 +3131,21 @@ async function runSpeechStep(
           // tracking), mirroring the per-entry path so batched Gemini calls
           // aren't invisible.
           const emitPageLog = (o: { success: boolean; cacheHit: boolean; attempt: number; error?: string }) => {
-            const preview = group.entries.map((e) => e.text).join(" ").slice(0, 300)
-            const logEntry: LlmLogEntry = {
-              requestId: crypto.randomUUID(),
-              timestamp: new Date().toISOString(),
-              taskType: "tts",
-              pageId: group.pageKey,
-              promptName: "tts-gemini",
-              modelId: `gemini/${providerModel}`,
-              cacheHit: o.cacheHit,
-              success: o.success,
-              errorCount: o.success ? 0 : 1,
-              attempt: Math.max(o.attempt, 1),
+            const logEntry = buildTtsLogEntry({
+              textId: group.pageKey,
+              // The slot rides along in `language` so a dual-voice book's two
+              // page syntheses stay distinguishable in the LLM log.
+              language: `${group.language}:${group.voiceSlot}`,
+              voice: `${group.voice} (page ${group.pageKey}, ${group.entries.length} entries)`,
+              model: providerModel,
+              provider: "gemini",
+              text: group.entries.map((entry) => entry.text).join(" "),
               durationMs: Date.now() - startMs,
-              messages: [{
-                role: "user",
-                content: [{ type: "text" as const, text: `[${group.language}:${group.voiceSlot}] voice=${group.voice} (page ${group.pageKey}, ${group.entries.length} entries)${o.error ? `\nERROR: ${o.error}` : ""}\n${preview}` }],
-              }],
-            }
+              success: o.success,
+              cached: o.cacheHit,
+              attempt: o.attempt,
+              error: o.error,
+            })
             storage.appendLlmLog(logEntry)
             progress.emit({ type: "llm-log", step: "tts", itemId: group.pageKey, promptName: logEntry.promptName, modelId: logEntry.modelId, cacheHit: o.cacheHit, durationMs: logEntry.durationMs })
           }
@@ -3393,24 +3391,19 @@ async function runSpeechStep(
         const durationMs = Date.now() - startMs
         const cached = entry?.cached ?? false
 
-        const logEntry: LlmLogEntry = {
-          requestId: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          taskType: "tts",
-          pageId: item.textId,
-          promptName: `tts-${provider}`,
-          modelId: `${provider}/${providerModel}`,
-          cacheHit: cached,
-          success: true,
-          errorCount: 0,
-          attempt: attemptCount,
+        const logEntry = buildTtsLogEntry({
+          textId: item.textId,
+          language: item.language,
+          voice,
+          model: providerModel,
+          provider,
+          text: item.text,
           durationMs,
-          ...(logParams ? { params: logParams } : {}),
-          messages: [{
-            role: "user",
-            content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\n${item.text.slice(0, 300)}` }],
-          }],
-        }
+          success: true,
+          cached,
+          attempt: attemptCount,
+          params: logParams,
+        })
         storage.appendLlmLog(logEntry)
         progress.emit({
           type: "llm-log",
@@ -3440,24 +3433,20 @@ async function runSpeechStep(
           geminiFailedItems.push(`${item.textId}: ${msg}`)
         }
 
-        const logEntry: LlmLogEntry = {
-          requestId: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          taskType: "tts",
-          pageId: item.textId,
-          promptName: `tts-${provider}`,
-          modelId: `${provider}/${providerModel}`,
-          cacheHit: false,
-          success: false,
-          errorCount: 1,
-          attempt: Math.max(attemptCount, 1),
+        const logEntry = buildTtsLogEntry({
+          textId: item.textId,
+          language: item.language,
+          voice,
+          model: providerModel,
+          provider,
+          text: item.text,
           durationMs,
-          ...(logParams ? { params: logParams } : {}),
-          messages: [{
-            role: "user",
-            content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\nERROR: ${msg}\n\n${item.text.slice(0, 300)}` }],
-          }],
-        }
+          success: false,
+          cached: false,
+          attempt: attemptCount,
+          error: msg,
+          params: logParams,
+        })
         storage.appendLlmLog(logEntry)
         progress.emit({
           type: "llm-log",
