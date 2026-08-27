@@ -71,10 +71,10 @@ export function SettingsTab() {
   return (
     <div className="flex flex-col gap-1 px-4 pb-6">
       {showReadingSection ? (
-        <SettingsSection title={t("settings-section-reading") || "Reading"}>
+        <SettingsSection title={t("settings-section-reading", {}, "Reading")}>
           {features.easyRead ? (
             <ToggleRow
-              label={t("easy-read-label") || "Easy Read"}
+              label={t("easy-read-label", {}, "Easy Read")}
               checked={easyRead}
               onChange={wrap("EasyRead", setEasyRead)}
             />
@@ -82,13 +82,13 @@ export function SettingsTab() {
           {features.readAloud ? (
             <>
               <ToggleRow
-                label={t("tts-label") || "Text to speech"}
+                label={t("tts-label", {}, "Text to speech")}
                 checked={readAloud}
                 onChange={wrap("ReadAloud", setReadAloud)}
               />
               {hasNarratorChoice && audioVoices ? (
                 <SegmentedRow<NarratorVoiceSlot>
-                  label={t("narrator-voice-label") || "Narrator voice"}
+                  label={t("narrator-voice-label", {}, "Narrator voice")}
                   value={
                     narratorVoice === "secondary" ? "secondary" : "primary"
                   }
@@ -112,20 +112,20 @@ export function SettingsTab() {
                 <>
                   {features.autoplay ? (
                     <ToggleRow
-                      label={t("autoplay-label") || "Autoplay"}
+                      label={t("autoplay-label", {}, "Autoplay")}
                       checked={autoplay}
                       onChange={wrap("Autoplay", setAutoplay)}
                     />
                   ) : null}
                   {features.describeImages ? (
                     <ToggleRow
-                      label={t("describe-images-label") || "Describe images"}
+                      label={t("describe-images-label", {}, "Describe images")}
                       checked={describeImages}
                       onChange={wrap("DescribeImages", setDescribeImages)}
                     />
                   ) : null}
                   <SegmentedRow<"word" | "sentence">
-                    label={t("highlight-mode-label") || "Highlight"}
+                    label={t("highlight-mode-label", {}, "Highlight")}
                     value={wordHighlight ? "word" : "sentence"}
                     onChange={(v) => {
                       const next = v === "word";
@@ -133,10 +133,10 @@ export function SettingsTab() {
                       setWordHighlight(next);
                     }}
                     options={[
-                      { value: "word", label: t("highlight-word") || "Word" },
+                      { value: "word", label: t("highlight-word", {}, "Word") },
                       {
                         value: "sentence",
-                        label: t("highlight-sentence") || "Sentence",
+                        label: t("highlight-sentence", {}, "Sentence"),
                       },
                     ]}
                   />
@@ -148,51 +148,50 @@ export function SettingsTab() {
       ) : null}
 
       {!dockLayoutLocked ? (
-        <SettingsSection title={t("settings-section-toolbar") || "Toolbar"}>
+        <SettingsSection title={t("settings-section-toolbar", {}, "Toolbar")}>
           <DockLayoutPicker />
         </SettingsSection>
       ) : null}
 
       {showAccessibilitySection ? (
         <SettingsSection
-          title={t("settings-section-accessibility") || "Accessibility"}
+          title={t("settings-section-accessibility", {}, "Accessibility")}
         >
           {!themeLocked ? (
             <SegmentedRow<Theme>
-              label={t("theme-label") || "Theme"}
+              label={t("theme-label", {}, "Theme")}
               value={theme as Theme}
               onChange={(v) => {
                 trackToggleEvent(`Theme:${v}`, true);
                 setTheme(v);
               }}
               options={[
-                { value: "light", label: t("theme-light") || "Light" },
-                { value: "dark", label: t("theme-dark") || "Dark" },
-                { value: "system", label: t("theme-system") || "System" },
+                { value: "light", label: t("theme-light", {}, "Light") },
+                { value: "dark", label: t("theme-dark", {}, "Dark") },
+                { value: "system", label: t("theme-system", {}, "System") },
               ]}
             />
           ) : null}
           {!iconSizeLocked ? (
             <SegmentedRow<IconSize>
-              label={t("icon-size-label") || "Icon size"}
+              label={t("icon-size-label", {}, "Icon size")}
               value={iconSize as IconSize}
               onChange={(v) => {
                 trackToggleEvent(`IconSize:${v}`, true);
                 setIconSize(v);
               }}
               options={[
-                { value: "sm", label: t("icon-size-sm") || "Small" },
-                { value: "md", label: t("icon-size-md") || "Medium" },
-                { value: "lg", label: t("icon-size-lg") || "Large" },
+                { value: "sm", label: t("icon-size-sm", {}, "Small") },
+                { value: "md", label: t("icon-size-md", {}, "Medium") },
+                { value: "lg", label: t("icon-size-lg", {}, "Large") },
               ]}
             />
           ) : null}
           {!reduceMotionLocked ? (
             <ToggleRow
-              label={t("reduce-motion-label") || "Reduce motion"}
+              label={t("reduce-motion-label", {}, "Reduce motion")}
               description={
-                t("reduce-motion-description") ||
-                "Disable animations and transitions across the reader."
+                t("reduce-motion-description", {}, "Disable animations and transitions across the reader.")
               }
               checked={reduceMotion}
               onChange={(v) => {
@@ -205,9 +204,9 @@ export function SettingsTab() {
       ) : null}
 
       {features.showAutoHideButton !== false ? (
-        <SettingsSection title={t("settings-section-behavior") || "Behavior"}>
+        <SettingsSection title={t("settings-section-behavior", {}, "Behavior")}>
           <ToggleRow
-            label={t("state-label") || "Auto-hide menus"}
+            label={t("state-label", {}, "Auto-hide menus")}
             checked={stateMode}
             onChange={(v) => {
               trackToggleEvent("HideMenus", v);
