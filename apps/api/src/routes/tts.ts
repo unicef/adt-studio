@@ -9,6 +9,7 @@ import {
   isTtsExcluded,
   voiceSlotEntryId,
   resolveEntryVoiceSlot,
+  sortSpeechEntries,
   VoiceSlot,
   type SpeechFileEntry,
   type SpeechFailedEntry,
@@ -184,16 +185,7 @@ function mergeSpeechEntry(
   )
   byId.set(voiceSlotEntryId(nextEntry.textId, nextEntry.voiceSlot), nextEntry)
 
-  const order = new Map(orderedIds.map((id, index) => [id, index]))
-  // Secondary sorts immediately after its primary counterpart for the same textId.
-  const slotRank = (entry: SpeechFileEntry) =>
-    resolveEntryVoiceSlot(entry) === "secondary" ? 1 : 0
-  return [...byId.values()].sort((left, right) => {
-    const byOrder =
-      (order.get(left.textId) ?? Number.MAX_SAFE_INTEGER) -
-      (order.get(right.textId) ?? Number.MAX_SAFE_INTEGER)
-    return byOrder !== 0 ? byOrder : slotRank(left) - slotRank(right)
-  })
+  return sortSpeechEntries([...byId.values()], orderedIds)
 }
 
 function buildUpdatedTtsOutput(

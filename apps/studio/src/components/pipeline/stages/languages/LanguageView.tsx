@@ -1072,7 +1072,13 @@ export function LanguageView({
     >();
     if (!ttsData) return map;
     for (const [lang, data] of Object.entries(ttsData.languages)) {
-      const first = data.entries[0];
+      // This row describes the language's own voice, so it must be the primary
+      // one. Taking entries[0] is not enough: while a run is in flight the API
+      // serves the live snapshot in completion order, which the stage runner's
+      // persist-time sort never touches.
+      const first = data.entries.find(
+        (entry) => (entry.voiceSlot ?? "primary") === "primary",
+      );
       if (first) {
         map.set(lang, {
           provider:

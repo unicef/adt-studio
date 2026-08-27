@@ -2140,6 +2140,54 @@ speech:
     expect(generateSpeechFileMock).toHaveBeenCalledWith(
       expect.objectContaining({ voiceSlot: "secondary" })
     )
+
+    // Finally, invalidate only the PRIMARY voice. Reused entries are collected
+    // during the scan pass and regenerated ones after it, so the secondary is
+    // now pushed first and push order is [secondary, primary]. The persisted
+    // output must still lead with the primary voice — Studio reads the first
+    // primary entry to describe the language, and a run in flight serves this
+    // same data.
+    fs.writeFileSync(
+      path.join(tmpDir, "config", "voices.yaml"),
+      `openai:
+  en:
+    primary:
+      voice: onyx
+
+`
+    )
+    generateSpeechFileMock.mockClear()
+    await runner.run(
+      "speech-dual-voice-rerun",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+    expect(generateSpeechFileMock).toHaveBeenCalledWith(
+      expect.objectContaining({ voiceSlot: "primary" })
+    )
+    const mixedRunStorage = createBookStorage("speech-dual-voice-rerun", booksDir)
+    try {
+      const output = mixedRunStorage.getLatestNodeData("tts", "en")?.data as {
+        entries: Array<{ textId: string; voiceSlot?: string }>
+      }
+      expect(
+        output.entries.map((entry) => [entry.textId, entry.voiceSlot ?? "primary"]),
+      ).toEqual([
+        ["pg001_t001", "primary"],
+        ["pg001_t001", "secondary"],
+      ])
+    } finally {
+      mixedRunStorage.close()
+    }
   })
 
   it("refreshes the voice label of a reused manual-audio entry without regenerating", async () => {

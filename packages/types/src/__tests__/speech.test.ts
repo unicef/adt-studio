@@ -13,6 +13,7 @@ import {
   resolveEntryVoiceSlot,
   voiceSlotEntryId,
   parseVoiceSlotEntryId,
+  sortSpeechEntries,
 } from "../speech.js"
 import { getTextCatalogCategory } from "../text-catalog.js"
 
@@ -379,5 +380,69 @@ describe("SpeechFailedEntry voiceSlot", () => {
         voiceSlot: "secondary",
       }).success
     ).toBe(true)
+  })
+})
+
+describe("sortSpeechEntries", () => {
+  const entry = (textId: string, voiceSlot?: "primary" | "secondary") => ({
+    textId,
+    ...(voiceSlot ? { voiceSlot } : {}),
+  })
+  const shape = (entries: ReturnType<typeof entry>[]) =>
+    entries.map((e) => [e.textId, e.voiceSlot ?? "primary"])
+
+  it("orders by catalog position, primary before its secondary", () => {
+    // Interleaved the way a mixed reuse/regenerate run produces them.
+    const sorted = sortSpeechEntries(
+      [
+        entry("pg001_t002", "secondary"),
+        entry("pg001_t001", "secondary"),
+        entry("pg001_t002"),
+        entry("pg001_t001"),
+      ],
+      ["pg001_t001", "pg001_t002"],
+    )
+
+    expect(shape(sorted)).toEqual([
+      ["pg001_t001", "primary"],
+      ["pg001_t001", "secondary"],
+      ["pg001_t002", "primary"],
+      ["pg001_t002", "secondary"],
+    ])
+  })
+
+  it("treats a missing voiceSlot as primary", () => {
+    const sorted = sortSpeechEntries(
+      [entry("pg001_t001", "secondary"), entry("pg001_t001")],
+      ["pg001_t001"],
+    )
+
+    expect(shape(sorted)).toEqual([
+      ["pg001_t001", "primary"],
+      ["pg001_t001", "secondary"],
+    ])
+  })
+
+  it("sorts ids missing from the catalog to the tail, keeping their order", () => {
+    const sorted = sortSpeechEntries(
+      [entry("orphan_b"), entry("pg001_t001"), entry("orphan_a")],
+      ["pg001_t001"],
+    )
+
+    expect(sorted.map((e) => e.textId)).toEqual(["pg001_t001", "orphan_b", "orphan_a"])
+  })
+
+  it("handles an empty catalog without reordering", () => {
+    const sorted = sortSpeechEntries([entry("b"), entry("a")], [])
+
+    expect(sorted.map((e) => e.textId)).toEqual(["b", "a"])
+  })
+
+  it("does not mutate the input array", () => {
+    const input = [entry("pg001_t002"), entry("pg001_t001")]
+
+    sortSpeechEntries(input, ["pg001_t001", "pg001_t002"])
+
+    expect(input.map((e) => e.textId)).toEqual(["pg001_t002", "pg001_t001"])
   })
 })

@@ -119,7 +119,7 @@ import type { ElevenLabsVoiceSettingsOverrides } from "@adt/llm"
 import { loadStyleguideContent } from "./styleguide.js"
 import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer, createElevenLabsTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
-import { PIPELINE, STAGE_ORDER, PositionedTextOutput, isTtsExcluded, voiceSlotEntryId, resolveEntryVoiceSlot } from "@adt/types"
+import { PIPELINE, STAGE_ORDER, PositionedTextOutput, isTtsExcluded, voiceSlotEntryId, resolveEntryVoiceSlot, sortSpeechEntries } from "@adt/types"
 import type { PageErrorPolicy, PageErrorAction } from "@adt/types"
 import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
 import type {
@@ -3487,8 +3487,15 @@ async function runSpeechStep(
       const entries = ttsResultsByLang.get(lang)
       if (!entries) continue
       const failed = failedByLang.get(lang) ?? []
+      // Reused entries are collected during the scan pass and generated ones
+      // afterwards, so push order interleaves the two voices arbitrarily. Sort
+      // into the persisted output — but not in place: the word-timestamp pass
+      // below and the live-run registry hold these same array instances.
+      // A language whose catalog was empty never reached the textByLanguage
+      // write, hence the optional chain.
+      const orderedIds = [...(textByLanguage.get(lang)?.keys() ?? [])]
       const output: TTSOutput = {
-        entries,
+        entries: sortSpeechEntries(entries, orderedIds),
         generatedAt: new Date().toISOString(),
         ...(failed.length > 0 ? { failed } : {}),
       }

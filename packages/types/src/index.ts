@@ -328,6 +328,7 @@ export {
   SpeechFileEntry,
   SpeechFailedEntry,
   resolveEntryVoiceSlot,
+  sortSpeechEntries,
   TTSOutput,
   WordTimestamp,
   WordTimestampEntry,

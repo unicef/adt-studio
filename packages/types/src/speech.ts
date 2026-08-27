@@ -307,6 +307,30 @@ export function resolveEntryVoiceSlot(
   return entry?.voiceSlot ?? DEFAULT_VOICE_SLOT
 }
 
+/**
+ * Persisted speech entries in a stable order: catalog order by textId, then
+ * primary before its secondary counterpart. Ids absent from `orderedIds` sort
+ * to the tail, keeping their relative order (Array#sort is stable).
+ *
+ * Both writers of TTSOutput.entries — the stage runner and the one-item
+ * route — sort through here, so `entries[0]` is the primary voice of the
+ * first catalog entry regardless of which entries were reused and which were
+ * regenerated in a given run.
+ */
+export function sortSpeechEntries<T extends { textId: string; voiceSlot?: VoiceSlot }>(
+  entries: readonly T[],
+  orderedIds: readonly string[],
+): T[] {
+  const order = new Map(orderedIds.map((id, index) => [id, index]))
+  const slotRank = (entry: T) => (resolveEntryVoiceSlot(entry) === "secondary" ? 1 : 0)
+  return [...entries].sort((left, right) => {
+    const byOrder =
+      (order.get(left.textId) ?? Number.MAX_SAFE_INTEGER) -
+      (order.get(right.textId) ?? Number.MAX_SAFE_INTEGER)
+    return byOrder !== 0 ? byOrder : slotRank(left) - slotRank(right)
+  })
+}
+
 export const TTSOutput = z.object({
   entries: z.array(SpeechFileEntry),
   generatedAt: z.string(),
