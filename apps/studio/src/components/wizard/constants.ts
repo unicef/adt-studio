@@ -116,8 +116,18 @@ export type PresetRecommendations = Partial<WizardFormValues>;
 
 export type PresetId = "textbook" | "storybook" | "reference" | "custom";
 
+export interface ExampleBookSettings {
+  renderStrategy: RenderStrategyId;
+  pageGrouping: Exclude<WizardPageGrouping, "">;
+  sectioningMode: Exclude<WizardSectioningMode, "">;
+  activitiesGenerator?: boolean;
+  figureExtraction?: "auto" | "all" | "off";
+}
+
 export interface ExampleBook {
-  title: MessageDescriptor;
+  title: string;
+  caption?: MessageDescriptor;
+  settings?: ExampleBookSettings;
   pdfUrl?: string;
   adtUrl?: string;
   comingSoon?: boolean;
@@ -168,16 +178,20 @@ export const PRESETS: PresetConfig[] = [
     ],
     exampleBooks: [
       {
-        title: msg`Práticas de Alfabetização e de Matemática`,
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+        title: "Práticas de Alfabetização e de Matemática",
         pdfUrl: DEMO_PDF_URL,
         adtUrl: DEMO_ADT_URL,
       },
       {
-        title: msg`Ciências da Natureza - Ensino Fundamental`,
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+        title: "Ciências da Natureza - Ensino Fundamental",
         comingSoon: true,
       },
-      { title: msg`História e Sociedade - Vol. 1`, comingSoon: true },
-      { title: msg`Língua Portuguesa - 3° Ano`, comingSoon: true },
+      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+      { title: "História e Sociedade - Vol. 1", comingSoon: true },
+      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+      { title: "Língua Portuguesa - 3° Ano", comingSoon: true },
     ],
     recommendations: {
       renderStrategy: "llm",
@@ -369,12 +383,15 @@ export const PRESETS: PresetConfig[] = [
     ],
     exampleBooks: [
       {
-        title: msg`Sample Illustrated Story`,
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+        title: "Sample Illustrated Story",
         pdfUrl: DEMO_PDF_URL,
         adtUrl: DEMO_ADT_URL,
       },
-      { title: msg`Adventure Tales - Vol. 1`, comingSoon: true },
-      { title: msg`The Lost Forest`, comingSoon: true },
+      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+      { title: "Adventure Tales - Vol. 1", comingSoon: true },
+      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+      { title: "The Lost Forest", comingSoon: true },
     ],
     recommendations: {
       renderStrategy: "two_column_story",
@@ -460,12 +477,15 @@ export const PRESETS: PresetConfig[] = [
     ],
     exampleBooks: [
       {
-        title: msg`Sample Reference Manual`,
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+        title: "Sample Reference Manual",
         pdfUrl: DEMO_PDF_URL,
         adtUrl: DEMO_ADT_URL,
       },
-      { title: msg`Engineering Handbook Vol. 2`, comingSoon: true },
-      { title: msg`Legal Compliance Guide`, comingSoon: true },
+      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+      { title: "Engineering Handbook Vol. 2", comingSoon: true },
+      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+      { title: "Legal Compliance Guide", comingSoon: true },
     ],
     recommendations: {
       renderStrategy: "single_column",
@@ -547,11 +567,13 @@ export const PRESETS: PresetConfig[] = [
     ],
     exampleBooks: [
       {
-        title: msg`Custom Layout Demo`,
+        // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+        title: "Custom Layout Demo",
         pdfUrl: DEMO_PDF_URL,
         adtUrl: DEMO_ADT_URL,
       },
-      { title: msg`Mixed Content Project`, comingSoon: true },
+      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
+      { title: "Mixed Content Project", comingSoon: true },
     ],
     recommendations: {},
   },
@@ -592,6 +614,7 @@ const FIELD_LABELS: Partial<Record<keyof WizardFormValues, MessageDescriptor>> =
     imageCropping: msg`Smart Cropping`,
     imageSegmentation: msg`Image Segmentation`,
     figureExtraction: msg`Figure Extraction`,
+    activitiesGenerator: msg`Activity Converter`,
   };
 
 const VALUE_LABELS: Record<string, MessageDescriptor> = {
@@ -600,6 +623,7 @@ const VALUE_LABELS: Record<string, MessageDescriptor> = {
   two_column_story: msg`Two Columns Story`,
   llm: msg`Dynamic`,
   "llm-overlay": msg`Dynamic Overlay`,
+  fixed_layout: msg`Fixed Layout`,
   single: msg`Single Page`,
   spread: msg`Spread`,
   page: msg`Per Page`,

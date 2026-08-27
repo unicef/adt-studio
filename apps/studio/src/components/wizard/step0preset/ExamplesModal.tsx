@@ -77,13 +77,12 @@ function BookItem({
   selected: boolean
   onSelect: () => void
 }) {
-  const { i18n } = useLingui()
 
   if (book.comingSoon) {
     return (
       <div className="w-full rounded-md border border-[#e5e5e5] px-3 py-2.5 opacity-50 cursor-not-allowed">
         <span className="text-sm text-[#737373] leading-snug">
-          {i18n._(book.title)}{" "}
+          {book.title}
           <span className="text-xs italic">
             (<Trans>coming soon</Trans>)
           </span>
@@ -103,7 +102,7 @@ function BookItem({
           : "border-[#e5e5e5] text-[#0a0a0a] hover:border-[#2b7fff]/50",
       ].join(" ")}
     >
-      {i18n._(book.title)}
+      {book.title}
     </button>
   )
 }
@@ -180,7 +179,8 @@ export function ExamplesModal({ open, onClose, preset }: ExamplesModalProps) {
               <div className="flex flex-col gap-2">
                 {preset.exampleBooks.map((book) => (
                   <BookItem
-                    key={i18n._(book.title)}
+                    // same book can have examples with different settings
+                    key={`${book.title}-${book.settings?.renderStrategy ?? ""}-${book.settings?.pageGrouping ?? ""}`}
                     book={book}
                     selected={selectedBook === book}
                     onSelect={() => {
@@ -221,14 +221,14 @@ export function ExamplesModal({ open, onClose, preset }: ExamplesModalProps) {
                       <iframe
                         key={embedUrl}
                         src={embedUrl}
-                        title={t`ADT Book - ${i18n._(selectedBook.title)}`}
+                        title={t`ADT Book - ${selectedBook.title}`}
                         className="w-full h-full border-0 rounded-md bg-white"
                       />
                     </div>
                   ) : (
                     <PdfCanvasPreview
                       src={selectedBook.pdfUrl}
-                      title={t`Original PDF - ${i18n._(selectedBook.title)}`}
+                      title={t`Original PDF - ${selectedBook.title}`}
                     />
                   )
                 ) : (

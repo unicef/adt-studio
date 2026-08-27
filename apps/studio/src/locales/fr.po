@@ -1126,9 +1126,6 @@ msgstr "Paramètres avancés"
 msgid "Advanced settings currently use a custom review style."
 msgstr "Les paramètres avancés utilisent actuellement un style de révision personnalisé."
 
-msgid "Adventure Tales - Vol. 1"
-msgstr "Adventure Tales - Vol. 1"
-
 msgid "Affected pages"
 msgstr "Pages affectées"
 
@@ -2176,9 +2173,6 @@ msgstr "Choisissez quels éléments de validation par page les réviseurs doiven
 msgid "Choose your AI provider"
 msgstr "Choisissez votre fournisseur d'IA"
 
-msgid "Ciências da Natureza - Ensino Fundamental"
-msgstr "Ciências da Natureza - Ensino Fundamental"
-
 msgid "Classic Storybook"
 msgstr "Classic Storybook"
 
@@ -2707,9 +2701,6 @@ msgstr "Personnalisé"
 
 msgid "Custom Instructions"
 msgstr "Instructions personnalisées"
-
-msgid "Custom Layout Demo"
-msgstr "Démo de mise en page personnalisée"
 
 msgid "Custom prompt version"
 msgstr "Version personnalisée du prompt"
@@ -3455,9 +3446,6 @@ msgstr "Page de fin"
 
 msgid "Endpoint"
 msgstr "Point de terminaison"
-
-msgid "Engineering Handbook Vol. 2"
-msgstr "Engineering Handbook Vol. 2"
 
 msgid "Engineering handbooks"
 msgstr "Manuels d'ingénierie"
@@ -4344,9 +4332,6 @@ msgstr "Colline"
 msgid "Hint when wrong (don't reveal the answer)"
 msgstr "Indice en cas d'erreur (ne révélez pas la réponse)"
 
-msgid "História e Sociedade - Vol. 1"
-msgstr "História e Sociedade - Vol. 1"
-
 msgid "Hit"
 msgstr "Hit"
 
@@ -4913,9 +4898,6 @@ msgstr "Quitter sans terminer ?"
 msgid "Legal and compliance manuals"
 msgstr "Manuels juridiques et de conformité"
 
-msgid "Legal Compliance Guide"
-msgstr "Legal Compliance Guide"
-
 msgid "Legend"
 msgstr "Légende"
 
@@ -4948,9 +4930,6 @@ msgstr "Lila errait entre les grands pins, sa lampe de poche captant des éclats
 
 msgid "lines"
 msgstr "lignes"
-
-msgid "Língua Portuguesa - 3° Ano"
-msgstr "Língua Portuguesa - 3° Ano"
 
 msgid "Link"
 msgstr "Lien"
@@ -5474,9 +5453,6 @@ msgstr "Manquant :"
 
 #~ msgid "mitosis"
 #~ msgstr "mitose"
-
-msgid "Mixed Content Project"
-msgstr "Projet de contenu mixte"
 
 msgid "Mobile"
 msgstr "Mobile"
@@ -6878,9 +6854,6 @@ msgstr "Position {0}, {1} → {2}×{3} pt"
 msgid "PR #{0}"
 msgstr "PR #{0}"
 
-msgid "Práticas de Alfabetização e de Matemática"
-msgstr "Práticas de Alfabetização e de Matemática"
-
 msgid "Pre-defined Terms"
 msgstr "Termes prédéfinis"
 
@@ -7872,14 +7845,8 @@ msgstr "S'exécute en arrière-plan — vous pouvez continuer à éditer"
 msgid "Sample"
 msgstr "Exemple"
 
-msgid "Sample Illustrated Story"
-msgstr "Exemple d'histoire illustrée"
-
 msgid "Sample Rate"
 msgstr "Taux d'échantillonnage"
-
-msgid "Sample Reference Manual"
-msgstr "Exemple de manuel de référence"
 
 msgid "Sample shown for illustration. The actual languages used come from your Output Languages list above."
 msgstr "Exemple montré à titre d'illustration. Les langues réellement utilisées proviennent de votre liste de langues de sortie ci-dessus."

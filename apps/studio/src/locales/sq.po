@@ -1126,9 +1126,6 @@ msgstr "Cilësime të Avancuara"
 msgid "Advanced settings currently use a custom review style."
 msgstr "Cilësimet e avancuara aktualisht përdorin një stil rishikimi të personalizuar."
 
-msgid "Adventure Tales - Vol. 1"
-msgstr "Tregime Aventure - Vol. 1"
-
 msgid "Affected pages"
 msgstr "Faqet e prekura"
 
@@ -2176,9 +2173,6 @@ msgstr "Zgjidhni cilat artikuj validimi për faqe duhet të kontrollojnë rishik
 msgid "Choose your AI provider"
 msgstr "Zgjidhni ofruesin tuaj të IA-së"
 
-msgid "Ciências da Natureza - Ensino Fundamental"
-msgstr "Ciências da Natureza - Ensino Fundamental"
-
 msgid "Classic Storybook"
 msgstr "Libër Klasik Tregimesh"
 
@@ -2707,9 +2701,6 @@ msgstr "I personalizuar"
 
 msgid "Custom Instructions"
 msgstr "Udhëzime të personalizuara"
-
-msgid "Custom Layout Demo"
-msgstr "Demo e paraqitjes së personalizuar"
 
 msgid "Custom prompt version"
 msgstr "Version i personalizuar i promptit"
@@ -3455,9 +3446,6 @@ msgstr "Faqja e fundit"
 
 msgid "Endpoint"
 msgstr "Endpoint"
-
-msgid "Engineering Handbook Vol. 2"
-msgstr "Doracaku i Inxhinierisë Vol. 2"
 
 msgid "Engineering handbooks"
 msgstr "Doracakë inxhinierike"
@@ -4344,9 +4332,6 @@ msgstr "Kodër"
 msgid "Hint when wrong (don't reveal the answer)"
 msgstr "Këshillë kur gabon (mos e zbulo përgjigjen)"
 
-msgid "História e Sociedade - Vol. 1"
-msgstr "História e Sociedade - Vol. 1"
-
 msgid "Hit"
 msgstr "Goditje"
 
@@ -4913,9 +4898,6 @@ msgstr "Dil pa përfunduar?"
 msgid "Legal and compliance manuals"
 msgstr "Manuale ligjore dhe të pajtueshmërisë"
 
-msgid "Legal Compliance Guide"
-msgstr "Udhëzues i pajtueshmërisë ligjore"
-
 msgid "Legend"
 msgstr "Legjenda"
 
@@ -4948,9 +4930,6 @@ msgstr "Lila endej midis pishave të larta, elektriku i saj duke kapur shkëlqim
 
 msgid "lines"
 msgstr "rreshta"
-
-msgid "Língua Portuguesa - 3° Ano"
-msgstr "Língua Portuguesa - 3° Ano"
 
 msgid "Link"
 msgstr "Lidhje"
@@ -5474,9 +5453,6 @@ msgstr "Mungojnë:"
 
 #~ msgid "mitosis"
 #~ msgstr "mitozë"
-
-msgid "Mixed Content Project"
-msgstr "Projekt me Përmbajtje të Përzier"
 
 msgid "Mobile"
 msgstr "Celular"
@@ -6878,9 +6854,6 @@ msgstr "Pozicioni {0}, {1} → {2}×{3} pt"
 msgid "PR #{0}"
 msgstr "PR #{0}"
 
-msgid "Práticas de Alfabetização e de Matemática"
-msgstr "Práticas de Alfabetização e de Matemática"
-
 msgid "Pre-defined Terms"
 msgstr "Terma të Parapërcaktuar"
 
@@ -7872,14 +7845,8 @@ msgstr "Ekzekutohet në sfond — mund të vazhdoni editimin"
 msgid "Sample"
 msgstr "Shembull"
 
-msgid "Sample Illustrated Story"
-msgstr "Histori e Ilustruar Shembull"
-
 msgid "Sample Rate"
 msgstr "Shkalla e Shembullit"
-
-msgid "Sample Reference Manual"
-msgstr "Manual Referues Shembull"
 
 msgid "Sample shown for illustration. The actual languages used come from your Output Languages list above."
 msgstr "Shembull për ilustrim. Gjuhët aktuale të përdorura vijnë nga lista juaj e Gjuhëve të Daljes më lart."

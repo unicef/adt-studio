@@ -1124,9 +1124,6 @@ msgstr "Configurações Avançadas"
 msgid "Advanced settings currently use a custom review style."
 msgstr "As configurações avançadas usam atualmente um estilo de revisão personalizado."
 
-msgid "Adventure Tales - Vol. 1"
-msgstr "Contos de Aventura - Vol. 1"
-
 msgid "Affected pages"
 msgstr "Affected pages"
 
@@ -2174,9 +2171,6 @@ msgstr "Choose which per-page validation items reviewers must check, customize t
 msgid "Choose your AI provider"
 msgstr "Escolha seu provedor de IA"
 
-msgid "Ciências da Natureza - Ensino Fundamental"
-msgstr "Ciências da Natureza - Ensino Fundamental"
-
 msgid "Classic Storybook"
 msgstr "Livro infantil clássico"
 
@@ -2705,9 +2699,6 @@ msgstr "Personalizado"
 
 msgid "Custom Instructions"
 msgstr "Instruções Personalizadas"
-
-msgid "Custom Layout Demo"
-msgstr "Demonstração de Layout Personalizado"
 
 msgid "Custom prompt version"
 msgstr "Versão customizada do prompt"
@@ -3453,9 +3444,6 @@ msgstr "End page"
 
 msgid "Endpoint"
 msgstr "Endpoint"
-
-msgid "Engineering Handbook Vol. 2"
-msgstr "Manual de Engenharia Vol. 2"
 
 msgid "Engineering handbooks"
 msgstr "Manuais de engenharia"
@@ -4342,9 +4330,6 @@ msgstr "Colina"
 msgid "Hint when wrong (don't reveal the answer)"
 msgstr "Dica quando errar (não revele a resposta)"
 
-msgid "História e Sociedade - Vol. 1"
-msgstr "História e Sociedade - Vol. 1"
-
 msgid "Hit"
 msgstr "Hit"
 
@@ -4911,9 +4896,6 @@ msgstr "Sair sem concluir?"
 msgid "Legal and compliance manuals"
 msgstr "Manuais legais e de conformidade"
 
-msgid "Legal Compliance Guide"
-msgstr "Guia de Conformidade Legal"
-
 msgid "Legend"
 msgstr "Legenda"
 
@@ -4946,9 +4928,6 @@ msgstr "Lila vagava entre os altos pinheiros, sua lanterna captando brilhos de o
 
 msgid "lines"
 msgstr "linhas"
-
-msgid "Língua Portuguesa - 3° Ano"
-msgstr "Língua Portuguesa - 3° Ano"
 
 msgid "Link"
 msgstr "Link"
@@ -5472,9 +5451,6 @@ msgstr "Faltando:"
 
 #~ msgid "mitosis"
 #~ msgstr "mitose"
-
-msgid "Mixed Content Project"
-msgstr "Projeto de Conteúdo Misto"
 
 msgid "Mobile"
 msgstr "Celular"
@@ -6876,9 +6852,6 @@ msgstr "Posição {0}, {1} → {2}×{3} pt"
 msgid "PR #{0}"
 msgstr "PR #{0}"
 
-msgid "Práticas de Alfabetização e de Matemática"
-msgstr "Práticas de Alfabetização e de Matemática"
-
 msgid "Pre-defined Terms"
 msgstr "Termos Predefinidos"
 
@@ -7870,14 +7843,8 @@ msgstr "Executa em segundo plano — você pode continuar editando"
 msgid "Sample"
 msgstr "Amostra"
 
-msgid "Sample Illustrated Story"
-msgstr "História Ilustrada de Exemplo"
-
 msgid "Sample Rate"
 msgstr "Taxa de amostragem"
-
-msgid "Sample Reference Manual"
-msgstr "Manual de Referência de Exemplo"
 
 msgid "Sample shown for illustration. The actual languages used come from your Output Languages list above."
 msgstr "Amostra mostrada para ilustração. Os idiomas reais usados vêm da sua lista de Idiomas de Saída acima."
