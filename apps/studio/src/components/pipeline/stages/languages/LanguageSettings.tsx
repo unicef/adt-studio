@@ -1838,6 +1838,12 @@ function SpeechLanguageCards({
                 </div>
               )}
 
+              {secondaryVoice && (
+                <p className="text-[11px] text-amber-600 dark:text-amber-500">
+                  {t`A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language.`}
+                </p>
+              )}
+
               {usesEnglishDefaultVoice(lang, provider) && (
                 <p className="text-[11px] text-amber-600 dark:text-amber-500">
                   {t`No ElevenLabs voice is mapped for this language, so it uses the default English voice and will narrate with an English accent. Map a voice for ${lang} in the Voices tab.`}

@@ -614,6 +614,9 @@ msgstr "Un quiz se trouve déjà ici — ajoutez-en un autre à la suite ou remp
 #~ msgid "A scenic view at dusk."
 #~ msgstr "Un panorama au crépuscule."
 
+msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
+msgstr "Une deuxième voix narre chaque ligne à nouveau, ce qui double le coût de génération vocale et de synchronisation des mots pour cette langue."
+
 msgid "A section containing only images."
 msgstr "Une section contenant uniquement des images."
 

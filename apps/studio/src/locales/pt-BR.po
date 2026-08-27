@@ -612,6 +612,9 @@ msgstr "Já existe um questionário aqui — adicione outro depois ou substitua-
 #~ msgid "A scenic view at dusk."
 #~ msgstr "Uma vista cênica ao entardecer."
 
+msgid "A second voice narrates every line again, so it doubles the speech generation and word-timing cost for this language."
+msgstr "Uma segunda voz narra cada linha novamente, portanto dobra o custo de geração de fala e de sincronização de palavras para este idioma."
+
 msgid "A section containing only images."
 msgstr "Uma seção contendo apenas imagens."
 
