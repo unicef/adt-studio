@@ -73,6 +73,11 @@ export {
   STEPS_BY_DEFAULT_MODEL_KIND,
   PAGE_PROGRESS_STEPS,
   BOOK_LEVEL_STAGES,
+  IMPORTED_ADT_UNAVAILABLE_STAGE_NAMES,
+  IMPORTED_ADT_UNAVAILABLE_STAGES,
+  IMPORTED_ADT_LOCKED_STAGES,
+  isImportedAdtUnavailableStage,
+  type ImportedAdtUnavailableStage,
 } from "./pipeline.js"
 
 export {
@@ -98,6 +103,39 @@ export {
 // import it from the "@adt/types/fingerprint" subpath instead.
 
 export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
+
+export {
+  ADT_ROUND_TRIP_FORMAT_VERSION,
+  ADT_EDITING_CONTRACT_VERSION,
+  ADT_EDITING_CONTRACT_MIN_VERSION,
+  AdtActivitySectionType,
+  AdtActivityDeclaration,
+  AdtNonActivityDeclaration,
+  AdtActivityImportDecision,
+  AdtBundleTocEntry,
+  AdtBundleToc,
+  AdtBundleGlossaryEntry,
+  AdtBundleGlossary,
+  AdtBundleTexts,
+  AdtRoundTripManifest,
+  AdtImportCompatibilityIssueCode,
+  AdtImportCompatibilityIssue,
+  AdtImportCompatibility,
+  AdtActivityReviewReason,
+  AdtImportedActivityReviewItem,
+  AdtImportedActivityReview,
+  AdtAgentGuideFileState,
+  AdtAgentGuideReview,
+  AdtImportFeatureRecovery,
+  AdtBundleImportPreview,
+} from "./adt-round-trip.js"
+
+export {
+  PROJECT_IDENTITY_VERSION,
+  ProjectSourceKind,
+  ProjectIdentity,
+  AdtExportLineage,
+} from "./project-identity.js"
 
 export { ProgressEvent } from "./progress.js"
 

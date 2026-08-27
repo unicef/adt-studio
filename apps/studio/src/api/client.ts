@@ -1,6 +1,7 @@
 import { isElectron } from "@/lib/utils"
 import type {
   AccessibilityAssessmentOutput,
+  AdtBundleImportPreview,
   BookDetail,
   BookFont,
   BookFontRole,
@@ -158,12 +159,20 @@ export interface PartImportPreview {
   coverBase64: string | null
 }
 
-export type AnyImportPreview = ImportPreview | PartImportPreview
+export type { AdtBundleImportPreview }
+
+export type AnyImportPreview = ImportPreview | PartImportPreview | AdtBundleImportPreview
 
 export function isPartImportPreview(
   preview: AnyImportPreview,
 ): preview is PartImportPreview {
   return (preview as PartImportPreview).isPart === true
+}
+
+export function isAdtBundleImportPreview(
+  preview: AnyImportPreview,
+): preview is AdtBundleImportPreview {
+  return (preview as AdtBundleImportPreview).isAdtBundle === true
 }
 
 export interface MergePreview {
@@ -1037,6 +1046,19 @@ export const api = {
     const formData = new FormData()
     formData.append("zip", zip)
     return request<BookSummary>("/books/import", {
+      method: "POST",
+      body: formData,
+    })
+  },
+
+  importAdtProject: (
+    zip: File,
+    activityDecisions: Array<{ sectionId: string; type: string | null }> = [],
+  ) => {
+    const formData = new FormData()
+    formData.append("zip", zip)
+    formData.append("activityDecisions", JSON.stringify(activityDecisions))
+    return request<BookSummary>("/books/import-adt", {
       method: "POST",
       body: formData,
     })

@@ -5,7 +5,8 @@ import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody } from "@adt/types"
+import { StageName, STAGE_ORDER, PIPELINE, IMPORTED_ADT_LOCKED_STAGES, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody } from "@adt/types"
+import { isImportedAdtProjectLabel } from "../services/adt-import/source.js"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 import type { PageErrorDecisions } from "../services/page-error-decisions.js"
@@ -72,13 +73,7 @@ export function createStageRoutes(
   // POST /books/:label/stages/run — Start or queue a stage-scoped run
   app.post("/books/:label/stages/run", async (c) => {
     const { label } = c.req.param()
-    const apiKey = c.req.header("X-OpenAI-Key")
-
-    if (!apiKey) {
-      throw new HTTPException(400, {
-        message: "API key required. Set X-OpenAI-Key header.",
-      })
-    }
+    const apiKey = c.req.header("X-OpenAI-Key") ?? ""
 
     let body: unknown
     try {
@@ -96,6 +91,19 @@ export function createStageRoutes(
 
     const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
 
+    if (isImportedAdtProjectLabel(label, booksDir)) {
+      const fromIndex = STAGE_ORDER.indexOf(fromStage)
+      const toIndex = STAGE_ORDER.indexOf(toStage)
+      const includesLockedStage = STAGE_ORDER
+        .slice(fromIndex, toIndex + 1)
+        .some((stage) => IMPORTED_ADT_LOCKED_STAGES.has(stage))
+      if (includesLockedStage) {
+        throw new HTTPException(409, {
+          message: "Extract, Sectioning, and Storyboard regeneration are not available while imported HTML is the source. Open Storyboard to edit the imported HTML, or run an enhancement stage.",
+        })
+      }
+    }
+
     const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
     const googleApiKey = c.req.header("X-Google-API-Key") || undefined
     const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
@@ -104,6 +112,17 @@ export function createStageRoutes(
     const azureSpeechRegion = c.req.header("X-Azure-Speech-Region") || undefined
     const geminiApiKey = c.req.header("X-Gemini-API-Key") || undefined
     const elevenLabsApiKey = c.req.header("X-ElevenLabs-API-Key") || undefined
+    const speechOnly = fromStage === "speech" && toStage === "speech"
+    const hasSpeechProviderCredential = Boolean(
+      apiKey || (azureSpeechKey && azureSpeechRegion) || geminiApiKey || elevenLabsApiKey,
+    )
+    if (!apiKey && !(speechOnly && hasSpeechProviderCredential)) {
+      throw new HTTPException(400, {
+        message: speechOnly
+          ? "An API key for the selected Speech provider is required."
+          : "API key required. Set X-OpenAI-Key header.",
+      })
+    }
 
     console.log(`[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} azureKey=${azureSpeechKey ? "set" : "NOT SET"} azureRegion=${azureSpeechRegion ?? "NOT SET"} geminiKey=${geminiApiKey ? "set" : "NOT SET"} elevenLabsKey=${elevenLabsApiKey ? "set" : "NOT SET"}`)
 

@@ -228,3 +228,33 @@ export const PAGE_PROGRESS_STEPS: ReadonlySet<StepName> = new Set(
 export const BOOK_LEVEL_STAGES: ReadonlySet<StageName> = new Set(
   PIPELINE.filter((stage) => !stage.steps.some((step) => step.pageProgress)).map((stage) => stage.name)
 )
+
+/**
+ * Stages an imported-ADT project cannot show at all. The published HTML is the
+ * working source, so there is no source PDF behind Extract and no PDF-derived
+ * section history behind Sectioning.
+ */
+export const IMPORTED_ADT_UNAVAILABLE_STAGE_NAMES = ["extract", "sectioning"] as const
+
+export type ImportedAdtUnavailableStage = (typeof IMPORTED_ADT_UNAVAILABLE_STAGE_NAMES)[number]
+
+export const IMPORTED_ADT_UNAVAILABLE_STAGES: ReadonlySet<StageName> = new Set(
+  IMPORTED_ADT_UNAVAILABLE_STAGE_NAMES,
+)
+
+export function isImportedAdtUnavailableStage(
+  stage: string,
+): stage is ImportedAdtUnavailableStage {
+  return IMPORTED_ADT_UNAVAILABLE_STAGES.has(stage as StageName)
+}
+
+/**
+ * Stages an imported-ADT project must never re-run. This is a superset of
+ * `IMPORTED_ADT_UNAVAILABLE_STAGES`: Storyboard stays browsable so the user can
+ * edit the imported HTML, but regenerating it would overwrite that HTML with
+ * output derived from source entities the import never had.
+ */
+export const IMPORTED_ADT_LOCKED_STAGES: ReadonlySet<StageName> = new Set<StageName>([
+  ...IMPORTED_ADT_UNAVAILABLE_STAGES,
+  "storyboard",
+])

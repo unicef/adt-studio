@@ -19,6 +19,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { useBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SpeechPreview } from "./components/SpeechPreview"
+import { hasSpeechProviderCredentials } from "@/lib/speech-routing"
 
 type ProviderKey = "openai" | "azure" | "gemini" | "elevenlabs"
 
@@ -45,7 +46,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey, hasAzureKey, hasGeminiKey, hasElevenLabsKey } = useApiKey()
+  const { apiKey, hasApiKey, azureKey, azureRegion, geminiKey, elevenLabsKey } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("speech")
   const translateStatus = useStageStatus("translate")
@@ -90,15 +91,16 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = () => {
-    if (!hasApiKey || !translateReady || status.isRunning) return
+    const providerReady = providerKeyAvailable[provider]
+    if (!providerReady || (wordHighlighting && !hasApiKey) || !translateReady || status.isRunning) return
     queueRun({ fromStage: "speech", toStage: "speech", apiKey, viewAfter: true })
   }
 
   const providerKeyAvailable: Record<ProviderKey, boolean> = {
-    openai: hasApiKey,
-    azure: hasAzureKey,
-    gemini: hasGeminiKey,
-    elevenlabs: hasElevenLabsKey,
+    openai: hasSpeechProviderCredentials("openai", { openaiKey: apiKey }),
+    azure: hasSpeechProviderCredentials("azure", { azureKey, azureRegion }),
+    gemini: hasSpeechProviderCredentials("gemini", { geminiKey }),
+    elevenlabs: Boolean(elevenLabsKey.trim()),
   }
 
   const providerOptions = useMemo(
@@ -114,27 +116,34 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         {
           value: "azure" as const,
           label: linguiI18n._(PROVIDER_LABELS.azure),
-          disabled: !hasAzureKey,
+          disabled: !providerKeyAvailable.azure,
           disabledHint,
         },
         {
           value: "gemini" as const,
           label: linguiI18n._(PROVIDER_LABELS.gemini),
-          disabled: !hasGeminiKey,
+          disabled: !providerKeyAvailable.gemini,
           disabledHint,
         },
         {
           value: "elevenlabs" as const,
           label: linguiI18n._(PROVIDER_LABELS.elevenlabs),
-          disabled: !hasElevenLabsKey,
+          disabled: !providerKeyAvailable.elevenlabs,
           disabledHint,
         },
       ]
     },
-    [t, hasApiKey, hasAzureKey, hasGeminiKey, hasElevenLabsKey],
+    [
+      t,
+      hasApiKey,
+      providerKeyAvailable.azure,
+      providerKeyAvailable.gemini,
+      providerKeyAvailable.elevenlabs,
+    ],
   )
 
   const selectedProviderKeyMissing = !providerKeyAvailable[provider]
+  const highlightingKeyMissing = wordHighlighting && !hasApiKey
 
   const disabledProviderLabels = useMemo(
     () =>
@@ -161,10 +170,12 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to run speech.</Trans>
-  ) : selectedProviderKeyMissing ? (
+  const providerMissingReason = (
     <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
+  )
+  const disabledReason = selectedProviderKeyMissing ? providerMissingReason
+  : highlightingKeyMissing ? (
+    <Trans>Add an OpenAI API key to generate per-word highlighting.</Trans>
   ) : !translateReady ? (
     <Trans>Run Language first — speech narrates the translated text.</Trans>
   ) : undefined
@@ -181,7 +192,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || selectedProviderKeyMissing || !translateReady}
+      extraDisabled={selectedProviderKeyMissing || highlightingKeyMissing || !translateReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Speech</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
@@ -234,25 +245,27 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
               onValueChange={handleProviderChange}
             />
             {disabledProviderLabels.length > 0 && (
-              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800">
-                <AlertCircle
-                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-                <span>
-                  {disabledProviderLabels.length === 1 ? (
-                    <Trans>
-                      {disabledProvidersText} is disabled — add its API key in
-                      Book settings to enable it.
-                    </Trans>
-                  ) : (
-                    <Trans>
-                      {disabledProvidersText} are disabled — add their API keys
-                      in Book settings to enable them.
-                    </Trans>
-                  )}
-                </span>
+              <div className="flex flex-col gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800">
+                <div className="flex items-start gap-2">
+                  <AlertCircle
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600"
+                    strokeWidth={2}
+                    aria-hidden
+                  />
+                  <span>
+                    {disabledProviderLabels.length === 1 ? (
+                      <Trans>
+                        {disabledProvidersText} is disabled — add its API key in
+                        Book settings to enable it.
+                      </Trans>
+                    ) : (
+                      <Trans>
+                        {disabledProvidersText} are disabled — add their API keys
+                        in Book settings to enable them.
+                      </Trans>
+                    )}
+                  </span>
+                </div>
               </div>
             )}
           </div>

@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { z } from "zod"
 import { Hono } from "hono"
+import { bodyLimit } from "hono/body-limit"
 import { HTTPException } from "hono/http-exception"
 import {
   parseBookLabel,
@@ -9,6 +10,7 @@ import {
   BookMetadata,
   LLMModelId,
   SpeechGenerationModelId,
+  AdtActivityImportDecision,
 } from "@adt/types"
 import { CURRENT_VERSION_ORDER, openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
@@ -35,6 +37,17 @@ import {
 } from "../services/export-service.js"
 import { importProject, previewImport } from "../services/import-service.js"
 import {
+  detectDistributionFormat,
+  distributionFormatMessage,
+} from "../services/distribution-format.js"
+import {
+  ADT_BUNDLE_READER_LIMITS,
+  AdtBundleNotDetectedError,
+  AdtBundleReadError,
+} from "../services/adt-import/bundle-reader.js"
+import { AdtImportError } from "../services/adt-import/error.js"
+import { previewAdtRecoveryImport } from "../services/adt-import/preview.js"
+import {
   exportPart,
   importPart,
   previewImportPart,
@@ -45,6 +58,16 @@ import {
   computeSplitStatus,
 } from "../services/part-service.js"
 import type { TaskService } from "../services/task-service.js"
+import {
+  ARCHIVE_SAFETY_LIMITS,
+  formatArchiveByteLimit,
+} from "../services/archive-safety.js"
+import {
+  AdtProjectImportError,
+  importAdtProject,
+} from "../services/adt-import/project-import.js"
+import { AdtActivityReviewError } from "../services/adt-import/activity-reconciliation.js"
+import { readAdtAgentGuideTemplate } from "@adt/pipeline"
 
 const BookConfigUpdateRequest = z.object({
   config: z
@@ -65,6 +88,7 @@ const MIME_TYPES: Record<string, string> = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".png": "image/png",
+  ".gif": "image/gif",
   ".svg": "image/svg+xml",
   ".woff": "font/woff",
   ".woff2": "font/woff2",
@@ -73,6 +97,20 @@ const MIME_TYPES: Record<string, string> = {
   ".webp": "image/webp",
   ".dic": "application/octet-stream",
 }
+
+const adtRecoveryBodyLimit = bodyLimit({
+  maxSize: ADT_BUNDLE_READER_LIMITS.archiveBytes + 1024 * 1024,
+  onError: (c) => c.json({
+    error: `ADT bundle upload exceeds the ${formatArchiveByteLimit(ADT_BUNDLE_READER_LIMITS.archiveBytes)} compressed size limit`,
+  }, 413),
+})
+
+const archiveImportBodyLimit = bodyLimit({
+  maxSize: ARCHIVE_SAFETY_LIMITS.compressedBytes + 1024 * 1024,
+  onError: (c) => c.json({
+    error: `Archive upload exceeds the ${formatArchiveByteLimit(ARCHIVE_SAFETY_LIMITS.compressedBytes)} compressed size limit`,
+  }, 413),
+})
 
 export function createBookRoutes(
   booksDir: string,
@@ -187,7 +225,7 @@ export function createBookRoutes(
     }
   })
 
-  app.post("/books/preview-import", async (c) => {
+  app.post("/books/preview-import", archiveImportBodyLimit, async (c) => {
     const formData = await c.req.formData()
     const zip = formData.get("zip")
 
@@ -201,10 +239,29 @@ export function createBookRoutes(
     if (isPartArchive(zipBuffer)) {
       return c.json(previewImportPart(zipBuffer))
     }
-    return c.json(previewImport(zipBuffer))
+    // Reader-facing distribution exports (WebPub / EPUB / PNLD) are derived from
+    // the ADT bundle but can't be re-imported yet. Detect them before the ADT
+    // reader tries (and fails) to parse their manifest, so the user gets a clear
+    // "not supported yet" message instead of a confusing schema error.
+    const distributionFormat = detectDistributionFormat(zipBuffer)
+    if (distributionFormat) {
+      throw new HTTPException(400, { message: distributionFormatMessage(distributionFormat) })
+    }
+    try {
+      const guideTemplate = readAdtAgentGuideTemplate(webAssetsDir) ?? undefined
+      return c.json(previewAdtRecoveryImport(zipBuffer, guideTemplate))
+    } catch (error) {
+      if (error instanceof AdtBundleNotDetectedError) {
+        return c.json(previewImport(zipBuffer))
+      }
+      if (error instanceof AdtBundleReadError || error instanceof AdtImportError) {
+        throw new HTTPException(400, { message: error.message })
+      }
+      throw error
+    }
   })
 
-  app.post("/books/import", async (c) => {
+  app.post("/books/import", archiveImportBodyLimit, async (c) => {
     const formData = await c.req.formData()
     const zip = formData.get("zip")
 
@@ -217,6 +274,49 @@ export function createBookRoutes(
       ? importPart(zipBuffer, booksDir)
       : await importProject(zipBuffer, booksDir)
     return c.json(book, 201)
+  })
+
+  app.post("/books/import-adt", adtRecoveryBodyLimit, async (c) => {
+    const formData = await c.req.formData()
+    const zip = formData.get("zip")
+    if (!(zip instanceof File)) {
+      throw new HTTPException(400, { message: "zip file is required" })
+    }
+    const zipBuffer = Buffer.from(await zip.arrayBuffer())
+    const rawActivityDecisions = formData.get("activityDecisions")
+    let activityDecisions: Array<{ sectionId: string; type: string | null }> = []
+    if (typeof rawActivityDecisions === "string") {
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(rawActivityDecisions)
+      } catch {
+        throw new HTTPException(400, { message: "activityDecisions must be valid JSON" })
+      }
+      const result = z.array(AdtActivityImportDecision).safeParse(parsed)
+      if (!result.success) {
+        throw new HTTPException(400, { message: "activityDecisions are invalid" })
+      }
+      activityDecisions = result.data
+    }
+
+    try {
+      const book = importAdtProject(
+        zipBuffer,
+        booksDir,
+        { sourceFileName: zip.name, activityDecisions },
+      )
+      return c.json(book, 201)
+    } catch (error) {
+      if (
+        error instanceof AdtProjectImportError
+        || error instanceof AdtBundleReadError
+        || error instanceof AdtImportError
+        || error instanceof AdtActivityReviewError
+      ) {
+        throw new HTTPException(400, { message: error.message })
+      }
+      throw error
+    }
   })
 
   // GET /books/:label/part-info — Manifest info if this book is an imported part
@@ -811,8 +911,7 @@ export function createBookRoutes(
 
       const imageBuffer = fs.readFileSync(imagePath)
       const ext = path.extname(imagePath).toLowerCase()
-      const contentType =
-        ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png"
+      const contentType = MIME_TYPES[ext] ?? "application/octet-stream"
       c.header("Content-Type", contentType)
       c.header("Cache-Control", "public, max-age=86400")
       return c.body(imageBuffer)
@@ -887,8 +986,7 @@ export function createBookRoutes(
 
       const imageBuffer = fs.readFileSync(imagePath)
       const ext = path.extname(imagePath).toLowerCase()
-      const contentType =
-        ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png"
+      const contentType = MIME_TYPES[ext] ?? "application/octet-stream"
       c.header("Content-Type", contentType)
       return c.body(imageBuffer)
     } finally {

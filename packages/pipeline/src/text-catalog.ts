@@ -15,33 +15,58 @@ import {
 import type { Storage, PageData } from "@adt/storage"
 import { getGlossaryItemTextId } from "./glossary.js"
 import { getRenderSectioning } from "./render-sectioning.js"
-
-/** Zero-padded 3-digit number */
-function pad3(n: number): string {
-  return String(n).padStart(3, "0")
-}
+import { pad3, textContentExcludingScripts } from "./html-text.js"
 
 /**
- * Like DomUtils.textContent but skips the children of any <script>/<style>
- * descendants. Used so a stray inline script inside a data-id element doesn't
- * leak its source into the catalogued text (and from there into the runtime's
- * innerHTML replacement on translation).
+ * Recover the stable text entries embedded in an exported ADT HTML page.
+ *
+ * Exported pages are already the user's authoritative, possibly hand-edited
+ * source. Keeping this extractor beside the pipeline catalog builder ensures
+ * recovered bundle workspaces follow the same leaf `data-id` semantics as a
+ * project generated inside Studio. Image alternative text is the exported
+ * representation of an image caption, so it is recovered as catalog text too.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function textContentExcludingScripts(node: any): string {
-  if (!node) return ""
-  if (node.type === "text") return node.data ?? ""
-  const tagName = (node.name ?? node.type ?? "").toLowerCase()
-  if (tagName === "script" || tagName === "style") return ""
-  if (Array.isArray(node.children)) {
-    let out = ""
-    for (const child of node.children) {
-      out += textContentExcludingScripts(child)
+export function extractTextCatalogEntriesFromHtml(html: string, pageId?: string): TextCatalogEntry[] {
+  const doc = parseDocument(html)
+  const contentRoot = DomUtils.findOne(
+    (el) => el.type === "tag" && el.attribs?.id === "content",
+    doc.children,
+    true,
+  )
+  const elements = DomUtils.findAll(
+    (el) =>
+      el.type === "tag" &&
+      el.attribs?.["data-id"] !== undefined &&
+      !DomUtils.findOne(
+        (child) => child.type === "tag" && child.attribs?.["data-id"] !== undefined,
+        el.children ?? [],
+        true,
+      ),
+    contentRoot?.children ?? doc.children,
+  )
+
+  const entries: TextCatalogEntry[] = []
+  const seen = new Set<string>()
+  let activityCounter = 0
+  for (const el of elements) {
+    const dataId = el.attribs["data-id"]
+    const id = pageId && dataId.startsWith("activity_gen_")
+      ? `${pageId}_ac${pad3(++activityCounter)}`
+      : dataId
+    if (seen.has(id)) {
+      throw new Error(`Duplicate data-id in exported ADT page: ${id}`)
     }
-    return out
+    seen.add(id)
+
+    const text = (el.name === "img"
+      ? el.attribs.alt ?? ""
+      : textContentExcludingScripts(el)
+    ).replace(/\s+/g, " ").trim()
+    if (text.length > 0) entries.push({ id, text })
   }
-  return ""
+  return entries
 }
+
 
 /**
  * Extract text catalog entries from a single page's rendered HTML sections.

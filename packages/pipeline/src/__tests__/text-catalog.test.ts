@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 import type { Storage, PageData } from "@adt/storage"
-import { buildTextCatalog } from "../text-catalog.js"
+import {
+  buildTextCatalog,
+  extractTextCatalogEntriesFromHtml,
+} from "../text-catalog.js"
 
 function createMockStorage(
   nodeData: Record<string, Record<string, unknown>>
@@ -564,5 +567,40 @@ describe("buildTextCatalog", () => {
 
     expect(result.entries).toContainEqual({ id: "pg001_section_0_ans_item-1", text: "alpha" })
     expect(result.entries).toContainEqual({ id: "pg001_section_1_ans_item-1", text: "beta" })
+  })
+})
+
+describe("extractTextCatalogEntriesFromHtml", () => {
+  it("recovers leaf text and image alternative text from edited pages", () => {
+    expect(extractTextCatalogEntriesFromHtml(`
+      <main data-id="wrapper">
+        <p data-id="pg001_n001">Edited <strong>book text</strong></p>
+        <img data-id="pg001_im001" alt="An edited image description">
+        <script data-id="script-entry">doNotNarrate()</script>
+      </main>
+    `)).toEqual([
+      { id: "pg001_n001", text: "Edited book text" },
+      { id: "pg001_im001", text: "An edited image description" },
+    ])
+  })
+
+  it("rejects duplicate stable ids instead of producing ambiguous speech", () => {
+    expect(() => extractTextCatalogEntriesFromHtml(`
+      <p data-id="pg001_n001">One</p>
+      <p data-id="pg001_n001">Two</p>
+    `)).toThrow("Duplicate data-id")
+  })
+
+  it("uses the exported content root and rewrites generated activity ids", () => {
+    expect(extractTextCatalogEntriesFromHtml(`
+      <h1 data-id="runtime-title">Runtime chrome</h1>
+      <div id="content">
+        <p data-id="activity_gen_question">Question</p>
+        <p data-id="activity_gen_answer">Answer</p>
+      </div>
+    `, "pg003")).toEqual([
+      { id: "pg003_ac001", text: "Question" },
+      { id: "pg003_ac002", text: "Answer" },
+    ])
   })
 })

@@ -198,7 +198,43 @@ export {
   type QuizConfig,
   type QuizPageInput,
 } from "./quiz-generation.js"
-export { buildTextCatalog } from "./text-catalog.js"
+export {
+  buildTextCatalog,
+  extractTextCatalogEntriesFromHtml,
+} from "./text-catalog.js"
+export {
+  projectImportedHtmlSection,
+  createSafeImportedHtmlPreview,
+  extractImportedHtmlPresentationAssets,
+  inspectImportedHtmlContract,
+  removeExecutableImportedMarkup,
+  ADT_EDITING_ALLOWED_ROOT_ENTRIES,
+  type ImportedHtmlImageReference,
+  type ImportedHtmlSectionProjection,
+  type ImportedHtmlProjectionOptions,
+  type ImportedHtmlPresentationAssets,
+  type ImportedHtmlContractIssue,
+  type ImportedHtmlContractIssueCode,
+  type ImportedHtmlContractInspection,
+  type ImportedHtmlContractOptions,
+} from "./adt-round-trip/html.js"
+export {
+  projectImportedFixedLayoutPage,
+  isImportedFixedLayoutPage,
+  type ImportedFixedLayoutProjection,
+} from "./adt-round-trip/fixed-layout.js"
+export {
+  recoverImportedQuiz,
+  type ImportedQuizRecovery,
+} from "./adt-round-trip/quiz.js"
+export {
+  inspectImportedActivity,
+  restoreImportedCustomActivityScripts,
+  KNOWN_ACTIVITY_SECTION_TYPES,
+  ACTIVITY_CLASSIFICATION_GUIDE,
+  type ImportedActivityInspection,
+  type ImportedActivitySignal,
+} from "./adt-round-trip/activity.js"
 export {
   buildCoreTtsPreparationConfig,
   loadCoreTtsProfiles,
@@ -343,6 +379,9 @@ export { htmlToXhtml } from "./html-semantics.js"
 export {
   packageAdtWeb,
   computePackagingInputHash,
+  getWordTimestamps,
+  buildRuntimeTimecodeMap,
+  generateOfflinePreloader,
   type PackageAdtWebOptions,
   type ComputePackagingInputHashOptions,
   renderPageHtml,
@@ -360,6 +399,20 @@ export {
   pad3,
   convertLatexToMathml,
 } from "./packaging/web.js"
+export {
+  buildAdtRoundTripManifest,
+  collectTranslationBaselines,
+  type BuildAdtRoundTripManifestOptions,
+} from "./adt-round-trip/manifest.js"
+export {
+  ADT_AGENT_GUIDE_VERSION,
+  inspectAdtAgentGuide,
+  readAdtAgentGuideTemplate,
+  renderAdtAgentGuide,
+  resolveAdtAgentGuideTemplatePath,
+  type AdtAgentGuideContext,
+  type AdtAgentGuideInspection,
+} from "./adt-round-trip/agent-guide.js"
 export {
   resolveQuizPalette,
   deriveQuizPalette,
