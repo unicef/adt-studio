@@ -36,7 +36,7 @@ import {
   resolveSpeechFormat,
   resolveSpeechModel,
   resolveSpeechVoice,
-  resolveVoiceForSlot,
+  resolveVoice,
   generateSpeechFile,
   generateWordTimestamps,
   getCoreTtsCatalog,
@@ -321,7 +321,6 @@ function getSingleItemFallbackAttempts(options: {
   language: string
   providerConfigs: Record<string, TTSProviderConfig>
   voiceMaps: VoiceMaps
-  voiceSlot: VoiceSlot
   defaultOpenAIModel?: string
   /** The provider already tried as the primary attempt — excluded so a
    *  failure isn't retried against the same provider that just failed. */
@@ -330,42 +329,31 @@ function getSingleItemFallbackAttempts(options: {
   const attempts: SingleItemFallbackAttempt[] = []
 
   if (options.openaiApiKey) {
-    const resolved = resolveVoiceForSlot("openai", options.language, options.voiceMaps, options.voiceSlot)
-    // A fallback provider that has no secondary voice configured for this
-    // language is skipped rather than silently generating with the wrong slot.
-    if (resolved) {
-      attempts.push({
-        provider: "openai",
-        model: resolveSpeechModel(
-          "openai",
-          options.providerConfigs,
-          options.defaultOpenAIModel,
-        ),
-        voice: resolved.voice,
-      })
-    }
+    attempts.push({
+      provider: "openai",
+      model: resolveSpeechModel(
+        "openai",
+        options.providerConfigs,
+        options.defaultOpenAIModel,
+      ),
+      voice: resolveVoice("openai", options.language, options.voiceMaps),
+    })
   }
 
   if (options.azureSpeechKey && options.azureSpeechRegion) {
-    const resolved = resolveVoiceForSlot("azure", options.language, options.voiceMaps, options.voiceSlot)
-    if (resolved) {
-      attempts.push({
-        provider: "azure",
-        model: resolveSpeechModel("azure", options.providerConfigs),
-        voice: resolved.voice,
-      })
-    }
+    attempts.push({
+      provider: "azure",
+      model: resolveSpeechModel("azure", options.providerConfigs),
+      voice: resolveVoice("azure", options.language, options.voiceMaps),
+    })
   }
 
   if (options.elevenLabsApiKey) {
-    const resolved = resolveVoiceForSlot("elevenlabs", options.language, options.voiceMaps, options.voiceSlot)
-    if (resolved) {
-      attempts.push({
-        provider: "elevenlabs",
-        model: resolveSpeechModel("elevenlabs", options.providerConfigs),
-        voice: resolved.voice,
-      })
-    }
+    attempts.push({
+      provider: "elevenlabs",
+      model: resolveSpeechModel("elevenlabs", options.providerConfigs),
+      voice: resolveVoice("elevenlabs", options.language, options.voiceMaps),
+    })
   }
 
   return attempts.filter((attempt) => attempt.provider !== options.primaryProvider)
@@ -876,6 +864,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
       const instructionsMap = loadSpeechInstructions(configDir)
       const format = resolveSpeechFormat(provider, config.speech?.format)
+      // Cross-provider fallback is deliberately primary-only. A secondary
+      // narrator is a specific voice the user picked for this book; retrying it
+      // against another provider would quietly narrate the line in a different
+      // voice than the one they chose, which is worse than reporting the
+      // failure and letting them regenerate it.
       const fallbackAttempts = voiceSlot === "primary"
         ? getSingleItemFallbackAttempts({
             openaiApiKey,
@@ -885,7 +878,6 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
             language: normalizedLanguage,
             providerConfigs,
             voiceMaps,
-            voiceSlot,
             defaultOpenAIModel: defaultSpeechModel,
             primaryProvider: provider,
           })
