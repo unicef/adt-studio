@@ -117,10 +117,14 @@ export function ExamplesModal({ open, onClose, preset }: ExamplesModalProps) {
   const { i18n, t } = useLingui()
 
   const availableBooks = preset.exampleBooks.filter((b) => !b.comingSoon)
-  const [selectedBook, setSelectedBook] = useState<ExampleBook>(
-    () => availableBooks[0] ?? preset.exampleBooks[0],
+  const [selectedBook, setSelectedBook] = useState<ExampleBook | null>(
+    () => availableBooks[0] ?? null,
   )
   const [activeTab, setActiveTab] = useState<EmbedTab>("pdf")
+
+  if (!selectedBook) {
+    return null
+  }
 
   const pdfUrl = selectedBook.pdfUrl
   const embedUrl = activeTab === "pdf" ? pdfUrl : selectedBook.adtUrl

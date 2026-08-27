@@ -565,16 +565,7 @@ export const PRESETS: PresetConfig[] = [
       msg`Experimental configurations`,
       msg`Multi-format publications`,
     ],
-    exampleBooks: [
-      {
-        // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
-        title: "Custom Layout Demo",
-        pdfUrl: DEMO_PDF_URL,
-        adtUrl: DEMO_ADT_URL,
-      },
-      // eslint-disable-next-line lingui/no-unlocalized-strings -- example book titles are intentionally not translated
-      { title: "Mixed Content Project", comingSoon: true },
-    ],
+    exampleBooks: [],
     recommendations: {},
   },
 ];

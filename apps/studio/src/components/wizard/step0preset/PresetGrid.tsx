@@ -2,6 +2,7 @@ import { useState } from "react"
 import { PRESETS, type PresetId } from "@/components/wizard/constants"
 import { PresetCard } from "./PresetCard"
 import { ExamplesModal } from "./ExamplesModal"
+import { hasAvailableExamples } from "./exampleAvailability"
 
 interface PresetGridProps {
   selected: PresetId | null
@@ -14,6 +15,8 @@ export function PresetGrid({ selected, onSelect }: PresetGridProps) {
   const examplesPreset = examplesPresetId
     ? PRESETS.find((p) => p.id === examplesPresetId) ?? null
     : null
+  const canShowExamples =
+    examplesPreset !== null && hasAvailableExamples(examplesPreset)
 
   return (
     <>
@@ -34,7 +37,7 @@ export function PresetGrid({ selected, onSelect }: PresetGridProps) {
         ))}
       </div>
 
-      {examplesPreset && (
+      {examplesPreset && canShowExamples && (
         <ExamplesModal
           open={examplesPresetId !== null}
           onClose={() => setExamplesPresetId(null)}

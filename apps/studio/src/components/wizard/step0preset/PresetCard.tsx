@@ -13,6 +13,7 @@ import {
   getPresetAccent,
   getPresetRecommendationEntries,
 } from "@/components/wizard/constants"
+import { hasAvailableExamples } from "./exampleAvailability"
 
 function DefaultsHoverCard({ preset }: { preset: PresetConfig }) {
   const { i18n } = useLingui()
@@ -72,6 +73,7 @@ export function PresetCard({
   const radioId = useId()
   const defaultEntries = getPresetRecommendationEntries(preset.recommendations)
   const accent = getPresetAccent(preset.id)
+  const canShowExamples = hasAvailableExamples(preset)
 
   return (
     <label
@@ -129,22 +131,24 @@ export function PresetCard({
           className="flex items-center justify-between mt-1"
           style={{ visibility: preset.id === "custom" ? "hidden" : "visible" }}
         >
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              onShowExamples(preset.id)
-            }}
-            className="flex items-center gap-1.5 text-xs font-medium text-[#2b7fff] hover:underline w-fit cursor-pointer"
-          >
-            <Info className="h-3.5 w-3.5 shrink-0" />
-            <Trans>See examples</Trans>
-          </button>
+          {canShowExamples && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onShowExamples(preset.id)
+              }}
+              className="flex items-center gap-1.5 text-xs font-medium text-[#2b7fff] hover:underline w-fit cursor-pointer"
+            >
+              <Info className="h-3.5 w-3.5 shrink-0" />
+              <Trans>See examples</Trans>
+            </button>
+          )}
 
           <HoverCard openDelay={150} closeDelay={100}>
             <HoverCardTrigger asChild>
               <div
-                className="flex items-center gap-1 rounded-full border border-[#e5e5e5] px-2 py-0.5 cursor-pointer hover:border-[#2b7fff]/50 transition-colors"
+                className="ml-auto flex items-center gap-1 rounded-full border border-[#e5e5e5] px-2 py-0.5 cursor-pointer hover:border-[#2b7fff]/50 transition-colors"
                 onClick={(e) => e.stopPropagation()}
               >
                 <Settings className="h-3.5 w-3.5 text-[#0a0a0a]" />
