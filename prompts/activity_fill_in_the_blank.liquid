@@ -4,7 +4,7 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 {% include "_render_fidelity" %}
 
 ### Layout Shell (MANDATORY)
-<div class="flex justify-center items-start min-h-[calc(100dvh-100px)]">
+<div class="flex justify-center items-start min-h-[var(--page-height)]">
   <div class="container mx-auto max-w-5xl bg-white rounded-lg px-24 max-lg:px-12 max-sm:px-6 pt-12 pb-12" id="content">
     ...section...
   </div>
@@ -287,7 +287,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 
 ### Example: Inline blanks (DEFAULT)
 ```html
-<div class="flex justify-center items-start min-h-[calc(100dvh-100px)]">
+<div class="flex justify-center items-start min-h-[var(--page-height)]">
   <div class="container mx-auto max-w-5xl bg-white rounded-lg px-24 max-lg:px-12 max-sm:px-6 pt-12 pb-12" id="content">
     <section data-section-type="activity_fill_in_the_blank" data-section-id="SECTION_ID_FROM_INPUT">
       <p class="mb-4 text-center">

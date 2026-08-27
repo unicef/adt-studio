@@ -3830,6 +3830,9 @@ msgstr "El primer idioma es el predeterminado"
 msgid "Fit"
 msgstr "Ajustar"
 
+msgid "Fit to panel · showing {display}% of full size"
+msgstr "Ajustado al panel · mostrando el {display}% del tamaño original"
+
 msgid "Fixed layout"
 msgstr "Diseño fijo"
 

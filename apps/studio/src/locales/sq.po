@@ -3832,6 +3832,9 @@ msgstr "Gjuha e parë është e parazgjedhur"
 msgid "Fit"
 msgstr "Përshtat"
 
+msgid "Fit to panel · showing {display}% of full size"
+msgstr "Përshtatur me panelin · duke shfaqur {display}% të madhësisë së plotë"
+
 msgid "Fixed layout"
 msgstr "Strukturë fikse"
 
