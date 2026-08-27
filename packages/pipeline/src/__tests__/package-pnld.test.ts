@@ -423,6 +423,35 @@ describe("relocateMedia", () => {
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
+  // Gemini synthesises wav, so adding .wav/.ogg to MEDIA_DEST changed the
+  // export layout for every single-voice Gemini book, not just dual-voice ones.
+  // Those books have no audio_voices.json at all — pin that path explicitly.
+  it("relocates wav audio for a single-voice book with no voices manifest", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
+    const dataDir = path.join(dir, "resources", "data")
+    const langDir = path.join(dataDir, "content", "i18n", "pt-br")
+    fs.mkdirSync(path.join(langDir, "audio"), { recursive: true })
+    fs.writeFileSync(path.join(langDir, "audio", "pg001_t001.wav"), "wav")
+    fs.writeFileSync(path.join(langDir, "audio", "pg001_t002.ogg"), "ogg")
+    fs.writeFileSync(
+      path.join(langDir, "audios.json"),
+      JSON.stringify({ pg001_t001: "pg001_t001.wav", pg001_t002: "pg001_t002.ogg" }),
+    )
+
+    relocateMedia(dir)
+
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__pg001_t001.wav"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__pg001_t002.ogg"))).toBe(true)
+    expect(readJson(path.join(langDir, "audios.json"))).toEqual({
+      pg001_t001: "pt-br__pg001_t001.wav",
+      pg001_t002: "pt-br__pg001_t002.ogg",
+    })
+    // A missing audio_voices.json must not stop the audios.json rewrite.
+    expect(fs.existsSync(path.join(langDir, "audio_voices.json"))).toBe(false)
+    expect(fs.existsSync(path.join(langDir, "audio"))).toBe(false)
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
   it("leaves resources/data untouched when there is no media", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
     const dataDir = path.join(dir, "resources", "data")
