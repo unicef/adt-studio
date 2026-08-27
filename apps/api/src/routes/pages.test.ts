@@ -186,6 +186,30 @@ describe("Page routes", () => {
     })
   })
 
+  describe("GET /api/books/:label/pages/:pageId/render", () => {
+    /** The point of this route over its base64 sibling: an `<img>` can point at it, which means
+     *  the browser caches it and a grid of a hundred pages costs a hundred cached GETs rather
+     *  than a hundred data URLs held in JS memory. */
+    it("serves the page image as a cacheable PNG", async () => {
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/render`
+      )
+
+      expect(res.status).toBe(200)
+      expect(res.headers.get("content-type")).toBe("image/png")
+      expect(res.headers.get("cache-control")).toContain("max-age=")
+      expect((await res.arrayBuffer()).byteLength).toBeGreaterThan(0)
+    })
+
+    it("returns 404 for a page with no image", async () => {
+      const res = await app.request(
+        `/api/books/${label}/pages/fake-page/render`
+      )
+
+      expect(res.status).toBe(404)
+    })
+  })
+
   describe("PUT /api/books/:label/pages/:pageId/sectioning", () => {
     it("saves page sectioning and returns version", async () => {
       const data = {

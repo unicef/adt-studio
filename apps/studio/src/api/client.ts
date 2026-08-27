@@ -118,6 +118,11 @@ export function getSourcePdfUrl(label: string): string {
   return `${BASE_URL}/books/${label}/source-pdf`
 }
 
+/** The page image as a cacheable URL, for grids that would choke on base64 per page. */
+export function getPageRenderUrl(label: string, pageId: string): string {
+  return `${BASE_URL}/books/${label}/pages/${encodeURIComponent(pageId)}/render`
+}
+
 export function getBookCoverUrl(label: string, cacheKey?: string): string {
   const base = `${BASE_URL}/books/${label}/cover`
   if (!cacheKey) return base
